@@ -1,0 +1,2608 @@
+/* A Bison parser, made by GNU Bison 1.875a.  */
+
+/* Skeleton parser for Yacc-like parsing with Bison,
+   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.  */
+
+/* As a special exception, when this file is copied by Bison into a
+   Bison output file, you may use that output file without restriction.
+   This special exception was added by the Free Software Foundation
+   in version 1.24 of Bison.  */
+
+/* Written by Richard Stallman by simplifying the original so called
+   ``semantic'' parser.  */
+
+/* All symbols defined below should begin with yy or YY, to avoid
+   infringing on user name space.  This should be done even for local
+   variables, as they might otherwise be expanded by user macros.
+   There are some unavoidable exceptions within include files to
+   define necessary library symbols; they are noted "INFRINGES ON
+   USER NAME SPACE" below.  */
+
+/* Identify Bison output.  */
+#define YYBISON 1
+
+/* Skeleton name.  */
+#define YYSKELETON_NAME "yacc.c"
+
+/* Pure parsers.  */
+#define YYPURE 0
+
+/* Using locations.  */
+#define YYLSP_NEEDED 0
+
+/* If NAME_PREFIX is specified substitute the variables and functions
+   names.  */
+#define yyparse versit_parse
+#define yylex   versit_lex
+#define yyerror versit_error
+#define yylval  versit_lval
+#define yychar  versit_char
+#define yydebug versit_debug
+#define yynerrs versit_nerrs
+
+
+/* Tokens.  */
+#ifndef YYTOKENTYPE
+# define YYTOKENTYPE
+   /* Put the tokens into the symbol table, so that GDB and other debuggers
+      know about them.  */
+   enum yytokentype {
+     EQ = 258,
+     COLON = 259,
+     DOT = 260,
+     SEMICOLON = 261,
+     SPACE = 262,
+     HTAB = 263,
+     LINESEP = 264,
+     NEWLINE = 265,
+     BEGIN_VCARD = 266,
+     END_VCARD = 267,
+     BEGIN_VCAL = 268,
+     END_VCAL = 269,
+     BEGIN_VEVENT = 270,
+     END_VEVENT = 271,
+     BEGIN_VTODO = 272,
+     END_VTODO = 273,
+     BEGIN_VALARM = 274,
+     END_VALARM = 275,
+     ID = 276,
+     STRING = 277
+   };
+#endif
+#define EQ 258
+#define COLON 259
+#define DOT 260
+#define SEMICOLON 261
+#define SPACE 262
+#define HTAB 263
+#define LINESEP 264
+#define NEWLINE 265
+#define BEGIN_VCARD 266
+#define END_VCARD 267
+#define BEGIN_VCAL 268
+#define END_VCAL 269
+#define BEGIN_VEVENT 270
+#define END_VEVENT 271
+#define BEGIN_VTODO 272
+#define END_VTODO 273
+#define BEGIN_VALARM 274
+#define END_VALARM 275
+#define ID 276
+#define STRING 277
+
+
+
+
+/* Copy the first part of user declarations.  */
+#line 1 "vcc.y"
+
+
+/***************************************************************************
+(C) Copyright 1996 Apple Computer, Inc., AT&T Corp., International
+Business Machines Corporation and Siemens Rolm Communications Inc.
+
+For purposes of this license notice, the term Licensors shall mean,
+collectively, Apple Computer, Inc., AT&T Corp., International
+Business Machines Corporation and Siemens Rolm Communications Inc.
+The term Licensor shall mean any of the Licensors.
+
+Subject to acceptance of the following conditions, permission is hereby
+granted by Licensors without the need for written agreement and without
+license or royalty fees, to use, copy, modify and distribute this
+software for any purpose.
+
+The above copyright notice and the following four paragraphs must be
+reproduced in all copies of this software and any software including
+this software.
+
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS AND NO LICENSOR SHALL HAVE
+ANY OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS OR
+MODIFICATIONS.
+
+IN NO EVENT SHALL ANY LICENSOR BE LIABLE TO ANY PARTY FOR DIRECT,
+INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES OR LOST PROFITS ARISING OUT
+OF THE USE OF THIS SOFTWARE EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+EACH LICENSOR SPECIFICALLY DISCLAIMS ANY WARRANTIES, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO ANY WARRANTY OF NONINFRINGEMENT OR THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.
+
+The software is provided with RESTRICTED RIGHTS.  Use, duplication, or
+disclosure by the government are subject to restrictions set forth in
+DFARS 252.227-7013 or 48 CFR 52.227-19, as applicable.
+
+***************************************************************************/
+
+/*
+ * src: vcc.c
+ * doc: Parser for vCard and vCalendar. Note that this code is
+ * generated by a yacc parser generator. Generally it should not
+ * be edited by hand. The real source is vcc.y. The #line directives
+ * can be commented out here to make it easier to trace through
+ * in a debugger. However, if a bug is found it should
+ * be fixed in vcc.y and this file regenerated.
+ */
+
+
+/* debugging utilities */
+#if __DEBUG
+#define DBG_(x) printf x
+#else
+#define DBG_(x)
+#endif
+
+/****  External Functions  ****/
+
+/* assign local name to parser variables and functions so that
+   we can use more than one yacc based parser.
+*/
+
+#undef yyparse
+#define yyparse mimeO_parse
+#undef yylex
+#define yylex mimeO_lex
+#undef yyerror
+#define yyerror mimeO_error
+#undef yychar
+#define yychar mimeO_char
+/* #define p_yyval p_mimeO_val */
+#undef yyval
+#define yyval mimeO_yyval
+/* #define p_yylval p_mimeO_lval */
+#undef yylval
+#define yylval mimeO_yylval
+#undef yydebug
+#define yydebug mimeO_debug
+#undef yynerrs
+#define yynerrs mimeO_nerrs
+#define yyerrflag mimeO_errflag
+#define yyss mimeO_ss
+#define yyssp mimeO_ssp
+#define yyvs mimeO_vs
+#define yyvsp mimeO_vsp
+#define yylhs mimeO_lhs
+#define yylen mimeO_len
+#define yydefred mimeO_defred
+#define yydgoto mimeO_dgoto
+#define yysindex mimeO_sindex
+#define yyrindex mimeO_rindex
+#define yygindex mimeO_gindex
+#define yytable mimeO_table
+#define yycheck mimeO_check
+#define yyname mimeO_name
+#define yyrule mimeO_rule
+#define YYPREFIX "mimeO_"
+
+
+#ifndef _NO_LINE_FOLDING
+#define _SUPPORT_LINE_FOLDING 1
+#endif
+
+/* undef below if compile with MFC */
+/* #define INCLUDEMFC 1 */
+
+#if defined(WIN32) || defined(_WIN32)
+#ifdef INCLUDEMFC
+#include <afx.h>
+#endif
+#endif
+
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include "vcc.h"
+
+static int yylex(void);
+static void yyerror(char *s);
+
+/****  Types, Constants  ****/
+
+#define YYDEBUG		1	/* 1 to compile in some debugging code */
+#define MAXTOKEN	256	/* maximum token (line) length */
+#define YYSTACKSIZE 	50	/* ~unref ? */
+#define MAXLEVEL	10	/* max # of nested objects parseable */
+				/* (includes outermost) */
+
+
+/****  Global Variables  ****/
+int mimeO_lineNum, mimeO_numErrors; /* yyerror() can use these */
+static VObjectO* vObjListO;
+static VObjectO *curPropO;
+static VObjectO *curObjO;
+static VObjectO* ObjStackO[MAXLEVEL];
+static int ObjStackTopO;
+
+
+/* A helpful utility for the rest of the app. */
+#if __CPLUSPLUS__
+extern "C" {
+#endif
+
+    extern void Parse_DebugO(const char *s);
+    extern void yyerror(char *s);
+
+#if __CPLUSPLUS__
+    };
+#endif
+
+int yyparse(void);
+
+enum LexModeO {
+	L_NORMAL,
+	L_VCARD,
+	L_VCAL,
+	L_VEVENT,
+	L_VTODO,
+        L_VALARM,
+	L_VALUES,
+	L_BASE64,
+	L_QUOTED_PRINTABLE
+	};
+
+/****  Private Forward Declarations  ****/
+static int pushVObjectO(const char *prop);
+static VObjectO* popVObjectO(void);
+#ifndef _SUPPORT_LINE_FOLDING
+static char* lexDataFromBase64O(void);
+#endif
+static void lexPopModeO(int top);
+static int lexWithinModeO(enum LexModeO mode);
+static void lexPushModeO(enum LexModeO mode);
+static void enterPropsO(const char *s);
+static void enterAttrO(const char *s1, const char *s2);
+#if 0
+static void enterValuesO(const char *value);
+#endif
+static void mimeO_error_(char *s);
+ static void appendValueO(const char *value);
+
+static int
+ascii_tolower(const char i) {
+	if ('A' <= i && i <= 'Z')
+		return i - ('A' - 'a');
+	return i;
+}
+
+static int
+ascii_stricmp(const char* s1, const char* s2) {
+	const char *p = s1, *q = s2;
+	while (*p || *q) {
+		char c1 = ascii_tolower(*p++);
+		char c2 = ascii_tolower(*q++);
+		if (c1 < c2)
+			return -1;
+		if (c1 > c2)
+			return 1;
+	}
+	return 0;
+}
+
+
+
+/* Enabling traces.  */
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+
+/* Enabling verbose error messages.  */
+#ifdef YYERROR_VERBOSE
+# undef YYERROR_VERBOSE
+# define YYERROR_VERBOSE 1
+#else
+# define YYERROR_VERBOSE 0
+#endif
+
+#if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
+#line 212 "vcc.y"
+typedef union YYSTYPE {
+    char *str;
+    VObjectO *vobj;
+    } YYSTYPE;
+/* Line 191 of yacc.c.  */
+#line 341 "vcc.c"
+# define yystype YYSTYPE /* obsolescent; will be withdrawn */
+# define YYSTYPE_IS_DECLARED 1
+# define YYSTYPE_IS_TRIVIAL 1
+#endif
+
+
+
+/* Copy the second part of user declarations.  */
+
+
+/* Line 214 of yacc.c.  */
+#line 353 "vcc.c"
+
+#if ! defined (yyoverflow) || YYERROR_VERBOSE
+
+/* The parser invokes alloca or malloc; define the necessary symbols.  */
+
+# if YYSTACK_USE_ALLOCA
+#  define YYSTACK_ALLOC alloca
+# else
+#  ifndef YYSTACK_USE_ALLOCA
+#   if defined (alloca) || defined (_ALLOCA_H)
+#    define YYSTACK_ALLOC alloca
+#   else
+#    ifdef __GNUC__
+#     define YYSTACK_ALLOC __builtin_alloca
+#    endif
+#   endif
+#  endif
+# endif
+
+# ifdef YYSTACK_ALLOC
+   /* Pacify GCC's `empty if-body' warning. */
+#  define YYSTACK_FREE(Ptr) do { /* empty */; } while (0)
+# else
+#  if defined (__STDC__) || defined (__cplusplus)
+#   include <stdlib.h> /* INFRINGES ON USER NAME SPACE */
+#   define YYSIZE_T size_t
+#  endif
+#  define YYSTACK_ALLOC malloc
+#  define YYSTACK_FREE free
+# endif
+#endif /* ! defined (yyoverflow) || YYERROR_VERBOSE */
+
+
+#if (! defined (yyoverflow) \
+     && (! defined (__cplusplus) \
+	 || (YYSTYPE_IS_TRIVIAL)))
+
+/* A type that is properly aligned for any stack member.  */
+union yyalloc
+{
+  short yyss;
+  YYSTYPE yyvs;
+  };
+
+/* The size of the maximum gap between one aligned stack and the next.  */
+# define YYSTACK_GAP_MAXIMUM (sizeof (union yyalloc) - 1)
+
+/* The size of an array large to enough to hold all stacks, each with
+   N elements.  */
+# define YYSTACK_BYTES(N) \
+     ((N) * (sizeof (short) + sizeof (YYSTYPE))				\
+      + YYSTACK_GAP_MAXIMUM)
+
+/* Copy COUNT objects from FROM to TO.  The source and destination do
+   not overlap.  */
+# ifndef YYCOPY
+#  if 1 < __GNUC__
+#   define YYCOPY(To, From, Count) \
+      __builtin_memcpy (To, From, (Count) * sizeof (*(From)))
+#  else
+#   define YYCOPY(To, From, Count)		\
+      do					\
+	{					\
+	  register YYSIZE_T yyi;		\
+	  for (yyi = 0; yyi < (Count); yyi++)	\
+	    (To)[yyi] = (From)[yyi];		\
+	}					\
+      while (0)
+#  endif
+# endif
+
+/* Relocate STACK from its old location to the new one.  The
+   local variables YYSIZE and YYSTACKSIZE give the old and new number of
+   elements in the stack, and YYPTR gives the new location of the
+   stack.  Advance YYPTR to a properly aligned location for the next
+   stack.  */
+# define YYSTACK_RELOCATE(Stack)					\
+    do									\
+      {									\
+	YYSIZE_T yynewbytes;						\
+	YYCOPY (&yyptr->Stack, Stack, yysize);				\
+	Stack = &yyptr->Stack;						\
+	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
+	yyptr += yynewbytes / sizeof (*yyptr);				\
+      }									\
+    while (0)
+
+#endif
+
+#if defined (__STDC__) || defined (__cplusplus)
+   typedef signed char yysigned_char;
+#else
+   typedef short yysigned_char;
+#endif
+
+/* YYFINAL -- State number of the termination state. */
+#define YYFINAL  12
+/* YYLAST -- Last index in YYTABLE.  */
+#define YYLAST   64
+
+/* YYNTOKENS -- Number of terminals. */
+#define YYNTOKENS  23
+/* YYNNTS -- Number of nonterminals. */
+#define YYNNTS  35
+/* YYNRULES -- Number of rules. */
+#define YYNRULES  53
+/* YYNRULES -- Number of states. */
+#define YYNSTATES  70
+
+/* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
+#define YYUNDEFTOK  2
+#define YYMAXUTOK   277
+
+#define YYTRANSLATE(YYX) 						\
+  ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+
+/* YYTRANSLATE[YYLEX] -- Bison symbol number corresponding to YYLEX.  */
+static const unsigned char yytranslate[] =
+{
+       0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
+       5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
+      15,    16,    17,    18,    19,    20,    21,    22
+};
+
+#if YYDEBUG
+/* YYPRHS[YYN] -- Index of the first RHS symbol of rule number YYN in
+   YYRHS.  */
+static const unsigned char yyprhs[] =
+{
+       0,     0,     3,     5,     6,    10,    12,    14,    16,    17,
+      22,    23,    27,    30,    32,    33,    39,    41,    42,    46,
+      48,    51,    53,    56,    58,    62,    64,    65,    70,    72,
+      74,    75,    76,    81,    82,    86,    89,    91,    93,    95,
+      97,    99,   102,   103,   108,   109,   113,   114,   119,   120,
+     124,   125,   130,   131
+};
+
+/* YYRHS -- A `-1'-separated list of the rules' RHS. */
+static const yysigned_char yyrhs[] =
+{
+      24,     0,    -1,    25,    -1,    -1,    27,    26,    25,    -1,
+      27,    -1,    28,    -1,    43,    -1,    -1,    11,    29,    31,
+      12,    -1,    -1,    11,    30,    12,    -1,    32,    31,    -1,
+      32,    -1,    -1,    34,     4,    33,    40,     9,    -1,     1,
+      -1,    -1,    39,    35,    36,    -1,    39,    -1,    37,    36,
+      -1,    37,    -1,     6,    38,    -1,    39,    -1,    39,     3,
+      39,    -1,    21,    -1,    -1,    42,     6,    41,    40,    -1,
+      42,    -1,    22,    -1,    -1,    -1,    13,    44,    46,    14,
+      -1,    -1,    13,    45,    14,    -1,    47,    46,    -1,    47,
+      -1,    49,    -1,    52,    -1,    31,    -1,    31,    -1,    31,
+      55,    -1,    -1,    15,    50,    48,    16,    -1,    -1,    15,
+      51,    16,    -1,    -1,    17,    53,    31,    18,    -1,    -1,
+      17,    54,    18,    -1,    -1,    19,    56,    31,    20,    -1,
+      -1,    19,    57,    20,    -1
+};
+
+/* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
+static const unsigned short yyrline[] =
+{
+       0,   241,   241,   245,   244,   247,   251,   252,   257,   256,
+     267,   266,   278,   279,   283,   282,   292,   296,   295,   300,
+     306,   307,   310,   313,   317,   324,   327,   327,   328,   332,
+     333,   338,   337,   343,   342,   348,   349,   353,   354,   355,
+     359,   360,   365,   364,   376,   375,   389,   388,   400,   399,
+     413,   412,   424,   423
+};
+#endif
+
+#if YYDEBUG || YYERROR_VERBOSE
+/* YYTNME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
+   First, the terminals, then, starting at YYNTOKENS, nonterminals. */
+static const char *const yytname[] =
+{
+  "$end", "error", "$undefined", "EQ", "COLON", "DOT", "SEMICOLON", "SPACE", 
+  "HTAB", "LINESEP", "NEWLINE", "BEGIN_VCARD", "END_VCARD", "BEGIN_VCAL", 
+  "END_VCAL", "BEGIN_VEVENT", "END_VEVENT", "BEGIN_VTODO", "END_VTODO", 
+  "BEGIN_VALARM", "END_VALARM", "ID", "STRING", "$accept", "mime", 
+  "vobjects", "@1", "vobject", "vcard", "@2", "@3", "items", "item", "@4", 
+  "prop", "@5", "attr_params", "attr_param", "attr", "name", "values", 
+  "@6", "value", "vcal", "@7", "@8", "calitems", "calitem", "eventitems", 
+  "eventitem", "@9", "@10", "todoitem", "@11", "@12", "alarmitem", "@13", 
+  "@14", 0
+};
+#endif
+
+# ifdef YYPRINT
+/* YYTOKNUM[YYLEX-NUM] -- Internal token number corresponding to
+   token YYLEX-NUM.  */
+static const unsigned short yytoknum[] =
+{
+       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+     265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
+     275,   276,   277
+};
+# endif
+
+/* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+static const unsigned char yyr1[] =
+{
+       0,    23,    24,    26,    25,    25,    27,    27,    29,    28,
+      30,    28,    31,    31,    33,    32,    32,    35,    34,    34,
+      36,    36,    37,    38,    38,    39,    41,    40,    40,    42,
+      42,    44,    43,    45,    43,    46,    46,    47,    47,    47,
+      48,    48,    50,    49,    51,    49,    53,    52,    54,    52,
+      56,    55,    57,    55
+};
+
+/* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
+static const unsigned char yyr2[] =
+{
+       0,     2,     1,     0,     3,     1,     1,     1,     0,     4,
+       0,     3,     2,     1,     0,     5,     1,     0,     3,     1,
+       2,     1,     2,     1,     3,     1,     0,     4,     1,     1,
+       0,     0,     4,     0,     3,     2,     1,     1,     1,     1,
+       1,     2,     0,     4,     0,     3,     0,     4,     0,     3,
+       0,     4,     0,     3
+};
+
+/* YYDEFACT[STATE-NAME] -- Default rule to reduce with in state
+   STATE-NUM when YYTABLE doesn't specify something else to do.  Zero
+   means the default is an error.  */
+static const unsigned char yydefact[] =
+{
+       0,     8,    31,     0,     2,     3,     6,     7,     0,     0,
+       0,     0,     1,     0,    16,    25,     0,     0,     0,    17,
+      11,    42,    46,    39,     0,     0,    37,    38,    34,     4,
+       9,    12,    14,     0,     0,     0,     0,     0,    32,    35,
+      30,     0,    18,    21,    40,     0,    45,     0,    49,    29,
+       0,    28,    22,    23,    20,    50,    41,    43,    47,    15,
+      26,     0,     0,     0,    30,    24,     0,    53,    27,    51
+};
+
+/* YYDEFGOTO[NTERM-NUM]. */
+static const yysigned_char yydefgoto[] =
+{
+      -1,     3,     4,    13,     5,     6,     8,     9,    23,    17,
+      40,    18,    33,    42,    43,    52,    19,    50,    64,    51,
+       7,    10,    11,    24,    25,    45,    26,    34,    35,    27,
+      36,    37,    56,    62,    63
+};
+
+/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+   STATE-NUM.  */
+#define YYPACT_NINF -32
+static const yysigned_char yypact[] =
+{
+      -9,    -7,    -6,     6,   -32,     7,   -32,   -32,     2,     1,
+      21,    15,   -32,    -9,   -32,   -32,    20,     0,    29,    30,
+     -32,    19,    22,   -32,    23,    10,   -32,   -32,   -32,   -32,
+     -32,   -32,   -32,    33,     2,    25,     2,    26,   -32,   -32,
+      24,    27,   -32,    33,    28,    34,   -32,    31,   -32,   -32,
+      36,    37,   -32,    48,   -32,    32,   -32,   -32,   -32,   -32,
+     -32,    27,     2,    35,    24,   -32,    38,   -32,   -32,   -32
+};
+
+/* YYPGOTO[NTERM-NUM].  */
+static const yysigned_char yypgoto[] =
+{
+     -32,   -32,    40,   -32,   -32,   -32,   -32,   -32,    -8,   -32,
+     -32,   -32,   -32,    13,   -32,   -32,   -31,    -5,   -32,   -32,
+     -32,   -32,   -32,    39,   -32,   -32,   -32,   -32,   -32,   -32,
+     -32,   -32,   -32,   -32,   -32
+};
+
+/* YYTABLE[YYPACT[STATE-NUM]].  What to do in state STATE-NUM.  If
+   positive, shift that token.  If negative, reduce the rule which
+   number is the opposite.  If zero, do what YYDEFACT says.
+   If YYTABLE_NINF, syntax error.  */
+#define YYTABLE_NINF -53
+static const yysigned_char yytable[] =
+{
+      16,    14,     1,    14,     2,   -10,    12,    -5,   -33,    31,
+      53,    14,   -13,    20,   -13,   -13,   -13,   -13,   -13,   -13,
+     -13,    15,    14,    15,   -36,    21,    44,    22,    47,    28,
+      65,    15,    30,    32,   -19,   -44,    21,    38,    22,    41,
+     -48,    46,    15,    60,    48,    59,    49,    55,    15,    58,
+      57,    61,   -52,    29,    66,    67,    54,     0,    69,    68,
+       0,     0,     0,     0,    39
+};
+
+static const yysigned_char yycheck[] =
+{
+       8,     1,    11,     1,    13,    12,     0,     0,    14,    17,
+      41,     1,    12,    12,    14,    15,    16,    17,    18,    19,
+      20,    21,     1,    21,    14,    15,    34,    17,    36,    14,
+      61,    21,    12,     4,     4,    16,    15,    14,    17,     6,
+      18,    16,    21,     6,    18,     9,    22,    19,    21,    18,
+      16,     3,    20,    13,    62,    20,    43,    -1,    20,    64,
+      -1,    -1,    -1,    -1,    25
+};
+
+/* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+   symbol of state STATE-NUM.  */
+static const unsigned char yystos[] =
+{
+       0,    11,    13,    24,    25,    27,    28,    43,    29,    30,
+      44,    45,     0,    26,     1,    21,    31,    32,    34,    39,
+      12,    15,    17,    31,    46,    47,    49,    52,    14,    25,
+      12,    31,     4,    35,    50,    51,    53,    54,    14,    46,
+      33,     6,    36,    37,    31,    48,    16,    31,    18,    22,
+      40,    42,    38,    39,    36,    19,    55,    16,    18,     9,
+       6,     3,    56,    57,    41,    39,    31,    20,    40,    20
+};
+
+#if ! defined (YYSIZE_T) && defined (__SIZE_TYPE__)
+# define YYSIZE_T __SIZE_TYPE__
+#endif
+#if ! defined (YYSIZE_T) && defined (size_t)
+# define YYSIZE_T size_t
+#endif
+#if ! defined (YYSIZE_T)
+# if defined (__STDC__) || defined (__cplusplus)
+#  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+#  define YYSIZE_T size_t
+# endif
+#endif
+#if ! defined (YYSIZE_T)
+# define YYSIZE_T unsigned int
+#endif
+
+#define yyerrok		(yyerrstatus = 0)
+#define yyclearin	(yychar = YYEMPTY)
+#define YYEMPTY		(-2)
+#define YYEOF		0
+
+#define YYACCEPT	goto yyacceptlab
+#define YYABORT		goto yyabortlab
+#define YYERROR		goto yyerrlab1
+
+
+/* Like YYERROR except do call yyerror.  This remains here temporarily
+   to ease the transition to the new meaning of YYERROR, for GCC.
+   Once GCC version 2 has supplanted version 1, this can go.  */
+
+#define YYFAIL		goto yyerrlab
+
+#define YYRECOVERING()  (!!yyerrstatus)
+
+#define YYBACKUP(Token, Value)					\
+do								\
+  if (yychar == YYEMPTY && yylen == 1)				\
+    {								\
+      yychar = (Token);						\
+      yylval = (Value);						\
+      yytoken = YYTRANSLATE (yychar);				\
+      YYPOPSTACK;						\
+      goto yybackup;						\
+    }								\
+  else								\
+    { 								\
+      yyerror ("syntax error: cannot back up");\
+      YYERROR;							\
+    }								\
+while (0)
+
+#define YYTERROR	1
+#define YYERRCODE	256
+
+/* YYLLOC_DEFAULT -- Compute the default location (before the actions
+   are run).  */
+
+#ifndef YYLLOC_DEFAULT
+# define YYLLOC_DEFAULT(Current, Rhs, N)         \
+  Current.first_line   = Rhs[1].first_line;      \
+  Current.first_column = Rhs[1].first_column;    \
+  Current.last_line    = Rhs[N].last_line;       \
+  Current.last_column  = Rhs[N].last_column;
+#endif
+
+/* YYLEX -- calling `yylex' with the right arguments.  */
+
+#ifdef YYLEX_PARAM
+# define YYLEX yylex (YYLEX_PARAM)
+#else
+# define YYLEX yylex ()
+#endif
+
+/* Enable debugging if requested.  */
+#if YYDEBUG
+
+# ifndef YYFPRINTF
+#  include <stdio.h> /* INFRINGES ON USER NAME SPACE */
+#  define YYFPRINTF fprintf
+# endif
+
+# define YYDPRINTF(Args)			\
+do {						\
+  if (yydebug)					\
+    YYFPRINTF Args;				\
+} while (0)
+
+# define YYDSYMPRINT(Args)			\
+do {						\
+  if (yydebug)					\
+    yysymprint Args;				\
+} while (0)
+
+# define YYDSYMPRINTF(Title, Token, Value, Location)		\
+do {								\
+  if (yydebug)							\
+    {								\
+      YYFPRINTF (stderr, "%s ", Title);				\
+      yysymprint (stderr, 					\
+                  Token, Value);	\
+      YYFPRINTF (stderr, "\n");					\
+    }								\
+} while (0)
+
+/*------------------------------------------------------------------.
+| yy_stack_print -- Print the state stack from its BOTTOM up to its |
+| TOP (cinluded).                                                   |
+`------------------------------------------------------------------*/
+
+#if defined (__STDC__) || defined (__cplusplus)
+static void
+yy_stack_print (short *bottom, short *top)
+#else
+static void
+yy_stack_print (bottom, top)
+    short *bottom;
+    short *top;
+#endif
+{
+  YYFPRINTF (stderr, "Stack now");
+  for (/* Nothing. */; bottom <= top; ++bottom)
+    YYFPRINTF (stderr, " %d", *bottom);
+  YYFPRINTF (stderr, "\n");
+}
+
+# define YY_STACK_PRINT(Bottom, Top)				\
+do {								\
+  if (yydebug)							\
+    yy_stack_print ((Bottom), (Top));				\
+} while (0)
+
+
+/*------------------------------------------------.
+| Report that the YYRULE is going to be reduced.  |
+`------------------------------------------------*/
+
+#if defined (__STDC__) || defined (__cplusplus)
+static void
+yy_reduce_print (int yyrule)
+#else
+static void
+yy_reduce_print (yyrule)
+    int yyrule;
+#endif
+{
+  int yyi;
+  unsigned int yylineno = yyrline[yyrule];
+  YYFPRINTF (stderr, "Reducing stack by rule %d (line %u), ",
+             yyrule - 1, yylineno);
+  /* Print the symbols being reduced, and their result.  */
+  for (yyi = yyprhs[yyrule]; 0 <= yyrhs[yyi]; yyi++)
+    YYFPRINTF (stderr, "%s ", yytname [yyrhs[yyi]]);
+  YYFPRINTF (stderr, "-> %s\n", yytname [yyr1[yyrule]]);
+}
+
+# define YY_REDUCE_PRINT(Rule)		\
+do {					\
+  if (yydebug)				\
+    yy_reduce_print (Rule);		\
+} while (0)
+
+/* Nonzero means print parse trace.  It is left uninitialized so that
+   multiple parsers can coexist.  */
+int yydebug;
+#else /* !YYDEBUG */
+# define YYDPRINTF(Args)
+# define YYDSYMPRINT(Args)
+# define YYDSYMPRINTF(Title, Token, Value, Location)
+# define YY_STACK_PRINT(Bottom, Top)
+# define YY_REDUCE_PRINT(Rule)
+#endif /* !YYDEBUG */
+
+
+/* YYINITDEPTH -- initial size of the parser's stacks.  */
+#ifndef	YYINITDEPTH
+# define YYINITDEPTH 200
+#endif
+
+/* YYMAXDEPTH -- maximum size the stacks can grow to (effective only
+   if the built-in stack extension method is used).
+
+   Do not make this value too large; the results are undefined if
+   SIZE_MAX < YYSTACK_BYTES (YYMAXDEPTH)
+   evaluated with infinite-precision integer arithmetic.  */
+
+#if YYMAXDEPTH == 0
+# undef YYMAXDEPTH
+#endif
+
+#ifndef YYMAXDEPTH
+# define YYMAXDEPTH 10000
+#endif
+
+
+
+#if YYERROR_VERBOSE
+
+# ifndef yystrlen
+#  if defined (__GLIBC__) && defined (_STRING_H)
+#   define yystrlen strlen
+#  else
+/* Return the length of YYSTR.  */
+static YYSIZE_T
+#   if defined (__STDC__) || defined (__cplusplus)
+yystrlen (const char *yystr)
+#   else
+yystrlen (yystr)
+     const char *yystr;
+#   endif
+{
+  register const char *yys = yystr;
+
+  while (*yys++ != '\0')
+    continue;
+
+  return yys - yystr - 1;
+}
+#  endif
+# endif
+
+# ifndef yystpcpy
+#  if defined (__GLIBC__) && defined (_STRING_H) && defined (_GNU_SOURCE)
+#   define yystpcpy stpcpy
+#  else
+/* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
+   YYDEST.  */
+static char *
+#   if defined (__STDC__) || defined (__cplusplus)
+yystpcpy (char *yydest, const char *yysrc)
+#   else
+yystpcpy (yydest, yysrc)
+     char *yydest;
+     const char *yysrc;
+#   endif
+{
+  register char *yyd = yydest;
+  register const char *yys = yysrc;
+
+  while ((*yyd++ = *yys++) != '\0')
+    continue;
+
+  return yyd - 1;
+}
+#  endif
+# endif
+
+#endif /* !YYERROR_VERBOSE */
+
+
+
+#if YYDEBUG
+/*--------------------------------.
+| Print this symbol on YYOUTPUT.  |
+`--------------------------------*/
+
+#if defined (__STDC__) || defined (__cplusplus)
+static void
+yysymprint (FILE *yyoutput, int yytype, YYSTYPE *yyvaluep)
+#else
+static void
+yysymprint (yyoutput, yytype, yyvaluep)
+    FILE *yyoutput;
+    int yytype;
+    YYSTYPE *yyvaluep;
+#endif
+{
+  /* Pacify ``unused variable'' warnings.  */
+  (void) yyvaluep;
+
+  if (yytype < YYNTOKENS)
+    {
+      YYFPRINTF (yyoutput, "token %s (", yytname[yytype]);
+# ifdef YYPRINT
+      YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
+# endif
+    }
+  else
+    YYFPRINTF (yyoutput, "nterm %s (", yytname[yytype]);
+
+  switch (yytype)
+    {
+      default:
+        break;
+    }
+  YYFPRINTF (yyoutput, ")");
+}
+
+#endif /* ! YYDEBUG */
+/*-----------------------------------------------.
+| Release the memory associated to this symbol.  |
+`-----------------------------------------------*/
+
+#if defined (__STDC__) || defined (__cplusplus)
+static void
+yydestruct (int yytype, YYSTYPE *yyvaluep)
+#else
+static void
+yydestruct (yytype, yyvaluep)
+    int yytype;
+    YYSTYPE *yyvaluep;
+#endif
+{
+  /* Pacify ``unused variable'' warnings.  */
+  (void) yyvaluep;
+
+  switch (yytype)
+    {
+
+      default:
+        break;
+    }
+}
+
+
+/* Prevent warnings from -Wmissing-prototypes.  */
+
+#ifdef YYPARSE_PARAM
+# if defined (__STDC__) || defined (__cplusplus)
+int yyparse (void *YYPARSE_PARAM);
+# else
+int yyparse ();
+# endif
+#else /* ! YYPARSE_PARAM */
+#if defined (__STDC__) || defined (__cplusplus)
+int yyparse (void);
+#else
+int yyparse ();
+#endif
+#endif /* ! YYPARSE_PARAM */
+
+
+
+/* The lookahead symbol.  */
+int yychar;
+
+/* The semantic value of the lookahead symbol.  */
+YYSTYPE yylval;
+
+/* Number of syntax errors so far.  */
+int yynerrs;
+
+
+
+/*----------.
+| yyparse.  |
+`----------*/
+
+#ifdef YYPARSE_PARAM
+# if defined (__STDC__) || defined (__cplusplus)
+int yyparse (void *YYPARSE_PARAM)
+# else
+int yyparse (YYPARSE_PARAM)
+  void *YYPARSE_PARAM;
+# endif
+#else /* ! YYPARSE_PARAM */
+#if defined (__STDC__) || defined (__cplusplus)
+int
+yyparse (void)
+#else
+int
+yyparse ()
+
+#endif
+#endif
+{
+  
+  register int yystate;
+  register int yyn;
+  int yyresult;
+  /* Number of tokens to shift before error messages enabled.  */
+  int yyerrstatus;
+  /* Lookahead token as an internal (translated) token number.  */
+  int yytoken = 0;
+
+  /* Three stacks and their tools:
+     `yyss': related to states,
+     `yyvs': related to semantic values,
+     `yyls': related to locations.
+
+     Refer to the stacks thru separate pointers, to allow yyoverflow
+     to reallocate them elsewhere.  */
+
+  /* The state stack.  */
+  short	yyssa[YYINITDEPTH];
+  short *yyss = yyssa;
+  register short *yyssp;
+
+  /* The semantic value stack.  */
+  YYSTYPE yyvsa[YYINITDEPTH];
+  YYSTYPE *yyvs = yyvsa;
+  register YYSTYPE *yyvsp;
+
+
+
+#define YYPOPSTACK   (yyvsp--, yyssp--)
+
+  YYSIZE_T yystacksize = YYINITDEPTH;
+
+  /* The variables used to return semantic value and location from the
+     action routines.  */
+  YYSTYPE yyval;
+
+
+  /* When reducing, the number of symbols on the RHS of the reduced
+     rule.  */
+  int yylen;
+
+  YYDPRINTF ((stderr, "Starting parse\n"));
+
+  yystate = 0;
+  yyerrstatus = 0;
+  yynerrs = 0;
+  yychar = YYEMPTY;		/* Cause a token to be read.  */
+
+  /* Initialize stack pointers.
+     Waste one element of value and location stack
+     so that they stay on the same level as the state stack.
+     The wasted elements are never initialized.  */
+
+  yyssp = yyss;
+  yyvsp = yyvs;
+
+  goto yysetstate;
+
+/*------------------------------------------------------------.
+| yynewstate -- Push a new state, which is found in yystate.  |
+`------------------------------------------------------------*/
+ yynewstate:
+  /* In all cases, when you get here, the value and location stacks
+     have just been pushed. so pushing a state here evens the stacks.
+     */
+  yyssp++;
+
+ yysetstate:
+  *yyssp = yystate;
+
+  if (yyss + yystacksize - 1 <= yyssp)
+    {
+      /* Get the current used size of the three stacks, in elements.  */
+      YYSIZE_T yysize = yyssp - yyss + 1;
+
+#ifdef yyoverflow
+      {
+	/* Give user a chance to reallocate the stack. Use copies of
+	   these so that the &'s don't force the real ones into
+	   memory.  */
+	YYSTYPE *yyvs1 = yyvs;
+	short *yyss1 = yyss;
+
+
+	/* Each stack pointer address is followed by the size of the
+	   data in use in that stack, in bytes.  This used to be a
+	   conditional around just the two extra args, but that might
+	   be undefined if yyoverflow is a macro.  */
+	yyoverflow ("parser stack overflow",
+		    &yyss1, yysize * sizeof (*yyssp),
+		    &yyvs1, yysize * sizeof (*yyvsp),
+
+		    &yystacksize);
+
+	yyss = yyss1;
+	yyvs = yyvs1;
+      }
+#else /* no yyoverflow */
+# ifndef YYSTACK_RELOCATE
+      goto yyoverflowlab;
+# else
+      /* Extend the stack our own way.  */
+      if (YYMAXDEPTH <= yystacksize)
+	goto yyoverflowlab;
+      yystacksize *= 2;
+      if (YYMAXDEPTH < yystacksize)
+	yystacksize = YYMAXDEPTH;
+
+      {
+	short *yyss1 = yyss;
+	union yyalloc *yyptr =
+	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+	if (! yyptr)
+	  goto yyoverflowlab;
+	YYSTACK_RELOCATE (yyss);
+	YYSTACK_RELOCATE (yyvs);
+
+#  undef YYSTACK_RELOCATE
+	if (yyss1 != yyssa)
+	  YYSTACK_FREE (yyss1);
+      }
+# endif
+#endif /* no yyoverflow */
+
+      yyssp = yyss + yysize - 1;
+      yyvsp = yyvs + yysize - 1;
+
+
+      YYDPRINTF ((stderr, "Stack size increased to %lu\n",
+		  (unsigned long int) yystacksize));
+
+      if (yyss + yystacksize - 1 <= yyssp)
+	YYABORT;
+    }
+
+  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+
+  goto yybackup;
+
+/*-----------.
+| yybackup.  |
+`-----------*/
+yybackup:
+
+/* Do appropriate processing given the current state.  */
+/* Read a lookahead token if we need one and don't already have one.  */
+/* yyresume: */
+
+  /* First try to decide what to do without reference to lookahead token.  */
+
+  yyn = yypact[yystate];
+  if (yyn == YYPACT_NINF)
+    goto yydefault;
+
+  /* Not known => get a lookahead token if don't already have one.  */
+
+  /* YYCHAR is either YYEMPTY or YYEOF or a valid lookahead symbol.  */
+  if (yychar == YYEMPTY)
+    {
+      YYDPRINTF ((stderr, "Reading a token: "));
+      yychar = YYLEX;
+    }
+
+  if (yychar <= YYEOF)
+    {
+      yychar = yytoken = YYEOF;
+      YYDPRINTF ((stderr, "Now at end of input.\n"));
+    }
+  else
+    {
+      yytoken = YYTRANSLATE (yychar);
+      YYDSYMPRINTF ("Next token is", yytoken, &yylval, &yylloc);
+    }
+
+  /* If the proper action on seeing token YYTOKEN is to reduce or to
+     detect an error, take that action.  */
+  yyn += yytoken;
+  if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken)
+    goto yydefault;
+  yyn = yytable[yyn];
+  if (yyn <= 0)
+    {
+      if (yyn == 0 || yyn == YYTABLE_NINF)
+	goto yyerrlab;
+      yyn = -yyn;
+      goto yyreduce;
+    }
+
+  if (yyn == YYFINAL)
+    YYACCEPT;
+
+  /* Shift the lookahead token.  */
+  YYDPRINTF ((stderr, "Shifting token %s, ", yytname[yytoken]));
+
+  /* Discard the token being shifted unless it is eof.  */
+  if (yychar != YYEOF)
+    yychar = YYEMPTY;
+
+  *++yyvsp = yylval;
+
+
+  /* Count tokens shifted since error; after three, turn off error
+     status.  */
+  if (yyerrstatus)
+    yyerrstatus--;
+
+  yystate = yyn;
+  goto yynewstate;
+
+
+/*-----------------------------------------------------------.
+| yydefault -- do the default action for the current state.  |
+`-----------------------------------------------------------*/
+yydefault:
+  yyn = yydefact[yystate];
+  if (yyn == 0)
+    goto yyerrlab;
+  goto yyreduce;
+
+
+/*-----------------------------.
+| yyreduce -- Do a reduction.  |
+`-----------------------------*/
+yyreduce:
+  /* yyn is the number of a rule to reduce with.  */
+  yylen = yyr2[yyn];
+
+  /* If YYLEN is nonzero, implement the default value of the action:
+     `$$ = $1'.
+
+     Otherwise, the following line sets YYVAL to garbage.
+     This behavior is undocumented and Bison
+     users should not rely upon it.  Assigning to YYVAL
+     unconditionally makes the parser a bit smaller, and it avoids a
+     GCC warning that YYVAL may be used uninitialized.  */
+  yyval = yyvsp[1-yylen];
+
+
+  YY_REDUCE_PRINT (yyn);
+  switch (yyn)
+    {
+        case 3:
+#line 245 "vcc.y"
+    { addListO(&vObjListO, yyvsp[0].vobj); curObjO = 0; }
+    break;
+
+  case 5:
+#line 248 "vcc.y"
+    { addListO(&vObjListO, yyvsp[0].vobj); curObjO = 0; }
+    break;
+
+  case 8:
+#line 257 "vcc.y"
+    {
+	lexPushModeO(L_VCARD);
+	if (!pushVObjectO(VCCardPropO)) YYERROR;
+	}
+    break;
+
+  case 9:
+#line 262 "vcc.y"
+    {
+	lexPopModeO(0);
+	yyval.vobj = popVObjectO();
+	}
+    break;
+
+  case 10:
+#line 267 "vcc.y"
+    {
+	lexPushModeO(L_VCARD);
+	if (!pushVObjectO(VCCardPropO)) YYERROR;
+	}
+    break;
+
+  case 11:
+#line 272 "vcc.y"
+    {
+	lexPopModeO(0);
+	yyval.vobj = popVObjectO();
+	}
+    break;
+
+  case 14:
+#line 283 "vcc.y"
+    {
+	lexPushModeO(L_VALUES);
+	}
+    break;
+
+  case 15:
+#line 287 "vcc.y"
+    {
+	if (lexWithinModeO(L_BASE64) || lexWithinModeO(L_QUOTED_PRINTABLE))
+	   lexPopModeO(0);
+	lexPopModeO(0);
+	}
+    break;
+
+  case 17:
+#line 296 "vcc.y"
+    {
+	enterPropsO(yyvsp[0].str);
+	}
+    break;
+
+  case 19:
+#line 301 "vcc.y"
+    {
+	enterPropsO(yyvsp[0].str);
+	}
+    break;
+
+  case 23:
+#line 314 "vcc.y"
+    {
+	enterAttrO(yyvsp[0].str,0);
+	}
+    break;
+
+  case 24:
+#line 318 "vcc.y"
+    {
+	enterAttrO(yyvsp[-2].str,yyvsp[0].str);
+
+	}
+    break;
+
+  case 26:
+#line 327 "vcc.y"
+    { appendValueO(yyvsp[-1].str); }
+    break;
+
+  case 28:
+#line 329 "vcc.y"
+    { appendValueO(yyvsp[0].str); }
+    break;
+
+  case 30:
+#line 333 "vcc.y"
+    { yyval.str = 0; }
+    break;
+
+  case 31:
+#line 338 "vcc.y"
+    { if (!pushVObjectO(VCCalPropO)) YYERROR; }
+    break;
+
+  case 32:
+#line 341 "vcc.y"
+    { yyval.vobj = popVObjectO(); }
+    break;
+
+  case 33:
+#line 343 "vcc.y"
+    { if (!pushVObjectO(VCCalPropO)) YYERROR; }
+    break;
+
+  case 34:
+#line 345 "vcc.y"
+    { yyval.vobj = popVObjectO(); }
+    break;
+
+  case 42:
+#line 365 "vcc.y"
+    {
+	lexPushModeO(L_VEVENT);
+	if (!pushVObjectO(VCEventPropO)) YYERROR;
+	}
+    break;
+
+  case 43:
+#line 371 "vcc.y"
+    {
+	lexPopModeO(0);
+	popVObjectO();
+	}
+    break;
+
+  case 44:
+#line 376 "vcc.y"
+    {
+	lexPushModeO(L_VEVENT);
+	if (!pushVObjectO(VCEventPropO)) YYERROR;
+	}
+    break;
+
+  case 45:
+#line 381 "vcc.y"
+    {
+	lexPopModeO(0);
+	popVObjectO();
+	}
+    break;
+
+  case 46:
+#line 389 "vcc.y"
+    {
+	lexPushModeO(L_VTODO);
+	if (!pushVObjectO(VCTodoPropO)) YYERROR;
+	}
+    break;
+
+  case 47:
+#line 395 "vcc.y"
+    {
+	lexPopModeO(0);
+	popVObjectO();
+	}
+    break;
+
+  case 48:
+#line 400 "vcc.y"
+    {
+	lexPushModeO(L_VTODO);
+	if (!pushVObjectO(VCTodoPropO)) YYERROR;
+	}
+    break;
+
+  case 49:
+#line 405 "vcc.y"
+    {
+	lexPopModeO(0);
+	popVObjectO();
+	}
+    break;
+
+  case 50:
+#line 413 "vcc.y"
+    {
+	lexPushModeO(L_VALARM);
+	if (!pushVObjectO(VCAlarmPropO)) YYERROR;
+	}
+    break;
+
+  case 51:
+#line 419 "vcc.y"
+    {
+	lexPopModeO(0);
+	popVObjectO();
+	}
+    break;
+
+  case 52:
+#line 424 "vcc.y"
+    {
+	lexPushModeO(L_VALARM);
+	if (!pushVObjectO(VCAlarmPropO)) YYERROR;
+	}
+    break;
+
+  case 53:
+#line 429 "vcc.y"
+    {
+	lexPopModeO(0);
+	popVObjectO();
+	}
+    break;
+
+
+    }
+
+/* Line 999 of yacc.c.  */
+#line 1512 "vcc.c"
+
+  yyvsp -= yylen;
+  yyssp -= yylen;
+
+
+  YY_STACK_PRINT (yyss, yyssp);
+
+  *++yyvsp = yyval;
+
+
+  /* Now `shift' the result of the reduction.  Determine what state
+     that goes to, based on the state we popped back to and the rule
+     number reduced by.  */
+
+  yyn = yyr1[yyn];
+
+  yystate = yypgoto[yyn - YYNTOKENS] + *yyssp;
+  if (0 <= yystate && yystate <= YYLAST && yycheck[yystate] == *yyssp)
+    yystate = yytable[yystate];
+  else
+    yystate = yydefgoto[yyn - YYNTOKENS];
+
+  goto yynewstate;
+
+
+/*------------------------------------.
+| yyerrlab -- here on detecting error |
+`------------------------------------*/
+yyerrlab:
+  /* If not already recovering from an error, report this error.  */
+  if (!yyerrstatus)
+    {
+      ++yynerrs;
+#if YYERROR_VERBOSE
+      yyn = yypact[yystate];
+
+      if (YYPACT_NINF < yyn && yyn < YYLAST)
+	{
+	  YYSIZE_T yysize = 0;
+	  int yytype = YYTRANSLATE (yychar);
+	  char *yymsg;
+	  int yyx, yycount;
+
+	  yycount = 0;
+	  /* Start YYX at -YYN if negative to avoid negative indexes in
+	     YYCHECK.  */
+	  for (yyx = yyn < 0 ? -yyn : 0;
+	       yyx < (int) (sizeof (yytname) / sizeof (char *)); yyx++)
+	    if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR)
+	      yysize += yystrlen (yytname[yyx]) + 15, yycount++;
+	  yysize += yystrlen ("syntax error, unexpected ") + 1;
+	  yysize += yystrlen (yytname[yytype]);
+	  yymsg = (char *) YYSTACK_ALLOC (yysize);
+	  if (yymsg != 0)
+	    {
+	      char *yyp = yystpcpy (yymsg, "syntax error, unexpected ");
+	      yyp = yystpcpy (yyp, yytname[yytype]);
+
+	      if (yycount < 5)
+		{
+		  yycount = 0;
+		  for (yyx = yyn < 0 ? -yyn : 0;
+		       yyx < (int) (sizeof (yytname) / sizeof (char *));
+		       yyx++)
+		    if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR)
+		      {
+			const char *yyq = ! yycount ? ", expecting " : " or ";
+			yyp = yystpcpy (yyp, yyq);
+			yyp = yystpcpy (yyp, yytname[yyx]);
+			yycount++;
+		      }
+		}
+	      yyerror (yymsg);
+	      YYSTACK_FREE (yymsg);
+	    }
+	  else
+	    yyerror ("syntax error; also virtual memory exhausted");
+	}
+      else
+#endif /* YYERROR_VERBOSE */
+	yyerror ("syntax error");
+    }
+
+
+
+  if (yyerrstatus == 3)
+    {
+      /* If just tried and failed to reuse lookahead token after an
+	 error, discard it.  */
+
+      /* Return failure if at end of input.  */
+      if (yychar == YYEOF)
+        {
+	  /* Pop the error token.  */
+          YYPOPSTACK;
+	  /* Pop the rest of the stack.  */
+	  while (yyss < yyssp)
+	    {
+	      YYDSYMPRINTF ("Error: popping", yystos[*yyssp], yyvsp, yylsp);
+	      yydestruct (yystos[*yyssp], yyvsp);
+	      YYPOPSTACK;
+	    }
+	  YYABORT;
+        }
+
+      YYDSYMPRINTF ("Error: discarding", yytoken, &yylval, &yylloc);
+      yydestruct (yytoken, &yylval);
+      yychar = YYEMPTY;
+
+    }
+
+  /* Else will try to reuse lookahead token after shifting the error
+     token.  */
+  goto yyerrlab1;
+
+
+/*----------------------------------------------------.
+| yyerrlab1 -- error raised explicitly by an action.  |
+`----------------------------------------------------*/
+yyerrlab1:
+  yyerrstatus = 3;	/* Each real token shifted decrements this.  */
+
+  for (;;)
+    {
+      yyn = yypact[yystate];
+      if (yyn != YYPACT_NINF)
+	{
+	  yyn += YYTERROR;
+	  if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
+	    {
+	      yyn = yytable[yyn];
+	      if (0 < yyn)
+		break;
+	    }
+	}
+
+      /* Pop the current state because it cannot handle the error token.  */
+      if (yyssp == yyss)
+	YYABORT;
+
+      YYDSYMPRINTF ("Error: popping", yystos[*yyssp], yyvsp, yylsp);
+      yydestruct (yystos[yystate], yyvsp);
+      yyvsp--;
+      yystate = *--yyssp;
+
+      YY_STACK_PRINT (yyss, yyssp);
+    }
+
+  if (yyn == YYFINAL)
+    YYACCEPT;
+
+  YYDPRINTF ((stderr, "Shifting error token, "));
+
+  *++yyvsp = yylval;
+
+
+  yystate = yyn;
+  goto yynewstate;
+
+
+/*-------------------------------------.
+| yyacceptlab -- YYACCEPT comes here.  |
+`-------------------------------------*/
+yyacceptlab:
+  yyresult = 0;
+  goto yyreturn;
+
+/*-----------------------------------.
+| yyabortlab -- YYABORT comes here.  |
+`-----------------------------------*/
+yyabortlab:
+  yyresult = 1;
+  goto yyreturn;
+
+#ifndef yyoverflow
+/*----------------------------------------------.
+| yyoverflowlab -- parser overflow comes here.  |
+`----------------------------------------------*/
+yyoverflowlab:
+  yyerror ("parser stack overflow");
+  yyresult = 2;
+  /* Fall through.  */
+#endif
+
+yyreturn:
+#ifndef yyoverflow
+  if (yyss != yyssa)
+    YYSTACK_FREE (yyss);
+#endif
+  return yyresult;
+}
+
+
+#line 435 "vcc.y"
+
+/* ///////////////////////////////////////////////////////////////////////// */
+static int pushVObjectO(const char *prop)
+    {
+    VObjectO *newObj;
+    if (ObjStackTopO == MAXLEVEL)
+	return FALSE;
+
+    ObjStackO[++ObjStackTopO] = curObjO;
+
+    if (curObjO) {
+        newObj = addPropO(curObjO,prop);
+        curObjO = newObj;
+	}
+    else
+	curObjO = newVObjectO(prop);
+
+    return TRUE;
+    }
+
+
+/* ///////////////////////////////////////////////////////////////////////// */
+/* This pops the recently built vCard off the stack and returns it. */
+static VObjectO* popVObjectO()
+    {
+    VObjectO *oldObj;
+    if (ObjStackTopO < 0) {
+	yyerror("pop on empty Object Stack\n");
+	return 0;
+	}
+    oldObj = curObjO;
+    curObjO = ObjStackO[ObjStackTopO--];
+
+    return oldObj;
+    }
+
+static void appendValueO(const char *value)
+{
+  char *p1, *p2;
+  wchar_t *p3;
+  int i;
+
+  if (fieldedPropO && *fieldedPropO) {
+    if (value) {
+      addPropValueO(curPropO, *fieldedPropO, value);
+    }
+    /* else this field is empty, advance to next field */
+    fieldedPropO++;
+  } else {
+    if (value) {
+      if (vObjectUStringZValueO(curPropO)) {
+	p1 = fakeCStringO(vObjectUStringZValueO(curPropO));
+	p2 = malloc(sizeof(char *) * (strlen(p1)+strlen(value)+1));
+	strcpy(p2, p1);
+	deleteStrO(p1);
+
+	i = strlen(p2);
+	p2[i] = ';';
+	p2[i+1] = '\0';
+	p2 = strcat(p2, value);
+	p3 = (wchar_t *) vObjectUStringZValueO(curPropO);
+	free(p3);
+	setVObjectUStringZValue_O(curPropO,fakeUnicodeO(p2,0));
+	deleteStrO(p2);
+      } else {
+	setVObjectUStringZValue_O(curPropO,fakeUnicodeO(value,0));
+      }
+    }
+    else {
+      setVObjectNullValueO(curPropO);
+    }
+  }
+  deleteStrO(value);
+}
+
+
+static void enterPropsO(const char *s)
+    {
+    curPropO = addGroupO(curObjO,s);
+    deleteStrO(s);
+    }
+
+static void enterAttrO(const char *s1, const char *s2)
+    {
+    const char *p1, *p2 = NULL;
+    p1 = lookupProp_O(s1);
+    if (s2) {
+	VObjectO *a;
+	p2 = lookupProp_O(s2);
+	a = addPropO(curPropO,p1);
+	setVObjectStringZValueO(a,p2);
+	}
+    else
+	addPropO(curPropO,p1);
+    if (ascii_stricmp(p1,VCBase64PropO) == 0 || (s2 && ascii_stricmp(p2,VCBase64PropO)==0))
+	lexPushModeO(L_BASE64);
+    else if (ascii_stricmp(p1,VCQuotedPrintablePropO) == 0
+	    || (s2 && ascii_stricmp(p2,VCQuotedPrintablePropO)==0))
+	lexPushModeO(L_QUOTED_PRINTABLE);
+    deleteStrO(s1); deleteStrO(s2);
+    }
+
+
+/* #define MAX_LEX_LOOKAHEAD_0 64 */
+#define MAX_LEX_LOOKAHEAD 256
+#define MAX_LEX_MODE_STACK_SIZE 10
+#define LEXMODE() (lexBufO.lexModeStack[lexBufO.lexModeStackTop])
+
+struct LexBufO {
+	/* input */
+#ifdef INCLUDEMFC
+    CFile *inputFile;
+#else
+    FILE *inputFile;
+#endif
+    char *inputString;
+    unsigned long curPos;
+    unsigned long inputLen;
+	/* lookahead buffer */
+	/*   -- lookahead buffer is int instead of char so that EOF
+	 /      can be represented correctly.
+	*/
+    unsigned long len;
+    int buf[MAX_LEX_LOOKAHEAD];
+    unsigned long getPtr;
+	/* context stack */
+    unsigned long lexModeStackTop;
+    enum LexModeO lexModeStack[MAX_LEX_MODE_STACK_SIZE];
+	/* token buffer */
+    unsigned long maxToken;
+    char *strs;
+    unsigned long strsLen;
+    } lexBufO;
+
+static void lexPushModeO(enum LexModeO mode)
+    {
+    if (lexBufO.lexModeStackTop == (MAX_LEX_MODE_STACK_SIZE-1))
+	yyerror("lexical context stack overflow");
+    else {
+	lexBufO.lexModeStack[++lexBufO.lexModeStackTop] = mode;
+	}
+    }
+
+static void lexPopModeO(int top)
+    {
+    /* special case of pop for ease of error recovery -- this
+	version will never underflow */
+    if (top)
+	lexBufO.lexModeStackTop = 0;
+    else
+	if (lexBufO.lexModeStackTop > 0) lexBufO.lexModeStackTop--;
+    }
+
+static int lexWithinModeO(enum LexModeO mode) {
+    unsigned long i;
+    for (i=0;i<lexBufO.lexModeStackTop;i++)
+	if (mode == lexBufO.lexModeStack[i]) return 1;
+    return 0;
+    }
+
+static int lexGetc_O()
+    {
+    /* get next char from input, no buffering. */
+    if (lexBufO.curPos == lexBufO.inputLen)
+	return EOF;
+    else if (lexBufO.inputString)
+	return *(lexBufO.inputString + lexBufO.curPos++);
+    else {
+#ifdef INCLUDEMFC
+	char result;
+	return lexBufO.inputFile->Read(&result, 1) == 1 ? result : EOF;
+#else
+	return fgetc(lexBufO.inputFile);
+#endif
+	}
+    }
+
+static int lexGetaO()
+    {
+    ++lexBufO.len;
+    return (lexBufO.buf[lexBufO.getPtr] = lexGetc_O());
+    }
+
+static int lexGeta_O(int i)
+    {
+    ++lexBufO.len;
+    return (lexBufO.buf[(lexBufO.getPtr+i)%MAX_LEX_LOOKAHEAD] = lexGetc_O());
+    }
+
+static void lexSkipLookaheadO() {
+    if (lexBufO.len > 0 && lexBufO.buf[lexBufO.getPtr]!=EOF) {
+	/* don't skip EOF. */
+        lexBufO.getPtr = (lexBufO.getPtr + 1) % MAX_LEX_LOOKAHEAD;
+	lexBufO.len--;
+        }
+    }
+
+static int lexLookaheadO() {
+    int c = (lexBufO.len)?
+	lexBufO.buf[lexBufO.getPtr]:
+	lexGetaO();
+    /* do the \r\n -> \n or \r -> \n translation here */
+    if (c == '\r') {
+	int a = (lexBufO.len>1)?
+	    lexBufO.buf[(lexBufO.getPtr+1)%MAX_LEX_LOOKAHEAD]:
+	    lexGeta_O(1);
+	if (a == '\n') {
+	    lexSkipLookaheadO();
+	    }
+	lexBufO.buf[lexBufO.getPtr] = c = '\n';
+	}
+    else if (c == '\n') {
+	int a = (lexBufO.len>1)?
+	    lexBufO.buf[lexBufO.getPtr+1]:
+	    lexGeta_O(1);
+	if (a == '\r') {
+	    lexSkipLookaheadO();
+	    }
+	lexBufO.buf[lexBufO.getPtr] = '\n';
+	}
+    return c;
+    }
+
+static int lexGetcO() {
+    int c = lexLookaheadO();
+    if (lexBufO.len > 0 && lexBufO.buf[lexBufO.getPtr]!=EOF) {
+	/* EOF will remain in lookahead buffer */
+        lexBufO.getPtr = (lexBufO.getPtr + 1) % MAX_LEX_LOOKAHEAD;
+	lexBufO.len--;
+        }
+    return c;
+    }
+
+static void lexSkipLookaheadWordO() {
+    if (lexBufO.strsLen <= lexBufO.len) {
+	lexBufO.len -= lexBufO.strsLen;
+	lexBufO.getPtr = (lexBufO.getPtr + lexBufO.strsLen) % MAX_LEX_LOOKAHEAD;
+	}
+    }
+
+static void lexClearTokenO()
+    {
+    lexBufO.strsLen = 0;
+    }
+
+static void lexAppendcO(int c)
+    {
+    lexBufO.strs[lexBufO.strsLen] = c;
+    /* append up to zero termination */
+    if (c == 0) return;
+    lexBufO.strsLen++;
+    if (lexBufO.strsLen >= lexBufO.maxToken) {
+	/* double the token string size */
+	lexBufO.maxToken <<= 1;
+	lexBufO.strs = (char*) realloc(lexBufO.strs,(size_t)lexBufO.maxToken);
+	}
+    }
+
+static char* lexStrO() {
+    return dupStrO(lexBufO.strs,(size_t)lexBufO.strsLen+1);
+    }
+
+static void lexSkipWhiteO() {
+    int c = lexLookaheadO();
+    while (c == ' ' || c == '\t') {
+	lexSkipLookaheadO();
+	c = lexLookaheadO();
+	}
+    }
+
+static char* lexGetWordO() {
+    int c;
+    lexSkipWhiteO();
+    lexClearTokenO();
+    c = lexLookaheadO();
+    while (c != EOF && !strchr("\t\n ;:=",c)) {
+	lexAppendcO(c);
+	lexSkipLookaheadO();
+	c = lexLookaheadO();
+	}
+    lexAppendcO(0);
+    return lexStrO();
+    }
+
+
+static void lexPushLookaheadcO(int c) {
+    int putptr;
+    /* can't putback EOF, because it never leaves lookahead buffer */
+    if (c == EOF) return;
+    putptr = (int)lexBufO.getPtr - 1;
+    if (putptr < 0) putptr += MAX_LEX_LOOKAHEAD;
+    lexBufO.getPtr = putptr;
+    lexBufO.buf[putptr] = c;
+    lexBufO.len += 1;
+    }
+
+static char* lexLookaheadWordO() {
+    /* this function can lookahead word with max size of MAX_LEX_LOOKAHEAD
+     /  and thing bigger than that will stop the lookahead and return 0;
+     / leading white spaces are not recoverable.
+     */
+    int c;
+    int len = 0;
+    int curgetptr = 0;
+    lexSkipWhiteO();
+    lexClearTokenO();
+    curgetptr = (int)lexBufO.getPtr;	/* remember! */
+    while (len < (MAX_LEX_LOOKAHEAD)) {
+	c = lexGetcO();
+	len++;
+	if (c == EOF || strchr("\t\n ;:=", c)) {
+	    lexAppendcO(0);
+	    /* restore lookahead buf. */
+	    lexBufO.len += len;
+	    lexBufO.getPtr = curgetptr;
+	    return lexStrO();
+	    }
+        else
+	    lexAppendcO(c);
+	}
+    lexBufO.len += len;	/* char that has been moved to lookahead buffer */
+    lexBufO.getPtr = curgetptr;
+    return 0;
+    }
+    
+static char* lexLookaheadUntilO(const char* lookfor)
+{
+  /* this function can lookahead until lookfor with max size of MAX_LEX_LOOKAHEAD
+   * anything bigger than that will stop the lookahead and return 0;
+   * leading white spaces are not recoverable.
+   */
+  int c;
+  int len = 0;
+  int curgetptr = 0;
+  lexSkipWhiteO();
+  lexClearTokenO();
+  curgetptr = (int)lexBufO.getPtr;	/* remember! */
+  while (len < (MAX_LEX_LOOKAHEAD)) 
+  {
+    c = lexGetcO();
+    len++;
+    if (c == EOF || strchr(lookfor, c)) 
+    {
+      lexAppendcO(0);
+      /* restore lookahead buf. */
+      lexBufO.len += len;
+      lexBufO.getPtr = curgetptr;
+      return lexStrO();
+    }
+    else
+    {
+      lexAppendcO(c);
+    }
+  }
+  lexBufO.len += len;	/* char that has been moved to lookahead buffer */
+  lexBufO.getPtr = curgetptr;
+  return 0;
+  
+}    
+
+#ifdef _SUPPORT_LINE_FOLDING
+static void handleMoreRFC822LineBreakO(int c) {
+    /* suport RFC 822 line break in cases like
+     *	ADR: foo;
+     *    morefoo;
+     *    more foo;
+     */
+    if (c == ';') {
+	int a;
+	lexSkipLookaheadO();
+	/* skip white spaces */
+	a = lexLookaheadO();
+	while (a == ' ' || a == '\t') {
+	    lexSkipLookaheadO();
+	    a = lexLookaheadO();
+	    }
+	if (a == '\n') {
+	    lexSkipLookaheadO();
+	    a = lexLookaheadO();
+	    if (a == ' ' || a == '\t') {
+		/* continuation, throw away all the \n and spaces read so
+		 * far
+		 */
+		lexSkipWhiteO();
+		lexPushLookaheadcO(';');
+		}
+	    else {
+		lexPushLookaheadcO('\n');
+		lexPushLookaheadcO(';');
+		}
+	    }
+	else {
+	    lexPushLookaheadcO(';');
+	    }
+	}
+    }
+
+static char* lexGet1ValueO() {
+    int c;
+    lexSkipWhiteO();
+    c = lexLookaheadO();
+    lexClearTokenO();
+    while (c != EOF && c != ';') {
+	if (c == '\n') {
+	    int a;
+	    lexSkipLookaheadO();
+	    a  = lexLookaheadO();
+	    if (a == ' ' || a == '\t') {
+		lexAppendcO(' ');
+		lexSkipLookaheadO();
+		}
+	    else {
+		lexPushLookaheadcO('\n');
+		break;
+		}
+	    }
+	else {
+	    lexAppendcO(c);
+	    lexSkipLookaheadO();
+	    }
+	c = lexLookaheadO();
+	}
+    lexAppendcO(0);
+    handleMoreRFC822LineBreakO(c);
+    return c==EOF?0:lexStrO();
+    }
+#endif
+
+#ifndef _SUPPORT_LINE_FOLDING
+static char* lexGetStrUntilO(char *termset) {
+    int c = lexLookaheadO();
+    lexClearToken();
+    while (c != EOF && !strchr(termset,c)) {
+	lexAppendcO(c);
+	lexSkipLookaheadO();
+	c = lexLookaheadO();
+	}
+    lexAppendcO(0);
+    return c==EOF?0:lexStr();
+    }
+#endif
+
+static int match_begin_nameO(int end) {
+    char *n = lexLookaheadWordO();
+    int token = ID;
+    
+    if (n) {
+	if (!ascii_stricmp(n,"vcard")) token = end?END_VCARD:BEGIN_VCARD;
+	else if (!ascii_stricmp(n,"vcalendar")) token = end?END_VCAL:BEGIN_VCAL;
+	else if (!ascii_stricmp(n,"vevent")) token = end?END_VEVENT:BEGIN_VEVENT;
+	else if (!ascii_stricmp(n,"vtodo")) token = end?END_VTODO:BEGIN_VTODO;
+	else if (!ascii_stricmp(n,"valarm")) token = end?END_VALARM:BEGIN_VALARM;
+	deleteStrO(n);
+	return token;
+	}
+    return 0;
+    }
+
+
+#ifdef INCLUDEMFC
+static void initLexO(const char *inputstring, unsigned long inputlen, CFile *inputfile)
+#else
+static void initLexO(const char *inputstring, unsigned long inputlen, FILE *inputfile)
+#endif
+    {
+    /* initialize lex mode stack */
+    lexBufO.lexModeStack[lexBufO.lexModeStackTop=0] = L_NORMAL;
+
+    /* iniatialize lex buffer. */
+    lexBufO.inputString = (char*) inputstring;
+    lexBufO.inputLen = inputlen;
+    lexBufO.curPos = 0;
+    lexBufO.inputFile = inputfile;
+
+    lexBufO.len = 0;
+    lexBufO.getPtr = 0;
+
+    lexBufO.maxToken = MAXTOKEN;
+    lexBufO.strs = (char*)malloc(MAXTOKEN);
+    lexBufO.strsLen = 0;
+
+    }
+
+static void finiLexO() {
+    free(lexBufO.strs);
+    }
+
+
+/* ///////////////////////////////////////////////////////////////////////// */
+/* This parses and converts the base64 format for binary encoding into
+ * a decoded buffer (allocated with new).  See RFC 1521.
+ */
+static char * lexGetDataFromBase64O()
+    {
+    unsigned long bytesLen = 0, bytesMax = 0;
+    int quadIx = 0, pad = 0;
+    unsigned long trip = 0;
+    unsigned char b;
+    int c;
+    unsigned char *bytes = NULL;
+    unsigned char *oldBytes = NULL;
+
+    DBG_(("db: lexGetDataFromBase64\n"));
+    while (1) {
+	c = lexGetcO();
+	if (c == '\n') {
+	    ++mimeO_lineNum;
+	    if (lexLookaheadO() == '\n') {
+		/* a '\n' character by itself means end of data */
+		break;
+		}
+	    else continue; /* ignore '\n' */
+	    }
+	else {
+	    if ((c >= 'A') && (c <= 'Z'))
+		b = (unsigned char)(c - 'A');
+	    else if ((c >= 'a') && (c <= 'z'))
+		b = (unsigned char)(c - 'a') + 26;
+	    else if ((c >= '0') && (c <= '9'))
+		b = (unsigned char)(c - '0') + 52;
+	    else if (c == '+')
+		b = 62;
+	    else if (c == '/')
+		b = 63;
+	    else if (c == '=') {
+		b = 0;
+		pad++;
+	    } else if ((c == ' ') || (c == '\t')) {
+		continue;
+	    } else { /* error condition */
+		if (bytes) free(bytes);
+		else if (oldBytes) free(oldBytes);
+		/* error recovery: skip until 2 adjacent newlines. */
+		DBG_(("db: invalid character 0x%x '%c'\n", c,c));
+		if (c != EOF)  {
+		    c = lexGetcO();
+		    while (c != EOF) {
+			if (c == '\n' && lexLookaheadO() == '\n') {
+			    ++mimeO_lineNum;
+			    break;
+			    }
+			c = lexGetcO();
+			}
+		    }
+		return NULL;
+		}
+	    trip = (trip << 6) | b;
+	    if (++quadIx == 4) {
+		unsigned char outBytes[3];
+		int numOut;
+		int i;
+		for (i = 0; i < 3; i++) {
+		    outBytes[2-i] = (unsigned char)(trip & 0xFF);
+		    trip >>= 8;
+		    }
+		numOut = 3 - pad;
+		if (bytesLen + numOut > bytesMax) {
+		    if (!bytes) {
+			bytesMax = 1024;
+			bytes = (unsigned char*)malloc((size_t)bytesMax);
+			}
+		    else {
+			bytesMax <<= 2;
+			oldBytes = bytes;
+			bytes = (unsigned char*)realloc(bytes,(size_t)bytesMax);
+			}
+		    if (bytes == 0) {
+			mimeO_error("out of memory while processing BASE64 data\n");
+			}
+		    }
+		if (bytes) {
+		    memcpy(bytes + bytesLen, outBytes, numOut);
+		    bytesLen += numOut;
+		    }
+		trip = 0;
+		quadIx = 0;
+		}
+	    }
+	} /* while */
+    DBG_(("db: bytesLen = %d\n",  bytesLen));
+    /* kludge: all this won't be necessary if we have tree form
+	representation */
+    if (bytes) {
+	setValueWithSizeO(curPropO,bytes,(unsigned int)bytesLen);
+	free(bytes);
+	}
+    else if (oldBytes) {
+	setValueWithSizeO(curPropO,oldBytes,(unsigned int)bytesLen);
+	free(oldBytes);
+	}
+    return 0;
+    }
+
+static int match_begin_end_nameO(int end) {
+    int token;
+    lexSkipWhiteO();
+    if (lexLookaheadO() != ':') return ID;
+    lexSkipLookaheadO();
+    lexSkipWhiteO();
+    token = match_begin_nameO(end);
+    if (token == ID) {
+	lexPushLookaheadcO(':');
+	DBG_(("db: ID '%s'\n", yylval.str));
+	return ID;
+	}
+    else if (token != 0) {
+	lexSkipLookaheadWordO();
+	deleteStrO(yylval.str);
+	DBG_(("db: begin/end %d\n", token));
+	return token;
+	}
+    return 0;
+    }
+
+static char* lexGetQuotedPrintableO()
+    {
+    int cur;
+
+    lexClearTokenO();
+    do {
+	cur = lexGetcO();
+	switch (cur) {
+	    case '=': {
+		int c = 0;
+		int next[2];
+		int i;
+		for (i = 0; i < 2; i++) {
+		    next[i] = lexGetcO();
+		    if (next[i] >= '0' && next[i] <= '9')
+			c = c * 16 + next[i] - '0';
+		    else if (next[i] >= 'A' && next[i] <= 'F')
+			c = c * 16 + next[i] - 'A' + 10;
+		    else
+			break;
+		    }
+		if (i == 0) {
+		    /* single '=' follow by LINESEP is continuation sign? */
+		    if (next[0] == '\n') {
+			++mimeO_lineNum;
+			}
+		    else {
+			lexPushLookaheadcO('=');
+			goto EndString;
+			}
+		    }
+		else if (i == 1) {
+		    lexPushLookaheadcO(next[1]);
+		    lexPushLookaheadcO(next[0]);
+		    lexAppendcO('=');
+		} else {
+		    lexAppendcO(c);
+		    }
+		break;
+		} /* '=' */
+	    case '\n':
+	    case ';':
+	      {
+		lexPushLookaheadcO(cur);
+		goto EndString;
+		}
+	    case EOF:
+		break;
+	    default:
+		lexAppendcO(cur);
+		break;
+	    } /* switch */
+	} while (cur != EOF);
+
+EndString:
+    lexAppendcO(0);
+    return lexStrO();
+    } /* LexQuotedPrintable */
+
+static int yylex() {
+    int lexmode = LEXMODE();
+    if (lexmode == L_VALUES) {
+	int c = lexGetcO();
+	if (c == ';') {
+	    DBG_(("db: SEMICOLON\n"));
+	    lexPushLookaheadcO(c);
+#ifdef _SUPPORT_LINE_FOLDING
+	    handleMoreRFC822LineBreakO(c);
+#endif
+	    lexSkipLookaheadO();
+	    return SEMICOLON;
+	    }
+	else if (strchr("\n",c)) {
+	    ++mimeO_lineNum;
+	    /* consume all line separator(s) adjacent to each other */
+	    c = lexLookaheadO();
+	    while (strchr("\n",c)) {
+		lexSkipLookaheadO();
+		c = lexLookaheadO();
+		++mimeO_lineNum;
+		}
+	    DBG_(("db: LINESEP\n"));
+	    return LINESEP;
+	    }
+	else {
+	    char *p = 0;
+	    lexPushLookaheadcO(c);
+	    if (lexWithinModeO(L_BASE64)) {
+		/* get each char and convert to bin on the fly... */
+		p = lexGetDataFromBase64O();
+		yylval.str = p;
+		return STRING;
+		}
+	    else if (lexWithinModeO(L_QUOTED_PRINTABLE)) {
+		p = lexGetQuotedPrintableO();
+		}
+	    else {
+#ifdef _SUPPORT_LINE_FOLDING
+		p = lexGet1ValueO();
+#else
+		p = lexGetStrUntilO(";\n");
+#endif
+		}
+	    if (p) {
+		DBG_(("db: STRING: '%s'\n", p));
+		yylval.str = p;
+		return STRING;
+		}
+	    else return 0;
+	    }
+	}
+    else {
+	/* normal mode */
+	while (1) {
+	    int c = lexGetcO();
+	    switch(c) {
+		case ':': {
+                    /* consume a line separator after the colon if the next line
+                     * does not contain a colon - i.e. a line wrap has occurred
+                     */    
+                    c = lexLookaheadO();
+                    if(strchr("\n", c))
+                    {
+                      char *t = lexLookaheadUntilO(":");
+                      if(t)
+                      {
+                        /* skip over the immediate newline */
+                        ++t;
+                        if(strstr(t, "\n"))
+                        {
+                          /* newline before the next colon - it was a line wrap */
+                          /* consume the newline */
+                          lexSkipLookaheadO();
+                          c = lexLookaheadO();
+                          ++mimeO_lineNum;
+                        }
+                      }
+                    }    
+		    DBG_(("db: COLON\n"));
+		    return COLON;
+		    }
+		case ';':
+		    DBG_(("db: SEMICOLON\n"));
+		    return SEMICOLON;
+		case '=':
+		    DBG_(("db: EQ\n"));
+		    return EQ;
+		/* ignore whitespace in this mode */
+		case '\t':
+		case ' ': continue;
+		case '\n': {
+		    ++mimeO_lineNum;
+		    continue;
+		    }
+		case EOF: return 0;
+		    break;
+		default: {
+		    lexPushLookaheadcO(c);
+		    if (isprint(c)) {
+			char *t = lexGetWordO();
+			yylval.str = t;
+			if (!ascii_stricmp(t, "begin")) {
+			    return match_begin_end_nameO(0);
+			    }
+			else if (!ascii_stricmp(t,"end")) {
+			    return match_begin_end_nameO(1);
+			    }
+		        else {
+			    DBG_(("db: ID '%s'\n", t));
+			    return ID;
+			    }
+			}
+		    else {
+			/* unknow token */
+			return 0;
+			}
+		    break;
+		    }
+		}
+	    }
+	}
+    return 0;
+    }
+
+
+/***************************************************************************/
+/***							Public Functions						****/
+/***************************************************************************/
+
+static VObjectO* Parse_MIMEHelperO()
+    {
+    ObjStackTopO = -1;
+    mimeO_numErrors = 0;
+    mimeO_lineNum = 1;
+    vObjListO = 0;
+    curObjO = 0;
+
+    if (yyparse() != 0) {
+	finiLexO();
+	return 0;
+    }
+
+    finiLexO();
+    return vObjListO;
+    }
+
+/* ///////////////////////////////////////////////////////////////////////// */
+DLLEXPORT(VObjectO*) Parse_MIMEO(const char *input, unsigned long len)
+    {
+    initLexO(input, len, 0);
+    return Parse_MIMEHelperO();
+    }
+
+
+#if INCLUDEMFC
+
+DLLEXPORT(VObjectO*) Parse_mimeO_FromFileO(CFile *file)
+    {
+    unsigned long startPos;
+    VObjectO *result;
+
+    initLexO(0,-1,file);
+    startPos = file->GetPosition();
+    if (!(result = Parse_MIMEHelperO()))
+	file->Seek(startPos, CFile::begin);
+    return result;
+    }
+
+#else
+
+VObjectO* Parse_MIME_FromFileO(FILE *file)
+    {
+    VObjectO *result;
+    long startPos;
+
+    initLexO(0,(unsigned long)-1,file);
+    startPos = ftell(file);
+    if (!(result = Parse_MIMEHelperO())) {
+	fseek(file,startPos,SEEK_SET);
+	}
+    return result;
+    }
+
+DLLEXPORT(VObjectO*) Parse_MIME_FromFileNameO(char *fname)
+    {
+    FILE *fp = fopen(fname,"r");
+    if (fp) {
+	VObjectO* o = Parse_MIME_FromFileO(fp);
+	fclose(fp);
+	return o;
+	}
+    else {
+	char msg[256];
+	snprintf(msg, sizeof(msg), "can't open file '%s' for reading\n", fname);
+	mimeO_error_(msg);
+	return 0;
+	}
+    }
+
+#endif
+
+/* ///////////////////////////////////////////////////////////////////////// */
+
+static MimeErrorHandlerO mimeErrorHandlerO;
+
+DLLEXPORT(void) registerMimeErrorHandlerO(MimeErrorHandlerO me)
+    {
+    mimeErrorHandlerO = me;
+    }
+
+static void mimeO_error(char *s)
+    {
+    char msg[256];
+    if (mimeErrorHandlerO) {
+	sprintf(msg,"%s at line %d", s, mimeO_lineNum);
+	mimeErrorHandlerO(msg);
+	}
+    }
+
+static void mimeO_error_(char *s)
+    {
+    if (mimeErrorHandlerO) {
+	mimeErrorHandlerO(s);
+	}
+    }
+
+
+
+

@@ -13,6 +13,7 @@ AC_HEADER_STDC
 AC_DISABLE_STATIC
 dnl AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
+AC_PROG_YACC
 
 PKG_CHECK_MODULES(XML, [libxml-2.0])
 AC_SUBST(XML_CFLAGS)
@@ -66,7 +67,7 @@ if test "$py_prefix" != "$py_exec_prefix"; then
 fi
 AC_SUBST(PYTHON_INCLUDES)
 
-pkg_modules="glib-2.0 gmodule-2.0 gthread-2.0 sqlite3"
+pkg_modules="glib-2.0 gmodule-2.0 gobject-2.0 gthread-2.0 sqlite3"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
@@ -77,6 +78,8 @@ src/Makefile
 tools/Makefile
 tests/Makefile
 formats/Makefile
+formats/xml/Makefile
+formats/xml/libversit/Makefile
 engine/Makefile
 ])
 
