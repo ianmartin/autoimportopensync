@@ -3,7 +3,8 @@ It requires OpenSync and kdepim3.
 
 This software is provided freely under the GNU GENERAL PUBLIC
 LICENSE (Version 2) and is copyright
-(C) 2005 Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+(C) 2005 Conectiva S.A.
+Written by Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
 
 Some parts based on the multisync 0.8x kdepim plugin, copyright:
 (C) 2004 Stewart Heitmann <sheitmann@users.sourceforge.net>
