@@ -45,7 +45,7 @@ osync_bool osync_plugin_load_info(OSyncPlugin *plugin, char *path)
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	plugin->real_plugin = g_module_open(path, 0);
+	plugin->real_plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
 	if (!plugin->real_plugin) {
 		osync_debug("OSPLG", 0, "Unable to open plugin: %s", g_module_error());
 		return FALSE;

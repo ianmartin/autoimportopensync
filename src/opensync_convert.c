@@ -139,7 +139,7 @@ OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncFormatEnv *env, O
 	return NULL;
 }
 
-OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, char *sourcename, char *targetname)
+OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char *sourcename, const char *targetname)
 {
 	g_assert(env);
 	g_assert(sourcename);
@@ -155,7 +155,7 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, char *sourc
 	return osync_conf_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
-OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, char *sourcename, char *targetname, OSyncFormatConvertFunc convert_func)
+OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
 {
 	OSyncFormatConverter *converter;
 	if (!(converter = osync_conv_find_converter(type->env, sourcename, targetname))) {
