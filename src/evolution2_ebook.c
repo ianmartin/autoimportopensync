@@ -19,7 +19,7 @@
  */
  
 #include "evolution2_sync.h"
-#include <signal.h>
+
 osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "EVO2-SYNC: %s(%p)", __func__, env);
