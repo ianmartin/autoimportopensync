@@ -376,6 +376,20 @@ void osync_member_set_config(OSyncMember *member, const char *data, int size)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Returns if the member has configuation options
+ * 
+ * @param member The member
+ * @return TRUE if member needs to be configured, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_has_configuration(OSyncMember *member)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	g_assert(member);	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, member->plugin->info.has_configuration);
+	return member->plugin->info.has_configuration;
+}
+
 /** @brief Loads a member from a directory where it has been saved
  * 
  * @param group The group which is the parent

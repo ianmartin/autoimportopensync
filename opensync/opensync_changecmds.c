@@ -60,6 +60,24 @@ static osync_bool target_fn_fmtname(const void *data, OSyncObjFormat *fmt)
 	return !strcmp(name, fmt->name);
 }
 
+/** Function used on path searchs for a sink on a member
+ *
+ * @see osync_conv_find_path_fn(), osync_change_convert_member_sink()
+ */
+static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
+{
+	const OSyncMember *memb = data;
+	GList *i;
+	for (i = memb->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *sink = i->data;
+		if (sink->format == fmt)
+			return TRUE;
+	}
+
+	/* Not found */
+	return FALSE;
+}
+
 /**
  * @defgroup OSyncChangeCmds OpenSync Change Commands
  * @ingroup OSyncPublic
@@ -434,6 +452,21 @@ osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change
 osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **targetnames, OSyncError **error)
 {
 	return osync_conv_convert_fn(env, change, target_fn_fmtnames, targetnames, NULL, error);
+}
+
+/*! @brief Convert a change to the nearest sink on a member
+ * 
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to convert
+ * @param member The member that will receive the change
+ * @param error The error-return location
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *member, OSyncError **error)
+{
+	return osync_conv_convert_fn(env, change, target_fn_membersink, member, member->extension, error);
 }
 
 /*! @brief Tries to detect the object type of the given change

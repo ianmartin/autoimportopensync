@@ -84,6 +84,8 @@ typedef struct OSyncPluginInfo {
 	OSyncPluginFunctions functions;
 	/** The timeouts of your plugin */
 	OSyncPluginTimeouts timeouts;
+	/** Does the plugin have configuration options? */
+	osync_bool has_configuration;
 	/** The pointer to the plugin (for internal use) */
 	OSyncPlugin *plugin;
 } OSyncPluginInfo;

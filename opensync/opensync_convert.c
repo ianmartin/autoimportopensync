@@ -514,31 +514,6 @@ osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start,
 	return osync_conv_find_path_fn(env, start, target_fn_fmtlist, targets, retlist);
 }
 
-/** Function used on path searchs for a sink on a member
- *
- * @see osync_conv_find_path_fn(), osync_change_convert_member_sink()
- */
-static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
-{
-	const OSyncMember *memb = data;
-	GList *i;
-	for (i = memb->format_sinks; i; i = i->next) {
-		OSyncObjFormatSink *sink = i->data;
-		if (sink->format == fmt)
-			return TRUE;
-	}
-
-	/* Not found */
-	return FALSE;
-}
-
-/** Convert a change to the nearest format sink on a member
- */
-osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *member, OSyncError **error)
-{
-	return osync_conv_convert_fn(env, change, target_fn_membersink, member, member->extension, error);
-}
-
 osync_bool osync_conv_objtype_is_any(const char *objstr)
 {
 	if (!strcmp(objstr, "data"))
