@@ -49,7 +49,7 @@ cd plugins/file-sync
 
 echo -n "Making file-sync plugin"
 export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
-./autogen.sh --prefix=$TOP_SRCDIR/_inst &> /dev/null || exit 1
+./autogen.sh --prefix=$TOP_SRCDIR/_inst --enable-error-tests=yes &> /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
 echo "."
