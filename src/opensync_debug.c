@@ -34,6 +34,7 @@
 
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
+#if defined ENABLE_TRACE
 	const char *trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
 		return;
@@ -78,6 +79,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	g_io_channel_unref(chan);
 	g_free(logmessage);
 	g_free(logfile);
+#endif
 }
 
 /*! @brief Used for debugging
@@ -91,6 +93,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
  */
 void osync_debug(const char *subpart, int level, const char *message, ...)
 {
+#if defined ENABLE_DEBUG
 		va_list arglist;
 		char *buffer;
 		int debug = -1;
@@ -133,6 +136,7 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 		osync_trace(TRACE_INTERNAL, debugstr);
 		printf("%s\n", debugstr);
 		g_free(debugstr);
+#endif
 }
 
 /*! @brief Used for printing binary data
