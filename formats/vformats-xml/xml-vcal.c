@@ -36,6 +36,86 @@ static void handle_tzid_parameter(xmlNode *current, VFormatParam *param)
 	xmlNewChild(current, NULL, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
 }
 
+static void handle_value_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "Value", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_altrep_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "AlternateRep", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_cn_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_delegated_from_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "DelegatedFrom", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_delegated_to_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "DelegatedTo", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_dir_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "Directory", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_format_type_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "FormaType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_fb_type_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "FreeBusyType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_member_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "Member", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_partstat_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_range_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "Range", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_related_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "Related", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_reltype_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "RelationType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_role_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "Role", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_rsvp_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "RSVP", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static void handle_sent_by_parameter(xmlNode *current, VFormatParam *param)
+{
+	xmlNewChild(current, NULL, "SentBy", vformat_attribute_param_get_nth_value(param, 0));
+}
+
 static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
@@ -102,7 +182,14 @@ static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling rrule attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", NULL);
-	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Rule", retstr->str);
+	}
+	
 	return current;
 }
 
@@ -393,16 +480,15 @@ static xmlNode *handle_tzdtstart_attribute(xmlNode *root, VFormatAttribute *attr
 static xmlNode *handle_tzrrule_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzrrule attribute");
-	GString *str = g_string_new("");
-	GList *v = vformat_attribute_get_values(attr);
-	for (; v; v = v->next) {
-		const char *prop = v->data;
-		g_string_append(str, prop);
-		if (v->next)
-			g_string_append_c(str, ';');
+	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", NULL);
+	
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Rule", retstr->str);
 	}
-	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", str->str);
-	g_string_free(str, TRUE);
+	
 	return current;
 }
 
@@ -427,7 +513,9 @@ static xmlNode *handle_tzrdate_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_atrigger_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0));
+	xmlNode *current = xmlNewChild(root, NULL, "AlarmTrigger", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
 }
 
 static xmlNode *handle_arepeat_attribute(xmlNode *root, VFormatAttribute *attr)
@@ -671,9 +759,127 @@ static void xml_handle_unknown_parameter(VFormatAttribute *attr, xmlNode *curren
 
 static void handle_xml_category_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	osync_trace(TRACE_INTERNAL, "Handling category xml parameter");
 	char *content = xmlNodeGetContent(current);
 	vformat_attribute_add_value(attr, content);
+	g_free(content);
+}
+
+static void handle_xml_rule_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_value(attr, content);
+	g_free(content);
+}
+
+static void handle_xml_value_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "VALUE", content);
+	g_free(content);
+}
+
+static void handle_xml_altrep_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "ALTREP", content);
+	g_free(content);
+}
+
+static void handle_xml_cn_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "CN", content);
+	g_free(content);
+}
+
+static void handle_xml_delegated_from_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "DELEGATED-FROM", content);
+	g_free(content);
+}
+
+static void handle_xml_delegated_to_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "DELEGATED-TO", content);
+	g_free(content);
+}
+
+static void handle_xml_dir_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "DIR", content);
+	g_free(content);
+}
+
+static void handle_xml_format_type_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "FMTTYPE", content);
+	g_free(content);
+}
+
+static void handle_xml_fb_type_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "FBTYPE", content);
+	g_free(content);
+}
+
+static void handle_xml_member_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "MEMBER", content);
+	g_free(content);
+}
+
+static void handle_xml_partstat_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "PARTSTAT", content);
+	g_free(content);
+}
+
+static void handle_xml_range_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "RANGE", content);
+	g_free(content);
+}
+
+static void handle_xml_reltype_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "RELTYPE", content);
+	g_free(content);
+}
+
+static void handle_xml_related_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "RELATED", content);
+	g_free(content);
+}
+
+static void handle_xml_role_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "ROLE", content);
+	g_free(content);
+}
+
+static void handle_xml_rsvp_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "RSVP", content);
+	g_free(content);
+}
+
+static void handle_xml_sent_by_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	char *content = xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, "SENT-BY", content);
 	g_free(content);
 }
 
@@ -1007,8 +1213,25 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "RESOURCES", handle_resources_attribute);
 	g_hash_table_insert(hooks->comptable, "DTEND", handle_dtend_attribute);
 	g_hash_table_insert(hooks->comptable, "TRANSP", handle_transp_attribute);
-	g_hash_table_insert(hooks->comptable, "TZID", handle_tzid_parameter);
 	
+	g_hash_table_insert(hooks->comptable, "TZID", handle_tzid_parameter);
+	g_hash_table_insert(hooks->comptable, "VALUE", handle_value_parameter);
+	g_hash_table_insert(hooks->comptable, "ALTREP", handle_altrep_parameter);
+	g_hash_table_insert(hooks->comptable, "CN", handle_cn_parameter);
+	g_hash_table_insert(hooks->comptable, "DELEGATED-FROM", handle_delegated_from_parameter);
+	g_hash_table_insert(hooks->comptable, "DELEGATED-TO", handle_delegated_to_parameter);
+	g_hash_table_insert(hooks->comptable, "DIR", handle_dir_parameter);
+	g_hash_table_insert(hooks->comptable, "FMTTYPE", handle_format_type_parameter);
+	g_hash_table_insert(hooks->comptable, "FBTYPE", handle_fb_type_parameter);
+	g_hash_table_insert(hooks->comptable, "MEMBER", handle_member_parameter);
+	g_hash_table_insert(hooks->comptable, "PARTSTAT", handle_partstat_parameter);
+	g_hash_table_insert(hooks->comptable, "RANGE", handle_range_parameter);
+	g_hash_table_insert(hooks->comptable, "RELATED", handle_related_parameter);
+	g_hash_table_insert(hooks->comptable, "RELTYPE", handle_reltype_parameter);
+	g_hash_table_insert(hooks->comptable, "ROLE", handle_role_parameter);
+	g_hash_table_insert(hooks->comptable, "RSVP", handle_rsvp_parameter);
+	g_hash_table_insert(hooks->comptable, "SENT-BY", handle_sent_by_parameter);
+
 	//vcal attributes
 	g_hash_table_insert(hooks->table, "PRODID", handle_prodid_attribute);
 	g_hash_table_insert(hooks->table, "PRODID", HANDLE_IGNORE);
@@ -1034,6 +1257,22 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->tztable, "TZURL", handle_tzurl_attribute);
 	g_hash_table_insert(hooks->tztable, "COMMENT", HANDLE_IGNORE);
     g_hash_table_insert(hooks->tztable, "RDATE", handle_tzrdate_attribute);
+	g_hash_table_insert(hooks->tztable, "VALUE", handle_value_parameter);
+	g_hash_table_insert(hooks->tztable, "ALTREP", handle_altrep_parameter);
+	g_hash_table_insert(hooks->tztable, "CN", handle_cn_parameter);
+	g_hash_table_insert(hooks->tztable, "DELEGATED-FROM", handle_delegated_from_parameter);
+	g_hash_table_insert(hooks->tztable, "DELEGATED-TO", handle_delegated_to_parameter);
+	g_hash_table_insert(hooks->tztable, "DIR", handle_dir_parameter);
+	g_hash_table_insert(hooks->tztable, "FMTTYPE", handle_format_type_parameter);
+	g_hash_table_insert(hooks->tztable, "FBTYPE", handle_fb_type_parameter);
+	g_hash_table_insert(hooks->tztable, "MEMBER", handle_member_parameter);
+	g_hash_table_insert(hooks->tztable, "PARTSTAT", handle_partstat_parameter);
+	g_hash_table_insert(hooks->tztable, "RANGE", handle_range_parameter);
+	g_hash_table_insert(hooks->tztable, "RELATED", handle_related_parameter);
+	g_hash_table_insert(hooks->tztable, "RELTYPE", handle_reltype_parameter);
+	g_hash_table_insert(hooks->tztable, "ROLE", handle_role_parameter);
+	g_hash_table_insert(hooks->tztable, "RSVP", handle_rsvp_parameter);
+	g_hash_table_insert(hooks->tztable, "SENT-BY", handle_sent_by_parameter);
 	
 	//VAlarm component
 	g_hash_table_insert(hooks->alarmtable, "TRIGGER", handle_atrigger_attribute);
@@ -1044,6 +1283,23 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->alarmtable, "DESCRIPTION", handle_adescription_attribute);
 	g_hash_table_insert(hooks->alarmtable, "ATTENDEE", handle_aattendee_attribute);
 	g_hash_table_insert(hooks->alarmtable, "SUMMARY", handle_asummary_attribute);
+	g_hash_table_insert(hooks->alarmtable, "TZID", handle_tzid_parameter);
+	g_hash_table_insert(hooks->alarmtable, "VALUE", handle_value_parameter);
+	g_hash_table_insert(hooks->alarmtable, "ALTREP", handle_altrep_parameter);
+	g_hash_table_insert(hooks->alarmtable, "CN", handle_cn_parameter);
+	g_hash_table_insert(hooks->alarmtable, "DELEGATED-FROM", handle_delegated_from_parameter);
+	g_hash_table_insert(hooks->alarmtable, "DELEGATED-TO", handle_delegated_to_parameter);
+	g_hash_table_insert(hooks->alarmtable, "DIR", handle_dir_parameter);
+	g_hash_table_insert(hooks->alarmtable, "FMTTYPE", handle_format_type_parameter);
+	g_hash_table_insert(hooks->alarmtable, "FBTYPE", handle_fb_type_parameter);
+	g_hash_table_insert(hooks->alarmtable, "MEMBER", handle_member_parameter);
+	g_hash_table_insert(hooks->alarmtable, "PARTSTAT", handle_partstat_parameter);
+	g_hash_table_insert(hooks->alarmtable, "RANGE", handle_range_parameter);
+	g_hash_table_insert(hooks->alarmtable, "RELATED", handle_related_parameter);
+	g_hash_table_insert(hooks->alarmtable, "RELTYPE", handle_reltype_parameter);
+	g_hash_table_insert(hooks->alarmtable, "ROLE", handle_role_parameter);
+	g_hash_table_insert(hooks->alarmtable, "RSVP", handle_rsvp_parameter);
+	g_hash_table_insert(hooks->alarmtable, "SENT-BY", handle_sent_by_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -1141,7 +1397,6 @@ static VFormatAttribute *handle_xml_created_attribute(VFormat *vcard, xmlNode *r
 static VFormatAttribute *handle_xml_rrule_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "RRULE");
-	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -1342,7 +1597,6 @@ static VFormatAttribute *handle_xml_tzdtstart_attribute(VFormat *vcard, xmlNode 
 static VFormatAttribute *handle_xml_tzrrule_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "RRULE");
-	add_value(attr, root, NULL, encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -1374,7 +1628,7 @@ static VFormatAttribute *handle_xml_tzrdate_attribute(VFormat *vcard, xmlNode *r
 static VFormatAttribute *handle_xml_atrigger_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TRIGGER");
-	add_value(attr, root, NULL, encoding);
+	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -1461,7 +1715,7 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->comptable, "Sequence", handle_xml_sequence_attribute);
 	g_hash_table_insert(hooks->comptable, "LastModified", handle_xml_last_modified_attribute);
 	g_hash_table_insert(hooks->comptable, "DateCreated", handle_xml_created_attribute);
-	g_hash_table_insert(hooks->comptable, "ReccurenceRule", handle_xml_rrule_attribute);
+	g_hash_table_insert(hooks->comptable, "RecurrenceRule", handle_xml_rrule_attribute);
 	g_hash_table_insert(hooks->comptable, "RecurrenceDate", handle_xml_rdate_attribute);
 	g_hash_table_insert(hooks->comptable, "Location", handle_xml_location_attribute);
 	g_hash_table_insert(hooks->comptable, "Geo", handle_xml_geo_attribute);
@@ -1481,6 +1735,23 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->comptable, "DateEnd", handle_xml_dtend_attribute);
 	g_hash_table_insert(hooks->comptable, "Transparency", handle_xml_transp_attribute);
 	g_hash_table_insert(hooks->comptable, "Category", handle_xml_category_parameter);
+	g_hash_table_insert(hooks->comptable, "Rule", handle_xml_rule_parameter);
+	g_hash_table_insert(hooks->comptable, "Value", handle_xml_value_parameter);
+	g_hash_table_insert(hooks->comptable, "AlternateRep", handle_xml_altrep_parameter);
+	g_hash_table_insert(hooks->comptable, "CommonName", handle_xml_cn_parameter);
+	g_hash_table_insert(hooks->comptable, "DelegatedFrom", handle_xml_delegated_from_parameter);
+	g_hash_table_insert(hooks->comptable, "DelegatedTo", handle_xml_delegated_to_parameter);
+	g_hash_table_insert(hooks->comptable, "Directory", handle_xml_dir_parameter);
+	g_hash_table_insert(hooks->comptable, "FormaType", handle_xml_format_type_parameter);
+	g_hash_table_insert(hooks->comptable, "FreeBusyType", handle_xml_fb_type_parameter);
+	g_hash_table_insert(hooks->comptable, "Member", handle_xml_member_parameter);
+	g_hash_table_insert(hooks->comptable, "PartStat", handle_xml_partstat_parameter);
+	g_hash_table_insert(hooks->comptable, "Range", handle_xml_range_parameter);
+	g_hash_table_insert(hooks->comptable, "Related", handle_xml_related_parameter);
+	g_hash_table_insert(hooks->comptable, "RelationType", handle_xml_reltype_parameter);
+	g_hash_table_insert(hooks->comptable, "Role", handle_xml_role_parameter);
+	g_hash_table_insert(hooks->comptable, "RSVP", handle_xml_rsvp_parameter);
+	g_hash_table_insert(hooks->comptable, "SentBy", handle_xml_sent_by_parameter);
 	
 	//vcal attributes
 	g_hash_table_insert(hooks->table, "CalendarScale", handle_xml_calscale_attribute);
@@ -1500,6 +1771,24 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->tztable, "LastModified", handle_xml_tz_last_modified_attribute);
 	g_hash_table_insert(hooks->tztable, "TimezoneUrl", handle_xml_tzurl_attribute);
     g_hash_table_insert(hooks->tztable, "RecurrenceDate", handle_xml_tzrdate_attribute);
+    g_hash_table_insert(hooks->tztable, "Category", handle_xml_category_parameter);
+	g_hash_table_insert(hooks->tztable, "Rule", handle_xml_rule_parameter);
+	g_hash_table_insert(hooks->tztable, "Value", handle_xml_value_parameter);
+	g_hash_table_insert(hooks->tztable, "AlternateRep", handle_xml_altrep_parameter);
+	g_hash_table_insert(hooks->tztable, "CommonName", handle_xml_cn_parameter);
+	g_hash_table_insert(hooks->tztable, "DelegatedFrom", handle_xml_delegated_from_parameter);
+	g_hash_table_insert(hooks->tztable, "DelegatedTo", handle_xml_delegated_to_parameter);
+	g_hash_table_insert(hooks->tztable, "Directory", handle_xml_dir_parameter);
+	g_hash_table_insert(hooks->tztable, "FormaType", handle_xml_format_type_parameter);
+	g_hash_table_insert(hooks->tztable, "FreeBusyType", handle_xml_fb_type_parameter);
+	g_hash_table_insert(hooks->tztable, "Member", handle_xml_member_parameter);
+	g_hash_table_insert(hooks->tztable, "PartStat", handle_xml_partstat_parameter);
+	g_hash_table_insert(hooks->tztable, "Range", handle_xml_range_parameter);
+	g_hash_table_insert(hooks->tztable, "Related", handle_xml_related_parameter);
+	g_hash_table_insert(hooks->tztable, "RelationType", handle_xml_reltype_parameter);
+	g_hash_table_insert(hooks->tztable, "Role", handle_xml_role_parameter);
+	g_hash_table_insert(hooks->tztable, "RSVP", handle_xml_rsvp_parameter);
+	g_hash_table_insert(hooks->tztable, "SentBy", handle_xml_sent_by_parameter);
 	
 	//VAlarm component
 	g_hash_table_insert(hooks->alarmtable, "AlarmTrigger", handle_xml_atrigger_attribute);
@@ -1510,6 +1799,24 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->alarmtable, "AlarmDescription", handle_xml_adescription_attribute);
 	g_hash_table_insert(hooks->alarmtable, "AlarmAttendee", handle_xml_aattendee_attribute);
 	g_hash_table_insert(hooks->alarmtable, "AlarmSummary", handle_xml_asummary_attribute);
+	g_hash_table_insert(hooks->alarmtable, "Category", handle_xml_category_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Rule", handle_xml_rule_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Value", handle_xml_value_parameter);
+	g_hash_table_insert(hooks->alarmtable, "AlternateRep", handle_xml_altrep_parameter);
+	g_hash_table_insert(hooks->alarmtable, "CommonName", handle_xml_cn_parameter);
+	g_hash_table_insert(hooks->alarmtable, "DelegatedFrom", handle_xml_delegated_from_parameter);
+	g_hash_table_insert(hooks->alarmtable, "DelegatedTo", handle_xml_delegated_to_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Directory", handle_xml_dir_parameter);
+	g_hash_table_insert(hooks->alarmtable, "FormaType", handle_xml_format_type_parameter);
+	g_hash_table_insert(hooks->alarmtable, "FreeBusyType", handle_xml_fb_type_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Member", handle_xml_member_parameter);
+	g_hash_table_insert(hooks->alarmtable, "PartStat", handle_xml_partstat_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Range", handle_xml_range_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Related", handle_xml_related_parameter);
+	g_hash_table_insert(hooks->alarmtable, "RelationType", handle_xml_reltype_parameter);
+	g_hash_table_insert(hooks->alarmtable, "Role", handle_xml_role_parameter);
+	g_hash_table_insert(hooks->alarmtable, "RSVP", handle_xml_rsvp_parameter);
+	g_hash_table_insert(hooks->alarmtable, "SentBy", handle_xml_sent_by_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
