@@ -91,6 +91,7 @@ struct OSyncEngine {
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
 	OSyncMappingTable *maptable;
+	osync_bool is_initialized;
 	
 	OSyncError *error;
 	GThread *thread;
@@ -135,6 +136,7 @@ struct OSyncClient {
 	MSyncFlag *fl_done;
 	MSyncFlag *fl_finished;
 	GThread *thread;
+	GMainContext *context;
 };
 
 #include "osengine_debug.h"

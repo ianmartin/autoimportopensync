@@ -6,6 +6,7 @@ static void reset_env(void)
 {
 	g_unsetenv("CONNECT_ERROR");
 	g_unsetenv("CONNECT_TIMEOUT");
+	g_unsetenv("INIT_NULL");
 }
 
 char *setup_testbed(char *fkt_name)

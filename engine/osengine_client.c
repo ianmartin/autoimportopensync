@@ -31,6 +31,9 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 	engine->clients = g_list_append(engine->clients, client);
 	client->incoming = itm_queue_new();
 	
+	client->context = g_main_context_new();
+	client->memberloop = g_main_loop_new(client->context, FALSE);
+	
 	client->fl_connected = osync_flag_new(engine->cmb_connected);
 	client->fl_sent_changes = osync_flag_new(engine->cmb_sent_changes);
 	client->fl_done = osync_flag_new(NULL);
@@ -45,7 +48,8 @@ void osync_client_free(OSyncClient *client)
 	osync_debug("CLI", 3, "Freeing client");
 	itm_queue_free(client->incoming);
 	g_main_loop_unref(client->memberloop);
-
+	g_main_context_unref(client->context);
+	
 	osync_flag_free(client->fl_connected);
 	osync_flag_free(client->fl_sent_changes);
 	osync_flag_free(client->fl_done);
@@ -189,9 +193,6 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_client_init(%p, %p)", client, error);
 	
-	GMainContext *context = g_main_context_new();
-	client->memberloop = g_main_loop_new(context, FALSE);
-	
 	//Set the callback functions
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(client->member);
 	functions->rf_change = osync_client_changes_sink;
@@ -200,7 +201,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 
 	//Start the queue
 	itm_queue_set_message_handler(client->incoming, (ITMessageHandler)client_message_handler, client);
-	itm_queue_setup_with_gmainloop(client->incoming, context);
+	itm_queue_setup_with_gmainloop(client->incoming, client->context);
 
 	//Call the init function
 	if (!osync_member_initialize(client->member, error)) {

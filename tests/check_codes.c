@@ -51,6 +51,34 @@
 }
 END_TEST*/
 
+START_TEST (single_init_error)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	g_setenv("INIT_NULL", "2", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	fail_unless(!osync_engine_init(engine, &error), NULL);
+	fail_unless(!osync_engine_sync_and_block(engine, NULL), NULL);
+	
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (dual_connect_error)
 {
 	char *testbed = setup_testbed("sync_easy_new");
@@ -446,6 +474,7 @@ Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Error Codes");
 	//Suite *s2 = suite_create("Error Codes");
+	create_case(s, "single_init_error", single_init_error);
 	create_case(s, "dual_connect_error", dual_connect_error);
 	create_case(s, "one_of_two_connect_error", one_of_two_connect_error);
 	create_case(s, "two_of_three_connect_error", two_of_three_connect_error);

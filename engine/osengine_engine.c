@@ -432,6 +432,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 		g_thread_init (NULL);
 	
 	engine->context = g_main_context_new();
+	engine->syncloop = g_main_loop_new(engine->context, FALSE);
 	
 	//Now load the old uid mapping
 	engine->maptable = osync_mappingtable_new(group);
@@ -626,7 +627,11 @@ void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (
 osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_engine_init(%p, %p)", engine, error);
-	//int i = 0;
+	if (engine->is_initialized) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was already initialized");
+		return FALSE;
+	}
+	
 	if (!(engine->man_dispatch))
 		itm_queue_setup_with_gmainloop(engine->incoming, engine->context);
 	itm_queue_set_message_handler(engine->incoming, (ITMessageHandler)engine_message_handler, engine);
@@ -670,11 +675,12 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		}
 	}*/
 	
-	engine->syncloop = g_main_loop_new(engine->context, FALSE);
+	
 	osync_debug("ENG", 3, "Running the main loop");
 
 	//Now we can run the main loop
 	engine->thread = g_thread_create ((GThreadFunc)g_main_loop_run, engine->syncloop, TRUE, NULL);
+	engine->is_initialized = TRUE;
 	osync_trace(TRACE_EXIT, "osync_engine_init");
 	return TRUE;
 }
@@ -694,6 +700,11 @@ void osync_engine_finalize(OSyncEngine *engine)
 	//FIXME check if engine is running
 	osync_trace(TRACE_ENTRY, "osync_engine_finalize(%p)", engine);
 
+	if (!engine->is_initialized) {
+		osync_trace(TRACE_EXIT_ERROR, "osync_engine_finalize: Not initialized");
+		return;
+	}
+	
 	osync_mappingtable_close(engine->maptable);
 	
 	g_assert(engine);
@@ -710,6 +721,7 @@ void osync_engine_finalize(OSyncEngine *engine)
 	
 	itm_queue_flush(engine->incoming);
 	
+	engine->is_initialized = FALSE;
 	osync_trace(TRACE_EXIT, "osync_engine_finalize");
 }
 
@@ -726,6 +738,12 @@ void osync_engine_finalize(OSyncEngine *engine)
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
 	g_assert(engine);
+	if (!engine->is_initialized) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "osync_engine_synchronize: Not initialized");
+		osync_debug("ENG", 1, "osync_engine_synchronize: Not initialized");
+		return FALSE;
+	}
+	
 	osync_flag_set(engine->fl_running);
 	return TRUE;
 }
