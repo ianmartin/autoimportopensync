@@ -91,6 +91,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 		change->uid = g_strdup(sqlite3_column_text(ppStmt, 1));
 		change->objtype_name = g_strdup(sqlite3_column_text(ppStmt, 2));
 		change->format_name = g_strdup(sqlite3_column_text(ppStmt, 3));
+		change->initial_format_name = g_strdup(change->format_name);
 		change->mappingid = sqlite3_column_int64(ppStmt, 5);
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
 		change->changes_db = group->changes_db;
@@ -103,7 +104,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	return TRUE;
 }
 
-osync_bool osync_db_save_change(OSyncChange *change, OSyncError **error)
+osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_db_save_change(%p, %p)", change, error);
 	osync_assert(change, "Need to set change");
@@ -128,7 +129,10 @@ osync_bool osync_db_save_change(OSyncChange *change, OSyncError **error)
 		}
 		change->id = sqlite3_last_insert_rowid(sdb);
 	} else {
-		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->id);
+		if (save_format)
+			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->id);
+		else
+			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, change->member->id, change->mappingid, change->id);
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to update change! %s", sqlite3_errmsg(sdb));
 			g_free(query);

@@ -9,7 +9,7 @@ void osync_db_close(OSyncDB *db);
 int osync_db_count(OSyncDB *db, char *table);
 
 osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyncError **error);
-osync_bool osync_db_save_change(OSyncChange *change, OSyncError **error);
+osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSyncError **error);
 osync_bool osync_db_delete_change(OSyncChange *change, OSyncError **error);
 osync_bool osync_db_reset_changes(OSyncGroup *group, const char *objtype, OSyncError **error);
 void osync_db_close_changes(OSyncGroup *group);

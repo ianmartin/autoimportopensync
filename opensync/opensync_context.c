@@ -82,8 +82,14 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	osync_assert((!(change->data) && change->size == 0) || (change->data && change->size != 0), "No data and datasize was not 0!");
 	osync_assert((!change->data && change->changetype == CHANGE_DELETED) || (change->data && change->changetype != CHANGE_DELETED), "You cannot report data if you report CHANGE_DELETED. Just report the uid");
 	
+	osync_assert((osync_change_get_objformat(change) != NULL) || change->changetype == CHANGE_DELETED, "The reported change did not have a format set");
+	osync_assert((osync_change_get_objtype(change) != NULL) || change->changetype == CHANGE_DELETED, "The reported change did not have a objtype set");
+	
+	
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;
+	
+	change->initial_format = change->format;
 	
 	osync_assert(member->memberfunctions->rf_change, "The engine must set a callback to receive changes");
 	member->memberfunctions->rf_change(member, change, context->calldata);

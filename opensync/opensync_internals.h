@@ -145,6 +145,10 @@ struct OSyncChange {
 	char *objtype_name;
 	OSyncObjFormat *format;
 	char *format_name;
+	
+	OSyncObjFormat *initial_format;
+	char *initial_format_name;
+	
 	OSyncFormatEnv *conv_env;
 		
 	OSyncMember *member;
@@ -169,4 +173,7 @@ struct OSyncChange {
 #include "opensync_member_internals.h"
 #include "opensync_plugin_internals.h"
 #include "opensync_filter_internals.h"
+
+OSyncObjFormat *osync_change_get_initial_objformat(OSyncChange *change);
+
 #include <sys/stat.h>

@@ -83,11 +83,11 @@ void osync_change_decref(OSyncChange *change)
 		osync_change_free(change);
 }
 
-osync_bool osync_change_save(OSyncChange *change, OSyncError **error)
+osync_bool osync_change_save(OSyncChange *change, osync_bool save_format, OSyncError **error)
 {
 	if (!change->changes_db)
 		change->changes_db = change->member->group->changes_db;
-	return osync_db_save_change(change, error);
+	return osync_db_save_change(change, save_format, error);
 }
 
 osync_bool osync_change_delete(OSyncChange *change, OSyncError **error)
@@ -174,6 +174,20 @@ OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
 	change->format = osync_conv_find_objformat(change->conv_env, change->format_name);
 	return change->format;
+}
+
+OSyncObjFormat *osync_change_get_initial_objformat(OSyncChange *change)
+{
+	g_assert(change);
+	if (change->initial_format)
+		return change->initial_format;
+	
+	if (!change->initial_format)
+		return NULL;
+	
+	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
+	change->initial_format = osync_conv_find_objformat(change->conv_env, change->initial_format_name);
+	return change->initial_format;
 }
 
 void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)

@@ -80,16 +80,15 @@ static void dump_unmapped(OSyncEnv *osync, char *groupname)
 	sqlite3 *sdb = db->db;
 	
 	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes", -1, &ppStmt, NULL);
+	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid FROM tbl_changes WHERE mappingid=0", -1, &ppStmt, NULL);
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		long long int entryid = sqlite3_column_int64(ppStmt, 0);
 		char *uid = g_strdup(sqlite3_column_text(ppStmt, 1));
 		char *objtype = g_strdup(sqlite3_column_text(ppStmt, 2));
 		char *objformat = g_strdup(sqlite3_column_text(ppStmt, 3));
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
-		long long int mappingid = sqlite3_column_int64(ppStmt, 5);
 		
-    	printf("ID: %lli UID: %s MEMBER: %lli, TYPE %s, FORMAT %s, MAPPING %lli\n", entryid, uid, memberid, objtype, objformat, mappingid);
+    	printf("ID: %lli UID: %s MEMBER: %lli, TYPE %s, FORMAT %s\n", entryid, uid, memberid, objtype, objformat);
 	}
 	sqlite3_finalize(ppStmt);
 	

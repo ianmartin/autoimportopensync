@@ -495,7 +495,9 @@ static osync_bool init_xml_to_kde(void *input)
 	g_hash_table_insert(hooks->attributes, "SMS", handle_xml_sms_attribute);
 
 	g_hash_table_insert(hooks->attributes, "KDE-Extension", handle_xml_x_kde_attribute);
-
+	//Overwrite the uid handler
+	g_hash_table_insert(hooks->attributes, "Uid", HANDLE_IGNORE);
+	
 	g_hash_table_insert(hooks->parameters, "Unit", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->parameters, "Name", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->parameters, "Department", HANDLE_IGNORE);
