@@ -2,6 +2,14 @@
 
 TOP_SRCDIR=$(pwd)
 
+make clean || exit 1
+
+cd plugins/file-sync
+
+make clean || exit 1
+
+cd $TOP_SRCDIR
+
 make dist || exit 1
 
 mkdir _inst > /dev/null
