@@ -29,7 +29,7 @@ static void *evo2_initialize(OSyncMember *member)
 		return NULL;
 }
 
-static ESource *find_source(ESourceList *list, char *uri)
+ESource *evo2_find_source(ESourceList *list, char *uri)
 {
 	GSList *g;
 	for (g = e_source_list_peek_groups (list); g; g = g->next) {
@@ -48,41 +48,41 @@ static void evo2_connect(OSyncContext *ctx)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-	ESource *source;
 	osync_bool open_any = FALSE;
 	
-	if (osync_member_needs_objtype(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
+	if (osync_member_objtype_enabled(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
 		if (evo2_addrbook_open(env)) {
 			open_any = TRUE;
 			if (!osync_anchor_compare(env->member, "contact", env->adressbook_path))
-				osync_member_request_slow_sync(env->member, "contact");
+				osync_member_set_slow_sync(env->member, "contact", TRUE);
 		} else {
-			osync_context_send_warning(ctx, "Unable to open addressbook");
+			osync_context_send_log(ctx, "Unable to open addressbook");
 		}
 	}
 	
-	if (osync_member_needs_objtype(env->member, "calendar") &&  env->calendar_path && strlen(env->calendar_path)) {
+	if (osync_member_objtype_enabled(env->member, "calendar") &&  env->calendar_path && strlen(env->calendar_path)) {
 		if (evo2_calendar_open(env)) {
 			open_any = TRUE;
 			if (!osync_anchor_compare(env->member, "calendar", env->calendar_path))
-				osync_member_request_slow_sync(env->member, "calendar");
+				osync_member_set_slow_sync(env->member, "calendar", TRUE);
 		} else {
-			osync_context_send_warning(ctx, "Unable to open calendar");
+			osync_context_send_log(ctx, "Unable to open calendar");
 		}
 	}
 	
-	if (osync_member_needs_objtype(env->member, "tasks") && env->tasks_path && strlen(env->tasks_path)) {
+	if (osync_member_objtype_enabled(env->member, "todo") && env->tasks_path && strlen(env->tasks_path)) {
 		if (evo2_tasks_open(env)) {
 			open_any = TRUE;
 			if (!osync_anchor_compare(env->member, "tasks", env->tasks_path))
-				osync_member_request_slow_sync(env->member, "tasks");
+				osync_member_set_slow_sync(env->member, "tasks", TRUE);
 		} else {
-			osync_context_send_warning(ctx, "Unable to open tasks");
+			osync_context_send_log(ctx, "Unable to open tasks");
 		}
 	}
 	
 	srand(time(NULL));
 	if (!open_any) {
+		printf("Reporting error\n");
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to open anything");
 		return;
 	}
@@ -91,7 +91,6 @@ static void evo2_connect(OSyncContext *ctx)
 
 static OSyncChangeType evo2_get_data(void *object, char *objtype, char **data, int *datasize, const char **uid)
 {
-	char *buffer;
 	EBookChange *ebc;
 	ECalChange *ecc;
 	if (!strcmp(objtype, "calendar") || !strcmp(objtype, "todo")) {
@@ -124,20 +123,22 @@ static OSyncChangeType evo2_get_data(void *object, char *objtype, char **data, i
 				return CHANGE_DELETED;
 		}
 	}
+	return CHANGE_UNKNOWN;
 }
 
-static void evo2_report_changes(OSyncMember *member, GList *changes, OSyncContext *ctx, char *objtypestr, char *objformatstr)
+static void evo2_report_changes(GList *changes, OSyncContext *ctx, char *objtypestr, char *objformatstr)
 {
+	OSyncMember *member = osync_context_get_member(ctx);
 	GList *l;
 	for (l = changes; l; l = l->next) {
 		const char *uid = NULL;
 		char *data = NULL;
 		int datasize = 0;
-		OSyncChangeType type = evo_get_data(l->data, objtypestr, &data, &datasize, &uid);
+		OSyncChangeType type = evo2_get_data(l->data, objtypestr, &data, &datasize, &uid);
 		
 		OSyncFormatEnv *env = osync_member_get_format_env(member);
 		OSyncObjType *objtype = osync_conv_find_objtype(env, objtypestr);
-		OSyncFormatType *objformat = osync_conv_find_objformat(env, objformatstr);
+		OSyncObjFormat *objformat = osync_conv_find_objformat(env, objformatstr);
 		
 		OSyncChange *change = osync_change_new();
 		osync_change_set_uid(change, uid);
@@ -156,15 +157,15 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 	
 	GList *changes;
 
-	if (env->addressbook) {
+	if (env->adressbook) {
 		if (osync_member_get_slow_sync(env->member, "contact")) {
 			if (!e_book_get_changes(env->adressbook, env->change_id, &changes, NULL)) {
-				osync_context_send_warning(ctx, "Unable to open changed contacts");
+				osync_context_send_log(ctx, "Unable to open changed contacts");
 			}
 		} else {
 			EBookQuery *query = e_book_query_from_string("*"); //FIXME
-			if (!e_book_get_contacts(env->adressbook, env->change_id, &changes, NULL)) {
-				osync_context_send_warning(ctx, "Unable to open contacts");
+			if (!e_book_get_contacts(env->adressbook, query, &changes, NULL)) {
+				osync_context_send_log(ctx, "Unable to open contacts");
 			}
 		}	
 		evo2_report_changes(changes, ctx, "contact", "vcard");
@@ -173,7 +174,7 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 	if (env->calendar) {
 		if (osync_member_get_slow_sync(env->member, "calendar")) {
 			if (!e_cal_get_changes(env->calendar, env->change_id, &changes, NULL)) {
-				osync_context_send_warning(ctx, "Unable to open changed calendar entries");
+				osync_context_send_log(ctx, "Unable to open changed calendar entries");
 			}
 		} else {
 			/* FIXME HOW?
@@ -190,7 +191,7 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 	if (env->tasks) {
 		if (osync_member_get_slow_sync(env->member, "todo")) {
 			if (!e_cal_get_changes(env->tasks, env->change_id, &changes, NULL)) {
-				osync_context_send_warning(ctx, "Unable to open changed tasks");
+				osync_context_send_log(ctx, "Unable to open changed tasks");
 			}
 		} else {
 			/* FIXME HOW?
@@ -205,30 +206,6 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 	}
 	
 	osync_context_report_success(ctx);
-}
- 
-static void evo2_commit_change(OSyncContext *ctx, OSyncChange *change)
-{
-	GError *error = NULL;
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-	
-	if (!strcmp("contact", osync_change_get_format(change))) {
-		if (!evo2_addrbook_modify(env, change))
-			osync_call_set_error(call, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
-	} else if {
-			if (!evo2_calendar_modify(env, change))
-				osync_call_set_error(call, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
-			break;
-		case OSYNC_VTODO:
-			if (!evo2_tasks_modify(env, change))
-				osync_call_set_error(call, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
-			break;
-		default:
-			printf("Error2\n");
-	}
-
-	osync_call_answer(call);
 }
 
 static void evo2_sync_done(OSyncContext *ctx)
@@ -251,7 +228,7 @@ static void evo2_sync_done(OSyncContext *ctx)
 static void evo2_disconnect(OSyncContext *ctx)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	//evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 
 	//FIXME!!
 	
@@ -261,7 +238,7 @@ static void evo2_disconnect(OSyncContext *ctx)
 static void evo2_finalize(void *data)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	evo_environment *env = (evo_environment *)data;
 	
 	g_free(env->change_id);
 	g_free(env);
@@ -274,28 +251,12 @@ void get_info(OSyncPluginInfo *info) {
 	
 	info->functions.initialize = evo2_initialize;
 	info->functions.connect = evo2_connect;
+	info->functions.get_changeinfo = evo2_get_changeinfo;
 	info->functions.sync_done = evo2_sync_done;
 	info->functions.disconnect = evo2_disconnect;
 	info->functions.finalize = evo2_finalize;
 
-	OSyncObjType *contact = osync_conv_register_objtype(info->accepted_objtypes, "contact");
-	OSyncObjFormat *vcard = osync_conv_register_objformat(contact, "vcard");
-	vcard->functions.get_changeinfo = evo2_ebook_read;
-	vcard->functions.get_data = NULL;
-	vcard->functions.commit_change = evo2_ebook_commit;
-	vcard->functions.access = evo2_ebook_commit;
-	
-	OSyncObjType *calendar = osync_conv_register_objtype(info->accepted_objtypes, "calendar");
-	OSyncObjFormat *vcal = osync_conv_register_objformat(calendar, "vcalendar");
-	vcal->functions.get_changeinfo = evo2_cal_read;
-	vcal->functions.get_data = NULL;
-	vcal->functions.commit_change = evo2_cal_commit;
-	vcal->functions.access = evo2_cal_commit;
-	
-	OSyncObjType *todo = osync_conv_register_objtype(info->accepted_objtypes, "todo");
-	OSyncObjFormat *vtodo = osync_conv_register_objformat(todo, "vtodo");
-	vtodo->functions.get_changeinfo = evo2_tasks_read;
-	vtodo->functions.get_data = NULL;
-	vtodo->functions.commit_change = evo2_tasks_commit;
-	vtodo->functions.access = evo2_tasks_commit;
+	evo2_addrbook_setup(info);
+	evo2_calendar_setup(info);
+	evo2_tasks_setup(info);
 }
