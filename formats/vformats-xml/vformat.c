@@ -212,7 +212,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 			in_quote = !in_quote;
 			lp = g_utf8_next_char (lp);
 		}
-		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/') {
+		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/' || *lp == '.') {
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 			lp = g_utf8_next_char (lp);
 		}
@@ -327,7 +327,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 				break;
 		}
 		else {
-			g_warning ("invalid character found in parameter spec: %c", lp[0]);
+			g_warning ("invalid character found in parameter spec: \"%c\" String so far: %s", lp[0], str->str);
 			g_string_assign (str, "");
 			_skip_until (&lp, ":;");
 		}
@@ -708,27 +708,6 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		str = g_string_append (str, attr_str->str);
 		g_string_free (attr_str, TRUE);
 	}
-
-	switch (type) {
-		case VFORMAT_CARD_21:
-			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:2.1\r\n");
-			break;
-		case VFORMAT_CARD_30:
-			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:3.0\r\n");
-			break;
-		case VFORMAT_TODO_10:
-		case VFORMAT_EVENT_10:
-			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
-			break;
-		case VFORMAT_TODO_20:
-		case VFORMAT_EVENT_20:
-			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
-			break;
-		case VFORMAT_NOTE:
-			str = g_string_append (str, "BEGIN:VNOTE");
-			break;
-	}
-
 
 	switch (type) {
 		case VFORMAT_CARD_21:

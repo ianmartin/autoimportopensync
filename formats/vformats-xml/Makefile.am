@@ -8,7 +8,8 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 EXTRA_DIST = \
 	vformat.h \
 	opensync-xml.h \
-	xml-vcard.h
+	xml-vcard.h \
+	xml-vcal.h
 
 opensyncheader_HEADERS = opensync-xml.h
 

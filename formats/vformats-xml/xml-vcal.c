@@ -20,7 +20,7 @@
  
 #include "opensync-xml.h"
 #include "vformat.h"
-#include "xml-vcard.h"
+#include "xml-vcal.h"
 #include <glib.h>
 
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
@@ -28,6 +28,12 @@ static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
 	xmlNode *property = xmlNewChild(current, NULL, "UnknownParam", vformat_attribute_param_get_nth_value(param, 0));
 	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
+}
+
+static void handle_tzid_parameter(xmlNode *current, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling tzid parameter");
+	xmlNewChild(current, NULL, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
@@ -60,6 +66,125 @@ static xmlNode *handle_method_attribute(xmlNode *root, VFormatAttribute *attr)
 	return current;
 }
 
+static xmlNode *handle_dtstamp_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling dtstamp attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "DateCalendarCreated", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_percent_complete_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling percent complete attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "PercentComplete", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling created attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "DateCreated", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_dtstart_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling dtstart attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "DateStarted", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling rrule attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_description_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling description attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Description", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling summary attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Summary", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Categories", NULL);
+	
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Category", retstr->str);
+	}
+	
+	return current;
+}
+
+static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Class", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_due_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling due attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "DateDue", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_url_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Url attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Url", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_priority_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling priority attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Priority", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_sequence_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling sequence attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Sequence", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "LastModified", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
 static xmlNode *handle_tzid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzid attribute");
@@ -88,6 +213,28 @@ static xmlNode *handle_tzname_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzname attribute");
 	return xmlNewChild(root, NULL, "TZName", vformat_attribute_get_nth_value(attr, 0));
+}
+
+static xmlNode *handle_tzdtstart_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
+	return xmlNewChild(root, NULL, "DateStarted", vformat_attribute_get_nth_value(attr, 0));
+}
+
+static xmlNode *handle_tzrrule_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling tzrrule attribute");
+	GString *str = g_string_new("");
+	GList *v = vformat_attribute_get_values(attr);
+	for (; v; v = v->next) {
+		const char *prop = v->data;
+		g_string_append(str, prop);
+		if (v->next)
+			g_string_append_c(str, ';');
+	}
+	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", str->str);
+	g_string_free(str, TRUE);
+	return current;
 }
 
 static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, VFormatParam *param)
@@ -154,7 +301,7 @@ has_value:;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void vcal_parse_attributes(GHashTable *hooks, GList **attributes, xmlNode *root)
+static void vcal_parse_attributes(OSyncHooksTable *hooks, GList **attributes, xmlNode *root)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, attributes, root);
 	
@@ -169,19 +316,19 @@ static void vcal_parse_attributes(GHashTable *hooks, GList **attributes, xmlNode
 			a = a->next;
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
 				xmlNode *current = xmlNewChild(root, NULL, "Timezone", NULL);
-				vcal_parse_attributes(hooks, &a, current);
+				vcal_parse_attributes(hooks->tzhooks, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "DAYLIGHT")) {
 				xmlNode *current = xmlNewChild(root, NULL, "DaylightSavings", NULL);
-				vcal_parse_attributes(hooks, &a, current);
+				vcal_parse_attributes(hooks->tzhooks, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "STANDARD")) {
-				vcal_parse_attributes(hooks, &a, root);
+				vcal_parse_attributes(hooks->tzhooks, &a, root);
 			}
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
 			osync_trace(TRACE_EXIT, "%s: Found END", __func__);
 			*attributes = a;
 			return;
 		} else
-			vcal_handle_attribute(hooks, root, attr);
+			vcal_handle_attribute(hooks->table, root, attr);
 	}
 	osync_trace(TRACE_EXIT, "%s: Done", __func__);
 }
@@ -190,7 +337,7 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
 	
-	GHashTable *hooks = (GHashTable *)conv_data;
+	OSyncHooksTable *hooks = (OSyncHooksTable *)conv_data;
 	
 	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
 	
@@ -201,7 +348,7 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc("1.0");
-	xmlNode *root = osxml_node_add_root(doc, "contact");
+	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
@@ -299,7 +446,7 @@ static VFormatAttribute *handle_xml_method_attribute(VFormat *vcard, xmlNode *ro
 	return attr;
 }
 
-static void xml_vcard_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, xmlNode *current)
+static void xml_vcard_handle_parameter(OSyncHooksTable *hooks, VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, attr, current, current ? (char *)current->name : "None");
 	
@@ -308,10 +455,10 @@ static void xml_vcard_handle_parameter(OSyncHookTables *hooks, VFormatAttribute 
 	char *content = xmlNodeGetContent(current);
 	char *paramname = g_strdup_printf("%s=%s", current->name, content);
 	g_free(content);
-	xml_param_handler = g_hash_table_lookup(hooks->parameters, paramname);
+	xml_param_handler = g_hash_table_lookup(hooks->table, paramname);
 	g_free(paramname);
 	if (!xml_param_handler)
-		xml_param_handler = g_hash_table_lookup(hooks->parameters, current->name);
+		xml_param_handler = g_hash_table_lookup(hooks->table, current->name);
 	
 	if (xml_param_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -324,13 +471,13 @@ static void xml_vcard_handle_parameter(OSyncHookTables *hooks, VFormatAttribute 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void xml_vcal_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, xmlNode *root)
+static void xml_vcal_handle_attribute(OSyncHooksTable *hooks, VFormat *vcard, xmlNode *root)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vcard, root, root ? (char *)root->name : "None");
 	VFormatAttribute *attr = NULL;
 	
 	//We need to find the handler for this attribute
-	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, xmlNode *root) = g_hash_table_lookup(hooks->attributes, root->name);
+	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, xmlNode *root) = g_hash_table_lookup(hooks->table, root->name);
 	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
 	if (xml_attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -359,7 +506,7 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
 	//Get the root node of the input document
-	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
+	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "vcal", error);
 	if (!root) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-contact");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -369,9 +516,9 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 	//Make the new vcard
 	VFormat *vcal = vformat_new();
 	
-	osync_trace(TRACE_INTERNAL, "parsing cml attributes");
+	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	while (root) {
-		xml_vcal_handle_attribute((OSyncHookTables *)user_data, vcal, root);
+		xml_vcal_handle_attribute((OSyncHooksTable *)user_data, vcal, root);
 		root = root->next;
 	}
 	
@@ -439,21 +586,45 @@ static void destroy_xml(char *data, size_t size)
 static void *init_vcal_to_xml(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
-	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+	OSyncHooksTable *hooks = g_malloc0(sizeof(OSyncHooksTable));
+	OSyncHooksTable *tzhooks = g_malloc0(sizeof(OSyncHooksTable));
 	
-	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
-	g_hash_table_insert(table, "END", HANDLE_IGNORE);
+	hooks->table = g_hash_table_new(g_str_hash, g_str_equal);
+	tzhooks->table = g_hash_table_new(g_str_hash, g_str_equal);
+	
+	hooks->tzhooks = tzhooks;
+	tzhooks->tzhooks = tzhooks;
+	
+	g_hash_table_insert(hooks->table, "BEGIN", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->table, "END", HANDLE_IGNORE);
+	
+	g_hash_table_insert(tzhooks->table, "BEGIN", HANDLE_IGNORE);
+	g_hash_table_insert(tzhooks->table, "END", HANDLE_IGNORE);
 	
 	//vcal attributes
-	g_hash_table_insert(table, "PRODID", handle_prodid_attribute);
-	g_hash_table_insert(table, "METHOD", handle_method_attribute);
+	g_hash_table_insert(hooks->table, "PRODID", handle_prodid_attribute);
+	g_hash_table_insert(hooks->table, "METHOD", handle_method_attribute);
+	g_hash_table_insert(hooks->table, "DTSTAMP", handle_dtstamp_attribute);
+	g_hash_table_insert(hooks->table, "PERCENT-COMPLETE", handle_percent_complete_attribute);
+	g_hash_table_insert(hooks->table, "CREATED", handle_created_attribute);
+	g_hash_table_insert(hooks->table, "DTSTART", handle_dtstart_attribute);
+	g_hash_table_insert(hooks->table, "RRULE", handle_rrule_attribute);
+	g_hash_table_insert(hooks->table, "DESCRIPTION", handle_description_attribute);
+	g_hash_table_insert(hooks->table, "SUMMARY", handle_summary_attribute);
+	g_hash_table_insert(hooks->table, "CLASS", handle_class_attribute);
+	g_hash_table_insert(hooks->table, "CATEGORIES", handle_categories_attribute);
+	g_hash_table_insert(hooks->table, "DUE", handle_due_attribute);
+	g_hash_table_insert(hooks->table, "PRIORITY", handle_priority_attribute);
+	g_hash_table_insert(hooks->table, "URL", handle_url_attribute);
+	g_hash_table_insert(hooks->table, "SEQUENCE", handle_sequence_attribute);
+	g_hash_table_insert(hooks->table, "LAST-MODIFIED", handle_last_modified_attribute);
+	g_hash_table_insert(hooks->table, "TZID", handle_tzid_parameter);
 	
-	g_hash_table_insert(table, "CALSCALE", HANDLE_IGNORE);
+	/*g_hash_table_insert(table, "CALSCALE", HANDLE_IGNORE);
 	g_hash_table_insert(table, "GEO", HANDLE_IGNORE);
 	g_hash_table_insert(table, "TZ", HANDLE_IGNORE);
-	g_hash_table_insert(table, "CATEGORIES", HANDLE_IGNORE);
-	g_hash_table_insert(table, "CLASS", HANDLE_IGNORE);
-	g_hash_table_insert(table, "URL", HANDLE_IGNORE);
+	
+	
 	g_hash_table_insert(table, "UID", HANDLE_IGNORE);	
 	g_hash_table_insert(table, "DAYLIGHT", HANDLE_IGNORE);
 	g_hash_table_insert(table, "ATTACH", HANDLE_IGNORE);
@@ -461,40 +632,40 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(table, "AALARM", HANDLE_IGNORE);
 	g_hash_table_insert(table, "DCREATED", HANDLE_IGNORE);
 	g_hash_table_insert(table, "COMPLETED", HANDLE_IGNORE);
-	g_hash_table_insert(table, "DESCRIPTION", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "DALARM", HANDLE_IGNORE);
-	g_hash_table_insert(table, "DUE", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "DTEND", HANDLE_IGNORE);
 	g_hash_table_insert(table, "EXDATE", HANDLE_IGNORE);
 	g_hash_table_insert(table, "EXRULE", HANDLE_IGNORE);
-	g_hash_table_insert(table, "LAST-MODIFIED", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "LOCATION", HANDLE_IGNORE);
 	g_hash_table_insert(table, "MALARM", HANDLE_IGNORE);
 	g_hash_table_insert(table, "RNUM", HANDLE_IGNORE);
-	g_hash_table_insert(table, "PRIORITY", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "PALARM", HANDLE_IGNORE);
 	g_hash_table_insert(table, "RELATED-TO", HANDLE_IGNORE);
 	g_hash_table_insert(table, "RDATE", HANDLE_IGNORE);
-	g_hash_table_insert(table, "RRULE", HANDLE_IGNORE);
 	g_hash_table_insert(table, "RESOURCES", HANDLE_IGNORE);
-	g_hash_table_insert(table, "SEQUENCE", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "DTSTART", HANDLE_IGNORE);
 	g_hash_table_insert(table, "STATUS", HANDLE_IGNORE);
-	g_hash_table_insert(table, "SUMMARY", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "TRANSP", HANDLE_IGNORE);
-	g_hash_table_insert(table, "URL", HANDLE_IGNORE);
-	g_hash_table_insert(table, "DTSTART", HANDLE_IGNORE);
+	*/
 
 	//Timezone
-	g_hash_table_insert(table, "TZID", handle_tzid_attribute);
-	g_hash_table_insert(table, "X-LIC-LOCATION", handle_tz_location_attribute);
-	g_hash_table_insert(table, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
-	g_hash_table_insert(table, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
-	g_hash_table_insert(table, "TZNAME", handle_tzname_attribute);
-        
+	g_hash_table_insert(tzhooks->table, "TZID", handle_tzid_attribute);
+	g_hash_table_insert(tzhooks->table, "X-LIC-LOCATION", handle_tz_location_attribute);
+	g_hash_table_insert(tzhooks->table, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
+	g_hash_table_insert(tzhooks->table, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
+	g_hash_table_insert(tzhooks->table, "TZNAME", handle_tzname_attribute);
+    g_hash_table_insert(tzhooks->table, "DTSTART", handle_tzdtstart_attribute);
+    g_hash_table_insert(tzhooks->table, "RRULE", handle_tzrrule_attribute);
+    
 	//Event component
 	
-	g_hash_table_insert(table, "TRIGGER", HANDLE_IGNORE);
+	/*g_hash_table_insert(table, "TRIGGER", HANDLE_IGNORE);
 	g_hash_table_insert(table, "REPEAT", HANDLE_IGNORE);
 	g_hash_table_insert(table, "DURATION", HANDLE_IGNORE);
 	g_hash_table_insert(table, "ACTION", HANDLE_IGNORE);
@@ -511,42 +682,42 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(table, "ATTACH", HANDLE_IGNORE);
 	g_hash_table_insert(table, "DESCRIPTION", HANDLE_IGNORE);
 	g_hash_table_insert(table, "ATTENDEE", HANDLE_IGNORE);
-	g_hash_table_insert(table, "SUMMARY", HANDLE_IGNORE);
+	g_hash_table_insert(table, "SUMMARY", HANDLE_IGNORE);*/
 	
 	
-
 	
-	g_hash_table_insert(table, "VERSION", HANDLE_IGNORE);
-	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
-	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
 	
-	g_hash_table_insert(table, "TYPE", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->table, "VERSION", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->table, "ENCODING", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->table, "CHARSET", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->table, "TYPE", HANDLE_IGNORE);
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
-	return (void *)table;
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
+	return (void *)hooks;
 }
 
 static void fin_vcal_to_xml(void *data)
 {
-	g_hash_table_destroy((GHashTable *)data);
+	OSyncHooksTable *hooks = (OSyncHooksTable *)hooks;
+	g_hash_table_destroy(hooks->table);
+	g_free(hooks);
 }
 
 static void *init_xml_to_vcal(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	
-	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
+	OSyncHooksTable *hooks = g_malloc0(sizeof(OSyncHooksTable));
 	
-	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
+	hooks->table = g_hash_table_new(g_str_hash, g_str_equal);
 	
-	g_hash_table_insert(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
-	g_hash_table_insert(hooks->attributes, "Method", handle_xml_method_attribute);
-	g_hash_table_insert(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
+	g_hash_table_insert(hooks->table, "ProductID", handle_xml_prodid_attribute);
+	g_hash_table_insert(hooks->table, "Method", handle_xml_method_attribute);
+	g_hash_table_insert(hooks->table, "UnknownNode", xml_handle_unknown_attribute);
 	
 	//g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
 	
-	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);
+	g_hash_table_insert(hooks->table, "UnknownParameter", xml_handle_unknown_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -554,9 +725,8 @@ static void *init_xml_to_vcal(void)
 
 static void fin_xml_to_vcal(void *data)
 {
-	OSyncHookTables *hooks = (OSyncHookTables *)hooks;
-	g_hash_table_destroy(hooks->attributes);
-	g_hash_table_destroy(hooks->parameters);
+	OSyncHooksTable *hooks = (OSyncHooksTable *)hooks;
+	g_hash_table_destroy(hooks->table);
 	g_free(hooks);
 }
 
