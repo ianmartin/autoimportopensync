@@ -100,6 +100,17 @@ void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, vo
 	osengine_mapping_duplicate(engine, mapping);
 }
 
+void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
+{
+	num_conflicts++;
+	if (user_data)
+		fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
+	osengine_mapping_ignore_conflict(engine, mapping);
+}
+
+
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
@@ -317,7 +328,10 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 		GList *m;
 		for (m = maptable->mappings; m; m = m->next) {
 			mapping = m->data;
-			OSyncChange *change = osengine_mapping_find_entry(mapping, NULL, view)->change;
+			OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, NULL, view);
+			if (!entry)
+				continue;
+			OSyncChange *change = entry->change;
 			fail_unless(change != NULL, NULL);
 			if (!strcmp(osync_change_get_uid(change), uid))
 				break;

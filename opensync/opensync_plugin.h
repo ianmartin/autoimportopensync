@@ -35,6 +35,7 @@ typedef struct OSyncPluginTimeouts {
 typedef struct OSyncFormatFunctions {
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
+	void (* read) (OSyncContext *, OSyncChange *);
 } OSyncFormatFunctions;
 
 /*! @brief Gives information about a plugin */
@@ -66,5 +67,6 @@ void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr);
 void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension);
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *));
 void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access_fn) (OSyncContext *, OSyncChange *));
+void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* read) (OSyncContext *, OSyncChange *));
 
 /*@}*/

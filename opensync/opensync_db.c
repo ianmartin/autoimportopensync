@@ -76,14 +76,14 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	
 	sqlite3 *sdb = group->changes_db->db;
 	
-	if (sqlite3_exec(sdb, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, format VARCHAR, memberid INTEGER, mappingid INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
+	if (sqlite3_exec(sdb, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, format VARCHAR, memberid INTEGER, mappingid INTEGER, changetype INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 2, "Unable create changes table! %s", sqlite3_errmsg(sdb));
 	
 	int count = osync_db_count(group->changes_db, "SELECT count(*) FROM tbl_changes");
 	*changes = g_malloc0(sizeof(OSyncChange *) * (count + 1));
 	
 	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes ORDER BY mappingid", -1, &ppStmt, NULL);
+	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid, changetype FROM tbl_changes ORDER BY mappingid", -1, &ppStmt, NULL);
 	int i = 0;
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		OSyncChange *change = osync_change_new();
@@ -93,6 +93,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 		change->format_name = g_strdup(sqlite3_column_text(ppStmt, 3));
 		change->initial_format_name = g_strdup(change->format_name);
 		change->mappingid = sqlite3_column_int64(ppStmt, 5);
+		change->changetype = sqlite3_column_int64(ppStmt, 6);
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
 		change->changes_db = group->changes_db;
     	osync_change_set_member(change, osync_member_from_id(group, memberid));
@@ -120,7 +121,7 @@ osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSy
 	
 	char *query = NULL;
 	if (!change->id) {
-		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, format, memberid, mappingid) VALUES('%s', '%s', '%s', '%lli', '%lli')", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid);
+		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, format, memberid, mappingid, changetype) VALUES('%s', '%s', '%s', '%lli', '%lli', '%i')", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->changetype);
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert change! %s", sqlite3_errmsg(sdb));
 			g_free(query);
@@ -130,9 +131,9 @@ osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSy
 		change->id = sqlite3_last_insert_rowid(sdb);
 	} else {
 		if (save_format)
-			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->id);
+			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli', changetype='%i' WHERE id=%lli", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->changetype, change->id);
 		else
-			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, change->member->id, change->mappingid, change->id);
+			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', memberid='%lli', mappingid='%lli', changetype='%i' WHERE id=%lli", change->uid, change->member->id, change->mappingid, change->changetype, change->id);
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to update change! %s", sqlite3_errmsg(sdb));
 			g_free(query);

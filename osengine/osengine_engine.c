@@ -451,6 +451,14 @@ static void trigger_status_end_conflicts(OSyncEngine *engine)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static void trigger_clients_connected(OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	//Load the old mappings
+	osengine_mappintable_load_mappings(engine->maptable);
+	send_engine_changed(engine);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
 
 static gboolean startupfunc(gpointer data)
 {
@@ -581,7 +589,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	osync_flag_set_pos_trigger(engine->cmb_finished, (MSyncFlagTriggerFunc)osync_engine_reset, engine, NULL);
 	
 	engine->cmb_connected = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)trigger_clients_connected, engine, NULL);
 
 	engine->cmb_chkconflict = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (MSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);

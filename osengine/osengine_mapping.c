@@ -143,21 +143,25 @@ osync_bool osengine_mappingtable_load(OSyncMappingTable *table, OSyncError **err
 		entry->change = change;
 		//entry->orig_change = change;
 		entry->client = (OSyncClient *)osync_member_get_data(osync_change_get_member(change));
-		if (!osync_change_get_mappingid(change)) {
-    		table->unmapped = g_list_append(table->unmapped, entry);
+		if (osync_change_get_changetype(change) != CHANGE_UNKNOWN) {
+			table->logchange = g_list_append(table->logchange, change);
 		} else {
-    		if (!mapping || mapping->id != osync_change_get_mappingid(change)) {
-				mapping = osengine_mapping_new(table);
-				mapping->id = osync_change_get_mappingid(change);
-    		}
-    		osengine_mapping_add_entry(mapping, entry);
-    	}
-    	
-    	osync_flag_set(entry->fl_has_data);
-    	
-    	OSyncMappingView *view = osengine_mappingtable_find_view(table, osync_change_get_member(change));
-    	if (view)
-    		osengine_mappingview_add_entry(view, entry);
+			if (!osync_change_get_mappingid(change)) {
+	    		table->unmapped = g_list_append(table->unmapped, entry);
+			} else {
+	    		if (!mapping || mapping->id != osync_change_get_mappingid(change)) {
+					mapping = osengine_mapping_new(table);
+					mapping->id = osync_change_get_mappingid(change);
+	    		}
+	    		osengine_mapping_add_entry(mapping, entry);
+	    	}
+	    	
+	    	osync_flag_set(entry->fl_has_data);
+	    	
+	    	OSyncMappingView *view = osengine_mappingtable_find_view(table, osync_change_get_member(change));
+	    	if (view)
+	    		osengine_mappingview_add_entry(view, entry);
+		}
     	i++;
 	}
 	osync_trace(TRACE_EXIT, "osengine_mappingtable_load: TRUE");
@@ -174,6 +178,24 @@ long long int osengine_mappingtable_get_next_id(OSyncMappingTable *table)
 			new_id = mapping->id + 1;
 	}
 	return new_id;
+}
+
+void osync_mappingtable_inject_changes(OSyncMappingTable *table)
+{
+	OSyncEngine *engine = table->engine;
+	
+	GList *c;
+	OSyncChange *change = NULL;
+	while ((change = g_list_nth_data(table->logchanges, 0))) {
+		table->logchange = g_list_remove(table->logchange, change);
+		OSyncMember *member = osync_change_get_member(change);
+		OSyncClient *client = osync_member_get_data(member);
+		
+		ITMessage *message = itm_message_new_signal(client, "NEW_CHANGE");
+		itm_message_set_data(message, "change", change);
+		itm_message_reset_timeout(orig);
+		itm_queue_send(engine->incoming, message);
+	}
 }
 
 OSyncMappingTable *_osengine_mappingtable_load_group(OSyncGroup *group)

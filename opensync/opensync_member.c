@@ -475,9 +475,40 @@ void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function,
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+void osync_member_read_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, change, function, user_data);
+	
+	g_assert(change);
+	g_assert(change->uid);
+	g_assert(osync_change_get_objformat(change));
+	
+	OSyncContext *context = osync_context_new(member);
+	context->callback_function = function;
+	context->calldata = user_data;
+	
+	//search for the right formatsink
+	GList *i;
+	osync_debug("OSYNC", 2, "Searching for sink");
+	for (i = member->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *fmtsink = i->data;
+
+		if (fmtsink->format == osync_change_get_objformat(change)) {
+			//Read the change
+			g_assert(fmtsink->functions.read != NULL);
+			fmtsink->functions.read(context, change);
+			osync_trace(TRACE_EXIT, "%s", __func__);
+			return;
+		}
+	}
+	
+	osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
+	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find a sink", __func__);
+}
+
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, change, function, user_data);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	g_assert(change != NULL);
 	OSyncContext *context = osync_context_new(member);

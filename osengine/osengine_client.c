@@ -169,7 +169,14 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
-	
+
+	if (itm_message_is_methodcall(message, "READ_CHANGE")) {
+		OSyncChange *change = itm_message_get_data(message, "change");
+		osync_member_read_change(client->member, change, (OSyncEngCallback)osync_client_changes_sink, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
+		return;
+	}
+
 	if (itm_message_is_signal(message, "CALL_PLUGIN")) {
 		char *function = itm_message_get_data(message, "function");
 		void *data = itm_message_get_data(message, "data");

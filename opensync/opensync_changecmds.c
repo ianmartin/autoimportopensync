@@ -91,12 +91,72 @@ char *osync_change_get_printable(OSyncChange *change)
 	return format->print_func(change);
 }
 
+/*! @brief Compares the data of 2 changes
+ * 
+ * Compares the two given changes and returns:
+ * CONV_DATA_MISMATCH if they are not the same
+ * CONV_DATA_SIMILAR if the are not the same but look similar
+ * CONV_DATA_SAME if they are exactly the same
+ * 
+ * @param leftchange The left change to compare
+ * @param rightchange The right change to compare
+ * @returns The result of the comparison
+ * 
+ */
+OSyncConvCmpResult osync_change_compare_data(OSyncChange *leftchange, OSyncChange *rightchange)
+{
+	osync_trace(TRACE_ENTRY, "osync_change_compare_data(%p, %p)", leftchange, rightchange);
+	
+	g_assert(rightchange);
+	g_assert(leftchange);
+
+	OSyncError *error = NULL;
+	if (!osync_change_convert_to_common(leftchange, &error)) {
+		osync_trace(TRACE_INTERNAL, "osync_change_compare_data: %s", osync_error_print(&error));
+		osync_error_free(&error);
+		osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: Could not convert leftchange to common format");
+		return CONV_DATA_MISMATCH;
+	}
+	if (!osync_change_convert_to_common(rightchange, &error)) {
+		osync_trace(TRACE_INTERNAL, "osync_change_compare_data: %s", osync_error_print(&error));
+		osync_error_free(&error);
+		osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: Could not convert leftchange to common format");
+		return CONV_DATA_MISMATCH;
+	}
+
+	if (!(rightchange->data == leftchange->data)) {
+		if (!(osync_change_get_objtype(leftchange) == osync_change_get_objtype(rightchange))) {
+			osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: Objtypes do not match");
+			return CONV_DATA_MISMATCH;
+		}
+		if (leftchange->format != rightchange->format) {
+			osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: Objformats do not match");
+			return CONV_DATA_MISMATCH;
+		}
+		if (!rightchange->data || !leftchange->data) {
+			osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: One change has no data");
+			return CONV_DATA_MISMATCH;
+		}
+		OSyncObjFormat *format = leftchange->format;
+		g_assert(format);
+		
+		OSyncConvCmpResult ret = format->cmp_func(leftchange, rightchange);
+		osync_trace(TRACE_EXIT, "osync_change_compare_data: %i", ret);
+		return ret;
+	} else {
+		osync_trace(TRACE_EXIT, "osync_change_compare_data: SAME: OK. data point to same memory");
+		return CONV_DATA_SAME;
+	}
+}
+
 /*! @brief Compares 2 changes
  * 
  * Compares the two given changes and returns:
  * CONV_DATA_MISMATCH if they are not the same
  * CONV_DATA_SIMILAR if the are not the same but look similar
  * CONV_DATA_SAME if they are exactly the same
+ * This function does also compare changetypes etc unlike
+ * osync_change_compare_data()
  * 
  * @param leftchange The left change to compare
  * @param rightchange The right change to compare
@@ -125,29 +185,9 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
 	}
 
 	if (rightchange->changetype == leftchange->changetype) {
-		if (!(rightchange->data == leftchange->data)) {
-			if (!(osync_change_get_objtype(leftchange) == osync_change_get_objtype(rightchange))) {
-				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Objtypes do not match");
-				return CONV_DATA_MISMATCH;
-			}
-			if (leftchange->format != rightchange->format) {
-				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Objformats do not match");
-				return CONV_DATA_MISMATCH;
-			}
-			if (!rightchange->data || !leftchange->data) {
-				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: One change has no data");
-				return CONV_DATA_MISMATCH;
-			}
-			OSyncObjFormat *format = leftchange->format;
-			g_assert(format);
-			
-			OSyncConvCmpResult ret = format->cmp_func(leftchange, rightchange);
-			osync_trace(TRACE_EXIT, "osync_change_compare: %i", ret);
-			return ret;
-		} else {
-			osync_trace(TRACE_EXIT, "osync_change_compare: SAME: OK. data point to same memory");
-			return CONV_DATA_SAME;
-		}
+		OSyncConvCmpResult ret = osync_change_compare_data(leftchange, rightchange);
+		osync_trace(TRACE_EXIT, "osync_change_compare: Compare data: %i", ret);
+		return ret;
 	} else {
 		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Change types do not match");
 		return CONV_DATA_MISMATCH;

@@ -144,7 +144,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 		} else {
 			osync_bool had_data = osync_change_has_data(entry->change);
 			osengine_mappingentry_update(entry, master->change);
-			if (osync_change_get_changetype(entry->change) == CHANGE_ADDED) {
+			if (osync_change_get_changetype(entry->change) == CHANGE_ADDED || osync_change_get_changetype(entry->change) == CHANGE_UNKNOWN) {
 				osync_change_set_changetype(entry->change, CHANGE_MODIFIED);
 			}
 			
@@ -240,7 +240,7 @@ static OSyncMapping *_osengine_mapping_find(OSyncMappingTable *table, OSyncMappi
 			mapping_found = TRUE;
 			for (n = mapping->entries; n; n = n->next) {
 				OSyncMappingEntry *entry = n->data;
-				if (osync_change_compare(entry->change, orig_entry->change) == CONV_DATA_MISMATCH) {
+				if (osync_change_compare_data(entry->change, orig_entry->change) == CONV_DATA_MISMATCH) {
 					mapping_found = FALSE;
 					continue;
 				}
@@ -379,6 +379,18 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
 	osync_flag_set(mapping->fl_solved);
 	send_mapping_changed(engine, mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_solve");
+}
+
+void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
+	
+	//Mark all members of this conflict to be reloaded again next time.
+	osengine_mappintable_store_mapping(mapping);
+	
+	//And make sure we dont synchronize it this time
+	osengine_mapping_reset(mapping);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)

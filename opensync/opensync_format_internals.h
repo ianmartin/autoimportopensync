@@ -107,6 +107,7 @@ typedef struct OSyncObjFormatTemplate {
 	char *extension_name;
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
+	void (* read) (OSyncContext *, OSyncChange *);
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDuplicateFunc duplicate_func;
