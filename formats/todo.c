@@ -6,6 +6,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	return CONV_DATA_MISMATCH;
 }
 
+/*TODO: Write the vtodo detector */
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "todo");
