@@ -97,6 +97,12 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 	return true;
 }
 
+static QString strip_html(QString input)
+{
+	QString output;
+	
+}
+
 bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
@@ -112,7 +118,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 	QMap<KNoteID_t,QString>::ConstIterator i;
 	for (i = fNotes.begin(); i != fNotes.end(); i++) {
 		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
-        osync_debug("knotes", 4, "Note contents:\n%s\n====", (const char*)i.data().local8Bit());
+        osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
 		
         QString uid = i.key();
 		QString hash = NULL;
@@ -131,10 +137,10 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         osxml_node_set(sum, "Summary", utf8str, enc);
 
         xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
-        utf8str = kn_iface->text(i.key()).utf8();
+        utf8str = strip_html(kn_iface->text(i.key())).utf8();
         hash += utf8str;
         osxml_node_set(body, "Body", utf8str, enc);
-
+		
         // initialize the change object
         OSyncChange *chg = osync_change_new();
         osync_change_set_uid(chg, uid.local8Bit());
@@ -144,6 +150,8 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         osync_change_set_objtype_string(chg, "note");
         osync_change_set_objformat_string(chg, "xml-note");
         osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
+
+		osync_debug("knotes", 4, "Reporting note:\%s", osync_change_get_printable(chg));
 
         // Use the hash table to check if the object
         // needs to be reported
@@ -169,19 +177,29 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 
         // Get osxml data
         xmlDoc *doc = (xmlDoc*)osync_change_get_data(chg);
-        xmlNode *root = osxml_node_get_root(doc, "note", NULL);
-        if (!root) {
-            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Invalid data");
+        
+        xmlNode *root = xmlDocGetRootElement(doc);
+		if (!root) {
+            osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
             osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data", __func__);
 			return false;
         }
-        QString summary = osxml_find_node(root, "Summary");
+		
+		if (xmlStrcmp((root)->name, (const xmlChar *) "Note")) {
+            osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Wrong root element");
+            osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data2", __func__);
+			return false;
+        }
+
+        printf("Getting note %s and %s\n", osync_change_get_printable(chg), osxml_find_node(root, "Summary"));
+        QString summary = QString(osxml_find_node(root, "Summary"));
         QString body = osxml_find_node(root, "Body");
 
         QString hash, uid;
         // end of the ugly-format parsing
         switch (type) {
             case CHANGE_ADDED:
+            	printf("addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
             	uid = kn_iface->newNote(summary, body);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
 					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to add new note");
