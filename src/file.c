@@ -89,7 +89,7 @@ void duplicate_file(OSyncChange *change)
 
 static osync_bool detect_file(OSyncFormatEnv *env, OSyncChange *change)
 {
-	osync_debug("FILE", 4, "start: %s", __func__);
+	osync_debug("FILE", 3, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
 	
 	//Call the data detectors here
