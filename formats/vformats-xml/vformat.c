@@ -212,7 +212,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 			in_quote = !in_quote;
 			lp = g_utf8_next_char (lp);
 		}
-		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/' || *lp == '.') {
+		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/' || *lp == '.' || *lp == ' ') {
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 			lp = g_utf8_next_char (lp);
 		}

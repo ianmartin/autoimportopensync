@@ -1133,21 +1133,45 @@ static osync_bool conv_xml_to_vtodo20(void *user_data, char *input, int inpsize,
 	return conv_xml_to_vcal(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_TODO_20);
 }
 
-static OSyncConvCmpResult compare_vcal(OSyncChange *leftchange, OSyncChange *rightchange)
+static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *rightchange)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
 	
 	OSyncXMLScore score[] =
 	{
-	{100, "/vcal/StartTime"},
-	{100, "/vcal/EndTime"},
-	{100, "/vcal/Summary"},
-	{0, "/vcal/Uid"},
-	{0, "/vcal/Revision"},
+	{100, "/vcal/event/StartTime"},
+	{100, "/vcal/event/EndTime"},
+	{100, "/vcal/event/Summary"},
+	{0, "/vcal/event/Uid"},
+	{0, "/vcal/event/Revision"},
+	{0, "/vcal/Method"},
 	{0, NULL}
 	};
 	
 	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 0, 299);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *rightchange)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
+	
+	OSyncXMLScore score[] =
+	{
+	{100, "/vcal/Todo/Summary"},
+	{0, "/vcal/Todo/Uid"},
+	{0, "/vcal/Todo/Revision"},
+	{0, "/vcal/Method"},
+	{0, "/vcal/Todo/DateCalendarCreated"},
+	{0, "/vcal/Todo/DateCreated"},
+	{0, "/vcal/Todo/LastModified"},
+	{0, "/vcal/Todo/Sequence"},
+	{0, NULL}
+	};
+	
+	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 0, 99);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -1231,6 +1255,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "ROLE", handle_role_parameter);
 	g_hash_table_insert(hooks->comptable, "RSVP", handle_rsvp_parameter);
 	g_hash_table_insert(hooks->comptable, "SENT-BY", handle_sent_by_parameter);
+	g_hash_table_insert(hooks->comptable, "X-LIC-ERROR", HANDLE_IGNORE);
 
 	//vcal attributes
 	g_hash_table_insert(hooks->table, "PRODID", handle_prodid_attribute);
@@ -1242,6 +1267,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->table, "BEGIN", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->table, "END", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->table, "CALSCALE", handle_calscale_attribute);
+	g_hash_table_insert(hooks->table, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	//Timezone
 	g_hash_table_insert(hooks->tztable, "TZID", handle_tzid_attribute);
@@ -1273,6 +1299,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->tztable, "ROLE", handle_role_parameter);
 	g_hash_table_insert(hooks->tztable, "RSVP", handle_rsvp_parameter);
 	g_hash_table_insert(hooks->tztable, "SENT-BY", handle_sent_by_parameter);
+	g_hash_table_insert(hooks->tztable, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	//VAlarm component
 	g_hash_table_insert(hooks->alarmtable, "TRIGGER", handle_atrigger_attribute);
@@ -1300,6 +1327,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->alarmtable, "ROLE", handle_role_parameter);
 	g_hash_table_insert(hooks->alarmtable, "RSVP", handle_rsvp_parameter);
 	g_hash_table_insert(hooks->alarmtable, "SENT-BY", handle_sent_by_parameter);
+	g_hash_table_insert(hooks->alarmtable, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -1834,7 +1862,7 @@ void get_info(OSyncEnv *env)
 	//Calendar
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "xml-event");
-	osync_env_format_set_compare_func(env, "xml-event", compare_vcal);
+	osync_env_format_set_compare_func(env, "xml-event", compare_vevent);
 	osync_env_format_set_destroy_func(env, "xml-event", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-event", print_vcal);
 	osync_env_format_set_copy_func(env, "xml-event", osxml_copy);
@@ -1852,7 +1880,7 @@ void get_info(OSyncEnv *env)
 	//Todo
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "xml-todo");
-	osync_env_format_set_compare_func(env, "xml-todo", compare_vcal);
+	osync_env_format_set_compare_func(env, "xml-todo", compare_vtodo);
 	osync_env_format_set_destroy_func(env, "xml-todo", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-todo", print_vcal);
 	osync_env_format_set_copy_func(env, "xml-todo", osxml_copy);
