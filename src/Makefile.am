@@ -4,7 +4,8 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@ @EPACKAGE_CFLAGS@
 
-AM_CFLAGS = -Wall -Werror
+# Please remove '-Wno-return-type' when Evo fixes the warning in their headers.
+AM_CFLAGS = -Wall -Werror -Wno-return-type
 
 config_DATA = evo2-sync
 
