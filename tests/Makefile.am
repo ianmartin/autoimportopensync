@@ -2,11 +2,11 @@
 
 AM_CFLAGS = @XMLCFLAGS@ -Wall -Werror
 
-INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
+INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src -I$(top_srcdir)/engine
 
 if ENABLE_TESTS
-TESTS = user member env conv
-noinst_PROGRAMS = user member env conv
+TESTS = user member env conv sync
+noinst_PROGRAMS = user member env conv sync
 else
 TESTS = 
 noinst_PROGRAMS = 
@@ -31,3 +31,8 @@ conv_INCLUDES = @CHECK_CFLAGS@
 conv_SOURCES = check_conv.c
 conv_LIBS = @CHECK_LIBS@
 conv_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la -lcheck
+
+sync_INCLUDES = @CHECK_CFLAGS@
+sync_SOURCES = check_sync.c
+sync_LIBS = @CHECK_LIBS@
+sync_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck
