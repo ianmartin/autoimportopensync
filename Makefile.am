@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src $(enginedir) formats tools $(testdir)
+SUBDIRS = src $(enginedir) formats $(toolsdir) $(testdir)
 
 EXTRA_DIST = \
 	autogen.sh \

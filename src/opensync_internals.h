@@ -3,6 +3,8 @@
 #include <string.h>
 #include <glib/gprintf.h>
 
+#include "config.h"
+
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 

@@ -3,6 +3,12 @@
 /* Stress Testing */
 #undef BUILD_ENGINE
 
+/* Debugging */
+#undef ENABLE_DEBUG
+
+/* Tracing */
+#undef ENABLE_TRACE
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 

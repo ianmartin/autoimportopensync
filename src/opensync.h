@@ -179,9 +179,16 @@ typedef struct OSyncMemberFunctions {
  * Includes
  *************************************************************/
 
+typedef enum OSyncTraceType {
+	TRACE_ENTRY,
+	TRACE_EXIT,
+	TRACE_INTERNAL
+} OSyncTraceType;
+
 char *osync_rand_str(int maxlength);
 void osync_debug(const char *subpart, int level, const char *message, ...);
 void osync_print_binary(const unsigned char *data, int len);
+void osync_trace(OSyncTraceType type, const char *message, ...);
 
 /**************************************************************
  * Prototypes

@@ -20,6 +20,7 @@
  
 #include "opensync.h"
 #include "opensync_internals.h"
+#include <pthread.h>
 
 /**
  * @defgroup OSyncDebugAPI OpenSync Debug
@@ -30,6 +31,54 @@
  * 
  */
 /*@{*/
+
+void osync_trace(OSyncTraceType type, const char *message, ...)
+{
+	const char *trace = g_getenv("OSYNC_TRACE");
+	if (!trace)
+		return;
+	
+	if (!g_file_test(trace, G_FILE_TEST_IS_DIR)) {
+		printf("OSYNC_TRACE argument is no directory\n");
+		return;
+	}
+	
+	unsigned long int id = (unsigned long int)pthread_self();
+	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
+	
+	GTimeVal curtime;
+	g_get_current_time(&curtime);
+	char *logmessage = NULL;
+	switch (type) {
+		case TRACE_ENTRY:
+			logmessage = g_strdup_printf("[%li.%li]\t------->  %s\n", curtime.tv_sec, curtime.tv_usec, message);
+			break;
+		case TRACE_INTERNAL:
+			logmessage = g_strdup_printf("[%li.%li]\t%s\n", curtime.tv_sec, curtime.tv_usec, message);
+			break;
+		case TRACE_EXIT:
+			logmessage = g_strdup_printf("[%li.%li]\t<-------  %s\n", curtime.tv_sec, curtime.tv_usec, message);
+			break;
+	}
+	
+	GIOChannel *chan = g_io_channel_new_file(logfile, "a", NULL);
+	if (!chan) {
+		printf("unable to open %s for writing\n", logfile);
+		return;
+	}
+	
+	gsize writen;
+	g_io_channel_set_encoding(chan, NULL, NULL);
+	if (g_io_channel_write_chars(chan, logmessage, strlen(logmessage), &writen, NULL) != G_IO_STATUS_NORMAL) {
+		printf("unable to write trace to %s\n", logfile);
+	} else
+		g_io_channel_flush(chan, NULL);
+
+	g_io_channel_shutdown(chan, FALSE, NULL);
+	g_io_channel_unref(chan);
+	g_free(logmessage);
+	g_free(logfile);
+}
 
 /*! @brief Used for debugging
  * 
@@ -56,29 +105,34 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 		if (debug < level)
 			return;
 		
+		char *debugstr = NULL;
 		switch (level) {
 			case 0:
 				//Error
-				printf("[%s] ERROR: %s\n", subpart, buffer);
+				debugstr = g_strdup_printf("[%s] ERROR: %s", subpart, buffer);
 				break;
 			case 1:
 				// Warning
-				printf("[%s] WARNING: %s\n", subpart, buffer);
+				debugstr = g_strdup_printf("[%s] WARNING: %s", subpart, buffer);
 				break;
-		case 2:
+			case 2:
 				//Information
-				printf("[%s] INFORMATION: %s\n", subpart, buffer);
+				debugstr = g_strdup_printf("[%s] INFORMATION: %s", subpart, buffer);
 				break;
-		case 3:
+			case 3:
 				//debug
-				printf("[%s] DEBUG: %s\n", subpart, buffer);
+				debugstr = g_strdup_printf("[%s] DEBUG: %s", subpart, buffer);
 				break;
-		case 4:
+			case 4:
 				//fulldebug
-				printf("[%s] FULL DEBUG: %s\n", subpart, buffer);
+				debugstr = g_strdup_printf("[%s] FULL DEBUG: %s", subpart, buffer);
 				break;
 		}
 		va_end(arglist);
+		g_free(buffer);
+		osync_trace(TRACE_INTERNAL, debugstr);
+		printf("%s\n", debugstr);
+		g_free(debugstr);
 }
 
 /*! @brief Used for printing binary data

@@ -340,6 +340,8 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	char *filename = NULL;
 	char *real_path = NULL;
 	
+	osync_trace(TRACE_ENTRY, "osync_group_load");
+	
 	osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
 	
 	if (!g_path_is_absolute(path)) {
@@ -359,6 +361,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
 		osync_group_free(group);
 		g_free(filename);
+		osync_trace(TRACE_EXIT, "osync_group_load");
 		return NULL;
 	}
 
@@ -436,7 +439,8 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 		osync_group_free(group);
 		return NULL;
 	}
-
+	
+	osync_trace(TRACE_EXIT, "osync_group_load");
 	return group;
 }
 
