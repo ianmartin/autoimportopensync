@@ -104,7 +104,6 @@ struct OSyncGroup {
 	OSyncFormatEnv *conv_env;
 	long long int id;
 	int lock_fd;
-	struct flock fl;
 	GList *filters;
 };
 

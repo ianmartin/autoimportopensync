@@ -3,8 +3,17 @@
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <fcntl.h>
-#include <glib.h>
+
+/**************************************************************
+ * Defines
+ *************************************************************/
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 /**************************************************************
  * Enumerations
