@@ -113,8 +113,11 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "data");
-	osync_debug("FILE-SYNC", 3, "slow_sync=%s", slow_sync ? "true" : "false");
+	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
+		osync_debug("FILE-SYNC", 1, "Setting slow sync");
+		osync_hashtable_set_slow_sync(fsinfo->hashtable, "data");
+	}
+	
 
 	if (fsinfo->dir) {
 		const gchar *de = NULL;

@@ -21,7 +21,8 @@ void osync_db_put_anchor(OSyncDB *sdb, char *objtype, char *anchor);
 
 osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member);
 void osync_db_close_hashtable(OSyncHashTable *table);
-void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash);
+void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash, char *objtype);
 void osync_db_delete_hash(OSyncHashTable *table, char *uid);
 void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx);
 void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash);
+void osync_db_reset_hash(OSyncHashTable *table, const char *objtype);

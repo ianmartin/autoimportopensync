@@ -21,11 +21,10 @@ void osync_db_close(OSyncDB *db)
 		osync_debug("OSDB", 1, "Can't close database: %s", sqlite3_errmsg(db->db));
 }
 
-int osync_db_count(OSyncDB *db, char *table)
+int osync_db_count(OSyncDB *db, char *query)
 {
 	int ret = 0;
-	char *query = g_strdup_printf("SELECT count(*) FROM %s", table);
-	
+
 	sqlite3_stmt *ppStmt = NULL;
 	if (sqlite3_prepare(db->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare count! %s", sqlite3_errmsg(db->db));
@@ -33,7 +32,6 @@ int osync_db_count(OSyncDB *db, char *table)
 		osync_debug("OSDB", 3, "Unable step count! %s", sqlite3_errmsg(db->db));
 	ret = sqlite3_column_int64(ppStmt, 0);
 	sqlite3_finalize(ppStmt);
-	g_free(query);
 	return ret;
 }
 
@@ -102,7 +100,7 @@ void osync_db_open_mappingtable(OSyncMappingTable *table)
 		osync_debug("OSDB", 2, "Unable create mapping table! %s", sqlite3_errmsg(sdb));
 	
 	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes", -1, &ppStmt, NULL);
+	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes ORDER BY mappingid", -1, &ppStmt, NULL);
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		OSyncChange *change = osync_change_new();
 		change->id = sqlite3_column_int64(ppStmt, 0);
@@ -111,7 +109,6 @@ void osync_db_open_mappingtable(OSyncMappingTable *table)
 		char *objformat = g_strdup(sqlite3_column_text(ppStmt, 3));
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
 		long long int mappingid = sqlite3_column_int64(ppStmt, 5);
-		
     	if (table && table->group) {
     		change->member = osync_member_from_id(table->group, memberid);
 			osync_member_add_changeentry(change->member, change);
@@ -191,7 +188,7 @@ osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member)
 	
 	sqlite3 *db = table->dbhandle->db;
 	
-	if (sqlite3_exec(db, "CREATE TABLE tbl_hash (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", NULL, NULL, NULL) != SQLITE_OK)
+	if (sqlite3_exec(db, "CREATE TABLE tbl_hash (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR, objtype VARCHAR)", NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable create hash table! %s", sqlite3_errmsg(db));
 	
 	return TRUE; //FIXME
@@ -202,12 +199,12 @@ void osync_db_close_hashtable(OSyncHashTable *table)
 	osync_db_close(table->dbhandle);
 }
 
-void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash)
+void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash, char *objtype)
 {
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
 	
-	char *query = g_strdup_printf("REPLACE INTO tbl_hash ('uid', 'hash') VALUES('%s', '%s')", uid, hash);
+	char *query = g_strdup_printf("REPLACE INTO tbl_hash ('uid', 'hash', 'objtype') VALUES('%s', '%s', '%s')", uid, hash, objtype);
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable to insert hash! %s", sqlite3_errmsg(sdb));
 	g_free(query);
@@ -264,5 +261,14 @@ void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
 		osync_debug("OSDB", 3, "Unable step get hash! %s", sqlite3_errmsg(sdb));
 	*rethash = g_strdup(sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
+	g_free(query);
+}
+
+void osync_db_reset_hash(OSyncHashTable *table, const char *objtype)
+{
+	sqlite3 *sdb = table->dbhandle->db;
+	char *query = g_strdup_printf("DELETE FROM tbl_hash WHERE objtype='%s'", objtype);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 1, "Unable to reset hash! %s", sqlite3_errmsg(sdb));
 	g_free(query);
 }
