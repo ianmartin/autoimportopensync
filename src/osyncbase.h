@@ -29,6 +29,11 @@ class KdePluginImplementationBase {
 
         virtual bool note_access(OSyncContext *ctx, OSyncChange *chg) = 0;
         virtual bool note_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
+
+        /* The declaration above seemed to be necessary just because the
+         * KdePluginImplementation destructor wasn't being called
+         */
+        virtual ~KdePluginImplementationBase() { };
 };
 
 typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m, OSyncError **e);
