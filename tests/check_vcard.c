@@ -243,37 +243,37 @@ START_TEST (conv_vcard_kde_30_umlaute)
 }
 END_TEST
 
-START_TEST (compare_vcard_mismatch1)
+START_TEST (comparvformat_mismatch1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-different.vcf", "data/vcards/kdepim/compare/1-different.vcf", CONV_DATA_MISMATCH);
 }
 END_TEST
 
-START_TEST (compare_vcard_similar1)
+START_TEST (comparvformat_similar1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-conflict.vcf", "data/vcards/kdepim/compare/1-conflict.vcf", CONV_DATA_SIMILAR);
 }
 END_TEST
 
-START_TEST (compare_vcard_mismatch2)
+START_TEST (comparvformat_mismatch2)
 {
 	compare_vcard("data/vcards/evolution2/compare/2-conflict.vcf", "data/vcards/kdepim/compare/2-conflict.vcf", CONV_DATA_MISMATCH);
 }
 END_TEST
 
-START_TEST (compare_vcard_similar2)
+START_TEST (comparvformat_similar2)
 {
 	compare_vcard("data/vcards/evolution2/compare/2-different.vcf", "data/vcards/kdepim/compare/2-different.vcf", CONV_DATA_SIMILAR);
 }
 END_TEST
 
-START_TEST (compare_vcard_same1)
+START_TEST (comparvformat_same1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-same.vcf", "data/vcards/kdepim/compare/1-same.vcf", CONV_DATA_SAME);
 }
 END_TEST
 
-START_TEST (compare_vcard_same2)
+START_TEST (comparvformat_same2)
 {
 	compare_vcard("data/vcards/evolution2/compare/2-same.vcf", "data/vcards/kdepim/compare/2-same.vcf", CONV_DATA_SAME);
 }
@@ -311,12 +311,12 @@ Suite *vcard_suite(void)
 	create_case(s, "conv_vcard_kde_21_umlaute", conv_vcard_kde_21_umlaute);
 	create_case(s, "conv_vcard_kde_30_umlaute", conv_vcard_kde_30_umlaute);
 
-	create_case(s, "compare_vcard_mismatch1", compare_vcard_mismatch1);
-	create_case(s, "compare_vcard_mismatch2", compare_vcard_mismatch2);
-	create_case(s, "compare_vcard_similar1", compare_vcard_similar1);
-	create_case(s, "compare_vcard_similar2", compare_vcard_similar2);
-	create_case(s, "compare_vcard_same1", compare_vcard_same1);
-	create_case(s, "compare_vcard_same2", compare_vcard_same2);
+	create_case(s, "comparvformat_mismatch1", comparvformat_mismatch1);
+	create_case(s, "comparvformat_mismatch2", comparvformat_mismatch2);
+	create_case(s, "comparvformat_similar1", comparvformat_similar1);
+	create_case(s, "comparvformat_similar2", comparvformat_similar2);
+	create_case(s, "comparvformat_same1", comparvformat_same1);
+	create_case(s, "comparvformat_same2", comparvformat_same2);
 	
 	return s;
 }

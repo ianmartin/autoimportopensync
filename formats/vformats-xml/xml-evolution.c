@@ -19,210 +19,181 @@
  */
  
 #include "opensync-xml.h"
-#include "e-vcard.h"
+#include "vformat.h"
 #include <glib.h>
 
 #include "xml-vcard.h"
 
-static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
-{
-	GList *values = e_vcard_attribute_get_values_decoded(attr);
-	if (!values)
-		return NULL;
-	GString *retstr = (GString *)g_list_nth_data(values, nth);
-	if (!retstr)
-		return NULL;
-	
-	if (!g_utf8_validate(retstr->str, -1, NULL)) {
-		values = e_vcard_attribute_get_values(attr);
-		if (!values)
-			return NULL;
-		return g_list_nth_data(values, nth);
-	}
-	
-	return retstr->str;
-}
-
-static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
-{
-	const char *ret = NULL;
-	GList *values = e_vcard_attribute_param_get_values(param);
-	if (!values)
-		return NULL;
-	ret = g_list_nth_data(values, nth);
-	return ret;
-}
-
-static xmlNode *handle_x_aim_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_x_aim_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling x-aim attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "IM-AIM", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_file_as_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_file_as_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling FileAs attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "FileAs", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_manager_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_manager_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Manager attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Manager", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_assistant_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_assistant_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Assistant attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Assistant", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_anniversary_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_anniversary_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Anniversary attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Anniversary", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_spouse_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_spouse_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Spouse attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Spouse", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_blog_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_blog_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling BlogUrl attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "BlogUrl", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_calendar_url_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_calendar_url_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling CalendarUrl attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "CalendarUrl", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_free_busy_url_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_free_busy_url_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling FreeBusyUrl attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "FreeBusyUrl", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_video_chat_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_video_chat_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling VideoUrl attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "VideoUrl", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_wants_html_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_wants_html_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling WantsHtml attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "WantsHtml", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_yahoo_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_yahoo_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-Yahoo attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "IM-Yahoo", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_icq_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_icq_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-ICQ attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "IM-ICQ", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_groupwise_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_groupwise_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling GroupwiseDirectory attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "GroupwiseDirectory", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_jabber_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_jabber_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Jabber attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "IM-Jabber", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static xmlNode *handle_msn_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_msn_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling MSN attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "IM-MSN", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
 //evo2s role is more like a profession so we map it there
-static xmlNode *handle_role_attribute(xmlNode *root, EVCardAttribute *attr)
+static xmlNode *handle_role_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling role attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Profession", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
-static void handle_slot_parameter(xmlNode *current, EVCardAttributeParam *param)
+static void handle_slot_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Slot parameter %s", e_vcard_attribute_param_get_name(param));
-	xmlNewChild(current, NULL, "Slot", property_get_nth_value(param, 0));
+	osync_trace(TRACE_INTERNAL, "Handling Slot parameter %s", vformat_attribute_param_get_name(param));
+	xmlNewChild(current, NULL, "Slot", vformat_attribute_param_get_nth_value(param, 0));
 }
 
-static void handle_assistant_parameter(xmlNode *current, EVCardAttributeParam *param)
+static void handle_assistant_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Assistant parameter %s", e_vcard_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Assistant parameter %s", vformat_attribute_param_get_name(param));
 	xmlNewChild(current, NULL, "Type", "Assistant");
 }
 
-static void handle_callback_parameter(xmlNode *current, EVCardAttributeParam *param)
+static void handle_callback_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Callback parameter %s", e_vcard_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Callback parameter %s", vformat_attribute_param_get_name(param));
 	xmlNewChild(current, NULL, "Type", "Callback");
 }
 
-static void handle_company_parameter(xmlNode *current, EVCardAttributeParam *param)
+static void handle_company_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Company parameter %s", e_vcard_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Company parameter %s", vformat_attribute_param_get_name(param));
 	xmlNewChild(current, NULL, "Type", "Company");
 }
 
-static void handle_telex_parameter(xmlNode *current, EVCardAttributeParam *param)
+static void handle_telex_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Telex parameter %s", e_vcard_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Telex parameter %s", vformat_attribute_param_get_name(param));
 	xmlNewChild(current, NULL, "Type", "Telex");
 }
 
-static void handle_radio_parameter(xmlNode *current, EVCardAttributeParam *param)
+static void handle_radio_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling Radio parameter %s", e_vcard_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling Radio parameter %s", vformat_attribute_param_get_name(param));
 	xmlNewChild(current, NULL, "Type", "Radio");
 }
 
@@ -263,15 +234,6 @@ static osync_bool init_x_evo_to_xml(void *input)
 	return TRUE;
 }
 
-static void add_parameter(EVCardAttribute *attr, const char *name, const char *data)
-{
-	EVCardAttributeParam *param = e_vcard_attribute_param_new(name);
-	if (data)
-		e_vcard_attribute_add_param_with_value(attr, param, data);
-	else
-		e_vcard_attribute_add_param(attr, param);
-}
-
 static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
 {
 	int i = 0;
@@ -298,227 +260,215 @@ static osync_bool needs_charset(const unsigned char *tmp)
 	return FALSE;
 }
 
-static osync_bool has_param(EVCardAttribute *attr, const char *name)
-{
-	GList *params = e_vcard_attribute_get_params(attr);
-	GList *p;
-	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
-		if (!strcmp(name, e_vcard_attribute_param_get_name(param)))
-			return TRUE;
-	}
-	return FALSE;
-}
-
-static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
+static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
 	if (!tmp)
 		return;
 	
 	if (needs_charset(tmp))
-		if (!has_param (attr, "CHARSET"))
-			add_parameter(attr, "CHARSET", "UTF-8");
+		if (!vformat_attribute_has_param (attr, "CHARSET"))
+			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
 	if (needs_encoding(tmp, encoding)) {
-		if (!has_param (attr, "ENCODING"))
-			add_parameter(attr, "ENCODING", encoding);
-		e_vcard_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
+		if (!vformat_attribute_has_param (attr, "ENCODING"))
+			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
+		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
 	} else
-		e_vcard_attribute_add_value(attr, tmp);
+		vformat_attribute_add_value(attr, tmp);
 	g_free(tmp);
 }
 
-static EVCardAttribute *handle_xml_file_as_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_file_as_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling file_as xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-FILE-AS");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-FILE-AS");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_manager_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_manager_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling manager xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-MANAGER");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-MANAGER");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_assistant_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_assistant_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling assistant xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-ASSISTANT");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-ASSISTANT");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_anniversary_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_anniversary_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling anniversary xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-ANNIVERSARY");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-ANNIVERSARY");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_spouse_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_spouse_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling spouse xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-SPOUSE");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-SPOUSE");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_blog_url_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_blog_url_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling blog_url xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-BLOG-URL");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-BLOG-URL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_calendar_url_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_calendar_url_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling calendar_url xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "CALURI");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "CALURI");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_free_busy_url_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_free_busy_url_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling free_busy_url xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "FBURL");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "FBURL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_video_url_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_video_url_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling videourl xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-EVOLUTION-VIDEO-URL");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-EVOLUTION-VIDEO-URL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_wants_html_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_wants_html_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling wants_html xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-MOZILLA-HTML");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-MOZILLA-HTML");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_yahoo_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_yahoo_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling yahoo xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-YAHOO");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-YAHOO");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_icq_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_icq_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling icq xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-ICQ");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-ICQ");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_groupwise_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_groupwise_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling groupwise xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-GROUPWISE");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-GROUPWISE");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_aim_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_aim_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling aim xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-AIM");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-AIM");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_jabber_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_jabber_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling jabber xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-JABBER");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-JABBER");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_msn_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_msn_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling msn xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "X-MSN");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-MSN");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
 //We map the profession to the ROLE
-static EVCardAttribute *handle_xml_profession_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_profession_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling profession xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "ROLE");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ROLE");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static void handle_xml_slot_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_slot_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling slot xml parameter");
 	char *content = xmlNodeGetContent(current);
-	add_parameter(attr, "X-EVOLUTION-UI-SLOT", content);
+	vformat_attribute_add_param_with_value(attr, "X-EVOLUTION-UI-SLOT", content);
 	g_free(content);
 }
 
-static void handle_xml_assistant_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_assistant_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling assistant xml parameter");
-	add_parameter(attr, "TYPE", "X-EVOLUTION-ASSISTANT");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-ASSISTANT");
 }
 
-static void handle_xml_callback_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_callback_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling callback xml parameter");
-	add_parameter(attr, "TYPE", "X-EVOLUTION-CALLBACK");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-CALLBACK");
 }
 
-static void handle_xml_company_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_company_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling company xml parameter");
-	add_parameter(attr, "TYPE", "X-EVOLUTION-COMPANY");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-COMPANY");
 }
 
-static void handle_xml_telex_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_telex_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling telex xml parameter");
-	add_parameter(attr, "TYPE", "X-EVOLUTION-TELEX");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-TELEX");
 }
 
-static void handle_xml_radio_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_radio_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling radio xml parameter");
-	add_parameter(attr, "TYPE", "X-EVOLUTION-RADIO");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-RADIO");
 }
 
 static osync_bool init_xml_to_x_evo(void *input)

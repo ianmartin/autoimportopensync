@@ -19,83 +19,267 @@
  */
  
 #include "opensync-xml.h"
-#include "e-vcard.h"
+#include "vformat.h"
 #include "xml-vcard.h"
 #include <glib.h>
 
-static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
+static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {
-	const char *ret = NULL;
-	GList *values = e_vcard_attribute_param_get_values(param);
-	if (!values)
-		return NULL;
-	ret = g_list_nth_data(values, nth);
-	return ret;
+	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
+	xmlNode *property = xmlNewChild(current, NULL, "UnknownParam", vformat_attribute_param_get_nth_value(param, 0));
+	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 }
 
-static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
+static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 {
-	GList *values = e_vcard_attribute_get_values_decoded(attr);
-	if (!values)
-		return NULL;
-	GString *retstr = (GString *)g_list_nth_data(values, nth);
-	if (!retstr)
-		return NULL;
+	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
+	xmlNewChild(current, NULL, "Type", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+static xmlNode *handle_fullname_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling fullname attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "FullName", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_name_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling name attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Name", NULL);
+	osxml_node_add(current, "LastName", vformat_attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "FirstName", vformat_attribute_get_nth_value(attr, 1));
+	osxml_node_add(current, "Additional", vformat_attribute_get_nth_value(attr, 2));
+	osxml_node_add(current, "Prefix", vformat_attribute_get_nth_value(attr, 3));
+	osxml_node_add(current, "Suffix", vformat_attribute_get_nth_value(attr, 4));
+	return current;
+}
+
+static xmlNode *handle_photo_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling photo attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Photo", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_birthday_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling birthday attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Birthday", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_address_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling address attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Address", NULL);
+	osxml_node_add(current, "PostalBox", vformat_attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "ExtendedAddress", vformat_attribute_get_nth_value(attr, 1));
+	osxml_node_add(current, "Street", vformat_attribute_get_nth_value(attr, 2));
+	osxml_node_add(current, "City", vformat_attribute_get_nth_value(attr, 3));
+	osxml_node_add(current, "Region", vformat_attribute_get_nth_value(attr, 4));
+	osxml_node_add(current, "PostalCode", vformat_attribute_get_nth_value(attr, 5));
+	osxml_node_add(current, "Country", vformat_attribute_get_nth_value(attr, 6));
+	return current;
+}
+
+static xmlNode *handle_label_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling AddressLabel attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "AddressLabel", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_telephone_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Telephone attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Telephone", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_email_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling EMail attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "EMail", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_mailer_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Mailer attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Mailer", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_timezone_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Timezone attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Timezone", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_location_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Location attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Location", NULL);
+	osxml_node_add(current, "Latitude", vformat_attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Longitude", vformat_attribute_get_nth_value(attr, 1));
+	return current;
+}
+
+static xmlNode *handle_title_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Title attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Title", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_role_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Role attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Role", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_logo_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Logo attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Logo", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_organization_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Organization", NULL);
+	osxml_node_add(current, "Name", vformat_attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Department", vformat_attribute_get_nth_value(attr, 1));
 	
-	if (!g_utf8_validate(retstr->str, -1, NULL)) {
-		values = e_vcard_attribute_get_values(attr);
-		if (!values)
-			return NULL;
-		return g_list_nth_data(values, nth);
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	values = g_list_nth(values, 2);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Unit", retstr->str);
+	}
+	return current;
+}
+
+static xmlNode *handle_note_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Note attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Note", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_revision_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Revision attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Revision", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_sound_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Sound attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Sound", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_url_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Url attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Url", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_uid_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Uid attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Uid", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_key_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Key attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Key", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_nickname_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Nickname attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Nickname", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Class", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
+static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
+	xmlNode *current = xmlNewChild(root, NULL, "Categories", NULL);
+	
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Category", retstr->str);
 	}
 	
-	return retstr->str;
+	return current;
 }
 
-/*static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
+static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	OSyncXMLEncoding encoding;
-	memset(&encoding, 0, sizeof(encoding));
-	
-	encoding.charset = OSXML_UTF8;
-	encoding.encoding = OSXML_8BIT;
-	
-	GList *params = e_vcard_attribute_get_params(attr);
-	GList *p;
-	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
-		if (!strcmp("ENCODING", e_vcard_attribute_param_get_name(param))) {
-			if (!g_ascii_strcasecmp(property_get_nth_value(param, 0), "b"))
-				encoding.encoding = OSXML_BASE64;
-		}
+	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
+	xmlNode *current = xmlNewChild(root, NULL, "UnknownNode", NULL);
+	osxml_node_add(current, "NodeName", vformat_attribute_get_name(attr));
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Content", retstr->str);
 	}
-	return encoding;
-}*/
-
-static void handle_unknown_parameter(xmlNode *current, EVCardAttributeParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", e_vcard_attribute_param_get_name(param));
-	xmlNode *property = xmlNewChild(current, NULL, "UnknownParam", property_get_nth_value(param, 0));
-	osxml_node_add(property, "ParamName", e_vcard_attribute_param_get_name(param));
+	return current;
 }
 
-static void handle_type_parameter(xmlNode *current, EVCardAttributeParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", e_vcard_attribute_param_get_name(param));
-	xmlNewChild(current, NULL, "Type", property_get_nth_value(param, 0));
-}
-
-static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, EVCardAttributeParam *param)
+static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, hooks, current, param);
 	
 	//Find the handler for this parameter
-	void (* param_handler)(xmlNode *, EVCardAttributeParam *);
-	char *paramname = g_strdup_printf("%s=%s", e_vcard_attribute_param_get_name(param), property_get_nth_value(param, 0));
+	void (* param_handler)(xmlNode *, VFormatParam *);
+	char *paramname = g_strdup_printf("%s=%s", vformat_attribute_param_get_name(param), vformat_attribute_param_get_nth_value(param, 0));
 	param_handler = g_hash_table_lookup(hooks, paramname);
 	g_free(paramname);
 	if (!param_handler)
-		param_handler = g_hash_table_lookup(hooks, e_vcard_attribute_param_get_name(param));
+		param_handler = g_hash_table_lookup(hooks, vformat_attribute_param_get_name(param));
 	
 	if (param_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -110,247 +294,14 @@ static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, EVCardAt
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static xmlNode *handle_fullname_attribute(xmlNode *root, EVCardAttribute *attr)
+static void vcard_handle_attribute(GHashTable *hooks, xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling fullname attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "FullName", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_name_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling name attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Name", NULL);
-	osxml_node_add(current, "LastName", attribute_get_nth_value(attr, 0));
-	osxml_node_add(current, "FirstName", attribute_get_nth_value(attr, 1));
-	osxml_node_add(current, "Additional", attribute_get_nth_value(attr, 2));
-	osxml_node_add(current, "Prefix", attribute_get_nth_value(attr, 3));
-	osxml_node_add(current, "Suffix", attribute_get_nth_value(attr, 4));
-	return current;
-}
-
-static xmlNode *handle_photo_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling photo attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Photo", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_birthday_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling birthday attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Birthday", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_address_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling address attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Address", NULL);
-	osxml_node_add(current, "PostalBox", attribute_get_nth_value(attr, 0));
-	osxml_node_add(current, "ExtendedAddress", attribute_get_nth_value(attr, 1));
-	osxml_node_add(current, "Street", attribute_get_nth_value(attr, 2));
-	osxml_node_add(current, "City", attribute_get_nth_value(attr, 3));
-	osxml_node_add(current, "Region", attribute_get_nth_value(attr, 4));
-	osxml_node_add(current, "PostalCode", attribute_get_nth_value(attr, 5));
-	osxml_node_add(current, "Country", attribute_get_nth_value(attr, 6));
-	return current;
-}
-
-static xmlNode *handle_label_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling AddressLabel attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "AddressLabel", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_telephone_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Telephone attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Telephone", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_email_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling EMail attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "EMail", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_mailer_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Mailer attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Mailer", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_timezone_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Timezone attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Timezone", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_location_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Location attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Location", NULL);
-	osxml_node_add(current, "Latitude", attribute_get_nth_value(attr, 0));
-	osxml_node_add(current, "Longitude", attribute_get_nth_value(attr, 1));
-	return current;
-}
-
-static xmlNode *handle_title_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Title attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Title", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_role_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Role attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Role", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_logo_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Logo attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Logo", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_organization_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Organization", NULL);
-	osxml_node_add(current, "Name", attribute_get_nth_value(attr, 0));
-	osxml_node_add(current, "Department", attribute_get_nth_value(attr, 1));
-	
-	GList *values = e_vcard_attribute_get_values_decoded(attr);
-	values = g_list_nth(values, 2);
-	for (; values; values = values->next) {
-		GString *retstr = (GString *)values->data;
-		g_assert(retstr);
-		osxml_node_add(current, "Unit", retstr->str);
-	}
-	return current;
-}
-
-static xmlNode *handle_note_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Note attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Note", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_revision_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Revision attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Revision", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_sound_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Sound attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Sound", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_url_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Url attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Url", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_uid_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Uid attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Uid", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_key_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Key attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Key", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_nickname_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Nickname attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Nickname", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_class_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Class", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
-	return current;
-}
-
-static xmlNode *handle_categories_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Categories", NULL);
-	
-	GList *values = e_vcard_attribute_get_values_decoded(attr);
-	for (; values; values = values->next) {
-		GString *retstr = (GString *)values->data;
-		g_assert(retstr);
-		osxml_node_add(current, "Category", retstr->str);
-	}
-	
-	return current;
-}
-
-static xmlNode *handle_unknown_attribute(xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", e_vcard_attribute_get_name(attr));
-	xmlNode *current = xmlNewChild(root, NULL, "UnknownNode", NULL);
-	osxml_node_add(current, "NodeName", e_vcard_attribute_get_name(attr));
-	GList *values = e_vcard_attribute_get_values_decoded(attr);
-	for (; values; values = values->next) {
-		GString *retstr = (GString *)values->data;
-		g_assert(retstr);
-		osxml_node_add(current, "Content", retstr->str);
-	}
-	return current;
-}
-	
-static void vcard_handle_attribute(GHashTable *hooks, xmlNode *root, EVCardAttribute *attr)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, root, attr, attr ? e_vcard_attribute_get_name(attr) : "None");
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, root, attr, attr ? vformat_attribute_get_name(attr) : "None");
 	xmlNode *current = NULL;
 	
 	//Dont add empty stuff
 	GList *v;
-	for (v = e_vcard_attribute_get_values(attr); v; v = v->next) {
+	for (v = vformat_attribute_get_values(attr); v; v = v->next) {
 		char *value = v->data;
 		if (strlen(value) != 0)
 			goto has_value;
@@ -361,7 +312,7 @@ static void vcard_handle_attribute(GHashTable *hooks, xmlNode *root, EVCardAttri
 has_value:;
 	
 	//We need to find the handler for this attribute
-	xmlNode *(* attr_handler)(xmlNode *, EVCardAttribute *) = g_hash_table_lookup(hooks, e_vcard_attribute_get_name(attr));
+	xmlNode *(* attr_handler)(xmlNode *, VFormatAttribute *) = g_hash_table_lookup(hooks, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -373,10 +324,10 @@ has_value:;
 		current = handle_unknown_attribute(root, attr);
 
 	//Handle all parameters of this attribute
-	GList *params = e_vcard_attribute_get_params(attr);
+	GList *params = vformat_attribute_get_params(attr);
 	GList *p = NULL;
 	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
+		VFormatParam *param = p->data;
 		vcard_handle_parameter(hooks, current, param);
 	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -391,8 +342,7 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
 	//Parse the vcard
-	g_type_init();
-	EVCard *vcard = e_vcard_new_from_string(input);
+	VFormat *vcard = vformat_new_from_string(input);
 	
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
@@ -403,10 +353,10 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
 	//For every attribute we have call the handling hook
-	GList *attributes = e_vcard_get_attributes(vcard);
+	GList *attributes = vformat_get_attributes(vcard);
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
-		EVCardAttribute *attr = a->data;
+		VFormatAttribute *attr = a->data;
 		vcard_handle_attribute(hooks, root, attr);
 	}
 	
@@ -417,15 +367,6 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 	*outpsize = sizeof(doc);
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
-}
-
-static void add_parameter(EVCardAttribute *attr, const char *name, const char *data)
-{
-	EVCardAttributeParam *param = e_vcard_attribute_param_new(name);
-	if (data)
-		e_vcard_attribute_add_param_with_value(attr, param, data);
-	else
-		e_vcard_attribute_add_param(attr, param);
 }
 
 static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
@@ -454,75 +395,63 @@ static osync_bool needs_charset(const unsigned char *tmp)
 	return FALSE;
 }
 
-static osync_bool has_param(EVCardAttribute *attr, const char *name)
-{
-	GList *params = e_vcard_attribute_get_params(attr);
-	GList *p;
-	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
-		if (!strcmp(name, e_vcard_attribute_param_get_name(param)))
-			return TRUE;
-	}
-	return FALSE;
-}
-
-static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
+static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
 	if (!tmp)
 		return;
 	
 	if (needs_charset(tmp))
-		if (!has_param (attr, "CHARSET"))
-			add_parameter(attr, "CHARSET", "UTF-8");
+		if (!vformat_attribute_has_param (attr, "CHARSET"))
+			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
 	if (needs_encoding(tmp, encoding)) {
-		if (!has_param (attr, "ENCODING"))
-			add_parameter(attr, "ENCODING", encoding);
-		e_vcard_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
+		if (!vformat_attribute_has_param (attr, "ENCODING"))
+			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
+		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
 	} else
-		e_vcard_attribute_add_value(attr, tmp);
+		vformat_attribute_add_value(attr, tmp);
 	g_free(tmp);
 }
 
-static void handle_xml_type_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
 	char *content = xmlNodeGetContent(current);
-	add_parameter(attr, "TYPE", content);
+	vformat_attribute_add_param_with_value(attr, "TYPE", content);
 	g_free(content);
 }
 
-static void handle_xml_category_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_category_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling category xml parameter");
 	char *content = xmlNodeGetContent(current);
-	e_vcard_attribute_add_value(attr, content);
+	vformat_attribute_add_value(attr, content);
 	g_free(content);
 }
 
-static void handle_xml_unit_parameter(EVCardAttribute *attr, xmlNode *current)
+static void handle_xml_unit_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unit xml parameter");
 	char *content = xmlNodeGetContent(current);
-	e_vcard_attribute_add_value(attr, content);
+	vformat_attribute_add_value(attr, content);
 	g_free(content);
 }
 
-static void xml_handle_unknown_parameter(EVCardAttribute *attr, xmlNode *current)
+static void xml_handle_unknown_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml parameter %s", current->name);
 	char *content = xmlNodeGetContent(current);
-	add_parameter(attr, current->name, content);
+	vformat_attribute_add_param_with_value(attr, current->name, content);
 	g_free(content);
 }
 
-static void xml_vcard_handle_parameter(OSyncHookTables *hooks, EVCardAttribute *attr, xmlNode *current)
+static void xml_vcard_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, attr, current, current ? (char *)current->name : "None");
 	
 	//Find the handler for this parameter
-	void (* xml_param_handler)(EVCardAttribute *attr, xmlNode *);
+	void (* xml_param_handler)(VFormatAttribute *attr, xmlNode *);
 	char *content = xmlNodeGetContent(current);
 	char *paramname = g_strdup_printf("%s=%s", current->name, content);
 	g_free(content);
@@ -542,45 +471,45 @@ static void xml_vcard_handle_parameter(OSyncHookTables *hooks, EVCardAttribute *
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static EVCardAttribute *xml_handle_unknown_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", root->name);
 	char *name = osxml_find_node(root, "Name");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, name);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_fullname_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_fullname_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling fullname xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_FN);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "FN");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_name_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_name_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling fullname xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_N);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "N");
 	add_value(attr, root, "LastName", encoding);
 	add_value(attr, root, "FirstName", encoding);
 	add_value(attr, root, "Additional", encoding);
 	add_value(attr, root, "Prefix", encoding);
 	add_value(attr, root, "Suffix", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static void xml_vcard_handle_attribute(OSyncHookTables *hooks, EVCard *vcard, xmlNode *root, const char *encoding)
+static void xml_vcard_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vcard, root, root ? (char *)root->name : "None");
-	EVCardAttribute *attr = NULL;
+	VFormatAttribute *attr = NULL;
 	
 	//We need to find the handler for this attribute
-	EVCardAttribute *(* xml_attr_handler)(EVCard *vcard, xmlNode *root, const char *) = g_hash_table_lookup(hooks->attributes, root->name);
+	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, xmlNode *root, const char *) = g_hash_table_lookup(hooks->attributes, root->name);
 	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
 	if (xml_attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -602,30 +531,30 @@ static void xml_vcard_handle_attribute(OSyncHookTables *hooks, EVCard *vcard, xm
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static EVCardAttribute *handle_xml_photo_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_photo_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling photo xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_PHOTO);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
 	add_value(attr, root, "Content", encoding);
-	add_parameter(attr, "ENCODING", "b");
-	add_parameter(attr, "TYPE", osxml_find_node(root, "Type"));
-	e_vcard_add_attribute(vcard, attr);
+	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_birthday_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_birthday_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling birthday xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_BDAY);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "BDAY");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_address_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_address_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling address xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_ADR);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ADR");
 	add_value(attr, root, "PostalBox", encoding);
 	add_value(attr, root, "ExtendedAddress", encoding);
 	add_value(attr, root, "Street", encoding);
@@ -633,183 +562,183 @@ static EVCardAttribute *handle_xml_address_attribute(EVCard *vcard, xmlNode *roo
 	add_value(attr, root, "Region", encoding);
 	add_value(attr, root, "PostalCode", encoding);
 	add_value(attr, root, "Country", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_label_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_label_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling label xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_LABEL);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "LABEL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_telephone_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_telephone_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling telephone xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_TEL);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "TEL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_email_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_email_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling email xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_EMAIL);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "EMAIL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_mailer_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_mailer_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling mailer xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_MAILER);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "MAILER");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_timezone_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_timezone_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling timezone xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "TZ");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZ");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_location_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_location_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling location xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "GEO");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "GEO");
 	add_value(attr, root, "Latitude", encoding);
 	add_value(attr, root, "Longitude", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_title_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_title_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling title xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_TITLE);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "TITLE");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_role_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_role_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling role xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_ROLE);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ROLE");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_logo_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_logo_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling logo xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "LOGO");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "LOGO");
 	add_value(attr, root, "Content", encoding);
-	add_parameter(attr, "ENCODING", "b");
-	add_parameter(attr, "TYPE", osxml_find_node(root, "Type"));
-	e_vcard_add_attribute(vcard, attr);
+	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_organization_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_organization_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling organization xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_ORG);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "ORG");
 	add_value(attr, root, "Name", encoding);
 	add_value(attr, root, "Department", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_note_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_note_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling note xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_NOTE);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "NOTE");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_revision_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_revision_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling revision xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_REV);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "REV");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_sound_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_sound_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling sound xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "SOUND");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "SOUND");
 	add_value(attr, root, "Content", encoding);
-	add_parameter(attr, "ENCODING", "b");
-	add_parameter(attr, "TYPE", osxml_find_node(root, "Type"));
-	e_vcard_add_attribute(vcard, attr);
+	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_url_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_url_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling url xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_URL);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "URL");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_uid_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_uid_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling uid xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_UID);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "UID");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_key_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_key_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling key xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_KEY);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "KEY");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_nickname_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_nickname_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling nickname xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "NICKNAME");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "NICKNAME");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_class_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_class_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling class xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "CLASS");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "CLASS");
 	add_value(attr, root, "Content", encoding);
-	e_vcard_add_attribute(vcard, attr);
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
-static EVCardAttribute *handle_xml_categories_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_categories_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling categories xml attribute");
-	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "CATEGORIES");
-	e_vcard_add_attribute(vcard, attr);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "CATEGORIES");
+	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
@@ -828,12 +757,11 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	}
 	
 	//Make the new vcard
-	g_type_init();
-	EVCard *vcard = e_vcard_new();
+	VFormat *vcard = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing cml attributes");
 	const char *std_encoding = NULL;
-	if (target == EVC_FORMAT_VCARD_21)
+	if (target == VFORMAT_CARD_21)
 		std_encoding = "QUOTED-PRINTABLE";
 	else
 		std_encoding = "B";
@@ -844,7 +772,7 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	}
 	
 	*free_input = TRUE;
-	*output = e_vcard_to_string(vcard, target);
+	*output = vformat_to_string(vcard, target);
 	osync_trace(TRACE_INTERNAL, "vcard output is: \n%s", *output);
 	*outpsize = strlen(*output) + 1;
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -854,12 +782,12 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 
 static osync_bool conv_xml_to_vcard30(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, EVC_FORMAT_VCARD_30);
+	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_30);
 }
 
 static osync_bool conv_xml_to_vcard21(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, EVC_FORMAT_VCARD_21);
+	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_21);
 }
 
 static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *rightchange)
@@ -933,6 +861,7 @@ static void *init_vcard_to_xml(void)
 	
 	g_hash_table_insert(table, "VERSION", HANDLE_IGNORE);
 	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
+	g_hash_table_insert(table, "END", HANDLE_IGNORE);
 	
 	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
 	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);

@@ -37,31 +37,29 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	return CONV_DATA_MISMATCH;
 }
 
-
-static const char *begin_vcalendar = "BEGIN:VCALENDAR";
-static const char *begin_vevent = "\nBEGIN:VEVENT";
-
-static osync_bool detect_plain_as_vevent(OSyncFormatEnv *env, const char *data, int size)
+static osync_bool detect_plain_as_vevent10(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
 
-	// first, check if it is a vcalendar
-	if (size < strlen(begin_vcalendar) || strncmp(data, begin_vcalendar, strlen(begin_vcalendar)))
-		return FALSE;
-
-	// it is a vcalendar, search for BEGIN:VEVENT
-	if (g_strstr_len(data, size, begin_vevent))
-		return TRUE;
-
-	return FALSE;
+	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VEVENT*", data);
 }
 
+static osync_bool detect_plain_as_vevent20(OSyncFormatEnv *env, const char *data, int size)
+{
+	osync_debug("VCAL", 3, "start: %s", __func__);
+
+	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VEVENT*", data);
+}
 
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "event");
-	osync_env_register_objformat(env, "event", "vevent");
-	osync_env_format_set_compare_func(env, "vevent", compare_vevent);
-
-	osync_env_register_detector(env, "plain", "vevent", detect_plain_as_vevent);
+	
+	osync_env_register_objformat(env, "event", "vevent10");
+	osync_env_format_set_compare_func(env, "vevent10", compare_vevent);
+	osync_env_register_detector(env, "plain", "vevent10", detect_plain_as_vevent10);
+	
+	osync_env_register_objformat(env, "event", "vevent20");
+	osync_env_format_set_compare_func(env, "vevent20", compare_vevent);
+	osync_env_register_detector(env, "plain", "vevent20", detect_plain_as_vevent20);
 }

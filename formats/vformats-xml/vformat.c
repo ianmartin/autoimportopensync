@@ -1,7 +1,5 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* e-vcard.c
- *
- * Copyright (C) 2003 Ximian, Inc.
+/*
+ * Copyright (C) 2003 Ximian, Inc. 2005 Armin Bauer
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of version 2 of the GNU General Public
@@ -18,124 +16,25 @@
  * Boston, MA 02111-1307, USA.
  *
  * Author: Chris Toshok (toshok@ximian.com)
+ * Author: Armin Bauer (armin.bauer@opensync.org)
+ * 
  */
 
-#include <glib.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "vformat.h"
 #include <string.h>
+#include <stdio.h>
 #include <ctype.h>
-#include "e-vcard.h"
+#include <stdlib.h>
 
-#define d(x)
+static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save);
+static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
+size_t base64_decode_simple (char *data, size_t len);
+char  *base64_encode_simple (const char *data, size_t len);
 
-#define CRLF "\r\n"
+size_t quoted_decode_simple (char *data, size_t len);
+char *quoted_encode_simple (const unsigned char *string, int len);
 
-typedef enum {
-	EVC_ENCODING_RAW,    /* no encoding */
-	EVC_ENCODING_BASE64, /* base64 */
-	EVC_ENCODING_QP,     /* quoted-printable */
-	EVC_ENCODING_8BIT
-} EVCardEncoding;
-
-struct _EVCardPrivate {
-	GList *attributes;
-};
-
-struct _EVCardAttribute {
-	char  *group;
-	char  *name;
-	GList *params; /* EVCardParam */
-	GList *values;
-	GList *decoded_values;
-	EVCardEncoding encoding;
-	gboolean encoding_set;
-};
-
-struct _EVCardAttributeParam {
-	char     *name;
-	GList    *values;  /* GList of char*'s*/
-};
-
-static GObjectClass *parent_class;
-
-static void   _evc_base64_init(void);
-static size_t _evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save);
-static size_t _evc_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
-size_t _evc_base64_decode_simple (char *data, size_t len);
-char  *_evc_base64_encode_simple (const char *data, size_t len);
-
-size_t _evc_quoted_decode_simple (char *data, size_t len);
-char *_evc_quoted_encode_simple (const unsigned char *string, int len);
-
-static void
-e_vcard_dispose (GObject *object)
-{
-	EVCard *evc = E_VCARD (object);
-
-	if (evc->priv) {
-
-		g_list_foreach (evc->priv->attributes, (GFunc)e_vcard_attribute_free, NULL);
-		g_list_free (evc->priv->attributes);
-
-		g_free (evc->priv);
-		evc->priv = NULL;
-	}
-
-	if (G_OBJECT_CLASS (parent_class)->dispose)
-		G_OBJECT_CLASS (parent_class)->dispose (object);
-}
-
-static void
-e_vcard_class_init (EVCardClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS(klass);
-
-	parent_class = g_type_class_ref (G_TYPE_OBJECT);
-
-	object_class->dispose = e_vcard_dispose;
-
-	_evc_base64_init();
-}
-
-static void
-e_vcard_init (EVCard *evc)
-{
-	evc->priv = g_new0 (EVCardPrivate, 1);
-}
-
-GType
-e_vcard_get_type (void)
-{
-	static GType vcard_type = 0;
-
-	if (!vcard_type) {
-		if (!(vcard_type = g_type_from_name("OSEVCard"))) {
-			static const GTypeInfo vcard_info =  {
-				sizeof (EVCardClass),
-				NULL,           /* base_init */
-				NULL,           /* base_finalize */
-				(GClassInitFunc) e_vcard_class_init,
-				NULL,           /* class_finalize */
-				NULL,           /* class_data */
-				sizeof (EVCard),
-				0,             /* n_preallocs */
-				(GInstanceInitFunc) e_vcard_init,
-			};
-	
-			vcard_type = g_type_register_static (G_TYPE_OBJECT, "OSEVCard", &vcard_info, 0);
-		}
-	}
-
-	return vcard_type;
-}
-
-
-
-static char*
-fold_lines (char *buf)
+static char *_fold_lines (char *buf)
 {
 	GString *str = g_string_new ("");
 	char *p = buf;
@@ -178,8 +77,7 @@ fold_lines (char *buf)
 }
 
 /* skip forward until we hit the CRLF, or \0 */
-static void
-skip_to_next_line (char **p)
+static void _skip_to_next_line (char **p)
 {
 	char *lp;
 	lp = *p;
@@ -197,8 +95,7 @@ skip_to_next_line (char **p)
 
 /* skip forward until we hit a character in @s, CRLF, or \0.  leave *p
    pointing at the character that causes us to stop */
-static void
-skip_until (char **p, char *s)
+static void _skip_until (char **p, char *s)
 {
 	char *lp;
 
@@ -222,8 +119,7 @@ skip_until (char **p, char *s)
 	*p = lp;
 }
 
-static void
-read_attribute_value (EVCardAttribute *attr, char **p, gboolean quoted_printable)
+static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable)
 {
 	char *lp = *p;
 	GString *str;
@@ -281,7 +177,7 @@ read_attribute_value (EVCardAttribute *attr, char **p, gboolean quoted_printable
 		}
 		else if ((*lp == ';') ||
 			 (*lp == ',' && !strcmp (attr->name, "CATEGORIES"))) {
-			e_vcard_attribute_add_value (attr, str->str);
+			vformat_attribute_add_value (attr, str->str);
 			g_string_assign (str, "");
 			lp = g_utf8_next_char(lp);
 		}
@@ -291,7 +187,7 @@ read_attribute_value (EVCardAttribute *attr, char **p, gboolean quoted_printable
 		}
 	}
 	if (str) {
-		e_vcard_attribute_add_value (attr, str->str);
+		vformat_attribute_add_value (attr, str->str);
 		g_string_free (str, TRUE);
 	}
 
@@ -303,12 +199,11 @@ read_attribute_value (EVCardAttribute *attr, char **p, gboolean quoted_printable
 	*p = lp;
 }
 
-static void
-read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printable)
+static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable)
 {
 	char *lp = *p;
 	GString *str;
-	EVCardAttributeParam *param = NULL;
+	VFormatParam *param = NULL;
 	gboolean in_quote = FALSE;
 	str = g_string_new ("");
 	
@@ -317,7 +212,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 			in_quote = !in_quote;
 			lp = g_utf8_next_char (lp);
 		}
-		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/') {
+		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/' || *lp == '.') {
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 			lp = g_utf8_next_char (lp);
 		}
@@ -329,12 +224,12 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 		 */
 		else if (*lp == '=') {
 			if (str->len > 0) {
-				param = e_vcard_attribute_param_new (str->str);
+				param = vformat_attribute_param_new (str->str);
 				g_string_assign (str, "");
 				lp = g_utf8_next_char (lp);
 			}
 			else {
-				skip_until (&lp, ":;");
+				_skip_until (&lp, ":;");
 				if (*lp == '\r') {
 					lp = g_utf8_next_char (lp); /* \n */
 					lp = g_utf8_next_char (lp); /* start of the next line */
@@ -350,7 +245,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 
 			if (param) {
 				if (str->len > 0) {
-					e_vcard_attribute_param_add_value (param, str->str);
+					vformat_attribute_param_add_value (param, str->str);
 					g_string_assign (str, "");
 					if (!colon)
 						lp = g_utf8_next_char (lp);
@@ -365,7 +260,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 					 * the parameter then skip past the character.
 					 */
 					if (!param->values) {
-						e_vcard_attribute_param_free (param);
+						vformat_attribute_param_free (param);
 						param = NULL;
 						if (!colon)
 							lp = g_utf8_next_char (lp);
@@ -376,7 +271,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 				    && !g_ascii_strcasecmp (param->name, "encoding")
 				    && !g_ascii_strcasecmp (param->values->data, "quoted-printable")) {
 					*quoted_printable = TRUE;
-					e_vcard_attribute_param_free (param);
+					vformat_attribute_param_free (param);
 					param = NULL;
 				}
 			}
@@ -400,8 +295,8 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 					}
 
 					if (param_name) {
-						param = e_vcard_attribute_param_new (param_name);
-						e_vcard_attribute_param_add_value (param, str->str);
+						param = vformat_attribute_param_new (param_name);
+						vformat_attribute_param_add_value (param, str->str);
 					}
 					g_string_assign (str, "");
 					if (!colon)
@@ -425,16 +320,16 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 				}
 			}
 			if (param && !comma) {
-				e_vcard_attribute_add_param (attr, param);
+				vformat_attribute_add_param (attr, param);
 				param = NULL;
 			}
 			if (colon)
 				break;
 		}
 		else {
-			g_warning ("invalid character found in parameter spec: %c", lp[0]);
+			g_warning ("invalid character found in parameter spec: \"%c\" String so far: %s", lp[0], str->str);
 			g_string_assign (str, "");
-			skip_until (&lp, ":;");
+			_skip_until (&lp, ":;");
 		}
 	}
 
@@ -446,12 +341,11 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 
 /* reads an entire attribute from the input buffer, leaving p pointing
    at the start of the next line (past the \r\n) */
-static EVCardAttribute*
-read_attribute (char **p)
+static VFormatAttribute *_read_attribute (char **p)
 {
 	char *attr_group = NULL;
 	char *attr_name = NULL;
-	EVCardAttribute *attr = NULL;
+	VFormatAttribute *attr = NULL;
 	GString *str;
 	char *lp = *p;
 	
@@ -476,7 +370,7 @@ read_attribute (char **p)
 				 */
 				g_string_free (str, TRUE);
 				*p = lp;
-				skip_to_next_line(p);
+				_skip_to_next_line(p);
 				goto lose;
 			}
 		}
@@ -499,7 +393,7 @@ read_attribute (char **p)
 			g_warning ("invalid character found in attribute group/name: %c", lp[0]);
 			g_string_free (str, TRUE);
 			*p = lp;
-			skip_to_next_line(p);
+			_skip_to_next_line(p);
 			goto lose;
 		}
 
@@ -507,23 +401,23 @@ read_attribute (char **p)
 	}
 
 	if (!attr_name) {
-		skip_to_next_line (p);
+		_skip_to_next_line (p);
 		goto lose;
 	}
 
-	attr = e_vcard_attribute_new (attr_group, attr_name);
+	attr = vformat_attribute_new (attr_group, attr_name);
 	g_free (attr_group);
 	g_free (attr_name);
 
 	if (*lp == ';') {
 		/* skip past the ';' */
 		lp = g_utf8_next_char(lp);
-		read_attribute_params (attr, &lp, &is_qp);
+		_read_attribute_params (attr, &lp, &is_qp);
 	}
 	if (*lp == ':') {
 		/* skip past the ':' */
 		lp = g_utf8_next_char(lp);
-		read_attribute_value (attr, &lp, is_qp);
+		_read_attribute_value (attr, &lp, is_qp);
 	}
 
 	*p = lp;
@@ -534,7 +428,7 @@ read_attribute (char **p)
 	return attr;
  lose:
 	if (attr)
-		e_vcard_attribute_free (attr);
+		vformat_attribute_free (attr);
 	return NULL;
 }
 
@@ -542,44 +436,38 @@ read_attribute (char **p)
  * validator.  Almost nothing is considered a fatal error.  We always
  * try to return *something*.
  */
-static void
-parse (EVCard *evc, const char *str)
+static void _parse(VFormat *evc, const char *str)
 {
 	char *buf = g_strdup (str);
 	char *p, *end;
-	EVCardAttribute *attr;
+	VFormatAttribute *attr;
 
 	/* first validate the string is valid utf8 */
 	if (!g_utf8_validate (buf, -1, (const char **)&end)) {
 		/* if the string isn't valid, we parse as much as we can from it */
-		g_warning ("invalid utf8 passed to EVCard.  Limping along.");
+		g_warning ("invalid utf8 passed to VFormat.  Limping along.");
 		*end = '\0';
 	}
 	
-	buf = fold_lines (buf);
-
-	d(printf ("BEFORE FOLDING:\n"));
-	d(printf (str));
-	d(printf ("\n\nAFTER FOLDING:\n"));
-	d(printf (buf));
+	buf = _fold_lines (buf);
 
 	p = buf;
 
-	attr = read_attribute (&p);
+	attr = _read_attribute (&p);
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "begin")) {
 		g_warning ("vcard began without a BEGIN:VCARD\n");
 	}
 	if (attr && !g_ascii_strcasecmp (attr->name, "begin"))
-		e_vcard_attribute_free (attr);
+		vformat_attribute_free (attr);
 	else if (attr)
-		e_vcard_add_attribute (evc, attr);
+		vformat_add_attribute (evc, attr);
 
 	while (*p) {
-		EVCardAttribute *next_attr = read_attribute (&p);
+		VFormatAttribute *next_attr = _read_attribute (&p);
 
 		if (next_attr) {
-			if (g_ascii_strcasecmp (next_attr->name, "end"))
-				e_vcard_add_attribute (evc, next_attr);
+			//if (g_ascii_strcasecmp (next_attr->name, "end"))
+				vformat_add_attribute (evc, next_attr);
 			attr = next_attr;
 		}
 	}
@@ -588,14 +476,10 @@ parse (EVCard *evc, const char *str)
 		g_warning ("vcard ended without END:VCARD\n");
 	}
 
-	if (attr && !g_ascii_strcasecmp (attr->name, "end"))
-		e_vcard_attribute_free (attr);
-
 	g_free (buf);
 }
 
-char*
-e_vcard_escape_string (const char *s)
+char *vformat_escape_string (const char *s, VFormatType type)
 {
 	GString *str;
 	const char *p;
@@ -617,7 +501,10 @@ e_vcard_escape_string (const char *s)
 			str = g_string_append (str, "\\;");
 			break;
 		case ',':
-			str = g_string_append (str, "\\,");
+			if (type == VFORMAT_CARD_30)
+				str = g_string_append (str, "\\,");
+			else
+				str = g_string_append_c (str, *p);
 			break;
 		case '\\':
 			str = g_string_append (str, "\\\\");
@@ -632,7 +519,7 @@ e_vcard_escape_string (const char *s)
 }
 
 char*
-e_vcard_unescape_string (const char *s)
+vformat_unescape_string (const char *s)
 {
 	GString *str;
 	const char *p;
@@ -668,178 +555,67 @@ e_vcard_unescape_string (const char *s)
 }
 
 void
-e_vcard_construct (EVCard *evc, const char *str)
+vformat_construct (VFormat *evc, const char *str)
 {
-	g_return_if_fail (E_IS_VCARD (evc));
 	g_return_if_fail (str != NULL);
 
 	if (*str)
-		parse (evc, str);
+		_parse (evc, str);
 }
 
-EVCard *
-e_vcard_new ()
+void vformat_free(VFormat *format)
 {
-	return e_vcard_new_from_string ("");
+	g_list_foreach (format->attributes, (GFunc)vformat_attribute_free, NULL);
+	g_list_free (format->attributes);
 }
 
-EVCard *
-e_vcard_new_from_string (const char *str)
+VFormat *vformat_new_from_string (const char *str)
 {
-	EVCard *evc;
 	g_return_val_if_fail (str != NULL, NULL);
+	VFormat *evc = g_malloc0(sizeof(VFormat));
 
-	evc = g_object_new (E_TYPE_VCARD, NULL);
-
-	e_vcard_construct (evc, str);
+	vformat_construct (evc, str);
 
 	return evc;
 }
 
-static char*
-e_vcard_to_string_vcard_21  (EVCard *evc)
+VFormat *vformat_new(void)
 {
-	GList *l;
-	GList *v;
-
-	GString *str = g_string_new ("");
-
-	str = g_string_append (str, "BEGIN:VCARD" CRLF);
-
-	/* we hardcode the version (since we're outputting to a
-	   specific version) and ignore any version attributes the
-	   vcard might contain */
-	str = g_string_append (str, "VERSION:2.1" CRLF);
-
-	for (l = evc->priv->attributes; l; l = l->next) {
-		GList *p;
-		EVCardAttribute *attr = l->data;
-		GString *attr_str;
-		int l;
-
-		if (!g_ascii_strcasecmp (attr->name, "VERSION"))
-			continue;
-
-		attr_str = g_string_new ("");
-
-		/* From rfc2425, 5.8.2
-		 *
-		 * contentline  = [group "."] name *(";" param) ":" value CRLF
-		 */
-
-		if (attr->group) {
-			attr_str = g_string_append (attr_str, attr->group);
-			attr_str = g_string_append_c (attr_str, '.');
-		}
-		attr_str = g_string_append (attr_str, attr->name);
-
-		/* handle the parameters */
-		for (p = attr->params; p; p = p->next) {
-			EVCardAttributeParam *param = p->data;
-			/* 5.8.2:
-			 * param        = param-name "=" param-value *("," param-value)
-			 */
-			gboolean has_name = FALSE;
-			attr_str = g_string_append_c (attr_str, ';');
-			if (g_ascii_strcasecmp (param->name, "TYPE")) {
-				attr_str = g_string_append (attr_str, param->name);
-				has_name = TRUE;
-			}
-			if (param->values) {
-				if (has_name)
-					attr_str = g_string_append_c (attr_str, '=');
-				for (v = param->values; v; v = v->next) {
-					char *value = v->data;
-					char *p = value;
-					gboolean quotes = FALSE;
-					while (*p) {
-						if (g_utf8_get_char (p) != '-' && !g_unichar_isalnum (g_utf8_get_char (p))) {
-							quotes = TRUE;
-							break;
-						}
-						p = g_utf8_next_char (p);
-					}
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
-					attr_str = g_string_append (attr_str, value);
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
-					if (v->next)
-						attr_str = g_string_append_c (attr_str, ',');
-				}
-			}
-		}
-
-		attr_str = g_string_append_c (attr_str, ':');
-
-		for (v = attr->values; v; v = v->next) {
-			char *value = v->data;
-			char *escaped_value = NULL;
-
-			escaped_value = e_vcard_escape_string (value);
-
-			attr_str = g_string_append (attr_str, escaped_value);
-			if (v->next) {
-				/* XXX toshok - i hate you, rfc 2426.
-				   why doesn't CATEGORIES use a ; like
-				   a normal list attribute? */
-				if (!strcmp (attr->name, "CATEGORIES"))
-					attr_str = g_string_append_c (attr_str, ',');
-				else
-					attr_str = g_string_append_c (attr_str, ';');
-			}
-
-			g_free (escaped_value);
-		}
-
-		/* 5.8.2:
-		 * When generating a content line, lines longer than 75
-		 * characters SHOULD be folded
-		 */
-		l = 0;
-		do {
-			if (attr_str->len - l > 75) {
-				l += 75;
-				attr_str = g_string_insert_len (attr_str, l, CRLF " ", sizeof (CRLF " ") - 1);
-			}
-			else
-				break;
-		} while (l < attr_str->len);
-
-		attr_str = g_string_append (attr_str, CRLF);
-
-		str = g_string_append (str, attr_str->str);
-		g_string_free (attr_str, TRUE);
-	}
-
-	str = g_string_append (str, "END:VCARD\r\n");
-
-	return g_string_free (str, FALSE);
+	return vformat_new_from_string ("");
 }
 
-static char*
-e_vcard_to_string_vcard_30 (EVCard *evc)
+char *vformat_to_string (VFormat *evc, VFormatType type)
 {
 	GList *l;
 	GList *v;
 
 	GString *str = g_string_new ("");
 
-	str = g_string_append (str, "BEGIN:VCARD" CRLF);
+	switch (type) {
+		case VFORMAT_CARD_21:
+			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:2.1\r\n");
+			break;
+		case VFORMAT_CARD_30:
+			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:3.0\r\n");
+			break;
+		case VFORMAT_TODO_10:
+		case VFORMAT_EVENT_10:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
+			break;
+		case VFORMAT_TODO_20:
+		case VFORMAT_EVENT_20:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n");
+			break;
+		case VFORMAT_NOTE:
+			str = g_string_append (str, "BEGIN:VNOTE");
+			break;
+	}
 
-	/* we hardcode the version (since we're outputting to a
-	   specific version) and ignore any version attributes the
-	   vcard might contain */
-	str = g_string_append (str, "VERSION:3.0" CRLF);
-
-	for (l = evc->priv->attributes; l; l = l->next) {
+	for (l = evc->attributes; l; l = l->next) {
 		GList *p;
-		EVCardAttribute *attr = l->data;
+		VFormatAttribute *attr = l->data;
 		GString *attr_str;
 		int l;
-
-		if (!g_ascii_strcasecmp (attr->name, "VERSION"))
-			continue;
 
 		attr_str = g_string_new ("");
 
@@ -856,11 +632,11 @@ e_vcard_to_string_vcard_30 (EVCard *evc)
 
 		/* handle the parameters */
 		for (p = attr->params; p; p = p->next) {
-			EVCardAttributeParam *param = p->data;
+			VFormatParam *param = p->data;
 			/* 5.8.2:
 			 * param        = param-name "=" param-value *("," param-value)
 			 */
-			if (!g_ascii_strcasecmp (param->name, "CHARSET"))
+			if (!g_ascii_strcasecmp (param->name, "CHARSET") && type == VFORMAT_CARD_30)
 				continue;
 			attr_str = g_string_append_c (attr_str, ';');
 			attr_str = g_string_append (attr_str, param->name);
@@ -894,7 +670,7 @@ e_vcard_to_string_vcard_30 (EVCard *evc)
 			char *value = v->data;
 			char *escaped_value = NULL;
 
-			escaped_value = e_vcard_escape_string (value);
+			escaped_value = vformat_escape_string (value, type);
 
 			attr_str = g_string_append (attr_str, escaped_value);
 			if (v->next) {
@@ -930,170 +706,49 @@ e_vcard_to_string_vcard_30 (EVCard *evc)
 		g_string_free (attr_str, TRUE);
 	}
 
-	str = g_string_append (str, "END:VCARD");
-
+	switch (type) {
+		case VFORMAT_CARD_21:
+			str = g_string_append (str, "END:VCARD\r\n");
+			break;
+		case VFORMAT_CARD_30:
+			str = g_string_append (str, "END:VCARD");
+			break;
+		case VFORMAT_TODO_10:
+		case VFORMAT_EVENT_10:
+			str = g_string_append (str, "END:VCALENDAR\r\n");
+			break;
+		case VFORMAT_TODO_20:
+		case VFORMAT_EVENT_20:
+			str = g_string_append (str, "END:VCALENDAR\r\n");
+			break;
+		case VFORMAT_NOTE:
+			str = g_string_append (str, "END:VNOTE");
+			break;
+	}
+	
 	return g_string_free (str, FALSE);
 }
 
-char*
-e_vcard_to_string (EVCard *evc, EVCardFormat format)
-{
-	g_return_val_if_fail (E_IS_VCARD (evc), NULL);
-
-	switch (format) {
-	case EVC_FORMAT_VCARD_21:
-		return e_vcard_to_string_vcard_21 (evc);
-	case EVC_FORMAT_VCARD_30:
-		return e_vcard_to_string_vcard_30 (evc);
-	default:
-		g_warning ("invalid format specifier passed to e_vcard_to_string");
-		return g_strdup ("");
-	}
-}
-
-char*
-e_vnote_to_string (EVCard *evc)
-{
-	g_return_val_if_fail (E_IS_VCARD (evc), NULL);
-
-	GList *l;
-	GList *v;
-
-	GString *str = g_string_new ("");
-
-	str = g_string_append (str, "BEGIN:VNOTE" CRLF);
-	str = g_string_append (str, "VERSION:1.1" CRLF);
-
-	for (l = evc->priv->attributes; l; l = l->next) {
-		GList *p;
-		EVCardAttribute *attr = l->data;
-		GString *attr_str;
-		int l;
-
-		if (!g_ascii_strcasecmp (attr->name, "VERSION"))
-			continue;
-
-		attr_str = g_string_new ("");
-
-		/* From rfc2425, 5.8.2
-		 *
-		 * contentline  = [group "."] name *(";" param) ":" value CRLF
-		 */
-
-		if (attr->group) {
-			attr_str = g_string_append (attr_str, attr->group);
-			attr_str = g_string_append_c (attr_str, '.');
-		}
-		attr_str = g_string_append (attr_str, attr->name);
-
-		/* handle the parameters */
-		for (p = attr->params; p; p = p->next) {
-			EVCardAttributeParam *param = p->data;
-			/* 5.8.2:
-			 * param        = param-name "=" param-value *("," param-value)
-			 */
-			gboolean has_name = FALSE;
-			attr_str = g_string_append_c (attr_str, ';');
-			if (g_ascii_strcasecmp (param->name, "TYPE")) {
-				attr_str = g_string_append (attr_str, param->name);
-				has_name = TRUE;
-			}
-			if (param->values) {
-				if (has_name)
-					attr_str = g_string_append_c (attr_str, '=');
-				for (v = param->values; v; v = v->next) {
-					char *value = v->data;
-					char *p = value;
-					gboolean quotes = FALSE;
-					while (*p) {
-						if (g_utf8_get_char (p) != '-' && !g_unichar_isalnum (g_utf8_get_char (p))) {
-							quotes = TRUE;
-							break;
-						}
-						p = g_utf8_next_char (p);
-					}
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
-					attr_str = g_string_append (attr_str, value);
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
-					if (v->next)
-						attr_str = g_string_append_c (attr_str, ',');
-				}
-			}
-		}
-
-		attr_str = g_string_append_c (attr_str, ':');
-
-		for (v = attr->values; v; v = v->next) {
-			char *value = v->data;
-			char *escaped_value = NULL;
-
-			escaped_value = e_vcard_escape_string (value);
-
-			attr_str = g_string_append (attr_str, escaped_value);
-			if (v->next) {
-				/* XXX toshok - i hate you, rfc 2426.
-				   why doesn't CATEGORIES use a ; like
-				   a normal list attribute? */
-				if (!strcmp (attr->name, "CATEGORIES"))
-					attr_str = g_string_append_c (attr_str, ',');
-				else
-					attr_str = g_string_append_c (attr_str, ';');
-			}
-
-			g_free (escaped_value);
-		}
-
-		/* 5.8.2:
-		 * When generating a content line, lines longer than 75
-		 * characters SHOULD be folded
-		 */
-		l = 0;
-		do {
-			if (attr_str->len - l > 75) {
-				l += 75;
-				attr_str = g_string_insert_len (attr_str, l, CRLF " ", sizeof (CRLF " ") - 1);
-			}
-			else
-				break;
-		} while (l < attr_str->len);
-
-		attr_str = g_string_append (attr_str, CRLF);
-
-		str = g_string_append (str, attr_str->str);
-		g_string_free (attr_str, TRUE);
-	}
-
-	str = g_string_append (str, "END:VNOTE\r\n");
-
-	return g_string_free (str, FALSE);
-	return g_strdup ("");
-}
-
-void
-e_vcard_dump_structure (EVCard *evc)
+void vformat_dump_structure (VFormat *evc)
 {
 	GList *a;
 	GList *v;
 	int i;
 
-	g_return_if_fail (E_IS_VCARD (evc));
-
-	printf ("vCard\n");
-	for (a = evc->priv->attributes; a; a = a->next) {
+	printf ("VFormat\n");
+	for (a = evc->attributes; a; a = a->next) {
 		GList *p;
-		EVCardAttribute *attr = a->data;
+		VFormatAttribute *attr = a->data;
 		printf ("+-- %s\n", attr->name);
 		if (attr->params) {
 			printf ("    +- params=\n");
 
 			for (p = attr->params, i = 0; p; p = p->next, i++) {
-				EVCardAttributeParam *param = p->data;
+				VFormatParam *param = p->data;
 				printf ("    |   [%d] = %s", i,param->name);
 				printf ("(");
 				for (v = param->values; v; v = v->next) {
-					char *value = e_vcard_escape_string ((char*)v->data);
+					char *value = vformat_escape_string ((char*)v->data, VFORMAT_CARD_21);
 					printf ("%s", value);
 					if (v->next)
 						printf (",");
@@ -1110,13 +765,11 @@ e_vcard_dump_structure (EVCard *evc)
 	}
 }
 
-
-EVCardAttribute*
-e_vcard_attribute_new (const char *attr_group, const char *attr_name)
+VFormatAttribute *vformat_attribute_new (const char *attr_group, const char *attr_name)
 {
-	EVCardAttribute *attr;
+	VFormatAttribute *attr;
 
-	attr = g_new0 (EVCardAttribute, 1);
+	attr = g_new0 (VFormatAttribute, 1);
 
 	attr->group = g_strdup (attr_group);
 	attr->name = g_strdup (attr_name);
@@ -1125,52 +778,51 @@ e_vcard_attribute_new (const char *attr_group, const char *attr_name)
 }
 
 void
-e_vcard_attribute_free (EVCardAttribute *attr)
+vformat_attribute_free (VFormatAttribute *attr)
 {
 	g_return_if_fail (attr != NULL);
 
 	g_free (attr->group);
 	g_free (attr->name);
 
-	e_vcard_attribute_remove_values (attr);
+	vformat_attribute_remove_values (attr);
 
-	e_vcard_attribute_remove_params (attr);
+	vformat_attribute_remove_params (attr);
 
 	g_free (attr);
 }
 
-EVCardAttribute*
-e_vcard_attribute_copy (EVCardAttribute *attr)
+VFormatAttribute*
+vformat_attribute_copy (VFormatAttribute *attr)
 {
-	EVCardAttribute *a;
+	VFormatAttribute *a;
 	GList *p;
 
 	g_return_val_if_fail (attr != NULL, NULL);
 
-	a = e_vcard_attribute_new (e_vcard_attribute_get_group (attr),
-				   e_vcard_attribute_get_name (attr));
+	a = vformat_attribute_new (vformat_attribute_get_group (attr),
+				   vformat_attribute_get_name (attr));
 
 	for (p = attr->values; p; p = p->next)
-		e_vcard_attribute_add_value (a, p->data);
+		vformat_attribute_add_value (a, p->data);
 
 	for (p = attr->params; p; p = p->next)
-		e_vcard_attribute_add_param (a, e_vcard_attribute_param_copy (p->data));
+		vformat_attribute_add_param (a, vformat_attribute_param_copy (p->data));
 
 	return a;
 }
 
 void
-e_vcard_remove_attributes (EVCard *evc, const char *attr_group, const char *attr_name)
+vformat_remove_attributes (VFormat *evc, const char *attr_group, const char *attr_name)
 {
 	GList *attr;
 
-	g_return_if_fail (E_IS_VCARD (evc));
 	g_return_if_fail (attr_name != NULL);
 
-	attr = evc->priv->attributes;
+	attr = evc->attributes;
 	while (attr) {
 		GList *next_attr;
-		EVCardAttribute *a = attr->data;
+		VFormatAttribute *a = attr->data;
 
 		next_attr = attr->next;
 
@@ -1179,9 +831,9 @@ e_vcard_remove_attributes (EVCard *evc, const char *attr_group, const char *attr
 		    ((!attr_name && !a->name) || !g_ascii_strcasecmp (attr_name, a->name))) {
 
 			/* matches, remove/delete the attribute */
-			evc->priv->attributes = g_list_remove_link (evc->priv->attributes, attr);
+			evc->attributes = g_list_remove_link (evc->attributes, attr);
 
-			e_vcard_attribute_free (a);
+			vformat_attribute_free (a);
 		}
 
 		attr = next_attr;
@@ -1189,58 +841,54 @@ e_vcard_remove_attributes (EVCard *evc, const char *attr_group, const char *attr
 }
 
 void
-e_vcard_remove_attribute (EVCard *evc, EVCardAttribute *attr)
+vformat_remove_attribute (VFormat *evc, VFormatAttribute *attr)
 {
-	g_return_if_fail (E_IS_VCARD (evc));
 	g_return_if_fail (attr != NULL);
 
-	evc->priv->attributes = g_list_remove (evc->priv->attributes, attr);
-	e_vcard_attribute_free (attr);
+	evc->attributes = g_list_remove (evc->attributes, attr);
+	vformat_attribute_free (attr);
 }
 
 void
-e_vcard_add_attribute (EVCard *evc, EVCardAttribute *attr)
+vformat_add_attribute (VFormat *evc, VFormatAttribute *attr)
 {
-	g_return_if_fail (E_IS_VCARD (evc));
 	g_return_if_fail (attr != NULL);
 
-	evc->priv->attributes = g_list_append (evc->priv->attributes, attr);
+	evc->attributes = g_list_append (evc->attributes, attr);
 }
 
 void
-e_vcard_add_attribute_with_value (EVCard *EVCard,
-				  EVCardAttribute *attr, const char *value)
+vformat_add_attribute_with_value (VFormat *VFormat,
+				  VFormatAttribute *attr, const char *value)
 {
-	g_return_if_fail (E_IS_VCARD (EVCard));
 	g_return_if_fail (attr != NULL);
 
-	e_vcard_attribute_add_value (attr, value);
+	vformat_attribute_add_value (attr, value);
 
-	e_vcard_add_attribute (EVCard, attr);
+	vformat_add_attribute (VFormat, attr);
 }
 
 void
-e_vcard_add_attribute_with_values (EVCard *EVCard, EVCardAttribute *attr, ...)
+vformat_add_attribute_with_values (VFormat *VFormat, VFormatAttribute *attr, ...)
 {
 	va_list ap;
 	char *v;
 
-	g_return_if_fail (E_IS_VCARD (EVCard));
 	g_return_if_fail (attr != NULL);
 
 	va_start (ap, attr);
 
 	while ((v = va_arg (ap, char*))) {
-		e_vcard_attribute_add_value (attr, v);
+		vformat_attribute_add_value (attr, v);
 	}
 
 	va_end (ap);
 
-	e_vcard_add_attribute (EVCard, attr);
+	vformat_add_attribute (VFormat, attr);
 }
 
 void
-e_vcard_attribute_add_value (EVCardAttribute *attr, const char *value)
+vformat_attribute_add_value (VFormatAttribute *attr, const char *value)
 {
 	g_return_if_fail (attr != NULL);
 
@@ -1248,45 +896,42 @@ e_vcard_attribute_add_value (EVCardAttribute *attr, const char *value)
 }
 
 void
-e_vcard_attribute_add_value_decoded (EVCardAttribute *attr, const char *value, int len)
+vformat_attribute_add_value_decoded (VFormatAttribute *attr, const char *value, int len)
 {
 	g_return_if_fail (attr != NULL);
 
 	switch (attr->encoding) {
-		case EVC_ENCODING_RAW:
+		case VF_ENCODING_RAW:
 			g_warning ("can't add_value_decoded with an attribute using RAW encoding.  you must set the ENCODING parameter first");
 			break;
-		case EVC_ENCODING_BASE64: {
-			char *b64_data = _evc_base64_encode_simple (value, len);
+		case VF_ENCODING_BASE64: {
+			char *b64_data = base64_encode_simple (value, len);
 			GString *decoded = g_string_new_len (value, len);
 	
 			/* make sure the decoded list is up to date */
-			e_vcard_attribute_get_values_decoded (attr);
-	
-			d(printf ("base64 encoded value: %s\n", b64_data));
-			d(printf ("original length: %d\n", len));
+			vformat_attribute_get_values_decoded (attr);
 	
 			attr->values = g_list_append (attr->values, b64_data);
 			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
 			break;
 		}
-		case EVC_ENCODING_QP: {
-			char *qp_data = _evc_quoted_encode_simple (value, len);
+		case VF_ENCODING_QP: {
+			char *qp_data = quoted_encode_simple (value, len);
 			GString *decoded = g_string_new (value);
 	
 			/* make sure the decoded list is up to date */
-			e_vcard_attribute_get_values_decoded (attr);
+			vformat_attribute_get_values_decoded (attr);
 	
 			attr->values = g_list_append (attr->values, qp_data);
 			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
 			break;
 		}
-		case EVC_ENCODING_8BIT: {
+		case VF_ENCODING_8BIT: {
 			char *data = g_strdup(value);
 			GString *decoded = g_string_new (value);
 	
 			/* make sure the decoded list is up to date */
-			e_vcard_attribute_get_values_decoded (attr);
+			vformat_attribute_get_values_decoded (attr);
 	
 			attr->values = g_list_append (attr->values, data);
 			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
@@ -1296,8 +941,7 @@ e_vcard_attribute_add_value_decoded (EVCardAttribute *attr, const char *value, i
 }
 
 void
-e_vcard_attribute_add_values (EVCardAttribute *attr,
-			      ...)
+vformat_attribute_add_values (VFormatAttribute *attr, ...)
 {
 	va_list ap;
 	char *v;
@@ -1307,7 +951,7 @@ e_vcard_attribute_add_values (EVCardAttribute *attr,
 	va_start (ap, attr);
 
 	while ((v = va_arg (ap, char*))) {
-		e_vcard_attribute_add_value (attr, v);
+		vformat_attribute_add_value (attr, v);
 	}
 
 	va_end (ap);
@@ -1320,7 +964,7 @@ free_gstring (GString *str)
 }
 
 void
-e_vcard_attribute_remove_values (EVCardAttribute *attr)
+vformat_attribute_remove_values (VFormatAttribute *attr)
 {
 	g_return_if_fail (attr != NULL);
 
@@ -1334,60 +978,60 @@ e_vcard_attribute_remove_values (EVCardAttribute *attr)
 }
 
 void
-e_vcard_attribute_remove_params (EVCardAttribute *attr)
+vformat_attribute_remove_params (VFormatAttribute *attr)
 {
 	g_return_if_fail (attr != NULL);
 
-	g_list_foreach (attr->params, (GFunc)e_vcard_attribute_param_free, NULL);
+	g_list_foreach (attr->params, (GFunc)vformat_attribute_param_free, NULL);
 	g_list_free (attr->params);
 	attr->params = NULL;
 
 	/* also remove the cached encoding on this attribute */
 	attr->encoding_set = FALSE;
-	attr->encoding = EVC_ENCODING_RAW;
+	attr->encoding = VF_ENCODING_RAW;
 }
 
-EVCardAttributeParam*
-e_vcard_attribute_param_new (const char *name)
+VFormatParam*
+vformat_attribute_param_new (const char *name)
 {
-	EVCardAttributeParam *param = g_new0 (EVCardAttributeParam, 1);
+	VFormatParam *param = g_new0 (VFormatParam, 1);
 	param->name = g_strdup (name);
 
 	return param;
 }
 
 void
-e_vcard_attribute_param_free (EVCardAttributeParam *param)
+vformat_attribute_param_free (VFormatParam *param)
 {
 	g_return_if_fail (param != NULL);
 
 	g_free (param->name);
 
-	e_vcard_attribute_param_remove_values (param);
+	vformat_attribute_param_remove_values (param);
 
 	g_free (param);
 }
 
-EVCardAttributeParam*
-e_vcard_attribute_param_copy (EVCardAttributeParam *param)
+VFormatParam*
+vformat_attribute_param_copy (VFormatParam *param)
 {
-	EVCardAttributeParam *p;
+	VFormatParam *p;
 	GList *l;
 
 	g_return_val_if_fail (param != NULL, NULL);
 
-	p = e_vcard_attribute_param_new (e_vcard_attribute_param_get_name (param));
+	p = vformat_attribute_param_new (vformat_attribute_param_get_name (param));
 
 	for (l = param->values; l; l = l->next) {
-		e_vcard_attribute_param_add_value (p, l->data);
+		vformat_attribute_param_add_value (p, l->data);
 	}
 
 	return p;
 }
 
 void
-e_vcard_attribute_add_param (EVCardAttribute *attr,
-			     EVCardAttributeParam *param)
+vformat_attribute_add_param (VFormatAttribute *attr,
+			     VFormatParam *param)
 {
 	g_return_if_fail (attr != NULL);
 	g_return_if_fail (param != NULL);
@@ -1396,7 +1040,7 @@ e_vcard_attribute_add_param (EVCardAttribute *attr,
 
 	/* we handle our special encoding stuff here */
 
-	if (!g_ascii_strcasecmp (param->name, EVC_ENCODING)) {
+	if (!g_ascii_strcasecmp (param->name, "ENCODING")) {
 		if (attr->encoding_set) {
 			g_warning ("ENCODING specified twice");
 			return;
@@ -1404,11 +1048,11 @@ e_vcard_attribute_add_param (EVCardAttribute *attr,
 
 		if (param->values && param->values->data) {
 			if (!g_ascii_strcasecmp ((char*)param->values->data, "b"))
-				attr->encoding = EVC_ENCODING_BASE64;
-			else if (!g_ascii_strcasecmp ((char*)param->values->data, EVC_QUOTEDPRINTABLE))
-				attr->encoding = EVC_ENCODING_QP;
+				attr->encoding = VF_ENCODING_BASE64;
+			else if (!g_ascii_strcasecmp ((char*)param->values->data, "QUOTED-PRINTABLE"))
+				attr->encoding = VF_ENCODING_QP;
 			else if (!g_ascii_strcasecmp ((char *)param->values->data, "8BIT"))
-				attr->encoding = EVC_ENCODING_8BIT;
+				attr->encoding = VF_ENCODING_8BIT;
 			else {
 				g_warning ("Unknown value `%s' for ENCODING parameter.  values will be treated as raw",
 					   (char*)param->values->data);
@@ -1423,7 +1067,7 @@ e_vcard_attribute_add_param (EVCardAttribute *attr,
 }
 
 void
-e_vcard_attribute_param_add_value (EVCardAttributeParam *param,
+vformat_attribute_param_add_value (VFormatParam *param,
 				   const char *value)
 {
 	g_return_if_fail (param != NULL);
@@ -1432,7 +1076,7 @@ e_vcard_attribute_param_add_value (EVCardAttributeParam *param,
 }
 
 void
-e_vcard_attribute_param_add_values (EVCardAttributeParam *param,
+vformat_attribute_param_add_values (VFormatParam *param,
 				    ...)
 {
 	va_list ap;
@@ -1443,27 +1087,31 @@ e_vcard_attribute_param_add_values (EVCardAttributeParam *param,
 	va_start (ap, param);
 
 	while ((v = va_arg (ap, char*))) {
-		e_vcard_attribute_param_add_value (param, v);
+		vformat_attribute_param_add_value (param, v);
 	}
 
 	va_end (ap);
 }
 
 void
-e_vcard_attribute_add_param_with_value (EVCardAttribute *attr,
-					EVCardAttributeParam *param, const char *value)
+vformat_attribute_add_param_with_value (VFormatAttribute *attr, const char *name, const char *value)
 {
 	g_return_if_fail (attr != NULL);
-	g_return_if_fail (param != NULL);
+	g_return_if_fail (name != NULL);
+	
+	if (!value)
+		return;
+	
+	VFormatParam *param = vformat_attribute_param_new(name);
 
-	e_vcard_attribute_param_add_value (param, value);
+	vformat_attribute_param_add_value (param, value);
 
-	e_vcard_attribute_add_param (attr, param);
+	vformat_attribute_add_param (attr, param);
 }
 
 void
-e_vcard_attribute_add_param_with_values (EVCardAttribute *attr,
-					 EVCardAttributeParam *param, ...)
+vformat_attribute_add_param_with_values (VFormatAttribute *attr,
+					 VFormatParam *param, ...)
 {
 	va_list ap;
 	char *v;
@@ -1474,16 +1122,16 @@ e_vcard_attribute_add_param_with_values (EVCardAttribute *attr,
 	va_start (ap, param);
 
 	while ((v = va_arg (ap, char*))) {
-		e_vcard_attribute_param_add_value (param, v);
+		vformat_attribute_param_add_value (param, v);
 	}
 
 	va_end (ap);
 
-	e_vcard_attribute_add_param (attr, param);
+	vformat_attribute_add_param (attr, param);
 }
 
 void
-e_vcard_attribute_param_remove_values (EVCardAttributeParam *param)
+vformat_attribute_param_remove_values (VFormatParam *param)
 {
 	g_return_if_fail (param != NULL);
 
@@ -1493,15 +1141,13 @@ e_vcard_attribute_param_remove_values (EVCardAttributeParam *param)
 }
 
 GList*
-e_vcard_get_attributes (EVCard *EVCard)
+vformat_get_attributes (VFormat *format)
 {
-	g_return_val_if_fail (E_IS_VCARD (EVCard), NULL);
-
-	return EVCard->priv->attributes;
+	return format->attributes;
 }
 
 const char*
-e_vcard_attribute_get_group (EVCardAttribute *attr)
+vformat_attribute_get_group (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, NULL);
 
@@ -1509,7 +1155,7 @@ e_vcard_attribute_get_group (EVCardAttribute *attr)
 }
 
 const char*
-e_vcard_attribute_get_name (EVCardAttribute *attr)
+vformat_attribute_get_name (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, NULL);
 
@@ -1517,7 +1163,7 @@ e_vcard_attribute_get_name (EVCardAttribute *attr)
 }
 
 GList*
-e_vcard_attribute_get_values (EVCardAttribute *attr)
+vformat_attribute_get_values (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, NULL);
 
@@ -1525,32 +1171,32 @@ e_vcard_attribute_get_values (EVCardAttribute *attr)
 }
 
 GList*
-e_vcard_attribute_get_values_decoded (EVCardAttribute *attr)
+vformat_attribute_get_values_decoded (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, NULL);
 
 	if (!attr->decoded_values) {
 		GList *l;
 		switch (attr->encoding) {
-		case EVC_ENCODING_RAW:
-		case EVC_ENCODING_8BIT:
+		case VF_ENCODING_RAW:
+		case VF_ENCODING_8BIT:
 			for (l = attr->values; l; l = l->next)
 				attr->decoded_values = g_list_append (attr->decoded_values, g_string_new ((char*)l->data));
 			break;
-		case EVC_ENCODING_BASE64:
+		case VF_ENCODING_BASE64:
 			for (l = attr->values; l; l = l->next) {
 				char *decoded = g_strdup ((char*)l->data);
-				int len = _evc_base64_decode_simple (decoded, strlen (decoded));
+				int len = base64_decode_simple (decoded, strlen (decoded));
 				attr->decoded_values = g_list_append (attr->decoded_values, g_string_new_len (decoded, len));
 				g_free (decoded);
 			}
 			break;
-		case EVC_ENCODING_QP:
+		case VF_ENCODING_QP:
 			for (l = attr->values; l; l = l->next) {
 				if (!(l->data))
 					continue;
 				char *decoded = g_strdup ((char*)l->data);
-				int len = _evc_quoted_decode_simple (decoded, strlen (decoded));
+				int len = quoted_decode_simple (decoded, strlen (decoded));
 				attr->decoded_values = g_list_append (attr->decoded_values, g_string_new_len (decoded, len));
 				g_free (decoded);
 			}
@@ -1562,7 +1208,7 @@ e_vcard_attribute_get_values_decoded (EVCardAttribute *attr)
 }
 
 gboolean
-e_vcard_attribute_is_single_valued (EVCardAttribute *attr)
+vformat_attribute_is_single_valued (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, FALSE);
 
@@ -1574,32 +1220,32 @@ e_vcard_attribute_is_single_valued (EVCardAttribute *attr)
 }
 
 char*
-e_vcard_attribute_get_value (EVCardAttribute *attr)
+vformat_attribute_get_value (VFormatAttribute *attr)
 {
 	GList *values;
 
 	g_return_val_if_fail (attr != NULL, NULL);
 
-	values = e_vcard_attribute_get_values (attr);
+	values = vformat_attribute_get_values (attr);
 
-	if (!e_vcard_attribute_is_single_valued (attr))
-		g_warning ("e_vcard_attribute_get_value called on multivalued attribute");
+	if (!vformat_attribute_is_single_valued (attr))
+		g_warning ("vformat_attribute_get_value called on multivalued attribute");
 
 	return values ? g_strdup ((char*)values->data) : NULL;
 }
 
 GString*
-e_vcard_attribute_get_value_decoded (EVCardAttribute *attr)
+vformat_attribute_get_value_decoded (VFormatAttribute *attr)
 {
 	GList *values;
 	GString *str = NULL;
 
 	g_return_val_if_fail (attr != NULL, NULL);
 
-	values = e_vcard_attribute_get_values_decoded (attr);
+	values = vformat_attribute_get_values_decoded (attr);
 
-	if (!e_vcard_attribute_is_single_valued (attr))
-		g_warning ("e_vcard_attribute_get_value_decoded called on multivalued attribute");
+	if (!vformat_attribute_is_single_valued (attr))
+		g_warning ("vformat_attribute_get_value_decoded called on multivalued attribute");
 
 	if (values)
 		str = values->data;
@@ -1607,8 +1253,27 @@ e_vcard_attribute_get_value_decoded (EVCardAttribute *attr)
 	return str ? g_string_new_len (str->str, str->len) : NULL;
 }
 
+const char *vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth)
+{
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	if (!values)
+		return NULL;
+	GString *retstr = (GString *)g_list_nth_data(values, nth);
+	if (!retstr)
+		return NULL;
+	
+	if (!g_utf8_validate(retstr->str, -1, NULL)) {
+		values = vformat_attribute_get_values(attr);
+		if (!values)
+			return NULL;
+		return g_list_nth_data(values, nth);
+	}
+	
+	return retstr->str;
+}
+
 gboolean
-e_vcard_attribute_has_type (EVCardAttribute *attr, const char *typestr)
+vformat_attribute_has_type (VFormatAttribute *attr, const char *typestr)
 {
 	GList *params;
 	GList *p;
@@ -1616,13 +1281,13 @@ e_vcard_attribute_has_type (EVCardAttribute *attr, const char *typestr)
 	g_return_val_if_fail (attr != NULL, FALSE);
 	g_return_val_if_fail (typestr != NULL, FALSE);
 
-	params = e_vcard_attribute_get_params (attr);
+	params = vformat_attribute_get_params (attr);
 
 	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
+		VFormatParam *param = p->data;
 
-		if (!strcasecmp (e_vcard_attribute_param_get_name (param), EVC_TYPE)) {
-			GList *values = e_vcard_attribute_param_get_values (param);
+		if (!strcasecmp (vformat_attribute_param_get_name (param), "TYPE")) {
+			GList *values = vformat_attribute_param_get_values (param);
 			GList *v;
 
 			for (v = values; v; v = v->next) {
@@ -1635,8 +1300,24 @@ e_vcard_attribute_has_type (EVCardAttribute *attr, const char *typestr)
 	return FALSE;
 }
 
+
+gboolean vformat_attribute_has_param(VFormatAttribute *attr, const char *name)
+{
+	g_return_val_if_fail (attr != NULL, FALSE);
+	g_return_val_if_fail (name != NULL, FALSE);
+	
+	GList *params = vformat_attribute_get_params(attr);
+	GList *p;
+	for (p = params; p; p = p->next) {
+		VFormatParam *param = p->data;
+		if (!strcasecmp(name, vformat_attribute_param_get_name(param)))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 GList*
-e_vcard_attribute_get_params (EVCardAttribute *attr)
+vformat_attribute_get_params (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, NULL);
 
@@ -1644,7 +1325,7 @@ e_vcard_attribute_get_params (EVCardAttribute *attr)
 }
 
 const char*
-e_vcard_attribute_param_get_name (EVCardAttributeParam *param)
+vformat_attribute_param_get_name (VFormatParam *param)
 {
 	g_return_val_if_fail (param != NULL, NULL);
 
@@ -1652,63 +1333,61 @@ e_vcard_attribute_param_get_name (EVCardAttributeParam *param)
 }
 
 GList*
-e_vcard_attribute_param_get_values (EVCardAttributeParam *param)
+vformat_attribute_param_get_values (VFormatParam *param)
 {
 	g_return_val_if_fail (param != NULL, NULL);
 
 	return param->values;
 }
 
-
+const char *vformat_attribute_param_get_nth_value(VFormatParam *param, int nth)
+{
+	const char *ret = NULL;
+	GList *values = vformat_attribute_param_get_values(param);
+	if (!values)
+		return NULL;
+	ret = g_list_nth_data(values, nth);
+	return ret;
+}
 
-/* encoding/decoding stuff ripped from camel-mime-utils.c */
+static const char *base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static char *_evc_base64_alphabet =
-"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+//static unsigned char _evc_base64_rank[256];
 
-static unsigned char _evc_base64_rank[256];
-
-static void
-_evc_base64_init(void)
+static void base64_init(char *rank)
 {
 	int i;
 
-	memset(_evc_base64_rank, 0xff, sizeof(_evc_base64_rank));
+	memset(rank, 0xff, sizeof(rank));
 	for (i=0;i<64;i++) {
-		_evc_base64_rank[(unsigned int)_evc_base64_alphabet[i]] = i;
+		rank[(unsigned int)base64_alphabet[i]] = i;
 	}
-	_evc_base64_rank['='] = 0;
+	rank['='] = 0;
 }
 
 /* call this when finished encoding everything, to
    flush off the last little bit */
-static size_t
-_evc_base64_encode_close(unsigned char *in, size_t inlen, gboolean break_lines, unsigned char *out, int *state, int *save)
+static size_t base64_encode_close(unsigned char *in, size_t inlen, gboolean break_lines, unsigned char *out, int *state, int *save)
 {
 	int c1, c2;
 	unsigned char *outptr = out;
 
 	if (inlen>0)
-		outptr += _evc_base64_encode_step(in, inlen, break_lines, outptr, state, save);
+		outptr += base64_encode_step(in, inlen, break_lines, outptr, state, save);
 
 	c1 = ((unsigned char *)save)[1];
 	c2 = ((unsigned char *)save)[2];
-	
-	d(printf("mode = %d\nc1 = %c\nc2 = %c\n",
-		 (int)((char *)save)[0],
-		 (int)((char *)save)[1],
-		 (int)((char *)save)[2]));
 
 	switch (((char *)save)[0]) {
 	case 2:
-		outptr[2] = _evc_base64_alphabet[ ( (c2 &0x0f) << 2 ) ];
+		outptr[2] = base64_alphabet[ ( (c2 &0x0f) << 2 ) ];
 		g_assert(outptr[2] != 0);
 		goto skip;
 	case 1:
 		outptr[2] = '=';
 	skip:
-		outptr[0] = _evc_base64_alphabet[ c1 >> 2 ];
-		outptr[1] = _evc_base64_alphabet[ c2 >> 4 | ( (c1&0x3) << 4 )];
+		outptr[0] = base64_alphabet[ c1 >> 2 ];
+		outptr[1] = base64_alphabet[ c2 >> 4 | ( (c1&0x3) << 4 )];
 		outptr[3] = '=';
 		outptr += 4;
 		break;
@@ -1727,8 +1406,7 @@ _evc_base64_encode_close(unsigned char *in, size_t inlen, gboolean break_lines, 
   output at a time, saves left-over state in state and save (initialise to
   0 on first invocation).
 */
-static size_t
-_evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save)
+static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save)
 {
 	register unsigned char *inptr, *outptr;
 
@@ -1737,8 +1415,6 @@ _evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, uns
 
 	inptr = in;
 	outptr = out;
-
-	d(printf("we have %d chars, and %d saved chars\n", len, ((char *)save)[0]));
 
 	if (len + ((char *)save)[0] > 2) {
 		unsigned char *inend = in+len-2;
@@ -1760,10 +1436,10 @@ _evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, uns
 			c2 = *inptr++;
 		skip2:
 			c3 = *inptr++;
-			*outptr++ = _evc_base64_alphabet[ c1 >> 2 ];
-			*outptr++ = _evc_base64_alphabet[ c2 >> 4 | ( (c1&0x3) << 4 ) ];
-			*outptr++ = _evc_base64_alphabet[ ( (c2 &0x0f) << 2 ) | (c3 >> 6) ];
-			*outptr++ = _evc_base64_alphabet[ c3 & 0x3f ];
+			*outptr++ = base64_alphabet[ c1 >> 2 ];
+			*outptr++ = base64_alphabet[ c2 >> 4 | ( (c1&0x3) << 4 ) ];
+			*outptr++ = base64_alphabet[ ( (c2 &0x0f) << 2 ) | (c3 >> 6) ];
+			*outptr++ = base64_alphabet[ c3 & 0x3f ];
 			/* this is a bit ugly ... */
 			if (break_lines && (++already)>=19) {
 				*outptr++='\n';
@@ -1775,10 +1451,6 @@ _evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, uns
 		len = 2-(inptr-inend);
 		*state = already;
 	}
-
-	d(printf("state = %d, len = %d\n",
-		 (int)((char *)save)[0],
-		 len));
 
 	if (len>0) {
 		register char *saveout;
@@ -1794,11 +1466,6 @@ _evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, uns
 		((char *)save)[0]+=len;
 	}
 
-	d(printf("mode = %d\nc1 = %c\nc2 = %c\n",
-		 (int)((char *)save)[0],
-		 (int)((char *)save)[1],
-		 (int)((char *)save)[2]));
-
 	return outptr-out;
 }
 
@@ -1813,9 +1480,11 @@ _evc_base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, uns
  *
  * Decodes a chunk of base64 encoded data
  **/
-static size_t
-_evc_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save)
+static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save)
 {
+	unsigned char base64_rank[256];
+	base64_init(base64_rank);
+	
 	register unsigned char *inptr, *outptr;
 	unsigned char *inend, c;
 	register unsigned int v;
@@ -1829,7 +1498,7 @@ _evc_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *
 	i=*state;
 	inptr = in;
 	while (inptr<inend) {
-		c = _evc_base64_rank[*inptr++];
+		c = base64_rank[*inptr++];
 		if (c != 0xff) {
 			v = (v<<6) | c;
 			i++;
@@ -1850,7 +1519,7 @@ _evc_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *
 	i=2;
 	while (inptr>in && i) {
 		inptr--;
-		if (_evc_base64_rank[*inptr] != 0xff) {
+		if (base64_rank[*inptr] != 0xff) {
 			if (*inptr == '=' && outptr>out)
 				outptr--;
 			i--;
@@ -1861,8 +1530,7 @@ _evc_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *
 	return outptr-out;
 }
 
-char *
-_evc_base64_encode_simple (const char *data, size_t len)
+char *base64_encode_simple (const char *data, size_t len)
 {
 	unsigned char *out;
 	int state = 0, outlen;
@@ -1871,26 +1539,24 @@ _evc_base64_encode_simple (const char *data, size_t len)
 	g_return_val_if_fail (data != NULL, NULL);
 
 	out = g_malloc (len * 4 / 3 + 5);
-	outlen = _evc_base64_encode_close ((unsigned char *)data, len, FALSE,
+	outlen = base64_encode_close ((unsigned char *)data, len, FALSE,
 				      out, &state, &save);
 	out[outlen] = '\0';
 	return (char *)out;
 }
 
-size_t
-_evc_base64_decode_simple (char *data, size_t len)
+size_t base64_decode_simple (char *data, size_t len)
 {
 	int state = 0;
 	unsigned int save = 0;
 
 	g_return_val_if_fail (data != NULL, 0);
 
-	return _evc_base64_decode_step ((unsigned char *)data, len,
+	return base64_decode_step ((unsigned char *)data, len,
 					(unsigned char *)data, &state, &save);
 }
 
-char *
-_evc_quoted_encode_simple(const unsigned char *string, int len)
+char *quoted_encode_simple(const unsigned char *string, int len)
 {
 	GString *tmp = g_string_new("");
 	
@@ -1910,8 +1576,7 @@ _evc_quoted_encode_simple(const unsigned char *string, int len)
 }
 
 
-size_t
-_evc_quoted_decode_simple (char *data, size_t len)
+size_t quoted_decode_simple (char *data, size_t len)
 {
 	g_return_val_if_fail (data != NULL, 0);
 

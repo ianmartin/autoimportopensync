@@ -185,16 +185,17 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
  * @param len The length to print
  * 
  */
-void osync_print_binary(const unsigned char *data, int len)
+char *osync_print_binary(const unsigned char *data, int len)
 {
   int t;
+  GString *str = g_string_new("");
   for (t = 0; t < len; t++) {
     if (data[t] >= ' ' && data[t] <= 'z')
-      printf("%c", data[t]);
+      g_string_append_c(str, data[t]);
     else
-      printf(" %02x ", data[t]);
+      g_string_append_printf(str, " %02x ", data[t]);
   }
-  printf("\n");
+  return g_string_free(str, FALSE);
 }
 
 /*! @brief Creates a random string

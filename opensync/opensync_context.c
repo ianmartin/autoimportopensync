@@ -73,6 +73,7 @@ void osync_context_report_success(OSyncContext *context)
 
 void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, context, change);
 	g_assert(context);
 	OSyncMember *member = context->member;
 	g_assert(member);
@@ -90,9 +91,13 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 		change->has_data = TRUE;
 	
 	change->initial_format = change->format;
+	change->member = context->member;
+	
+	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, format %s and objtype %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
 	
 	osync_assert(member->memberfunctions->rf_change, "The engine must set a callback to receive changes");
 	member->memberfunctions->rf_change(member, change, context->calldata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_send_log(OSyncContext *ctx, const char *message, ...)
