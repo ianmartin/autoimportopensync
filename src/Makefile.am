@@ -1,10 +1,10 @@
-plugindir=@OPENSYNC_PLUGINDIR@/plugins
-
-configdir=@OPENSYNC_CONFIGDIR@/defaults
+plugindir=@OPENSYNC_PLUGINDIR@
+configdir=@OPENSYNC_CONFIGDIR@
+formatsdir=@OPENSYNC_FORMATSDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@
 
-AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
+AM_CFLAGS = -Wall -Werror
 
 EXTRA_DIST = \
 	file-sync \
@@ -18,7 +18,6 @@ file_sync_la_SOURCES = file_sync.c
 file_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 file_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ @FAM_LIBS@
 
-formatsdir=@OPENSYNC_FORMATSDIR@
 formats_LTLIBRARIES = file.la
 
 file_la_SOURCES = file.c

@@ -144,5 +144,5 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_format_set_create_func(format, create_file);
 #endif
 	osync_conv_register_converter(env, CONVERTER_CONV, "file", "plain", conv_file_to_plain, 0);
-	osync_conv_register_converter(env, CONVERTER_CONV, "plain", "file", conv_plain_to_file, CONV_NOTLOSSY|CONV_TAKEOVER);
+	osync_conv_register_converter(env, CONVERTER_CONV, "plain", "file", conv_plain_to_file, CONV_TAKEOVER);
 }

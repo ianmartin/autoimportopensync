@@ -5,7 +5,8 @@ AC_INIT(src/file_sync.c)
 AM_INIT_AUTOMAKE(file-sync, 0.01)
 AM_CONFIG_HEADER(config.h)
 
-pkg_modules="glib-2.0"
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+pkg_modules="glib-2.0 opensync-1.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
@@ -22,18 +23,17 @@ AC_HEADER_STDC
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-OPENSYNC_CONFIGDIR=${datadir}/opensync
+OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
+OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
+OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync-1.0)
+OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync-1.0)
+
 AC_SUBST(OPENSYNC_CONFIGDIR)
-
-OPENSYNC_PLUGINDIR=${libdir}/opensync
 AC_SUBST(OPENSYNC_PLUGINDIR)
-
-OPENSYNC_FORMATSDIR=${libdir}/opensync/formats
 AC_SUBST(OPENSYNC_FORMATSDIR)
+AC_SUBST(OPENSYNC_HEADERDIR)
 
 AC_ARG_ENABLE(stress-tests,               [  --enable-stress-tests     enable support for stress testing],STRESS_TEST=$enableval)
-echo "blub"
-echo $STRESS_TEST
 if test "x${STRESS_TEST}" = "xyes"; then
 	AC_DEFINE(STRESS_TEST,1,[Stress Testing])
 fi
@@ -63,7 +63,7 @@ Makefile
 src/Makefile
 ])
 
-echo "================"
+echo "================================"
 if test "x${HAVE_FAM}" = "x1"; then
 	echo "FAM available."
 else
@@ -75,18 +75,22 @@ fi
 echo ""
 echo "Settings:"
 if test "x${STRESS_TEST}" = "xyes"; then
-	echo "Stress Tests:		Enabled."
+	echo "Stress Tests:		Enabled"
 else
-	echo "Stress Tests:		Disabled."
+	echo "Stress Tests:		Disabled"
 fi
 if test "x${ERROR_TEST}" = "xyes"; then
-	echo "Error Tests:		Enabled."
+	echo "Error Tests:		Enabled"
 else
-	echo "Error Tests:		Disabled."
+	echo "Error Tests:		Disabled"
 fi
 if test "x${CRASH_TEST}" = "xyes"; then
-	echo "Crash Tests:		Enabled."
+	echo "Crash Tests:		Enabled"
 else
-	echo "Crash Tests:		Disabled."
+	echo "Crash Tests:		Disabled"
 fi
-echo "================"
+echo ""
+echo "Plugin will be installed in ${OPENSYNC_PLUGINDIR}"
+echo "Default config will be installed in ${OPENSYNC_CONFIGDIR}"
+echo "Format will be installed in ${OPENSYNC_FORMATSDIR}"
+echo "================================"
