@@ -156,6 +156,9 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		return;
 	}
 	
+	//We convert to the common format here to make sure we always pass it
+	osync_change_convert_to_common(change, NULL);
+	
 	if (!entry->mapping) {
 		osync_flag_attach(entry->fl_mapped, engine->cmb_entries_mapped);
 		osync_flag_unset(entry->fl_mapped);

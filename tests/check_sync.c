@@ -466,6 +466,49 @@ START_TEST (sync_moddel)
 }
 END_TEST
 
+START_TEST (sync_conflict_moddel)
+{
+	char *testbed = setup_testbed("sync_moddel");
+	num_conflicts = 0;
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)2);
+	osync_engine_init(engine, &error);
+
+	synchronize_once(engine, NULL);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	
+	sleep(2);
+	system("cp new_data2 data1/testdata");
+	system("rm -f data2/testdata");
+	
+	synchronize_once(engine, NULL);
+	osync_engine_finalize(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(num_conflicts == 1, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
+    osengine_mappingtable_close(maptable);
+    
+	OSyncHashTable *table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (sync_easy_dualdel)
 {
 	char *testbed = setup_testbed("sync_easy_dualdel");
@@ -523,6 +566,7 @@ Suite *env_suite(void)
 	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2);
 	create_case(s, "sync_conflict_deldel", sync_conflict_deldel);
 	create_case(s, "sync_moddel", sync_moddel);
+	create_case(s, "sync_conflict_moddel", sync_conflict_moddel);
 	create_case(s, "sync_conflict_duplicate", sync_conflict_duplicate);
 
 	return s;
