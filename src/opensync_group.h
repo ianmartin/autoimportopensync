@@ -1,0 +1,15 @@
+OSyncGroup *osync_group_new(OSyncEnv *osinfo);
+void osync_group_set_name(OSyncGroup *group, char *name);
+char *osync_group_get_name(OSyncGroup *group);
+void osync_group_save(OSyncGroup *group);
+OSyncGroup *osync_group_load(OSyncEnv *env, char *path);
+void osync_group_add_member(OSyncGroup *group, OSyncMember *member);
+OSyncMember *osync_group_get_nth_member(OSyncGroup *group, int nth);
+int osync_group_num_members(OSyncGroup *group);
+char *osync_group_get_configdir(OSyncGroup *group);
+void osync_group_set_configdir(OSyncGroup *group, char *path);
+OSyncGroup *osync_group_from_name(OSyncEnv *osinfo, char *name);
+OSyncEnv *osync_group_get_env(OSyncGroup *group);
+void *osync_group_get_data(OSyncGroup *group);
+void osync_group_set_data(OSyncGroup *group, void *data);
+unsigned int osync_group_create_member_id(OSyncGroup *group);

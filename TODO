@@ -1,0 +1,22 @@
+MAIN PARTS:
+
+Finish the dbus-framework in libmsync
+
+- deleting of syncgroups
+- editing of syncgroups
+- same for syncmembers
+- activation of plugins
+- sync commands
+- notify messages to notify the client about the state
+	of a syncgroup
+- a lot more
+
+Add the sync engine code from 0.82 to src
+and clean it up
+
+Add the capabilities code and figure out how to query the plugins
+for the information
+
+Write a better code which handles the command line paramters in main()
+
+Grep for FIXME in the code!
