@@ -312,16 +312,19 @@ int main (int argc, char *argv[])
 	
 	char *config;
 	int size;
-	if (!osync_file_read(configfile, &config, &size, &error)) {
-		fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
-		return 1;
+	if (configfile) {
+		if (!osync_file_read(configfile, &config, &size, &error)) {
+			fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
+			osync_error_free(&error);
+			return 1;
+		}
 	}
 	
 	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
 	mkdtemp(testdir);
 	
-	osync_member_set_config(member, config, size);
+	if (configfile)
+		osync_member_set_config(member, config, size);
 	osync_member_set_pluginname(member, pluginname);
 	osync_member_set_configdir(member, testdir);
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);

@@ -9,7 +9,8 @@ EXTRA_DIST = \
 	vformat.h \
 	opensync-xml.h \
 	xml-vcard.h \
-	xml-vcal.h
+	xml-vcal.h \
+	xml-vnote.h
 
 opensyncheader_HEADERS = opensync-xml.h
 
