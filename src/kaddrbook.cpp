@@ -94,6 +94,8 @@ class kaddrbook
         {
             //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(newdbs=%d)\n", __FUNCTION__, newdbs);
 
+            osync_bool slow_sync = osync_member_get_slow_sync(member, "contact");
+
             //remember when we started this current sync
             newsyncdate = QDateTime::currentDateTime();
 
@@ -151,13 +153,13 @@ class kaddrbook
                 osync_change_set_objformat_string(chg, "vcard");
                 osync_change_set_hash(chg, hash.data());
                 /*FIXME: slowsync */
-                if (osync_hashtable_detect_change(hashtable, chg, 0)) {
+                if (osync_hashtable_detect_change(hashtable, chg, slow_sync)) {
                     osync_context_report_change(ctx, chg);
                     osync_hashtable_update_hash(hashtable, chg);
                 }
             }
 
-            osync_hashtable_report_deleted(hashtable, ctx, 0);
+            osync_hashtable_report_deleted(hashtable, ctx, slow_sync);
 
             return 0;
         }
@@ -185,93 +187,86 @@ class kaddrbook
             //modify_result->result = SYNC_MSG_MODIFYERROR;
             //modify_result->returnuid = NULL;
     
-            OSyncObjType *type = osync_change_get_objtype(chg);
-            // Do database modifications according to object type
-            if (!strcmp(osync_objtype_get_name(type), "contact"))
+            OSyncChangeType chtype = osync_change_get_changetype(chg);
+            char *uid = osync_change_get_uid(chg);
+            /* treat modified objects without UIDs as if they were newly added objects */
+            if (chtype == CHANGE_MODIFIED && !uid)
+                chtype = CHANGE_ADDED;
+
+            // convert VCARD string from obj->comp into an Addresse object.
+            char *data;
+            size_t data_size;
+            data = (char*)osync_change_get_data(chg);
+            data_size = osync_change_get_datasize(chg);
+
+            switch(chtype)
             {
-
-                OSyncChangeType chtype = osync_change_get_changetype(chg);
-                char *uid = osync_change_get_uid(chg);
-                /* treat modified objects without UIDs as if they were newly added objects */
-                if (chtype == CHANGE_MODIFIED && !uid)
-                    chtype = CHANGE_ADDED;
-    
-                // convert VCARD string from obj->comp into an Addresse object.
-                char *data;
-                size_t data_size;
-                data = (char*)osync_change_get_data(chg);
-                data_size = osync_change_get_datasize(chg);
-
-                switch(chtype)
+                case CHANGE_MODIFIED:
                 {
-                    case CHANGE_MODIFIED:
+                    unfold_vcard(data, &data_size);
+
+                    KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
+
+                    // ensure it has the correct UID
+                    addressee.setUid(QString(uid));
+
+                    // replace the current addressbook entry (if any) with the new one
+                    addressbookptr->insertAddressee(addressee);
+
+                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)\n", uid); 
+                    result = 0;
+                    break;
+                }
+
+                case CHANGE_ADDED:
+                {
+                    // convert VCARD string from obj->comp into an Addresse object
+                    // KABC::VCardConverter doesnt do VCARD unfolding so we must do it ourselves first.
+                    unfold_vcard(data, &data_size);
+                    KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
+
+                    // ensure it has a NULL UID
+                    addressee.setUid(QString(NULL));
+
+                    // add the new address to the addressbook
+                    addressbookptr->insertAddressee(addressee);
+
+                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY ADDED (UID=%s)\n", addressee.uid().latin1());
+
+
+                    // return the UID of the new entry along with the result
+                    osync_change_set_uid(chg, addressee.uid().latin1());
+                    result = 0;
+                    break;
+                }
+
+                case CHANGE_DELETED:
+                {
+                    if (uid==NULL)
                     {
-                        unfold_vcard(data, &data_size);
-
-                        KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
-
-                        // ensure it has the correct UID
-                        addressee.setUid(QString(uid));
-
-                        // replace the current addressbook entry (if any) with the new one
-                        addressbookptr->insertAddressee(addressee);
-
-                        osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)\n", uid); 
-                        result = 0;
+                        result = 1;
                         break;
                     }
-    
-                    case CHANGE_ADDED:
-                    {
-                        // convert VCARD string from obj->comp into an Addresse object
-                        // KABC::VCardConverter doesnt do VCARD unfolding so we must do it ourselves first.
-                        unfold_vcard(data, &data_size);
-                        KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
 
-                        // ensure it has a NULL UID
-                        addressee.setUid(QString(NULL));
+                    //find addressbook entry with matching UID and delete it
+                    KABC::Addressee addressee = addressbookptr->findByUid(QString(uid));
+                    if(!addressee.isEmpty())
+                       addressbookptr->removeAddressee(addressee);
 
-                        // add the new address to the addressbook
-                        addressbookptr->insertAddressee(addressee);
+                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY DELETED (UID=%s)\n", uid);
 
-                        osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY ADDED (UID=%s)\n", addressee.uid().latin1());
-
-
-                        // return the UID of the new entry along with the result
-                        osync_change_set_uid(chg, addressee.uid().latin1());
-                        result = 0;
-                        break;
-                    }
-    
-                    case CHANGE_DELETED:
-                    {
-                        if (uid==NULL)
-                        {
-                            result = 1;
-                            break;
-                        }
-
-                        //find addressbook entry with matching UID and delete it
-                        KABC::Addressee addressee = addressbookptr->findByUid(QString(uid));
-                        if(!addressee.isEmpty())
-                           addressbookptr->removeAddressee(addressee);
-
-                        osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY DELETED (UID=%s)\n", uid);
-
-                        result = 0;
-                        break;
-                    }
-                    default:
-                        result = 0;
-                }    
-            }
-            //FIXME: handle unsupported objtypes
+                    result = 0;
+                    break;
+                }
+                default:
+                    result = 0;
+            }    
     
             return result;
         }
 
 
-       void sync_done(bool success) 
+        void sync_done(bool success) 
         {
             //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(%d)\n", __FUNCTION__, success);
 
