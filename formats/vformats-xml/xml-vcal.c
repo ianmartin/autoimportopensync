@@ -1261,6 +1261,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "SEQUENCE", handle_sequence_attribute);
 	g_hash_table_insert(hooks->comptable, "LAST-MODIFIED", handle_last_modified_attribute);
 	g_hash_table_insert(hooks->comptable, "CREATED", handle_created_attribute);
+	g_hash_table_insert(hooks->comptable, "DCREATED", handle_created_attribute);
 	g_hash_table_insert(hooks->comptable, "RRULE", handle_rrule_attribute);
 	g_hash_table_insert(hooks->comptable, "RDATE", handle_rdate_attribute);
 	g_hash_table_insert(hooks->comptable, "LOCATION", handle_location_attribute);
@@ -1268,6 +1269,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "COMPLETED", handle_completed_attribute);
 	g_hash_table_insert(hooks->comptable, "ORGANIZER", handle_organizer_attribute);
 	g_hash_table_insert(hooks->comptable, "ORGANIZER", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->comptable, "X-ORGANIZER", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->comptable, "RECURRENCE-ID", handle_recurid_attribute);
 	g_hash_table_insert(hooks->comptable, "STATUS", handle_status_attribute);
 	g_hash_table_insert(hooks->comptable, "DURATION", handle_duration_attribute);

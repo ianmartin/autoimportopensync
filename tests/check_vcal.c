@@ -398,7 +398,7 @@ Suite *vcal_suite(void)
 	create_case(s, "conv_vevent_kdepim_1hour_20", conv_vevent_kdepim_1hour_20);
 	
 	create_case(s2, "cmp_vevent_1hour_1", cmp_vevent_1hour_1);
-	create_case(s, "cmp_vevent_1hour_2", cmp_vevent_1hour_2);
+	create_case(s2, "cmp_vevent_1hour_2", cmp_vevent_1hour_2);
 	
 	create_case(s, "event_get_revision1", event_get_revision1);
 	create_case(s, "event_get_revision2", event_get_revision2);
@@ -422,7 +422,7 @@ Suite *vcal_suite(void)
 	create_case(s, "todo_get_revision3", todo_get_revision3);
 	create_case(s, "todo_no_revision", todo_no_revision);
 	
-	return s2;
+	return s;
 }
 
 int main(void)

@@ -184,8 +184,10 @@ OSyncMember *osync_filter_get_destmember(OSyncFilter *filter)
  **/
 void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, filter);
 	g_assert(group);
 	group->filters = g_list_append(group->filters, filter);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /** @brief Creates a new filter
@@ -194,8 +196,10 @@ void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
  **/
 OSyncFilter *osync_filter_new(void)
 {
+	osync_trace(TRACE_ENTRY, "%s(void)", __func__);
 	OSyncFilter *filter = g_malloc0(sizeof(OSyncFilter));
 	g_assert(filter);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, filter);
 	return filter;
 }
 
@@ -205,6 +209,7 @@ OSyncFilter *osync_filter_new(void)
  **/
 void osync_filter_free(OSyncFilter *filter)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, filter);
 	g_assert(filter);
 	if (filter->sourceobjtype)
 		g_free(filter->sourceobjtype);
@@ -214,6 +219,7 @@ void osync_filter_free(OSyncFilter *filter)
 		g_free(filter->detectobjtype);
 	
 	g_free(filter);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Register a new filter
@@ -229,13 +235,21 @@ void osync_filter_free(OSyncFilter *filter)
  */
 OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:%lli, %p:%lli, %s, %s, %s, %i)", __func__, group, \
+		sourcemember, sourcemember ? sourcemember->id : 0, \
+		destmember, destmember ? destmember->id : 0, \
+		sourceobjtype, destobjtype, detectobjtype, action);
+		
 	long long int sourcememberid = 0;
 	long long int destmemberid = 0;
 	if (sourcemember)
 		sourcememberid = sourcemember->id;
 	if (destmember)
 		destmemberid = destmember->id;
-	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action, NULL);
+	
+	OSyncFilter *filter = _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action, NULL);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, filter);
+	return filter;
 }
 
 /*! @brief Removes a filter from a group
@@ -245,8 +259,10 @@ OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyn
  **/
 void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, filter);
 	g_assert(group);
 	group->filters = g_list_remove(group->filters, filter);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Register a new custom filter
@@ -263,26 +279,37 @@ void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
  */
 OSyncFilter *osync_filter_add_custom(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, const char *function_name)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:%lli, %p:%lli, %s, %s, %s, %s)", __func__, group, \
+		sourcemember, sourcemember ? sourcemember->id : 0, \
+		destmember, destmember ? destmember->id : 0, \
+		sourceobjtype, destobjtype, detectobjtype, function_name);
 	long long int sourcememberid = 0;
 	long long int destmemberid = 0;
 	if (sourcemember)
 		sourcememberid = sourcemember->id;
 	if (destmember)
 		destmemberid = destmember->id;
-	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, OSYNC_FILTER_IGNORE, function_name);
+
+	OSyncFilter *filter = _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, OSYNC_FILTER_IGNORE, function_name);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, filter);
+	return filter;
 }
 
 /** @brief Sets the config for a filter
+ * 
+ * Config must be a null-terminated string
  * 
  * @param filter The filter
  * @param config The new config for this filter
  **/
 void osync_filter_set_config(OSyncFilter *filter, const char *config)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, filter, config);
 	g_assert(filter);
 	if (filter->config)
 		g_free(filter->config);
 	filter->config = g_strdup(config);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /** @brief Gets the config of a filter
@@ -292,7 +319,9 @@ void osync_filter_set_config(OSyncFilter *filter, const char *config)
  **/
 const char *osync_filter_get_config(OSyncFilter *filter)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, filter);
 	g_assert(filter);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, filter->config);
 	return filter->config;
 }
 
