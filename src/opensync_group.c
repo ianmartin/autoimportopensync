@@ -227,10 +227,14 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 	g_assert(group);
 	OSyncFormatEnv *conv_env = group->conv_env;
 
-	if (!strcmp(objtypestr, "*")) {
-		/* Apply this to all objtypes */
-		/* TODO: implement this */
-		osync_debug("OSGRP", 2, "set_slow_sync for objtype '*' not implemented yet");
+	if (!strcmp(objtypestr, "*")) {		
+		// FIXME: this will probably be rewritten with the new conversion API
+		GList *element;
+		for (element = conv_env->objtypes; element; element = element->next) {
+			OSyncObjType *objtype = element->data;
+			objtype->needs_slow_sync = slow_sync;
+		}
+		
 	} else {
 		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
 		g_assert(objtype);
