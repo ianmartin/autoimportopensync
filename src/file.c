@@ -4,6 +4,7 @@
 
 static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rightchange)
 {
+	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *leftfile = (fs_fileinfo *)osync_change_get_data(leftchange);
 	fs_fileinfo *rightfile = (fs_fileinfo *)osync_change_get_data(rightchange);
 	
@@ -33,6 +34,7 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 #ifdef STRESS_TEST
 static void create_file(OSyncChange *change)
 {
+	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file_info = g_malloc0(sizeof(fs_fileinfo));
 	int file_size = g_random_int_range(0, 1000);
 	osync_change_set_data(change, (char *)file_info, sizeof(fs_fileinfo), TRUE);
@@ -55,6 +57,7 @@ static void create_file(OSyncChange *change)
 
 static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **output, int *outpsize)
 {
+	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)input;
 	*output = g_malloc0(file->size * sizeof(char));
 	memcpy(*output, file->data, file->size);
@@ -65,6 +68,7 @@ static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **outp
 
 static osync_bool conv_vcard_to_file(const char *input, int inpsize, char **output, int *outpsize)
 {
+	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = g_malloc0(sizeof(fs_fileinfo));
 	file->data = g_malloc0(inpsize * sizeof(char));
 	memcpy(file->data, input, inpsize);
@@ -77,6 +81,7 @@ static osync_bool conv_vcard_to_file(const char *input, int inpsize, char **outp
 
 void duplicate_file(OSyncChange *change)
 {
+	osync_debug("FILE", 4, "start: %s", __func__);
 	char *newuid = g_strdup_printf ("%s-dupe", osync_change_get_uid(change));
 	osync_change_set_uid(change, newuid);
 	g_free(newuid);
@@ -84,6 +89,7 @@ void duplicate_file(OSyncChange *change)
 
 static osync_bool detect_file(OSyncFormatEnv *env, OSyncChange *change)
 {
+	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
 	
 	//Call the data detectors here
