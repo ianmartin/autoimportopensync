@@ -119,7 +119,7 @@ static OSyncChangeType evo2_get_data(void *object, char *objtype, char **data, i
 	return CHANGE_UNKNOWN;
 }
 
-void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, char *uid, OSyncChangeType type)
+void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, const char *uid, OSyncChangeType type)
 {
 	OSyncMember *member = osync_context_get_member(ctx);
 
