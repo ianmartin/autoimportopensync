@@ -15,6 +15,7 @@ struct MemberData {
 	PyThreadState *interp_thread;
 	PyObject *module;
 	PyObject *object;
+	PyObject *osync_module;
 };
 
 /*FIXME: Provide the opensync plugin API to python modules.
@@ -42,6 +43,16 @@ static int change_sys_path()
 	if (!path) goto error_path;
 
 	dir = PyString_FromString(OPENSYNC_PYTHONPLG_DIR);
+	if (!dir) goto error_dir;
+
+	if (PyList_Insert(path, 0, dir) < 0)
+		goto error_insert;
+
+	/*FIXME: temporary hack, while the opensync module is not
+	 * installed on the python module path
+	 */
+	Py_DECREF(dir);
+	dir = PyString_FromString(OPENSYNC_PYTHONLIB_DIR);
 	if (!dir) goto error_dir;
 
 	if (PyList_Insert(path, 0, dir) < 0)
@@ -82,7 +93,7 @@ static void *py_initialize(OSyncMember *member)
 	 * threads)
 	 */
 	data->interp_thread = Py_NewInterpreter();
-	if (!data->interp_thread) {
+	if (0 && !data->interp_thread) {
 		osync_debug("python", 1, "Couldn't initialize python interpreter");
 		goto error_free_data;
 	}
@@ -91,12 +102,19 @@ static void *py_initialize(OSyncMember *member)
 		PyErr_Clear();
 		goto error_free_interp;
 	}
+	data->osync_module = PyImport_ImportModule("opensync");
+	if (!data->module) {
+		osync_debug("python", 1, "Couldn't load OpenSync module");
+		PyErr_Clear();
+		goto error_free_interp;
+	}
 	data->module = PyImport_ImportModule("testmodule");
 	if (!data->module) {
 		osync_debug("python", 1, "Couldn't load testmodule");
 		PyErr_Clear();
-		goto error_free_interp;
+		goto error_unload_osync_mod;
 	}
+
 	/* Call the method */
 	data->object = PyObject_CallMethod(data->module, "initialize", NULL);
 	if (!data->object) {
@@ -112,6 +130,8 @@ static void *py_initialize(OSyncMember *member)
 
 error_unload_module:
 	Py_DECREF(data->module);
+error_unload_osync_mod:
+	Py_DECREF(data->osync_module);
 error_free_interp:
 	Py_EndInterpreter(data->interp_thread);
 error_free_data:
@@ -196,6 +216,7 @@ void get_info(OSyncPluginInfo *info)
 	Py_Initialize();
 	sigaction(SIGINT, &old_sigint, NULL);  /* Restore it */
 	PyEval_InitThreads();
+	py_initialize(NULL);
 
 	info->name = "python_module";
 	info->version = 1;

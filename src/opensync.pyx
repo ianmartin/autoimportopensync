@@ -54,7 +54,9 @@ cdef class Member:
 		# object to (OSyncMember *), we can wrap the pointer in
 		# a CObject, but we still need something that converts
 		# (void *) to (OSyncMember *)
-		self.memb = osync_member_from_void(PyCObject_AsVoidPtr(m))
+		cdef void *v
+		v = PyCObject_AsVoidPtr(m)
+		self.memb = osync_member_from_void(v)
 
 cdef class Change
 
@@ -62,7 +64,7 @@ cdef class Context:
 	"""opensync OSyncContext object"""
 	cdef OSyncContext *ctx
 	cdef void *v
-	def __new__(self, long c):
+	def __new__(self, c):
 		"""Never call this method from python code.
 		
 		Objects of this class are created only internally by OpenSync
@@ -70,7 +72,9 @@ cdef class Context:
 		# Another hack like the OSyncMember hack above,
 		# to be able to convert a python object
 		# to OSyncContext *
-		self.ctx = osync_context_from_void(PyCObject_AsVoidPtr(c))
+		cdef void *v
+		v = PyCObject_AsVoidPtr(c)
+		self.ctx = osync_context_from_void(v)
 
 	def report_change(self, Change chg):
 		osync_context_report_change(self.ctx, chg.chg)
