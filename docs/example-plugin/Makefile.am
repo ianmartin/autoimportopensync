@@ -20,5 +20,5 @@ DISTCLEANFILES = \
 	src/Makefile \
 	src/Makefile.in
 
-distclean:
+distclean-local:
 	rm -rf autom4te.cache

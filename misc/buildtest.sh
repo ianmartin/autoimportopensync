@@ -35,7 +35,7 @@ echo -n "."
 make install > /dev/null || exit 1
 echo "."
 
-cd docs/example-plugin
+cd $TOP_SRCDIR/docs/example-plugin
 
 echo -n "Making example plugin"
 export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
