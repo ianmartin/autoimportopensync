@@ -23,7 +23,7 @@ START_TEST (conv_env_add_type)
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   fail_unless(type != NULL, "type == NULL on creation");
   //fail_unless(osynctype->mergeable == FALSE, "mergable set wrong");
-  fail_unless(!strcmp(osync_conv_objtype_get_name(type), "test"), "string not test");
+  fail_unless(!strcmp(osync_objtype_get_name(type), "test"), "string not test");
 }
 END_TEST
 
@@ -34,7 +34,7 @@ START_TEST (conv_env_add_type_find)
   OSyncObjType *type = osync_conv_find_objtype(env, "test");
   fail_unless(type != NULL, "type == NULL on creation");
   //fail_unless(osynctype->mergeable == FALSE, "mergable set wrong");
-  fail_unless(!strcmp(osync_conv_objtype_get_name(type), "test"), "string not test2");
+  fail_unless(!strcmp(osync_objtype_get_name(type), "test"), "string not test2");
 }
 END_TEST
 
@@ -394,7 +394,7 @@ START_TEST (conv_env_convert1)
   osync_change_set_data(change, "data", 5, TRUE);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format3);
+  osync_change_convert(env, change, format3, NULL);
   
   char *data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "datatesttest2"), NULL);
@@ -422,7 +422,7 @@ START_TEST (conv_env_convert_back)
   osync_change_set_data(change, "data", 5, TRUE);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format3);
+  osync_change_convert(env, change, format3, NULL);
   
   char *data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "datatesttest2"), NULL);
@@ -430,7 +430,7 @@ START_TEST (conv_env_convert_back)
   fail_unless(format == format3, NULL);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format1);
+  osync_change_convert(env, change, format1, NULL);
   
   data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "data"), NULL);
@@ -458,7 +458,7 @@ START_TEST (conv_env_convert_desenc)
   osync_change_set_data(change, "data", 5, TRUE);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format3);
+  osync_change_convert(env, change, format3, NULL);
   
   char *data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "datatesttest2"), NULL);
@@ -466,7 +466,7 @@ START_TEST (conv_env_convert_desenc)
   fail_unless(format == format3, NULL);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format1);
+  osync_change_convert(env, change, format1, NULL);
   
   data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "data"), NULL);
@@ -517,14 +517,14 @@ START_TEST (conv_env_convert_desenc_complex)
   osync_change_set_data(change, "data", 5, TRUE);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format6);
+  osync_change_convert(env, change, format6, NULL);
   
   char *data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "datatesttest2test2test2"), NULL);
   fail_unless(change->format == format6, NULL);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format1);
+  osync_change_convert(env, change, format1, NULL);
   
   data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "data"), NULL);
@@ -576,7 +576,7 @@ START_TEST (conv_env_detect_and_convert)
   
   mark_point();
 
-  fail_unless(osync_conv_convert_simple(env, change, format4), NULL);
+  fail_unless(osync_change_convert(env, change, format4, NULL), NULL);
   mark_point();
   char *data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "datatesttest2test2"), NULL);
@@ -585,7 +585,7 @@ START_TEST (conv_env_detect_and_convert)
   fail_unless(format == format4, NULL);
   
   mark_point();
-  osync_conv_convert_simple(env, change, format1);
+  osync_change_convert(env, change, format1, NULL);
   mark_point();
   data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "data"), NULL);
@@ -628,7 +628,7 @@ START_TEST(conv_prefer_not_desencap)
   
   mark_point();
 
-  fail_unless(osync_conv_convert_simple(env, change, format5), NULL);
+  fail_unless(osync_change_convert(env, change, format5, NULL), NULL);
   mark_point();
   char *data = osync_change_get_data(change);
   fail_unless(!strcmp(data, "datatesttesttest"), NULL);
@@ -771,7 +771,7 @@ START_TEST (conv_env_detect_false)
   osync_change_set_data(change, "data", 5, TRUE);
   
   mark_point();
-  fail_unless(!osync_conv_convert_simple(env, change, format3), NULL);
+  fail_unless(!osync_change_convert(env, change, format3, NULL), NULL);
 }
 END_TEST
 
@@ -784,7 +784,6 @@ Suite *env_suite(void)
 	TCase *tc_conv = tcase_create("conv");
 	TCase *tc_osp = tcase_create("osp");
 	TCase *tc_convert = tcase_create("convert");
-	TCase *tc_convert2 = tcase_create("convert2");
 	TCase *tc_detect = tcase_create("detect");
 	suite_add_tcase (s, tc_env);
 	suite_add_tcase (s, tc_type);
@@ -793,7 +792,6 @@ Suite *env_suite(void)
 	suite_add_tcase (s, tc_osp);
 	suite_add_tcase (s, tc_convert);
 	suite_add_tcase (s, tc_detect);
-	suite_add_tcase (s, tc_convert2);
 	tcase_add_test(tc_env, conv_env_create);
 	tcase_add_test(tc_type, conv_env_add_type);
 	tcase_add_test(tc_type, conv_env_add_type_find);
@@ -816,7 +814,7 @@ Suite *env_suite(void)
 	tcase_add_test(tc_convert, conv_env_convert_desenc_complex);
 	tcase_add_test(tc_convert, conv_prefer_not_desencap);
 	tcase_add_test(tc_convert, conv_prefer_same_objtype);
-	tcase_add_test(tc_convert2, conv_prefer_not_lossy_objtype_change);
+	tcase_add_test(tc_convert, conv_prefer_not_lossy_objtype_change);
 	tcase_add_test(tc_detect, conv_env_detect_and_convert);
 	tcase_add_test(tc_detect, conv_env_detect_false);
 	return s;

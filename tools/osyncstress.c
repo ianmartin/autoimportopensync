@@ -380,7 +380,7 @@ int main (int argc, char *argv[])
 			if (g_random_int_range(0, 5) == 0) {
 				int i;
 				OSyncFormatEnv *env = osync_conv_env_new();
-				osync_conv_env_load(env);
+				osync_conv_env_load(env, NULL);
 				for (i = 0; i < osync_conv_num_objtypes(env); i++) {
 					if (g_random_int_range(0, 5) == 0) {
 						OSyncObjType *type = osync_conv_nth_objtype(env, i);

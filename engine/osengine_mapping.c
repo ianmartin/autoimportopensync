@@ -112,7 +112,7 @@ void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 		change = osync_mapping_get_entry_by_owner(mapping, client->member);
 		if (change == master)
 			continue;
-		if (change && (osync_conv_compare_changes(change, master) == CONV_DATA_SAME)) {
+		if (change && (osync_change_compare(change, master) == CONV_DATA_SAME)) {
 			chflags = osync_change_get_flags(change);
 			if (osync_flag_is_not_set(chflags->fl_dirty))
 				osync_flag_set(chflags->fl_synced);
@@ -206,7 +206,7 @@ void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 				osync_conv_detect_and_convert(env, rightchange);
 				osync_mappingtable_save_change(engine->maptable, rightchange);*/
 #endif
-				if (osync_conv_compare_changes(leftchange, rightchange) != CONV_DATA_SAME) {
+				if (osync_change_compare(leftchange, rightchange) != CONV_DATA_SAME) {
 					is_conflict = TRUE;
 					goto conflict;
 				} else {
@@ -328,7 +328,7 @@ static OSyncChange *_osync_find_next_diff(OSyncMapping *mapping, OSyncChange *or
 		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
 		if (osync_change_get_changetype(change) == CHANGE_UNKNOWN)
 			continue;
-		if ((change != orig_change) && osync_conv_compare_changes(orig_change, change) != CONV_DATA_SAME)
+		if ((change != orig_change) && osync_change_compare(orig_change, change) != CONV_DATA_SAME)
 			return change;
 	}
 	_osync_debug(NULL, "MAP", 0, "Could not find next diff");
@@ -340,7 +340,7 @@ static OSyncChange *_osync_find_next_same(OSyncMapping *mapping, OSyncChange *or
 	int i;
 	for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
 		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
-		if ((change != orig_change) && osync_conv_compare_changes(orig_change, change) == CONV_DATA_SAME)
+		if ((change != orig_change) && osync_change_compare(orig_change, change) == CONV_DATA_SAME)
 			return change;
 	}
 	_osync_debug(NULL, "MAP", 0, "Could not find next same");
@@ -381,7 +381,7 @@ static osync_bool _osync_change_elevate(OSyncEngine *engine, OSyncChange *change
 	_osync_debug(engine, "MAP", 0, "elevating change %s (%p) to level %i", osync_change_get_uid(change), change, level);
 	int i = 0;
 	for (i = 0; i < level; i++) {
-		if (!osync_conv_duplicate_change(change))
+		if (!osync_change_duplicate(change))
 			return FALSE;
 	}
 	_osync_debug(engine, "MAP", 0, "change after being elevated %s (%p)", osync_change_get_uid(change), change);
@@ -519,7 +519,7 @@ OSyncMapping *osync_mapping_find(OSyncEngine *engine, OSyncChange *change)
 			mapping_found = TRUE;
 			for (n = 0; n < osync_mapping_num_entries(mapping); n++) {
 				OSyncChange *mapchange = osync_mapping_nth_entry(mapping, n);
-				if (osync_conv_compare_changes(mapchange, change) == CONV_DATA_MISMATCH) {
+				if (osync_change_compare(mapchange, change) == CONV_DATA_MISMATCH) {
 					mapping_found = FALSE;
 					continue;
 				}

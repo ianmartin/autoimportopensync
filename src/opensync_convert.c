@@ -11,32 +11,36 @@
  */
 /*@{*/
 
-void osync_conv_open_plugin(OSyncFormatEnv *env, char *path)
+osync_bool osync_conv_plugin_load(OSyncFormatEnv *env, char *path, OSyncError **error)
 {
 	/* Check if this platform supports dynamic
 	 * loading of modules */
 	osync_debug("OSFRM", 3, "Loading formats plugin from %s", path);
 	if (!g_module_supported()) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
 		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
-		return;
+		return FALSE;
 	}
 
 	/* Try to open the module or fail if an error occurs */
 	GModule *plugin = g_module_open(path, 0);
 	if (!plugin) {
-		osync_debug("OSPLG", 0, "Unable to open plugin: %s", g_module_error());
-		return;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
+		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
+		return FALSE;
 	}
 	
 	void (* fct_info)(OSyncFormatEnv *env) = NULL;
 	void (** fct_infop)(OSyncFormatEnv *env) = &fct_info;
 	if (!g_module_symbol(plugin, "get_info", (void **)fct_infop)) {
-		osync_debug("OSPLG", 0, "Unable to open format plugin %s: %s", path, g_module_error());
-		return;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open format plugin %s: %s", path, g_module_error());
+		osync_debug("OSPLG", 0, "Unable to open format plugin %s", path);
+		return FALSE;
 	}
 	env->plugins = g_list_append(env->plugins, plugin);
 	
 	fct_info(env);
+	return TRUE;
 }
 
 OSyncFormatConverter *osync_conv_find_converter_objformat(OSyncFormatEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
@@ -156,217 +160,6 @@ static void osync_conv_resolve_is_like(OSyncFormatEnv *env, OSyncObjFormat *fmt)
 	}
 }
 
-/*@}*/
-
-/**
- * @defgroup OSyncConvAPI OpenSync Conversion
- * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * Miscanellous functions
- * 
- */
-/*@{*/
-
-OSyncFormatEnv *osync_conv_env_new(void)
-{
-	OSyncFormatEnv *env = g_malloc0(sizeof(OSyncFormatEnv));
-	env->pluginpath = OPENSYNC_FORMATSDIR;
-	return env;
-}
-
-void osync_conv_env_free(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	g_free(env);
-}
-
-const char *osync_objtype_get_name(OSyncObjType *type)
-{
-	g_assert(type);
-	return type->name;
-}
-
-const char *osync_objformat_get_name(OSyncObjFormat *format)
-{
-	g_assert(format);
-	return format->name;
-}
-
-void osync_conv_env_load(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	g_assert(env->pluginpath);
-	GDir *dir = NULL;
-	GError *error = NULL;
-	osync_debug("OSPLG", 3, "Trying to open formats plugin directory %s", env->pluginpath);
-	
-	if (!g_file_test(env->pluginpath, G_FILE_TEST_EXISTS)) {
-		return;
-	}
-	
-	dir = g_dir_open(env->pluginpath, 0, &error);
-	if (error) {
-		osync_debug("OSPLG", 0, "Unable to open formats plugin directory %s: %s", env->pluginpath, error->message);
-		g_error_free (error);
-		return;
-	}
-  
-	if (dir) {
-		const gchar *de = NULL;
-		while ((de = g_dir_read_name(dir))) {
-			
-			char *filename = NULL;
-			filename = g_strdup_printf ("%s/%s", env->pluginpath, de);
-			
-			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
-				continue;
-			}
-			
-			/* Try to open the syncgroup dir*/
-			osync_conv_open_plugin(env, filename);
-		}
-	}
-}
-
-void osync_conv_env_unload(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	
-	GList *p;
-	for (p = env->plugins; p; p = p->next) {
-		GModule *plugin = p->data;
-		g_module_close(plugin);
-	}
-	g_list_free(env->plugins);
-	env->plugins = NULL;
-}
-
-OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
-{
-	g_assert(env);
-	g_assert(name);
-	
-	GList *element = NULL;
-	for (element = env->objtypes; element; element = element->next) {
-		OSyncObjType *type = element->data;
-		if (!strcmp(type->name, name))
-			return type;
-	}
-	return NULL;
-}
-
-int osync_conv_num_objtypes(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	return g_list_length(env->objtypes);
-}
-
-OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth)
-{
-	g_assert(env);
-	return g_list_nth_data(env->objtypes, nth);
-}
-
-OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
-{
-	OSyncObjType *type = NULL;
-	if (!(type = osync_conv_find_objtype(env, name))) {
-		type = g_malloc0(sizeof(OSyncObjType));
-		g_assert(type);
-		type->name = g_strdup(name);
-		type->env = env;
-		env->objtypes = g_list_append(env->objtypes, type);
-	}
-	return type;
-}
-
-osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
-{
-	if (osync_conv_find_converter(env, sourcename, targetname))
-		return FALSE;
-
-	OSyncObjFormat *fmt_src = osync_conv_find_objformat(env, sourcename);
-	OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, targetname);
-	if (!fmt_src || !fmt_trg)
-		return osync_register_unresolved_converter(env, type, sourcename, targetname, convert_func, flags);
-	else
-		return _osync_conv_register_converter(env, type, fmt_src, fmt_trg, convert_func, flags);
-}
-
-int osync_conv_num_objformats(OSyncObjType *type)
-{
-	g_assert(type);
-	return g_list_length(type->formats);
-}
-
-OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth)
-{
-	g_assert(type);
-	return g_list_nth_data(type->formats, nth);
-}
-
-OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
-{
-	g_assert(env);
-	g_assert(name);
-	
-	GList *element = NULL;
-	for (element = env->objformats; element; element = element->next) {
-		OSyncObjFormat *format = element->data;
-		if (!strcmp(format->name, name))
-			return format;
-	}
-	return NULL;
-}
-
-OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *typename, const char *name)
-{
-	OSyncObjType *type;
-	OSyncObjFormat *format = NULL;
-
-	type = osync_conv_find_objtype(env, typename);
-	if (!type)
-		type = osync_conv_register_objtype(env, typename);
-
-	if (!(format = osync_conv_find_objformat(env, name))) {
-		format = g_malloc0(sizeof(OSyncObjFormat));
-		g_assert(format);
-		format->name = strdup(name);
-		format->objtype = type;
-		format->env = env;
-		env->objformats = g_list_append(env->objformats, format);
-		type->formats = g_list_append(type->formats, format);
-	}
-
-	/* Some converters may resolve their format names, now */
-	osync_conv_resolve_converters(env);
-	/* Resolve the pending osync_conv_format_set_like() definitions, too */
-	osync_conv_resolve_is_like(env, format);
-	return format;
-}
-
-void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func)
-{
-	g_assert(format);
-	format->cmp_func = cmp_func;
-}
-
-void osync_conv_format_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func)
-{
-	g_assert(format);
-	format->destroy_func = destroy_func;
-	osync_conv_resolve_is_like(format->env, format);
-}
-
-void osync_conv_format_set_copy_func(OSyncObjFormat *format, OSyncFormatCopyFunc copy_func)
-{
-	g_assert(format);
-	format->copy_func = copy_func;
-	osync_conv_resolve_is_like(format->env, format);
-}
-
-
 /** The destroy_func to call free() on a block of data
  */
 static void osync_format_malloced_destroy(char *data, size_t size)
@@ -386,20 +179,6 @@ static osync_bool osync_format_malloced_copy(const char *input, int inpsize, cha
 	return TRUE;
 }
 
-/** Set the format as a simple malloc()ed block
- *
- * This will tell that this format is a block of data that can be
- * deallocated using simple a call to free(), and copied using a simple
- * call to malloc()/memcpy(). This will set the destroy and copy functions
- * of the format to functions that use free()/malloc()/memcpy(), accordingly.
- */
-void osync_conv_format_set_malloced(OSyncObjFormat *format)
-{
-	g_assert(format);
-	osync_conv_format_set_copy_func(format, osync_format_malloced_copy);
-	osync_conv_format_set_destroy_func(format, osync_format_malloced_destroy);
-}
-
 /** Simple copy converter function
  *
  * @see osync_conv_format_set_like()
@@ -410,145 +189,6 @@ static osync_bool conv_simple_copy(const char *input, int inpsize, char **output
 	*output = (char*)input;
 	*outpsize = inpsize;
 	return TRUE;
-}
-
-/** Set the format as behaving like another format
- *
- * This will tell that this format can be converted to/from
- * base_format by just copying the pointer and size of data.
- *
- * Calling this function implies that the copy and destroy functions
- * for the format will be the same of base_format.
- *
- * Converter flags may be specified for the converters that will be
- * registered. to_flags will contain flags for the converter
- * format -> base_format. from_flags will contain flags for the converter
- * base_format -> format. Currently, the only flags allowed on these parameters
- * are CONV_NOTLOSSY and CONV_DETECTFIRST.
- *
- * The common use of this function is for the "plain" format, as:
- *
- * osync_conv_format_set_like(myformat, "plain", CONV_NOTLOSSY, 0);
- *
- * The call above will make the format be easily converted to the "plain"
- * format, marking the myformat -> "plain" conversion as CONV_NOTLOSSY,
- * and marking the "plain" -> myformat as lossy. This is the most common
- * use, as when comparing the data, a single byte change on the block
- * will make a difference, and most of other formats (like "vcard")
- * can represent the same information as a different block of bytes
- * (i.e. the order of the fields doesn't matter).
- */
-void osync_conv_format_set_like(OSyncObjFormat *format, const char *base_format, ConverterFlags to_flags, ConverterFlags from_flags)
-{
-	OSyncObjFormat *base;
-
-	/* Copy the name for osync_conv_resolve_is_like() */
-	format->is_like = strdup(base_format);
-
-	/* If the format was already registered, set the functions,
-	 * else it will be resolved when registered
-	 */
-	base = osync_conv_find_objformat(format->env, base_format);
-	if (base) osync_conv_resolve_is_like(format->env, base);
-
-	osync_conv_register_converter(format->env, CONVERTER_CONV, format->name, base_format, conv_simple_copy, CONV_NOCOPY|to_flags);
-	osync_conv_register_converter(format->env, CONVERTER_CONV, base_format, format->name, conv_simple_copy, CONV_NOCOPY|from_flags);
-}
-
-/** Set the detector function for this type
- *
- * A detector function for a given format is different from a the detectors registered
- * using osync_conv_register_data_detector().
- *
- * The osync_conv_format_set_detect_func() is a function designed to return the lower
- * objformat of the data, by looking at it.
- *
- * The osync_conv_register_data_detector() function is a function that checks if a
- * given block of data can be converting to a given format.
- *
- * The osync_conv_format_set_detect_func() is more useful for
- * 'encapsulator'-like formats * that can tell the format of the data below,
- * by just looking at the data. The osync_conv_register_data_detector() functions
- * is more useful for 'generic' formats (like the "plain" format) that each
- * format to which it can be converted to (vcard, vcalendar, etc.) knows
- * how to detect the data by looking into the "plain" block.
- */
-void osync_conv_format_set_detect_func(OSyncObjFormat *format, OSyncFormatDetectFunc detect_func)
-{
-	g_assert(format);
-	format->detect_func = detect_func;
-}
-
-void osync_conv_format_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDuplicateFunc dupe_func)
-{
-	g_assert(format);
-	format->duplicate_func = dupe_func;
-}
-
-void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func)
-{
-	g_assert(format);
-	format->create_func = create_func;
-}
-
-void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname)
-{
-	OSyncObjType *type = osync_conv_find_objtype(env, objtypestr);
-	g_assert(type);
-	OSyncObjFormat *format = osync_conv_find_objformat(env, formatname);
-	type->common_format = format;
-}
-
-osync_bool osync_conv_duplicate_change(OSyncChange *change)
-{
-	g_assert(change);
-	OSyncObjFormat *format = change->format;
-	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
-	if (!format || !format->duplicate_func)
-		return FALSE;
-	format->duplicate_func(change);
-	return TRUE;
-}
-
-char *osync_conv_objtype_get_name(OSyncObjType *type)
-{
-	g_assert(type);
-	return type->name;
-}
-
-OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChange *rightchange)
-{
-	g_assert(rightchange);
-	g_assert(leftchange);
-
-	/*FIXME: Convert data if the formats are different */
-
-	if (rightchange->changetype == leftchange->changetype) {
-		if (!(rightchange->data == leftchange->data)) {
-			if (!(leftchange->objtype == rightchange->objtype)) {
-				osync_debug("OSCONV", 4, "Objtypes do not match\n");
-				return CONV_DATA_MISMATCH;
-			}
-			if (leftchange->format != rightchange->format) {
-				osync_debug("OSCONV", 4, "Objformats do not match\n");
-				return CONV_DATA_MISMATCH;
-			}
-			if (!rightchange->data || !leftchange->data) {
-				osync_debug("OSCONV", 4, "One change has no data\n");
-				return CONV_DATA_MISMATCH;
-			}
-			OSyncObjFormat *format = leftchange->format;
-			g_assert(format);
-			
-			return format->cmp_func(leftchange, rightchange);
-		} else {
-			osync_debug("OSCONV", 4, "OK. data point to same memory: %p, %p\n", rightchange->data, leftchange->data);
-			return CONV_DATA_SAME;
-		}
-	} else {
-		osync_debug("OSCONV", 4, "Change types do not match\n");
-		return CONV_DATA_MISMATCH;
-	}
 }
 
 /** Try to do cheap data conversion
@@ -894,8 +534,8 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
  *       CHANGE_DELETED changes. Converting and detecting data
  *       on changes that have no data doesn't make sense
  *
- * @see osync_conv_convert_fn(), osync_conv_convert_simple(),
- *      osync_conv_convert_fmtlist(), osync_conv_convert_member_sink()
+ * @see osync_conv_convert_fn(), osync_change_convert(),
+ *      osync_conv_convert_fmtlist(), osync_change_convert_member_sink()
  *
  * @see target_fn_fmtlist(), target_fn_fmtnames(),
  *      target_fn_simple(), target_fn_fmtname(),
@@ -926,9 +566,7 @@ osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyn
 	begin->references = 1;
 	
 	tree->search = g_list_append(NULL, begin);
-	GList *used_vertices = NULL;
 	
-	printf("+++++++ Starting to search for path from %s\n", start->format->name);
 	while (g_list_length(tree->search)) {
 		vertice *neighbour;
 
@@ -937,35 +575,28 @@ osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyn
 		 */
 		vertice *current = g_list_first(tree->search)->data;
 		tree->search = g_list_delete_link(tree->search, g_list_first(tree->search));
-		printf("Current vertice %s\n", current->format->name);
 
-		//if (!g_list_find(used_vertices, current)) {
-			osync_debug("OSCONV", 4, "Next vertice: %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
-					current->losses, current->objtype_changes, current->conversions);
-			/* Check if we have reached a target format */
-			if (target_fn(fndata, current->format)) {
-				/* Done. return the result */
-				result = current;
-				/* Note: the reference to 'current' will be dropped
-				 * after getting the path from 'result' at
-				 * the end of the function.
-				 */
-				break;
-			}
-			osync_debug("OSCONV", 4, "Looking %s neighbours.", current->format->name);
-			while ((neighbour = get_next_vertice_neighbour(env, tree, current))) {
-				osync_debug("OSCONV", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
-				osync_debug("OSCONV", 4, "Adding %s to queue", neighbour->format->name);
-				tree->search = g_list_insert_sorted(tree->search, neighbour, compare_vertice_distance);
-			}
-			/* Done, drop the reference to the vertice */
-			deref_vertice(current);
-			used_vertices = g_list_append(used_vertices, current);
-		/*} else {
-			printf("vertice already used\n");
-		}*/
+		osync_debug("OSCONV", 4, "Next vertice: %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
+				current->losses, current->objtype_changes, current->conversions);
+		/* Check if we have reached a target format */
+		if (target_fn(fndata, current->format)) {
+			/* Done. return the result */
+			result = current;
+			/* Note: the reference to 'current' will be dropped
+			 * after getting the path from 'result' at
+			 * the end of the function.
+			 */
+			break;
+		}
+		osync_debug("OSCONV", 4, "Looking %s neighbours.", current->format->name);
+		while ((neighbour = get_next_vertice_neighbour(env, tree, current))) {
+			osync_debug("OSCONV", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
+			osync_debug("OSCONV", 4, "Adding %s to queue", neighbour->format->name);
+			tree->search = g_list_insert_sorted(tree->search, neighbour, compare_vertice_distance);
+		}
+		/* Done, drop the reference to the vertice */
+		deref_vertice(current);
 	}
-	//g_list_free(used_vertices);
 	/* Remove the references on the search queue */
 	g_list_foreach(tree->search, (GFunc)deref_vertice, NULL);
 	
@@ -976,14 +607,14 @@ osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyn
 		deref_vertice(result);
 		ret = TRUE;
 	}
-	printf("+++++++ Done searching for path\n");
+	
 	g_list_free(tree->unused);
 	g_list_free(tree->search);
 	g_free(tree);
 	return ret;
 }
 
-osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata)
+osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, OSyncError **error)
 {
 	g_assert(change);
 	g_assert(target_fn);
@@ -996,15 +627,18 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	if (target_fn(fndata, source))
 		goto out;
 
-	printf("starting to find path\n");
 	ret = FALSE;
-	if (!osync_conv_find_path_fn(env, change, target_fn, fndata, &path))
+	if (!osync_conv_find_path_fn(env, change, target_fn, fndata, &path)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a conversion path to the format requested");
 		goto out;
-	printf("done find path\n");
+	}
+	
 	for (; path; path = path->next) {
 		OSyncFormatConverter *converter = path->data;
-		if (!osync_converter_invoke(converter, change))
+		if (!osync_converter_invoke(converter, change)) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error while trying to convert a change");
 			goto out_free_path;
+		}
 	}
 
 	ret = TRUE;
@@ -1036,7 +670,7 @@ static osync_bool target_fn_fmtlist(const void *data, OSyncObjFormat *fmt)
  */
 osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets)
 {
-	return osync_conv_convert_fn(env, change, target_fn_fmtlist, targets);
+	return osync_conv_convert_fn(env, change, target_fn_fmtlist, targets, NULL);
 }
 
 osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist)
@@ -1046,7 +680,7 @@ osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start,
 
 /** Function used on a path search for a format name array
  *
- * @see osync_conv_find_path_fn(), osync_conv_convert_fmtnames()
+ * @see osync_conv_find_path_fn(), osync_change_convert_fmtnames()
  */
 static osync_bool target_fn_fmtnames(const void *data, OSyncObjFormat *fmt)
 {
@@ -1062,18 +696,9 @@ static osync_bool target_fn_fmtnames(const void *data, OSyncObjFormat *fmt)
 	return FALSE;
 }
 
-/** Convert a change for the nearest format on a array of format names
- *
- * @param names A NULL-terminated array of format names
- */
-osync_bool osync_conv_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **names)
-{
-	return osync_conv_convert_fn(env, change, target_fn_fmtnames, names);
-}
-
 /** Function used on path searchs for a single format
  *
- * @see osync_conv_find_path_fn(), osync_conv_convert_simple()
+ * @see osync_conv_find_path_fn(), osync_change_convert()
  */
 static osync_bool target_fn_simple(const void *data, OSyncObjFormat *fmt)
 {
@@ -1081,19 +706,9 @@ static osync_bool target_fn_simple(const void *data, OSyncObjFormat *fmt)
 	return target == fmt;
 }
 
-/*! @brief Convert a change to a specific format 
- * 
- * Test
- * 
- */
-osync_bool osync_conv_convert_simple(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *fmt)
-{
-	return osync_conv_convert_fn(env, change, target_fn_simple, fmt);
-}
-
 /** Function used on path searchs for a single format name
  *
- * @see osync_conv_find_path_fn(), osync_conv_convert_fmtname()
+ * @see osync_conv_find_path_fn(), osync_change_convert_fmtname()
  */
 static osync_bool target_fn_fmtname(const void *data, OSyncObjFormat *fmt)
 {
@@ -1101,15 +716,9 @@ static osync_bool target_fn_fmtname(const void *data, OSyncObjFormat *fmt)
 	return !strcmp(name, fmt->name);
 }
 
-/** Convert a change to a specific format name */
-osync_bool osync_conv_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *fmtname)
-{
-	return osync_conv_convert_fn(env, change, target_fn_fmtname, fmtname);
-}
-
 /** Function used on path searchs for a sink on a member
  *
- * @see osync_conv_find_path_fn(), osync_conv_convert_member_sink()
+ * @see osync_conv_find_path_fn(), osync_change_convert_member_sink()
  */
 static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
 {
@@ -1127,9 +736,9 @@ static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
 
 /** Convert a change to the nearest format sink on a member
  */
-osync_bool osync_conv_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb)
+osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb)
 {
-	return osync_conv_convert_fn(env, change, target_fn_membersink, memb);
+	return osync_conv_convert_fn(env, change, target_fn_membersink, memb, NULL);
 }
 
 osync_bool osync_conv_objtype_is_any(const char *objstr)
@@ -1139,7 +748,7 @@ osync_bool osync_conv_objtype_is_any(const char *objstr)
 	return FALSE;
 }
 
-/** Target function for osync_conv_detect_objtype() search
+/** Target function for osync_change_detect_objtype() search
  *
  * Returns true if the objformat is not "data"
  */
@@ -1148,44 +757,206 @@ osync_bool target_fn_no_any(const void *data, OSyncObjFormat *fmt)
 	return !osync_conv_objtype_is_any(fmt->objtype->name);
 }
 
-/** Do 'data detection' on a "data" change
- *
- * Make a path search, until it reaches a format whose objtype
- * is not "data".
+/*@}*/
+
+/**
+ * @defgroup OSyncConvAPI OpenSync Conversion
+ * @ingroup OSyncPublic
+ * @brief The public API of opensync
+ * 
+ * Miscanellous functions
+ * 
  */
-OSyncObjType *osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change)
+/*@{*/
+
+/*! @brief This will create a new opensync format environment
+ * 
+ * The environment will hold all information about plugins, formats etc
+ * 
+ * @returns A pointer to a newly allocated environment. NULL on error.
+ * 
+ */
+OSyncFormatEnv *osync_conv_env_new(void)
 {
-	OSyncObjFormat *sourceformat = NULL;
-	GList *d = NULL;
-	if (!change->has_data)
-		return FALSE;
+	OSyncFormatEnv *env = g_malloc0(sizeof(OSyncFormatEnv));
+	env->pluginpath = g_strdup(OPENSYNC_FORMATSDIR);
+	return env;
+}
+
+/*! @brief Frees a osync format environment
+ * 
+ * Frees a osync format environment and all resources.
+ * 
+ * @param env Pointer to the environment to free
+ * 
+ */
+void osync_conv_env_free(OSyncFormatEnv *env)
+{
+	g_assert(env);
 	
-	for (d = env->data_detectors; d; d = d->next) {
-		OSyncDataDetector *detector = d->data;
-		if (detector->detect_func(env, change->data, change->size)) {
-			sourceformat = osync_conv_find_objformat(env, detector->targetformat);
-			return sourceformat->objtype;
+	g_free(env->pluginpath);
+	g_free(env);
+}
+
+/*! @brief Loads all format and conversion plugins
+ * 
+ * This command will load all plugins for the conversion system.
+ * If you dont change the path before it will load the plugins
+ * from the default location
+ * 
+ * @param env The format environment
+ * @param error The location to return a error to
+ * @returns TRUE if successfull, FALSE otherwise
+ * 
+ */
+osync_bool osync_conv_env_load(OSyncFormatEnv *env, OSyncError **oserror)
+{
+	g_assert(env);
+	g_assert(env->pluginpath);
+	GDir *dir = NULL;
+	GError *error = NULL;
+	osync_debug("OSCONV", 3, "Trying to open formats plugin directory %s", env->pluginpath);
+	
+	if (!g_file_test(env->pluginpath, G_FILE_TEST_EXISTS)) {
+		osync_debug("OSCONV", 3, "%s exists, but is no dir", env->pluginpath);
+		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "directory %s does not exist", env->pluginpath);
+		return FALSE;
+	}
+	
+	dir = g_dir_open(env->pluginpath, 0, &error);
+	if (!dir) {
+		osync_debug("OSCONV", 0, "Unable to open format plugin directory %s: %s", env->pluginpath, error->message);
+		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open format directory %s: %s", env->pluginpath, error->message);
+		g_error_free(error);
+		return FALSE;
+	}
+	
+	const gchar *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		char *filename = NULL;
+		filename = g_strdup_printf ("%s/%s", env->pluginpath, de);
+		
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
+			g_free(filename);
+			continue;
 		}
+		
+		OSyncError *error = NULL;
+		if (!osync_conv_plugin_load(env, filename, &error)) {
+			osync_debug("OSCONV", 0, "Unable to load format plugin %s: %s", filename, error->message);
+			osync_error_free(&error);
+		}
+		g_free(filename);
+	}
+	g_dir_close(dir);
+	return TRUE;
+}
+
+/*! @brief Unloads a format environment
+ * 
+ * This unloads all plugins and frees the resources associated
+ * with these plugins
+ * 
+ * @param env Pointer to environment
+ * 
+ */
+void osync_conv_env_unload(OSyncFormatEnv *env)
+{
+	g_assert(env);
+	
+	GList *p;
+	for (p = env->plugins; p; p = p->next) {
+		GModule *plugin = p->data;
+		g_module_close(plugin);
+	}
+	g_list_free(env->plugins);
+	env->plugins = NULL;
+}
+
+void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname)
+{
+	OSyncObjType *type = osync_conv_find_objtype(env, objtypestr);
+	g_assert(type);
+	OSyncObjFormat *format = osync_conv_find_objformat(env, formatname);
+	type->common_format = format;
+}
+
+OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
+{
+	g_assert(env);
+	g_assert(name);
+	
+	GList *element = NULL;
+	for (element = env->objtypes; element; element = element->next) {
+		OSyncObjType *type = element->data;
+		if (!strcmp(type->name, name))
+			return type;
 	}
 	return NULL;
 }
 
-OSyncObjType *osync_conv_detect_objtype_full(OSyncFormatEnv *env, OSyncChange *change)
+int osync_conv_num_objtypes(OSyncFormatEnv *env)
 {
-	OSyncObjType *ret;
-	GList *path;
-	if (!osync_conv_find_path_fn(env, change, target_fn_no_any, NULL, &path))
-		return NULL;
+	g_assert(env);
+	return g_list_length(env->objtypes);
+}
 
-	if (!path)
-		ret = change->format->objtype;
-	else {
-		OSyncFormatConverter *last_converter = g_list_last(path)->data;
-		g_assert(last_converter);
-		ret = last_converter->target_format->objtype;
+OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth)
+{
+	g_assert(env);
+	return g_list_nth_data(env->objtypes, nth);
+}
+
+int osync_conv_num_objformats(OSyncObjType *type)
+{
+	g_assert(type);
+	return g_list_length(type->formats);
+}
+
+OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth)
+{
+	g_assert(type);
+	return g_list_nth_data(type->formats, nth);
+}
+
+OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
+{
+	g_assert(env);
+	g_assert(name);
+	
+	GList *element = NULL;
+	for (element = env->objformats; element; element = element->next) {
+		OSyncObjFormat *format = element->data;
+		if (!strcmp(format->name, name))
+			return format;
 	}
-	g_list_free(path);
-	return ret;
+	return NULL;
+}
+
+OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
+{
+	OSyncObjType *type = NULL;
+	if (!(type = osync_conv_find_objtype(env, name))) {
+		type = g_malloc0(sizeof(OSyncObjType));
+		g_assert(type);
+		type->name = g_strdup(name);
+		type->env = env;
+		env->objtypes = g_list_append(env->objtypes, type);
+	}
+	return type;
+}
+
+osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
+{
+	if (osync_conv_find_converter(env, sourcename, targetname))
+		return FALSE;
+
+	OSyncObjFormat *fmt_src = osync_conv_find_objformat(env, sourcename);
+	OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, targetname);
+	if (!fmt_src || !fmt_trg)
+		return osync_register_unresolved_converter(env, type, sourcename, targetname, convert_func, flags);
+	else
+		return _osync_conv_register_converter(env, type, fmt_src, fmt_trg, convert_func, flags);
 }
 
 void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func)
@@ -1210,26 +981,358 @@ void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, 
 	env->filter_functions = g_list_append(env->filter_functions, function);
 }
 
-OSyncObjFormat *osync_conv_detect_objformat(OSyncFormatEnv *env, OSyncChange *change)
+OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *typename, const char *name)
 {
-	OSyncObjFormat *sourceformat = NULL;
-	GList *d = NULL;
-	if (!change->has_data)
+	OSyncObjType *type;
+	OSyncObjFormat *format = NULL;
+
+	type = osync_conv_find_objtype(env, typename);
+	if (!type)
+		type = osync_conv_register_objtype(env, typename);
+
+	if (!(format = osync_conv_find_objformat(env, name))) {
+		format = g_malloc0(sizeof(OSyncObjFormat));
+		g_assert(format);
+		format->name = strdup(name);
+		format->objtype = type;
+		format->env = env;
+		env->objformats = g_list_append(env->objformats, format);
+		type->formats = g_list_append(type->formats, format);
+	}
+
+	/* Some converters may resolve their format names, now */
+	osync_conv_resolve_converters(env);
+	/* Resolve the pending osync_conv_format_set_like() definitions, too */
+	osync_conv_resolve_is_like(env, format);
+	return format;
+}
+
+void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func)
+{
+	g_assert(format);
+	format->cmp_func = cmp_func;
+}
+
+void osync_conv_format_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func)
+{
+	g_assert(format);
+	format->destroy_func = destroy_func;
+	osync_conv_resolve_is_like(format->env, format);
+}
+
+void osync_conv_format_set_copy_func(OSyncObjFormat *format, OSyncFormatCopyFunc copy_func)
+{
+	g_assert(format);
+	format->copy_func = copy_func;
+	osync_conv_resolve_is_like(format->env, format);
+}
+
+/** Set the format as a simple malloc()ed block
+ *
+ * This will tell that this format is a block of data that can be
+ * deallocated using simple a call to free(), and copied using a simple
+ * call to malloc()/memcpy(). This will set the destroy and copy functions
+ * of the format to functions that use free()/malloc()/memcpy(), accordingly.
+ */
+void osync_conv_format_set_malloced(OSyncObjFormat *format)
+{
+	g_assert(format);
+	osync_conv_format_set_copy_func(format, osync_format_malloced_copy);
+	osync_conv_format_set_destroy_func(format, osync_format_malloced_destroy);
+}
+
+/** Set the format as behaving like another format
+ *
+ * This will tell that this format can be converted to/from
+ * base_format by just copying the pointer and size of data.
+ *
+ * Calling this function implies that the copy and destroy functions
+ * for the format will be the same of base_format.
+ *
+ * Converter flags may be specified for the converters that will be
+ * registered. to_flags will contain flags for the converter
+ * format -> base_format. from_flags will contain flags for the converter
+ * base_format -> format. Currently, the only flags allowed on these parameters
+ * are CONV_NOTLOSSY and CONV_DETECTFIRST.
+ *
+ * The common use of this function is for the "plain" format, as:
+ *
+ * osync_conv_format_set_like(myformat, "plain", CONV_NOTLOSSY, 0);
+ *
+ * The call above will make the format be easily converted to the "plain"
+ * format, marking the myformat -> "plain" conversion as CONV_NOTLOSSY,
+ * and marking the "plain" -> myformat as lossy. This is the most common
+ * use, as when comparing the data, a single byte change on the block
+ * will make a difference, and most of other formats (like "vcard")
+ * can represent the same information as a different block of bytes
+ * (i.e. the order of the fields doesn't matter).
+ */
+void osync_conv_format_set_like(OSyncObjFormat *format, const char *base_format, ConverterFlags to_flags, ConverterFlags from_flags)
+{
+	OSyncObjFormat *base;
+
+	/* Copy the name for osync_conv_resolve_is_like() */
+	format->is_like = strdup(base_format);
+
+	/* If the format was already registered, set the functions,
+	 * else it will be resolved when registered
+	 */
+	base = osync_conv_find_objformat(format->env, base_format);
+	if (base) osync_conv_resolve_is_like(format->env, base);
+
+	osync_conv_register_converter(format->env, CONVERTER_CONV, format->name, base_format, conv_simple_copy, CONV_NOCOPY|to_flags);
+	osync_conv_register_converter(format->env, CONVERTER_CONV, base_format, format->name, conv_simple_copy, CONV_NOCOPY|from_flags);
+}
+
+/** Set the detector function for this type
+ *
+ * A detector function for a given format is different from a the detectors registered
+ * using osync_conv_register_data_detector().
+ *
+ * The osync_conv_format_set_detect_func() is a function designed to return the lower
+ * objformat of the data, by looking at it.
+ *
+ * The osync_conv_register_data_detector() function is a function that checks if a
+ * given block of data can be converting to a given format.
+ *
+ * The osync_conv_format_set_detect_func() is more useful for
+ * 'encapsulator'-like formats * that can tell the format of the data below,
+ * by just looking at the data. The osync_conv_register_data_detector() functions
+ * is more useful for 'generic' formats (like the "plain" format) that each
+ * format to which it can be converted to (vcard, vcalendar, etc.) knows
+ * how to detect the data by looking into the "plain" block.
+ */
+void osync_conv_format_set_detect_func(OSyncObjFormat *format, OSyncFormatDetectFunc detect_func)
+{
+	g_assert(format);
+	format->detect_func = detect_func;
+}
+
+void osync_conv_format_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDuplicateFunc dupe_func)
+{
+	g_assert(format);
+	format->duplicate_func = dupe_func;
+}
+
+void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func)
+{
+	g_assert(format);
+	format->create_func = create_func;
+}
+
+const char *osync_objtype_get_name(OSyncObjType *type)
+{
+	g_assert(type);
+	return type->name;
+}
+
+const char *osync_objformat_get_name(OSyncObjFormat *format)
+{
+	g_assert(format);
+	return format->name;
+}
+
+OSyncObjType *osync_objformat_get_objtype(OSyncObjFormat *format)
+{
+	g_assert(format);
+	return format->objtype;
+}
+
+osync_bool osync_change_duplicate(OSyncChange *change)
+{
+	g_assert(change);
+	OSyncObjFormat *format = change->format;
+	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
+	if (!format || !format->duplicate_func)
 		return FALSE;
+	format->duplicate_func(change);
+	return TRUE;
+}
+
+OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange)
+{
+	g_assert(rightchange);
+	g_assert(leftchange);
+
+	/*FIXME: Convert data if the formats are different */
+
+	if (rightchange->changetype == leftchange->changetype) {
+		if (!(rightchange->data == leftchange->data)) {
+			if (!(leftchange->objtype == rightchange->objtype)) {
+				osync_debug("OSCONV", 4, "Objtypes do not match\n");
+				return CONV_DATA_MISMATCH;
+			}
+			if (leftchange->format != rightchange->format) {
+				osync_debug("OSCONV", 4, "Objformats do not match\n");
+				return CONV_DATA_MISMATCH;
+			}
+			if (!rightchange->data || !leftchange->data) {
+				osync_debug("OSCONV", 4, "One change has no data\n");
+				return CONV_DATA_MISMATCH;
+			}
+			OSyncObjFormat *format = leftchange->format;
+			g_assert(format);
+			
+			return format->cmp_func(leftchange, rightchange);
+		} else {
+			osync_debug("OSCONV", 4, "OK. data point to same memory: %p, %p\n", rightchange->data, leftchange->data);
+			return CONV_DATA_SAME;
+		}
+	} else {
+		osync_debug("OSCONV", 4, "Change types do not match\n");
+		return CONV_DATA_MISMATCH;
+	}
+}
+
+/*! @brief Convert a change to a specific format
+ * 
+ * This will convert the change with its data to the specified format
+ * if possible.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to convert
+ * @param targetformat To which format you want to convert to
+ * @param error The error-return location
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat, OSyncError **error)
+{
+	return osync_conv_convert_fn(env, change, target_fn_simple, targetformat, error);
+}
+
+/*! @brief Convert a change to a specific format with the given name
+ * 
+ * This will convert the change with its data to the specified format
+ * if possible.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to convert
+ * @param targetname To which format you want to convert to
+ * @param error The error-return location
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *targetname, OSyncError **error)
+{
+	return osync_conv_convert_fn(env, change, target_fn_fmtname, targetname, error);
+}
+
+/*! @brief Convert a change to some formats
+ * 
+ * This will convert the change with its data to one of the specified formats
+ * if possible.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to convert
+ * @param targetnames NULL-Terminated array of formatnames
+ * @param error The error-return location
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **targetnames, OSyncError **error)
+{
+	return osync_conv_convert_fn(env, change, target_fn_fmtnames, targetnames, error);
+}
+
+/*! @brief Tries to detect the object type of the given change
+ * 
+ * This will try to detect the object type of the data on the change
+ * and return it, but not set it.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to detect
+ * @param error The error-return location
+ * @returns The objecttype on success, NULL otherwise
+ * 
+ */
+OSyncObjType *osync_change_detect_objtype(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
+{
+	OSyncObjFormat *format = NULL;
+	if (!(format = osync_change_detect_objformat(env, change, error)))
+		return NULL;
+	return format->objtype;
+}
+
+/*! @brief Tries to detect the encapsulated object type of the given change
+ * 
+ * This will try to detect the encapsulated object type of the data on the change
+ * and return it, but not set it. This will try to detect the change, deencapsulate
+ * it, detect again etc until it cannot deencapsulate further.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to detect
+ * @param error The error-return location
+ * @returns The objecttype on success, NULL otherwise
+ * 
+ */
+OSyncObjType *osync_change_detect_objtype_full(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
+{
+	OSyncObjFormat *format = NULL;
+	if (!(format = osync_change_detect_objformat_full(env, change, error)))
+		return NULL;
+	return format->objtype;
+}
+
+/*! @brief Tries to detect the format of the given change
+ * 
+ * This will try to detect the format of the data on the change
+ * and return it, but not set it.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to detect
+ * @param error The error-return location
+ * @returns The format on success, NULL otherwise
+ * 
+ */
+OSyncObjFormat *osync_change_detect_objformat(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
+{
+	if (!change->has_data) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "The change has no data");
+		return NULL;
+	}
 	
+	GList *d = NULL;
 	for (d = env->data_detectors; d; d = d->next) {
 		OSyncDataDetector *detector = d->data;
 		if (detector->detect_func(env, change->data, change->size)) {
-			sourceformat = osync_conv_find_objformat(env, detector->targetformat);
+			OSyncObjFormat *sourceformat = osync_conv_find_objformat(env, detector->targetformat);
 			return sourceformat;
 		}
 	}
+	
+	osync_error_set(error, OSYNC_ERROR_GENERIC, "None of the detectors was able to recognize this data");
 	return NULL;
 }
 
-osync_bool osync_conv_detect(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
+/*! @brief Tries to detect the encapsulated format of the given change
+ * 
+ * This will try to detect the encapsulated format of the data on the change
+ * and return it, but not set it. This will try to detect the change, deencapsulate
+ * it, detect again etc until it cannot deencapsulate further.
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to detect
+ * @param error The error-return location
+ * @returns The format on success, NULL otherwise
+ * 
+ */
+OSyncObjFormat *osync_change_detect_objformat_full(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
 {
-	return TRUE;
+	OSyncObjFormat *ret;
+	GList *path;
+	if (!osync_conv_find_path_fn(env, change, target_fn_no_any, NULL, &path))
+		return NULL;
+
+	if (!path)
+		ret = change->format;
+	else {
+		OSyncFormatConverter *last_converter = g_list_last(path)->data;
+		g_assert(last_converter);
+		ret = last_converter->target_format;
+	}
+	g_list_free(path);
+	return ret;
 }
 
 /*@}*/

@@ -118,10 +118,17 @@ OSyncGroup *osync_group_new(OSyncEnv *env)
 		group->env = env;
 	}
 	
+	OSyncError *error = NULL;
 	group->conv_env = osync_conv_env_new();
-	osync_conv_env_load(group->conv_env);
-	/*FIXME: Remove hardcoded format name here */
-	osync_conv_set_common_format(group->conv_env, "contact", "vcard30");
+	if (!osync_conv_env_load(group->conv_env, &error)) {
+		osync_debug("OSGRP", 0, "Unable to load conversion environment: %s\n", error->message);
+		osync_error_free(&error);
+		group->conv_env = NULL;
+	} else {
+		/*FIXME: Remove hardcoded format name here */
+		osync_conv_set_common_format(group->conv_env, "contact", "vcard30");
+	}
+	
 	osync_debug("OSGRP", 3, "Generated new group");
 	return group;
 }
@@ -137,8 +144,10 @@ void osync_group_free(OSyncGroup *group)
 {
 	g_assert(group);
 	
-	osync_conv_env_unload(group->conv_env);
-	osync_conv_env_free(group->conv_env);
+	if (group->conv_env) {
+		osync_conv_env_unload(group->conv_env);
+		osync_conv_env_free(group->conv_env);
+	}
 	
 	while (osync_group_nth_member(group, 0))
 		osync_member_free(osync_group_nth_member(group, 0));

@@ -460,7 +460,7 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		 * changes should come with the right objformat/objtype set,
 		 * because not detection/conversion will be run
 		 */
-		if (!osync_conv_convert_member_sink(env, change, member)) {
+		if (!osync_change_convert_member_sink(env, change, member)) {
 			osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
 			osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
 			return;
@@ -539,7 +539,7 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
 		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
 		/*FIXME: use multiple sinks, or what? */
-		osync_bool r = osync_conv_convert_simple(env, change, format_sink->format);
+		osync_bool r = osync_change_convert(env, change, format_sink->format, NULL);
 		if (!r)
 			continue; //Unable to convert to selected format
 

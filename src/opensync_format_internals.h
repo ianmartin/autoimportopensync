@@ -140,9 +140,8 @@ typedef osync_bool (*OSyncPathTargetFn)(const void *data, OSyncObjFormat *fmt);
 
 osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist);
 
-osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata);
-osync_bool osync_conv_convert_simple(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *fmt);
+osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, OSyncError **error);
 osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets);
-osync_bool osync_conv_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb);
+osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb);
 
-OSyncObjType *osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change);
+osync_bool osync_conv_objtype_is_any(const char *objstr);
