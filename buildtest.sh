@@ -15,14 +15,14 @@ TOP_SRCDIR=$(pwd)
 echo -n "Making sure build environment is sane"
 ./autogen.sh &> /dev/null
 echo -n "."
-make clean > /dev/null || exit 1
+make clean &> /dev/null || exit 1
 echo -n "."
 
 cd plugins/file-sync
 
 ./autogen.sh &> /dev/null
 echo -n "."
-make clean > /dev/null || exit 1
+make clean &> /dev/null || exit 1
 echo -n "."
 echo ""
 
