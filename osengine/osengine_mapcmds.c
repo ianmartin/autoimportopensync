@@ -403,6 +403,49 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapping, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping, error);
+	
+	time_t time = 0;
+	time_t latesttime = 0;
+	osync_bool preveq = FALSE;
+	
+	GList *e = NULL;
+	for (e = mapping->entries; e; e = e->next) {
+		OSyncMappingEntry *entry = e->data;
+		
+		if (osync_change_get_changetype(entry->change) != CHANGE_UNKNOWN) {
+			time = osync_change_get_revision(entry->change, error);
+			if (osync_error_is_set(error)) {
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+				mapping->master = NULL;
+				return FALSE;
+			}
+			
+			if (time > latesttime) {
+				latesttime = time;
+				mapping->master = entry;
+				preveq = FALSE;
+			} else if (time == latesttime)
+				preveq = TRUE;
+		}
+	}
+	
+	if (preveq == TRUE) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not decide for one entry. Timestamps where equal");
+		mapping->master = NULL;
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	osync_flag_set(mapping->fl_solved);
+	send_mapping_changed(engine, mapping);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, mapping->master);
+	return TRUE;
+}
+
 void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, change);

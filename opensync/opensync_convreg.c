@@ -233,3 +233,11 @@ void osync_env_format_set_print_func(OSyncEnv *env, const char *formatname, OSyn
 	osync_assert(format, "You need to register the formattype first");
 	format->print_func = print_func;
 }
+
+void osync_env_format_set_revision_func(OSyncEnv *env, const char *formatname, OSyncFormatRevisionFunc revision_func)
+{
+	g_assert(env);
+	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
+	osync_assert(format, "You need to register the formattype first");
+	format->revision_func = revision_func;
+}

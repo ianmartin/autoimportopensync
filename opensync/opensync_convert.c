@@ -598,6 +598,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		format->create_func = ftempl->create_func;
 		format->destroy_func = ftempl->destroy_func;
 		format->print_func = ftempl->print_func;
+		format->revision_func = ftempl->revision_func;
 		type->formats = g_list_append(type->formats, format);
 		conv_env->objformats = g_list_append(conv_env->objformats, format);
 	}

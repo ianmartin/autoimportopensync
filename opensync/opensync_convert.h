@@ -36,6 +36,7 @@ typedef char *(* OSyncFormatPrintFunc) (OSyncChange *change);
 typedef void *(* OSyncFormatConverterInitFunc) (void);
 typedef void (* OSyncFormatConverterFinalizeFunc) (void *);
 typedef osync_bool (* OSyncFormatExtInitFunc) (void *);
+typedef time_t (* OSyncFormatRevisionFunc) (OSyncChange *change, OSyncError **error);
 
 OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env);
 void osync_conv_env_free(OSyncFormatEnv *env);

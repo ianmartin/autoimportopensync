@@ -91,6 +91,39 @@ char *osync_change_get_printable(OSyncChange *change)
 	return format->print_func(change);
 }
 
+/*! @brief Returns the revision of the object
+ * 
+ * @param change The change to get the revision from
+ * @param error A error struct
+ * @returns The revision of the object in seconds since the epoch in zulu time
+ * 
+ */
+time_t osync_change_get_revision(OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+	
+	g_assert(change);
+	if (!change->has_data) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No data set when asking for the timestamp");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return 0;
+	}
+	
+	OSyncObjFormat *format = change->format;
+	g_assert(format);
+	
+	if (!format->revision_func) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No revision function set");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return 0;
+	}
+		
+	time_t time = format->revision_func(change, error);
+	
+	osync_trace(osync_error_is_set(error) ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s, %i", __func__, osync_error_print(error), time);
+	return time;
+}
+
 /*! @brief Compares the data of 2 changes
  * 
  * Compares the two given changes and returns:

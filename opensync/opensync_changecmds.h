@@ -4,6 +4,7 @@
 osync_bool osync_change_duplicate(OSyncChange *change);
 OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange);
 OSyncConvCmpResult osync_change_compare_data(OSyncChange *leftchange, OSyncChange *rightchange);
+time_t osync_change_get_revision(OSyncChange *change, OSyncError **error);
 
 OSyncObjFormat *osync_change_detect_objformat(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error);
 OSyncObjFormat *osync_change_detect_objformat_full(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error);

@@ -43,6 +43,7 @@ struct OSyncObjFormat {
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
+	OSyncFormatRevisionFunc revision_func;
 };
 
 /*! @brief Represent a converter from one format to another
@@ -119,6 +120,7 @@ typedef struct OSyncObjFormatTemplate {
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
+	OSyncFormatRevisionFunc revision_func;
 } OSyncObjFormatTemplate;
 
 typedef struct OSyncConverterTemplate {
