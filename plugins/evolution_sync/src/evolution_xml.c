@@ -8,7 +8,7 @@ osync_bool evo_parse_settings(evo_environment *env, char *data, int size)
 	osync_debug("EVO-SYNC", 4, "start: %s", __func__);
 
 	//set defaults
-	env->adressbook_path = NULL;
+	env->addressbook_path = NULL;
 	env->calendar_path = NULL;
 	env->tasks_path = NULL;
 
@@ -39,7 +39,7 @@ osync_bool evo_parse_settings(evo_environment *env, char *data, int size)
 		char *str = xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"address_path")) {
-				env->adressbook_path = g_strdup(str);
+				env->addressbook_path = g_strdup(str);
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_path")) {
 				env->calendar_path = g_strdup(str);

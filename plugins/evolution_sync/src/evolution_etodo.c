@@ -45,7 +45,8 @@ osync_bool evo_tasks_open(evo_environment *env)
 	return TRUE;
 }
 
-List *evo_todo_get_changes(GList *changes, evolution_connection *conn) {
+osync_bool evo_tasks_get_changes(OSyncContext *ctx)
+{
   GList *todo_changes, *l;
   if (!conn->todo_client)
     return(changes);
@@ -94,7 +95,8 @@ List *evo_todo_get_changes(GList *changes, evolution_connection *conn) {
   return(changes);
 }  
 
-GList *evo_tasks_get_all (GList *changes, evolution_connection *conn) {
+osync_bool evo_tasks_get_all (OSyncContext *ctx)
+{
   GList *todo_changes, *known_changes, *l;
   if (!conn->todo_client)
     return(changes);

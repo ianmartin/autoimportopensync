@@ -9,16 +9,12 @@ EVO_VER=`evolution --version | sed -e 's/.nome .volution //g'`
 EVO_MAJVER=${EVO_VER:0:1}
 EVO_MINVER=${EVO_VER:2:1}
 
-pkg_modules="glib-2.0"
+pkg_modules="glib-2.0 libbonobo-2.0 "
 if (( EVO_MAJVER > 1 || ( EVO_MAJVER==1 && EVO_MINVER >= 4))); then
   pkg_modules="${pkgmodules} evolution-addressbook evolution-calendar"
 else
   AC_MSG_ERROR(This version of the Evolution plugin does only work with Evolution >= 1.4. For evolution 2.0 use the evolution2_sync plugin)
 fi
-PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
-AC_SUBST(PACKAGE_CFLAGS)
-AC_SUBST(PACKAGE_LIBS)
-
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)

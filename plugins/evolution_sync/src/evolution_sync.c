@@ -1,16 +1,20 @@
 #include "evolution_sync.h"
+#include <bonobo/bonobo-main.h>
 
-#define EVODIR "~/evolution/local"
+#define EVODIR "evolution/local"
 
 GList* read_filelist(GList *list, const char *dirname, const char *targetname)
 {         	
 	GDir *dir = NULL;
 	char *filename = NULL;
 	
-	dir = g_dir_open(dirname, 0, NULL);
-	if (!dir)
+	GError *error = NULL;
+	dir = g_dir_open(dirname, 0, &error);
+	if (!dir) {
+		printf("Unable to open directory %s\n", error->message);
 		return NULL;
-
+	}
+	
 	const gchar *de = NULL;
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", dirname, de);
@@ -20,7 +24,7 @@ GList* read_filelist(GList *list, const char *dirname, const char *targetname)
 		} else if (!strcmp(de, targetname)) {
 			//Found a new directory containing our target
 			evo_location *loc = g_malloc0(sizeof(evo_location));
-			loc->uri = g_strdup(filename);
+			loc->uri = g_strdup_printf("file://%s", filename);
 			loc->name = g_path_get_basename(dirname);
 			list = g_list_append(list, loc);
 			continue;
@@ -33,17 +37,26 @@ GList* read_filelist(GList *list, const char *dirname, const char *targetname)
 
 GList *evo_list_calendars(evo_environment *env, void *data, OSyncError **error)
 {
-	return read_filelist(NULL, EVODIR, "calendar.ics");
+	char *filename = g_strdup_printf("%s/"EVODIR, g_get_home_dir());
+	GList *ret = read_filelist(NULL, filename, "calendar.ics");
+	g_free(filename);
+	return ret;
 }
 
 GList *evo_list_tasks(evo_environment *env, void *data, OSyncError **error)
 {
-	return read_filelist(NULL, EVODIR, "tasks.ics");
+	char *filename = g_strdup_printf("%s/"EVODIR, g_get_home_dir());
+	GList *ret = read_filelist(NULL, filename, "tasks.ics");
+	g_free(filename);
+	return ret;
 }
 
 GList *evo_list_addressbooks(evo_environment *env, void *data, OSyncError **error)
 {
-	return read_filelist(NULL, EVODIR, "addressbook.db");
+	char *filename = g_strdup_printf("%s/"EVODIR, g_get_home_dir());
+	GList *ret = read_filelist(NULL, filename, "addressbook.db");
+	g_free(filename);
+	return ret;
 }
 
 void evo_obj_updated_cb(CalClient *client, const char *uid, gpointer data)
@@ -60,7 +73,7 @@ void evo_obj_removed_cb(CalClient *client, const char *uid, gpointer data)
 
 static void *evo_initialize(OSyncMember *member, OSyncError **error)
 {
-	osync_debug("EVO-SYNC", 4, "start: %s", __func__);
+	osync_debug("EVO-SYNC", 0, "start: %s", __func__);
 	int fd[2];
 
 	g_type_init();
@@ -72,6 +85,13 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 		exit(0);
 	}
 
+	/*int argc = 1;
+	char *argv[2];
+	argv[0] = "msynctool";
+	argv[1] = NULL;
+
+	bonobo_init(&argc, argv);*/
+	
 	/*if (read(fd[0],version,256) > 0) {
 		int majver, minver = 0, micver = 0;
 		if (sscanf(version,"Gnome evolution %d.%d.%d",&majver, &minver, &micver) >= 2) {
@@ -89,9 +109,13 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 	evo_environment *env = g_malloc0(sizeof(evo_environment));
 	if (!env)
 		goto error_ret;
+	
+	env->working_mutex = g_mutex_new();
+	env->working = g_cond_new();
+		
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) 
 		goto error_free;
-	if (!evo2_parse_settings(env, configdata, configsize)) {
+	if (!evo_parse_settings(env, configdata, configsize)) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to parse plugin configuration for evo2 plugin");
 		goto error_free_data;
 	}
@@ -108,13 +132,53 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 		return NULL;
 }
 
+/*void evo_run_and_block(GThreadFunc func, OSyncContext *ctx)
+{
+	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	g_mutex_lock(env->working_mutex);
+	
+	if (!g_thread_create(func, ctx, FALSE, NULL))
+		g_mutex_unlock(env->working_mutex);
+	else {
+		g_cond_wait(env->working, env->working_mutex);
+		g_mutex_unlock(env->working_mutex);
+	}
+}
+
+void evo_continue(OSyncContext *ctx)
+{
+	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	g_mutex_lock(env->working_mutex);
+	g_cond_signal(env->working);
+	g_mutex_unlock(env->working_mutex);
+}*/
+
+void evo_run_and_block(GThreadFunc func, OSyncContext *ctx)
+{
+	printf("Running function!\n");
+	g_thread_create(func, ctx, FALSE, NULL);
+	printf("Running bonobo main\n");
+	bonobo_main();
+	printf("done running bonobo main\n");
+}
+
+void evo_continue(OSyncContext *ctx)
+{
+	printf("quitting bonobo main\n");
+	bonobo_main_quit();
+}
+
 static void evo_connect(OSyncContext *ctx)
 {
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-	env->dbs_to_load = 3;
+	osync_debug("EVO2-SYNC", 0, "start: %s", __func__);
 	
-	if (osync_member_objtype_enabled(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
+	//env->dbs_to_load = 3;
+	
+	evo_run_and_block((GThreadFunc)evo_addrbook_open, ctx);
+	
+
+	
+	/*if (osync_member_objtype_enabled(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
 		if (evo_addrbook_open(env, ctx)) {
 			if (!osync_anchor_compare(env->member, "contact", env->adressbook_path))
 				osync_member_set_slow_sync(env->member, "contact", TRUE);
@@ -139,7 +203,7 @@ static void evo_connect(OSyncContext *ctx)
 		} else {
 			osync_context_send_log(ctx, "Unable to open tasks");
 		}
-	}
+	}*/
 
 	srand(time(NULL));
 }
@@ -147,22 +211,22 @@ static void evo_connect(OSyncContext *ctx)
 static void evo_get_changeinfo(OSyncContext *ctx)
 {
 	osync_debug("EVO-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	//evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 
 	evo_addrbook_get_changes(ctx);
 
-	if (env->addressbook) {
+	/*if (env->addressbook) {
 		if (osync_member_get_slow_sync(env->member, "contact"))
 			evo_addrbook_get_changes(ctx);
 		else
 			evo_addrbook_get_all(ctx);
-	}
+	}*/
 	
-	if (env->calendar) {
+	/*if (env->calendar) {
 		if (osync_member_get_slow_sync(env->member, "calendar"))
-			evo_cal_get_changes(ctx);
+			evo_calendar_get_changes(ctx);
 		else
-			evo_cal_get_all(ctx);
+			evo_calendar_get_all(ctx);
 	}
 	
 	if (env->tasks) {
@@ -170,7 +234,7 @@ static void evo_get_changeinfo(OSyncContext *ctx)
 			evo_tasks_get_changes(ctx);
 		else
 			evo_tasks_get_all(ctx);
-	}
+	}*/
 	
 	osync_context_report_success(ctx);
 }
@@ -226,6 +290,6 @@ void get_info(OSyncPluginInfo *info) {
 	info->functions.finalize = evo_finalize;
 
 	evo_addrbook_setup(info);
-	evo_calendar_setup(info);
-	evo_tasks_setup(info);
+	//evo_calendar_setup(info);
+	//evo_tasks_setup(info);
 }

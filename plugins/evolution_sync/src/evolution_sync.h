@@ -22,7 +22,7 @@
 typedef struct {
 	OSyncMember *member;
 	char *configfile;
-	char *adressbook_path;
+	char *addressbook_path;
 	EBook *addressbook;
 	EBookView *ebookview;
 	char *calendar_path;
@@ -30,9 +30,14 @@ typedef struct {
 	char *tasks_path;
 	CalClient *tasks;
 	int debuglevel;
-	int dbs_to_load;
-	int dbs_loaded;
+	//int dbs_to_load;
+	//int dbs_loaded;
+	GCond* working;
+	GMutex* working_mutex;
 } evo_environment;
+
+void evo_run_and_block(GThreadFunc func, OSyncContext *ctx);
+void evo_continue(OSyncContext *ctx);
 
 #include "evolution_ebook.h"
 #include "evolution_ecal.h"

@@ -17,9 +17,10 @@ plugin_LTLIBRARIES = evo_sync.la
 evo_sync_la_SOURCES = \
 	evolution_sync.c \
 	evolution_ebook.c \
-	evolution_ecal.c \
-	evolution_etodo.c \
 	evolution_xml.c
+	
+#	evolution_ecal.c
+#	evolution_etodo.c
 
 evo_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 evo_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ -lpthread

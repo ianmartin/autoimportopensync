@@ -1,66 +1,96 @@
 #include "evolution_sync.h"
 
+static void evo_addr_removed_cb(EBookView *book_view, GList *ids, gpointer data)
+{
+	printf("removed cn\n");
+}
+
+static void evo_addr_added_cb(EBookView *book_view, GList *cards, gpointer data)
+{
+	printf("added cn\n");
+}
+
+static void evo_addr_changed_cb(EBookView *book_view, GList *cards, gpointer data)
+{
+	printf("changed cn\n");
+}
+
+static void evo_addr_seqcompl_cb(EBookView *book_view, EBookViewStatus status, gpointer data)
+{
+	printf("seqcompl cn\n");
+}
+
 static void evo_addressbook_view_cb(EBook *book, EBookStatus status, EBookView *book_view,  gpointer data)
 {
-	evo_environment *env = data;
+	OSyncContext *ctx = data;
 	
 	if (status == E_BOOK_STATUS_SUCCESS) {
-		if (conn->addr_mode == EVO_ADDR_MODE_GETVIEW)
-			conn->ebookview = book_view;
+		/*if (conn->addr_mode == EVO_ADDR_MODE_GETVIEW)
+			conn->ebookview = book_view;*/
 		g_object_ref (G_OBJECT (book_view));
-		g_signal_connect (G_OBJECT (book_view), "card_changed", G_CALLBACK (evo_addr_changed_cb), env);
-		g_signal_connect (G_OBJECT (book_view), "card_added", G_CALLBACK (evo_addr_added_cb), env);
-		g_signal_connect (G_OBJECT (book_view), "card_removed", G_CALLBACK (evo_addr_removed_cb), env);
-		g_signal_connect (G_OBJECT (book_view), "sequence_complete", G_CALLBACK (evo_addr_seqcompl_cb), env);
+		g_signal_connect (G_OBJECT (book_view), "card_changed", G_CALLBACK (evo_addr_changed_cb), ctx);
+		g_signal_connect (G_OBJECT (book_view), "card_added", G_CALLBACK (evo_addr_added_cb), ctx);
+		g_signal_connect (G_OBJECT (book_view), "card_removed", G_CALLBACK (evo_addr_removed_cb), ctx);
+		g_signal_connect (G_OBJECT (book_view), "sequence_complete", G_CALLBACK (evo_addr_seqcompl_cb), ctx);
 	}
 }
 
 
 void evo_addressbook_opened_cb(EBook *book, EBookStatus status, gpointer data)
 {
-	evo_environment *env = data;
+	printf("evo_addressbook_opened_cb\n");
+	OSyncContext *ctx = data;
   
 	if (status == E_BOOK_STATUS_SUCCESS) {
-		env->dbs_waiting--;
-		e_book_get_book_view(book, "(contains \"full_name\" \"\")", evo_addressbook_view_cb, enb);
+		//env->dbs_waiting--;
+		e_book_get_book_view(book, "(contains \"full_name\" \"\")", evo_addressbook_view_cb, ctx);
 	} else {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to addressbook");
-		g_object_unref(G_OBJECT(client));
+		g_object_unref(G_OBJECT(book));
+		evo_continue(ctx);
 	}
 	
-	if (env->dbs_waiting == 0)
-		osync_context_report_success(ctx);
+	/*if (env->dbs_waiting == 0)
+		osync_context_report_success(ctx);*/
 }
 
-
-osync_bool evo_addrbook_open(evo_environment *env, OSyncContext *ctx)
+/*static void
+book_open_cb (EBook *book, EBookStatus status, gpointer closure)
 {
-	if (!env->addressbook_path) {
-		env->dbs_waiting--;
-		return FALSE;
-	}
+        EAddrConduitContext *ctxt = (EAddrConduitContext*)closure;
+
+        if (status == E_BOOK_STATUS_SUCCESS) {
+                e_book_get_cursor (book, "(contains \"full_name\" \"\")", cursor_cb, ctxt);
+        } else {
+                WARN (_("EBook not loaded\n"));
+                gtk_main_quit();
+        }
+}*/
+
+void *evo_addrbook_open(OSyncContext *ctx)
+{
+	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	osync_debug("EVO-SYNC", 0, "Addressbook: Loading %s", env->addressbook_path);
+	
+	sleep(3);
 	
 	env->addressbook = e_book_new();
 	if (!env->addressbook) {
-		osync_debug("EVO-SYNC", 1, "Evolution plugin: Could not connect to Evolution!");
+		osync_debug("EVO-SYNC", 0, "Evolution plugin: Could not connect to Evolution!");
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Evolution plugin: Could not connect to Evolution!");
-		return FALSE;
+		return NULL;
 	}
 
-	osync_debug("EVO-SYNC", 1, "Addressbook loading `%s'...\n", env->addressbook_path));
-
-	if (!e_book_load_uri(env->ebook, env->addressbook_path, evo_addressbook_opened_cb, env)) {
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Evolution plugin: Could not open \"%s\"!", env->addressbook_path);
-		osync_debug("EVO-SYNC", 1, "Evolution plugin: Could not open \"%s\"!", env->addressbook_path);
-		return FALSE;
-	}
-	return TRUE;
+	osync_debug("EVO-SYNC", 0, "Addressbook loading `%s'...\n", env->addressbook_path);
+	e_book_load_uri(env->addressbook, env->addressbook_path, evo_addressbook_opened_cb, ctx);
+	printf("done loading addressbook\n");
+	return NULL;
 }
 
 void evo_addrbook_get_changes(OSyncContext *ctx)
 {
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	osync_debug("EVO2-SYNC", 0, "start: %s", __func__);
+	/*evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
 	GList *changes = NULL;
 	EBookChange *ebc = NULL;
@@ -102,34 +132,35 @@ void evo_addrbook_get_changes(OSyncContext *ctx)
 		}
 	} else {
 
-	}
-	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
+	}*/
+	osync_debug("EVO2-SYNC", 0, "end: %s", __func__);
 }
 
 osync_bool evo_addrbook_get_all(OSyncContext *ctx)
 {
-		osync_debug("EVO2-SYNC", 4, "slow_sync for contact");
-		EBookQuery *query = e_book_query_any_field_contains("");
-		if (!e_book_get_contacts(env->adressbook, query, &changes, NULL)) {
-			osync_context_send_log(ctx, "Unable to open contacts");
-			printf("unable to get contacts\n");
-			return;
-		} 
-		for (l = changes; l; l = l->next) {
-			EContact *contact = E_CONTACT(l->data);
-			vcard = contact->parent;
-			char *data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
-			char *uid = e_contact_get_const(contact, E_CONTACT_UID);
-			int datasize = strlen(data) + 1;
-			evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_ADDED);
-		}
-		e_book_query_unref(query);
+	osync_debug("EVO2-SYNC", 0, "slow_sync for contact");
+	/*EBookQuery *query = e_book_query_any_field_contains("");
+	if (!e_book_get_contacts(env->adressbook, query, &changes, NULL)) {
+		osync_context_send_log(ctx, "Unable to open contacts");
+		printf("unable to get contacts\n");
+		return;
+	} 
+	for (l = changes; l; l = l->next) {
+		EContact *contact = E_CONTACT(l->data);
+		vcard = contact->parent;
+		char *data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
+		char *uid = e_contact_get_const(contact, E_CONTACT_UID);
+		int datasize = strlen(data) + 1;
+		evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_ADDED);
+	}
+	e_book_query_unref(query);*/
+	return FALSE;
 }
 
-static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
+static osync_bool evo_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 {
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	osync_debug("EVO2-SYNC", 0, "start: %s", __func__);
+	/*evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
 	char *uid = osync_change_get_uid(change);
 	EContact *contact;
@@ -178,15 +209,15 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 		default:
 			printf("Error\n");
 	}
-	osync_context_report_success(ctx);
-	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
+	osync_context_report_success(ctx);*/
+	osync_debug("EVO2-SYNC", 0, "end: %s", __func__);
 	return TRUE;
 }
 
-void evo2_addrbook_setup(OSyncPluginInfo *info)
+void evo_addrbook_setup(OSyncPluginInfo *info)
 {
 	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "vcard");
-	osync_plugin_set_commit_objformat(info, "contact", "vcard", evo2_addrbook_modify);
-	osync_plugin_set_access_objformat(info, "contact", "vcard", evo2_addrbook_modify);
+	osync_plugin_accept_objformat(info, "contact", "vcard21");
+	osync_plugin_set_commit_objformat(info, "contact", "vcard21", evo_addrbook_modify);
+	//osync_plugin_set_access_objformat(info, "contact", "vcard", evo_addrbook_modify);
 }

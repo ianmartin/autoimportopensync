@@ -147,7 +147,8 @@ void evo_cal_modify_done_cb(gpointer data, evolution_connection *conn) {
   g_idle_add(evo_addr_modify, conn);
 }
 
-GList *evo_calendar_get_all (GList *changes, evolution_connection *conn) {
+osync_bool evo_calendar_get_all (OSyncContext *ctx)
+{
   GList *cal_changes, *known_changes, *l;
   if (!conn->cal_client)
     return(changes);
@@ -191,7 +192,8 @@ GList *evo_calendar_get_all (GList *changes, evolution_connection *conn) {
   return(changes);
 }
 
-GList *evo_calendar_get_changes(GList *changes, evolution_connection *conn) {
+osync_bool evo_calendar_get_changes(OSyncContext *ctx)
+{
   GList *cal_changes, *l;
   if (!conn->cal_client)
     return(changes);
