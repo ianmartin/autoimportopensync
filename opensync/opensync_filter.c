@@ -232,3 +232,18 @@ const char *osync_filter_get_detectobjtype(OSyncFilter *filter)
 {
 	return filter->detectobjtype;
 }
+
+OSyncFilterAction osync_filter_get_action(OSyncFilter *filter)
+{
+	return filter->action;
+}
+
+OSyncMember *osync_filter_get_sourcemember(OSyncFilter *filter)
+{
+	return osync_member_from_id(filter->group, filter->sourcememberid);
+}
+
+OSyncMember *osync_filter_get_destmember(OSyncFilter *filter)
+{
+	return osync_member_from_id(filter->group, filter->destmemberid);
+}

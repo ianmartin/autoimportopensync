@@ -9,4 +9,6 @@ const char *osync_filter_get_config(OSyncFilter *filter);
 const char *osync_filter_get_sourceobjtype(OSyncFilter *filter);
 const char *osync_filter_get_destobjtype(OSyncFilter *filter);
 const char *osync_filter_get_detectobjtype(OSyncFilter *filter);
-
+OSyncFilterAction osync_filter_get_action(OSyncFilter *filter);
+OSyncMember *osync_filter_get_sourcemember(OSyncFilter *filter);
+OSyncMember *osync_filter_get_destmember(OSyncFilter *filter);
