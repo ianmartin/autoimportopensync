@@ -46,7 +46,7 @@ void update_change_list(OSyncEngine *engine)
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		member_info *meminfo = g_malloc0(sizeof(member_info));
 		members = g_list_append(members, meminfo);
-		meminfo->member = osync_group_get_nth_member(group, i);
+		meminfo->member = osync_group_nth_member(group, i);
 		for (n = 0; n < osync_member_num_changeentries(meminfo->member); n++) {
 			change_info *chinfo = g_malloc0(sizeof(change_info));
 			meminfo->changes = g_list_append(meminfo->changes, chinfo);
@@ -338,12 +338,17 @@ int main (int argc, char *argv[])
 	}
 	
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
+	
 	if (configdir)
 		osync_env_set_configdir(osync, configdir);
-	osync_env_load_groups_dir(osync);
 	
-	OSyncGroup *group = osync_group_from_name(osync, groupname);
+	if (!osync_env_initialize(osync, &error)) {
+		printf("Unable to initialize environment: %s\n", error->message);
+		osync_error_free(&error);
+		return 1;
+	}
+	
+	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);

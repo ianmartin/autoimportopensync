@@ -1,6 +1,15 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
+/**
+ * @defgroup OSyncEnvUserPrivate OpenSync User Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+/*@{*/
 struct OSyncUserInfo
 {
 	uid_t uid;
@@ -10,7 +19,14 @@ struct OSyncUserInfo
 	char *confdir;
 };
 
-OSyncUserInfo *osync_user_new(void)
+/*! @brief This will create a new user
+ * 
+ * The user will hold information like uid, gid, home directory etc
+ * 
+ * @returns A pointer to a newly allocated OSyncUserInfo
+ * 
+ */
+OSyncUserInfo *_osync_user_new(void)
 {
 	OSyncUserInfo *user = g_malloc0(sizeof(OSyncUserInfo));
 	
@@ -27,19 +43,36 @@ OSyncUserInfo *osync_user_new(void)
 	return user;
 }
 
-void osync_user_set_confdir(OSyncUserInfo *user, char *path)
+/*! @brief This will set the configdir for the given user
+ * 
+ * This will set the configdir for the given user
+ * 
+ * @param user The user to change
+ * @param path The new configdir path
+ * 
+ */
+void _osync_user_set_confdir(OSyncUserInfo *user, const char *path)
 {
-	if (!user) return;
+	g_assert(user);
 	
 	if (user->confdir)
-		free(user->confdir);
+		g_free(user->confdir);
 	
 	user->confdir = g_strdup(path);
 }
 
-char *osync_user_get_confdir(OSyncUserInfo *user)
+/*! @brief This will get the configdir for the given user
+ * 
+ * This will set the configdir for the given user
+ * 
+ * @param user The user to get the path from
+ * @returns The configdir path
+ * 
+ */
+const char *_osync_user_get_confdir(OSyncUserInfo *user)
 {
-	if (!user) return NULL;
-	
+	g_assert(user);
 	return user->confdir;
 }
+
+/*@}*/

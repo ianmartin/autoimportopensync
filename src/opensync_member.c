@@ -1,6 +1,15 @@
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
-#include "opensync_member.h"
+
+/**
+ * @defgroup OSyncMemberPrivateAPI OpenSync Member Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+/*@{*/
 
 OSyncMemberFunctions *osync_memberfunctions_new()
 {
@@ -8,70 +17,9 @@ OSyncMemberFunctions *osync_memberfunctions_new()
 	return functions;
 }
 
-OSyncMember *osync_member_new(OSyncGroup *group)
-{
-	//char *filename = NULL;
-	if (group == NULL) return NULL;
-	
-	OSyncMember *member = g_malloc0(sizeof(OSyncMember));
-	osync_group_add_member(group, member);
-
-	member->group = group;
-	member->memberfunctions = osync_memberfunctions_new();
-	osync_debug("OSMEM", 3, "Generated new member");
-
-	return member;
-}
-
-void osync_member_free(OSyncMember *member)
-{
-	//FIXME
-	g_free(member);
-}	
-
 OSyncMemberFunctions *osync_member_get_memberfunctions(OSyncMember *member)
 {
 	return member->memberfunctions;
-}
-
-osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin)
-{
-	g_assert(member);
-	g_assert(plugin);
-	osync_debug("OSMEM", 3, "Insstancing plugin %s for member %i", osync_plugin_get_name(plugin), member->id);
-	if (plugin->info.is_threadsafe) {
-		member->plugin = plugin;
-	} else {
-		OSyncPlugin *newplugin = osync_plugin_new();
-		osync_plugin_load_info(newplugin, plugin->path);
-		member->plugin = newplugin;
-	}
-	
-	//Prepare the sinks;
-	GList *o;
-	for (o = member->plugin->accepted_objtypes; o; o = o->next) {
-		OSyncObjTypeTemplate *objtemplate = o->data;
-		OSyncObjTypeSink *objsink = osync_objtype_sink_from_template(member->group, objtemplate);
-		if (!objsink)
-			return FALSE;
-		member->objtype_sinks = g_list_append(member->objtype_sinks, objsink);
-		GList *f;
-		for (f = objtemplate->formats; f; f = f->next) {
-			OSyncObjFormatTemplate *frmtemplate = f->data;
-			OSyncObjFormatSink *format_sink = osync_objformat_sink_from_template(member->group, frmtemplate);
-			if (!format_sink)
-				return FALSE;
-			objsink->formatsinks = g_list_append(objsink->formatsinks, format_sink);
-			format_sink->objtype_sink = objsink;
-			member->format_sinks = g_list_append(member->format_sinks, format_sink);
-		}
-	}
-	return TRUE;
-}
-
-const char *osync_member_get_pluginname(OSyncMember *member)
-{
-	return osync_plugin_get_name(member->plugin);
 }
 
 OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
@@ -80,19 +28,7 @@ OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 	return osync_group_get_format_env(member->group);
 }
 
-char *osync_member_get_configdir(OSyncMember *member)
-{
-	return member->configdir;
-}
-
-osync_bool osync_member_set_configdir(OSyncMember *member, char *path)
-{
-	osync_debug("OSMEM", 3, "Setting configdirectory for member %i to %s", member->id, path);
-	member->configdir = g_strdup(path);
-	return TRUE; //FIXME
-}
-
-osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size)
+osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	osync_bool ret = FALSE;
@@ -103,20 +39,113 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size)
 		ret = functions.get_config(member->configdir, data, size);
 	} else {
 		char *filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
-		ret = osync_file_read(filename, data, size);
+		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
 	return ret;
 }
 
-osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size)
+/*@}*/
+
+/**
+ * @defgroup OSyncMemberAPI OpenSync Member
+ * @ingroup OSyncPublic
+ * @brief The public API of opensync
+ * 
+ * This gives you an insight in the public API of opensync.
+ * 
+ */
+/*@{*/
+
+OSyncMember *osync_member_new(OSyncGroup *group)
 {
+	OSyncMember *member = g_malloc0(sizeof(OSyncMember));
+	if (group) {
+		osync_group_add_member(group, member);
+		member->group = group;
+	}
+	
+	member->memberfunctions = osync_memberfunctions_new();
+	osync_debug("OSMEM", 3, "Generated new member");
+
+	return member;
+}
+
+void osync_member_free(OSyncMember *member)
+{
+	if (member->group)
+		osync_group_remove_member(member->group, member);
+	
+	//Free the plugin if we are not thread-safe
+	if (member->plugin && !member->plugin->info.is_threadsafe) {
+		osync_plugin_unload(member->plugin);
+		osync_plugin_free(member->plugin);
+	}
+	
+	g_free(member->memberfunctions);
+	g_free(member);
+}	
+
+osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin, OSyncError **error)
+{
+	g_assert(member);
+	g_assert(plugin);
+	osync_debug("OSMEM", 3, "Instancing plugin %s for member %i", plugin->info.name, member->id);
+	if (plugin->info.is_threadsafe) {
+		member->plugin = plugin;
+	} else {
+		member->plugin = osync_plugin_load(NULL, plugin->path, error);
+		if (!member->plugin)
+			return FALSE;
+	}
+	
+	//Prepare the sinks;
+	GList *o;
+	for (o = member->plugin->accepted_objtypes; o; o = o->next) {
+		OSyncObjTypeTemplate *objtemplate = o->data;
+		OSyncObjTypeSink *objsink = osync_objtype_sink_from_template(member->group, objtemplate);
+		if (!objsink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to instance plugin. Could not create object type from template");
+			return FALSE;
+		}
+		member->objtype_sinks = g_list_append(member->objtype_sinks, objsink);
+		GList *f;
+		for (f = objtemplate->formats; f; f = f->next) {
+			OSyncObjFormatTemplate *frmtemplate = f->data;
+			OSyncObjFormatSink *format_sink = osync_objformat_sink_from_template(member->group, frmtemplate);
+			if (!format_sink) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to instance plugin. Could not create format from template");
+				return FALSE;
+			}
+			objsink->formatsinks = g_list_append(objsink->formatsinks, format_sink);
+			format_sink->objtype_sink = objsink;
+			member->format_sinks = g_list_append(member->format_sinks, format_sink);
+		}
+	}
+	return TRUE;
+}
+
+const char *osync_member_get_pluginname(OSyncMember *member)
+{
+	g_assert(member);
+	return osync_plugin_get_name(member->plugin);
+}
+
+const char *osync_member_get_configdir(OSyncMember *member)
+{
+	g_assert(member);
+	return member->configdir;
+}
+
+osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
+{
+	g_assert(member);
 	osync_bool ret = TRUE;
 
-	if (!osync_member_read_config(member, data, size)) {
+	if (!osync_member_read_config(member, data, size, error)) {
 		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/defaults/%s", osync_plugin_get_name(member->plugin));
 		osync_debug("OSMEM", 3, "Reading default config file for member %i", member->id);
-		ret = osync_file_read(filename, data, size);
+		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
 	return ret;
@@ -130,14 +159,173 @@ void osync_member_set_config(OSyncMember *member, const char *data, int size)
 	member->configsize = size;
 }
 
-osync_bool osync_member_initialize(OSyncMember *member)
+OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError **error)
+{
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	char *filename = NULL;
+	
+	osync_debug("OSGRP", 3, "Trying to load member from directory %s", path);
+	filename = g_strdup_printf ("%s/syncmember.conf", path);
+	
+	OSyncMember *member = osync_member_new(group);
+	char *basename = g_path_get_basename(path);
+	member->id = atoi(basename);
+	g_free(basename);
+	member->configdir = g_strdup(path);
+
+	if (!_osync_open_xml_file(&doc, &cur, filename, "syncmember", error)) {
+		osync_member_free(member);
+		return NULL;
+	}
+
+	while (cur != NULL) {
+		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
+				OSyncPlugin *plugin = osync_env_find_plugin(group->env, str);
+				if (!plugin) {
+					osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", str);
+					osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to find the plugin %s for the member", str);
+					xmlFree(str);
+					xmlFreeDoc(doc);
+					g_free(filename);
+					osync_member_free(member);
+					return NULL;
+				} else {
+					if (!osync_member_instance_plugin(member, plugin, error)) {
+						xmlFree(str);
+						xmlFreeDoc(doc);
+						g_free(filename);
+						osync_member_free(member);
+						return NULL;
+					}
+				}
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+	xmlFreeDoc(doc);
+	g_free(filename);
+	
+	return member;
+}
+
+osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
+{
+	char *filename = NULL;
+
+	if (!member->id) {
+		member->id = osync_group_create_member_id(member->group);
+		member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
+	}
+	osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
+	
+	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
+		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
+		if (mkdir(member->configdir, 0777)) {
+			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
+			return FALSE;
+		}
+	}
+	
+	//Saving the syncmember.conf
+	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
+	xmlDocPtr doc;
+	doc = xmlNewDoc("1.0");
+	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
+	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
+	xmlSaveFile(filename, doc);
+	xmlFreeDoc(doc);
+	g_free(filename);
+	
+	//Saving the config if it exists
+	if (member->configdata) {
+		osync_bool ret = TRUE;
+		OSyncPluginFunctions functions = member->plugin->info.functions;
+		
+		if (functions.store_config) {
+			ret = functions.store_config(member->configdir, member->configdata, member->configsize);
+		} else {
+			filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
+			if (!osync_file_write(filename, member->configdata, member->configsize, error)) {
+				ret = FALSE;
+			}
+			g_free(filename);
+		}
+		g_free(member->configdata);
+		member->configdata = NULL;
+		member->configsize = 0;
+		return ret;
+	}
+	return TRUE;
+}
+
+long long int osync_member_get_id(OSyncMember *member)
+{
+	g_assert(member);
+	return member->id;
+}
+
+void *osync_member_call_plugin(OSyncMember *member, const char *function, void *data, OSyncError **error)
+{
+	void *(*plgfunc) (void *, void *);
+	if (!(plgfunc = osync_plugin_get_function(member->plugin, function, error)))
+		return NULL;
+	//FIXME Should we pass the error through?
+	return plgfunc(member->plugindata, data);
+}
+
+void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync)
+{
+	g_assert(member);	
+	OSyncGroup *group = osync_member_get_group(member);
+	g_assert(group);
+
+	osync_group_set_slow_sync(group, objtypestr, slow_sync);
+}
+
+osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr)
+{
+	g_assert(member);	
+	OSyncGroup *group = osync_member_get_group(member);
+	g_assert(group);
+
+	osync_bool needs_slow_sync = osync_group_get_slow_sync(group, objtypestr);
+	return needs_slow_sync;
+}
+
+void osync_member_request_synchronization(OSyncMember *member)
+{
+	g_assert(member);
+	
+	if (member->memberfunctions->rf_sync_alert)
+		member->memberfunctions->rf_sync_alert(member);
+}
+
+/*@}*/
+
+/**
+ * @defgroup OSyncMemberFunctions OpenSync Member Functions
+ * @ingroup OSyncPublic
+ * @brief The public API of opensync
+ * 
+ * This gives you an insight in the public API of opensync.
+ * 
+ */
+/*@{*/
+
+osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 {
 	g_assert(member);
 	g_assert(member->plugin);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	g_assert(functions.finalize);
-	if (!(member->plugindata = functions.initialize(member)))
+	if (!(member->plugindata = functions.initialize(member))) {
+		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "Unable to initialize member");
 		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -359,6 +547,8 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 	return format_sink->functions.access(context, change);
 }
 
+/*@}*/
+
 void *osync_member_get_data(OSyncMember *member)
 {
 	return member->enginedata;
@@ -379,26 +569,25 @@ OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
 	OSyncMember *member;
 	int i;
 	for (i = 0; i < osync_group_num_members(group); i++) {
-		member = osync_group_get_nth_member(group, i);
+		member = osync_group_nth_member(group, i);
 		if (member->id == id) {
 			return member;
 		}
 	}
-	osync_debug("OSPLG", 0, "Couldnt find the group with the id %i", id);
+	osync_debug("OSPLG", 0, "Couldnt find the member with the id %i", id);
 	return NULL;
 }
 
+//FIXME Remove this and replace with "views"
 void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry)
 {
 	g_assert(member);
-	//if (!member)
-	//	return;
-	//osync_assert(osync_member_uid_is_unique(member, entry, FALSE), "Member uid is not unique while adding. Did you try to open several mapping tables?\n");
 
 	member->entries = g_list_append(member->entries, entry);
 	entry->member = member;
 }
 
+//FIXME Remove this and replace with "views"
 void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry)
 {
 	g_assert(member);
@@ -406,6 +595,7 @@ void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry)
 	entry->member = NULL;
 }
 
+//FIXME Remove this and replace with "views"
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
 {
 	int i;
@@ -418,6 +608,7 @@ OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
 	return NULL;
 }
 
+//FIXME Remove this and replace with "views"
 osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, osync_bool spare_deleted)
 {
 	GList *c = NULL;
@@ -434,6 +625,7 @@ osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, 
 	return FALSE;
 }
 
+//FIXME Remove this and replace with "views"
 osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change)
 {
 	OSyncChange *entry;
@@ -445,142 +637,16 @@ osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change)
 	return FALSE;
 }
 
+//FIXME Remove this and replace with "views"
 int osync_member_num_changeentries(OSyncMember *member)
 {
 	return g_list_length(member->entries);
 }
 
+//FIXME Remove this and replace with "views"
 OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n)
 {
 	return g_list_nth_data(member->entries, n);
-}
-
-osync_bool osync_member_load(OSyncMember *member)
-{
-	xmlDocPtr doc;
-	xmlNodePtr cur;
-	char *filename = NULL;
-	osync_debug("OSGRP", 3, "Trying to load member from directory %s", member->configdir);
-	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
-	member->id = atoi(g_path_get_basename(member->configdir));
-
-	if (!_osync_open_xml_file(&doc, &cur, filename, "syncmember")) {
-		return FALSE;
-	}
-
-	while (cur != NULL) {
-		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
-				OSyncPlugin *plugin = osync_plugin_from_name(member->group->env, str);
-				if (!plugin) {
-					osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", str);
-					return FALSE;
-				} else {
-					if (!osync_member_instance_plugin(member, plugin))
-						return FALSE;
-				}
-			}
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-	xmlFreeDoc(doc);
-	g_free(filename);
-	return TRUE;
-}
-
-osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
-{
-	char *filename = NULL;
-
-	if (!member->id) {
-		member->id = osync_group_create_member_id(member->group);
-		member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
-	}
-	osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
-	
-	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
-		if (mkdir(member->configdir, 0777)) {
-			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
-			return FALSE;
-		}
-	}
-	//FIXME test if the name exists but is no directory
-	
-	//Saving the syncmember.conf
-	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
-	xmlDocPtr doc;
-	doc = xmlNewDoc("1.0");
-	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
-	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
-	xmlSaveFile(filename, doc);
-	xmlFreeDoc(doc);
-	g_free(filename);
-	
-	//Saving the config if it exists
-	if (member->configdata) {
-		osync_bool ret = TRUE;
-		OSyncPluginFunctions functions = member->plugin->info.functions;
-		
-		if (functions.store_config) {
-			ret = functions.store_config(member->configdir, member->configdata, member->configsize);
-		} else {
-			filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
-			if (!osync_file_write(filename, member->configdata, member->configsize)) {
-				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to write config for member %li (generic)\n", member->id);
-				ret = FALSE;
-			}
-			g_free(filename);
-		}
-		g_free(member->configdata);
-		member->configdata = NULL;
-		member->configsize = 0;
-		return ret;
-	}
-	return TRUE;
-}
-
-long long int osync_member_get_id(OSyncMember *member)
-{
-	g_assert(member);
-	return member->id;
-}
-
-void *osync_member_call_plugin(OSyncMember *member, char *function, void *data)
-{
-	void *(*plgfunc) (void *, void *);
-	if (!(plgfunc = osync_plugin_get_function(member->plugin, function)))
-		return NULL;
-	return plgfunc(member->plugindata, data);
-}
-
-void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync)
-{
-	g_assert(member);	
-	OSyncGroup *group = osync_member_get_group(member);
-	g_assert(group);
-
-	osync_group_set_slow_sync(group, objtypestr, slow_sync);
-}
-
-osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr)
-{
-	g_assert(member);	
-	OSyncGroup *group = osync_member_get_group(member);
-	g_assert(group);
-
-	osync_bool needs_slow_sync = osync_group_get_slow_sync(group, objtypestr);
-	return needs_slow_sync;
-}
-
-void osync_member_request_synchronization(OSyncMember *member)
-{
-	g_assert(member);
-	
-	if (member->memberfunctions->rf_sync_alert)
-		member->memberfunctions->rf_sync_alert(member);
 }
 
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)

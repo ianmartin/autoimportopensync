@@ -67,18 +67,20 @@ void osync_client_sync_alert_sink(OSyncMember *member)
 	itm_queue_send(engine->incoming, message);
 }
 
-void message_callback(OSyncMember *member, ITMessage *message, OSyncError *error)
+void message_callback(OSyncMember *member, ITMessage *message, OSyncError **error)
 {
 	OSyncClient *client = osync_member_get_data(member);
 	ITMessage *reply = NULL;
 
-	if (!error) {
+	if (!osync_error_is_set(error)) {
 		reply = itm_message_new_methodreply(client, message);
+		_osync_debug(client, "CLI", 3, "Member is replying with message %p to message %p with no error", reply, message);
 	} else {
 		reply = itm_message_new_errorreply(client, message);
-		itm_message_set_error(reply, error->message, error->type);
+		itm_message_set_error(reply, (*error)->message, (*error)->type);
+		_osync_debug(client, "CLI", 3, "Member is replying with message %p to message %p with error %i", reply, message, (*error)->type);
+		osync_error_free(error);
 	}
-	_osync_debug(client, "CLI", 3, "Member is replying with message %p to message %p with error %i", reply, message, error?error->type:0);
 	itm_message_move_data(message, reply);
 	itm_message_send_reply(reply);
 }
@@ -122,7 +124,10 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 	if (itm_message_is_signal(message, "CALL_PLUGIN")) {
 		char *function = itm_message_get_data(message, "function");
 		void *data = itm_message_get_data(message, "data");
-		osync_member_call_plugin(client->member, function, data);
+		OSyncError *error = NULL;
+		osync_member_call_plugin(client->member, function, data, &error);
+		if (osync_error_is_set(&error))
+			message_callback(client->member, message, &error);
 		return;
 	}
 	
@@ -168,10 +173,8 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 	itm_queue_setup_with_gmainloop(client->incoming, context);
 
 	//Call the init function
-	if (!osync_member_initialize(client->member)) {
-		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "Unable to initialize member number %li", osync_member_get_id(client->member));
+	if (!osync_member_initialize(client->member, error))
 		return FALSE;
-	}
 	
 	_osync_debug(client, "CLI", 3, "Spawning new client thread");
 	g_thread_create ((GThreadFunc)g_main_loop_run, client->memberloop, TRUE, NULL);

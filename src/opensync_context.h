@@ -8,3 +8,4 @@ void *osync_report_message_sync(OSyncMember *member, const char *message, void *
 void *osync_context_get_plugin_data(OSyncContext *context);
 void osync_context_send_log(OSyncContext *ctx, const char *message, ...);
 OSyncMember *osync_context_get_member(OSyncContext *ctx);
+void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error);

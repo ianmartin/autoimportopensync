@@ -2,8 +2,8 @@
 #include "engine_internals.h"
 
 /**
- * @defgroup OSyncEnginePrivate OSyncEngine Internals
- * @ingroup MSyncInternals
+ * @defgroup OSyncEnginePrivate OpenSync Engine Internals
+ * @ingroup OSEnginePrivate
  * @brief The internals of the engine (communication part)
  * 
  * This gives you an insight in the inner workings of the sync engine,
@@ -303,9 +303,15 @@ void trigger_clients_sent_changes(OSyncEngine *engine)
 /*@}*/
 
 /**
- * @defgroup OSyncEngineAPI OSyncEngine Sync
- * @ingroup OSyncPublic
- * @brief The public API of the sync engine
+ * @defgroup PublicAPI Public APIs
+ * @brief Available public APIs
+ * 
+ */
+
+/**
+ * @defgroup OSEnginePublic OpenSync Engine API
+ * @ingroup PublicAPI
+ * @brief The API of the syncengine available to everyone
  * 
  * This gives you an insight in the public API of the opensync sync engine.
  * 
@@ -558,7 +564,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	}
 	
 	for (i = 0; i < osync_group_num_members(group); i++) {
-		member = osync_group_get_nth_member(group, i);
+		member = osync_group_nth_member(group, i);
 		
 		//Creating the client
 		OSyncClient *client = osync_client_new(engine, member);

@@ -31,7 +31,7 @@ long long int osync_mapping_get_id(OSyncMapping *mapping);
 void osync_mapping_set_id(OSyncMapping *mapping, long long int id);
 //void osync_mapping_create(OSyncMappingTable *table, OSyncMapping *mapping);
 OSyncGroup *osync_mapping_get_group(OSyncMapping *mapping);
-void osync_mappingtable_set_dbpath(OSyncMappingTable *table, char *path);
+void osync_mappingtable_set_dbpath(OSyncMappingTable *table, const char *path);
 void osync_mapping_delete(OSyncMapping *mapping);
 int osync_mappingtable_num_unmapped(OSyncMappingTable *table);
 OSyncChange *osync_mappingtable_nth_unmapped(OSyncMappingTable *table, int i);

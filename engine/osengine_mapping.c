@@ -2,12 +2,11 @@
 #include "engine_internals.h"
 
 /**
- * @defgroup MSyncMapping MSyncMapping Workings
- * @ingroup MSyncPublic
+ * @defgroup OSEngineMapping OpenSync Mapping Internals
+ * @ingroup OSEnginePrivate
  * @brief The internals of the engine (communication part)
  * 
- * This gives you an insight in the inner workings of the sync engine,
- * especially the communication part.
+ * This gives you an insight in the inner workings of the sync engine
  * 
  * 
  */

@@ -6,9 +6,6 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path);
-OSyncUserInfo *_osync_get_user(void);
-osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, char *path, char *topentry);
 osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist);
 
 #define osync_assert(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
@@ -33,6 +30,36 @@ typedef GList/* OSyncHookFnChange * */ *OSyncChangeHook;
 
 /** @} */
 
+/**
+ * @defgroup PublicAPI Public APIs
+ * @brief Available public APIs
+ * 
+ */
+
+/**
+ * @defgroup OSyncPublic OpenSync Public API
+ * @ingroup PublicAPI
+ * @brief The public API of opensync
+ * 
+ * This gives you an insight in the public API of opensync.
+ * 
+ */
+
+/**
+ * @defgroup PrivateAPI Private APIs
+ * @brief Available private APIs
+ * 
+ */
+
+/**
+ * @defgroup OSyncPrivate OpenSync Private API
+ * @ingroup PrivateAPI
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+
 typedef struct OSyncDB OSyncDB;
 
 struct OSyncEnv {
@@ -40,6 +67,7 @@ struct OSyncEnv {
 	GList *groups;
 	char *configdir;
 	char *plugindir;
+	osync_bool is_initialized;
 };
 
 struct OSyncHashTable {
@@ -77,10 +105,9 @@ struct OSyncGroup {
 	GList *members;
 	gchar *configdir;
 	OSyncEnv *env;
-	//OSyncDBEnv *dbenv;
 	void *data;
 	OSyncFormatEnv *conv_env;
-
+	long long int id;
 	OSyncChangeHook before_convert_hook;
 };
 
@@ -89,6 +116,7 @@ struct OSyncPlugin {
 	gchar *path;
 	OSyncPluginInfo info;
 	GList *accepted_objtypes;
+	OSyncEnv *env;
 };
 
 struct OSyncChange {
@@ -126,6 +154,7 @@ struct OSyncMappingTable {
 	GList *unmapped;
 };
 
+#include "opensync_env_internals.h"
 #include "opensync_error_internals.h"
 #include "opensync_db_internals.h"
 #include "opensync_format_internals.h"

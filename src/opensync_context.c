@@ -32,6 +32,14 @@ void *osync_context_get_plugin_data(OSyncContext *context)
 	return context->member->plugindata;
 }
 
+void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error)
+{
+	g_assert(context);
+	if (context->callback_function)
+		(context->callback_function)(context->member, context->calldata, error);
+	osync_context_free(context);
+}
+
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...)
 {
 	g_assert(context);
@@ -40,7 +48,7 @@ void osync_context_report_error(OSyncContext *context, OSyncErrorType type, cons
 	va_start(args, format);
 	osync_error_set_vargs(&error, type, format, args);
 	if (context->callback_function)
-		(context->callback_function)(context->member, context->calldata, error);
+		(context->callback_function)(context->member, context->calldata, &error);
 	va_end (args);
 	osync_context_free(context);
 }

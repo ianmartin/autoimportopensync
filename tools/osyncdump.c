@@ -25,7 +25,7 @@ typedef enum  {
 
 void dump_map(OSyncEnv *osync, char *groupname)
 {
-	OSyncGroup *group = osync_group_from_name(osync, groupname);
+	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
@@ -61,7 +61,7 @@ void dump_map(OSyncEnv *osync, char *groupname)
 
 void dump_unmapped(OSyncEnv *osync, char *groupname)
 {
-	OSyncGroup *group = osync_group_from_name(osync, groupname);
+	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
@@ -122,7 +122,7 @@ void dump_unmapped(OSyncEnv *osync, char *groupname)
 void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
 {
 	long long int id = atoi(memberid);
-	OSyncGroup *group = osync_group_from_name(osync, groupname);
+	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name %s\n", groupname);
@@ -193,10 +193,16 @@ int main (int argc, char *argv[])
 	}
 	
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
+	OSyncError *error = NULL;
+	
 	if (configdir)
 		osync_env_set_configdir(osync, configdir);
-	osync_env_load_groups_dir(osync);
+	
+	if (!osync_env_initialize(osync, &error)) {
+		printf("Unable to initialize environment: %s\n", error->message);
+		osync_error_free(&error);
+		return 1;
+	}
 	
 	switch (action) {
 		case DUMPMAPS:

@@ -1,218 +1,15 @@
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
-#include "opensync_group.h"
 
-OSyncGroup *osync_group_new(OSyncEnv *osinfo)
-{
-	OSyncGroup *group = g_malloc0(sizeof(OSyncGroup));
-	char *filename = NULL;
-	
-	filename = g_strdup_printf("%s/group%i", osync_env_get_configdir(osinfo), g_random_int_range(1, 1000000));
-	group->configdir = filename;
-	group->env = osinfo;
-	group->conv_env = osync_conv_env_new();
-	osync_conv_env_load(group->conv_env);
-	/*FIXME: Remove hardcoded format name here */
-	osync_conv_set_common_format(group->conv_env, "contact", "vcard");
-	osync_debug("OSGRP", 3, "Generated new group:");
-	osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
-	return group;
-}
-
-void osync_group_free(OSyncGroup *group)
-{
-	g_assert(group);
-	
-	
-	
-	g_free(group->name);
-	g_free(group->configdir);
-	g_free(group);
-}	
-
-void osync_group_set_name(OSyncGroup *group, const char *name)
-{
-	osync_debug("OSGRP", 3, "Setting name of group %s to %s", group->name, name);
-	group->name = g_strdup(name);
-}
-
-const char *osync_group_get_name(OSyncGroup *group)
-{
-	return group->name;
-}
-
-osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
-{
-	char *filename = NULL;
-	osync_debug("OSGRP", 3, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
-	int i;
-		
-	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_debug("OSGRP", 3, "Creating group configdirectory %s", group->configdir);
-		if (mkdir(group->configdir, 0777)) {
-			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
-			return FALSE;
-		}
-	}
-	
-	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
-	osync_debug("OSGRP", 3, "Saving group to file %s", filename);
-	
-	xmlDocPtr doc;
-
-	doc = xmlNewDoc("1.0");
-	doc->children = xmlNewDocNode(doc, NULL, "syncgroup", NULL);
-
-	xmlNewChild(doc->children, NULL, "name", group->name);
-
-	xmlSaveFile(filename, doc);
-	xmlFreeDoc(doc);
-	g_free(filename);
-
-	for (i = 0; i < osync_group_num_members(group); i++) {
-		OSyncMember *member = osync_group_get_nth_member(group, i);
-		if (!osync_member_save(member, error))
-			return FALSE;
-	}
-	
-	return TRUE;
-}
-
-void osync_group_delete(OSyncGroup *group)
-{
-	g_assert(group);
-	char *delcmd = g_strdup_printf("rm -rf %s", group->configdir);
-	system(delcmd); // FIXME?
-	g_free(delcmd);
-	osync_env_remove_group(group->env, group);
-	osync_group_free(group);
-}
-
-OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
-{
-	OSyncMember *member = NULL;
-	char *filename = NULL;
-	
-	osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
-	OSyncGroup *group = osync_group_new(env);
-	if (!g_path_is_absolute(path)) {
-		char *abspath = g_strdup_printf("%s/%s", g_get_current_dir(), path); //FIXME Free the string!
-		osync_group_set_configdir(group, abspath);
-		g_free(abspath);
-	} else {
-		osync_group_set_configdir(group, path);
-	}
-	
-	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
-	
-	xmlDocPtr doc;
-	xmlNodePtr cur;
-	
-	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup")) {
-		osync_group_free(group);
-		return NULL;
-	}
-
-	while (cur != NULL) {
-		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-		if (!str)
-			continue;
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
-			group->name = g_strdup(str);
-		}
-		xmlFree(str);
-		cur = cur->next;
-	}
-	xmlFreeDoc(doc);
-	g_free(filename);
-	
-	GDir *dir;
-	GError *error = NULL;
-
-	dir = g_dir_open(osync_group_get_configdir(group), 0, &error);
-	if (error) {
-		osync_debug("OSGRP", 3, "Unable to open group configdir %s", error->message);
-		g_error_free (error);
-		osync_group_free(group);
-		return NULL;
-	}
-  
-	if (dir) {
-		const gchar *de = NULL;
-		while ((de = g_dir_read_name(dir))) {
-			filename = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
-			if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple(".*", de) || !strcmp("db", de)) {
-				continue;
-			}
-			member = osync_member_new(group);
-			osync_member_set_configdir(member, filename);
-			if (!osync_member_load(member)) {
-				osync_debug("OSGRP", 0, "Unable to load one of the members");
-				return NULL;
-			}
-		}
-	}
-	//char *dbdir = g_strdup_printf("%s/db", group->configdir);
-	//char *logfile = g_strdup_printf("%s/group.log", dbdir);
-	//FILE *log = fopen(logfile, "rw");
-	//group->dbenv = osync_db_setup(dbdir, log);
-	//g_free(dbdir);
-	//g_free(logfile);
-	osync_env_append_group(env, group);
-	return group;
-}
-
-void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
-{
-	group->members = g_list_append(group->members, member);
-}
-
-OSyncMember *osync_group_get_nth_member(OSyncGroup *group, int nth)
-{
-	return (OSyncMember *)g_list_nth_data(group->members, nth);
-}
-
-int osync_group_num_members(OSyncGroup *group)
-{
-	return g_list_length(group->members);
-}
-
-char *osync_group_get_configdir(OSyncGroup *group)
-{
-	g_assert(group);
-	return group->configdir;
-}
-
-void osync_group_set_configdir(OSyncGroup *group, char *path)
-{
-	osync_debug("OSGRP", 3, "Setting configdirectory of group %s to %s", group->name, path);
-	group->configdir = g_strdup(path);
-}
-
-/*osync_bool osync_group_initialize(OSyncGroup *group)
-{
-	GList *element;
-	for (element = group->members; element; element = element->next) {
-		OSyncMember *member = element->data;
-		if (!osync_member_initialize(member))
-			return FALSE;
-	}
-	return TRUE;
-}*/
-
-OSyncGroup *osync_group_from_name(OSyncEnv *osinfo, char *name)
-{
-	OSyncGroup *group;
-	int i;
-	for (i = 0; i < osync_num_groups(osinfo); i++) {
-		group = osync_get_nth_group(osinfo, i);
-		if (g_ascii_strcasecmp(group->name, name) == 0) {
-			return group;
-		}
-	}
-	osync_debug("OSPLG", 0, "Couldnt find the group with the name %s", name);
-	return NULL;
-}
+/**
+ * @defgroup OSyncGroupPrivateAPI OpenSync Group Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+/*@{*/
 
 OSyncEnv *osync_group_get_env(OSyncGroup *group)
 {
@@ -243,6 +40,365 @@ long long int osync_group_create_member_id(OSyncGroup *group)
 	return i;
 }
 
+OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
+{
+	g_assert(group);
+	return group->conv_env;
+}
+
+/*! @brief Loads all members of a group
+ * 
+ * Loads all members of a group
+ * 
+ * @param group The group
+ * @param
+ * @returns Pointer to a new group
+ * 
+ */
+osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncError **error)
+{
+	GDir *dir = NULL;
+	GError *gerror = NULL;
+	char *filename = NULL;
+	
+	dir = g_dir_open(path, 0, &gerror);
+	if (!dir) {
+		osync_debug("OSGRP", 3, "Unable to open group configdir %s", gerror->message);
+		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open group configdir %s", gerror->message);
+		g_error_free (gerror);
+		return FALSE;
+	}
+
+	const gchar *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		filename = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
+		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple(".*", de) || !strcmp("db", de)) {
+			g_free(filename);
+			continue;
+		}
+
+		if (!osync_member_load(group, filename, error)) {
+			osync_debug("OSGRP", 0, "Unable to load one of the members");
+			g_free(filename);
+			g_dir_close(dir);
+			return FALSE;
+		}
+		g_free(filename);
+	}
+	g_dir_close(dir);
+	return TRUE;
+}
+
+/*@}*/
+
+/**
+ * @defgroup OSyncGroupAPI OpenSync Groups
+ * @ingroup OSyncPublic
+ * @brief The public API of opensync
+ * 
+ * This gives you an insight in the public API of opensync.
+ * 
+ */
+/*@{*/
+
+/*! @brief Creates a new group for the given environment
+ * 
+ * Creates a newly allocated group
+ * 
+ * @param env The environment for which to create the group. Might be NULL if you which to not add the group at the point of creation
+ * @returns Pointer to a new group
+ * 
+ */
+OSyncGroup *osync_group_new(OSyncEnv *env)
+{
+	OSyncGroup *group = g_malloc0(sizeof(OSyncGroup));
+
+	if (env) {
+		osync_env_append_group(env, group);
+		group->env = env;
+	}
+	
+	group->conv_env = osync_conv_env_new();
+	osync_conv_env_load(group->conv_env);
+	/*FIXME: Remove hardcoded format name here */
+	osync_conv_set_common_format(group->conv_env, "contact", "vcard");
+	osync_debug("OSGRP", 3, "Generated new group");
+	return group;
+}
+
+/*! @brief Frees the given group
+ * 
+ * Frees the given group
+ * 
+ * @param group The group
+ * 
+ */
+void osync_group_free(OSyncGroup *group)
+{
+	g_assert(group);
+	
+	osync_conv_env_free(group->conv_env);
+	
+	while (osync_group_nth_member(group, 0))
+		osync_member_free(osync_group_nth_member(group, 0));
+	
+	if (group->env)
+		osync_env_remove_group(group->env, group);
+	
+	if (group->name)
+		g_free(group->name);
+	
+	if (group->configdir)
+		g_free(group->configdir);
+		
+	g_free(group);
+}	
+
+/*! @brief Sets the name for the group
+ * 
+ * Sets the name for a group
+ * 
+ * @param group The group
+ * @param name The name to set
+ * 
+ */
+void osync_group_set_name(OSyncGroup *group, const char *name)
+{
+	g_assert(group);
+	if (group->name)
+		g_free(group->name);
+	group->name = g_strdup(name);
+}
+
+/*! @brief Returns the name of a group
+ * 
+ * Returns the name of a group
+ * 
+ * @param group The group
+ * @returns Name of the group
+ * 
+ */
+const char *osync_group_get_name(OSyncGroup *group)
+{
+	g_assert(group);
+	return group->name;
+}
+
+/*! @brief Saves the group to disc
+ * 
+ * Saves the group to disc possibly creating the configdirectory
+ * 
+ * @param group The group
+ * @param error Pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
+{
+	g_assert(group);
+	osync_assert(group->env, "You must specify a Environment prior to saving the group");
+	
+	if (!group->id) {
+		group->id = _osync_env_create_group_id(group->env);
+		group->configdir = g_strdup_printf("%s/group%lli", group->env->configdir, group->id);
+	}
+		
+	char *filename = NULL;
+	osync_debug("OSGRP", 3, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
+	int i;
+	
+	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
+		osync_debug("OSGRP", 3, "Creating group configdirectory %s", group->configdir);
+		if (mkdir(group->configdir, 0777)) {
+			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
+			return FALSE;
+		}
+	}
+	
+	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
+	osync_debug("OSGRP", 3, "Saving group to file %s", filename);
+	
+	xmlDocPtr doc;
+
+	doc = xmlNewDoc("1.0");
+	doc->children = xmlNewDocNode(doc, NULL, "syncgroup", NULL);
+
+	xmlNewChild(doc->children, NULL, "name", group->name);
+
+	xmlSaveFile(filename, doc);
+	xmlFreeDoc(doc);
+	g_free(filename);
+
+	for (i = 0; i < osync_group_num_members(group); i++) {
+		OSyncMember *member = osync_group_nth_member(group, i);
+		if (!osync_member_save(member, error))
+			return FALSE;
+	}
+	
+	return TRUE;
+}
+
+/*! @brief Deletes a group from disc
+ * 
+ * Deletes to group directories and removes it from its environment
+ * 
+ * @param group The group
+ * @param error Pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
+{
+	g_assert(group);
+	char *delcmd = g_strdup_printf("rm -rf %s", group->configdir);
+	if (system(delcmd)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete group. command %s failed", delcmd);
+		g_free(delcmd);
+		return FALSE;
+	}
+	g_free(delcmd);
+	osync_env_remove_group(group->env, group);
+	osync_group_free(group);
+	return TRUE;
+}
+
+/*! @brief Loads a group from a directory
+ * 
+ * Loads a group from a directory
+ * 
+ * @param env The environment in which to create the group. Can be NULL
+ * @param path The path to the config directory of the group
+ * @param error Pointer to a error struct
+ * @returns Pointer to the loaded group
+ * 
+ */
+OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error)
+{
+	g_assert(env);
+	char *filename = NULL;
+	char *real_path = NULL;
+	
+	osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
+	
+	if (!g_path_is_absolute(path)) {
+		real_path = g_strdup_printf("%s/%s", g_get_current_dir(), path);
+	} else {
+		real_path = g_strdup(path);
+	}
+	filename = g_strdup_printf("%s/syncgroup.conf", real_path);
+		
+	OSyncGroup *group = osync_group_new(env);
+	group->configdir = real_path;
+
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	
+	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
+		osync_group_free(group);
+		g_free(filename);
+		return NULL;
+	}
+
+	while (cur != NULL) {
+		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+		if (!str)
+			continue;
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
+			group->name = g_strdup(str);
+		}
+		xmlFree(str);
+		cur = cur->next;
+	}
+	xmlFreeDoc(doc);
+	g_free(filename);
+	
+	if (!osync_group_load_members(group, real_path, error)) {
+		osync_group_free(group);
+		return NULL;
+	}
+
+	return group;
+}
+
+/*! @brief Appends a member to the group
+ * 
+ * Appends a member to the group
+ * 
+ * @param group The group to which to append
+ * @param member The member to append
+ * 
+ */
+void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
+{
+	g_assert(group);
+	group->members = g_list_append(group->members, member);
+}
+
+/*! @brief Removes a member from the group
+ * 
+ * @param group The group from which to remove
+ * @param member The member to remove
+ * 
+ */
+void osync_group_remove_member(OSyncGroup *group, OSyncMember *member)
+{
+	g_assert(group);
+	group->members = g_list_remove(group->members, member);
+}
+
+/*! @brief Returns the nth member of the group
+ * 
+ * Returns a pointer to the nth member of the group
+ * 
+ * @param group The group
+ * @param nth Which member to return
+ * @returns Pointer to the member
+ * 
+ */
+OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth)
+{
+	g_assert(group);
+	return (OSyncMember *)g_list_nth_data(group->members, nth);
+}
+
+/*! @brief Counts the members of the group
+ * 
+ * Returns the number of members in the group
+ * 
+ * @param group The group
+ * @returns Number of members
+ * 
+ */
+int osync_group_num_members(OSyncGroup *group)
+{
+	g_assert(group);
+	return g_list_length(group->members);
+}
+
+/*! @brief Returns the configdir for the group
+ * 
+ * Returns the configdir for the group
+ * 
+ * @param group The group
+ * @returns String with the path of the config directory
+ * 
+ */
+const char *osync_group_get_configdir(OSyncGroup *group)
+{
+	g_assert(group);
+	return group->configdir;
+}
+
+/*! @brief Sets if the group requires slow-sync for the given object type
+ * 
+ * Sets if the group requires slow-sync for the given object type. This will be
+ * reset once the group performs a successfull slow-sync
+ * 
+ * @param group The group
+ * @param objtypestr The name of the object type
+ * @param slow_sync Set to TRUE if you want to perform a slow-sync, FALSE otherwise
+ * 
+ */
 void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync)
 {
 	g_assert(group);
@@ -261,6 +417,15 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 	}
 }
 
+/*! @brief Returns if the group will perform a slow-sync for the object type
+ * 
+ * Returns if the group will perform a slow-sync for the object type
+ * 
+ * @param group The group
+ * @param objtype The name of the object type
+ * @returns TRUE if a slow-sync will be performed, FALSE otherwise
+ * 
+ */
 osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 {
 	g_assert(group);
@@ -275,8 +440,4 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	return osync_objtype->needs_slow_sync;
 }
 
-OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
-{
-	g_assert(group);
-	return group->conv_env;
-}
+/*@}*/

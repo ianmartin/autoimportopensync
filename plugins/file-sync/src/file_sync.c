@@ -49,7 +49,7 @@ static void *fs_initialize(OSyncMember *member)
 	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
 	if (!fsinfo)
 		goto error_ret;
-	if (!osync_member_get_config(member, &configdata, &configsize))
+	if (!osync_member_get_config(member, &configdata, &configsize, NULL))
 		goto error_free;
 	//FIXME Remove g_strstrip from the next line!
 	fsinfo->path = g_strstrip(g_strdup(configdata));
@@ -162,7 +162,13 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
 	
 	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
-	osync_file_read(filename, &file_info->data, &file_info->size);
+	OSyncError *error = NULL;
+	if (!osync_file_read(filename, &file_info->data, &file_info->size, &error)) {
+		osync_context_report_osyncerror(ctx, &error);
+		g_free(filename);
+		return;
+	}
+	
 	osync_change_set_data(change, (char *)file_info, sizeof(fs_fileinfo), TRUE);
 	g_free(filename);
 	
@@ -177,6 +183,7 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
 	
 	char *filename = NULL;
+	OSyncError *error = NULL;
 	filename = g_strdup_printf ("%s/%s", fsinfo->path, osync_change_get_uid(change));
 	
 	switch (osync_change_get_changetype(change)) {
@@ -197,9 +204,9 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 			}
 			/* No break. Continue below */
 		case CHANGE_MODIFIED:
-			if (!osync_file_write(filename, file_info->data, file_info->size)) {
+			if (!osync_file_write(filename, file_info->data, file_info->size, &error)) {
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
-				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
+				osync_context_report_osyncerror(ctx, &error);
 				g_free(filename);
 				return FALSE;
 			}

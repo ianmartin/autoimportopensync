@@ -5,12 +5,17 @@ AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src -I$(top_srcdir)/engine
 
 if ENABLE_TESTS
-TESTS = user member env conv sync
-noinst_PROGRAMS = user member env conv sync
+TESTS = error user member env conv sync
+noinst_PROGRAMS = error user member env conv sync
 else
 TESTS = 
 noinst_PROGRAMS = 
 endif
+
+error_INCLUDES = @CHECK_CFLAGS@
+error_SOURCES = check_error.c
+error_LIBS = @CHECK_LIBS@
+error_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la -lcheck
 
 member_INCLUDES = @CHECK_CFLAGS@
 member_SOURCES = check_member.c

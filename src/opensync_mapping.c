@@ -188,7 +188,7 @@ OSyncChange *osync_mapping_get_entry_by_owner(OSyncMapping *mapping, OSyncMember
 	return NULL;
 }
 
-void osync_mappingtable_set_dbpath(OSyncMappingTable *table, char *path)
+void osync_mappingtable_set_dbpath(OSyncMappingTable *table, const char *path)
 {
 	g_assert(table);
 	//FIXME Free previous path

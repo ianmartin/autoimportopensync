@@ -1,6 +1,6 @@
 /**
- * @defgroup ITMessage Asynchronous Messages
- * @ingroup ITMLibrary
+ * @defgroup OSEngineMessage OpenSync Message Internals
+ * @ingroup OSEnginePrivate
  * @brief A Message used by the inter thread messaging library
  * 
  */

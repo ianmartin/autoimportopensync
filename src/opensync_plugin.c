@@ -2,121 +2,155 @@
 #include "opensync_internals.h"
 #include "opensync_plugin.h"
 
+/**
+ * @defgroup OSyncPluginPrivateAPI OpenSync Plugin
+ * @ingroup OSyncPrivate
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+/*@{*/
 
-OSyncPlugin *osync_plugin_new(void)
+
+/*! @brief This will create a new plugin struct
+ * 
+ * The plugin struct represents a sync plugin
+ * 
+ * @param env For which environment to register this plugin. May be NULL
+ * @returns A pointer to a newly allocated plugin.
+ * 
+ */
+OSyncPlugin *osync_plugin_new(OSyncEnv *env)
 {
         OSyncPlugin *plugin = g_malloc0(sizeof(OSyncPlugin));
+        g_assert(plugin);
         memset(&(plugin->info), 0, sizeof(plugin->info));
         memset(&(plugin->info.functions), 0, sizeof(plugin->info.functions));
         plugin->info.plugin = plugin;
+        
+        if (env) {
+        	env->plugins = g_list_append(env->plugins, plugin);
+        	plugin->env = env;
+        }
+        
         return plugin;
 }
 
+/*! @brief Used to free a plugin
+ * 
+ * Frees a plugin
+ * 
+ * @param plugin Pointer to the plugin
+ * 
+ */
 void osync_plugin_free(OSyncPlugin *plugin)
 {
 	g_assert(plugin);
+	//FIXME Free more stuff?
 	g_free(plugin);
 }
 
-OSyncPlugin *osync_plugin_from_name(OSyncEnv *osinfo, const char *name)
-{
-	OSyncPlugin *plugin;
-	int i;
-	for (i = 0; i < osync_env_num_plugins(osinfo); i++) {
-		plugin = osync_env_get_nth_plugin(osinfo, i);
-		if (g_ascii_strcasecmp(plugin->info.name, name) == 0) {
-			return plugin;
-		}
-	}
-	return NULL;
-}
-
-void *osync_plugin_get_function(OSyncPlugin *plugin, char *name)
+/*! @brief Used to look up a symbol on the plugin
+ * 
+ * Looks up and returns a function
+ * 
+ * @param plugin Pointer to the plugin
+ * @param name The name of the function to look up
+ * @param error Pointer to a error struct
+ * @return Pointer to the function
+ * 
+ */
+void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncError **error)
 {
 	void *function;
+	if (!plugin->real_plugin) {
+		osync_debug("OSPLG", 1, "You need to load a plugin before getting a function");
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You need to load a plugin before getting a function");
+		return NULL;
+	}
+	
 	if (!g_module_symbol (plugin->real_plugin, name, &function)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
+		osync_debug("OSPLG", 0, "Unable to locate symbol %s on plugin", name);
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to locate symbol %s: %s", name, g_module_error());
 		return NULL;
 	}
 	return function;
 }
 
-osync_bool osync_plugin_load_info(OSyncPlugin *plugin, const char *path)
-{ 
+/*! @brief dlopen()s a plugin and returns the information from it
+ * 
+ * The get_info() function on the plugin gets called and the information is stored
+ * in the plugin struct
+ * 
+ * @param plugin 
+ * @param path Where to find this plugin
+ * @param error Pointer to a error struct
+ * @return Pointer to the plugin on success, NULL otherwise
+ * 
+ */
+OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error)
+{
 	/* Check if this platform supports dynamic
 	 * loading of modules */
 	if (!g_module_supported()) {
 		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
-		return FALSE;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
+		return NULL;
 	}
 
 	/* Try to open the module or fail if an error occurs */
+	OSyncPlugin *plugin = osync_plugin_new(env);
 	plugin->real_plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
 	if (!plugin->real_plugin) {
-		osync_debug("OSPLG", 0, "Unable to open plugin: %s", g_module_error());
-		return FALSE;
+		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
+		osync_plugin_free(plugin);
+		return NULL;
 	}
 	
 	void (* fct_info)(OSyncPluginInfo *info);
-	if (!(fct_info = osync_plugin_get_function(plugin, "get_info"))) {
+	if (!(fct_info = osync_plugin_get_function(plugin, "get_info", error))) {
 		osync_debug("OSPLG", 0, "Unable to open plugin: Missing symbol get_info");
-		return FALSE;
+		osync_plugin_unload(plugin);
+		osync_plugin_free(plugin);
+		return NULL;
 	}
 	
 	fct_info(&(plugin->info));
 	plugin->path = g_strdup(path);
 	
-	return TRUE;
+	return plugin;
 }
 
+/*! @brief unloads a previously loaded plugin
+ * 
+ * This unloads the plugin (but does not free the struct itself)
+ * 
+ * @param plugin Pointer to the plugin
+ * 
+ */
 void osync_plugin_unload(OSyncPlugin *plugin)
 {
 	g_assert(plugin);
+	if (!plugin->real_plugin) {
+		osync_debug("OSPLG", 0, "You need to load a plugin before unloading it");
+		return;
+	}
+	
 	g_module_close(plugin->real_plugin);
 	g_free(plugin->path);
 	plugin->path = NULL;
 }
 
-osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path)
-{
-	GDir *dir;
-	GError *error = NULL;
-	osync_debug("OSPLG", 3, "Trying to open plugin directory %s", path);
-	
-	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		return FALSE;
-	}
-	
-	dir = g_dir_open(path, 0, &error);
-	if (error) {
-		osync_debug("OSPLG", 0, "Unable to open plugin directory %s: %s", path, error->message);
-		g_error_free (error);
-		return FALSE;
-	}
-  
-	if (dir) {
-		const gchar *de = NULL;
-		while ((de = g_dir_read_name(dir))) {
-			
-			char *filename = NULL;
-			filename = g_strdup_printf ("%s/%s", path, de);
-			
-			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
-				continue;
-			}
-			
-			/* Try to open the syncgroup dir*/
-			OSyncPlugin *plugin = osync_plugin_new();
-			if (osync_plugin_load_info(plugin, filename) && !osync_plugin_from_name(os_env, plugin->info.name)) {
-				os_env->plugins = g_list_append(os_env->plugins, plugin);
-			} else {
-				//Free FIXME
-			}
-		}
-	}
-	return TRUE;
-}
-
+/*! @brief Returns the name of the loaded plugin
+ * 
+ * Returns the name of the loaded plugin
+ * 
+ * @param plugin Pointer to the plugin
+ * @returns Name of the plugin
+ * 
+ */
 const char *osync_plugin_get_name(OSyncPlugin *plugin)
 {
 	g_assert(plugin);
@@ -125,6 +159,8 @@ const char *osync_plugin_get_name(OSyncPlugin *plugin)
 
 OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template)
 {
+	g_assert(group);
+	g_assert(template);
 	OSyncObjTypeSink *sink = g_malloc0(sizeof(OSyncObjTypeSink));
 	OSyncObjType *type = osync_conv_find_objtype(group->conv_env, template->name);
 	if (!type) {
@@ -172,22 +208,6 @@ OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplat
 	return NULL;
 }
 
-void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
-{
-	OSyncObjTypeTemplate *template = g_malloc0(sizeof(OSyncObjTypeTemplate));
-	template->name = g_strdup(objtypestr);
-	info->plugin->accepted_objtypes = g_list_append(info->plugin->accepted_objtypes, template);
-}
-
-void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr)
-{
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
-	OSyncObjFormatTemplate *format_template = g_malloc0(sizeof(OSyncObjFormatTemplate));
-	format_template->name = g_strdup(formatstr);
-	template->formats = g_list_append(template->formats, format_template);
-}
-
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
@@ -216,3 +236,52 @@ OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const
 	}
 	return NULL;
 }
+
+/*@}*/
+
+/**
+ * @defgroup OSyncPluginAPI OpenSync Plugin
+ * @ingroup OSyncPublic
+ * @brief The public API of opensync
+ * 
+ * This gives you an insight in the public API of opensync.
+ * 
+ */
+/*@{*/
+
+/*! @brief Tells opensync that the plugin can accepts this object
+ * 
+ * Tells opensync that the plugin can accepts this object. Used by the plugin
+ * in the get_info() function
+ * 
+ * @param info The plugin info on which to operate
+ * @param objtypestr The name of the object which to accept
+ * 
+ */
+void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
+{
+	OSyncObjTypeTemplate *template = g_malloc0(sizeof(OSyncObjTypeTemplate));
+	template->name = g_strdup(objtypestr);
+	info->plugin->accepted_objtypes = g_list_append(info->plugin->accepted_objtypes, template);
+}
+
+/*! @brief Tells opensync that the plugin can accepts this format for the given object
+ * 
+ * Tells opensync that the plugin can accepts this format. Used by the plugin
+ * in the get_info() function
+ * 
+ * @param info The plugin info on which to operate
+ * @param objtypestr The name of the objecttype
+ * @param formatstr The name of the format to accept
+ * 
+ */
+void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr)
+{
+	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	OSyncObjFormatTemplate *format_template = g_malloc0(sizeof(OSyncObjFormatTemplate));
+	format_template->name = g_strdup(formatstr);
+	template->formats = g_list_append(template->formats, format_template);
+}
+
+/*@}*/

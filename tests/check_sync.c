@@ -44,10 +44,10 @@ START_TEST (sync_setup)
 {
   char *testbed = setup_testbed("sync_setup");
   OSyncEnv *osync = osync_env_new();
-  osync_env_initialize(osync);
-  OSyncGroup *group = osync_group_load(osync, "configs/group");
+  osync_env_initialize(osync, NULL);
+  OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
   fail_unless(group != NULL, NULL);
-  fail_unless(osync_num_groups(osync) == 1, NULL);
+  fail_unless(osync_env_num_groups(osync) == 1, NULL);
   destroy_testbed(testbed);
 }
 END_TEST
@@ -56,10 +56,10 @@ START_TEST (sync_setup_false)
 {
   char *testbed = setup_testbed("sync_setup_false");
   OSyncEnv *osync = osync_env_new();
-  osync_env_initialize(osync);
-  OSyncGroup *group = osync_group_load(osync, "configs/group");
+  osync_env_initialize(osync, NULL);
+  OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
   fail_unless(group == NULL, NULL);
-  fail_unless(osync_num_groups(osync) == 0, NULL);
+  fail_unless(osync_env_num_groups(osync) == 0, NULL);
   destroy_testbed(testbed);
 }
 END_TEST
@@ -68,10 +68,10 @@ START_TEST (sync_setup_init)
 {
   char *testbed = setup_testbed("sync_setup_init");
   OSyncEnv *osync = osync_env_new();
-  osync_env_initialize(osync);
-  OSyncGroup *group = osync_group_load(osync, "configs/group");
+  osync_env_initialize(osync, NULL);
+  OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
   fail_unless(group != NULL, NULL);
-  fail_unless(osync_num_groups(osync) == 1, NULL);
+  fail_unless(osync_env_num_groups(osync) == 1, NULL);
   destroy_testbed(testbed);
 }
 END_TEST
@@ -99,8 +99,8 @@ START_TEST (sync_setup_connect)
 	num_connected = 0;
 	num_disconnected = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	OSyncError *error = NULL;
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -124,8 +124,8 @@ START_TEST (sync_init_error)
 {
 	char *testbed = setup_testbed("sync_init_error");
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	OSyncError *error = NULL;
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -145,11 +145,11 @@ START_TEST (sync_easy_new)
 {
 	char *testbed = setup_testbed("sync_easy_new");
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
+	osync_env_initialize(osync, NULL);
 	mark_point();
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
-	fail_unless(osync_num_groups(osync) == 1, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
 	OSyncError *error = NULL;
@@ -224,11 +224,11 @@ START_TEST (sync_easy_new_del)
 	char *testbed = setup_testbed("sync_easy_new_del");
 	
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
+	osync_env_initialize(osync, NULL);
 	mark_point();
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
-	fail_unless(osync_num_groups(osync) == 1, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
 	OSyncError *error = NULL;
@@ -319,11 +319,11 @@ START_TEST (sync_easy_conflict)
 	char *testbed = setup_testbed("sync_easy_conflict");
 	num_conflicts = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
+	osync_env_initialize(osync, NULL);
 	mark_point();
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
-	fail_unless(osync_num_groups(osync) == 1, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
 	OSyncError *error = NULL;
@@ -353,11 +353,11 @@ START_TEST (sync_easy_new_mapping)
 	num_conflicts = 0;
 	num_written = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
+	osync_env_initialize(osync, NULL);
 	mark_point();
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
-	fail_unless(osync_num_groups(osync) == 1, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
 	OSyncError *error = NULL;
@@ -430,8 +430,8 @@ START_TEST (sync_easy_conflict_duplicate)
 	char *testbed = setup_testbed("sync_easy_conflict_duplicate");
 	num_conflicts = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -581,8 +581,8 @@ START_TEST (sync_conflict_duplicate)
 	char *testbed = setup_testbed("sync_conflict_duplicate");
 	num_conflicts = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -634,8 +634,8 @@ START_TEST (sync_conflict_duplicate2)
 	char *testbed = setup_testbed("sync_conflict_duplicate2");
 	num_conflicts = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -723,8 +723,8 @@ START_TEST (sync_conflict_deldel)
 	char *testbed = setup_testbed("sync_conflict_deldel");
 	num_conflicts = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -797,8 +797,8 @@ START_TEST (sync_moddel)
 	char *testbed = setup_testbed("sync_moddel");
 	num_conflicts = 0;
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
@@ -874,8 +874,8 @@ START_TEST (sync_easy_dualdel)
 {
 	char *testbed = setup_testbed("sync_easy_dualdel");
 	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync);
-	OSyncGroup *group = osync_group_load(osync, "configs/group");
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);

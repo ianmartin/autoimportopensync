@@ -9,14 +9,15 @@ typedef struct ITMQueue ITMQueue;
 #include "osengine_queue_internals.h"
 
 /**
- * @defgroup MSyncInternals libmultisync Internals
- * @brief The internals of the multisync engine
+ * @defgroup PrivateAPI Private APIs
+ * @brief Available private APIs
  * 
  */
 
 /**
- * @defgroup MSyncPublic libmultisync Public API
- * @brief The API available to everyone to (ab)use.
+ * @defgroup OSEnginePrivate OpenSync Engine Private API
+ * @ingroup PrivateAPI
+ * @brief The internals of the multisync engine
  * 
  */
 

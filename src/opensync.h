@@ -28,7 +28,8 @@ typedef enum {
 	OSYNC_ERROR_EXISTS = 7,
 	OSYNC_ERROR_CONVERT = 8,
 	OSYNC_ERROR_MISCONFIGURATION = 9,
-	OSYNC_ERROR_INITIALIZATION = 10
+	OSYNC_ERROR_INITIALIZATION = 10,
+	OSYNC_ERROR_PARAMETER = 11
 } OSyncErrorType;
 
 typedef struct OSyncEnv OSyncEnv;
@@ -154,7 +155,7 @@ typedef struct OSyncError {
 	char *message;
 } OSyncError;
 
-typedef void (* OSyncEngCallback)(OSyncMember *, void *, OSyncError *);
+typedef void (* OSyncEngCallback)(OSyncMember *, void *, OSyncError **);
 
 typedef struct OSyncMemberFunctions {
 	void (* rf_change) (OSyncMember *, OSyncChange *);
@@ -169,7 +170,7 @@ typedef struct OSyncMemberFunctions {
 
 char *osync_rand_str(int maxlength);
 void osync_debug(const char *subpart, int level, const char *message, ...);
-void osync_print_binary(unsigned char *data, int len);
+void osync_print_binary(const unsigned char *data, int len);
 
 /**************************************************************
  * Prototypes

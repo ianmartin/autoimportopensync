@@ -2,8 +2,8 @@
 #include "engine_internals.h"
 
 /**
- * @defgroup ITMQueues Asynchronous Message Queues
- * @ingroup ITMLibrary
+ * @defgroup OSEngineQueue OpenSync Message Queues Internals
+ * @ingroup OSEnginePrivate
  * @brief A Queue used for asynchronous communication between thread
  * 
  */

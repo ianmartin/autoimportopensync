@@ -7,9 +7,9 @@
 
 START_TEST (test_create)
 {
-  OSyncMember *member;
+  OSyncMember *member = NULL;
   member = osync_member_new(NULL);
-  fail_unless(member == NULL, "Member != NULL on creation");
+  fail_unless(member != NULL, "Member == NULL on creation");
 }
 END_TEST
 
