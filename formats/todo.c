@@ -41,15 +41,35 @@ static osync_bool detect_plain_as_vtodo20(OSyncFormatEnv *env, const char *data,
 	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VTODO*", data);
 }
 
+static void create_todo10(OSyncChange *change)
+{
+	char *vtodo = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:1.0\r\nBEGIN:VTODO\r\nSUMMARY:%s\r\nEND:VTODO\r\nEND:VCALENDAR", osync_rand_str(20));
+	
+	osync_change_set_data(change, vtodo, strlen(vtodo) + 1, TRUE);
+	if (!osync_change_get_uid(change))
+		osync_change_set_uid(change, osync_rand_str(6));
+}
+
+static void create_todo20(OSyncChange *change)
+{
+	char *vtodo = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:2.0\r\nBEGIN:VTODO\r\nSUMMARY:%s\r\nEND:VTODO\r\nEND:VCALENDAR", osync_rand_str(20));
+	
+	osync_change_set_data(change, vtodo, strlen(vtodo) + 1, TRUE);
+	if (!osync_change_get_uid(change))
+		osync_change_set_uid(change, osync_rand_str(6));
+}
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "todo");
 	
 	osync_env_register_objformat(env, "todo", "vtodo10");
 	osync_env_format_set_compare_func(env, "vtodo10", compare_vtodo);
+	osync_env_format_set_create_func(env, "vtodo10", create_todo10);
 	osync_env_register_detector(env, "plain", "vtodo10", detect_plain_as_vtodo10);
 	
 	osync_env_register_objformat(env, "todo", "vtodo20");
 	osync_env_format_set_compare_func(env, "vtodo20", compare_vtodo);
+	osync_env_format_set_create_func(env, "vtodo20", create_todo20);
 	osync_env_register_detector(env, "plain", "vtodo20", detect_plain_as_vtodo20);
 }

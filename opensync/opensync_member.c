@@ -227,21 +227,38 @@ const char *osync_member_get_pluginname(OSyncMember *member)
 	return member->pluginname;
 }
 
+void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
+{
+	g_assert(member);
+	if (member->pluginname)
+		g_free(member->pluginname);
+	member->pluginname = g_strdup(pluginname);
+}
+
 const char *osync_member_get_configdir(OSyncMember *member)
 {
 	g_assert(member);
 	return member->configdir;
 }
 
+void osync_member_set_configdir(OSyncMember *member, const char *configdir)
+{
+	g_assert(member);
+	if (member->configdir)
+		g_free(member->configdir);
+	member->configdir = g_strdup(configdir);
+}
+
 osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_member_get_config(%p, %p, %p, %p)", member, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
 	g_assert(member);
 	osync_bool ret = TRUE;
 
 	if (member->configdata) {
 		*data = member->configdata;
 		*size = member->configsize;
+		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
 		return TRUE;
 	}
 
@@ -256,25 +273,27 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
-	osync_trace(TRACE_EXIT, "osync_member_get_config: %i", ret);
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
 }
 
 void osync_member_set_config(OSyncMember *member, const char *data, int size)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, member, data, size);
 	g_assert(member);
 	//FIXME free old data
 	member->configdata = g_strdup(data);
 	member->configsize = size;
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 	char *filename = NULL;
 	
-	osync_debug("OSGRP", 3, "Trying to load member from directory %s", path);
 	filename = g_strdup_printf ("%s/syncmember.conf", path);
 	
 	OSyncMember *member = osync_member_new(group);
@@ -285,6 +304,7 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 
 	if (!_osync_open_xml_file(&doc, &cur, filename, "syncmember", error)) {
 		osync_member_free(member);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 
@@ -300,26 +320,30 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 	xmlFreeDoc(doc);
 	g_free(filename);
 	
+	osync_trace(TRACE_EXIT, "%s: Loaded member: %p", __func__, member);
 	return member;
 }
 
 osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p:(%lli), %p)", __func__, member, member ? member->id : 0, error);
 	char *filename = NULL;
 
-	if (!osync_member_instance_default_plugin(member, error))
+	if (!osync_member_instance_default_plugin(member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
+	}
 
 	if (!member->id) {
 		member->id = osync_group_create_member_id(member->group);
 		member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
 	}
-	osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
 	
 	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
 		if (mkdir(member->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 			return FALSE;
 		}
 	}
@@ -336,8 +360,8 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	g_free(filename);
 	
 	//Saving the config if it exists
+	osync_bool ret = TRUE;
 	if (member->configdata) {
-		osync_bool ret = TRUE;
 		OSyncPluginFunctions functions = member->plugin->info.functions;
 		
 		if (functions.store_config) {
@@ -352,9 +376,10 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		g_free(member->configdata);
 		member->configdata = NULL;
 		member->configsize = 0;
-		return ret;
 	}
-	return TRUE;
+	
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(error));
+	return ret;
 }
 
 long long int osync_member_get_id(OSyncMember *member)
@@ -415,66 +440,84 @@ void osync_member_request_synchronization(OSyncMember *member)
 
 osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 {
-	if (!osync_member_instance_default_plugin(member, error))
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+	if (!osync_member_instance_default_plugin(member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
+	}
 	
 	g_assert(member);
 	g_assert(member->plugin);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	g_assert(functions.finalize);
-	if (!(member->plugindata = functions.initialize(member, error)))
+	if (!(member->plugindata = functions.initialize(member, error))) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
 void osync_member_finalize(OSyncMember *member)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	g_assert(member);
 	g_assert(member->plugin);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	if (functions.finalize)
 		functions.finalize(member->plugindata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
 	functions.get_changeinfo(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	g_assert(change != NULL);
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
 	functions.get_data(context, change);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
 	functions.connect(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
 	functions.disconnect(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
@@ -485,10 +528,12 @@ void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void
 	} else {
 		osync_context_report_success(context);
 	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, change, function, user_data);
 	g_assert(member);
 	g_assert(change);
 
@@ -515,14 +560,15 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, type->name);
 	if (sink && !sink->enabled) {
 		osync_context_report_success(context);
+		osync_trace(TRACE_EXIT, "%s: Sink not enabled", __func__);
 		return;
 	}
 
 
 	OSyncError *error = NULL;
 	if (!osync_change_convert_member_sink(env, change, member, &error)) {
-		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
 		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 		osync_error_free(&error);
 		return;
 	}
@@ -532,8 +578,8 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	
 	//Filter the change.
 	if (!osync_filter_change_allowed(member, change)) {
-		osync_debug("OSYNC", 2, "Change %s filtered out for member %lli", change->uid, member->id);
 		osync_context_report_success(context);
+		osync_trace(TRACE_EXIT, "%s: Change filtered", __func__);
 		return;
 	}
 
@@ -543,27 +589,21 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	osync_debug("OSYNC", 2, "Searching for sink");
 	for (i = member->format_sinks; i; i = i->next) {
 		OSyncObjFormatSink *fmtsink = i->data;
-		/*if (!fmtsink->objtype_sink->enabled) {
-			osync_context_report_success(context);
-			return;
-		}*/
+
 		osync_debug("OSYNC", 2, "Comparing change %s with sink %s", osync_change_get_objformat(change)->name, fmtsink->format ? fmtsink->format->name : "None");
 		if (fmtsink->format == osync_change_get_objformat(change)) {
 			// Send the change
 			fmtsink->functions.commit_change(context, change);
+			osync_trace(TRACE_EXIT, "%s", __func__);
 			return;
 		}
 	}
 
-	if (!i) {
-		// We should not get here because the search function
-		// returned success, but just make sure everything went ok
-		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
-	}
-
+	osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
+	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find a sink", __func__);
 }
 
-OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
+OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change, const char *objtypename)
 {
 	int retry = 0;
 	g_assert(member);
@@ -572,88 +612,145 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 	OSyncObjFormatSink *format_sink = NULL;
 	
 	for (retry = 0; retry < 100; retry++) {
-		if (retry > 20)
+		if (retry > 20) {
+			osync_trace(TRACE_INTERNAL, "%s: Giving up", __func__);
 			return NULL; //Giving up
+		}
 		
 		//Select a random objtype
-		int selected = g_random_int_range(0, g_list_length(env->objtypes));
-		OSyncObjType *objtype = g_list_nth_data(env->objtypes, selected);
+		OSyncObjType *objtype = NULL;
+		int selected = 0;
+		if (!objtypename) {
+			selected = g_random_int_range(0, g_list_length(env->objtypes));
+			objtype = g_list_nth_data(env->objtypes, selected);
+		} else
+			objtype = osync_conv_find_objtype(member->group->conv_env, objtypename);
 		osync_change_set_objtype(change, objtype);
 		
 		//Select a random objformat
-		if (!g_list_length(objtype->formats))
+		if (!g_list_length(objtype->formats)) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. No formats", __func__);
 			continue;
+		}
 		OSyncObjFormat *format = NULL;
 		selected = g_random_int_range(0, g_list_length(objtype->formats));
 		format = g_list_nth_data(objtype->formats, selected);
 		
-		if (!format->create_func)
+		if (!format->create_func) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. Format %s has no create function", __func__, format->name);
 			continue;
+		}
 		//Create the data
 		format->create_func(change);
 		
 		osync_change_set_objformat(change, format);
 		//Convert the data to a format the plugin understands
 		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype->name);
-		if (!objtype_sink)
+		if (!objtype_sink) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. No objtype sink for %s", __func__, objtype->name);
 			continue; //We had a objtype we cannot add
+		}
 		
 		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
 		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
 		/*FIXME: use multiple sinks, or what? */
-		osync_bool r = osync_change_convert(env, change, format_sink->format, NULL);
-		if (!r)
+		OSyncError *error = NULL;
+		if (!osync_change_convert(env, change, format_sink->format, &error)) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. Unable to convert: %s", __func__, osync_error_print(&error));
 			continue; //Unable to convert to selected format
-
+		}
+		
 		break;
 	}
 	return format_sink;
 }
 
-OSyncChange *osync_member_add_random_data(OSyncMember *member)
+OSyncChange *osync_member_add_random_data(OSyncMember *member, const char *objtype)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	OSyncContext *context = osync_context_new(member);
 	OSyncChange *change = osync_change_new();
 	change->changetype = CHANGE_ADDED;
 	OSyncObjFormatSink *format_sink;
-	if (!(format_sink = osync_member_make_random_data(member, change)))
+	if (!(format_sink = osync_member_make_random_data(member, change, objtype))) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make random data", __func__);
 		return NULL;
+	}
 	
-	if (format_sink->functions.access(context, change) == TRUE)
-		return change;
-	return NULL;
+	if (!format_sink->functions.access) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: No access function", __func__);
+		return NULL;
+	}
+	
+	if (!format_sink->functions.access(context, change)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to write change", __func__);
+		return NULL;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
+	return change;
 }
 
 osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, change);
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_MODIFIED;
 	OSyncObjFormatSink *format_sink;
 	char *uid = g_strdup(osync_change_get_uid(change));
 	
-	if (!(format_sink = osync_member_make_random_data(member, change)))
+	if (!(format_sink = osync_member_make_random_data(member, change, osync_change_get_objtype(change)->name))) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make random data", __func__);
 		return FALSE;
+	}
 
 	osync_change_set_uid(change, uid);
 	
-	return format_sink->functions.access(context, change);
+	if (!format_sink->functions.access) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: No access function", __func__);
+		return FALSE;
+	}
+	
+	if (!format_sink->functions.access(context, change)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify change", __func__);
+		return FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, change);
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_DELETED;
 	
 	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, osync_change_get_objtype(change)->name);
-	if (!objtype_sink)
+	if (!objtype_sink) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find objsink for %s", __func__, osync_change_get_objtype(change)->name);
 		return FALSE;
+	}
 	
 	OSyncObjFormat *format = osync_change_get_objformat(change);
 	OSyncObjFormatSink *format_sink = osync_objtype_find_format_sink(objtype_sink, format->name);
-	if (!format_sink)
+	if (!format_sink) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find format sink for %s", __func__, format->name);
 		return FALSE;
+	}
 	
-	return format_sink->functions.access(context, change);
+	if (!format_sink->functions.access) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: No access function", __func__);
+		return FALSE;
+	}
+	
+	if (!format_sink->functions.access(context, change)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify change", __func__);
+		return FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 /*@}*/

@@ -185,6 +185,17 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 	leftnode = leftnode->children;
 	rightnode = rightnode->children;
 	xmlNode *rightstartnode = rightnode;
+	
+	if (!leftnode && !rightnode) {
+		osync_trace(TRACE_EXIT, "%s: TRUE. Both 0", __func__);
+		return TRUE;
+	}
+	
+	if (!leftnode || !rightnode) {
+		osync_trace(TRACE_EXIT, "%s: FALSE. One 0", __func__);
+		return FALSE;
+	}
+	
 	do {
 		if (!strcmp("UnknownParam", leftnode->name))
 			continue;

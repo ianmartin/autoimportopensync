@@ -35,7 +35,7 @@ void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid);
 void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry);
 void osync_member_request_synchronization(OSyncMember *member);
-OSyncChange *osync_member_add_random_data(OSyncMember *member);
+OSyncChange *osync_member_add_random_data(OSyncMember *member, const char *objtype);
 void osync_member_finalize(OSyncMember *member);
 void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry);
 osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change);
@@ -45,3 +45,5 @@ osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypest
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
 osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change);
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled);
+void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
+void osync_member_set_configdir(OSyncMember *member, const char *configdir);

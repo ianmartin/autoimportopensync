@@ -44,31 +44,38 @@ void *osync_context_get_plugin_data(OSyncContext *context)
 
 void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(error));
 	g_assert(context);
 	if (context->callback_function)
 		(context->callback_function)(context->member, context->calldata, error);
 	osync_context_free(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s)", __func__, context, type, format);
 	g_assert(context);
 	OSyncError *error = NULL;
 	va_list args;
 	va_start(args, format);
 	osync_error_set_vargs(&error, type, format, args);
+	osync_trace(TRACE_INTERNAL, "ERROR is: %s", osync_error_print(&error));
 	if (context->callback_function)
 		(context->callback_function)(context->member, context->calldata, &error);
 	va_end (args);
 	osync_context_free(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_report_success(OSyncContext *context)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, context);
 	g_assert(context);
 	if (context->callback_function)
 		(context->callback_function)(context->member, context->calldata, NULL);
 	osync_context_free(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_report_change(OSyncContext *context, OSyncChange *change)
