@@ -56,10 +56,13 @@ AC_CACHE_CHECK([for python SDK], [cs_cv_python_sdk],
 		'import distutils.sysconfig ; \
 		print (distutils.sysconfig.get_config_var("LIBS") or "") + \
 		" " + (distutils.sysconfig.get_config_var("SYSLIBS") or "")'])`
-		CFLAGS="$CFLAGS $cs_cv_python_base_cflags"
-		LDFLAGS="$LFLAGS $cs_cv_python_base_lflags"
-		LIBS="$LIBS $cs_cv_python_base_libs -l$cs_cv_python_base"
-	    cs_cv_python_sdk=yes])])])
+		PYTHON_CFLAGS="$CFLAGS $cs_cv_python_base_cflags"
+		PYTHON_LDFLAGS="$LFLAGS $cs_cv_python_base_lflags"
+		PYTHON_LIBS="$LIBS $cs_cv_python_base_libs -l$cs_cv_python_base"
+		AC_SUBST(PYTHON_CFLAGS)
+		AC_SUBST(PYTHON_LDFLAGS)
+		AC_SUBST(PYTHON_LIBS)
+		cs_cv_python_sdk=yes])])])
 
 OPENSYNC_PLUGINDIR=${libdir}/opensync/plugins
 AC_SUBST(OPENSYNC_PLUGINDIR)
