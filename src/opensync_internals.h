@@ -23,25 +23,6 @@
   } } while (0)
 
 
-/** Hook types and macros
- *
- *@{
- */
-typedef void (*OSyncHookFnChange)(OSyncChange *);
-typedef GList/* OSyncHookFnChange * */ *OSyncChangeHook;
-
-/** Call the hook functions of a hook */
-#define osync_run_change_hook(hook, change) \
-	do { \
-		GList *i; \
-		for (i = hook; i; i = i->next) { \
-			OSyncHookFnChange f = i->data; \
-			f(change); \
-		} \
-	} while (0)
-
-/** @} */
-
 /**
  * @defgroup PublicAPI Public APIs
  * @brief Available public APIs
@@ -105,7 +86,6 @@ struct OSyncMember {
 	GList *accepted_objtypes;
 	GList *filters;
 
-	OSyncChangeHook before_convert_hook;
 };
 
 struct OSyncContext {
@@ -124,7 +104,6 @@ struct OSyncGroup {
 	void *data;
 	OSyncFormatEnv *conv_env;
 	long long int id;
-	OSyncChangeHook before_convert_hook;
 	
 	GList *filters;
 };

@@ -454,9 +454,6 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	
 	OSyncObjType *type = change->objtype;
 	
-	//osync_run_hook(member->group->before_convert_hook, (change, member));
-	//osync_run_hook(member->before_convert_hook, (change, member);
-
 	/* This is just an optmization:
 	 *
 	 * the path search function will avoid doing
