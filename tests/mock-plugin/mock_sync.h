@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <string.h>
 #include <config.h>
+#include <check.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -13,4 +14,5 @@ typedef struct mock_env {
         OSyncMember *member;
         GDir *dir;
         OSyncHashTable *hashtable;
+        osync_bool committed_all;
 } mock_env;

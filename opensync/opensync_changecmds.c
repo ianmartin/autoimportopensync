@@ -82,7 +82,7 @@ char *osync_change_get_printable(OSyncChange *change)
 	if (!change->has_data)
 		return NULL;
 		
-	OSyncObjFormat *format = change->format;
+	OSyncObjFormat *format = osync_change_get_objformat(change);
 	g_assert(format);
 	
 	if (!format->print_func)
@@ -109,7 +109,7 @@ time_t osync_change_get_revision(OSyncChange *change, OSyncError **error)
 		return -1;
 	}
 	
-	OSyncObjFormat *format = change->format;
+	OSyncObjFormat *format = osync_change_get_objformat(change);
 	g_assert(format);
 	
 	if (!format->revision_func) {
@@ -170,7 +170,7 @@ OSyncConvCmpResult osync_change_compare_data(OSyncChange *leftchange, OSyncChang
 			osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: One change has no data");
 			return CONV_DATA_MISMATCH;
 		}
-		OSyncObjFormat *format = leftchange->format;
+		OSyncObjFormat *format = osync_change_get_objformat(leftchange);
 		g_assert(format);
 		
 		OSyncConvCmpResult ret = format->cmp_func(leftchange, rightchange);
@@ -317,7 +317,7 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
 osync_bool osync_change_duplicate(OSyncChange *change)
 {
 	g_assert(change);
-	OSyncObjFormat *format = change->format;
+	OSyncObjFormat *format = osync_change_get_objformat(change);
 	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
 	if (!format || !format->duplicate_func)
 		return FALSE;

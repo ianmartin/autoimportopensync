@@ -161,6 +161,8 @@ static void mock_connect(OSyncContext *ctx)
 		osync_context_report_success(ctx);
 	}
 	
+	env->committed_all = FALSE;
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -295,6 +297,8 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
+	//fail_unless(env->committed_all == FALSE, NULL);
+	
 	char *filename = NULL;
 	OSyncError *error = NULL;
 	filename = g_strdup_printf ("%s/%s", env->path, osync_change_get_uid(change));
@@ -344,6 +348,8 @@ static osync_bool mock_commit_change(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
+	
+	//fail_unless(env->committed_all == FALSE, NULL);
 	
 	if (mock_get_error(env->member, "COMMIT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering COMMIT_ERROR error");
@@ -417,6 +423,10 @@ static osync_bool mock_is_available(OSyncError **error)
 static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange **changes)
 {
 	mock_env *env = (mock_env *)data;
+	
+	fail_unless(env->committed_all == FALSE, NULL);
+	env->committed_all = TRUE;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, contexts, changes);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -424,6 +434,10 @@ static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange *
 static void mock_committed_all(void *data)
 {
 	mock_env *env = (mock_env *)data;
+	
+	fail_unless(env->committed_all == FALSE, NULL);
+	env->committed_all = TRUE;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -460,11 +474,11 @@ void get_info(OSyncPluginInfo *info)
 	if (g_getenv("IS_AVAILABLE"))
 		info->functions.is_available = mock_is_available;
 	
-	if (g_getenv("BATCH_COMMIT1")) {
+	if (g_getenv("BATCH_COMMIT")) {
 		osync_plugin_set_batch_commit_objformat(info, "data", "mockformat", mock_batch_commit);
 	} else {
 		osync_plugin_set_commit_objformat(info, "data", "mockformat", mock_commit_change);
-		if (g_getenv("BATCH_COMMIT2")) 
+		if (!g_getenv("BATCH_COMMIT")) 
 			osync_plugin_set_committed_all_objformat(info, "data", "mockformat", mock_committed_all);
 	}
 }

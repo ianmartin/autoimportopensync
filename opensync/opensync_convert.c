@@ -408,7 +408,7 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	osync_trace(TRACE_ENTRY, "osync_conv_convert_fn(%p, %p, %p, %p, %p)", env, change, target_fn, fndata, error);
 	g_assert(change);
 	g_assert(target_fn);
-	OSyncObjFormat *source = change->format;
+	OSyncObjFormat *source = osync_change_get_objformat(change);
 	osync_assert(source, "Cannot convert! change has no objformat!");
 	GList *path = NULL;
 	osync_bool ret = TRUE;
