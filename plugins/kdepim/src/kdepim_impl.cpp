@@ -202,15 +202,12 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 			KABC::Ticket *ticket = addressbookptr->requestSaveTicket();
 		    if ( !ticket ) {
-		      kdWarning() << "KABCKonnector::writeSyncees(). Couldn't get ticket for "
-		                  << "resource." << endl;
-		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
+		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unable to get save ticket");
 		      return;
 		    }
 		
 		    if ( !addressbookptr->save( ticket ) ) {
-		      kdWarning() << "KABCKonnector::writeSyncees(). Couldn't save resource." << endl;
-		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
+		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unable to get save using ticket");
 		      return;
 		    }
 
