@@ -442,6 +442,8 @@ OSyncEnv *init_env(void)
 	load_format(osync, "xml-vcal.so");
 	load_format(osync, "xml-vcard.so");
 	load_format(osync, "xml-vnote.so");
+	load_format(osync, "xml-evolution.so");
+	load_format(osync, "xml-kde.so");
 	load_format(osync, "mockformat.so");
 	
 	return osync;
