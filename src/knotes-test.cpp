@@ -50,8 +50,7 @@ int main(void)
 		}
 	}
 
-	KNotesIface_stub *fKNotes = new KNotesIface_stub(knotesAppname,"KNotesIface");
-
+	
 	
         fNotes = fKNotes->notes();
        if (fKNotes->status() != DCOPStub::CallSucceeded)

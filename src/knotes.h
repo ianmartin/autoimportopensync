@@ -52,9 +52,10 @@ class KNotesDataSource
 {
     private:
         OSyncMember *member;
-        OSyncHashTable *hashtable;
-        KCal::CalendarLocal *calendar;
-
+		KNotesIface_stub *fKNotes;
+		DCOPClient *kn_dcop
+		KNotesIface_stub kn_iface;
+		
         /** Ugly hack to restart KNotes if it
          * was running
          */

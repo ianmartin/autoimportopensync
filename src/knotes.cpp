@@ -42,60 +42,72 @@ KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
 
 bool KNotesDataSource::connect(OSyncContext *ctx)
 {
-	//connect to dcop
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	//check knotes running
+		
+	
+	//connect to dcop
+	DCOPClient *kn_dcop = KApplication::kApplication()->dcopClient();
+	if (!kndcop) {
+		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to make new dcop for knotes");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make new dcop for knotes", __func__);
+		return FALSE;
+	}
+	
+	if (!dcop->attach()) {
+		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to attach dcop for knotes");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to attach dcop for knotes", __func__);
+		return FALSE;
+	}
+	
+	QCStringList apps = dcop->registeredApplications();
+	if (!apps.contains("knotes")) {
 		//start knotes if not running
-	
-	
-    // Terminate knotes because we will change its data
-    // Yes, it is _very_ ugly
-    //FIXME: use dcop programming interface, not the commandline utility
-    if (!system("dcop knotes MainApplication-Interface quit"))
-        /* Restart knotes later */
-        knotesWasRunning = true;
-    else
         knotesWasRunning = false;
+	} else
+        knotesWasRunning = true;
 
-    calendar = new KCal::CalendarLocal;
-    if (!calendar) {
-        osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Couldn't allocate calendar object");
-        return false;
-    }
-    
-    QString notes_loc = KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics";
+	kn_iface = new KNotesIface_stub(knotesAppname,"KNotesIface");
 
-    if (!calendar->load(notes_loc)) {
-        osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Couldn't load notes");
-        return false;
-    }
-
-    return true;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return true;
 }
 
 bool KNotesDataSource::disconnect(OSyncContext *ctx)
 {
-    if (!saveNotes(ctx))
-        return false;
-
-    delete calendar;
-    calendar = NULL;
-
-    // FIXME: ugly, but necessary
-    if (knotesWasRunning)
-        system("knotes");
-    return true;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	//call sync on knotes dcop
+	
+	// FIXME: ugly, but necessary
+	if (!knotesWasRunning) {
+		//Terminate knotes
+	}
+	
+	//detach dcop
+	//destroy dcop
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return true;
 }
 
 bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 {
-    KCal::Journal::List notes = calendar->journals();
-
-    for (KCal::Journal::List::ConstIterator i = notes.begin(); i != notes.end(); i++) {
-        osync_debug("knotes", 4, "Note summary: %s", (const char*)(*i)->summary().local8Bit());
-        osync_debug("knotes", 4, "Note contents:\n%s\n====", (const char*)(*i)->description().local8Bit());
-
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	QMap <KNoteID_t,QString> fNotes;
+	
+	fNotes = fKNotes->notes();
+	if (fKNotes->status() != DCOPStub::CallSucceeded) {
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get changed notes");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to get changed notes", __func__);
+		return FALSE;
+	}
+	
+	QMap<KNoteID_t,QString>::ConstIterator i = fNotes.begin();
+	while (i != fNotes.end()) {
+		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
+        osync_debug("knotes", 4, "Note contents:\n%s\n====", (const char*)i.data().local8Bit());
+		
         QString uid = (*i)->uid();
-        QString hash = calc_hash(*i);
 
         // Create osxml doc containing the note
         xmlDoc *doc = xmlNewDoc((const xmlChar*)"1.0");
@@ -123,16 +135,6 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         osync_change_set_objtype_string(chg, "note");
         osync_change_set_objformat_string(chg, "xml-note");
         osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
-
-
-        //XXX: workaround to a bug on osync_change_multiply_master:
-        // convert it to vnote
-        OSyncFormatEnv *env = osync_member_get_format_env(member);
-        OSyncError *e = NULL;
-        if (!osync_change_convert_fmtname(env, chg, "vnote11", &e)) {
-            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Error converting data to vnote: %s", osync_error_print(&e));
-            return false;
-        }
 
         // Use the hash table to check if the object
         // needs to be reported
@@ -164,31 +166,18 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
         QString summary = osxml_find_node(root, "Summary");
         QString body = osxml_find_node(root, "Body");
 
-
-        KCal::Journal *j = calendar->journal(uid);
-
-        if (type == CHANGE_MODIFIED && !j)
-            type = CHANGE_ADDED;
-
         QString hash, uid;
         // end of the ugly-format parsing
         switch (type) {
             case CHANGE_ADDED:
-                j = new KCal::Journal;
-                j->setUid(uid);
-                j->setSummary(summary);
-                j->setDescription(body);
-                hash = calc_hash(j);
-                calendar->addJournal(j);
-                uid = j->uid();
+                uid = newNote();
                 osync_change_set_uid(chg, uid);
                 osync_change_set_hash(chg, hash);
-
             break;
             case CHANGE_MODIFIED:
-                j->setSummary(summary);
-                j->setDescription(body);
-                hash = calc_hash(j);
+                setText
+                setBody
+                hash = calc_hash();
                 osync_change_set_hash(chg, hash);
             break;
             default:
@@ -196,10 +185,7 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
                 return false;
         }
     } else {
-        KCal::Journal *j = calendar->journal(uid);
-        if (j) {
-            calendar->deleteJournal(j);
-        }
+        //dcop killNote
     }
 
     osync_context_report_success(ctx);
