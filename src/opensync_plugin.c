@@ -12,6 +12,12 @@ OSyncPlugin *osync_plugin_new(void)
         return plugin;
 }
 
+void osync_plugin_free(OSyncPlugin *plugin)
+{
+	g_assert(plugin);
+	g_free(plugin);
+}
+
 OSyncPlugin *osync_plugin_from_name(OSyncEnv *osinfo, const char *name)
 {
 	OSyncPlugin *plugin;
@@ -35,7 +41,7 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, char *name)
 	return function;
 }
 
-osync_bool osync_plugin_load_info(OSyncPlugin *plugin, char *path)
+osync_bool osync_plugin_load_info(OSyncPlugin *plugin, const char *path)
 { 
 	/* Check if this platform supports dynamic
 	 * loading of modules */
@@ -58,9 +64,18 @@ osync_bool osync_plugin_load_info(OSyncPlugin *plugin, char *path)
 	}
 	
 	fct_info(&(plugin->info));
-	plugin->path = path;
+	plugin->path = g_strdup(path);
 	
 	return TRUE;
+}
+
+void osync_plugin_unload(OSyncPlugin *plugin)
+{
+	g_assert(plugin);
+	printf("unloading plugin %s\n", plugin->path);
+	g_module_close(plugin->real_plugin);
+	g_free(plugin->path);
+	plugin->path = NULL;
 }
 
 osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path)

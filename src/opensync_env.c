@@ -14,18 +14,23 @@ OSyncEnv *osync_env_new(void)
 	return os_env;
 }
 
+void osync_env_free(OSyncEnv *env)
+{
+	g_assert(env);
+	//FIXME Free user info
+	g_free(env->configdir);
+	g_free(env->plugindir);
+	g_free(env);
+}
+
 void osync_env_append_group(OSyncEnv *os_env, OSyncGroup *group)
 {
 	os_env->groups = g_list_append(os_env->groups, group);
 }
 
-osync_bool osync_init(OSyncEnv *os_env)
+osync_bool osync_env_initialize(OSyncEnv *os_env)
 {
-	
 	g_assert(os_env != NULL);
-	
-	//Load all available language wrappers
-	//FIXME
 	
 	//Load all available shared libraries (plugins)
 	if (!g_file_test(os_env->plugindir, G_FILE_TEST_EXISTS)) {
@@ -34,6 +39,20 @@ osync_bool osync_init(OSyncEnv *os_env)
 	}
 	
 	return osync_plugin_load_dir(os_env, os_env->plugindir);
+}
+
+void osync_env_finalize(OSyncEnv *os_env)
+{
+	g_assert(os_env);
+	printf("finalizing\n");
+	GList *plugins = g_list_copy(os_env->plugins);
+	GList *p;
+	for (p = plugins; p; p = p->next) {
+		OSyncPlugin *plugin = p->data;
+		osync_plugin_unload(plugin);
+		osync_plugin_free(plugin);
+	}
+	g_list_free(plugins);
 }
 
 osync_bool osync_env_load_groups_dir(OSyncEnv *osyncinfo)

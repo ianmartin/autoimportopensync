@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <glib.h>
 
 /**************************************************************
  * Enumerations
@@ -25,7 +26,9 @@ typedef enum {
 	OSYNC_ERROR_DISCONNECTED = 5,
 	OSYNC_ERROR_FILE_NOT_FOUND = 6,
 	OSYNC_ERROR_EXISTS = 7,
-	OSYNC_ERROR_CONVERT = 8
+	OSYNC_ERROR_CONVERT = 8,
+	OSYNC_ERROR_MISCONFIGURATION = 9,
+	OSYNC_ERROR_INITIALIZATION = 10
 } OSyncErrorType;
 
 typedef struct OSyncEnv OSyncEnv;
@@ -44,7 +47,7 @@ typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
-typedef unsigned int osync_bool;
+typedef gboolean osync_bool;
 
 typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);

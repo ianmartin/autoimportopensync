@@ -1,6 +1,11 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
+void osync_db_trace(void *data, const char *query)
+{
+	osync_debug("OSDB", 3, "query executed: %s", query);
+}
+
 OSyncDB *osync_db_open(char *filename)
 {
 	OSyncDB *db = g_malloc0(sizeof(OSyncDB));
@@ -11,6 +16,7 @@ OSyncDB *osync_db_open(char *filename)
 		sqlite3_close(db->db);
 		return NULL;
 	}
+	sqlite3_trace(db->db, osync_db_trace, NULL);
 	return db;
 }
 
@@ -64,7 +70,7 @@ void osync_db_save_change(OSyncMappingTable *table, OSyncChange *change)
 		}
 		change->id = sqlite3_last_insert_rowid(sdb);
 	} else {
-		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, change->objtype->name, osync_objformat_get_name(osync_change_get_objformat(change)), change->member->id, mappingid, change->id);
+		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, change->objtype->name, osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : NULL, change->member->id, mappingid, change->id);
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 			osync_debug("OSDB", 1, "Unable to update change! %s", sqlite3_errmsg(sdb));
 	}
@@ -91,6 +97,7 @@ void osync_db_open_mappingtable(OSyncMappingTable *table)
 
 	char *filename = g_strdup_printf("%s/change.db", table->db_path);
 	table->entrytable = osync_db_open(filename);
+	osync_debug("OSDB", 3, "Preparing to load changes from file %s", filename);
 	g_assert(table->entrytable);
 	g_free(filename);
 	
@@ -147,7 +154,6 @@ void osync_db_reset_mappingtable(OSyncMappingTable *table, const char *objtype)
 	} else {
 		query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s'", objtype);
 	}
-	printf("+++reseting mappintable %s\n", query);
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable to reset mappingtable! %s", sqlite3_errmsg(sdb));
 	g_free(query);
@@ -277,7 +283,7 @@ void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
 {
 	sqlite3 *sdb = table->dbhandle->db;
 	sqlite3_stmt *ppStmt = NULL;
-	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid=\"%s\"", uid);
+	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid='%s'", uid);
 	if (sqlite3_prepare(sdb, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
 	if (sqlite3_step(ppStmt) != SQLITE_OK)
@@ -296,7 +302,6 @@ void osync_db_reset_hash(OSyncHashTable *table, const char *objtype)
 	} else {
 		query = g_strdup_printf("DELETE FROM tbl_hash WHERE objtype='%s'", objtype);
 	}
-	printf("+++reseting hashtable %s\n", query);
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable to reset hash! %s", sqlite3_errmsg(sdb));
 	g_free(query);

@@ -35,10 +35,10 @@ void *osync_context_get_plugin_data(OSyncContext *context)
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...)
 {
 	g_assert(context);
-	OSyncError *error = g_malloc0(sizeof(OSyncError));
+	OSyncError *error = NULL;
 	va_list args;
 	va_start(args, format);
-	osync_error_set_vargs(error, type, format, args);
+	osync_error_set_vargs(&error, type, format, args);
 	if (context->callback_function)
 		(context->callback_function)(context->member, context->calldata, error);
 	va_end (args);

@@ -1,5 +1,9 @@
 OSyncEnv *osync_env_new	(void);
-osync_bool osync_init(OSyncEnv *osstruct);
+void osync_env_free(OSyncEnv *env);
+
+osync_bool osync_env_initialize(OSyncEnv *osstruct);
+void osync_env_finalize(OSyncEnv *os_env);
+
 int osync_env_num_plugins (OSyncEnv *osstruct);
 OSyncPlugin *osync_env_get_nth_plugin(OSyncEnv *osstruct, int nth);
 void osync_remove_nth_group(OSyncEnv *osstruct, int nth);

@@ -216,8 +216,8 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	target->size = source->size;
 	target->has_data = source->has_data;
 	target->changetype = source->changetype;
-	//FIXME?
-	target->format = source->format;
+	if (source->format)
+		target->format = source->format;
 	if (source->objtype)
 		target->objtype = source->objtype;
 }

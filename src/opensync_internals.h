@@ -10,9 +10,8 @@ osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path);
 OSyncUserInfo *_osync_get_user(void);
 osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, char *path, char *topentry);
 osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist);
-void osync_error_set_vargs(OSyncError *error, OSyncErrorType type, const char *format, va_list args);
 
-#define osync_assert(x, msg) if (!(x)) { printf("** ERROR **: file %s: line %i (%s):\n%s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
+#define osync_assert(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
 /** Hook types and macros
@@ -125,6 +124,7 @@ struct OSyncMappingTable {
 	GList *unmapped;
 };
 
+#include "opensync_error_internals.h"
 #include "opensync_db_internals.h"
 #include "opensync_format_internals.h"
 #include "opensync_member_internals.h"

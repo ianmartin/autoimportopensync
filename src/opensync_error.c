@@ -28,6 +28,7 @@ const char *osync_error_get_name(OSyncError *error)
 	return osync_error_name_from_type(error->type);
 }
 
+/*
 void osync_error_init (OSyncError *error)
 {
 	if (error == NULL)
@@ -35,23 +36,24 @@ void osync_error_init (OSyncError *error)
 		
 	error->type = OSYNC_NO_ERROR;
 	error->message = NULL;
-}
+}*/
 
-void osync_error_free (OSyncError *error)
+void osync_error_free (OSyncError **error)
 {
-	if (error == NULL)
+	if (*error == NULL)
 		return;
 
 
-  if (error->message)
-    g_free (error->message);
+  if ((*error)->message)
+    g_free ((*error)->message);
 
-  osync_error_init (error);
+  g_free(*error);
+  *error = NULL;
 }
 
 osync_bool osync_error_is_set (OSyncError *error)
 {
-	if(error == NULL)
+	if (error == NULL)
 		return FALSE;
 	
 	if (error->type)
@@ -60,24 +62,21 @@ osync_bool osync_error_is_set (OSyncError *error)
 	return FALSE;
 }
 
-void osync_error_set_vargs(OSyncError *error, OSyncErrorType type, const char *format, va_list args)
+void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
+	g_assert(*error == NULL);
+	g_assert(osync_error_is_set(*error) == FALSE);
+	
 	char *buffer;
-	
-	if (error == NULL)
-		return;
-
-	if (osync_error_is_set(error))
-		return;
-	
+	*error = g_malloc0(sizeof(OSyncError));
 	g_vasprintf(&buffer, format, args);
 	
-	error->message = buffer;
-	error->type = type;
+	(*error)->message = buffer;
+	(*error)->type = type;
 	return;
 }
 
-void osync_error_set (OSyncError *error, OSyncErrorType type, const char *format, ...)
+void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
