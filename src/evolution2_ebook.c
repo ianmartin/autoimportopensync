@@ -138,7 +138,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
-	char *uid = osync_change_get_uid(change);
+	const char *uid = osync_change_get_uid(change);
 	EContact *contact = NULL;
 	GError *gerror = NULL;
 	
@@ -165,8 +165,10 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 		case CHANGE_MODIFIED:
 			
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
-			e_contact_set(contact, E_CONTACT_UID, g_strdup(osync_change_get_uid(change)));
-			e_contact_set(contact, E_CONTACT_UID, uid);
+			e_contact_set(contact, E_CONTACT_UID, g_strdup(uid));
+			
+			osync_trace(TRACE_INTERNAL, "ABout to modify vcard:\n%s", e_vcard_to_string(&(contact->parent), EVC_FORMAT_VCARD_30));
+			
 			if (e_book_commit_contact(env->addressbook, contact, &gerror)) {
 				uid = e_contact_get_const (contact, E_CONTACT_UID);
 				if (uid)
