@@ -3,7 +3,6 @@
 #include <libxml/xpath.h>
 
 #include <opensync.h>
-#include <glib.h>
 #include <string.h>
 #include <stdio.h>
 

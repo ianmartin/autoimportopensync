@@ -19,6 +19,7 @@
  */
  
 #include "opensync-xml.h"
+#include <glib.h>
 
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name)
 {

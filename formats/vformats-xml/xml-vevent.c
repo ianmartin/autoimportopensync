@@ -20,6 +20,7 @@
  
 #include "opensync-xml.h"
 #include "e-vcard.h"
+#include <glib.h>
 
 static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
 {
