@@ -1,191 +1,49 @@
 #include "evolution_sync.h"
 
-GList* read_filelist(GList *list, char *dirname, char *textname,
-                     char *filename, int depth) {
-  DIR *dir;
-  if (depth < 0)
-    return(list);
-  if ((dir = opendir(dirname))) {
-    struct dirent *de;
-    while ((de = readdir(dir))) {
-      if (de->d_type != DT_DIR) {
-        if (!strcmp(de->d_name, filename)) {
-          evo_sync_file *ef = g_malloc0(sizeof(evo_sync_file));
-          ef->name = g_strdup(textname);
-          ef->path = g_strdup_printf("%s/%s", dirname, de->d_name);
-          list = g_list_append(list, ef);
-        }
-      }
-      if (de->d_type != DT_REG) {
-        char *newdir;
-        if (strcmp(de->d_name, ".") && strcmp(de->d_name, "..")) {
-          newdir = g_strdup_printf("%s/%s", dirname, de->d_name);
-          list = read_filelist(list, newdir, de->d_name, filename, depth-1);
-          g_free(newdir);
-        }
-      }
-    }
-    closedir(dir);
-  }
-  return(list);
+#define EVODIR "~/evolution/local"
+
+GList* read_filelist(GList *list, const char *dirname, const char *targetname)
+{         	
+	GDir *dir = NULL;
+	char *filename = NULL;
+	
+	dir = g_dir_open(dirname, 0, NULL);
+	if (!dir)
+		return NULL;
+
+	const gchar *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		filename = g_strdup_printf ("%s/%s", dirname, de);
+		if (g_file_test(filename, G_FILE_TEST_IS_DIR)) {
+			list = read_filelist(list, filename, targetname);
+			continue;
+		} else if (!strcmp(de, targetname)) {
+			//Found a new directory containing our target
+			evo_location *loc = g_malloc0(sizeof(evo_location));
+			loc->uri = g_strdup(filename);
+			loc->name = g_path_get_basename(dirname);
+			list = g_list_append(list, loc);
+			continue;
+		}
+		g_free(filename);
+	}
+	g_dir_close(dir);
+	return list;
 }
 
-GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
+GList *evo_list_calendars(evo_environment *env, void *data, OSyncError **error)
 {
-	 dirname = g_strdup_printf ("%s/evolution/local", 
-			       g_get_home_dir());
-    calendarlist = read_filelist(NULL, dirname, NULL, "calendar.ics", 5);
-    todolist = read_filelist(NULL, dirname, NULL, "tasks.ics", 5);
-    addressbooklist = read_filelist(NULL, dirname, NULL, "addressbook.db", 5);
-    g_free(dirname);
-
-    calendarmenu = gtk_menu_new ();
-    for (n = 0; n < g_list_length(calendarlist); n++) {
-      evo_sync_file *ef = g_list_nth_data(calendarlist, n);
-      menuitem = gtk_menu_item_new_with_label (ef->name);
-      gtk_signal_connect (GTK_OBJECT (menuitem), "activate",
-			  GTK_SIGNAL_FUNC (calendar_selected),
-			  (gpointer) ef->path);
-      gtk_menu_append (GTK_MENU (calendarmenu), menuitem);
-      if ((evoconn->calendarpath && !strcmp(evoconn->calendarpath, ef->path))
-	  || (!evoconn->calendarpath && n == 0)) {
-	gtk_menu_item_activate(GTK_MENU_ITEM(menuitem));
-	gtk_menu_set_active (GTK_MENU(calendarmenu), n);
-      }
-    }
-    gtk_option_menu_set_menu (GTK_OPTION_MENU(lookup_widget(evowindow,
-							    "calendarmenu")), 
-			      calendarmenu);
-    gtk_widget_show_all(GTK_WIDGET(calendarmenu));
-
-    todomenu = gtk_menu_new ();
-    for (n = 0; n < g_list_length(todolist); n++) {
-      evo_sync_file *ef = g_list_nth_data(todolist, n);
-      menuitem = gtk_menu_item_new_with_label (ef->name);
-      gtk_signal_connect (GTK_OBJECT (menuitem), "activate",
-			  GTK_SIGNAL_FUNC (todo_selected),
-			  (gpointer) ef->path);
-      gtk_menu_append (GTK_MENU (todomenu), menuitem);
-      if ((evoconn->todopath && !strcmp(evoconn->todopath, ef->path))
-	  || (!evoconn->todopath && n == 0)) {
-	gtk_menu_item_activate(GTK_MENU_ITEM(menuitem));
-	gtk_menu_set_active (GTK_MENU(todomenu), n);
-      }
-    }
-    gtk_option_menu_set_menu (GTK_OPTION_MENU(lookup_widget(evowindow,
-							    "todomenu")), 
-			      todomenu);
-    gtk_widget_show_all(GTK_WIDGET(todomenu));
-
-    addressbookmenu = gtk_menu_new ();
-    for (n = 0; n < g_list_length(addressbooklist); n++) {
-      evo_sync_file *ef = g_list_nth_data(addressbooklist, n);
-      menuitem = gtk_menu_item_new_with_label (ef->name);
-      gtk_signal_connect (GTK_OBJECT (menuitem), "activate",
-			  GTK_SIGNAL_FUNC (addressbook_selected),
-			  (gpointer) ef->path);
-      gtk_menu_append (GTK_MENU (addressbookmenu), menuitem);
-      if ((evoconn->addressbookpath && !strcmp(evoconn->addressbookpath, ef->path))
-	  || (!evoconn->addressbookpath && n == 0)) {
-	gtk_menu_item_activate(GTK_MENU_ITEM(menuitem));
-	gtk_menu_set_active (GTK_MENU(addressbookmenu), n);
-      }
-    }
-    gtk_option_menu_set_menu (GTK_OPTION_MENU(lookup_widget(evowindow,
-							    "addressbookmenu")), 
-			      addressbookmenu);
-    gtk_widget_show_all(GTK_WIDGET(addressbookmenu));
-
-    gtk_widget_show (evowindow);
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	GList *paths = NULL;
-	ESourceList *sources = NULL;
-	ESource *source = NULL;
-	
-	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_EVENT, NULL)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list calendars. Unable to get sources");
-		return NULL;
-	}
-
-	GSList *g = NULL;
-	for (g = e_source_list_peek_groups (sources); g; g = g->next) {
-		ESourceGroup *group = E_SOURCE_GROUP (g->data);
-		GSList *s = NULL;
-		for (s = e_source_group_peek_sources (group); s; s = s->next) {
-			source = E_SOURCE (s->data);
-			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			path->uri = g_strdup(e_source_get_uri(source));
-			path->name = g_strdup(e_source_peek_name(source));
-			paths = g_list_append(paths, path);
-		}
-	}
-	return paths;
+	return read_filelist(NULL, EVODIR, "calendar.ics");
 }
 
-GList *evo2_list_tasks(evo_environment *env, void *data, OSyncError **error)
+GList *evo_list_tasks(evo_environment *env, void *data, OSyncError **error)
 {
-	GList *paths = NULL;
-	ESourceList *sources = NULL;
-	ESource *source = NULL;
-	
-	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_TODO, NULL)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list tasks. Unable to get sources");
-		return NULL;
-	}
-
-	GSList *g = NULL;
-	for (g = e_source_list_peek_groups (sources); g; g = g->next) {
-		ESourceGroup *group = E_SOURCE_GROUP (g->data);
-		GSList *s = NULL;
-		for (s = e_source_group_peek_sources (group); s; s = s->next) {
-			source = E_SOURCE (s->data);
-			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			path->uri = g_strdup(e_source_get_uri(source));
-			path->name = g_strdup(e_source_peek_name(source));
-			paths = g_list_append(paths, path);
-		}
-	}
-	return paths;
+	return read_filelist(NULL, EVODIR, "tasks.ics");
 }
 
-GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **error)
+GList *evo_list_addressbooks(evo_environment *env, void *data, OSyncError **error)
 {
-	GList *paths = NULL;
-	ESourceList *sources = NULL;
-	ESource *source = NULL;
-	
-	if (!e_book_get_addressbooks(&sources, NULL)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list addressbooks. Unable to get sources");
-		return NULL;
-    }
-
-	GSList *g = NULL;
-	for (g = e_source_list_peek_groups (sources); g; g = g->next) {
-		ESourceGroup *group = E_SOURCE_GROUP (g->data);
-		GSList *s = NULL;
-		for (s = e_source_group_peek_sources (group); s; s = s->next) {
-			source = E_SOURCE (s->data);
-			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			path->uri = g_strdup(e_source_get_uri(source));
-			path->name = g_strdup(e_source_peek_name(source));
-			paths = g_list_append(paths, path);
-		}
-	}
-	return paths;
+	return read_filelist(NULL, EVODIR, "addressbook.db");
 }
 
 void evo_obj_updated_cb(CalClient *client, const char *uid, gpointer data)
@@ -204,7 +62,6 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_debug("EVO-SYNC", 4, "start: %s", __func__);
 	int fd[2];
-	char version[256] = "";
 
 	g_type_init();
 	pipe(fd);
@@ -215,7 +72,7 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 		exit(0);
 	}
 
-	if (read(fd[0],version,256) > 0) {
+	/*if (read(fd[0],version,256) > 0) {
 		int majver, minver = 0, micver = 0;
 		if (sscanf(version,"Gnome evolution %d.%d.%d",&majver, &minver, &micver) >= 2) {
 			osync_debug("EVO-SYNC", 4, "Detected evolution %d.%d.%d.\n", majver, minver, micver));
@@ -224,7 +81,7 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 				return NULL;
 			}
 		}
-	}
+	}*/
 	
 	char *configdata = NULL;
 	int configsize = 0;
@@ -239,7 +96,6 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 		goto error_free_data;
 	}
 	env->member = member;
-	OSyncGroup *group = osync_member_get_group(member);
 	
 	g_free(configdata);
 	return (void *)env;
@@ -256,10 +112,10 @@ static void evo_connect(OSyncContext *ctx)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-	env->dbs_waiting = 3;
+	env->dbs_to_load = 3;
 	
 	if (osync_member_objtype_enabled(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
-		if (evo_addrbook_open(env)) {
+		if (evo_addrbook_open(env, ctx)) {
 			if (!osync_anchor_compare(env->member, "contact", env->adressbook_path))
 				osync_member_set_slow_sync(env->member, "contact", TRUE);
 		} else {
@@ -278,7 +134,6 @@ static void evo_connect(OSyncContext *ctx)
 
 	if (osync_member_objtype_enabled(env->member, "todo") && env->tasks_path && strlen(env->tasks_path)) {
 		if (evo_tasks_open(env)) {
-			open_any = TRUE;
 			if (!osync_anchor_compare(env->member, "tasks", env->tasks_path))
 				osync_member_set_slow_sync(env->member, "tasks", TRUE);
 		} else {
@@ -294,52 +149,39 @@ static void evo_get_changeinfo(OSyncContext *ctx)
 	osync_debug("EVO-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 
+	evo_addrbook_get_changes(ctx);
+
 	if (env->addressbook) {
-		if (osync_member_get_slow_sync(env->member, "contact")) {
-			if (!evo_addr_get_changes(ctx) {
-				osync_context_send_log(ctx, "Unable to open changed addressbook entries");
-			}
-		} else {
-			if (!evo_addr_get_all(ctx) {
-				osync_context_send_log(ctx, "Unable to open all addressbook entries");
-			}
-		}
+		if (osync_member_get_slow_sync(env->member, "contact"))
+			evo_addrbook_get_changes(ctx);
+		else
+			evo_addrbook_get_all(ctx);
 	}
 	
 	if (env->calendar) {
-		if (osync_member_get_slow_sync(env->member, "calendar")) {
-			if (!evo_cal_get_changes(ctx) {
-				osync_context_send_log(ctx, "Unable to open changed calendar entries");
-			}
-		} else {
-			if (!evo_cal_get_all(ctx) {
-				osync_context_send_log(ctx, "Unable to open all calendar entries");
-			}
-		}
+		if (osync_member_get_slow_sync(env->member, "calendar"))
+			evo_cal_get_changes(ctx);
+		else
+			evo_cal_get_all(ctx);
 	}
 	
 	if (env->tasks) {
-		if (osync_member_get_slow_sync(env->member, "todo")) {
-			if (!evo_todo_get_changes(ctx)) {
-				osync_context_send_log(ctx, "Unable to open changed tasks");
-			}
-		} else {
-			if (!evo_todo_get_all(ctx)) {
-				osync_context_send_log(ctx, "Unable to open all tasks");
-			}
-		}
+		if (osync_member_get_slow_sync(env->member, "tasks"))
+			evo_tasks_get_changes(ctx);
+		else
+			evo_tasks_get_all(ctx);
 	}
 	
 	osync_context_report_success(ctx);
 }
 
-static void evo2_sync_done(OSyncContext *ctx)
+static void evo_sync_done(OSyncContext *ctx)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	osync_context_report_success(ctx);
 }
 
-static void evo2_disconnect(OSyncContext *ctx)
+static void evo_disconnect(OSyncContext *ctx)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);

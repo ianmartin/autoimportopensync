@@ -1,4 +1,4 @@
-typedef struct evo2_location {
+typedef struct evo_location {
 	char *name;
 	char *uri;
-} evo2_location;
+} evo_location;

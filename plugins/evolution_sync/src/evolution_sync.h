@@ -23,7 +23,7 @@ typedef struct {
 	OSyncMember *member;
 	char *configfile;
 	char *adressbook_path;
-	EBook *adressbook;
+	EBook *addressbook;
 	EBookView *ebookview;
 	char *calendar_path;
 	CalClient *calendar;

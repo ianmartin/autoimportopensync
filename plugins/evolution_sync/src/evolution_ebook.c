@@ -33,7 +33,7 @@ void evo_addressbook_opened_cb(EBook *book, EBookStatus status, gpointer data)
 }
 
 
-osync_bool evo_addrbook_open(evo_environment *env)
+osync_bool evo_addrbook_open(evo_environment *env, OSyncContext *ctx)
 {
 	if (!env->addressbook_path) {
 		env->dbs_waiting--;
@@ -57,7 +57,7 @@ osync_bool evo_addrbook_open(evo_environment *env)
 	return TRUE;
 }
 
-void evo2_addrbook_get_changes(OSyncContext *ctx)
+void evo_addrbook_get_changes(OSyncContext *ctx)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
@@ -101,6 +101,13 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 			g_free(uid);
 		}
 	} else {
+
+	}
+	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
+}
+
+osync_bool evo_addrbook_get_all(OSyncContext *ctx)
+{
 		osync_debug("EVO2-SYNC", 4, "slow_sync for contact");
 		EBookQuery *query = e_book_query_any_field_contains("");
 		if (!e_book_get_contacts(env->adressbook, query, &changes, NULL)) {
@@ -117,8 +124,6 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 			evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_ADDED);
 		}
 		e_book_query_unref(query);
-	}
-	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
 }
 
 static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
