@@ -1093,13 +1093,15 @@ vformat_attribute_param_add_values (VFormatParam *param,
 }
 
 void
-vformat_attribute_add_param_with_value (VFormatAttribute *attr,
-					VFormatParam *param, const char *value)
+vformat_attribute_add_param_with_value (VFormatAttribute *attr, const char *name, const char *value)
 {
 	g_return_if_fail (attr != NULL);
-	g_return_if_fail (param != NULL);
+	g_return_if_fail (name != NULL);
+	
+	VFormatParam *param = vformat_attribute_param_new(name);
 
-	vformat_attribute_param_add_value (param, value);
+	if (value)
+		vformat_attribute_param_add_value (param, value);
 
 	vformat_attribute_add_param (attr, param);
 }
@@ -1248,6 +1250,25 @@ vformat_attribute_get_value_decoded (VFormatAttribute *attr)
 	return str ? g_string_new_len (str->str, str->len) : NULL;
 }
 
+const char *vformat_vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth)
+{
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	if (!values)
+		return NULL;
+	GString *retstr = (GString *)g_list_nth_data(values, nth);
+	if (!retstr)
+		return NULL;
+	
+	if (!g_utf8_validate(retstr->str, -1, NULL)) {
+		values = vformat_attribute_get_values(attr);
+		if (!values)
+			return NULL;
+		return g_list_nth_data(values, nth);
+	}
+	
+	return retstr->str;
+}
+
 gboolean
 vformat_attribute_has_type (VFormatAttribute *attr, const char *typestr)
 {
@@ -1276,6 +1297,22 @@ vformat_attribute_has_type (VFormatAttribute *attr, const char *typestr)
 	return FALSE;
 }
 
+
+gboolean vformat_attribute_has_param(VFormatAttribute *attr, const char *name)
+{
+	g_return_val_if_fail (attr != NULL, FALSE);
+	g_return_val_if_fail (name != NULL, FALSE);
+	
+	GList *params = vformat_attribute_get_params(attr);
+	GList *p;
+	for (p = params; p; p = p->next) {
+		VFormatParam *param = p->data;
+		if (!strcasecmp(name, vformat_attribute_param_get_name(param)))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 GList*
 vformat_attribute_get_params (VFormatAttribute *attr)
 {
@@ -1298,6 +1335,16 @@ vformat_attribute_param_get_values (VFormatParam *param)
 	g_return_val_if_fail (param != NULL, NULL);
 
 	return param->values;
+}
+
+const char *vformat_attribute_param_get_nth_value(VFormatParam *param, int nth)
+{
+	const char *ret = NULL;
+	GList *values = vformat_attribute_param_get_values(param);
+	if (!values)
+		return NULL;
+	ret = g_list_nth_data(values, nth);
+	return ret;
 }
 
 static const char *base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -22,7 +22,7 @@
 #include "vformat.h"
 #include <glib.h>
 
-static const char *property_get_nth_value(VFormatParam *param, int nth)
+static const char *vformat_attribute_param_get_nth_value(VFormatParam *param, int nth)
 {
 	const char *ret = NULL;
 	GList *values = vformat_attribute_param_get_values(param);
@@ -33,7 +33,7 @@ static const char *property_get_nth_value(VFormatParam *param, int nth)
 	return ret;
 }
 
-static const char *attribute_get_nth_value(VFormatAttribute *attr, int nth)
+static const char *vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth)
 {
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	if (!values)
@@ -65,7 +65,7 @@ static OSyncXMLEncoding property_to_xml_encoding(VFormatAttribute *attr)
 	for (p = params; p; p = p->next) {
 		VFormatParam *param = p->data;
 		if (!strcmp("ENCODING", vformat_attribute_param_get_name(param))) {
-			if (!g_ascii_strcasecmp(property_get_nth_value(param, 0), "b"))
+			if (!g_ascii_strcasecmp(vformat_attribute_param_get_nth_value(param, 0), "b"))
 				encoding.encoding = OSXML_BASE64;
 		}
 	}
@@ -106,7 +106,7 @@ static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **outpu
 		for (p = params; p; p = p->next) {
 			VFormatParam *param = p->data;
 
-			const char *propname = property_get_nth_value(param, 0);
+			const char *propname = vformat_attribute_param_get_nth_value(param, 0);
 			if (propname) {
 				if (!strcmp(vformat_attribute_param_get_name(param), "ENCODING"))
 					continue;
@@ -157,7 +157,7 @@ static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **outpu
 					osxml_node_add(current, "Type", g_strdup(propname), encoding);
 				else {
 					xmlNode *property = xmlNewChild(current, NULL, "", NULL);
-					osxml_node_set(property, "UnknownParam", property_get_nth_value(param, 0), encoding);
+					osxml_node_set(property, "UnknownParam", vformat_attribute_param_get_nth_value(param, 0), encoding);
 					osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param), encoding);
 					osxml_node_mark_unknown(current);
 				}
@@ -169,91 +169,91 @@ static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **outpu
 		
 		//FullName
 		if (!strcmp(name, "FN")) {
-			osxml_node_set(current, "FullName", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "FullName", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 
 		//Name
 		if (!strcmp(name, "N")) {
 			osxml_node_set(current, "Name", NULL, encoding);
-			osxml_node_add(current, "LastName", attribute_get_nth_value(attr, 0), encoding);
-			osxml_node_add(current, "FirstName", attribute_get_nth_value(attr, 1), encoding);
-			osxml_node_add(current, "Additional", attribute_get_nth_value(attr, 2), encoding);
-			osxml_node_add(current, "Prefix", attribute_get_nth_value(attr, 3), encoding);
-			osxml_node_add(current, "Suffix", attribute_get_nth_value(attr, 4), encoding);
+			osxml_node_add(current, "LastName", vformat_attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_add(current, "FirstName", vformat_attribute_get_nth_value(attr, 1), encoding);
+			osxml_node_add(current, "Additional", vformat_attribute_get_nth_value(attr, 2), encoding);
+			osxml_node_add(current, "Prefix", vformat_attribute_get_nth_value(attr, 3), encoding);
+			osxml_node_add(current, "Suffix", vformat_attribute_get_nth_value(attr, 4), encoding);
 			continue;
 		}
 		
 		//Photo
 		if (!strcmp(name, "PHOTO")) {
-			osxml_node_set(current, "Photo", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Photo", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Birthday
 		if (!strcmp(name, "BDAY")) {
-			osxml_node_set(current, "Birthday", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Birthday", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Address
 		if (!strcmp(name, "ADR")) {
 			osxml_node_set(current, "Address", NULL, encoding);
-			osxml_node_add(current, "PostalBox", attribute_get_nth_value(attr, 0), encoding);
-			osxml_node_add(current, "ExtendedAddress", attribute_get_nth_value(attr, 1), encoding);
-			osxml_node_add(current, "Street", attribute_get_nth_value(attr, 2), encoding);
-			osxml_node_add(current, "City", attribute_get_nth_value(attr, 3), encoding);
-			osxml_node_add(current, "Region", attribute_get_nth_value(attr, 4), encoding);
-			osxml_node_add(current, "PostalCode", attribute_get_nth_value(attr, 5), encoding);
-			osxml_node_add(current, "Country", attribute_get_nth_value(attr, 6), encoding);
+			osxml_node_add(current, "PostalBox", vformat_attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_add(current, "ExtendedAddress", vformat_attribute_get_nth_value(attr, 1), encoding);
+			osxml_node_add(current, "Street", vformat_attribute_get_nth_value(attr, 2), encoding);
+			osxml_node_add(current, "City", vformat_attribute_get_nth_value(attr, 3), encoding);
+			osxml_node_add(current, "Region", vformat_attribute_get_nth_value(attr, 4), encoding);
+			osxml_node_add(current, "PostalCode", vformat_attribute_get_nth_value(attr, 5), encoding);
+			osxml_node_add(current, "Country", vformat_attribute_get_nth_value(attr, 6), encoding);
 			continue;
 		}
 		
 		//Address Labeling
 		if (!strcmp(name, "LABEL")) {
-			osxml_node_set(current, "AddressLabel", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "AddressLabel", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Telephone
 		if (!strcmp(name, "TEL")) {
-			osxml_node_set(current, "Telephone", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Telephone", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//EMail
 		if (!strcmp(name, "EMAIL")) {
-			osxml_node_set(current, "EMail", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "EMail", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Mailer
 		if (!strcmp(name, "MAILER")) {
-			osxml_node_set(current, "Mailer", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Mailer", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Timezone
 		if (!strcmp(name, "TZ")) {
-			osxml_node_set(current, "Timezone", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Timezone", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Location
 		if (!strcmp(name, "GEO")) {
-			osxml_node_set(current, "Location", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Location", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Title
 		if (!strcmp(name, "TITLE")) {
-			osxml_node_set(current, "Title", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Title", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Role
 		if (!strcmp(name, "ROLE")) {
-			osxml_node_set(current, "Role", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Role", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
@@ -266,20 +266,20 @@ static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **outpu
 		//Company
 		if (!strcmp(name, "ORG")) {
 			osxml_node_set(current, "Organization", NULL, encoding);
-			osxml_node_add(current, "Name", attribute_get_nth_value(attr, 0), encoding);
-			osxml_node_add(current, "Unit", attribute_get_nth_value(attr, 1), encoding);
+			osxml_node_add(current, "Name", vformat_attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_add(current, "Unit", vformat_attribute_get_nth_value(attr, 1), encoding);
 			continue;
 		}
 		
 		//Note
 		if (!strcmp(name, "NOTE")) {
-			osxml_node_set(current, "Note", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Note", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Revision
 		if (!strcmp(name, "REV")) {
-			osxml_node_set(current, "Revision", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Revision", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
@@ -291,26 +291,26 @@ static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **outpu
 		
 		//Url
 		if (!strcmp(name, "URL")) {
-			osxml_node_set(current, "Url", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Url", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Uid
 		if (!strcmp(name, "UID")) {
-			osxml_node_set(current, "Uid", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Uid", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Public Key
 		if (!strcmp(name, "KEY")) {
-			osxml_node_set(current, "Key", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Key", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Unknown tag.
 		osxml_node_mark_unknown(current);
 		GList *values = vformat_attribute_get_values(attr);
-		GString *string = g_string_new(attribute_get_nth_value(attr, 0));
+		GString *string = g_string_new(vformat_attribute_get_nth_value(attr, 0));
 		for (p = values->next; p; p = p->next) {
 			g_string_sprintfa(string, ";%s", (char *)p->data);
 		}
@@ -322,7 +322,7 @@ static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **outpu
 		for (p = values; p; p = p->next) {
 			VFormatParam *param = p->data;
 			if (!strcmp(vformat_attribute_param_get_name(param), "TYPE"))
-				osxml_node_add_property(unknown, property_get_nth_value(param, 0), "Type");
+				osxml_node_add_property(unknown, vformat_attribute_param_get_nth_value(param, 0), "Type");
 		}*/
 	}
 	
@@ -388,11 +388,11 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 	
 	if (needs_charset(tmp))
 		if (!has_param (attr, "CHARSET"))
-			add_parameter(attr, "CHARSET", "UTF-8");
+			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
 	if (needs_encoding(tmp, encoding)) {
 		if (!has_param (attr, "ENCODING"))
-			add_parameter(attr, "ENCODING", encoding);
+			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
 		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
 	} else
 		vformat_attribute_add_value(attr, tmp);
@@ -436,8 +436,8 @@ static osync_bool conv_xml_to_vcard(const char *input, int inpsize, char **outpu
 			//Photo
 			attr = vformat_attribute_new(NULL, EVC_PHOTO);
 			add_value(attr, root, "Content", std_encoding);
-			add_parameter(attr, "ENCODING", "b");
-			add_parameter(attr, "TYPE", osxml_find_node(root, "Type"));
+			vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+			vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
 			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "Birthday")) {
 			//Birthday
@@ -553,47 +553,47 @@ static osync_bool conv_xml_to_vcard(const char *input, int inpsize, char **outpu
 			}
 			
 			if (!strcmp(content, "Work"))
-				add_parameter(attr, "TYPE", "WORK");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "WORK");
 			else if (!strcmp(content, "Home"))
-				add_parameter(attr, "TYPE", "HOME");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "HOME");
 			else if (!strcmp(content, "Postal"))
-				add_parameter(attr, "TYPE", "POSTAL");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "POSTAL");
 			else if (!strcmp(content, "Parcel"))
-				add_parameter(attr, "TYPE", "PARCEL");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "PARCEL");
 			else if (!strcmp(content, "Domestic"))
-				add_parameter(attr, "TYPE", "DOM");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "DOM");
 			else if (!strcmp(content, "International"))
-				add_parameter(attr, "TYPE", "INTL");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "INTL");
 			else if (!strcmp(content, "1"))
-				add_parameter(attr, "TYPE", "PREF");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "PREF");
 			else if (!strcmp(content, "Voice"))
-				add_parameter(attr, "TYPE", "VOICE");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "VOICE");
 			else if (!strcmp(content, "Fax"))
-				add_parameter(attr, "TYPE", "FAX");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "FAX");
 			else if (!strcmp(content, "Message"))
-				add_parameter(attr, "TYPE", "MSG");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "MSG");
 			else if (!strcmp(content, "Cellular"))
-				add_parameter(attr, "TYPE", "CELL");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "CELL");
 			else if (!strcmp(content, "Pager"))
-				add_parameter(attr, "TYPE", "PAGER");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "PAGER");
 			else if (!strcmp(content, "BulletinBoard"))
-				add_parameter(attr, "TYPE", "BBS");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "BBS");
 			else if (!strcmp(content, "Modem"))
-				add_parameter(attr, "TYPE", "MODEM");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "MODEM");
 			else if (!strcmp(content, "Car"))
-				add_parameter(attr, "TYPE", "CAR");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "CAR");
 			else if (!strcmp(content, "ISDN"))
-				add_parameter(attr, "TYPE", "ISDN");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "ISDN");
 			else if (!strcmp(content, "Video"))
-				add_parameter(attr, "TYPE", "VIDEO");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "VIDEO");
 			else if (!strcmp(content, "Internet"))
-				add_parameter(attr, "TYPE", "INTERNET");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "INTERNET");
 			else if (!strcmp(content, "X509"))
-				add_parameter(attr, "TYPE", "X509");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "X509");
 			else if (!strcmp(content, "PGP"))
-				add_parameter(attr, "TYPE", "PGP");
+				vformat_attribute_add_param_with_value(attr, "TYPE", "PGP");
 			else if (!strcmp(child->name, "UnknownParam"))
-				add_parameter(attr, osxml_find_node(child, "ParamName"), osxml_find_node(child, "Content"));
+				vformat_attribute_add_param_with_value(attr, osxml_find_node(child, "ParamName"), osxml_find_node(child, "Content"));
 
 			g_free(content);
 			child = child->next;

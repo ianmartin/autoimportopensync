@@ -106,8 +106,7 @@ VFormatParam* vformat_attribute_param_new             (const char *param_name);
 void                  vformat_attribute_param_free            (VFormatParam *param);
 VFormatParam* vformat_attribute_param_copy            (VFormatParam *param);
 void                  vformat_attribute_add_param             (VFormatAttribute *attr, VFormatParam *param);
-void                  vformat_attribute_add_param_with_value  (VFormatAttribute *attr,
-							       VFormatParam *param, const char *value);
+void                  vformat_attribute_add_param_with_value  (VFormatAttribute *attr, const char *name, const char *value);
 void                  vformat_attribute_add_param_with_values (VFormatAttribute *attr,
 							       VFormatParam *param, ...);
 
@@ -116,6 +115,7 @@ void                  vformat_attribute_param_add_value       (VFormatParam *par
 void                  vformat_attribute_param_add_values      (VFormatParam *param,
 							       ...);
 void                  vformat_attribute_param_remove_values   (VFormatParam *param);
+gboolean vformat_attribute_has_param(VFormatAttribute *attr, const char *name);
 
 /* VFormat* accessors.  nothing returned from these functions should be
    freed by the caller. */
@@ -124,6 +124,7 @@ const char*      vformat_attribute_get_group  (VFormatAttribute *attr);
 const char*      vformat_attribute_get_name   (VFormatAttribute *attr);
 GList*           vformat_attribute_get_values (VFormatAttribute *attr);  /* GList elements are of type char* */
 GList*           vformat_attribute_get_values_decoded (VFormatAttribute *attr); /* GList elements are of type GString* */
+const char *vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth);
 
 /* special accessors for single valued attributes */
 gboolean              vformat_attribute_is_single_valued      (VFormatAttribute *attr);
@@ -133,6 +134,7 @@ GString*              vformat_attribute_get_value_decoded     (VFormatAttribute 
 GList*           vformat_attribute_get_params       (VFormatAttribute *attr);
 const char*      vformat_attribute_param_get_name   (VFormatParam *param);
 GList*           vformat_attribute_param_get_values (VFormatParam *param);
+const char *vformat_attribute_param_get_nth_value(VFormatParam *param, int nth);
 
 /* special TYPE= parameter predicate (checks for TYPE=@typestr */
 gboolean         vformat_attribute_has_type         (VFormatAttribute *attr, const char *typestr);

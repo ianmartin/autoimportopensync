@@ -22,63 +22,13 @@
 #include "vformat.h"
 #include <glib.h>
 
-static const char *property_get_nth_value(VFormatParam *param, int nth)
-{
-	const char *ret = NULL;
-	GList *values = vformat_attribute_param_get_values(param);
-	if (!values)
-		return NULL;
-	ret = g_list_nth_data(values, nth);
-	//g_list_free(values);
-	return ret;
-}
-
-static const char *attribute_get_nth_value(VFormatAttribute *attr, int nth)
-{
-	GList *values = vformat_attribute_get_values_decoded(attr);
-	if (!values)
-		return NULL;
-	GString *retstr = (GString *)g_list_nth_data(values, nth);
-	if (!retstr)
-		return NULL;
-	
-	if (!g_utf8_validate(retstr->str, -1, NULL)) {
-		values = vformat_attribute_get_values(attr);
-		if (!values)
-			return NULL;
-		return g_list_nth_data(values, nth);
-	}
-	
-	return retstr->str;
-}
-
-static OSyncXMLEncoding property_to_xml_encoding(VFormatAttribute *attr)
-{
-	OSyncXMLEncoding encoding;
-	memset(&encoding, 0, sizeof(encoding));
-	
-	encoding.charset = OSXML_UTF8;
-	encoding.encoding = OSXML_8BIT;
-	
-	GList *params = vformat_attribute_get_params(attr);
-	GList *p;
-	for (p = params; p; p = p->next) {
-		VFormatParam *param = p->data;
-		if (!strcmp("ENCODING", vformat_attribute_param_get_name(param))) {
-			if (!g_ascii_strcasecmp(property_get_nth_value(param, 0), "b"))
-				encoding.encoding = OSXML_BASE64;
-		}
-	}
-	return encoding;
-}
-
 static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("VNOTE", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);
-	GList *p = NULL;
+	
+	/*GList *p = NULL;
 	GList *a = NULL;
-	OSyncXMLEncoding encoding;
 	
 	VFormat *vcard = vformat_new_from_string(input);
 	vformat_dump_structure (vcard);
@@ -88,7 +38,6 @@ static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, c
 	
 	for (a = attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
-		encoding = property_to_xml_encoding(attr);
 		const char *name = vformat_attribute_get_name(attr);
 
 		if (!strcmp(name, "VERSION"))
@@ -103,71 +52,62 @@ static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, c
 		
 		//Created
 		if (!strcmp(name, "DCREATED")) {
-			osxml_node_set(current, "Created", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Created", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 
 		//LastModified
 		if (!strcmp(name, "LAST_MODIFIED")) {
-			osxml_node_set(current, "LastModified", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "LastModified", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Summary
 		if (!strcmp(name, "SUMMARY")) {
-			osxml_node_set(current, "Summary", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Summary", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Body
 		if (!strcmp(name, "BODY")) {
-			osxml_node_set(current, "Body", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Body", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Categories
 		if (!strcmp(name, "CATEGORIES")) {
-			osxml_node_set(current, "Categories", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Categories", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Class
 		if (!strcmp(name, "CLASS")) {
-			osxml_node_set(current, "Class", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_set(current, "Class", vformat_attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Unknown tag.
 		osxml_node_mark_unknown(current);
 		GList *values = vformat_attribute_get_values(attr);
-		GString *string = g_string_new(attribute_get_nth_value(attr, 0));
+		GString *string = g_string_new(vformat_attribute_get_nth_value(attr, 0));
 		for (p = values->next; p; p = p->next) {
 			g_string_sprintfa(string, ";%s", (char *)p->data);
 		}
 		osxml_node_add(current, "NodeName", name);
 		osxml_node_set(current, "UnknownNode", string->str, encoding);
 		g_string_free(string, 1);
-	}
+	}*/
 	
 	*free_input = TRUE;
-	*output = (char *)doc;
+	//*output = (char *)doc;
 	/*FIXME: this is not really the size of the data pointed by doc.
 	 * But this shouldn't cause problems, anyway, because this
 	 * size field should never be used for xml docs. Actually,
 	 * what needs fixing is the code that uses the size
 	 * field for changes with xml data.
 	 */
-	*outpsize = sizeof(doc);
+	//*outpsize = sizeof(doc);
 	return TRUE;
-}
-
-static void add_parameter(VFormatAttribute *attr, const char *name, const char *data)
-{
-	VFormatParam *param = vformat_attribute_param_new(name);
-	if (data)
-		vformat_attribute_add_param_with_value(attr, param, data);
-	else
-		vformat_attribute_add_param(attr, param);
 }
 
 static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
@@ -196,18 +136,6 @@ static osync_bool needs_charset(const unsigned char *tmp)
 	return FALSE;
 }
 
-static osync_bool has_param(VFormatAttribute *attr, const char *name)
-{
-	GList *params = vformat_attribute_get_params(attr);
-	GList *p;
-	for (p = params; p; p = p->next) {
-		VFormatParam *param = p->data;
-		if (!strcmp(name, vformat_attribute_param_get_name(param)))
-			return TRUE;
-	}
-	return FALSE;
-}
-
 static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
@@ -215,12 +143,12 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 		return;
 	
 	if (needs_charset(tmp))
-		if (!has_param (attr, "CHARSET"))
-			add_parameter(attr, "CHARSET", "UTF-8");
+		if (!vformat_attribute_has_param (attr, "CHARSET"))
+			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
 	if (needs_encoding(tmp, encoding)) {
-		if (!has_param (attr, "ENCODING"))
-			add_parameter(attr, "ENCODING", encoding);
+		if (!vformat_attribute_has_param (attr, "ENCODING"))
+			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
 		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
 	} else
 		vformat_attribute_add_value(attr, tmp);
