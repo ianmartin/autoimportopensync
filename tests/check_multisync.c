@@ -19,7 +19,7 @@ START_TEST (multisync_easy_new)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -70,7 +70,7 @@ START_TEST (multisync_easy_mod)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -81,7 +81,7 @@ START_TEST (multisync_easy_mod)
 	sleep(2);
 	system("cp newdata data3/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -132,7 +132,7 @@ START_TEST (multisync_dual_mod)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -144,7 +144,7 @@ START_TEST (multisync_dual_mod)
 	system("cp newdata data1/testdata");
 	system("cp newdata data3/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -195,7 +195,7 @@ START_TEST (multisync_triple_mod)
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -208,7 +208,7 @@ START_TEST (multisync_triple_mod)
 	system("cp newdata data2/testdata");
 	system("cp newdata data3/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -257,7 +257,7 @@ START_TEST (multisync_dual_new)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(num_written == 1, NULL);
 	fail_unless(num_read == 2, NULL);
@@ -285,7 +285,7 @@ START_TEST (multisync_dual_new)
 	
 	system("rm -f data2/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
@@ -329,7 +329,7 @@ START_TEST (multisync_triple_new)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(num_written == 0, NULL);
 	fail_unless(num_read == 3, NULL);
@@ -357,7 +357,7 @@ START_TEST (multisync_triple_new)
 	
 	system("rm -f data1/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
@@ -392,14 +392,14 @@ START_TEST (multisync_easy_del)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 
 	system("rm -f data2/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	fail_unless(num_read == 1, NULL);
@@ -438,7 +438,7 @@ START_TEST (multisync_dual_del)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -446,7 +446,7 @@ START_TEST (multisync_dual_del)
 	system("rm -f data1/testdata");
 	system("rm -f data3/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	fail_unless(num_read == 2, NULL);
@@ -485,7 +485,7 @@ START_TEST (multisync_triple_del)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -494,7 +494,7 @@ START_TEST (multisync_triple_del)
 	system("rm -f data2/testdata");
 	system("rm -f data3/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	fail_unless(num_read == 3, NULL);
@@ -543,7 +543,7 @@ START_TEST (multisync_conflict_data_choose)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	char *uid;
     char *hash;
@@ -617,7 +617,7 @@ START_TEST (multisync_conflict_data_choose)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -681,7 +681,7 @@ START_TEST (multisync_conflict_data_choose2)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	char *uid;
     char *hash;
@@ -754,7 +754,7 @@ START_TEST (multisync_conflict_data_choose2)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);;
+	synchronize_once(engine, NULL);;
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -808,7 +808,7 @@ START_TEST (multisync_conflict_changetype_choose)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -821,7 +821,7 @@ START_TEST (multisync_conflict_changetype_choose)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	char *uid;
     char *hash;
@@ -895,7 +895,7 @@ START_TEST (multisync_conflict_changetype_choose)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -949,7 +949,7 @@ START_TEST (multisync_conflict_changetype_choose2)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -962,7 +962,7 @@ START_TEST (multisync_conflict_changetype_choose2)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 
 	fail_unless(num_read == 2, NULL);
@@ -1020,7 +1020,7 @@ START_TEST (multisync_conflict_hybrid_choose)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1034,7 +1034,7 @@ START_TEST (multisync_conflict_hybrid_choose)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	char *uid;
     char *hash;
@@ -1108,7 +1108,7 @@ START_TEST (multisync_conflict_hybrid_choose)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -1162,7 +1162,7 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1176,7 +1176,7 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -1243,7 +1243,7 @@ START_TEST (multisync_conflict_data_duplicate)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -1340,7 +1340,7 @@ START_TEST (multisync_conflict_data_duplicate)
 	
 	system("rm -f data3/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	mark_point();
 	maptable = osync_mappingtable_new(group);
@@ -1405,7 +1405,7 @@ START_TEST (multisync_conflict_data_duplicate)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -1469,7 +1469,7 @@ START_TEST (multisync_conflict_data_duplicate2)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -1578,7 +1578,7 @@ START_TEST (multisync_conflict_data_duplicate2)
 
 	system("rm -f data3/testdata data3/testdata-dupe-dupe");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	mark_point();
 	maptable = osync_mappingtable_new(group);
@@ -1643,7 +1643,7 @@ START_TEST (multisync_conflict_data_duplicate2)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -1697,7 +1697,7 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1710,7 +1710,7 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	char *uid;
     char *hash;
@@ -1784,7 +1784,7 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -1838,7 +1838,7 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1852,7 +1852,7 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	char *uid;
     char *hash;
@@ -1926,7 +1926,7 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();
@@ -1980,7 +1980,7 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
 	osync_engine_init(engine, NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -1994,7 +1994,7 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	num_written = 0;
 	num_read = 0;
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -2094,7 +2094,7 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	
 	mark_point();
 	num_conflicts = 0;
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	mark_point();

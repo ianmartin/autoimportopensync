@@ -41,11 +41,31 @@
 
 void _get_changes_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	osync_debug("ENG", 3, "Received a reply %p to GET_CHANGES command from client %p", message, sender);
-
-	osync_status_update_member(engine, sender, MEMBER_SENT_CHANGES, NULL);
-	osync_flag_set(sender->fl_sent_changes);
+	osync_trace(TRACE_ENTRY, "_get_changes_reply_receiver(%p, %p, %p)", sender, message, engine);
+	
+	if (itm_message_is_error(message)) {
+		OSyncError *error = itm_message_get_error(message);
+		osync_error_duplicate(&engine->error, &error);
+		osync_debug("ENG", 1, "Get changes command reply was a error: %s", error ? error->message : "None");
+		osync_status_update_member(engine, sender, MEMBER_GET_CHANGES_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to read from one of the members");
+		osync_flag_unset(sender->fl_sent_changes);
+		osync_flag_set(sender->fl_finished);
+		osync_flag_set(sender->fl_done);
+		/*
+		 * FIXME: For now we want to stop the engine if
+		 * one of the member didnt connect yet. Later it should
+		 * be that if >= 2 members connect, the sync should continue
+		 */
+		osync_flag_set(engine->fl_stop);
+		
+	} else {
+		osync_status_update_member(engine, sender, MEMBER_SENT_CHANGES, NULL);
+		osync_flag_set(sender->fl_sent_changes);
+	}
+	
 	osync_client_decider(engine, sender);
+	osync_trace(TRACE_EXIT, "_get_changes_reply_receiver");
 }
 
 /*! @brief This function can be used to receive CONNECT command replies
@@ -59,9 +79,9 @@ void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngin
 	
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
+		osync_error_duplicate(&engine->error, &error);
 		osync_debug("ENG", 1, "Connect command reply was a error: %s", error ? error->message : "None");
 		osync_status_update_member(engine, sender, MEMBER_CONNECT_ERROR, &error);
-		osync_error_duplicate(&engine->error, &error);
 		osync_error_update(&engine->error, "Unable to connect one of the members");
 		osync_flag_unset(sender->fl_connected);
 		osync_flag_set(sender->fl_finished);
@@ -397,8 +417,10 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
 	
 	if (engine->error) {
-		osync_status_update_engine(engine, ENG_ERROR, &engine->error);
-		osync_error_free(&engine->error);
+		OSyncError *error = NULL;
+		osync_error_duplicate(&error, &engine->error);
+		osync_status_update_engine(engine, ENG_ERROR, &error);
+		osync_error_free(&error);
 		osync_group_set_slow_sync(engine->group, "data", TRUE);
 	} else {
 		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);
@@ -815,7 +837,7 @@ void osync_engine_deny_sync_alert(OSyncEngine *engine)
  * 
  * @param engine A pointer to the engine, which to sync and wait for the sync end
  * @param error A pointer to a error struct
- * @returns TRUE on success, FALSE otherwise. Check the error on FALSE. Note that this just says if the sync has been started successfully, not if the sync itself was successfull
+ * @returns TRUE on success, FALSE otherwise.
  * 
  */
 osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
@@ -828,8 +850,12 @@ osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
 	}
 	
 	g_cond_wait(engine->syncing, engine->syncing_mutex);
-	
 	g_mutex_unlock(engine->syncing_mutex);
+	
+	if (engine->error) {
+		osync_error_duplicate(error, &(engine->error));
+		return FALSE;
+	}
 	
 	return TRUE;
 }
@@ -841,12 +867,20 @@ osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
  * to end
  * 
  * @param engine A pointer to the engine, for which to wait for the sync end
+ * @param error Return location for the error if the sync was not successfull
+ * @returns TRUE on success, FALSE otherwise.
  */
-void osync_engine_wait_sync_end(OSyncEngine *engine)
+osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
 {
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_wait(engine->syncing, engine->syncing_mutex);
 	g_mutex_unlock(engine->syncing_mutex);
+	
+	if (engine->error) {
+		osync_error_duplicate(error, &(engine->error));
+		return FALSE;
+	}
+	return TRUE;
 }
 
 /*! @brief This function will block until all change object information has been received

@@ -7,6 +7,7 @@ static void reset_env(void)
 	g_unsetenv("CONNECT_ERROR");
 	g_unsetenv("CONNECT_TIMEOUT");
 	g_unsetenv("INIT_NULL");
+	g_unsetenv("GET_CHANGES_ERROR");
 }
 
 char *setup_testbed(char *fkt_name)
@@ -131,6 +132,11 @@ void member_status(MSyncMemberUpdate *status, void *user_data)
 			osync_debug("TEST", 4, "MEMBER_CONNECT_ERROR: %s\n", status->error->message);
 			num_member_connect_errors++;
 			break;
+		case MEMBER_GET_CHANGES_ERROR:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			osync_debug("TEST", 4, "MEMBER_CONNECT_ERROR: %s\n", status->error->message);
+			num_member_get_changes_errors++;
+			break;
 		default:
 			printf("Unknown status\n");
 	}
@@ -182,7 +188,7 @@ void mapping_status(MSyncMappingUpdate *status, void *user_data)
 	}
 }
 
-void synchronize_once(OSyncEngine *engine)
+osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 {
 	num_connected = 0;
 	num_disconnected = 0;
@@ -193,8 +199,9 @@ void synchronize_once(OSyncEngine *engine)
 	num_member_sent_changes = 0;
 	num_engine_errors = 0;
 	num_engine_successfull = 0;
+	num_member_get_changes_errors = 0;
 	mark_point();
-	osync_engine_sync_and_block(engine, NULL);
+	return osync_engine_sync_and_block(engine, error);
 }
 
 void create_case(Suite *s, const char *name, void (*function)(void))

@@ -18,7 +18,8 @@ typedef enum {
 	MEMBER_CONNECTED = 1,
 	MEMBER_SENT_CHANGES = 2,
 	MEMBER_DISCONNECTED = 3,
-	MEMBER_CONNECT_ERROR = 4
+	MEMBER_CONNECT_ERROR = 4,
+	MEMBER_GET_CHANGES_ERROR = 5
 } memberupdatetype;
 
 typedef struct MSyncMemberUpdate {
@@ -29,7 +30,9 @@ typedef struct MSyncMemberUpdate {
 
 typedef enum {
 	CHANGE_RECEIVED = 1,
-	CHANGE_SENT = 2
+	CHANGE_SENT = 2,
+	CHANGE_WRITE_ERROR = 3,
+	CHANGE_RECV_ERROR = 4
 } changeupdatetype;
 
 typedef struct MSyncChangeUpdate {

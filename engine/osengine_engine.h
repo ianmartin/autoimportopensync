@@ -12,7 +12,7 @@ void osync_engine_flag_only_info(OSyncEngine *engine);
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **);
 void osync_engine_pause(OSyncEngine *engine);
 void osync_engine_abort(OSyncEngine *engine);
-void osync_engine_wait_sync_end(OSyncEngine *engine);
+osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error);
 void osync_engine_wait_info_end(OSyncEngine *engine);
 void osync_engine_one_iteration(OSyncEngine *engine);
 void osync_engine_flag_manual(OSyncEngine *engine);
@@ -22,5 +22,4 @@ void osync_engine_set_changestatus_callback(OSyncEngine *engine, void (* functio
 void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* function) (MSyncMappingUpdate *, void *), void *user_data);
 void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncEngineUpdate *, void *), void *user_data);
 void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (MSyncMemberUpdate *, void *), void *user_data);
-void osync_engine_wait_one_sync(OSyncEngine *engine);
 osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error);

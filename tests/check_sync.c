@@ -50,7 +50,7 @@ START_TEST (sync_setup_connect)
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	
 	osync_engine_init(engine, NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	  
@@ -97,7 +97,7 @@ START_TEST (sync_easy_new)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -174,12 +174,12 @@ START_TEST (sync_easy_new_del)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	osync_engine_init(engine, &error);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	system("rm data1/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	mark_point();
@@ -229,7 +229,7 @@ START_TEST (sync_easy_conflict)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	osync_engine_init(engine, &error);
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	system("diff -x \".*\" data1 data2");
@@ -263,7 +263,7 @@ START_TEST (sync_easy_new_mapping)
 	osync_engine_init(engine, &error);
 	mark_point();
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 0, NULL);
@@ -330,7 +330,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
 	osync_engine_init(engine, &error);
 
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	fail_unless(num_conflicts == 1, NULL);
 	system("diff -x \".*\" data1 data2");
@@ -355,7 +355,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	
 	system("rm -f data1/testdata-dupe");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -392,7 +392,7 @@ START_TEST (sync_conflict_duplicate)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
 	osync_engine_init(engine, &error);
 
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	system("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -420,7 +420,7 @@ START_TEST (sync_conflict_duplicate)
 	
 	fail_unless(!system("rm -f data1/testdata-dupe data2/testdata-dupe-dupe"), NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -455,7 +455,7 @@ START_TEST (sync_conflict_duplicate2)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
 	osync_engine_init(engine, &error);
 
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
@@ -463,7 +463,7 @@ START_TEST (sync_conflict_duplicate2)
 	sleep(2);
 	system("cp new_data data2/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	system("diff -x \".*\" data1 data2");
@@ -502,14 +502,14 @@ START_TEST (sync_conflict_deldel)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 
 	system("rm -f data1/testdata");
 	system("rm -f data2/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -544,7 +544,7 @@ START_TEST (sync_moddel)
 	osync_engine_set_conflict_callback(engine, conflict_handler_random, (void *)2);
 	osync_engine_init(engine, &error);
 
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -553,14 +553,14 @@ START_TEST (sync_moddel)
 	system("cp new_data1 data1/testdata");
 	system("cp new_data2 data2/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	
 	system("rm -f data2/testdata");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -594,14 +594,14 @@ START_TEST (sync_easy_dualdel)
 	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 
 	system("rm -f data1/testdata");
 	system("rm -f data1/testdata2");
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);

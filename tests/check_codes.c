@@ -19,7 +19,7 @@
 	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	
-	synchronize_once(engine);
+	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -68,8 +68,10 @@ START_TEST (single_init_error)
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	fail_unless(!osync_engine_init(engine, &error), NULL);
-	fail_unless(!osync_engine_sync_and_block(engine, NULL), NULL);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -97,13 +99,15 @@ START_TEST (dual_connect_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!synchronize_once(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 2, NULL);
 	fail_unless(num_connected == 0, NULL);
 	fail_unless(num_disconnected == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -131,7 +135,8 @@ START_TEST (one_of_two_connect_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 1, NULL);
 	fail_unless(num_connected == 1, NULL);
@@ -139,6 +144,7 @@ START_TEST (one_of_two_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -166,7 +172,8 @@ START_TEST (two_of_three_connect_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 2, NULL);
 	fail_unless(num_connected == 1, NULL);
@@ -174,6 +181,7 @@ START_TEST (two_of_three_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -201,7 +209,8 @@ START_TEST (two_of_three_connect_error2)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 2, NULL);
 	fail_unless(num_connected == 1, NULL);
@@ -209,6 +218,7 @@ START_TEST (two_of_three_connect_error2)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -236,7 +246,8 @@ START_TEST (three_of_three_connect_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 3, NULL);
 	fail_unless(num_connected == 0, NULL);
@@ -244,6 +255,7 @@ START_TEST (three_of_three_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -271,7 +283,8 @@ START_TEST (one_of_three_connect_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 1, NULL);
 	fail_unless(num_connected == 2, NULL);
@@ -279,6 +292,7 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -306,7 +320,8 @@ START_TEST (no_connect_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 0, NULL);
 	fail_unless(num_connected == 3, NULL);
@@ -343,7 +358,8 @@ START_TEST (single_connect_timeout)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 1, NULL);
 	fail_unless(num_connected == 1, NULL);
@@ -352,6 +368,7 @@ START_TEST (single_connect_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -379,7 +396,8 @@ START_TEST (dual_connect_timeout)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 2, NULL);
 	fail_unless(num_connected == 0, NULL);
@@ -388,6 +406,7 @@ START_TEST (dual_connect_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -415,7 +434,8 @@ START_TEST (one_of_three_timeout)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 1, NULL);
 	fail_unless(num_connected == 2, NULL);
@@ -424,6 +444,7 @@ START_TEST (one_of_three_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -452,7 +473,8 @@ START_TEST (timeout_and_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
 	fail_unless(num_member_connect_errors == 2, NULL);
 	fail_unless(num_connected == 1, NULL);
@@ -461,6 +483,7 @@ START_TEST (timeout_and_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -470,12 +493,11 @@ START_TEST (timeout_and_error)
 }
 END_TEST
 
-START_TEST (get_changes_error)
+START_TEST (single_get_changes_error)
 {
-	char *testbed = setup_testbed("sync_easy_new");
+	char *testbed = setup_testbed("sync_easy_conflict");
 	
-	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
-	g_setenv("CONNECT_ERROR", "4", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "2", TRUE);
 	
 	OSyncEnv *osync = osync_env_new();
 	osync_env_set_configdir(osync, NULL);
@@ -489,15 +511,19 @@ START_TEST (get_changes_error)
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
-	synchronize_once(engine);
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
 	
-	fail_unless(num_member_connect_errors == 2, NULL);
-	fail_unless(num_connected == 1, NULL);
-	fail_unless(num_disconnected == 1, NULL);
-	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 2, NULL);
+	fail_unless(num_disconnected == 2, NULL);
+	fail_unless(num_member_get_changes_errors == 1, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
+	osync_error_free(&error);
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
 	
@@ -506,8 +532,6 @@ START_TEST (get_changes_error)
 	destroy_testbed(testbed);
 }
 END_TEST
-
-GET_CHANGES_ERROR
 
 Suite *multisync_suite(void)
 {
@@ -525,7 +549,7 @@ Suite *multisync_suite(void)
 	create_case(s, "dual_connect_timeout", dual_connect_timeout);
 	create_case(s, "one_of_three_timeout", one_of_three_timeout);
 	create_case(s, "timeout_and_error", timeout_and_error);
-	
+	create_case(s, "single_get_changes_error", single_get_changes_error);
 	
 	return s;
 }

@@ -15,6 +15,7 @@ int num_disconnected;
 
 int num_member_connect_errors;
 int num_member_sent_changes;
+int num_member_get_changes_errors;
 
 int num_engine_errors;
 int num_engine_successfull;
@@ -30,7 +31,7 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 void mapping_status(MSyncMappingUpdate *status, void *user_data);
 
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
-void synchronize_once(OSyncEngine *engine);
+osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
 void create_case(Suite *s, const char *name, void (*function)(void));
 OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped);
 OSyncHashTable *hashtable_load(OSyncGroup *group, int member, int entries);
