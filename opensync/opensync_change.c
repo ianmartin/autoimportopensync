@@ -127,7 +127,7 @@ void osync_change_free(OSyncChange *change)
 void osync_change_free_data(OSyncChange *change)
 {
 	g_assert(change);
-	g_assert(change->format);
+	g_assert(osync_change_get_objformat(change));
 	if (!osync_change_get_objformat(change)->destroy_func)
 		osync_debug("OSCONV", 1, "Memory leak: can't free data of type %s", osync_change_get_objformat(change)->name);
 	else {
