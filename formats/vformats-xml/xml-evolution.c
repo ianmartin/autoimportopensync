@@ -21,7 +21,7 @@
 #include "opensync-xml.h"
 #include <glib.h>
 
-static osync_bool conv_x_evo_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool conv_x_evo_to_xml(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	/*xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
@@ -46,17 +46,17 @@ static osync_bool conv_x_evo_to_xml(const char *input, int inpsize, char **outpu
 	return TRUE;
 }
 
-static osync_bool conv_xml_to_x_evo(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool conv_xml_to_x_evo(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 
 	return TRUE;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "contact");
-	osync_conv_register_objformat(env, "contact", "xml-contact");
+	osync_env_register_objtype(env, "contact");
+	osync_env_register_objformat(env, "contact", "xml-contact");
 	
-	osync_conv_register_extension(env, "xml-contact", conv_x_evo_to_xml, conv_xml_to_x_evo);
+	osync_env_register_extension(env, "xml-contact", conv_x_evo_to_xml, conv_xml_to_x_evo);
 }

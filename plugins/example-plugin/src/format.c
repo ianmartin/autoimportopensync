@@ -96,7 +96,7 @@ static char *print_format1(OSyncChange *change)
 	 return NULL;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
 	/*
 	 * Here you have to give opensync some information about your format
@@ -106,15 +106,15 @@ void get_info(OSyncFormatEnv *env)
 	
 	//Tell opensync for which object type you want to add a format.
 	//If the object type does not exist yet, it will be created.
-	osync_conv_register_objtype(env, "<some object type>");
+	osync_env_register_objtype(env, "<some object type>");
 	
 	//Tell opensync that we want to register a new format
-	OSyncObjFormat *format = osync_conv_register_objformat(env, "<some object type>", "<your format name>");
+	OSyncObjFormat *format = osync_env_register_objformat(env, "<some object type>", "<your format name>");
 	//Now we can set the function on your format we have created above
-	osync_conv_format_set_compare_func(format, compare_format1);
-	osync_conv_format_set_duplicate_func(format, duplicate_format1);
-	osync_conv_format_set_destroy_func(format, destroy_format1);
-	osync_conv_format_set_print_func(format, print_format1);
+	osync_env_format_set_compare_func(format, compare_format1);
+	osync_env_format_set_duplicate_func(format, duplicate_format1);
+	osync_env_format_set_destroy_func(format, destroy_format1);
+	osync_env_format_set_print_func(format, print_format1);
 	
 	/*
 	 * Now we can register the converters.
@@ -133,6 +133,6 @@ void get_info(OSyncFormatEnv *env)
 	 * like the example above, but in the other direction
 	 * 
 	 */
-	osync_conv_register_converter(env, CONVERTER_CONV, "<another format name>", "<your format name>", conv_format2_to_format1, 0);
-	osync_conv_register_converter(env, CONVERTER_CONV, "<your format name>", "<another format name>", conv_format1_to_format2, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "<another format name>", "<your format name>", conv_format2_to_format1, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "<your format name>", "<another format name>", conv_format1_to_format2, 0);
 }

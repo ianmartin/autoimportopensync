@@ -41,16 +41,18 @@ void update_change_list(OSyncEngine *engine)
 {
 	g_assert(engine);
 	members = NULL;
-	int i, n;
-	OSyncGroup *group = engine->group;
-	for (i = 0; i < osync_group_num_members(group); i++) {
+	GList *v;
+	GList *e;
+	for (v = engine->maptable->views; v; v = v->next) {
 		member_info *meminfo = g_malloc0(sizeof(member_info));
 		members = g_list_append(members, meminfo);
-		meminfo->member = osync_group_nth_member(group, i);
-		for (n = 0; n < osync_member_num_changeentries(meminfo->member); n++) {
+		OSyncMappingView *view = v->data;
+		meminfo->member = view->client->member;
+		for (e = view->changes; e; e = e->next) {
+			OSyncMappingEntry *entry = e->data;
 			change_info *chinfo = g_malloc0(sizeof(change_info));
 			meminfo->changes = g_list_append(meminfo->changes, chinfo);
-			chinfo->change = osync_member_nth_changeentry(meminfo->member, n);
+			chinfo->change = entry->change;
 			chinfo->type = CHANGE_UNMODIFIED;
 			chinfo->uid = g_strdup(osync_change_get_uid(chinfo->change));
 		}
@@ -82,12 +84,12 @@ change_info *find_change_info(member_info *meminfo, OSyncChange *change)
 void conflict_handler(OSyncEngine *engine, OSyncMapping *mapping)
 {
 	if (g_random_int_range(0, 3) == 0) {
-		osync_mapping_duplicate(engine, mapping);
+		osengine_mapping_duplicate(engine, mapping);
 		printf("Conflict for Mapping %p: Duplicating\n", mapping);
 	} else {
-		int num = osync_mapping_num_entries(mapping);
+		int num = osengine_mapping_num_changes(mapping);
 		int choosen = g_random_int_range(0, num);
-		OSyncChange *change = osync_mapping_nth_entry(mapping, choosen);
+		OSyncChange *change = osengine_mapping_nth_change(mapping, choosen);
 		osengine_mapping_solve(engine, mapping, change);
 		printf("Conflict for Mapping %p: Choosing entry %i\n", mapping, choosen);
 	}
@@ -225,16 +227,12 @@ static osync_bool check_mappings(OSyncEngine *engine)
 	for (m = members; m; m = m->next) {
 		meminfo = m->data;
 
-		if (osync_mappingtable_num_mappings(engine->maptable) != g_list_length(meminfo->changes)) {
-			printf("Number of mappings do not match for member %lli, %i compared to %i\n", osync_member_get_id(meminfo->member), osync_mappingtable_num_mappings(engine->maptable), g_list_length(meminfo->changes));
+		if (g_list_length(engine->maptable->mappings) != g_list_length(meminfo->changes)) {
+			printf("Number of mappings do not match for member %lli, %i compared to %i\n", osync_member_get_id(meminfo->member), g_list_length(engine->maptable->mappings), g_list_length(meminfo->changes));
 			return FALSE;
 		}
 	}
 	
-	if (osync_mappingtable_num_unmapped(engine->maptable)) {
-		printf("maptable still has unmapped entires\n");
-		return FALSE;
-	}
 	return TRUE;
 }
 
@@ -250,8 +248,8 @@ static osync_bool check_hashtables(OSyncEngine *engine)
 			abort();
 		}*/
 		printf("hashtable %p\n", table);
-		if (osync_hashtable_num_entries(table) && osync_mappingtable_num_mappings(engine->maptable) != osync_hashtable_num_entries(table)) {
-			printf("Number of mappings do not match hastable for member %lli, %i compared to %i\n", osync_member_get_id(meminfo->member), osync_mappingtable_num_mappings(engine->maptable), osync_hashtable_num_entries(table));
+		if (osync_hashtable_num_entries(table) && g_list_length(engine->maptable->mappings) != osync_hashtable_num_entries(table)) {
+			printf("Number of mappings do not match hastable for member %lli, %i compared to %i\n", osync_member_get_id(meminfo->member), g_list_length(engine->maptable->mappings), osync_hashtable_num_entries(table));
 			return FALSE;
 		}
 		
@@ -338,9 +336,7 @@ int main (int argc, char *argv[])
 	}
 	
 	OSyncEnv *osync = osync_env_new();
-	
-	if (configdir)
-		osync_env_set_configdir(osync, configdir);
+	osync_env_set_option(osync, "GROUPS_DIRECTORY", configdir);
 	
 	if (!osync_env_initialize(osync, &error)) {
 		printf("Unable to initialize environment: %s\n", error->message);
@@ -379,8 +375,7 @@ int main (int argc, char *argv[])
 			
 			if (g_random_int_range(0, 5) == 0) {
 				int i;
-				OSyncFormatEnv *env = osync_conv_env_new();
-				osync_conv_env_load(env, NULL);
+				OSyncFormatEnv *env = osync_group_get_format_env(group);
 				for (i = 0; i < osync_conv_num_objtypes(env); i++) {
 					if (g_random_int_range(0, 5) == 0) {
 						OSyncObjType *type = osync_conv_nth_objtype(env, i);

@@ -119,12 +119,20 @@ START_TEST (filter_sync_custom)
 }
 END_TEST
 
+static OSyncFilterAction vcard_cats(OSyncChange *change, char *config)
+{
+	//Check what categories are supported here.
+	return OSYNC_FILTER_IGNORE;
+}
+
 START_TEST (filter_save_and_load)
 {
 	char *testbed = setup_testbed("filter_save_and_load");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
+	osync_env_register_objtype(osync, "test");
+	osync_env_register_objformat(osync, "test", "format1");
+	osync_env_register_filter_function(osync, "vcard_cats", "test", "format1", vcard_cats);
+	
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
@@ -134,7 +142,7 @@ START_TEST (filter_save_and_load)
 	
 	OSyncFilter *filter1 = osync_filter_add(group, leftmember, rightmember, "1", "2", "3", OSYNC_FILTER_DENY);
 	OSyncFilter *filter2 = osync_filter_add(group, rightmember, leftmember, "4", "5", "6", OSYNC_FILTER_ALLOW);
-	OSyncFilter *filter3 = osync_filter_add_custom(group, leftmember, rightmember, "7", "8", "9", "vcard_categories_filter");
+	OSyncFilter *filter3 = osync_filter_add_custom(group, leftmember, rightmember, "7", "8", "9", "vcard_cats");
 	osync_filter_set_config(filter3, "test");
 	
 	fail_unless(osync_group_num_filters(group) == 3, NULL);
@@ -147,9 +155,10 @@ START_TEST (filter_save_and_load)
 	mark_point();
 	osync_env_finalize(osync, NULL);
 	osync_env_free(osync);
-	osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	osync = init_env();
+	osync_env_register_objtype(osync, "test");
+	osync_env_register_objformat(osync, "test", "format1");
+	osync_env_register_filter_function(osync, "vcard_cats", "test", "format1", vcard_cats);
 	group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();

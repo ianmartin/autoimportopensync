@@ -89,7 +89,6 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	}
 	
 	member->memberfunctions = osync_memberfunctions_new();
-	osync_debug("OSMEM", 3, "Generated new member");
 
 	return member;
 }
@@ -664,77 +663,6 @@ OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
 	}
 	osync_debug("OSPLG", 0, "Couldnt find the member with the id %i", id);
 	return NULL;
-}
-
-//FIXME Remove this and replace with "views"
-void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry)
-{
-	g_assert(member);
-
-	member->entries = g_list_append(member->entries, entry);
-	entry->member = member;
-}
-
-//FIXME Remove this and replace with "views"
-void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry)
-{
-	g_assert(member);
-	member->entries = g_list_remove(member->entries, entry);
-	entry->member = NULL;
-}
-
-//FIXME Remove this and replace with "views"
-OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
-{
-	int i;
-	for (i = 0; i < g_list_length(member->entries); i++) {
-		OSyncChange *entry = g_list_nth_data(member->entries, i);
-		if (!strcmp(osync_change_get_uid(entry), uid)) {
-			return entry;
-		}
-	}
-	return NULL;
-}
-
-//FIXME Remove this and replace with "views"
-osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, osync_bool spare_deleted)
-{
-	GList *c = NULL;
-	int found = 0;
-
-	for (c = member->entries; c; c = c->next) {
-		OSyncChange *entry = c->data;
-		if ((change != entry) && (!spare_deleted || (entry->changetype != CHANGE_DELETED)) && !strcmp(entry->uid, change->uid)) {
-			found++;
-		}
-	}
-	if (found == 0)
-		return TRUE;
-	return FALSE;
-}
-
-//FIXME Remove this and replace with "views"
-osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change)
-{
-	OSyncChange *entry;
-	if ((entry = osync_member_find_change(member, osync_change_get_uid(*change)))) {
-		osync_change_update(*change, entry);
-		*change = entry;
-		return TRUE;
-	}
-	return FALSE;
-}
-
-//FIXME Remove this and replace with "views"
-int osync_member_num_changeentries(OSyncMember *member)
-{
-	return g_list_length(member->entries);
-}
-
-//FIXME Remove this and replace with "views"
-OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n)
-{
-	return g_list_nth_data(member->entries, n);
 }
 
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)

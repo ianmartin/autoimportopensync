@@ -8,12 +8,11 @@ OSyncDB *osync_db_open(char *filename, OSyncError **error);
 void osync_db_close(OSyncDB *db);
 int osync_db_count(OSyncDB *db, char *table);
 
-osync_bool osync_db_open_mappingtable(OSyncMappingTable *table, OSyncError **error);
-void osync_db_close_mappingtable(OSyncMappingTable *table);
-void osync_db_reset_mappingtable(OSyncMappingTable *table, const char *objtype);
-
-void osync_db_delete_change(OSyncMappingTable *table, OSyncChange *change);
-void osync_db_save_change(OSyncMappingTable *table, OSyncChange *change);
+osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyncError **error);
+osync_bool osync_db_save_change(OSyncChange *change, OSyncError **error);
+osync_bool osync_db_delete_change(OSyncChange *change, OSyncError **error);
+osync_bool osync_db_reset_changes(OSyncGroup *group, const char *objtype, OSyncError **error);
+void osync_db_close_changes(OSyncGroup *group);
 
 OSyncDB *osync_db_open_anchor(OSyncMember *member, OSyncError **error);
 void osync_db_close_anchor(OSyncDB *db);

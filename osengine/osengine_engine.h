@@ -2,9 +2,9 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **);
 void osync_engine_free(OSyncEngine *engine);
 
 void osync_engine_calculate_flags(OSyncEngine *engine);
-void osync_client_deciders(OSyncEngine *engine);
+void osengine_client_all_deciders(OSyncEngine *engine);
 void osync_engine_decider(OSyncEngine *engine);
-void osync_client_decider(OSyncEngine *engine, OSyncClient *client);
+void osengine_client_decider(OSyncEngine *engine, OSyncClient *client);
 void osync_engine_changes_done(OSyncEngine *engine, OSyncMember *member);
 osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **);
 void osync_engine_finalize(OSyncEngine *engine);

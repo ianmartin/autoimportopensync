@@ -136,13 +136,6 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 		va_start(arglist, message);
 		g_vasprintf(&buffer, message, arglist);
 		
-		const char *dbgstr = g_getenv("OSYNC_DEBUG");
-		if (!dbgstr)
-			return;
-		debug = atoi(dbgstr);
-		if (debug < level)
-			return;
-		
 		char *debugstr = NULL;
 		switch (level) {
 			case 0:
@@ -169,7 +162,17 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 		va_end(arglist);
 		g_free(buffer);
 		osync_trace(TRACE_INTERNAL, debugstr);
+		
+		const char *dbgstr = g_getenv("OSYNC_DEBUG");
+		if (!dbgstr)
+			goto free_str;
+		debug = atoi(dbgstr);
+		if (debug < level)
+			goto free_str;
+		
 		printf("%s\n", debugstr);
+
+free_str:
 		g_free(debugstr);
 #endif
 }

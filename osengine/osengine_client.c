@@ -48,7 +48,7 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 
 void osync_client_free(OSyncClient *client)
 {
-	osync_debug("CLI", 3, "Freeing client");
+	osync_trace(TRACE_ENTRY, "osync_client_free(%p)", client);
 	itm_queue_free(client->incoming);
 	g_main_loop_unref(client->memberloop);
 	g_main_context_unref(client->context);
@@ -62,6 +62,7 @@ void osync_client_free(OSyncClient *client)
 	osync_flag_free(client->fl_finished);
 
 	g_free(client);
+	osync_trace(TRACE_EXIT, "osync_client_free");
 }
 
 void *osync_client_message_sink(OSyncMember *member, const char *name, void *data, osync_bool synchronous)

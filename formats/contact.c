@@ -83,21 +83,19 @@ static OSyncFilterAction vcard_categories_filter(OSyncChange *change, char *conf
 	return OSYNC_FILTER_IGNORE;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "contact");
+	osync_env_register_objtype(env, "contact");
 	
-	OSyncObjFormat *vcard = osync_conv_register_objformat(env, "contact", "vcard21");
-	osync_conv_format_set_compare_func(vcard, compare_vcard);
-	osync_conv_format_set_create_func(vcard, create_vcard21);
-	osync_conv_register_data_detector(env, "plain", "vcard21", detect_plain_as_vcard21);
-	osync_conv_format_set_like(vcard, "plain", 0, CONV_DETECTFIRST);
-	osync_conv_register_filter_function(env, "vcard_categories_filter", "contact", "vcard21", vcard_categories_filter);
+	osync_env_register_objformat(env, "contact", "vcard21");
+	osync_env_format_set_compare_func(env, "vcard21", compare_vcard);
+	osync_env_format_set_create_func(env, "vcard21", create_vcard21);
+	osync_env_register_detector(env, "plain", "vcard21", detect_plain_as_vcard21);
+	osync_env_register_filter_function(env, "vcard_categories_filter", "contact", "vcard21", vcard_categories_filter);
 
-	vcard = osync_conv_register_objformat(env, "contact", "vcard30");
-	osync_conv_format_set_compare_func(vcard, compare_vcard);
-	osync_conv_format_set_create_func(vcard, create_vcard30);
-	osync_conv_register_data_detector(env, "plain", "vcard30", detect_plain_as_vcard30);
-	osync_conv_format_set_like(vcard, "plain", 0, CONV_DETECTFIRST);
-	osync_conv_register_filter_function(env, "vcard_categories_filter", "contact", "vcard30", vcard_categories_filter);
+	osync_env_register_objformat(env, "contact", "vcard30");
+	osync_env_format_set_compare_func(env, "vcard30", compare_vcard);
+	osync_env_format_set_create_func(env, "vcard30", create_vcard30);
+	osync_env_register_detector(env, "plain", "vcard30", detect_plain_as_vcard30);
+	osync_env_register_filter_function(env, "vcard_categories_filter", "contact", "vcard30", vcard_categories_filter);
 }

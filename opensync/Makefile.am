@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror -DOPENSYNC_PLUGINDIR=\"@OPENSYNC_PLUGINDIR@\" -DOPENSYNC_CONFIGDIR=\"@OPENSYNC_CONFIGDIR@\" -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\"
+AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror -g -O0 -DOPENSYNC_PLUGINDIR=\"@OPENSYNC_PLUGINDIR@\" -DOPENSYNC_CONFIGDIR=\"@OPENSYNC_CONFIGDIR@\" -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\"
 
 INCLUDES = @PACKAGE_CFLAGS@
 
@@ -15,11 +15,11 @@ opensyncinclude_HEADERS = \
 	opensync_group.h \
 	opensync_member.h \
 	opensync_change.h \
-	opensync_mapping.h \
 	opensync_error.h \
 	opensync_hashtable.h \
 	opensync_context.h \
 	opensync_convert.h \
+	opensync_convreg.h \
 	opensync_anchor.h \
 	opensync_filter.h
 
@@ -44,11 +44,11 @@ libopensync_la_SOURCES = \
 	opensync_user.c \
 	opensync_member.c \
 	opensync_change.c \
-	opensync_mapping.c \
 	opensync_hashtable.c \
 	opensync_error.c \
 	opensync_context.c \
 	opensync_convert.c \
+	opensync_convreg.c \
 	opensync_anchor.c \
 	opensync_filter.c
 	

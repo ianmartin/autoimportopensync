@@ -44,3 +44,5 @@ OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int nu
 OSyncHashTable *hashtable_load(OSyncGroup *group, int member, int entries);
 void check_hash(OSyncHashTable *table, const char *cmpuid);
 void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype);
+OSyncEnv *init_env(void);
+OSyncEnv *init_env_none(void);

@@ -17,11 +17,10 @@ static OSyncConvCmpResult compare_vnote(OSyncChange *leftchange, OSyncChange *ri
 	return CONV_DATA_MISMATCH;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "note");
-	OSyncObjFormat *format = osync_conv_register_objformat(env, "note", "vnote11");
-	osync_conv_register_data_detector(env, "plain", "vnote11", detect_plain_as_vnote);
-	osync_conv_format_set_compare_func(format, compare_vnote);
-	osync_conv_format_set_like(format, "plain", 0, CONV_DETECTFIRST);
+	osync_env_register_objtype(env, "note");
+	osync_env_register_objformat(env, "note", "vnote11");
+	osync_env_register_detector(env, "plain", "vnote11", detect_plain_as_vnote);
+	osync_env_format_set_compare_func(env, "vnote11", compare_vnote);
 }

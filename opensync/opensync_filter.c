@@ -184,9 +184,12 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 	if (filter->destobjtype && change->destobjtype && strcmp(filter->destobjtype, change->destobjtype))
 		return OSYNC_FILTER_IGNORE;
 	if (filter->detectobjtype) {
-		OSyncObjType *objtype = osync_change_detect_objtype_full(osync_member_get_format_env(destmember), change, NULL);
-		if (!objtype)
+		OSyncError *error = NULL;
+		OSyncObjType *objtype = osync_change_detect_objtype_full(osync_member_get_format_env(destmember), change, &error);
+		if (!objtype) {
+			osync_error_free(&error);
 			return OSYNC_FILTER_IGNORE;
+		}
 		if (strcmp(filter->detectobjtype, objtype->name))
 			return OSYNC_FILTER_IGNORE;
 	}
@@ -202,6 +205,7 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 
 osync_bool osync_filter_change_allowed(OSyncMember *destmember, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "osync_filter_change_allowed(%p, %p)", destmember, change);
 	GList *filters = _osync_filter_find(destmember);
 	GList *f = NULL;
 	int ret = TRUE;
@@ -215,6 +219,7 @@ osync_bool osync_filter_change_allowed(OSyncMember *destmember, OSyncChange *cha
 			ret = FALSE;
 	}
 	g_list_free(filters);
+	osync_trace(TRACE_EXIT, "osync_filter_change_allowed: %s", ret ? "TRUE" : "FALSE");
 	return ret;
 }
 
