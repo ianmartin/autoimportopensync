@@ -5,3 +5,5 @@ int osengine_mapping_num_changes(OSyncMapping *mapping);
 OSyncChange *osengine_mapping_nth_change(OSyncMapping *mapping, int nth);
 long long osengine_mapping_get_id(OSyncMapping *mapping);
 void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change);
+osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapping, OSyncError **error);
+void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping);
