@@ -84,11 +84,17 @@ typedef struct OSyncUnresolvedConverter {
 	ConverterFlags flags;
 } OSyncUnresolvedConverter;
 
+/** Data detector for a format
+ *
+ * It takes the data on a given format and detects
+ * if it can be converted to another format
+ */
 typedef struct OSyncDataDetector {
-	OSyncObjType *objtype;
-	OSyncObjFormat *objformat;
+	const char *sourceformat;
+	const char *targetformat;
 	OSyncFormatDetectDataFunc detect_func;
 } OSyncDataDetector;
 
 osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change);
+OSyncDataDetector *osync_conv_find_detector(OSyncFormatEnv *env, const char *origformat, const char *trgformat);
 

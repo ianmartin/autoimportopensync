@@ -139,6 +139,19 @@ OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncFormatEnv *env, O
 	return NULL;
 }
 
+/*OSyncDataDetector *osync_conv_find_detector(OSyncFormatEnv *env, const char *origformat, const char *trgformat)
+{
+	OSyncObjFormat *fmt = osync_conv_find_objformat(env, origformat);
+	GList *i;
+	for (i = fmt->detectors; i; i = i->next) {
+		OSyncDataDetector *det = i->data;
+		if (!strcmp(det->targetformat->name, trgformat)) {
+			return det;
+		}
+	}
+	return NULL;
+}*/
+
 OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char *sourcename, const char *targetname)
 {
 	g_assert(env);
@@ -284,7 +297,8 @@ void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompa
  */
 static void osync_format_simple_destroy(char *data, size_t size)
 {
-	free(data);
+	if (data)
+		free(data);
 }
 
 /** Set the format as a simple malloc()ed block
@@ -473,6 +487,7 @@ typedef struct edge {
 } edge;
 
 typedef struct conv_tree {
+	OSyncFormatEnv *env;
 	OSyncObjType *type;
 	GList *unused;
 	GList *search;
@@ -657,27 +672,38 @@ osync_bool osync_conv_objtype_is_any(const char *objstr)
 	return FALSE;
 }
 
-void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *objtypestr, const char *objformatstr, OSyncFormatDetectDataFunc detect_func)
+void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func)
 {
 	OSyncDataDetector *detector = g_malloc0(sizeof(OSyncDataDetector));
-	detector->objtype = osync_conv_find_objtype(env, objtypestr);
-	detector->objformat = osync_conv_find_objformat(env, objformatstr);
+	detector->sourceformat = strdup(sourceformat);
+	detector->targetformat = strdup(format);
 	detector->detect_func = detect_func;
+
 	env->data_detectors = g_list_append(env->data_detectors, detector);
 }
 
+
+/*FIXME: data detection may be broken for a while,
+ * as the objformat of the change may be not the
+ * sourceformat for the detector that should be called here
+ *
+ * @see detect_file()
+ */
 osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size)
 {
 	GList *d = NULL;
+	const char *fmtname;
 	if (!change->has_data)
 		return FALSE;
+
+	fmtname = osync_change_get_objformat(change)->name;
 	for (d = env->data_detectors; d; d = d->next) {
 		OSyncDataDetector *detector = d->data;
-		if (detector->detect_func(env, data, size)) {
-			change->objformats = g_list_prepend(change->objformats, detector->objformat);
-			if (detector->objtype)
-				change->objtype = detector->objtype;
-			return TRUE;
+		if (!strcmp(detector->sourceformat, fmtname)) {
+			if (detector->detect_func(env, data, size)) {
+				change->objformats = g_list_prepend(change->objformats, osync_conv_find_objformat(env, detector->targetformat));
+				return TRUE;
+			}
 		}
 	}
 	return FALSE;

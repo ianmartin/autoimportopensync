@@ -55,11 +55,13 @@ END_TEST
 START_TEST (conv_env_add_format)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  osync_conv_register_objtype(env, "test");
+  OSyncObjType *type = osync_conv_register_objtype(env, "test");
   OSyncObjFormat *format = osync_conv_register_objformat(env, "test", "fmt_test");
   fail_unless(format != NULL, "format == NULL");
   OSyncObjFormat *format1 = osync_conv_find_objformat(env, "fmt_test");
   fail_unless(format == format1, "format != format1 by find");
+  fail_unless(format->objtype == type, "objtype not set");
+  fail_unless(g_list_nth_data(type->formats, 0) == format, "Format not added to objtype list");
 }
 END_TEST
 

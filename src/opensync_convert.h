@@ -23,7 +23,7 @@ void osync_conv_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc 
 //void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions);
 OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth);
 osync_bool osync_conv_objtype_is_any(const char *objstr);
-void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *objtypestr, const char *objformatstr, OSyncFormatDetectDataFunc detect_func);
+void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func);
 osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size);
 OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChange *rightchange);
 osync_bool osync_conv_detect_and_convert(OSyncFormatEnv *env, OSyncChange *change);
