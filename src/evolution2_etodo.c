@@ -102,6 +102,6 @@ static osync_bool evo2_tasks_modify(OSyncContext *ctx, OSyncChange *change)
 void evo2_tasks_setup(OSyncPluginInfo *info)
 {
 	osync_plugin_accept_objtype(info, "todo");
-	osync_plugin_accept_objformat(info, "todo", "vtodo");
+	osync_plugin_accept_objformat(info, "todo", "vtodo", "evolution");
 	osync_plugin_set_commit_objformat(info, "todo", "vtodo", evo2_tasks_modify);
 }

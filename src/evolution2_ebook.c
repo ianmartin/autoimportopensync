@@ -192,7 +192,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 void evo2_addrbook_setup(OSyncPluginInfo *info)
 {
 	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "vcard30");
+	osync_plugin_accept_objformat(info, "contact", "vcard30", "evolution");
 	osync_plugin_set_commit_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
 	osync_plugin_set_access_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
 }
