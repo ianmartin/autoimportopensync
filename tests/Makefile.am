@@ -1,7 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = mock-plugin
-
 EXTRA_DIST = data support.h
 
 AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@
@@ -87,3 +85,7 @@ CLEANFILES = \
 
 clean:
 	rm -rf coverage/*
+	$(MAKE) clean -C mock-plugin
+
+all-local:
+	$(MAKE) -C mock-plugin

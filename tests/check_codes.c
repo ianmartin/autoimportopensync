@@ -6,9 +6,7 @@ START_TEST (single_init_error)
 	
 	g_setenv("INIT_NULL", "2", TRUE);
 	
-	OSyncEnv *osync = osync_env_new();
-	
-	osync_env_initialize(osync, NULL);
+	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
