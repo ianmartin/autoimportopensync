@@ -12,7 +12,6 @@ DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
     }
     dbenv->set_errfile(dbenv, errfp);
     dbenv->set_errpfx(dbenv, "opensync");
-    dbenv->set_verbose(dbenv, 0, 1);
 
     if ((ret = dbenv->set_cachesize(dbenv, 0, 5 * 1024 * 1024, 0)) != 0) {
     	dbenv->err(dbenv, ret, "set_cachesize");

@@ -320,9 +320,8 @@ void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry)
 {
 	if (!member)
 		return;
-	if (!osync_member_uid_is_unique(member, entry->uid)) {
-		segfault_me
-	}
+	osync_assert(osync_member_uid_is_unique(member, entry->uid), "Member uid is not unique while adding. Did you try to open several mapping tables?\n");
+
 	member->entries = g_list_append(member->entries, entry);
 	entry->member = member;
 }

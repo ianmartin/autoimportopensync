@@ -75,7 +75,13 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 	
 	osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
 	OSyncGroup *group = osync_group_new(env);
-	osync_group_set_configdir(group, path);
+	if (!g_path_is_absolute(path)) {
+		char *abspath = g_strdup_printf("%s/%s", g_get_current_dir(), path); //FIXME Free the string!
+		osync_group_set_configdir(group, abspath);
+		g_free(abspath);
+	} else {
+		osync_group_set_configdir(group, path);
+	}
 	
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
 	

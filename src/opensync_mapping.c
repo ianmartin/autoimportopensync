@@ -87,7 +87,6 @@ void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *chang
 
 void osync_mappingtable_delete_change(OSyncMappingTable *table, OSyncChange *change)
 {
-	printf("Deleting change %lu uid %s!\n", change->id, change->uid);
 	g_assert(table->entrytable != NULL);
 	osync_db_del(table->entrytable, &(change->id), sizeof(unsigned long));
 	osync_db_sync(table->maptable);
@@ -280,7 +279,7 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 	filename = g_strdup_printf("%s/mapping.db", table->db_path);
 	table->maptable = osync_db_open_secondary(table->entrytable, filename, NULL, getmapid, table->group->dbenv);
 	g_free(filename);
-	
+
 	g_assert(table->entrytable);
 	g_assert(table->maptable);
 	
@@ -292,7 +291,7 @@ void osync_mappingtable_load(OSyncMappingTable *table)
     
     OSyncMapping *mapping = NULL;
 	OSyncChange *change = NULL;
-
+	
 	while (osync_db_cursor_next_sec(dbcp, &entryidp, &mapidp, &data)) {
 		unsigned long mapid = *(unsigned long *)mapidp;
 		unsigned long entryid = *(unsigned long *)entryidp;
