@@ -76,6 +76,14 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 	osync_debug("EVO-SYNC", 0, "start: %s", __func__);
 	int fd[2];
 
+	evo_environment *env = g_malloc0(sizeof(evo_environment));
+	if (!env)
+		goto error_ret;
+	
+	env->working_mutex = g_mutex_new();
+	env->working = g_cond_new();
+	//env->context = g_main_context_default();
+
 	g_type_init();
 	pipe(fd);
 	if (!fork()) {
@@ -85,12 +93,13 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 		exit(0);
 	}
 
-	/*int argc = 1;
+	int argc = 1;
 	char *argv[2];
 	argv[0] = "msynctool";
 	argv[1] = NULL;
 
-	bonobo_init(&argc, argv);*/
+	bonobo_init(&argc, argv);
+	bonobo_activate();
 	
 	/*if (read(fd[0],version,256) > 0) {
 		int majver, minver = 0, micver = 0;
@@ -105,13 +114,6 @@ static void *evo_initialize(OSyncMember *member, OSyncError **error)
 	
 	char *configdata = NULL;
 	int configsize = 0;
-	
-	evo_environment *env = g_malloc0(sizeof(evo_environment));
-	if (!env)
-		goto error_ret;
-	
-	env->working_mutex = g_mutex_new();
-	env->working = g_cond_new();
 		
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) 
 		goto error_free;
@@ -155,10 +157,8 @@ void evo_continue(OSyncContext *ctx)
 
 void evo_run_and_block(GThreadFunc func, OSyncContext *ctx)
 {
-	printf("Running function!\n");
 	g_thread_create(func, ctx, FALSE, NULL);
-	printf("Running bonobo main\n");
-	bonobo_main();
+
 	printf("done running bonobo main\n");
 }
 

@@ -34,6 +34,7 @@ typedef struct {
 	//int dbs_loaded;
 	GCond* working;
 	GMutex* working_mutex;
+	GMainContext *context;
 } evo_environment;
 
 void evo_run_and_block(GThreadFunc func, OSyncContext *ctx);

@@ -399,6 +399,8 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 	
+	engine->context = g_main_context_new();
+	
 	//Now load the old uid mapping
 	engine->maptable = osync_mappingtable_new(group);
 	osync_mappingtable_set_dbpath(engine->maptable, osync_group_get_configdir(group));
@@ -450,6 +452,8 @@ void osync_engine_free(OSyncEngine *engine)
 
 	g_list_free(engine->clients);
 	g_main_loop_unref(engine->syncloop);
+	
+	g_main_context_unref(engine->context);
 	
 	g_mutex_free(engine->syncing_mutex);
 	g_mutex_free(engine->info_received_mutex);
@@ -565,7 +569,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 {
 	int i = 0;
 	if (!(engine->man_dispatch))
-		itm_queue_setup_with_gmainloop(engine->incoming, NULL);
+		itm_queue_setup_with_gmainloop(engine->incoming, engine->context);
 	itm_queue_set_message_handler(engine->incoming, (ITMessageHandler)engine_message_handler, engine);
 	
 	osync_mappingtable_load(engine->maptable);
@@ -595,7 +599,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 			return FALSE;
 	}
 	
-	engine->syncloop = g_main_loop_new(NULL, FALSE);
+	engine->syncloop = g_main_loop_new(engine->context, FALSE);
 	_osync_debug(engine, "ENG", 3, "Running the main loop");
 
 	//Now we can run the main loop

@@ -63,6 +63,7 @@ struct OSyncEngine {
 	GList *clients;
 	/** The g_main_loop of this engine **/
 	GMainLoop *syncloop;
+	GMainContext *context;
 	/** The incoming queue of this engine **/
 	ITMQueue *incoming;
 	
