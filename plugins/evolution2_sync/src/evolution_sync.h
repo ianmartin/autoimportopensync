@@ -29,6 +29,7 @@ typedef struct {
 } evo_environment;
 
 ESource *evo2_find_source(ESourceList *list, char *uri);
+void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, char *uid, OSyncChangeType type);
 
 #include "evolution_ebook.h"
 #include "evolution_ecal.h"

@@ -1,6 +1,11 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
+void osync_db_errcall_fcn(const char *errpfx, char *msg)
+{
+	osync_debug("OSGRP", 3, "BDB error %s: %s", errpfx, msg);
+}
+
 DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
 {
 	DB_ENV *dbenv;
@@ -12,18 +17,30 @@ DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
     }
     dbenv->set_errfile(dbenv, errfp);
     dbenv->set_errpfx(dbenv, "opensync");
-
-    if ((ret = dbenv->set_cachesize(dbenv, 0, 5 * 1024 * 1024, 0)) != 0) {
-    	dbenv->err(dbenv, ret, "set_cachesize");
+    
+    if ((ret = dbenv->set_verbose(dbenv, DB_VERB_RECOVERY, 1)) != 0) {
+    	dbenv->err(dbenv, ret, "set_verbose: db");
     	goto err;
     }
+
+    dbenv->set_errcall(dbenv, osync_db_errcall_fcn);
+
+    /*if ((ret = dbenv->set_cachesize(dbenv, 0, 5 * 1024 * 1024, 0)) != 0) {
+    	dbenv->err(dbenv, ret, "set_cachesize");
+    	goto err;
+    }*/
     
     if ((ret = dbenv->set_data_dir(dbenv, "db")) != 0) {
     	dbenv->err(dbenv, ret, "set_data_dir: db");
     	goto err;
     }
 
-    if ((ret = dbenv->open(dbenv, configdir, DB_CREATE | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | DB_RECOVER | DB_PRIVATE, 0)) != 0) {
+    if ((ret = dbenv->set_flags(dbenv, DB_LOG_AUTOREMOVE, 1)) != 0) {
+    	dbenv->err(dbenv, ret, "set_flags: db");
+    	goto err;
+    }
+
+    if ((ret = dbenv->open(dbenv, configdir, DB_CREATE | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | DB_RECOVER | DB_PRIVATE | DB_INIT_LOCK, 0)) != 0) {
     	dbenv->err(dbenv, ret, "environment open: %s", configdir);
     	goto err;
     }
@@ -35,6 +52,11 @@ DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
     	return (NULL);
 }
 
+void osync_db_tear_down(DB_ENV *dbenv)
+{
+	dbenv->close(dbenv, 0);
+}
+
 DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 {
 	int ret = 0;
@@ -43,7 +65,7 @@ DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 		printf("db_create: %s\n", db_strerror(ret));
 		return NULL;
 	}
-	
+
 	//Verify
 	//FIXME
 	if ((ret = dbp->verify(dbp, g_strdup(filename), NULL, NULL, 0)) != 0) {

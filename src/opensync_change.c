@@ -333,7 +333,8 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	//FIXME free stuff
 	g_assert(source);
 	g_assert(target);
-	target->uid = g_strdup(source->uid);
+	if (!target->uid)
+		target->uid = g_strdup(source->uid);
 	target->hash = g_strdup(source->hash);
 	target->data = g_malloc0(source->size);
 	memcpy(target->data, source->data, source->size);

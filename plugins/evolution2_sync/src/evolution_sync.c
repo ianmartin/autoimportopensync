@@ -51,15 +51,20 @@ static void evo2_connect(OSyncContext *ctx)
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	osync_bool open_any = FALSE;
 	if (osync_member_objtype_enabled(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
+		osync_debug("EVO2-SYNC", 4, "opening adressbook");
 		if (evo2_addrbook_open(env)) {
 			open_any = TRUE;
-			if (!osync_anchor_compare(env->member, "contact", env->adressbook_path))
+			osync_debug("EVO2-SYNC", 4, "ok");
+			if (!osync_anchor_compare(env->member, "contact", env->adressbook_path)) {
+				printf("++Requesting slow-sync\n");
 				osync_member_set_slow_sync(env->member, "contact", TRUE);
+			osync_debug("EVO2-SYNC", 4, "ok2");
+			}
 		} else {
 			osync_context_send_log(ctx, "Unable to open addressbook");
 		}
 	}
-
+	osync_debug("EVO2-SYNC", 4, "cont");
 	if (osync_member_objtype_enabled(env->member, "calendar") &&  env->calendar_path && strlen(env->calendar_path)) {
 		if (evo2_calendar_open(env)) {
 			open_any = TRUE;
@@ -86,14 +91,15 @@ static void evo2_connect(OSyncContext *ctx)
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to open anything");
 		return;
 	}
-	printf("Reporting success\n");
+	
+	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
 	osync_context_report_success(ctx);
 }
 
 static OSyncChangeType evo2_get_data(void *object, char *objtype, char **data, int *datasize, const char **uid)
 {
-	EBookChange *ebc;
-	ECalChange *ecc;
+	ECalChange *ecc = NULL;
+	
 	if (!strcmp(objtype, "calendar") || !strcmp(objtype, "todo")) {
 		ecc = (ECalChange *)object;
 		e_cal_component_commit_sequence (ecc->comp);
@@ -109,22 +115,25 @@ static OSyncChangeType evo2_get_data(void *object, char *objtype, char **data, i
 			case E_CAL_CHANGE_DELETED:
 				return CHANGE_DELETED;
 		}
-	} else {
-		ebc = (EBookChange *)object;
-		EVCard vcard = ebc->contact->parent;
-		*data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
-		*uid = e_contact_get_const(ebc->contact, E_CONTACT_UID);
-		*datasize = strlen(*data) + 1;
-		switch (ebc->change_type) {
-			case E_BOOK_CHANGE_CARD_ADDED:
-				return CHANGE_ADDED;
-			case E_BOOK_CHANGE_CARD_MODIFIED:
-				return CHANGE_MODIFIED;
-			case E_BOOK_CHANGE_CARD_DELETED:
-				return CHANGE_DELETED;
-		}
 	}
 	return CHANGE_UNKNOWN;
+}
+
+void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, char *uid, OSyncChangeType type)
+{
+	OSyncMember *member = osync_context_get_member(ctx);
+
+	OSyncFormatEnv *env = osync_member_get_format_env(member);
+	OSyncObjType *objtype = osync_conv_find_objtype(env, objtypestr);
+	OSyncObjFormat *objformat = osync_conv_find_objformat(env, objformatstr);
+	
+	OSyncChange *change = osync_change_new();
+	osync_change_set_uid(change, uid);
+	osync_change_set_objtype(change, objtype);
+	osync_change_set_objformat(change, objformat);
+	osync_change_set_changetype(change, type);
+	osync_change_set_data(change, data, datasize, TRUE);
+	osync_context_report_change(ctx, change);
 }
 
 static void evo2_report_changes(GList *changes, OSyncContext *ctx, char *objtypestr, char *objformatstr)
@@ -156,21 +165,10 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
-	GList *changes;
+	GList *changes = NULL;
 
-	if (env->adressbook) {
-		if (osync_member_get_slow_sync(env->member, "contact")) {
-			if (!e_book_get_changes(env->adressbook, env->change_id, &changes, NULL)) {
-				osync_context_send_log(ctx, "Unable to open changed contacts");
-			}
-		} else {
-			EBookQuery *query = e_book_query_from_string("*"); //FIXME
-			if (!e_book_get_contacts(env->adressbook, query, &changes, NULL)) {
-				osync_context_send_log(ctx, "Unable to open contacts");
-			}
-		}	
-		evo2_report_changes(changes, ctx, "contact", "vcard");
-	}
+	if (env->adressbook)
+		evo2_addrbook_get_changes(ctx);
 	
 	if (env->calendar) {
 		if (osync_member_get_slow_sync(env->member, "calendar")) {
@@ -211,13 +209,15 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 
 static void evo2_sync_done(OSyncContext *ctx)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 
 	GList *changes;
 	
-	if (env->adressbook)
+	if (env->adressbook) {
+		osync_anchor_update(env->member, "contact", env->adressbook_path);
 		e_book_get_changes(env->adressbook, env->change_id, &changes, NULL);
+	}
 	if (env->calendar)
 		e_cal_get_changes(env->calendar, env->change_id, &changes, NULL);
 	if (env->tasks)
@@ -228,9 +228,11 @@ static void evo2_sync_done(OSyncContext *ctx)
 
 static void evo2_disconnect(OSyncContext *ctx)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	//evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
+	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 
+	if (env->adressbook)
+		g_object_unref(env->adressbook);
 	//FIXME!!
 	
 	osync_context_report_success(ctx);

@@ -12,6 +12,7 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 	group->env = osinfo;
 	group->conv_env = osync_conv_env_new();
 	osync_conv_env_load(group->conv_env);
+	osync_conv_set_common_format(group->conv_env, "contact", "vcard");
 	osync_debug("OSGRP", 3, "Generated new group:");
 	osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
 	return group;
@@ -19,6 +20,8 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 
 void osync_group_free(OSyncGroup *group)
 {
+	printf("Freeing group\n");
+	osync_db_tear_down(group->dbenv);
 	g_assert(group);
 	g_free(group->name);
 	g_free(group->configdir);
@@ -248,7 +251,11 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	g_assert(group);
 	OSyncFormatEnv *env = group->conv_env;
 	g_assert(env);
-	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
+	
+	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, "data");
+	if (osync_objtype->needs_slow_sync)
+		return TRUE;
+	osync_objtype = osync_conv_find_objtype(env, objtype);
 	g_assert(osync_objtype);
 	return osync_objtype->needs_slow_sync;
 }

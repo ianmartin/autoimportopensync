@@ -27,17 +27,20 @@ static osync_bool detect_vcard(OSyncFormatEnv *env, const char *data, int size)
 	return FALSE;
 }
 
-/*static void create_vcard(OSyncChange *change)
+static void create_vcard(OSyncChange *change)
 {
-	
-}*/
+	char *vcard = g_strdup_printf("BEGIN:VCARD\r\nVERSION:2.1\r\nN:%s;%s;;;\r\nEND:VCARD\r\n", osync_rand_str(10), osync_rand_str(10));
+	osync_change_set_data(change, vcard, strlen(vcard) + 1, TRUE);
+	if (!osync_change_get_uid(change))
+		osync_change_set_uid(change, osync_rand_str(6));
+}
 
 void get_info(OSyncFormatEnv *env)
 {
 	OSyncObjType *type = osync_conv_register_objtype(env, "contact");
 	OSyncObjFormat *format = osync_conv_register_objformat(type, "vcard");
 	osync_conv_format_set_compare_func(format, compare_vcard);
-	//osync_conv_format_set_create_func(format, create_vcard);
+	osync_conv_format_set_create_func(format, create_vcard);
 	
 	osync_conv_register_data_detector(env, "contact", "vcard", detect_vcard);
 }

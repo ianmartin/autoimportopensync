@@ -241,15 +241,12 @@ void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreate
 	format->create_func = create_func;
 }
 
-/*void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions)
+void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname)
 {
-	g_assert(format);
-	format->functions = functions;
-}*/
-
-void osync_conv_set_common_format(OSyncFormatEnv *env, const char *formatname)
-{
-	
+	OSyncObjType *type = osync_conv_find_objtype(env, objtypestr);
+	g_assert(type);
+	OSyncObjFormat *format = osync_conv_find_objformat(env, formatname);
+	type->common_format = format;
 }
 
 void osync_conv_duplicate_change(OSyncChange *change)
@@ -343,7 +340,7 @@ osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change)
 	g_assert(change);
 	if (change->changetype == CHANGE_DELETED)
 		return FALSE;
-	while (!change->objtype) {
+	while (!change->objtype || osync_conv_objtype_is_any(change->objtype->name)) {
 		if (!osync_conv_detect_next_format(env, change)) {
 			change->objtype = osync_conv_find_objtype(env, "data");
 			return FALSE;
@@ -450,14 +447,16 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 {
 	char *data = NULL;
 	int datasize = 0;
-	osync_bool ret = FALSE;
+	osync_bool ret = TRUE;
 	if (!converter->convert_func)
 		return FALSE;
-
-	ret = converter->convert_func(change->data, change->size, &data, &datasize);
-	//Fixme free prev data
-	change->data = data;
-	change->size = datasize;
+	
+	if (change->data) {
+		ret = converter->convert_func(change->data, change->size, &data, &datasize);
+		//Fixme free prev data
+		change->data = data;
+		change->size = datasize;
+	}
 	switch (converter->type) {
 		case CONVERTER_CONV:
 			osync_debug("OSYNC", 3, "Converting! replacing format %s with %s", converter->source_format->name, converter->target_format->name);
