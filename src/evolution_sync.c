@@ -144,11 +144,11 @@ static void evo2_connect(OSyncContext *ctx)
 		}
 	}
 	osync_debug("EVO2-SYNC", 4, "cont");
-	if (osync_member_objtype_enabled(env->member, "calendar") &&  env->calendar_path && strlen(env->calendar_path)) {
+	if (osync_member_objtype_enabled(env->member, "event") &&  env->calendar_path && strlen(env->calendar_path)) {
 		if (evo2_calendar_open(env)) {
 			open_any = TRUE;
-			if (!osync_anchor_compare(env->member, "calendar", env->calendar_path))
-				osync_member_set_slow_sync(env->member, "calendar", TRUE);
+			if (!osync_anchor_compare(env->member, "event", env->calendar_path))
+				osync_member_set_slow_sync(env->member, "event", TRUE);
 		} else {
 			osync_context_send_log(ctx, "Unable to open calendar");
 		}
@@ -179,7 +179,7 @@ static OSyncChangeType evo2_get_data(void *object, char *objtype, char **data, i
 {
 	ECalChange *ecc = NULL;
 	
-	if (!strcmp(objtype, "calendar") || !strcmp(objtype, "todo")) {
+	if (!strcmp(objtype, "event") || !strcmp(objtype, "todo")) {
 		ecc = (ECalChange *)object;
 		e_cal_component_commit_sequence (ecc->comp);
 		e_cal_component_strip_errors(ecc->comp);
@@ -250,7 +250,7 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 		evo2_addrbook_get_changes(ctx);
 	
 	if (env->calendar) {
-		if (osync_member_get_slow_sync(env->member, "calendar")) {
+		if (osync_member_get_slow_sync(env->member, "event")) {
 			if (!e_cal_get_changes(env->calendar, env->change_id, &changes, NULL)) {
 				osync_context_send_log(ctx, "Unable to open changed calendar entries");
 			}
@@ -263,7 +263,7 @@ static void evo2_get_changeinfo(OSyncContext *ctx)
 			}
 			*/
 		}	
-		evo2_report_changes(changes, ctx, "calendar", "vcalendar");
+		evo2_report_changes(changes, ctx, "event", "vevent");
 	}
 	
 	if (env->tasks) {
