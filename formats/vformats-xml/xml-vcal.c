@@ -1896,6 +1896,41 @@ static void fin_xml_to_vcal(void *data)
 	g_free(hooks);
 }
 
+static time_t get_revision(OSyncChange *change, const char *path, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+	
+	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+	
+	xmlXPathObject *xobj = osxml_get_nodeset(doc, path);
+		
+	xmlNodeSet *nodes = xobj->nodesetval;
+		
+	int size = (nodes) ? nodes->nodeNr : 0;
+	if (size != 1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision");
+		return -1;
+	}
+	
+	char *revision = (char*)xmlNodeGetContent(nodes->nodeTab[0]);
+	
+	time_t time = vformat_time_to_unix(revision);
+	g_free(revision);
+	xmlXPathFreeObject(xobj);
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
+	return time;
+}
+
+static time_t get_todo_revision(OSyncChange *change, OSyncError **error)
+{
+	return get_revision(change, "/vcal/Todo/Revision", error);
+}
+
+static time_t get_event_revision(OSyncChange *change, OSyncError **error)
+{
+	return get_revision(change, "/vcal/Event/Revision", error);
+}
+
 void get_info(OSyncEnv *env)
 {
 	//Calendar
@@ -1905,6 +1940,7 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_destroy_func(env, "xml-event", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-event", print_vcal);
 	osync_env_format_set_copy_func(env, "xml-event", osxml_copy);
+	osync_env_format_set_revision_func(env, "xml-event", get_event_revision);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vevent10", "xml-event", conv_vcal_to_xml);
 	osync_env_converter_set_init(env, "vevent10", "xml-event", init_vcal_to_xml, fin_vcal_to_xml);
@@ -1923,6 +1959,7 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_destroy_func(env, "xml-todo", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-todo", print_vcal);
 	osync_env_format_set_copy_func(env, "xml-todo", osxml_copy);
+	osync_env_format_set_revision_func(env, "xml-todo", get_todo_revision);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vtodo10", "xml-todo", conv_vcal_to_xml);
 	osync_env_converter_set_init(env, "vtodo10", "xml-todo", init_vcal_to_xml, fin_vcal_to_xml);

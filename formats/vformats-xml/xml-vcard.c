@@ -932,6 +932,33 @@ static void fin_xml_to_vcard(void *data)
 	g_free(hooks);
 }
 
+static time_t get_revision(OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+	
+	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+	
+	xmlXPathObject *xobj = osxml_get_nodeset(doc, "/contact/Revision");
+		
+	xmlNodeSet *nodes = xobj->nodesetval;
+		
+	int size = (nodes) ? nodes->nodeNr : 0;
+	if (size != 1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return -1;
+	}
+	
+	char *revision = (char*)osxml_find_node(nodes->nodeTab[0], "Content");
+	
+	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
+	time_t time = vformat_time_to_unix(revision);
+	g_free(revision);
+	xmlXPathFreeObject(xobj);
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
+	return time;
+}
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
@@ -940,6 +967,7 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_destroy_func(env, "xml-contact", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-contact", print_contact);
 	osync_env_format_set_copy_func(env, "xml-contact", osxml_copy);
+	osync_env_format_set_revision_func(env, "xml-contact", get_revision);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
 	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);

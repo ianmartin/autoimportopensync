@@ -106,7 +106,7 @@ time_t osync_change_get_revision(OSyncChange *change, OSyncError **error)
 	if (!change->has_data) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No data set when asking for the timestamp");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return 0;
+		return -1;
 	}
 	
 	OSyncObjFormat *format = change->format;
@@ -115,7 +115,7 @@ time_t osync_change_get_revision(OSyncChange *change, OSyncError **error)
 	if (!format->revision_func) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No revision function set");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return 0;
+		return -1;
 	}
 		
 	time_t time = format->revision_func(change, error);

@@ -417,7 +417,7 @@ osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapp
 		
 		if (osync_change_get_changetype(entry->change) != CHANGE_UNKNOWN) {
 			time = osync_change_get_revision(entry->change, error);
-			if (osync_error_is_set(error)) {
+			if (time == -1) {
 				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 				mapping->master = NULL;
 				return FALSE;

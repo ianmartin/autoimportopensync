@@ -117,6 +117,53 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 	destroy_testbed(testbed);
 }
 
+static time_t vcard_get_revision(const char *filename)
+{
+	char *command = g_strdup_printf("cp %s/%s .", g_get_current_dir(), filename);
+	char *testbed = setup_testbed(NULL);
+	system(command);
+	g_free(command);
+	
+	
+	OSyncError *error = NULL;
+	OSyncEnv *env = init_env();
+	
+	OSyncFormatEnv *conv_env = osync_conv_env_new(env);
+	fail_unless(conv_env != NULL, NULL);
+
+	char *buffer;
+	int size;
+	
+	char *file = g_path_get_basename(filename);
+	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
+	
+	OSyncChange *change = osync_change_new();
+	osync_change_set_uid(change, file);
+	g_free(file);
+	osync_change_set_data(change, buffer, size + 1, TRUE);
+	osync_change_set_conv_env(change, conv_env);
+	
+	osync_change_set_objformat_string(change, "plain");
+
+	OSyncObjFormat *sourceformat = osync_change_detect_objformat(conv_env, change, &error);
+	fail_unless(sourceformat != NULL, NULL);
+	osync_change_set_objformat(change, sourceformat);
+	
+	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-contact");
+	fail_unless(targetformat != NULL, NULL);
+	
+	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, "evolution2", &error), NULL);
+	
+	time_t time = osync_change_get_revision(change, &error);
+	
+	osync_conv_env_free(conv_env);
+	osync_env_finalize(env, NULL);
+	osync_env_free(env);
+	
+	destroy_testbed(testbed);
+	return time;
+}
+
 START_TEST (conv_vcard_evolution2_full1)
 {
 	conv_vcard("data/vcards/evolution2/evo2-full1.vcf", "evolution");
@@ -297,6 +344,35 @@ START_TEST (compare_vformat_same2)
 }
 END_TEST
 
+START_TEST (get_revision1)
+{
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full1.vcf") == 1109410884, NULL);
+}
+END_TEST
+
+START_TEST (get_revision2)
+{
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full2.vcf") == 1109372400, NULL);
+}
+END_TEST
+
+START_TEST (get_revision3)
+{
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-multiline.vcf") == 1109372400, NULL);
+}
+END_TEST
+
+START_TEST (get_revision4)
+{
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-photo.vcf") == 1109410884, NULL);
+}
+END_TEST
+
+START_TEST (get_no_revision)
+{
+	fail_unless(vcard_get_revision("data/vcards/evolution2/compare/1-same.vcf") == -1, NULL);
+}
+END_TEST
 
 Suite *vcard_suite(void)
 {
@@ -336,6 +412,12 @@ Suite *vcard_suite(void)
 	create_case(s, "compare_vformat_same1", compare_vformat_same1);
 	create_case(s, "compare_vformat_same2", compare_vformat_same2);
 	
+	create_case(s, "get_revision1", get_revision1);
+	create_case(s, "get_revision2", get_revision2);
+	create_case(s, "get_revision3", get_revision3);
+	create_case(s, "get_revision4", get_revision4);
+	create_case(s, "get_no_revision", get_no_revision);
+
 	return s;
 }
 
