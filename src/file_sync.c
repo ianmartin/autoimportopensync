@@ -399,6 +399,16 @@ void get_info(OSyncPluginInfo *info)
 	info->functions.finalize = fs_finalize;
 	info->functions.get_changeinfo = fs_get_changeinfo;
 	info->functions.get_data = fs_get_data;
+
+#ifdef ERROR_TEST
+	//Lets reduce the timeouts a bit so the checks work faster
+	info->timeouts.disconnect_timeout = 5;
+	info->timeouts.connect_timeout = 5;
+	info->timeouts.sync_done_timeout = 5;
+	info->timeouts.get_changeinfo_timeout = 5;
+	info->timeouts.get_data_timeout = 5;
+	info->timeouts.commit_timeout = 5;
+#endif
 	
 	osync_plugin_accept_objtype(info, "data");
 	osync_plugin_accept_objformat(info, "data", "file");
