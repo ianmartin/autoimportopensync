@@ -292,7 +292,6 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
 	newchange->format = osync_change_get_objformat(source);
 	newchange->objtype = osync_change_get_objtype(source);
 	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
-	newchange->is_detected = source->is_detected;
 	newchange->changes_db = source->changes_db;
 	newchange->member = source->member;
 	
@@ -311,7 +310,7 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
  * This will call the duplicate function of a format.
  * This is used if a uid is not unique.
  * 
- * @param source The change to duplicate
+ * @param change The change to duplicate
  * @returns TRUE if the uid was duplicated successfull
  * 
  */
@@ -561,4 +560,4 @@ OSyncObjFormat *osync_change_detect_objformat_full(OSyncFormatEnv *env, OSyncCha
 	return ret;
 }
 
-/*@{*/
+/*@}*/

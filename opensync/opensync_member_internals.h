@@ -1,6 +1,7 @@
 
 /*! @brief A member of a group which represent a single device */
 struct OSyncMember {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	long long int id;
 	char *configdir;
 	char *configdata;
@@ -21,6 +22,7 @@ struct OSyncMember {
 	GList *filters;
 
 	char *extension;
+#endif
 };
 
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr);

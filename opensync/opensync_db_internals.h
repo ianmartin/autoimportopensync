@@ -1,9 +1,10 @@
 #include <sqlite3.h>
 
-/*! @brief Represent a connection to a database */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncDB {
 	sqlite3 *db;
 };
+#endif
 
 OSyncDB *osync_db_open(char *filename, OSyncError **error);
 void osync_db_close(OSyncDB *db);

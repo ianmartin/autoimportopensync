@@ -1,15 +1,13 @@
 
-/**
- * @defgroup OSyncFilterAPI OpenSync Filter
- * @ingroup OSyncPublic
- * @brief Allows filtering of changes and applying hooks to changes as they pass through opensync
- * 
- */
-/*@{*/
-
+/*! @brief The action that should be invoked
+ * @ingroup OSyncFilterAPI
+ **/
 typedef enum OSyncFilterAction {
+	/** This filter should be ignored */
 	OSYNC_FILTER_IGNORE = 0,
+	/** The change should be allowed to pass (Overwrites previous action) */
 	OSYNC_FILTER_ALLOW = 1,
+	/** The change should be denied to pass (Overwrites previous action) */
 	OSYNC_FILTER_DENY = 2
 } OSyncFilterAction;
 
@@ -29,5 +27,3 @@ const char *osync_filter_get_detectobjtype(OSyncFilter *filter);
 OSyncFilterAction osync_filter_get_action(OSyncFilter *filter);
 OSyncMember *osync_filter_get_sourcemember(OSyncFilter *filter);
 OSyncMember *osync_filter_get_destmember(OSyncFilter *filter);
-
-/*@}*/

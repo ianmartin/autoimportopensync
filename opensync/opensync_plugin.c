@@ -21,8 +21,12 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+
 /**
- * @ingroup OSyncPluginPrivateAPI
+ * @defgroup OSyncPluginPrivateAPI OpenSync Plugin Internals
+ * @ingroup OSyncPrivate
+ * @brief The private part of the plugins API
+ * 
  */
 /*@{*/
 
@@ -380,7 +384,10 @@ OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const
 /*@}*/
 
 /**
- * @ingroup OSyncPluginAPI
+ * @defgroup OSyncPluginAPI OpenSync Plugin
+ * @ingroup OSyncPublic
+ * @brief Functions to register and manage plugins
+ * 
  */
 /*@{*/
 

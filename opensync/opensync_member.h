@@ -1,9 +1,13 @@
 
 /*! @brief Represents the functions that a member will call to inform the syncengine */
 typedef struct OSyncMemberFunctions {
+	/** The callback function that will receive the new changes from the plugins */
 	void (* rf_change) (OSyncMember *, OSyncChange *, void *);
+	/** The callback function that will receive custom message calls from the plugin */
 	void *(* rf_message) (OSyncMember *, const char *, void *, osync_bool);
+	/** The callback function that will receive sync alerts from the plugin */
 	void (* rf_sync_alert) (OSyncMember *);
+	/** The callback function that will receive log messages */
 	void (*rf_log) (OSyncMember *, char *);
 } OSyncMemberFunctions;
 

@@ -6,8 +6,7 @@
  */
 /*@{*/
 
-/*! @brief A table which holds the mappings
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncMappingTable {
 	GList *mappings;
 	OSyncEngine *engine;
@@ -17,8 +16,6 @@ struct OSyncMappingTable {
 	GList *entries;
 };
 
-/*! @brief A view to the mappingtable, represents one source
- */
 struct OSyncMappingView {
 	OSyncClient *client;
 	GList *changes;
@@ -26,8 +23,6 @@ struct OSyncMappingView {
 	long long int memberid;
 };
 
-/*! @brief A mapping of changes
- */
 struct OSyncMapping {
 	GList *entries;
 	OSyncMappingEntry *master;
@@ -45,8 +40,6 @@ struct OSyncMapping {
 	OSyncEngine *engine;
 };
 
-/*! @brief Represent one change in the mapping
- */
 struct OSyncMappingEntry {
 	OSyncMappingView *view;
 	OSyncClient *client;
@@ -60,6 +53,7 @@ struct OSyncMappingEntry {
 	MSyncFlag *fl_deleted;
 	MSyncFlag *fl_read;
 };
+#endif
 
 OSyncMappingTable *osengine_mappingtable_new(OSyncEngine *engine);
 void osengine_mappingtable_free(OSyncMappingTable *table);

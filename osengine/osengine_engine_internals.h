@@ -1,8 +1,5 @@
 
-/**
- * @brief Represents a SyncEngine used to sync a group
- * 
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncEngine {
 	/** The real opensync group **/
 	OSyncGroup *group;
@@ -58,6 +55,7 @@ struct OSyncEngine {
 	OSyncError *error;
 	GThread *thread;
 };
+#endif
 
 void send_client_changed(OSyncEngine *engine, OSyncClient *client);
 void send_mappingentry_changed(OSyncEngine *engine, OSyncMappingEntry *entry);

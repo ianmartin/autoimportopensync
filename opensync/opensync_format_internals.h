@@ -11,27 +11,35 @@
 /*! @brief The environment used for conversions
  */
 struct OSyncFormatEnv {
-	GList *objtypes; /** A list of object types */
-	GList *objformats; /** A List of formats */
-	GList *converters; /** A list of available converters */
-	GList *filter_functions; /* A list of filter functions */
-	GList *extensions; /* A list of extensions */
+	/** A list of object types */
+	GList *objtypes;
+	/** A List of formats */
+	GList *objformats;
+	/** A list of available converters */
+	GList *converters;
+	/** A list of filter functions */
+	GList *filter_functions;
+	/** A list of extensions */
+	GList *extensions;
 };
 
 /*! @brief Represent a abstract object type (like "contact")
  */
 struct OSyncObjType {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	char *name;
 	GList *formats;
 	GList *converters;
 	OSyncFormatEnv *env;
 	osync_bool needs_slow_sync;
 	OSyncObjFormat *common_format;
+#endif
 };
 
 /*! @brief Represent a format for a object type
  */
 struct OSyncObjFormat {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	char *name;
 	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
@@ -44,11 +52,13 @@ struct OSyncObjFormat {
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
 	OSyncFormatRevisionFunc revision_func;
+#endif
 };
 
 /*! @brief Represent a converter from one format to another
  */
 struct OSyncFormatConverter {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	OSyncObjFormat *source_format;
 	OSyncObjFormat *target_format;
 	OSyncFormatConvertFunc convert_func;
@@ -56,25 +66,29 @@ struct OSyncFormatConverter {
 	OSyncFormatConverterInitFunc init_func;
 	OSyncFormatConverterFinalizeFunc fin_func;
 	ConverterType type;
-	//void *conv_data;
+#endif
 };
 
 /*! @brief Represent a detector for a given format
  */
 typedef struct OSyncDataDetector {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	const char *sourceformat;
 	const char *targetformat;
 	OSyncFormatDetectDataFunc detect_func;
+#endif
 } OSyncDataDetector;
 
 /*! @brief An extension to a format
  */
 typedef struct OSyncFormatExtension {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	OSyncObjFormat *from_format;
 	OSyncObjFormat *to_format;
 	char *name;
 	OSyncFormatConvertFunc conv_func;
 	OSyncFormatExtInitFunc init_func;
+#endif
 } OSyncFormatExtension;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

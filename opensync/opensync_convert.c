@@ -782,7 +782,7 @@ OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 
 /*! @brief Returns the number of available object formats
  * 
- * @param env Pointer to the environment
+ * @param type The object type for whih to lookup the formats
  * @returns The number of object formats
  * 
  */
@@ -794,7 +794,7 @@ int osync_conv_num_objformats(OSyncObjType *type)
 
 /*! @brief Gets the nth object format
  * 
- * @param env Pointer to the environment
+ * @param type The object for which to get the nth format
  * @param nth The number
  * @returns The object format, or NULL if there is no such object type
  * 

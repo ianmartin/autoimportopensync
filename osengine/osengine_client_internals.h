@@ -1,9 +1,5 @@
 
-/**
- * @ingroup OSyncClientPrivate
- * @brief Represents a SyncClient
- * 
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncClient {
 	OSyncMember *member;
 	ITMQueue *incoming;
@@ -24,6 +20,7 @@ struct OSyncClient {
 	
 	GList *changes;
 };
+#endif
 
 OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member);
 OSyncEngine *osync_client_get_engine(OSyncClient *client);

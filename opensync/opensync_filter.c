@@ -22,10 +22,14 @@
 #include "opensync_internals.h"
 
 /**
- * @ingroup OSyncFilterPrivate
+ * @defgroup OSyncFilterPrivate OpenSync Filter Internals
+ * @ingroup OSyncPrivate
+ * @brief Private api of the filter system
+ * 
  */
 /*@{*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action, const char *function_name)
 {
 	OSyncFilter *filter = osync_filter_new();
@@ -43,19 +47,6 @@ OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcemember
 	
 	osync_filter_register(group, filter);
 	return filter;
-}
-
-/*@}*/
-
-/**
- * @ingroup OSyncFilterAPI
- */
-/*@{*/
-
-void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
-{
-	g_assert(group);
-	group->filters = g_list_append(group->filters, filter);
 }
 
 void osync_filter_update_hook(OSyncFilter *filter, OSyncGroup *group, const char *function_name)
@@ -79,86 +70,6 @@ void osync_filter_update_hook(OSyncFilter *filter, OSyncGroup *group, const char
 	filter->function_name = g_strdup(function_name);
 }
 
-OSyncFilter *osync_filter_new(void)
-{
-	OSyncFilter *filter = g_malloc0(sizeof(OSyncFilter));
-	g_assert(filter);
-	return filter;
-}
-
-
-void osync_filter_free(OSyncFilter *filter)
-{
-	g_assert(filter);
-	if (filter->sourceobjtype)
-		g_free(filter->sourceobjtype);
-	if (filter->destobjtype)
-		g_free(filter->destobjtype);
-	if (filter->detectobjtype)
-		g_free(filter->detectobjtype);
-	
-	g_free(filter);
-}
-
-/*! @brief Register a new filter
- * 
- * @param group For which group to register the filter
- * @param sourcememberid The id of the member reporting the object. 0 for any
- * @param destmemberid The id of the member receiving the object. 0 for any
- * @param sourceobjtype The objtype as reported by the member without detection. NULL for any
- * @param destobjtype The objtype as about being saved by the member without detection. NULL for any
- * @param detectobjtype The objtype as detected. NULL for ignore
- * @param allow Set to TRUE if this filter should allow the object, To false if it should deny
- * 
- */
-OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
-{
-	long long int sourcememberid = 0;
-	long long int destmemberid = 0;
-	if (sourcemember)
-		sourcememberid = sourcemember->id;
-	if (destmember)
-		destmemberid = destmember->id;
-	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action, NULL);
-}
-
-void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
-{
-	g_assert(group);
-	group->filters = g_list_remove(group->filters, filter);
-}
-
-/*! @brief Register a new filter
- * 
- * @param sourcememberid The id of the member reporting the object. 0 for any
- * @param destmemberid The id of the member receiving the object. 0 for any
- * @param sourceobjtype The objtype as reported by the member without detection. NULL for any
- * @param detectobjtype The objtype as detected. NULL for any
- * @param hook The filter function to call to decide if to filter the object.
- * 
- */
-OSyncFilter *osync_filter_add_custom(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, const char *function_name)
-{
-	long long int sourcememberid = 0;
-	long long int destmemberid = 0;
-	if (sourcemember)
-		sourcememberid = sourcemember->id;
-	if (destmember)
-		destmemberid = destmember->id;
-	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, OSYNC_FILTER_IGNORE, function_name);
-}
-
-void osync_filter_set_config(OSyncFilter *filter, const char *config)
-{
-	g_assert(filter);
-	filter->config = g_strdup(config);
-}
-
-const char *osync_filter_get_config(OSyncFilter *filter)
-{
-	g_assert(filter);
-	return filter->config;
-}
 
 GList *_osync_filter_find(OSyncMember *member)
 {
@@ -253,6 +164,133 @@ OSyncMember *osync_filter_get_sourcemember(OSyncFilter *filter)
 OSyncMember *osync_filter_get_destmember(OSyncFilter *filter)
 {
 	return osync_member_from_id(filter->group, filter->destmemberid);
+}
+#endif
+
+/*@}*/
+
+/**
+ * @defgroup OSyncFilterAPI OpenSync Filter
+ * @ingroup OSyncPublic
+ * @brief Allows filtering of changes and applying hooks to changes as they pass through opensync
+ * 
+ */
+/*@{*/
+
+/** @brief Registers a filter with a group
+ * 
+ * @param group The group in which to register the filter
+ * @param filter The filter to register
+ **/
+void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
+{
+	g_assert(group);
+	group->filters = g_list_append(group->filters, filter);
+}
+
+/** @brief Creates a new filter
+ * 
+ * @returns A newly allocated filter
+ **/
+OSyncFilter *osync_filter_new(void)
+{
+	OSyncFilter *filter = g_malloc0(sizeof(OSyncFilter));
+	g_assert(filter);
+	return filter;
+}
+
+/** @brief Frees a filter
+ * 
+ * @param filter The filter to free
+ **/
+void osync_filter_free(OSyncFilter *filter)
+{
+	g_assert(filter);
+	if (filter->sourceobjtype)
+		g_free(filter->sourceobjtype);
+	if (filter->destobjtype)
+		g_free(filter->destobjtype);
+	if (filter->detectobjtype)
+		g_free(filter->detectobjtype);
+	
+	g_free(filter);
+}
+
+/*! @brief Register a new filter
+ * 
+ * @param group For which group to register the filter
+ * @param sourcememberid The id of the member reporting the object. 0 for any
+ * @param destmemberid The id of the member receiving the object. 0 for any
+ * @param sourceobjtype The objtype as reported by the member without detection. NULL for any
+ * @param destobjtype The objtype as about being saved by the member without detection. NULL for any
+ * @param detectobjtype The objtype as detected. NULL for ignore
+ * @param allow Set to TRUE if this filter should allow the object, To false if it should deny
+ * 
+ */
+OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
+{
+	long long int sourcememberid = 0;
+	long long int destmemberid = 0;
+	if (sourcemember)
+		sourcememberid = sourcemember->id;
+	if (destmember)
+		destmemberid = destmember->id;
+	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action, NULL);
+}
+
+/* @brief Removes a filter from a group
+ * 
+ * @param The group to remove from
+ * @param The filter to remove
+ **/
+void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
+{
+	g_assert(group);
+	group->filters = g_list_remove(group->filters, filter);
+}
+
+/*! @brief Register a new filter
+ * 
+ * @param sourcememberid The id of the member reporting the object. 0 for any
+ * @param destmemberid The id of the member receiving the object. 0 for any
+ * @param sourceobjtype The objtype as reported by the member without detection. NULL for any
+ * @param detectobjtype The objtype as detected. NULL for any
+ * @param hook The filter function to call to decide if to filter the object.
+ * 
+ */
+OSyncFilter *osync_filter_add_custom(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, const char *function_name)
+{
+	long long int sourcememberid = 0;
+	long long int destmemberid = 0;
+	if (sourcemember)
+		sourcememberid = sourcemember->id;
+	if (destmember)
+		destmemberid = destmember->id;
+	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, OSYNC_FILTER_IGNORE, function_name);
+}
+
+/** @brief Sets the config for a filter
+ * 
+ * @param filter The filter
+ * @param config The new config for this filter
+ **/
+void osync_filter_set_config(OSyncFilter *filter, const char *config)
+{
+	g_assert(filter);
+	if (filter->config)
+		g_free(filter->config);
+	filter->config = g_strdup(config);
+}
+
+/** @brief Gets the config of a filter
+ * 
+ * @param filter The filter
+ * @returns The config of this filter
+ **/
+const char *osync_filter_get_config(OSyncFilter *filter)
+{
+	g_assert(filter);
+	return filter->config;
 }
 
 /*@}*/

@@ -16,7 +16,9 @@ struct ITMQueue {
 	ITMessageHandler message_handler;
 	/** The user_data associated with this queue **/
 	gpointer user_data;
+	/** The source associated with this queue */
 	GSource *source;
+	/** The context in which this queue is dispatched */
 	GMainContext *context;
 };
 

@@ -29,6 +29,7 @@
  */
 /*@{*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 OSyncObjFormatTemplate *osync_env_find_format_template(OSyncEnv *env, const char *name)
 {
 	GList *o;
@@ -72,6 +73,7 @@ OSyncConverterTemplate *osync_env_find_converter_template(OSyncEnv *env, const c
 	}
 	return NULL;
 }
+#endif
 
 /*@}*/
 

@@ -11,10 +11,15 @@
  * 
  */
 typedef enum {
+	/** Message is a signal (without a reply) */
 	ITMESSAGE_SIGNAL = 1,
+	/** Message is a method call (with reply) */
 	ITMESSAGE_METHODCALL = 2,
+	/** Message is a reply to a method call */
 	ITMESSAGE_METHODREPLY = 3,
+	/** Message is a error */
 	ITMESSAGE_ERROR = 4,
+	/** Message is a error reply to a method call */
 	ITMESSAGE_ERRORREPLY = 5
 } ITMessageType;
 
@@ -31,16 +36,27 @@ typedef void (*ITMessageHandler)(gpointer sender, ITMessage *message, gpointer u
  * 
  */
 struct ITMessage {
+	/** The type of this message */
 	ITMessageType msgtype;
+	/** The name of the message*/
 	char *msgname;
+	/** The payload data */
 	GHashTable *payload;
+	/** Where should the reply be received? */
 	ITMessageHandler callback;
+	/** The user data */
 	gpointer user_data;
+	/** The source of this message */
 	GSource *source;
+	/** Place the reply to this message into this queue */
 	ITMQueue *replyqueue;
+	/** The parent object of this message */
 	gpointer parent;
+	/** The error if this is a error message */
 	OSyncError *error;
+	/** The timeout associated with this message */
 	timeout_info *to_info;
+	/** If this message has already been answered */
 	osync_bool is_answered;
 };
 

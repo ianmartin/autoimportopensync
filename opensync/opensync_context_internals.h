@@ -1,12 +1,13 @@
 #ifndef _OPENSYNC_CONTEXT_INTERNALS_H_
 #define _OPENSYNC_CONTEXT_INTERNALS_H_
 
-/*! @brief Represent a context that can be used to track calls to a plugin */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncContext {
 	OSyncEngCallback callback_function;
 	void *calldata;
 	OSyncMember *member;
 	osync_bool success;
 };
+#endif
 
 #endif //_OPENSYNC_CONTEXT_INTERNALS_H_

@@ -12,11 +12,13 @@
 /*! @brief Represent a user */
 struct OSyncUserInfo
 {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	uid_t uid;
 	gid_t gid;
 	G_CONST_RETURN gchar *username;
 	G_CONST_RETURN gchar *homedir;
 	char *confdir;
+#endif
 };
 
 OSyncUserInfo *_osync_user_new(void);

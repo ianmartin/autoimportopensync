@@ -1,19 +1,33 @@
 
 /*! @brief The functions that can be called on a plugin */
 struct MSyncFlag {
+	/** If this flag is raised */
 	osync_bool is_set;
+	/** If this flag is currently changing its value */
 	osync_bool is_changing;
+	/** The default value of the flag if no children are conencted */
 	osync_bool default_val;
+	/** The parent flag*/
 	MSyncFlag *comb_flag;
+	/** The cached number of unset child flags */
 	unsigned int num_not_set;
+	/** The cached number of set child flags */
 	unsigned int num_set;
+	/** If this flag is a combined flag */
 	osync_bool is_comb;
+	/** The function to be called when the value changes from neq to pos */
 	MSyncFlagTriggerFunc pos_trigger_func;
+	/** To first value to be passed to the pos triger function */
 	void *pos_user_data1;
+	/** To second value to be passed to the pos triger function  */
 	void *pos_user_data2;
+	/** The function to be called when the value changes from pos to neq */
 	MSyncFlagTriggerFunc neg_trigger_func;
+	/** To first value to be passed to the neq triger function */
 	void *neg_user_data1;
+	/** To second value to be passed to the neq triger function */
 	void *neg_user_data2;
+	/** Should the combined flag be a OR or a AND flag? */
 	osync_bool is_any;
 };
 
