@@ -21,8 +21,8 @@ typedef struct {
 	OSyncMember *member;
 	char *change_id;
 	char *configfile;
-	char *adressbook_path;
-	EBook *adressbook;
+	char *addressbook_path;
+	EBook *addressbook;
 	char *calendar_path;
 	ECal *calendar;
 	char *tasks_path;
@@ -33,9 +33,9 @@ typedef struct {
 ESource *evo2_find_source(ESourceList *list, char *uri);
 void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, const char *uid, OSyncChangeType type);
 
-#include "evolution_ebook.h"
-#include "evolution_ecal.h"
-#include "evolution_etodo.h"
-#include "evolution_xml.h"
+#include "evolution2_ebook.h"
+#include "evolution2_ecal.h"
+#include "evolution2_etodo.h"
+#include "evolution2_xml.h"
 
 #endif

@@ -12,12 +12,19 @@ opensyncheader_HEADERS = evo2_sync.h
 
 plugin_LTLIBRARIES = evo2_sync.la
 
+EXTRA_DIST = \
+	evolution2_sync.h \
+	evolution2_ebook.h \
+	evolution2_ecal.h \
+	evolution2_etodo.h \
+	evolution2_xml.h
+	
 evo2_sync_la_SOURCES = \
-	evolution_sync.c \
-	evolution_ebook.c \
-	evolution_ecal.c \
-	evolution_etodo.c \
-	evolution_xml.c
+	evolution2_sync.c \
+	evolution2_ebook.c \
+	evolution2_ecal.c \
+	evolution2_etodo.c \
+	evolution2_xml.c
 
 evo2_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 evo2_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@

@@ -18,7 +18,7 @@
  * 
  */
  
-#include "evolution_sync.h"
+#include "evolution2_sync.h"
 
 osync_bool evo2_calendar_open(evo_environment *env)
 {
