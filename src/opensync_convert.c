@@ -1070,7 +1070,11 @@ static osync_bool target_fn_simple(const void *data, OSyncObjFormat *fmt)
 	return target == fmt;
 }
 
-/** Convert a change to a specific format */
+/*! @brief Convert a change to a specific format 
+ * 
+ * Test
+ * 
+ */
 osync_bool osync_conv_convert_simple(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *fmt)
 {
 	return osync_conv_convert_fn(env, change, target_fn_simple, fmt);
