@@ -35,7 +35,6 @@ class KCalDataSource
 {
     private:
         KCal::CalendarResources *calendar;
-        KCal::CalendarResources::Ticket *saveTicket;
 
         OSyncHashTable *hashtable;
         OSyncMember *member;

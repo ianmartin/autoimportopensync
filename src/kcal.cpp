@@ -51,19 +51,15 @@ bool KCalDataSource::connect(OSyncContext *ctx)
     calendar->load();
 #endif
     osync_debug("kcal", 3, "Calendar: %d events", calendar->events().size());
-    /*FIXME: We don't lock the data */
-    //saveTicket = calendar->requestSaveTicket();
-    if (!saveTicket) {
-        osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't request write to the KDE calendar");
-        return false;
-    }
     return true;
 }
 
 bool KCalDataSource::disconnect(OSyncContext *)
 {
-    // We are not locking the data
-    //calendar->save(saveTicket);
+	
+    /* Save the changes */
+	calendar->save();
+    
     delete calendar;
     calendar = NULL;
     return true;
@@ -72,8 +68,10 @@ bool KCalDataSource::disconnect(OSyncContext *)
 static QString calc_hash(const KCal::Incidence *e)
 {
     QDateTime d = e->lastModified();
-    if (!d.isValid())
+    if (!d.isValid()) {
         d = QDateTime::currentDateTime();
+        //e->setLastModified(&d);
+    }
     /*FIXME: not i18ned string */
     return d.toString();
 }
@@ -241,9 +239,6 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Invalid or unsupported change type");
             return false;
     }
-
-    /* Save the changes */
-    calendar->save();
 
     return true;
 }
