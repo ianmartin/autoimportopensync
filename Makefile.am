@@ -5,6 +5,7 @@ plugindir=@OPENSYNC_PLUGINDIR@
 #FIXME: set EXTRA_DIST
 
 INCLUDES = $(OSYNC_CFLAGS) $(XML_CFLAGS) $(GLIB_CFLAGS) $(KDE_INCLUDES) $(QT_INCLUDES)
+AM_CXXFLAGS = -Wall -Werror
 
 # Temporary hack to fix difference between <opensync/opensync.h> and <opensync.h>
 INCLUDES += -I@OPENSYNC_INCLUDEDIR@/opensync-1.0/opensync
@@ -25,7 +26,7 @@ EXTRA_DIST = \
 # kcal_format_la_LIBADD = $(KDE_RPATH) $(LIB_KABC)
 
 kdepim_sync_la_SOURCES = src/kdepim_sync.cpp
-kdepim_sync_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\"
+kdepim_sync_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall -Werror
 kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 
 # ugly hack to make the c++ library work
@@ -34,7 +35,7 @@ kdepim_sync_la_LIBADD = -lstdc++
 kdepim_lib_la_SOURCES = src/kdepim_impl.cpp \
                          src/kcal.cpp \
                          src/knotes.cpp
-kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\"
+kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall -Werror
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
 kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -lopensync-xml
 

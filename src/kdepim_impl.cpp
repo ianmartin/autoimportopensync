@@ -100,10 +100,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
             //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
 
-            hashtable = osync_hashtable_new();
-            if (!osync_hashtable_load(hashtable, member, error))
-                return false;
-
             KAboutData aboutData(
                        "opensync-kdepim-plugin",                        // internal program name
                        I18N_NOOP( "OpenSync-KDE-plugin"),        // displayable program name.
@@ -125,6 +121,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             //ensure a NULL Ticket ptr
             addressbookticket=NULL;
 
+            hashtable = osync_hashtable_new();
+
             kcal = new KCalDataSource(member, hashtable);
             knotes = new KNotesDataSource(member, hashtable);
 
@@ -145,6 +143,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 delete application;
                 application = NULL;
             }
+            if (hashtable)
+            	osync_hashtable_free(hashtable);
         }
 
         /** Calculate the hash value for an Addressee.
@@ -171,6 +171,19 @@ class KdePluginImplementation: public KdePluginImplementationBase
             //Lock the addressbook
             addressbookticket = addressbookptr->requestSaveTicket();
 
+			OSyncError *error = NULL;
+			if (!osync_hashtable_load(hashtable, member, &error))
+			{
+				osync_context_report_osyncerror(ctx, &error);
+				return;
+			}
+
+			//Detection mechanismn if this is the first sync
+			if (!osync_anchor_compare(member, "synced", "true")) {
+				osync_member_set_slow_sync(member, "contact", TRUE);
+				osync_anchor_update(member, "synced", "true");
+			}
+
             if (!addressbookticket)
             {
                 osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't lock KDE addressbook");
@@ -191,6 +204,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             addressbookptr->save(addressbookticket);
             addressbookticket = NULL;
 
+			osync_hashtable_close(hashtable);
+
             if (kcal && !kcal->disconnect(ctx))
                 return;
             if (knotes && !knotes->disconnect(ctx))
@@ -204,7 +219,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
             //osync_debug("kde", 3, "kaddrbook::%s(newdbs=%d)", __FUNCTION__, newdbs);
 
-            //FIXME: should I detect if slow_sync is necessary?
             if (osync_member_get_slow_sync(member, "contact"))
                 osync_hashtable_set_slow_sync(hashtable, "contact");
 
