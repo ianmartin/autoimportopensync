@@ -121,7 +121,7 @@ OSyncGroup *osync_group_new(OSyncEnv *env)
 	group->conv_env = osync_conv_env_new();
 	osync_conv_env_load(group->conv_env);
 	/*FIXME: Remove hardcoded format name here */
-	osync_conv_set_common_format(group->conv_env, "contact", "vcard");
+	osync_conv_set_common_format(group->conv_env, "contact", "vcard30");
 	osync_debug("OSGRP", 3, "Generated new group");
 	return group;
 }

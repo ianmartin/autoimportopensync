@@ -860,7 +860,8 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 		/* Distance calculation */
 		neigh->conversions = ve->conversions + 1;
 		neigh->losses = ve->losses;
-		if (!(converter->flags & CONV_NOTLOSSY))
+		//if (!(converter->flags & CONV_NOTLOSSY))
+		if (converter->type == CONVERTER_DESENCAP)
 			neigh->losses++;
 		neigh->objtype_changes = ve->objtype_changes;
 		if (converter->source_format->objtype != converter->target_format->objtype)
@@ -925,6 +926,9 @@ osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyn
 	begin->references = 1;
 	
 	tree->search = g_list_append(NULL, begin);
+	GList *used_vertices = NULL;
+	
+	printf("+++++++ Starting to search for path from %s\n", start->format->name);
 	while (g_list_length(tree->search)) {
 		vertice *neighbour;
 
@@ -933,29 +937,35 @@ osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyn
 		 */
 		vertice *current = g_list_first(tree->search)->data;
 		tree->search = g_list_delete_link(tree->search, g_list_first(tree->search));
+		printf("Current vertice %s\n", current->format->name);
 
-		osync_debug("OSCONV", 4, "Next vertice: %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
-				current->losses, current->objtype_changes, current->conversions);
-		/* Check if we have reached a target format */
-		if (target_fn(fndata, current->format)) {
-			/* Done. return the result */
-			result = current;
-			/* Note: the reference to 'current' will be dropped
-			 * after getting the path from 'result' at
-			 * the end of the function.
-			 */
-			break;
-		}
-		osync_debug("OSCONV", 4, "Looking %s neighbours.", current->format->name);
-		while ((neighbour = get_next_vertice_neighbour(env, tree, current))) {
-			osync_debug("OSCONV", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
-			osync_debug("OSCONV", 4, "Adding %s to queue", neighbour->format->name);
-			tree->search = g_list_insert_sorted(tree->search, neighbour, compare_vertice_distance);
-		}
-		/* Done, drop the reference to the vertice */
-		deref_vertice(current);
+		//if (!g_list_find(used_vertices, current)) {
+			osync_debug("OSCONV", 4, "Next vertice: %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
+					current->losses, current->objtype_changes, current->conversions);
+			/* Check if we have reached a target format */
+			if (target_fn(fndata, current->format)) {
+				/* Done. return the result */
+				result = current;
+				/* Note: the reference to 'current' will be dropped
+				 * after getting the path from 'result' at
+				 * the end of the function.
+				 */
+				break;
+			}
+			osync_debug("OSCONV", 4, "Looking %s neighbours.", current->format->name);
+			while ((neighbour = get_next_vertice_neighbour(env, tree, current))) {
+				osync_debug("OSCONV", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
+				osync_debug("OSCONV", 4, "Adding %s to queue", neighbour->format->name);
+				tree->search = g_list_insert_sorted(tree->search, neighbour, compare_vertice_distance);
+			}
+			/* Done, drop the reference to the vertice */
+			deref_vertice(current);
+			used_vertices = g_list_append(used_vertices, current);
+		/*} else {
+			printf("vertice already used\n");
+		}*/
 	}
-	
+	//g_list_free(used_vertices);
 	/* Remove the references on the search queue */
 	g_list_foreach(tree->search, (GFunc)deref_vertice, NULL);
 	
@@ -966,7 +976,7 @@ osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyn
 		deref_vertice(result);
 		ret = TRUE;
 	}
-	
+	printf("+++++++ Done searching for path\n");
 	g_list_free(tree->unused);
 	g_list_free(tree->search);
 	g_free(tree);
@@ -986,10 +996,11 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	if (target_fn(fndata, source))
 		goto out;
 
+	printf("starting to find path\n");
 	ret = FALSE;
 	if (!osync_conv_find_path_fn(env, change, target_fn, fndata, &path))
 		goto out;
-
+	printf("done find path\n");
 	for (; path; path = path->next) {
 		OSyncFormatConverter *converter = path->data;
 		if (!osync_converter_invoke(converter, change))
@@ -1144,21 +1155,31 @@ osync_bool target_fn_no_any(const void *data, OSyncObjFormat *fmt)
  */
 OSyncObjType *osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change)
 {
+	OSyncObjFormat *sourceformat = NULL;
+	GList *d = NULL;
+	if (!change->has_data)
+		return FALSE;
+	
+	for (d = env->data_detectors; d; d = d->next) {
+		OSyncDataDetector *detector = d->data;
+		if (detector->detect_func(env, change->data, change->size)) {
+			sourceformat = osync_conv_find_objformat(env, detector->targetformat);
+			return sourceformat->objtype;
+		}
+	}
+	return NULL;
+}
+
+OSyncObjType *osync_conv_detect_objtype_full(OSyncFormatEnv *env, OSyncChange *change)
+{
 	OSyncObjType *ret;
-	GList/* OSyncFormatConverter * */ *path;
+	GList *path;
 	if (!osync_conv_find_path_fn(env, change, target_fn_no_any, NULL, &path))
 		return NULL;
 
-	/* Get the objtype from the path:
-	 *
-	 * - If the path is empty (no conversion), get the objtype of the change itself
-	 * - If there is a path, return the target format of the last edge
-	 */
 	if (!path)
-		/* Emtpy path */
 		ret = change->format->objtype;
 	else {
-		/* Get the target objtype of the last converter */
 		OSyncFormatConverter *last_converter = g_list_last(path)->data;
 		g_assert(last_converter);
 		ret = last_converter->target_format->objtype;
@@ -1189,27 +1210,22 @@ void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, 
 	env->filter_functions = g_list_append(env->filter_functions, function);
 }
 
-#if 0
-osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size)
+OSyncObjFormat *osync_conv_detect_objformat(OSyncFormatEnv *env, OSyncChange *change)
 {
+	OSyncObjFormat *sourceformat = NULL;
 	GList *d = NULL;
-	const char *fmtname;
 	if (!change->has_data)
 		return FALSE;
-
-	fmtname = osync_change_get_objformat(change)->name;
+	
 	for (d = env->data_detectors; d; d = d->next) {
 		OSyncDataDetector *detector = d->data;
-		if (!strcmp(detector->sourceformat, fmtname)) {
-			if (detector->detect_func(env, data, size)) {
-				change->objformats = g_list_prepend(change->objformats, osync_conv_find_objformat(env, detector->targetformat));
-				return TRUE;
-			}
+		if (detector->detect_func(env, change->data, change->size)) {
+			sourceformat = osync_conv_find_objformat(env, detector->targetformat);
+			return sourceformat;
 		}
 	}
-	return FALSE;
+	return NULL;
 }
-#endif
 
 osync_bool osync_conv_detect(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
 {

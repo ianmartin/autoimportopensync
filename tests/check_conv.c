@@ -594,7 +594,7 @@ START_TEST (conv_env_detect_and_convert)
 }
 END_TEST
 
-START_TEST(conv_prefer_not_lossy)
+START_TEST(conv_prefer_not_desencap)
 {
   /* Test if the converter is getting the path that have no
    * lossy detectors
@@ -615,11 +615,11 @@ START_TEST(conv_prefer_not_lossy)
   osync_conv_register_objformat(env, "O1", "F4");
   OSyncObjFormat *format5 = osync_conv_register_objformat(env, "O1", "F5");
 
-  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F5", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "F4", convert_addtest2, 0); /* Lossy converter */
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest2, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "F2", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F5", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F4", convert_addtest2, 0);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest2, 0);
   mark_point();
 
   OSyncChange *change = osync_change_new();
@@ -667,7 +667,7 @@ START_TEST(conv_prefer_same_objtype)
 
   OSyncObjFormat *g1 = osync_conv_register_objformat(env, "G", "G1");
 
-  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
   osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, CONV_NOTLOSSY);
   osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F4", convert_addtest, CONV_NOTLOSSY);
   osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest, CONV_NOTLOSSY);
@@ -724,12 +724,12 @@ START_TEST(conv_prefer_not_lossy_objtype_change)
 
   OSyncObjFormat *g1 = osync_conv_register_objformat(env, "G", "G1");
 
-  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, 0); /* Lossy */
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F4", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F5", "F6", convert_addtest, CONV_NOTLOSSY);
-  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "G1", convert_addtest2, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "F2", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F2", "F3", convert_addtest, 0); /* Lossy */
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F4", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F5", "F6", convert_addtest, 0);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "G1", convert_addtest2, 0);
   mark_point();
 
   OSyncChange *change = osync_change_new();
@@ -784,6 +784,7 @@ Suite *env_suite(void)
 	TCase *tc_conv = tcase_create("conv");
 	TCase *tc_osp = tcase_create("osp");
 	TCase *tc_convert = tcase_create("convert");
+	TCase *tc_convert2 = tcase_create("convert2");
 	TCase *tc_detect = tcase_create("detect");
 	suite_add_tcase (s, tc_env);
 	suite_add_tcase (s, tc_type);
@@ -792,6 +793,7 @@ Suite *env_suite(void)
 	suite_add_tcase (s, tc_osp);
 	suite_add_tcase (s, tc_convert);
 	suite_add_tcase (s, tc_detect);
+	suite_add_tcase (s, tc_convert2);
 	tcase_add_test(tc_env, conv_env_create);
 	tcase_add_test(tc_type, conv_env_add_type);
 	tcase_add_test(tc_type, conv_env_add_type_find);
@@ -812,9 +814,9 @@ Suite *env_suite(void)
 	tcase_add_test(tc_convert, conv_env_convert_back);
 	tcase_add_test(tc_convert, conv_env_convert_desenc);
 	tcase_add_test(tc_convert, conv_env_convert_desenc_complex);
-	tcase_add_test(tc_convert, conv_prefer_not_lossy);
+	tcase_add_test(tc_convert, conv_prefer_not_desencap);
 	tcase_add_test(tc_convert, conv_prefer_same_objtype);
-	tcase_add_test(tc_convert, conv_prefer_not_lossy_objtype_change);
+	tcase_add_test(tc_convert2, conv_prefer_not_lossy_objtype_change);
 	tcase_add_test(tc_detect, conv_env_detect_and_convert);
 	tcase_add_test(tc_detect, conv_env_detect_false);
 	return s;

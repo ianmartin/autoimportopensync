@@ -43,3 +43,6 @@ osync_bool osync_conv_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, 
 osync_bool osync_conv_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **names);
 void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook);
 
+OSyncObjFormat *osync_conv_detect_objformat(OSyncFormatEnv *env, OSyncChange *change);
+OSyncObjType *osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change);
+OSyncObjType *osync_conv_detect_objtype_full(OSyncFormatEnv *env, OSyncChange *change);

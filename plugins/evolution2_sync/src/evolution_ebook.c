@@ -73,16 +73,16 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 					vcard = ebc->contact->parent;
 					data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
 					datasize = strlen(data) + 1;
-					evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_ADDED);
+					evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_ADDED);
 					break;
 				case E_BOOK_CHANGE_CARD_MODIFIED:
 					vcard = ebc->contact->parent;
 					data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
 					datasize = strlen(data) + 1;
-					evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_MODIFIED);
+					evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_MODIFIED);
 					break;
 				case E_BOOK_CHANGE_CARD_DELETED:
-					evo2_report_change(ctx, "contact", "vcard", NULL, 0, uid, CHANGE_DELETED);
+					evo2_report_change(ctx, "contact", "vcard30", NULL, 0, uid, CHANGE_DELETED);
 					break;
 			}
 			g_free(uid);
@@ -101,7 +101,7 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 			char *data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
 			char *uid = e_contact_get_const(contact, E_CONTACT_UID);
 			int datasize = strlen(data) + 1;
-			evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_ADDED);
+			evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_ADDED);
 		}
 		e_book_query_unref(query);
 	}
@@ -168,7 +168,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 void evo2_addrbook_setup(OSyncPluginInfo *info)
 {
 	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "vcard");
-	osync_plugin_set_commit_objformat(info, "contact", "vcard", evo2_addrbook_modify);
-	osync_plugin_set_access_objformat(info, "contact", "vcard", evo2_addrbook_modify);
+	osync_plugin_accept_objformat(info, "contact", "vcard30");
+	osync_plugin_set_commit_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
+	osync_plugin_set_access_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
 }
