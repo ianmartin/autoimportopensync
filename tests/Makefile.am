@@ -2,7 +2,7 @@
 
 EXTRA_DIST = data support.h
 
-AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror
+AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror -g -O0
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ -I$(top_srcdir)/osengine
 
@@ -40,9 +40,9 @@ user_LIBS = @CHECK_LIBS@
 user_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir)
 
 conv_INCLUDES = @CHECK_CFLAGS@
-conv_SOURCES = check_conv.c
+conv_SOURCES = check_conv.c support.c
 conv_LIBS = @CHECK_LIBS@
-conv_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir)
+conv_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir)
 
 sync_INCLUDES = @CHECK_CFLAGS@
 sync_SOURCES = check_sync.c support.c

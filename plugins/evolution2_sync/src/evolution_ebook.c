@@ -130,33 +130,35 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 
 static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 {
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
 	char *uid = osync_change_get_uid(change);
-	EContact *contact;
+	EContact *contact = NULL;
+	GError *gerror = NULL;
 	
-	printf("Trying to commit %s with changtype %i\n", osync_change_get_uid(change), osync_change_get_changetype(change));
-	printf("VCARD is:\n%s\n", osync_change_get_data(change));
+	osync_trace(TRACE_INTERNAL, "Trying to commit %s with changtype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
+	osync_trace(TRACE_INTERNAL, "VCARD is:\n%s", osync_change_get_data(change));
 	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
 			printf("trying to delete contact\n");
 			if (!e_book_remove_contact(env->adressbook, uid, NULL)) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete contact");
-				printf("unable to delete contact\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: unable to delete contact", __func__);
 				return FALSE;
 			}
 			break;
 		case CHANGE_ADDED:
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
 			printf("trying to add contact %p\n", contact);
-			if (e_book_add_contact(env->adressbook, contact, NULL)) {
+			e_contact_set(contact, E_CONTACT_UID, NULL);
+			if (e_book_add_contact(env->adressbook, contact, &gerror)) {
 				uid = e_contact_get_const(contact, E_CONTACT_UID);
 				osync_change_set_uid(change, uid);
 			} else {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to add contact");
-				printf("unable to add contact\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: unable to add contact: %s", __func__, gerror ? gerror->message : "None");
 				return FALSE;
 			}
 			break;
@@ -166,14 +168,14 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			e_contact_set(contact, E_CONTACT_UID, g_strdup(osync_change_get_uid(change)));
 			printf("trying to mod contact %p\n", contact);
 			e_contact_set(contact, E_CONTACT_UID, uid);
-			if (e_book_commit_contact(env->adressbook, contact, NULL)) {
+			if (e_book_commit_contact(env->adressbook, contact, &gerror)) {
 				uid = e_contact_get_const (contact, E_CONTACT_UID);
 				printf("new uid after modding %s\n", uid);
 				if (uid)
 					osync_change_set_uid(change, uid);
 			} else {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify contact");
-				printf("unable to mod contact\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: unable to mod contact: %s", __func__, gerror ? gerror->message : "None");
 				return FALSE;
 			}
 			break;
@@ -181,7 +183,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			printf("Error\n");
 	}
 	osync_context_report_success(ctx);
-	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 

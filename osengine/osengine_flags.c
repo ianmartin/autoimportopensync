@@ -74,124 +74,18 @@ void osync_flag_detach(MSyncFlag *flag)
 	osync_flag_calculate_comb(target);
 }
 
-/*static void trigger_send_mapping_changed(OSyncMapping *mapping)
-{
-	printf("+++++++++++ trigger send mapping %p\n", mapping);
-	MSyncMappingFlags *flags = osync_mapping_get_engine_data(mapping);
-	printf("+++++++++++ trigger send mapping %p\n", flags);
-	printf("+++++++++++ trigger send mapping2 %p\n", flags->engine);
-	if (!flags)
-		return;
-	//send_mapping_changed(flags->engine, mapping);
-	printf("done trigger send mapping\n");
-}*/
-
-MSyncMappingFlags *osync_mapping_create_flags(OSyncMapping *mapping)
-{
-	MSyncMappingFlags *flag = g_malloc0(sizeof(MSyncMappingFlags));
-	OSyncGroup *group = osync_mapping_get_group(mapping);
-	OSyncEngine *engine = osync_group_get_data(group);
-	osync_mapping_set_engine_data(mapping, flag);
-	flag->engine = engine;
-	flag->fl_solved = osync_flag_new(NULL);
-	flag->cmb_has_data = osync_comb_flag_new(FALSE);
-	//osync_flag_set_pos_trigger(flag->cmb_has_data, (MSyncFlagTriggerFunc)trigger_send_mapping_changed, mapping);
-	flag->cmb_has_info = osync_comb_flag_new(FALSE);
-	flag->cmb_synced = osync_comb_flag_new(FALSE);
-	flag->cmb_deleted = osync_comb_flag_new(FALSE);
-	osync_flag_attach(flag->cmb_synced, engine->cmb_synced);
-	osync_flag_set(flag->cmb_synced);
-	return flag;
-}
-
-void osync_mapping_free_flags(OSyncMapping *mapping)
-{
-	MSyncMappingFlags *flags = osync_mapping_get_flags(mapping);
-	osync_flag_free(flags->fl_solved);
-	osync_flag_free(flags->cmb_has_data);
-	osync_flag_free(flags->cmb_has_info);
-	osync_flag_free(flags->cmb_synced);
-	osync_flag_free(flags->cmb_deleted);
-	g_free(flags);
-	osync_mapping_set_engine_data(mapping, NULL);
-}
-
-MSyncChangeFlags *osync_change_create_flags(OSyncChange *change)
-{
-	MSyncChangeFlags *flag = g_malloc0(sizeof(MSyncChangeFlags));
-	flag->fl_has_data = osync_flag_new(NULL);
-	flag->fl_dirty = osync_flag_new(NULL);
-	flag->fl_mapped = osync_flag_new(NULL);
-	flag->fl_has_info = osync_flag_new(NULL);
-	flag->fl_synced = osync_flag_new(NULL);
-	flag->fl_deleted = osync_flag_new(NULL);
-	osync_flag_set(flag->fl_synced);
-	osync_flag_set_pos_trigger(flag->fl_dirty, (MSyncFlagTriggerFunc)send_change_changed, change);
-	return flag;
-}
-
-void osync_change_free_flags(OSyncChange *change)
-{
-	MSyncChangeFlags *flags = osync_change_get_flags(change);
-	osync_flag_free(flags->fl_has_data);
-	osync_flag_free(flags->fl_dirty);
-	osync_flag_free(flags->fl_mapped);
-	osync_flag_free(flags->fl_has_info);
-	osync_flag_free(flags->fl_synced);
-	osync_flag_free(flags->fl_deleted);
-	g_free(flags);
-	osync_change_set_engine_data(change, NULL);
-}
-
-void osync_change_flags_attach(OSyncChange *change, OSyncMapping *mapping)
-{
-	MSyncChangeFlags *chflags = osync_change_get_flags(change);
-	MSyncMappingFlags *mapflags = osync_mapping_get_flags(mapping);
-	osync_flag_attach(chflags->fl_has_data, mapflags->cmb_has_data);
-	osync_flag_attach(chflags->fl_has_info, mapflags->cmb_has_info);
-	osync_flag_attach(chflags->fl_synced, mapflags->cmb_synced);
-	osync_flag_attach(chflags->fl_deleted, mapflags->cmb_deleted);
-}
-
-void osync_change_flags_detach(OSyncChange *change)
-{
-	MSyncChangeFlags *chflags = osync_change_get_flags(change);
-	osync_flag_detach(chflags->fl_has_data);
-	osync_flag_detach(chflags->fl_has_info);
-	osync_flag_detach(chflags->fl_synced);
-	osync_flag_detach(chflags->fl_deleted);
-}
-
-MSyncChangeFlags *osync_change_get_flags(OSyncChange *change)
-{
-	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
-	if (!flags) {
-		flags = osync_change_create_flags(change);
-		osync_change_set_engine_data(change, flags);
-		//Set default values
-	}
-	return flags;
-}
-
-MSyncMappingFlags *osync_mapping_get_flags(OSyncMapping *mapping)
-{
-	g_assert(mapping);
-	MSyncMappingFlags *flags = osync_mapping_get_engine_data(mapping);
-	if (!flags)
-		flags = osync_mapping_create_flags(mapping);
-	return flags;
-}
-
-void osync_flag_set_pos_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data)
+void osync_flag_set_pos_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data1, void *data2)
 {
 	flag->pos_trigger_func = func;
-	flag->pos_user_data = data;
+	flag->pos_user_data1 = data1;
+	flag->pos_user_data2 = data2;
 }
 
-void osync_flag_set_neg_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data)
+void osync_flag_set_neg_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data1, void *data2)
 {
 	flag->neg_trigger_func = func;
-	flag->neg_user_data = data;
+	flag->neg_user_data1 = data1;
+	flag->neg_user_data2 = data2;
 }
 
 void osync_flag_calculate_comb(MSyncFlag *flag)
@@ -299,11 +193,11 @@ void osync_flag_calc_trigger(MSyncFlag *flag, osync_bool oldstate)
 	if (flag->is_set != oldstate) {
 		if (flag->is_set == TRUE) {
 			if (flag->pos_trigger_func) {
-				flag->pos_trigger_func(flag->pos_user_data);
+				flag->pos_trigger_func(flag->pos_user_data1, flag->pos_user_data2);
 			}
 		} else {
 			if (flag->neg_trigger_func) {
-				flag->neg_trigger_func(flag->neg_user_data);
+				flag->neg_trigger_func(flag->neg_user_data1, flag->neg_user_data2);
 			}
 		}
 	}

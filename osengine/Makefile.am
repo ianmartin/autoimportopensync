@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Werror -Wall
+AM_CFLAGS = -Werror -Wall -g -O0
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ 
 
@@ -22,6 +22,8 @@ libosengine_la_SOURCES = \
 	osengine_status.c \
 	osengine_debug.c \
 	osengine_mapping.c \
+	osengine_mapcmds.c \
+	osengine_deciders.c \
 	osengine_flags.c
 
 EXTRA_DIST = \
@@ -30,7 +32,9 @@ EXTRA_DIST = \
 	osengine_engine_internals.h \
 	osengine_flags_internals.h \
 	osengine_mapping_internals.h \
+	osengine_mapcmds_internals.h \
 	osengine_message_internals.h \
+	osengine_deciders_internals.h \
 	osengine_queue_internals.h
 
 libosengine_la_LDFLAGS = $(PACKAGE_LIBS) -R $(libdir)

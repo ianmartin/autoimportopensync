@@ -75,6 +75,7 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
  */
 void osync_plugin_free(OSyncPlugin *plugin)
 {
+	osync_trace(TRACE_INTERNAL, "osync_plugin_free(%p)", plugin);
 	g_assert(plugin);
 	if (plugin->env)
 		plugin->env->plugins = g_list_remove(plugin->env->plugins, plugin);
@@ -123,11 +124,13 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncErro
  */
 OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_plugin_load(%p, %s, %p)", env, path, error);
 	/* Check if this platform supports dynamic
 	 * loading of modules */
 	if (!g_module_supported()) {
 		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
+		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
 		return NULL;
 	}
 
@@ -138,20 +141,24 @@ OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **err
 		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
 		osync_plugin_free(plugin);
+		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
 		return NULL;
 	}
 	
 	void (* fct_info)(OSyncPluginInfo *info);
 	if (!(fct_info = osync_plugin_get_function(plugin, "get_info", error))) {
 		osync_debug("OSPLG", 0, "Unable to open plugin: Missing symbol get_info");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin: Missing symbol get_info");
 		osync_plugin_unload(plugin);
 		osync_plugin_free(plugin);
+		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
 		return NULL;
 	}
 	
 	fct_info(&(plugin->info));
 	plugin->path = g_strdup(path);
 	
+	osync_trace(TRACE_EXIT, "osync_plugin_load: %p", plugin);
 	return plugin;
 }
 
@@ -173,6 +180,43 @@ void osync_plugin_unload(OSyncPlugin *plugin)
 	g_module_close(plugin->real_plugin);
 	g_free(plugin->path);
 	plugin->path = NULL;
+}
+
+osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_format_plugin_load(%p, %s, %p)", env, path, error);
+	/* Check if this platform supports dynamic
+	 * loading of modules */
+	osync_debug("OSFRM", 3, "Loading formats plugin from %s", path);
+	if (!g_module_supported()) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
+		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
+		osync_trace(TRACE_EXIT_ERROR, "osync_format_plugin_load: %s", osync_error_print(error));
+		return FALSE;
+	}
+
+	/* Try to open the module or fail if an error occurs */
+	GModule *plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
+	if (!plugin) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
+		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
+		osync_trace(TRACE_EXIT_ERROR, "osync_format_plugin_load: %s", osync_error_print(error));
+		return FALSE;
+	}
+	
+	void (* fct_info)(OSyncEnv *env) = NULL;
+	void (** fct_infop)(OSyncEnv *env) = &fct_info;
+	if (!g_module_symbol(plugin, "get_info", (void **)fct_infop)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open format plugin %s: %s", path, g_module_error());
+		osync_debug("OSPLG", 0, "Unable to open format plugin %s", path);
+		osync_trace(TRACE_EXIT_ERROR, "osync_format_plugin_load: %s", osync_error_print(error));
+		return FALSE;
+	}
+	env->formatplugins = g_list_append(env->formatplugins, plugin);
+	
+	fct_info(env);
+	osync_trace(TRACE_EXIT, "osync_format_plugin_load: %p", plugin);
+	return TRUE;
 }
 
 /*! @brief Returns the name of the loaded plugin

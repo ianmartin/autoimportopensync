@@ -57,9 +57,6 @@ typedef struct OSyncGroup OSyncGroup;
 typedef struct OSyncUserInfo OSyncUserInfo;
 typedef struct OSyncMember OSyncMember;
 typedef struct OSyncChange OSyncChange;
-typedef struct OSyncMappingTable OSyncMappingTable;
-typedef struct OSyncMapping OSyncMapping;
-typedef struct OSyncMappingColumn OSyncMappingColumn;
 typedef struct OSyncContext OSyncContext;
 typedef struct OSyncHashTable OSyncHashTable;
 typedef struct OSyncFormatEnv OSyncFormatEnv;
@@ -123,42 +120,14 @@ typedef enum {
 } OSyncConvCmpResult;
 
 typedef enum {
-	/** Data take-over converter
-	 *
-	 * Set this flag if the converter takes the ownership and responsibility
-	 * of deallocating the data passed as input.
-	 */
-	CONV_TAKEOVER = 1<<1,
-
-	/** No-copy converter
-	 *
-	 * Set this flag if the pointer returned by the converter
-	 * is a reference to some data inside the input data, and the
-	 * reference remain valid only while the input data is not changed and/or
-	 * destroyed.
-	 *
-	 * The returned data may need to be copied, if the original
-	 * data is going to be destroyed (i.e. on osync_converter_invoke()),
-	 * so a copy function should be provided by the format of the
-	 * returned data.
-	 */
-	CONV_NOCOPY = 1<<2,
-
-	/** Detect first
-	 *
-	 * Set this flag if the converter is expected to be called
-	 * only if the data was detected to be of the target format
-	 */
-	CONV_DETECTFIRST = 1<<3,
-} ConverterFlags;
-
-typedef enum {
 	/** Simple converter */
 	CONVERTER_CONV = 1,
 	/** Encapsulator */
 	CONVERTER_ENCAP = 2,
 	/** Desencapsulator */
-	CONVERTER_DESENCAP = 3,
+	CONVERTER_DECAP = 3,
+	/** Detector */
+	CONVERTER_DETECTOR = 4
 } ConverterType;
 
 typedef enum OSyncFilterAction {
@@ -168,9 +137,8 @@ typedef enum OSyncFilterAction {
 } OSyncFilterAction;
 
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
-typedef osync_bool (* OSyncFormatConvertFunc) (const char *input, int inpsize, char **output, int *outpsize, OSyncError **);
+typedef osync_bool (* OSyncFormatConvertFunc) (char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error);
 typedef osync_bool (* OSyncFormatCopyFunc) (const char *input, int inpsize, char **output, int *outpsize);
-typedef osync_bool (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, const char *data, int size, OSyncObjFormat **format);
 typedef osync_bool (* OSyncFormatDetectDataFunc) (OSyncFormatEnv *env, const char *data, int size);
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
@@ -217,12 +185,12 @@ void osync_trace(OSyncTraceType type, const char *message, ...);
 #include "opensync_plugin.h"
 #include "opensync_group.h"
 #include "opensync_member.h"
-#include "opensync_mapping.h"
 #include "opensync_error.h"
 #include "opensync_hashtable.h"
 #include "opensync_change.h"
 #include "opensync_context.h"
 #include "opensync_convert.h"
+#include "opensync_convreg.h"
 #include "opensync_anchor.h"
 #include "opensync_filter.h"
 

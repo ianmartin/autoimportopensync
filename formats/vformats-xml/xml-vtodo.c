@@ -617,14 +617,14 @@ static osync_bool conv_xml_to_vcard21(const char *input, int inpsize, char **out
 	return conv_xml_to_vcard(input, inpsize, output, outpsize, error, EVC_FORMAT_VCARD_21);
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "contact");
-	osync_conv_register_objformat(env, "contact", "x-opensync-xml");
+	osync_env_register_objtype(env, "contact");
+	osync_env_register_objformat(env, "contact", "x-opensync-xml");
 	
-	osync_conv_register_converter(env, CONVERTER_CONV, "vcard21", "x-opensync-xml", conv_vcard_to_xml, 0);
-	osync_conv_register_converter(env, CONVERTER_CONV, "x-opensync-xml", "vcard21", conv_xml_to_vcard21, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "x-opensync-xml", conv_vcard_to_xml, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "x-opensync-xml", "vcard21", conv_xml_to_vcard21, 0);
 	
-	osync_conv_register_converter(env, CONVERTER_CONV, "vcard30", "x-opensync-xml", conv_vcard_to_xml, 0);
-	osync_conv_register_converter(env, CONVERTER_CONV, "x-opensync-xml", "vcard30", conv_xml_to_vcard30, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "vcard30", "x-opensync-xml", conv_vcard_to_xml, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "x-opensync-xml", "vcard30", conv_xml_to_vcard30, 0);
 }

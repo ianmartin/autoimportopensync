@@ -2,11 +2,7 @@ struct OSyncFormatEnv {
 	GList *objtypes;
 	GList *objformats;
 	GList *converters;
-	GList *data_detectors;
-	GList *unresolved_converters;
 	GList *filter_functions;
-	char *pluginpath;
-	GList *plugins;
 };
 
 struct OSyncObjType {
@@ -17,6 +13,34 @@ struct OSyncObjType {
 	osync_bool needs_slow_sync;
 	OSyncObjFormat *common_format;
 };
+
+struct OSyncObjFormat {
+	char *name;
+	OSyncFormatEnv *env;
+	OSyncObjType *objtype;
+	GList *extensions;
+	OSyncFormatCompareFunc cmp_func;
+	OSyncFormatMergeFunc merge_func;
+	OSyncFormatDuplicateFunc duplicate_func;
+	OSyncFormatCopyFunc copy_func;
+	OSyncFormatCreateFunc create_func;
+	OSyncFormatDestroyFunc destroy_func;
+	OSyncFormatPrintFunc print_func;
+};
+
+struct OSyncFormatConverter {
+	OSyncObjFormat *source_format;
+	OSyncObjFormat *target_format;
+	OSyncFormatConvertFunc convert_func;
+	OSyncFormatDetectDataFunc detect_func;
+	ConverterType type;
+};
+
+typedef struct OSyncDataDetector {
+	const char *sourceformat;
+	const char *targetformat;
+	OSyncFormatDetectDataFunc detect_func;
+} OSyncDataDetector;
 
 typedef struct OSyncObjFormatSink {
 	OSyncObjFormat *format;
@@ -35,113 +59,43 @@ typedef struct OSyncObjTypeSink {
 	GList *properties;
 } OSyncObjTypeSink;
 
-typedef struct OSyncObjTypeTemplate {
-	char *name;
-	GList *formats;
-} OSyncObjTypeTemplate;
-
 typedef struct OSyncFormatExtension {
 	OSyncObjFormat *format;
 	OSyncFormatConvertFunc conv_to;
 	OSyncFormatConvertFunc conv_from;
 } OSyncFormatExtension;
 
+typedef struct OSyncObjTypeTemplate {
+	const char *name;
+	GList *formats;
+} OSyncObjTypeTemplate;
+
 typedef struct OSyncObjFormatTemplate {
-	char *name;
+	const char *name;
+	const char *objtype;
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
-} OSyncObjFormatTemplate;
-
-struct OSyncFormatProperty {
-	char *name;
-	void *add_func;
-	void *remove_func;
-	OSyncFormatDetectFunc detect_func;
-};
-
-struct OSyncObjFormat {
-	char *name;
-
-	/** This field is necessary only because
-	 * the is_like() function can be called
-	 * before the base_format is registered.
-	 *
-	 * This may be not necessary if we add
-	 * dependency information to the plugins.
-	 *
-	 * @see OSyncUnresolvedConverter
-	 */
-	char *is_like;
-	OSyncFormatEnv *env;
-	OSyncObjType *objtype;
-	GList *properties;
-	GList *extensions;
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
-	OSyncFormatDetectFunc detect_func;
 	OSyncFormatDuplicateFunc duplicate_func;
 	OSyncFormatCopyFunc copy_func;
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
-};
+} OSyncObjFormatTemplate;
 
-struct OSyncFormatConverter {
-	OSyncObjFormat *source_format;
-	OSyncObjFormat *target_format;
-	OSyncFormatConvertFunc convert_func;
-	ConverterType type;
-	ConverterFlags flags;
-};
-
-/** Unresolved converter
- * 
- * Used to keep the list of converters
- * to types that weren't registered yet.
- *
- *FIXME: We have similar problems with the
- * detectors and other functions that refers
- * to other formats. We have two possible solutions:
- *
- * - Add a OSyncUnresolvedXXX struct for every type,
- *   and do the same that is done for the converters
- * - Add dependency information to the plugins
- *
- * The second approach can be easier. Two possible
- * implementations:
- *
- * - make get_info() function return RUN_LATER, and
- *   loop on the list of plugins until all initialized
- *   sucessfully (or all returned error)
- * - Provide a osync_require_format_plugin() or something
- *   similar, that will load the required plugin, if
- *   it is not loaded yet
- */
-typedef struct OSyncUnresolvedConverter {
+typedef struct OSyncConverterTemplate {
 	const char *source_format;
 	const char *target_format;
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
-	ConverterFlags flags;
-} OSyncUnresolvedConverter;
+} OSyncConverterTemplate;
 
-/** Data detector for a format
- *
- * It takes the data on a given format and detects
- * if it can be converted to another format.
- *
- * The format references are strings because
- * of the plugin loading order problem.
- *
- * @see OSyncUnresolvedConverter
- */
-typedef struct OSyncDataDetector {
-	const char *sourceformat;
-	const char *targetformat;
-	OSyncFormatDetectDataFunc detect_func;
-} OSyncDataDetector;
-
-OSyncDataDetector *osync_conv_find_detector(OSyncFormatEnv *env, const char *origformat, const char *trgformat);
+typedef struct OSyncFormatExtensionTemplate {
+	const char *formatname;
+	OSyncFormatConvertFunc conv_to;
+	OSyncFormatConvertFunc conv_from;
+} OSyncFormatExtensionTemplate;
 
 /** A target function for osync_conv_find_path_fn() */
 typedef osync_bool (*OSyncPathTargetFn)(const void *data, OSyncObjFormat *fmt);
@@ -151,5 +105,5 @@ osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start,
 osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, OSyncError **error);
 osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets);
 osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb);
-
+OSyncDataDetector *osync_env_find_detector(OSyncEnv *env, const char *sourcename, const char *targetname);
 osync_bool osync_conv_objtype_is_any(const char *objstr);

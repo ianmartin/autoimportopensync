@@ -25,10 +25,10 @@
 /** @defgroup event_vevent event/vevent data format
  *
  * The vevent data should be a malloc()ed block of data. See
- * osync_conv_format_set_malloced().
+ * osync_env_format_set_malloced().
  *
  * It can be treated as a plain block of data. See
- * osync_conv_format_set_like().
+ * osync_env_format_set_like().
  */
 
 static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *rightchange)
@@ -57,12 +57,11 @@ static osync_bool detect_plain_as_vevent(OSyncFormatEnv *env, const char *data, 
 }
 
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "event");
-	OSyncObjFormat *vcal = osync_conv_register_objformat(env, "event", "vevent");
-	osync_conv_format_set_compare_func(vcal, compare_vevent);
+	osync_env_register_objtype(env, "event");
+	osync_env_register_objformat(env, "event", "vevent");
+	osync_env_format_set_compare_func(env, "vevent", compare_vevent);
 
-	osync_conv_register_data_detector(env, "plain", "vevent", detect_plain_as_vevent);
-	osync_conv_format_set_like(vcal, "plain", 0, CONV_DETECTFIRST);
+	osync_env_register_detector(env, "plain", "vevent", detect_plain_as_vevent);
 }

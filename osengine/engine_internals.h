@@ -21,10 +21,12 @@ typedef struct ITMQueue ITMQueue;
  * 
  */
 
-typedef void (* MSyncFlagTriggerFunc) (void *user_data);
+typedef void (* MSyncFlagTriggerFunc) (gpointer user_data1, gpointer user_data2);
 
 typedef struct MSyncFlag MSyncFlag;
-
+typedef struct OSyncMappingTable OSyncMappingTable;
+typedef struct OSyncMappingView OSyncMappingView;
+typedef struct OSyncMappingEntry OSyncMappingEntry;
 typedef struct timeout_info timeout_info;
 
 struct MSyncFlag {
@@ -35,9 +37,11 @@ struct MSyncFlag {
 	unsigned int num_set;
 	osync_bool is_comb;
 	MSyncFlagTriggerFunc pos_trigger_func;
-	void *pos_user_data;
+	void *pos_user_data1;
+	void *pos_user_data2;
 	MSyncFlagTriggerFunc neg_trigger_func;
-	void *neg_user_data;
+	void *neg_user_data1;
+	void *neg_user_data2;
 	osync_bool is_any;
 };
 
@@ -99,31 +103,6 @@ struct OSyncEngine {
 	GThread *thread;
 };
 
-typedef struct MSyncMappingFlags {
-	MSyncFlag *fl_solved;
-	//The combined flags
-	MSyncFlag *cmb_synced;
-	MSyncFlag *cmb_has_data;
-	MSyncFlag *cmb_has_info;
-	MSyncFlag *cmb_deleted;
-	OSyncEngine *engine;
-} MSyncMappingFlags;
-
-typedef struct MSyncChangeFlags {
-	MSyncFlag *fl_has_data;
-	MSyncFlag *fl_dirty;
-	MSyncFlag *fl_mapped;
-	MSyncFlag *fl_has_info;
-	MSyncFlag *fl_synced;
-	MSyncFlag *fl_deleted;
-	OSyncEngine *engine;
-} MSyncChangeFlags;
-
-typedef enum {
-	CLIENT_ASYNC_OPS = 1,
-	CLIENT_IS_SERVER = 2
-} ClientCaps;
-
 /**
  * @ingroup OSyncClientPrivate
  * @brief Represents a SyncClient
@@ -146,12 +125,16 @@ struct OSyncClient {
 	GMutex* started_mutex;
 	
 	osync_bool is_initialized;
+	
+	GList *changes;
 };
 
+#include "osengine_deciders_internals.h"
 #include "osengine_message_internals.h"
 #include "osengine_queue_internals.h"
 #include "osengine_debug.h"
 #include "osengine_flags_internals.h"
 #include "osengine_engine_internals.h"
 #include "osengine_mapping_internals.h"
+#include "osengine_mapcmds_internals.h"
 #include "osengine_client_internals.h"

@@ -50,13 +50,19 @@ OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 
 osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
-	if (!osync_member_instance_default_plugin(member, error))
+	osync_trace(TRACE_ENTRY, "osync_member_read_config(%p, %p, %p, %p)", member, data, size, error);
+	if (!osync_member_instance_default_plugin(member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %i", osync_error_print(error));
 		return FALSE;
+	}
 	
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	osync_bool ret = FALSE;
-	if (!member->configdir)
+	if (!member->configdir) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Member has no config directory set");
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %i", osync_error_print(error));
 		return FALSE;
+	}
 	
 	if (functions.get_config) {
 		ret = functions.get_config(member->configdir, data, size);
@@ -65,6 +71,11 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size,
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
+	
+	if (ret)
+		osync_trace(TRACE_EXIT, "osync_member_read_config: TRUE");
+	else
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %s", osync_error_print(error));
 	return ret;
 }
 
@@ -89,7 +100,6 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	}
 	
 	member->memberfunctions = osync_memberfunctions_new();
-	osync_debug("OSMEM", 3, "Generated new member");
 
 	return member;
 }
@@ -218,6 +228,7 @@ const char *osync_member_get_configdir(OSyncMember *member)
 
 osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_member_get_config(%p, %p, %p, %p)", member, data, size, error);
 	g_assert(member);
 	osync_bool ret = TRUE;
 
@@ -228,13 +239,17 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	}
 
 	if (!osync_member_read_config(member, data, size, error)) {
-		if (osync_error_is_set(error))
-			return FALSE;
+		if (osync_error_is_set(error)) {
+			osync_trace(TRACE_INTERNAL, "Read config not successfull: %s", osync_error_print(error));
+			osync_error_free(error);
+		}
+		
 		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
 		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
+	osync_trace(TRACE_EXIT, "osync_member_get_config: %i", ret);
 	return ret;
 }
 
@@ -664,77 +679,6 @@ OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
 	}
 	osync_debug("OSPLG", 0, "Couldnt find the member with the id %i", id);
 	return NULL;
-}
-
-//FIXME Remove this and replace with "views"
-void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry)
-{
-	g_assert(member);
-
-	member->entries = g_list_append(member->entries, entry);
-	entry->member = member;
-}
-
-//FIXME Remove this and replace with "views"
-void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry)
-{
-	g_assert(member);
-	member->entries = g_list_remove(member->entries, entry);
-	entry->member = NULL;
-}
-
-//FIXME Remove this and replace with "views"
-OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
-{
-	int i;
-	for (i = 0; i < g_list_length(member->entries); i++) {
-		OSyncChange *entry = g_list_nth_data(member->entries, i);
-		if (!strcmp(osync_change_get_uid(entry), uid)) {
-			return entry;
-		}
-	}
-	return NULL;
-}
-
-//FIXME Remove this and replace with "views"
-osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, osync_bool spare_deleted)
-{
-	GList *c = NULL;
-	int found = 0;
-
-	for (c = member->entries; c; c = c->next) {
-		OSyncChange *entry = c->data;
-		if ((change != entry) && (!spare_deleted || (entry->changetype != CHANGE_DELETED)) && !strcmp(entry->uid, change->uid)) {
-			found++;
-		}
-	}
-	if (found == 0)
-		return TRUE;
-	return FALSE;
-}
-
-//FIXME Remove this and replace with "views"
-osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change)
-{
-	OSyncChange *entry;
-	if ((entry = osync_member_find_change(member, osync_change_get_uid(*change)))) {
-		osync_change_update(*change, entry);
-		*change = entry;
-		return TRUE;
-	}
-	return FALSE;
-}
-
-//FIXME Remove this and replace with "views"
-int osync_member_num_changeentries(OSyncMember *member)
-{
-	return g_list_length(member->entries);
-}
-
-//FIXME Remove this and replace with "views"
-OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n)
-{
-	return g_list_nth_data(member->entries, n);
 }
 
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)

@@ -1,5 +1,7 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>
+#include <osengine/engine.h>
+#include <osengine/engine_internals.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,31 +34,32 @@ void dump_map(OSyncEnv *osync, char *groupname)
 		return;
 	}
 	
-	OSyncMappingTable *table = osync_mappingtable_new(group);
-	osync_mappingtable_set_dbpath(table, osync_group_get_configdir(group));
-	osync_db_open_mappingtable(table, NULL);
 	
-	int i, n;
-	for (i = 0; i < osync_mappingtable_num_mappings(table); i++) {
-		OSyncMapping *mapping = osync_mappingtable_nth_mapping(table, i);	
-		printf("\nNEW MAPPING: %lli\n", osync_mapping_get_id(mapping));
-		for (n = 0; n < osync_mapping_num_entries(mapping); n++) {
-			OSyncChange *change = osync_mapping_nth_entry(mapping, n);
-			OSyncMember *member = osync_change_get_member(change);
-	    	int memberid = 0;
-	    	if (member)
-	    		memberid = osync_member_get_id(member);
-	    	const char *formatname = NULL;
-	    	if (osync_change_get_objformat(change))
-	    		formatname = osync_objformat_get_name(osync_change_get_objformat(change));
-	    	const char *objname = NULL;
-	    	if (osync_change_get_objtype(change))
-	    		objname = osync_objtype_get_name(osync_change_get_objtype(change));
-			printf("ID: %lli UID: %s MEMBER: %i\n\tOBJTYPE: %s OBJFORMAT: %s\n", osync_change_get_id(change), osync_change_get_uid(change), memberid, objname, formatname);
-		}
+	OSyncChange **changes = NULL;
+	OSyncError *error = NULL;
+	if (!osync_changes_load(group, &changes, &error)) {
+		printf("Unable to load changes: %s\n", osync_error_print(&error));
+		return;
 	}
-    
-	osync_db_close_mappingtable(table);
+	
+	int i = 0;
+	OSyncChange *change = NULL;
+	while ((change = changes[i])) {
+		OSyncMember *member = osync_change_get_member(change);
+		int memberid = 0;
+    	if (member)
+    		memberid = osync_member_get_id(member);
+		const char *formatname = NULL;
+    	if (osync_change_get_objformat(change))
+    		formatname = osync_objformat_get_name(osync_change_get_objformat(change));
+    	const char *objname = NULL;
+    	if (osync_change_get_objtype(change))
+    		objname = osync_objtype_get_name(osync_change_get_objtype(change));
+    	printf("ID: %lli UID: %s MEMBER: %i\n\tOBJTYPE: %s OBJFORMAT: %s MAPPINGID: %lli\n", osync_change_get_id(change), osync_change_get_uid(change), memberid, objname, formatname, osync_change_get_mappingid(change));
+		i++;
+	}
+
+	osync_changes_close(group);
 }
 
 void dump_unmapped(OSyncEnv *osync, char *groupname)
@@ -193,11 +196,9 @@ int main (int argc, char *argv[])
 	}
 	
 	OSyncEnv *osync = osync_env_new();
+	osync_env_set_option(osync, "GROUPS_DIRECTORY", configdir);
+	
 	OSyncError *error = NULL;
-	
-	if (configdir)
-		osync_env_set_configdir(osync, configdir);
-	
 	if (!osync_env_initialize(osync, &error)) {
 		printf("Unable to initialize environment: %s\n", error->message);
 		osync_error_free(&error);

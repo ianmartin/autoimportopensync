@@ -56,10 +56,9 @@ static OSyncConvCmpResult compare_plain(OSyncChange *a, OSyncChange *b)
 		return CONV_DATA_MISMATCH;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "data");
-	OSyncObjFormat *plain = osync_conv_register_objformat(env, "data", "plain");
-	osync_conv_format_set_compare_func(plain, compare_plain);
-	osync_conv_format_set_malloced(plain);
+	osync_env_register_objtype(env, "data");
+	osync_env_register_objformat(env, "data", "plain");
+	osync_env_format_set_compare_func(env, "plain", compare_plain);
 }

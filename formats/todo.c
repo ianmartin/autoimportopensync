@@ -45,12 +45,11 @@ static osync_bool detect_plain_as_vtodo(OSyncFormatEnv *env, const char *data, i
 	return FALSE;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "todo");
-	OSyncObjFormat *format = osync_conv_register_objformat(env, "todo", "vtodo");
-	osync_conv_format_set_compare_func(format, compare_vtodo);
+	osync_env_register_objtype(env, "todo");
+	osync_env_register_objformat(env, "todo", "vtodo");
+	osync_env_format_set_compare_func(env, "vtodo", compare_vtodo);
 
-	osync_conv_register_data_detector(env, "plain", "vtodo", detect_plain_as_vtodo);
-	osync_conv_format_set_like(format, "plain", 0, CONV_DETECTFIRST);
+	osync_env_register_detector(env, "plain", "vtodo", detect_plain_as_vtodo);
 }

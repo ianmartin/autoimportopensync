@@ -18,7 +18,7 @@
  * 
  */
  
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
 
 OSyncChange *osync_change_new(void)
@@ -33,32 +33,39 @@ void osync_change_free(OSyncChange *change)
 	
 	g_assert(change);
 	//FIXME cleanly release the change!
-	if (change->mapping)
-		osync_mapping_remove_entry(change->mapping, change);
-	if (change->member)
-		osync_member_remove_changeentry(change->member, change);
-	if (change->sourceobjtype)
-		g_free(change->sourceobjtype);
-	if (change->destobjtype)
-		g_free(change->destobjtype);
 	g_free(change);
+}
+
+void osync_change_free_data(OSyncChange *change)
+{
+	g_assert(change);
+	g_assert(change->format);
+	if (!change->format->destroy_func)
+		osync_debug("OSCONV", 1, "Memory leak: can't free data of type %s", change->format->name);
+	else {
+		osync_debug("OSCONV", 4, "Freeing data of type %s", change->format->name);
+		change->format->destroy_func(change->data, change->size);
+	}
+	change->data = NULL;
+	change->size = 0;
+	//FIXME Set format to NULL here?
 }
 
 void osync_change_reset(OSyncChange *change)
 {
 	g_free(change->hash);
-	if (change->sourceobjtype)
-		g_free(change->sourceobjtype);
-	if (change->destobjtype)
-		g_free(change->destobjtype);
+	//if (change->sourceobjtype)
+	//	g_free(change->sourceobjtype);
+	//if (change->destobjtype)
+	//	g_free(change->destobjtype);
 	change->hash = NULL;
 	//FIXME Release data
 	change->data = NULL;
 	change->size = 0;
 	change->has_data = FALSE;
 	change->changetype = CHANGE_UNKNOWN;
-	change->sourceobjtype = NULL;
-	change->destobjtype = NULL;
+	//change->sourceobjtype = NULL;
+	//change->destobjtype = NULL;
 	change->is_detected = FALSE;
 }
 
@@ -76,6 +83,28 @@ void osync_change_decref(OSyncChange *change)
 		osync_change_free(change);
 }
 
+osync_bool osync_change_save(OSyncChange *change, OSyncError **error)
+{
+	if (!change->changes_db)
+		change->changes_db = change->member->group->changes_db;
+	return osync_db_save_change(change, error);
+}
+
+osync_bool osync_change_delete(OSyncChange *change, OSyncError **error)
+{
+	return osync_db_delete_change(change, error);
+}
+
+osync_bool osync_changes_load(OSyncGroup *group, OSyncChange ***changes, OSyncError **error)
+{
+	return osync_db_open_changes(group, changes, error);
+}
+
+void osync_changes_close(OSyncGroup *group)
+{
+	osync_db_close_changes(group);
+}
+
 OSyncMember *osync_change_get_member(OSyncChange *change)
 {
 	g_assert(change);
@@ -88,18 +117,30 @@ void osync_change_set_member(OSyncChange *change, OSyncMember *member)
 	change->member = member;
 }
 
-OSyncObjType *osync_change_get_objtype(OSyncChange *change)
-{
-	g_assert(change);
-	return change->objtype;
-}
-
 const char *osync_change_get_sourceobjtype(OSyncChange *change)
 {
 	g_assert(change);
 	return change->sourceobjtype;
 }
 
+OSyncObjType *osync_change_get_objtype(OSyncChange *change)
+{
+	g_assert(change);
+	
+	if (change->objtype)
+		return change->objtype;
+	
+	if (!change->objtype_name) {
+		OSyncObjFormat *format = osync_change_get_objformat(change);
+		if (!format)
+			return NULL;
+		change->objtype = format->objtype;
+		return format->objtype;
+	}
+
+	change->objtype = osync_conv_find_objtype(change->member->group->conv_env, change->objtype_name);
+	return change->objtype;
+}
 
 void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type)
 {
@@ -109,16 +150,20 @@ void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type)
 
 void osync_change_set_objtype_string(OSyncChange *change, const char *name)
 {
-	OSyncObjType *objtype;
 	g_assert(change);
-	if ((objtype = osync_conv_find_objtype(osync_member_get_format_env(change->member), name))) {
-		osync_change_set_objtype(change, objtype);
-	}//FIXME: handle objtype not found
+	change->objtype_name = g_strdup(name);
 }
 
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 {
 	g_assert(change);
+	if (change->format)
+		return change->format;
+	
+	if (!change->format_name)
+		return NULL;
+	
+	change->format = osync_conv_find_objformat(change->member->group->conv_env, change->format_name);
 	return change->format;
 }
 
@@ -130,15 +175,10 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 
 }
 
-osync_bool osync_change_set_objformat_string(OSyncChange *change, const char *name)
+void osync_change_set_objformat_string(OSyncChange *change, const char *name)
 {
-	OSyncObjFormat *objformat;
 	g_assert(change);
-	if ((objformat = osync_conv_find_objformat(osync_member_get_format_env(change->member), name))) {
-		osync_change_set_objformat(change, objformat);
-	} else
-		return FALSE;
-	return TRUE;
+	change->format_name = g_strdup(name);
 }
 
 OSyncChangeType osync_change_get_changetype(OSyncChange *change)
@@ -220,10 +260,16 @@ char *osync_change_get_printable(OSyncChange *change)
 	return format->print_func(change);
 }
 
-OSyncMapping *osync_change_get_mapping(OSyncChange *change)
+long long int osync_change_get_mappingid(OSyncChange *change)
 {
 	g_assert(change);
-	return change->mapping;
+	return change->mappingid;
+}
+
+void osync_change_set_mappingid(OSyncChange *change, long long int mappingid)
+{
+	g_assert(change);
+	change->mappingid = mappingid;
 }
 
 void *osync_change_get_engine_data(OSyncChange *change)

@@ -136,24 +136,13 @@ osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncEr
 OSyncGroup *osync_group_new(OSyncEnv *env)
 {
 	OSyncGroup *group = g_malloc0(sizeof(OSyncGroup));
-
+	group->conv_env = osync_conv_env_new(env);
+	
 	if (env) {
 		osync_env_append_group(env, group);
 		group->env = env;
 	}
 	
-	OSyncError *error = NULL;
-	group->conv_env = osync_conv_env_new();
-	if (!osync_conv_env_load(group->conv_env, &error)) {
-		osync_debug("OSGRP", 0, "Unable to load conversion environment: %s\n", error->message);
-		osync_error_free(&error);
-		group->conv_env = NULL;
-	} else {
-		/*FIXME: Remove hardcoded format name here */
-		osync_conv_set_common_format(group->conv_env, "contact", "vcard30", NULL);
-	}
-	
-	osync_debug("OSGRP", 3, "Generated new group");
 	return group;
 }
 
@@ -168,14 +157,11 @@ void osync_group_free(OSyncGroup *group)
 {
 	g_assert(group);
 	
-	if (group->conv_env) {
-		osync_conv_env_unload(group->conv_env);
+	if (group->conv_env)
 		osync_conv_env_free(group->conv_env);
-	}
 	
-	if (group->lock_fd) {
+	if (group->lock_fd)
 		osync_group_unlock(group, FALSE);
-	}
 	
 	while (osync_group_nth_member(group, 0))
 		osync_member_free(osync_group_nth_member(group, 0));
@@ -212,14 +198,17 @@ void osync_group_free(OSyncGroup *group)
  */
 OSyncLockState osync_group_lock(OSyncGroup *group)
 {
+	osync_trace(TRACE_ENTRY, "osync_group_lock(%p)", group);
 	g_assert(group);
 	g_assert(group->configdir);
 	
 	osync_bool exists = FALSE;
 	osync_bool locked = FALSE;
 	
-	if (group->lock_fd)
+	if (group->lock_fd) {
+		osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCKED, lock_fd existed");
 		return OSYNC_LOCKED;
+	}
 	
 	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
 	osync_debug("GRP", 4, "locking file %s", lockfile);
@@ -233,6 +222,7 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 		group->lock_fd = 0;
 		osync_debug("GRP", 1, "error opening file: %s", strerror(errno));
 		g_free(lockfile);
+		osync_trace(TRACE_EXIT_ERROR, "osync_group_lock: %s", strerror(errno));
 		return OSYNC_LOCK_STALE;
 	} else {
 		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
@@ -248,13 +238,17 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 	}
 	g_free(lockfile);
 	
-	if (!exists)
+	if (!exists) {
+		osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCK_OK");
 		return OSYNC_LOCK_OK;
-	else {
-		if (locked)
+	} else {
+		if (locked) {
+			osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCKED");
 			return OSYNC_LOCKED;
-		else
+		} else {
+			osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCK_STALE");
 			return OSYNC_LOCK_STALE;
+		}
 	}
 }
 
@@ -342,7 +336,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	
 	if (!group->configdir) {
 		group->id = _osync_env_create_group_id(group->env);
-		group->configdir = g_strdup_printf("%s/group%lli", group->env->configdir, group->id);
+		group->configdir = g_strdup_printf("%s/group%lli", group->env->groupsdir, group->id);
 	}
 		
 	char *filename = NULL;

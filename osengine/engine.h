@@ -13,6 +13,7 @@
  *************************************************************/
 typedef struct OSyncEngine OSyncEngine;
 typedef struct OSyncClient OSyncClient;
+typedef struct OSyncMapping OSyncMapping;
 
 typedef enum {
 	MEMBER_CONNECTED = 1,
@@ -55,8 +56,8 @@ typedef enum {
 
 typedef struct MSyncMappingUpdate {
 	mappingupdatetype type;
-	int winner;
-	int mapping_id;
+	long long int winner;
+	OSyncMapping *mapping;
 	OSyncError *error;
 } MSyncMappingUpdate;
 

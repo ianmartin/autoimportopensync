@@ -39,7 +39,7 @@ static OSyncConvCmpResult compare_format1(OSyncChange *leftchange, OSyncChange *
 	return CONV_DATA_MISMATCH;
 }
 
-static osync_bool conv_format1_to_format2(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool conv_format1_to_format2(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	/*
 	 * This function can be used to convert your format to another format.
@@ -48,10 +48,35 @@ static osync_bool conv_format1_to_format2(const char *input, int inpsize, char *
 	 * 
 	 */
 	
+	/* The arguments mean:
+	 * 
+	 * - input:
+	 * The data you need to convert
+	 * - inpsize
+	 * The size of the input data
+	 * 
+	 * - output:
+	 * After converting you need to set this
+	 * to your result
+	 * - outpsize:
+	 * The size of the output
+	 * 
+	 * - free_input:
+	 * You need to set this to TRUE if opensync
+	 * can free the input after the conversion (so you dont
+	 * use any reference from or to the input). A example where
+	 * *free_input = FALSE; needs to be done would be a encapsulator
+	 * that stores the input reference somewhere in its struct
+	 * 
+	 * - error:
+	 * if something bad happens and you cannot convert, set the error!
+	 * 
+	 */
+	
 	return TRUE;
 }
 
-static osync_bool conv_format2_to_format1(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool conv_format2_to_format1(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	/*
 	 * This function can be used to convert another format to your format.
@@ -96,7 +121,7 @@ static char *print_format1(OSyncChange *change)
 	 return NULL;
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
 	/*
 	 * Here you have to give opensync some information about your format
@@ -106,15 +131,15 @@ void get_info(OSyncFormatEnv *env)
 	
 	//Tell opensync for which object type you want to add a format.
 	//If the object type does not exist yet, it will be created.
-	osync_conv_register_objtype(env, "<some object type>");
+	osync_env_register_objtype(env, "<some object type>");
 	
 	//Tell opensync that we want to register a new format
-	OSyncObjFormat *format = osync_conv_register_objformat(env, "<some object type>", "<your format name>");
+	osync_env_register_objformat(env, "<some object type>", "<your format name>");
 	//Now we can set the function on your format we have created above
-	osync_conv_format_set_compare_func(format, compare_format1);
-	osync_conv_format_set_duplicate_func(format, duplicate_format1);
-	osync_conv_format_set_destroy_func(format, destroy_format1);
-	osync_conv_format_set_print_func(format, print_format1);
+	osync_env_format_set_compare_func(env, "<your format name>", compare_format1);
+	osync_env_format_set_duplicate_func(env, "<your format name>", duplicate_format1);
+	osync_env_format_set_destroy_func(env, "<your format name>", destroy_format1);
+	osync_env_format_set_print_func(env, "<your format name>", print_format1);
 	
 	/*
 	 * Now we can register the converters.
@@ -133,6 +158,6 @@ void get_info(OSyncFormatEnv *env)
 	 * like the example above, but in the other direction
 	 * 
 	 */
-	osync_conv_register_converter(env, CONVERTER_CONV, "<another format name>", "<your format name>", conv_format2_to_format1, 0);
-	osync_conv_register_converter(env, CONVERTER_CONV, "<your format name>", "<another format name>", conv_format1_to_format2, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "<another format name>", "<your format name>", conv_format2_to_format1);
+	osync_env_register_converter(env, CONVERTER_CONV, "<your format name>", "<another format name>", conv_format1_to_format2);
 }

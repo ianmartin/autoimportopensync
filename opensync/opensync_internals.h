@@ -8,6 +8,9 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
+#include <errno.h>
+extern int errno;
+
 #define osync_assert(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
@@ -55,11 +58,21 @@
 typedef struct OSyncDB OSyncDB;
 
 struct OSyncEnv {
-	GList *plugins;
 	GList *groups;
-	char *configdir;
-	char *plugindir;
 	osync_bool is_initialized;
+	GHashTable *options;
+	
+	char *groupsdir;
+	
+	GList *plugins;
+	GList *formatplugins;
+	
+	GList *format_templates;
+	GList *converter_templates;
+	GList *objtype_templates;
+	GList *data_detectors;
+	GList *filter_functions;
+	GList *extension_templates;
 };
 
 struct OSyncHashTable {
@@ -68,19 +81,21 @@ struct OSyncHashTable {
 };
 
 struct OSyncMember {
+	long long int id;
 	char *configdir;
 	char *configdata;
 	int configsize;
 	OSyncPlugin *plugin;
-	void *enginedata;
-	void *plugindata;
 	OSyncMemberFunctions *memberfunctions;
 	OSyncGroup *group;
-	GList *entries;
-	long long int id;
+	
+	void *enginedata;
+	void *plugindata;
+	
 	GList *format_sinks;
 	GList *objtype_sinks;
 	char *pluginname;
+	
 	//For the filters
 	GList *accepted_objtypes;
 	GList *filters;
@@ -95,15 +110,17 @@ struct OSyncContext {
 };
 
 struct OSyncGroup {
-	gchar *name;
+	char *name;
 	GList *members;
-	gchar *configdir;
+	char *configdir;
 	OSyncEnv *env;
-	void *data;
 	OSyncFormatEnv *conv_env;
+	void *data;
 	long long int id;
 	int lock_fd;
 	GList *filters;
+	char *changes_path;
+	OSyncDB *changes_db;
 };
 
 struct OSyncPlugin {
@@ -124,35 +141,23 @@ struct OSyncChange {
 	 * a objtype field set?
 	 */
 	OSyncObjType *objtype;
+	char *objtype_name;
 	OSyncObjFormat *format;
+	char *format_name;
+	
 	OSyncMember *member;
 	OSyncChangeType changetype;
 	void *engine_data;
 	long long int id;
 	int refcount;
-	OSyncMapping *mapping;
+	long long int mappingid;
+	OSyncDB *changes_db;
 	
 	//For the filters
 	char *destobjtype;
 	char *sourceobjtype;
 	OSyncMember *sourcemember;
 	osync_bool is_detected;
-};
-
-struct OSyncMapping {
-	GList *entries;
-	OSyncChange *master;
-	void *engine_data;
-	long long int id;
-	OSyncMappingTable *table;
-};
-
-struct OSyncMappingTable {
-	GList *mappings;
-	OSyncDB *entrytable;
-	char *db_path;
-	OSyncGroup *group;
-	GList *unmapped;
 };
 
 #include "opensync_env_internals.h"

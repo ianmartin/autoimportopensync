@@ -123,7 +123,7 @@ e_vcard_get_type (void)
 			(GInstanceInitFunc) e_vcard_init,
 		};
 
-		vcard_type = g_type_register_static (G_TYPE_OBJECT, "EVCard", &vcard_info, 0);
+		vcard_type = g_type_register_static (G_TYPE_OBJECT, "OSEVCard", &vcard_info, 0);
 	}
 
 	return vcard_type;
@@ -1205,24 +1205,24 @@ e_vcard_add_attribute (EVCard *evc, EVCardAttribute *attr)
 }
 
 void
-e_vcard_add_attribute_with_value (EVCard *evcard,
+e_vcard_add_attribute_with_value (EVCard *EVCard,
 				  EVCardAttribute *attr, const char *value)
 {
-	g_return_if_fail (E_IS_VCARD (evcard));
+	g_return_if_fail (E_IS_VCARD (EVCard));
 	g_return_if_fail (attr != NULL);
 
 	e_vcard_attribute_add_value (attr, value);
 
-	e_vcard_add_attribute (evcard, attr);
+	e_vcard_add_attribute (EVCard, attr);
 }
 
 void
-e_vcard_add_attribute_with_values (EVCard *evcard, EVCardAttribute *attr, ...)
+e_vcard_add_attribute_with_values (EVCard *EVCard, EVCardAttribute *attr, ...)
 {
 	va_list ap;
 	char *v;
 
-	g_return_if_fail (E_IS_VCARD (evcard));
+	g_return_if_fail (E_IS_VCARD (EVCard));
 	g_return_if_fail (attr != NULL);
 
 	va_start (ap, attr);
@@ -1233,7 +1233,7 @@ e_vcard_add_attribute_with_values (EVCard *evcard, EVCardAttribute *attr, ...)
 
 	va_end (ap);
 
-	e_vcard_add_attribute (evcard, attr);
+	e_vcard_add_attribute (EVCard, attr);
 }
 
 void
@@ -1477,11 +1477,11 @@ e_vcard_attribute_param_remove_values (EVCardAttributeParam *param)
 }
 
 GList*
-e_vcard_get_attributes (EVCard *evcard)
+e_vcard_get_attributes (EVCard *EVCard)
 {
-	g_return_val_if_fail (E_IS_VCARD (evcard), NULL);
+	g_return_val_if_fail (E_IS_VCARD (EVCard), NULL);
 
-	return evcard->priv->attributes;
+	return EVCard->priv->attributes;
 }
 
 const char*

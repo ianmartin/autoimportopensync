@@ -33,7 +33,6 @@ void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyn
 OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member);
 void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void *user_data);
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid);
-osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, osync_bool spare_deleted);
 void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry);
 void osync_member_request_synchronization(OSyncMember *member);
 OSyncChange *osync_member_add_random_data(OSyncMember *member);

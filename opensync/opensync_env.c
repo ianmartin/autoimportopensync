@@ -21,6 +21,28 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+
+static const char *osync_env_query_option(OSyncEnv *env, const char *name)
+{
+	return g_hash_table_lookup(env->options, name);
+}
+
+static osync_bool osync_env_query_option_bool(OSyncEnv *env, const char *name)
+{
+	const char *get_value;
+	if (!(get_value = g_hash_table_lookup(env->options, name)))
+		return FALSE;
+	if (!strcmp(get_value, "TRUE"))
+		return TRUE;
+	return FALSE;
+}
+
+static void free_hash(char *key, char *value, void *data)
+{
+	g_free(key);
+	g_free(value);
+}
+
 /**
  * @defgroup OSyncEnvAPI OpenSync Environment
  * @ingroup OSyncPublic
@@ -42,14 +64,14 @@
 OSyncEnv *osync_env_new(void)
 {
 	OSyncEnv *env = g_malloc0(sizeof(OSyncEnv));
-
-	OSyncUserInfo *user = _osync_user_new();
-	env->configdir = g_strdup(_osync_user_get_confdir(user));
-	env->plugindir = g_strdup(OPENSYNC_PLUGINDIR);
 	env->is_initialized = FALSE;
-
-	osync_debug("env", 3, "Generating new env:");
-	osync_debug("env", 3, "Configdirectory: %s", env->configdir);
+	env->options = g_hash_table_new(g_str_hash, g_str_equal);
+	
+	//Set some defaults
+	osync_env_set_option(env, "LOAD_GROUPS", "TRUE");
+	osync_env_set_option(env, "LOAD_FORMATS", "TRUE");
+	osync_env_set_option(env, "LOAD_PLUGINS", "TRUE");
+	
 	return env;
 }
 
@@ -63,10 +85,24 @@ OSyncEnv *osync_env_new(void)
 void osync_env_free(OSyncEnv *env)
 {
 	g_assert(env);
-	//FIXME Free user info
-	g_free(env->configdir);
-	g_free(env->plugindir);
+	g_hash_table_foreach(env->options, (GHFunc)free_hash, NULL);
+	g_hash_table_destroy(env->options);
 	g_free(env);
+}
+
+/*! @brief Sets a options on the environment
+ * 
+ * @param env Pointer to the environment
+ * @param name Name of the option to set
+ * @param value Value to set
+ * 
+ */
+void osync_env_set_option(OSyncEnv *env, const char *name, const char *value)
+{
+	if (value)
+		g_hash_table_insert(env->options, g_strdup(name), g_strdup(value));
+	else
+		g_hash_table_remove(env->options, name);
 }
 
 /*! @brief Initializes the environment (loads plugins)
@@ -81,30 +117,41 @@ void osync_env_free(OSyncEnv *env)
  */
 osync_bool osync_env_initialize(OSyncEnv *env, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_env_initialize(%p, %p)", env, error);
 	g_assert(env);
 	
 	if (env->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "Cannot initialize the same environment twice");
+		osync_trace(TRACE_EXIT_ERROR, "osync_env_initialize: %s", osync_error_print(error));
 		return FALSE;
 	}
-	
-	//FIXME load language plugins
 
 	//Load the normal plugins
-	if (!osync_env_load_plugins(env, env->plugindir, error))
-		return FALSE;
+	if (osync_env_query_option_bool(env, "LOAD_PLUGINS")) {
+		if (!osync_env_load_plugins(env, osync_env_query_option(env, "PLUGINS_DIRECTORY"), error)) {
+			osync_trace(TRACE_EXIT_ERROR, "osync_env_initialize: %s", osync_error_print(error));
+			return FALSE;
+		}
+	}
+
+	//Load the format plugins
+	if (osync_env_query_option_bool(env, "LOAD_FORMATS")) {
+		if (!osync_env_load_formats(env, osync_env_query_option(env, "FORMATS_DIRECTORY"), error)) {
+			osync_trace(TRACE_EXIT_ERROR, "osync_env_initialize: %s", osync_error_print(error));
+			return FALSE;
+		}
+	}
 
 	//Load groups
-	if (env->configdir) {
-		if (!g_file_test(env->configdir, G_FILE_TEST_EXISTS)) {
-			mkdir(env->configdir, 0700);
-			osync_debug("OSGRP", 3, "Created groups configdir %s\n", env->configdir);
-		}
-		if (!osync_env_load_groups(env, env->configdir, error))
+	if (osync_env_query_option_bool(env, "LOAD_GROUPS")) {
+		if (!osync_env_load_groups(env, osync_env_query_option(env, "GROUPS_DIRECTORY"), error)) {
+			osync_trace(TRACE_EXIT_ERROR, "osync_env_initialize: %s", osync_error_print(error));
 			return FALSE;
+		}
 	}
 
 	env->is_initialized = TRUE;
+	osync_trace(TRACE_EXIT, "osync_env_initialize");
 	return TRUE;
 }
 
@@ -119,6 +166,7 @@ osync_bool osync_env_initialize(OSyncEnv *env, OSyncError **error)
  */
 osync_bool osync_env_finalize(OSyncEnv *env, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_env_finalize(%p, %p)", env, error);
 	g_assert(env);
 	
 	if (!env->is_initialized) {
@@ -138,6 +186,73 @@ osync_bool osync_env_finalize(OSyncEnv *env, OSyncError **error)
 	}
 	g_list_free(plugins);
 	
+	plugins = g_list_copy(env->formatplugins);
+	for (p = plugins; p; p = p->next) {
+		GModule *gplugin = p->data;
+		osync_trace(TRACE_INTERNAL, "osync_format_plugin_free %p", gplugin);
+		g_module_close(gplugin);
+	}
+	g_list_free(plugins);
+
+	osync_trace(TRACE_EXIT, "osync_env_finalize");
+	return TRUE;
+}
+
+/*! @brief Loads all format and conversion plugins
+ * 
+ * This command will load all plugins for the conversion system.
+ * If you dont change the path before it will load the plugins
+ * from the default location
+ * 
+ * @param env The format environment
+ * @param path The path to load from or NULL if to load from default path
+ * @param error The location to return a error to
+ * @returns TRUE if successfull, FALSE otherwise
+ * 
+ */
+osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **oserror)
+{
+	g_assert(env);
+	osync_bool not_fatal = FALSE;
+
+	if (!path) {
+		path = OPENSYNC_FORMATSDIR;
+		not_fatal = TRUE;
+	}
+	
+	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		osync_debug("ENV", 1, "directory %s does not exist", path);
+		return not_fatal;
+	}
+	
+	GDir *dir = NULL;
+	GError *error = NULL;
+	dir = g_dir_open(path, 0, &error);
+	if (!dir) {
+		osync_debug("OSCONV", 0, "Unable to open format plugin directory %s: %s", path, error->message);
+		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open format directory %s: %s", path, error->message);
+		g_error_free(error);
+		return FALSE;
+	}
+	
+	const gchar *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		char *filename = NULL;
+		filename = g_strdup_printf ("%s/%s", path, de);
+		
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*lib.la", filename) || !g_pattern_match_simple("*.la", filename)) {
+			g_free(filename);
+			continue;
+		}
+		
+		OSyncError *error = NULL;
+		if (!osync_format_plugin_load(env, filename, &error)) {
+			osync_debug("OSCONV", 0, "Unable to load format plugin %s: %s", filename, error->message);
+			osync_error_free(&error);
+		}
+		g_free(filename);
+	}
+	g_dir_close(dir);
 	return TRUE;
 }
 
@@ -156,13 +271,17 @@ osync_bool osync_env_load_plugins(OSyncEnv *env, const char *path, OSyncError **
 	GDir *dir;
 	GError *error = NULL;
 	char *filename = NULL;
-	osync_debug("OSPLG", 3, "Trying to open plugin directory %s", path);
+	osync_bool not_fatal = FALSE;
+	
+	if (!path) {
+		path = OPENSYNC_PLUGINDIR;
+		not_fatal = TRUE;
+	}
 	
 	//Load all available shared libraries (plugins)
 	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		osync_debug("OSGRP", 3, "%s exists, but is no dir", path);
-		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "directory %s does not exist", path);
-		return FALSE;
+		osync_debug("OSGRP", 3, "%s is no dir", path);
+		return not_fatal;
 	}
 	
 	dir = g_dir_open(path, 0, &error);
@@ -260,7 +379,19 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	GError *gerror = NULL;
 	char *filename = NULL;
 	char *real_path = NULL;
-	osync_debug("OSGRP", 3, "Trying to open main confdir %s to load groups", path);
+
+	if (!path) {
+		OSyncUserInfo *user = _osync_user_new();
+		path = _osync_user_get_confdir(user);
+		//FIXME Free user info
+		if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
+			if (mkdir(path, 0700) == -1) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, strerror(errno));
+				return FALSE;
+			}
+			osync_debug("OSGRP", 3, "Created groups configdir %s\n", path);
+		}
+	}
 	
 	if (!g_path_is_absolute(path)) {
 		real_path = g_strdup_printf("%s/%s", g_get_current_dir(), path);
@@ -304,6 +435,8 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	}
 	g_free(real_path);
 	g_dir_close(dir);
+	
+	env->groupsdir = g_strdup(path);
 	return TRUE;
 }
 
@@ -383,20 +516,6 @@ OSyncGroup *osync_env_nth_group(OSyncEnv *env, int nth)
 	return (OSyncGroup *)g_list_nth_data(env->groups, nth);;
 }
 
-const char *osync_env_get_configdir(OSyncEnv *env)
-{
-	g_assert(env);
-	return env->configdir;
-}
-
-void osync_env_set_configdir(OSyncEnv *env, const char *path)
-{
-	g_assert(env);
-	if (env->configdir)
-		g_free(env->configdir);
-	env->configdir = g_strdup(path);
-}
-
 /*@}*/
 
 /**
@@ -425,7 +544,7 @@ long long int _osync_env_create_group_id(OSyncEnv *env)
 		i++;
 		if (filename)
 			g_free(filename);
-		filename = g_strdup_printf("%s/group%lli", env->configdir, i);
+		filename = g_strdup_printf("%s/group%lli", env->groupsdir, i);
 	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
 	g_free(filename);
 	return i;

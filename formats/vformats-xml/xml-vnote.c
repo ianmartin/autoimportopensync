@@ -72,7 +72,7 @@ static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
 	return encoding;
 }
 
-static osync_bool conv_vnote_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool conv_vnote_to_xml(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("VNOTE", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);
@@ -150,6 +150,7 @@ static osync_bool conv_vnote_to_xml(const char *input, int inpsize, char **outpu
 		g_string_free(string, 1);
 	}
 	
+	*free_input = TRUE;
 	*output = (char *)doc;
 	/*FIXME: this is not really the size of the data pointed by doc.
 	 * But this shouldn't cause problems, anyway, because this
@@ -227,7 +228,7 @@ static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, 
 	g_free(tmp);
 }
 
-static osync_bool conv_xml_to_vnote(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool conv_xml_to_vnote(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("VNOTE", 4, "start: %s", __func__);
 	xmlDocDump(stdout, (xmlDoc *)input);
@@ -282,6 +283,7 @@ static osync_bool conv_xml_to_vnote(const char *input, int inpsize, char **outpu
 		root = root->next;
 	}
 	
+	*free_input = TRUE;
 	*output = e_vnote_to_string(vcard);
 	*outpsize = strlen(*output);
 	return TRUE;
@@ -306,7 +308,8 @@ static char *print_note(OSyncChange *change)
 	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
 	char *result;
 	int size;
-	if (!conv_xml_to_vnote((char*)doc, 0, &result, &size, NULL))
+	osync_bool free;
+	if (!conv_xml_to_vnote((char*)doc, 0, &result, &size, &free, NULL))
 		return NULL;
 	return result;
 }
@@ -316,15 +319,15 @@ static void destroy_xml(char *data, size_t size)
 	xmlFreeDoc((xmlDoc *)data);
 }
 
-void get_info(OSyncFormatEnv *env)
+void get_info(OSyncEnv *env)
 {
-	osync_conv_register_objtype(env, "note");
-	OSyncObjFormat *mxml = osync_conv_register_objformat(env, "note", "xml-note");
+	osync_env_register_objtype(env, "note");
+	osync_env_register_objformat(env, "note", "xml-note");
 	
-	osync_conv_format_set_compare_func(mxml, compare_notes);
-	osync_conv_format_set_destroy_func(mxml, destroy_xml);
-	osync_conv_format_set_print_func(mxml, print_note);
+	osync_env_format_set_compare_func(env, "xml-note", compare_notes);
+	osync_env_format_set_destroy_func(env, "xml-note", destroy_xml);
+	osync_env_format_set_print_func(env, "xml-note", print_note);
 	
-	osync_conv_register_converter(env, CONVERTER_CONV, "vnote11", "xml-note", conv_vnote_to_xml, 0);
-	osync_conv_register_converter(env, CONVERTER_CONV, "xml-note", "vnote11", conv_xml_to_vnote, 0);
+	osync_env_register_converter(env, CONVERTER_CONV, "vnote11", "xml-note", conv_vnote_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "vnote11", conv_xml_to_vnote);
 }

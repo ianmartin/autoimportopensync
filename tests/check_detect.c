@@ -6,14 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
 START_TEST (conv_env_detect_smart)
 {
-	OSyncFormatEnv *env = osync_conv_env_new();
-	OSyncObjType *type = osync_conv_register_objtype(env, "Type1", FALSE);
-	OSyncObjFormat *format1 = osync_conv_register_objformat(type, "Format1", NULL);
-	osync_conv_format_set_detect_func(format1, detect_format1);
+	OSyncEnv *osync = init_env();
+	OSyncFormatEnv *env = osync_conv_env_new(osync);
+	OSyncObjType *type = osync_env_register_objtype(env, "Type1", FALSE);
+	OSyncObjFormat *format1 = osync_env_register_objformat(type, "Format1", NULL);
+	osync_env_format_set_detect_func(format1, detect_format1);
 	mark_point();
 	OSyncChange *change = osync_change_new();
 	osync_change_set_objformat(change, format1);
@@ -27,10 +26,11 @@ END_TEST
 
 START_TEST (conv_env_detect_smart2)
 {
-	OSyncFormatEnv *env = osync_conv_env_new();
-	OSyncObjType *type = osync_conv_register_objtype(env, "Type1", FALSE);
-	OSyncObjFormat *format1 = osync_conv_register_objformat(type, "Format1", NULL);
-	OSyncObjFormat *format2 = osync_conv_register_objformat(type, "Format2", NULL);
+	OSyncEnv *osync = init_env();
+	OSyncFormatEnv *env = osync_conv_env_new(osync);
+	OSyncObjType *type = osync_env_register_objtype(env, "Type1", FALSE);
+	OSyncObjFormat *format1 = osync_env_register_objformat(type, "Format1", NULL);
+	OSyncObjFormat *format2 = osync_env_register_objformat(type, "Format2", NULL);
 
 	mark_point();
 	OSyncChange *change = osync_change_new();
@@ -40,10 +40,11 @@ END_TEST
 
 START_TEST (conv_env_detect_smart_no)
 {
-	OSyncFormatEnv *env = osync_conv_env_new();
-	OSyncObjType *type = osync_conv_register_objtype(env, "Type1", FALSE);
-	OSyncObjFormat *format1 = osync_conv_register_objformat(type, "Format1", NULL);
-	osync_conv_format_set_detect_func(format1, detect_format1_no);
+	OSyncEnv *osync = init_env();
+	OSyncFormatEnv *env = osync_conv_env_new(osync);
+	OSyncObjType *type = osync_env_register_objtype(env, "Type1", FALSE);
+	OSyncObjFormat *format1 = osync_env_register_objformat(type, "Format1", NULL);
+	osync_env_format_set_detect_func(format1, detect_format1_no);
 	mark_point();
 	OSyncChange *change = osync_change_new();
 	osync_change_set_objformat(change, format1);
