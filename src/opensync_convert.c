@@ -889,6 +889,10 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
  *
  * The list returned on path_edges should be freed by the caller.
  *
+ * Note: NEVER use the detection/conversion functions on
+ *       CHANGE_DELETED changes. Converting and detecting data
+ *       on changes that have no data doesn't make sense
+ *
  * @see osync_conv_convert_fn(), osync_conv_convert_simple(),
  *      osync_conv_convert_fmtlist(), osync_conv_convert_member_sink()
  *
@@ -899,6 +903,11 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyncPathTargetFn target_fn, const void *fndata, GList/* OSyncConverter * */ **path_edges)
 {
 	g_assert(start->format);
+
+	/* CHANGE_DELETED changes don't have any data to be converted. Passing
+	 * CHANGE_DELETED changes through the conversion code is an error
+	 */
+	g_assert(start->changetype != CHANGE_DELETED);
 
 	*path_edges = NULL;
 	osync_bool ret = FALSE;

@@ -437,7 +437,7 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	//osync_run_hook(member->group->before_convert_hook, (change, member));
 	//osync_run_hook(member->before_convert_hook, (change, member);
 
-	/* This is an optmization:
+	/* This is just an optmization:
 	 *
 	 * the path search function will avoid doing
 	 * cross-objtype conversions, so
@@ -455,21 +455,30 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		return;
 	}
 
-	if (!osync_conv_convert_member_sink(env, change, member)) {
-		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
-		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
-		return;
+	if (change->changetype != CHANGE_DELETED) {
+		/* Normal changes should be converted. CHANGE_DELETED
+		 * changes should come with the right objformat/objtype set,
+		 * because not detection/conversion will be run
+		 */
+		if (!osync_conv_convert_member_sink(env, change, member)) {
+			osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
+			osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+			return;
+		}
+		//The destobjtype is the objtype of the format to which
+		//the change was just converted
+		change->destobjtype = g_strdup(change->objtype->name);
 	}
 	
-	//Filter the change
-	change->destobjtype = g_strdup(sink->objtype->name);
+	//Filter the change.
 	if (!osync_filter_change_allowed(member, change)) {
 		osync_debug("OSYNC", 2, "Change %s filtered out for member %lli", change->uid, member->id);
 		osync_context_report_success(context);
 		return;
 	}
 
-	/*FIXME: use a sane interface to return the frmtsink to be used */
+	//search for the right formatsink, now that
+	//the change was converted
 	GList *i;
 	for (i = member->format_sinks; i; i = i->next) {
 		OSyncObjFormatSink *fmtsink = i->data;
@@ -478,12 +487,18 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 			return;
 		}
 		if (fmtsink->format == osync_change_get_objformat(change)) {
+			// Send the change
 			fmtsink->functions.commit_change(context, change);
 			break;
 		}
 	}
-	if (!i)
+
+	if (!i) {
+		// We should not get here because the search function
+		// returned success, but just make sure everything went ok
 		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
+	}
+
 }
 
 OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
