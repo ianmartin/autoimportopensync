@@ -4,9 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
-
-#define TRUE 1
-#define FALSE 0
+#include <glib.h>
 
 /**************************************************************
  * Enumerations
