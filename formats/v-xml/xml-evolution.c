@@ -55,7 +55,7 @@ static osync_bool conv_xml_to_x_evo(const char *input, int inpsize, char **outpu
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "contact");
-	osync_conv_register_objformat(env, "contact", "x-opensync-xml");
+	osync_conv_register_objformat(env, "contact", "xml-contact");
 	
-	osync_conv_register_extension(env, "x-opensync-xml", conv_x_evo_to_xml, conv_xml_to_x_evo);
+	osync_conv_register_extension(env, "xml-contact", conv_x_evo_to_xml, conv_xml_to_x_evo);
 }

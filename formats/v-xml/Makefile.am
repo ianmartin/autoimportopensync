@@ -1,20 +1,14 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Werror -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Wall @XML_CFLAGS@
+AM_CFLAGS = -Werror -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Wall @XML_CFLAGS@ 
 
 formatsdir=@OPENSYNC_FORMATSDIR@
 
-EXTRA_DIST = \
-	xml.h \
-	e-vcard.h
+EXTRA_DIST = e-vcard.h
 
-INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
+INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src -I../
 
-formats_LTLIBRARIES = xml-vcard.la xml.la xml-evolution.la
-
-xml_la_SOURCES = xml.c
-xml_la_LDFLAGS = -avoid-version -export-dynamic -module
-xml_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+formats_LTLIBRARIES = xml-vcard.la xml-evolution.la
 
 xml_vcard_la_SOURCES = xml-vcard.c e-vcard.c
 xml_vcard_la_LDFLAGS = -avoid-version -export-dynamic -module

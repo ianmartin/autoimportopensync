@@ -435,6 +435,14 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	xmlFreeDoc(doc);
 	g_free(filename);
 	
+	//Check for sanity
+	if (!group->name) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Loaded a group without a name");
+		osync_debug("OSGRP", 0, "Loaded a group without a name");
+		osync_group_free(group);
+		return NULL;
+	}
+	
 	if (!osync_group_load_members(group, real_path, error)) {
 		osync_group_free(group);
 		return NULL;

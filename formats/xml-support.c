@@ -43,28 +43,6 @@ xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error)
 	return cur;
 }
 
-/*char *osxml_convert_from(const char *string, OSyncXMLEncoding encoding)
-{
-	char *tmp = NULL;
-	char *tmp2 = NULL;
-	if (!string)
-		return NULL;
-	if (encoding.encoding == OSXML_QUOTED_PRINTABLE)
-		tmp = decode_quoted_printable(string);
-	else if (encoding.encoding == OSXML_BASE64)
-		tmp = decode_base64(string);
-	else
-		tmp = g_strdup(string);
-	
-	if (encoding.charset == OSXML_ASCII)
-		tmp2 = g_convert(tmp, strlen(tmp), "utf8", "ISO-8859-1", NULL, NULL, NULL);
-	else
-		tmp2 = g_strdup(tmp);
-	g_free(tmp);
-	
-	return tmp2;
-}*/
-
 void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLEncoding encoding)
 {
 	if (name)
@@ -74,7 +52,7 @@ void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLE
 		xmlNewTextChild(node, NULL, "Content", data);
 }
 
-xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data, OSyncXMLEncoding encoding)
+xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data)
 {
 	xmlNode *node = xmlNewTextChild(parent, NULL, name, data);
 	return node;
@@ -90,38 +68,6 @@ void osxml_node_mark_unknown(xmlNode *parent)
 	if (!xmlHasProp(parent, "Type"))
 		xmlNewProp(parent, "Type", "Unknown");
 }
-
-/*void osxml_format_dump(OSyncXML *xml, char **data, int *size)
-{
-	xmlDocDumpMemory(xml->doc, (xmlChar **)data, size);
-}*/
-
-
-//Parsing
-/*xmlNode *osxml_format_parse(const char *input, int size, const char *rootname, OSyncError **error)
-{
-	xmlDoc *doc = xmlParseMemory(input, size);
-	if (!doc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse xml document");
-		return NULL;
-	}
-	
-	xmlNode *cur = xmlDocGetRootElement(doc);
-	if (!cur) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
-		xmlFreeDoc(doc);
-		return NULL;
-	}
-	
-	if (xmlStrcmp((cur)->name, (const xmlChar *) rootname)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
-		xmlFreeDoc(doc);
-		return NULL;
-	}
-	
-	cur = (cur)->xmlChildrenNode;
-	return cur;
-}*/
 
 char *osxml_find_node(xmlNode *parent, const char *name)
 {
@@ -182,40 +128,144 @@ osync_bool osxml_has_property(xmlNode *parent, const char *name)
 	return (xmlHasProp(parent, name) != NULL);
 }
 
-/*
-OSyncXMLNode *osxml_node_get_root(OSyncXML *xml)
+static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 {
-	OSyncXMLNode *node = g_malloc0(sizeof(OSyncXMLNode));
-	node->node = xmlDocGetRootElement(xml->doc);
-	return node;
+	char *leftcontent = xmlNodeGetContent(leftnode);
+	char *rightcontent = xmlNodeGetContent(rightnode);
+	if (leftcontent == rightcontent)
+		return TRUE;
+	if (!leftcontent || !rightcontent)
+		return FALSE;
+	osync_bool ret = (strcmp(leftcontent, rightcontent) == 0);
+	g_free(leftcontent);
+	g_free(rightcontent);
+	return ret;
 }
 
-OSyncXMLNode *osxml_node_get_child(OSyncXMLNode *)
+OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores)
 {
-	OSyncXMLNode *node = g_malloc0(sizeof(OSyncXMLNode));
-	node->node = xmlDocGetRootElement(xml->doc);
-	return node;
-
-get_next_node
-compare_name
-find_child*/
-
-
-
-static OSyncConvCmpResult compare_xml(OSyncChange *leftchange, OSyncChange *rightchange)
-{
+	int z = 0, i = 0, n;
+	xmlDoc *leftdoc = xmlCopyDoc(leftinpdoc, TRUE);
+	xmlDoc *rightdoc = xmlCopyDoc(rightinpdoc, TRUE);
+	
+	int res_score = 0;
+	while (scores && scores[z].path) {
+		OSyncXMLScore *score = &scores[z];
+		z++;
+		xmlXPathObject *leftxobj = osxml_get_nodeset(leftdoc, score->path);
+		xmlXPathObject *rightxobj = osxml_get_nodeset(rightdoc, score->path);
+		
+		xmlNodeSet *lnodes = leftxobj->nodesetval;
+		xmlNodeSet *rnodes = rightxobj->nodesetval;
+		
+		int lsize = (lnodes) ? lnodes->nodeNr : 0;
+		int rsize = (rnodes) ? rnodes->nodeNr : 0;
+		
+		for(i = 0; i < lsize; i++) {
+			for (n = 0; n < rsize; n++) {
+				if (!rnodes->nodeTab[n])
+					continue;
+				if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
+					res_score += score->value;
+					xmlUnlinkNode(lnodes->nodeTab[i]);
+					xmlFreeNode(lnodes->nodeTab[i]);
+					lnodes->nodeTab[i] = NULL;
+					xmlUnlinkNode(rnodes->nodeTab[n]);
+					xmlFreeNode(rnodes->nodeTab[n]);
+					rnodes->nodeTab[n] = NULL;
+					goto next;
+				}
+			}
+			res_score -= score->value;
+			next:;
+		}
+		for(i = 0; i < rsize; i++) {
+			if (!rnodes->nodeTab[i])
+				continue;
+			res_score -= score->value;
+		}
+		xmlXPathFreeObject(leftxobj);
+		xmlXPathFreeObject(rightxobj);
+	}
+	
+	xmlXPathObject *leftxobj = osxml_get_nodeset(leftdoc, "/contact/*");
+	xmlXPathObject *rightxobj = osxml_get_nodeset(rightdoc, "/contact/*");
+	
+	xmlNodeSet *lnodes = leftxobj->nodesetval;
+	xmlNodeSet *rnodes = rightxobj->nodesetval;
+	
+	int lsize = (lnodes) ? lnodes->nodeNr : 0;
+	int rsize = (rnodes) ? rnodes->nodeNr : 0;
+	
+	osync_bool same = TRUE;
+	for(i = 0; i < lsize; i++) {		
+		for (n = 0; n < rsize; n++) {
+			if (!rnodes->nodeTab[n])
+				continue;
+			if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
+				xmlUnlinkNode(lnodes->nodeTab[i]);
+				xmlFreeNode(lnodes->nodeTab[i]);
+				lnodes->nodeTab[i] = NULL;
+				xmlUnlinkNode(rnodes->nodeTab[n]);
+				xmlFreeNode(rnodes->nodeTab[n]);
+				rnodes->nodeTab[n] = NULL;
+				goto next2;
+			}
+		}
+		same = FALSE;
+		goto out;
+		next2:;
+	}
+	for(i = 0; i < lsize; i++) {
+		if (!lnodes->nodeTab[i])
+			continue;
+		same = FALSE;
+		goto out;
+	}
+	for(i = 0; i < rsize; i++) {
+		if (!rnodes->nodeTab[i])
+			continue;
+		same = FALSE;
+		goto out;
+	}
+	out:
+	xmlXPathFreeObject(leftxobj);
+	xmlXPathFreeObject(rightxobj);
+	/*
+	
+	for (lcur = lroot->children;lcur; lcur = lcur->next) {
+		rcur = rroot->children;
+		printf("%p\n", rcur);
+		for (;rcur; rcur = rcur->next) {
+			printf("comparing %s with %s\n", xmlNodeGetContent(lcur), xmlNodeGetContent(rcur));
+			if (osxml_compare_node(lcur, rcur)) {
+				xmlUnlinkNode(lcur);
+				xmlFreeNode(lcur);
+				xmlUnlinkNode(rcur);
+				xmlFreeNode(rcur);
+				goto next2;
+			}
+		}
+		same = FALSE;
+		break;
+		next2:;
+		lcur = lroot->children;
+		printf("lcur %p\n", rcur);
+	}
+	if (lroot->children || rroot->children)
+		same = FALSE;
+	*/
+	
+	printf("end score %i\n", res_score);
+	if (same)
+		return CONV_DATA_SAME;
+	if (res_score >= 5)
+		return CONV_DATA_SIMILAR;
 	return CONV_DATA_MISMATCH;
-}
-
-static void destroy_xml(char *data, size_t size)
-{
-	xmlFreeDoc((xmlDoc *)data);
 }
 
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "contact");
-	OSyncObjFormat *mxml = osync_conv_register_objformat(env, "contact", "x-opensync-xml");
-	osync_conv_format_set_compare_func(mxml, compare_xml);
-	osync_conv_format_set_destroy_func(mxml, destroy_xml);
+	osync_conv_register_objformat(env, "contact", "xml-contact");
 }
