@@ -5,7 +5,7 @@ AC_INIT(src/file_sync.c)
 AM_INIT_AUTOMAKE(file-sync, 0.01)
 AM_CONFIG_HEADER(config.h)
 
-export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
 pkg_modules="glib-2.0 opensync-1.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)

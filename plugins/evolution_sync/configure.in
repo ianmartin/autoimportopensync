@@ -15,7 +15,7 @@ if (( EVO_MAJVER > 1 || ( EVO_MAJVER==1 && EVO_MINVER >= 4))); then
 else
   AC_MSG_ERROR(This version of the Evolution plugin does only work with Evolution >= 1.4. For evolution 2.0 use the evolution2_sync plugin)
 fi
-export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)

@@ -5,7 +5,7 @@ AC_INIT
 AM_INIT_AUTOMAKE(<your plugin name>, 0.01)
 AM_CONFIG_HEADER(config.h)
 
-export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
 pkg_modules="opensync-1.0 <maybe some more packages here>"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)

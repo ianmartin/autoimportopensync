@@ -33,5 +33,5 @@ EXTRA_DIST = \
 	osengine_message_internals.h \
 	osengine_queue_internals.h
 
-libosengine_la_LDFLAGS = $(PACKAGE_LIBS)
+libosengine_la_LDFLAGS = $(PACKAGE_LIBS) -R $(libdir)
 libosengine_la_LIBADD = $(top_builddir)/src/libopensync.la
