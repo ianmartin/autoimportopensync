@@ -104,7 +104,7 @@ void get_info(OSyncFormatEnv *env)
 	OSyncObjType *type = osync_conv_register_objtype(env, "data");
 	g_assert(type);
 	
-	OSyncObjFormat *format = osync_conv_register_objformat(type, "file");
+	OSyncObjFormat *format = osync_conv_register_objformat(env, "data", "file");
 	osync_conv_format_set_compare_func(format, compare_file);
 	osync_conv_format_set_detect_func(format, detect_file);
 	osync_conv_format_set_duplicate_func(format, duplicate_file);
