@@ -18,7 +18,6 @@ opensyncinclude_HEADERS = \
 	opensync_mapping.h \
 	opensync_error.h \
 	opensync_hashtable.h \
-	opensync_db.h \
 	opensync_context.h \
 	opensync_convert.h \
 	opensync_anchor.h
@@ -39,4 +38,4 @@ libopensync_la_SOURCES = \
 	opensync_convert.c \
 	opensync_anchor.c
 	
-libopensync_la_LDFLAGS = @XMLLDFLAGS@
+libopensync_la_LDFLAGS = @PACKAGE_LIBS@ @XMLLDFLAGS@

@@ -21,66 +21,42 @@ void osync_hashtable_forget(OSyncHashTable *table)
 	table->used_entries = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
-void osync_hashtable_reset(OSyncHashTable *table)
-{
-	osync_db_empty(table->dbhandle);
-	osync_db_sync(table->dbhandle);
-}
-
-osync_bool osync_hashtable_load_file(OSyncHashTable *table, char *file, OSyncGroup *group)
-{
-	table->dbhandle = osync_db_open(file, "Hash", DB_BTREE, group->dbenv);
-	g_assert(table->dbhandle);
-	return TRUE;
-}
-
 osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member)
 {
-	g_assert(member != NULL);
-	char *filename = g_strdup_printf ("%s/hash.table", member->configdir);
-	osync_hashtable_load_file(table, filename, member->group);
-	g_free(filename);
-	return TRUE; //FIXME
-}
-
-int osync_hashtable_num_entries(OSyncHashTable *table)
-{
-	osync_assert(table, "No table was given");
-	osync_assert(table->dbhandle, "Table has no dbhandle. Did you open the hashtable already?");
-	DB_BTREE_STAT *statp;
-	int ret;
-	u_long uid;
-	
-	if ((ret = table->dbhandle->stat(table->dbhandle, &statp,  0)) != 0) {
-		table->dbhandle->err(table->dbhandle, ret, "DB->stat");
-		return 0;
-	}
-	uid = ((u_long)statp->bt_nkeys);
-	free(statp);
-	return uid;
-}
-
-osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash)
-{
-	osync_assert(table, "No table was given");
-	osync_assert(table->dbhandle, "Table has no dbhandle. Did you open the hashtable already?");
-	
-	DBC *dbcp = osync_db_cursor_new(table->dbhandle);
-	
-	while (osync_db_cursor_next(dbcp, (void **)uid, (void **)hash)) {
-		if (i == 0) {
-			osync_db_cursor_close(dbcp);
-			return TRUE;
-		}
-		i--;
-	}
-	osync_db_cursor_close(dbcp);
-	return FALSE;
+	return osync_db_open_hashtable(table, member);
 }
 
 void osync_hashtable_close(OSyncHashTable *table)
 {
 	osync_db_close(table->dbhandle);
+}
+
+
+int osync_hashtable_num_entries(OSyncHashTable *table)
+{
+	osync_assert(table, "No table was given");
+	osync_assert(table->dbhandle, "Table has no dbhandle. Did you open the hashtable already?");
+	
+	return osync_db_count(table->dbhandle, "tbl_hash");
+}
+
+//FIXME!!!
+osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash)
+{
+	osync_assert(table, "No table was given");
+	osync_assert(table->dbhandle, "Table has no dbhandle. Did you open the hashtable already?");
+	
+	sqlite3 *sdb = table->dbhandle->db;
+	
+	sqlite3_stmt *ppStmt = NULL;
+	char *query = g_strdup_printf("SELECT uid, hash FROM tbl_hash LIMIT 1 OFFSET %i", i);
+	sqlite3_prepare(sdb, query, -1, &ppStmt, NULL);
+	sqlite3_step(ppStmt);
+	*uid = g_strdup(sqlite3_column_text(ppStmt, 0));
+	*hash = g_strdup(sqlite3_column_text(ppStmt, 1));
+	sqlite3_finalize(ppStmt);
+	g_free(query);
+	return TRUE;
 }
 
 void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
@@ -92,64 +68,40 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 		case CHANGE_ADDED:
-			osync_db_put(table->dbhandle, change->uid, strlen(change->uid) + 1, change->hash, strlen(change->hash) + 1);
+			osync_db_save_hash(table, change->uid, change->hash);
 			break;
 		case CHANGE_DELETED:
-			osync_db_del(table->dbhandle, change->uid, strlen(change->uid) + 1);
+			osync_db_delete_hash(table, change->uid);
 			break;
 		default:
 			g_assert_not_reached();
 	}
 }
 
-void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context, osync_bool slow_sync)
-{
-	if (slow_sync)
-		return;
-	
-	DBC *dbcp = osync_db_cursor_new(table->dbhandle);
-
-	void *uidp;
-	void *hashp;
-
-	while (osync_db_cursor_next(dbcp, &uidp, &hashp)) {
-		char *uid = (char *)uidp;
-		char *hash = (char *)hashp;
-		if (!g_hash_table_lookup(table->used_entries, uid)) {
-			OSyncChange *change = osync_change_new();
-			change->changetype = CHANGE_DELETED;
-			osync_change_set_hash(change, hash);
-			osync_change_set_uid(change, uid);
-			osync_context_report_change(context, change);
-			osync_hashtable_update_hash(table, change);
-		}
-	}
-	osync_db_cursor_close(dbcp);
+void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context)
+{	
+	osync_db_report_hash(table, context);
 }
 
-osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change, osync_bool slow_sync)
+osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change)
 {
-	osync_bool retval = FALSE;;
-	void *hashp = NULL;
-	retval = FALSE;
-	if (slow_sync) {
-		change->changetype = CHANGE_ADDED;
-		retval = TRUE;
-	} else {
-		if (osync_db_get(table->dbhandle, change->uid, strlen(change->uid) + 1, &hashp)) {
-			char *hash = (char *)hashp;
-			if (strcmp(hash, change->hash) == 0) {
-				change->changetype = CHANGE_UNMODIFIED;
-				retval = FALSE;
-			} else {
-				change->changetype = CHANGE_MODIFIED;
-				retval = TRUE;
-			}
+	osync_bool retval = FALSE;
+
+	char *hash = NULL;
+	osync_db_get_hash(table, change->uid, &hash);
+	if (hash) {
+		if (strcmp(hash, change->hash) == 0) {
+			change->changetype = CHANGE_UNMODIFIED;
+			retval = FALSE;
 		} else {
-			change->changetype = CHANGE_ADDED;
+			change->changetype = CHANGE_MODIFIED;
 			retval = TRUE;
 		}
+	} else {
+		change->changetype = CHANGE_ADDED;
+		retval = TRUE;
 	}
+
 	g_hash_table_insert(table->used_entries, change->uid, (void *)1);
 	return retval;
 }

@@ -210,25 +210,19 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	context->callback_function = function;
 	context->calldata = user_data;
 
-	printf("STARTING TO COMNMIT!\n");
-
 	OSyncFormatEnv *env = osync_member_get_format_env(member);
-	if (!change->objtype || osync_conv_objtype_is_any(change->objtype->name)) {
-		printf("Starting to detect objtype!\n");
+	if (!change->objtype || osync_conv_objtype_is_any(change->objtype->name))
 		osync_conv_detect_objtype(env, change);
-		printf("objtype is now %s!\n", change->objtype->name);
-	}
+	
 	OSyncObjType *type = change->objtype;
 	
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, type->name);
 	if (!sink) {
-		printf("no sink TO COMNMIT for objtype %s!\n", type->name);
 		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
 		return;
 	}
 
 	if (!sink->enabled) {
-		printf(" objtype %s not enabled!\n", type->name);
 		osync_context_report_success(context);
 		return;
 	}
@@ -244,7 +238,6 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		return;
 	}
 
-	printf("Ending TO COMNMIT!\n");
 	frmtsink->functions.commit_change(context, change);
 }
 
@@ -491,16 +484,16 @@ void osync_member_save(OSyncMember *member)
 	g_free(filename);
 }
 
-unsigned int osync_member_get_id(OSyncMember *member)
+long long int osync_member_get_id(OSyncMember *member)
 {
-	g_assert(member != NULL);
+	g_assert(member);
 	return member->id;
 }
 
 void osync_member_create(OSyncMember *member)
 {
 	member->id = osync_group_create_member_id(member->group);
-	member->configdir = g_strdup_printf("%s/%i", member->group->configdir, member->id);
+	member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
 	osync_member_save(member);
 }
 

@@ -131,7 +131,6 @@ void osync_print_binary(unsigned char *data, int len);
  * Prototypes
  *************************************************************/
 
-#include "opensync_db.h"
 #include "opensync_env.h"
 #include "opensync_plugin.h"
 #include "opensync_group.h"
