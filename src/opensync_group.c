@@ -598,4 +598,21 @@ OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
 	return g_list_nth_data(group->filters, nth);
 }
 
+/*! @brief Flushes the list of filters for a group
+ *
+ * Clean the list of filters on the group
+ */
+void osync_group_flush_filters(OSyncGroup *group)
+{
+	g_assert(group);
+	while (group->filters) {
+		OSyncFilter *f = g_list_nth_data(group->filters, 0);
+		osync_filter_free(f);
+
+		/* Delete the first item */
+		group->filters = g_list_delete_link(group->filters, group->filters);
+	}
+}
+
+
 /*@}*/

@@ -5,5 +5,8 @@ void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter);
 void osync_filter_free(OSyncFilter *filter);
 void osync_filter_set_config(OSyncFilter *filter, const char *config);
 const char *osync_filter_get_config(OSyncFilter *filter);
-void osync_filter_flush(OSyncGroup *group);
+
+const char *osync_filter_get_sourceobjtype(OSyncFilter *filter);
+const char *osync_filter_get_destobjtype(OSyncFilter *filter);
+const char *osync_filter_get_detectobjtype(OSyncFilter *filter);
 

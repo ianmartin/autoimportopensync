@@ -25,3 +25,5 @@ OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group);
 
 int osync_group_num_filters(OSyncGroup *group);
 OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth);
+void osync_group_flush_filters(OSyncGroup *group);
+

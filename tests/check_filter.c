@@ -53,7 +53,7 @@ START_TEST (filter_flush)
 	fail_unless(osync_group_nth_filter(group, 1) == filter2, NULL);
 	
 	mark_point();
-	osync_filter_flush(group);
+	osync_group_flush_filters(group);
 	fail_unless(osync_group_num_filters(group) == 0, NULL);
 
 	destroy_testbed(testbed);
