@@ -22,6 +22,15 @@ opensyncinclude_HEADERS = \
 	opensync_convert.h \
 	opensync_anchor.h
 
+EXTRA_DIST = \
+	opensync_internals.h \
+	opensync_anchor.h \
+	opensync_db_bdb.h \
+	opensync_db_internals.h \
+	opensync_format_internals.h \
+	opensync_member_internals.h \
+	opensync_plugin_internals.h
+
 libopensync_la_SOURCES = \
 	opensync_debug.c \
 	opensync_env.c \
