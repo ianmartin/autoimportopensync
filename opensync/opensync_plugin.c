@@ -122,45 +122,70 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncErro
  * @return Pointer to the plugin on success, NULL otherwise
  * 
  */
-OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error)
+osync_bool osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error)
 {
+	GModule *module;
+
 	osync_trace(TRACE_ENTRY, "osync_plugin_load(%p, %s, %p)", env, path, error);
 	/* Check if this platform supports dynamic
 	 * loading of modules */
 	if (!g_module_supported()) {
 		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
-		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
-		return NULL;
+		goto error;
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	OSyncPlugin *plugin = osync_plugin_new(env);
-	plugin->real_plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
+	module = g_module_open(path, 0); //G_MODULE_BIND_LOCAL);
 
-	if (!plugin->real_plugin) {
+	if (!module) {
 		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
-		osync_plugin_free(plugin);
-		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
-		return NULL;
+		goto error;
 	}
 	
+	/* There are two type of plugins: simple plugins and multiple plugins.
+	 *
+	 * - Simple plugins register only one plugin object
+	 * - Multiple plugins can register many plugins. Plugins for modules
+	 *   in other languages (such as python-module plugin) can use this
+	 *   feature
+	 */
 	void (* fct_info)(OSyncPluginInfo *info);
-	if (!(fct_info = osync_plugin_get_function(plugin, "get_info", error))) {
-		osync_debug("OSPLG", 0, "Unable to open plugin: Missing symbol get_info");
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin: Missing symbol get_info");
-		osync_plugin_unload(plugin);
-		osync_plugin_free(plugin);
-		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
-		return NULL;
+	void (* fct_register)(OSyncEnv *env);
+	if (!g_module_symbol(module, "get_info", (void*)&fct_info))
+		fct_info = NULL;
+	if (!g_module_symbol(module, "register_plugins", (void*)&fct_register))
+		fct_register = NULL;
+	if (!fct_info && !fct_register) {
+		osync_debug("OSPLG", 0, "Unable to open plugin: No get_info or register_plugins symbol");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Module %s is not a valid OpenSync plugin (no symbol get_info or register_plugins)", path);
+		goto error_unload;
 	}
 	
-	fct_info(&(plugin->info));
-	plugin->path = g_strdup(path);
+	/* Simple plugin: call get_info */
+	if (fct_info) {
+		OSyncPlugin *plugin = osync_plugin_new(env);
+		plugin->real_plugin = module;
+		fct_info(&(plugin->info));
+		plugin->path = g_strdup(path);
+		osync_trace(TRACE_INTERNAL, "osync_plugin_load: simple plugin: %p", plugin);
+	}
+
+	/* Multiple plugin: call register_plugins */
+	if (fct_register) {
+		osync_trace(TRACE_INTERNAL, "osync_plugin_load: multiple plugin");
+		fct_register(env);
+	}
 	
-	osync_trace(TRACE_EXIT, "osync_plugin_load: %p", plugin);
-	return plugin;
+	osync_trace(TRACE_EXIT, "osync_plugin_load");
+	return TRUE;
+
+error_unload:
+	g_module_close(module);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
+	return FALSE;
 }
 
 /*! @brief unloads a previously loaded plugin
@@ -269,6 +294,18 @@ OSyncPluginTimeouts osync_plugin_get_timeouts(OSyncPlugin *plugin)
 	return plugin->info.timeouts;
 }
 
+/*! @brief Returns the plugin_info data, set by the plugin
+ *
+ * @param plugin Pointer to the plugin
+ * @returns The void pointer set on plugin->info.plugin_data
+ */
+void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
+{
+	g_assert(plugin);
+	return plugin->info.plugin_data;
+}
+
+
 OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template)
 {
 	g_assert(group);
@@ -361,6 +398,23 @@ OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const
  * 
  */
 /*@{*/
+
+/*! @brief Registers a new plugin
+ *
+ * This function creates a new OSyncPluginInfo object, that
+ * can be used to register a new plugin dynamically. This
+ * can be used by a module to register multiple plugins,
+ * instead of using get_info() function, that allows
+ * registering of only one plugin.
+ */
+OSyncPluginInfo *osync_plugin_new_info(OSyncEnv *env)
+{
+	OSyncPlugin *plg = osync_plugin_new(env);
+	if (!plg)
+		return NULL;
+
+	return &plg->info;
+}
 
 /*! @brief Tells opensync that the plugin can accepts this object
  * 

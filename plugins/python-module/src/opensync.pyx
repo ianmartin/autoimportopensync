@@ -28,6 +28,8 @@ cdef extern from "opensync/opensync.h":
 	void osync_change_set_objformat_string(OSyncChange *change, char *name)
 	OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 	void osync_change_set_member(OSyncChange *change, OSyncMember *member)
+	void osync_change_ref(OSyncChange *change)
+	void osync_change_decref(OSyncChange *change)
 	
 	#objformat methods
 	char *osync_objformat_get_name(OSyncObjFormat *format)
@@ -38,8 +40,20 @@ cdef extern from "opensync/opensync.h":
 	void osync_context_report_success(OSyncContext *context)
 
 cdef extern from "pywrap.h":
+	ctypedef struct PythonPluginInfo
+
+	# pyrex doesn't handle typecasts gracefully,
+	# so the functions below are just macros that
+	# do typecasts
 	OSyncMember *osync_member_from_void(void *m)
 	OSyncContext *osync_context_from_void(void *c)
+	OSyncChange *osync_change_from_void(void *c)
+	PythonPluginInfo *osync_plginfo_from_void(void *v)
+
+
+	void pywrap_accept_objtype(PythonPluginInfo *info, char *objtype)
+	void pywrap_accept_objformat(PythonPluginInfo *info, char *objtype, char *objformat, char *extension)
+	void pywrap_set_name_and_version(PythonPluginInfo *info, char *name, int version)
 
 cdef class Member:
 	"""opensync OSyncMember object"""
@@ -58,25 +72,30 @@ cdef class Member:
 		v = PyCObject_AsVoidPtr(m)
 		self.memb = osync_member_from_void(v)
 
+# forward declaration
 cdef class Change
 
 cdef class Context:
 	"""opensync OSyncContext object"""
 	cdef OSyncContext *ctx
-	cdef void *v
 	def __new__(self, c):
 		"""Never call this method from python code.
 		
 		Objects of this class are created only internally by OpenSync
 		"""
-		# Another hack like the OSyncMember hack above,
-		# to be able to convert a python object
-		# to OSyncContext *
 		cdef void *v
 		v = PyCObject_AsVoidPtr(c)
 		self.ctx = osync_context_from_void(v)
 
 	def report_change(self, Change chg):
+		# call _ref() to avoid the change
+		# from being free()d after destroying
+		# the python opensync.Change object
+		osync_change_ref(chg.chg)
+		#FIXME: Are we supposed to call ref() here,
+		# or osync_context_report_change() implies
+		# on a _ref() call?
+
 		osync_context_report_change(self.ctx, chg.chg)
 
 	def report_success(self):
@@ -89,12 +108,23 @@ cdef class Context:
 cdef class Change:
 	cdef OSyncChange *chg
 
-	def __new__(self, Member member):
-		self.chg = osync_change_new()
-		osync_change_set_member(self.chg, member.memb)
+	def __new__(self, Member member, chg = None):
+		"""Creates a new change object
+
+		The chg parameter can be used only internally
+		by OpenSync. It is a CObject containing
+		an existing OSyncChange"""
+		cdef void *v
+		if chg is None:
+			self.chg = osync_change_new()
+			osync_change_set_member(self.chg, member.memb)
+		else:
+			v = PyCObject_AsVoidPtr(chg)
+			self.chg = osync_change_from_void(v)
+			osync_change_ref(self.chg)
 
 	def __dealloc__(self):
-		osync_change_free(self.chg)
+		osync_change_decref(self.chg)
 
 	def set_objformat(self, name):
 		osync_change_set_objformat_string(self.chg, name)
@@ -105,5 +135,35 @@ cdef class Change:
 		if f: return osync_objformat_get_name(f)
 		else: return None
 
+cdef class PluginInfo:
+	"""opensync OSyncPluginInfo object"""
+
+	# python_module.c should be able to tell,
+	# somehow, which functions should be registered,
+	# pyinfo is used for that
+	cdef PythonPluginInfo *info
+
+	def __new__(self, info):
+		"""Never call this method from python code.
+		
+		Objects of this class are created only internally by OpenSync
+		"""
+		cdef void *v
+		v = PyCObject_AsVoidPtr(info)
+		self.info = osync_plginfo_from_void(v)
+
+	def accept_objtype(self, objtype):
+		pywrap_accept_objtype(self.info, objtype)
+	
+	def accept_objformat(self, objtype, objformat, extension = None):
+		cdef char *ext
+		if extension is None:
+			ext = NULL
+		else:
+			ext = extension
+		pywrap_accept_objformat(self.info, objtype, objformat, ext)
+
+	def set_name(self, name, version):
+		pywrap_set_name_and_version(self.info, name, version);
 
 # vim:ft=python

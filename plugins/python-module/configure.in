@@ -66,14 +66,21 @@ AC_CACHE_CHECK([for python SDK], [os_cv_python_sdk],
 		AC_SUBST(PYTHON_LIBS)
 		os_cv_python_sdk=yes])])])
 
-OPENSYNC_PLUGINDIR=${libdir}/opensync/plugins
-AC_SUBST(OPENSYNC_PLUGINDIR)
+PKG_CHECK_MODULES(OSYNC, [opensync-1.0])
 
+OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
+OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
+OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync-1.0)
+OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync-1.0)
+
+AC_SUBST(OPENSYNC_CONFIGDIR)
+AC_SUBST(OPENSYNC_PLUGINDIR)
+AC_SUBST(OPENSYNC_FORMATSDIR)
+AC_SUBST(OPENSYNC_HEADERDIR)
+
+#FIXME: Set the python plugin path using a better method, instead of just
+# using libdir
 OPENSYNC_PYTHONPLG_DIR=${libdir}/opensync/python-plugins
 AC_SUBST(OPENSYNC_PYTHONPLG_DIR)
-
-#FIXME: install opensync module on python library path, not on opensync directory
-OPENSYNC_PYTHONLIB_DIR=${libdir}/opensync/python
-AC_SUBST(OPENSYNC_PYTHONLIB_DIR)
 
 AC_OUTPUT([Makefile])

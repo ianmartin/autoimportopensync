@@ -110,6 +110,7 @@ typedef struct OSyncPluginInfo {
 	OSyncPluginFunctions functions;
 	OSyncPluginTimeouts timeouts;
 	OSyncPlugin *plugin;
+	void *plugin_data;
 } OSyncPluginInfo;
 
 typedef enum {
