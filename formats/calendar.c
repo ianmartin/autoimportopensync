@@ -21,7 +21,7 @@ static OSyncConvCmpResult compare_vcalendar(OSyncChange *leftchange, OSyncChange
 static osync_bool detect_plain_as_vcalendar(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
-	if (!size >= 15 && strncmp(data, "BEGIN:VCALENDAR", 11))
+	if (size >= 15 && !strncmp(data, "BEGIN:VCALENDAR", 15))
 		return TRUE;
 	return FALSE;
 }
