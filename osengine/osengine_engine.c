@@ -1027,4 +1027,9 @@ void osync_engine_one_iteration(OSyncEngine *engine)
 	itm_queue_dispatch(engine->incoming);
 }
 
+OSyncMapping *osync_engine_mapping_from_id(OSyncEngine *engine, long long id)
+{
+	return osengine_mappingtable_mapping_from_id(engine->maptable, id);
+}
+
 /*@}*/

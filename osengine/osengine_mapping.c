@@ -98,6 +98,17 @@ OSyncMapping *osengine_mappingtable_find_mapping(OSyncMappingTable *table, OSync
 	return NULL;
 }
 
+OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id)
+{
+	GList *m;
+	for (m = table->mappings; m; m = m->next) {
+		OSyncMapping *mapping = m->data;
+		if (mapping->id == id)
+			return mapping;
+	}
+	return NULL;
+}
+
 OSyncMappingView *osengine_mappingtable_find_view(OSyncMappingTable *table, OSyncMember *member)
 {
 	GList *v;
@@ -289,6 +300,11 @@ int osengine_mapping_num_changes(OSyncMapping *mapping)
 OSyncChange *osengine_mapping_nth_change(OSyncMapping *mapping, int nth)
 {
 	return ((OSyncMappingEntry *)g_list_nth_data(mapping->entries, nth))->change;
+}
+
+long long osengine_mapping_get_id(OSyncMapping *mapping)
+{
+	return mapping->id;
 }
 
 void osengine_mapping_reset(OSyncMapping *mapping)

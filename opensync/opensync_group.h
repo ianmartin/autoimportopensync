@@ -8,7 +8,7 @@ typedef enum OSyncLockState {
 } OSyncLockState;
 
 OSyncLockState osync_group_lock(OSyncGroup *group);
-void osync_group_unlock(OSyncGroup *group, osync_bool remove);
+void osync_group_unlock(OSyncGroup *group, osync_bool remove_file);
 
 void osync_group_set_name(OSyncGroup *group, const char *name);
 const char *osync_group_get_name(OSyncGroup *group);
