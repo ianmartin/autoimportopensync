@@ -49,4 +49,5 @@ AC_SUBST(OPENSYNC_HEADERDIR)
 AC_OUTPUT([
 Makefile
 src/Makefile
+misc/evolution2.spec
 ])
