@@ -206,7 +206,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
                 // object type and format
                 osync_change_set_objtype_string(chg, "contact");
-                osync_change_set_objformat_string(chg, "vcard");
+                osync_change_set_objformat_string(chg, "vcard21");
 
                 // Use the hash table to check if the object
                 // needs to be reported
