@@ -88,6 +88,10 @@ struct OSyncMember {
 	long long int id;
 	GList *format_sinks;
 	GList *objtype_sinks;
+	
+	//For the filters
+	GList *accepted_objtypes;
+	GList *filters;
 
 	OSyncChangeHook before_convert_hook;
 };
@@ -160,4 +164,5 @@ struct OSyncMappingTable {
 #include "opensync_format_internals.h"
 #include "opensync_member_internals.h"
 #include "opensync_plugin_internals.h"
+#include "opensync_filter_internals.h"
 #include <sys/stat.h>

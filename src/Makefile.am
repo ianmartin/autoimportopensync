@@ -20,7 +20,8 @@ opensyncinclude_HEADERS = \
 	opensync_hashtable.h \
 	opensync_context.h \
 	opensync_convert.h \
-	opensync_anchor.h
+	opensync_anchor.h \
+	opensync_filter.h
 
 EXTRA_DIST = \
 	opensync_internals.h \
@@ -29,7 +30,8 @@ EXTRA_DIST = \
 	opensync_db_internals.h \
 	opensync_format_internals.h \
 	opensync_member_internals.h \
-	opensync_plugin_internals.h
+	opensync_plugin_internals.h \
+	opensync_filter_internals.h
 
 libopensync_la_SOURCES = \
 	opensync_debug.c \
@@ -45,7 +47,8 @@ libopensync_la_SOURCES = \
 	opensync_error.c \
 	opensync_context.c \
 	opensync_convert.c \
-	opensync_anchor.c
+	opensync_anchor.c \
+	opensync_filter.c
 	
 libopensync_la_LDFLAGS = @PACKAGE_LIBS@
 libopensync_la_LIBADD = @XML_LIBS@

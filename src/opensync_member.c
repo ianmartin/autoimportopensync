@@ -269,7 +269,16 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	xmlDocPtr doc;
 	doc = xmlNewDoc("1.0");
 	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
+	//The plugin name
 	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
+	//The accepted object types
+	GList *o;
+	for (o = member->objtype_sinks; o; o = o->next) {
+		OSyncObjTypeSink *sink = o->data;
+		if (osync_conv_objtype_is_any(sink->objtype->name) || !strcmp(sink->objtype->name, objtypestr))
+			return sink;
+	}
+	return NULL;
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);

@@ -187,5 +187,6 @@ void osync_print_binary(const unsigned char *data, int len);
 #include "opensync_context.h"
 #include "opensync_convert.h"
 #include "opensync_anchor.h"
+#include "opensync_filter.h"
 
 #endif

@@ -440,4 +440,50 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	return osync_objtype->needs_slow_sync;
 }
 
+/*! @brief Returns if the object type is enabled for the group
+ * 
+ * Returns TRUE if the object type is enabled for the group. Note that this
+ * information is saved on a per member basis. If one of the members has this object type enabled
+ * this function will return TRUE
+ * 
+ * @param group The group
+ * @param objtype The name of the object type
+ * @returns TRUE if the object type is enabled for at least one member. FALSE if for none
+ * 
+ */
+osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
+{
+	//FIXME We should actually return a 3-state here.
+	//0 if none is enabled
+	//"0.5" if some are enabled, some are not
+	//1 if all are enabled
+	g_assert(group);
+	GList *m;
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		if (osync_member_objtype_enabled(member, objtype))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/*! @brief Sets if the object type is accepted for ALL members
+ * 
+ * BUG We loose information if only some members are enabled
+ * 
+ * @param group The group
+ * @param objtypestr The name of the object type
+ * @param enabled What do you want to set today?
+ * 
+ */
+void osync_group_set_objtype_enabled(OSyncMember *group, const char *objtypestr, osync_bool enabled)
+{
+	g_assert(group);
+	GList *m;
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		osync_group_set_objtype_enabled(member, objtypestr, enabled);
+	}
+}
+
 /*@}*/
