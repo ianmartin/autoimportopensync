@@ -1,6 +1,6 @@
 #include "support.h"
 
-static void conv_vcal(const char *filename)
+static void conv_vnote(const char *filename)
 {
 	char *command = g_strdup_printf("cp %s/%s .", g_get_current_dir(), filename);
 	char *testbed = setup_testbed(NULL);
@@ -32,13 +32,7 @@ static void conv_vcal(const char *filename)
 	osync_change_set_objformat(change, sourceformat);
 	osync_change_set_objtype(change, osync_objformat_get_objtype(sourceformat));
 	
-	OSyncObjFormat *targetformat = NULL;
-	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo10"))
-		targetformat = osync_conv_find_objformat(conv_env, "vtodo20");
-	
-	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo20"))
-		targetformat = osync_conv_find_objformat(conv_env, "vtodo10");
-
+	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-note");
 	fail_unless(targetformat != NULL, NULL);
 	
 	OSyncChange *newchange = osync_change_copy(change, &error);
@@ -63,8 +57,60 @@ static void conv_vcal(const char *filename)
 	destroy_testbed(testbed);
 }
 
+static void compare_vnote(const char *lfilename, const char *rfilename, OSyncConvCmpResult result)
+{
+	char *command1 = g_strdup_printf("cp %s/%s lfile", g_get_current_dir(), lfilename);
+	char *command2 = g_strdup_printf("cp %s/%s rfile", g_get_current_dir(), rfilename);
+	char *testbed = setup_testbed(NULL);
+	system(command1);
+	g_free(command1);
+	system(command2);
+	g_free(command2);
+	
+	OSyncError *error = NULL;
+	OSyncEnv *env = init_env();
+	
+	OSyncFormatEnv *conv_env = osync_conv_env_new(env);
+	fail_unless(conv_env != NULL, NULL);
 
-static time_t vcal_get_revision(const char *filename)
+	char *buffer;
+	int size;
+	
+	fail_unless(osync_file_read("lfile", &buffer, &size, &error), NULL);
+	
+	OSyncChange *lchange = osync_change_new();
+	osync_change_set_uid(lchange, "lfile");
+	osync_change_set_data(lchange, buffer, size + 1, TRUE);
+	osync_change_set_conv_env(lchange, conv_env);
+	osync_change_set_objformat_string(lchange, "plain");
+
+	OSyncObjFormat *sourceformat = osync_change_detect_objformat(conv_env, lchange, &error);
+	fail_unless(sourceformat != NULL, NULL);
+	osync_change_set_objformat(lchange, sourceformat);
+	osync_change_set_objtype(lchange, osync_objformat_get_objtype(sourceformat));
+	
+	fail_unless(osync_file_read("rfile", &buffer, &size, &error), NULL);
+	
+	OSyncChange *rchange = osync_change_new();
+	osync_change_set_uid(rchange, "rfile");
+	osync_change_set_data(rchange, buffer, size + 1, TRUE);
+	osync_change_set_conv_env(rchange, conv_env);
+	osync_change_set_objformat_string(rchange, "plain");
+
+	sourceformat = osync_change_detect_objformat(conv_env, rchange, &error);
+	fail_unless(sourceformat != NULL, NULL);
+	osync_change_set_objformat(rchange, sourceformat);
+	osync_change_set_objtype(rchange, osync_objformat_get_objtype(sourceformat));
+	
+	fail_unless(osync_change_compare(lchange, rchange) == result, NULL);
+	
+	osync_conv_env_free(conv_env);
+	osync_env_finalize(env, NULL);
+	osync_env_free(env);
+	destroy_testbed(testbed);
+}
+
+static time_t vnote_get_revision(const char *filename)
 {
 	char *command = g_strdup_printf("cp %s/%s .", g_get_current_dir(), filename);
 	char *testbed = setup_testbed(NULL);
@@ -96,10 +142,10 @@ static time_t vcal_get_revision(const char *filename)
 	fail_unless(sourceformat != NULL, NULL);
 	osync_change_set_objformat(change, sourceformat);
 	
-	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-todo");
+	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-note");
 	fail_unless(targetformat != NULL, NULL);
 	
-	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, "evolution", &error), NULL);
+	fail_unless(osync_change_convert(conv_env, change, targetformat, &error), NULL);
 	
 	time_t time = osync_change_get_revision(change, &error);
 	
@@ -111,47 +157,104 @@ static time_t vcal_get_revision(const char *filename)
 	return time;
 }
 
-START_TEST (conv_vcal_evolution2_full1)
+START_TEST (conv_vnote1)
 {
-	conv_vcal("data/vtodos/evolution2/todo-full1.vcf");
+	conv_vnote("data/vnotes/vnote1.vnt");
 }
 END_TEST
 
-START_TEST (todo_get_revision1)
+START_TEST (conv_vnote2)
 {
-	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full1.vcf") == 1110067010, NULL);
+	conv_vnote("data/vnotes/vnote2.vnt");
 }
 END_TEST
 
-START_TEST (todo_get_revision2)
+START_TEST (conv_vnote3)
 {
-	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full2.vcf") == 1110067010, NULL);
+	conv_vnote("data/vnotes/vnote3.vnt");
 }
 END_TEST
 
-START_TEST (todo_get_revision3)
+START_TEST (conv_vnote_minimal)
 {
-	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full3.vcf") == 1110063600, NULL);
+	conv_vnote("data/vnotes/vnote-minimal.vnt");
 }
 END_TEST
 
-START_TEST (todo_no_revision)
+START_TEST (get_revision1)
 {
-	fail_unless(vcal_get_revision("data/vtodos/kdepim/todo-full1.vcs") == -1, NULL);
+	fail_unless(vnote_get_revision("data/vnotes/vnote1.vnt") == 1112742000, NULL);
 }
 END_TEST
 
-Suite *vcal_suite(void)
+START_TEST (get_revision2)
 {
-	Suite *s = suite_create("VCal");
-	//Suite *s2 = suite_create("VCal");
+	fail_unless(vnote_get_revision("data/vnotes/vnote2.vnt") == 1112745661, NULL);
+}
+END_TEST
+
+START_TEST (get_revision3)
+{
+	fail_unless(vnote_get_revision("data/vnotes/vnote3.vnt") == 1112742000, NULL);
+}
+END_TEST
+
+START_TEST (get_revision4)
+{
+	fail_unless(vnote_get_revision("data/vnotes/vnote-minimal.vnt") == -1, NULL);
+}
+END_TEST
+
+START_TEST (compare_vnote_same1)
+{
+	compare_vnote("data/vnotes/vnote1.vnt", "data/vnotes/vnote1.vnt", CONV_DATA_SAME);
+}
+END_TEST
+
+START_TEST (compare_vnote_same2)
+{
+	compare_vnote("data/vnotes/vnote1.vnt", "data/vnotes/vnote1-same.vnt", CONV_DATA_SAME);
+}
+END_TEST
+
+START_TEST (compare_vnote_similar1)
+{
+	compare_vnote("data/vnotes/vnote1.vnt", "data/vnotes/vnote1-similar.vnt", CONV_DATA_SIMILAR);
+}
+END_TEST
+
+START_TEST (compare_vnote_mismatch1)
+{
+	compare_vnote("data/vnotes/vnote1.vnt", "data/vnotes/vnote2.vnt", CONV_DATA_MISMATCH);
+}
+END_TEST
+
+START_TEST (compare_vnote_mismatch2)
+{
+	compare_vnote("data/vnotes/vnote1.vnt", "data/vnotes/vnote-minimal.vnt", CONV_DATA_MISMATCH);
+}
+END_TEST
+
+Suite *vnote_suite(void)
+{
+	Suite *s = suite_create("VNote");
+	//Suite *s2 = suite_create("VNote");
 	
-	create_case(s, "conv_vcal_evolution2_full1", conv_vcal_evolution2_full1);
+	create_case(s, "conv_vnote1", conv_vnote1);
+	create_case(s, "conv_vnote2", conv_vnote2);
+	create_case(s, "conv_vnote3", conv_vnote3);
+	create_case(s, "conv_vnote_minimal", conv_vnote_minimal);
 	
-	create_case(s, "todo_get_revision1", todo_get_revision1);
-	create_case(s, "todo_get_revision2", todo_get_revision2);
-	create_case(s, "todo_get_revision3", todo_get_revision3);
-	create_case(s, "todo_no_revision", todo_no_revision);
+	create_case(s, "get_revision1", get_revision1);
+	create_case(s, "get_revision2", get_revision2);
+	create_case(s, "get_revision3", get_revision3);
+	create_case(s, "get_revision4", get_revision4);
+	
+	create_case(s, "compare_vnote_same1", compare_vnote_same1);
+	create_case(s, "compare_vnote_same2", compare_vnote_same2);
+	create_case(s, "compare_vnote_similar1", compare_vnote_similar1);
+	create_case(s, "compare_vnote_mismatch1", compare_vnote_mismatch1);
+	create_case(s, "compare_vnote_mismatch2", compare_vnote_mismatch2);
 	
 	return s;
 }
@@ -160,7 +263,7 @@ int main(void)
 {
 	int nf;
 
-	Suite *s = vcal_suite();
+	Suite *s = vnote_suite();
 	
 	SRunner *sr;
 	sr = srunner_create(s);

@@ -2,7 +2,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -Werror @XML_CFLAGS@
 
-EXTRA_DIST = mock_sync.h
+EXTRA_DIST = mock_sync.h Makefile.in
 
 lib_LTLIBRARIES = mock_sync.la mockformat.la
 
