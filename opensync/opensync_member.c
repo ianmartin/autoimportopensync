@@ -516,9 +516,11 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		 * changes should come with the right objformat/objtype set,
 		 * because not detection/conversion will be run
 		 */
-		if (!osync_change_convert_member_sink(env, change, member)) {
+		OSyncError *error = NULL;
+		if (!osync_change_convert_member_sink(env, change, member, &error)) {
 			osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
 			osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+			osync_error_free(&error);
 			return;
 		}
 		//The destobjtype is the objtype of the format to which

@@ -134,7 +134,7 @@ static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool conv
 
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_converter_invoke(%p, %p, %p) %i", converter, change, error);
+	osync_trace(TRACE_ENTRY, "osync_converter_invoke(%p, %p, %p)", converter, change, error);
 	osync_trace(TRACE_INTERNAL, "converter: Type: %i, source: %s, target %s", converter->type, converter->source_format->name, converter->target_format->name);
 	char *data = NULL;
 	int datasize = 0;
@@ -148,43 +148,44 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	if (change->data) {
 		//Invoke the converter and all extensions
 		osync_conv_invoke_extensions(converter->source_format, FALSE, change);
-		osync_bool free_input;
-		ret = converter->convert_func(change->data, change->size, &data, &datasize, &free_input, error);
-
-		if (converter->type == CONVERTER_DECAP) {
-			if (!free_input) {
-				/* Duplicate the returned data, as the original data will be destroyed */
-				if (!converter->target_format->copy_func) {
-					/* There is nothing we can do, here. The returned data is a reference, but
-					 * we can't copy the data before destroying it
-					 */
-					osync_debug("OSYNC", 0, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
-					osync_error_set(error, OSYNC_ERROR_GENERIC, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
-					osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke: %s", osync_error_print(error));
-					return FALSE;
-				}
-				converter->target_format->copy_func(data, datasize, &data, &datasize);
-			}
-		}
-		/* Free the data, unless the converter took the ownership of the data */
-		if (free_input) {
-			if (converter->source_format->destroy_func) {
-				converter->source_format->destroy_func(change->data, change->size);
-			} else
-				osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak", converter->source_format->name);
-		}
-		change->data = data;
-		change->size = datasize;
+		osync_bool free_input = FALSE;
+		if ((ret = converter->convert_func(change->data, change->size, &data, &datasize, &free_input, error))) {
 		
-		osync_conv_invoke_extensions(converter->target_format, TRUE, change);
+			if (converter->type == CONVERTER_DECAP) {
+				if (!free_input) {
+					/* Duplicate the returned data, as the original data will be destroyed */
+					if (!converter->target_format->copy_func) {
+						/* There is nothing we can do, here. The returned data is a reference, but
+						 * we can't copy the data before destroying it
+						 */
+						osync_debug("OSYNC", 0, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
+						osync_error_set(error, OSYNC_ERROR_GENERIC, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
+						osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke: %s", osync_error_print(error));
+						return FALSE;
+					}
+					converter->target_format->copy_func(data, datasize, &data, &datasize);
+				}
+			}
+			/* Free the data, unless the converter took the ownership of the data */
+			if (free_input) {
+				if (converter->source_format->destroy_func) {
+					converter->source_format->destroy_func(change->data, change->size);
+				} else
+					osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak", converter->source_format->name);
+			}
+			change->data = data;
+			change->size = datasize;
+			
+			osync_conv_invoke_extensions(converter->target_format, TRUE, change);
+		}
 	}
-	osync_debug("OSYNC", 3, "Converting! replacing format %s with %s", converter->source_format->name, converter->target_format->name);
-	change->format = converter->target_format;
-	change->objtype = change->format->objtype;
-
-	if (ret)
+	
+	if (ret) {
+		osync_debug("OSYNC", 3, "Converting! replacing format %s with %s", converter->source_format->name, converter->target_format->name);
+		change->format = converter->target_format;
+		change->objtype = change->format->objtype;
 		osync_trace(TRACE_EXIT, "osync_converter_invoke: TRUE");
-	else
+	} else
 		osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke: %s", osync_error_print(error));
 	return ret;
 }
@@ -466,13 +467,9 @@ static osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *star
 	}
 	
 free_tree:
-	osync_trace(TRACE_INTERNAL, "Invoked detector for converter from TRUE1");
 	g_list_free(tree->unused);
-	osync_trace(TRACE_INTERNAL, "Invoked detector for converter from  TRUE2");
 	g_list_free(tree->search);
-	osync_trace(TRACE_INTERNAL, "Invoked detector for converter from  TRUE3 %p", tree);
 	g_free(tree);
-	osync_trace(TRACE_INTERNAL, "Invoked detector for converter from  TRUE4");
 	if (ret)
 		osync_trace(TRACE_EXIT, "osync_conv_find_path_fn: TRUE");
 	else
@@ -616,9 +613,9 @@ static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
 
 /** Convert a change to the nearest format sink on a member
  */
-osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb)
+osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb, OSyncError **error)
 {
-	return osync_conv_convert_fn(env, change, target_fn_membersink, memb, NULL);
+	return osync_conv_convert_fn(env, change, target_fn_membersink, memb, error);
 }
 
 osync_bool osync_conv_objtype_is_any(const char *objstr)
@@ -870,15 +867,13 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
 	g_assert(leftchange);
 
 	OSyncError *error = NULL;
-	osync_change_convert_to_common(leftchange, &error);
-	if (error) {
+	if (!osync_change_convert_to_common(leftchange, &error)) {
 		osync_trace(TRACE_INTERNAL, "osync_change_compare: %s", osync_error_print(&error));
 		osync_error_free(&error);
 		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Could not convert leftchange to common format");
 		return CONV_DATA_MISMATCH;
 	}
-	osync_change_convert_to_common(rightchange, &error);
-	if (error) {
+	if (!osync_change_convert_to_common(rightchange, &error)) {
 		osync_trace(TRACE_INTERNAL, "osync_change_compare: %s", osync_error_print(&error));
 		osync_error_free(&error);
 		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Could not convert leftchange to common format");
@@ -946,6 +941,7 @@ osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **erro
 	if (!change->objtype) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "The change has no objtype");
 		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert_to_common: %s", osync_error_print(error));
+		return FALSE;
 	}
 	OSyncFormatEnv *env = change->objtype->env;
 	

@@ -400,8 +400,11 @@ static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int
 	//xmlDocDump(stdout, (xmlDoc *)input);
 	EVCardAttribute *attr = NULL;
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
-	if (!root)
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-contact");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
+	}
 	
 	g_type_init();
 	EVCard *vcard = e_vcard_new();
