@@ -904,6 +904,74 @@ START_TEST (conv_env_decap_and_detect)
 }
 END_TEST
 
+static osync_bool detect_f2(OSyncFormatEnv *env, const char *data, int size)
+{
+	if (!strcmp(data, "F2"))
+		return TRUE;
+	return FALSE;
+}
+
+static osync_bool convert_f1_to_f2(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	fail_unless(!strcmp(input, "F1"), NULL);
+	
+	*free_input = TRUE;
+	*output = g_strdup("F2");
+	*outpsize = 3;
+	return TRUE;
+}
+
+static osync_bool convert_f2_to_f1(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	fail_unless(!strcmp(input, "F2"), NULL);
+	
+	*free_input = TRUE;
+	*output = g_strdup("F1");
+	*outpsize = 3;
+	return TRUE;
+}
+
+START_TEST (conv_env_decap_and_detect2)
+{
+	/*This is a more complicated version. Here we specify some data
+	 * for the change that needs to be converted and which only gets detected
+	 * if it really got converted by the decap */
+  OSyncEnv *osync = init_env_none();
+  osync_env_register_objtype(osync, "O1");
+  
+  osync_env_register_objformat(osync, "O1", "F1");
+  osync_env_register_objformat(osync, "O1", "F2");
+  osync_env_register_objformat(osync, "O1", "plain");
+  osync_env_register_objformat(osync, "O1", "F3");
+  
+  osync_env_register_detector(osync, "plain", "F2", detect_f2);
+  
+  osync_env_register_converter(osync, CONVERTER_DECAP, "F1", "plain", convert_f1_to_f2);
+  osync_env_register_converter(osync, CONVERTER_ENCAP, "plain", "F1", convert_f2_to_f1);
+  osync_env_register_converter(osync, CONVERTER_CONV, "F2", "F3", convert_addtest);
+  osync_env_register_converter(osync, CONVERTER_CONV, "F3", "F2", convert_remtest);
+  
+  OSyncFormatEnv *env = osync_conv_env_new(osync);
+  OSyncObjFormat *format1 = osync_conv_find_objformat(env, "F1");
+  OSyncObjFormat *format3 = osync_conv_find_objformat(env, "F3");
+  
+  mark_point();
+  OSyncChange *change = osync_change_new();
+  osync_change_set_objformat(change, format1);
+  osync_change_set_data(change, "F1", 3, TRUE);
+  
+  mark_point();
+  OSyncError *error = NULL;
+  fail_unless(osync_change_convert(env, change, format3, &error), NULL);
+  fail_unless(!strcmp(osync_change_get_data(change), "F2test"), NULL);
+  fail_unless(osync_change_get_objformat(change) == format3, NULL);
+  
+  fail_unless(osync_change_convert(env, change, format1, &error), NULL);
+  fail_unless(!strcmp(osync_change_get_data(change), "F1"), NULL);
+  fail_unless(osync_change_get_objformat(change) == format1, NULL);
+}
+END_TEST
+
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Conv");
@@ -934,6 +1002,7 @@ Suite *env_suite(void)
 	create_case(s, "conv_prefer_not_lossy_objtype_change", conv_prefer_not_lossy_objtype_change);
 	create_case(s, "conv_env_detect_false", conv_env_detect_false);
 	create_case(s, "conv_env_decap_and_detect", conv_env_decap_and_detect);
+	create_case(s, "conv_env_decap_and_detect2", conv_env_decap_and_detect2);
 	
 	return s;
 }

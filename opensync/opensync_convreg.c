@@ -22,45 +22,12 @@
 #include "opensync_internals.h"
 
 /**
- * @defgroup OSyncConvPrivate OpenSync Conversion Internals
+ * @defgroup OSyncConvRegPrivate OpenSync Registration Internals
  * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
+ * @brief The private API for registering plugin
  * 
  */
 /*@{*/
-
-/** The destroy_func to call free() on a block of data
- */
-/*static void osync_format_malloced_destroy(char *data, size_t size)
-{
-	if (data)
-		free(data);
-}*/
-
-/** The copy_func that does a malloc()/memcpy() on the data
- */
-/*static osync_bool osync_format_malloced_copy(const char *input, int inpsize, char **output, int *outpsize)
-{
-	*output = malloc(inpsize);
-	if (!*output)
-		return FALSE;
-	memcpy(*output, input, inpsize);
-	return TRUE;
-}*/
-
-/** Simple copy converter function
- *
- * @see osync_env_format_set_like()
- * */
-/*static osync_bool conv_simple_copy(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	*free_input = FALSE;
-	*output = (char*)input;
-	*outpsize = inpsize;
-	return TRUE;
-}*/
 
 OSyncObjFormatTemplate *osync_env_find_format_template(OSyncEnv *env, const char *name)
 {
@@ -105,17 +72,6 @@ OSyncConverterTemplate *osync_env_find_converter_template(OSyncEnv *env, const c
 	}
 	return NULL;
 }
-
-/*OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname)
-{
-	GList *i;
-	for (i = env->extension_templates; i; i = i->next) {
-		OSyncFormatExtensionTemplate *ext_templ = i->data;
-		if (!strcmp(ext_templ->formatname, formatname))
-			return ext_templ;
-	}
-	return NULL;
-}*/
 
 /*@}*/
 

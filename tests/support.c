@@ -72,6 +72,7 @@ void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping
 			return;
 		}
 	}
+	fail();
 }
 
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
@@ -99,6 +100,17 @@ void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, vo
 	
 	osengine_mapping_duplicate(engine, mapping);
 }
+
+void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
+{
+	num_conflicts++;
+	if (user_data)
+		fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
+	osengine_mapping_ignore_conflict(engine, mapping);
+}
+
 
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
@@ -289,6 +301,7 @@ void create_case(Suite *s, const char *name, void (*function)(void))
 
 OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %i)", __func__, group, num_mappings, num_unmapped);
 	mark_point();
 	OSyncEnv *osync = init_env();
 	OSyncGroup *newgroup = osync_group_load(osync, "configs/group", NULL);
@@ -296,16 +309,20 @@ OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int nu
 	mark_point();
 	fail_unless(g_list_length(maptable->mappings) == num_mappings, NULL);
 	fail_unless(g_list_length(maptable->unmapped) == num_unmapped, NULL);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, maptable);
 	return maptable;
 }
 
 void mappingtable_close(OSyncMappingTable *maptable)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, maptable);
 	osengine_mappingtable_close(maptable);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %i, %i, %s, %s, %s)", __func__, maptable, memberid, mappingid, numentries, uid, format, objecttype);
 	OSyncMapping *mapping = NULL;
 	mark_point();
 	OSyncMember *member = osync_member_from_id(maptable->group, memberid);
@@ -317,7 +334,10 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 		GList *m;
 		for (m = maptable->mappings; m; m = m->next) {
 			mapping = m->data;
-			OSyncChange *change = osengine_mapping_find_entry(mapping, NULL, view)->change;
+			OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, NULL, view);
+			if (!entry)
+				continue;
+			OSyncChange *change = entry->change;
 			fail_unless(change != NULL, NULL);
 			if (!strcmp(osync_change_get_uid(change), uid))
 				break;
@@ -338,6 +358,7 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 		printf("uid mismatch: %s != %s for member %i and mapping %i\n", osync_change_get_uid(change), uid, memberid, mappingid);
 		fail("uid mismatch");
 	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 OSyncHashTable *hashtable_load(OSyncGroup *group, int memberid, int entries)

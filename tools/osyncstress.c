@@ -203,7 +203,7 @@ void change_content(OSyncEngine *engine)
 		int n = 0;;
 		for (n = 0; n < num_new; n++) {
 			change_info *chinfo = g_malloc0(sizeof(change_info));
-			if ((chinfo->change = osync_member_add_random_data(meminfo->member))) {
+			if ((chinfo->change = osync_member_add_random_data(meminfo->member, NULL))) {
 				if (find_change_info(meminfo, chinfo->change))
 					continue;
 				meminfo->changes = g_list_append(meminfo->changes, chinfo);
@@ -351,7 +351,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	
-	g_thread_init(NULL);
+	if (!g_thread_supported ()) g_thread_init (NULL);
 	working = g_mutex_new();
 	int count = 0;
 	while (1) {

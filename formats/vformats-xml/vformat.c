@@ -916,7 +916,7 @@ vformat_attribute_add_value_decoded (VFormatAttribute *attr, const char *value, 
 			break;
 		}
 		case VF_ENCODING_QP: {
-			char *qp_data = quoted_encode_simple (value, len);
+			char *qp_data = quoted_encode_simple ((unsigned char*)value, len);
 			GString *decoded = g_string_new (value);
 	
 			/* make sure the decoded list is up to date */
@@ -1483,7 +1483,7 @@ static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_l
 static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save)
 {
 	unsigned char base64_rank[256];
-	base64_init(base64_rank);
+	base64_init((char*)base64_rank);
 	
 	register unsigned char *inptr, *outptr;
 	unsigned char *inend, c;
@@ -1540,7 +1540,7 @@ char *base64_encode_simple (const char *data, size_t len)
 
 	out = g_malloc (len * 4 / 3 + 5);
 	outlen = base64_encode_close ((unsigned char *)data, len, FALSE,
-				      out, &state, &save);
+				      out, &state, (int*)&save);
 	out[outlen] = '\0';
 	return (char *)out;
 }

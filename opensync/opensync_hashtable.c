@@ -79,8 +79,8 @@ osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, c
 	char *query = g_strdup_printf("SELECT uid, hash FROM tbl_hash LIMIT 1 OFFSET %i", i);
 	sqlite3_prepare(sdb, query, -1, &ppStmt, NULL);
 	sqlite3_step(ppStmt);
-	*uid = g_strdup(sqlite3_column_text(ppStmt, 0));
-	*hash = g_strdup(sqlite3_column_text(ppStmt, 1));
+	*uid = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
+	*hash = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
 	sqlite3_finalize(ppStmt);
 	g_free(query);
 	return TRUE;

@@ -132,7 +132,7 @@ static osync_bool evo2_calendar_modify(OSyncContext *ctx, OSyncChange *change)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
-	char *uid = osync_change_get_uid(change);
+	const char *uid = osync_change_get_uid(change);
 	char *data = osync_change_get_data(change);
 	icalcomponent *icomp = NULL;
 	char *returnuid = NULL;
@@ -185,6 +185,7 @@ static osync_bool evo2_calendar_modify(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 			
+			icalcomponent_set_uid (icomp, uid);
 			if (!e_cal_modify_object(env->calendar, icomp, CALOBJ_MOD_ALL, &gerror)) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify event: %s", gerror ? gerror->message : "None");
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify event: %s", __func__, gerror ? gerror->message : "None");
@@ -206,4 +207,5 @@ void evo2_calendar_setup(OSyncPluginInfo *info)
 	osync_plugin_accept_objtype(info, "event");
 	osync_plugin_accept_objformat(info, "event", "vevent20", NULL);
 	osync_plugin_set_commit_objformat(info, "event", "vevent20", evo2_calendar_modify);
+	osync_plugin_set_access_objformat(info, "event", "vevent20", evo2_calendar_modify);
 }

@@ -27,13 +27,20 @@ GPrivate* current_tabs = NULL;
 /**
  * @defgroup OSyncDebugAPI OpenSync Debug
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * Miscanellous functions
+ * @brief Debug functions used by opensync
  * 
  */
 /*@{*/
 
+/*! @brief Used for tracing the application
+ * 
+ * use this function to trace calls. The call graph will be saved into
+ * the file that is given in the OSYNC_TRACE environment variable
+ * 
+ * @param type The type of the trace
+ * @param message The message to save
+ * 
+ */
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
 #if defined ENABLE_TRACE

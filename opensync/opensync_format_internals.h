@@ -1,11 +1,25 @@
+/**
+ * @defgroup OSyncConvPrivate OpenSync Conversion Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+/*@{*/
+
+/*! @brief The environment used for conversions
+ */
 struct OSyncFormatEnv {
-	GList *objtypes;
-	GList *objformats;
-	GList *converters;
-	GList *filter_functions;
-	GList *extensions;
+	GList *objtypes; /** A list of object types */
+	GList *objformats; /** A List of formats */
+	GList *converters; /** A list of available converters */
+	GList *filter_functions; /* A list of filter functions */
+	GList *extensions; /* A list of extensions */
 };
 
+/*! @brief Represent a abstract object type (like "contact")
+ */
 struct OSyncObjType {
 	char *name;
 	GList *formats;
@@ -15,6 +29,8 @@ struct OSyncObjType {
 	OSyncObjFormat *common_format;
 };
 
+/*! @brief Represent a format for a object type
+ */
 struct OSyncObjFormat {
 	char *name;
 	OSyncFormatEnv *env;
@@ -29,6 +45,8 @@ struct OSyncObjFormat {
 	OSyncFormatPrintFunc print_func;
 };
 
+/*! @brief Represent a converter from one format to another
+ */
 struct OSyncFormatConverter {
 	OSyncObjFormat *source_format;
 	OSyncObjFormat *target_format;
@@ -40,17 +58,33 @@ struct OSyncFormatConverter {
 	//void *conv_data;
 };
 
+/*! @brief Represent a detector for a given format
+ */
 typedef struct OSyncDataDetector {
 	const char *sourceformat;
 	const char *targetformat;
 	OSyncFormatDetectDataFunc detect_func;
 } OSyncDataDetector;
 
+/*! @brief An extension to a format
+ */
+typedef struct OSyncFormatExtension {
+	OSyncObjFormat *from_format;
+	OSyncObjFormat *to_format;
+	char *name;
+	OSyncFormatConvertFunc conv_func;
+	OSyncFormatExtInitFunc init_func;
+} OSyncFormatExtension;
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 typedef struct OSyncObjFormatSink {
 	OSyncObjFormat *format;
 	OSyncFormatFunctions functions;
 	char *extension_name;
 	struct OSyncObjTypeSink *objtype_sink;
+	GList *commit_changes;
+	GList *commit_contexts;
 } OSyncObjFormatSink;
 
 typedef struct OSyncObjTypeSink {
@@ -64,14 +98,6 @@ typedef struct OSyncObjTypeSink {
 	GList *properties;
 } OSyncObjTypeSink;
 
-typedef struct OSyncFormatExtension {
-	OSyncObjFormat *from_format;
-	OSyncObjFormat *to_format;
-	char *name;
-	OSyncFormatConvertFunc conv_func;
-	OSyncFormatExtInitFunc init_func;
-} OSyncFormatExtension;
-
 typedef struct OSyncObjTypeTemplate {
 	const char *name;
 	GList *formats;
@@ -83,6 +109,9 @@ typedef struct OSyncObjFormatTemplate {
 	char *extension_name;
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
+	void (* read) (OSyncContext *, OSyncChange *);
+	void (* committed_all) (void *);
+	void (* batch_commit) (void *, OSyncContext **, OSyncChange **);
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDuplicateFunc duplicate_func;
@@ -120,3 +149,8 @@ OSyncDataDetector *osync_env_find_detector(OSyncEnv *env, const char *sourcename
 osync_bool osync_conv_objtype_is_any(const char *objstr);
 OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname);
 OSyncFormatExtension *osync_conv_find_extension(OSyncFormatEnv *env, OSyncObjFormat *from_format, OSyncObjFormat *to_format, const char *extension_name);
+OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter, OSyncChange *change, osync_bool *free_output);
+
+#endif
+
+/*@}*/

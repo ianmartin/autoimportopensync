@@ -18,7 +18,7 @@
  * 
  */
  
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
 
 void osync_db_trace(void *data, const char *query)
@@ -61,14 +61,132 @@ int osync_db_count(OSyncDB *db, char *query)
 	return ret;
 }
 
+OSyncDB *_open_changelog(OSyncGroup *group, OSyncError **error)
+{
+	g_assert(group);
+	OSyncDB *log_db;
+
+	char *filename = g_strdup_printf("%s/changelog.db", group->configdir);
+	if (!(log_db = osync_db_open(filename, error))) {
+		osync_error_update(error, "Unable to load changelog: %s", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return NULL;
+	}
+	osync_debug("OSDB", 3, "Preparing to changelog from file %s", filename);
+	g_free(filename);
+	
+	sqlite3 *sdb = log_db->db;
+	
+	if (sqlite3_exec(sdb, "CREATE TABLE tbl_log (uid VARCHAR, memberid INTEGER, changetype INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 2, "Unable create log table! %s", sqlite3_errmsg(sdb));
+	return log_db;
+}
+
+osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, group, uids, changetypes, error);
+	
+	OSyncDB *log_db = _open_changelog(group, error);
+	if (!log_db) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	sqlite3 *sdb = log_db->db;
+	
+	int count = osync_db_count(log_db, "SELECT count(*) FROM tbl_log");
+
+	*uids = g_malloc0(sizeof(char *) * (count + 1));
+	*memberids = g_malloc0(sizeof(long long int) * (count + 1));
+	*changetypes = g_malloc0(sizeof(int) * (count + 1));
+
+	sqlite3_stmt *ppStmt = NULL;
+	sqlite3_prepare(sdb, "SELECT uid, memberid, changetype FROM tbl_log", -1, &ppStmt, NULL);
+	int i = 0;
+	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
+		(*uids)[i] = g_strdup(sqlite3_column_text(ppStmt, 0));
+		(*memberids)[i] = sqlite3_column_int64(ppStmt, 1);
+		(*changetypes)[i] = sqlite3_column_int(ppStmt, 2);
+		i++;
+	}
+	(*uids)[i] = NULL;
+	(*memberids)[i] = 0;
+	(*changetypes)[i] = 0;
+	sqlite3_finalize(ppStmt);
+
+	char *query = g_strdup_printf("DELETE FROM tbl_log");
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to remove all logs! %s", sqlite3_errmsg(sdb));
+		g_free(query);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	g_free(query);
+	
+	osync_db_close(log_db);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, group, change, error);
+	
+	OSyncDB *log_db = _open_changelog(group, error);
+	if (!log_db) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	sqlite3 *sdb = log_db->db;
+	
+	char *query = g_strdup_printf("INSERT INTO tbl_log (uid, memberid, changetype) VALUES('%s', '%lli', '%i')", change->uid, change->member->id, change->changetype);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert log! %s", sqlite3_errmsg(sdb));
+		g_free(query);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	g_free(query);
+	
+	osync_db_close(log_db);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, group, change, error);
+	
+	OSyncDB *log_db = _open_changelog(group, error);
+	if (!log_db) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	sqlite3 *sdb = log_db->db;
+	
+	char *query = g_strdup_printf("DELETE FROM tbl_log WHERE uid='%s' AND memberid='%lli'", change->uid, change->member->id);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to remove log! %s", sqlite3_errmsg(sdb));
+		g_free(query);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	g_free(query);
+	
+	osync_db_close(log_db);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, group, changes, error);
 	g_assert(group);
 
 	group->changes_path = g_strdup(group->configdir);
 	char *filename = g_strdup_printf("%s/change.db", group->changes_path);
 	if (!(group->changes_db = osync_db_open(filename, error))) {
 		osync_error_update(error, "Unable to load changes: %s", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	osync_debug("OSDB", 3, "Preparing to load changes from file %s", filename);
@@ -88,9 +206,9 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		OSyncChange *change = osync_change_new();
 		change->id = sqlite3_column_int64(ppStmt, 0);
-		change->uid = g_strdup(sqlite3_column_text(ppStmt, 1));
-		change->objtype_name = g_strdup(sqlite3_column_text(ppStmt, 2));
-		change->format_name = g_strdup(sqlite3_column_text(ppStmt, 3));
+		change->uid = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
+		change->objtype_name = g_strdup((gchar*)sqlite3_column_text(ppStmt, 2));
+		change->format_name = g_strdup((gchar*)sqlite3_column_text(ppStmt, 3));
 		change->initial_format_name = g_strdup(change->format_name);
 		change->mappingid = sqlite3_column_int64(ppStmt, 5);
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
@@ -101,6 +219,8 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	}
 	(*changes)[i] = NULL;
 	sqlite3_finalize(ppStmt);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
@@ -316,7 +436,7 @@ void osync_db_get_anchor(OSyncDB *sdb, const char *objtype, char **retanchor)
 	if (sqlite3_prepare(sdb->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare anchor! %s", sqlite3_errmsg(sdb->db));
 	sqlite3_step(ppStmt);
-	*retanchor = g_strdup(sqlite3_column_text(ppStmt, 0));
+	*retanchor = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);
 }
@@ -422,7 +542,7 @@ void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
 		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
 	if (sqlite3_step(ppStmt) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable step get hash! %s", sqlite3_errmsg(sdb));
-	*rethash = g_strdup(sqlite3_column_text(ppStmt, 0));
+	*rethash = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);
 }

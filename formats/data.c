@@ -20,6 +20,8 @@
  
 #include <opensync/opensync.h>
 #include <string.h>
+#include <stdlib.h>
+#include <glib.h>
 
 /** @defgroup data_plain data/plain format
  *
@@ -56,9 +58,20 @@ static OSyncConvCmpResult compare_plain(OSyncChange *a, OSyncChange *b)
 		return CONV_DATA_MISMATCH;
 }
 
+static osync_bool copy_plain(const char *input, int inpsize, char **output, int *outpsize)
+{
+	char *r = g_malloc0(inpsize);
+
+	memcpy(r, input, inpsize);
+	*output = r;
+	*outpsize = inpsize;
+	return TRUE;
+}
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "data");
 	osync_env_register_objformat(env, "data", "plain");
 	osync_env_format_set_compare_func(env, "plain", compare_plain);
+	osync_env_format_set_copy_func(env, "plain", copy_plain);
 }

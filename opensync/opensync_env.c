@@ -21,6 +21,13 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+/**
+ * @defgroup OSyncEnvPrivate OpenSync Environment Internals
+ * @ingroup OSyncPrivate
+ * @brief The internals of the opensync environment
+ * 
+ */
+/*@{*/
 
 static const char *osync_env_query_option(OSyncEnv *env, const char *name)
 {
@@ -43,12 +50,34 @@ static void free_hash(char *key, char *value, void *data)
 	g_free(value);
 }
 
+/*! @brief Returns the next free number for a group in the environments configdir
+ * 
+ * Returns the next free number for a group in the environments configdir
+ * 
+ * @param The osync environment
+ * @returns The next free number
+ * 
+ */
+long long int _osync_env_create_group_id(OSyncEnv *env)
+{
+	char *filename = NULL;
+	long long int i = 0;
+	do {
+		i++;
+		if (filename)
+			g_free(filename);
+		filename = g_strdup_printf("%s/group%lli", env->groupsdir, i);
+	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
+	g_free(filename);
+	return i;
+}
+
+/*@}*/
+
 /**
  * @defgroup OSyncEnvAPI OpenSync Environment
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief The public API of the opensync environment
  * 
  */
 /*@{*/
@@ -362,6 +391,35 @@ OSyncPlugin *osync_env_nth_plugin(OSyncEnv *env, int nth)
 	return (OSyncPlugin *)g_list_nth_data(env->plugins, nth);
 }
 
+/*! @brief Checks if a plugin is available and usable
+ * 
+ * @param env The environment in which the plugin should be loaded
+ * @param pluginname The name of the plugin to check for
+ * @param error If the return was FALSE, will contain the information why the plugin is not available
+ * @returns TRUE if plugin was found and is usable, FALSE otherwise
+ * 
+ */
+osync_bool osync_env_plugin_is_usable(OSyncEnv *env, const char *pluginname, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, pluginname, error);
+	
+	OSyncPlugin *plugin = osync_env_find_plugin(env, pluginname);
+	if (!plugin) {
+		osync_error_set(error, OSYNC_ERROR_PLUGIN_NOT_FOUND, "Unable to find plugin \"%s\". This can be caused by unresolved symbols", pluginname);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	if (plugin->info.functions.is_available) {
+		osync_bool ret = plugin->info.functions.is_available(error);
+		osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return ret;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE: No is_available function", __func__);
+	return TRUE;
+}
+
 /*! @brief Loads the plugins from a given directory
  * 
  * Loads all plugins from a directory into a osync environment.
@@ -519,45 +577,9 @@ OSyncGroup *osync_env_nth_group(OSyncEnv *env, int nth)
 /*@}*/
 
 /**
- * @defgroup OSyncEnvAPIPrivate OpenSync Environment Internals
- * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * private functions
- * 
- */
-/*@{*/
-
-/*! @brief Returns the next free number for a group in the environments configdir
- * 
- * Returns the next free number for a group in the environments configdir
- * 
- * @param The osync environment
- * @returns The next free number
- * 
- */
-long long int _osync_env_create_group_id(OSyncEnv *env)
-{
-	char *filename = NULL;
-	long long int i = 0;
-	do {
-		i++;
-		if (filename)
-			g_free(filename);
-		filename = g_strdup_printf("%s/group%lli", env->groupsdir, i);
-	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
-	g_free(filename);
-	return i;
-}
-
-/*@}*/
-
-/**
  * @defgroup OSyncEnvAPIMisc OpenSync Misc
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * Miscanellous functions
+ * @brief Some helper functions
  * 
  */
 /*@{*/
@@ -681,7 +703,7 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 		return FALSE;
 	}
 	g_io_channel_set_encoding(chan, NULL, NULL);
-	if (g_io_channel_read_to_end(chan, data, size, &error) != G_IO_STATUS_NORMAL) {
+	if (g_io_channel_read_to_end(chan, data, (gsize*)size, &error) != G_IO_STATUS_NORMAL) {
 		osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {

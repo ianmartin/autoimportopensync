@@ -23,7 +23,7 @@ PROJECT_NAME = OpenSync
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER = 0.13
+PROJECT_NUMBER = 0.14
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
@@ -186,7 +186,7 @@ ALIASES =
 # For instance, some of the names that are used will be different. The list 
 # of all members will be omitted, etc.
 
-OPTIMIZE_OUTPUT_FOR_C = NO
+OPTIMIZE_OUTPUT_FOR_C = YES
 
 # Set the OPTIMIZE_OUTPUT_JAVA tag to YES if your project consists of Java sources 
 # only. Doxygen will then generate output that is more tailored for Java. 
@@ -303,7 +303,7 @@ INLINE_INFO = YES
 # alphabetically by member name. If set to NO the members will appear in 
 # declaration order.
 
-SORT_MEMBER_DOCS = YES
+SORT_MEMBER_DOCS = NO
 
 # If the SORT_BRIEF_DOCS tag is set to YES then doxygen will sort the 
 # brief documentation of file, namespace and class members alphabetically 
@@ -417,7 +417,7 @@ WARN_LOGFILE =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT = engine opensync
+INPUT = opensync osengine
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -534,7 +534,7 @@ REFERENCED_BY_RELATION = YES
 # then for each documented function all documented entities 
 # called/used by that function will be listed.
 
-REFERENCES_RELATION = YES
+REFERENCES_RELATION = NO
 
 # If the VERBATIM_HEADERS tag is set to YES (the default) then Doxygen 
 # will generate a verbatim copy of the header file for each class for 
@@ -605,7 +605,7 @@ HTML_FOOTER =
 # the style sheet file to the HTML output directory, so don't put your own 
 # stylesheet in the HTML output directory as well, or it will be erased!
 
-HTML_STYLESHEET = 
+HTML_STYLESHEET = misc/doxygen.css
 
 # If the HTML_ALIGN_MEMBERS tag is set to YES, the members of classes, 
 # files or namespaces will be aligned in HTML using tables. If set to 

@@ -1,3 +1,22 @@
+#ifndef _OPENSYNC_CHANGE_H_
+#define _OPENSYNC_CHANGE_H_
+
+/*! 
+ * @ingroup OSyncChange
+ * @brief The changetypes of a change object */
+typedef enum  {
+	/** Unknown changetype */
+	CHANGE_UNKNOWN = 0,
+	/** Object was added */
+	CHANGE_ADDED = 1,
+	/** Object is unmodifed */
+	CHANGE_UNMODIFIED = 2,
+	/** Object is deleted */
+	CHANGE_DELETED = 3,
+	/** Object has been modified */
+	CHANGE_MODIFIED = 4
+} OSyncChangeType;
+
 OSyncChange *osync_change_new(void);
 OSyncChangeType osync_change_get_changetype(OSyncChange *change);
 void osync_change_set_hash(OSyncChange *change, const char *hash);
@@ -8,12 +27,11 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *format);
 OSyncObjType *osync_change_get_objtype(OSyncChange *change);
 const char *osync_change_get_sourceobjtype(OSyncChange *change);
 void osync_change_set_changetype(OSyncChange *change, OSyncChangeType type);
-char *osync_change_get_hash(OSyncChange *change);
-char *osync_change_get_uid(OSyncChange *change);
+const char *osync_change_get_hash(OSyncChange *change);
+const char *osync_change_get_uid(OSyncChange *change);
 char *osync_change_get_data(OSyncChange *change);
 int osync_change_get_datasize(OSyncChange *change);
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change);
-void osync_report_change(OSyncContext *context, OSyncChange *change);
 long long int osync_change_get_mappingid(OSyncChange *entry);
 void *osync_change_get_engine_data(OSyncChange *change);
 void osync_change_set_engine_data(OSyncChange *change, void *engine_data);
@@ -21,9 +39,6 @@ OSyncMember *osync_change_get_member(OSyncChange *change);
 void osync_change_update(OSyncChange *source, OSyncChange *target);
 void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type);
 void osync_change_set_objtype_string(OSyncChange *change, const char *name);
-void osync_change_set_info(OSyncChange *change, char *data, int size);
-char *osync_change_get_info(OSyncChange *change);
-int osync_change_get_infosize(OSyncChange *change);
 void osync_change_set_member(OSyncChange *change, OSyncMember *member);
 void osync_change_set_objformat_string(OSyncChange *change, const char *name);
 void osync_change_prepend_objformat(OSyncChange *change, OSyncObjFormat *objformat);
@@ -39,3 +54,5 @@ void osync_changes_close(OSyncGroup *group);
 void osync_change_free_data(OSyncChange *change);
 void osync_change_set_mappingid(OSyncChange *change, long long int mappingid);
 void osync_change_set_conv_env(OSyncChange *change, OSyncFormatEnv *env);
+
+#endif //_OPENSYNC_CHANGE_H_

@@ -1,14 +1,17 @@
 OSyncGroup *osync_group_new(OSyncEnv *osinfo);
 void osync_group_free(OSyncGroup *group);
 
-typedef enum OSyncLockState {
+/*! @ingroup OSyncGroupAPI
+ * @brief The lock state of a group
+ */
+typedef enum {
 	OSYNC_LOCK_OK,
 	OSYNC_LOCKED,
 	OSYNC_LOCK_STALE
 } OSyncLockState;
 
 OSyncLockState osync_group_lock(OSyncGroup *group);
-void osync_group_unlock(OSyncGroup *group, osync_bool remove);
+void osync_group_unlock(OSyncGroup *group, osync_bool remove_file);
 
 void osync_group_set_name(OSyncGroup *group, const char *name);
 const char *osync_group_get_name(OSyncGroup *group);
@@ -37,3 +40,6 @@ int osync_group_num_filters(OSyncGroup *group);
 OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth);
 void osync_group_flush_filters(OSyncGroup *group);
 
+osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error);
+osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);
+osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);

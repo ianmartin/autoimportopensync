@@ -1,4 +1,13 @@
+/**
+ * @defgroup OSEngineMappingPrivate OpenSync Mapping Internals
+ * @ingroup OSEnginePrivate
+ * @brief The internals the mappings
+ * 
+ */
+/*@{*/
 
+/*! @brief A table which holds the mappings
+ */
 struct OSyncMappingTable {
 	GList *mappings;
 	OSyncEngine *engine;
@@ -8,6 +17,8 @@ struct OSyncMappingTable {
 	GList *entries;
 };
 
+/*! @brief A view to the mappingtable, represents one source
+ */
 struct OSyncMappingView {
 	OSyncClient *client;
 	GList *changes;
@@ -15,6 +26,8 @@ struct OSyncMappingView {
 	long long int memberid;
 };
 
+/*! @brief A mapping of changes
+ */
 struct OSyncMapping {
 	GList *entries;
 	OSyncMappingEntry *master;
@@ -32,6 +45,8 @@ struct OSyncMapping {
 	OSyncEngine *engine;
 };
 
+/*! @brief Represent one change in the mapping
+ */
 struct OSyncMappingEntry {
 	OSyncMappingView *view;
 	OSyncClient *client;
@@ -43,6 +58,7 @@ struct OSyncMappingEntry {
 	MSyncFlag *fl_has_info;
 	MSyncFlag *fl_synced;
 	MSyncFlag *fl_deleted;
+	MSyncFlag *fl_read;
 };
 
 OSyncMappingTable *osengine_mappingtable_new(OSyncEngine *engine);
@@ -56,6 +72,7 @@ OSyncMappingTable *_osengine_mappingtable_load_group(OSyncGroup *group);
 void osengine_mappingtable_close(OSyncMappingTable *table);
 long long int osengine_mappingtable_get_next_id(OSyncMappingTable *table);
 void osengine_mappingtable_reset(OSyncMappingTable *table);
+void osengine_mappingtable_inject_changes(OSyncMappingTable *table);
 
 OSyncMapping *osengine_mapping_new(OSyncMappingTable *table);
 void osengine_mapping_free(OSyncMapping *mapping);
@@ -77,4 +94,7 @@ void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping);
 void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
+OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id);
 OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);
+
+/*@}*/

@@ -4,7 +4,9 @@ AM_CFLAGS = -Wall -Werror @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ @XML_CFLAGS@ -I$(top_srcdir)/osengine
 
+if ENABLE_TOOLS
 bin_PROGRAMS = osyncdump osyncstress osyncplugin
+endif
 
 osyncdump_SOURCES = osyncdump.c
 osyncdump_LDFLAGS = @PACKAGE_LIBS@ @XML_LIBS@ -R $(libdir) @GCOV_LDFLAGS@

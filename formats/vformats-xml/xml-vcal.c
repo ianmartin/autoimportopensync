@@ -26,100 +26,118 @@
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
-	xmlNode *property = xmlNewChild(current, NULL, "UnknownParam", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNode *property = xmlNewChild(current, NULL, (xmlChar*)"UnknownParam",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 }
 
 static void handle_tzid_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzid parameter");
-	xmlNewChild(current, NULL, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"TimezoneID",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_value_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "Value", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"Value",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_altrep_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "AlternateRep", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"AlternateRep",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_cn_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"CommonName",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_delegated_from_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "DelegatedFrom", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"DelegatedFrom",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_delegated_to_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "DelegatedTo", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"DelegatedTo",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_dir_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "Directory", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"Directory",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_format_type_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "FormaType", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"FormaType",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_fb_type_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "FreeBusyType", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"FreeBusyType",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_member_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "Member", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"Member",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_partstat_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"PartStat",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_range_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "Range", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"Range",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_related_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "Related", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"Related",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_reltype_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "RelationType", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"RelationType",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_role_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "Role", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"Role",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_rsvp_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "RSVP", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"RSVP",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_sent_by_parameter(xmlNode *current, VFormatParam *param)
 {
-	xmlNewChild(current, NULL, "SentBy", vformat_attribute_param_get_nth_value(param, 0));
+	xmlNewChild(current, NULL, (xmlChar*)"SentBy",
+		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
-	xmlNode *current = xmlNewChild(root, NULL, "UnknownNode", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"UnknownNode", NULL);
 	osxml_node_add(current, "NodeName", vformat_attribute_get_name(attr));
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -133,7 +151,7 @@ static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_prodid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling prodid attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "ProductID", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"ProductID", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -141,7 +159,7 @@ static xmlNode *handle_prodid_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_method_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling method attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Method", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Method", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -149,7 +167,7 @@ static xmlNode *handle_method_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_dtstamp_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling dtstamp attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "DateCalendarCreated", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateCalendarCreated", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -157,7 +175,7 @@ static xmlNode *handle_dtstamp_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_percent_complete_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling percent complete attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "PercentComplete", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"PercentComplete", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -165,7 +183,7 @@ static xmlNode *handle_percent_complete_attribute(xmlNode *root, VFormatAttribut
 static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling created attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "DateCreated", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateCreated", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -173,7 +191,7 @@ static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_dtstart_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling dtstart attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "DateStarted", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -181,7 +199,7 @@ static xmlNode *handle_dtstart_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling rrule attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RecurrenceRule", NULL);
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -196,7 +214,7 @@ static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_description_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling description attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Description", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -204,7 +222,7 @@ static xmlNode *handle_description_attribute(xmlNode *root, VFormatAttribute *at
 static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling summary attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Summary", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -212,7 +230,7 @@ static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Categories", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -227,7 +245,7 @@ static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *att
 static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Class", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Class", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -235,7 +253,7 @@ static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_due_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling due attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "DateDue", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateDue", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -243,7 +261,7 @@ static xmlNode *handle_due_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_url_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Url attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Url", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Url", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -251,7 +269,7 @@ static xmlNode *handle_url_attribute(xmlNode *root, VFormatAttribute *attr)
 /*static xmlNode *handle_uid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Uid attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Uid", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Uid", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }*/
@@ -259,7 +277,7 @@ static xmlNode *handle_url_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_priority_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling priority attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Priority", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Priority", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -267,7 +285,7 @@ static xmlNode *handle_priority_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_sequence_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling sequence attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Sequence", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Sequence", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -275,7 +293,7 @@ static xmlNode *handle_sequence_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "LastModified", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"LastModified", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -283,7 +301,7 @@ static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *
 /*static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RecurrenceRule", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }*/
@@ -291,7 +309,7 @@ static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *
 static xmlNode *handle_rdate_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceDate", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RecurrenceDate", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -299,7 +317,7 @@ static xmlNode *handle_rdate_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_location_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Location", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Location", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -307,7 +325,7 @@ static xmlNode *handle_location_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_geo_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling geo attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Geo", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Geo", NULL);
 	osxml_node_add(current, "Latitude", vformat_attribute_get_nth_value(attr, 0));
 	osxml_node_add(current, "Longitude", vformat_attribute_get_nth_value(attr, 1));
 	return current;
@@ -316,7 +334,7 @@ static xmlNode *handle_geo_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_completed_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Completed", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Completed", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -324,7 +342,7 @@ static xmlNode *handle_completed_attribute(xmlNode *root, VFormatAttribute *attr
 static xmlNode *handle_organizer_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Organizer", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Organizer", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -332,7 +350,7 @@ static xmlNode *handle_organizer_attribute(xmlNode *root, VFormatAttribute *attr
 static xmlNode *handle_recurid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceID", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RecurrenceID", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -340,7 +358,7 @@ static xmlNode *handle_recurid_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_status_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Status", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Status", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -348,7 +366,7 @@ static xmlNode *handle_status_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_duration_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Duration", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Duration", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -356,7 +374,7 @@ static xmlNode *handle_duration_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_attach_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Attach", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Attach", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -364,7 +382,7 @@ static xmlNode *handle_attach_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_attendee_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Attendee", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Attendee", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -372,7 +390,7 @@ static xmlNode *handle_attendee_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_contact_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Contact", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Contact", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -380,7 +398,7 @@ static xmlNode *handle_contact_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_exdate_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "ExclusionDate", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"ExclusionDate", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -388,7 +406,7 @@ static xmlNode *handle_exdate_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_exrule_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "ExclusionRule", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"ExclusionRule", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -396,7 +414,7 @@ static xmlNode *handle_exrule_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_rstatus_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "RStatus", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RStatus", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -404,7 +422,7 @@ static xmlNode *handle_rstatus_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_related_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Related", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Related", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -412,7 +430,7 @@ static xmlNode *handle_related_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_resources_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Resources", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Resources", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -420,7 +438,7 @@ static xmlNode *handle_resources_attribute(xmlNode *root, VFormatAttribute *attr
 static xmlNode *handle_dtend_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "DateEnd", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -428,7 +446,7 @@ static xmlNode *handle_dtend_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_transp_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "Transparency", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Transparency", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -436,7 +454,7 @@ static xmlNode *handle_transp_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_calscale_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "CalendarScale", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"CalendarScale", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -444,43 +462,49 @@ static xmlNode *handle_calscale_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_tzid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzid attribute");
-	return xmlNewChild(root, NULL, "TimezoneID", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"TimezoneID",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tz_location_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tz location attribute");
-	return xmlNewChild(root, NULL, "Location", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"Location",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzoffsetfrom_location_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzoffsetfrom attribute");
-	return xmlNewChild(root, NULL, "TZOffsetFrom", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"TZOffsetFrom",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzoffsetto_location_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzoffsetto attribute");
-	return xmlNewChild(root, NULL, "TZOffsetTo", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"TZOffsetTo",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzname_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzname attribute");
-	return xmlNewChild(root, NULL, "TimezoneName", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"TimezoneName",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzdtstart_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "DateStarted", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"DateStarted",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzrrule_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzrrule attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "RecurrenceRule", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RecurrenceRule", NULL);
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -495,25 +519,28 @@ static xmlNode *handle_tzrrule_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_tz_last_modified_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "LastModified", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"LastModified",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzurl_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "TimezoneUrl", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"TimezoneUrl",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_tzrdate_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "TimezoneDate", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"TimezoneDate",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_atrigger_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	xmlNode *current = xmlNewChild(root, NULL, "AlarmTrigger", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"AlarmTrigger", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -521,43 +548,50 @@ static xmlNode *handle_atrigger_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_arepeat_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmRepeat",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_aduration_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmDuration", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmDuration",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_aaction_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmAction", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmAction",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_aattach_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmAttach", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmAttach",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_adescription_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmDescription", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmDescription",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_aattendee_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmAttendee", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmAttendee",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static xmlNode *handle_asummary_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(root, NULL, "AlarmSummary", vformat_attribute_get_nth_value(attr, 0));
+	return xmlNewChild(root, NULL, (xmlChar*)"AlarmSummary",
+		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
 }
 
 static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, VFormatParam *param)
@@ -636,25 +670,25 @@ static void vcal_parse_attributes(OSyncHooksTable *hooks, GHashTable *table, GLi
 			//Handling supcomponent
 			a = a->next;
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
-				xmlNode *current = xmlNewChild(root, NULL, "Timezone", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Timezone", NULL);
 				vcal_parse_attributes(hooks, hooks->tztable, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "DAYLIGHT")) {
-				xmlNode *current = xmlNewChild(root, NULL, "DaylightSavings", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DaylightSavings", NULL);
 				vcal_parse_attributes(hooks, hooks->tztable, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "STANDARD")) {
-				xmlNode *current = xmlNewChild(root, NULL, "Standard", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Standard", NULL);
 				vcal_parse_attributes(hooks, hooks->tztable, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTODO")) {
-				xmlNode *current = xmlNewChild(root, NULL, "Todo", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Todo", NULL);
 				vcal_parse_attributes(hooks, hooks->comptable, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VEVENT")) {
-				xmlNode *current = xmlNewChild(root, NULL, "Event", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Event", NULL);
 				vcal_parse_attributes(hooks, hooks->comptable, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VJOURNAL")) {
-				xmlNode *current = xmlNewChild(root, NULL, "Journal", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Journal", NULL);
 				vcal_parse_attributes(hooks, hooks->comptable, &a, current);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VALARM")) {
-				xmlNode *current = xmlNewChild(root, NULL, "Alarm", NULL);
+				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Alarm", NULL);
 				vcal_parse_attributes(hooks, hooks->alarmtable, &a, current);
 			}
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
@@ -681,7 +715,7 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
 	//Create a new xml document
-	xmlDoc *doc = xmlNewDoc("1.0");
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
@@ -709,7 +743,7 @@ static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
 			i++;
 		}
 	} else {
-		return !g_utf8_validate(tmp, -1, NULL);
+		return !g_utf8_validate((gchar*)tmp, -1, NULL);
 	}
 	return FALSE;
 }
@@ -729,18 +763,18 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 {
 	char *tmp = NULL;
 	if (!name)
-		tmp = xmlNodeGetContent(parent);
+		tmp = (char*)xmlNodeGetContent(parent);
 	else
 		tmp = osxml_find_node(parent, name);
 	
 	if (!tmp)
 		return;
 	
-	if (needs_charset(tmp))
+	if (needs_charset((unsigned char*)tmp))
 		if (!vformat_attribute_has_param (attr, "CHARSET"))
 			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
-	if (needs_encoding(tmp, encoding)) {
+	if (needs_encoding((unsigned char*)tmp, encoding)) {
 		if (!vformat_attribute_has_param (attr, "ENCODING"))
 			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
 		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
@@ -752,133 +786,133 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 static void xml_handle_unknown_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml parameter %s", current->name);
-	char *content = xmlNodeGetContent(current);
-	vformat_attribute_add_param_with_value(attr, current->name, content);
+	char *content = (char*)xmlNodeGetContent(current);
+	vformat_attribute_add_param_with_value(attr, (char*)current->name, content);
 	g_free(content);
 }
 
 static void handle_xml_category_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_value(attr, content);
 	g_free(content);
 }
 
 static void handle_xml_rule_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_value(attr, content);
 	g_free(content);
 }
 
 static void handle_xml_value_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 	g_free(content);
 }
 
 static void handle_xml_altrep_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "ALTREP", content);
 	g_free(content);
 }
 
 static void handle_xml_cn_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "CN", content);
 	g_free(content);
 }
 
 static void handle_xml_delegated_from_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "DELEGATED-FROM", content);
 	g_free(content);
 }
 
 static void handle_xml_delegated_to_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "DELEGATED-TO", content);
 	g_free(content);
 }
 
 static void handle_xml_dir_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "DIR", content);
 	g_free(content);
 }
 
 static void handle_xml_format_type_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "FMTTYPE", content);
 	g_free(content);
 }
 
 static void handle_xml_fb_type_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "FBTYPE", content);
 	g_free(content);
 }
 
 static void handle_xml_member_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "MEMBER", content);
 	g_free(content);
 }
 
 static void handle_xml_partstat_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "PARTSTAT", content);
 	g_free(content);
 }
 
 static void handle_xml_range_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "RANGE", content);
 	g_free(content);
 }
 
 static void handle_xml_reltype_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "RELTYPE", content);
 	g_free(content);
 }
 
 static void handle_xml_related_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "RELATED", content);
 	g_free(content);
 }
 
 static void handle_xml_role_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "ROLE", content);
 	g_free(content);
 }
 
 static void handle_xml_rsvp_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "RSVP", content);
 	g_free(content);
 }
 
 static void handle_xml_sent_by_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	vformat_attribute_add_param_with_value(attr, "SENT-BY", content);
 	g_free(content);
 }
@@ -962,7 +996,7 @@ static void xml_vcard_handle_parameter(GHashTable *table, VFormatAttribute *attr
 	
 	//Find the handler for this parameter
 	void (* xml_param_handler)(VFormatAttribute *attr, xmlNode *);
-	char *content = xmlNodeGetContent(current);
+	char *content = (char*)xmlNodeGetContent(current);
 	char *paramname = g_strdup_printf("%s=%s", current->name, content);
 	g_free(content);
 	xml_param_handler = g_hash_table_lookup(table, paramname);
@@ -1014,7 +1048,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	xmlNode *root = *current;
 	while (root) {
-		if (!strcmp(root->name, "Todo")) {
+		if (!strcmp((char*)root->name, "Todo")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "VTODO");
 			vformat_add_attribute(vcal, attr);
@@ -1023,7 +1057,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "VTODO");
 			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp(root->name, "Timezone")) {
+		} else if (!strcmp((char*)root->name, "Timezone")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "VTIMEZONE");
 			vformat_add_attribute(vcal, attr);
@@ -1032,7 +1066,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "VTIMEZONE");
 			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp(root->name, "Event")) {
+		} else if (!strcmp((char*)root->name, "Event")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "VEVENT");
 			vformat_add_attribute(vcal, attr);
@@ -1041,7 +1075,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "VEVENT");
 			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp(root->name, "Journal")) {
+		} else if (!strcmp((char*)root->name, "Journal")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "VJOURNAL");
 			vformat_add_attribute(vcal, attr);
@@ -1050,7 +1084,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "VJOURNAL");
 			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp(root->name, "DaylightSavings")) {
+		} else if (!strcmp((char*)root->name, "DaylightSavings")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "DAYLIGHT");
 			vformat_add_attribute(vcal, attr);
@@ -1059,7 +1093,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "DAYLIGHT");
 			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp(root->name, "Standard")) {
+		} else if (!strcmp((char*)root->name, "Standard")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "STANDARD");
 			vformat_add_attribute(vcal, attr);
@@ -1068,7 +1102,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "STANDARD");
 			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp(root->name, "Alarm")) {
+		} else if (!strcmp((char*)root->name, "Alarm")) {
 			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
 			vformat_attribute_add_value(attr, "VALARM");
 			vformat_add_attribute(vcal, attr);
@@ -1139,12 +1173,16 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	
 	OSyncXMLScore score[] =
 	{
-	{100, "/vcal/event/StartTime"},
-	{100, "/vcal/event/EndTime"},
-	{100, "/vcal/event/Summary"},
-	{0, "/vcal/event/Uid"},
-	{0, "/vcal/event/Revision"},
+	{100, "/vcal/Event/StartTime"},
+	{100, "/vcal/Event/EndTime"},
+	{100, "/vcal/Event/Summary"},
+	{0, "/vcal/Event/Uid"},
+	{0, "/vcal/Event/Revision"},
 	{0, "/vcal/Method"},
+	{0, "/vcal/Event/DateCalendarCreated"},
+	{0, "/vcal/Event/DateCreated"},
+	{0, "/vcal/Event/LastModified"},
+	{0, "/vcal/Event/Sequence"},
 	{0, NULL}
 	};
 	
@@ -1237,6 +1275,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "RESOURCES", handle_resources_attribute);
 	g_hash_table_insert(hooks->comptable, "DTEND", handle_dtend_attribute);
 	g_hash_table_insert(hooks->comptable, "TRANSP", handle_transp_attribute);
+	g_hash_table_insert(hooks->comptable, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	g_hash_table_insert(hooks->comptable, "TZID", handle_tzid_parameter);
 	g_hash_table_insert(hooks->comptable, "VALUE", handle_value_parameter);

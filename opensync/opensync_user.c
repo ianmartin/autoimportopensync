@@ -22,22 +22,10 @@
 #include "opensync_internals.h"
 
 /**
- * @defgroup OSyncEnvUserPrivate OpenSync User Internals
- * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
- * 
+ * @ingroup OSyncEnvUserPrivate
  */
 /*@{*/
-struct OSyncUserInfo
-{
-	uid_t uid;
-	gid_t gid;
-	G_CONST_RETURN gchar *username;
-	G_CONST_RETURN gchar *homedir;
-	char *confdir;
-};
+
 
 /*! @brief This will create a new user
  * 

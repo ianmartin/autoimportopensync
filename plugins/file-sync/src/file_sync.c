@@ -315,6 +315,31 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
+static void fs_read(OSyncContext *ctx, OSyncChange *change)
+{
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	
+	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
+
+	fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
+	stat(filename, &info->filestats);
+	
+	OSyncError *error = NULL;
+	if (!osync_file_read(filename, &info->data, &info->size, &error)) {
+		osync_context_report_osyncerror(ctx, &error);
+		g_free(filename);
+		return;
+	}
+		
+	osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), TRUE);
+
+	g_free(filename);
+	
+	osync_context_report_success(ctx);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+}
+
 static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 {
 	/*TODO: Create directory for file, if it doesn't exist */
@@ -437,8 +462,33 @@ static void fs_finalize(void *data)
 #endif
 
 	g_free(fsinfo->path);
-	//g_free(fsinfo);
+	g_free(fsinfo);
 }
+
+#ifdef ERROR_TEST
+static osync_bool fs_is_available(OSyncError **error)
+{
+	if (g_getenv("IS_NOT_AVAILABLE")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "file-sync plugin is not available");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static void fs_batch_commit(void *data, OSyncContext **contexts, OSyncChange **changes)
+{
+	filesyncinfo *env = (filesyncinfo *)data;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, contexts, changes);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void fs_committed_all(void *data)
+{
+	filesyncinfo *env = (filesyncinfo *)data;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+#endif
 
 void get_info(OSyncPluginInfo *info)
 {
@@ -456,6 +506,12 @@ void get_info(OSyncPluginInfo *info)
 	info->functions.get_changeinfo = fs_get_changeinfo;
 	info->functions.get_data = fs_get_data;
 
+	osync_plugin_accept_objtype(info, "data");
+	osync_plugin_accept_objformat(info, "data", "file", NULL);
+	osync_plugin_set_commit_objformat(info, "data", "file", fs_commit_change);
+	osync_plugin_set_access_objformat(info, "data", "file", fs_access);
+	osync_plugin_set_read_objformat(info, "data", "file", fs_read);
+
 #ifdef ERROR_TEST
 	//Lets reduce the timeouts a bit so the checks work faster
 	info->timeouts.disconnect_timeout = 5;
@@ -464,10 +520,16 @@ void get_info(OSyncPluginInfo *info)
 	info->timeouts.get_changeinfo_timeout = 5;
 	info->timeouts.get_data_timeout = 5;
 	info->timeouts.commit_timeout = 5;
+	
+	if (g_getenv("IS_AVAILABLE"))
+		info->functions.is_available = fs_is_available;
+	
+	if (g_getenv("BATCH_COMMIT1"))
+		osync_plugin_set_batch_commit_objformat(info, "data", "file", fs_batch_commit);
+		
+	if (g_getenv("BATCH_COMMIT2"))
+		osync_plugin_set_committed_all_objformat(info, "data", "file", fs_committed_all);
 #endif
 	
-	osync_plugin_accept_objtype(info, "data");
-	osync_plugin_accept_objformat(info, "data", "file", NULL);
-	osync_plugin_set_commit_objformat(info, "data", "file", fs_commit_change);
-	osync_plugin_set_access_objformat(info, "data", "file", fs_access);
+
 }

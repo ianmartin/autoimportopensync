@@ -67,7 +67,8 @@ START_TEST (env_init_false)
   char *testbed = setup_testbed("sync_setup_false");
   OSyncEnv *osync = osync_env_new();
   osync_env_set_option(osync, "GROUPS_DIRECTORY", "configs");
-  osync_env_initialize(osync, NULL);
+  OSyncError *error = NULL;
+  osync_env_initialize(osync, &error);
   fail_unless(osync_env_num_groups(osync) == 1, NULL);
   destroy_testbed(testbed);
 }
@@ -105,6 +106,61 @@ START_TEST (env_sync_false)
 }
 END_TEST
 
+START_TEST (env_check_plugin_true1)
+{
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+	fail_unless(osync_env_plugin_is_usable(env, "file-sync", &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
+START_TEST (env_check_plugin_true2)
+{
+	g_setenv("IS_AVAILABLE", "1", TRUE);
+	
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+	
+	fail_unless(osync_env_plugin_is_usable(env, "file-sync", &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
+START_TEST (env_check_plugin_false)
+{
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+	fail_unless(!osync_env_plugin_is_usable(env, "file-syncc", &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
+START_TEST (env_check_plugin_false2)
+{
+	g_setenv("IS_AVAILABLE", "1", TRUE);
+	g_setenv("IS_NOT_AVAILABLE", "1", TRUE);
+	
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+
+	fail_unless(!osync_env_plugin_is_usable(env, "file-sync", &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Env");
@@ -117,6 +173,10 @@ Suite *env_suite(void)
 	create_case(s, "env_init_false", env_init_false);
 	create_case(s, "env_init_false2", env_init_false2);
 	create_case(s, "env_sync_false", env_sync_false);
+	create_case(s, "env_check_plugin_true1", env_check_plugin_true1);
+	create_case(s, "env_check_plugin_true2", env_check_plugin_true2);
+	create_case(s, "env_check_plugin_false", env_check_plugin_false);
+	create_case(s, "env_check_plugin_false2", env_check_plugin_false2);
 
 	return s;
 }

@@ -23,7 +23,7 @@
 
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name)
 {
-	doc->children = xmlNewDocNode(doc, NULL, name, NULL);
+	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)name, NULL);
 	return doc->children;
 }
 
@@ -47,10 +47,10 @@ xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error)
 void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLEncoding encoding)
 {
 	if (name)
-		xmlNodeSetName(node, name); //FIXME Free previous name?
+		xmlNodeSetName(node, (xmlChar*)name); //FIXME Free previous name?
 		
 	if (data)
-		xmlNewTextChild(node, NULL, "Content", data);
+		xmlNewTextChild(node, NULL, (xmlChar*)"Content", (xmlChar*)data);
 }
 
 xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data)
@@ -59,24 +59,24 @@ xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data)
 		return NULL;
 	if (strlen(data) == 0)
 		return NULL;
-	xmlNode *node = xmlNewTextChild(parent, NULL, name, data);
+	xmlNode *node = xmlNewTextChild(parent, NULL, (xmlChar*)name, (xmlChar*)data);
 	return node;
 }
 
 void osxml_node_add_property(xmlNode *parent, const char *name, const char *data)
 {
-	xmlNewProp(parent, name, data);
+	xmlNewProp(parent, (xmlChar*)name, (xmlChar*)data);
 }
 
 void osxml_node_mark_unknown(xmlNode *parent)
 {
-	if (!xmlHasProp(parent, "Type"))
-		xmlNewProp(parent, "Type", "Unknown");
+	if (!xmlHasProp(parent, (xmlChar*)"Type"))
+		xmlNewProp(parent, (xmlChar*)"Type", (xmlChar*)"Unknown");
 }
 
 void osxml_node_remove_unknown_mark(xmlNode *node)
 {
-	xmlAttr *attr = xmlHasProp(node, "Type");
+	xmlAttr *attr = xmlHasProp(node, (xmlChar*)"Type");
 	if (!attr)
 		return;
 	xmlRemoveProp(attr);
@@ -95,7 +95,7 @@ xmlNode *osxml_get_node(xmlNode *parent, const char *name)
 
 char *osxml_find_node(xmlNode *parent, const char *name)
 {
-	return xmlNodeGetContent(osxml_get_node(parent, name));
+	return (char*)xmlNodeGetContent(osxml_get_node(parent, name));
 }
 
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression)
@@ -111,7 +111,7 @@ xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression)
     }
     
     /* Evaluate xpath expression */
-    xpathObj = xmlXPathEvalExpression(expression, xpathCtx);
+    xpathObj = xmlXPathEvalExpression((xmlChar*)expression, xpathCtx);
     if(xpathObj == NULL) {
         fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n", expression);
         xmlXPathFreeContext(xpathCtx); 
@@ -160,24 +160,24 @@ void osxml_map_unknown_param(xmlNode *node, const char *paramname, const char *n
 osync_bool osxml_has_property_full(xmlNode *parent, const char *name, const char *data)
 {
 	if (osxml_has_property(parent, name))
-		return (strcmp(xmlGetProp(parent, name), data) == 0);
+		return (strcmp((char*)xmlGetProp(parent, (xmlChar*)name), data) == 0);
 	return FALSE;
 }
 
 char *osxml_find_property(xmlNode *parent, const char *name)
 {
-	return xmlGetProp(parent, name);
+	return (char*)xmlGetProp(parent, (xmlChar*)name);
 }
 
 osync_bool osxml_has_property(xmlNode *parent, const char *name)
 {
-	return (xmlHasProp(parent, name) != NULL);
+	return (xmlHasProp(parent, (xmlChar*)name) != NULL);
 }
 
 static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p:%s, %p:%s)", __func__, leftnode, leftnode->name, rightnode, rightnode->name);
-	if (strcmp(leftnode->name, rightnode->name)) {
+	if (strcmp((char*)leftnode->name, (char*)rightnode->name)) {
 		osync_trace(TRACE_EXIT, "%s: FALSE: Different Name", __func__);
 		return FALSE;
 	}
@@ -185,18 +185,29 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 	leftnode = leftnode->children;
 	rightnode = rightnode->children;
 	xmlNode *rightstartnode = rightnode;
+	
+	if (!leftnode && !rightnode) {
+		osync_trace(TRACE_EXIT, "%s: TRUE. Both 0", __func__);
+		return TRUE;
+	}
+	
+	if (!leftnode || !rightnode) {
+		osync_trace(TRACE_EXIT, "%s: FALSE. One 0", __func__);
+		return FALSE;
+	}
+	
 	do {
-		if (!strcmp("UnknownParam", leftnode->name))
+		if (!strcmp("UnknownParam", (char*)leftnode->name))
 			continue;
-		if (!strcmp("Order", leftnode->name))
+		if (!strcmp("Order", (char*)leftnode->name))
 			continue;
 		rightnode = rightstartnode;
-		char *leftcontent = xmlNodeGetContent(leftnode);
+		char *leftcontent = (char*)xmlNodeGetContent(leftnode);
 		
 		do {
-			if (!strcmp("UnknownParam", rightnode->name))
+			if (!strcmp("UnknownParam", (char*)rightnode->name))
 				continue;
-			char *rightcontent = xmlNodeGetContent(rightnode);
+			char *rightcontent = (char*)xmlNodeGetContent(rightnode);
 			
 			osync_trace(TRACE_INTERNAL, "leftcontent %s (%s), rightcontent %s (%s)", leftcontent, leftnode->name, rightcontent, rightnode->name);
 			if (leftcontent == rightcontent) {

@@ -118,9 +118,7 @@ osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncEr
 /**
  * @defgroup OSyncGroupAPI OpenSync Groups
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief A groups represent several device or application that should be synchronized
  * 
  */
 /*@{*/
@@ -356,43 +354,43 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	
 	xmlDocPtr doc;
 
-	doc = xmlNewDoc("1.0");
-	doc->children = xmlNewDocNode(doc, NULL, "syncgroup", NULL);
+	doc = xmlNewDoc((xmlChar*)"1.0");
+	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 	
 	//The filters
 	GList *f;
 	for (f = group->filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
-		xmlNodePtr child = xmlNewChild(doc->children, NULL, "filter", NULL);
+		xmlNodePtr child = xmlNewChild(doc->children, NULL, (xmlChar*)"filter", NULL);
 		
 		if (filter->sourcememberid) {
 			char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
-			xmlNewChild(child, NULL, "sourcemember", sourcememberid);
+			xmlNewChild(child, NULL, (xmlChar*)"sourcemember", (xmlChar*)sourcememberid);
 			g_free(sourcememberid);
 		}
 		if (filter->destmemberid) {
 			char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
-			xmlNewChild(child, NULL, "destmember", destmemberid);
+			xmlNewChild(child, NULL, (xmlChar*)"destmember", (xmlChar*)destmemberid);
 			g_free(destmemberid);
 		}
 		if (filter->sourceobjtype)
-			xmlNewChild(child, NULL, "sourceobjtype", filter->sourceobjtype);
+			xmlNewChild(child, NULL, (xmlChar*)"sourceobjtype", (xmlChar*)filter->sourceobjtype);
 		if (filter->destobjtype)
-			xmlNewChild(child, NULL, "destobjtype", filter->destobjtype);
+			xmlNewChild(child, NULL, (xmlChar*)"destobjtype", (xmlChar*)filter->destobjtype);
 		if (filter->detectobjtype)
-			xmlNewChild(child, NULL, "detectobjtype", filter->detectobjtype);
+			xmlNewChild(child, NULL, (xmlChar*)"detectobjtype", (xmlChar*)filter->detectobjtype);
 		if (filter->action) {
 			char *action = g_strdup_printf("%i", filter->action);
-			xmlNewChild(child, NULL, "action", action);
+			xmlNewChild(child, NULL, (xmlChar*)"action", (xmlChar*)action);
 			g_free(action);
 		}
 		if (filter->function_name)
-			xmlNewChild(child, NULL, "function_name", filter->function_name);
+			xmlNewChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
 		if (filter->config)
-			xmlNewChild(child, NULL, "config", filter->config);
+			xmlNewChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
 	}
 
-	xmlNewChild(doc->children, NULL, "groupname", group->name);
+	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
@@ -473,7 +471,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 
 	while (cur != NULL) {
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
-			group->name = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+			group->name = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 			filternode = cur->xmlChildrenNode;
@@ -482,19 +480,19 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 			
 			while (filternode != NULL) {
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
-					filter->sourceobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->sourceobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
-					filter->destobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->destobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
-					filter->detectobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->detectobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
-					filter->config = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->config = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -504,7 +502,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 				}
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -514,7 +512,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 				}
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -524,7 +522,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 				}
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -766,5 +764,41 @@ void osync_group_flush_filters(OSyncGroup *group)
 	}
 }
 
+/*! @brief Can be used to load all items from the changelog. Loaded items will be removed
+ * 
+ * @param group The group for which to load the log
+ * @param uids Place to return an array with the saved uids
+ * @param changetypes Place to return an array with the saved changetypes. Same size as uids
+ * @param error Place to return the error
+ * @returns TRUE if successfull, FALSE otherwise
+ */
+osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error)
+{
+	return osync_db_open_changelog(group, uids, memberids, changetypes, error);
+}
+
+/*! @brief Saves a change to the changelog.
+ * 
+ * @param group The group in which to save
+ * @param change The change to save
+ * @param error Place to return the error
+ * @returns TRUE if successfull, FALSE otherwise
+ */
+osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
+{
+	return osync_db_save_changelog(group, change, error);
+}
+
+/*! @brief Removes a change from the changelog.
+ * 
+ * @param group The group in which to save
+ * @param change The change to remove
+ * @param error Place to return the error
+ * @returns TRUE if successfull, FALSE otherwise
+ */
+osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
+{
+	return osync_db_remove_changelog(group, change, error);
+}
 
 /*@}*/

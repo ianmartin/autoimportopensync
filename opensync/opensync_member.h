@@ -1,3 +1,14 @@
+
+/*! @brief Represents the functions that a member will call to inform the syncengine */
+typedef struct OSyncMemberFunctions {
+	void (* rf_change) (OSyncMember *, OSyncChange *, void *);
+	void *(* rf_message) (OSyncMember *, const char *, void *, osync_bool);
+	void (* rf_sync_alert) (OSyncMember *);
+	void (*rf_log) (OSyncMember *, char *);
+} OSyncMemberFunctions;
+
+typedef void (* OSyncEngCallback)(OSyncMember *, void *, OSyncError **);
+
 OSyncMember *osync_member_new(OSyncGroup *group);
 void osync_member_free(OSyncMember *member);
 
@@ -27,6 +38,9 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error);
 void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *user_data);
 void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, void *user_data);
 void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function, void *user_data);
+void osync_member_read_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
+void osync_member_committed_all(OSyncMember *member);
+
 void *osync_member_call_plugin(OSyncMember *member, const char *function, void *data, OSyncError **error);
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
@@ -35,7 +49,7 @@ void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid);
 void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry);
 void osync_member_request_synchronization(OSyncMember *member);
-OSyncChange *osync_member_add_random_data(OSyncMember *member);
+OSyncChange *osync_member_add_random_data(OSyncMember *member, const char *objtype);
 void osync_member_finalize(OSyncMember *member);
 void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry);
 osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change);
@@ -45,3 +59,5 @@ osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypest
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
 osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change);
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled);
+void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
+void osync_member_set_configdir(OSyncMember *member, const char *configdir);

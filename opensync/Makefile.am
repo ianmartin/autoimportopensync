@@ -21,7 +21,9 @@ opensyncinclude_HEADERS = \
 	opensync_convert.h \
 	opensync_convreg.h \
 	opensync_anchor.h \
-	opensync_filter.h
+	opensync_filter.h \
+	opensync_debug.h \
+	opensync_changecmds.h
 
 EXTRA_DIST = \
 	opensync_internals.h \
@@ -33,7 +35,12 @@ EXTRA_DIST = \
 	opensync_plugin_internals.h \
 	opensync_env_internals.h \
 	opensync_error_internals.h \
-	opensync_filter_internals.h
+	opensync_filter_internals.h \
+	opensync_change_internals.h \
+	opensync_context_internals.h \
+	opensync_group_internals.h \
+	opensync_hashtable_internals.h \
+	opensync_user_internals.h
 
 libopensync_la_SOURCES = \
 	opensync_debug.c \
@@ -48,6 +55,7 @@ libopensync_la_SOURCES = \
 	opensync_error.c \
 	opensync_context.c \
 	opensync_convert.c \
+	opensync_changecmds.c \
 	opensync_convreg.c \
 	opensync_anchor.c \
 	opensync_filter.c

@@ -41,7 +41,6 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 	client->fl_sent_changes = osync_flag_new(engine->cmb_sent_changes);
 	client->fl_done = osync_flag_new(NULL);
 	client->fl_finished = osync_flag_new(engine->cmb_finished);
-	//client->fl_reset = osync_flag_new(engine->cmb_reset);
 	
     return client;
 }
@@ -169,7 +168,20 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
+
+	if (itm_message_is_signal(message, "COMMITTED_ALL")) {
+		osync_member_committed_all(client->member);
+		osync_trace(TRACE_EXIT, "client_message_handler");
+		return;
+	}
 	
+	if (itm_message_is_methodcall(message, "READ_CHANGE")) {
+		OSyncChange *change = itm_message_get_data(message, "change");
+		osync_member_read_change(client->member, change, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
+		return;
+	}
+
 	if (itm_message_is_signal(message, "CALL_PLUGIN")) {
 		char *function = itm_message_get_data(message, "function");
 		void *data = itm_message_get_data(message, "data");

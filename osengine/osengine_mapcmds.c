@@ -22,16 +22,9 @@
 #include "engine_internals.h"
 
 /**
- * @defgroup OSEngineMapping OpenSync Mapping Internals
- * @ingroup OSEnginePrivate
- * @brief The internals of the engine (communication part)
- * 
- * This gives you an insight in the inner workings of the sync engine
- * 
- * 
+ * @ingroup OSEngineMappingPrivate
  */
 /*@{*/
-
 
 static OSyncMappingEntry *_osync_find_next_diff(OSyncMapping *mapping, OSyncMappingEntry *orig_entry)
 {
@@ -123,6 +116,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 	OSyncMappingEntry *master = NULL;
 
 	master = mapping->master;
+	g_assert(master);
 	if (osync_flag_is_not_set(master->fl_dirty))
 		osync_flag_set(master->fl_synced);
 	
@@ -151,7 +145,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 		} else {
 			osync_bool had_data = osync_change_has_data(entry->change);
 			osengine_mappingentry_update(entry, master->change);
-			if (osync_change_get_changetype(entry->change) == CHANGE_ADDED) {
+			if (osync_change_get_changetype(entry->change) == CHANGE_ADDED || osync_change_get_changetype(entry->change) == CHANGE_UNKNOWN) {
 				osync_change_set_changetype(entry->change, CHANGE_MODIFIED);
 			}
 			
@@ -171,6 +165,9 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 		}
 	}
 	
+	OSyncError *error = NULL;
+	osync_change_save(master->change, TRUE, &error);
+	
 	osync_flag_set(mapping->fl_multiplied);
 	osync_trace(TRACE_EXIT, "osync_mapping_multiply_master");
 }
@@ -189,26 +186,25 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	
 	g_assert(engine != NULL);
 	g_assert(mapping != NULL);
+	g_assert(!mapping->master);
 	
-	if (!mapping->master) {
-		for (e = mapping->entries; e; e = e->next) {
-			leftentry = e->data;
-			if (osync_change_get_changetype(leftentry->change) == CHANGE_UNKNOWN)
+	for (e = mapping->entries; e; e = e->next) {
+		leftentry = e->data;
+		if (osync_change_get_changetype(leftentry->change) == CHANGE_UNKNOWN)
+			continue;
+		mapping->master = leftentry;
+		for (n = e->next; n; n = n->next) {
+			rightentry = n->data;
+			if (osync_change_get_changetype(rightentry->change) == CHANGE_UNKNOWN)
 				continue;
-			mapping->master = leftentry;
-			for (n = e->next; n; n = n->next) {
-				rightentry = n->data;
-				if (osync_change_get_changetype(rightentry->change) == CHANGE_UNKNOWN)
-					continue;
-				
-				if (osync_change_compare(leftentry->change, rightentry->change) != CONV_DATA_SAME) {
-					is_conflict = TRUE;
-					goto conflict;
-				} else {
-					is_same++;
-				}
-			}	
-		}
+			
+			if (osync_change_compare(leftentry->change, rightentry->change) != CONV_DATA_SAME) {
+				is_conflict = TRUE;
+				goto conflict;
+			} else {
+				is_same++;
+			}
+		}	
 	}
 	
 	conflict:
@@ -220,6 +216,7 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: Got conflict");
 		return;
 	}
+	g_assert(mapping->master);
 	osync_flag_set(mapping->fl_chkconflict);
 	
 	//Our mapping is already solved since there is no conflict
@@ -234,7 +231,53 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: No conflict");
 }
 
+static OSyncMapping *_osengine_mapping_find(OSyncMappingTable *table, OSyncMappingEntry *orig_entry)
+{
+	GList *i;
+	GList *n;
+	osync_bool mapping_found = FALSE;
 
+	for (i = table->mappings; i; i = i->next) {
+		OSyncMapping *mapping = i->data;
+		//We only need mapping where our member isnt listed yet.
+		if (!osengine_mapping_find_entry(mapping, NULL, orig_entry->view)) {
+			mapping_found = TRUE;
+			for (n = mapping->entries; n; n = n->next) {
+				OSyncMappingEntry *entry = n->data;
+				if (osync_change_compare_data(entry->change, orig_entry->change) == CONV_DATA_MISMATCH) {
+					mapping_found = FALSE;
+					continue;
+				}
+			}
+			if (mapping_found)
+				return mapping;
+		}
+	}
+	return NULL;
+}
+
+void osengine_change_map(OSyncEngine *engine, OSyncMappingEntry *entry)
+{
+	osync_trace(TRACE_ENTRY, "osengine_change_map(%p, %p)", engine, entry);
+	OSyncMapping *mapping = NULL;
+	if (!(mapping = _osengine_mapping_find(engine->maptable, entry))) {
+		mapping = osengine_mapping_new(engine->maptable);
+		osync_flag_unset(mapping->fl_chkconflict);
+		mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
+		osync_trace(TRACE_INTERNAL, "No previous mapping found. Creating new one: %p", mapping);
+	}
+	osengine_mapping_add_entry(mapping, entry);
+	osync_flag_set(entry->fl_mapped);
+	osync_change_save(entry->change, FALSE, NULL);
+	osync_trace(TRACE_EXIT, "osengine_change_map");
+}
+
+/*@}*/
+
+/**
+ * @ingroup OSEngineMapping
+ */
+/*@{*/
 
 void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 {
@@ -342,45 +385,37 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
 	osync_trace(TRACE_EXIT, "osengine_mapping_solve");
 }
 
-static OSyncMapping *_osengine_mapping_find(OSyncMappingTable *table, OSyncMappingEntry *orig_entry)
+void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 {
-	GList *i;
-	GList *n;
-	osync_bool mapping_found = FALSE;
-
-	for (i = table->mappings; i; i = i->next) {
-		OSyncMapping *mapping = i->data;
-		//We only need mapping where our member isnt listed yet.
-		if (!osengine_mapping_find_entry(mapping, NULL, orig_entry->view)) {
-			mapping_found = TRUE;
-			for (n = mapping->entries; n; n = n->next) {
-				OSyncMappingEntry *entry = n->data;
-				if (osync_change_compare(entry->change, orig_entry->change) == CONV_DATA_MISMATCH) {
-					mapping_found = FALSE;
-					continue;
-				}
-			}
-			if (mapping_found)
-				return mapping;
-		}
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
+	
+	GList *e = NULL;
+	for (e = mapping->entries; e; e = e->next) {
+		OSyncMappingEntry *entry = e->data;
+		osync_trace(TRACE_INTERNAL, "Adding %p to logchanges", entry);
+		OSyncError *error = NULL;
+		if (osync_change_get_changetype(entry->change) != CHANGE_UNKNOWN)
+			osync_group_save_changelog(engine->group, entry->change, &error);
 	}
-	return NULL;
+	
+	//And make sure we dont synchronize it this time
+	osengine_mapping_reset(mapping);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void osengine_change_map(OSyncEngine *engine, OSyncMappingEntry *entry)
+void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)
 {
-	osync_trace(TRACE_ENTRY, "osengine_change_map(%p, %p)", engine, entry);
-	OSyncMapping *mapping = NULL;
-	if (!(mapping = _osengine_mapping_find(engine->maptable, entry))) {
-		mapping = osengine_mapping_new(engine->maptable);
-		osync_flag_unset(mapping->fl_chkconflict);
-		mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
-		osync_trace(TRACE_INTERNAL, "No previous mapping found. Creating new one: %p", mapping);
-	}
-	osengine_mapping_add_entry(mapping, entry);
-	osync_flag_set(entry->fl_mapped);
-	osync_change_save(entry->change, FALSE, NULL);
-	osync_trace(TRACE_EXIT, "osengine_change_map");
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, change);
+	OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, change, NULL);
+	mapping->master = entry;
+	
+	osync_flag_set(entry->fl_dirty);
+	osync_flag_unset(entry->fl_synced);
+	send_mappingentry_changed(engine, entry);
+	
+	osync_flag_set(mapping->fl_solved);
+	send_mapping_changed(engine, mapping);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*@}*/
