@@ -185,7 +185,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         osxml_node_set(sum, "Summary", utf8str, enc);
 
         xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
-        utf8str = (*i)->summary().utf8();
+        utf8str = (*i)->description().utf8();
         osxml_node_set(body, "Body", utf8str, enc);
 
         // initialize the change object
@@ -197,6 +197,16 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         osync_change_set_objtype_string(chg, "note");
         osync_change_set_objformat_string(chg, "xml-note");
         osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
+
+
+        //XXX: workaround to a bug on osync_change_multiply_master:
+        // convert it to vnote
+        OSyncFormatEnv *env = osync_member_get_format_env(member);
+        OSyncError *e = NULL;
+        if (!osync_change_convert_fmtname(env, chg, "vnote11", &e)) {
+            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Error converting data to vnote: %s", e?e->message:"(no error details)");
+            return false;
+        }
 
         // Use the hash table to check if the object
         // needs to be reported
