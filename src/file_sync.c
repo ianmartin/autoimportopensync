@@ -55,6 +55,7 @@ static void *fs_initialize(OSyncMember *member)
 	fsinfo->path = g_strstrip(g_strdup(configdata));
 	fsinfo->member = member;
 	fsinfo->hashtable = osync_hashtable_new();
+	g_free(configdata);
 
 #ifdef HAVE_FAM
 
@@ -89,7 +90,7 @@ static void fs_connect(OSyncContext *ctx)
 	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
 	osync_hashtable_load(fsinfo->hashtable, fsinfo->member);
 	
-	if (!osync_anchor_compare(fsinfo->member, fsinfo->path))
+	if (!osync_anchor_compare(fsinfo->member, "*", fsinfo->path))
 		osync_member_request_slow_sync(fsinfo->member, "*");
 	
 	if (direrror) {
@@ -219,7 +220,7 @@ static void fs_sync_done(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_forget(fsinfo->hashtable);
-	osync_anchor_update(fsinfo->member, fsinfo->path);
+	osync_anchor_update(fsinfo->member, "*", fsinfo->path);
 	osync_context_report_success(ctx);
 }
 
