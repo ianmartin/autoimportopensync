@@ -1,5 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
+EXTRA_DIST = data support.h
+
 AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src -I$(top_srcdir)/engine
