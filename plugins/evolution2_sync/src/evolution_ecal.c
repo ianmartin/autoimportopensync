@@ -81,7 +81,7 @@ static osync_bool evo2_calendar_modify(OSyncContext *ctx, OSyncChange *change)
 
 void evo2_calendar_setup(OSyncPluginInfo *info)
 {
-	osync_plugin_accept_objtype(info, "calendar");
-	osync_plugin_accept_objformat(info, "calendar", "vcalendar");
-	osync_plugin_set_commit_objformat(info, "calendar", "vcalendar", evo2_calendar_modify);
+	osync_plugin_accept_objtype(info, "event");
+	osync_plugin_accept_objformat(info, "event", "vevent");
+	osync_plugin_set_commit_objformat(info, "event", "vevent", evo2_calendar_modify);
 }
