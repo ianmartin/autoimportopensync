@@ -91,7 +91,9 @@ struct OSyncMapping {
 struct OSyncMappingTable {
 	GList *mappings;
 	DB *maptable;
+	DB *mapidtable;
 	DB *entrytable;
+	DB *entryidtable;
 	char *db_path;
 	OSyncGroup *group;
 	GList *unmapped;

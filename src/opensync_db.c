@@ -69,7 +69,7 @@ DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 	return dbp;
 }
 
-u_long osync_db_create_unique_id(DB *dbp)
+/*u_long osync_db_create_unique_id(DB *dbp)
 {
 	DB_BTREE_STAT *statp;
 	int ret;
@@ -83,7 +83,7 @@ u_long osync_db_create_unique_id(DB *dbp)
 	free(statp);
 	
 	return uid;
-}
+}*/
 
 int stubcallback(DB *dbp, const DBT *dbt1, const DBT *dbt2, DBT *dbt3)
 {

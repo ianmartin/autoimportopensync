@@ -8,7 +8,7 @@ osync_bool osync_db_get(DB *dbp, void *key, int keysize, void **target);
 void osync_db_cursor_close(DBC *dbcp);
 osync_bool osync_db_cursor_next_sec(DBC *dbcp, void **pkey, void **skey, void **data);
 DB *osync_db_open_secondary(DB *firstdb, char *filename, char *dbname, int (*callback)(DB *, const DBT *, const DBT *, DBT *), DB_ENV *dbenv);
-u_long osync_db_create_unique_id(DB *dbp);
+//u_long osync_db_create_unique_id(DB *dbp);
 void osync_db_sync(DB *dbp);
 osync_bool osync_db_put_dbt(DB *dbp, DBT *key, DBT *data);
 DB_ENV *osync_db_setup(char *configdir, FILE *errfp);

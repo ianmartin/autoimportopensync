@@ -47,7 +47,19 @@ int osync_mappingtable_num_mappings(OSyncMappingTable *table)
 
 void osync_mapping_create_changeid(OSyncMappingTable *table, OSyncChange *entry)
 {
-	entry->id = osync_db_create_unique_id(table->entrytable);
+	g_assert(table != NULL);
+	g_assert(entry != NULL);
+	
+	void *entryidp;
+	char *anchorstr = "ID";
+	unsigned long entryid = 1;
+
+	if (osync_db_get(table->entryidtable, anchorstr, strlen(anchorstr) + 1, &entryidp)) {
+		entryid = *((unsigned long *)entryidp) + 1;
+	}
+
+	osync_db_put(table->entryidtable, anchorstr, strlen(anchorstr) + 1, &(entryid), sizeof(unsigned long));
+	entry->id = entryid;
 }
 
 void osync_mapping_create_id(OSyncMappingTable *table, OSyncMapping *mapping)
@@ -55,7 +67,15 @@ void osync_mapping_create_id(OSyncMappingTable *table, OSyncMapping *mapping)
 	g_assert(table != NULL);
 	g_assert(mapping != NULL);
 	
-	mapping->id = osync_db_create_unique_id(table->maptable);
+	void *mapidp;
+	char *anchorstr = "ID";
+	unsigned long mapid = 1;
+
+	if (osync_db_get(table->mapidtable, anchorstr, strlen(anchorstr) + 1, &mapidp)) {
+		mapid = *((unsigned long *)mapidp) + 1;
+	}
+	osync_db_put(table->mapidtable, anchorstr, strlen(anchorstr) + 1, &(mapid), sizeof(unsigned long));
+	mapping->id = mapid;
 }
 
 OSyncGroup *osync_mapping_get_group(OSyncMapping *mapping)
@@ -68,6 +88,7 @@ OSyncGroup *osync_mapping_get_group(OSyncMapping *mapping)
 void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *change)
 {
 	g_assert(table->entrytable != NULL);
+	
 	DBT key, data;
 	memset(&data, 0, sizeof(data));
 	memset(&key, 0, sizeof(key));
@@ -125,9 +146,9 @@ void osync_mapping_add_entry(OSyncMapping *mapping, OSyncChange *entry)
 {
 	g_assert(mapping);
 	g_assert(entry);
+	osync_assert(!osync_mapping_get_entry_by_owner(mapping, entry->member), "WTF?")
 	mapping->entries = g_list_append(mapping->entries, entry);
 	entry->mapping = mapping;
-	//FIXME Make sure member is unique?
 }
 
 void osync_mapping_remove_entry(OSyncMapping *mapping, OSyncChange *entry)
@@ -137,14 +158,6 @@ void osync_mapping_remove_entry(OSyncMapping *mapping, OSyncChange *entry)
 	mapping->entries = g_list_remove(mapping->entries, entry);
 	entry->mapping = NULL;
 }
-
-/*OSyncMappingEntry *osync_mappingentry_new(OSyncMapping mapping)
-{
-	g_assert(mapping);
-	OSyncMappingEntry *entry = g_malloc0(sizeof(OSyncMappingEntry));
-	osync_mapping_add_entry(mapping, entry);
-	return entry;
-}*/
 
 OSyncMapping *osync_mapping_new(OSyncMappingTable *table)
 {
@@ -203,36 +216,6 @@ OSyncChange *osync_mapping_nth_entry(OSyncMapping *mapping, int nth)
 	return g_list_nth_data(mapping->entries, nth);
 }
 
-/*OSyncChange *osync_mappingentry_get_change(OSyncMappingEntry *entry)
-{
-	g_assert(entry);
-	return entry->change;
-}*/
-
-/*void osync_mappingentry_set_change(OSyncMappingEntry *entry, OSyncChange *change)
-{
-	g_assert(entry);
-	//FIXME remove reference to orig.
-	entry->change = change;
-	if (change)
-		change->entry = entry;
-}*/
-
-/*void osync_mappingentry_set_uid(OSyncMappingEntry *entry, char *uid)
-{
-	g_assert(entry);
-	//FIXME free orig uid
-	entry->uid = g_strdup(uid);
-}*/
-
-/*
-void osync_mappingentry_set_member(OSyncMappingEntry *entry, OSyncMember *member)
-{
-	g_assert(entry);
-	//Fixme refcounts?
-	entry->member = member;
-}*/
-
 //FIXME Do we need this function, or is there a more elegant way?
 OSyncChange *osync_mapping_get_entry_by_owner(OSyncMapping *mapping, OSyncMember *member)
 {
@@ -274,10 +257,12 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 	g_assert(table != NULL);
 	g_assert(table->db_path != NULL);
 	char *filename = g_strdup_printf("%s/change.db", table->db_path);
-	table->entrytable = osync_db_open(filename, NULL, DB_BTREE, table->group->dbenv);
+	table->entrytable = osync_db_open(filename, "Entries", DB_BTREE, table->group->dbenv);
+	table->entryidtable = osync_db_open(filename, "ID", DB_BTREE, table->group->dbenv);
 	g_free(filename);
 	filename = g_strdup_printf("%s/mapping.db", table->db_path);
-	table->maptable = osync_db_open_secondary(table->entrytable, filename, NULL, getmapid, table->group->dbenv);
+	table->maptable = osync_db_open_secondary(table->entrytable, filename, "Mappings", getmapid, table->group->dbenv);
+	table->mapidtable = osync_db_open(filename, "ID", DB_BTREE, table->group->dbenv);
 	g_free(filename);
 
 	g_assert(table->entrytable);
@@ -316,7 +301,9 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 void osync_mappingtable_close(OSyncMappingTable *table)
 {
 	osync_db_close(table->entrytable);
+	osync_db_close(table->entryidtable);
 	osync_db_close(table->maptable);
+	osync_db_close(table->mapidtable);
 }
 
 void osync_mapping_delete(OSyncMapping *mapping)
