@@ -38,6 +38,14 @@ class KCalDataSource
 
         OSyncHashTable *hashtable;
         OSyncMember *member;
+
+        /** access() method, used by commit() and access()
+         *
+         * Returns true on succes, but don't send success reporting
+         * to context, because the caller may need to do more
+         * operations
+         */
+        bool __access(OSyncContext *ctx, OSyncChange *chg);
     public:
         KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable);
 
@@ -66,8 +74,16 @@ class KCalDataSource
 
         /** access() method.
          *
-         * On success, returns true, but doesn't call osync_context_report_success()
+         * On success, returns true, after calling osync_context_report_success()
          * On error, returns false, after calling osync_context_report_error()
          */
         bool access(OSyncContext *ctx, OSyncChange *chg);
+
+        /** commit_change() method.
+         *
+         * On success, returns true, after calling osync_context_report_success()
+         * On error, returns false, after calling osync_context_report_error()
+         */
+         bool commit_change(OSyncContext *ctx, OSyncChange *chg);
+
 };
