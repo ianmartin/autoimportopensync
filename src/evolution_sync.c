@@ -1,12 +1,13 @@
 #include "evolution_sync.h"
 
-GList *evo2_list_calendars(evo_environment *env, void *data)
+GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
 	
 	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_EVENT, NULL)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list calendars. Unable to get sources");
 		return NULL;
 	}
 
@@ -25,13 +26,14 @@ GList *evo2_list_calendars(evo_environment *env, void *data)
 	return paths;
 }
 
-GList *evo2_list_tasks(evo_environment *env, void *data)
+GList *evo2_list_tasks(evo_environment *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
 	
 	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_TODO, NULL)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list tasks. Unable to get sources");
 		return NULL;
 	}
 
@@ -50,14 +52,15 @@ GList *evo2_list_tasks(evo_environment *env, void *data)
 	return paths;
 }
 
-GList *evo2_list_addressbooks(evo_environment *env, void *data)
+GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
 	
 	if (!e_book_get_addressbooks(&sources, NULL)) {
-            return NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list addressbooks. Unable to get sources");
+		return NULL;
     }
 
 	GSList *g = NULL;
@@ -75,7 +78,7 @@ GList *evo2_list_addressbooks(evo_environment *env, void *data)
 	return paths;
 }
 
-static void *evo2_initialize(OSyncMember *member)
+static void *evo2_initialize(OSyncMember *member, OSyncError **error)
 {
 	char *configdata = NULL;
 	int configsize = 0;
@@ -83,10 +86,12 @@ static void *evo2_initialize(OSyncMember *member)
 	evo_environment *env = g_malloc0(sizeof(evo_environment));
 	if (!env)
 		goto error_ret;
-	if (!osync_member_get_config(member, &configdata, &configsize, NULL)) 
+	if (!osync_member_get_config(member, &configdata, &configsize, error)) 
 		goto error_free;
-	if (!evo2_parse_settings(env, configdata, configsize))
+	if (!evo2_parse_settings(env, configdata, configsize)) {
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to parse plugin configuration for evo2 plugin");
 		goto error_free_data;
+	}
 	env->member = member;
 	OSyncGroup *group = osync_member_get_group(member);
 	env->change_id = g_strdup(osync_group_get_name(group));
