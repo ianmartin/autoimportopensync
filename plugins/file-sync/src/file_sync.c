@@ -43,6 +43,7 @@ static void fam_setup(filesyncinfo *fsinfo, GMainContext *context)
 
 static void *fs_initialize(OSyncMember *member)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	char *configdata;
 	int configsize;
 	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
@@ -83,6 +84,7 @@ static void *fs_initialize(OSyncMember *member)
 
 static void fs_connect(OSyncContext *ctx)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	GError *direrror = NULL;
 	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
@@ -107,6 +109,7 @@ static char *fs_generate_hash(fs_fileinfo *info)
 
 static void fs_get_changeinfo(OSyncContext *ctx)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	if (fsinfo->dir) {
 		const gchar *de = NULL;
@@ -144,6 +147,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 
 static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
 	
@@ -157,6 +161,7 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 
 static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
 	
@@ -166,22 +171,23 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
 			if (!remove(filename) == 0) {
-				//osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
-				osync_context_report_success(ctx);
+				osync_debug("FILE-SYNC", 0, "Unable to remove file %s", filename);
+				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
 				g_free(filename);
 				return FALSE;
 			}
 			break;
 		case CHANGE_ADDED:
 			if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+				osync_debug("FILE-SYNC", 0, "File %s already exists", filename);
 				osync_context_report_error(ctx, OSYNC_ERROR_EXISTS, "Entry already exists");
 				g_free(filename);
 				return FALSE;
 			}
 		case CHANGE_MODIFIED:
 			if (!osync_file_write(filename, file_info->data, file_info->size)) {
-				//osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
-				osync_context_report_success(ctx);
+				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
+				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
 				g_free(filename);
 				return FALSE;
 			}
@@ -189,7 +195,7 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 			osync_change_set_hash(change, fs_generate_hash(file_info));
 			break;
 		default:
-			printf("Error1 %i\n", osync_change_get_changetype(change));
+			osync_debug("FILE-SYNC", 0, "Unknown change type");
 	}
 	osync_context_report_success(ctx);
 	g_free(filename);
@@ -198,6 +204,8 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 
 static void fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
 	fs_access(ctx, change);
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
@@ -206,6 +214,7 @@ static void fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 
 static void fs_sync_done(OSyncContext *ctx)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_forget(fsinfo->hashtable);
 	osync_anchor_update(fsinfo->member, fsinfo->path);
@@ -214,6 +223,7 @@ static void fs_sync_done(OSyncContext *ctx)
 
 static void fs_disconnect(OSyncContext *ctx)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	g_dir_close(fsinfo->dir);
 	osync_context_report_success(ctx);
@@ -221,6 +231,7 @@ static void fs_disconnect(OSyncContext *ctx)
 
 static void fs_finalize(void *data)
 {
+	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)data;
 	osync_hashtable_close(fsinfo->hashtable);
 	osync_hashtable_free(fsinfo->hashtable);

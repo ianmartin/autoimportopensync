@@ -37,3 +37,4 @@ void osync_mappingtable_add_unmapped(OSyncMappingTable *table, OSyncChange *chan
 void osync_mappingtable_remove_unmapped(OSyncMappingTable *table, OSyncChange *change);
 void osync_mapping_remove_entry(OSyncMapping *mapping, OSyncChange *entry);
 void osync_mappingtable_free(OSyncMappingTable *table);
+void osync_mapping_free(OSyncMapping *mapping);

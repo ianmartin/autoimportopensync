@@ -30,23 +30,23 @@ void osync_conv_open_plugin(OSyncConvEnv *env, char *path)
 {
 	/* Check if this platform supports dynamic
 	 * loading of modules */
-	_osync_debug("OSFRM", 3, "Loading formats plugin from %s", path);
+	osync_debug("OSFRM", 3, "Loading formats plugin from %s", path);
 	if (!g_module_supported()) {
-		_osync_debug("OSPLG", 0, "This platform does not support loading of modules");
+		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
 		return;
 	}
 
 	/* Try to open the module or fail if an error occurs */
 	GModule *plugin = g_module_open(path, 0);
 	if (!plugin) {
-		_osync_debug("OSPLG", 0, "Unable to open plugin: %s", g_module_error());
+		osync_debug("OSPLG", 0, "Unable to open plugin: %s", g_module_error());
 		return;
 	}
 	
 	void (* fct_info)(OSyncConvEnv *env);
 	void (** fct_infop)(OSyncConvEnv *env) = &fct_info;
 	if (!g_module_symbol(plugin, "get_info", (void **)fct_infop)) {
-		_osync_debug("OSPLG", 0, "Unable to open format plugin %s: %s", path, g_module_error());
+		osync_debug("OSPLG", 0, "Unable to open format plugin %s: %s", path, g_module_error());
 		return;
 	}
 	
@@ -59,7 +59,7 @@ void osync_conv_env_load(OSyncConvEnv *env)
 	g_assert(env->pluginpath);
 	GDir *dir;
 	GError *error = NULL;
-	_osync_debug("OSPLG", 3, "Trying to open formats plugin directory %s", env->pluginpath);
+	osync_debug("OSPLG", 3, "Trying to open formats plugin directory %s", env->pluginpath);
 	
 	if (!g_file_test(env->pluginpath, G_FILE_TEST_EXISTS)) {
 		return;
@@ -67,7 +67,7 @@ void osync_conv_env_load(OSyncConvEnv *env)
 	
 	dir = g_dir_open(env->pluginpath, 0, &error);
 	if (error) {
-		_osync_debug("OSPLG", 0, "Unable to open formats plugin directory %s: %s", env->pluginpath, error->message);
+		osync_debug("OSPLG", 0, "Unable to open formats plugin directory %s: %s", env->pluginpath, error->message);
 		g_error_free (error);
 		return;
 	}

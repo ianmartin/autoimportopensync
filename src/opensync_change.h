@@ -30,3 +30,4 @@ void osync_change_prepend_objformat(OSyncChange *change, OSyncObjFormat *objform
 unsigned long osync_change_get_id(OSyncChange *change);
 void osync_change_marshal(OSyncChange *change, DBT *dbt);
 osync_bool osync_change_has_data(OSyncChange *change);
+void osync_change_free(OSyncChange *change);

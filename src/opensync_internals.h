@@ -7,10 +7,8 @@
 #include <libxml/parser.h>
 
 osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path);
-void _osync_debug(char *subpart, int level, const char *message, ...);
 OSyncUserInfo *_osync_get_user(void);
 osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, char *path, char *topentry);
-void osync_print_binary(unsigned char *data, int len);
 osync_bool osync_conv_find_shortest_path(GList *vertices, OSyncObjFormat *start, OSyncObjFormat *end, GList **retlist);
 void osync_error_set_vargs(OSyncError *error, OSyncErrorType type, const char *format, va_list args);
 

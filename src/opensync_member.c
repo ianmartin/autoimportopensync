@@ -23,9 +23,9 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	member->group = group;
 	member->memberfunctions = osync_memberfunctions_new();
 	//printf("hashtable: %p\n", member->hashtable);
-	_osync_debug("OSMEM", 3, "Generated new member");
-	//_osync_debug("OSMEM", 3, "Name: %s, %p", member->name, member);
-	//_osync_debug("OSMEM", 3, "Configdirectory: %s", filename);
+	osync_debug("OSMEM", 3, "Generated new member");
+	//osync_debug("OSMEM", 3, "Name: %s, %p", member->name, member);
+	//osync_debug("OSMEM", 3, "Configdirectory: %s", filename);
 
 	return member;
 }	
@@ -37,7 +37,7 @@ OSyncMemberFunctions *osync_member_get_memberfunctions(OSyncMember *member)
 
 osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin)
 {
-	_osync_debug("OSMEM", 3, "Insstancing plugin %s for member %i", osync_plugin_get_name(plugin), member->id);
+	osync_debug("OSMEM", 3, "Insstancing plugin %s for member %i", osync_plugin_get_name(plugin), member->id);
 	if (plugin->info.is_threadsafe) {
 		member->plugin = plugin;
 	} else {
@@ -76,7 +76,7 @@ char *osync_member_get_configdir(OSyncMember *member)
 
 osync_bool osync_member_set_configdir(OSyncMember *member, char *path)
 {
-	_osync_debug("OSMEM", 3, "Setting configdirectory for member %i to %s", member->id, path);
+	osync_debug("OSMEM", 3, "Setting configdirectory for member %i to %s", member->id, path);
 	member->configdir = g_strdup(path);
 	return TRUE; //FIXME
 }
@@ -101,7 +101,7 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size)
 
 	if (!osync_member_read_config(member, data, size)) {
 		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/defaults/%s", osync_plugin_get_name(member->plugin));
-		_osync_debug("OSMEM", 3, "Reading default config file for member %i", member->id);
+		osync_debug("OSMEM", 3, "Reading default config file for member %i", member->id);
 		ret = osync_file_read(filename, data, size);
 		g_free(filename);
 	}
@@ -113,10 +113,10 @@ osync_bool osync_member_set_config(OSyncMember *member, char *data, int size)
 	osync_bool ret = FALSE;
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
-		_osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
+		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
 		mkdir(member->configdir, 0777);
 	}
-	_osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
+	osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
 	if (functions.store_config) {
 		return functions.store_config(member->configdir, data, size);
 	} else {
@@ -208,19 +208,15 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	functions.commit_change(context, change);
 }
 
-OSyncChange *osync_member_add_random_data(OSyncMember *member)
+osync_bool osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
 {
 	int retry = 0;
 	g_assert(member);
-	OSyncPluginFunctions functions = member->plugin->info.functions;
-	OSyncContext *context = osync_context_new(member);
-	OSyncChange *change = osync_change_new();
-	change->changetype = CHANGE_ADDED;
 	OSyncConvEnv *env = osync_member_get_conv_env(member);
-
+	
 	for (retry = 0; retry < 100; retry++) {
 		if (retry > 20)
-			return NULL; //Giving up
+			return FALSE; //Giving up
 		
 		//Select a random objtype
 		int selected = g_random_int_range(0, g_list_length(env->objtypes));
@@ -250,9 +246,47 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member)
 			continue; //Unable to convert to selected format
 		break;
 	}
+	return TRUE;
+}
+
+OSyncChange *osync_member_add_random_data(OSyncMember *member)
+{
+	OSyncContext *context = osync_context_new(member);
+	OSyncChange *change = osync_change_new();
+	OSyncPluginFunctions functions = member->plugin->info.functions;
+	change->changetype = CHANGE_ADDED;
+	
+	if (!osync_member_make_random_data(member, change))
+		return NULL;
+
 	if (functions.access(context, change) == TRUE)
 		return change;
 	return NULL;
+}
+
+osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change)
+{
+	OSyncContext *context = osync_context_new(member);
+	change->changetype = CHANGE_MODIFIED;
+	OSyncPluginFunctions functions = member->plugin->info.functions;
+	
+	char *uid = g_strdup(osync_change_get_uid(change));
+	
+	if (!osync_member_make_random_data(member, change))
+		return FALSE;
+
+	osync_change_set_uid(change, uid);
+
+	return functions.access(context, change);
+}
+
+osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
+{
+	OSyncContext *context = osync_context_new(member);
+	change->changetype = CHANGE_DELETED;
+	OSyncPluginFunctions functions = member->plugin->info.functions;
+
+	return functions.access(context, change);
 }
 
 void *osync_member_get_data(OSyncMember *member)
@@ -280,7 +314,7 @@ OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
 			return member;
 		}
 	}
-	_osync_debug("OSPLG", 0, "Couldnt find the group with the id %i", id);
+	osync_debug("OSPLG", 0, "Couldnt find the group with the id %i", id);
 	return NULL;
 }
 
@@ -288,8 +322,18 @@ void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry)
 {
 	if (!member)
 		return;
+	if (!osync_member_uid_is_unique(member, entry->uid)) {
+		segfault_me
+	}
 	member->entries = g_list_append(member->entries, entry);
 	entry->member = member;
+}
+
+void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry)
+{
+	g_assert(member);
+	member->entries = g_list_remove(member->entries, entry);
+	entry->member = NULL;
 }
 
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
@@ -345,7 +389,7 @@ void osync_member_load(OSyncMember *member)
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 	char *filename = NULL;
-	_osync_debug("OSGRP", 3, "Trying to load member from directory %s", member->configdir);
+	osync_debug("OSGRP", 3, "Trying to load member from directory %s", member->configdir);
 	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	member->id = atoi(g_path_get_basename(member->configdir));
 
@@ -360,7 +404,7 @@ void osync_member_load(OSyncMember *member)
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
 				OSyncPlugin *plugin = osync_plugin_from_name(member->group->env, str);
 				if (!plugin) {
-					_osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", str);
+					osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", str);
 				} else {
 					osync_member_instance_plugin(member, plugin);
 				}

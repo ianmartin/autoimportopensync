@@ -11,8 +11,8 @@ OSyncEnv *osync_env_new(void)
 	
 	os_env->conv_env = osync_conv_env_new();
 
-	_osync_debug("os_env", 3, "Generating new os_env:");
-	_osync_debug("os_env", 3, "Configdirectory: %s", os_env->configdir);
+	osync_debug("os_env", 3, "Generating new os_env:");
+	osync_debug("os_env", 3, "Configdirectory: %s", os_env->configdir);
 	return os_env;
 }
 
@@ -28,9 +28,9 @@ void osync_env_append_group(OSyncEnv *os_env, OSyncGroup *group)
 	if (index == -1) {
 		index = g_list_length(os_env->groups);
 		_osync_append_group(os_env, group);
-		_osync_debug("os_env", 3, "Appending group %s to list with index %i", osync_group_get_name(group), index);
+		osync_debug("os_env", 3, "Appending group %s to list with index %i", osync_group_get_name(group), index);
 	} else {
-		_osync_debug("os_env", 3, "Found group %s in list with index %i", osync_group_get_name(group), index);
+		osync_debug("os_env", 3, "Found group %s in list with index %i", osync_group_get_name(group), index);
 	}
 	return index;
 }*/
@@ -45,7 +45,7 @@ osync_bool osync_init(OSyncEnv *os_env)
 	
 	//Load all available shared libraries (plugins)
 	if (!g_file_test(os_env->plugindir, G_FILE_TEST_EXISTS)) {
-		_osync_debug("OSGRP", 3, "%s exists, but is no dir", os_env->plugindir);
+		osync_debug("OSGRP", 3, "%s exists, but is no dir", os_env->plugindir);
 		return FALSE;
 	}
 	
@@ -58,20 +58,20 @@ osync_bool osync_env_load_groups_dir(OSyncEnv *osyncinfo)
 {
 	GDir *dir;
 	GError *error = NULL;
-	_osync_debug("OSGRP", 3, "Trying to open main confdir %s to load groups", osync_env_get_configdir(osyncinfo));
+	osync_debug("OSGRP", 3, "Trying to open main confdir %s to load groups", osync_env_get_configdir(osyncinfo));
 	
 	if (!g_file_test(osync_env_get_configdir(osyncinfo), G_FILE_TEST_EXISTS)) {
 		mkdir(osync_env_get_configdir(osyncinfo), 0777);
 	} else {
 		if (!g_file_test(osync_env_get_configdir(osyncinfo), G_FILE_TEST_IS_DIR)) {
-			_osync_debug("OSGRP", 3, "%s exists, but is now dir", osync_env_get_configdir(osyncinfo));
+			osync_debug("OSGRP", 3, "%s exists, but is now dir", osync_env_get_configdir(osyncinfo));
 			return FALSE;
 		}
 	}
 	
 	dir = g_dir_open(osync_env_get_configdir(osyncinfo), 0, &error);
 	if (error) {
-		_osync_debug("OSGRP", 3, "Unable to open main configdir %s: %s", osync_env_get_configdir(osyncinfo), error->message);
+		osync_debug("OSGRP", 3, "Unable to open main configdir %s: %s", osync_env_get_configdir(osyncinfo), error->message);
 		g_error_free (error);
 		return FALSE;
 	}
@@ -143,27 +143,27 @@ void osync_env_set_configdir(OSyncEnv *os_env, char *path)
 osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, char *path, char *topentry)
 {
 	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		_osync_debug("OSXML", 1, "File %s does not exist", path);
+		osync_debug("OSXML", 1, "File %s does not exist", path);
 		return FALSE;
 	}
 	
 	*doc = xmlParseFile(path);
 
 	if (!*doc) {
-		_osync_debug("OSXML", 1, "Could not open: %s", path);
+		osync_debug("OSXML", 1, "Could not open: %s", path);
 		return FALSE;
 	}
 
 	*cur = xmlDocGetRootElement(*doc);
 
 	if (!*cur) {
-		_osync_debug("OSXML", 0, "%s seems to be empty", path);
+		osync_debug("OSXML", 0, "%s seems to be empty", path);
 		xmlFreeDoc(*doc);
 		return FALSE;
 	}
 
 	if (xmlStrcmp((*cur)->name, (const xmlChar *) topentry)) {
-		_osync_debug("OSXML", 0, "%s seems not to be a valid configfile.\n", path);
+		osync_debug("OSXML", 0, "%s seems not to be a valid configfile.\n", path);
 		xmlFreeDoc(*doc);
 		return FALSE;
 	}
@@ -180,13 +180,13 @@ osync_bool osync_file_write(char *filename, char *data, int size)
 		return FALSE;
 	GIOChannel *chan = g_io_channel_new_file(filename, "w", &error);
 	if (!chan) {
-		_osync_debug("OSYNC", 3, "Unable to open file %s for writing: %s", filename, error->message);
+		osync_debug("OSYNC", 3, "Unable to open file %s for writing: %s", filename, error->message);
 		return FALSE;
 	}
 	gsize writen;
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_write_chars(chan, data, size, &writen, &error) != G_IO_STATUS_NORMAL) {
-		_osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
+		osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {
 		g_io_channel_flush(chan, NULL);
 		ret = TRUE;
@@ -204,12 +204,12 @@ osync_bool osync_file_read(char *filename, char **data, int *size)
 		return FALSE;
 	GIOChannel *chan = g_io_channel_new_file(filename, "r", &error);
 	if (!chan) {
-		_osync_debug("OSYNC", 3, "Unable to read file %s: %s", filename, error->message);
+		osync_debug("OSYNC", 3, "Unable to read file %s: %s", filename, error->message);
 		return FALSE;
 	}
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_read_to_end(chan, data, size, &error) != G_IO_STATUS_NORMAL) {
-		_osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
+		osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {
 		ret = TRUE;
 	}

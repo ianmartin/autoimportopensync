@@ -1,45 +1,44 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-void _osync_debug(char *subpart, int level, const char *message, ...)
+void osync_debug(char *subpart, int level, const char *message, ...)
 {
 		va_list arglist;
 		char *buffer;
-		const gchar *debug = NULL;
+		int debug = -1;
 
 		va_start(arglist, message);
 		g_vasprintf(&buffer, message, arglist);
-
-		debug = g_getenv ("OSYNC_DEBUG");
-		if (debug) {
-			printf("[%s] ERROR: %s\n", subpart, buffer);
-		}
 		
-		/*
-		if (debug) {
-			switch (level) {
-				case 0:
-					//Error
-					printf("[%s] ERROR: %s\n", subpart, buffer);
-					break;
-				case 1:
-					// Warning
-					printf("[%s] WARNING: %s\n", subpart, buffer);
-					break;
-			case 2:
-					//Information
-					printf("[%s] INFORMATION: %s\n", subpart, buffer);
-					break;
-			case 3:
-					//debug
-					printf("[%s] DEBUG: %s\n", subpart, buffer);
-					break;
-			case 4:
-					//fulldebug
-					printf("[%s] FULL DEBUG: %s\n", subpart, buffer);
-					break;
-			}
-		}*/
+		const char *dbgstr = g_getenv("OSYNC_DEBUG");
+		if (!dbgstr)
+			return;
+		debug = atoi(dbgstr);
+		if (debug < level)
+			return;
+		
+		switch (level) {
+			case 0:
+				//Error
+				printf("[%s] ERROR: %s\n", subpart, buffer);
+				break;
+			case 1:
+				// Warning
+				printf("[%s] WARNING: %s\n", subpart, buffer);
+				break;
+		case 2:
+				//Information
+				printf("[%s] INFORMATION: %s\n", subpart, buffer);
+				break;
+		case 3:
+				//debug
+				printf("[%s] DEBUG: %s\n", subpart, buffer);
+				break;
+		case 4:
+				//fulldebug
+				printf("[%s] FULL DEBUG: %s\n", subpart, buffer);
+				break;
+		}
 		va_end(arglist);
 }
 

@@ -10,9 +10,22 @@ OSyncMappingTable *osync_mappingtable_new(OSyncGroup *group)
 
 void osync_mappingtable_free(OSyncMappingTable *table)
 {
-	g_list_free(table->mappings);
+	GList *c = NULL;
+	GList *m = NULL;
+	GList *mappings = g_list_copy(table->mappings);
+	GList *unmapped = g_list_copy(table->unmapped);
+
+	for (m = mappings; m; m = m->next) {
+		OSyncMapping *mapping = m->data;
+		osync_mapping_free(mapping);
+	}
+	for (c = unmapped; c; c = c->next) {
+		OSyncChange *change = c->data;
+		osync_change_free(change);
+	}
+	g_list_free(mappings);
+	g_list_free(unmapped);
 	g_free(table->db_path);
-	g_list_free(table->unmapped);
 	g_free(table);
 }
 
@@ -143,6 +156,13 @@ OSyncMapping *osync_mapping_new(OSyncMappingTable *table)
 
 void osync_mapping_free(OSyncMapping *mapping)
 {
+	GList *c = NULL;
+	GList *entries = g_list_copy(mapping->entries);
+	for (c = entries; c; c = c->next) {
+		OSyncChange *change = c->data;
+		osync_change_free(change);
+	}
+	g_list_free(entries);
 	osync_mappingtable_remove_mapping(mapping->table, mapping);
 	g_free(mapping);
 }
@@ -220,7 +240,7 @@ OSyncChange *osync_mapping_get_entry_by_owner(OSyncMapping *mapping, OSyncMember
 	int i;
 	for (i = 0; i < g_list_length(mapping->entries); i++) {
 		OSyncChange *change = g_list_nth_data(mapping->entries, i);
-		if (change->member == member)
+		if (osync_member_get_id(change->member) == osync_member_get_id(member))
 			return change;
 	}
 	return NULL;

@@ -41,3 +41,6 @@ void osync_member_request_slow_sync(OSyncMember *member);
 void osync_member_request_synchronization(OSyncMember *member);
 OSyncChange *osync_member_add_random_data(OSyncMember *member);
 void osync_member_finalize(OSyncMember *member);
+void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry);
+osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change);
+osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change);

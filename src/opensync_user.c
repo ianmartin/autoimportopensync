@@ -22,7 +22,7 @@ OSyncUserInfo *osync_user_new(void)
 	
 	user->confdir = g_strdup_printf("%s/.opensync", user->homedir);
 	
-	_osync_debug("OSUSR", 3, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
+	osync_debug("OSUSR", 3, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
 	
 	return user;
 }

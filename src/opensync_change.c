@@ -10,10 +10,13 @@ OSyncChange *osync_change_new(void)
 
 void osync_change_free(OSyncChange *change)
 {
+	
 	g_assert(change);
 	//FIXME cleanly release the change!
 	if (change->mapping)
 		osync_mapping_remove_entry(change->mapping, change);
+	if (change->member)
+		osync_member_remove_changeentry(change->member, change);
 	g_free(change);
 }
 

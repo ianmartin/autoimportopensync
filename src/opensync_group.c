@@ -11,9 +11,9 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 	//group->name = g_path_get_basename(filename);
 	group->configdir = filename;
 	group->env = osinfo;
-	_osync_debug("OSGRP", 3, "Generated new group:");
-	//_osync_debug("OSMEM", 3, "Name: %s", group->name);
-	_osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
+	osync_debug("OSGRP", 3, "Generated new group:");
+	//osync_debug("OSMEM", 3, "Name: %s", group->name);
+	osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
 	return group;
 }
 
@@ -27,7 +27,7 @@ void osync_group_free(OSyncGroup *group)
 
 void osync_group_set_name(OSyncGroup *group, char *name)
 {
-	_osync_debug("OSGRP", 3, "Setting name of group %s to %s", group->name, name);
+	osync_debug("OSGRP", 3, "Setting name of group %s to %s", group->name, name);
 	group->name = g_strdup(name);
 }
 
@@ -39,16 +39,16 @@ char *osync_group_get_name(OSyncGroup *group)
 void osync_group_save(OSyncGroup *group)
 {
 	char *filename = NULL;
-	_osync_debug("OSGRP", 3, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
+	osync_debug("OSGRP", 3, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
 	int i;
 		
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
-		_osync_debug("OSGRP", 3, "Creating configdirectory %s", group->configdir);
+		osync_debug("OSGRP", 3, "Creating configdirectory %s", group->configdir);
 		mkdir(group->configdir, 0777);
 	}
 	
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
-	_osync_debug("OSGRP", 3, "Saving group to file %s", filename);
+	osync_debug("OSGRP", 3, "Saving group to file %s", filename);
 	
 	xmlDocPtr doc;
 
@@ -72,7 +72,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 	OSyncMember *member = NULL;
 	char *filename = NULL;
 	
-	_osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
+	osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
 	OSyncGroup *group = osync_group_new(env);
 	osync_group_set_configdir(group, path);
 	
@@ -104,7 +104,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 
 	dir = g_dir_open(osync_group_get_configdir(group), 0, &error);
 	if (error) {
-		_osync_debug("OSGRP", 3, "Unable to open group configdir %s", error->message);
+		osync_debug("OSGRP", 3, "Unable to open group configdir %s", error->message);
 		g_error_free (error);
 		osync_group_free(group);
 		return NULL;
@@ -149,7 +149,7 @@ char *osync_group_get_configdir(OSyncGroup *group)
 
 void osync_group_set_configdir(OSyncGroup *group, char *path)
 {
-	_osync_debug("OSGRP", 3, "Setting configdirectory of group %s to %s", group->name, path);
+	osync_debug("OSGRP", 3, "Setting configdirectory of group %s to %s", group->name, path);
 	group->configdir = g_strdup(path);
 }
 
@@ -174,7 +174,7 @@ OSyncGroup *osync_group_from_name(OSyncEnv *osinfo, char *name)
 			return group;
 		}
 	}
-	_osync_debug("OSPLG", 0, "Couldnt find the group with the name %s", name);
+	osync_debug("OSPLG", 0, "Couldnt find the group with the name %s", name);
 	return NULL;
 }
 
