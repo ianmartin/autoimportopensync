@@ -946,6 +946,58 @@ osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncO
 	}
 }
 
+osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_change_copy_data(%p, %p, %p)", source, target, error);
+	
+	OSyncObjFormat *format = NULL;
+	format = source->format;
+	if (!format)
+		format = target->format;
+	
+	if (!format || !format->copy_func) {
+		osync_trace(TRACE_INTERNAL, "We cannot copy the change, falling back to memcpy");
+		target->data = g_malloc0(sizeof(char) * source->size);
+		memcpy(target->data, source->data, source->size);
+		target->size = source->size;
+	} else {
+		if (!format->copy_func(source->data, source->size, &(target->data), &(target->size))) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Something went wrong during copying");
+			osync_trace(TRACE_EXIT_ERROR, "osync_change_copy_data: %s", osync_error_print(error));
+			return FALSE;
+		}
+	}
+	
+	osync_trace(TRACE_EXIT, "osync_change_copy_data");
+	return TRUE;
+}
+
+OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_change_copy(%p, %p)", source, error);
+	g_assert(source);
+	
+	OSyncChange *newchange = osync_change_new();
+	newchange->uid = g_strdup(source->uid);
+	newchange->hash = g_strdup(source->hash);
+	
+	newchange->has_data = source->has_data;
+	newchange->changetype = source->changetype;
+	newchange->format = osync_change_get_objformat(source);
+	newchange->objtype = osync_change_get_objtype(source);
+	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
+	newchange->is_detected = source->is_detected;
+	
+	if (!osync_change_copy_data(source, newchange, error)) {
+		osync_change_free(newchange);
+		osync_trace(TRACE_EXIT_ERROR, "osync_change_copy: %s", osync_error_print(error));
+		return NULL;
+	}
+
+	osync_trace(TRACE_EXIT, "osync_change_copy: %p", newchange);
+	return newchange;
+}
+
 osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_change_convert_to_common(%p, %p)", change, error);

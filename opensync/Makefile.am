@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror -g -O0 -DOPENSYNC_PLUGINDIR=\"@OPENSYNC_PLUGINDIR@\" -DOPENSYNC_CONFIGDIR=\"@OPENSYNC_CONFIGDIR@\" -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\"
+AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror @GCOV_CFLAGS@ -DOPENSYNC_PLUGINDIR=\"@OPENSYNC_PLUGINDIR@\" -DOPENSYNC_CONFIGDIR=\"@OPENSYNC_CONFIGDIR@\" -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\"
 
 INCLUDES = @PACKAGE_CFLAGS@
 
@@ -51,6 +51,11 @@ libopensync_la_SOURCES = \
 	opensync_convreg.c \
 	opensync_anchor.c \
 	opensync_filter.c
-	
+
+CLEANFILES = \
+	*.bb \
+	*.bbg \
+	*.da
+
 libopensync_la_LDFLAGS = @PACKAGE_LIBS@
 libopensync_la_LIBADD = @XML_LIBS@

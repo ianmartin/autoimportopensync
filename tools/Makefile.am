@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Wall -Werror -g -O0
+AM_CFLAGS = -Wall -Werror @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ @XML_CFLAGS@ -I$(top_srcdir)/osengine
 
@@ -17,3 +17,8 @@ osyncstress_LDADD = $(top_builddir)/osengine/libosengine.la $(top_builddir)/open
 osyncplugin_SOURCES = osyncplugin.c
 osyncplugin_LDFLAGS = @PACKAGE_LIBS@ -R $(libdir)
 osyncplugin_LDADD = $(top_builddir)/opensync/libopensync.la
+
+CLEANFILES = \
+	*.bb \
+	*.bbg \
+	*.da

@@ -115,6 +115,13 @@ void osync_change_set_member(OSyncChange *change, OSyncMember *member)
 {
 	g_assert(change);
 	change->member = member;
+	change->conv_env = member->group->conv_env;
+}
+
+void osync_change_set_conv_env(OSyncChange *change, OSyncFormatEnv *env)
+{
+	g_assert(change);
+	change->conv_env = env;
 }
 
 const char *osync_change_get_sourceobjtype(OSyncChange *change)
@@ -137,8 +144,9 @@ OSyncObjType *osync_change_get_objtype(OSyncChange *change)
 		change->objtype = format->objtype;
 		return format->objtype;
 	}
-
-	change->objtype = osync_conv_find_objtype(change->member->group->conv_env, change->objtype_name);
+	
+	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
+	change->objtype = osync_conv_find_objtype(change->conv_env, change->objtype_name);
 	return change->objtype;
 }
 
@@ -163,7 +171,8 @@ OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 	if (!change->format_name)
 		return NULL;
 	
-	change->format = osync_conv_find_objformat(change->member->group->conv_env, change->format_name);
+	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
+	change->format = osync_conv_find_objformat(change->conv_env, change->format_name);
 	return change->format;
 }
 
@@ -299,20 +308,12 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	if (!target->uid)
 		target->uid = g_strdup(source->uid);
 	target->hash = g_strdup(source->hash);
-	target->data = g_malloc0(source->size);
 	
-	OSyncObjFormat *format = NULL;
-	format = source->format;
-	osync_trace(TRACE_INTERNAL, "format 1 is: %p: %s", format, format ? format->name : "None");
-	if (!format)
-		format = target->format;
-	osync_trace(TRACE_INTERNAL, "format 1 is: %p: %s %p", format, format ? format->name : "None", format, format ? format->copy_func : NULL);
-	if (!format || !format->copy_func) {
-		osync_trace(TRACE_INTERNAL, "We cannot copy the change, falling back to memcpy");
-		memcpy(target->data, source->data, source->size);
-		target->size = source->size;
-	} else
-		format->copy_func(source->data, source->size, &(target->data), &(target->size));
+	OSyncError *error = NULL;
+	if (!osync_change_copy_data(source, target, &error)) {
+		osync_trace(TRACE_INTERNAL, "unable to copy change: %s", osync_error_print(&error));
+		osync_error_free(&error);
+	}
 	
 	target->has_data = source->has_data;
 	target->changetype = source->changetype;

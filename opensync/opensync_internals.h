@@ -144,7 +144,8 @@ struct OSyncChange {
 	char *objtype_name;
 	OSyncObjFormat *format;
 	char *format_name;
-	
+	OSyncFormatEnv *conv_env;
+		
 	OSyncMember *member;
 	OSyncChangeType changetype;
 	void *engine_data;

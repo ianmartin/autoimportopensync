@@ -11,6 +11,7 @@ WITH_TRACE=yes
 ENABLE_ENGINE=yes
 ENABLE_TESTS=yes
 WITH_TOOLS=yes
+WITH_PROF=no
 
 AC_ISC_POSIX
 AC_PROG_CC
@@ -57,6 +58,15 @@ if test "x${WITH_TRACE}" = "xyes"; then
 	AC_DEFINE(ENABLE_TRACE,1,[Tracing])
 	AC_SUBST(ENABLE_TRACE)
 fi
+
+AC_ARG_ENABLE(profiling,[  --enable-profiling        enable code profiling],WITH_PROF=$enableval)
+if test "x${WITH_PROF}" = "xyes"; then
+	GCOV_CFLAGS="-fprofile-arcs -ftest-coverage"
+else
+	GCOV_CFLAGS=""
+fi
+AC_SUBST(GCOV_CFLAGS)
+AM_CONDITIONAL(ENABLE_PROF, test "x${WITH_PROF}" = "xyes")
 
 AC_ARG_ENABLE(tools,[  --enable-tools        enables building of the tools],WITH_TOOLS=$enableval)
 if test "x${WITH_TOOLS}" = "xyes"; then
@@ -178,6 +188,11 @@ if test "x${WITH_TRACE}" = "xyes"; then
 	echo "Tracing:		Enabled"
 else
 	echo "Tracing:		Disabled"
+fi
+if test "x${WITH_PROF}" = "xyes"; then
+	echo "Profiling:		Enabled"
+else
+	echo "Profiling:		Disabled"
 fi
 if test "x${ENABLE_ENGINE}" = "xyes"; then
 	echo "Sync Engine:		Enabled"

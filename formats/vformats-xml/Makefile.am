@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Werror -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Wall @XML_CFLAGS@  -g -O0
+AM_CFLAGS = -Werror -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Wall @XML_CFLAGS@  @GCOV_CFLAGS@
 
 formatsdir=@OPENSYNC_FORMATSDIR@
 opensyncheaderdir=@OPENSYNC_HEADERDIR@

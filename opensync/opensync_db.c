@@ -94,7 +94,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 		change->mappingid = sqlite3_column_int64(ppStmt, 5);
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
 		change->changes_db = group->changes_db;
-    	change->member = osync_member_from_id(group, memberid);
+    	osync_change_set_member(change, osync_member_from_id(group, memberid));
 		(*changes)[i] = change;
 		i++;
 	}

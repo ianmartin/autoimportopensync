@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Werror -Wall -g -O0
+AM_CFLAGS = -Werror -Wall @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ 
 
@@ -36,6 +36,11 @@ EXTRA_DIST = \
 	osengine_message_internals.h \
 	osengine_deciders_internals.h \
 	osengine_queue_internals.h
+
+CLEANFILES = \
+	*.bb \
+	*.bbg \
+	*.da
 
 libosengine_la_LDFLAGS = $(PACKAGE_LIBS) -R $(libdir)
 libosengine_la_LIBADD = $(top_builddir)/opensync/libopensync.la

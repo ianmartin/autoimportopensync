@@ -2,13 +2,17 @@
 
 EXTRA_DIST = data support.h
 
-AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror -g -O0
+AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ -I$(top_srcdir)/osengine
 
+if ENABLE_PROF
+PROFTEST = coverage.sh
+endif
+
 if ENABLE_TESTS
-TESTS = error user member locks env conv sync filter multisync errorcodes
-noinst_PROGRAMS = error user member locks env conv sync filter multisync errorcodes
+TESTS = error user member locks env conv sync filter multisync errorcodes $(PROFTEST)
+noinst_PROGRAMS = error user member locks env conv sync filter multisync vcard errorcodes
 else
 TESTS = 
 noinst_PROGRAMS = 
@@ -59,7 +63,20 @@ multisync_SOURCES = check_multisync.c support.c
 multisync_LIBS = @CHECK_LIBS@
 multisync_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir)
 
+vcard_INCLUDES = @CHECK_CFLAGS@
+vcard_SOURCES = check_vcard.c support.c
+vcard_LIBS = @CHECK_LIBS@
+vcard_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir)
+
 errorcodes_INCLUDES = @CHECK_CFLAGS@
 errorcodes_SOURCES = check_codes.c support.c
 errorcodes_LIBS = @CHECK_LIBS@
 errorcodes_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir)
+
+CLEANFILES = \
+	*.bb \
+	*.bbg \
+	*.da
+
+clean:
+	rm -rf coverage/*

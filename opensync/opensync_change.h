@@ -38,3 +38,4 @@ osync_bool osync_changes_load(OSyncGroup *group, OSyncChange ***changes, OSyncEr
 void osync_changes_close(OSyncGroup *group);
 void osync_change_free_data(OSyncChange *change);
 void osync_change_set_mappingid(OSyncChange *change, long long int mappingid);
+void osync_change_set_conv_env(OSyncChange *change, OSyncFormatEnv *env);
