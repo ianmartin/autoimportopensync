@@ -99,8 +99,21 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 
 static QString strip_html(QString input)
 {
-	QString output;
-	
+	printf("input is %s\n", (const char*)input.local8Bit());
+	QString output = NULL;
+	unsigned int i = 0;
+	int inbraces = 0;
+	for (i = 0; i < input.length(); i++) {
+		QCharRef cur = input[i];
+		if (cur == '<')
+			inbraces = 1;
+		if (cur == '>')
+			inbraces = 0;
+		if (!inbraces)
+			output += input[i];
+	}
+	printf("output is %s\n", (const char*)output.local8Bit());
+	return output;
 }
 
 bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
