@@ -268,6 +268,7 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 			continue;
 		//Create the data
 		format->create_func(change);
+		
 		osync_change_set_objformat(change, format);
 		//Convert the data to a format the plugin understands
 		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype->name);
@@ -275,7 +276,7 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 			continue; //We had a objtype we cannot add
 		
 		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
-		format_sink = g_list_nth_data(objtype->formats, selected);
+		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
 		if (!osync_conv_convert(env, change, format_sink->format))
 			continue; //Unable to convert to selected format
 		break;
@@ -291,7 +292,7 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member)
 	OSyncObjFormatSink *format_sink;
 	if (!(format_sink = osync_member_make_random_data(member, change)))
 		return NULL;
-
+	
 	if (format_sink->functions.access(context, change) == TRUE)
 		return change;
 	return NULL;

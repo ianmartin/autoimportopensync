@@ -479,8 +479,11 @@ osync_bool osync_conv_desencap_change(OSyncFormatEnv *env, OSyncChange *change)
 
 osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat)
 {
+	g_assert(change);
+	g_assert(targetformat);
 	GList *l = g_list_last(change->objformats);
 	OSyncObjFormat *source = l->data;
+	osync_assert(source, "Cannot convert! change has no objformat!");
 	GList *path = NULL;
 	if (!strcmp(source->name, targetformat->name))
 		return TRUE;
