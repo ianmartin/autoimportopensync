@@ -200,7 +200,7 @@ skip_until (char **p, char *s)
 	char *lp;
 
 	lp = *p;
-
+	
 	while (*lp != '\r' && *lp != '\0') {
 		gboolean s_matches = FALSE;
 		char *ls;
@@ -213,6 +213,7 @@ skip_until (char **p, char *s)
 
 		if (s_matches)
 			break;
+		lp++;
 	}
 
 	*p = lp;
@@ -313,7 +314,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 			in_quote = !in_quote;
 			lp = g_utf8_next_char (lp);
 		}
-		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_') {
+		else if (in_quote || g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/') {
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 			lp = g_utf8_next_char (lp);
 		}
@@ -428,7 +429,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 				break;
 		}
 		else {
-			g_warning ("invalid character found in parameter spec");
+			g_warning ("invalid character found in parameter spec: %c", lp[0]);
 			g_string_assign (str, "");
 			skip_until (&lp, ":;");
 		}
@@ -487,11 +488,11 @@ read_attribute (char **p)
 				str = g_string_new ("");
 			}
 		}
-		else if (g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_') {
+		else if (g_unichar_isalnum (g_utf8_get_char (lp)) || *lp == '-' || *lp == '_' || *lp == '/') {
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 		}
 		else {
-			g_warning ("invalid character found in attribute group/name");
+			g_warning ("invalid character found in attribute group/name: %c", lp[0]);
 			g_string_free (str, TRUE);
 			*p = lp;
 			skip_to_next_line(p);
@@ -736,7 +737,7 @@ e_vcard_to_string_vcard_21  (EVCard *evc)
 			 */
 			gboolean has_name = FALSE;
 			attr_str = g_string_append_c (attr_str, ';');
-			if (g_ascii_strcasecmp (param->name, "TYPE") && g_ascii_strcasecmp (param->name, "ENCODING")) {
+			if (g_ascii_strcasecmp (param->name, "TYPE")) {
 				attr_str = g_string_append (attr_str, param->name);
 				has_name = TRUE;
 			}
@@ -856,6 +857,8 @@ e_vcard_to_string_vcard_30 (EVCard *evc)
 			/* 5.8.2:
 			 * param        = param-name "=" param-value *("," param-value)
 			 */
+			if (!g_ascii_strcasecmp (param->name, "CHARSET"))
+				continue;
 			attr_str = g_string_append_c (attr_str, ';');
 			attr_str = g_string_append (attr_str, param->name);
 			if (param->values) {

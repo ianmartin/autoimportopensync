@@ -24,19 +24,21 @@ static OSyncConvCmpResult compare_vcard(OSyncChange *leftchange, OSyncChange *ri
 static osync_bool detect_plain_as_vcard21(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCARD21", 3, "start: %s", __func__);
-	if (size >= 24 && !strncmp(data, "BEGIN:VCARD\r\nVERSION:2.1", 24))
-		return TRUE;
-	return FALSE;
+	
+	if (!data)
+		return FALSE;
+		
+	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:2.1*", data);
 }
 
 static osync_bool detect_plain_as_vcard30(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCARD30", 3, "start: %s", __func__);
-	if (size >= 24 && !strncmp(data, "BEGIN:VCARD\r\nVERSION:3.0", 24)) {
-		printf("detected vcard 3.0!\n");
-		return TRUE;
-	}
-	return FALSE;
+	
+	if (!data)
+		return FALSE;
+
+	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:3.0*", data);
 }
 
 static void create_vcard21(OSyncChange *change)

@@ -10,17 +10,16 @@ EXTRA_DIST = \
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
 
-formats_LTLIBRARIES = xml-vcard30.la xml.la
+formats_LTLIBRARIES = xml-vcard.la xml.la xml-evolution.la
 
 xml_la_SOURCES = xml.c
 xml_la_LDFLAGS = -avoid-version -export-dynamic -module
 xml_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
-## xml_vcard21_la_SOURCES = xml-vcard21.c
-## xml_vcard21_la_LDFLAGS = -avoid-version -export-dynamic -module
-## xml_vcard21_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libversit/libversit.la
+xml_vcard_la_SOURCES = xml-vcard.c e-vcard.c
+xml_vcard_la_LDFLAGS = -avoid-version -export-dynamic -module
+xml_vcard_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
-xml_vcard30_la_SOURCES = xml-vcard30.c e-vcard.c
-xml_vcard30_la_LDFLAGS = -avoid-version -export-dynamic -module
-xml_vcard30_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
-
+xml_evolution_la_SOURCES = xml-evolution.c
+xml_evolution_la_LDFLAGS = -avoid-version -export-dynamic -module
+xml_evolution_la_LIBADD = @PACKAGE_LIBS@ @LIBS@

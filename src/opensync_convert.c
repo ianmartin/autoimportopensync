@@ -23,7 +23,7 @@ osync_bool osync_conv_plugin_load(OSyncFormatEnv *env, char *path, OSyncError **
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	GModule *plugin = g_module_open(path, 0);
+	GModule *plugin = g_module_open(path, G_MODULE_BIND_LAZY);
 	if (!plugin) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
 		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
@@ -232,6 +232,30 @@ osync_bool osync_cheap_convert(OSyncFormatConverter *converter, char *input, siz
 	return TRUE;
 }
 
+static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool convert_to, OSyncChange *change)
+{
+	char *data = NULL;
+	int datasize = 0;
+	
+	GList *e;
+	for (e = format->extensions; e; e = e->next) {
+		OSyncFormatExtension *ext = e->data;
+		if (convert_to)
+			ext->conv_to(change->data, change->size, &data, &datasize, NULL);
+		else
+			ext->conv_from(change->data, change->size, &data, &datasize, NULL);
+		if (data) {
+			//The extension duplicated the data.
+			if (format->destroy_func)
+				format->destroy_func(change->data, change->size);
+			else
+				osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak", format->name);
+			change->data = data;
+			change->size = datasize;
+		}
+	}
+}
+
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, OSyncError **error)
 {
 	char *data = NULL;
@@ -241,7 +265,10 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 		return FALSE;
 	
 	if (change->data) {
+		//Invoke the converter and all extensions
+		osync_conv_invoke_extensions(converter->source_format, FALSE, change);
 		ret = converter->convert_func(change->data, change->size, &data, &datasize, error);
+		
 		if (converter->flags & CONV_NOCOPY) {
 			/* Duplicate the returned data, as the original data will be destroyed */
 			if (!converter->target_format->copy_func) {
@@ -263,6 +290,8 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 		}
 		change->data = data;
 		change->size = datasize;
+		
+		osync_conv_invoke_extensions(converter->target_format, TRUE, change);
 	}
 	osync_debug("OSYNC", 3, "Converting! replacing format %s with %s", converter->source_format->name, converter->target_format->name);
 	change->format = converter->target_format;
@@ -792,6 +821,7 @@ OSyncFormatEnv *osync_conv_env_new(void)
 void osync_conv_env_free(OSyncFormatEnv *env)
 {
 	g_assert(env);
+	//FIXME Free all format etc
 	
 	g_free(env->pluginpath);
 	g_free(env);
@@ -1004,6 +1034,24 @@ OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *t
 	/* Resolve the pending osync_conv_format_set_like() definitions, too */
 	osync_conv_resolve_is_like(env, format);
 	return format;
+}
+
+void osync_conv_register_extension(OSyncFormatEnv *env, const char *objformatname, OSyncFormatConvertFunc conv_to_func, OSyncFormatConvertFunc conv_from_func)
+{
+	OSyncObjFormat *format = NULL;
+
+	format = osync_conv_find_objformat(env, objformatname);
+	if (!format) {
+		osync_debug("OSCONV", 0, "You need to register the objformat first before registering the extension!");
+		return;
+	}
+
+	OSyncFormatExtension *ext = g_malloc0(sizeof(OSyncFormatExtension));
+	ext->format = format;
+	ext->conv_to = conv_to_func;
+	ext->conv_from = conv_from_func;
+	
+	format->extensions = g_list_append(format->extensions, ext);
 }
 
 void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func)

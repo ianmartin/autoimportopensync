@@ -40,6 +40,12 @@ typedef struct OSyncObjTypeTemplate {
 	GList *formats;
 } OSyncObjTypeTemplate;
 
+typedef struct OSyncFormatExtension {
+	OSyncObjFormat *format;
+	OSyncFormatConvertFunc conv_to;
+	OSyncFormatConvertFunc conv_from;
+} OSyncFormatExtension;
+
 typedef struct OSyncObjFormatTemplate {
 	char *name;
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
@@ -69,6 +75,7 @@ struct OSyncObjFormat {
 	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
 	GList *properties;
+	GList *extensions;
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDetectFunc detect_func;

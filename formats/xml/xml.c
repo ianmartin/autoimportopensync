@@ -47,27 +47,16 @@ xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error)
 
 void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLEncoding encoding)
 {
-	//char *tmp = NULL;
 	if (name)
 		xmlNodeSetName(node, name); //FIXME Free previous name?
 		
-	if (data) {
-		//tmp = osxml_convert_from(data, encoding);
-		//tmp = xmlEncodeEntitiesReentrant(node->doc, data);
-		xmlNewChild(node, NULL, "Content", data);
-		//g_free(tmp);
-	}
+	if (data)
+		xmlNewTextChild(node, NULL, "Content", data);
 }
 
 xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data, OSyncXMLEncoding encoding)
 {
-	//char *tmp = NULL;
-	//if (data)
-	//	tmp = osxml_convert_from(data, encoding);
-	
-	xmlNode *node = xmlNewChild(parent, NULL, name, data);
-	//if (tmp)
-	//	g_free(tmp);
+	xmlNode *node = xmlNewTextChild(parent, NULL, name, data);
 	return node;
 }
 
@@ -155,6 +144,7 @@ xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc)
 {
 	return osxml_get_nodeset(doc, "/*/*[@Type='Unknown']");
 }
+
 osync_bool osxml_has_property_full(xmlNode *parent, const char *name, const char *data)
 {
 	if (osxml_has_property(parent, name))

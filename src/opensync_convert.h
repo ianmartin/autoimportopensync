@@ -17,6 +17,7 @@ OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *t
 OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name);
 osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags);
 void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook);
+void osync_conv_register_extension(OSyncFormatEnv *env, const char *objformatname, OSyncFormatConvertFunc conv_to_func, OSyncFormatConvertFunc conv_from_func);
 
 const char *osync_objtype_get_name(OSyncObjType *type);
 const char *osync_objformat_get_name(OSyncObjFormat *format);
