@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = opensync $(enginedir) formats $(toolsdir) $(testdir)
+SUBDIRS = opensync osengine formats tests tools
 
 if BUILD_ENGINE
 OSENGINE_PC = osengine-1.0.pc
@@ -20,6 +20,8 @@ EXTRA_DIST = \
 	plugins \
 	opensync-1.0.pc.in \
 	osengine-1.0.pc.in \
+	misc/opensync.spec.in \
+	misc/opensync.spec \
 	misc/buildtest.sh \
 	misc/doxygen.css
 

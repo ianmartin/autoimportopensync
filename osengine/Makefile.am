@@ -4,8 +4,11 @@ AM_CFLAGS = -Werror -Wall @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ 
 
+if BUILD_ENGINE
 lib_LTLIBRARIES = libosengine.la
+endif
 
+if BUILD_ENGINE
 osengineincludedir = @OPENSYNC_ENGINEHEADERDIR@
 osengineinclude_HEADERS = \
 	engine.h \
@@ -13,6 +16,7 @@ osengineinclude_HEADERS = \
 	osengine_engine.h \
 	osengine_status.h \
 	osengine_debug.h
+endif
 
 libosengine_la_SOURCES = \
 	osengine_message.c \
