@@ -32,7 +32,7 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_register_objtype(env, "calendar");
 	OSyncObjFormat *vcal = osync_conv_register_objformat(env, "calendar", "vcalendar");
 	osync_conv_format_set_compare_func(vcal, compare_vcalendar);
-	osync_conv_format_set_like(vcal, "plain", CONV_NOTLOSSY, 0);
 
 	osync_conv_register_data_detector(env, "plain", "vcalendar", detect_plain_as_vcalendar);
+	osync_conv_format_set_like(vcal, "plain", CONV_NOTLOSSY, CONV_DETECTFIRST);
 }

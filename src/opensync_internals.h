@@ -9,11 +9,30 @@
 osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path);
 OSyncUserInfo *_osync_get_user(void);
 osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, char *path, char *topentry);
-osync_bool osync_conv_find_shortest_path(GList *vertices, OSyncObjFormat *start, OSyncObjFormat *end, GList **retlist);
+osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist);
 void osync_error_set_vargs(OSyncError *error, OSyncErrorType type, const char *format, va_list args);
 
 #define osync_assert(x, msg) if (!(x)) { printf("** ERROR **: file %s: line %i (%s):\n%s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
+
+/** Hook types and macros
+ *
+ *@{
+ */
+typedef void (*OSyncHookFnChange)(OSyncChange *);
+typedef GList/* OSyncHookFnChange * */ *OSyncChangeHook;
+
+/** Call the hook functions of a hook */
+#define osync_run_change_hook(hook, change) \
+	do { \
+		GList *i; \
+		for (i = hook; i; i = i->next) { \
+			OSyncHookFnChange f = i->data; \
+			f(change); \
+		} \
+	} while (0)
+
+/** @} */
 
 typedef struct OSyncDB OSyncDB;
 
@@ -38,7 +57,10 @@ struct OSyncMember {
 	OSyncGroup *group;
 	GList *entries;
 	long long int id;
+	GList *format_sinks;
 	GList *objtype_sinks;
+
+	OSyncChangeHook before_convert_hook;
 };
 
 struct OSyncContext {
@@ -57,6 +79,8 @@ struct OSyncGroup {
 	//OSyncDBEnv *dbenv;
 	void *data;
 	OSyncFormatEnv *conv_env;
+
+	OSyncChangeHook before_convert_hook;
 };
 
 struct OSyncPlugin {
@@ -72,8 +96,11 @@ struct OSyncChange {
 	char *data; //The data of the object
 	int size;
 	osync_bool has_data;
+	/*FIXME: do we need this field, as OSyncObjFormat has
+	 * a objtype field set?
+	 */
 	OSyncObjType *objtype;
-	GList *objformats;
+	OSyncObjFormat *format;
 	OSyncMember *member;
 	OSyncChangeType changetype;
 	void *engine_data;

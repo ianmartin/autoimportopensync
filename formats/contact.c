@@ -45,5 +45,5 @@ void get_info(OSyncFormatEnv *env)
 	
 	osync_conv_register_data_detector(env, "plain", "vcard", detect_plain_as_vcard);
 
-	osync_conv_format_set_like(vcard, "plain", CONV_NOTLOSSY, 0);
+	osync_conv_format_set_like(vcard, "plain", CONV_NOTLOSSY, CONV_DETECTFIRST);
 }

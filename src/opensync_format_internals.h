@@ -19,6 +19,7 @@ struct OSyncObjType {
 typedef struct OSyncObjFormatSink {
 	OSyncObjFormat *format;
 	OSyncFormatFunctions functions;
+	struct OSyncObjTypeSink *objtype_sink;
 } OSyncObjFormatSink;
 
 typedef struct OSyncObjTypeSink {
@@ -52,6 +53,17 @@ struct OSyncFormatProperty {
 
 struct OSyncObjFormat {
 	char *name;
+
+	/** This field is necessary only because
+	 * the is_like() function can be called
+	 * before the base_format is registered.
+	 *
+	 * This may be not necessary if we add
+	 * dependency information to the plugins.
+	 *
+	 * @see OSyncUnresolvedConverter
+	 */
+	char *is_like;
 	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
 	GList *properties;
@@ -76,8 +88,8 @@ struct OSyncFormatConverter {
  * 
  * Used to keep the list of converters
  * to types that weren't registered yet.
- */
-/*FIXME: We have similar problems with the
+ *
+ *FIXME: We have similar problems with the
  * detectors and other functions that refers
  * to other formats. We have two possible solutions:
  *
@@ -106,7 +118,12 @@ typedef struct OSyncUnresolvedConverter {
 /** Data detector for a format
  *
  * It takes the data on a given format and detects
- * if it can be converted to another format
+ * if it can be converted to another format.
+ *
+ * The format references are strings because
+ * of the plugin loading order problem.
+ *
+ * @see OSyncUnresolvedConverter
  */
 typedef struct OSyncDataDetector {
 	const char *sourceformat;
@@ -114,6 +131,5 @@ typedef struct OSyncDataDetector {
 	OSyncFormatDetectDataFunc detect_func;
 } OSyncDataDetector;
 
-osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change);
 OSyncDataDetector *osync_conv_find_detector(OSyncFormatEnv *env, const char *origformat, const char *trgformat);
-
+osync_bool osync_conv_detect_and_convert(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets);

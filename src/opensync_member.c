@@ -56,6 +56,8 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin
 			if (!format_sink)
 				return FALSE;
 			objsink->formatsinks = g_list_append(objsink->formatsinks, format_sink);
+			format_sink->objtype_sink = objsink;
+			member->format_sinks = g_list_append(member->format_sinks, format_sink);
 		}
 	}
 	return TRUE;
@@ -211,34 +213,57 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	context->calldata = user_data;
 
 	OSyncFormatEnv *env = osync_member_get_format_env(member);
-	if (!change->objtype || osync_conv_objtype_is_any(change->objtype->name))
-		osync_conv_detect_objtype(env, change);
 	
 	OSyncObjType *type = change->objtype;
 	
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, type->name);
-	if (!sink) {
-		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
-		return;
-	}
+	//osync_run_hook(member->group->before_convert_hook, (change, member));
+	//osync_run_hook(member->before_convert_hook, (change, member);
 
-	if (!sink->enabled) {
+	/* This is an optmization:
+	 *
+	 * the path search function will avoid doing
+	 * cross-objtype conversions, so
+	 * if we already have a sink for the original objtype,
+	 * and it is disabled, we can drop the change
+	 * without doing detection/conversion first.
+	 *
+	 * If the objtype will change during conversion,
+	 * we check the right objtype sink later,
+	 * anyway
+	 */
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, type->name);
+	if (sink && !sink->enabled) {
 		osync_context_report_success(context);
 		return;
 	}
 
-	if (!sink->selected_format) {
-		osync_member_select_format(member, sink);	
+	GList *targets = NULL;
+	GList *i;
+	for (i = member->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *fmtsink = i->data;
+		targets = g_list_append(targets, fmtsink->format);
 	}
 	
-	OSyncObjFormatSink *frmtsink = sink->selected_format;
-	if (!osync_conv_convert(osync_member_get_format_env(member), change, frmtsink->format)) {
+	if (!osync_conv_detect_and_convert(env, change, targets)) {
 		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
 		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
 		return;
 	}
 
-	frmtsink->functions.commit_change(context, change);
+	/*FIXME: use a sane interface to return the frmtsink to be used */
+	for (i = member->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *fmtsink = i->data;
+		if (!fmtsink->objtype_sink->enabled) {
+			osync_context_report_success(context);
+			return;
+		}
+		if (fmtsink->format == osync_change_get_objformat(change)) {
+			fmtsink->functions.commit_change(context, change);
+			break;
+		}
+	}
+	if (!i)
+		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
 }
 
 OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
@@ -278,8 +303,13 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 		
 		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
 		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
-		if (!osync_conv_convert(env, change, format_sink->format))
+		/*FIXME: use multiple sinks, or what? */
+		GList *targets = g_list_append(NULL, format_sink->format);
+		osync_bool r = osync_conv_detect_and_convert(env, change, targets);
+		g_list_free(targets);
+		if (!r)
 			continue; //Unable to convert to selected format
+
 		break;
 	}
 	return format_sink;

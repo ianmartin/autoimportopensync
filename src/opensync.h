@@ -114,7 +114,14 @@ typedef enum {
 	 * so a copy function should be provided by the format of the
 	 * returned data.
 	 */
-	CONV_NOCOPY = 1<<2
+	CONV_NOCOPY = 1<<2,
+
+	/** Detect first
+	 *
+	 * Set this flag if the converter is expected to be called
+	 * only if the data was detected to be of the target format
+	 */
+	CONV_DETECTFIRST = 1<<3,
 } ConverterFlags;
 
 typedef enum {
@@ -129,7 +136,7 @@ typedef enum {
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
 typedef osync_bool (* OSyncFormatConvertFunc) (const char *input, int inpsize, char **output, int *outpsize);
 typedef osync_bool (* OSyncFormatCopyFunc) (const char *input, int inpsize, char **output, int *outpsize);
-typedef osync_bool (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, OSyncChange *change);
+typedef osync_bool (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, const char *data, int size, OSyncObjFormat **format);
 typedef osync_bool (* OSyncFormatDetectDataFunc) (OSyncFormatEnv *env, const char *data, int size);
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
