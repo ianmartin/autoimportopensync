@@ -28,3 +28,4 @@ osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change);
 int osync_conv_num_objtypes(OSyncFormatEnv *env);
 OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth);
 int osync_conv_num_objformats(OSyncObjType *type);
+void osync_conv_env_free(OSyncFormatEnv *env);

@@ -88,18 +88,17 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 	osync_assert(table, "Table was NULL. Bug in a plugin");
 	osync_assert(change, "Change was NULL. Bug in a plugin");
 	osync_assert(change->uid, "No uid was set on change. Bug in a plugin");
-	printf("updating uid %s to hash %s\n", change->uid, change->hash);
+
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 		case CHANGE_ADDED:
-			printf("putting\n");
 			osync_db_put(table->dbhandle, change->uid, strlen(change->uid) + 1, change->hash, strlen(change->hash) + 1);
 			break;
 		case CHANGE_DELETED:
 			osync_db_del(table->dbhandle, change->uid, strlen(change->uid) + 1);
 			break;
 		default:
-			printf("Error!\n");
+			g_assert_not_reached();
 	}
 }
 

@@ -193,6 +193,7 @@ void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
+	osync_member_set_slow_sync(member, "data", FALSE);
 	if (functions.sync_done) {
 		functions.sync_done(context);
 	} else {
