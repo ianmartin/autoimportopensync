@@ -18,7 +18,7 @@
  * 
  */
  
-#include "evolution_sync.h"
+#include "evolution2_sync.h"
 
 /*Load the state from a xml file and return it in the conn struct*/
 osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
@@ -28,7 +28,7 @@ osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 
 	//set defaults
-	env->adressbook_path = NULL;
+	env->addressbook_path = NULL;
 	env->calendar_path = NULL;
 	env->tasks_path = NULL;
 
@@ -59,7 +59,7 @@ osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
 		char *str = xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"adress_path")) {
-				env->adressbook_path = g_strdup(str);
+				env->addressbook_path = g_strdup(str);
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_path")) {
 				env->calendar_path = g_strdup(str);
