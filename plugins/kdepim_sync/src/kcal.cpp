@@ -98,12 +98,6 @@ bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, con
 
 	/* Convert the data to vcalendar */
 	KCal::ICalFormat format;
-	/* Ugly workaround to a ICalFormat bug, format.toString()
-	 * doesn't work, but if save() or load() is called before
-	 * toString(), the segmentation fault will not happen (as
-	 * the mCalendar private field will be set)
-	 *
-	format.save(&cal, "");*/
 	QCString datastr = format.toString(&cal).local8Bit();
 	const char *data = datastr;
 
@@ -194,12 +188,6 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
              */
             KCal::CalendarLocal cal;
             QString data = QString::fromLocal8Bit(osync_change_get_data(chg), osync_change_get_datasize(chg));
-            /* Ugly workaround to a ICalFormat bug, format.toString()
-             * doesn't work, but if save() or load() is called before
-             * toString(), the segmentation fault will not happen (as
-             * the mCalendar private field will be set)
-             *
-            format.save(&cal, ""); */
             if (!format.fromString(&cal, data)) {
                 osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Couldn't import calendar data");
                 return false;
