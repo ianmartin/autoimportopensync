@@ -416,13 +416,11 @@ static osync_bool kde_commit_change(OSyncContext *ctx, OSyncChange *change)
     return true;
 }
 
+static OSyncFormatFunctions vcard_functions;
 
+extern "C" {
 void get_info(OSyncPluginInfo *info)
 {
-    OSyncObjType *contactType;
-    OSyncObjFormat *vcardFormat;
-    OSyncFormatFunctions functions;
-
     info->version = 1;
     info->name = "kde-sync";
     info->description = i18n("Plugin for the KDE 3.x Addressbook");
@@ -433,9 +431,12 @@ void get_info(OSyncPluginInfo *info)
     info->functions.finalize = kde_finalize;
     info->functions.get_changeinfo = kde_get_changeinfo;
 
-    contactType = osync_conv_register_objtype(info->accepted_objtypes, "contact");
-    vcardFormat = osync_conv_register_objformat(contactType, "vcard");
-    functions.commit_change = kde_commit_change;
-    osync_conv_format_set_functions(vcardFormat, functions);
+    vcard_functions.commit_change = kde_commit_change,
+    /*FIXME: check the differences between commit_change() and access() */
+    vcard_functions.access = kde_commit_change,
+
+    osync_plugin_register_accepted_objtype(info, "contact");
+    osync_plugin_register_accepted_objformat(info, "contact", "vcard", &vcard_functions);
 }
 
+}// extern "C"
