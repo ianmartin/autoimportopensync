@@ -18,7 +18,7 @@ static gboolean _fam_dispatch(GSource *source, GSourceFunc callback, gpointer us
 	FAMEvent famEvent;
 	if (FAMPending(fsinfo->famConn)) {
 		if (FAMNextEvent(fsinfo->famConn, &famEvent) < 0) {
-			printf("Error getting fam event\n");
+			osync_debug("FILE-SYNC", 1, "Error getting fam event\n");
 		} else {
 			if (famEvent.code == 1 || famEvent.code == 2 || famEvent.code == 5 || famEvent.code == 6)
 				osync_member_request_synchronization(fsinfo->member);
@@ -63,10 +63,10 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 	fsinfo->famRequest = g_malloc0(sizeof(FAMRequest));
 
 	if (FAMOpen(fsinfo->famConn) < 0) {
-		printf( "Cannot connect to FAM\n");
+		osync_debug("FILE-SYNC", 3, "Cannot connect to FAM\n");
 	} else {
 		if( FAMMonitorDirectory(fsinfo->famConn, fsinfo->path, fsinfo->famRequest, fsinfo ) < 0 ) {
-			printf( "Cannot monitor directory %s\n", fsinfo->path);
+			osync_debug("FILE-SYNC", 3, "Cannot monitor directory %s\n", fsinfo->path);
 			FAMClose(fsinfo->famConn);
 		} else {
 			fam_setup(fsinfo, NULL);
@@ -181,7 +181,7 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
-	
+
 	char *filename = NULL;
 	OSyncError *error = NULL;
 	filename = g_strdup_printf ("%s/%s", fsinfo->path, osync_change_get_uid(change));
