@@ -103,6 +103,18 @@ OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 	return NULL;
 }
 
+int osync_conv_num_objtypes(OSyncFormatEnv *env)
+{
+	g_assert(env);
+	return g_list_length(env->objtypes);
+}
+
+OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth)
+{
+	g_assert(env);
+	return g_list_nth_data(env->objtypes, nth);
+}
+
 OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
 {
 	OSyncObjType *type = NULL;
@@ -166,8 +178,15 @@ OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, Converte
 	return converter;
 }
 
+int osync_conv_num_objformats(OSyncObjType *type)
+{
+	g_assert(type);
+	return g_list_length(type->formats);
+}
+
 OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth)
 {
+	g_assert(type);
 	return g_list_nth_data(type->formats, nth);
 }
 

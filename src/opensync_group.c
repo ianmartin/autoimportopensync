@@ -230,17 +230,17 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 	g_assert(group);
 	OSyncFormatEnv *conv_env = group->conv_env;
 
-	if (osync_conv_objtype_is_any(objtypestr)) {
+	//if (osync_conv_objtype_is_any(objtypestr)) {
 		/*GList *element;
 		for (element = conv_env->objtypes; element; element = element->next) {
 			OSyncObjType *objtype = element->data;
 			objtype->needs_slow_sync = slow_sync;
 		}*/
-	} else {
+	//} else {
 		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
 		g_assert(objtype);
 		objtype->needs_slow_sync = slow_sync;
-	}
+	//}
 }
 
 osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)

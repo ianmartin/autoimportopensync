@@ -115,9 +115,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "data");
 	osync_debug("FILE-SYNC", 3, "slow_sync=%s", slow_sync ? "true" : "false");
-	if (slow_sync)
-		osync_hashtable_reset(fsinfo->hashtable);
-	
+
 	if (fsinfo->dir) {
 		const gchar *de = NULL;
 		while ((de = g_dir_read_name(fsinfo->dir))) {
@@ -133,14 +131,13 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			
 			fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
 			stat(filename, &info->filestats);
-			//info->basepath = g_strdup(de);
 			
 			char *hash = fs_generate_hash(info);
 			osync_change_set_hash(change, hash);
 			
 			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
 
-			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
+			if (osync_hashtable_detect_change(fsinfo->hashtable, change, slow_sync)) {
 				osync_context_report_change(ctx, change);
 				osync_hashtable_update_hash(fsinfo->hashtable, change);
 			}
@@ -148,7 +145,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			g_free(hash);
 			g_free(filename);
 		}
-		osync_hashtable_report_deleted(fsinfo->hashtable, ctx);
+		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, slow_sync);
 	}
 	osync_context_report_success(ctx);
 }

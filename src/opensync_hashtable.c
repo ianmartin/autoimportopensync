@@ -88,21 +88,26 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 	osync_assert(table, "Table was NULL. Bug in a plugin");
 	osync_assert(change, "Change was NULL. Bug in a plugin");
 	osync_assert(change->uid, "No uid was set on change. Bug in a plugin");
+	printf("updating uid %s to hash %s\n", change->uid, change->hash);
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 		case CHANGE_ADDED:
+			printf("putting\n");
 			osync_db_put(table->dbhandle, change->uid, strlen(change->uid) + 1, change->hash, strlen(change->hash) + 1);
 			break;
 		case CHANGE_DELETED:
 			osync_db_del(table->dbhandle, change->uid, strlen(change->uid) + 1);
 			break;
 		default:
-			break;
+			printf("Error!\n");
 	}
 }
 
-void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context)
+void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context, osync_bool slow_sync)
 {
+	if (slow_sync)
+		return;
+	
 	DBC *dbcp = osync_db_cursor_new(table->dbhandle);
 
 	void *uidp;
@@ -123,24 +128,28 @@ void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context
 	osync_db_cursor_close(dbcp);
 }
 
-osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change)
+osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change, osync_bool slow_sync)
 {
 	osync_bool retval = FALSE;;
 	void *hashp = NULL;
 	retval = FALSE;
-	
-	if (osync_db_get(table->dbhandle, change->uid, strlen(change->uid) + 1, &hashp)) {
-		char *hash = (char *)hashp;
-		if (strcmp(hash, change->hash) == 0) {
-			change->changetype = CHANGE_UNMODIFIED;
-			retval = FALSE;
-		} else {
-			change->changetype = CHANGE_MODIFIED;
-			retval = TRUE;
-		}
-	} else {
+	if (slow_sync) {
 		change->changetype = CHANGE_ADDED;
 		retval = TRUE;
+	} else {
+		if (osync_db_get(table->dbhandle, change->uid, strlen(change->uid) + 1, &hashp)) {
+			char *hash = (char *)hashp;
+			if (strcmp(hash, change->hash) == 0) {
+				change->changetype = CHANGE_UNMODIFIED;
+				retval = FALSE;
+			} else {
+				change->changetype = CHANGE_MODIFIED;
+				retval = TRUE;
+			}
+		} else {
+			change->changetype = CHANGE_ADDED;
+			retval = TRUE;
+		}
 	}
 	g_hash_table_insert(table->used_entries, change->uid, (void *)1);
 	return retval;
