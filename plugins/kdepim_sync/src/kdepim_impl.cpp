@@ -35,7 +35,13 @@ extern "C"
 #include <libkcal/resourcecalendar.h>
 #include <kinstance.h>
 #include <klocale.h>
+#include <kapplication.h>
+#include <kcmdlineargs.h>
+#include <kaboutdata.h>
+
 #include <qsignal.h>
+
+
 #include <qfile.h> 
 #include <dlfcn.h>
 
@@ -45,6 +51,7 @@ extern "C"
 #include "knotes.h"
 
 
+/*TODO: check why/if the function below is necessary */
 static
 void unfold_vcard(char *vcard, size_t *size)
 {
@@ -81,10 +88,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
         OSyncMember *member;
         OSyncHashTable *hashtable;
 
-        KInstance *instance;
+        KApplication *application;
 
     public:
-        KdePluginImplementation(OSyncMember *memb, OSyncError **error)
+        KdePluginImplementation(OSyncMember *memb)
             :member(memb)
         {
         }
@@ -97,7 +104,20 @@ class KdePluginImplementation: public KdePluginImplementationBase
             if (!osync_hashtable_load(hashtable, member, error))
                 return false;
 
-            instance = new KInstance("kde-opensync-plugin");
+            KAboutData aboutData(
+                       "opensync-kdepim-plugin",                        // internal program name
+                       I18N_NOOP( "OpenSync-KDE-plugin"),        // displayable program name.
+                       "0.1",                           // version string
+                       I18N_NOOP( "OpenSync KDEPIM plugin" ),           // short porgram description
+                       KAboutData::License_GPL,         // license type
+                       "(c) 2005, Eduardo Pereira Habkost", // copyright statement
+                       0,                               // any free form text
+                       "http://www.opensync.org",       // program home page address
+                       "http://www.opensync.org/newticket"  // bug report email address
+                    );
+
+            KCmdLineArgs::init(&aboutData);
+            application = new KApplication();
 
             //get a handle to the standard KDE addressbook
             addressbookptr = KABC::StdAddressBook::self();
@@ -107,6 +127,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
             kcal = new KCalDataSource(member, hashtable);
             knotes = new KNotesDataSource(member, hashtable);
+
+            return true;
         }
         
         virtual ~KdePluginImplementation()
@@ -119,9 +141,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 delete knotes;
                 knotes = NULL;
             }
-            if (instance) {
-                delete instance;
-                instance = NULL;
+            if (application) {
+                delete application;
+                application = NULL;
             }
         }
 
@@ -481,7 +503,7 @@ extern "C" {
 
 KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **error)
 {
-    KdePluginImplementation *imp = new KdePluginImplementation(member, error);
+    KdePluginImplementation *imp = new KdePluginImplementation(member);
     if (!imp->init(error)) {
         delete imp;
         return NULL;

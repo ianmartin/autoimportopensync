@@ -222,8 +222,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         }
     }
 
-    osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Not implemented yet");
-    return false;
+    return true;
 }
 
 void KNotesDataSource::get_data(OSyncContext *ctx, OSyncChange *)
