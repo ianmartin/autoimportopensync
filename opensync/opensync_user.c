@@ -22,7 +22,10 @@
 #include "opensync_internals.h"
 
 /**
- * @ingroup OSyncEnvUserPrivate
+ * @defgroup OSyncEnvUserPrivate OpenSync User Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of dealing with users
+ * 
  */
 /*@{*/
 

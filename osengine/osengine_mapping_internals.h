@@ -1,10 +1,3 @@
-/**
- * @defgroup OSEngineMappingPrivate OpenSync Mapping Internals
- * @ingroup OSEnginePrivate
- * @brief The internals the mappings
- * 
- */
-/*@{*/
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncMappingTable {
@@ -90,5 +83,3 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
 OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id);
 OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);
-
-/*@}*/

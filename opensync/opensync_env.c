@@ -22,6 +22,21 @@
 #include "opensync_internals.h"
 
 /**
+ * @defgroup PrivateAPI Private APIs
+ * @brief Available private APIs
+ * 
+ */
+
+/**
+ * @defgroup OSyncPrivate OpenSync Private API
+ * @ingroup PrivateAPI
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+
+/**
  * @defgroup OSyncEnvPrivate OpenSync Environment Internals
  * @ingroup OSyncPrivate
  * @brief The internals of the opensync environment

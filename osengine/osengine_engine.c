@@ -22,6 +22,13 @@
 #include "engine_internals.h"
 
 /**
+ * @defgroup OSEnginePrivate OpenSync Engine Private API
+ * @ingroup PrivateAPI
+ * @brief The internals of the multisync engine
+ * 
+ */
+
+/**
  * @defgroup OSyncEnginePrivate OpenSync Engine Internals
  * @ingroup OSEnginePrivate
  * @brief The internals of the engine (communication part)
@@ -102,6 +109,7 @@ void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngin
 	osync_trace(TRACE_EXIT, "_connect_reply_receiver");
 }
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "_sync_done_reply_receiver(%p, %p, %p)", sender, message, engine);
@@ -119,11 +127,6 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
 	osync_trace(TRACE_EXIT, "_sync_done_reply_receiver");
 }
 
-/*! @brief This function can be used to receive DISCONNECT command replies
- *
- * See ITMessageHandler
- * 
- */
 void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "_disconnect_reply_receiver(%p, %p, %p)", sender, message, engine);
@@ -392,6 +395,7 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
 	itm_message_set_data(message, "mapping", mapping);
 	itm_queue_send(engine->incoming, message);
 }
+#endif
 
 /*! @brief The queue message handler of the engine
  * 
@@ -540,10 +544,14 @@ static gboolean startupfunc(gpointer data)
 /*@}*/
 
 /**
- * @ingroup OSEnginePublic
+ * @defgroup OSEnginePublic OpenSync Engine API
+ * @ingroup PublicAPI
+ * @brief The API of the syncengine available to everyone
+ * 
+ * This gives you an insight in the public API of the opensync sync engine.
+ * 
  */
 /*@{*/
-
 
 /*! @brief This will reset the engine to its initial state
  * 
@@ -921,8 +929,6 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
  * The engine can be initialized again.
  * 
  * @param engine A pointer to the engine, which will be finalized
- * @param error A pointer to a error struct
- * @returns TRUE on success, FALSE otherwise. Check the error on FALSE.
  * 
  */
 void osync_engine_finalize(OSyncEngine *engine)
@@ -1037,11 +1043,23 @@ void osync_engine_abort(OSyncEngine *engine)
 	osync_flag_set(engine->fl_stop);
 }
 
+/*! @brief Allows that the engine can be started by a member
+ * 
+ * Allow the engine to by started by a member by sending a sync alert.
+ * 
+ * @param engine The engine
+ */
 void osync_engine_allow_sync_alert(OSyncEngine *engine)
 {
 	engine->allow_sync_alert = TRUE;
 }
 
+/*! @brief Do not allow that the engine can be started by a member
+ * 
+ * Do not allow the engine to by started by a member by sending a sync alert.
+ * 
+ * @param engine The engine
+ */
 void osync_engine_deny_sync_alert(OSyncEngine *engine)
 {
 	engine->allow_sync_alert = FALSE;
@@ -1115,15 +1133,22 @@ void osync_engine_wait_info_end(OSyncEngine *engine)
 
 /*! @brief Does one iteration of the engine (For debugging)
  *
+ * @param engine The engine to iterate
  */
 void osync_engine_one_iteration(OSyncEngine *engine)
 {
 	itm_queue_dispatch(engine->incoming);
 }
 
+/*! @brief Searches for a mapping by its id
+ *
+ * @param engine The engine
+ * @param id The id of the mapping
+ * @returns The mapping or NULL if not found
+ */
 OSyncMapping *osync_engine_mapping_from_id(OSyncEngine *engine, long long int id)
 {
 	return osengine_mappingtable_mapping_from_id(engine->maptable, id);
 }
 
-/*@}*/
+/** @}*/

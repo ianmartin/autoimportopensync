@@ -119,9 +119,6 @@ void mapping_status(MSyncMappingUpdate *status)
 		case MAPPING_SOLVED:
 			printf("Mapping solved\n");
 			break;
-		case MAPPING_NEW:
-			printf("New Mapping\n");
-			break;
 		case MAPPING_SYNCED:
 			printf("Mapping Synced\n");
 			break;

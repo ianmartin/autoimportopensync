@@ -275,10 +275,19 @@ void osengine_change_map(OSyncEngine *engine, OSyncMappingEntry *entry)
 /*@}*/
 
 /**
- * @ingroup OSEngineMapping
+ * @defgroup OSEngineMapping OpenSync Mapping
+ * @ingroup OSEnginePublic
+ * @brief The commands to manipulate mappings
+ * 
  */
 /*@{*/
 
+/** @brief Solves the conflict by duplicating the conflicting entries
+ * 
+ * @param engine The engine
+ * @param dupe_mapping The conflicting mapping to duplicate
+ * 
+ */
 void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mapping_duplicate(%p, %p)", engine, dupe_mapping);
@@ -375,6 +384,15 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	osync_trace(TRACE_EXIT, "osengine_mapping_duplicate");
 }
 
+/** @brief Solves the mapping by choosing a winner
+ * 
+ * The winner will overwrite all other entries of this mapping
+ * 
+ * @param engine The engine
+ * @param mapping The conflicting mapping
+ * @param change The winning change
+ * 
+ */
 void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mapping_solve(%p, %p, %p)", engine, mapping, change);
@@ -385,6 +403,15 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
 	osync_trace(TRACE_EXIT, "osengine_mapping_solve");
 }
 
+/** @brief Ignores a conflict
+ * 
+ * This ignores the conflict until the next sync. When the group is synchronized again
+ * the conflict is brought up again (unless the user solved it already outside of the engine)
+ * 
+ * @param engine The engine
+ * @param mapping The mapping to ignore
+ * 
+ */
 void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
@@ -403,6 +430,18 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Solves a mapping by choosing the entry that was last modified
+ * 
+ * Solves the mapping by choosing the last modified entry. Note that this can fail
+ * if one of the entries does not have a timestamp set or of the 2 latest timestamps
+ * were exactly equal. If it could not be solved you have to solve it with another function!
+ * 
+ * @param engine The engine
+ * @param mapping The conflicting mapping
+ * @param error A pointer to an error
+ * @returns TRUE if the mapping was solved, FALSE otherwise
+ * 
+ */
 osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapping, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping, error);
@@ -446,6 +485,16 @@ osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapp
 	return TRUE;
 }
 
+/** @brief Solves a mapping by setting an updated change
+ * 
+ * Solves the mapping by setting an updated change. The change should have been edited by the user.
+ * This change will then be declared winner.
+ * 
+ * @param engine The engine
+ * @param mapping The conflicting mapping
+ * @param change The updated change
+ * 
+ */
 void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, change);

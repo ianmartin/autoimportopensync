@@ -121,7 +121,6 @@ ITMessage *itm_message_new_methodreply(gpointer parent, ITMessage *message)
  * 
  * @param parent Who send this message. Can be any pointer.
  * @param message The message to which you wish to reply
- * @param msg The error message.
  * @returns Pointer to a newly allocated message
  */
 ITMessage *itm_message_new_errorreply(gpointer parent, ITMessage *message)

@@ -21,6 +21,15 @@
 #include "engine.h"
 #include "engine_internals.h"
 
+/**
+ * @defgroup OSEngineMappingPrivate OpenSync Mapping Internals
+ * @ingroup OSEnginePrivate
+ * @brief The internals the mappings
+ * 
+ */
+/*@{*/
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 OSyncMappingTable *osengine_mappingtable_new(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mappingtable_new(%p)", engine);
@@ -540,3 +549,6 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry)
 	
 	osync_change_reset(entry->change);
 }
+#endif
+
+/** @} */

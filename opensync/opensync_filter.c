@@ -219,13 +219,13 @@ void osync_filter_free(OSyncFilter *filter)
 /*! @brief Register a new filter
  * 
  * @param group For which group to register the filter
- * @param sourcememberid The id of the member reporting the object. 0 for any
- * @param destmemberid The id of the member receiving the object. 0 for any
+ * @param sourcemember The member reporting the object. NULL for any
+ * @param destmember The member receiving the object. NULL for any
  * @param sourceobjtype The objtype as reported by the member without detection. NULL for any
  * @param destobjtype The objtype as about being saved by the member without detection. NULL for any
  * @param detectobjtype The objtype as detected. NULL for ignore
- * @param allow Set to TRUE if this filter should allow the object, To false if it should deny
- * 
+ * @param action Set this to the action the filter should return for the object
+ * @returns The new added Filter
  */
 OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
 {
@@ -238,10 +238,10 @@ OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyn
 	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action, NULL);
 }
 
-/* @brief Removes a filter from a group
+/*! @brief Removes a filter from a group
  * 
- * @param The group to remove from
- * @param The filter to remove
+ * @param group The group to remove from
+ * @param filter The filter to remove
  **/
 void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
 {
@@ -249,13 +249,16 @@ void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
 	group->filters = g_list_remove(group->filters, filter);
 }
 
-/*! @brief Register a new filter
+/*! @brief Register a new custom filter
  * 
- * @param sourcememberid The id of the member reporting the object. 0 for any
- * @param destmemberid The id of the member receiving the object. 0 for any
+ * @param group The group that should store the filter
+ * @param sourcemember The member reporting the object. NULL for any
+ * @param destmember The member receiving the object. NULL for any
  * @param sourceobjtype The objtype as reported by the member without detection. NULL for any
+ * @param destobjtype The object type has it is being added on the target. NULL for any
  * @param detectobjtype The objtype as detected. NULL for any
- * @param hook The filter function to call to decide if to filter the object.
+ * @param function_name The filter function to call to decide if to filter the object.
+ * @returns The new added Filter
  * 
  */
 OSyncFilter *osync_filter_add_custom(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, const char *function_name)

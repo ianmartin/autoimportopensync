@@ -273,9 +273,6 @@ void mapping_status(MSyncMappingUpdate *status, void *user_data)
 		case MAPPING_SOLVED:
 			osync_debug("TEST", 4, "Mapping solved");
 			break;
-		case MAPPING_NEW:
-			osync_debug("TEST", 4, "New Mapping");
-			break;
 		case MAPPING_SYNCED:
 			osync_debug("TEST", 4, "Mapping Synced");
 			break;

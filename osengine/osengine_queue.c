@@ -111,6 +111,7 @@ gboolean timeoutfunc(gpointer data)
  * @param queue The queue to send the message to
  * @param message The message to send
  * @param timeout How long to wait for an answer
+ * @param replysender The object that is sending the reply
  * 
  */
 void itm_queue_send_with_timeout(ITMQueue *queue, ITMessage *message, int timeout, void *replysender)

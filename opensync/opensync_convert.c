@@ -18,7 +18,7 @@
  * 
  */
  
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
 
 /**
