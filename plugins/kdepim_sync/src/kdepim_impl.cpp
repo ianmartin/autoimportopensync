@@ -96,7 +96,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
         }
 
-        bool init(OSyncError **error)
+        bool init(OSyncError **)
         {
             //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
 
