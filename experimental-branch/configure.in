@@ -1,0 +1,218 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.58)
+AC_INIT(OpenSync, 0.13, [], opensync)
+AC_CONFIG_SRCDIR([opensync/opensync.h])
+AM_INIT_AUTOMAKE(foreign)
+AC_CONFIG_HEADER(config.h)
+
+#### Defaults #####
+WITH_DEBUG=yes
+WITH_TRACE=yes
+ENABLE_ENGINE=yes
+ENABLE_TESTS=yes
+WITH_TOOLS=yes
+WITH_PROF=no
+
+AC_ISC_POSIX
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_HEADER_STDC
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+AC_PROG_YACC
+
+OPENSYNC_CONFIGDIR=${datadir}/opensync/defaults
+AC_SUBST(OPENSYNC_CONFIGDIR)
+
+OPENSYNC_PLUGINDIR=${libdir}/opensync/plugins
+AC_SUBST(OPENSYNC_PLUGINDIR)
+
+OPENSYNC_FORMATSDIR=${libdir}/opensync/formats
+AC_SUBST(OPENSYNC_FORMATSDIR)
+
+OPENSYNC_HEADERDIR=${includedir}/opensync-1.0/opensync
+AC_SUBST(OPENSYNC_HEADERDIR)
+
+OPENSYNC_ENGINEHEADERDIR=${includedir}/opensync-1.0/osengine
+AC_SUBST(OPENSYNC_ENGINEHEADERDIR)
+
+AC_ARG_ENABLE(engine,
+  AS_HELP_STRING([--enable-engine], [enable building of the opensync engine]),
+  ENABLE_ENGINE=$enableval)
+if test "x${ENABLE_ENGINE}" = "xyes"; then
+	AC_DEFINE(BUILD_ENGINE,1,[Stress Testing])
+	enginedir="osengine"
+else
+	enginedir=""
+fi
+AC_SUBST(enginedir)
+AC_SUBST(BUILD_ENGINE)
+AM_CONDITIONAL(BUILD_ENGINE, test x$ENABLE_ENGINE = xyes)
+
+AC_ARG_ENABLE(debug,
+  AS_HELP_STRING([--enable-debug], [enable debug messages]),
+  WITH_DEBUG=$enableval)
+if test "x${WITH_DEBUG}" = "xyes"; then
+	AC_DEFINE(ENABLE_DEBUG,1,[Debugging])
+	AC_SUBST(ENABLE_DEBUG)
+fi
+
+AC_ARG_ENABLE(tracing,
+  AS_HELP_STRING([--enable-tracing], [enable tracing]),
+  WITH_TRACE=$enableval)
+if test "x${WITH_TRACE}" = "xyes"; then
+	AC_DEFINE(ENABLE_TRACE,1,[Tracing])
+	AC_SUBST(ENABLE_TRACE)
+fi
+
+AC_ARG_ENABLE(profiling,
+  AS_HELP_STRING([--enable-profiling], [enable code profiling]),
+  WITH_PROF=$enableval)
+if test "x${WITH_PROF}" = "xyes"; then
+	GCOV_CFLAGS="-fprofile-arcs -ftest-coverage"
+	GCOV_LDFLAGS=""
+else
+	GCOV_CFLAGS=""
+	GCOV_LDFLAGS=""
+fi
+AC_SUBST(GCOV_CFLAGS)
+AC_SUBST(GCOV_LDFLAGS)
+AM_CONDITIONAL(ENABLE_PROF, test "x${WITH_PROF}" = "xyes")
+
+AC_ARG_ENABLE(tools,
+  AS_HELP_STRING([--enable-tools], [enables building of the tools]),
+  WITH_TOOLS=$enableval)
+if test "x${WITH_TOOLS}" = "xyes"; then
+	toolsdir="tools"
+else
+	toolsdir=""
+fi
+AC_SUBST(toolsdir)
+
+#### Check for libxml ####
+PKG_CHECK_MODULES(XML, [libxml-2.0])
+AC_SUBST(XML_CFLAGS)
+AC_SUBST(XML_LIBS)
+
+
+#### Check for unit tests ####
+AC_ARG_ENABLE(unit-tests,
+  AS_HELP_STRING([--enable-unit-tests], [enable unit tests]),
+  ENABLE_TESTS=$enableval)
+testdir=""
+if test "x${ENABLE_TESTS}" = "xyes"; then
+	AC_CHECK_HEADER(check.h,HAVE_CHECK=1,HAVE_CHECK=0)
+	if test "x${HAVE_CHECK}" = "x1"; then
+		AM_PATH_CHECK(0.9.0)
+		testdir="tests"
+	fi
+fi
+AC_SUBST(testdir)
+AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
+
+#### Check for BDB (obsolete now) ####
+# AX_PATH_BDB([4.2],[LDFLAGS="$LDFLAGS $BDB_LDFLAGS"
+# LIBS="$LIBS $BDB_LIBS"
+# CPPFLAGS="$CPPFLAGS $BDB_CPPFLAGS"],AC_MSG_ERROR(You must have libdb of version 4.1 or higher installed))
+
+
+#### Check for Python ####
+#(need python, python headers, and pyrex)
+AC_ARG_ENABLE(python,           
+  AS_HELP_STRING([--enable-python], [build python bindings]),
+  [enable_python=$enableval], [enable_python=auto])
+if test x$enable_python = xno; then
+    have_python=no
+else
+    AC_MSG_NOTICE([Checking to see if we can build Python bindings])
+    have_python=no
+    AM_PATH_PYTHON(2.2)
+
+    if test -z "$PYTHON" ; then
+        AC_MSG_WARN([Python not found])
+    else
+        AC_CHECK_PROGS(PYREX, pyrexc)
+
+        if test -z "$PYREX" ; then
+            have_pyrex=no
+        else
+            have_pyrex=yes
+        fi
+
+        AM_CHECK_PYTHON_HEADERS(have_python_headers=yes,have_python_headers=no)
+
+        if test x$have_pyrex = xyes -a x$have_python_headers = xyes ; then
+            have_python=yes
+        fi
+    fi
+
+    if test x$have_python = xno ; then
+        if test x$enable_python = xyes ; then
+            AC_MSG_ERROR([Building python explicitly requested, but can't build python bindings])
+        else
+            AC_MSG_WARN([Couldn't find either Pyrex or the Python headers, not building Python bindings])
+        fi
+    fi
+fi
+
+AM_CONDITIONAL(HAVE_PYTHON, test x$have_python = xyes)
+
+#### Check for glib and sqlite ####
+pkg_modules="glib-2.0 gmodule-2.0 gobject-2.0 gthread-2.0 sqlite3"
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+# Workaround for autoconf 2.58, in which abs_builddir/abs_srcdir are not
+# absolute at all.
+# These are used in *-uninstalled.pc.in
+AC_SUBST(ac_workaround_abs_builddir, $PWD) # builddir is defined as '.'
+AC_SUBST(ac_workaround_abs_srcdir, $PWD/$srcdir)
+
+AC_OUTPUT([
+Makefile
+opensync/Makefile
+tools/Makefile
+tests/Makefile
+formats/Makefile
+formats/vformats-xml/Makefile
+osengine/Makefile
+opensync-1.0.pc
+opensync-1.0-uninstalled.pc
+osengine-1.0.pc
+osengine-1.0-uninstalled.pc
+Doxyfile
+])
+
+
+# AC_OPENSYNC_ISENABLED(NAME, VARIABLE, [TESTFOR = yes])
+AC_DEFUN([AC_OPENSYNC_ISENABLED],
+[
+if test "$3"; then
+	ac_opensync_isenabled_testfor="$3"
+else
+	ac_opensync_isenabled_testfor="yes"
+fi
+
+if test "x${$2}" = "x${ac_opensync_isenabled_testfor}"; then
+	echo "AS_HELP_STRING([$1:], Enabled)"
+else
+	echo "AS_HELP_STRING([$1:], Disabled)"
+fi
+])
+
+echo ""
+echo "========================================"
+AC_OPENSYNC_ISENABLED([Pythong Bindings], HAVE_PYTHON, 1)
+AC_OPENSYNC_ISENABLED([Unit Tests], HAVE_CHECK, 1)
+AC_OPENSYNC_ISENABLED([Debug messages], WITH_DEBUG)
+AC_OPENSYNC_ISENABLED([Tracing], WITH_TRACE)
+AC_OPENSYNC_ISENABLED([Profiling], WITH_PROF)
+AC_OPENSYNC_ISENABLED([Sync Engine], ENABLE_ENGINE)
+AC_OPENSYNC_ISENABLED([Tools], WITH_TOOLS)
+echo
+echo "Now build opensync and install it."
+echo "Afterwards go into the plugins directory"
+echo "and build the plugins you need."
+echo "========================================"

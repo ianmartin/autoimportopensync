@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: osengine
+Description: OpenSync sync engine
+Version: @VERSION@
+Libs: -L${libdir} -losengine
+Cflags: -I${includedir}/opensync-1.0

@@ -1,0 +1,8 @@
+libdir=@ac_workaround_abs_builddir@
+includedir=@ac_workaround_abs_srcdir@
+
+Name: osengine
+Description: OpenSync sync engine (uninstalled version)
+Version: @VERSION@
+Libs: -L${libdir} -losengine
+Cflags: -I${includedir}
