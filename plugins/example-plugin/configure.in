@@ -18,10 +18,10 @@ AC_HEADER_STDC
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync)
-OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync)
-OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync)
-OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync)
+OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
+OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
+OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync-1.0)
+OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync-1.0)
 
 AC_SUBST(OPENSYNC_CONFIGDIR) ## This is the place where you can install the default configuration files of your plugin
 AC_SUBST(OPENSYNC_PLUGINDIR) ## This is the dir where you plugin will be installed

@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
 
 lib_LTLIBRARIES = libosengine.la
 
-osengineincludedir = $(includedir)/opensync
+osengineincludedir = @OPENSYNC_HEADERDIR@
 osengineinclude_HEADERS = \
 	engine.h \
 	osengine_mapping.h \
@@ -33,5 +33,5 @@ EXTRA_DIST = \
 	osengine_message_internals.h \
 	osengine_queue_internals.h
 
-libosengine_la_LDFLAGS = $(top_builddir)/src/libopensync.la
-libosengine_la_LIBADD = $(PACKAGE_LIBS)
+libosengine_la_LDFLAGS = $(PACKAGE_LIBS)
+libosengine_la_LIBADD = $(top_builddir)/src/libopensync.la

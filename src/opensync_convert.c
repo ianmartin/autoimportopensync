@@ -549,7 +549,6 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 		/* Distance calculation */
 		neigh->conversions = ve->conversions + 1;
 		neigh->losses = ve->losses;
-		//if (!(converter->flags & CONV_NOTLOSSY))
 		if (converter->type == CONVERTER_DESENCAP)
 			neigh->losses++;
 		neigh->objtype_changes = ve->objtype_changes;

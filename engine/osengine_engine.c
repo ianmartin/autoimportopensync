@@ -729,7 +729,9 @@ osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
 	}
 	
 	g_cond_wait(engine->syncing, engine->syncing_mutex);
+	
 	g_mutex_unlock(engine->syncing_mutex);
+	
 	return TRUE;
 }
 

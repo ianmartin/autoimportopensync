@@ -99,13 +99,6 @@ typedef enum {
 } OSyncConvCmpResult;
 
 typedef enum {
-	/** Not Lossy converter
-	 *
-	 * Set this flag if information is not lossy when
-	 * converting through this converter.
-	 */
-	CONV_NOTLOSSY = 1<<0,
-
 	/** Data take-over converter
 	 *
 	 * Set this flag if the converter takes the ownership and responsibility

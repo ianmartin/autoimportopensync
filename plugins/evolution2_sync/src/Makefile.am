@@ -1,15 +1,14 @@
-plugindir=@OPENSYNC_PLUGINDIR@/plugins
-configdir=@OPENSYNC_CONFIGDIR@/defaults
-headerdir=$(includedir)/opensync/
+plugindir=@OPENSYNC_PLUGINDIR@
+configdir=@OPENSYNC_CONFIGDIR@
+opensyncheaderdir=@OPENSYNC_HEADERDIR@
+
 INCLUDES = @PACKAGE_CFLAGS@
 
-AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
+AM_CFLAGS = -Wall -Werror
 
-#FIXME: the 'evo2-sync' file is missing from subversion
 config_DATA = evo2-sync
 
-header_HEADERS = \
-	evo2_sync.h
+opensyncheader_HEADERS = evo2_sync.h
 
 plugin_LTLIBRARIES = evo2_sync.la
 

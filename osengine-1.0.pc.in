@@ -7,4 +7,4 @@ Name: osengine
 Description: OpenSync sync engine
 Version: @VERSION@
 Libs: -L${libdir} -losengine
-Cflags: -I${includedir}/opensync
+Cflags: -I${includedir}/opensync-1.0

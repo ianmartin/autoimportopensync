@@ -64,5 +64,5 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_format_set_compare_func(vcal, compare_vevent);
 
 	osync_conv_register_data_detector(env, "plain", "vevent", detect_plain_as_vevent);
-	osync_conv_format_set_like(vcal, "plain", CONV_NOTLOSSY, CONV_DETECTFIRST);
+	osync_conv_format_set_like(vcal, "plain", 0, CONV_DETECTFIRST);
 }

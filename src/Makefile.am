@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 lib_LTLIBRARIES = libopensync.la
 
-opensyncincludedir = $(includedir)/opensync
+opensyncincludedir = @OPENSYNC_HEADERDIR@
 
 opensyncinclude_HEADERS = \
 	opensync.h \

@@ -1,6 +1,7 @@
-plugindir=@OPENSYNC_PLUGINDIR@/plugins
-configdir=@OPENSYNC_CONFIGDIR@/defaults
-headerdir=$(includedir)/opensync/
+plugindir=@OPENSYNC_PLUGINDIR@
+configdir=@OPENSYNC_CONFIGDIR@
+opensyncheaderdir=@OPENSYNC_HEADERDIR@
+
 INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
@@ -9,7 +10,7 @@ EXTRA_DIST = evo-sync
 
 config_DATA = evo-sync
 
-header_HEADERS = \
+opensyncheader_HEADERS = \
 	evo_sync.h
 
 plugin_LTLIBRARIES = evo_sync.la

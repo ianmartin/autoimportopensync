@@ -45,7 +45,7 @@ OSyncEnv *osync_env_new(void)
 
 	OSyncUserInfo *user = _osync_user_new();
 	env->configdir = g_strdup(_osync_user_get_confdir(user));
-	env->plugindir = g_strdup(OPENSYNC_PLUGINDIR"/plugins");
+	env->plugindir = g_strdup(OPENSYNC_PLUGINDIR);
 	env->is_initialized = FALSE;
 
 	osync_debug("env", 3, "Generating new env:");
@@ -175,7 +175,7 @@ osync_bool osync_env_load_plugins(OSyncEnv *env, const char *path, OSyncError **
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*.la", filename) || g_pattern_match_simple("*lib.so", filename)) {
 			g_free(filename);
 			continue;
 		}

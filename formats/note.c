@@ -23,5 +23,5 @@ void get_info(OSyncFormatEnv *env)
 	OSyncObjFormat *format = osync_conv_register_objformat(env, "note", "vnote11");
 	osync_conv_register_data_detector(env, "plain", "vnote11", detect_plain_as_vnote);
 	osync_conv_format_set_compare_func(format, compare_vnote);
-	osync_conv_format_set_like(format, "plain", CONV_NOTLOSSY, CONV_DETECTFIRST);
+	osync_conv_format_set_like(format, "plain", 0, CONV_DETECTFIRST);
 }
