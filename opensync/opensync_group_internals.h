@@ -3,6 +3,7 @@
 
 /*! @brief Represent a group of members that should be synchronized */
 struct OSyncGroup {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	char *name;
 	GList *members;
 	char *configdir;
@@ -14,6 +15,7 @@ struct OSyncGroup {
 	GList *filters;
 	char *changes_path;
 	OSyncDB *changes_db;
+#endif
 };
 
 #endif //_OPENSYNC_GROUP_INTERNALS_H_

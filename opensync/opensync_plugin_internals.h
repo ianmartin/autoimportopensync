@@ -1,19 +1,15 @@
 
-/**
- * @defgroup OSyncPluginPrivateAPI OpenSync Plugin Internals
- * @ingroup OSyncPrivate
- * @brief The private part of the plugins API
- * 
- */
-/*@{*/
-
-/*! @brief Represent a synchronzation plugin */
+/*! @brief Represent a synchronzation plugin
+ * @ingroup OSyncPluginPrivateAPI
+ **/
 struct OSyncPlugin {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	GModule *real_plugin;
 	char *path;
 	OSyncPluginInfo info;
 	GList *accepted_objtypes;
 	OSyncEnv *env;
+#endif
 };
 
 OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template);
@@ -23,5 +19,3 @@ OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplat
 OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const char *formatstr);
 
 osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error);
-
-/*@}*/

@@ -1,22 +1,6 @@
 #ifndef HAVE_OPENSYNC_H
 #define HAVE_OPENSYNC_H
 
-/**
- * @defgroup PublicAPI Public APIs
- * @brief Available public APIs
- * 
- */
-
-/**
- * @defgroup OSyncPublic OpenSync Public API
- * @ingroup PublicAPI
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
- * 
- */
-/** @{ */
-
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -75,7 +59,5 @@ typedef int osync_bool;
 #ifdef __cplusplus
 }
 #endif
-
-/** @} */
 
 #endif

@@ -31,6 +31,12 @@
  */
 /*@{*/
 
+/*! @brief Translate a error type into something human readable
+ * 
+ * @param type The error type to look up
+ * @returns The name of the error type
+ * 
+ */
 static const char *osync_error_name_from_type(OSyncErrorType type)
 {
 	switch (type) {
@@ -53,6 +59,14 @@ static const char *osync_error_name_from_type(OSyncErrorType type)
 	}
 }
 
+/*! @brief Sets a error from a va_list
+ * 
+ * @param error A pointer to a error struct
+ * @param type The type to set
+ * @param format The message
+ * @param args The arguments to the message
+ * 
+ */
 void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
 	if (!error)
@@ -224,6 +238,21 @@ void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format
 	va_start(args, format);
 	osync_error_set_vargs(error, type, format, args);
 	va_end (args);
+}
+
+/*! @brief Sets the type of an error
+ * 
+ * @param error A pointer to a error struct to set
+ * @param type The Error type to set
+ * 
+ */
+void osync_error_set_type(OSyncError **error, OSyncErrorType type)
+{
+	if (!error)
+		return;
+	
+	(*error)->type = type;
+	return;
 }
 
 /*@}*/

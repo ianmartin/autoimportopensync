@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT(OpenSync, 0.14, [], opensync)
+AC_INIT(OpenSync, 0.15, [], libopensync)
 AC_CONFIG_SRCDIR([opensync/opensync.h])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_HEADER(config.h)
@@ -139,8 +139,6 @@ else
     if test x$have_python = xno ; then
         if test x$enable_python = xyes ; then
             AC_MSG_ERROR([Building python explicitly requested, but can't build python bindings])
-        else
-            AC_MSG_WARN([Couldn't find either Pyrex or the Python headers, not building Python bindings])
         fi
     fi
 fi

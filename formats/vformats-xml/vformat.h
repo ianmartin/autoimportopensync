@@ -24,6 +24,7 @@
 #define _VFORMAT_H
 
 #include <glib.h>
+#include <time.h>
 
 typedef enum {
 	VFORMAT_CARD_21,
@@ -87,6 +88,7 @@ VFormat *vformat_new(void);
 VFormat *vformat_new_from_string(const char *str);
 void vformat_dump_structure(VFormat *format);
 char *vformat_to_string(VFormat *evc, VFormatType type);
+time_t vformat_time_to_unix(const char *inptime);
 
 /* attributes */
 VFormatAttribute *vformat_attribute_new               (const char *attr_group, const char *attr_name);

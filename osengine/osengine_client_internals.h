@@ -1,19 +1,15 @@
 
-/**
- * @ingroup OSyncClientPrivate
- * @brief Represents a SyncClient
- * 
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncClient {
 	OSyncMember *member;
 	ITMQueue *incoming;
 	GMainLoop *memberloop;
 	OSyncEngine *engine;
 
-	MSyncFlag *fl_connected;
-	MSyncFlag *fl_sent_changes;
-	MSyncFlag *fl_done;
-	MSyncFlag *fl_finished;
+	OSyncFlag *fl_connected;
+	OSyncFlag *fl_sent_changes;
+	OSyncFlag *fl_done;
+	OSyncFlag *fl_finished;
 	GThread *thread;
 	GMainContext *context;
 	
@@ -24,6 +20,7 @@ struct OSyncClient {
 	
 	GList *changes;
 };
+#endif
 
 OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member);
 OSyncEngine *osync_client_get_engine(OSyncClient *client);

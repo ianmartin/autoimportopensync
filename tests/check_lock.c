@@ -138,13 +138,13 @@ START_TEST (dual_sync_engine_lock)
 	OSyncGroup *group2 = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	OSyncEngine *engine2 = osync_engine_new(group2, &error);
-	osync_engine_set_enginestatus_callback(engine2, engine_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine2 = osengine_new(group2, &error);
+	osengine_set_enginestatus_callback(engine2, engine_status, NULL);
 	
-	fail_unless(osync_engine_init(engine, &error), NULL);
-	fail_unless(!osync_engine_init(engine2, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
+	fail_unless(!osengine_init(engine2, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	osync_error_free(&error);
 	
@@ -154,15 +154,15 @@ START_TEST (dual_sync_engine_lock)
 	fail_unless(osync_error_is_set(&error), NULL);
 	osync_error_free(&error);
 	fail_unless(num_engine_prev_unclean == 0, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
-	fail_unless(osync_engine_init(engine2, &error), NULL);
+	fail_unless(osengine_init(engine2, &error), NULL);
 	fail_unless(synchronize_once(engine2, &error), NULL);
 	fail_unless(num_engine_prev_unclean == 0, NULL);
-	osync_engine_finalize(engine2);
+	osengine_finalize(engine2);
 	
-	osync_engine_free(engine);
-	osync_engine_free(engine2);
+	osengine_free(engine);
+	osengine_free(engine2);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" == \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" == \"x\""), NULL);
@@ -181,41 +181,41 @@ START_TEST (dual_sync_engine_unclean)
 	fail_unless(!osync_group_get_slow_sync(group, "data"), NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	
-	fail_unless(osync_engine_init(engine, &error), NULL);
-	osync_engine_free(engine);
+	fail_unless(osengine_init(engine, &error), NULL);
+	osengine_free(engine);
 	osync_group_free(group);
 
 	group = osync_group_load(osync, "configs/group", NULL);
-	engine = osync_engine_new(group, &error);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	engine = osengine_new(group, &error);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	
 	fail_unless(!osync_group_get_slow_sync(engine->group, "data"), NULL);
 	
 	num_engine_prev_unclean = 0;
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	fail_unless(num_engine_prev_unclean == 1, NULL);
 	
 	fail_unless(osync_group_get_slow_sync(engine->group, "data"), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	osync_group_free(group);
 	
 	group = osync_group_load(osync, "configs/group", NULL);
-	engine = osync_engine_new(group, &error);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	engine = osengine_new(group, &error);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	
 	fail_unless(!osync_group_get_slow_sync(engine->group, "data"), NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	fail_unless(!osync_group_get_slow_sync(engine->group, "data"), NULL);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(num_engine_prev_unclean == 0, NULL);
 	

@@ -103,7 +103,7 @@ osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long in
 	sqlite3_prepare(sdb, "SELECT uid, memberid, changetype FROM tbl_log", -1, &ppStmt, NULL);
 	int i = 0;
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
-		(*uids)[i] = g_strdup(sqlite3_column_text(ppStmt, 0));
+		(*uids)[i] = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 		(*memberids)[i] = sqlite3_column_int64(ppStmt, 1);
 		(*changetypes)[i] = sqlite3_column_int(ppStmt, 2);
 		i++;

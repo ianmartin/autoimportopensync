@@ -29,6 +29,7 @@
  */
 /*@{*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 OSyncMemberFunctions *osync_memberfunctions_new()
 {
 	OSyncMemberFunctions *functions = g_malloc0(sizeof(OSyncMemberFunctions));
@@ -46,6 +47,36 @@ OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 	return osync_group_get_format_env(member->group);
 }
 
+OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)
+{
+	GList *o;
+	for (o = member->objtype_sinks; o; o = o->next) {
+		OSyncObjTypeSink *sink = o->data;
+		if (osync_conv_objtype_is_any(sink->objtype->name) || !strcmp(sink->objtype->name, objtypestr))
+			return sink;
+	}
+	return NULL;
+}
+
+/** @brief Reads the configuration data of this member
+ * 
+ * The config file is read in this order:
+ * - If there is a configuration in memory that is not yet saved
+ * this is returned
+ * - If there is a config file in the member directory this is read
+ * and returned
+ * 
+ * The difference to get_config is that this function will never try to read
+ * the default config file and return an error instead. So this function is supposed
+ * to be used by the plugins.
+ * 
+ * @param member The member
+ * @param data Return location for the data
+ * @param size Return location for the size of the data
+ * @param error Pointer to a error
+ * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_member_read_config(%p, %p, %p, %p)", member, data, size, error);
@@ -77,6 +108,8 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size,
 	return ret;
 }
 
+#endif
+
 /*@}*/
 
 /**
@@ -87,6 +120,12 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size,
  */
 /*@{*/
 
+/** @brief Creates a new member for a group
+ * 
+ * @param group The parent group. NULL if none
+ * @returns A newly allocated member
+ * 
+ */
 OSyncMember *osync_member_new(OSyncGroup *group)
 {
 	OSyncMember *member = g_malloc0(sizeof(OSyncMember));
@@ -100,6 +139,11 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	return member;
 }
 
+/** @brief Frees a member
+ * 
+ * @param member The member to free
+ * 
+ */
 void osync_member_free(OSyncMember *member)
 {
 	osync_assert(member, "You must set a member to free");
@@ -120,6 +164,11 @@ void osync_member_free(OSyncMember *member)
 	g_free(member);
 }	
 
+/** @brief Unloads the plugin of a member
+ * 
+ * @param member The member for which to unload the plugin
+ * 
+ */
 void osync_member_unload_plugin(OSyncMember *member)
 {
 	g_assert(member);
@@ -140,6 +189,14 @@ void osync_member_unload_plugin(OSyncMember *member)
 	member->plugin = NULL;
 }
 
+/** @brief Instances a plugin and loads it if necessary
+ * 
+ * @param member The member
+ * @param pluginname The name of the plugin that the member should use
+ * @param error Pointer to a error
+ * @returns TRUE if the plugin was instanced successfull, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginname, OSyncError **error)
 {
 	g_assert(member);
@@ -197,6 +254,13 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginn
 	return TRUE;
 }
 
+/** @brief Tries to instance the default plugin of a member (if set)
+ * 
+ * @param member The member
+ * @param error Pointer to a error
+ * @returns TRUE if the default plugin was instanced successfully, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_instance_default_plugin(OSyncMember *member, OSyncError **error)
 {
 	if (member->plugin)
@@ -210,6 +274,12 @@ osync_bool osync_member_instance_default_plugin(OSyncMember *member, OSyncError 
 	return osync_member_instance_plugin(member, member->pluginname, error);
 }
 
+/** @brief Returns the plugin of member
+ * 
+ * @param member The member
+ * @returns The plugin of the member
+ * 
+ */
 OSyncPlugin *osync_member_get_plugin(OSyncMember *member)
 {
 	g_assert(member);
@@ -217,12 +287,24 @@ OSyncPlugin *osync_member_get_plugin(OSyncMember *member)
 	return member->plugin;
 }
 
+/** @brief Returns the name of the default plugin of the member
+ * 
+ * @param member The member
+ * @returns The name of the plugin
+ * 
+ */
 const char *osync_member_get_pluginname(OSyncMember *member)
 {
 	g_assert(member);
 	return member->pluginname;
 }
 
+/** @brief Sets the name of the default plugin of a member
+ * 
+ * @param member The member
+ * @param pluginname The name of the default plugin
+ * 
+ */
 void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
 {
 	g_assert(member);
@@ -231,12 +313,24 @@ void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
 	member->pluginname = g_strdup(pluginname);
 }
 
+/** @brief Returns the configuration directory where this member is stored
+ * 
+ * @param member The member
+ * @returns The configuration directory
+ * 
+ */
 const char *osync_member_get_configdir(OSyncMember *member)
 {
 	g_assert(member);
 	return member->configdir;
 }
 
+/** @brief Sets the directory where a member is supposed to be stored
+ * 
+ * @param member The member
+ * @param configdir The name of the directory
+ * 
+ */
 void osync_member_set_configdir(OSyncMember *member, const char *configdir)
 {
 	g_assert(member);
@@ -245,7 +339,24 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
 	member->configdir = g_strdup(configdir);
 }
 
-osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
+/** @brief Gets the configuration data of this member
+ * 
+ * The config file is read in this order:
+ * - If there is a configuration in memory that is not yet saved
+ * this is returned
+ * - If there is a config file in the member directory this is read
+ * and returned
+ * - Otherwise the default config file is loaded from one the opensync
+ * directories
+ * 
+ * @param member The member
+ * @param data Return location for the data
+ * @param size Return location for the size of the data
+ * @param error Pointer to a error
+ * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
 	g_assert(member);
@@ -273,6 +384,74 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	return ret;
 }
 
+/** @brief Gets the configuration data of this member
+ * 
+ * The config file is read in this order:
+ * - If there is a configuration in memory that is not yet saved
+ * this is returned
+ * - If there is a config file in the member directory this is read
+ * and returned
+ * - Otherwise the default config file is loaded from one the opensync
+ * directories (but only if the plugin specified that it can use the default
+ * configuration)
+ * 
+ * @param member The member
+ * @param data Return location for the data
+ * @param size Return location for the size of the data
+ * @param error Pointer to a error
+ * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
+	g_assert(member);
+	osync_bool ret = TRUE;
+
+	if (member->plugin->info.config_type == NO_CONFIGURATION) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "This member has no configuration options");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	if (member->configdata) {
+		*data = member->configdata;
+		*size = member->configsize;
+		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
+		return TRUE;
+	}
+
+	if (!osync_member_read_config(member, data, size, error)) {
+		if (osync_error_is_set(error)) {
+			osync_trace(TRACE_INTERNAL, "Read config not successfull: %s", osync_error_print(error));
+			osync_error_free(error);
+		}
+		
+		if (member->plugin->info.config_type == NEEDS_CONFIGURATION) {
+			//We dont load the default config for these
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Member has not been configured");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
+		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
+		ret = osync_file_read(filename, data, size, error);
+		g_free(filename);
+	}
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+/** @brief Sets the config data for a member
+ * 
+ * Note that this does not save the config data
+ * 
+ * @param member The member
+ * @param data The new config data
+ * @param size The size of the data
+ * 
+ */
 void osync_member_set_config(OSyncMember *member, const char *data, int size)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, member, data, size);
@@ -283,6 +462,31 @@ void osync_member_set_config(OSyncMember *member, const char *data, int size)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Returns if the member has configuation options
+ * 
+ * @param member The member
+ * @return TRUE if member needs to be configured, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_has_configuration(OSyncMember *member)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	g_assert(member);
+	
+	osync_bool ret = (member->plugin->info.config_type == NEEDS_CONFIGURATION || member->plugin->info.config_type == OPTIONAL_CONFIGURATION);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+/** @brief Loads a member from a directory where it has been saved
+ * 
+ * @param group The group which is the parent
+ * @param path The path of the member
+ * @param error Pointer to a error
+ * @returns A newly allocated member thats stored in the group or NULL if error
+ * 
+ */
 OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
@@ -320,6 +524,13 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 	return member;
 }
 
+/** @brief Saves a member to it config directory
+ * 
+ * @param member The member to save
+ * @param error Pointer to a error
+ * @returns TRUE if the member was saved successfully, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p:(%lli), %p)", __func__, member, member ? member->id : 0, error);
@@ -335,6 +546,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
 	}
 	
+	g_assert(member->configdir);
 	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
 		if (mkdir(member->configdir, 0700)) {
@@ -378,12 +590,29 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	return ret;
 }
 
+/** @brief Gets the unique id of a member
+ * 
+ * @param member The member
+ * @returns The id of the member thats unique in its group
+ * 
+ */
 long long int osync_member_get_id(OSyncMember *member)
 {
 	g_assert(member);
 	return member->id;
 }
 
+/** @brief Makes a custom call to the plugin that the member has instanced
+ * 
+ * A custom function on the plugin must have the form (void *, void *, OSyncError **)
+ * 
+ * @param member The member
+ * @param function The name of the function on the plugin to call
+ * @param data The custom data to pass as the second arg to the function on the plugin
+ * @param error A pointer to a error
+ * @returns The return value of the function call
+ * 
+ */
 void *osync_member_call_plugin(OSyncMember *member, const char *function, void *data, OSyncError **error)
 {
 	if (!osync_member_instance_default_plugin(member, error))
@@ -395,6 +624,13 @@ void *osync_member_call_plugin(OSyncMember *member, const char *function, void *
 	return plgfunc(member->plugindata, data, error);
 }
 
+/** @brief Sets the slow-sync for a given object type on a member
+ * 
+ * @param member The member
+ * @param objtypestr The name of the object type for which to set slow-sync
+ * @param slow_sync Set to TRUE if you want slow-sync, to FALSE if you want normal fast-sync (or remove slow-sync)
+ * 
+ */
 void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync)
 {
 	g_assert(member);	
@@ -404,6 +640,13 @@ void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osy
 	osync_group_set_slow_sync(group, objtypestr, slow_sync);
 }
 
+/** @brief Returns if slow-sync has been set for a object type
+ * 
+ * @param member The member
+ * @param objtypestr The name of the object type to look up
+ * @returns TRUE if slow-sync is enabled, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr)
 {
 	g_assert(member);	
@@ -414,12 +657,182 @@ osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypest
 	return needs_slow_sync;
 }
 
+/** @brief Requests synchronization from the sync engine
+ * 
+ * @param member The member
+ * 
+ */
 void osync_member_request_synchronization(OSyncMember *member)
 {
 	g_assert(member);
 	
 	if (member->memberfunctions->rf_sync_alert)
 		member->memberfunctions->rf_sync_alert(member);
+}
+
+
+/** @brief Makes random data of a object type that could be writen to the given member
+ * 
+ * @param member The member
+ * @param change The change that will receive the random data
+ * @param objtypename The name of the object type for which to create random data
+ * @returns The sink of the member that could store this data
+ * 
+ */
+OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change, const char *objtypename)
+{
+	int retry = 0;
+	g_assert(member);
+	OSyncFormatEnv *env = osync_member_get_format_env(member);
+	
+	OSyncObjFormatSink *format_sink = NULL;
+	
+	for (retry = 0; retry < 100; retry++) {
+		if (retry > 20) {
+			osync_trace(TRACE_INTERNAL, "%s: Giving up", __func__);
+			return NULL; //Giving up
+		}
+		
+		//Select a random objtype
+		OSyncObjType *objtype = NULL;
+		int selected = 0;
+		if (!objtypename) {
+			selected = g_random_int_range(0, g_list_length(env->objtypes));
+			objtype = g_list_nth_data(env->objtypes, selected);
+		} else
+			objtype = osync_conv_find_objtype(member->group->conv_env, objtypename);
+		osync_change_set_objtype(change, objtype);
+		
+		//Select a random objformat
+		if (!g_list_length(objtype->formats)) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. No formats", __func__);
+			continue;
+		}
+		OSyncObjFormat *format = NULL;
+		selected = g_random_int_range(0, g_list_length(objtype->formats));
+		format = g_list_nth_data(objtype->formats, selected);
+		
+		if (!format->create_func) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. Format %s has no create function", __func__, format->name);
+			continue;
+		}
+		//Create the data
+		format->create_func(change);
+		
+		osync_change_set_objformat(change, format);
+		//Convert the data to a format the plugin understands
+		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype->name);
+		if (!objtype_sink) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. No objtype sink for %s", __func__, objtype->name);
+			continue; //We had a objtype we cannot add
+		}
+		
+		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
+		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
+		/*FIXME: use multiple sinks, or what? */
+		OSyncError *error = NULL;
+		if (!osync_change_convert(env, change, format_sink->format, &error)) {
+			osync_trace(TRACE_INTERNAL, "%s: Next. Unable to convert: %s", __func__, osync_error_print(&error));
+			continue; //Unable to convert to selected format
+		}
+		
+		break;
+	}
+	return format_sink;
+}
+
+
+/** @brief Returns the custom data of a member
+ * 
+ * @param member The member
+ * @returns The custom data
+ * 
+ */
+void *osync_member_get_data(OSyncMember *member)
+{
+	g_assert(member);
+	return member->enginedata;
+}
+
+/** @brief Sets the custom data on a member
+ * 
+ * @param member The member
+ * @param data The custom data
+ * 
+ */
+void osync_member_set_data(OSyncMember *member, void *data)
+{
+	g_assert(member);
+	member->enginedata = data;
+}
+
+/** @brief Gets the group in which the member is stored
+ * 
+ * @param member The member
+ * @returns The parental group
+ * 
+ */
+OSyncGroup *osync_member_get_group(OSyncMember *member)
+{
+	g_assert(member);
+	return member->group;
+}
+
+/** @brief Searches for a member by its id
+ * 
+ * @param group The group in which to search
+ * @param id The id of the member
+ * @returns The member, or NULL if not found
+ * 
+ */
+OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
+{
+	OSyncMember *member;
+	int i;
+	for (i = 0; i < osync_group_num_members(group); i++) {
+		member = osync_group_nth_member(group, i);
+		if (member->id == id) {
+			return member;
+		}
+	}
+	osync_debug("OSPLG", 0, "Couldnt find the member with the id %i", id);
+	return NULL;
+}
+
+
+
+/** @brief Returns if a certain object type is enabled on this member
+ * 
+ * @param member The member
+ * @param objtype The name of the object type to check
+ * @returns TRUE if the object type is enabled, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype)
+{
+	g_assert(member);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+	g_assert(sink);
+	return sink->enabled;
+}
+
+/** @brief Enables or disables a object type on a member
+ * 
+ * @param member The member
+ * @param objtypestr The name of the object type to change
+ * @param enabled Set to TRUE if you want to sync the object type, FALSE otherwise
+ * 
+ */
+void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled)
+{
+	if (osync_conv_objtype_is_any(objtypestr))
+		g_assert_not_reached();
+	
+	g_assert(member);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
+	g_assert(sink);
+	
+	sink->enabled = enabled;
 }
 
 /*@}*/
@@ -432,6 +845,15 @@ void osync_member_request_synchronization(OSyncMember *member)
  */
 /*@{*/
 
+/** @brief Initialize a member
+ * 
+ * Calls the initialize function on a plugin
+ * 
+ * @param member The member
+ * @param error A pointer to a error
+ * @returns TRUE if the plugin initialized successfully, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
@@ -453,6 +875,13 @@ osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 	return TRUE;
 }
 
+/** @brief Finalizes a plugin
+ * 
+ * Calls the finalize function on a plugin
+ * 
+ * @param member The member
+ * 
+ */
 void osync_member_finalize(OSyncMember *member)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
@@ -464,6 +893,15 @@ void osync_member_finalize(OSyncMember *member)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Queries a plugin for the changed objects since the last sync
+ * 
+ * Calls the get_changeinfo function on a plugin
+ * 
+ * @param member The member
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
@@ -475,6 +913,16 @@ void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function,
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Reads a single object by its uid
+ * 
+ * Calls the read_change function on the plugin
+ * 
+ * @param member The member
+ * @param change The change to read. The change must have the uid set
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_read_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, change, function, user_data);
@@ -506,6 +954,16 @@ void osync_member_read_change(OSyncMember *member, OSyncChange *change, OSyncEng
 	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find a sink", __func__);
 }
 
+/** @brief Gets the "real" data of a object
+ * 
+ * Calls the get_data function on the plugin
+ * 
+ * @param member The member
+ * @param change The change. The must be returned from a call to get_changeinfo
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, change, function, user_data);
@@ -518,6 +976,15 @@ void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyn
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Connects a member to its device
+ * 
+ * Calls the connect function on a plugin
+ * 
+ * @param member The member
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
@@ -529,6 +996,15 @@ void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Disconnects a member from its device
+ * 
+ * Calls the disconnect function on a plugin
+ * 
+ * @param member The member
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
@@ -540,6 +1016,15 @@ void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, voi
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Tells the plugin that the sync was successfull
+ * 
+ * Calls the sync_done function on a plugin
+ * 
+ * @param member The member
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, function, user_data);
@@ -556,6 +1041,16 @@ void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Commits a change to the device
+ * 
+ * Calls the commit_change function on a plugin
+ * 
+ * @param member The member
+ * @param change The change to write
+ * @param function The function that will receive the answer to this call
+ * @param user_data User data that will be passed on to the callback function
+ * 
+ */
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, change, function, user_data);
@@ -636,6 +1131,14 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find a sink", __func__);
 }
 
+/** @brief Tells the plugin that all changes have been committed
+ * 
+ * Calls the committed_all function on a plugin or the batch_commit function
+ * depending on which function the plugin wants to use.
+ * 
+ * @param member The member
+ * 
+ */
 void osync_member_committed_all(OSyncMember *member)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
@@ -686,68 +1189,17 @@ void osync_member_committed_all(OSyncMember *member)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change, const char *objtypename)
-{
-	int retry = 0;
-	g_assert(member);
-	OSyncFormatEnv *env = osync_member_get_format_env(member);
-	
-	OSyncObjFormatSink *format_sink = NULL;
-	
-	for (retry = 0; retry < 100; retry++) {
-		if (retry > 20) {
-			osync_trace(TRACE_INTERNAL, "%s: Giving up", __func__);
-			return NULL; //Giving up
-		}
-		
-		//Select a random objtype
-		OSyncObjType *objtype = NULL;
-		int selected = 0;
-		if (!objtypename) {
-			selected = g_random_int_range(0, g_list_length(env->objtypes));
-			objtype = g_list_nth_data(env->objtypes, selected);
-		} else
-			objtype = osync_conv_find_objtype(member->group->conv_env, objtypename);
-		osync_change_set_objtype(change, objtype);
-		
-		//Select a random objformat
-		if (!g_list_length(objtype->formats)) {
-			osync_trace(TRACE_INTERNAL, "%s: Next. No formats", __func__);
-			continue;
-		}
-		OSyncObjFormat *format = NULL;
-		selected = g_random_int_range(0, g_list_length(objtype->formats));
-		format = g_list_nth_data(objtype->formats, selected);
-		
-		if (!format->create_func) {
-			osync_trace(TRACE_INTERNAL, "%s: Next. Format %s has no create function", __func__, format->name);
-			continue;
-		}
-		//Create the data
-		format->create_func(change);
-		
-		osync_change_set_objformat(change, format);
-		//Convert the data to a format the plugin understands
-		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype->name);
-		if (!objtype_sink) {
-			osync_trace(TRACE_INTERNAL, "%s: Next. No objtype sink for %s", __func__, objtype->name);
-			continue; //We had a objtype we cannot add
-		}
-		
-		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
-		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
-		/*FIXME: use multiple sinks, or what? */
-		OSyncError *error = NULL;
-		if (!osync_change_convert(env, change, format_sink->format, &error)) {
-			osync_trace(TRACE_INTERNAL, "%s: Next. Unable to convert: %s", __func__, osync_error_print(&error));
-			continue; //Unable to convert to selected format
-		}
-		
-		break;
-	}
-	return format_sink;
-}
 
+/** @brief Adds random data to a member
+ * 
+ * Generates random data and writes it to the plugin. The plugin must support the access
+ * function. This function is mainly used for testing plugins.
+ * 
+ * @param member The member on which to add random data
+ * @param objtype The name of the object type to add
+ * @returns The change that was added or NULL if adding the data was not successfull
+ * 
+ */
 OSyncChange *osync_member_add_random_data(OSyncMember *member, const char *objtype)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
@@ -774,6 +1226,16 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member, const char *objty
 	return change;
 }
 
+/** @brief Modifies random data on a member
+ * 
+ * The plugin must support the access
+ * function. This function is mainly used for testing plugins.
+ * 
+ * @param member The member on which to add random data
+ * @param change The change that should be modified. It must have the uid set.
+ * @returns TRUE if the changes was modified successfully, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, change);
@@ -803,6 +1265,16 @@ osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *cha
 	return TRUE;
 }
 
+/** @brief Deletes data from a device
+ * 
+ * The plugin must support the access function. This is mainly
+ * used for testing plugins.
+ * 
+ * @param member The member from which to delete
+ * @param change The change to delete. The uid must be set
+ * @returns TRUE if the change was deleted, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, change);
@@ -837,97 +1309,3 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 }
 
 /*@}*/
-
-void *osync_member_get_data(OSyncMember *member)
-{
-	return member->enginedata;
-}
-
-void osync_member_set_data(OSyncMember *member, void *data)
-{
-	member->enginedata = data;
-}
-
-OSyncGroup *osync_member_get_group(OSyncMember *member)
-{
-	return member->group;
-}
-
-OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
-{
-	OSyncMember *member;
-	int i;
-	for (i = 0; i < osync_group_num_members(group); i++) {
-		member = osync_group_nth_member(group, i);
-		if (member->id == id) {
-			return member;
-		}
-	}
-	osync_debug("OSPLG", 0, "Couldnt find the member with the id %i", id);
-	return NULL;
-}
-
-OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)
-{
-	GList *o;
-	for (o = member->objtype_sinks; o; o = o->next) {
-		OSyncObjTypeSink *sink = o->data;
-		if (osync_conv_objtype_is_any(sink->objtype->name) || !strcmp(sink->objtype->name, objtypestr))
-			return sink;
-	}
-	return NULL;
-}
-
-osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype)
-{
-	g_assert(member);
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
-	g_assert(sink);
-	return sink->enabled;
-}
-
-void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled)
-{
-	if (osync_conv_objtype_is_any(objtypestr))
-		g_assert_not_reached();
-	
-	g_assert(member);
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
-	g_assert(sink);
-	
-	sink->enabled = enabled;
-}
-
-/*void osync_member_set_read_only(OSyncMember *member, const char *objtypestr, osync_bool read_only)
-{
-	if (osync_conv_objtype_is_any(objtypestr))
-		g_assert_not_reached();
-	
-	g_assert(member);
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
-	g_assert(sink);
-	
-	sink->read_only = read_only;
-}*/
-
-void osync_member_set_format(OSyncMember *member, const char *objtypestr, const char *objformatstr)
-{
-	g_assert(member);
-	OSyncObjTypeSink *objsink = osync_member_find_objtype_sink(member, objtypestr);
-	if (!objsink)
-		return;
-	OSyncObjFormatSink *frmsink = osync_objtype_find_format_sink(objsink, objformatstr);
-	if (!frmsink)
-		return;
-	objsink->selected_format = frmsink;
-}
-
-void osync_member_select_format(OSyncMember *member, OSyncObjTypeSink *objsink)
-{
-	g_assert(member);
-	g_assert(objsink);
-
-	//FIXME For now we just select the first one
-	OSyncObjFormatSink *frmsink = g_list_nth_data(objsink->formatsinks, 0);
-	objsink->selected_format = frmsink;
-}

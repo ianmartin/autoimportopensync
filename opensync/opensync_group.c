@@ -35,21 +35,45 @@ extern int errno;
  */
 /*@{*/
 
+/*! @brief Returns the environment in which a group is registered
+ * 
+ * @param group The group
+ * @returns The environment
+ * 
+ */
 OSyncEnv *osync_group_get_env(OSyncGroup *group)
 {
 	return group->env;
 }
 
+/*! @brief Gets the custom data of a group
+ * 
+ * @param group The group
+ * @returns The custom data of this group
+ * 
+ */
 void *osync_group_get_data(OSyncGroup *group)
 {
 	return group->data;
 }
 
+/*! @brief Sets the custom data of a group
+ * 
+ * @param group The group
+ * @param data The custom data
+ * 
+ */
 void osync_group_set_data(OSyncGroup *group, void *data)
 {
 	group->data = data;
 }
 
+/*! @brief Creates a new unique member if in this group
+ * 
+ * @param group The group
+ * @returns A new unique member id
+ * 
+ */
 long long int osync_group_create_member_id(OSyncGroup *group)
 {
 	char *filename = NULL;
@@ -64,6 +88,12 @@ long long int osync_group_create_member_id(OSyncGroup *group)
 	return i;
 }
 
+/*! @brief Returns the format environment of a group
+ * 
+ * @param group The group
+ * @returns The format environment
+ * 
+ */
 OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
 {
 	g_assert(group);
@@ -75,8 +105,9 @@ OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
  * Loads all members of a group
  * 
  * @param group The group
- * @param
- * @returns Pointer to a new group
+ * @param path The path from which to load the members
+ * @param error Pointer to a error
+ * @returns True if the members were loaded successfully, FALSE otherwise
  * 
  */
 osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncError **error)
@@ -558,6 +589,14 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	return group;
 }
 
+/*! @brief Resets all databases of a group
+ * 
+ * This will reset all databases of a group. So all anchors, mappings
+ * hashtables etc will be forgotten (as if the group was never synced)
+ * 
+ * @param group The group to reset
+ * 
+ */
 void osync_group_reset(OSyncGroup *group)
 {
 	OSyncError *error = NULL;
@@ -736,12 +775,28 @@ void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, 
 	}
 }
 
+/*! @brief Returns the number of filters registered in a group
+ * 
+ * @param group The group
+ * @returns The number of filters
+ * 
+ */
 int osync_group_num_filters(OSyncGroup *group)
 {
 	g_assert(group);
 	return g_list_length(group->filters);
 }
 
+/*! @brief Gets the nth filter of a group
+ * 
+ * Note that you should not add or delete filters while
+ * iterating over them
+ * 
+ * @param group The group
+ * @param nth Which filter to return
+ * @returns The filter or NULL if not found
+ * 
+ */
 OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
 {
 	g_assert(group);
@@ -768,6 +823,7 @@ void osync_group_flush_filters(OSyncGroup *group)
  * 
  * @param group The group for which to load the log
  * @param uids Place to return an array with the saved uids
+ * @param memberids Place to return an array with the saved memberids
  * @param changetypes Place to return an array with the saved changetypes. Same size as uids
  * @param error Place to return the error
  * @returns TRUE if successfull, FALSE otherwise

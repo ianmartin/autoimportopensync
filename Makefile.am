@@ -17,7 +17,6 @@ DISTCLEANFILES = \
 
 EXTRA_DIST = \
 	autogen.sh \
-	plugins \
 	opensync-1.0.pc.in \
 	osengine-1.0.pc.in \
 	misc/opensync.spec.in \

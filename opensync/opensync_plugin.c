@@ -21,11 +21,92 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+
 /**
- * @ingroup OSyncPluginPrivateAPI
+ * @defgroup OSyncPluginPrivateAPI OpenSync Plugin Internals
+ * @ingroup OSyncPrivate
+ * @brief The private part of the plugins API
+ * 
  */
 /*@{*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template)
+{
+	g_assert(group);
+	g_assert(template);
+	OSyncObjTypeSink *sink = g_malloc0(sizeof(OSyncObjTypeSink));
+	OSyncObjType *type = osync_conv_find_objtype(group->conv_env, template->name);
+	if (!type) {
+		osync_debug("OSYNC", 0, "Unable to find objtype named %s to create objtype sink", template->name);
+		return NULL;
+	}
+	sink->objtype = type;
+	sink->enabled = TRUE;
+	sink->write = TRUE;
+	sink->read = TRUE;
+	return sink;
+}
+
+OSyncObjFormatSink *osync_objformat_sink_from_template(OSyncGroup *group, OSyncObjFormatTemplate *template)
+{
+	OSyncObjFormatSink *sink = g_malloc0(sizeof(OSyncObjFormatSink));
+	OSyncObjFormat *format = osync_conv_find_objformat(group->conv_env, template->name);
+	if (!format)
+		return NULL;
+	sink->format = format;
+	sink->functions.commit_change = template->commit_change;
+	sink->functions.access = template->access;
+	sink->functions.read = template->read;
+	sink->functions.committed_all = template->committed_all;
+	sink->functions.batch_commit = template->batch_commit;
+	sink->extension_name = g_strdup(template->extension_name);
+	return sink;
+}
+
+OSyncObjTypeTemplate *osync_plugin_find_objtype_template(OSyncPlugin *plugin, const char *objtypestr)
+{
+	GList *o;
+	for (o = plugin->accepted_objtypes; o; o = o->next) {
+		OSyncObjTypeTemplate *template = o->data;
+		if (!strcmp(template->name, objtypestr))
+			return template;
+	}
+	return NULL;
+}
+
+OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplate *type_template, const char *objformatstr)
+{
+	GList *f;
+	for (f = type_template->formats; f; f = f->next) {
+		OSyncObjFormatTemplate *template = f->data;
+		if (!strcmp(template->name, objformatstr))
+			return template;
+	}
+	return NULL;
+}
+
+OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const char *formatstr)
+{
+	GList *f;
+	for (f = sink->formatsinks; f; f = f->next) {
+		OSyncObjFormatSink *sink = f->data;
+		if (!strcmp(sink->format->name, formatstr))
+			return sink;
+	}
+	return NULL;
+}
+#endif
+
+/*@}*/
+
+/**
+ * @defgroup OSyncPluginAPI OpenSync Plugin
+ * @ingroup OSyncPublic
+ * @brief Functions to register and manage plugins
+ * 
+ */
+/*@{*/
 
 /*! @brief This will create a new plugin struct
  * 
@@ -53,6 +134,7 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
         plugin->info.timeouts.read_change_timeout = 60;
         
         plugin->info.plugin = plugin;
+        plugin->info.config_type = NEEDS_CONFIGURATION;
         
         if (env) {
         	env->plugins = g_list_append(env->plugins, plugin);
@@ -112,7 +194,7 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncErro
  * The get_info() function on the plugin gets called and the information is stored
  * in the plugin struct
  * 
- * @param plugin 
+ * @param env The environment in which to open the plugin
  * @param path Where to find this plugin
  * @param error Pointer to a error struct
  * @return Pointer to the plugin on success, NULL otherwise
@@ -181,6 +263,16 @@ void osync_plugin_unload(OSyncPlugin *plugin)
 	plugin->path = NULL;
 }
 
+/*! @brief dlopen()s a format plugin
+ * 
+ * The get_info() function on the format plugin gets called
+ * 
+ * @param env The environment in which to open the plugin
+ * @param path Where to find this plugin
+ * @param error Pointer to a error struct
+ * @return Pointer to the plugin on success, NULL otherwise
+ * 
+ */
 osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_format_plugin_load(%p, %s, %p)", env, path, error);
@@ -266,61 +358,14 @@ OSyncPluginTimeouts osync_plugin_get_timeouts(OSyncPlugin *plugin)
 	return plugin->info.timeouts;
 }
 
-OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template)
-{
-	g_assert(group);
-	g_assert(template);
-	OSyncObjTypeSink *sink = g_malloc0(sizeof(OSyncObjTypeSink));
-	OSyncObjType *type = osync_conv_find_objtype(group->conv_env, template->name);
-	if (!type) {
-		osync_debug("OSYNC", 0, "Unable to find objtype named %s to create objtype sink", template->name);
-		return NULL;
-	}
-	sink->objtype = type;
-	sink->enabled = TRUE;
-	sink->write = TRUE;
-	sink->read = TRUE;
-	return sink;
-}
-
-OSyncObjFormatSink *osync_objformat_sink_from_template(OSyncGroup *group, OSyncObjFormatTemplate *template)
-{
-	OSyncObjFormatSink *sink = g_malloc0(sizeof(OSyncObjFormatSink));
-	OSyncObjFormat *format = osync_conv_find_objformat(group->conv_env, template->name);
-	if (!format)
-		return NULL;
-	sink->format = format;
-	sink->functions.commit_change = template->commit_change;
-	sink->functions.access = template->access;
-	sink->functions.read = template->read;
-	sink->functions.committed_all = template->committed_all;
-	sink->functions.batch_commit = template->batch_commit;
-	sink->extension_name = g_strdup(template->extension_name);
-	return sink;
-}
-
-OSyncObjTypeTemplate *osync_plugin_find_objtype_template(OSyncPlugin *plugin, const char *objtypestr)
-{
-	GList *o;
-	for (o = plugin->accepted_objtypes; o; o = o->next) {
-		OSyncObjTypeTemplate *template = o->data;
-		if (!strcmp(template->name, objtypestr))
-			return template;
-	}
-	return NULL;
-}
-
-OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplate *type_template, const char *objformatstr)
-{
-	GList *f;
-	for (f = type_template->formats; f; f = f->next) {
-		OSyncObjFormatTemplate *template = f->data;
-		if (!strcmp(template->name, objformatstr))
-			return template;
-	}
-	return NULL;
-}
-
+/*! @brief Sets the commit function of a format
+ * 
+ * @param info Pointer to a plugin info struct to fill
+ * @param objtypestr The name of the object type
+ * @param formatstr The name of the format
+ * @param commit_change The pointer to your commit_change function
+ * 
+ */
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
@@ -330,6 +375,14 @@ void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtyp
 	format_template->commit_change = commit_change;
 }
 
+/*! @brief Sets the access function of a format
+ * 
+ * @param info Pointer to a plugin info struct to fill
+ * @param objtypestr The name of the object type
+ * @param formatstr The name of the format
+ * @param access The pointer to your access function
+ * 
+ */
 void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *))
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
@@ -339,6 +392,14 @@ void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtyp
 	format_template->access = access;
 }
 
+/*! @brief Sets the read function of a format
+ * 
+ * @param info Pointer to a plugin info struct to fill
+ * @param objtypestr The name of the object type
+ * @param formatstr The name of the format
+ * @param read The pointer to your read function
+ * 
+ */
 void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* read) (OSyncContext *, OSyncChange *))
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
@@ -348,6 +409,14 @@ void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypes
 	format_template->read = read;
 }
 
+/*! @brief Sets the batch_commit function of a format
+ * 
+ * @param info Pointer to a plugin info struct to fill
+ * @param objtypestr The name of the object type
+ * @param formatstr The name of the format
+ * @param batch The pointer to your batch_commit function
+ * 
+ */
 void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **))
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
@@ -357,6 +426,14 @@ void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *
 	format_template->batch_commit = batch;
 }
 
+/*! @brief Sets the committed_all function of a format
+ * 
+ * @param info Pointer to a plugin info struct to fill
+ * @param objtypestr The name of the object type
+ * @param formatstr The name of the format
+ * @param committed_all The pointer to your committed_all function
+ * 
+ */
 void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* committed_all) (void *))
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
@@ -365,24 +442,6 @@ void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char 
 	osync_assert(format_template, "Unable to set committed_all function. Did you forget to add the objformat?");
 	format_template->committed_all = committed_all;
 }
-
-OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const char *formatstr)
-{
-	GList *f;
-	for (f = sink->formatsinks; f; f = f->next) {
-		OSyncObjFormatSink *sink = f->data;
-		if (!strcmp(sink->format->name, formatstr))
-			return sink;
-	}
-	return NULL;
-}
-
-/*@}*/
-
-/**
- * @ingroup OSyncPluginAPI
- */
-/*@{*/
 
 /*! @brief Tells opensync that the plugin can accepts this object
  * 
@@ -408,6 +467,7 @@ void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
  * @param info The plugin info on which to operate
  * @param objtypestr The name of the objecttype
  * @param formatstr The name of the format to accept
+ * @param extension The name of the extension that the plugin wants. NULL if none
  * 
  */
 void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension)

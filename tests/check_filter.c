@@ -72,12 +72,12 @@ START_TEST (filter_sync_deny_all)
 	
 	mark_point();
 	OSyncError *error = NULL;
-  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	OSyncEngine *engine = osengine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 
 	fail_unless(!system("test \"x$(ls data1)\" = \"xtestdata\""), NULL);
 	fail_unless(!system("test \"x$(ls data2)\" = \"xtestdata2\""), NULL);
@@ -99,12 +99,12 @@ START_TEST (filter_sync_custom)
 	
 	mark_point();
 	OSyncError *error = NULL;
-  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	OSyncEngine *engine = osengine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 
@@ -204,12 +204,12 @@ START_TEST (filter_sync_vcard_only)
 	
 	mark_point();
 	OSyncError *error = NULL;
-  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	OSyncEngine *engine = osengine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	osync_env_finalize(osync, NULL);
 	osync_env_free(osync);
 
@@ -237,10 +237,10 @@ START_TEST(filter_destobjtype_delete)
 	
 	mark_point();
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 	mark_point();
 
@@ -250,7 +250,7 @@ START_TEST(filter_destobjtype_delete)
 
 	synchronize_once(engine, NULL);
 	mark_point();
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 
 	destroy_testbed(testbed);
 }
@@ -275,12 +275,12 @@ START_TEST (filter_sync_read_only)
 	num_read = 0;
 	mark_point();
 	OSyncError *error = NULL;
-  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	OSyncEngine *engine = osengine_new(group, &error);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 
 	fail_unless(num_read == 1);
 

@@ -1,18 +1,24 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = data support.h
-
 AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ -I$(top_srcdir)/osengine
+
+EXTRA_DIST = \
+	data \
+	support.h \
+	mock-plugin/mock_sync.h \
+	mock-plugin/mock_format.c \
+	mock-plugin/mock_sync.c \
+	mock-plugin/Makefile.am
 
 if ENABLE_PROF
 PROFTEST = coverage.sh
 endif
 
 if ENABLE_TESTS
-TESTS = error user member locks env conv sync filter multisync vcard errorcodes $(PROFTEST)
-noinst_PROGRAMS = error user member locks env conv sync filter multisync vcard vcal errorcodes
+TESTS = error user member plugin locks env conv sync filter multisync vcard vcal errorcodes $(PROFTEST)
+noinst_PROGRAMS = error user member plugin locks env conv sync filter multisync vcard vcal errorcodes
 else
 TESTS = 
 noinst_PROGRAMS = 
@@ -27,6 +33,12 @@ member_INCLUDES = @CHECK_CFLAGS@
 member_SOURCES = check_member.c
 member_LIBS = @CHECK_LIBS@
 member_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+plugin_INCLUDES = @CHECK_CFLAGS@
+plugin_SOURCES = check_plugins.c support.c
+plugin_LIBS = @CHECK_LIBS@
+plugin_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
 
 locks_INCLUDES = @CHECK_CFLAGS@
 locks_SOURCES = check_lock.c support.c

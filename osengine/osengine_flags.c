@@ -21,9 +21,9 @@
 #include "engine.h"
 #include "engine_internals.h"
 
-MSyncFlag *osync_flag_new(MSyncFlag *parent)
+OSyncFlag *osync_flag_new(OSyncFlag *parent)
 {
-	MSyncFlag *flag = g_malloc0(sizeof(MSyncFlag));
+	OSyncFlag *flag = g_malloc0(sizeof(OSyncFlag));
 	flag->is_set = FALSE;
 	if (parent) {
 		flag->comb_flag = parent;
@@ -33,14 +33,14 @@ MSyncFlag *osync_flag_new(MSyncFlag *parent)
 	return flag;
 }
 
-void osync_flag_free(MSyncFlag *flag)
+void osync_flag_free(OSyncFlag *flag)
 {
 	g_free(flag);
 }
 
-MSyncFlag *osync_comb_flag_new(osync_bool any, osync_bool default_val)
+OSyncFlag *osync_comb_flag_new(osync_bool any, osync_bool default_val)
 {
-	MSyncFlag *flag = osync_flag_new(NULL);
+	OSyncFlag *flag = osync_flag_new(NULL);
 	flag->is_comb = TRUE;
 	flag->is_any = any;
 	flag->default_val = default_val;
@@ -48,7 +48,7 @@ MSyncFlag *osync_comb_flag_new(osync_bool any, osync_bool default_val)
 	return flag;
 }
 
-void osync_flag_attach(MSyncFlag *flag, MSyncFlag *target)
+void osync_flag_attach(OSyncFlag *flag, OSyncFlag *target)
 {
 	if (flag->comb_flag)
 		return;
@@ -62,9 +62,16 @@ void osync_flag_attach(MSyncFlag *flag, MSyncFlag *target)
 	osync_flag_calculate_comb(target);
 }
 
-void osync_flag_detach(MSyncFlag *flag)
+osync_bool osync_flag_is_attached(OSyncFlag *flag)
 {
-	MSyncFlag *target = flag->comb_flag;
+	if (flag->comb_flag)
+		return TRUE;
+	return FALSE;
+}
+
+void osync_flag_detach(OSyncFlag *flag)
+{
+	OSyncFlag *target = flag->comb_flag;
 	if (!target)
 		return;
 	if (flag->is_set) {
@@ -76,21 +83,21 @@ void osync_flag_detach(MSyncFlag *flag)
 	osync_flag_calculate_comb(target);
 }
 
-void osync_flag_set_pos_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data1, void *data2)
+void osync_flag_set_pos_trigger(OSyncFlag *flag, OSyncFlagTriggerFunc func, void *data1, void *data2)
 {
 	flag->pos_trigger_func = func;
 	flag->pos_user_data1 = data1;
 	flag->pos_user_data2 = data2;
 }
 
-void osync_flag_set_neg_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data1, void *data2)
+void osync_flag_set_neg_trigger(OSyncFlag *flag, OSyncFlagTriggerFunc func, void *data1, void *data2)
 {
 	flag->neg_trigger_func = func;
 	flag->neg_user_data1 = data1;
 	flag->neg_user_data2 = data2;
 }
 
-void osync_flag_calculate_comb(MSyncFlag *flag)
+void osync_flag_calculate_comb(OSyncFlag *flag)
 {
 	if (!flag->is_comb)
 		return;
@@ -118,21 +125,21 @@ void osync_flag_calculate_comb(MSyncFlag *flag)
 	}
 }
 
-osync_bool osync_flag_is_set(MSyncFlag *flag)
+osync_bool osync_flag_is_set(OSyncFlag *flag)
 {
 	if (flag->is_set == TRUE && flag->is_changing == FALSE)
 		return TRUE;
 	return FALSE;
 }
 
-osync_bool osync_flag_is_not_set(MSyncFlag *flag)
+osync_bool osync_flag_is_not_set(OSyncFlag *flag)
 {
 	if (flag->is_set == FALSE && flag->is_changing == FALSE)
 		return TRUE;
 	return FALSE;
 }
 
-void osync_comb_flag_update(MSyncFlag *combflag, MSyncFlag *flag, osync_bool prev_state)
+void osync_comb_flag_update(OSyncFlag *combflag, OSyncFlag *flag, osync_bool prev_state)
 {
 	if (prev_state == flag->is_set)
 		return;
@@ -145,17 +152,17 @@ void osync_comb_flag_update(MSyncFlag *combflag, MSyncFlag *flag, osync_bool pre
 	}
 }
 
-void osync_flag_changing(MSyncFlag *flag)
+void osync_flag_changing(OSyncFlag *flag)
 {
 	flag->is_changing = TRUE;
 }
 
-void osync_flag_cancel(MSyncFlag *flag)
+void osync_flag_cancel(OSyncFlag *flag)
 {
 	flag->is_changing = FALSE;
 }
 
-void osync_flag_unset(MSyncFlag *flag)
+void osync_flag_unset(OSyncFlag *flag)
 {
 	osync_bool oldstate = flag->is_set;
 	flag->is_set = FALSE;
@@ -167,7 +174,7 @@ void osync_flag_unset(MSyncFlag *flag)
 	}
 }
 
-void osync_flag_set(MSyncFlag *flag)
+void osync_flag_set(OSyncFlag *flag)
 {
 	osync_bool oldstate = flag->is_set;
 	flag->is_set = TRUE;
@@ -179,7 +186,7 @@ void osync_flag_set(MSyncFlag *flag)
 	}
 }
 
-void osync_flag_set_state(MSyncFlag *flag, osync_bool state)
+void osync_flag_set_state(OSyncFlag *flag, osync_bool state)
 {
 	osync_bool oldstate = flag->is_set;
 	flag->is_set = state;
@@ -193,12 +200,12 @@ void osync_flag_set_state(MSyncFlag *flag, osync_bool state)
 	}
 }
 
-osync_bool osync_flag_get_state(MSyncFlag *flag)
+osync_bool osync_flag_get_state(OSyncFlag *flag)
 {
 	return flag->is_set;
 }
 
-void osync_flag_calc_trigger(MSyncFlag *flag, osync_bool oldstate)
+void osync_flag_calc_trigger(OSyncFlag *flag, osync_bool oldstate)
 {
 	if (flag->is_set != oldstate) {
 		if (flag->is_set == TRUE) {

@@ -22,6 +22,21 @@
 #include "opensync_internals.h"
 
 /**
+ * @defgroup PrivateAPI Private APIs
+ * @brief Available private APIs
+ * 
+ */
+
+/**
+ * @defgroup OSyncPrivate OpenSync Private API
+ * @ingroup PrivateAPI
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+
+/**
  * @defgroup OSyncEnvPrivate OpenSync Environment Internals
  * @ingroup OSyncPrivate
  * @brief The internals of the opensync environment
@@ -54,7 +69,7 @@ static void free_hash(char *key, char *value, void *data)
  * 
  * Returns the next free number for a group in the environments configdir
  * 
- * @param The osync environment
+ * @param env The osync environment
  * @returns The next free number
  * 
  */
@@ -73,6 +88,21 @@ long long int _osync_env_create_group_id(OSyncEnv *env)
 }
 
 /*@}*/
+
+/**
+ * @defgroup PublicAPI Public APIs
+ * @brief Available public APIs
+ * 
+ */
+
+/**
+ * @defgroup OSyncPublic OpenSync Public API
+ * @ingroup PublicAPI
+ * @brief The public API of opensync
+ * 
+ * This gives you an insight in the public API of opensync.
+ * 
+ */
 
 /**
  * @defgroup OSyncEnvAPI OpenSync Environment
@@ -235,7 +265,7 @@ osync_bool osync_env_finalize(OSyncEnv *env, OSyncError **error)
  * 
  * @param env The format environment
  * @param path The path to load from or NULL if to load from default path
- * @param error The location to return a error to
+ * @param oserror The location to return a error to
  * @returns TRUE if successfull, FALSE otherwise
  * 
  */
@@ -291,7 +321,7 @@ osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **
  * 
  * @param env Pointer to a OSyncEnv environment
  * @param path The path where to look for plugins
- * @param error Pointer to a error struct to return a error
+ * @param oserror Pointer to a error struct to return a error
  * @returns TRUE on success, FALSE otherwise
  * 
  */
@@ -639,6 +669,7 @@ osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *pat
  * @param filename Where to save the data
  * @param data Pointer to the data
  * @param size Size of the data
+ * @param mode The mode to set on the file
  * @param oserror Pointer to a error struct
  * @returns TRUE if successfull, FALSE otherwise
  * 

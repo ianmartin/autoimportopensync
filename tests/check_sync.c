@@ -29,14 +29,14 @@ START_TEST (sync_setup_connect)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	
 	OSyncError *error = NULL;
-	osync_engine_init(engine, &error);
+	osengine_init(engine, &error);
 	synchronize_once(engine, &error);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	  
 	fail_unless(num_connected == 2, NULL);
 	fail_unless(num_disconnected == 2, NULL);
@@ -52,11 +52,11 @@ START_TEST (sync_init_error)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	OSyncError *error = NULL;
 	
-	OSyncEngine *engine = osync_engine_new(group, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	mark_point();
-	osync_engine_init(engine, &error);
+	osengine_init(engine, &error);
 
 	fail_unless(error != NULL, NULL);
 	fail_unless(error->type == OSYNC_ERROR_MISCONFIGURATION, NULL);
@@ -74,13 +74,13 @@ START_TEST (sync_easy_new)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
@@ -111,18 +111,18 @@ START_TEST (sync_easy_new_del)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	osync_engine_init(engine, &error);
+	osengine_init(engine, &error);
 	synchronize_once(engine, NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	system("rm data1/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	mark_point();
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
@@ -150,14 +150,14 @@ START_TEST (sync_easy_conflict)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	osync_engine_init(engine, &error);
+	osengine_init(engine, &error);
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	system("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -178,12 +178,12 @@ START_TEST (sync_easy_new_mapping)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	osync_engine_init(engine, &error);
+	osengine_init(engine, &error);
 	mark_point();
 	
 	synchronize_once(engine, NULL);
@@ -216,9 +216,9 @@ START_TEST (sync_easy_conflict_duplicate)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -247,8 +247,8 @@ START_TEST (sync_easy_conflict_duplicate)
 	system("rm -f data2/testdata-dupe");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -278,9 +278,9 @@ START_TEST (sync_conflict_duplicate)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -311,7 +311,7 @@ START_TEST (sync_conflict_duplicate)
 	fail_unless(!system("rm -f data1/testdata-dupe data2/testdata-dupe-dupe"), NULL);
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	
@@ -340,9 +340,9 @@ START_TEST (sync_conflict_duplicate2)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -353,7 +353,7 @@ START_TEST (sync_conflict_duplicate2)
 	system("cp new_data data2/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	system("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -386,9 +386,9 @@ START_TEST (sync_conflict_deldel)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -398,7 +398,7 @@ START_TEST (sync_conflict_deldel)
 	system("rm -f data2/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -427,9 +427,9 @@ START_TEST (sync_moddel)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_random, (void *)2);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_random, (void *)2);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -448,7 +448,7 @@ START_TEST (sync_moddel)
 	system("rm -f data2/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -477,9 +477,9 @@ START_TEST (sync_conflict_moddel)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)2);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)2);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -491,7 +491,7 @@ START_TEST (sync_conflict_moddel)
 	system("rm -f data2/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -519,9 +519,9 @@ START_TEST (sync_easy_dualdel)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osync_engine_init(engine, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
 	
@@ -531,7 +531,7 @@ START_TEST (sync_easy_dualdel)
 	system("rm -f data1/testdata2");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
@@ -567,10 +567,10 @@ END_TEST
 	system("rm -rf data2/subdir/.svn");
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
+	OSyncEngine *engine = osengine_new(group, &error);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -621,8 +621,8 @@ END_TEST
 	fail_unless(!system("test \"x$(ls data1/subdir)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(ls data2/subdir)\" = \"x\""), NULL);
 	
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	destroy_testbed(testbed);
 }

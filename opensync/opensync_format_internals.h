@@ -11,27 +11,35 @@
 /*! @brief The environment used for conversions
  */
 struct OSyncFormatEnv {
-	GList *objtypes; /** A list of object types */
-	GList *objformats; /** A List of formats */
-	GList *converters; /** A list of available converters */
-	GList *filter_functions; /* A list of filter functions */
-	GList *extensions; /* A list of extensions */
+	/** A list of object types */
+	GList *objtypes;
+	/** A List of formats */
+	GList *objformats;
+	/** A list of available converters */
+	GList *converters;
+	/** A list of filter functions */
+	GList *filter_functions;
+	/** A list of extensions */
+	GList *extensions;
 };
 
 /*! @brief Represent a abstract object type (like "contact")
  */
 struct OSyncObjType {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	char *name;
 	GList *formats;
 	GList *converters;
 	OSyncFormatEnv *env;
 	osync_bool needs_slow_sync;
 	OSyncObjFormat *common_format;
+#endif
 };
 
 /*! @brief Represent a format for a object type
  */
 struct OSyncObjFormat {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	char *name;
 	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
@@ -43,11 +51,14 @@ struct OSyncObjFormat {
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
+	OSyncFormatRevisionFunc revision_func;
+#endif
 };
 
 /*! @brief Represent a converter from one format to another
  */
 struct OSyncFormatConverter {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	OSyncObjFormat *source_format;
 	OSyncObjFormat *target_format;
 	OSyncFormatConvertFunc convert_func;
@@ -55,25 +66,29 @@ struct OSyncFormatConverter {
 	OSyncFormatConverterInitFunc init_func;
 	OSyncFormatConverterFinalizeFunc fin_func;
 	ConverterType type;
-	//void *conv_data;
+#endif
 };
 
 /*! @brief Represent a detector for a given format
  */
 typedef struct OSyncDataDetector {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	const char *sourceformat;
 	const char *targetformat;
 	OSyncFormatDetectDataFunc detect_func;
+#endif
 } OSyncDataDetector;
 
 /*! @brief An extension to a format
  */
 typedef struct OSyncFormatExtension {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	OSyncObjFormat *from_format;
 	OSyncObjFormat *to_format;
 	char *name;
 	OSyncFormatConvertFunc conv_func;
 	OSyncFormatExtInitFunc init_func;
+#endif
 } OSyncFormatExtension;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -119,6 +134,7 @@ typedef struct OSyncObjFormatTemplate {
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
+	OSyncFormatRevisionFunc revision_func;
 } OSyncObjFormatTemplate;
 
 typedef struct OSyncConverterTemplate {
@@ -144,7 +160,6 @@ osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start,
 
 osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, const char *extension_name, OSyncError **error);
 osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets);
-osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb, OSyncError **error);
 OSyncDataDetector *osync_env_find_detector(OSyncEnv *env, const char *sourcename, const char *targetname);
 osync_bool osync_conv_objtype_is_any(const char *objstr);
 OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname);

@@ -18,7 +18,7 @@
  * 
  */
  
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
 
 /**
@@ -408,7 +408,7 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	osync_trace(TRACE_ENTRY, "osync_conv_convert_fn(%p, %p, %p, %p, %p)", env, change, target_fn, fndata, error);
 	g_assert(change);
 	g_assert(target_fn);
-	OSyncObjFormat *source = change->format;
+	OSyncObjFormat *source = osync_change_get_objformat(change);
 	osync_assert(source, "Cannot convert! change has no objformat!");
 	GList *path = NULL;
 	osync_bool ret = TRUE;
@@ -514,31 +514,6 @@ osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start,
 	return osync_conv_find_path_fn(env, start, target_fn_fmtlist, targets, retlist);
 }
 
-/** Function used on path searchs for a sink on a member
- *
- * @see osync_conv_find_path_fn(), osync_change_convert_member_sink()
- */
-static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
-{
-	const OSyncMember *memb = data;
-	GList *i;
-	for (i = memb->format_sinks; i; i = i->next) {
-		OSyncObjFormatSink *sink = i->data;
-		if (sink->format == fmt)
-			return TRUE;
-	}
-
-	/* Not found */
-	return FALSE;
-}
-
-/** Convert a change to the nearest format sink on a member
- */
-osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *member, OSyncError **error)
-{
-	return osync_conv_convert_fn(env, change, target_fn_membersink, member, member->extension, error);
-}
-
 osync_bool osync_conv_objtype_is_any(const char *objstr)
 {
 	if (!strcmp(objstr, "data"))
@@ -598,6 +573,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		format->create_func = ftempl->create_func;
 		format->destroy_func = ftempl->destroy_func;
 		format->print_func = ftempl->print_func;
+		format->revision_func = ftempl->revision_func;
 		type->formats = g_list_append(type->formats, format);
 		conv_env->objformats = g_list_append(conv_env->objformats, format);
 	}
@@ -781,7 +757,7 @@ OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 
 /*! @brief Returns the number of available object formats
  * 
- * @param env Pointer to the environment
+ * @param type The object type for whih to lookup the formats
  * @returns The number of object formats
  * 
  */
@@ -793,7 +769,7 @@ int osync_conv_num_objformats(OSyncObjType *type)
 
 /*! @brief Gets the nth object format
  * 
- * @param env Pointer to the environment
+ * @param type The object for which to get the nth format
  * @param nth The number
  * @returns The object format, or NULL if there is no such object type
  * 

@@ -21,6 +21,15 @@
 #include "engine.h"
 #include "engine_internals.h"
 
+/**
+ * @defgroup OSEngineMappingPrivate OpenSync Mapping Internals
+ * @ingroup OSEnginePrivate
+ * @brief The internals the mappings
+ * 
+ */
+/*@{*/
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 OSyncMappingTable *osengine_mappingtable_new(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mappingtable_new(%p)", engine);
@@ -271,7 +280,7 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		mapping->fl_multiplied = osync_flag_new(NULL);
 		
 		mapping->cmb_has_data = osync_comb_flag_new(FALSE, FALSE);
-		osync_flag_set_pos_trigger(mapping->cmb_has_data, (MSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
+		osync_flag_set_pos_trigger(mapping->cmb_has_data, (OSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
 		
 		mapping->cmb_has_info = osync_comb_flag_new(FALSE, FALSE);
 		
@@ -281,7 +290,6 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		
 		osync_flag_attach(mapping->cmb_synced, table->engine->cmb_synced);
 		osync_flag_attach(mapping->fl_chkconflict, table->engine->cmb_chkconflict);
-		osync_flag_attach(mapping->fl_multiplied, table->engine->cmb_multiplied);
 	}
 	osync_trace(TRACE_INTERNAL, "osengine_mapping_new(%p): %p", table, mapping);
 	return mapping;
@@ -322,7 +330,7 @@ void osengine_mapping_add_entry(OSyncMapping *mapping, OSyncMappingEntry *entry)
 		osync_flag_attach(entry->fl_has_info, mapping->cmb_has_info);
 		osync_flag_attach(entry->fl_synced, mapping->cmb_synced);
 		osync_flag_attach(entry->fl_deleted, mapping->cmb_deleted);
-		osync_flag_set_pos_trigger(entry->fl_dirty, (MSyncFlagTriggerFunc)send_mappingentry_changed, mapping->table->engine, entry);
+		osync_flag_set_pos_trigger(entry->fl_dirty, (OSyncFlagTriggerFunc)send_mappingentry_changed, mapping->table->engine, entry);
 	}
 	osync_change_set_mappingid(entry->change, mapping->id);
 	
@@ -482,6 +490,7 @@ OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping)
 	entry->fl_synced = osync_flag_new(NULL);
 	entry->fl_deleted = osync_flag_new(NULL);
 	entry->fl_read = osync_flag_new(NULL);
+	entry->fl_committed = osync_flag_new(NULL);
 	osync_flag_set(entry->fl_synced);
 	
 	if (mapping)
@@ -504,6 +513,7 @@ void osengine_mappingentry_free(OSyncMappingEntry *entry)
 	osync_flag_free(entry->fl_synced);
 	osync_flag_free(entry->fl_deleted);
 	osync_flag_free(entry->fl_read);
+	osync_flag_free(entry->fl_committed);
 	
 	entry->view->changes = g_list_remove(entry->view->changes, entry);
 	entry->view = NULL;
@@ -540,3 +550,6 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry)
 	
 	osync_change_reset(entry->change);
 }
+#endif
+
+/** @} */

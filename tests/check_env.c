@@ -91,13 +91,13 @@ START_TEST (env_sync_false)
 	OSyncEnv *env = init_env();
 	OSyncGroup *group = osync_group_load(env, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
 	
 	OSyncError *error = NULL;
-	fail_unless(!osync_engine_init(engine, &error), NULL);
+	fail_unless(!osengine_init(engine, &error), NULL);
 	fail_unless(!synchronize_once(engine, NULL), NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	osync_env_finalize(env, NULL);
 	osync_env_free(env);

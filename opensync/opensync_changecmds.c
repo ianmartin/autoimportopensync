@@ -60,6 +60,24 @@ static osync_bool target_fn_fmtname(const void *data, OSyncObjFormat *fmt)
 	return !strcmp(name, fmt->name);
 }
 
+/** Function used on path searchs for a sink on a member
+ *
+ * @see osync_conv_find_path_fn(), osync_change_convert_member_sink()
+ */
+static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
+{
+	const OSyncMember *memb = data;
+	GList *i;
+	for (i = memb->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *sink = i->data;
+		if (sink->format == fmt)
+			return TRUE;
+	}
+
+	/* Not found */
+	return FALSE;
+}
+
 /**
  * @defgroup OSyncChangeCmds OpenSync Change Commands
  * @ingroup OSyncPublic
@@ -82,13 +100,46 @@ char *osync_change_get_printable(OSyncChange *change)
 	if (!change->has_data)
 		return NULL;
 		
-	OSyncObjFormat *format = change->format;
+	OSyncObjFormat *format = osync_change_get_objformat(change);
 	g_assert(format);
 	
 	if (!format->print_func)
 		return g_strndup(change->data, change->size);
 		
 	return format->print_func(change);
+}
+
+/*! @brief Returns the revision of the object
+ * 
+ * @param change The change to get the revision from
+ * @param error A error struct
+ * @returns The revision of the object in seconds since the epoch in zulu time
+ * 
+ */
+time_t osync_change_get_revision(OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+	
+	g_assert(change);
+	if (!change->has_data) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No data set when asking for the timestamp");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return -1;
+	}
+	
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	g_assert(format);
+	
+	if (!format->revision_func) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No revision function set");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return -1;
+	}
+		
+	time_t time = format->revision_func(change, error);
+	
+	osync_trace(osync_error_is_set(error) ? TRACE_EXIT_ERROR : TRACE_EXIT, "%s: %s, %i", __func__, osync_error_print(error), time);
+	return time;
 }
 
 /*! @brief Compares the data of 2 changes
@@ -137,7 +188,7 @@ OSyncConvCmpResult osync_change_compare_data(OSyncChange *leftchange, OSyncChang
 			osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: One change has no data");
 			return CONV_DATA_MISMATCH;
 		}
-		OSyncObjFormat *format = leftchange->format;
+		OSyncObjFormat *format = osync_change_get_objformat(leftchange);
 		g_assert(format);
 		
 		OSyncConvCmpResult ret = format->cmp_func(leftchange, rightchange);
@@ -259,7 +310,6 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
 	newchange->format = osync_change_get_objformat(source);
 	newchange->objtype = osync_change_get_objtype(source);
 	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
-	newchange->is_detected = source->is_detected;
 	newchange->changes_db = source->changes_db;
 	newchange->member = source->member;
 	
@@ -278,14 +328,14 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
  * This will call the duplicate function of a format.
  * This is used if a uid is not unique.
  * 
- * @param source The change to duplicate
+ * @param change The change to duplicate
  * @returns TRUE if the uid was duplicated successfull
  * 
  */
 osync_bool osync_change_duplicate(OSyncChange *change)
 {
 	g_assert(change);
-	OSyncObjFormat *format = change->format;
+	OSyncObjFormat *format = osync_change_get_objformat(change);
 	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
 	if (!format || !format->duplicate_func)
 		return FALSE;
@@ -402,6 +452,21 @@ osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change
 osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **targetnames, OSyncError **error)
 {
 	return osync_conv_convert_fn(env, change, target_fn_fmtnames, targetnames, NULL, error);
+}
+
+/*! @brief Convert a change to the nearest sink on a member
+ * 
+ * 
+ * @param env The conversion environment to use
+ * @param change The change to convert
+ * @param member The member that will receive the change
+ * @param error The error-return location
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *member, OSyncError **error)
+{
+	return osync_conv_convert_fn(env, change, target_fn_membersink, member, member->extension, error);
 }
 
 /*! @brief Tries to detect the object type of the given change
@@ -528,4 +593,4 @@ OSyncObjFormat *osync_change_detect_objformat_full(OSyncFormatEnv *env, OSyncCha
 	return ret;
 }
 
-/*@{*/
+/*@}*/

@@ -96,7 +96,7 @@ void conflict_handler(OSyncEngine *engine, OSyncMapping *mapping)
 }
 
 
-void member_status(MSyncMemberUpdate *status)
+void member_status(OSyncMemberUpdate *status)
 {
 	member_info *meminfo = find_member_info(status->member);
 	if (!meminfo)
@@ -113,14 +113,11 @@ void member_status(MSyncMemberUpdate *status)
 	}
 }
 
-void mapping_status(MSyncMappingUpdate *status)
+void mapping_status(OSyncMappingUpdate *status)
 {
 	switch (status->type) {
 		case MAPPING_SOLVED:
 			printf("Mapping solved\n");
-			break;
-		case MAPPING_NEW:
-			printf("New Mapping\n");
 			break;
 		case MAPPING_SYNCED:
 			printf("Mapping Synced\n");
@@ -130,7 +127,7 @@ void mapping_status(MSyncMappingUpdate *status)
 	}
 }
 
-void entry_status(MSyncChangeUpdate *status)
+void entry_status(OSyncChangeUpdate *status)
 {
 	member_info *meminfo = find_member_info(osync_change_get_member(status->change));
 	if (!meminfo)
@@ -355,14 +352,14 @@ int main (int argc, char *argv[])
 	working = g_mutex_new();
 	int count = 0;
 	while (1) {
-		OSyncEngine *engine = osync_engine_new(group, &error);
+		OSyncEngine *engine = osengine_new(group, &error);
 		if (!engine) {
 			printf("Error while creating syncengine: %s\n", error->message);
 			osync_error_free(&error);
 			abort();
 		}
 		
-		if (!osync_engine_init(engine, &error)) {
+		if (!osengine_init(engine, &error)) {
 			printf("Error while initializing syncengine: %s\n", error->message);
 			osync_error_free(&error);
 			abort();
@@ -408,7 +405,7 @@ int main (int argc, char *argv[])
 			change_content(engine);
 
 			printf("Starting to synchronize\n");
-			if (!osync_engine_sync_and_block(engine, &error)) {
+			if (!osengine_sync_and_block(engine, &error)) {
 				printf("Error while starting synchronization: %s\n", error->message);
 				osync_error_free(&error);
 				abort();
@@ -426,8 +423,8 @@ int main (int argc, char *argv[])
 		} while (g_random_int_range(0, 3) != 0);
 		
 		printf("Finalizing engine\n");
-		osync_engine_finalize(engine);
-		osync_engine_free(engine);
+		osengine_finalize(engine);
+		osengine_free(engine);
 	}
 	
 	return 0;

@@ -1,20 +1,4 @@
 
-/**
- * @defgroup PrivateAPI Private APIs
- * @brief Available private APIs
- * 
- */
-
-/**
- * @defgroup OSyncPrivate OpenSync Private API
- * @ingroup PrivateAPI
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
- * 
- */
-/** @{ */
-
 #include <glib.h>
 #include <gmodule.h>
 #include <string.h>
@@ -57,5 +41,3 @@ typedef struct OSyncDB OSyncDB;
 #include "opensync_filter_internals.h"
 #include "opensync_context_internals.h"
 #include "opensync_hashtable_internals.h"
-
-/** @} */

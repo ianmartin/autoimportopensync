@@ -1,9 +1,13 @@
 
 /*! @brief Represents the functions that a member will call to inform the syncengine */
 typedef struct OSyncMemberFunctions {
+	/** The callback function that will receive the new changes from the plugins */
 	void (* rf_change) (OSyncMember *, OSyncChange *, void *);
+	/** The callback function that will receive custom message calls from the plugin */
 	void *(* rf_message) (OSyncMember *, const char *, void *, osync_bool);
+	/** The callback function that will receive sync alerts from the plugin */
 	void (* rf_sync_alert) (OSyncMember *);
+	/** The callback function that will receive log messages */
 	void (*rf_log) (OSyncMember *, char *);
 } OSyncMemberFunctions;
 
@@ -17,7 +21,10 @@ OSyncPlugin *osync_member_get_plugin(OSyncMember *member);
 
 const char *osync_member_get_configdir(OSyncMember *member);
 osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
+osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error);
+
 void osync_member_set_config(OSyncMember *member, const char *data, int size);
+osync_bool osync_member_has_configuration(OSyncMember *member);
 const char *osync_member_get_pluginname(OSyncMember *member);
 osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error);
 void *osync_member_get_enginedata(OSyncMember *member);

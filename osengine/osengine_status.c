@@ -30,8 +30,8 @@ void osync_status_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, memberupdatetype type, OSyncError **error)
 {
 	if (engine->mebstat_callback) {
-		MSyncMemberUpdate update;
-		memset(&update, 0, sizeof(MSyncMemberUpdate));
+		OSyncMemberUpdate update;
+		memset(&update, 0, sizeof(OSyncMemberUpdate));
 		update.type = type;
 		update.member = client->member;
 		if (error)
@@ -43,7 +43,7 @@ void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, member
 void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, changeupdatetype type, OSyncError **error)
 {
 	if (engine->changestat_callback) {
-		MSyncChangeUpdate update;
+		OSyncChangeUpdate update;
 		update.type = type;
 		update.member_id = osync_member_get_id(osync_change_get_member(change));
 		update.change = change;
@@ -57,7 +57,7 @@ void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, change
 void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, mappingupdatetype type, OSyncError **error)
 {
 	if (engine->mapstat_callback) {
-		MSyncMappingUpdate update;
+		OSyncMappingUpdate update;
 		update.type = type;
 		update.mapping = mapping;
 		if (mapping->master)

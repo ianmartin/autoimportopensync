@@ -1,13 +1,5 @@
-/**
- * @defgroup OSEngineMappingPrivate OpenSync Mapping Internals
- * @ingroup OSEnginePrivate
- * @brief The internals the mappings
- * 
- */
-/*@{*/
 
-/*! @brief A table which holds the mappings
- */
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncMappingTable {
 	GList *mappings;
 	OSyncEngine *engine;
@@ -17,8 +9,6 @@ struct OSyncMappingTable {
 	GList *entries;
 };
 
-/*! @brief A view to the mappingtable, represents one source
- */
 struct OSyncMappingView {
 	OSyncClient *client;
 	GList *changes;
@@ -26,40 +16,38 @@ struct OSyncMappingView {
 	long long int memberid;
 };
 
-/*! @brief A mapping of changes
- */
 struct OSyncMapping {
 	GList *entries;
 	OSyncMappingEntry *master;
 	void *engine_data;
 	long long int id;
 	OSyncMappingTable *table;
-	MSyncFlag *fl_solved;
-	MSyncFlag *fl_chkconflict;
-	MSyncFlag *fl_multiplied;
+	OSyncFlag *fl_solved;
+	OSyncFlag *fl_chkconflict;
+	OSyncFlag *fl_multiplied;
 	//The combined flags
-	MSyncFlag *cmb_synced;
-	MSyncFlag *cmb_has_data;
-	MSyncFlag *cmb_has_info;
-	MSyncFlag *cmb_deleted;
+	OSyncFlag *cmb_synced;
+	OSyncFlag *cmb_has_data;
+	OSyncFlag *cmb_has_info;
+	OSyncFlag *cmb_deleted;
 	OSyncEngine *engine;
 };
 
-/*! @brief Represent one change in the mapping
- */
 struct OSyncMappingEntry {
 	OSyncMappingView *view;
 	OSyncClient *client;
 	OSyncMapping *mapping;
 	OSyncChange *change;
-	MSyncFlag *fl_has_data;
-	MSyncFlag *fl_dirty;
-	MSyncFlag *fl_mapped;
-	MSyncFlag *fl_has_info;
-	MSyncFlag *fl_synced;
-	MSyncFlag *fl_deleted;
-	MSyncFlag *fl_read;
+	OSyncFlag *fl_has_data;
+	OSyncFlag *fl_dirty;
+	OSyncFlag *fl_mapped;
+	OSyncFlag *fl_has_info;
+	OSyncFlag *fl_synced;
+	OSyncFlag *fl_deleted;
+	OSyncFlag *fl_read;
+	OSyncFlag *fl_committed;
 };
+#endif
 
 OSyncMappingTable *osengine_mappingtable_new(OSyncEngine *engine);
 void osengine_mappingtable_free(OSyncMappingTable *table);
@@ -96,5 +84,3 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
 OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id);
 OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);
-
-/*@}*/

@@ -1,0 +1,18 @@
+Building a rpm
+===
+
+OpenSync already contains a ready to use spec file so building an RPM is a
+piece of cake. All you need to do is:
+
+	rpmbuild -ta <tarball>
+
+where <tarball> is the current OpenSync tar file (e.g. opensync-0.14.tar.gz).
+
+As long as you have the necessary prerequisites the package should build just
+fine.
+
+The packages needed for building the rpm are:
+
+	* libxml2-devel
+	* glib2-devel
+	* sqlite-devel >= 3.0.0

@@ -29,12 +29,20 @@
  */
 /*@{*/
 
+/** Increment the reference count of a change 
+ * 
+ * @param change The change to ref
+ **/
 void osync_change_ref(OSyncChange *change)
 {
 	g_assert(change);
 	change->refcount++;
 }
 
+/** Decrement the reference count of a change 
+ * 
+ * @param change The change to decref
+ **/
 void osync_change_decref(OSyncChange *change)
 {
 	g_assert(change);
@@ -43,12 +51,22 @@ void osync_change_decref(OSyncChange *change)
 		osync_change_free(change);
 }
 
+/** Get the name of the source object type of a change 
+ * 
+ * @param change The change
+ * @returns The name of the source object type
+ **/
 const char *osync_change_get_sourceobjtype(OSyncChange *change)
 {
 	g_assert(change);
 	return change->sourceobjtype;
 }
 
+/** Get the name of the inital format of a change 
+ * 
+ * @param change The change
+ * @returns The name of the inital format
+ **/
 OSyncObjFormat *osync_change_get_initial_objformat(OSyncChange *change)
 {
 	g_assert(change);
@@ -140,7 +158,6 @@ void osync_change_reset(OSyncChange *change)
 	change->changetype = CHANGE_UNKNOWN;
 	//change->sourceobjtype = NULL;
 	//change->destobjtype = NULL;
-	change->is_detected = FALSE;
 }
 
 /*! @brief This will save a change into the database
@@ -314,8 +331,10 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 {
 	g_assert(change);
 	change->format = objformat;
-	change->objtype = objformat->objtype;
-
+	if (objformat)
+		change->objtype = objformat->objtype;
+	else
+		change->objtype = NULL;
 }
 
 /*! @brief Sets the object format of a change from the name
@@ -555,7 +574,6 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	
 	target->changes_db = source->changes_db;
 	
-	target->is_detected = source->is_detected;
 	osync_trace(TRACE_EXIT, "osync_change_update");
 }
 

@@ -32,6 +32,7 @@
  */
 /*@{*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mappingentry_decider(%p, %p)", engine, entry);
@@ -252,3 +253,6 @@ void osengine_client_all_deciders(OSyncEngine *engine)
 		send_client_changed(engine, client);
 	}
 }
+#endif
+
+/** @} */

@@ -97,7 +97,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;
 	
-	change->initial_format = change->format;
+	change->initial_format = osync_change_get_objformat(change);
 	change->member = context->member;
 	
 	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, format %s and objtype %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
