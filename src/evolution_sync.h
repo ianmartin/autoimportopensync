@@ -27,9 +27,11 @@ typedef struct {
 	int debuglevel;
 } evo_environment;
 
-void evo_debug(evo_environment *env, int level, char *message, ...);
-ESource *find_source(ESourceList *list, char *uri);
+static ESource *find_source(ESourceList *list, char *uri);
 
-#include "xml.h"
+#include "evolution_ebook.h"
+#include "evolution_ecal.h"
+#include "evolution_etodo.h"
+#include "evolution_xml.h"
 
 #endif
