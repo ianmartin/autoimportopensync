@@ -129,12 +129,14 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 void osync_debug(const char *subpart, int level, const char *message, ...)
 {
 #if defined ENABLE_DEBUG
+		osync_assert(level <= 4 && level >= 0, "The debug level must be between 0 and 4.");
 		va_list arglist;
 		char *buffer;
 		int debug = -1;
 
 		va_start(arglist, message);
 		g_vasprintf(&buffer, message, arglist);
+		
 		
 		char *debugstr = NULL;
 		switch (level) {
@@ -159,20 +161,18 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 				debugstr = g_strdup_printf("[%s] FULL DEBUG: %s", subpart, buffer);
 				break;
 		}
+		g_assert(debugstr);
 		va_end(arglist);
 		g_free(buffer);
 		osync_trace(TRACE_INTERNAL, debugstr);
 		
 		const char *dbgstr = g_getenv("OSYNC_DEBUG");
-		if (!dbgstr)
-			goto free_str;
-		debug = atoi(dbgstr);
-		if (debug < level)
-			goto free_str;
+		if (dbgstr) {
+			debug = atoi(dbgstr);
+			if (debug >= level)
+				printf("%s\n", debugstr);
+		}
 		
-		printf("%s\n", debugstr);
-
-free_str:
 		g_free(debugstr);
 #endif
 }

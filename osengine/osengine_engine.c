@@ -144,7 +144,7 @@ void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEn
 void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "_new_change_receiver(%p, %p, %p)", engine, client, change);
-	osync_debug("ENG", 2, "Handling new change with uid %s and changetype %i with data %p from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_member_get_id(client->member));
+	osync_debug("ENG", 2, "Handling new change with uid %s, changetype %i, data %p, format %s and objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
 	
 	OSyncError *error = NULL;
 	osync_change_set_member(change, client->member);

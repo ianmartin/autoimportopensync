@@ -70,6 +70,14 @@ void osxml_node_mark_unknown(xmlNode *parent)
 		xmlNewProp(parent, "Type", "Unknown");
 }
 
+void osxml_node_remove_unknown_mark(xmlNode *node)
+{
+	xmlAttr *attr = xmlHasProp(node, "Type");
+	if (!attr)
+		return;
+	xmlRemoveProp(attr);
+}
+
 char *osxml_find_node(xmlNode *parent, const char *name)
 {
 	xmlNode *cur = (parent)->xmlChildrenNode;
@@ -112,6 +120,34 @@ xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc)
 	return osxml_get_nodeset(doc, "/*/*[@Type='Unknown']");
 }
 
+void osxml_map_unknown_param(xmlNode *node, const char *paramname, const char *newname)
+{
+	xmlNode *cur = node->xmlChildrenNode;
+	while (cur) {
+		if (xmlStrcmp(cur->name, (const xmlChar *)"UnknownParam"))
+			goto next;
+		
+		char *name = osxml_find_node(cur, "ParamName");
+		char *content = osxml_find_node(cur, "Content");
+		if (!strcmp(name, paramname)) {
+			osxml_node_add(node, newname, content);
+			osxml_node_remove_unknown_mark(node);
+			
+			xmlUnlinkNode(cur);
+			xmlFreeNode(cur);
+			g_free(name);
+			g_free(content);
+			return;
+		}
+		
+		g_free(name);
+		g_free(content);
+			
+		next:;
+		cur = cur->next;
+	}
+}
+
 osync_bool osxml_has_property_full(xmlNode *parent, const char *name, const char *data)
 {
 	if (osxml_has_property(parent, name))
@@ -131,26 +167,64 @@ osync_bool osxml_has_property(xmlNode *parent, const char *name)
 
 static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 {
-	char *leftcontent = xmlNodeGetContent(leftnode);
-	char *rightcontent = xmlNodeGetContent(rightnode);
-	if (leftcontent == rightcontent)
-		return TRUE;
-	if (!leftcontent || !rightcontent)
+	osync_trace(TRACE_ENTRY, "%s(%p:%s, %p:%s)", __func__, leftnode, leftnode->name, rightnode, rightnode->name);
+	if (strcmp(leftnode->name, rightnode->name)) {
+		osync_trace(TRACE_EXIT, "%s: FALSE: Different Name", __func__);
 		return FALSE;
-	osync_bool ret = (strcmp(leftcontent, rightcontent) == 0);
-	g_free(leftcontent);
-	g_free(rightcontent);
-	return ret;
+	}
+	
+	leftnode = leftnode->children;
+	rightnode = rightnode->children;
+	xmlNode *rightstartnode = rightnode;
+	do {
+		if (!strcmp("UnknownParam", leftnode->name))
+			continue;
+		if (!strcmp("Order", leftnode->name))
+			continue;
+		rightnode = rightstartnode;
+		char *leftcontent = xmlNodeGetContent(leftnode);
+		
+		do {
+			if (!strcmp("UnknownParam", rightnode->name))
+				continue;
+			char *rightcontent = xmlNodeGetContent(rightnode);
+			
+			osync_trace(TRACE_INTERNAL, "leftcontent %s (%s), rightcontent %s (%s)", leftcontent, leftnode->name, rightcontent, rightnode->name);
+			if (leftcontent == rightcontent) {
+				g_free(rightcontent);
+				goto next;
+			}
+			if (!strcmp(leftcontent, rightcontent)) {
+				g_free(rightcontent);
+				goto next;
+			}
+			if (!leftcontent || !rightcontent) {
+				osync_trace(TRACE_EXIT, "%s: One is empty", __func__);
+				return FALSE;
+			}
+			g_free(rightcontent);
+		} while ((rightnode = rightnode->next));
+		osync_trace(TRACE_EXIT, "%s: Could not match one", __func__);
+		g_free(leftcontent);
+		return FALSE;
+		next:;
+		g_free(leftcontent);
+	} while ((leftnode = leftnode->next));
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
 }
 
-OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores)
+OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores, int default_score, int treshold)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, leftinpdoc, rightinpdoc, scores);
 	int z = 0, i = 0, n;
+	int res_score = 0;
+	
 	xmlDoc *leftdoc = xmlCopyDoc(leftinpdoc, TRUE);
 	xmlDoc *rightdoc = xmlCopyDoc(rightinpdoc, TRUE);
 	
-	int res_score = 0;
+	osync_trace(TRACE_INTERNAL, "Comparing given score list");
 	while (scores && scores[z].path) {
 		OSyncXMLScore *score = &scores[z];
 		z++;
@@ -162,11 +236,21 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		
 		int lsize = (lnodes) ? lnodes->nodeNr : 0;
 		int rsize = (rnodes) ? rnodes->nodeNr : 0;
-		
-		for(i = 0; i < lsize; i++) {
+		osync_trace(TRACE_INTERNAL, "parsing next path %s", score->path);
+		for (i = 0; i < lsize; i++) {
 			for (n = 0; n < rsize; n++) {
 				if (!rnodes->nodeTab[n])
 					continue;
+				if (!score->value) {
+					xmlUnlinkNode(lnodes->nodeTab[i]);
+					xmlFreeNode(lnodes->nodeTab[i]);
+					lnodes->nodeTab[i] = NULL;
+					xmlUnlinkNode(rnodes->nodeTab[n]);
+					xmlFreeNode(rnodes->nodeTab[n]);
+					rnodes->nodeTab[n] = NULL;
+					goto next;
+				}
+				osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
 				if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 					osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
 					res_score += score->value;
@@ -201,11 +285,13 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	int lsize = (lnodes) ? lnodes->nodeNr : 0;
 	int rsize = (rnodes) ? rnodes->nodeNr : 0;
 	
+	osync_trace(TRACE_INTERNAL, "Comparing remaining list");
 	osync_bool same = TRUE;
 	for(i = 0; i < lsize; i++) {		
 		for (n = 0; n < rsize; n++) {
 			if (!rnodes->nodeTab[n])
 				continue;
+			osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
 			if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 				xmlUnlinkNode(lnodes->nodeTab[i]);
 				xmlFreeNode(lnodes->nodeTab[i]);
@@ -213,53 +299,37 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 				xmlUnlinkNode(rnodes->nodeTab[n]);
 				xmlFreeNode(rnodes->nodeTab[n]);
 				rnodes->nodeTab[n] = NULL;
+				osync_trace(TRACE_INTERNAL, "Adding %i", default_score);
+				res_score += default_score;
 				goto next2;
 			}
 		}
+		osync_trace(TRACE_INTERNAL, "Subtracting %i", default_score);
+		res_score -= default_score;
 		same = FALSE;
-		goto out;
+		//goto out;
 		next2:;
 	}
+	
 	for(i = 0; i < lsize; i++) {
 		if (!lnodes->nodeTab[i])
 			continue;
+		osync_trace(TRACE_INTERNAL, "left remaining: %s", lnodes->nodeTab[i]->name);
 		same = FALSE;
 		goto out;
 	}
+	
 	for(i = 0; i < rsize; i++) {
 		if (!rnodes->nodeTab[i])
 			continue;
+		osync_trace(TRACE_INTERNAL, "right remaining: %s", rnodes->nodeTab[i]->name);
 		same = FALSE;
 		goto out;
 	}
 	out:
 	xmlXPathFreeObject(leftxobj);
 	xmlXPathFreeObject(rightxobj);
-	/*
-	
-	for (lcur = lroot->children;lcur; lcur = lcur->next) {
-		rcur = rroot->children;
-		printf("%p\n", rcur);
-		for (;rcur; rcur = rcur->next) {
-			printf("comparing %s with %s\n", xmlNodeGetContent(lcur), xmlNodeGetContent(rcur));
-			if (osxml_compare_node(lcur, rcur)) {
-				xmlUnlinkNode(lcur);
-				xmlFreeNode(lcur);
-				xmlUnlinkNode(rcur);
-				xmlFreeNode(rcur);
-				goto next2;
-			}
-		}
-		same = FALSE;
-		break;
-		next2:;
-		lcur = lroot->children;
-		printf("lcur %p\n", rcur);
-	}
-	if (lroot->children || rroot->children)
-		same = FALSE;
-	*/
-	int treshold = 5;
+
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
 	if (same) {
 		osync_trace(TRACE_EXIT, "%s: SAME", __func__);

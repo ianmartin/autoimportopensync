@@ -528,7 +528,7 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		}
 		//The destobjtype is the objtype of the format to which
 		//the change was just converted
-		change->destobjtype = g_strdup(change->objtype->name);
+		change->destobjtype = g_strdup(osync_change_get_objtype(change)->name);
 	}
 	
 	//Filter the change.
@@ -643,7 +643,7 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_DELETED;
 	
-	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, change->objtype->name);
+	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, osync_change_get_objtype(change)->name);
 	if (!objtype_sink)
 		return FALSE;
 	

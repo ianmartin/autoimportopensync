@@ -40,11 +40,11 @@ void osync_change_free_data(OSyncChange *change)
 {
 	g_assert(change);
 	g_assert(change->format);
-	if (!change->format->destroy_func)
-		osync_debug("OSCONV", 1, "Memory leak: can't free data of type %s", change->format->name);
+	if (!osync_change_get_objformat(change)->destroy_func)
+		osync_debug("OSCONV", 1, "Memory leak: can't free data of type %s", osync_change_get_objformat(change)->name);
 	else {
-		osync_debug("OSCONV", 4, "Freeing data of type %s", change->format->name);
-		change->format->destroy_func(change->data, change->size);
+		osync_debug("OSCONV", 4, "Freeing data of type %s", osync_change_get_objformat(change)->name);
+		osync_change_get_objformat(change)->destroy_func(change->data, change->size);
 	}
 	change->data = NULL;
 	change->size = 0;
@@ -317,10 +317,10 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	target->has_data = source->has_data;
 	target->changetype = source->changetype;
 	if (source->format)
-		target->format = source->format;
+		target->format = osync_change_get_objformat(source);
 	if (source->objtype) {
-		target->objtype = source->objtype;
-		target->sourceobjtype = g_strdup(source->objtype->name);
+		target->objtype = osync_change_get_objtype(source);
+		target->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
 	}
 	target->is_detected = source->is_detected;
 	osync_trace(TRACE_EXIT, "osync_change_update");

@@ -299,7 +299,7 @@ static OSyncConvCmpResult compare_notes(OSyncChange *leftchange, OSyncChange *ri
 	{0, NULL}
 	};
 	
-	return osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score);
+	return osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 10, 50);
 }
 
 static char *print_note(OSyncChange *change)

@@ -47,11 +47,15 @@ void osxml_node_add_property(xmlNode *parent, const char *name, const char *data
 char *osxml_find_property(xmlNode *parent, const char *name);
 osync_bool osxml_has_property(xmlNode *parent, const char *name);
 osync_bool osxml_has_property_full(xmlNode *parent, const char *name, const char *data);
+
 void osxml_node_mark_unknown(xmlNode *parent);
+void osxml_node_remove_unknown_mark(xmlNode *node);
+void osxml_map_unknown_param(xmlNode *node, const char *paramname, const char *newname);
+
 void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLEncoding encoding);
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression);
 xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc);
-OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores);
+OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores, int default_score, int treshold);
 osync_bool osxml_write_to_string(xmlDoc *doc, char **result, int *result_length);
 osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize);
 

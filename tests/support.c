@@ -196,7 +196,7 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			num_engine_prev_unclean++;
 			break;
 		default:
-			printf("ERrro\n");
+			printf("ERROR: Unknown status type: %d\n", status->type);
 	}
 }
 

@@ -76,6 +76,7 @@ static osync_bool conv_vcard_to_xml(char *input, int inpsize, char **output, int
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
+	printf("vcard is: \n%s\n", input);
 	osync_trace(TRACE_INTERNAL, "input is:\n%s", input);
 	GList *p = NULL;
 	GList *a = NULL;
@@ -308,6 +309,18 @@ static osync_bool conv_vcard_to_xml(char *input, int inpsize, char **output, int
 			continue;
 		}
 		
+		//Nickname
+		if (!strcmp(name, "NICKNAME")) {
+			osxml_node_set(current, "Nickname", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Class
+		if (!strcmp(name, "CLASS")) {
+			osxml_node_set(current, "Class", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
 		//Unknown tag.
 		osxml_node_mark_unknown(current);
 		GList *values = e_vcard_attribute_get_values(attr);
@@ -397,7 +410,13 @@ static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
-	//xmlDocDump(stdout, (xmlDoc *)input);
+	xmlKeepBlanksDefault(0);
+	xmlChar *temp = NULL;
+	int size = 0;
+	xmlDocDumpFormatMemory((xmlDoc *)input, &temp, &size, 1);
+	osync_trace(TRACE_INTERNAL, "XML is:\n%s", temp);
+	g_free(temp);
+	
 	EVCardAttribute *attr = NULL;
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
 	if (!root) {
@@ -602,6 +621,7 @@ static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int
 	
 	*free_input = TRUE;
 	*output = e_vcard_to_string(vcard, target);
+	printf("vcard output is: \n%s\n", *output);
 	*outpsize = strlen(*output);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
@@ -624,14 +644,17 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	
 	OSyncXMLScore score[] =
 	{
-	{50, "/contact/FullName"},
+	{30, "/contact/FullName"},
 	{50, "/contact/Name"},
-	{50, "/contact/Telephone"},
-	{50, "/contact/Address"},
+	{20, "/contact/Telephone"},
+	{20, "/contact/Address"},
+	{1, "/contact/UnknownNode"},
+	{0, "/contact/Uid"},
+	{0, "/contact/Revision"},
 	{0, NULL}
 	};
 	
-	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score);
+	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 10, 50);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -641,6 +664,7 @@ static char *print_contact(OSyncChange *change)
 {
 	osync_debug("XCONT", 4, "start: %s", __func__);
 	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+	
 	char *result;
 	int size;
 	osync_bool free_input;

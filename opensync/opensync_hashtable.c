@@ -95,7 +95,7 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 		case CHANGE_ADDED:
-			osync_db_save_hash(table, change->uid, change->hash, change->objtype ? change->objtype->name : NULL);
+			osync_db_save_hash(table, change->uid, change->hash, osync_change_get_objtype(change) ? osync_change_get_objtype(change)->name : NULL);
 			break;
 		case CHANGE_DELETED:
 			osync_db_delete_hash(table, change->uid);
