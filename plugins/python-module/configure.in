@@ -29,45 +29,49 @@ AC_PROG_LIBTOOL
 AC_CHECK_PROGS([PYTHON], [python])
 
 AS_IF([test -n "$PYTHON"],
-    [AC_CACHE_CHECK([for python distutils module], [cs_cv_python_distutils],
+    [AC_CACHE_CHECK([for python distutils module], [os_cv_python_distutils],
 	[AS_IF([AC_RUN_LOG([$PYTHON -c 'import distutils.sysconfig' 1>&2])],
-	    [cs_cv_python_distutils=yes], [cs_cv_python_distutils=no])])])
+	    [os_cv_python_distutils=yes], [os_cv_python_distutils=no])])])
 
-AC_CACHE_CHECK([for python SDK], [cs_cv_python_sdk],
-    [cs_cv_python_sdk=no
-    cs_python_lib_dir=''
-    cs_python_makefile=''
+AC_CACHE_CHECK([for python SDK], [os_cv_python_sdk],
+    [os_cv_python_sdk=no
+    os_python_lib_dir=''
+    os_python_makefile=''
 
     AS_IF([test -n "$PYTHON"],
 	[# Python 2.x?
-	AS_IF([test $cs_cv_python_distutils = yes],
-	    [cs_cv_python_base=`AC_RUN_LOG([$PYTHON -c \
+	AS_IF([test $os_cv_python_distutils = yes],
+	    [os_cv_python_base=`AC_RUN_LOG([$PYTHON -c \
 		'import distutils.sysconfig ; import os.path ; \
 		print os.path.basename( \
 		    distutils.sysconfig.get_python_lib(0,1))'])`
-	    cs_cv_python_base_cflags=`AC_RUN_LOG([$PYTHON -c \
+	    os_cv_python_base_cflags=`AC_RUN_LOG([$PYTHON -c \
 		'import distutils.sysconfig ; \
 		print "-I"+distutils.sysconfig.get_python_inc()'])`
-	    cs_cv_python_base_lflags=`AC_RUN_LOG([$PYTHON -c \
+	    os_cv_python_base_lflags=`AC_RUN_LOG([$PYTHON -c \
 		'import distutils.sysconfig ; import os.path ; \
 		print "-L"+distutils.sysconfig.get_python_lib(0,1)+" "+ \
 		    "-L"+distutils.sysconfig.get_python_lib(0,1)+"/config"'])`
-	    cs_cv_python_base_libs=`AC_RUN_LOG([$PYTHON -c \
+	    os_cv_python_base_libs=`AC_RUN_LOG([$PYTHON -c \
 		'import distutils.sysconfig ; \
 		print (distutils.sysconfig.get_config_var("LIBS") or "") + \
 		" " + (distutils.sysconfig.get_config_var("SYSLIBS") or "")'])`
-		PYTHON_CFLAGS="$CFLAGS $cs_cv_python_base_cflags"
-		PYTHON_LDFLAGS="$LFLAGS $cs_cv_python_base_lflags"
-		PYTHON_LIBS="$LIBS $cs_cv_python_base_libs -l$cs_cv_python_base"
+		PYTHON_CFLAGS="$CFLAGS $os_cv_python_base_cflags"
+		PYTHON_LDFLAGS="$LFLAGS $os_cv_python_base_lflags"
+		PYTHON_LIBS="$LIBS $os_cv_python_base_libs -l$os_cv_python_base"
 		AC_SUBST(PYTHON_CFLAGS)
 		AC_SUBST(PYTHON_LDFLAGS)
 		AC_SUBST(PYTHON_LIBS)
-		cs_cv_python_sdk=yes])])])
+		os_cv_python_sdk=yes])])])
 
 OPENSYNC_PLUGINDIR=${libdir}/opensync/plugins
 AC_SUBST(OPENSYNC_PLUGINDIR)
 
 OPENSYNC_PYTHONPLG_DIR=${libdir}/opensync/python-plugins
 AC_SUBST(OPENSYNC_PYTHONPLG_DIR)
+
+#FIXME: install opensync module on python library path, not on opensync directory
+OPENSYNC_PYTHONLIB_DIR=${libdir}/opensync/python
+AC_SUBST(OPENSYNC_PYTHONLIB_DIR)
 
 AC_OUTPUT([Makefile])
