@@ -74,7 +74,6 @@ struct OSyncFormatConverter {
  * to types that weren't registered yet.
  */
 typedef struct OSyncUnresolvedConverter {
-	OSyncObjType *objtype;
 	const char *source_format;
 	const char *target_format;
 	OSyncFormatConvertFunc convert_func;

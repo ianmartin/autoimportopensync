@@ -155,22 +155,21 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char 
 	return osync_conf_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
-static osync_bool osync_register_unresolved_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
+static osync_bool osync_register_unresolved_converter(OSyncFormatEnv *env, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
 {
 	OSyncUnresolvedConverter *conv = g_malloc0(sizeof(OSyncUnresolvedConverter));
 	g_assert(conv);
 
-	conv->objtype = type;
 	conv->source_format = sourcename;
 	conv->target_format = targetname;
 	conv->convert_func = convert_func;
 	conv->type = convtype;
-	type->env->unresolved_converters = g_list_append(type->env->unresolved_converters, conv);
+	env->unresolved_converters = g_list_append(env->unresolved_converters, conv);
 
 	return TRUE;
 }
 
-static osync_bool _osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg, OSyncFormatConvertFunc convert_func)
+static osync_bool _osync_conv_register_converter(OSyncFormatEnv *env, ConverterType convtype, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg, OSyncFormatConvertFunc convert_func)
 {
 	OSyncFormatConverter *converter = g_malloc0(sizeof(OSyncFormatConverter));
 	g_assert(converter);
@@ -179,8 +178,9 @@ static osync_bool _osync_conv_register_converter(OSyncObjType *type, ConverterTy
 	converter->convert_func = convert_func;
 	converter->type = convtype;
 
-	type->env->converters = g_list_append(type->env->converters, converter);
-	type->converters = g_list_append(type->converters, converter);
+	env->converters = g_list_append(env->converters, converter);
+	if (fmt_src->objtype)
+		fmt_src->objtype->converters = g_list_append(fmt_trg->objtype->converters, converter);
 
 	return TRUE;
 }
@@ -201,7 +201,7 @@ static void osync_conv_resolve_converters(OSyncFormatEnv *env)
 		OSyncObjFormat *fmt_src = osync_conv_find_objformat(env, conv->source_format);
 		OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, conv->target_format);
 		if (fmt_src && fmt_trg) {
-			_osync_conv_register_converter(conv->objtype, conv->type,
+			_osync_conv_register_converter(env, conv->type,
 			                               fmt_src, fmt_trg, conv->convert_func);
 			env->unresolved_converters = g_list_delete_link(env->unresolved_converters, i);
 			g_free(conv);
@@ -209,17 +209,17 @@ static void osync_conv_resolve_converters(OSyncFormatEnv *env)
 	}
 }
 
-osync_bool osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
+osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
 {
-	if (osync_conv_find_converter(type->env, sourcename, targetname))
+	if (osync_conv_find_converter(env, sourcename, targetname))
 		return FALSE;
 
-	OSyncObjFormat *fmt_src = osync_conv_find_objformat(type->env, sourcename);
-	OSyncObjFormat *fmt_trg = osync_conv_find_objformat(type->env, targetname);
+	OSyncObjFormat *fmt_src = osync_conv_find_objformat(env, sourcename);
+	OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, targetname);
 	if (!fmt_src || !fmt_trg)
-		return osync_register_unresolved_converter(type, convtype, sourcename, targetname, convert_func);
+		return osync_register_unresolved_converter(env, convtype, sourcename, targetname, convert_func);
 	else
-		return _osync_conv_register_converter(type, convtype, fmt_src, fmt_trg, convert_func);
+		return _osync_conv_register_converter(env, convtype, fmt_src, fmt_trg, convert_func);
 }
 
 int osync_conv_num_objformats(OSyncObjType *type)
@@ -255,9 +255,12 @@ OSyncObjFormat *osync_conv_register_objformat(OSyncObjType *type, const char *na
 		format = g_malloc0(sizeof(OSyncObjFormat));
 		g_assert(format);
 		format->name = strdup(name);
+		format->objtype = type;
 		type->env->objformats = g_list_append(type->env->objformats, format);
 	}
 	type->formats = g_list_append(type->formats, format);
+
+	/* Some converters may resolve their format names, now */
 	osync_conv_resolve_converters(type->env);
 	return format;
 }

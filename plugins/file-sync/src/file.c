@@ -111,6 +111,6 @@ void get_info(OSyncFormatEnv *env)
 #ifdef STRESS_TEST
 	osync_conv_format_set_create_func(format, create_file);
 #endif
-	osync_conv_register_converter(type, CONVERTER_CONV, "file", "vcard", conv_file_to_vcard);
-	osync_conv_register_converter(type, CONVERTER_CONV, "vcard", "file", conv_vcard_to_file);
+	osync_conv_register_converter(env, CONVERTER_CONV, "file", "vcard", conv_file_to_vcard);
+	osync_conv_register_converter(env, CONVERTER_CONV, "vcard", "file", conv_vcard_to_file);
 }
