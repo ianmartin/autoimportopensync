@@ -9,7 +9,7 @@ kdepimlib_LTLIBRARIES = kdepim_impl.la
 
 kdepim_sync_la_SOURCES = src/kdepim_sync.cpp
 
-kdepim_impl_la_SOURCES = src/kaddrbook.cpp
+kdepim_impl_la_SOURCES = src/kdepim_impl.cpp
 
 kdepim_sync_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(kdepimlibdir)\"
 kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
