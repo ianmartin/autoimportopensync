@@ -87,6 +87,7 @@ void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *chang
 
 void osync_mappingtable_delete_change(OSyncMappingTable *table, OSyncChange *change)
 {
+	printf("Deleting change %lu uid %s!\n", change->id, change->uid);
 	g_assert(table->entrytable != NULL);
 	osync_db_del(table->entrytable, &(change->id), sizeof(unsigned long));
 	osync_db_sync(table->maptable);

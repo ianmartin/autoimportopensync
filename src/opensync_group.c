@@ -115,7 +115,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 		const gchar *de = NULL;
 		while ((de = g_dir_read_name(dir))) {
 			filename = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
-			if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple(".*", de)) {
+			if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple(".*", de) || !strcmp("db", de)) {
 				continue;
 			}
 			member = osync_member_new(group);

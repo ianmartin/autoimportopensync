@@ -255,10 +255,8 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member)
 	OSyncChange *change = osync_change_new();
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	change->changetype = CHANGE_ADDED;
-	
 	if (!osync_member_make_random_data(member, change))
 		return NULL;
-
 	if (functions.access(context, change) == TRUE)
 		return change;
 	return NULL;

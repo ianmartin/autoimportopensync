@@ -12,6 +12,7 @@ DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
     }
     dbenv->set_errfile(dbenv, errfp);
     dbenv->set_errpfx(dbenv, "opensync");
+    dbenv->set_verbose(dbenv, 0, 1);
 
     if ((ret = dbenv->set_cachesize(dbenv, 0, 5 * 1024 * 1024, 0)) != 0) {
     	dbenv->err(dbenv, ret, "set_cachesize");
@@ -23,7 +24,7 @@ DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
     	goto err;
     }
 
-    if ((ret = dbenv->open(dbenv, configdir, DB_CREATE | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | DB_RECOVER | DB_PRIVATE | DB_THREAD, 0)) != 0) {
+    if ((ret = dbenv->open(dbenv, configdir, DB_CREATE | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | DB_RECOVER | DB_PRIVATE, 0)) != 0) {
     	dbenv->err(dbenv, ret, "environment open: %s", configdir);
     	goto err;
     }
@@ -39,7 +40,7 @@ DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 {
 	int ret;
 	DB *dbp;
-	if ((ret = db_create(&dbp, dbenv, 0)) != 0) {
+	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
 		printf("db_create: %s\n", db_strerror(ret));
 		return NULL;
 	}
@@ -52,7 +53,7 @@ DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 		}
 	}
 	
-	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
+	if ((ret = db_create(&dbp, dbenv, 0)) != 0) {
 		printf("db_create: %s\n", db_strerror(ret));
 		return NULL;
 	}
