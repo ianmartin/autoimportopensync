@@ -14,13 +14,17 @@ opensyncheader_HEADERS = opensync-xml.h
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@
 
-formats_LTLIBRARIES = xml-vcard.la xml-evolution.la xml-vnote.la xml-kde.la
+formats_LTLIBRARIES = xml-vcard.la xml-vcal.la xml-evolution.la xml-vnote.la xml-kde.la
 
 lib_LTLIBRARIES =  libopensync-xml.la
 
 xml_vcard_la_SOURCES = xml-vcard.c vformat.c
 xml_vcard_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_vcard_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
+
+xml_vcal_la_SOURCES = xml-vcal.c vformat.c
+xml_vcal_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
+xml_vcal_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
 xml_vnote_la_SOURCES = xml-vnote.c vformat.c
 xml_vnote_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@

@@ -466,7 +466,7 @@ static void _parse(VFormat *evc, const char *str)
 		VFormatAttribute *next_attr = _read_attribute (&p);
 
 		if (next_attr) {
-			if (g_ascii_strcasecmp (next_attr->name, "end"))
+			//if (g_ascii_strcasecmp (next_attr->name, "end"))
 				vformat_add_attribute (evc, next_attr);
 			attr = next_attr;
 		}
@@ -601,11 +601,13 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		case VFORMAT_CARD_30:
 			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:3.0\r\n");
 			break;
-		case VFORMAT_EVENT:
-			str = g_string_append (str, "BEGIN:VEVENT");
+		case VFORMAT_TODO_10:
+		case VFORMAT_EVENT_10:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
 			break;
-		case VFORMAT_TODO:
-			str = g_string_append (str, "BEGIN:VTODO");
+		case VFORMAT_TODO_20:
+		case VFORMAT_EVENT_20:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "BEGIN:VNOTE");
@@ -709,16 +711,37 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 
 	switch (type) {
 		case VFORMAT_CARD_21:
+			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:2.1\r\n");
+			break;
+		case VFORMAT_CARD_30:
+			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:3.0\r\n");
+			break;
+		case VFORMAT_TODO_10:
+		case VFORMAT_EVENT_10:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
+			break;
+		case VFORMAT_TODO_20:
+		case VFORMAT_EVENT_20:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
+			break;
+		case VFORMAT_NOTE:
+			str = g_string_append (str, "BEGIN:VNOTE");
+			break;
+	}
+
+
+	switch (type) {
+		case VFORMAT_CARD_21:
 			str = g_string_append (str, "END:VCARD\r\n");
 			break;
 		case VFORMAT_CARD_30:
 			str = g_string_append (str, "END:VCARD");
 			break;
-		case VFORMAT_EVENT:
-			str = g_string_append (str, "END:VEVENT");
-			break;
-		case VFORMAT_TODO:
-			str = g_string_append (str, "END:VTODO");
+		case VFORMAT_TODO_10:
+		case VFORMAT_EVENT_10:
+		case VFORMAT_TODO_20:
+		case VFORMAT_EVENT_20:
+			str = g_string_append (str, "END:VCAL");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "END:VNOTE");
@@ -1250,7 +1273,7 @@ vformat_attribute_get_value_decoded (VFormatAttribute *attr)
 	return str ? g_string_new_len (str->str, str->len) : NULL;
 }
 
-const char *vformat_vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth)
+const char *vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth)
 {
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	if (!values)
