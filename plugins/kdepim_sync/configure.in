@@ -17,22 +17,27 @@ AM_KDE_WITH_NLS
 KDE_USE_QT(3.0.0)
 AC_PATH_KDE
 
-OPENSYNC_CONFIGDIR=${datadir}/opensync
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
+pkg_modules="opensync-1.0"
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync)
+OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync)
+OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync)
+OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync)
+
 AC_SUBST(OPENSYNC_CONFIGDIR)
+AC_SUBST(OPENSYNC_PLUGINDIR)
+AC_SUBST(OPENSYNC_FORMATSDIR)
+AC_SUBST(OPENSYNC_HEADERDIR)
 
-OPENSYNC_LIBDIR=${libdir}/opensync
-AC_SUBST(OPENSYNC_LIBDIR)
-
+## AC_CHECK_HEADER(${$ac_kde_includes}/libkcal/resourcecalendar.h)
 
 dnl PACKAGE set before
 AC_C_BIGENDIAN
 AC_CHECK_KDEMAXPATHLEN
-
-OPENSYNC_CONFIGDIR=${datadir}/opensync
-AC_SUBST(OPENSYNC_CONFIGDIR)
-
-OPENSYNC_LIBDIR=${libdir}/opensync
-AC_SUBST(OPENSYNC_LIBDIR)
 
 AC_CONFIG_FILES([ Makefile ])
 AC_OUTPUT

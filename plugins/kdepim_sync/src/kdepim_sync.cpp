@@ -49,9 +49,9 @@ static void *kde_initialize(OSyncMember *member, OSyncError **e)
     osync_debug("kde", 3, "%s", __FUNCTION__);
 
     osync_debug("kde", 3, "Loading implementation module");
-    module = dlopen(KDEPIM_LIBDIR"/kdepim_impl.so", RTLD_NOW);
+    module = dlopen(KDEPIM_LIBDIR"/kdepim_lib.so", RTLD_NOW);
     if (!module) {
-        osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module");
+        osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module from %s", KDEPIM_LIBDIR"/kdepim_lib.so");
         goto error;
     }
     osync_debug("kde", 3, "Getting initialization function");
