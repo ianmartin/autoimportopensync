@@ -79,12 +79,13 @@ static osync_bool evo2_tasks_modify(OSyncContext *ctx, OSyncChange *change)
 	return FALSE;
 }
 
+OSyncFormatFunctions vtodo_functions = {
+	.commit_change = evo2_tasks_modify,
+	.access = evo2_tasks_modify,
+};
+
 void evo2_tasks_setup(OSyncPluginInfo *info)
 {
-	OSyncFormatFunctions functions;
-	OSyncObjType *todo = osync_conv_register_objtype(info->accepted_objtypes, "todo");
-	OSyncObjFormat *vtodo = osync_conv_register_objformat(todo, "vtodo");
-	functions.commit_change = evo2_tasks_modify;
-	functions.access = evo2_tasks_modify;
-	osync_conv_format_set_functions(vtodo, functions);
+	osync_plugin_register_accepted_objtype(info, "todo");
+	osync_plugin_register_accepted_objformat(info, "todo", "vtodo", &vtodo_functions);
 }

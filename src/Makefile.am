@@ -5,6 +5,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
 
+#FIXME: the 'evo2-sync' file is missing from subversion
 config_DATA = evo2-sync
 
 plugin_LTLIBRARIES = evo2_sync.la
