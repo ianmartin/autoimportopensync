@@ -514,45 +514,6 @@ OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChan
 	}
 }
 
-#if 0
-osync_bool osync_conv_detect_next_format(OSyncFormatEnv *env, OSyncChange *change)
-{
-	GList *last = g_list_last(change->objformats);
-	OSyncObjFormat *format = last->data;
-	g_assert(format);
-	if (!format->detect_func)
-		return FALSE;
-	//Call the format detector now.
-	if (format->detect_func(env, change))
-		return TRUE;
-		
-	//Call the property detectors now.
-	GList *p = NULL;
-	for (p = format->properties; p; p = p->next) {
-		OSyncFormatProperty *property = p->data;
-		if (property->detect_func)
-			property->detect_func(env, change);
-		if (change->objtype)
-			return TRUE;
-	}
-	return FALSE;
-}
-
-osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change)
-{
-	g_assert(change);
-	if (change->changetype == CHANGE_DELETED)
-		return FALSE;
-	while (!change->objtype || osync_conv_objtype_is_any(change->objtype->name)) {
-		if (!osync_conv_detect_next_format(env, change)) {
-			change->objtype = osync_conv_find_objtype(env, "data");
-			return FALSE;
-		}
-	}
-	return TRUE;
-}
-#endif
-
 /** Try to do cheap data conversion
  *
  * Call a converter trying to avoid memory copy and allocation.
@@ -566,13 +527,13 @@ osync_bool osync_cheap_convert(OSyncFormatConverter *converter, char *input, siz
 {
 	char *origdata;
 	size_t origsize;
-	osync_debug("OSFRM", 4, "Invoking converter to cheap conversion: %s -> %s",
+	osync_debug("OSCONV", 4, "Invoking converter to cheap conversion: %s -> %s",
 			converter->source_format->name, converter->target_format->name);
 
 	/* Duplicate the data, if the converter will take it to himself */
 	if (converter->flags & CONV_TAKEOVER) {
 		if (!converter->source_format->copy_func) {
-			osync_debug("OSFRM", 0, "Converter %s->%s is CONV_TAKEOVER, but no copy_func", converter->source_format->name, converter->target_format->name);
+			osync_debug("OSCONV", 0, "Converter %s->%s is CONV_TAKEOVER, but no copy_func", converter->source_format->name, converter->target_format->name);
 			return FALSE;
 		}
 		if (!converter->source_format->copy_func(input, inpsize, &origdata, &origsize))
@@ -630,37 +591,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	change->format = converter->target_format;
 	change->objtype = change->format->objtype;
 
-#if 0
-	switch (converter->type) {
-		case CONVERTER_CONV:
-			change->objformats = g_list_remove(change->objformats, converter->source_format);
-			change->objformats = g_list_append(change->objformats, converter->target_format);
-			break;
-		case CONVERTER_ENCAP:
-			osync_debug("OSYNC", 3, "Encaping! adding format %s", converter->target_format->name);
-			change->objformats = g_list_append(change->objformats, converter->target_format);
-			break;
-		case CONVERTER_DESENCAP:
-			osync_debug("OSYNC", 3, "desencaping! removing format %s", converter->source_format->name);
-			change->objformats = g_list_remove(change->objformats, converter->source_format);
-			break;
-		default:
-			g_assert_not_reached();
-	}
-#endif
 	return ret;
-}
-
-static osync_bool osync_conv_fmt_in_list(OSyncObjFormat *fmt, GList/*OSyncObjFormat * */ *l)
-{
-	GList *i;
-	for (i = l; i; i = i->next) {
-		OSyncObjFormat *f = i->data;
-		if (!strcmp(fmt->name, f->name))
-			return TRUE;
-	}
-	/* else */
-	return FALSE;
 }
 
 typedef struct vertice {
@@ -768,9 +699,9 @@ static void deref_vertice(vertice *vertice)
 	g_list_free(vertice->path);
 	if (vertice->free_data) {
 		if (!vertice->format->destroy_func)
-			osync_debug("OSFRM", 1, "Memory leak: can't free data of type %s", vertice->format->name);
+			osync_debug("OSCONV", 1, "Memory leak: can't free data of type %s", vertice->format->name);
 		else {
-			osync_debug("OSFRM", 4, "Freeing data of type %s", vertice->format->name);
+			osync_debug("OSCONV", 4, "Freeing data of type %s", vertice->format->name);
 			vertice->format->destroy_func(vertice->data, vertice->datasize);
 		}
 	}
@@ -780,6 +711,11 @@ static void deref_vertice(vertice *vertice)
 	g_free(vertice);
 }
 
+/** Calculate vertice data
+ *
+ * This function MUST be called before any
+ * referencs to vertice->data
+ */
 osync_bool calc_vertice_data(vertice *v)
 {
 	g_assert(v);
@@ -851,7 +787,7 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 				OSyncDataDetector *det = osync_conv_find_detector(env, srcfrm, trgfrm);
 				/* Error if no detector was found */
 				if (!det) {
-					osync_debug("OSFRM", 2, "Converter %s->%s marked as DETECTFIRST, but no detector found", srcfrm, trgfrm);
+					osync_debug("OSCONV", 2, "Converter %s->%s marked as DETECTFIRST, but no detector found", srcfrm, trgfrm);
 					continue;
 				}
 				/* Call the detector, and don't use the converter, if it returns FALSE */
@@ -904,26 +840,38 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 	return NULL;
 }
 
-/*TODO: make the path search function work in a
- * find-path-to-objtype mode, that will be used for detection:
- * The only change is: instead of using osync_conv_fmt_in_list(current->format, targets),
- * stop when the objtype of the vertice is different than the original
- * objtype.
+/** Search for the shortest path of conversions to one or more formats
  *
- * Maybe we can have a validate_vertice_fn parameter, a function that would 
- * be called to check if a vertice is 'final' or not.
+ * This function search for the shortest path of conversions
+ * that can be made to a change, considering possible detections
+ * that may be necessary. The target is given by a function
+ * that check if a given format is a 'target vertice' or not. The
+ * function is used to allow the search path code to be used
+ * to search for 'objtype detection', search for the path
+ * for an available sink for a format, and maybe other uses.
+ *
+ * The list returned on path_edges should be freed by the caller.
+ *
+ * @see osync_conv_convert_fn(), osync_conv_convert_simple(),
+ *      osync_conv_convert_fmtlist(), osync_conv_convert_member_sink()
+ *
+ * @see target_fn_fmtlist(), target_fn_fmtnames(),
+ *      target_fn_simple(), target_fn_fmtname(),
+ *      target_fn_membersink(), target_fn_no_any()
  */
-osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist)
-{	
-	*retlist = NULL;
+osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyncPathTargetFn target_fn, const void *fndata, GList/* OSyncConverter * */ **path_edges)
+{
+	g_assert(start->format);
+
+	*path_edges = NULL;
 	osync_bool ret = FALSE;
 	conv_tree *tree = g_malloc0(sizeof(conv_tree));
 
-	tree->unused = g_list_copy(vertices);
+	tree->unused = g_list_copy(env->converters);
 
 	vertice *result = NULL;
 	vertice *begin = g_malloc0(sizeof(vertice));
-	begin->format = osync_change_get_objformat(start);
+	begin->format = start->format;
 	begin->path = NULL;
 	begin->data = start->data;
 	begin->datasize = start->size;
@@ -940,10 +888,10 @@ osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, O
 		vertice *current = g_list_first(tree->search)->data;
 		tree->search = g_list_delete_link(tree->search, g_list_first(tree->search));
 
-		osync_debug("OSFRM", 4, "Searching %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
+		osync_debug("OSCONV", 4, "Next vertice: %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
 				current->losses, current->objtype_changes, current->conversions);
 		/* Check if we have reached a target format */
-		if (osync_conv_fmt_in_list(current->format, targets)) {
+		if (target_fn(fndata, current->format)) {
 			/* Done. return the result */
 			result = current;
 			/* Note: the reference to 'current' will be dropped
@@ -952,10 +900,10 @@ osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, O
 			 */
 			break;
 		}
-		osync_debug("OSFRM", 4, "Looking %s neighbours.", current->format->name);
+		osync_debug("OSCONV", 4, "Looking %s neighbours.", current->format->name);
 		while ((neighbour = get_next_vertice_neighbour(env, tree, current))) {
-			osync_debug("OSFRM", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
-			osync_debug("OSFRM", 4, "Adding %s to queue", neighbour->format->name);
+			osync_debug("OSCONV", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
+			osync_debug("OSCONV", 4, "Adding %s to queue", neighbour->format->name);
 			tree->search = g_list_insert_sorted(tree->search, neighbour, compare_vertice_distance);
 		}
 		/* Done, drop the reference to the vertice */
@@ -967,7 +915,7 @@ osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, O
 	
 	if (result) {
 		/* Found it. Copy the conversion path */
-		*retlist = g_list_copy(result->path);
+		*path_edges = g_list_copy(result->path);
 		/* Drop the reference to the result vertice */
 		deref_vertice(result);
 		ret = TRUE;
@@ -979,52 +927,148 @@ osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, O
 	return ret;
 }
 
-osync_bool osync_conv_find_change_path(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncFormat* */ *formats, GList **retlist)
-{
-	return osync_conv_find_shortest_path(env, env->converters, change, formats, retlist);
-}
-
-#if 0
-osync_bool osync_conv_desencap_change(OSyncFormatEnv *env, OSyncChange *change)
-{
-	GList *l = g_list_last(change->objformats);
-	if (!l)
-		return FALSE;
-	OSyncObjFormat *sourceformat = l->data;
-	l = l->prev;
-	if (!l)
-		return FALSE;
-	OSyncObjFormat *targetformat = l->data;
-	if (!sourceformat || !targetformat)
-		return FALSE;
-	OSyncFormatConverter *converter = osync_conf_find_converter_objformat(env, sourceformat, targetformat);
-	if (!converter)
-		return FALSE;
-	return osync_converter_invoke(converter, change);
-}
-#endif
-
-osync_bool osync_conv_detect_and_convert(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets)
+osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata)
 {
 	g_assert(change);
-	g_assert(targets);
+	g_assert(target_fn);
 	OSyncObjFormat *source = change->format;
 	osync_assert(source, "Cannot convert! change has no objformat!");
 	GList *path = NULL;
+	osync_bool ret = TRUE;
 
-	if (osync_conv_fmt_in_list(source, targets))
-		return TRUE;
+	/* Optimization: check if the format is already valid */
+	if (target_fn(fndata, source))
+		goto out;
 
-	if (!osync_conv_find_change_path(env, change, targets, &path))
-		return FALSE;
+	ret = FALSE;
+	if (!osync_conv_find_path_fn(env, change, target_fn, fndata, &path))
+		goto out;
 
 	for (; path; path = path->next) {
 		OSyncFormatConverter *converter = path->data;
 		if (!osync_converter_invoke(converter, change))
-			return FALSE;
+			goto out_free_path;
 	}
 
-	return TRUE;
+	ret = TRUE;
+
+out_free_path:
+	g_list_free(path);
+out:
+	return ret;
+}
+
+/** Function used on path searchs for a format list
+ *
+ * @see osync_conv_find_path_fn(), osync_conv_convert_fmtlist()
+ */
+static osync_bool target_fn_fmtlist(const void *data, OSyncObjFormat *fmt)
+{
+	const GList/*OSyncObjFormat * */ *l = data;
+	const GList *i;
+	for (i = l; i; i = i->next) {
+		OSyncObjFormat *f = i->data;
+		if (!strcmp(fmt->name, f->name))
+			return TRUE;
+	}
+	/* else */
+	return FALSE;
+}
+
+/** Convert a change to the nearest format on a list of formats
+ */
+osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets)
+{
+	return osync_conv_convert_fn(env, change, target_fn_fmtlist, targets);
+}
+
+osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist)
+{
+	return osync_conv_find_path_fn(env, start, target_fn_fmtlist, targets, retlist);
+}
+
+/** Function used on a path search for a format name array
+ *
+ * @see osync_conv_find_path_fn(), osync_conv_convert_fmtnames()
+ */
+static osync_bool target_fn_fmtnames(const void *data, OSyncObjFormat *fmt)
+{
+	const char * const *list = data;
+	const char * const *i;
+	for (i = list; *i; i++) {
+		if (!strcmp(fmt->name, *i))
+			/* Found */
+			return TRUE;
+	}
+
+	/* Not found */
+	return FALSE;
+}
+
+/** Convert a change for the nearest format on a array of format names
+ *
+ * @param names A NULL-terminated array of format names
+ */
+osync_bool osync_conv_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **names)
+{
+	return osync_conv_convert_fn(env, change, target_fn_fmtnames, names);
+}
+
+/** Function used on path searchs for a single format
+ *
+ * @see osync_conv_find_path_fn(), osync_conv_convert_simple()
+ */
+static osync_bool target_fn_simple(const void *data, OSyncObjFormat *fmt)
+{
+	const OSyncObjFormat *target = data;
+	return target == fmt;
+}
+
+/** Convert a change to a specific format */
+osync_bool osync_conv_convert_simple(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *fmt)
+{
+	return osync_conv_convert_fn(env, change, target_fn_simple, fmt);
+}
+
+/** Function used on path searchs for a single format name
+ *
+ * @see osync_conv_find_path_fn(), osync_conv_convert_fmtname()
+ */
+static osync_bool target_fn_fmtname(const void *data, OSyncObjFormat *fmt)
+{
+	const char *name = data;
+	return !strcmp(name, fmt->name);
+}
+
+/** Convert a change to a specific format name */
+osync_bool osync_conv_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *fmtname)
+{
+	return osync_conv_convert_fn(env, change, target_fn_fmtname, fmtname);
+}
+
+/** Function used on path searchs for a sink on a member
+ *
+ * @see osync_conv_find_path_fn(), osync_conv_convert_member_sink()
+ */
+static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
+{
+	const OSyncMember *memb = data;
+	GList *i;
+	for (i = memb->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *sink = i->data;
+		if (sink->format == fmt)
+			return TRUE;
+	}
+
+	/* Not found */
+	return FALSE;
+}
+
+/** Convert a change to the nearest format sink on a member
+ */
+osync_bool osync_conv_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb)
+{
+	return osync_conv_convert_fn(env, change, target_fn_membersink, memb);
 }
 
 osync_bool osync_conv_objtype_is_any(const char *objstr)
@@ -1032,6 +1076,45 @@ osync_bool osync_conv_objtype_is_any(const char *objstr)
 	if (!strcmp(objstr, "data"))
 		return TRUE;
 	return FALSE;
+}
+
+/** Target function for osync_conv_detect_objtype() search
+ *
+ * Returns true if the objformat is not "data"
+ */
+osync_bool target_fn_no_any(const void *data, OSyncObjFormat *fmt)
+{
+	return !osync_conv_objtype_is_any(fmt->objtype->name);
+}
+
+/** Do 'data detection' on a "data" change
+ *
+ * Make a path search, until it reaches a format whose objtype
+ * is not "data".
+ */
+OSyncObjType *osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change)
+{
+	OSyncObjType *ret;
+	GList/* OSyncFormatConverter * */ *path;
+	if (!osync_conv_find_path_fn(env, change, target_fn_no_any, NULL, &path))
+		return NULL;
+
+	/* Get the objtype from the path:
+	 *
+	 * - If the path is empty (no conversion), get the objtype of the change itself
+	 * - If there is a path, return the target format of the last edge
+	 */
+	if (!path)
+		/* Emtpy path */
+		ret = change->format->objtype;
+	else {
+		/* Get the target objtype of the last converter */
+		OSyncFormatConverter *last_converter = g_list_last(path)->data;
+		g_assert(last_converter);
+		ret = last_converter->target_format->objtype;
+	}
+	g_list_free(path);
+	return ret;
 }
 
 void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func)
@@ -1043,26 +1126,3 @@ void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourcefo
 
 	env->data_detectors = g_list_append(env->data_detectors, detector);
 }
-
-
-#if 0
-osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size)
-{
-	GList *d = NULL;
-	const char *fmtname;
-	if (!change->has_data)
-		return FALSE;
-
-	fmtname = osync_change_get_objformat(change)->name;
-	for (d = env->data_detectors; d; d = d->next) {
-		OSyncDataDetector *detector = d->data;
-		if (!strcmp(detector->sourceformat, fmtname)) {
-			if (detector->detect_func(env, data, size)) {
-				change->objformats = g_list_prepend(change->objformats, osync_conv_find_objformat(env, detector->targetformat));
-				return TRUE;
-			}
-		}
-	}
-	return FALSE;
-}
-#endif

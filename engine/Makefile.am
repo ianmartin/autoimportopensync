@@ -24,5 +24,14 @@ libosengine_la_SOURCES = \
 	osengine_mapping.c \
 	osengine_flags.c
 
+EXTRA_DIST = \
+	engine_internals.h \
+	osengine_client_internals.h \
+	osengine_engine_internals.h \
+	osengine_flags_internals.h \
+	osengine_mapping_internals.h \
+	osengine_message_internals.h \
+	osengine_queue_internals.h
+
 libosengine_la_LDFLAGS = $(top_builddir)/src/libopensync.la
 libosengine_la_LIBADD = $(PACKAGE_LIBS)

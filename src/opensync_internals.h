@@ -6,8 +6,6 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist);
-
 #define osync_assert(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 

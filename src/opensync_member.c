@@ -457,20 +457,14 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		return;
 	}
 
-	GList *targets = NULL;
-	GList *i;
-	for (i = member->format_sinks; i; i = i->next) {
-		OSyncObjFormatSink *fmtsink = i->data;
-		targets = g_list_append(targets, fmtsink->format);
-	}
-	
-	if (!osync_conv_detect_and_convert(env, change, targets)) {
+	if (!osync_conv_convert_member_sink(env, change, member)) {
 		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
 		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
 		return;
 	}
 
 	/*FIXME: use a sane interface to return the frmtsink to be used */
+	GList *i;
 	for (i = member->format_sinks; i; i = i->next) {
 		OSyncObjFormatSink *fmtsink = i->data;
 		if (!fmtsink->objtype_sink->enabled) {
@@ -524,9 +518,7 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
 		format_sink = g_list_nth_data(objtype_sink->formatsinks, selected);
 		/*FIXME: use multiple sinks, or what? */
-		GList *targets = g_list_append(NULL, format_sink->format);
-		osync_bool r = osync_conv_detect_and_convert(env, change, targets);
-		g_list_free(targets);
+		osync_bool r = osync_conv_convert_simple(env, change, format_sink->format);
 		if (!r)
 			continue; //Unable to convert to selected format
 
