@@ -16,16 +16,18 @@ static void usage (char *name, int ecode)
 	fprintf (stderr, "[--hash <memberid>] \tDump hash table for member id\n");
 	fprintf (stderr, "[--unmapped] \tAlso dumps changes which are unmapped\n");
 	fprintf (stderr, "[--configdir] \tSet a different configdir then ~./opensync\n");
+	fprintf (stderr, "[--reset] \tReset the database for this group\n");
 	exit(ecode);
 }
 
 typedef enum  {
 	DUMPMAPS = 1,
 	DUMPHASH = 2,
-	DUMPUNMAPPED = 3
+	DUMPUNMAPPED = 3,
+	RESET = 4
 } ToolAction;
 
-void dump_map(OSyncEnv *osync, char *groupname)
+static void dump_map(OSyncEnv *osync, char *groupname)
 {
 	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
@@ -62,7 +64,7 @@ void dump_map(OSyncEnv *osync, char *groupname)
 	osync_changes_close(group);
 }
 
-void dump_unmapped(OSyncEnv *osync, char *groupname)
+static void dump_unmapped(OSyncEnv *osync, char *groupname)
 {
 	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
@@ -78,16 +80,15 @@ void dump_unmapped(OSyncEnv *osync, char *groupname)
 	sqlite3 *sdb = db->db;
 	
 	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes", -1, &ppStmt, NULL);
+	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid FROM tbl_changes WHERE mappingid=0", -1, &ppStmt, NULL);
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		long long int entryid = sqlite3_column_int64(ppStmt, 0);
 		char *uid = g_strdup(sqlite3_column_text(ppStmt, 1));
 		char *objtype = g_strdup(sqlite3_column_text(ppStmt, 2));
 		char *objformat = g_strdup(sqlite3_column_text(ppStmt, 3));
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
-		long long int mappingid = sqlite3_column_int64(ppStmt, 5);
 		
-    	printf("ID: %lli UID: %s MEMBER: %lli, TYPE %s, FORMAT %s, MAPPING %lli\n", entryid, uid, memberid, objtype, objformat, mappingid);
+    	printf("ID: %lli UID: %s MEMBER: %lli, TYPE %s, FORMAT %s\n", entryid, uid, memberid, objtype, objformat);
 	}
 	sqlite3_finalize(ppStmt);
 	
@@ -122,7 +123,7 @@ void dump_unmapped(OSyncEnv *osync, char *groupname)
     osync_db_close(entrytable);*/
 }
 
-void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
+static void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
 {
 	long long int id = atoi(memberid);
 	OSyncGroup *group = osync_env_find_group(osync, groupname);
@@ -155,6 +156,18 @@ void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
 	osync_db_close_hashtable(table);
 }
 
+static void reset(OSyncEnv *osync, char *groupname)
+{
+	OSyncGroup *group = osync_env_find_group(osync, groupname);
+	
+	if (!group) {
+		printf("Unable to find group with name \"%s\"\n", groupname);
+		return;
+	}
+	
+	osync_group_reset(group);
+}
+
 int main (int argc, char *argv[])
 {
 	int i;
@@ -177,6 +190,8 @@ int main (int argc, char *argv[])
 			i++;
 			if (!membername)
 				usage (argv[0], 1);
+		} else if (!strcmp (arg, "--reset")) {
+			action = RESET;
 		} else if (!strcmp (arg, "--unmapped")) {
 			action = DUMPUNMAPPED;
 		} else if (!strcmp (arg, "--help")) {
@@ -214,6 +229,9 @@ int main (int argc, char *argv[])
 			break;
 		case DUMPUNMAPPED:
 			dump_unmapped(osync, groupname);
+			break;
+		case RESET:
+			reset(osync, groupname);
 			break;
 		default:
 			printf("error\n");

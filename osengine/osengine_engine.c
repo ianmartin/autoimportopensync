@@ -150,7 +150,7 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	osync_change_set_member(change, client->member);
 	OSyncMappingEntry *entry = osengine_mappingtable_store_change(engine->maptable, change);
 	change = entry->change;
-	if (!osync_change_save(change, &error)) {
+	if (!osync_change_save(change, TRUE, &error)) {
 		//FIXME Notify user
 		osync_trace(TRACE_EXIT_ERROR, "_new_change_receiver");
 		return;
@@ -211,7 +211,7 @@ void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OS
 		osync_status_update_change(engine, entry->change, CHANGE_RECEIVED, NULL);
 	}
 	
-	osync_change_save(entry->change, NULL);
+	osync_change_save(entry->change, TRUE, NULL);
 	osengine_mappingentry_decider(engine, entry);
 	osync_trace(TRACE_EXIT, "_get_change_data_reply_receiver");
 }
@@ -238,7 +238,8 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_flag_set(entry->fl_synced);
 	}
 	
-	osync_change_save(entry->change, NULL);
+	OSyncError *error = NULL;
+	osync_change_save(entry->change, TRUE, &error);
 	if (osync_change_get_changetype(entry->change) == CHANGE_DELETED)
 		osync_flag_set(entry->fl_deleted);
 	

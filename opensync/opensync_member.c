@@ -516,22 +516,17 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 		return;
 	}
 
-	if (change->changetype != CHANGE_DELETED) {
-		/* Normal changes should be converted. CHANGE_DELETED
-		 * changes should come with the right objformat/objtype set,
-		 * because not detection/conversion will be run
-		 */
-		OSyncError *error = NULL;
-		if (!osync_change_convert_member_sink(env, change, member, &error)) {
-			osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
-			osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
-			osync_error_free(&error);
-			return;
-		}
-		//The destobjtype is the objtype of the format to which
-		//the change was just converted
-		change->destobjtype = g_strdup(osync_change_get_objtype(change)->name);
+
+	OSyncError *error = NULL;
+	if (!osync_change_convert_member_sink(env, change, member, &error)) {
+		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
+		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+		osync_error_free(&error);
+		return;
 	}
+	//The destobjtype is the objtype of the format to which
+	//the change was just converted
+	change->destobjtype = g_strdup(osync_change_get_objtype(change)->name);
 	
 	//Filter the change.
 	if (!osync_filter_change_allowed(member, change)) {
@@ -543,16 +538,18 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	//search for the right formatsink, now that
 	//the change was converted
 	GList *i;
+	osync_debug("OSYNC", 2, "Searching for sink");
 	for (i = member->format_sinks; i; i = i->next) {
 		OSyncObjFormatSink *fmtsink = i->data;
-		if (!fmtsink->objtype_sink->enabled) {
+		/*if (!fmtsink->objtype_sink->enabled) {
 			osync_context_report_success(context);
 			return;
-		}
+		}*/
+		osync_debug("OSYNC", 2, "Comparing change %s with sink %s", osync_change_get_objformat(change)->name, fmtsink->format ? fmtsink->format->name : "None");
 		if (fmtsink->format == osync_change_get_objformat(change)) {
 			// Send the change
 			fmtsink->functions.commit_change(context, change);
-			break;
+			return;
 		}
 	}
 

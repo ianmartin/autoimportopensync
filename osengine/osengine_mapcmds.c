@@ -75,7 +75,7 @@ static OSyncMappingEntry *_osync_change_clone(OSyncEngine *engine, OSyncMapping 
 	osync_flag_set(newentry->fl_has_info);
 	osync_flag_set(newentry->fl_dirty);
 	osync_flag_unset(newentry->fl_synced);
-	osync_change_save(newentry->change, NULL);
+	osync_change_save(newentry->change, TRUE, NULL);
 	return newentry;
 }
 
@@ -88,7 +88,7 @@ static osync_bool _osync_change_elevate(OSyncEngine *engine, OSyncChange *change
 			return FALSE;
 	}
 	osync_debug("MAP", 3, "change after being elevated %s (%p)", osync_change_get_uid(change), change);
-	osync_change_save(change, NULL);
+	osync_change_save(change, TRUE, NULL);
 	return TRUE;
 }
 
@@ -161,7 +161,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 			osync_flag_set(entry->fl_mapped);
 			osync_flag_set(entry->fl_has_info);
 			osync_flag_unset(entry->fl_synced);
-			osync_change_save(entry->change, NULL);
+			osync_change_save(entry->change, TRUE, NULL);
 		}
 	}
 	
@@ -277,14 +277,14 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 			new_entry = _osync_change_clone(engine, new_mapping, first_diff_entry);
 			_osync_change_elevate(engine, new_entry->change, elevation);
 			osengine_mappingentry_update(orig_entry, next_entry->change);
-			osync_change_save(next_entry->change, NULL);
+			osync_change_save(next_entry->change, TRUE, NULL);
 		}
 		osengine_mapping_remove_entry(dupe_mapping, first_diff_entry);
 		new_mapping->master = first_diff_entry;
 		osengine_mapping_add_entry(new_mapping, first_diff_entry);
 		osync_change_set_changetype(first_diff_entry->change, CHANGE_ADDED);
 		osync_flag_set(first_diff_entry->fl_dirty);
-		osync_change_save(first_diff_entry->change, NULL);
+		osync_change_save(first_diff_entry->change, TRUE, NULL);
 		send_mapping_changed(engine, new_mapping);
 	}
 	
@@ -340,7 +340,7 @@ void osengine_change_map(OSyncEngine *engine, OSyncMappingEntry *entry)
 	}
 	osengine_mapping_add_entry(mapping, entry);
 	osync_flag_set(entry->fl_mapped);
-	osync_change_save(entry->change, NULL);
+	osync_change_save(entry->change, FALSE, NULL);
 	osync_trace(TRACE_EXIT, "osengine_change_map");
 }
 

@@ -490,9 +490,17 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	/* Optimization: check if the format is already valid */
 	if (target_fn(fndata, source)) {
 		osync_trace(TRACE_EXIT, "osync_conv_convert_fn: Target already valid");
-		goto out;
+		return TRUE;
 	}
 
+	//We can convert the deleted change directly since it has no data
+	if (change->changetype == CHANGE_DELETED) {
+		change->format = osync_change_get_initial_objformat(change);
+		change->objtype = osync_change_get_objformat(change)->objtype;
+		osync_trace(TRACE_EXIT, "osync_conv_convert_fn: converted deleted change");
+		return TRUE;
+	}
+	
 	ret = FALSE;
 	if (!osync_conv_find_path_fn(env, change, target_fn, fndata, &path)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a conversion path to the format requested");
@@ -542,7 +550,6 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 			converter->fin_func(converter_data);
 		
 	}
-
 	ret = TRUE;
 
 	osync_trace(TRACE_EXIT, "osync_conv_convert_fn: TRUE");

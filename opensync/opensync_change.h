@@ -32,7 +32,7 @@ osync_bool osync_change_has_data(OSyncChange *change);
 void osync_change_free(OSyncChange *change);
 void osync_change_reset(OSyncChange *change);
 char *osync_change_get_printable(OSyncChange *change);
-osync_bool osync_change_save(OSyncChange *change, OSyncError **error);
+osync_bool osync_change_save(OSyncChange *change, osync_bool save_format, OSyncError **error);
 osync_bool osync_change_delete(OSyncChange *change, OSyncError **error);
 osync_bool osync_changes_load(OSyncGroup *group, OSyncChange ***changes, OSyncError **error);
 void osync_changes_close(OSyncGroup *group);
