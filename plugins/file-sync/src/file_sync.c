@@ -156,6 +156,7 @@ static void fs_connect(OSyncContext *ctx)
 		osync_member_set_slow_sync(fsinfo->member, "data", TRUE);
 	
 	GError *direrror = NULL;
+
 	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
 	if (direrror) {
 		//Unable to open directory
@@ -171,6 +172,78 @@ static char *fs_generate_hash(fs_fileinfo *info)
 {
 	char *hash = g_strdup_printf("%i-%i", (int)info->filestats.st_mtime, (int)info->filestats.st_ctime);
 	return hash;
+}
+
+/** Report files on a directory
+ *
+ * NOTE: If 'dir' is non-empty it MUST start it a slash. This is just
+ * to make easier concatenation of the paths, and we can just concatenate
+ * fsinfo->path and subdir to get the complete path.
+ *
+ * @param dir The fsinfo->path subdirectory that should be reported. Use
+ *            an empty string to report files on fsinfo->path. Should
+ *            start with a slash. See note above.
+ *
+ */
+static void fs_report_dir(filesyncinfo *fsinfo, const gchar *subdir, OSyncContext *ctx)
+{
+	const gchar *de = NULL;
+	gchar *path = g_strdup_printf("%s%s", fsinfo->path, subdir);
+	GDir *dir;
+	GError *error = NULL;
+
+	osync_debug("FILE-SYNC", 4, "fs_report_dir start: [%s] / [%s]", fsinfo->path, subdir);
+
+	dir = g_dir_open(path, 0, &error);
+	if (!dir || error)
+		/*FIXME: Permission errors may make files to be reported as deleted.
+		 * Make fs_report_dir() able to report errors
+		 */
+		return;
+
+	while ((de = g_dir_read_name(dir))) {
+		gchar *filename = g_strdup_printf ("%s/%s", path, de);
+		gchar *relative_filename = g_strdup_printf("%s/%s", subdir, de);
+
+
+		/* Recurse into subdirectories */
+		if (g_file_test(filename, G_FILE_TEST_IS_DIR))
+			fs_report_dir(fsinfo, relative_filename, ctx);
+
+		/* Report normal files */
+		if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+
+			OSyncChange *change = osync_change_new();
+			osync_change_set_member(change, fsinfo->member);
+			/* Small trick here: the relative names will always have a '/'
+			 * as the first char, so remove it using relative_filename+1
+			 */
+			osync_change_set_uid(change, relative_filename+1);
+
+			osync_change_set_objformat_string(change, "file");
+			
+			fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
+			stat(filename, &info->filestats);
+			
+			char *hash = fs_generate_hash(info);
+			osync_change_set_hash(change, hash);
+			
+			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
+
+			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
+				osync_context_report_change(ctx, change);
+				osync_hashtable_update_hash(fsinfo->hashtable, change);
+			}
+			g_free(hash);
+		}
+
+		g_free(relative_filename);
+		g_free(filename);
+	}
+	g_dir_close(dir);
+
+	osync_debug("FILE-SYNC", 4, "fs_report_dir end: [%s] / [%s]", fsinfo->path, subdir);
+	g_free(path);
 }
 
 static void fs_get_changeinfo(OSyncContext *ctx)
@@ -195,35 +268,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	}
 
 	if (fsinfo->dir) {
-		const gchar *de = NULL;
-		while ((de = g_dir_read_name(fsinfo->dir))) {
-			char *filename = g_strdup_printf ("%s/%s", fsinfo->path, de);
-
-			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR))
-				continue;
-
-			OSyncChange *change = osync_change_new();
-			osync_change_set_member(change, fsinfo->member);
-			osync_change_set_uid(change, de);
-
-			osync_change_set_objformat_string(change, "file");
-			
-			fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
-			stat(filename, &info->filestats);
-			
-			char *hash = fs_generate_hash(info);
-			osync_change_set_hash(change, hash);
-			
-			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
-
-			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
-				osync_context_report_change(ctx, change);
-				osync_hashtable_update_hash(fsinfo->hashtable, change);
-			}
-
-			g_free(hash);
-			g_free(filename);
-		}
+		fs_report_dir(fsinfo, "", ctx);
 		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, "data");
 	}
 	osync_context_report_success(ctx);
@@ -263,6 +308,7 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 
 static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 {
+	/*TODO: Create directory for file, if it doesn't exist */
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
