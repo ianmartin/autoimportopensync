@@ -1,5 +1,5 @@
 libdir=@ac_workaround_abs_builddir@
-includedir=@ac_workaround_abs_srcdir@/osengine
+includedir=@ac_workaround_abs_srcdir@
 
 Name: osengine
 Description: OpenSync sync engine (uninstalled version)
