@@ -34,21 +34,6 @@ AC_SUBST(OPENSYNC_PLUGINDIR)
 AC_SUBST(OPENSYNC_FORMATSDIR)
 AC_SUBST(OPENSYNC_HEADERDIR)
 
-AC_ARG_ENABLE(stress-tests,               [  --enable-stress-tests     enable support for stress testing],STRESS_TEST=$enableval)
-if test "x${STRESS_TEST}" = "xyes"; then
-	AC_DEFINE(STRESS_TEST,1,[Stress Testing])
-fi
-
-AC_ARG_ENABLE(crash-tests,               [  --enable-crash-tests     enable support for crash testing],CRASH_TEST=$enableval)
-if test "x${CRASH_TEST}" = "xyes"; then
-	AC_DEFINE(CRASH_TEST,1,[Crash Testing])
-fi
-
-AC_ARG_ENABLE(error-tests,               [  --enable-error-tests     enable support for error testing],ERROR_TEST=$enableval)
-if test "x${ERROR_TEST}" = "xyes"; then
-	AC_DEFINE(ERROR_TEST,1,[Error Testing])
-fi
-
 AC_CHECK_HEADER(fam.h,HAVE_FAM=1,HAVE_FAM=0)
 AM_CONDITIONAL(ENABLE_FAM, test x$HAVE_FAM = x1)
 AC_SUBST(HAVE_FAM)
@@ -72,23 +57,6 @@ else
 	echo "No sync alerts are supported."
 	echo "To enable sync alerts you must"
 	echo "have libfam-dev installed."
-fi
-echo ""
-echo "Settings:"
-if test "x${STRESS_TEST}" = "xyes"; then
-	echo "Stress Tests:		Enabled"
-else
-	echo "Stress Tests:		Disabled"
-fi
-if test "x${ERROR_TEST}" = "xyes"; then
-	echo "Error Tests:		Enabled"
-else
-	echo "Error Tests:		Disabled"
-fi
-if test "x${CRASH_TEST}" = "xyes"; then
-	echo "Crash Tests:		Enabled"
-else
-	echo "Crash Tests:		Disabled"
 fi
 echo ""
 echo "Plugin will be installed in ${OPENSYNC_PLUGINDIR}"

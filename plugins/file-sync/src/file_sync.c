@@ -21,32 +21,6 @@
 #include "file_sync.h"
 #include <stdlib.h>
 
-#ifdef ERROR_TEST
-static osync_bool fs_get_error(OSyncMember *member, const char *domain)
-{
-	osync_debug("FILE-SYNC", 4, "checking error domain %s", domain);
-	const char *env = g_getenv(domain);
-	if (!env)
-		return FALSE;
-	
-	int num = atoi(env);
-	int mask = 1 << (osync_member_get_id(member) - 1);
-	osync_debug("FILE-SYNC", 2, "returning \"%s\" for error domain %s", (num & mask) ? "TRUE" : "FALSE", domain);
-	if (num & mask) {
-		char *chancestr = g_strdup_printf("%s_PROB", domain);
-		const char *chance = g_getenv(chancestr);
-		g_free(chancestr);
-		if (!chance)
-			return TRUE;
-		int prob = atoi(chance);
-		if (prob >= g_random_int_range(0, 100))
-			return TRUE;
-		osync_debug("FILE-SYNC", 2, "returning \"FALSE\" for error domain %s", domain);
-	}
-	return FALSE;
-}
-#endif
-
 #ifdef HAVE_FAM
 static gboolean _fam_prepare(GSource *source, gint *timeout_)
 {
@@ -91,12 +65,7 @@ static void fam_setup(filesyncinfo *fsinfo, GMainContext *context)
 static void *fs_initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-#ifdef ERROR_TEST
-	if (fs_get_error(member, "INIT_NULL")) {
-		osync_error_set(error, OSYNC_ERROR_EXPECTED, "Triggering INIT_NULL error");
-		return NULL;
-	}
-#endif
+
 	char *configdata;
 	int configsize;
 	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
@@ -140,15 +109,6 @@ static void fs_connect(OSyncContext *ctx)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-
-#ifdef ERROR_TEST
-	if (fs_get_error(fsinfo->member, "CONNECT_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering CONNECT_ERROR error");
-		return;
-	}
-	if (fs_get_error(fsinfo->member, "CONNECT_TIMEOUT"))
-		return;
-#endif
 
 	OSyncError *error = NULL;
 	if (!osync_hashtable_load(fsinfo->hashtable, fsinfo->member, &error)) {
@@ -260,17 +220,6 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	
-#ifdef ERROR_TEST
-	if (fs_get_error(fsinfo->member, "GET_CHANGES_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_CHANGES_ERROR error");
-		return;
-	}
-	if (fs_get_error(fsinfo->member, "GET_CHANGES_TIMEOUT"))
-		return;
-	if (fs_get_error(fsinfo->member, "GET_CHANGES_TIMEOUT2"))
-		sleep(8);
-#endif
-	
 	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
 		osync_debug("FILE-SYNC", 3, "Slow sync requested");
 		osync_hashtable_set_slow_sync(fsinfo->hashtable, "data");
@@ -291,15 +240,6 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
 	
-#ifdef ERROR_TEST
-	if (fs_get_error(fsinfo->member, "GET_DATA_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_DATA_ERROR error");
-		return;
-	}
-	if (fs_get_error(fsinfo->member, "GET_DATA_TIMEOUT"))
-		return;
-#endif
-
 	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
 	OSyncError *error = NULL;
 	if (!osync_file_read(filename, &file_info->data, &file_info->size, &error)) {
@@ -394,15 +334,6 @@ static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	
-#ifdef ERROR_TEST
-	if (fs_get_error(fsinfo->member, "COMMIT_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering COMMIT_ERROR error");
-		return FALSE;
-	}
-	if (fs_get_error(fsinfo->member, "COMMIT_TIMEOUT"))
-		return FALSE;
-#endif
-	
 	if (!fs_access(ctx, change))
 		return FALSE;
 
@@ -416,15 +347,6 @@ static void fs_sync_done(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	
-#ifdef ERROR_TEST
-	if (fs_get_error(fsinfo->member, "SYNC_DONE_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering SYNC_DONE_ERROR error");
-		return;
-	}
-	if (fs_get_error(fsinfo->member, "SYNC_DONE_TIMEOUT"))
-		return;
-#endif
-	
 	//osync_hashtable_forget(fsinfo->hashtable);
 	osync_anchor_update(fsinfo->member, "path", fsinfo->path);
 	osync_context_report_success(ctx);
@@ -435,15 +357,6 @@ static void fs_disconnect(OSyncContext *ctx)
 {
 	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	
-#ifdef ERROR_TEST
-	if (fs_get_error(fsinfo->member, "DISCONNECT_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering DISCONNECT_ERROR error");
-		return;
-	}
-	if (fs_get_error(fsinfo->member, "DISCONNECT_TIMEOUT"))
-		return;
-#endif
 	
 	g_dir_close(fsinfo->dir);
 	osync_hashtable_close(fsinfo->hashtable);
@@ -464,31 +377,6 @@ static void fs_finalize(void *data)
 	g_free(fsinfo->path);
 	g_free(fsinfo);
 }
-
-#ifdef ERROR_TEST
-static osync_bool fs_is_available(OSyncError **error)
-{
-	if (g_getenv("IS_NOT_AVAILABLE")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "file-sync plugin is not available");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-static void fs_batch_commit(void *data, OSyncContext **contexts, OSyncChange **changes)
-{
-	filesyncinfo *env = (filesyncinfo *)data;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, contexts, changes);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-static void fs_committed_all(void *data)
-{
-	filesyncinfo *env = (filesyncinfo *)data;
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-#endif
 
 void get_info(OSyncPluginInfo *info)
 {
@@ -511,25 +399,5 @@ void get_info(OSyncPluginInfo *info)
 	osync_plugin_set_commit_objformat(info, "data", "file", fs_commit_change);
 	osync_plugin_set_access_objformat(info, "data", "file", fs_access);
 	osync_plugin_set_read_objformat(info, "data", "file", fs_read);
-
-#ifdef ERROR_TEST
-	//Lets reduce the timeouts a bit so the checks work faster
-	info->timeouts.disconnect_timeout = 5;
-	info->timeouts.connect_timeout = 5;
-	info->timeouts.sync_done_timeout = 5;
-	info->timeouts.get_changeinfo_timeout = 5;
-	info->timeouts.get_data_timeout = 5;
-	info->timeouts.commit_timeout = 5;
-	
-	if (g_getenv("IS_AVAILABLE"))
-		info->functions.is_available = fs_is_available;
-	
-	if (g_getenv("BATCH_COMMIT1"))
-		osync_plugin_set_batch_commit_objformat(info, "data", "file", fs_batch_commit);
-		
-	if (g_getenv("BATCH_COMMIT2"))
-		osync_plugin_set_committed_all_objformat(info, "data", "file", fs_committed_all);
-#endif
-	
 
 }
