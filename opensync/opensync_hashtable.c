@@ -88,10 +88,12 @@ osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, c
 
 void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, change);
 	osync_hashtable_assert_loaded(table);
 	osync_assert(change, "Change was NULL. Bug in a plugin");
 	osync_assert(change->uid, "No uid was set on change. Bug in a plugin");
 
+	osync_trace(TRACE_INTERNAL, "Updating hashtable with hash \"%s\" and changetype %i", change->hash, osync_change_get_changetype(change));
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 		case CHANGE_ADDED:
@@ -103,6 +105,8 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 		default:
 			g_assert_not_reached();
 	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context, const char *objtype)
@@ -114,11 +118,14 @@ void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context
 
 osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, change);
 	osync_hashtable_assert_loaded(table);
 	osync_bool retval = FALSE;
 
 	char *hash = NULL;
 	osync_db_get_hash(table, change->uid, &hash);
+	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash, change->hash);
+	
 	if (hash) {
 		if (strcmp(hash, change->hash) == 0) {
 			change->changetype = CHANGE_UNMODIFIED;
@@ -133,6 +140,7 @@ osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *cha
 	}
 
 	g_hash_table_insert(table->used_entries, change->uid, (void *)1);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval ? "TRUE" : "FALSE");
 	return retval;
 }
 
