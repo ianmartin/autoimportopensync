@@ -55,8 +55,8 @@ END_TEST
 START_TEST (conv_env_add_format)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  OSyncObjFormat *format = osync_conv_register_objformat(type, "fmt_test");
+  osync_conv_register_objtype(env, "test");
+  OSyncObjFormat *format = osync_conv_register_objformat(env, "test", "fmt_test");
   fail_unless(format != NULL, "format == NULL");
   OSyncObjFormat *format1 = osync_conv_find_objformat(env, "fmt_test");
   fail_unless(format == format1, "format != format1 by find");
@@ -67,8 +67,8 @@ END_TEST
 START_TEST (conv_env_set_format)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test");
+  osync_conv_register_objtype(env, "test");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test");
 
   OSyncChange *change = osync_change_new();
   osync_change_set_objformat(change, format1);
@@ -83,9 +83,9 @@ START_TEST (conv_env_set_format_string)
   OSyncEnv *osenv = osync_env_new();
   OSyncGroup *group = osync_group_new(osenv);
   mark_point();
-  OSyncObjType *type = osync_conv_register_objtype(group->conv_env, "test");
+  osync_conv_register_objtype(group->conv_env, "test");
   mark_point();
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(group->conv_env, "test", "fmt_test");
   
   mark_point();
   OSyncMember *member = osync_member_new(group);
@@ -103,9 +103,9 @@ END_TEST
 START_TEST (conv_env_append_format)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "fmt_test2");
+  osync_conv_register_objtype(env, "test");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "test", "fmt_test2");
 
   OSyncChange *change = osync_change_new();
   osync_change_set_objformat(change, format1);
@@ -127,9 +127,9 @@ static osync_bool dummyconvert(const char *input, int inpsize, char **output, in
 START_TEST (conv_env_add_converter_resolve_later)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  osync_conv_register_objformat(type, "fmt_test1");
-  osync_conv_register_objformat(type, "fmt_test2");
+  osync_conv_register_objtype(env, "test");
+  osync_conv_register_objformat(env, "test", "fmt_test1");
+  osync_conv_register_objformat(env, "test", "fmt_test2");
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);  
   osync_conv_register_converter(env, CONVERTER_ENCAP, "fmt_test2", "fmt_test3", dummyconvert);  
   osync_conv_register_converter(env, CONVERTER_DESENCAP, "fmt_test3", "fmt_test2", dummyconvert);  
@@ -152,7 +152,7 @@ START_TEST (conv_env_add_converter_resolve_later)
   /* Check the unresolved list */
   fail_unless(g_list_length(env->unresolved_converters) == 2, NULL);
 
-  osync_conv_register_objformat(type, "fmt_test3");
+  osync_conv_register_objformat(env, "test", "fmt_test3");
 
   /* All converters should be resolved, now */
   fail_unless(g_list_length(env->unresolved_converters) == 0, NULL);
@@ -180,9 +180,9 @@ END_TEST
 START_TEST (conv_env_add_converter_unresolved)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  osync_conv_register_objformat(type, "fmt_test1");
-  osync_conv_register_objformat(type, "fmt_test3");
+  osync_conv_register_objtype(env, "test");
+  osync_conv_register_objformat(env, "test", "fmt_test1");
+  osync_conv_register_objformat(env, "test", "fmt_test3");
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
   OSyncFormatConverter *conv = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
   fail_unless(conv == NULL, "Converter should not be registered");
@@ -193,8 +193,8 @@ START_TEST (conv_env_osp_simple)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "fmt_test2");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test1");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "test", "fmt_test2");
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
   OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
   fail_unless(converter1 != NULL, NULL);
@@ -210,9 +210,9 @@ START_TEST (conv_env_osp_simple2)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
-  osync_conv_register_objformat(type, "fmt_test2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "fmt_test3");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test1");
+  osync_conv_register_objformat(env, "test", "fmt_test2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "test", "fmt_test3");
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test2", "fmt_test3", dummyconvert);
   OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
@@ -233,9 +233,9 @@ START_TEST (conv_env_osp_false)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
-  osync_conv_register_objformat(type, "fmt_test2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "fmt_test3");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test1");
+  osync_conv_register_objformat(env, "test", "fmt_test2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "test", "fmt_test3");
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test3", "fmt_test2", dummyconvert);
   mark_point();
@@ -250,10 +250,10 @@ START_TEST (conv_env_osp_2way)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
-  osync_conv_register_objformat(type, "fmt_test2");
-  osync_conv_register_objformat(type, "fmt_test3");
-  OSyncObjFormat *format4 = osync_conv_register_objformat(type, "fmt_test4");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test1");
+  osync_conv_register_objformat(env, "test", "fmt_test2");
+  osync_conv_register_objformat(env, "test", "fmt_test3");
+  OSyncObjFormat *format4 = osync_conv_register_objformat(env, "test", "fmt_test4");
 
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test2", "fmt_test4", dummyconvert);
@@ -277,10 +277,10 @@ START_TEST (conv_env_osp_circular_false)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
-  osync_conv_register_objformat(type, "fmt_test2");
-  osync_conv_register_objformat(type, "fmt_test3");
-  OSyncObjFormat *format4 = osync_conv_register_objformat(type, "fmt_test4");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "fmt_test1");
+  osync_conv_register_objformat(env, "test", "fmt_test2");
+  osync_conv_register_objformat(env, "test", "fmt_test3");
+  OSyncObjFormat *format4 = osync_conv_register_objformat(env, "test", "fmt_test4");
 
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
   osync_conv_register_converter(env, CONVERTER_CONV, "fmt_test2", "fmt_test3", dummyconvert);
@@ -298,14 +298,14 @@ START_TEST (conv_env_osp_complex)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "A");
-  osync_conv_register_objformat(type, "B");
-  osync_conv_register_objformat(type, "C");
-  osync_conv_register_objformat(type, "D");
-  osync_conv_register_objformat(type, "E");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "F");
-  osync_conv_register_objformat(type, "G");
-  osync_conv_register_objformat(type, "H");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "test", "A");
+  osync_conv_register_objformat(env, "test", "B");
+  osync_conv_register_objformat(env, "test", "C");
+  osync_conv_register_objformat(env, "test", "D");
+  osync_conv_register_objformat(env, "test", "E");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "test", "F");
+  osync_conv_register_objformat(env, "test", "G");
+  osync_conv_register_objformat(env, "test", "H");
 
   osync_conv_register_converter(env, CONVERTER_CONV, "A", "B", dummyconvert);
   osync_conv_register_converter(env, CONVERTER_CONV, "A", "C", dummyconvert);
@@ -379,9 +379,9 @@ START_TEST (conv_env_convert1)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "O1");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "F1");
-  osync_conv_register_objformat(type, "F2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "F3");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  osync_conv_register_objformat(env, "O1", "F2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "O1", "F3");
   osync_conv_register_converter(env, CONVERTER_CONV, "F1", "F2", convert_addtest);
   osync_conv_register_converter(env, CONVERTER_CONV, "F2", "F3", convert_addtest2);
   mark_point();
@@ -405,9 +405,9 @@ START_TEST (conv_env_convert_back)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "O1");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "F1");
-  osync_conv_register_objformat(type, "F2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "F3");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  osync_conv_register_objformat(env, "O1", "F2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "O1", "F3");
   osync_conv_register_converter(env, CONVERTER_CONV, "F1", "F2", convert_addtest);
   osync_conv_register_converter(env, CONVERTER_CONV, "F2", "F1", convert_remtest);
   osync_conv_register_converter(env, CONVERTER_CONV, "F2", "F3", convert_addtest2);
@@ -441,9 +441,9 @@ START_TEST (conv_env_convert_desenc)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "O1");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "F1");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "F2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "F3");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "O1", "F2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "O1", "F3");
   osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest);
   osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F1", convert_remtest);
   osync_conv_register_converter(env, CONVERTER_DESENCAP, "F2", "F3", convert_addtest2);
@@ -484,12 +484,12 @@ START_TEST (conv_env_convert_desenc_complex)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "O1");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "F1");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "F2");
-  osync_conv_register_objformat(type, "F3");
-  OSyncObjFormat *format4 = osync_conv_register_objformat(type, "F4");
-  OSyncObjFormat *format5 = osync_conv_register_objformat(type, "F5");
-  OSyncObjFormat *format6 = osync_conv_register_objformat(type, "F6");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "O1", "F2");
+  osync_conv_register_objformat(env, "O1", "F3");
+  OSyncObjFormat *format4 = osync_conv_register_objformat(env, "O1", "F4");
+  OSyncObjFormat *format5 = osync_conv_register_objformat(env, "O1", "F5");
+  OSyncObjFormat *format6 = osync_conv_register_objformat(env, "O1", "F6");
   osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest);
   osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F1", convert_remtest);
   osync_conv_register_converter(env, CONVERTER_DESENCAP, "F2", "F3", convert_addtest2);
@@ -558,10 +558,10 @@ START_TEST (conv_env_detect_and_convert)
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "O1");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "F1");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "F2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "F3");
-  OSyncObjFormat *format4 = osync_conv_register_objformat(type, "F4");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "O1", "F2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "O1", "F3");
+  OSyncObjFormat *format4 = osync_conv_register_objformat(env, "O1", "F4");
   osync_conv_format_set_detect_func(format1, detect_format1);
   osync_conv_format_set_detect_func(format2, detect_format2);
   
@@ -604,11 +604,11 @@ END_TEST
 START_TEST (conv_env_detect_false)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
-  OSyncObjType *type = osync_conv_register_objtype(env, "O1");
+  osync_conv_register_objtype(env, "O1");
   
-  OSyncObjFormat *format1 = osync_conv_register_objformat(type, "F1");
-  OSyncObjFormat *format2 = osync_conv_register_objformat(type, "F2");
-  OSyncObjFormat *format3 = osync_conv_register_objformat(type, "F3");
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  OSyncObjFormat *format2 = osync_conv_register_objformat(env, "O1", "F2");
+  OSyncObjFormat *format3 = osync_conv_register_objformat(env, "O1", "F3");
   osync_conv_format_set_detect_func(format1, detect_format1);
   osync_conv_format_set_detect_func(format2, detect_format1_no);
   

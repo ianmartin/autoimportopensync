@@ -1,7 +1,7 @@
 OSyncFormatEnv *osync_conv_env_new(void);
 OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name);
 OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name);
-OSyncObjFormat *osync_conv_register_objformat(OSyncObjType *type, const char *name);
+OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *type, const char *name);
 OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name);
 const char *osync_objtype_get_name(OSyncObjType *type);
 const char *osync_objformat_get_name(OSyncObjFormat *format);

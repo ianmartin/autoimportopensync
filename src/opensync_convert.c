@@ -248,20 +248,26 @@ OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 	return NULL;
 }
 
-OSyncObjFormat *osync_conv_register_objformat(OSyncObjType *type, const char *name)
+OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *typename, const char *name)
 {
+	OSyncObjType *type;
 	OSyncObjFormat *format = NULL;
-	if (!(format = osync_conv_find_objformat(type->env, name))) {
+
+	type = osync_conv_find_objtype(env, typename);
+	if (!type)
+		type = osync_conv_register_objtype(env, typename);
+
+	if (!(format = osync_conv_find_objformat(env, name))) {
 		format = g_malloc0(sizeof(OSyncObjFormat));
 		g_assert(format);
 		format->name = strdup(name);
 		format->objtype = type;
-		type->env->objformats = g_list_append(type->env->objformats, format);
+		env->objformats = g_list_append(env->objformats, format);
+		type->formats = g_list_append(type->formats, format);
 	}
-	type->formats = g_list_append(type->formats, format);
 
 	/* Some converters may resolve their format names, now */
-	osync_conv_resolve_converters(type->env);
+	osync_conv_resolve_converters(env);
 	return format;
 }
 

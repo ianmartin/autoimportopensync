@@ -8,7 +8,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 
 void get_info(OSyncFormatEnv *env)
 {
-	OSyncObjType *type = osync_conv_register_objtype(env, "todo");
-	OSyncObjFormat *format = osync_conv_register_objformat(type, "vtodo");
+	osync_conv_register_objtype(env, "todo");
+	OSyncObjFormat *format = osync_conv_register_objformat(env, "todo", "vtodo");
 	osync_conv_format_set_compare_func(format, compare_vtodo);
 }

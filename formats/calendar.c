@@ -8,7 +8,7 @@ static OSyncConvCmpResult compare_vcalendar(OSyncChange *leftchange, OSyncChange
 
 void get_info(OSyncFormatEnv *env)
 {
-	OSyncObjType *type = osync_conv_register_objtype(env, "calendar");
-	OSyncObjFormat *format = osync_conv_register_objformat(type, "vcalendar");
+	osync_conv_register_objtype(env, "calendar");
+	OSyncObjFormat *format = osync_conv_register_objformat(env, "calendar", "vcalendar");
 	osync_conv_format_set_compare_func(format, compare_vcalendar);
 }
