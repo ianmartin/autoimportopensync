@@ -42,6 +42,7 @@ extern "C"
 #include "osyncbase.h"
 #include "kaddrbook.h"
 #include "kcal.h"
+#include "knotes.h"
 
 
 static
@@ -73,7 +74,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
         KABC::AddressBook* addressbookptr;   
         KABC::Ticket* addressbookticket;
         QDateTime syncdate, newsyncdate;
+
         KCalDataSource *kcal;
+        KNotesDataSource *knotes;
 
         OSyncMember *member;
         OSyncHashTable *hashtable;
@@ -98,6 +101,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
             osync_hashtable_load(hashtable, member);
 
             kcal = new KCalDataSource(member, hashtable);
+            knotes = new KNotesDataSource(member, hashtable);
         }
         
         virtual ~KdePluginImplementation()
@@ -105,6 +109,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
             if (kcal) {
                 delete kcal;
                 kcal = NULL;
+            }
+            if (knotes) {
+                delete knotes;
+                knotes = NULL;
             }
             if (instance) {
                 delete instance;
@@ -145,6 +153,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
             if (kcal && !kcal->connect(ctx))
                 return;
+            if (knotes && !knotes->connect(ctx))
+                return;
             osync_context_report_success(ctx);
         }
 
@@ -155,6 +165,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             addressbookticket = NULL;
 
             if (kcal && !kcal->disconnect(ctx))
+                return;
+            if (knotes && !knotes->disconnect(ctx))
                 return;
             osync_context_report_success(ctx);
         }
@@ -231,6 +243,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 return;
 
             if (kcal && !kcal->get_changeinfo_todos(ctx))
+                return;
+
+            if (knotes && !knotes->get_changeinfo(ctx))
                 return;
 
             osync_context_report_success(ctx);
@@ -427,6 +442,28 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 return kcal->todo_commit_change(ctx, chg);
             else {
                 osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
+                return false;
+            }
+            return true;
+        }
+
+        virtual bool note_access(OSyncContext *ctx, OSyncChange *chg)
+        {
+            if (knotes)
+                return knotes->access(ctx, chg);
+            else {
+                osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No notes loaded");
+                return false;
+            }
+            return true;
+        }
+
+        virtual bool note_commit_change(OSyncContext *ctx, OSyncChange *chg)
+        {
+            if (knotes)
+                return knotes->commit_change(ctx, chg);
+            else {
+                osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No notes loaded");
                 return false;
             }
             return true;
