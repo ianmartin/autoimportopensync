@@ -143,6 +143,7 @@ formats/vformats-xml/Makefile
 engine/Makefile
 opensync-1.0.pc
 osengine-1.0.pc
+Doxyfile
 ])
 
 echo ""
