@@ -21,6 +21,12 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
+static void osync_hashtable_assert_loaded(OSyncHashTable *table)
+{
+	osync_assert(table, "You have to pass a valid hashtable to the call!");
+	osync_assert(table->dbhandle, "Hashtable not loaded yet. You have to load the hashtable first using osync_hashtable_load!");
+}
+
 OSyncHashTable *osync_hashtable_new(void)
 {
 	OSyncHashTable *table = g_malloc0(sizeof(OSyncHashTable));
@@ -48,6 +54,8 @@ osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member, OSyn
 
 void osync_hashtable_close(OSyncHashTable *table)
 {
+	osync_hashtable_assert_loaded(table);
+	
 	osync_hashtable_forget(table);
 	osync_db_close(table->dbhandle);
 }
@@ -55,8 +63,7 @@ void osync_hashtable_close(OSyncHashTable *table)
 
 int osync_hashtable_num_entries(OSyncHashTable *table)
 {
-	osync_assert(table, "No table was given");
-	osync_assert(table->dbhandle, "Table has no dbhandle. Did you open the hashtable already?");
+	osync_hashtable_assert_loaded(table);
 	
 	return osync_db_count(table->dbhandle, "SELECT count(*) FROM tbl_hash");
 }
@@ -64,8 +71,7 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
 //FIXME!!!
 osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash)
 {
-	osync_assert(table, "No table was given");
-	osync_assert(table->dbhandle, "Table has no dbhandle. Did you open the hashtable already?");
+	osync_hashtable_assert_loaded(table);
 	
 	sqlite3 *sdb = table->dbhandle->db;
 	
@@ -82,7 +88,7 @@ osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, c
 
 void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 {
-	osync_assert(table, "Table was NULL. Bug in a plugin");
+	osync_hashtable_assert_loaded(table);
 	osync_assert(change, "Change was NULL. Bug in a plugin");
 	osync_assert(change->uid, "No uid was set on change. Bug in a plugin");
 
@@ -101,11 +107,14 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 
 void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context, const char *objtype)
 {
+	osync_hashtable_assert_loaded(table);
+	
 	osync_db_report_hash(table, context, objtype);
 }
 
 osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change)
 {
+	osync_hashtable_assert_loaded(table);
 	osync_bool retval = FALSE;
 
 	char *hash = NULL;
@@ -129,5 +138,7 @@ osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *cha
 
 void osync_hashtable_set_slow_sync(OSyncHashTable *table, const char *objtype)
 {
+	osync_hashtable_assert_loaded(table);
+	
 	osync_db_reset_hash(table, objtype);
 }
