@@ -53,6 +53,7 @@ struct OSyncGroup {
 	GList *members;
 	gchar *configdir;
 	OSyncEnv *env;
+	DB_ENV *dbenv;
 	void *data;
 };
 

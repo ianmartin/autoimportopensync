@@ -1,9 +1,9 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-DB *osync_anchor_load_file(char *file)
+DB *osync_anchor_load_file(char *file, OSyncGroup *group)
 {
-	DB *dbhandle = osync_db_open(file, "Anchor", DB_BTREE);
+	DB *dbhandle = osync_db_open(file, "Anchor", DB_BTREE, group->dbenv);
 	return dbhandle;
 }
 
@@ -11,7 +11,7 @@ DB *osync_anchor_load(OSyncMember *member)
 {
 	g_assert(member);
 	char *filename = g_strdup_printf ("%s/anchor.db", member->configdir);
-	DB *dbhandle = osync_anchor_load_file(filename);
+	DB *dbhandle = osync_anchor_load_file(filename, member->group);
 	g_free(filename);
 	return dbhandle;
 }

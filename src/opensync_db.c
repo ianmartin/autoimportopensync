@@ -1,11 +1,45 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-DB *osync_db_open(char *filename, char *dbname, int type)
+DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
+{
+	DB_ENV *dbenv;
+	int ret;
+
+    if ((ret = db_env_create(&dbenv, 0)) != 0) {
+    	fprintf(errfp, "opensync: %s\n", db_strerror(ret));
+    	return (NULL);
+    }
+    dbenv->set_errfile(dbenv, errfp);
+    dbenv->set_errpfx(dbenv, "opensync");
+
+    if ((ret = dbenv->set_cachesize(dbenv, 0, 5 * 1024 * 1024, 0)) != 0) {
+    	dbenv->err(dbenv, ret, "set_cachesize");
+    	goto err;
+    }
+    
+    if ((ret = dbenv->set_data_dir(dbenv, "db")) != 0) {
+    	dbenv->err(dbenv, ret, "set_data_dir: db");
+    	goto err;
+    }
+
+    if ((ret = dbenv->open(dbenv, configdir, DB_CREATE | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | DB_RECOVER | DB_PRIVATE | DB_THREAD, 0)) != 0) {
+    	dbenv->err(dbenv, ret, "environment open: %s", configdir);
+    	goto err;
+    }
+
+    return (dbenv);
+
+    err:
+    	(void)dbenv->close(dbenv, 0);
+    	return (NULL);
+}
+
+DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 {
 	int ret;
 	DB *dbp;
-	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
+	if ((ret = db_create(&dbp, dbenv, 0)) != 0) {
 		printf("db_create: %s\n", db_strerror(ret));
 		return NULL;
 	}
@@ -62,13 +96,13 @@ void osync_db_sync(DB *dbp)
 	dbp->sync(dbp, 0);
 }
 
-DB *osync_db_open_secondary(DB *firstdb, char *filename, char *dbname, int (*callback)(DB *, const DBT *, const DBT *, DBT *))
+DB *osync_db_open_secondary(DB *firstdb, char *filename, char *dbname, int (*callback)(DB *, const DBT *, const DBT *, DBT *), DB_ENV *dbenv)
 {
 	DB *sdbp = NULL;
 	int ret;
 	int (*secfunc)(DB *, const DBT *, const DBT *, DBT *);
 	
-	if ((ret = db_create(&sdbp, NULL, 0)) != 0) {
+	if ((ret = db_create(&sdbp, dbenv, 0)) != 0) {
 		printf("sec_db_create: %s\n", db_strerror(ret));
 		return NULL;
 	}

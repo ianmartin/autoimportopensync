@@ -274,10 +274,10 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 	g_assert(table != NULL);
 	g_assert(table->db_path != NULL);
 	char *filename = g_strdup_printf("%s/change.db", table->db_path);
-	table->entrytable = osync_db_open(filename, NULL, DB_BTREE);
+	table->entrytable = osync_db_open(filename, NULL, DB_BTREE, table->group->dbenv);
 	g_free(filename);
 	filename = g_strdup_printf("%s/mapping.db", table->db_path);
-	table->maptable = osync_db_open_secondary(table->entrytable, filename, NULL, getmapid);
+	table->maptable = osync_db_open_secondary(table->entrytable, filename, NULL, getmapid, table->group->dbenv);
 	g_free(filename);
 	
 	g_assert(table->entrytable);

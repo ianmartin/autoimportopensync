@@ -8,11 +8,9 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 	char *filename = NULL;
 	
 	filename = g_strdup_printf("%s/group%i", osync_env_get_configdir(osinfo), g_random_int_range(1, 1000000));
-	//group->name = g_path_get_basename(filename);
 	group->configdir = filename;
 	group->env = osinfo;
 	osync_debug("OSGRP", 3, "Generated new group:");
-	//osync_debug("OSMEM", 3, "Name: %s", group->name);
 	osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
 	return group;
 }
@@ -45,6 +43,9 @@ void osync_group_save(OSyncGroup *group)
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_debug("OSGRP", 3, "Creating configdirectory %s", group->configdir);
 		mkdir(group->configdir, 0777);
+		char *dbdir = g_strdup_printf("%s/db", group->configdir);
+		mkdir(dbdir, 0777);
+		g_free(dbdir);
 	}
 	
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
@@ -122,6 +123,12 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 			osync_member_load(member);
 		}
 	}
+	char *dbdir = g_strdup_printf("%s/db", group->configdir);
+	char *logfile = g_strdup_printf("%s/group.log", dbdir);
+	FILE *log = fopen(logfile, "rw");
+	group->dbenv = osync_db_setup(dbdir, log);
+	g_free(dbdir);
+	g_free(logfile);
 	osync_env_append_group(env, group);
 	return group;
 }

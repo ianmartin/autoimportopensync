@@ -21,20 +21,6 @@ void osync_env_append_group(OSyncEnv *os_env, OSyncGroup *group)
 	os_env->groups = g_list_append(os_env->groups, group);
 }
 
-/*int osync_add_group(OSyncEnv *os_env, OSyncGroup *group)
-{
-	int index;
-	index = g_list_index(os_env->groups, group);
-	if (index == -1) {
-		index = g_list_length(os_env->groups);
-		_osync_append_group(os_env, group);
-		osync_debug("os_env", 3, "Appending group %s to list with index %i", osync_group_get_name(group), index);
-	} else {
-		osync_debug("os_env", 3, "Found group %s in list with index %i", osync_group_get_name(group), index);
-	}
-	return index;
-}*/
-
 osync_bool osync_init(OSyncEnv *os_env)
 {
 	

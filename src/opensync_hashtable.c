@@ -21,9 +21,9 @@ void osync_hashtable_forget(OSyncHashTable *table)
 	table->used_entries = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
-osync_bool osync_hashtable_load_file(OSyncHashTable *table, char *file)
+osync_bool osync_hashtable_load_file(OSyncHashTable *table, char *file, OSyncGroup *group)
 {
-	table->dbhandle = osync_db_open(file, "Hash", DB_BTREE);
+	table->dbhandle = osync_db_open(file, "Hash", DB_BTREE, group->dbenv);
 	g_assert(table->dbhandle);
 	return TRUE;
 }
@@ -32,7 +32,7 @@ osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member)
 {
 	g_assert(member != NULL);
 	char *filename = g_strdup_printf ("%s/hash.table", member->configdir);
-	osync_hashtable_load_file(table, filename);
+	osync_hashtable_load_file(table, filename, member->group);
 	g_free(filename);
 	return TRUE; //FIXME
 }
