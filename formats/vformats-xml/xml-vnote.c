@@ -151,6 +151,12 @@ static osync_bool conv_vnote_to_xml(const char *input, int inpsize, char **outpu
 	}
 	
 	*output = (char *)doc;
+	/*FIXME: this is not really the size of the data pointed by doc.
+	 * But this shouldn't cause problems, anyway, because this
+	 * size field should never be used for xml docs. Actually,
+	 * what needs fixing is the code that uses the size
+	 * field for changes with xml data.
+	 */
 	*outpsize = sizeof(doc);
 	return TRUE;
 }
@@ -312,8 +318,8 @@ static void destroy_xml(char *data, size_t size)
 
 void get_info(OSyncFormatEnv *env)
 {
-	osync_conv_register_objtype(env, "contact");
-	OSyncObjFormat *mxml = osync_conv_register_objformat(env, "contact", "xml-note");
+	osync_conv_register_objtype(env, "note");
+	OSyncObjFormat *mxml = osync_conv_register_objformat(env, "note", "xml-note");
 	
 	osync_conv_format_set_compare_func(mxml, compare_notes);
 	osync_conv_format_set_destroy_func(mxml, destroy_xml);

@@ -19,19 +19,23 @@ AC_PATH_KDE
 
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
 pkg_modules="opensync-1.0"
-PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
-AC_SUBST(PACKAGE_CFLAGS)
-AC_SUBST(PACKAGE_LIBS)
+PKG_CHECK_MODULES(OSYNC, [opensync-1.0])
+
+# Needed only because opensync-xml leaks libxml and glib
+PKG_CHECK_MODULES(XML, [libxml-2.0])
+PKG_CHECK_MODULES(GLIB, [glib-2.0])
 
 OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
 OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
 OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync-1.0)
 OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync-1.0)
+OPENSYNC_INCLUDEDIR=$(pkg-config --variable=includedir opensync-1.0)
 
 AC_SUBST(OPENSYNC_CONFIGDIR)
 AC_SUBST(OPENSYNC_PLUGINDIR)
 AC_SUBST(OPENSYNC_FORMATSDIR)
 AC_SUBST(OPENSYNC_HEADERDIR)
+AC_SUBST(OPENSYNC_INCLUDEDIR)
 
 ## AC_CHECK_HEADER(${$ac_kde_includes}/libkcal/resourcecalendar.h)
 
