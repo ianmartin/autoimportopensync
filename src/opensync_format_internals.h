@@ -3,6 +3,7 @@ struct OSyncFormatEnv {
 	GList *objformats;
 	GList *converters;
 	GList *data_detectors;
+	GList *unresolved_converters;
 	char *pluginpath;
 };
 
@@ -66,6 +67,19 @@ struct OSyncFormatConverter {
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
 };
+
+/** Unresolved converter
+ * 
+ * Used to keep the list of converters
+ * to types that weren't registered yet.
+ */
+typedef struct OSyncUnresolvedConverter {
+	OSyncObjType *objtype;
+	const char *source_format;
+	const char *target_format;
+	OSyncFormatConvertFunc convert_func;
+	ConverterType type;
+} OSyncUnresolvedConverter;
 
 typedef struct OSyncDataDetector {
 	OSyncObjType *objtype;

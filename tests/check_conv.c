@@ -124,35 +124,68 @@ static osync_bool dummyconvert(const char *input, int inpsize, char **output, in
 	return TRUE;
 }
 
-START_TEST (conv_env_add_converter)
+START_TEST (conv_env_add_converter_resolve_later)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   osync_conv_register_objformat(type, "fmt_test1");
   osync_conv_register_objformat(type, "fmt_test2");
-  osync_conv_register_objformat(type, "fmt_test3");
-  OSyncFormatConverter *converter = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);  
-  OSyncFormatConverter *converter1 = osync_conv_register_converter(type, CONVERTER_ENCAP, "fmt_test2", "fmt_test3", dummyconvert);  
-  OSyncFormatConverter *converter2 = osync_conv_register_converter(type, CONVERTER_DESENCAP, "fmt_test3", "fmt_test2", dummyconvert);  
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);  
+  osync_conv_register_converter(type, CONVERTER_ENCAP, "fmt_test2", "fmt_test3", dummyconvert);  
+  osync_conv_register_converter(type, CONVERTER_DESENCAP, "fmt_test3", "fmt_test2", dummyconvert);  
 
+  /* The first converter will resolve */
+  OSyncFormatConverter *converter = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
   fail_unless(converter != NULL, NULL);
-  fail_unless(converter1 != NULL, NULL);
+  fail_unless(converter->type == CONVERTER_CONV, NULL);
+  fail_unless(!strcmp(converter->source_format->name,"fmt_test1") , NULL);
+  fail_unless(!strcmp(converter->target_format->name,"fmt_test2") , NULL);
+  fail_unless(converter->convert_func == dummyconvert, NULL);
+
+  /* The other two converters will resolve only after registering fmt_test3 */
+  OSyncFormatConverter *unresolved_converter;
+  unresolved_converter = osync_conv_find_converter(env, "fmt_test2", "fmt_test3");
+  fail_unless(unresolved_converter == NULL, NULL);
+  unresolved_converter = osync_conv_find_converter(env, "fmt_test3", "fmt_test2");
+  fail_unless(unresolved_converter == NULL, NULL);
+
+  /* Check the unresolved list */
+  fail_unless(g_list_length(env->unresolved_converters) == 2, NULL);
+
+  osync_conv_register_objformat(type, "fmt_test3");
+
+  /* All converters should be resolved, now */
+  fail_unless(g_list_length(env->unresolved_converters) == 0, NULL);
+
+  /* Now all converters should be found */
+  OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
+  fail_unless(converter1 == converter, NULL); /* Should be the same converter found above */
+
+  OSyncFormatConverter *converter2 = osync_conv_find_converter(env, "fmt_test2", "fmt_test3");
   fail_unless(converter2 != NULL, NULL);
-  OSyncFormatConverter *convertern = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
-  fail_unless(converter == convertern, "converter != converter1 by find");
-  fail_unless(g_list_nth_data(type->converters, 1) == converter1, NULL);
-  fail_unless(g_list_nth_data(type->converters, 2) == converter2, NULL);
+  fail_unless(converter2->type == CONVERTER_ENCAP, NULL);
+  fail_unless(!strcmp(converter2->source_format->name,"fmt_test2") , NULL);
+  fail_unless(!strcmp(converter2->target_format->name,"fmt_test3") , NULL);
+  fail_unless(converter2->convert_func == dummyconvert, NULL);
+
+  OSyncFormatConverter *converter3 = osync_conv_find_converter(env, "fmt_test3", "fmt_test2");
+  fail_unless(converter3 != NULL, NULL);
+  fail_unless(converter3->type == CONVERTER_DESENCAP, NULL);
+  fail_unless(!strcmp(converter3->source_format->name,"fmt_test3") , NULL);
+  fail_unless(!strcmp(converter3->target_format->name,"fmt_test2") , NULL);
+  fail_unless(converter3->convert_func == dummyconvert, NULL);
 }
 END_TEST
 
-START_TEST (conv_env_add_converter_false)
+START_TEST (conv_env_add_converter_unresolved)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   osync_conv_register_objformat(type, "fmt_test1");
   osync_conv_register_objformat(type, "fmt_test3");
-  OSyncFormatConverter *converter = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
-  fail_unless(converter == NULL, "converter == NULL");
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
+  OSyncFormatConverter *conv = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
+  fail_unless(conv == NULL, "Converter should not be registered");
 }
 END_TEST
 
@@ -162,7 +195,9 @@ START_TEST (conv_env_osp_simple)
   OSyncObjType *type = osync_conv_register_objtype(env, "test");
   OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
   OSyncObjFormat *format2 = osync_conv_register_objformat(type, "fmt_test2");
-  OSyncFormatConverter *converter1 = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
+  OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
+  fail_unless(converter1 != NULL, NULL);
   mark_point();
   GList *converters;
   fail_unless(osync_conv_find_shortest_path(type->converters, format1, format2, &converters), NULL);
@@ -178,8 +213,13 @@ START_TEST (conv_env_osp_simple2)
   OSyncObjFormat *format1 = osync_conv_register_objformat(type, "fmt_test1");
   osync_conv_register_objformat(type, "fmt_test2");
   OSyncObjFormat *format3 = osync_conv_register_objformat(type, "fmt_test3");
-  OSyncFormatConverter *converter1 = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
-  OSyncFormatConverter *converter2 = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test2", "fmt_test3", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test2", "fmt_test3", dummyconvert);
+  OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
+  OSyncFormatConverter *converter2 = osync_conv_find_converter(env, "fmt_test2", "fmt_test3");
+  fail_unless(converter1 != NULL, NULL);
+  fail_unless(converter2 != NULL, NULL);
+
   mark_point();
   GList *converters;
   fail_unless(osync_conv_find_shortest_path(type->converters, format1, format3, &converters), NULL);
@@ -215,8 +255,11 @@ START_TEST (conv_env_osp_2way)
   osync_conv_register_objformat(type, "fmt_test3");
   OSyncObjFormat *format4 = osync_conv_register_objformat(type, "fmt_test4");
 
-  OSyncFormatConverter *converter1 = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
-  OSyncFormatConverter *converter2 = osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test2", "fmt_test4", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test2", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test2", "fmt_test4", dummyconvert);
+  OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "fmt_test1", "fmt_test2");
+  OSyncFormatConverter *converter2 = osync_conv_find_converter(env, "fmt_test2", "fmt_test4");
+
   osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test1", "fmt_test3", dummyconvert);
   osync_conv_register_converter(type, CONVERTER_CONV, "fmt_test3", "fmt_test4", dummyconvert);
 
@@ -265,14 +308,17 @@ START_TEST (conv_env_osp_complex)
   osync_conv_register_objformat(type, "H");
 
   osync_conv_register_converter(type, CONVERTER_CONV, "A", "B", dummyconvert);
-  OSyncFormatConverter *converter1 = osync_conv_register_converter(type, CONVERTER_CONV, "A", "C", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "A", "C", dummyconvert);
+  OSyncFormatConverter *converter1 = osync_conv_find_converter(env, "A", "C");
   osync_conv_register_converter(type, CONVERTER_CONV, "A", "D", dummyconvert);
-  OSyncFormatConverter *converter2 = osync_conv_register_converter(type, CONVERTER_CONV, "C", "E", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "C", "E", dummyconvert);
+  OSyncFormatConverter *converter2 = osync_conv_find_converter(env, "C", "E");
   osync_conv_register_converter(type, CONVERTER_CONV, "D", "G", dummyconvert);
   osync_conv_register_converter(type, CONVERTER_CONV, "E", "G", dummyconvert);
   osync_conv_register_converter(type, CONVERTER_CONV, "G", "H", dummyconvert);
   osync_conv_register_converter(type, CONVERTER_CONV, "H", "F", dummyconvert);
-  OSyncFormatConverter *converter3 = osync_conv_register_converter(type, CONVERTER_CONV, "E", "F", dummyconvert);
+  osync_conv_register_converter(type, CONVERTER_CONV, "E", "F", dummyconvert);
+  OSyncFormatConverter *converter3 = osync_conv_find_converter(env, "E", "F");
 
   mark_point();
   GList *converters;
@@ -606,8 +652,8 @@ Suite *env_suite(void)
 	tcase_add_test(tc_format, conv_env_set_format);
 	tcase_add_test(tc_format, conv_env_set_format_string);
 	tcase_add_test(tc_format, conv_env_append_format);
-	tcase_add_test(tc_conv, conv_env_add_converter);
-	tcase_add_test(tc_conv, conv_env_add_converter_false);
+	tcase_add_test(tc_conv, conv_env_add_converter_resolve_later);
+	tcase_add_test(tc_conv, conv_env_add_converter_unresolved);
 	tcase_add_test(tc_osp, conv_env_osp_simple);
 	tcase_add_test(tc_osp, conv_env_osp_simple2);
 	tcase_add_test(tc_osp, conv_env_osp_false);

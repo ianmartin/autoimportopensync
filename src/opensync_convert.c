@@ -155,27 +155,71 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char 
 	return osync_conf_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
-OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
+static osync_bool osync_register_unresolved_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
 {
-	OSyncFormatConverter *converter;
-	if (!(converter = osync_conv_find_converter(type->env, sourcename, targetname))) {
-		converter = g_malloc0(sizeof(OSyncFormatConverter));
-		g_assert(converter);
-		OSyncObjFormat *fmt_src = osync_conv_find_objformat(type->env, sourcename);
-		if (!fmt_src)
-			return NULL;
-		OSyncObjFormat *fmt_trg = osync_conv_find_objformat(type->env, targetname);
-		if (!fmt_trg)
-			return NULL;
-		
-		converter->source_format = fmt_src;
-		converter->target_format = fmt_trg;
-		converter->convert_func = convert_func;
-		converter->type = convtype;
-		type->env->converters = g_list_append(type->env->converters, converter);
-	}
+	OSyncUnresolvedConverter *conv = g_malloc0(sizeof(OSyncUnresolvedConverter));
+	g_assert(conv);
+
+	conv->objtype = type;
+	conv->source_format = sourcename;
+	conv->target_format = targetname;
+	conv->convert_func = convert_func;
+	conv->type = convtype;
+	type->env->unresolved_converters = g_list_append(type->env->unresolved_converters, conv);
+
+	return TRUE;
+}
+
+static osync_bool _osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg, OSyncFormatConvertFunc convert_func)
+{
+	OSyncFormatConverter *converter = g_malloc0(sizeof(OSyncFormatConverter));
+	g_assert(converter);
+	converter->source_format = fmt_src;
+	converter->target_format = fmt_trg;
+	converter->convert_func = convert_func;
+	converter->type = convtype;
+
+	type->env->converters = g_list_append(type->env->converters, converter);
 	type->converters = g_list_append(type->converters, converter);
-	return converter;
+
+	return TRUE;
+}
+
+/** Register converters that can be resolved
+ *
+ * Try to register the unresolved converters, and
+ * remove the converters that were successfully resolved
+ * and registered.
+ */
+static void osync_conv_resolve_converters(OSyncFormatEnv *env)
+{
+	GList *i, *next;
+	for (i = env->unresolved_converters; i ; i = next) {
+		OSyncUnresolvedConverter *conv = i->data;
+		next = i->next;
+
+		OSyncObjFormat *fmt_src = osync_conv_find_objformat(env, conv->source_format);
+		OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, conv->target_format);
+		if (fmt_src && fmt_trg) {
+			_osync_conv_register_converter(conv->objtype, conv->type,
+			                               fmt_src, fmt_trg, conv->convert_func);
+			env->unresolved_converters = g_list_delete_link(env->unresolved_converters, i);
+			g_free(conv);
+		}
+	}
+}
+
+osync_bool osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
+{
+	if (osync_conv_find_converter(type->env, sourcename, targetname))
+		return FALSE;
+
+	OSyncObjFormat *fmt_src = osync_conv_find_objformat(type->env, sourcename);
+	OSyncObjFormat *fmt_trg = osync_conv_find_objformat(type->env, targetname);
+	if (!fmt_src || !fmt_trg)
+		return osync_register_unresolved_converter(type, convtype, sourcename, targetname, convert_func);
+	else
+		return _osync_conv_register_converter(type, convtype, fmt_src, fmt_trg, convert_func);
 }
 
 int osync_conv_num_objformats(OSyncObjType *type)
@@ -214,6 +258,7 @@ OSyncObjFormat *osync_conv_register_objformat(OSyncObjType *type, const char *na
 		type->env->objformats = g_list_append(type->env->objformats, format);
 	}
 	type->formats = g_list_append(type->formats, format);
+	osync_conv_resolve_converters(type->env);
 	return format;
 }
 
@@ -411,7 +456,7 @@ osync_bool osync_conv_find_shortest_path(GList *vertices, OSyncObjFormat *start,
 			goto reply;
 		free_edge(current);
 		current = g_list_first(tree->search)->data;
-		tree->search = g_list_remove(tree->search, current);			
+		tree->search = g_list_remove(tree->search, current);
 	}
 	
 	reply:

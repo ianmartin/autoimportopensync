@@ -7,7 +7,7 @@ const char *osync_objtype_get_name(OSyncObjType *type);
 const char *osync_objformat_get_name(OSyncObjFormat *format);
 char *osync_conv_objtype_get_name(OSyncObjType *type);
 OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char *sourcename, const char *targetname);
-OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func);
+osync_bool osync_conv_register_converter(OSyncObjType *type, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func);
 osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat);
 void osync_conv_objtype_add_format(OSyncObjType *type, OSyncObjFormat *format);
 void osync_conv_format_set_detect_func(OSyncObjFormat *format, OSyncFormatDetectFunc detect_func);
