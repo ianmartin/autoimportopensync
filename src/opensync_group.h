@@ -22,3 +22,6 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype);
 osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype);
 void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled);
 OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group);
+
+int osync_group_num_filters(OSyncGroup *group);
+OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth);

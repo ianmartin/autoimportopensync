@@ -48,6 +48,8 @@ typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
+typedef struct OSyncFilter OSyncFilter;
+typedef struct OSyncCustomFilter OSyncCustomFilter;
 typedef gboolean osync_bool;
 
 typedef struct OSyncPluginFunctions {
@@ -136,6 +138,12 @@ typedef enum {
 	CONVERTER_DESENCAP = 3,
 } ConverterType;
 
+typedef enum OSyncFilterAction {
+	OSYNC_FILTER_IGNORE = 0,
+	OSYNC_FILTER_ALLOW = 1,
+	OSYNC_FILTER_DENY = 2
+} OSyncFilterAction;
+
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
 typedef osync_bool (* OSyncFormatConvertFunc) (const char *input, int inpsize, char **output, int *outpsize);
 typedef osync_bool (* OSyncFormatCopyFunc) (const char *input, int inpsize, char **output, int *outpsize);
@@ -145,6 +153,8 @@ typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatMergeFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
 typedef void (* OSyncFormatDestroyFunc) (char *data, size_t size);
+
+typedef OSyncFilterAction (* OSyncFilterFunction)(OSyncChange *, char *config);
 
 /**************************************************************
  * Structs
@@ -187,5 +197,6 @@ void osync_print_binary(const unsigned char *data, int len);
 #include "opensync_context.h"
 #include "opensync_convert.h"
 #include "opensync_anchor.h"
+#include "opensync_filter.h"
 
 #endif

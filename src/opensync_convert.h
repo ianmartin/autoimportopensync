@@ -36,3 +36,5 @@ void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, c
 /* Conversion path functions */
 osync_bool osync_conv_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *fmtname);
 osync_bool osync_conv_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **names);
+void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook);
+

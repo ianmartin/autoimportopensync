@@ -1,12 +1,4 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include <check.h>
-
-#include <glib.h>
-#include <gmodule.h>
-
 #include "opensync.h"
 #include "engine.h"
 #include "engine_internals.h"

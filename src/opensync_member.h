@@ -45,3 +45,4 @@ void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osy
 osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr);
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
 osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change);
+void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled);

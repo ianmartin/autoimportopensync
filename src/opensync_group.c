@@ -222,8 +222,42 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 
 	doc = xmlNewDoc("1.0");
 	doc->children = xmlNewDocNode(doc, NULL, "syncgroup", NULL);
+	
+	//The filters
+	GList *f;
+	for (f = group->filters; f; f = f->next) {
+		printf("saving filters\n");
+		OSyncFilter *filter = f->data;
+		xmlNodePtr child = xmlNewChild(doc->children, NULL, "filter", NULL);
+		
+		if (filter->sourcememberid) {
+			char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
+			xmlNewChild(child, NULL, "sourcemember", sourcememberid);
+			g_free(sourcememberid);
+		}
+		if (filter->destmemberid) {
+			char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
+			xmlNewChild(child, NULL, "destmember", destmemberid);
+			g_free(destmemberid);
+		}
+		if (filter->sourceobjtype)
+			xmlNewChild(child, NULL, "sourceobjtype", filter->sourceobjtype);
+		if (filter->destobjtype)
+			xmlNewChild(child, NULL, "destobjtype", filter->destobjtype);
+		if (filter->detectobjtype)
+			xmlNewChild(child, NULL, "detectobjtype", filter->detectobjtype);
+		if (filter->action) {
+			char *action = g_strdup_printf("%i", filter->action);
+			xmlNewChild(child, NULL, "action", action);
+			g_free(action);
+		}
+		if (filter->function_name)
+			xmlNewChild(child, NULL, "function_name", filter->function_name);
+		if (filter->config)
+			xmlNewChild(child, NULL, "config", filter->config);
+	}
 
-	xmlNewChild(doc->children, NULL, "name", group->name);
+	xmlNewChild(doc->children, NULL, "groupname", group->name);
 
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
@@ -292,6 +326,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 
 	xmlDocPtr doc;
 	xmlNodePtr cur;
+	xmlNodePtr filternode;
 	
 	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
 		osync_group_free(group);
@@ -300,13 +335,71 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	}
 
 	while (cur != NULL) {
-		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-		if (!str)
-			continue;
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
-			group->name = g_strdup(str);
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
+			group->name = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
+			filternode = cur->xmlChildrenNode;
+			OSyncFilter *filter = osync_filter_new();
+			printf("Loading filter\n");
+			filter->group = group;
+			
+			while (filternode != NULL) {
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
+					filter->sourceobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
+					filter->destobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
+					filter->detectobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
+					filter->config = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					osync_filter_update_hook(filter, group, str);
+					xmlFree(str);
+				}
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					filter->sourcememberid = atoll(str);
+					xmlFree(str);
+				}
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					filter->destmemberid = atoll(str);
+					xmlFree(str);
+				}
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					filter->action = atoi(str);
+					xmlFree(str);
+				}
+				filternode = filternode->next;
+			}
+			osync_filter_register(group, filter);
 		}
-		xmlFree(str);
 		cur = cur->next;
 	}
 	xmlFreeDoc(doc);
@@ -438,6 +531,64 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	osync_objtype = osync_conv_find_objtype(env, objtype);
 	g_assert(osync_objtype);
 	return osync_objtype->needs_slow_sync;
+}
+
+/*! @brief Returns if the object type is enabled for the group
+ * 
+ * Returns TRUE if the object type is enabled for the group. Note that this
+ * information is saved on a per member basis. If one of the members has this object type enabled
+ * this function will return TRUE
+ * 
+ * @param group The group
+ * @param objtype The name of the object type
+ * @returns TRUE if the object type is enabled for at least one member. FALSE if for none
+ * 
+ */
+osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
+{
+	//FIXME We should actually return a 3-state here.
+	//0 if none is enabled
+	//"0.5" if some are enabled, some are not
+	//1 if all are enabled
+	g_assert(group);
+	GList *m;
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		if (osync_member_objtype_enabled(member, objtype))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/*! @brief Sets if the object type is accepted for ALL members
+ * 
+ * BUG We loose information if only some members are enabled
+ * 
+ * @param group The group
+ * @param objtypestr The name of the object type
+ * @param enabled What do you want to set today?
+ * 
+ */
+void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, osync_bool enabled)
+{
+	g_assert(group);
+	GList *m;
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		osync_member_set_objtype_enabled(member, objtypestr, enabled);
+	}
+}
+
+int osync_group_num_filters(OSyncGroup *group)
+{
+	g_assert(group);
+	return g_list_length(group->filters);
+}
+
+OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
+{
+	g_assert(group);
+	return g_list_nth_data(group->filters, nth);
 }
 
 /*@}*/

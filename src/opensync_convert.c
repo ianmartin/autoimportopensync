@@ -1126,3 +1126,38 @@ void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourcefo
 
 	env->data_detectors = g_list_append(env->data_detectors, detector);
 }
+
+void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook)
+{
+	OSyncCustomFilter *function = g_malloc0(sizeof(OSyncCustomFilter));
+	g_assert(function);
+	function->name = g_strdup(name);
+	function->objtype = g_strdup(objtype);
+	function->format = g_strdup(format);
+	function->hook = hook;
+	
+	env->filter_functions = g_list_append(env->filter_functions, function);
+}
+
+#if 0
+osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size)
+{
+	GList *d = NULL;
+	const char *fmtname;
+	if (!change->has_data)
+		return FALSE;
+
+	fmtname = osync_change_get_objformat(change)->name;
+	for (d = env->data_detectors; d; d = d->next) {
+		OSyncDataDetector *detector = d->data;
+		if (!strcmp(detector->sourceformat, fmtname)) {
+			if (detector->detect_func(env, data, size)) {
+				change->objformats = g_list_prepend(change->objformats, osync_conv_find_objformat(env, detector->targetformat));
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
+#endif
+

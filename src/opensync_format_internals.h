@@ -4,6 +4,7 @@ struct OSyncFormatEnv {
 	GList *converters;
 	GList *data_detectors;
 	GList *unresolved_converters;
+	GList *filter_functions;
 	char *pluginpath;
 };
 
