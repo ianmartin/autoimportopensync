@@ -206,24 +206,25 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 				break;
 			}
 			switch (*lp) {
-			case 'n': str = g_string_append_c (str, '\n'); break;
-			case 'r': str = g_string_append_c (str, '\r'); break;
-			case ';': str = g_string_append_c (str, ';'); break;
-			case ',':
-				if (!strcmp (attr->name, "CATEGORIES")) {
-					//We need to handle categories here to work
-					//aroung a bug in evo2
-					vformat_attribute_add_value (attr, str->str);
-					g_string_assign (str, "");
-				} else
-					str = g_string_append_c (str, ',');
-				break;
-			case '\\': str = g_string_append_c (str, '\\'); break;
-			default:
-				g_warning ("invalid escape, passing it through");
-				str = g_string_append_c (str, '\\');
-				str = g_string_append_unichar (str, g_utf8_get_char(lp));
-				break;
+				case 'n': str = g_string_append_c (str, '\n'); break;
+				case 'r': str = g_string_append_c (str, '\r'); break;
+				case ';': str = g_string_append_c (str, ';'); break;
+				case ',':
+					if (!strcmp (attr->name, "CATEGORIES")) {
+						//We need to handle categories here to work
+						//aroung a bug in evo2
+						vformat_attribute_add_value (attr, str->str);
+						g_string_assign (str, "");
+					} else
+						str = g_string_append_c (str, ',');
+					break;
+				case '\\': str = g_string_append_c (str, '\\'); break;
+				case '"': str = g_string_append_c (str, '"'); break;
+				default:
+					g_warning ("invalid escape, passing it through. escaped char was %i", *lp);
+					str = g_string_append_c (str, '\\');
+					str = g_string_append_unichar (str, g_utf8_get_char(lp));
+					break;
 			}
 			lp = g_utf8_next_char(lp);
 		}
@@ -594,8 +595,9 @@ vformat_unescape_string (const char *s)
 			case ';':  str = g_string_append_c (str, ';'); break;
 			case ',':  str = g_string_append_c (str, ','); break;
 			case '\\': str = g_string_append_c (str, '\\'); break;
+			case '"': str = g_string_append_c (str, '"'); break;
 			default:
-				g_warning ("invalid escape, passing it through");
+				g_warning ("invalid escape, passing it through. escaped char was %i", *p);
 				str = g_string_append_c (str, '\\');
 				str = g_string_append_unichar (str, g_utf8_get_char(p));
 				break;

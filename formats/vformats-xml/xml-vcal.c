@@ -1302,6 +1302,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->compparamtable, "RSVP", handle_rsvp_parameter);
 	g_hash_table_insert(hooks->compparamtable, "SENT-BY", handle_sent_by_parameter);
 	g_hash_table_insert(hooks->compparamtable, "X-LIC-ERROR", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->compparamtable, "CHARSET", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->compparamtable, "STATUS", handle_status_parameter);
 
 	//vcal attributes
@@ -1375,6 +1376,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->alarmtable, "RSVP", handle_rsvp_parameter);
 	g_hash_table_insert(hooks->alarmtable, "SENT-BY", handle_sent_by_parameter);
 	g_hash_table_insert(hooks->alarmtable, "X-LIC-ERROR", HANDLE_IGNORE);
+	g_hash_table_insert(hooks->alarmtable, "X-EVOLUTION-ALARM-UID", HANDLE_IGNORE);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;

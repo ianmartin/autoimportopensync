@@ -39,6 +39,12 @@ static void conv_vcal(const char *filename)
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo20"))
 		targetformat = osync_conv_find_objformat(conv_env, "vtodo10");
 
+	if (!strcmp(osync_objformat_get_name(sourceformat), "vevent10"))
+		targetformat = osync_conv_find_objformat(conv_env, "vevent20");
+	
+	if (!strcmp(osync_objformat_get_name(sourceformat), "vevent20"))
+		targetformat = osync_conv_find_objformat(conv_env, "vevent10");
+
 	fail_unless(targetformat != NULL, NULL);
 	
 	OSyncChange *newchange = osync_change_copy(change, &error);
@@ -96,7 +102,13 @@ static time_t vcal_get_revision(const char *filename)
 	fail_unless(sourceformat != NULL, NULL);
 	osync_change_set_objformat(change, sourceformat);
 	
-	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-todo");
+	OSyncObjFormat *targetformat = NULL;
+	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo10") || !strcmp(osync_objformat_get_name(sourceformat), "vtodo20"))
+		targetformat = osync_conv_find_objformat(conv_env, "xml-todo");
+
+	if (!strcmp(osync_objformat_get_name(sourceformat), "vevent10") || !strcmp(osync_objformat_get_name(sourceformat), "vevent20"))
+		targetformat = osync_conv_find_objformat(conv_env, "xml-event");
+	
 	fail_unless(targetformat != NULL, NULL);
 	
 	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, "evolution", &error), NULL);
@@ -111,9 +123,156 @@ static time_t vcal_get_revision(const char *filename)
 	return time;
 }
 
-START_TEST (conv_vcal_evolution2_full1)
+
+START_TEST (conv_vevent_evolution2_1hour_alarm)
+{
+	conv_vcal("data/vevents/evolution2/1-hour-alarm.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_1hour_alarm2)
+{
+	conv_vcal("data/vevents/evolution2/1-hour-alarm2.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_1hour)
+{
+	conv_vcal("data/vevents/evolution2/1-hour.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_all_day)
+{
+	conv_vcal("data/vevents/evolution2/all-day.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_all_day2)
+{
+	conv_vcal("data/vevents/evolution2/all-day2.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_free_busy)
+{
+	conv_vcal("data/vevents/evolution2/free-busy.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_full_special)
+{
+	conv_vcal("data/vevents/evolution2/full-special.vcf");
+}
+END_TEST
+START_TEST (conv_vevent_evolution2_rec_every_year)
+{
+	conv_vcal("data/vevents/evolution2/rec-every-year.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_rec_except)
+{
+	conv_vcal("data/vevents/evolution2/rec-except.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_rec_for)
+{
+	conv_vcal("data/vevents/evolution2/rec-for.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_rec_forever)
+{
+	conv_vcal("data/vevents/evolution2/rec-forever.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_rec_until)
+{
+	conv_vcal("data/vevents/evolution2/rec-until.vcf");
+}
+END_TEST
+
+START_TEST (conv_vevent_evolution2_rec_until2)
+{
+	conv_vcal("data/vevents/evolution2/evo2-recur-until.vcf");
+}
+END_TEST
+
+START_TEST (event_get_revision1)
+{
+	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour-alarm.vcf") == 1112090762, NULL);
+}
+END_TEST
+
+START_TEST (event_get_revision2)
+{
+	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour-alarm2.vcf") == 1112090881, NULL);
+}
+END_TEST
+
+START_TEST (event_get_revision3)
+{
+	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour.vcf") == 1112090713, NULL);
+}
+END_TEST
+
+START_TEST (event_no_revision)
+{
+	fail_unless(vcal_get_revision("data/vevents/evolution2/all-day.vcf") == -1, NULL);
+}
+END_TEST
+
+
+
+
+START_TEST (conv_vtodo_evolution2_simple)
+{
+	conv_vcal("data/vtodos/evolution2/todo-simple.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full1)
 {
 	conv_vcal("data/vtodos/evolution2/todo-full1.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full2)
+{
+	conv_vcal("data/vtodos/evolution2/todo-full2.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full3)
+{
+	conv_vcal("data/vtodos/evolution2/todo-full3.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full4)
+{
+	conv_vcal("data/vtodos/evolution2/todo-full4.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full5)
+{
+	conv_vcal("data/vtodos/evolution2/todo-full5.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full6)
+{
+	conv_vcal("data/vtodos/evolution2/todo-full6.vcf");
+}
+END_TEST
+
+START_TEST (conv_vtodo_evolution2_full7)
+{
+	conv_vcal("data/vtodos/evolution2/todo-full7.vcf");
 }
 END_TEST
 
@@ -146,7 +305,36 @@ Suite *vcal_suite(void)
 	Suite *s = suite_create("VCal");
 	//Suite *s2 = suite_create("VCal");
 	
-	create_case(s, "conv_vcal_evolution2_full1", conv_vcal_evolution2_full1);
+	create_case(s, "conv_vevent_evolution2_1hour", conv_vevent_evolution2_1hour);
+	create_case(s, "conv_vevent_evolution2_1hour_alarm", conv_vevent_evolution2_1hour_alarm);
+	create_case(s, "conv_vevent_evolution2_1hour_alarm2", conv_vevent_evolution2_1hour_alarm2);
+	create_case(s, "conv_vevent_evolution2_all_day", conv_vevent_evolution2_all_day);
+	create_case(s, "conv_vevent_evolution2_all_day2", conv_vevent_evolution2_all_day2);
+	create_case(s, "conv_vevent_evolution2_free_busy", conv_vevent_evolution2_free_busy);
+	create_case(s, "conv_vevent_evolution2_full_special", conv_vevent_evolution2_full_special);
+	create_case(s, "conv_vevent_evolution2_rec_every_year", conv_vevent_evolution2_rec_every_year);
+	create_case(s, "conv_vevent_evolution2_rec_except", conv_vevent_evolution2_rec_except);
+	create_case(s, "conv_vevent_evolution2_rec_for", conv_vevent_evolution2_rec_for);
+	create_case(s, "conv_vevent_evolution2_rec_forever", conv_vevent_evolution2_rec_forever);
+	create_case(s, "conv_vevent_evolution2_rec_until", conv_vevent_evolution2_rec_until);
+	create_case(s, "conv_vevent_evolution2_rec_until2", conv_vevent_evolution2_rec_until2);
+	
+	create_case(s, "event_get_revision1", event_get_revision1);
+	create_case(s, "event_get_revision2", event_get_revision2);
+	create_case(s, "event_get_revision3", event_get_revision3);
+	create_case(s, "event_no_revision", event_no_revision);
+	
+	
+	
+
+	create_case(s, "conv_vtodo_evolution2_simple", conv_vtodo_evolution2_simple);
+	create_case(s, "conv_vtodo_evolution2_full1", conv_vtodo_evolution2_full1);
+	create_case(s, "conv_vtodo_evolution2_full2", conv_vtodo_evolution2_full2);
+	create_case(s, "conv_vtodo_evolution2_full3", conv_vtodo_evolution2_full3);
+	create_case(s, "conv_vtodo_evolution2_full4", conv_vtodo_evolution2_full4);
+	create_case(s, "conv_vtodo_evolution2_full5", conv_vtodo_evolution2_full5);
+	create_case(s, "conv_vtodo_evolution2_full6", conv_vtodo_evolution2_full6);
+	create_case(s, "conv_vtodo_evolution2_full7", conv_vtodo_evolution2_full7);
 	
 	create_case(s, "todo_get_revision1", todo_get_revision1);
 	create_case(s, "todo_get_revision2", todo_get_revision2);
