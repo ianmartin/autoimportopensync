@@ -29,7 +29,6 @@ void osync_change_set_member(OSyncChange *change, OSyncMember *member);
 void osync_change_set_objformat_string(OSyncChange *change, const char *name);
 void osync_change_prepend_objformat(OSyncChange *change, OSyncObjFormat *objformat);
 long long int osync_change_get_id(OSyncChange *change);
-void osync_change_marshal(OSyncChange *change, DBT *dbt);
 osync_bool osync_change_has_data(OSyncChange *change);
 void osync_change_free(OSyncChange *change);
 void osync_change_reset(OSyncChange *change);

@@ -12,6 +12,7 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 	group->env = osinfo;
 	group->conv_env = osync_conv_env_new();
 	osync_conv_env_load(group->conv_env);
+	/*FIXME: Remove hardcoded format name here */
 	osync_conv_set_common_format(group->conv_env, "contact", "vcard");
 	osync_debug("OSGRP", 3, "Generated new group:");
 	osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
