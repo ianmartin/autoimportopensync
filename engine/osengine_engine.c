@@ -38,7 +38,6 @@
  * See ITMessageHandler
  * 
  */
-
 void _get_changes_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "_get_changes_reply_receiver(%p, %p, %p)", sender, message, engine);
@@ -131,7 +130,7 @@ void send_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data)
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_get_changes_reply_receiver, sender);
 	itm_message_set_data(message, "data", (void *)data);
 	osync_debug("ENG", 3, "Sending get_changes message %p to client %p", message, target);
-	itm_queue_send(target->incoming, message);
+	itm_queue_send_with_timeout(target->incoming, message, 5, target);
 }
 
 void send_connect(OSyncClient *target, OSyncEngine *sender)
@@ -361,6 +360,15 @@ void trigger_clients_sent_changes(OSyncEngine *engine)
 	send_engine_changed(engine);
 }
 
+static gboolean startupfunc(gpointer data)
+{
+	OSyncEngine *engine = data;
+	g_mutex_lock(engine->started_mutex);
+	g_cond_signal(engine->started);
+	g_mutex_unlock(engine->started_mutex);
+	return FALSE;
+}
+
 /*@}*/
 
 /**
@@ -467,6 +475,8 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->info_received_mutex = g_mutex_new();
 	engine->syncing = g_cond_new();
 	engine->info_received = g_cond_new();
+	engine->started_mutex = g_mutex_new();
+	engine->started = g_cond_new();
 	
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
@@ -540,6 +550,8 @@ void osync_engine_free(OSyncEngine *engine)
 	g_mutex_free(engine->info_received_mutex);
 	g_cond_free(engine->syncing);
 	g_cond_free(engine->info_received);
+	g_mutex_free(engine->started_mutex);
+	g_cond_free(engine->started);
 	
 	g_free(engine);
 	osync_trace(TRACE_EXIT, "osync_engine_free");
@@ -674,35 +686,30 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		return FALSE;
 	}
 	
+	engine->is_initialized = TRUE;
+	
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_client_init(client, error)) {
 			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", (*error)->message);
+			osync_engine_finalize(engine);
 			return FALSE;
 		}
 	}
 	
-	/*for (i = 0; i < osync_group_num_members(group); i++) {
-		member = osync_group_nth_member(group, i);
-		
-		//Creating the client
-		//OSyncClient *client = osync_client_new(engine, member);
-		OSyncClient *client = osync_member_get_data(member);
-
-		//Starting the client
-		if (!osync_client_init(client, error)) {
-			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", (*error)->message);
-			return FALSE;
-		}
-	}*/
-	
-	
 	osync_debug("ENG", 3, "Running the main loop");
 
 	//Now we can run the main loop
+	//We protect the startup by a g_cond
+	g_mutex_lock(engine->started_mutex);
+	GSource *idle = g_idle_source_new();
+	g_source_set_callback(idle, startupfunc, engine, NULL);
+    g_source_attach(idle, engine->context);
 	engine->thread = g_thread_create ((GThreadFunc)g_main_loop_run, engine->syncloop, TRUE, NULL);
-	engine->is_initialized = TRUE;
+	g_cond_wait(engine->started, engine->started_mutex);
+	g_mutex_unlock(engine->started_mutex);
+	
 	osync_trace(TRACE_EXIT, "osync_engine_init");
 	return TRUE;
 }
@@ -738,8 +745,10 @@ void osync_engine_finalize(OSyncEngine *engine)
 		osync_client_finalize(client);
 	}
 	
-	g_main_loop_quit(engine->syncloop);
-	g_thread_join(engine->thread);
+	if (engine->thread) {
+		g_main_loop_quit(engine->syncloop);
+		g_thread_join(engine->thread);
+	}
 	
 	itm_queue_flush(engine->incoming);
 	

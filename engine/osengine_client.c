@@ -34,6 +34,9 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 	client->context = g_main_context_new();
 	client->memberloop = g_main_loop_new(client->context, FALSE);
 	
+	client->started_mutex = g_mutex_new();
+	client->started = g_cond_new();
+	
 	client->fl_connected = osync_flag_new(engine->cmb_connected);
 	client->fl_sent_changes = osync_flag_new(engine->cmb_sent_changes);
 	client->fl_done = osync_flag_new(NULL);
@@ -50,6 +53,9 @@ void osync_client_free(OSyncClient *client)
 	g_main_loop_unref(client->memberloop);
 	g_main_context_unref(client->context);
 	
+	g_mutex_free(client->started_mutex);
+	g_cond_free(client->started);
+	
 	osync_flag_free(client->fl_connected);
 	osync_flag_free(client->fl_sent_changes);
 	osync_flag_free(client->fl_done);
@@ -64,7 +70,7 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 	OSyncEngine *engine = client->engine;
 	if (!synchronous) {
 		ITMessage *message = itm_message_new_signal(client, "PLUGIN_MESSAGE");
-		osync_debug("CLI", 3, "Sending message %p PLUGIN_MESSAGE for message", message, name);
+		osync_debug("CLI", 3, "Sending message %p PLUGIN_MESSAGE for message %s", message, name);
 		itm_message_set_data(message, "data", data);
 		itm_message_set_data(message, "name", g_strdup(name));
 		itm_queue_send(engine->incoming, message);
@@ -74,12 +80,14 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 	}	
 }
 
-void osync_client_changes_sink(OSyncMember *member, OSyncChange *change)
+void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *user_data)
 {
+	ITMessage *orig = (ITMessage *)user_data;
 	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(client, "NEW_CHANGE");
 	itm_message_set_data(message, "change", change);
+	itm_message_reset_timeout(orig);
 	itm_queue_send(engine->incoming, message);
 }
 
@@ -168,6 +176,15 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 	g_assert_not_reached();
 }
 
+static gboolean startupfunc(gpointer data)
+{
+	OSyncClient *client = data;
+	g_mutex_lock(client->started_mutex);
+	g_cond_signal(client->started);
+	g_mutex_unlock(client->started_mutex);
+	return FALSE;
+}
+
 void osync_client_call_plugin(OSyncClient *client, char *function, void *data)
 {
 	OSyncEngine *engine = client->engine;
@@ -209,13 +226,24 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 		return FALSE;
 	}
 	
+	g_mutex_lock(client->started_mutex);
+	GSource *idle = g_idle_source_new();
+	g_source_set_callback(idle, startupfunc, client, NULL);
+    g_source_attach(idle, client->context);
 	client->thread = g_thread_create ((GThreadFunc)g_main_loop_run, client->memberloop, TRUE, NULL);
+	g_cond_wait(client->started, client->started_mutex);
+	g_mutex_unlock(client->started_mutex);
+	
 	osync_trace(TRACE_EXIT, "osync_client_init");
+	client->is_initialized = TRUE;
 	return TRUE;
 }
 
 void osync_client_finalize(OSyncClient *client)
 {
+	if (!client->is_initialized)
+		return;
+	
 	osync_debug("CLI", 3, "Finalizing client");
 	osync_member_finalize(client->member);
 	
@@ -223,5 +251,4 @@ void osync_client_finalize(OSyncClient *client)
 	g_thread_join(client->thread);
 	
 	itm_queue_flush(client->incoming);
-	//osync_client_free(client);
 }

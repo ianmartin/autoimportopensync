@@ -36,11 +36,11 @@ struct ITMessage {
 	GHashTable *payload;
 	ITMessageHandler callback;
 	gpointer user_data;
-	//int timeout_id;
 	GSource *source;
 	ITMQueue *replyqueue;
 	gpointer parent;
 	OSyncError *error;
+	timeout_info *to_info;
 };
 
 /*@}*/
@@ -62,3 +62,4 @@ gpointer itm_message_get_data(ITMessage *message, char *name);
 void itm_message_move_data(ITMessage *source, ITMessage *target);
 const char *itm_message_get_msgname(ITMessage *message);
 gboolean itm_message_is_signal(ITMessage *message, char *msgname);
+void itm_message_reset_timeout(ITMessage *message);

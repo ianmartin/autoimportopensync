@@ -66,6 +66,7 @@ START_TEST (single_init_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	fail_unless(!osync_engine_init(engine, &error), NULL);
 	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
@@ -96,6 +97,7 @@ START_TEST (dual_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -132,6 +134,7 @@ START_TEST (one_of_two_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -169,6 +172,7 @@ START_TEST (two_of_three_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -206,6 +210,7 @@ START_TEST (two_of_three_connect_error2)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -243,6 +248,7 @@ START_TEST (three_of_three_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -280,6 +286,7 @@ START_TEST (one_of_three_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -317,6 +324,7 @@ START_TEST (no_connect_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -355,6 +363,7 @@ START_TEST (single_connect_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -393,6 +402,7 @@ START_TEST (dual_connect_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -431,6 +441,7 @@ START_TEST (one_of_three_timeout)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -470,6 +481,7 @@ START_TEST (timeout_and_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -508,6 +520,7 @@ START_TEST (single_get_changes_error)
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	osync_engine_init(engine, &error);
 	
@@ -518,6 +531,215 @@ START_TEST (single_get_changes_error)
 	fail_unless(num_connected == 2, NULL);
 	fail_unless(num_disconnected == 2, NULL);
 	fail_unless(num_member_get_changes_errors == 1, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_error_free(&error);
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (dual_get_changes_error)
+{
+	char *testbed = setup_testbed("sync_easy_conflict");
+	
+	g_setenv("GET_CHANGES_ERROR", "3", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 2, NULL);
+	fail_unless(num_disconnected == 2, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_read == 0, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_error_free(&error);
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (two_of_three_get_changes_error)
+{
+	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	
+	g_setenv("GET_CHANGES_ERROR", "5", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_error_free(&error);
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (one_of_three_get_changes_error)
+{
+	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	
+	g_setenv("GET_CHANGES_ERROR", "1", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_get_changes_errors == 1, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_error_free(&error);
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (one_of_three_get_changes_timeout)
+{
+	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	
+	g_setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_get_changes_errors == 1, NULL);
+	fail_unless(num_member_sent_changes == 2, NULL);
+	fail_unless(num_read == 2, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_error_free(&error);
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (get_changes_timeout_and_error)
+{
+	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	
+	g_setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
+	g_setenv("GET_CHANGES_ERROR", "4", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_read == 0, NULL);
 	fail_unless(num_written == 0, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
@@ -550,6 +772,11 @@ Suite *multisync_suite(void)
 	create_case(s, "one_of_three_timeout", one_of_three_timeout);
 	create_case(s, "timeout_and_error", timeout_and_error);
 	create_case(s, "single_get_changes_error", single_get_changes_error);
+	create_case(s, "dual_get_changes_error", dual_get_changes_error);
+	create_case(s, "two_of_three_get_changes_error", two_of_three_get_changes_error);
+	create_case(s, "one_of_three_get_changes_error", one_of_three_get_changes_error);
+	create_case(s, "one_of_three_get_changes_timeout", one_of_three_get_changes_timeout);
+	create_case(s, "get_changes_timeout_and_error", get_changes_timeout_and_error);
 	
 	return s;
 }

@@ -114,9 +114,12 @@ void itm_queue_send_with_timeout(ITMQueue *queue, ITMessage *message, int timeou
 	to_info->message = message;
 	to_info->sendingqueue = queue;
 	to_info->replysender = replysender;
+	to_info->timeout = timeout;
+	to_info->timeoutfunc = timeoutfunc;
 	message->source = g_timeout_source_new(timeout * 1000);
+	message->to_info = to_info;
 	g_source_set_callback(message->source, timeoutfunc, to_info, NULL);
-	g_source_attach(message->source, queue->context);
+	g_source_attach(message->source, message->replyqueue->context);
 	itm_queue_send(queue, message);
 }
 

@@ -21,11 +21,13 @@ struct ITMQueue {
 };
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-typedef struct timeout_info {
+struct timeout_info {
 	ITMQueue *sendingqueue;
 	ITMessage *message;
 	void *replysender;
-} timeout_info;
+	int timeout;
+	gboolean (*timeoutfunc)(gpointer);
+};
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /*@}*/

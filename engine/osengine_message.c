@@ -200,6 +200,26 @@ gboolean itm_message_is_type(ITMessage *message, ITMessageType type)
 	return FALSE;
 }
 
+/*! @brief Reset the timeout for a given message
+ * 
+ * This function will reset the timeout for a message. The timeout will
+ * restart with its original value.
+ * 
+ * @param message The message to reset
+ * 
+ */
+void itm_message_reset_timeout(ITMessage *message)
+{
+	g_assert(message->source);
+
+	//FIXME we might have a race condition here.
+	GMainContext *context = g_source_get_context(message->source);
+	g_source_destroy(message->source);
+	message->source = g_timeout_source_new(message->to_info->timeout * 1000);
+	g_source_set_callback(message->source, message->to_info->timeoutfunc, message->to_info, NULL);
+	g_source_attach(message->source, context);
+}
+
 /*! @brief Sends a reply to a message
  * 
  * This function will send a reply to a message to the sender of the
@@ -210,14 +230,7 @@ gboolean itm_message_is_type(ITMessage *message, ITMessageType type)
  */
 void itm_message_send_reply(ITMessage *reply)
 {
-	//printf("sending reply %p %i %p\n", reply, reply->timeout_id, reply->replyqueue->context);
-	
-	if (reply->source) {
-		/*GSource *source = g_main_context_find_source_by_id(reply->replyqueue->context, reply->timeout_id);
-		printf("source %p\n", source);
-		if (!source)
-			return;*/
-			
+	if (reply->source) {	
 		//FIXME we have a race condition here if the main thread times out
 		//While we are replying...
 		g_source_destroy(reply->source);

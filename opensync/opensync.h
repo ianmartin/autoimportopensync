@@ -164,7 +164,7 @@ typedef OSyncFilterAction (* OSyncFilterFunction)(OSyncChange *, char *config);
 typedef void (* OSyncEngCallback)(OSyncMember *, void *, OSyncError **);
 
 typedef struct OSyncMemberFunctions {
-	void (* rf_change) (OSyncMember *, OSyncChange *);
+	void (* rf_change) (OSyncMember *, OSyncChange *, void *);
 	void *(* rf_message) (OSyncMember *, const char *, void *, osync_bool);
 	void (* rf_sync_alert) (OSyncMember *);
 	void (*rf_log) (OSyncMember *, char *);

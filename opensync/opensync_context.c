@@ -85,7 +85,8 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;
 	
-	member->memberfunctions->rf_change(member, change);
+	osync_assert(member->memberfunctions->rf_change, "The engine must set a callback to receive changes");
+	member->memberfunctions->rf_change(member, change, context->calldata);
 }
 
 void osync_context_send_log(OSyncContext *ctx, const char *message, ...)

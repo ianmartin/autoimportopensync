@@ -6,9 +6,6 @@
 typedef struct ITMessage ITMessage;
 typedef struct ITMQueue ITMQueue;
 
-#include "osengine_message_internals.h"
-#include "osengine_queue_internals.h"
-
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
 /**
@@ -27,6 +24,8 @@ typedef struct ITMQueue ITMQueue;
 typedef void (* MSyncFlagTriggerFunc) (void *user_data);
 
 typedef struct MSyncFlag MSyncFlag;
+
+typedef struct timeout_info timeout_info;
 
 struct MSyncFlag {
 	osync_bool is_set;
@@ -75,6 +74,9 @@ struct OSyncEngine {
 	
 	GCond* info_received;
 	GMutex* info_received_mutex;
+	
+	GCond* started;
+	GMutex* started_mutex;
 	
 	//The normal flags
 	MSyncFlag *fl_running; //Is the syncengine running?
@@ -137,8 +139,15 @@ struct OSyncClient {
 	MSyncFlag *fl_finished;
 	GThread *thread;
 	GMainContext *context;
+	
+	GCond* started;
+	GMutex* started_mutex;
+	
+	osync_bool is_initialized;
 };
 
+#include "osengine_message_internals.h"
+#include "osengine_queue_internals.h"
 #include "osengine_debug.h"
 #include "osengine_flags_internals.h"
 #include "osengine_engine_internals.h"
