@@ -305,7 +305,7 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 	}
 
 	while (cur != NULL) {
-		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+		char *str = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname"))
 				member->pluginname = g_strdup(str);
@@ -347,10 +347,10 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	//Saving the syncmember.conf
 	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	xmlDocPtr doc;
-	doc = xmlNewDoc("1.0");
-	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
+	doc = xmlNewDoc((xmlChar*)"1.0");
+	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 	//The plugin name
-	xmlNewChild(doc->children, NULL, "pluginname", member->pluginname);
+	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);

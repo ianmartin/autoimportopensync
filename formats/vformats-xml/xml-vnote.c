@@ -120,7 +120,7 @@ static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
 			i++;
 		}
 	} else {
-		return !g_utf8_validate(tmp, -1, NULL);
+		return !g_utf8_validate((gchar*)tmp, -1, NULL);
 	}
 	return FALSE;
 }
@@ -142,11 +142,11 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 	if (!tmp)
 		return;
 	
-	if (needs_charset(tmp))
+	if (needs_charset((unsigned char*)tmp))
 		if (!vformat_attribute_has_param (attr, "CHARSET"))
 			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
-	if (needs_encoding(tmp, encoding)) {
+	if (needs_encoding((unsigned char*)tmp, encoding)) {
 		if (!vformat_attribute_has_param (attr, "ENCODING"))
 			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
 		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
@@ -169,37 +169,37 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	const char *std_encoding = "QUOTED-PRINTABLE";
 		
 	while (root) {
-		if (!strcmp(root->name, "Created")) {
+		if (!strcmp((char*)root->name, "Created")) {
 			//Created
 			attr = vformat_attribute_new(NULL, "DCREATED");
 			add_value(attr, root, "Content", std_encoding);
 			vformat_add_attribute(vcard, attr);
-		} else if (!strcmp(root->name, "LastModifed")) {
+		} else if (!strcmp((char*)root->name, "LastModifed")) {
 			//LastModifed
 			attr = vformat_attribute_new(NULL, "LAST-MODIFIED");
 			add_value(attr, root, "Content", std_encoding);
 			vformat_add_attribute(vcard, attr);
-		} else if (!strcmp(root->name, "Summary")) {
+		} else if (!strcmp((char*)root->name, "Summary")) {
 			//Summary
 			attr = vformat_attribute_new(NULL, "SUMMARY");
 			add_value(attr, root, "Content", std_encoding);
 			vformat_add_attribute(vcard, attr);
-		} else if (!strcmp(root->name, "Body")) {
+		} else if (!strcmp((char*)root->name, "Body")) {
 			//Body
 			attr = vformat_attribute_new(NULL, "BODY");
 			add_value(attr, root, "Content", std_encoding);
 			vformat_add_attribute(vcard, attr);
-		} else if (!strcmp(root->name, "Categories")) {
+		} else if (!strcmp((char*)root->name, "Categories")) {
 			//Categories
 			attr = vformat_attribute_new(NULL, "CATEGORIES");
 			add_value(attr, root, "Content", std_encoding);
 			vformat_add_attribute(vcard, attr);
-		} else if (!strcmp(root->name, "Class")) {
+		} else if (!strcmp((char*)root->name, "Class")) {
 			//Class
 			attr = vformat_attribute_new(NULL, "CLASS");
 			add_value(attr, root, "Content", std_encoding);
 			vformat_add_attribute(vcard, attr);
-		} else if (!strcmp(root->name, "UnknownNode")) {
+		} else if (!strcmp((char*)root->name, "UnknownNode")) {
 			//Unknown Node
 			attr = vformat_attribute_new(NULL, osxml_find_node(root, "NodeName"));
 			add_value(attr, root, "Content", std_encoding);

@@ -206,9 +206,9 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		OSyncChange *change = osync_change_new();
 		change->id = sqlite3_column_int64(ppStmt, 0);
-		change->uid = g_strdup(sqlite3_column_text(ppStmt, 1));
-		change->objtype_name = g_strdup(sqlite3_column_text(ppStmt, 2));
-		change->format_name = g_strdup(sqlite3_column_text(ppStmt, 3));
+		change->uid = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
+		change->objtype_name = g_strdup((gchar*)sqlite3_column_text(ppStmt, 2));
+		change->format_name = g_strdup((gchar*)sqlite3_column_text(ppStmt, 3));
 		change->initial_format_name = g_strdup(change->format_name);
 		change->mappingid = sqlite3_column_int64(ppStmt, 5);
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
@@ -436,7 +436,7 @@ void osync_db_get_anchor(OSyncDB *sdb, const char *objtype, char **retanchor)
 	if (sqlite3_prepare(sdb->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare anchor! %s", sqlite3_errmsg(sdb->db));
 	sqlite3_step(ppStmt);
-	*retanchor = g_strdup(sqlite3_column_text(ppStmt, 0));
+	*retanchor = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);
 }
@@ -542,7 +542,7 @@ void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
 		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
 	if (sqlite3_step(ppStmt) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable step get hash! %s", sqlite3_errmsg(sdb));
-	*rethash = g_strdup(sqlite3_column_text(ppStmt, 0));
+	*rethash = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);
 }

@@ -354,43 +354,43 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	
 	xmlDocPtr doc;
 
-	doc = xmlNewDoc("1.0");
-	doc->children = xmlNewDocNode(doc, NULL, "syncgroup", NULL);
+	doc = xmlNewDoc((xmlChar*)"1.0");
+	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 	
 	//The filters
 	GList *f;
 	for (f = group->filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
-		xmlNodePtr child = xmlNewChild(doc->children, NULL, "filter", NULL);
+		xmlNodePtr child = xmlNewChild(doc->children, NULL, (xmlChar*)"filter", NULL);
 		
 		if (filter->sourcememberid) {
 			char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
-			xmlNewChild(child, NULL, "sourcemember", sourcememberid);
+			xmlNewChild(child, NULL, (xmlChar*)"sourcemember", (xmlChar*)sourcememberid);
 			g_free(sourcememberid);
 		}
 		if (filter->destmemberid) {
 			char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
-			xmlNewChild(child, NULL, "destmember", destmemberid);
+			xmlNewChild(child, NULL, (xmlChar*)"destmember", (xmlChar*)destmemberid);
 			g_free(destmemberid);
 		}
 		if (filter->sourceobjtype)
-			xmlNewChild(child, NULL, "sourceobjtype", filter->sourceobjtype);
+			xmlNewChild(child, NULL, (xmlChar*)"sourceobjtype", (xmlChar*)filter->sourceobjtype);
 		if (filter->destobjtype)
-			xmlNewChild(child, NULL, "destobjtype", filter->destobjtype);
+			xmlNewChild(child, NULL, (xmlChar*)"destobjtype", (xmlChar*)filter->destobjtype);
 		if (filter->detectobjtype)
-			xmlNewChild(child, NULL, "detectobjtype", filter->detectobjtype);
+			xmlNewChild(child, NULL, (xmlChar*)"detectobjtype", (xmlChar*)filter->detectobjtype);
 		if (filter->action) {
 			char *action = g_strdup_printf("%i", filter->action);
-			xmlNewChild(child, NULL, "action", action);
+			xmlNewChild(child, NULL, (xmlChar*)"action", (xmlChar*)action);
 			g_free(action);
 		}
 		if (filter->function_name)
-			xmlNewChild(child, NULL, "function_name", filter->function_name);
+			xmlNewChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
 		if (filter->config)
-			xmlNewChild(child, NULL, "config", filter->config);
+			xmlNewChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
 	}
 
-	xmlNewChild(doc->children, NULL, "groupname", group->name);
+	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
@@ -471,7 +471,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 
 	while (cur != NULL) {
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
-			group->name = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+			group->name = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 			filternode = cur->xmlChildrenNode;
@@ -480,19 +480,19 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 			
 			while (filternode != NULL) {
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
-					filter->sourceobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->sourceobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
-					filter->destobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->destobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
-					filter->detectobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->detectobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
-					filter->config = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					filter->config = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -502,7 +502,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 				}
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -512,7 +512,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 				}
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
@@ -522,7 +522,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 				}
 				
 				if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
-					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
 					if (!str) {
 						filternode = filternode->next;
 						continue;
