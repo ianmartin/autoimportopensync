@@ -109,7 +109,7 @@ bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, con
 	// object type and format
 	osync_change_set_objtype_string(chg, objtype);
 	osync_change_set_objformat_string(chg, objformat);
-	osync_change_set_data(chg, strdup(data), strlen(data), 1);
+	osync_change_set_data(chg, strdup(data), strlen(data) +1, 1);
 
 	// Use the hash table to check if the object
 	// needs to be reported
@@ -127,8 +127,13 @@ bool KCalDataSource::get_changeinfo_events(OSyncContext *ctx)
     KCal::Event::List events = calendar->events();
     osync_debug("kcal", 3, "Number of events: %d", events.size());
 
+	if (osync_member_get_slow_sync(member, "event")) {
+		osync_debug("kcal", 3, "Setting slow-sync for events");
+		osync_hashtable_set_slow_sync(hashtable, "event");
+	}
+	
     for (KCal::Event::List::ConstIterator i = events.begin(); i != events.end(); i++) {
-        if (!report_incidence(ctx, *i, "event", "vevent"))
+        if (!report_incidence(ctx, *i, "event", "vevent20"))
             return false;
     }
 
@@ -143,9 +148,14 @@ bool KCalDataSource::get_changeinfo_todos(OSyncContext *ctx)
 
     osync_debug("kcal", 3, "Number of to-dos: %d", todos.size());
     
+    if (osync_member_get_slow_sync(member, "todo")) {
+		osync_debug("kcal", 3, "Setting slow-sync for todos");
+		osync_hashtable_set_slow_sync(hashtable, "todo");
+	}
+    
     for (KCal::Todo::List::ConstIterator i = todos.begin(); i != todos.end(); i++) {
         osync_debug("kcal", 3, "%p: doesFloat: %d", *i, (*i)->doesFloat());
-        if (!report_incidence(ctx, *i, "todo", "vtodo"))
+        if (!report_incidence(ctx, *i, "todo", "vtodo20"))
             return false;
     }
 
@@ -170,12 +180,12 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
     switch (type) {
         case CHANGE_DELETED:
             {
-                KCal::Event *e = calendar->event(osync_change_get_uid(chg));
+                KCal::Incidence *e = calendar->incidence(osync_change_get_uid(chg));
                 if (!e) {
                     osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Event not found while deleting");
                     return false;
                 }
-                calendar->deleteEvent(e);
+                calendar->deleteIncidence(e);
             }
         break;
         case CHANGE_ADDED:
@@ -211,10 +221,14 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             KCal::Incidence::List evts = cal.incidences();
             for (KCal::Incidence::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
                 KCal::Incidence *e = (*i)->clone();
-                e->setUid(osync_change_get_uid(chg));
+                if (type == CHANGE_MODIFIED)
+               		e->setUid(osync_change_get_uid(chg));
 
                 osync_debug("kcal", 3, "Writing incidence: uid: %s, summary: %s",
                                 (const char*)e->uid().local8Bit(), (const char*)e->summary().local8Bit());
+                                
+                QString c_uid = e->uid().utf8();
+                osync_change_set_uid(chg, (const char*)c_uid);
                 QString hash = calc_hash(*i);
                 osync_change_set_hash(chg, hash);
                 calendar->addIncidence(e);
