@@ -66,6 +66,7 @@ AC_SUBST(PACKAGE_LIBS)
 AC_OUTPUT([
 Makefile
 src/Makefile
+tools/Makefile
 tests/Makefile
 formats/Makefile
 ])
