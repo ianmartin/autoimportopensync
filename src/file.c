@@ -55,6 +55,23 @@ static void create_file(OSyncChange *change)
 
 static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **output, int *outpsize)
 {
+	fs_fileinfo *file = (fs_fileinfo *)input;
+	*output = g_malloc0(file->size * sizeof(char));
+	memcpy(*output, file->data, file->size);
+	
+	*outpsize = file->size * sizeof(char);
+	return TRUE;
+}
+
+static osync_bool conv_vcard_to_file(const char *input, int inpsize, char **output, int *outpsize)
+{
+	fs_fileinfo *file = g_malloc0(sizeof(fs_fileinfo));
+	file->data = g_malloc0(inpsize * sizeof(char));
+	memcpy(file->data, input, inpsize);
+	file->size = inpsize;
+	
+	*output = (char *)file;
+	*outpsize = sizeof(file);
 	return TRUE;
 }
 
@@ -65,15 +82,18 @@ void duplicate_file(OSyncChange *change)
 	g_free(newuid);
 }
 
-void detect_file(OSyncFormatEnv *env, OSyncChange *change)
+static osync_bool detect_file(OSyncFormatEnv *env, OSyncChange *change)
 {
-	//OSyncFormatEnv *env = osync_member_get_format_env(member);
-	//fs_fileinfo *file_info = (fs_fileinfo *)data;
+	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
 	
 	//Call the data detectors here
-	/*osync_conv_detect_data(file_info->data, file_info->size);
-	 * 
+	if (osync_conv_detect_data(env, change, file->data, file->size))
+		return TRUE;
 	
+	//OSyncObjType *objtype = osync_conv_find_objtype(env, "*");
+	//osync_change_set_objtype(change, objtype);
+	return FALSE;
+	/*
 	//Call the smart detectors here
 	char buffer[256];
 	memset(buffer, 0, sizeof(buffer));
@@ -107,4 +127,5 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_format_set_create_func(format, create_file);
 #endif
 	osync_conv_register_converter(type, CONVERTER_CONV, "file", "vcard", conv_file_to_vcard);
+	osync_conv_register_converter(type, CONVERTER_CONV, "vcard", "file", conv_vcard_to_file);
 }

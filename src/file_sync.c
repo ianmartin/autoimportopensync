@@ -90,8 +90,8 @@ static void fs_connect(OSyncContext *ctx)
 	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
 	osync_hashtable_load(fsinfo->hashtable, fsinfo->member);
 	
-	if (!osync_anchor_compare(fsinfo->member, "*", fsinfo->path))
-		osync_member_set_slow_sync(fsinfo->member, "*", TRUE);
+	if (!osync_anchor_compare(fsinfo->member, "path", fsinfo->path))
+		osync_member_set_slow_sync(fsinfo->member, "data", TRUE);
 	
 	if (direrror) {
 		//Unable to open directory
@@ -113,7 +113,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "file");
+	osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "data");
 	osync_debug("FILE-SYNC", 3, "slow_sync=%s", slow_sync ? "true" : "false");
 	if (slow_sync)
 		osync_hashtable_reset(fsinfo->hashtable);
@@ -227,7 +227,7 @@ static void fs_sync_done(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_forget(fsinfo->hashtable);
-	osync_anchor_update(fsinfo->member, "*", fsinfo->path);
+	osync_anchor_update(fsinfo->member, "path", fsinfo->path);
 	osync_context_report_success(ctx);
 }
 
@@ -254,11 +254,6 @@ static void fs_finalize(void *data)
 	//g_free(fsinfo);
 }
 
-OSyncFormatFunctions file_functions = {
-	.access = fs_access,
-	.commit_change = fs_commit_change,
-};
-
 void get_info(OSyncPluginInfo *info) {
 	info->name = "file-sync";
 	info->version = 1;
@@ -272,6 +267,8 @@ void get_info(OSyncPluginInfo *info) {
 	info->functions.get_changeinfo = fs_get_changeinfo;
 	info->functions.get_data = fs_get_data;
 	
-	osync_plugin_register_accepted_objtype(info, "*");
-	osync_plugin_register_accepted_objformat(info, "*", "file", &file_functions);
+	osync_plugin_accept_objtype(info, "data");
+	osync_plugin_accept_objformat(info, "data", "file");
+	osync_plugin_set_commit_objformat(info, "data", "file", fs_commit_change);
+	osync_plugin_set_access_objformat(info, "data", "file", fs_access);
 }
