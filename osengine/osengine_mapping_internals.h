@@ -5,6 +5,7 @@ struct OSyncMappingTable {
 	GList *unmapped;
 	OSyncGroup *group;
 	GList *views;
+	GList *entries;
 };
 
 struct OSyncMappingView {

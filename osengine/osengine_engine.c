@@ -357,6 +357,12 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 	
 	if (itm_message_is_signal (message, "ENTRY_CHANGED")) {
 		OSyncMappingEntry *entry = itm_message_get_data(message, "entry");
+		
+		if (!g_list_find(engine->maptable->entries, entry) && !g_list_find(engine->maptable->unmapped, entry)) {
+			osync_trace(TRACE_EXIT, "%s: Entry %p is dead", __func__, entry);
+			return;
+		}
+		
 		osengine_mappingentry_decider(engine, entry);
 		osync_trace(TRACE_EXIT, "engine_message_handler");
 		return;
@@ -364,6 +370,12 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 	
 	if (itm_message_is_signal (message, "MAPPING_CHANGED")) {
 		OSyncMapping *mapping = itm_message_get_data(message, "mapping");
+		
+		if (!g_list_find(engine->maptable->mappings, mapping)) {
+			osync_trace(TRACE_EXIT, "%s: Mapping %p is dead", __func__, mapping);
+			return;
+		}
+		
 		osengine_mapping_decider(engine, mapping);
 		osync_trace(TRACE_EXIT, "engine_message_handler");
 		return;
@@ -371,6 +383,12 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 	
 	if (itm_message_is_signal (message, "CLIENT_CHANGED")) {
 		OSyncClient *client = itm_message_get_data(message, "client");
+		
+		if (!g_list_find(engine->clients, client)) {
+			osync_trace(TRACE_EXIT, "%s: Client %p is dead", __func__, client);
+			return;
+		}
+		
 		osengine_client_decider(engine, client);
 		osync_trace(TRACE_EXIT, "engine_message_handler");
 		return;
@@ -562,26 +580,25 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	osync_flag_set_pos_trigger(engine->fl_stop, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	//The combined flags
-	engine->cmb_sent_changes = osync_comb_flag_new(FALSE);
+	engine->cmb_sent_changes = osync_comb_flag_new(FALSE, FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_sent_changes, (MSyncFlagTriggerFunc)trigger_clients_sent_changes, engine, NULL);
 	
-	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE);
+	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE, FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
-	engine->cmb_synced = osync_comb_flag_new(FALSE);
+	engine->cmb_synced = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_synced, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
-	engine->cmb_finished = osync_comb_flag_new(FALSE);
+	engine->cmb_finished = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_finished, (MSyncFlagTriggerFunc)osync_engine_reset, engine, NULL);
 	
-	engine->cmb_connected = osync_comb_flag_new(FALSE);
+	engine->cmb_connected = osync_comb_flag_new(FALSE, FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 
-	engine->cmb_chkconflict = osync_comb_flag_new(FALSE);
+	engine->cmb_chkconflict = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (MSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
 	
 	osync_flag_set(engine->fl_sync);
-	osync_flag_set(engine->cmb_chkconflict);
 	
 	int i;
 	for (i = 0; i < osync_group_num_members(group); i++) {

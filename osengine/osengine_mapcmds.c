@@ -225,8 +225,10 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	//Our mapping is already solved since there is no conflict
 	osync_flag_set(mapping->fl_solved);
 	
-	if (is_same == prod(g_list_length(engine->maptable->views) - 1))
+	if (is_same == prod(g_list_length(engine->maptable->views) - 1)) {
 		osync_flag_set(mapping->cmb_synced);
+		osync_flag_set(mapping->fl_multiplied);
+	}
 
 	send_mapping_changed(engine, mapping);
 	osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: No conflict");
@@ -251,7 +253,6 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		OSyncMappingEntry *entry = e->data;
 		if (osync_change_get_changetype(entry->change) == CHANGE_DELETED) {
 			osync_change_delete(entry->change, NULL);
-			osengine_mapping_remove_entry(dupe_mapping, entry);
 			osengine_mappingentry_free(entry);
 		}
 	}

@@ -38,11 +38,13 @@ void osync_flag_free(MSyncFlag *flag)
 	g_free(flag);
 }
 
-MSyncFlag *osync_comb_flag_new(osync_bool any)
+MSyncFlag *osync_comb_flag_new(osync_bool any, osync_bool default_val)
 {
 	MSyncFlag *flag = osync_flag_new(NULL);
 	flag->is_comb = TRUE;
 	flag->is_any = any;
+	flag->default_val = default_val;
+	flag->is_set = default_val;
 	return flag;
 }
 
@@ -92,6 +94,14 @@ void osync_flag_calculate_comb(MSyncFlag *flag)
 {
 	if (!flag->is_comb)
 		return;
+	
+	if (!flag->num_not_set && !flag->num_set) {
+		if (flag->default_val)
+			osync_flag_set(flag);
+		else
+			osync_flag_unset(flag);
+		return;
+	}
 	
 	if (!flag->is_any) {
 		if (!flag->num_not_set && flag->num_set) {

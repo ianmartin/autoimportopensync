@@ -33,7 +33,7 @@ void osengine_print_all(OSyncEngine *engine)
 	osync_debug("ENG", 2, "all mapped: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_entries_mapped) ? "YES" : "NO", engine->cmb_entries_mapped->num_not_set, engine->cmb_entries_mapped->num_set);
 	osync_debug("ENG", 2, "synced: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_synced) ? "YES" : "NO", engine->cmb_synced->num_not_set, engine->cmb_synced->num_set);
 	osync_debug("ENG", 2, "conflicts checked: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_chkconflict) ? "YES" : "NO", engine->cmb_chkconflict->num_not_set, engine->cmb_chkconflict->num_set);
-	osync_debug("ENG", 2, "finished: %s", osync_flag_get_state(engine->cmb_finished) ? "YES" : "NO");
+	osync_debug("ENG", 2, "finished: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_finished) ? "YES" : "NO", engine->cmb_finished->num_not_set, engine->cmb_finished->num_set);
 	osync_debug("ENG", 2, "connected: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_connected) ? "YES" : "NO", engine->cmb_connected->num_not_set, engine->cmb_connected->num_set);
 	
 	for (i = engine->clients; i; i = i->next) {

@@ -1,56 +1,5 @@
 #include "support.h"
 
-/*START_TEST (multisync_easy_new)
-{
-	char *testbed = setup_testbed("multisync_easy_new");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_set_configdir(osync, "dont_load_groups_on_initialize");
-	osync_env_initialize(osync, NULL);
-	mark_point();
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	fail_unless(group != NULL, NULL);
-	fail_unless(osync_env_num_groups(osync) == 1, NULL);
-	mark_point();
-	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
-	
-	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
-	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
-	
-	fail_unless(num_written == 2, NULL);
-	fail_unless(num_read == 1, NULL);
-	
-	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
-    osync_mappingtable_close(maptable);
-	
-	OSyncHashTable *table = hashtable_load(group, 1, 1);
-    check_hash(table, "testdata");
-	osync_hashtable_close(table);
-	
-	table = hashtable_load(group, 2, 1);
-    check_hash(table, "testdata");
-	osync_hashtable_close(table);
-	
-	table = hashtable_load(group, 3, 1);
-    check_hash(table, "testdata");
-	osync_hashtable_close(table);
-	
-	destroy_testbed(testbed);
-}
-END_TEST*/
-
 START_TEST (single_init_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
