@@ -111,19 +111,21 @@ e_vcard_get_type (void)
 	static GType vcard_type = 0;
 
 	if (!vcard_type) {
-		static const GTypeInfo vcard_info =  {
-			sizeof (EVCardClass),
-			NULL,           /* base_init */
-			NULL,           /* base_finalize */
-			(GClassInitFunc) e_vcard_class_init,
-			NULL,           /* class_finalize */
-			NULL,           /* class_data */
-			sizeof (EVCard),
-			0,             /* n_preallocs */
-			(GInstanceInitFunc) e_vcard_init,
-		};
-
-		vcard_type = g_type_register_static (G_TYPE_OBJECT, "OSEVCard", &vcard_info, 0);
+		if (!(vcard_type = g_type_from_name("OSEVCard"))) {
+			static const GTypeInfo vcard_info =  {
+				sizeof (EVCardClass),
+				NULL,           /* base_init */
+				NULL,           /* base_finalize */
+				(GClassInitFunc) e_vcard_class_init,
+				NULL,           /* class_finalize */
+				NULL,           /* class_data */
+				sizeof (EVCard),
+				0,             /* n_preallocs */
+				(GInstanceInitFunc) e_vcard_init,
+			};
+	
+			vcard_type = g_type_register_static (G_TYPE_OBJECT, "OSEVCard", &vcard_info, 0);
+		}
 	}
 
 	return vcard_type;
