@@ -99,6 +99,18 @@ struct OSyncMappingTable {
 	GList *unmapped;
 };
 
+/*FIXME: OSyncformatEnv is used on two
+ * different cases:
+ * - To store the list of all valid formats, types,
+ *   and converters and their related functions (i.e. conversion
+ *   functions)
+ * - To store the list of supported formats and
+ *   types of a plugin, and their related functions (i.e.
+ *   commit_change)
+ *
+ * These two cases are distinct and on each case, different information
+ * is stored. I think that this needs to be changed. -- ehabkost
+ */
 struct OSyncFormatEnv {
 	GList *objtypes;
 	GList *objformats;
