@@ -34,7 +34,7 @@ void _get_changes_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncE
  */
 void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	_osync_debug(engine, "ENG", 0, "Received a reply %p to CONNECT command from client %p, engine is at %p", message, sender, engine);
+	_osync_debug(engine, "ENG", 3, "Received a reply %p to CONNECT command from client %p, engine is at %p", message, sender, engine);
 	
 	if (itm_message_is_error(message)) {
 		osync_flag_unset(sender->fl_connected);
@@ -162,7 +162,7 @@ void handle_new_change(OSyncEngine *engine, OSyncClient *client, OSyncChange *ch
 	MSyncChangeFlags *flags = NULL;
 	OSyncMapping *mapping = NULL;
 	
-	_osync_debug(engine, "ENG", 0, "Handling new change %p with uid %s and changetype %i with data %p from member %lli", change, osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_member_get_id(client->member));
+	_osync_debug(engine, "ENG", 2, "Handling new change %p with uid %s and changetype %i with data %p from member %lli", change, osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_member_get_id(client->member));
 	
 	//Update the change in the correct mapping
 	//Save the change

@@ -8,6 +8,8 @@ typedef struct ITMQueue ITMQueue;
 #include "osengine_message_internals.h"
 #include "osengine_queue_internals.h"
 
+#define segfault_me char **blablabla = NULL; *blablabla = "test";
+
 /**
  * @defgroup PrivateAPI Private APIs
  * @brief Available private APIs

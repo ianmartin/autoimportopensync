@@ -97,6 +97,8 @@ void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 	g_assert(engine);
 
 	_osync_debug(engine, "MAP", 2, "Multiplying mapping %p", mapping);
+	
+	osync_engine_print_all(engine);
 
 	master = osync_mapping_get_masterentry(mapping);
 	g_assert(master);
@@ -110,8 +112,17 @@ void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 		OSyncClient *client = g_list_nth_data(engine->clients, i);
 		//Check if this client is already listed in the mapping
 		change = osync_mapping_get_entry_by_owner(mapping, client->member);
+		printf("change %p\n", change);
 		if (change == master)
 			continue;
+		printf("trying to multiply change %p %s\n", change, change ? osync_change_get_uid(change) : "None");
+		if (change && (osync_conv_compare_changes(change, master) == CONV_DATA_SAME)) {
+			printf("the same!\n");
+			chflags = osync_change_get_flags(change);
+			if (osync_flag_is_not_set(chflags->fl_dirty))
+				osync_flag_set(chflags->fl_synced);
+			continue;
+		}
 		if (!change) {
 			change = osync_change_new();
 			osync_change_set_uid(change, osync_change_get_uid(master));
@@ -176,7 +187,7 @@ void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	OSyncChange *leftchange = NULL;
 	OSyncChange *rightchange = NULL;
 	
-	_osync_debug(engine, "MAP", 3, "Checking conflict for mapping %p", mapping);
+	_osync_debug(engine, "MAP", 2, "Checking conflict for mapping %p", mapping);
 	
 	g_assert(engine != NULL);
 	g_assert(mapping != NULL);
@@ -214,11 +225,15 @@ void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	conflict:
 	if (is_conflict) {
 		//conflict, solve conflict
+		_osync_debug(engine, "MAP", 2, "Got conflict for mapping %p", mapping);
 		osync_status_conflict(engine, mapping);
 		return;
 	}
 	
-	if (is_same != fac(osync_mapping_num_entries(mapping) - 1)) {
+	//printf("is_same %i , num %i, fac -1 %i\n", is_same, osync_mapping_num_entries(mapping), fac(osync_mapping_num_entries(mapping)));
+	printf("is_same %i , num %i\n", is_same, osync_group_num_members(engine->group) - 1);
+	
+	if (is_same != (osync_group_num_members(engine->group) - 1)) {
 		osync_mapping_multiply_master(engine, mapping);
 	} else {
 		MSyncMappingFlags *flags = osync_mapping_get_flags(mapping);
@@ -285,7 +300,6 @@ void osync_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 	_osync_debug(engine, "MAP", 3, "Mapping decider called for mapping %p", mapping);
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->cmb_sent_changes) && osync_flag_is_set(engine->cmb_entries_mapped) && osync_flag_is_set(flags->cmb_has_info) && osync_flag_is_set(flags->cmb_has_data) && osync_flag_is_not_set(flags->cmb_synced) && osync_flag_is_not_set(flags->fl_solved)) {
-		_osync_debug(engine, "MAP", 2, "Solving Map %p", mapping);
 		osync_mapping_check_conflict(engine, mapping);
 		return;
 	}
@@ -412,6 +426,8 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	
 	_osync_debug(engine, "MAP", 0, "Duplicating mapping %p", dupe_mapping);
 	
+	osync_engine_print_all(engine);
+	
 	orig_change = osync_mapping_nth_entry(dupe_mapping, 0);
 	
 	//Remove all deleted items first.
@@ -428,12 +444,16 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	
 	orig_change = osync_mapping_nth_entry(dupe_mapping, 0);
 	osync_mapping_set_masterentry(dupe_mapping, orig_change);
+	printf("orig change is %p\n", orig_change);
 	
 	while ((first_diff_change = _osync_find_next_diff(dupe_mapping, orig_change))) {
+		osync_change_set_changetype(orig_change, CHANGE_MODIFIED);
 		elevation = 0;
 		new_mapping = _osync_mapping_new(engine);
-		new_change = _osync_change_clone(engine, new_mapping, first_diff_change);
-		osync_member_add_changeentry(osync_change_get_member(first_diff_change), new_change);
+		_osync_debug(engine, "MAP", 0, "Created new mapping for duplication %p", new_mapping);
+		new_change = first_diff_change;
+		//new_change = _osync_change_clone(engine, new_mapping, first_diff_change);
+		//osync_member_add_changeentry(osync_change_get_member(first_diff_change), new_change);
 		do {
 			if (!_osync_change_elevate(engine, new_change, 1))
 				break;
@@ -445,12 +465,25 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 			_osync_change_elevate(engine, new_change, elevation);
 			_osync_change_overwrite(engine, next_change, orig_change);
 		}
-		_osync_change_overwrite(engine, orig_change, first_diff_change);
+		//_osync_change_overwrite(engine, orig_change, first_diff_change);
+		osync_mapping_remove_entry(dupe_mapping, first_diff_change);
+		osync_change_flags_detach(first_diff_change);
+		osync_change_flags_attach(first_diff_change, new_mapping);
+		osync_mapping_set_masterentry(new_mapping, first_diff_change);
+		osync_mapping_add_entry(new_mapping, first_diff_change);
+		
+		MSyncChangeFlags *changeflags = osync_change_get_flags(first_diff_change);
+		osync_flag_set(changeflags->fl_dirty);
+		
+		osync_mappingtable_save_change(engine->maptable, first_diff_change);
 		send_mapping_changed(engine, new_mapping);
 	}
 	
 	//FIXME multiplying the master here might not work of you duplicate a maping
 	//that did not need duplication
+	
+	osync_engine_print_all(engine);
+	
 	osync_mapping_multiply_master(engine, dupe_mapping);
 }
 
