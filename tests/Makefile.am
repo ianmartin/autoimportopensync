@@ -25,9 +25,9 @@ member_LIBS = @CHECK_LIBS@
 member_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la -lcheck
 
 env_INCLUDES = @CHECK_CFLAGS@
-env_SOURCES = check_env.c
+env_SOURCES = check_env.c support.c
 env_LIBS = @CHECK_LIBS@
-env_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la -lcheck
+env_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck
 
 user_INCLUDES = @CHECK_CFLAGS@
 user_SOURCES = check_user.c
@@ -45,7 +45,7 @@ sync_LIBS = @CHECK_LIBS@
 sync_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck
 
 filter_INCLUDES = @CHECK_CFLAGS@
-filter_SOURCES = check_filter.c
+filter_SOURCES = check_filter.c support.c
 filter_LIBS = @CHECK_LIBS@
 filter_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck
 

@@ -7,9 +7,7 @@ char *setup_testbed(char *fkt_name)
 	setuid(65534);
 	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
 	mkdtemp(testbed);
-	printf("\n Current directory\n");
-	system("pwd");
-	char *command = g_strdup_printf("cp -a data/%s/* %s", fkt_name, testbed);
+	char *command = g_strdup_printf("cp -a %s%sdata/%s/* %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", fkt_name, testbed);
 	if (system(command))
 		abort();
 	olddir = g_get_current_dir();

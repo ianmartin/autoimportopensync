@@ -1,37 +1,4 @@
-#include <check.h>
-#include "opensync.h"
-#include "opensync_internals.h"
-#include "engine.h"
-#include "engine_internals.h"
-
-char *olddir = NULL;
-
-char *setup_testbed(char *fkt_name)
-{
-	setuid(65534);
-	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
-	mkdtemp(testbed);
-	char *command = g_strdup_printf("cp -a data/%s/* %s", fkt_name, testbed);
-	if (system(command))
-		abort();
-	olddir = g_get_current_dir();
-	if (chdir(testbed))
-		abort();
-	g_free(command);
-	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
-	return testbed;
-}
-
-void destroy_testbed(char *path)
-{
-	char *command = g_strdup_printf("rm -rf %s", path);
-	if (olddir)
-		chdir(olddir);
-	system(command);
-	g_free(command);
-	osync_debug("TEST", 4, "Tearing down %s\n", path);
-	g_free(path);
-}
+#include "support.h"
 
 START_TEST (filter_setup)
 {
