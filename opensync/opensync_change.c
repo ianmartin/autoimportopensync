@@ -314,8 +314,10 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 {
 	g_assert(change);
 	change->format = objformat;
-	change->objtype = objformat->objtype;
-
+	if (objformat)
+		change->objtype = objformat->objtype;
+	else
+		change->objtype = NULL;
 }
 
 /*! @brief Sets the object format of a change from the name

@@ -152,7 +152,7 @@ static time_t vcard_get_revision(const char *filename)
 	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-contact");
 	fail_unless(targetformat != NULL, NULL);
 	
-	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, "evolution2", &error), NULL);
+	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, "evolution", &error), NULL);
 	
 	time_t time = osync_change_get_revision(change, &error);
 	

@@ -120,7 +120,7 @@ time_t osync_change_get_revision(OSyncChange *change, OSyncError **error)
 		
 	time_t time = format->revision_func(change, error);
 	
-	osync_trace(osync_error_is_set(error) ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s, %i", __func__, osync_error_print(error), time);
+	osync_trace(osync_error_is_set(error) ? TRACE_EXIT_ERROR : TRACE_EXIT, "%s: %s, %i", __func__, osync_error_print(error), time);
 	return time;
 }
 

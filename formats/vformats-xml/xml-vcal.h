@@ -7,6 +7,7 @@ struct OSyncHooksTable {
 	GHashTable *table;
 	GHashTable *tztable;
 	GHashTable *comptable;
+	GHashTable *compparamtable;
 	GHashTable *alarmtable;
 };
 
