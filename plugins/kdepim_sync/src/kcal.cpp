@@ -71,7 +71,7 @@ bool KCalDataSource::disconnect(OSyncContext *)
     return true;
 }
 
-static QString calc_hash(const KCal::Event *e)
+static QString calc_hash(const KCal::Incidence *e)
 {
     QDateTime d = e->lastModified();
     if (!d.isValid())
@@ -80,52 +80,86 @@ static QString calc_hash(const KCal::Event *e)
     return d.toString();
 }
 
-bool KCalDataSource::get_changeinfo(OSyncContext *ctx)
+/** Report a list of calendar incidences (events or to-dos), with the
+ * right objtype and objformat.
+ *
+ * This function exists because the logic for converting the events or to-dos
+ * is the same, only the objtype and format is different.
+ */
+bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, const char *objtype, const char *objformat)
+{
+	osync_debug("kcal", 3, "One calendar incidence (%s)", objtype);
+	QString hash = calc_hash(e);
+
+	QString uid = e->uid();
+
+	/* Build a local calendar for the incidence data */
+	KCal::CalendarLocal cal(calendar->timeZoneId());
+	osync_debug("kcal", 3, "timezoneid: %s\n", (const char*)cal.timeZoneId().local8Bit());
+	cal.addIncidence(e->clone());
+
+	/* Convert the data to vcalendar */
+	KCal::VCalFormat format;
+	/* Ugly workaround to a VCalFormat bug, format.toString()
+	 * doesn't work, but if save() or load() is called before
+	 * toString(), the segmentation fault will not happen (as
+	 * the mCalendar private field will be set)
+	 */
+	format.save(&cal, "");
+	QCString datastr = format.toString(&cal).local8Bit();
+	const char *data = datastr;
+
+	osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
+	OSyncChange *chg = osync_change_new();
+	osync_change_set_uid(chg, uid.local8Bit());
+	osync_change_set_member(chg, member);
+
+	// object type and format
+	osync_change_set_objtype_string(chg, objtype);
+	osync_change_set_objformat_string(chg, objformat);
+	osync_change_set_data(chg, strdup(data), strlen(data), 1);
+
+	// Use the hash table to check if the object
+	// needs to be reported
+	osync_change_set_hash(chg, hash.data());
+	if (osync_hashtable_detect_change(hashtable, chg)) {
+		osync_context_report_change(ctx, chg);
+		osync_hashtable_update_hash(hashtable, chg);
+	}
+
+    return true;
+}
+
+bool KCalDataSource::get_changeinfo_events(OSyncContext *ctx)
 {
     KCal::Event::List events = calendar->events();
     osync_debug("kcal", 3, "Number of events: %d", events.size());
-    
+
     for (KCal::Event::List::ConstIterator i = events.begin(); i != events.end(); i++) {
-        osync_debug("kcal", 3, "One calendar event");
-        KCal::Event *e = *i;
-        QString hash = calc_hash(e);
-
-        QString uid = e->uid();
-
-        KCal::VCalFormat format;
-        KCal::CalendarLocal cal(calendar->timeZoneId());
-        osync_debug("kcal", 3, "timezoneid: %s\n", (const char*)cal.timeZoneId().local8Bit());
-        cal.addEvent(e->clone());
-        /* Ugly workaround to a VCalFormat bug, format.toString()
-         * doesn't work, but if save() or load() is called before
-         * toString(), the segmentation fault will not happen (as
-         * the mCalendar private field will be set)
-         */
-        format.save(&cal, "");
-        QCString datastr = format.toString(&cal).local8Bit();
-        const char *data = datastr;
-
-        osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
-        OSyncChange *chg = osync_change_new();
-        osync_change_set_uid(chg, uid.local8Bit());
-        osync_change_set_member(chg, member);
-
-        // object type and format
-        osync_change_set_objtype_string(chg, "calendar");
-        osync_change_set_objformat_string(chg, "vcalendar");
-        //FIXME: deallocate data somewhere
-        osync_change_set_data(chg, strdup(data), strlen(data), 1);
-
-        // Use the hash table to check if the object
-        // needs to be reported
-        osync_change_set_hash(chg, hash.data());
-        if (osync_hashtable_detect_change(hashtable, chg)) {
-            osync_context_report_change(ctx, chg);
-            osync_hashtable_update_hash(hashtable, chg);
-        }
+        if (!report_incidence(ctx, *i, "event", "vevent"))
+            return false;
     }
-    osync_hashtable_report_deleted(hashtable, ctx, "calendar");
+
+    osync_hashtable_report_deleted(hashtable, ctx, "event");
+
     return true;
+}
+
+bool KCalDataSource::get_changeinfo_todos(OSyncContext *ctx)
+{
+    KCal::Todo::List todos = calendar->todos();
+
+    osync_debug("kcal", 3, "Number of to-dos: %d", todos.size());
+    
+    for (KCal::Todo::List::ConstIterator i = todos.begin(); i != todos.end(); i++) {
+        if (!report_incidence(ctx, *i, "todo", "vtodo"))
+            return false;
+    }
+
+    osync_hashtable_report_deleted(hashtable, ctx, "todo");
+
+    return true;
+
 }
 
 void KCalDataSource::get_data(OSyncContext *ctx, OSyncChange *)
@@ -133,6 +167,9 @@ void KCalDataSource::get_data(OSyncContext *ctx, OSyncChange *)
     osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Not implemented yet");
 }
 
+/** Add or change a incidence on the calendar. This function
+ * is used for events and to-dos
+ */
 bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
     OSyncChangeType type = osync_change_get_changetype(chg);
@@ -165,26 +202,26 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             format.save(&cal, "");
             format.fromString(&cal, data);
 
-            /*FIXME: The event will be overwritten. But I can't differentiate
+            /*FIXME: The event/to-do will be overwritten. But I can't differentiate
              * between a field being removed and a missing field because
              * the other device don't support them, because OpenSync currently
              * doesn't have support for it. Yes, it is risky, but unfortunately
              * CalendarResources don't have support for changing an event
              * from vcard data, and not adding it.
              */
-            KCal::Event *oldevt = calendar->event(osync_change_get_uid(chg));
+            KCal::Incidence *oldevt = calendar->incidence(osync_change_get_uid(chg));
             if (oldevt)
-                calendar->deleteEvent(oldevt);
+                calendar->deleteIncidence(oldevt);
 
             /* Add the events from the temporary calendar, setting the UID
              *
              * We iterate over the list, but it should have only one event.
              */
-            KCal::Event::List evts = cal.events();
-            for (KCal::Event::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
-                KCal::Event *e = (*i)->clone();
+            KCal::Incidence::List evts = cal.incidences();
+            for (KCal::Incidence::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
+                KCal::Incidence *e = (*i)->clone();
                 e->setUid(osync_change_get_uid(chg));
-                calendar->addEvent(e);
+                calendar->addIncidence(e);
             }
 
 
@@ -201,8 +238,9 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
     return true;
 }
 
-bool KCalDataSource::access(OSyncContext *ctx, OSyncChange *chg)
+bool KCalDataSource::event_access(OSyncContext *ctx, OSyncChange *chg)
 {
+    // We use the same function for events and to-do
     if (!__access(ctx, chg))
         return false;
 
@@ -210,8 +248,29 @@ bool KCalDataSource::access(OSyncContext *ctx, OSyncChange *chg)
     return true;
 }
 
-bool KCalDataSource::commit_change(OSyncContext *ctx, OSyncChange *chg)
+bool KCalDataSource::event_commit_change(OSyncContext *ctx, OSyncChange *chg)
 {
+    // We use the same function for events and to-do
+    if ( !__access(ctx, chg) )
+        return false;
+    osync_hashtable_update_hash(hashtable, chg);
+    osync_context_report_success(ctx);
+    return true;
+}
+
+bool KCalDataSource::todo_access(OSyncContext *ctx, OSyncChange *chg)
+{
+    // We use the same function for calendar and to-do
+    if (!__access(ctx, chg))
+        return false;
+
+    osync_context_report_success(ctx);
+    return true;
+}
+
+bool KCalDataSource::todo_commit_change(OSyncContext *ctx, OSyncChange *chg)
+{
+    // We use the same function for calendar and to-do
     if ( !__access(ctx, chg) )
         return false;
     osync_hashtable_update_hash(hashtable, chg);
