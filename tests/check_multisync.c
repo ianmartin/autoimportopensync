@@ -28,9 +28,9 @@ START_TEST (multisync_easy_new)
 	fail_unless(num_engine_end_conflicts = 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -88,9 +88,9 @@ START_TEST (multisync_easy_mod)
 	fail_unless(num_read == 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -150,9 +150,9 @@ START_TEST (multisync_dual_mod)
 	fail_unless(num_engine_end_conflicts = 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -212,9 +212,9 @@ START_TEST (multisync_triple_mod)
 	fail_unless(num_engine_end_conflicts = 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -257,9 +257,9 @@ START_TEST (multisync_dual_new)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -326,9 +326,9 @@ START_TEST (multisync_triple_new)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -536,9 +536,9 @@ START_TEST (multisync_conflict_data_choose)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -609,9 +609,9 @@ START_TEST (multisync_conflict_data_choose2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -688,9 +688,9 @@ START_TEST (multisync_conflict_changetype_choose)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -818,9 +818,9 @@ START_TEST (multisync_conflict_hybrid_choose)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -942,12 +942,12 @@ START_TEST (multisync_conflict_data_duplicate)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata-dupe", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata-dupe", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 2);
@@ -970,9 +970,9 @@ START_TEST (multisync_conflict_data_duplicate)
 	synchronize_once(engine, NULL);
 	
 	maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata-dupe", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata-dupe", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 1);
@@ -1043,15 +1043,15 @@ START_TEST (multisync_conflict_data_duplicate2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 3, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata-dupe-dupe", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata-dupe-dupe", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata-dupe-dupe", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata-dupe-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata-dupe-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata-dupe-dupe", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 3);
@@ -1077,9 +1077,9 @@ START_TEST (multisync_conflict_data_duplicate2)
 	synchronize_once(engine, NULL);
 	
 	maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata-dupe", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata-dupe", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 1);
@@ -1155,9 +1155,9 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -1235,9 +1235,9 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
-	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 1);
@@ -1314,12 +1314,12 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata-dupe", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata-dupe", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata-dupe", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 2);
@@ -1386,15 +1386,15 @@ START_TEST (multisync_multi_conflict)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 3, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 3);
@@ -1443,21 +1443,21 @@ START_TEST (multisync_multi_conflict)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	maptable = mappingtable_load(group, 5, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1-dupe", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1-dupe", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1-dupe", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata2-dupe", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata2-dupe", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata2-dupe", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1-dupe", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2-dupe", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2-dupe", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2-dupe", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 5);
@@ -1533,15 +1533,15 @@ START_TEST (multisync_delayed_conflict_handler)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 3, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 3);
@@ -1590,15 +1590,15 @@ START_TEST (multisync_delayed_conflict_handler)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	maptable = mappingtable_load(group, 3, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata2", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 3);
@@ -1667,12 +1667,12 @@ START_TEST (multisync_conflict_ignore)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 2);
@@ -1718,12 +1718,12 @@ START_TEST (multisync_conflict_ignore)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	
 	maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 2);
@@ -1751,12 +1751,12 @@ START_TEST (multisync_conflict_ignore)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	
 	maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 2);
@@ -1786,12 +1786,12 @@ START_TEST (multisync_conflict_ignore)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 2);
@@ -1860,11 +1860,11 @@ START_TEST (multisync_conflict_ignore2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 2, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 2, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 2, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 2, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 2);
@@ -1894,12 +1894,12 @@ START_TEST (multisync_conflict_ignore2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	maptable = mappingtable_load(group, 2, 0);
-	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
-	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
-	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
     mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 2);

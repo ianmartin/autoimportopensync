@@ -164,6 +164,7 @@ Makefile
 opensync/Makefile
 tools/Makefile
 tests/Makefile
+tests/mock-plugin/Makefile
 formats/Makefile
 formats/vformats-xml/Makefile
 osengine/Makefile

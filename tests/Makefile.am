@@ -85,3 +85,7 @@ CLEANFILES = \
 
 clean:
 	rm -rf coverage/*
+	$(MAKE) clean -C mock-plugin
+
+all-local:
+	$(MAKE) -C mock-plugin

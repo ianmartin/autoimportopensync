@@ -23,14 +23,35 @@ char *setup_testbed(char *fkt_name)
 	setuid(65534);
 	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
 	mkdtemp(testbed);
-	char *command = g_strdup_printf("cp -a %s%sdata/%s/* %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", fkt_name, testbed);
+	
+	char *command = NULL;
+	if (fkt_name) {
+		command = g_strdup_printf("cp -a %s%sdata/%s/* %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", fkt_name, testbed);
+		if (system(command))
+			abort();
+		g_free(command);
+	}
+	
+	command = g_strdup_printf("cp -a %s%smock-plugin/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
 	if (system(command))
 		abort();
+	g_free(command);
+	
+	command = g_strdup_printf("cp -a %s%s../formats/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
+	if (system(command))
+		abort();
+	g_free(command);
+	
+	command = g_strdup_printf("cp -a %s%s../formats/vformats-xml/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
+	if (system(command))
+		abort();
+	g_free(command);
+	
 	olddir = g_get_current_dir();
 	if (chdir(testbed))
 		abort();
-	g_free(command);
-	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
+	
+	osync_debug("TEST", 4, "Seting up %s at %s", fkt_name, testbed);
 	printf(".");
 	fflush(NULL);
 	reset_env();
@@ -388,16 +409,43 @@ void check_hash(OSyncHashTable *table, const char *cmpuid)
 	fail_unless(found == TRUE, NULL);
 }
 
+static void load_format(OSyncEnv *env, const char *name)
+{
+	OSyncError *error = NULL;
+	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), name);	
+	fail_unless(osync_format_plugin_load(env, path, &error), NULL);
+	g_free(path);
+}
+
 OSyncEnv *init_env(void)
 {
 	mark_point();
 	OSyncEnv *osync = osync_env_new();
 	mark_point();
 	osync_env_set_option(osync, "LOAD_GROUPS", "FALSE");
+	osync_env_set_option(osync, "LOAD_FORMATS", "FALSE");
+	osync_env_set_option(osync, "LOAD_PLUGINS", "FALSE");
 	mark_point();
 	OSyncError *error = NULL;
 	fail_unless(osync_env_initialize(osync, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
+	
+	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), "mock_sync.so");	
+	fail_unless(osync_plugin_load(osync, path, &error) != NULL, NULL);
+	g_free(path);
+	
+	load_format(osync, "contact.so");
+	load_format(osync, "data.so");
+	load_format(osync, "event.so");
+	load_format(osync, "note.so");
+	load_format(osync, "todo.so");
+	load_format(osync, "xml-vcal.so");
+	load_format(osync, "xml-vcard.so");
+	load_format(osync, "xml-vnote.so");
+	load_format(osync, "xml-evolution.so");
+	load_format(osync, "xml-kde.so");
+	load_format(osync, "mockformat.so");
+	
 	return osync;
 }
 

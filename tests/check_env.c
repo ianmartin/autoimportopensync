@@ -108,6 +108,7 @@ END_TEST
 
 START_TEST (env_check_plugin_true1)
 {
+	char *testbed = setup_testbed(NULL);
 	OSyncEnv *env = init_env();
 	
 	OSyncError *error = NULL;
@@ -115,11 +116,13 @@ START_TEST (env_check_plugin_true1)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_check_plugin_true2)
 {
+	char *testbed = setup_testbed(NULL);
 	g_setenv("IS_AVAILABLE", "1", TRUE);
 	
 	OSyncEnv *env = init_env();
@@ -130,11 +133,13 @@ START_TEST (env_check_plugin_true2)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_check_plugin_false)
 {
+	char *testbed = setup_testbed(NULL);
 	OSyncEnv *env = init_env();
 	
 	OSyncError *error = NULL;
@@ -142,11 +147,13 @@ START_TEST (env_check_plugin_false)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_check_plugin_false2)
 {
+	char *testbed = setup_testbed(NULL);
 	g_setenv("IS_AVAILABLE", "1", TRUE);
 	g_setenv("IS_NOT_AVAILABLE", "1", TRUE);
 	
@@ -158,6 +165,7 @@ START_TEST (env_check_plugin_false2)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 

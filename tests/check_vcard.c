@@ -2,6 +2,12 @@
 
 static void conv_vcard(const char *filename, const char *extension)
 {
+	char *command = g_strdup_printf("cp %s/%s .", g_get_current_dir(), filename);
+	char *testbed = setup_testbed(NULL);
+	system(command);
+	g_free(command);
+	
+	
 	OSyncError *error = NULL;
 	OSyncEnv *env = init_env();
 	
@@ -11,10 +17,12 @@ static void conv_vcard(const char *filename, const char *extension)
 	char *buffer;
 	int size;
 	
-	fail_unless(osync_file_read(filename, &buffer, &size, &error), NULL);
+	char *file = g_path_get_basename(filename);
+	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
 	
 	OSyncChange *change = osync_change_new();
-	osync_change_set_uid(change, filename);		
+	osync_change_set_uid(change, file);
+	g_free(file);
 	osync_change_set_data(change, buffer, size + 1, TRUE);
 	osync_change_set_conv_env(change, conv_env);
 	
@@ -52,10 +60,20 @@ static void conv_vcard(const char *filename, const char *extension)
 	osync_conv_env_free(conv_env);
 	osync_env_finalize(env, NULL);
 	osync_env_free(env);
+	
+	destroy_testbed(testbed);
 }
 
-static void compare_vcard(const char *lfile, const char *rfile, OSyncConvCmpResult result)
+static void compare_vcard(const char *lfilename, const char *rfilename, OSyncConvCmpResult result)
 {
+	char *command1 = g_strdup_printf("cp %s/%s lfile", g_get_current_dir(), lfilename);
+	char *command2 = g_strdup_printf("cp %s/%s rfile", g_get_current_dir(), rfilename);
+	char *testbed = setup_testbed(NULL);
+	system(command1);
+	g_free(command1);
+	system(command2);
+	g_free(command2);
+	
 	OSyncError *error = NULL;
 	OSyncEnv *env = init_env();
 	
@@ -65,10 +83,10 @@ static void compare_vcard(const char *lfile, const char *rfile, OSyncConvCmpResu
 	char *buffer;
 	int size;
 	
-	fail_unless(osync_file_read(lfile, &buffer, &size, &error), NULL);
+	fail_unless(osync_file_read("lfile", &buffer, &size, &error), NULL);
 	
 	OSyncChange *lchange = osync_change_new();
-	osync_change_set_uid(lchange, lfile);		
+	osync_change_set_uid(lchange, "lfile");
 	osync_change_set_data(lchange, buffer, size + 1, TRUE);
 	osync_change_set_conv_env(lchange, conv_env);
 	osync_change_set_objformat_string(lchange, "plain");
@@ -78,11 +96,10 @@ static void compare_vcard(const char *lfile, const char *rfile, OSyncConvCmpResu
 	osync_change_set_objformat(lchange, sourceformat);
 	osync_change_set_objtype(lchange, osync_objformat_get_objtype(sourceformat));
 	
-	
-	fail_unless(osync_file_read(rfile, &buffer, &size, &error), NULL);
+	fail_unless(osync_file_read("rfile", &buffer, &size, &error), NULL);
 	
 	OSyncChange *rchange = osync_change_new();
-	osync_change_set_uid(rchange, lfile);		
+	osync_change_set_uid(rchange, "rfile");
 	osync_change_set_data(rchange, buffer, size + 1, TRUE);
 	osync_change_set_conv_env(rchange, conv_env);
 	osync_change_set_objformat_string(rchange, "plain");
@@ -97,6 +114,7 @@ static void compare_vcard(const char *lfile, const char *rfile, OSyncConvCmpResu
 	osync_conv_env_free(conv_env);
 	osync_env_finalize(env, NULL);
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 
 START_TEST (conv_vcard_evolution2_full1)
@@ -243,37 +261,37 @@ START_TEST (conv_vcard_kde_30_umlaute)
 }
 END_TEST
 
-START_TEST (comparvformat_mismatch1)
+START_TEST (compare_vformat_mismatch1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-different.vcf", "data/vcards/kdepim/compare/1-different.vcf", CONV_DATA_MISMATCH);
 }
 END_TEST
 
-START_TEST (comparvformat_similar1)
+START_TEST (compare_vformat_similar1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-conflict.vcf", "data/vcards/kdepim/compare/1-conflict.vcf", CONV_DATA_SIMILAR);
 }
 END_TEST
 
-START_TEST (comparvformat_mismatch2)
+START_TEST (compare_vformat_mismatch2)
 {
 	compare_vcard("data/vcards/evolution2/compare/2-conflict.vcf", "data/vcards/kdepim/compare/2-conflict.vcf", CONV_DATA_MISMATCH);
 }
 END_TEST
 
-START_TEST (comparvformat_similar2)
+START_TEST (compare_vformat_similar2)
 {
 	compare_vcard("data/vcards/evolution2/compare/2-different.vcf", "data/vcards/kdepim/compare/2-different.vcf", CONV_DATA_SIMILAR);
 }
 END_TEST
 
-START_TEST (comparvformat_same1)
+START_TEST (compare_vformat_same1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-same.vcf", "data/vcards/kdepim/compare/1-same.vcf", CONV_DATA_SAME);
 }
 END_TEST
 
-START_TEST (comparvformat_same2)
+START_TEST (compare_vformat_same2)
 {
 	compare_vcard("data/vcards/evolution2/compare/2-same.vcf", "data/vcards/kdepim/compare/2-same.vcf", CONV_DATA_SAME);
 }
@@ -311,12 +329,12 @@ Suite *vcard_suite(void)
 	create_case(s, "conv_vcard_kde_21_umlaute", conv_vcard_kde_21_umlaute);
 	create_case(s, "conv_vcard_kde_30_umlaute", conv_vcard_kde_30_umlaute);
 
-	create_case(s, "comparvformat_mismatch1", comparvformat_mismatch1);
-	create_case(s, "comparvformat_mismatch2", comparvformat_mismatch2);
-	create_case(s, "comparvformat_similar1", comparvformat_similar1);
-	create_case(s, "comparvformat_similar2", comparvformat_similar2);
-	create_case(s, "comparvformat_same1", comparvformat_same1);
-	create_case(s, "comparvformat_same2", comparvformat_same2);
+	create_case(s, "compare_vformat_mismatch1", compare_vformat_mismatch1);
+	create_case(s, "compare_vformat_mismatch2", compare_vformat_mismatch2);
+	create_case(s, "compare_vformat_similar1", compare_vformat_similar1);
+	create_case(s, "compare_vformat_similar2", compare_vformat_similar2);
+	create_case(s, "compare_vformat_same1", compare_vformat_same1);
+	create_case(s, "compare_vformat_same2", compare_vformat_same2);
 	
 	return s;
 }
