@@ -21,5 +21,5 @@ osync_bool osync_env_load_groups_dir(OSyncEnv *osyncinfo);
 OSyncUserInfo *osync_user_new(void);
 void osync_user_set_confdir(OSyncUserInfo *user, char *path);
 char *osync_user_get_confdir(OSyncUserInfo *user);
-osync_bool osync_file_write(char *filename, char *data, int size);
+osync_bool osync_file_write(char *filename, const char *data, int size);
 osync_bool osync_file_read(char *filename, char **data, int *size);

@@ -167,7 +167,7 @@ osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, char *path, cha
 	return TRUE;
 }
 
-osync_bool osync_file_write(char *filename, char *data, int size)
+osync_bool osync_file_write(char *filename, const char *data, int size)
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;

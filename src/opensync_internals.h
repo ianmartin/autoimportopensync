@@ -49,6 +49,8 @@ struct OSyncHashTable {
 
 struct OSyncMember {
 	char *configdir;
+	char *configdata;
+	int configsize;
 	OSyncPlugin *plugin;
 	void *enginedata;
 	void *plugindata;

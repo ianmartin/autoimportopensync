@@ -51,7 +51,7 @@ typedef gboolean osync_bool;
 
 typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
-	osync_bool (* store_config) (char *, char *, int);
+	osync_bool (* store_config) (char *, const char *, int);
 	void * (* initialize) (OSyncMember *);
 	void (* connect) (OSyncContext *);
 	void (* sync_done) (OSyncContext *ctx);

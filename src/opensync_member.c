@@ -21,6 +21,12 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	osync_debug("OSMEM", 3, "Generated new member");
 
 	return member;
+}
+
+void osync_member_free(OSyncMember *member)
+{
+	//FIXME
+	g_free(member);
 }	
 
 OSyncMemberFunctions *osync_member_get_memberfunctions(OSyncMember *member)
@@ -90,6 +96,9 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size)
 {
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	osync_bool ret = FALSE;
+	if (!member->configdir)
+		return FALSE;
+	
 	if (functions.get_config) {
 		ret = functions.get_config(member->configdir, data, size);
 	} else {
@@ -113,23 +122,12 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size)
 	return ret;
 }
 
-osync_bool osync_member_set_config(OSyncMember *member, char *data, int size)
+void osync_member_set_config(OSyncMember *member, const char *data, int size)
 {
-	osync_bool ret = FALSE;
-	OSyncPluginFunctions functions = member->plugin->info.functions;
-	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
-		mkdir(member->configdir, 0777);
-	}
-	osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
-	if (functions.store_config) {
-		return functions.store_config(member->configdir, data, size);
-	} else {
-		char *filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
-		ret = osync_file_write(filename, data, size);
-		g_free(filename);
-	}
-	return ret;
+	g_assert(member);
+	//FIXME free old data
+	member->configdata = g_strdup(data);
+	member->configsize = size;
 }
 
 osync_bool osync_member_initialize(OSyncMember *member)
@@ -492,39 +490,62 @@ osync_bool osync_member_load(OSyncMember *member)
 	return TRUE;
 }
 
-void osync_member_save(OSyncMember *member)
+osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
-		
-	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
-		mkdir(member->configdir, 0777);
-	}
-	
-	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
-	
-	xmlDocPtr doc;
 
+	if (!member->id) {
+		member->id = osync_group_create_member_id(member->group);
+		member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
+	}
+	osync_debug("OSMEM", 3, "Saving configuration for member %i\n", member->id);
+	
+	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
+		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
+		if (mkdir(member->configdir, 0777)) {
+			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
+			return FALSE;
+		}
+	}
+	//FIXME test if the name exists but is no directory
+	
+	//Saving the syncmember.conf
+	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
+	xmlDocPtr doc;
 	doc = xmlNewDoc("1.0");
 	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
-
 	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
-
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);
+	
+	//Saving the config if it exists
+	if (member->configdata) {
+		osync_bool ret = TRUE;
+		OSyncPluginFunctions functions = member->plugin->info.functions;
+		
+		if (functions.store_config) {
+			ret = functions.store_config(member->configdir, member->configdata, member->configsize);
+		} else {
+			filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
+			if (!osync_file_write(filename, member->configdata, member->configsize)) {
+				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to write config for member %li (generic)\n", member->id);
+				ret = FALSE;
+			}
+			g_free(filename);
+		}
+		g_free(member->configdata);
+		member->configdata = NULL;
+		member->configsize = 0;
+		return ret;
+	}
+	return TRUE;
 }
 
 long long int osync_member_get_id(OSyncMember *member)
 {
 	g_assert(member);
 	return member->id;
-}
-
-void osync_member_create(OSyncMember *member)
-{
-	member->id = osync_group_create_member_id(member->group);
-	member->configdir = g_strdup_printf("%s/%lli", member->group->configdir, member->id);
-	osync_member_save(member);
 }
 
 void osync_member_call_plugin(OSyncMember *member, char *function, void *data)

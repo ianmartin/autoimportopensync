@@ -41,18 +41,18 @@ const char *osync_group_get_name(OSyncGroup *group)
 	return group->name;
 }
 
-void osync_group_save(OSyncGroup *group)
+osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 {
 	char *filename = NULL;
 	osync_debug("OSGRP", 3, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
 	int i;
 		
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_debug("OSGRP", 3, "Creating configdirectory %s", group->configdir);
-		mkdir(group->configdir, 0777);
-		char *dbdir = g_strdup_printf("%s/db", group->configdir);
-		mkdir(dbdir, 0777);
-		g_free(dbdir);
+		osync_debug("OSGRP", 3, "Creating group configdirectory %s", group->configdir);
+		if (mkdir(group->configdir, 0777)) {
+			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
+			return FALSE;
+		}
 	}
 	
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
@@ -71,8 +71,11 @@ void osync_group_save(OSyncGroup *group)
 
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		OSyncMember *member = osync_group_get_nth_member(group, i);
-		osync_member_save(member);
+		if (!osync_member_save(member, error))
+			return FALSE;
 	}
+	
+	return TRUE;
 }
 
 void osync_group_delete(OSyncGroup *group)

@@ -1,7 +1,7 @@
 OSyncGroup *osync_group_new(OSyncEnv *osinfo);
 void osync_group_set_name(OSyncGroup *group, const char *name);
 const char *osync_group_get_name(OSyncGroup *group);
-void osync_group_save(OSyncGroup *group);
+osync_bool osync_group_save(OSyncGroup *group, OSyncError **error);
 OSyncGroup *osync_group_load(OSyncEnv *env, char *path);
 void osync_group_add_member(OSyncGroup *group, OSyncMember *member);
 OSyncMember *osync_group_get_nth_member(OSyncGroup *group, int nth);
