@@ -1,0 +1,63 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(configure.in)
+AM_INIT_AUTOMAKE(file-sync, 0.01)
+AM_CONFIG_HEADER(config.h)
+
+pkg_modules="glib-2.0"
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+AC_ISC_POSIX
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_HEADER_STDC
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+
+OPENSYNC_CONFIGDIR=${datadir}/opensync
+AC_SUBST(OPENSYNC_CONFIGDIR)
+
+OPENSYNC_PLUGINDIR=${libdir}/opensync
+AC_SUBST(OPENSYNC_PLUGINDIR)
+
+OPENSYNC_FORMATSDIR=${libdir}/opensync/formats
+AC_SUBST(OPENSYNC_FORMATSDIR)
+
+AC_ARG_ENABLE(stress-test,               [  --enable-stress-test     enable support for stress testing],STRESS_TEST=1,STRESS_TEST=0)
+if test "x${STRESS_TEST}" = "x1"; then
+	AC_DEFINE(STRESS_TEST,1,[Stress Testing])
+fi
+
+AC_CHECK_HEADER(fam.h,HAVE_FAM=1,HAVE_FAM=0)
+AM_CONDITIONAL(ENABLE_FAM, test x$HAVE_FAM = x1)
+AC_SUBST(HAVE_FAM)
+FAM_LIBS=""
+if test "x${HAVE_FAM}" = "x1"; then
+	FAM_LIBS="-lfam"
+	AC_DEFINE(HAVE_FAM,1,[Having FAM])
+fi
+AC_SUBST(FAM_LIBS)
+
+AC_OUTPUT([
+Makefile
+src/Makefile
+])
+
+echo "================"
+if test "x${HAVE_FAM}" = "x1"; then
+	echo "FAM available."
+else
+	echo "FAM not available."
+	echo "No sync alerts are supported."
+	echo "To enable sync alert you must"
+	echo "have libfam-dev installed."
+fi
+echo ""
+if test "x${STRESS_TEST}" = "x1"; then
+	echo "Stress Tests are enabled."
+else
+	echo "Stress Tests are disabled."
+fi
+echo "================"
