@@ -118,9 +118,7 @@ osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncEr
 /**
  * @defgroup OSyncGroupAPI OpenSync Groups
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief A groups represent several device or application that should be synchronized
  * 
  */
 /*@{*/

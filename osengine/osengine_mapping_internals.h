@@ -1,4 +1,13 @@
+/**
+ * @defgroup OSEngineMappingPrivate OpenSync Mapping Internals
+ * @ingroup OSEnginePrivate
+ * @brief The internals the mappings
+ * 
+ */
+/*@{*/
 
+/*! @brief A table which holds the mappings
+ */
 struct OSyncMappingTable {
 	GList *mappings;
 	OSyncEngine *engine;
@@ -8,6 +17,8 @@ struct OSyncMappingTable {
 	GList *entries;
 };
 
+/*! @brief A view to the mappingtable, represents one source
+ */
 struct OSyncMappingView {
 	OSyncClient *client;
 	GList *changes;
@@ -15,6 +26,8 @@ struct OSyncMappingView {
 	long long int memberid;
 };
 
+/*! @brief A mapping of changes
+ */
 struct OSyncMapping {
 	GList *entries;
 	OSyncMappingEntry *master;
@@ -32,6 +45,8 @@ struct OSyncMapping {
 	OSyncEngine *engine;
 };
 
+/*! @brief Represent one change in the mapping
+ */
 struct OSyncMappingEntry {
 	OSyncMappingView *view;
 	OSyncClient *client;
@@ -79,3 +94,5 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
 OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id);
 OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);
+
+/*@}*/

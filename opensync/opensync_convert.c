@@ -22,15 +22,11 @@
 #include "opensync_internals.h"
 
 /**
- * @defgroup OSyncConvPrivate OpenSync Conversion Internals
- * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
- * 
+ * @ingroup OSyncConvPrivate
  */
 /*@{*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 typedef struct conv_tree {
 	OSyncFormatEnv *env;
 	OSyncObjType *type;
@@ -52,22 +48,6 @@ typedef struct vertice {
 	OSyncChange *change;
 	osync_bool free_change_data;
 	osync_bool free_change;
-	/** Converted data: needed
-	 * because we may need to run detectors
-	 * during the search
-	 *
-	 * @{
-	 */
-	//char *data;
-	//size_t datasize;
-	//osync_bool free_data;
-	/** @} */
-
-	/** The converter that needs to be run
-	 * on previous->data to get the
-	 * vertice data
-	 */
-	//OSyncFormatConverter *converter;
 
 	/** Keep reference counts because
 	 * the data returned by converters
@@ -76,25 +56,15 @@ typedef struct vertice {
 	 */
 	size_t references;
 
-	/** A reference to the previous vertice
-	 * on the path
-	 *
-	 * Used when a conversion is necessary
-	 */
-	//struct vertice *previous;
-
 	/** The path of converters */
 	GList *path;
 
-	/** Distance data
-	 * @{
-	 */
 	unsigned losses;
 	unsigned objtype_changes;
 	unsigned conversions;
-	/** @} */
 
 } vertice;
+#endif
 
 static OSyncFormatConverter *osync_conv_find_converter_objformat(OSyncFormatEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
 {
@@ -106,31 +76,6 @@ static OSyncFormatConverter *osync_conv_find_converter_objformat(OSyncFormatEnv 
 	}
 	return NULL;
 }
-
-/*static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool convert_to, OSyncChange *change)
-{
-	char *data = NULL;
-	int datasize = 0;
-	
-	GList *e;
-	for (e = format->extensions; e; e = e->next) {
-		OSyncFormatExtension *ext = e->data;
-		osync_bool free_input;
-		if (convert_to)
-			ext->conv_to(change->data, change->size, &data, &datasize, &free_input, NULL);
-		else
-			ext->conv_from(change->data, change->size, &data, &datasize, &free_input, NULL);
-		if (data) {
-			//The extension duplicated the data.
-			if (format->destroy_func)
-				format->destroy_func(change->data, change->size);
-			else
-				osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak", format->name);
-			change->data = data;
-			change->size = datasize;
-		}
-	}
-}*/
 
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, void *converter_data, OSyncError **error)
 {
@@ -197,7 +142,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	return ret;
 }
 
-static OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter, OSyncChange *change, osync_bool *free_output)
+OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter, OSyncChange *change, osync_bool *free_output)
 {
 	osync_trace(TRACE_ENTRY, "osync_converter_invoke_decap(%p, %p, %p)", converter, change, free_output);
 	
@@ -286,32 +231,6 @@ static void deref_vertice(vertice *vertice)
 
 	g_free(vertice);
 }
-
-/** Calculate vertice data
- *
- * This function MUST be called before any
- * referencs to vertice->data
- */
-/*osync_bool calc_vertice_data(vertice *v)
-{
-	g_assert(v);
-
-
-	if (v->data) return TRUE;
-
-
-	calc_vertice_data(v->previous);
-
-	osync_cheap_convert(v->converter, v->previous->data, v->previous->datasize, &v->data, &v->datasize, &v->free_data);
-
-
-	if (v->free_data) {
-		deref_vertice(v->previous);
-		v->previous = NULL;
-	}
-
-	return TRUE;
-}*/
 
 /** Returns a neighbour of the vertice ve
  *
@@ -595,44 +514,6 @@ osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start,
 	return osync_conv_find_path_fn(env, start, target_fn_fmtlist, targets, retlist);
 }
 
-/** Function used on a path search for a format name array
- *
- * @see osync_conv_find_path_fn(), osync_change_convert_fmtnames()
- */
-static osync_bool target_fn_fmtnames(const void *data, OSyncObjFormat *fmt)
-{
-	const char * const *list = data;
-	const char * const *i;
-	for (i = list; *i; i++) {
-		if (!strcmp(fmt->name, *i))
-			/* Found */
-			return TRUE;
-	}
-
-	/* Not found */
-	return FALSE;
-}
-
-/** Function used on path searchs for a single format
- *
- * @see osync_conv_find_path_fn(), osync_change_convert()
- */
-static osync_bool target_fn_simple(const void *data, OSyncObjFormat *fmt)
-{
-	const OSyncObjFormat *target = data;
-	return target == fmt;
-}
-
-/** Function used on path searchs for a single format name
- *
- * @see osync_conv_find_path_fn(), osync_change_convert_fmtname()
- */
-static osync_bool target_fn_fmtname(const void *data, OSyncObjFormat *fmt)
-{
-	const char *name = data;
-	return !strcmp(name, fmt->name);
-}
-
 /** Function used on path searchs for a sink on a member
  *
  * @see osync_conv_find_path_fn(), osync_change_convert_member_sink()
@@ -650,15 +531,6 @@ static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
 	/* Not found */
 	return FALSE;
 }
-
-/** Target function for osync_change_detect_objtype() search
- *
- * Returns true if the objformat is not "data"
- */
-/*static osync_bool target_fn_no_any(const void *data, OSyncObjFormat *fmt)
-{
-	return !osync_conv_objtype_is_any(fmt->objtype->name);
-}*/
 
 /** Convert a change to the nearest format sink on a member
  */
@@ -679,9 +551,7 @@ osync_bool osync_conv_objtype_is_any(const char *objstr)
 /**
  * @defgroup OSyncConvAPI OpenSync Conversion
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * Miscanellous functions
+ * @brief Used to convert, compare and detect changes
  * 
  */
 /*@{*/
@@ -816,7 +686,15 @@ void osync_conv_env_free(OSyncFormatEnv *env)
 	g_free(env);
 }
 
-
+/*! @brief Sets the common format for a object type
+ * 
+ * @param env Pointer to the environment
+ * @param objtypestr The object type name for which to set the common format
+ * @param formatname The name of the format
+ * @param error Pointer to a error struct
+ * @returns TRUE if the format was successfully set
+ * 
+ */
 osync_bool osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname, OSyncError **error)
 {
 	OSyncObjType *type = osync_conv_find_objtype(env, objtypestr);
@@ -833,6 +711,13 @@ osync_bool osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtype
 	return TRUE;
 }
 
+/*! @brief Finds the object type with the given name
+ * 
+ * @param env Pointer to the environment
+ * @param name Name of the object type to find
+ * @returns The object type, or NULL if not found
+ * 
+ */
 OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 {
 	g_assert(env);
@@ -848,30 +733,38 @@ OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 	return NULL;
 }
 
+/*! @brief Returns the number of available object types
+ * 
+ * @param env Pointer to the environment
+ * @returns The number of object types
+ * 
+ */
 int osync_conv_num_objtypes(OSyncFormatEnv *env)
 {
 	g_assert(env);
 	return g_list_length(env->objtypes);
 }
 
+/*! @brief Gets the nth object type
+ * 
+ * @param env Pointer to the environment
+ * @param nth The number
+ * @returns The object type, or NULL if there is no such object type
+ * 
+ */
 OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth)
 {
 	g_assert(env);
 	return g_list_nth_data(env->objtypes, nth);
 }
 
-int osync_conv_num_objformats(OSyncObjType *type)
-{
-	g_assert(type);
-	return g_list_length(type->formats);
-}
-
-OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth)
-{
-	g_assert(type);
-	return g_list_nth_data(type->formats, nth);
-}
-
+/*! @brief Finds the object format with the given name
+ * 
+ * @param env Pointer to the environment
+ * @param name Name of the format type to find
+ * @returns The object format, or NULL if not found
+ * 
+ */
 OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 {
 	g_assert(env);
@@ -886,6 +779,39 @@ OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 	return NULL;
 }
 
+/*! @brief Returns the number of available object formats
+ * 
+ * @param env Pointer to the environment
+ * @returns The number of object formats
+ * 
+ */
+int osync_conv_num_objformats(OSyncObjType *type)
+{
+	g_assert(type);
+	return g_list_length(type->formats);
+}
+
+/*! @brief Gets the nth object format
+ * 
+ * @param env Pointer to the environment
+ * @param nth The number
+ * @returns The object format, or NULL if there is no such object type
+ * 
+ */
+OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth)
+{
+	g_assert(type);
+	return g_list_nth_data(type->formats, nth);
+}
+
+/*! @brief Finds the converter with the given source and target format
+ * 
+ * @param env Pointer to the environment
+ * @param sourcename Name of the source format
+ * @param targetname Name of the target format
+ * @returns The converter, or NULL if not found
+ * 
+ */
 OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char *sourcename, const char *targetname)
 {
 	g_assert(env);
@@ -902,6 +828,15 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char 
 	return osync_conv_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
+/*! @brief Finds the extension that will be invoked when going from the given source to the target format with the given name
+ * 
+ * @param env Pointer to the environment
+ * @param from_format From Format
+ * @param to_format To Format
+ * @param extension_name The name of the extension to search
+ * @returns The extension, or NULL if not found
+ * 
+ */
 OSyncFormatExtension *osync_conv_find_extension(OSyncFormatEnv *env, OSyncObjFormat *from_format, OSyncObjFormat *to_format, const char *extension_name)
 {
 	g_assert(env);
@@ -917,352 +852,40 @@ OSyncFormatExtension *osync_conv_find_extension(OSyncFormatEnv *env, OSyncObjFor
 	return NULL;
 }
 
+/*! @brief Returns the name of a object type
+ * 
+ * @param type The object type
+ * @returns The name of the object type
+ * 
+ */
 const char *osync_objtype_get_name(OSyncObjType *type)
 {
 	g_assert(type);
 	return type->name;
 }
 
+/*! @brief Returns the name of a object format
+ * 
+ * @param format The object format
+ * @returns The name of the object format
+ * 
+ */
 const char *osync_objformat_get_name(OSyncObjFormat *format)
 {
 	g_assert(format);
 	return format->name;
 }
 
+/*! @brief Returns the object type of a format
+ * 
+ * @param format The object format
+ * @returns The object type
+ * 
+ */
 OSyncObjType *osync_objformat_get_objtype(OSyncObjFormat *format)
 {
 	g_assert(format);
 	return format->objtype;
-}
-
-osync_bool osync_change_duplicate(OSyncChange *change)
-{
-	g_assert(change);
-	OSyncObjFormat *format = change->format;
-	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
-	if (!format || !format->duplicate_func)
-		return FALSE;
-	format->duplicate_func(change);
-	return TRUE;
-}
-
-OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_compare(%p, %p)", leftchange, rightchange);
-	
-	g_assert(rightchange);
-	g_assert(leftchange);
-
-	OSyncError *error = NULL;
-	if (!osync_change_convert_to_common(leftchange, &error)) {
-		osync_trace(TRACE_INTERNAL, "osync_change_compare: %s", osync_error_print(&error));
-		osync_error_free(&error);
-		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Could not convert leftchange to common format");
-		return CONV_DATA_MISMATCH;
-	}
-	if (!osync_change_convert_to_common(rightchange, &error)) {
-		osync_trace(TRACE_INTERNAL, "osync_change_compare: %s", osync_error_print(&error));
-		osync_error_free(&error);
-		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Could not convert leftchange to common format");
-		return CONV_DATA_MISMATCH;
-	}
-
-	if (rightchange->changetype == leftchange->changetype) {
-		if (!(rightchange->data == leftchange->data)) {
-			if (!(osync_change_get_objtype(leftchange) == osync_change_get_objtype(rightchange))) {
-				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Objtypes do not match");
-				return CONV_DATA_MISMATCH;
-			}
-			if (leftchange->format != rightchange->format) {
-				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Objformats do not match");
-				return CONV_DATA_MISMATCH;
-			}
-			if (!rightchange->data || !leftchange->data) {
-				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: One change has no data");
-				return CONV_DATA_MISMATCH;
-			}
-			OSyncObjFormat *format = leftchange->format;
-			g_assert(format);
-			
-			OSyncConvCmpResult ret = format->cmp_func(leftchange, rightchange);
-			osync_trace(TRACE_EXIT, "osync_change_compare: %i", ret);
-			return ret;
-		} else {
-			osync_trace(TRACE_EXIT, "osync_change_compare: SAME: OK. data point to same memory");
-			return CONV_DATA_SAME;
-		}
-	} else {
-		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Change types do not match");
-		return CONV_DATA_MISMATCH;
-	}
-}
-
-osync_bool osync_change_convert_extension(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat, const char *extension_name, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_convert(%p, %p, %p:%s, %s, %p)", env, change, targetformat, targetformat ? targetformat->name : "NONE", extension_name, error);
-	if (osync_conv_convert_fn(env, change, target_fn_simple, targetformat, extension_name, error)) {
-		osync_trace(TRACE_EXIT, "osync_change_convert: TRUE");
-		return TRUE;
-	} else {
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert: %s", osync_error_print(error));
-		return FALSE;
-	}
-}
-
-/*! @brief Convert a change to a specific format
- * 
- * This will convert the change with its data to the specified format
- * if possible.
- * 
- * @param env The conversion environment to use
- * @param change The change to convert
- * @param targetformat To which format you want to convert to
- * @param error The error-return location
- * @returns TRUE on success, FALSE otherwise
- * 
- */
-osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat, OSyncError **error)
-{
-	return osync_change_convert_extension(env, change, targetformat, NULL, error);
-}
-
-osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_copy_data(%p, %p, %p)", source, target, error);
-	
-	OSyncObjFormat *format = NULL;
-	format = source->format;
-	if (!format)
-		format = target->format;
-	
-	if (!format || !format->copy_func) {
-		osync_trace(TRACE_INTERNAL, "We cannot copy the change, falling back to memcpy");
-		target->data = g_malloc0(sizeof(char) * source->size);
-		memcpy(target->data, source->data, source->size);
-		target->size = source->size;
-	} else {
-		if (!format->copy_func(source->data, source->size, &(target->data), &(target->size))) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Something went wrong during copying");
-			osync_trace(TRACE_EXIT_ERROR, "osync_change_copy_data: %s", osync_error_print(error));
-			return FALSE;
-		}
-	}
-	
-	osync_trace(TRACE_EXIT, "osync_change_copy_data");
-	return TRUE;
-}
-
-OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_copy(%p, %p)", source, error);
-	g_assert(source);
-	
-	OSyncChange *newchange = osync_change_new();
-	newchange->uid = g_strdup(source->uid);
-	newchange->hash = g_strdup(source->hash);
-	
-	newchange->has_data = source->has_data;
-	newchange->changetype = source->changetype;
-	newchange->format = osync_change_get_objformat(source);
-	newchange->objtype = osync_change_get_objtype(source);
-	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
-	newchange->is_detected = source->is_detected;
-	newchange->changes_db = source->changes_db;
-	newchange->member = source->member;
-	
-	if (!osync_change_copy_data(source, newchange, error)) {
-		osync_change_free(newchange);
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_copy: %s", osync_error_print(error));
-		return NULL;
-	}
-
-	osync_trace(TRACE_EXIT, "osync_change_copy: %p", newchange);
-	return newchange;
-}
-
-osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_convert_to_common(%p, %p)", change, error);
-	
-	if (!osync_change_get_objtype(change)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "The change has no objtype");
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert_to_common: %s", osync_error_print(error));
-		return FALSE;
-	}
-	OSyncFormatEnv *env = osync_change_get_objtype(change)->env;
-	
-	if (!osync_change_get_objtype(change)->common_format) {
-		osync_trace(TRACE_EXIT, "osync_change_convert_to_common: No common format set");
-		return TRUE;
-	}
-	
-	osync_trace(TRACE_INTERNAL, "Converting from %s to %s", osync_change_get_objformat(change)->name, osync_change_get_objtype(change)->common_format->name);
-	
-	if (osync_change_convert(env, change, osync_change_get_objtype(change)->common_format, error)) {
-		osync_trace(TRACE_EXIT, "osync_change_convert_to_common: TRUE");
-		return TRUE;
-	} else {
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert_to_common: %s", osync_error_print(error));
-		return FALSE;
-	}
-}
-
-/*! @brief Convert a change to a specific format with the given name
- * 
- * This will convert the change with its data to the specified format
- * if possible.
- * 
- * @param env The conversion environment to use
- * @param change The change to convert
- * @param targetname To which format you want to convert to
- * @param error The error-return location
- * @returns TRUE on success, FALSE otherwise
- * 
- */
-osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *targetname, OSyncError **error)
-{
-	return osync_conv_convert_fn(env, change, target_fn_fmtname, targetname, NULL, error);
-}
-
-/*! @brief Convert a change to some formats
- * 
- * This will convert the change with its data to one of the specified formats
- * if possible.
- * 
- * @param env The conversion environment to use
- * @param change The change to convert
- * @param targetnames NULL-Terminated array of formatnames
- * @param error The error-return location
- * @returns TRUE on success, FALSE otherwise
- * 
- */
-osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **targetnames, OSyncError **error)
-{
-	return osync_conv_convert_fn(env, change, target_fn_fmtnames, targetnames, NULL, error);
-}
-
-/*! @brief Tries to detect the object type of the given change
- * 
- * This will try to detect the object type of the data on the change
- * and return it, but not set it.
- * 
- * @param env The conversion environment to use
- * @param change The change to detect
- * @param error The error-return location
- * @returns The objecttype on success, NULL otherwise
- * 
- */
-OSyncObjType *osync_change_detect_objtype(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
-{
-	OSyncObjFormat *format = NULL;
-	if (!(format = osync_change_detect_objformat(env, change, error)))
-		return NULL;
-	return format->objtype;
-}
-
-/*! @brief Tries to detect the encapsulated object type of the given change
- * 
- * This will try to detect the encapsulated object type of the data on the change
- * and return it, but not set it. This will try to detect the change, deencapsulate
- * it, detect again etc until it cannot deencapsulate further.
- * 
- * @param env The conversion environment to use
- * @param change The change to detect
- * @param error The error-return location
- * @returns The objecttype on success, NULL otherwise
- * 
- */
-OSyncObjType *osync_change_detect_objtype_full(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
-{
-	OSyncObjFormat *format = NULL;
-	if (!(format = osync_change_detect_objformat_full(env, change, error)))
-		return NULL;
-	return format->objtype;
-}
-
-/*! @brief Tries to detect the format of the given change
- * 
- * This will try to detect the format of the data on the change
- * and return it, but not set it.
- * 
- * @param env The conversion environment to use
- * @param change The change to detect
- * @param error The error-return location
- * @returns The format on success, NULL otherwise
- * 
- */
-OSyncObjFormat *osync_change_detect_objformat(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_detect_objformat(%p, %p, %p)", env, change, error);
-	if (!change->has_data) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "The change has no data");
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_detect_objformat: %s", osync_error_print(error));
-		return NULL;
-	}
-	
-	//Run all datadetectors for our source type
-	GList *d = NULL;
-	for (d = env->converters; d; d = d->next) {
-		OSyncFormatConverter *converter = d->data;
-		if (!strcmp(converter->source_format->name, osync_change_get_objformat(change)->name)) {
-			if (converter->detect_func && converter->detect_func(env, change->data, change->size)) {
-				osync_trace(TRACE_EXIT, "osync_change_detect_objformat: %p:%s", converter->target_format, converter->target_format->name);
-				return converter->target_format;
-			}
-		}
-	}
-	
-	osync_error_set(error, OSYNC_ERROR_GENERIC, "None of the detectors was able to recognize this data");
-	osync_trace(TRACE_EXIT_ERROR, "osync_change_detect_objformat: %s", osync_error_print(error));
-	return NULL;
-}
-
-/*! @brief Tries to detect the encapsulated format of the given change
- * 
- * This will try to detect the encapsulated format of the data on the change
- * and return it, but not set it. This will try to detect the change, deencapsulate
- * it, detect again etc until it cannot deencapsulate further.
- * 
- * @param env The conversion environment to use
- * @param change The change to detect
- * @param error The error-return location
- * @returns The format on success, NULL otherwise
- * 
- */
-OSyncObjFormat *osync_change_detect_objformat_full(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "osync_change_detect_objformat_full(%p, %p, %p)", env, change, error);
-	if (!change->has_data) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "The change has no data");
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_detect_objformat: %s", osync_error_print(error));
-		return NULL;
-	}
-	OSyncChange *new_change = change;
-	
-	//Try to decap the change as far as possible
-	while (1) {
-		GList *d = NULL;
-		for (d = env->converters; d; d = d->next) {
-			OSyncFormatConverter *converter = d->data;
-			if (!strcmp(converter->source_format->name, osync_change_get_objformat(change)->name) && converter->type == CONVERTER_DECAP) {
-				osync_bool free_output = FALSE;
-				if (!(new_change = osync_converter_invoke_decap(converter, new_change, &free_output))) {
-					osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to decap the change");
-					osync_trace(TRACE_EXIT_ERROR, "osync_change_detect_objformat_full: %s", osync_error_print(error));
-					return NULL;
-				}
-				continue;
-			}
-		}
-		break;
-	}
-
-	OSyncObjFormat *ret = osync_change_detect_objformat(env, new_change, error);
-	if (!ret)
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_detect_objformat_full: %s", osync_error_print(error));
-	else
-		osync_trace(TRACE_EXIT, "osync_change_detect_objformat_full: %p:%s", ret, ret->name);
-	return ret;
 }
 
 /*@}*/

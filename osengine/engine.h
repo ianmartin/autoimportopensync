@@ -1,19 +1,21 @@
-#ifndef HAVE_osync_H
-#define HAVE_osync_H
+/**
+ * @defgroup OSEnginePublic OpenSync Engine API
+ * @ingroup PublicAPI
+ * @brief The API of the syncengine available to everyone
+ * 
+ * This gives you an insight in the public API of the opensync sync engine.
+ * 
+ */
+/*@{*/
+
+#ifndef HAVE_ENGINE_H
+#define HAVE_ENGINE_H
 
 #include <opensync/opensync.h>
 
 /**************************************************************
  * Enumerations
  *************************************************************/
-
- 
-/**************************************************************
- * Structs
- *************************************************************/
-typedef struct OSyncEngine OSyncEngine;
-typedef struct OSyncClient OSyncClient;
-typedef struct OSyncMapping OSyncMapping;
 
 typedef enum {
 	MEMBER_CONNECTED = 1,
@@ -25,12 +27,6 @@ typedef enum {
 	MEMBER_DISCONNECT_ERROR = 7
 } memberupdatetype;
 
-typedef struct MSyncMemberUpdate {
-	memberupdatetype type;
-	OSyncMember *member;
-	OSyncError *error;
-} MSyncMemberUpdate;
-
 typedef enum {
 	CHANGE_RECEIVED = 1,
 	CHANGE_RECEIVED_INFO = 2,
@@ -39,14 +35,6 @@ typedef enum {
 	CHANGE_RECV_ERROR = 5
 } changeupdatetype;
 
-typedef struct MSyncChangeUpdate {
-	changeupdatetype type;
-	OSyncChange *change;
-	int member_id;
-	int mapping_id;
-	OSyncError *error;
-} MSyncChangeUpdate;
-
 typedef enum {
 	MAPPING_SOLVED = 1,
 	MAPPING_SYNCED = 2,
@@ -54,26 +42,72 @@ typedef enum {
 	MAPPING_WRITE_ERROR = 4
 } mappingupdatetype;
 
+/*! @brief The Type of the message
+ * 
+ */
+typedef enum {
+	ENG_ENDPHASE_CON = 1, /** All clients have connected or had an error during connection */
+	ENG_ENDPHASE_READ = 2, /** All clients have sent their changes to the syncengine */
+	ENG_ENDPHASE_WRITE = 3, /** All clients have written their changes */
+	ENG_ENDPHASE_DISCON = 4, /** All clients have disconnected */
+	ENG_ERROR = 5, /** There was an error */
+	ENG_SYNC_SUCCESSFULL = 6, /** The sync is done and was successfull (My favorite message) */
+	ENG_PREV_UNCLEAN = 7, /** The previous sync was unclean and the engine will perform a slow-sync now */
+	ENG_END_CONFLICTS = 8 /** All conflicts have been reported. */
+} engineupdatetype;
+
+/**************************************************************
+ * Structs
+ *************************************************************/
+typedef struct OSyncEngine OSyncEngine;
+typedef struct OSyncClient OSyncClient;
+typedef struct OSyncMapping OSyncMapping;
+
+/*! @brief Struct for the member status callback
+ */
+typedef struct MSyncMemberUpdate {
+	/** The type of the status update */
+	memberupdatetype type;
+	/** The member for which the status update is */
+	OSyncMember *member;
+	/** If the status was a error, this error will be set */
+	OSyncError *error;
+} MSyncMemberUpdate;
+
+/*! @brief Struct for the change status callback
+ */
+typedef struct MSyncChangeUpdate {
+	/** The type of the status update */
+	changeupdatetype type;
+	/** The change for which the status update is */
+	OSyncChange *change;
+	/** The id of the member which sent this change */
+	int member_id;
+	/** The id of the mapping to which this change belongs if any */
+	int mapping_id;
+	/** If the status was a error, this error will be set */
+	OSyncError *error;
+} MSyncChangeUpdate;
+
+/*! @brief Struct for the mapping status callback
+ */
 typedef struct MSyncMappingUpdate {
+	/** The type of the status update */
 	mappingupdatetype type;
+	/** If the mapping was already solved, this will have the id if the winning entry */
 	long long int winner;
+	/** The mapping for which the status update is */
 	OSyncMapping *mapping;
+	/** If the status was a error, this error will be set */
 	OSyncError *error;
 } MSyncMappingUpdate;
 
-typedef enum {
-	ENG_ENDPHASE_CON = 1,
-	ENG_ENDPHASE_READ = 2,
-	ENG_ENDPHASE_WRITE = 3,
-	ENG_ENDPHASE_DISCON = 4,
-	ENG_ERROR = 5,
-	ENG_SYNC_SUCCESSFULL = 6,
-	ENG_PREV_UNCLEAN = 7,
-	ENG_END_CONFLICTS = 8
-} engineupdatetype;
-
+/*! @brief Struct for the engine status callback
+ */
 typedef struct OSyncEngineUpdate {
+	/** The type of the status update */
 	engineupdatetype type;
+	/** If the status was a error, this error will be set */
 	OSyncError *error;
 } OSyncEngineUpdate;
 
@@ -85,8 +119,5 @@ typedef struct OSyncEngineUpdate {
 #include "osengine_mapping.h"
 #include "osengine_debug.h"
 
-/**************************************************************
- * Prototypes
- *************************************************************/
-
 #endif
+/*@}*/

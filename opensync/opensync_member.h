@@ -1,3 +1,14 @@
+
+/*! @brief Represents the functions that a member will call to inform the syncengine */
+typedef struct OSyncMemberFunctions {
+	void (* rf_change) (OSyncMember *, OSyncChange *, void *);
+	void *(* rf_message) (OSyncMember *, const char *, void *, osync_bool);
+	void (* rf_sync_alert) (OSyncMember *);
+	void (*rf_log) (OSyncMember *, char *);
+} OSyncMemberFunctions;
+
+typedef void (* OSyncEngCallback)(OSyncMember *, void *, OSyncError **);
+
 OSyncMember *osync_member_new(OSyncGroup *group);
 void osync_member_free(OSyncMember *member);
 

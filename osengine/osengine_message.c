@@ -22,8 +22,7 @@
 #include "engine_internals.h"
 
 /**
- * @defgroup OSEngineMessage OpenSync Message Internals
- * @ingroup OSEnginePrivate
+ * @ingroup OSEngineMessage
  * @brief A Message used by the inter thread messaging library
  * 
  */

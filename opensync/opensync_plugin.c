@@ -22,12 +22,7 @@
 #include "opensync_internals.h"
 
 /**
- * @defgroup OSyncPluginPrivateAPI OpenSync Plugin
- * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
- * 
+ * @ingroup OSyncPluginPrivateAPI
  */
 /*@{*/
 
@@ -353,12 +348,7 @@ OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const
 /*@}*/
 
 /**
- * @defgroup OSyncPluginAPI OpenSync Plugin
- * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
- * 
+ * @ingroup OSyncPluginAPI
  */
 /*@{*/
 

@@ -21,6 +21,13 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+/**
+ * @defgroup OSyncEnvPrivate OpenSync Environment Internals
+ * @ingroup OSyncPrivate
+ * @brief The internals of the opensync environment
+ * 
+ */
+/*@{*/
 
 static const char *osync_env_query_option(OSyncEnv *env, const char *name)
 {
@@ -43,12 +50,34 @@ static void free_hash(char *key, char *value, void *data)
 	g_free(value);
 }
 
+/*! @brief Returns the next free number for a group in the environments configdir
+ * 
+ * Returns the next free number for a group in the environments configdir
+ * 
+ * @param The osync environment
+ * @returns The next free number
+ * 
+ */
+long long int _osync_env_create_group_id(OSyncEnv *env)
+{
+	char *filename = NULL;
+	long long int i = 0;
+	do {
+		i++;
+		if (filename)
+			g_free(filename);
+		filename = g_strdup_printf("%s/group%lli", env->groupsdir, i);
+	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
+	g_free(filename);
+	return i;
+}
+
+/*@}*/
+
 /**
  * @defgroup OSyncEnvAPI OpenSync Environment
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief The public API of the opensync environment
  * 
  */
 /*@{*/
@@ -519,45 +548,9 @@ OSyncGroup *osync_env_nth_group(OSyncEnv *env, int nth)
 /*@}*/
 
 /**
- * @defgroup OSyncEnvAPIPrivate OpenSync Environment Internals
- * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * private functions
- * 
- */
-/*@{*/
-
-/*! @brief Returns the next free number for a group in the environments configdir
- * 
- * Returns the next free number for a group in the environments configdir
- * 
- * @param The osync environment
- * @returns The next free number
- * 
- */
-long long int _osync_env_create_group_id(OSyncEnv *env)
-{
-	char *filename = NULL;
-	long long int i = 0;
-	do {
-		i++;
-		if (filename)
-			g_free(filename);
-		filename = g_strdup_printf("%s/group%lli", env->groupsdir, i);
-	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
-	g_free(filename);
-	return i;
-}
-
-/*@}*/
-
-/**
  * @defgroup OSyncEnvAPIMisc OpenSync Misc
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * Miscanellous functions
+ * @brief Some helper functions
  * 
  */
 /*@{*/

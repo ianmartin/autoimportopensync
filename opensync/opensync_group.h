@@ -1,7 +1,10 @@
 OSyncGroup *osync_group_new(OSyncEnv *osinfo);
 void osync_group_free(OSyncGroup *group);
 
-typedef enum OSyncLockState {
+/*! @ingroup OSyncGroupAPI
+ * @brief The lock state of a group
+ */
+typedef enum {
 	OSYNC_LOCK_OK,
 	OSYNC_LOCKED,
 	OSYNC_LOCK_STALE

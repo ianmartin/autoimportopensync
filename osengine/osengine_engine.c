@@ -465,18 +465,7 @@ static gboolean startupfunc(gpointer data)
 /*@}*/
 
 /**
- * @defgroup PublicAPI Public APIs
- * @brief Available public APIs
- * 
- */
-
-/**
- * @defgroup OSEnginePublic OpenSync Engine API
- * @ingroup PublicAPI
- * @brief The API of the syncengine available to everyone
- * 
- * This gives you an insight in the public API of the opensync sync engine.
- * 
+ * @ingroup OSEnginePublic
  */
 /*@{*/
 
@@ -491,7 +480,6 @@ static gboolean startupfunc(gpointer data)
  * @returns TRUE if command was succcessfull, FALSE otherwise
  * 
  */
-
 osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 {
 	//FIXME Check if engine is running

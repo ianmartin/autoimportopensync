@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 
+/*! @brief Represent a connection to a database */
 struct OSyncDB {
 	sqlite3 *db;
 };

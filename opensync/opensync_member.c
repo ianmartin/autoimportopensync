@@ -24,9 +24,7 @@
 /**
  * @defgroup OSyncMemberPrivateAPI OpenSync Member Internals
  * @ingroup OSyncPrivate
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
+ * @brief The private part of the OSyncMember
  * 
  */
 /*@{*/
@@ -84,9 +82,7 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size,
 /**
  * @defgroup OSyncMemberAPI OpenSync Member
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief Used to manipulate members, which represent one device or application in a group
  * 
  */
 /*@{*/
@@ -431,9 +427,7 @@ void osync_member_request_synchronization(OSyncMember *member)
 /**
  * @defgroup OSyncMemberFunctions OpenSync Member Functions
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief The functions that can be used to access the device that a member represents
  * 
  */
 /*@{*/

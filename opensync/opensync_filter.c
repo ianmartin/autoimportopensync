@@ -21,6 +21,37 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+/**
+ * @ingroup OSyncFilterPrivate
+ */
+/*@{*/
+
+OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action, const char *function_name)
+{
+	OSyncFilter *filter = osync_filter_new();
+	filter->group = group;
+	filter->sourcememberid = sourcememberid;
+	filter->destmemberid = destmemberid;
+	filter->sourceobjtype = g_strdup(sourceobjtype);
+	filter->destobjtype = g_strdup(destobjtype);
+	filter->detectobjtype = g_strdup(detectobjtype);
+	filter->action = action;
+	
+	if (function_name) {
+		osync_filter_update_hook(filter, group, function_name);
+	}
+	
+	osync_filter_register(group, filter);
+	return filter;
+}
+
+/*@}*/
+
+/**
+ * @ingroup OSyncFilterAPI
+ */
+/*@{*/
+
 void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
 {
 	g_assert(group);
@@ -47,35 +78,6 @@ void osync_filter_update_hook(OSyncFilter *filter, OSyncGroup *group, const char
 	filter->hook = hook;
 	filter->function_name = g_strdup(function_name);
 }
-
-OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action, const char *function_name)
-{
-	OSyncFilter *filter = osync_filter_new();
-	filter->group = group;
-	filter->sourcememberid = sourcememberid;
-	filter->destmemberid = destmemberid;
-	filter->sourceobjtype = g_strdup(sourceobjtype);
-	filter->destobjtype = g_strdup(destobjtype);
-	filter->detectobjtype = g_strdup(detectobjtype);
-	filter->action = action;
-	
-	if (function_name) {
-		osync_filter_update_hook(filter, group, function_name);
-	}
-	
-	osync_filter_register(group, filter);
-	return filter;
-}
-
-/**
- * @defgroup OSyncFilterAPI OpenSync Filter
- * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
- * 
- */
-/*@{*/
 
 OSyncFilter *osync_filter_new(void)
 {
@@ -252,3 +254,5 @@ OSyncMember *osync_filter_get_destmember(OSyncFilter *filter)
 {
 	return osync_member_from_id(filter->group, filter->destmemberid);
 }
+
+/*@}*/

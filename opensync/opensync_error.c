@@ -74,9 +74,7 @@ void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *
 /**
  * @defgroup OSyncErrorAPI OpenSync Errors
  * @ingroup OSyncPublic
- * @brief The public API of opensync
- * 
- * This gives you an insight in the public API of opensync.
+ * @brief OpenSync's error reporting facilities
  * 
  */
 /*@{*/
