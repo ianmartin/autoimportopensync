@@ -211,6 +211,13 @@ void get_info(OSyncPluginInfo *info)
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
 	
+	//If you like, you can overwrite the default timeouts of your plugin
+	//The default is set to 60 sec. Note that this MUST NOT be used to
+	//wait for expected timeouts (Lets say while waiting for a webserver).
+	//you should wait for the normal timeout and return a error.
+	info->timeouts.connect_timeout = 5;
+	//There are more timeouts for the other functions
+	
 	//Now you have to tell opensync all the object types that your are accepting.
 	//This can be more than one
 	osync_plugin_accept_objtype(info, "<object type name>");

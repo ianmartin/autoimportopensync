@@ -82,7 +82,9 @@ void send_get_change_data(OSyncEngine *sender, OSyncChange *change)
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_get_change_data_reply_receiver, sender);
 	itm_message_set_data(message, "change", change);
 	osync_debug("ENG", 3, "Sending get_entry message %p to client %p", message, target);
-	itm_queue_send(target->incoming, message);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	itm_queue_send_with_timeout(target->incoming, message, timeouts.get_data_timeout, sender);
 }
 
 void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
@@ -123,7 +125,9 @@ void send_commit_change(OSyncEngine *sender, OSyncChange *change)
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_commit_change_reply_receiver, sender);
 	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
 	osync_flag_changing(flags->fl_dirty);
-	itm_queue_send_with_timeout(target->incoming, message, 5, sender);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	itm_queue_send_with_timeout(target->incoming, message, timeouts.commit_timeout, sender);
 }
 
 void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)

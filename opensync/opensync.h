@@ -5,6 +5,9 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#define TRUE 1
+#define FALSE 0
+
 /**************************************************************
  * Enumerations
  *************************************************************/
@@ -60,13 +63,22 @@ typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
 	osync_bool (* store_config) (char *, const char *, int);
 	void * (* initialize) (OSyncMember *, OSyncError **);
+	void (* finalize) (void *);
 	void (* connect) (OSyncContext *);
 	void (* sync_done) (OSyncContext *ctx);
 	void (* disconnect) (OSyncContext *);
-	void (* finalize) (void *);
 	void (* get_changeinfo) (OSyncContext *);
 	void (* get_data) (OSyncContext *, OSyncChange *);
 } OSyncPluginFunctions;
+
+typedef struct OSyncPluginTimeouts {
+	unsigned int connect_timeout;
+	unsigned int sync_done_timeout;
+	unsigned int disconnect_timeout;
+	unsigned int get_changeinfo_timeout;
+	unsigned int get_data_timeout;
+	unsigned int commit_timeout;
+} OSyncPluginTimeouts;
 
 typedef struct OSyncFormatFunctions {
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
@@ -87,6 +99,7 @@ typedef struct OSyncPluginInfo {
 	const char *description;
 	osync_bool is_threadsafe;
 	OSyncPluginFunctions functions;
+	OSyncPluginTimeouts timeouts;
 	OSyncPlugin *plugin;
 } OSyncPluginInfo;
 

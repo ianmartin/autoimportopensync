@@ -46,6 +46,16 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
         g_assert(plugin);
         memset(&(plugin->info), 0, sizeof(plugin->info));
         memset(&(plugin->info.functions), 0, sizeof(plugin->info.functions));
+        memset(&(plugin->info.timeouts), 0, sizeof(plugin->info.timeouts));
+        
+        //Set the default timeouts;
+        plugin->info.timeouts.connect_timeout = 60;
+		plugin->info.timeouts.sync_done_timeout = 60;
+		plugin->info.timeouts.disconnect_timeout = 60;
+		plugin->info.timeouts.get_changeinfo_timeout = 60;
+		plugin->info.timeouts.get_data_timeout = 60;
+        plugin->info.timeouts.commit_timeout = 60;
+        
         plugin->info.plugin = plugin;
         
         if (env) {
@@ -201,6 +211,18 @@ const char *osync_plugin_get_description(OSyncPlugin *plugin)
 	return plugin->info.description;
 }
 
+/*! @brief Returns the timeouts of the plugin
+ * 
+ * @param plugin Pointer to the plugin
+ * @returns Timeouts of the plugin
+ * 
+ */
+OSyncPluginTimeouts osync_plugin_get_timeouts(OSyncPlugin *plugin)
+{
+	g_assert(plugin);
+	return plugin->info.timeouts;
+}
+
 OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template)
 {
 	g_assert(group);
@@ -253,6 +275,11 @@ OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplat
 }
 
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
+{
+	osync_plugin_set_commit_objformat_to(info, objtypestr, formatstr, commit_change, 60);
+}
+
+void osync_plugin_set_commit_objformat_to(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *), unsigned int timeout)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
 	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");

@@ -146,7 +146,9 @@ void send_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data)
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_get_changes_reply_receiver, sender);
 	itm_message_set_data(message, "data", (void *)data);
 	osync_debug("ENG", 3, "Sending get_changes message %p to client %p", message, target);
-	itm_queue_send_with_timeout(target->incoming, message, 5, target);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	itm_queue_send_with_timeout(target->incoming, message, timeouts.get_changeinfo_timeout, target);
 }
 
 void send_connect(OSyncClient *target, OSyncEngine *sender)
@@ -154,7 +156,9 @@ void send_connect(OSyncClient *target, OSyncEngine *sender)
 	osync_flag_changing(target->fl_connected);
 	ITMessage *message = itm_message_new_methodcall(sender, "CONNECT");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_connect_reply_receiver, sender);
-	itm_queue_send_with_timeout(target->incoming, message, 5, target);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	itm_queue_send_with_timeout(target->incoming, message, timeouts.connect_timeout, target);
 }
 
 void send_sync_done(OSyncClient *target, OSyncEngine *sender)
@@ -162,7 +166,9 @@ void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 	osync_flag_changing(target->fl_done);
 	ITMessage *message = itm_message_new_methodcall(sender, "SYNC_DONE");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_sync_done_reply_receiver, sender);
-	itm_queue_send_with_timeout(target->incoming, message, 5, target);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	itm_queue_send_with_timeout(target->incoming, message, timeouts.sync_done_timeout, target);
 }
 
 void send_disconnect(OSyncClient *target, OSyncEngine *sender)
@@ -170,7 +176,9 @@ void send_disconnect(OSyncClient *target, OSyncEngine *sender)
 	osync_flag_changing(target->fl_connected);
 	ITMessage *message = itm_message_new_methodcall(sender, "DISCONNECT");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_disconnect_reply_receiver, sender);
-	itm_queue_send_with_timeout(target->incoming, message, 5, target);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	itm_queue_send_with_timeout(target->incoming, message, timeouts.disconnect_timeout, target);
 }
 
 void osync_client_deciders(OSyncEngine *engine)

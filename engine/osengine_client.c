@@ -185,6 +185,11 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 	g_assert_not_reached();
 }
 
+OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client)
+{
+	return osync_plugin_get_timeouts(osync_member_get_plugin(client->member));
+}
+
 static gboolean startupfunc(gpointer data)
 {
 	OSyncClient *client = data;

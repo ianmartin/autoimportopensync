@@ -38,6 +38,7 @@ echo "Unpacking tarball"
 tar zxvf opensync-0.??.tar.gz > /dev/null || exit 1
 
 cd opensync-0.??
+BUILD_DIR=$(pwd)
 
 echo -n "Making OpenSync"
 ./autogen.sh --prefix=$TOP_SRCDIR/_inst &> /dev/null || exit 1
@@ -50,6 +51,17 @@ cd plugins/file-sync
 echo -n "Making file-sync plugin"
 export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
 ./autogen.sh --prefix=$TOP_SRCDIR/_inst --enable-error-tests=yes &> /dev/null || exit 1
+echo -n "."
+make install > /dev/null || exit 1
+echo "."
+
+cd $BUILD_DIR || exit 1
+
+cd plugins/example-plugin
+
+echo -n "Making example plugin"
+export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
+./autogen.sh --prefix=$TOP_SRCDIR/_inst &> /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
 echo "."
