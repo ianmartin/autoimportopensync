@@ -254,6 +254,11 @@ static void fs_finalize(void *data)
 	//g_free(fsinfo);
 }
 
+OSyncFormatFunctions file_functions = {
+	.access = fs_access,
+	.commit_change = fs_commit_change,
+};
+
 void get_info(OSyncPluginInfo *info) {
 	info->name = "file-sync";
 	info->version = 1;
@@ -267,11 +272,6 @@ void get_info(OSyncPluginInfo *info) {
 	info->functions.get_changeinfo = fs_get_changeinfo;
 	info->functions.get_data = fs_get_data;
 	
-	OSyncObjType *data = osync_conv_register_objtype(info->accepted_objtypes, "*");
-	OSyncObjFormat *file_format = osync_conv_register_objformat(data, "file");
-	OSyncFormatFunctions functions;
-	
-	functions.commit_change = fs_commit_change;
-	functions.access = fs_access;
-	osync_conv_format_set_functions(file_format, functions);
+	osync_plugin_register_accepted_objtype(info, "*");
+	osync_plugin_register_accepted_objformat(info, "*", "file", &file_functions);
 }
