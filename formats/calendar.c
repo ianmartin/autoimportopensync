@@ -6,7 +6,7 @@ static OSyncConvCmpResult compare_vcalendar(OSyncChange *leftchange, OSyncChange
 	return CONV_DATA_MISMATCH;
 }
 
-void get_info(OSyncConvEnv *env)
+void get_info(OSyncFormatEnv *env)
 {
 	OSyncObjType *type = osync_conv_register_objtype(env, "calendar");
 	OSyncObjFormat *format = osync_conv_register_objformat(type, "vcalendar");
