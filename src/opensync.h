@@ -101,6 +101,20 @@ typedef enum {
 	 * of deallocating the data passed as input.
 	 */
 	CONV_TAKEOVER = 1<<1,
+
+	/** No-copy converter
+	 *
+	 * Set this flag if the pointer returned by the converter
+	 * is a reference to some data inside the input data, and the
+	 * reference remain valid only while the input data is not changed and/or
+	 * destroyed.
+	 *
+	 * The returned data may need to be copied, if the original
+	 * data is going to be destroyed (i.e. on osync_converter_invoke()),
+	 * so a copy function should be provided by the format of the
+	 * returned data.
+	 */
+	CONV_NOCOPY = 1<<2
 } ConverterFlags;
 
 typedef enum {
@@ -114,6 +128,7 @@ typedef enum {
 
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
 typedef osync_bool (* OSyncFormatConvertFunc) (const char *input, int inpsize, char **output, int *outpsize);
+typedef osync_bool (* OSyncFormatCopyFunc) (const char *input, int inpsize, char **output, int *outpsize);
 typedef osync_bool (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, OSyncChange *change);
 typedef osync_bool (* OSyncFormatDetectDataFunc) (OSyncFormatEnv *env, const char *data, int size);
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);

@@ -586,6 +586,19 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	
 	if (change->data) {
 		ret = converter->convert_func(change->data, change->size, &data, &datasize);
+		if (converter->flags & CONV_NOCOPY) {
+			char *newdata;
+			int newsize;
+			/* Duplicate the returned data, as the original data will be destroyed */
+			if (!converter->target_format->copy_func) {
+				/* There is nothing we can do, here. The returned data is a reference, but
+				 * we can't copy the data before destroying it
+				 */
+				osync_debug("OSYNC", 0, "Format %s don't have a copy function, but a no-copy converter was registered");
+				return FALSE;
+			}
+			converter->target_format->copy_func(data, datasize, &newdata, &newsize);
+		}
 		/* Free the data, unless the converter took the ownership of the data */
 		if (!(converter->flags & CONV_TAKEOVER)) {
 			if (converter->source_format->destroy_func)

@@ -59,6 +59,7 @@ struct OSyncObjFormat {
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDetectFunc detect_func;
 	OSyncFormatDuplicateFunc duplicate_func;
+	OSyncFormatCopyFunc copy_func;
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
 };
