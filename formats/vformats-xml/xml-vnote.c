@@ -280,10 +280,43 @@ static osync_bool conv_xml_to_vnote(const char *input, int inpsize, char **outpu
 	return TRUE;
 }
 
+static OSyncConvCmpResult compare_notes(OSyncChange *leftchange, OSyncChange *rightchange)
+{
+	OSyncXMLScore score[] =
+	{
+	{50, "/note/Summary"},
+	{50, "/note/Class"},
+	{50, "/note/Body"},
+	{0, NULL}
+	};
+	
+	return osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score);
+}
+
+static char *print_note(OSyncChange *change)
+{
+	osync_debug("VNOTE", 4, "start: %s", __func__);
+	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+	char *result;
+	int size;
+	if (!conv_xml_to_vnote((char*)doc, 0, &result, &size, NULL))
+		return NULL;
+	return result;
+}
+
+static void destroy_xml(char *data, size_t size)
+{
+	xmlFreeDoc((xmlDoc *)data);
+}
+
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "contact");
-	osync_conv_register_objformat(env, "contact", "xml-note");
+	OSyncObjFormat *mxml = osync_conv_register_objformat(env, "contact", "xml-note");
+	
+	osync_conv_format_set_compare_func(mxml, compare_notes);
+	osync_conv_format_set_destroy_func(mxml, destroy_xml);
+	osync_conv_format_set_print_func(mxml, print_note);
 	
 	osync_conv_register_converter(env, CONVERTER_CONV, "vnote11", "xml-note", conv_vnote_to_xml, 0);
 	osync_conv_register_converter(env, CONVERTER_CONV, "xml-note", "vnote11", conv_xml_to_vnote, 0);
