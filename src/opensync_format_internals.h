@@ -83,6 +83,7 @@ struct OSyncObjFormat {
 	OSyncFormatCopyFunc copy_func;
 	OSyncFormatCreateFunc create_func;
 	OSyncFormatDestroyFunc destroy_func;
+	OSyncFormatPrintFunc print_func;
 };
 
 struct OSyncFormatConverter {

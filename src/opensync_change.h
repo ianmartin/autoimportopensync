@@ -33,3 +33,4 @@ long long int osync_change_get_id(OSyncChange *change);
 osync_bool osync_change_has_data(OSyncChange *change);
 void osync_change_free(OSyncChange *change);
 void osync_change_reset(OSyncChange *change);
+char *osync_change_get_printable(OSyncChange *change);

@@ -158,6 +158,7 @@ typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatMergeFunc) (OSyncChange *leftchange, OSyncChange *rightchange, OSyncError **);
 typedef void (* OSyncFormatDestroyFunc) (char *data, size_t size);
+typedef char *(* OSyncFormatPrintFunc) (OSyncChange *change);
 
 typedef OSyncFilterAction (* OSyncFilterFunction)(OSyncChange *, char *config);
 

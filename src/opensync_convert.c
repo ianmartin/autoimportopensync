@@ -1187,6 +1187,12 @@ void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreate
 	format->create_func = create_func;
 }
 
+void osync_conv_format_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc print_func)
+{
+	g_assert(format);
+	format->print_func = print_func;
+}
+
 const char *osync_objtype_get_name(OSyncObjType *type)
 {
 	g_assert(type);

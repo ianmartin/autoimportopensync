@@ -44,3 +44,4 @@ void osync_conv_format_set_malloced(OSyncObjFormat *format);
 void osync_conv_format_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func);
 void osync_conv_format_set_copy_func(OSyncObjFormat *format, OSyncFormatCopyFunc copy_func);
 void osync_conv_format_set_like(OSyncObjFormat *format, const char *base_format, ConverterFlags to_flags, ConverterFlags from_flags);
+void osync_conv_format_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc print_func);

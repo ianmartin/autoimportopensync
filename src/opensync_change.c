@@ -217,6 +217,21 @@ int osync_change_get_datasize(OSyncChange *change)
 	return change->size;
 }
 
+char *osync_change_get_printable(OSyncChange *change)
+{
+	g_assert(change);
+	if (!change->has_data)
+		return NULL;
+		
+	OSyncObjFormat *format = change->format;
+	g_assert(format);
+	
+	if (!format->print_func)
+		return NULL;
+		
+	return format->print_func(change);
+}
+
 OSyncMapping *osync_change_get_mapping(OSyncChange *change)
 {
 	g_assert(change);
