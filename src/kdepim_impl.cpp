@@ -32,14 +32,17 @@ extern "C"
 #include <kabc/stdaddressbook.h>
 #include <kabc/vcardconverter.h>
 #include <kabc/resource.h>
+#include <libkcal/resourcecalendar.h>
 #include <kcmdlineargs.h>
 #include <kapplication.h>
 #include <klocale.h>
 #include <qsignal.h>
 #include <qfile.h> 
+#include <dlfcn.h>
 
 #include "osyncbase.h"
 #include "kaddrbook.h"
+#include "kcal.h"
 
 
 static
@@ -67,6 +70,7 @@ void unfold_vcard(char *vcard, size_t *size)
 
 static KApplication *applicationptr=NULL;
 static char name[] = "kde-opensync-plugin";
+static int argc = 0;
 static char *argv[] = {name,0};
 
 class KdePluginImplementation: public KdePluginImplementationBase
@@ -75,6 +79,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
         KABC::AddressBook* addressbookptr;   
         KABC::Ticket* addressbookticket;
         QDateTime syncdate, newsyncdate;
+        KCalDataSource *kcal;
 
         OSyncMember *member;
         OSyncHashTable *hashtable;
@@ -85,7 +90,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
             //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
 
-            KCmdLineArgs::init(1, argv, "kde-opensync-plugin", i18n("KOpenSync"), "KDE OpenSync plugin", "0.1", false);
+            KCmdLineArgs::init(argc, argv, "kde-opensync-plugin", i18n("KOpenSync"), "KDE OpenSync plugin", "0.1", false);
             applicationptr = new KApplication();
 
             //get a handle to the standard KDE addressbook
@@ -97,10 +102,15 @@ class KdePluginImplementation: public KdePluginImplementationBase
             hashtable = osync_hashtable_new();
             osync_hashtable_load(hashtable, member);
 
+            /*FIXME: check if synchronizing Calendar data is desired */
+            kcal = new KCalDataSource(member, hashtable);
+
         }
         
         virtual ~KdePluginImplementation()
         {
+            delete kcal;
+            kcal = NULL;
             if (applicationptr) {
                 delete applicationptr;
                 applicationptr = NULL;
@@ -122,6 +132,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 revdate = newsyncdate;      //use date of this sync as the revision date.
                 e.setRevision(revdate);   //update the Addressbook entry for future reference.
             }
+            /*FIXME: not i18ned string */
             return revdate.toString();
         }
 
@@ -137,6 +148,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             }
             osync_debug("kde", 3, "KDE addressbook locked OK.");
 
+            if (!kcal->connect(ctx))
+                return;
             osync_context_report_success(ctx);
         }
 
@@ -146,11 +159,14 @@ class KdePluginImplementation: public KdePluginImplementationBase
             addressbookptr->save(addressbookticket);
             addressbookticket = NULL;
 
+            if (!kcal->disconnect(ctx))
+                return;
             osync_context_report_success(ctx);
         }
 
 
-        virtual void get_changes(OSyncContext *ctx)
+        /*FIXME: move kaddrbook implementation to kaddrbook.cpp */
+        bool addrbook_get_changeinfo(OSyncContext *ctx)
         {
             //osync_debug("kde", 3, "kaddrbook::%s(newdbs=%d)", __FUNCTION__, newdbs);
 
@@ -165,14 +181,17 @@ class KdePluginImplementation: public KdePluginImplementationBase
             if (!addressbookptr->load())
             {
                 osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't reload KDE addressbook");
-                return;
+                return false;
             }
             osync_debug("kde", 3, "KDE addressbook reloaded OK.");
 
-            //osync_debug("kde", 3, "%s: %s : plugin UID list has %d entries", __FILE__, __FUNCTION__, uidlist.count());
+            KABC::VCardConverter converter;
 
             for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
-                osync_debug("kde", 3, "new entry, uid: %s", it->uid().latin1());
+
+                QString uid = "kabc" + it->uid();
+
+                osync_debug("kde", 3, "new entry, uid: %s", uid.latin1());
 
                 QString hash = calc_hash(*it);
 
@@ -182,14 +201,13 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 osync_change_set_member(chg, member);
 
                 osync_change_set_hash(chg, hash);
-                osync_change_set_uid(chg, it->uid().latin1());
+                osync_change_set_uid(chg, uid.latin1());
 
                 // Convert the VCARD data into a string
-                KABC::VCardConverter converter;
                 QString card = converter.createVCard(*it);
-                QString data(card.latin1());
+                const char *data = card.latin1();
                 //FIXME: deallocate data somewhere
-                osync_change_set_data(chg, strdup(data), data.length(), 1);
+                osync_change_set_data(chg, strdup(data), strlen(data), 1);
 
                 // object type and format
                 osync_change_set_objtype_string(chg, "contact");
@@ -207,8 +225,50 @@ class KdePluginImplementation: public KdePluginImplementationBase
             // Use the hashtable to report deletions
             osync_hashtable_report_deleted(hashtable, ctx, "contact");
 
+            return true;
+        }
+
+        virtual void get_changeinfo(OSyncContext *ctx)
+        {
+            if (!addrbook_get_changeinfo(ctx))
+                return;
+            if (kcal && !kcal->get_changeinfo(ctx))
+                return;
             osync_context_report_success(ctx);
         }
+
+        void kabc_get_data(OSyncContext *ctx, OSyncChange *chg)
+        {
+            QString uid = osync_change_get_uid(chg);
+            KABC::Addressee a = addressbookptr->findByUid(uid);
+            KABC::VCardConverter converter;
+            QString card = converter.createVCard(a);
+            const char *data = card.latin1();
+            //FIXME: deallocate data somewhere
+            osync_change_set_data(chg, strdup(data), strlen(data), 1);
+            osync_context_report_success(ctx);
+        }
+
+        
+        virtual void get_data(OSyncContext *ctx, OSyncChange *)
+        {
+            /*
+            switch (osync_change_get_objtype(chg)) {
+                case contact:
+                kabc_get_data(ctx, chg);
+                break;
+                case calendar:
+                kcal->get_data(ctx, chg);
+                break;
+                default:
+                osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Invalid UID");
+                return;
+            }
+            osync_context_report_success(ctx);
+            */
+            osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Invalid UID");
+        }
+        
 
 
         /** Access an object, without returning success
@@ -221,6 +281,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
             //osync_debug("kde", 3, "kaddrbook::%s()",__FUNCTION__);
 
+            QString uid = osync_change_get_uid(chg);
+
             // Ensure we still have a lock on the KDE addressbook (we ought to)
             if (addressbookticket==NULL)
             {
@@ -232,9 +294,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             KABC::VCardConverter converter;
     
             OSyncChangeType chtype = osync_change_get_changetype(chg);
-            char *uid = osync_change_get_uid(chg);
             /* treat modified objects without UIDs as if they were newly added objects */
-            if (chtype == CHANGE_MODIFIED && !uid)
+            if (chtype == CHANGE_MODIFIED && uid.isEmpty())
                 chtype = CHANGE_ADDED;
 
             // convert VCARD string from obj->comp into an Addresse object.
@@ -252,13 +313,13 @@ class KdePluginImplementation: public KdePluginImplementationBase
                     KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
 
                     // ensure it has the correct UID
-                    addressee.setUid(QString(uid));
+                    addressee.setUid(uid);
                     QString hash = calc_hash(addressee);
 
                     // replace the current addressbook entry (if any) with the new one
                     addressbookptr->insertAddressee(addressee);
                     osync_change_set_hash(chg, hash);
-                    osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", uid); 
+                    osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", uid.latin1()); 
                     break;
                 }
 
@@ -274,9 +335,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
                     // add the new address to the addressbook
                     addressbookptr->insertAddressee(addressee);
 
-                    // return the UID of the new entry along with the result
                     osync_change_set_uid(chg, addressee.uid().latin1());
                     osync_change_set_hash(chg, hash);
+
                     osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", addressee.uid().latin1());
 
                     break;
@@ -284,18 +345,18 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
                 case CHANGE_DELETED:
                 {
-                    if (uid==NULL)
+                    if (uid.isEmpty())
                     {
-                        osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Entry with null UID not found");
+                        osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Trying to delete entry with empty UID");
                         return -1;
                     }
 
                     //find addressbook entry with matching UID and delete it
-                    KABC::Addressee addressee = addressbookptr->findByUid(QString(uid));
+                    KABC::Addressee addressee = addressbookptr->findByUid(uid);
                     if(!addressee.isEmpty())
                        addressbookptr->removeAddressee(addressee);
 
-                    osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY DELETED (UID=%s)", uid);
+                    osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY DELETED (UID=%s)", uid.latin1());
 
                     break;
                 }
@@ -333,7 +394,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 extern "C" {
 
-KdePluginImplementationBase *new_implementation_object(OSyncMember *member)
+KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member)
 {
     return new KdePluginImplementation(member);
 }
