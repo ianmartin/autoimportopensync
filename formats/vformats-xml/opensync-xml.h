@@ -1,3 +1,6 @@
+#ifndef HAVE_OPENSYNC_XML_H
+#define HAVE_OPENSYNC_XML_H
+
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -44,3 +47,5 @@ void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLE
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression);
 xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc);
 OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores);
+
+#endif
