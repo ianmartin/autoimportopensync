@@ -189,7 +189,7 @@ void get_info(OSyncPluginInfo *info)
     info->name = "kdepim";
     /*FIXME: i18n */
     info->description = "Plugin for the KDEPIM on KDE 3.x";
-    info->has_configuration = FALSE;
+    info->config_type = NO_CONFIGURATION;
 
     info->functions.initialize = kde_initialize;
     info->functions.connect = kde_connect;
