@@ -65,9 +65,9 @@ void duplicate_file(OSyncChange *change)
 	g_free(newuid);
 }
 
-void detect_file(OSyncConvEnv *env, OSyncChange *change)
+void detect_file(OSyncFormatEnv *env, OSyncChange *change)
 {
-	//OSyncConvEnv *env = osync_member_get_conv_env(member);
+	//OSyncFormatEnv *env = osync_member_get_format_env(member);
 	//fs_fileinfo *file_info = (fs_fileinfo *)data;
 	
 	//Call the data detectors here
@@ -94,7 +94,7 @@ void detect_file(OSyncConvEnv *env, OSyncChange *change)
 	}*/
 }
 
-void get_info(OSyncConvEnv *env)
+void get_info(OSyncFormatEnv *env)
 {
 	OSyncObjType *type = osync_conv_register_objtype(env, "data");
 	g_assert(type);

@@ -113,6 +113,11 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "file");
+	osync_debug("FILE-SYNC", 3, "slow_sync=%s", slow_sync ? "true" : "false");
+	if (slow_sync)
+		osync_hashtable_reset(fsinfo->hashtable);
+	
 	if (fsinfo->dir) {
 		const gchar *de = NULL;
 		while ((de = g_dir_read_name(fsinfo->dir))) {
@@ -134,10 +139,8 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			osync_change_set_hash(change, hash);
 			
 			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
-			osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "data");
-			osync_debug("FILE-SYNC", 3, "slow_sync=%s", slow_sync ? "true" : "false");
-			if (osync_hashtable_detect_change(fsinfo->hashtable, change) || slow_sync)
-			{
+
+			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
 				osync_context_report_change(ctx, change);
 				osync_hashtable_update_hash(fsinfo->hashtable, change);
 			}
@@ -207,15 +210,16 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 	return TRUE;
 }
 
-static void fs_commit_change(OSyncContext *ctx, OSyncChange *change)
+static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
 	if (!fs_access(ctx, change))
-		return;
+		return FALSE;
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_update_hash(fsinfo->hashtable, change);
+	return TRUE;
 }
 
 static void fs_sync_done(OSyncContext *ctx)
@@ -254,17 +258,20 @@ void get_info(OSyncPluginInfo *info) {
 	info->name = "file-sync";
 	info->version = 1;
 	info->is_threadsafe = TRUE;
-	OSyncObjType *data = osync_conv_register_objtype(info->accepted_objtypes, "data");
-	osync_conv_register_objformat(data, "file");
+	
 	info->functions.initialize = fs_initialize;
 	info->functions.connect = fs_connect;
-	info->functions.get_changeinfo = fs_get_changeinfo;
-	info->functions.get_data = fs_get_data;
-	info->functions.commit_change = fs_commit_change;
 	info->functions.sync_done = fs_sync_done;
 	info->functions.disconnect = fs_disconnect;
 	info->functions.finalize = fs_finalize;
-#ifdef STRESS_TEST
-	info->functions.access = fs_access;
-#endif
+	info->functions.get_changeinfo = fs_get_changeinfo;
+	info->functions.get_data = fs_get_data;
+	
+	OSyncObjType *data = osync_conv_register_objtype(info->accepted_objtypes, "*");
+	OSyncObjFormat *file_format = osync_conv_register_objformat(data, "file");
+	OSyncFormatFunctions functions;
+	
+	functions.commit_change = fs_commit_change;
+	functions.access = fs_access;
+	osync_conv_format_set_functions(file_format, functions);
 }
