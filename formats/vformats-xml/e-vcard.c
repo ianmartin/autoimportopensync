@@ -808,7 +808,7 @@ e_vcard_to_string_vcard_21  (EVCard *evc)
 		g_string_free (attr_str, TRUE);
 	}
 
-	str = g_string_append (str, "END:VCARD\r\n\r\n");
+	str = g_string_append (str, "END:VCARD\r\n");
 
 	return g_string_free (str, FALSE);
 	return g_strdup ("");
@@ -946,6 +946,126 @@ e_vcard_to_string (EVCard *evc, EVCardFormat format)
 		g_warning ("invalid format specifier passed to e_vcard_to_string");
 		return g_strdup ("");
 	}
+}
+
+char*
+e_vnote_to_string (EVCard *evc)
+{
+	g_return_val_if_fail (E_IS_VCARD (evc), NULL);
+
+	GList *l;
+	GList *v;
+
+	GString *str = g_string_new ("");
+
+	str = g_string_append (str, "BEGIN:VNOTE" CRLF);
+	str = g_string_append (str, "VERSION:1.1" CRLF);
+
+	for (l = evc->priv->attributes; l; l = l->next) {
+		GList *p;
+		EVCardAttribute *attr = l->data;
+		GString *attr_str;
+		int l;
+
+		if (!g_ascii_strcasecmp (attr->name, "VERSION"))
+			continue;
+
+		attr_str = g_string_new ("");
+
+		/* From rfc2425, 5.8.2
+		 *
+		 * contentline  = [group "."] name *(";" param) ":" value CRLF
+		 */
+
+		if (attr->group) {
+			attr_str = g_string_append (attr_str, attr->group);
+			attr_str = g_string_append_c (attr_str, '.');
+		}
+		attr_str = g_string_append (attr_str, attr->name);
+
+		/* handle the parameters */
+		for (p = attr->params; p; p = p->next) {
+			EVCardAttributeParam *param = p->data;
+			/* 5.8.2:
+			 * param        = param-name "=" param-value *("," param-value)
+			 */
+			gboolean has_name = FALSE;
+			attr_str = g_string_append_c (attr_str, ';');
+			if (g_ascii_strcasecmp (param->name, "TYPE")) {
+				attr_str = g_string_append (attr_str, param->name);
+				has_name = TRUE;
+			}
+			if (param->values) {
+				if (has_name)
+					attr_str = g_string_append_c (attr_str, '=');
+				for (v = param->values; v; v = v->next) {
+					char *value = v->data;
+					char *p = value;
+					gboolean quotes = FALSE;
+					while (*p) {
+						if (g_utf8_get_char (p) != '-' && !g_unichar_isalnum (g_utf8_get_char (p))) {
+							quotes = TRUE;
+							break;
+						}
+						p = g_utf8_next_char (p);
+					}
+					if (quotes)
+						attr_str = g_string_append_c (attr_str, '"');
+					attr_str = g_string_append (attr_str, value);
+					if (quotes)
+						attr_str = g_string_append_c (attr_str, '"');
+					if (v->next)
+						attr_str = g_string_append_c (attr_str, ',');
+				}
+			}
+		}
+
+		attr_str = g_string_append_c (attr_str, ':');
+
+		for (v = attr->values; v; v = v->next) {
+			char *value = v->data;
+			char *escaped_value = NULL;
+
+			escaped_value = e_vcard_escape_string (value);
+
+			attr_str = g_string_append (attr_str, escaped_value);
+			if (v->next) {
+				/* XXX toshok - i hate you, rfc 2426.
+				   why doesn't CATEGORIES use a ; like
+				   a normal list attribute? */
+				if (!strcmp (attr->name, "CATEGORIES"))
+					attr_str = g_string_append_c (attr_str, ',');
+				else
+					attr_str = g_string_append_c (attr_str, ';');
+			}
+
+			g_free (escaped_value);
+		}
+
+		/* 5.8.2:
+		 * When generating a content line, lines longer than 75
+		 * characters SHOULD be folded
+		 */
+		l = 0;
+		do {
+			if (attr_str->len - l > 75) {
+				l += 75;
+				attr_str = g_string_insert_len (attr_str, l, CRLF " ", sizeof (CRLF " ") - 1);
+			}
+			else
+				break;
+		} while (l < attr_str->len);
+
+		attr_str = g_string_append (attr_str, CRLF);
+
+		str = g_string_append (str, attr_str->str);
+		g_string_free (attr_str, TRUE);
+	}
+
+	str = g_string_append (str, "END:VNOTE\r\n");
+
+	return g_string_free (str, FALSE);
+	return g_strdup ("");
 }
 
 void

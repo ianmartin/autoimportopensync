@@ -129,7 +129,7 @@ EVCard* e_vcard_new                          (void);
 EVCard* e_vcard_new_from_string              (const char *str);
 
 char*   e_vcard_to_string                    (EVCard *evc, EVCardFormat format);
-
+char*   e_vnote_to_string(EVCard *evc);
 /* mostly for debugging */
 void    e_vcard_dump_structure               (EVCard *evc);
 
