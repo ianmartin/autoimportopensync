@@ -36,7 +36,14 @@ SOFTWARE IS DISCLAIMED.
 #include <kio/netaccess.h>
 #include <klocale.h>
 
+#include <errno.h>
+
 #include "knotes.h"
+
+extern "C"
+{
+#include <opensync/opensync-xml.h>
+}
 
 KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
     :member(m), hashtable(h)
@@ -46,14 +53,13 @@ KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
 bool KNotesDataSource::connect(OSyncContext *ctx)
 {
     // Terminate knotes because we will change its data
+    // Yes, it is _very_ ugly
     //FIXME: use dcop programming interface, not the commandline utility
-#if 1
     if (!system("dcop knotes MainApplication-Interface quit"))
         /* Restart knotes later */
         knotesWasRunning = true;
     else
         knotesWasRunning = false;
-#endif
 
     calendar = new KCal::CalendarLocal;
     if (!calendar) {
@@ -140,10 +146,8 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
     calendar = NULL;
 
     // FIXME: ugly, but necessary
-#if 1
     if (knotesWasRunning)
         system("knotes");
-#endif
     return true;
 }
 
@@ -167,13 +171,22 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         QString uid = (*i)->uid();
         QString hash = calc_hash(*i);
 
-        /*FIXME: temporarily, use this weird-ugly-internal-hardcoded format for the vnote data,
-         * to allow testing before OpenSync supports vnote correctly.
-         */
-        char data[10000];
-        snprintf(data, 10000, "BEGIN:VNOTE\n%s\n%s\n",
-                                    (const char*)(*i)->summary().local8Bit(),
-                                    (const char*)(*i)->description().local8Bit());
+        // Create osxml doc containing the note
+        xmlDoc *doc = xmlNewDoc((const xmlChar*)"1.0");
+        xmlNode *root = osxml_node_add_root(doc, "note");
+
+        OSyncXMLEncoding enc;
+        enc.encoding = OSXML_8BIT;
+        enc.charset = OSXML_UTF8;
+
+        // Set the right attributes
+        xmlNode *sum = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
+        QCString utf8str = (*i)->summary().utf8();
+        osxml_node_set(sum, "Summary", utf8str, enc);
+
+        xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
+        utf8str = (*i)->summary().utf8();
+        osxml_node_set(body, "Body", utf8str, enc);
 
         // initialize the change object
         OSyncChange *chg = osync_change_new();
@@ -182,8 +195,8 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 
         // object type and format
         osync_change_set_objtype_string(chg, "note");
-        osync_change_set_objformat_string(chg, "vnote11");
-        osync_change_set_data(chg, strdup(data), strlen(data), 1);
+        osync_change_set_objformat_string(chg, "xml-note");
+        osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
 
         // Use the hash table to check if the object
         // needs to be reported
@@ -205,26 +218,23 @@ void KNotesDataSource::get_data(OSyncContext *ctx, OSyncChange *)
 
 bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
-    /*FIXME: temporarily, use this weird-ugly-internal-hardcoded format for the vnote data,
-     * while vnote support is not completely implemented
-     */
     OSyncChangeType type = osync_change_get_changetype(chg);
 
     QString uid = osync_change_get_uid(chg);
 
     if (type != CHANGE_DELETED) {
-        // begin of the ugly-format parsing
-        QString data = QString::fromLocal8Bit(osync_change_get_data(chg), osync_change_get_datasize(chg));
-        QStringList lines = QStringList::split("\n", data, true);
-        if (lines.size() < 3) {
-            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Invalid vnote data");
+
+        // Get osxml data
+        xmlDoc *doc = (xmlDoc*)osync_change_get_data(chg);
+        xmlNode *root = osxml_node_get_root(doc, "note", NULL);
+        if (!root) {
+            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Invalid data");
             return false;
         }
-        QString summary = lines[1];
-        // remove the first two lines
-        lines.remove(lines.begin());
-        lines.remove(lines.begin());
-        QString desc = lines.join("\n");
+        QString summary = osxml_find_node(root, "Summary");
+        QString body = osxml_find_node(root, "Body");
+
+
         KCal::Journal *j = calendar->journal(uid);
 
         if (type == CHANGE_MODIFIED && !j)
@@ -237,7 +247,7 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
                 j = new KCal::Journal;
                 j->setUid(uid);
                 j->setSummary(summary);
-                j->setDescription(desc);
+                j->setDescription(body);
                 hash = calc_hash(j);
                 calendar->addJournal(j);
                 uid = j->uid();
@@ -247,7 +257,7 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             break;
             case CHANGE_MODIFIED:
                 j->setSummary(summary);
-                j->setDescription(desc);
+                j->setDescription(body);
                 hash = calc_hash(j);
                 osync_change_set_hash(chg, hash);
             break;

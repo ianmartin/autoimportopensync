@@ -51,7 +51,8 @@ static void *kde_initialize(OSyncMember *member, OSyncError **e)
     osync_debug("kde", 3, "Loading implementation module");
     module = dlopen(KDEPIM_LIBDIR"/kdepim_lib.so", RTLD_NOW);
     if (!module) {
-        osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module from %s", KDEPIM_LIBDIR"/kdepim_lib.so");
+        osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module from %s: %s",
+                           KDEPIM_LIBDIR"/kdepim_lib.so", dlerror());
         goto error;
     }
     osync_debug("kde", 3, "Getting initialization function");
@@ -212,9 +213,9 @@ void get_info(OSyncPluginInfo *info)
     osync_plugin_set_access_objformat(info, "todo", "vtodo", kde_todo_access);
 
     osync_plugin_accept_objtype(info, "note");
-    osync_plugin_accept_objformat(info, "note", "vnote11");
-    osync_plugin_set_commit_objformat(info, "note", "vnote11", kde_note_commit_change);
-    osync_plugin_set_access_objformat(info, "note", "vnote11", kde_note_access);
+    osync_plugin_accept_objformat(info, "note", "xml-note");
+    osync_plugin_set_commit_objformat(info, "note", "xml-note", kde_note_commit_change);
+    osync_plugin_set_access_objformat(info, "note", "xml-note", kde_note_access);
 }
 
 }// extern "C"

@@ -4,7 +4,10 @@ plugindir=@OPENSYNC_PLUGINDIR@
 
 #FIXME: set EXTRA_DIST
 
-INCLUDES = @PACKAGE_CFLAGS@ $(KDE_INCLUDES) $(QT_INCLUDES)
+INCLUDES = $(OSYNC_CFLAGS) $(XML_CFLAGS) $(GLIB_CFLAGS) $(KDE_INCLUDES) $(QT_INCLUDES)
+
+# Temporary hack to fix difference between <opensync/opensync.h> and <opensync.h>
+INCLUDES += -I@OPENSYNC_INCLUDEDIR@/opensync-1.0/opensync
 
 #FIXME: Is there a KDE macro to set this?
 LIB_KCAL = -lkcal
@@ -33,6 +36,6 @@ kdepim_lib_la_SOURCES = src/kdepim_impl.cpp \
                          src/knotes.cpp
 kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\"
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
-kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL)
+kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -lopensync-xml
 
 
