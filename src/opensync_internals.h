@@ -9,6 +9,18 @@
 #define osync_assert(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
+#define osync_return_if_fail(condition) do {                                            \
+  if (!(condition)) {                                                                   \
+    osync_debug ("ASSERT", 0, "%i: Assertion failed: \"%s\" in %s:%i:%s", getpid (), #condition, __FILE__, __LINE__, __FUNCTION__);  \
+    return;                                                                             \
+  } } while (0)
+
+#define osync_return_val_if_fail(condition, val) do {                                   \
+  if (!(condition)) {                                                                   \
+    return (val);                                                                       \
+  } } while (0)
+
+
 /** Hook types and macros
  *
  *@{

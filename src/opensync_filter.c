@@ -184,10 +184,7 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 	if (filter->destobjtype && strcmp(filter->destobjtype, change->destobjtype))
 		return OSYNC_FILTER_IGNORE;
 	if (filter->detectobjtype) {
-		printf("Starting to do detect objtype filtering on change %s looking for %s\n", change->uid, filter->detectobjtype);
-		printf("right now it is of format %s and objtype %s\n", change->format ? change->format->name : "none", change->objtype ? change->objtype->name : "None");
 		OSyncObjType *objtype = osync_change_detect_objtype_full(osync_member_get_format_env(destmember), change, NULL);
-		printf("change %s objtype is %p name %s\n", change->uid, objtype, objtype ? objtype->name : "None");
 		if (!objtype)
 			return OSYNC_FILTER_IGNORE;
 		if (strcmp(filter->detectobjtype, objtype->name))
