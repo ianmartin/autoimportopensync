@@ -295,6 +295,7 @@ OSyncObjFormatSink *osync_objformat_sink_from_template(OSyncGroup *group, OSyncO
 	sink->format = format;
 	sink->functions.commit_change = template->commit_change;
 	sink->functions.access = template->access;
+	sink->extension_name = g_strdup(template->extension_name);
 	return sink;
 }
 
@@ -387,12 +388,14 @@ void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
  * @param formatstr The name of the format to accept
  * 
  */
-void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr)
+void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
 	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
 	OSyncObjFormatTemplate *format_template = g_malloc0(sizeof(OSyncObjFormatTemplate));
 	format_template->name = g_strdup(formatstr);
+	if (extension)
+		format_template->extension_name = g_strdup(extension);
 	template->formats = g_list_append(template->formats, format_template);
 }
 

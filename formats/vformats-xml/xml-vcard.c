@@ -72,7 +72,7 @@ static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
 	return encoding;
 }
 
-static osync_bool conv_vcard_to_xml(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
@@ -406,7 +406,7 @@ static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, 
 	g_free(tmp);
 }
 
-static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error, int target)
+static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
@@ -628,14 +628,14 @@ static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int
 	return TRUE;
 }
 
-static osync_bool conv_xml_to_vcard30(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_to_vcard30(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	return conv_xml_to_vcard(input, inpsize, output, outpsize, free_input, error, EVC_FORMAT_VCARD_30);
+	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, EVC_FORMAT_VCARD_30);
 }
 
-static osync_bool conv_xml_to_vcard21(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_to_vcard21(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	return conv_xml_to_vcard(input, inpsize, output, outpsize, free_input, error, EVC_FORMAT_VCARD_21);
+	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, EVC_FORMAT_VCARD_21);
 }
 
 static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *rightchange)
@@ -668,7 +668,7 @@ static char *print_contact(OSyncChange *change)
 	char *result;
 	int size;
 	osync_bool free_input;
-	if (!conv_xml_to_vcard30((char*)doc, 0, &result, &size, &free_input, NULL))
+	if (!conv_xml_to_vcard30(NULL, (char*)doc, 0, &result, &size, &free_input, NULL))
 		return NULL;
 	return result;
 }
@@ -676,6 +676,18 @@ static char *print_contact(OSyncChange *change)
 static void destroy_xml(char *data, size_t size)
 {
 	xmlFreeDoc((xmlDoc *)data);
+}
+
+static void *init_vcard_to_xml(void)
+{
+	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+	return (void *)table;
+}
+
+static void *init_xml_to_vcard(void)
+{
+	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+	return (void *)table;
 }
 
 void get_info(OSyncEnv *env)
@@ -688,8 +700,12 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_copy_func(env, "xml-contact", osxml_copy);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
+	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard21", conv_xml_to_vcard21);
+	osync_env_converter_set_init(env, "xml-contact", "vcard21", init_xml_to_vcard);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard30", "xml-contact", conv_vcard_to_xml);
+	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard30", conv_xml_to_vcard30);
+	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_xml_to_vcard);
 }

@@ -137,7 +137,7 @@ typedef enum OSyncFilterAction {
 } OSyncFilterAction;
 
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
-typedef osync_bool (* OSyncFormatConvertFunc) (char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error);
+typedef osync_bool (* OSyncFormatConvertFunc) (void *init_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error);
 typedef osync_bool (* OSyncFormatCopyFunc) (const char *input, int inpsize, char **output, int *outpsize);
 typedef osync_bool (* OSyncFormatDetectDataFunc) (OSyncFormatEnv *env, const char *data, int size);
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
@@ -145,6 +145,8 @@ typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatMergeFunc) (OSyncChange *leftchange, OSyncChange *rightchange, OSyncError **);
 typedef void (* OSyncFormatDestroyFunc) (char *data, size_t size);
 typedef char *(* OSyncFormatPrintFunc) (OSyncChange *change);
+typedef void *(* OSyncFormatConverterInitFunc) (void);
+typedef osync_bool (* OSyncFormatExtInitFunc) (void *);
 
 typedef OSyncFilterAction (* OSyncFilterFunction)(OSyncChange *, char *config);
 

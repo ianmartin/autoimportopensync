@@ -107,7 +107,7 @@ static OSyncFormatConverter *osync_conv_find_converter_objformat(OSyncFormatEnv 
 	return NULL;
 }
 
-static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool convert_to, OSyncChange *change)
+/*static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool convert_to, OSyncChange *change)
 {
 	char *data = NULL;
 	int datasize = 0;
@@ -130,7 +130,7 @@ static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool conv
 			change->size = datasize;
 		}
 	}
-}
+}*/
 
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, OSyncError **error)
 {
@@ -147,9 +147,9 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	
 	if (change->data) {
 		//Invoke the converter and all extensions
-		osync_conv_invoke_extensions(converter->source_format, FALSE, change);
+		//osync_conv_invoke_extensions(converter->source_format, FALSE, change);
 		osync_bool free_input = FALSE;
-		if ((ret = converter->convert_func(change->data, change->size, &data, &datasize, &free_input, error))) {
+		if ((ret = converter->convert_func(converter->conv_data, change->data, change->size, &data, &datasize, &free_input, error))) {
 		
 			if (converter->type == CONVERTER_DECAP) {
 				if (!free_input) {
@@ -176,7 +176,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 			change->data = data;
 			change->size = datasize;
 			
-			osync_conv_invoke_extensions(converter->target_format, TRUE, change);
+			//osync_conv_invoke_extensions(converter->target_format, TRUE, change);
 		}
 	}
 	
@@ -212,7 +212,7 @@ static OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter
 	if (change->data) {
 		//Invoke the converter and all extensions
 		OSyncError *error = NULL;
-		if (!converter->convert_func(change->data, change->size, &(new_change->data), &(new_change->size), free_output, &error)) {
+		if (!converter->convert_func(converter->conv_data, change->data, change->size, &(new_change->data), &(new_change->size), free_output, &error)) {
 			osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke_decap", osync_error_print(&error));
 			osync_error_free(&error);
 			return NULL;
@@ -682,6 +682,16 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		conv_env->objformats = g_list_append(conv_env->objformats, format);
 	}
 	
+	//The extension
+	/*for (i = env->extension_templates; i; i = i->next) {
+		OSyncFormatExtensionTemplate *ext_templ = i->data;
+		OSyncObjFormat *format = osync_conv_find_objformat(conv_env, ext_templ->formatname);
+		if (!format)
+			continue;
+		
+		
+	}*/
+	
 	//Converter templates
 	GList *i;
 	for (i = env->converter_templates; i; i = i->next) {
@@ -697,6 +707,31 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		converter->convert_func = convtmpl->convert_func;
 		converter->type = convtmpl->type;
 
+		if (convtmpl->init_func)
+			converter->conv_data = convtmpl->init_func();
+
+		//The extension we need
+		//FIXME This wont work if both source and target have extensions
+		OSyncFormatExtension *extension = g_malloc0(sizeof(OSyncObjFormat));
+		OSyncFormatExtensionTemplate *extension_template = NULL;
+		
+		extension_template = osync_env_find_extension_template(env, fmt_src->name);
+		if (extension_template) {
+			extension->name = g_strdup(extension_template->name);
+			//extension->conv_func = extension_template->conv_from;
+			extension_template->init_from_func(converter->conv_data);
+			//converter->extension = extension;
+		} else {
+			extension_template = osync_env_find_extension_template(env, fmt_trg->name);
+			if (extension_template) {
+				extension->name = g_strdup(extension_template->name);
+				//extension->conv_func = extension_template->conv_to;
+				extension_template->init_to_func(converter->conv_data);
+				//converter->extension = extension;
+			} else
+				g_free(extension);
+		}
+		
 		conv_env->converters = g_list_append(conv_env->converters, converter);
 	}
 	
@@ -720,21 +755,6 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		
 	//The filters
 	conv_env->filter_functions = g_list_copy(env->filter_functions);
-
-	//The extension
-	for (i = env->extension_templates; i; i = i->next) {
-		OSyncFormatExtensionTemplate *ext_templ = i->data;
-		OSyncObjFormat *format = osync_conv_find_objformat(conv_env, ext_templ->formatname);
-		if (!format)
-			continue;
-		
-		OSyncFormatExtension *extension = g_malloc0(sizeof(OSyncObjFormat));
-		extension->format = format;
-		extension->conv_from = ext_templ->conv_from;
-		extension->conv_to = ext_templ->conv_to;
-
-		format->extensions = g_list_append(format->extensions, extension);
-	}
 
 	osync_conv_set_common_format(conv_env, "contact", "xml-contact", NULL);
 	return conv_env;

@@ -34,6 +34,7 @@ struct OSyncFormatConverter {
 	OSyncFormatConvertFunc convert_func;
 	OSyncFormatDetectDataFunc detect_func;
 	ConverterType type;
+	void *conv_data;
 };
 
 typedef struct OSyncDataDetector {
@@ -45,6 +46,7 @@ typedef struct OSyncDataDetector {
 typedef struct OSyncObjFormatSink {
 	OSyncObjFormat *format;
 	OSyncFormatFunctions functions;
+	char *extension_name;
 	struct OSyncObjTypeSink *objtype_sink;
 } OSyncObjFormatSink;
 
@@ -61,8 +63,8 @@ typedef struct OSyncObjTypeSink {
 
 typedef struct OSyncFormatExtension {
 	OSyncObjFormat *format;
-	OSyncFormatConvertFunc conv_to;
-	OSyncFormatConvertFunc conv_from;
+	char *name;
+	OSyncFormatConvertFunc conv_func;
 } OSyncFormatExtension;
 
 typedef struct OSyncObjTypeTemplate {
@@ -73,6 +75,7 @@ typedef struct OSyncObjTypeTemplate {
 typedef struct OSyncObjFormatTemplate {
 	const char *name;
 	const char *objtype;
+	char *extension_name;
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
 	OSyncFormatCompareFunc cmp_func;
@@ -89,12 +92,14 @@ typedef struct OSyncConverterTemplate {
 	const char *target_format;
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
+	OSyncFormatConverterInitFunc init_func;
 } OSyncConverterTemplate;
 
 typedef struct OSyncFormatExtensionTemplate {
 	const char *formatname;
-	OSyncFormatConvertFunc conv_to;
-	OSyncFormatConvertFunc conv_from;
+	char *name;
+	OSyncFormatExtInitFunc init_from_func;
+	OSyncFormatExtInitFunc init_to_func;
 } OSyncFormatExtensionTemplate;
 
 /** A target function for osync_conv_find_path_fn() */
@@ -107,3 +112,4 @@ osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, 
 osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb, OSyncError **error);
 OSyncDataDetector *osync_env_find_detector(OSyncEnv *env, const char *sourcename, const char *targetname);
 osync_bool osync_conv_objtype_is_any(const char *objstr);
+OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname);

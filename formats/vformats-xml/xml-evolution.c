@@ -21,10 +21,11 @@
 #include "opensync-xml.h"
 #include <glib.h>
 
-static osync_bool conv_x_evo_to_xml(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool init_x_evo_to_xml(void *input)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
-	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, input);
+	
+	/*xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
 	if (!root)
 		return FALSE;
 	if (!(root = root->parent))
@@ -124,16 +125,15 @@ static osync_bool conv_x_evo_to_xml(char *input, int inpsize, char **output, int
 		} else {
 			osxml_map_unknown_param(nodes->nodeTab[i], "X-EVOLUTION-UI-SLOT", "SlotID");
 		}
-	}
+	}*/
 	
-	osync_trace(TRACE_INTERNAL, "done searching");
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
 }
 
-static osync_bool conv_xml_to_x_evo(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool init_xml_to_x_evo(void *input)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, input);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
@@ -144,5 +144,5 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objtype(env, "contact");
 	osync_env_register_objformat(env, "contact", "xml-contact");
 	
-	osync_env_register_extension(env, "xml-contact", conv_x_evo_to_xml, conv_xml_to_x_evo);
+	osync_env_register_extension(env, "xml-contact", "evolution", init_x_evo_to_xml, init_xml_to_x_evo);
 }
