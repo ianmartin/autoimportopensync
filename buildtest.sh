@@ -13,16 +13,16 @@ echo ""
 TOP_SRCDIR=$(pwd)
 
 echo -n "Making sure build environment is sane"
-./autogen.sh &> /dev/null
+./autogen.sh > /dev/null
 echo -n "."
-make clean &> /dev/null || exit 1
+make clean > /dev/null || exit 1
 echo -n "."
 
 cd plugins/file-sync
 
-./autogen.sh &> /dev/null
+./autogen.sh > /dev/null
 echo -n "."
-make clean &> /dev/null || exit 1
+make clean > /dev/null || exit 1
 echo -n "."
 echo ""
 
@@ -41,7 +41,7 @@ cd opensync-0.??
 BUILD_DIR=$(pwd)
 
 echo -n "Making OpenSync"
-./autogen.sh --prefix=$TOP_SRCDIR/_inst &> /dev/null || exit 1
+./autogen.sh --prefix=$TOP_SRCDIR/_inst > /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
 echo "."
@@ -50,7 +50,7 @@ cd plugins/file-sync
 
 echo -n "Making file-sync plugin"
 export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
-./autogen.sh --prefix=$TOP_SRCDIR/_inst --enable-error-tests=yes &> /dev/null || exit 1
+./autogen.sh --prefix=$TOP_SRCDIR/_inst --enable-error-tests=yes > /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
 echo "."
@@ -61,7 +61,7 @@ cd plugins/example-plugin
 
 echo -n "Making example plugin"
 export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
-./autogen.sh --prefix=$TOP_SRCDIR/_inst &> /dev/null || exit 1
+./autogen.sh --prefix=$TOP_SRCDIR/_inst > /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
 echo "."

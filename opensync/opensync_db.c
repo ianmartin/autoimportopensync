@@ -106,7 +106,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 
 osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_db_save_change(%p, %p)", change, error);
+	osync_trace(TRACE_ENTRY, "osync_db_save_change(%p, %i, %p) (Table: %p)", change, save_format, error, change->changes_db);
 	osync_assert(change, "Need to set change");
 	osync_assert(osync_change_get_objtype(change), "change->objtype was NULL while saving");
 	osync_assert(osync_change_get_objformat(change), "change->objformat was NULL while saving");

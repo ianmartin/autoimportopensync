@@ -21,7 +21,7 @@
 #include "engine.h"
 #include "engine_internals.h"
 
-void osync_engine_print_all(OSyncEngine *engine)
+void osengine_print_all(OSyncEngine *engine)
 {
 	GList *i;
 	GList *n;
@@ -32,6 +32,7 @@ void osync_engine_print_all(OSyncEngine *engine)
 	osync_debug("ENG", 2, "sent changes: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_sent_changes) ? "YES" : "NO", engine->cmb_sent_changes->num_not_set, engine->cmb_sent_changes->num_set);
 	osync_debug("ENG", 2, "all mapped: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_entries_mapped) ? "YES" : "NO", engine->cmb_entries_mapped->num_not_set, engine->cmb_entries_mapped->num_set);
 	osync_debug("ENG", 2, "synced: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_synced) ? "YES" : "NO", engine->cmb_synced->num_not_set, engine->cmb_synced->num_set);
+	osync_debug("ENG", 2, "conflicts checked: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_chkconflict) ? "YES" : "NO", engine->cmb_chkconflict->num_not_set, engine->cmb_chkconflict->num_set);
 	osync_debug("ENG", 2, "finished: %s", osync_flag_get_state(engine->cmb_finished) ? "YES" : "NO");
 	osync_debug("ENG", 2, "connected: %s (no: %i, yes: %i)", osync_flag_get_state(engine->cmb_connected) ? "YES" : "NO", engine->cmb_connected->num_not_set, engine->cmb_connected->num_set);
 	
@@ -49,6 +50,7 @@ void osync_engine_print_all(OSyncEngine *engine)
 		osync_debug("ENG", 2, "MAPPING %p ID: %lli:", mapping, mapping->id);
 		osync_debug("ENG", 2, "solved: %s", osync_flag_get_state(mapping->fl_solved) ? "YES" : "NO");
 		osync_debug("ENG", 2, "synced: %s (no: %i, yes: %i)", osync_flag_get_state(mapping->cmb_synced) ? "YES" : "NO", mapping->cmb_synced->num_not_set, mapping->cmb_synced->num_set);
+		osync_debug("ENG", 2, "conflict checked: %s", osync_flag_get_state(mapping->fl_chkconflict) ? "YES" : "NO");
 		osync_debug("ENG", 2, "has data: %s", osync_flag_get_state(mapping->cmb_has_data) ? "YES" : "NO");
 		osync_debug("ENG", 2, "has info: %s (no: %i, yes: %i)", osync_flag_get_state(mapping->cmb_has_info) ? "YES" : "NO",  mapping->cmb_has_info->num_not_set, mapping->cmb_has_info->num_set);
 		osync_debug("ENG", 2, "delete: %s (no: %i, yes: %i)", osync_flag_get_state(mapping->cmb_deleted) ? "YES" : "NO",  mapping->cmb_deleted->num_not_set, mapping->cmb_deleted->num_set);

@@ -337,6 +337,9 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 		target->objtype = osync_change_get_objtype(source);
 		target->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
 	}
+	
+	target->changes_db = source->changes_db;
+	
 	target->is_detected = source->is_detected;
 	osync_trace(TRACE_EXIT, "osync_change_update");
 }

@@ -1,1 +1,1 @@
-void osync_engine_print_all(OSyncEngine *engine);
+void osengine_print_all(OSyncEngine *engine);

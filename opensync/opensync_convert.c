@@ -1060,6 +1060,7 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
 	newchange->objtype = osync_change_get_objtype(source);
 	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
 	newchange->is_detected = source->is_detected;
+	newchange->changes_db = source->changes_db;
 	
 	if (!osync_change_copy_data(source, newchange, error)) {
 		osync_change_free(newchange);

@@ -93,6 +93,7 @@ struct OSyncEngine {
 	MSyncFlag *cmb_entries_mapped; //Do we have unmapped entries?
 	MSyncFlag *cmb_synced; //Are all mappings synced?
 	MSyncFlag *cmb_finished; //Are all clients done and disconnected?
+	MSyncFlag *cmb_chkconflict;
 	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
