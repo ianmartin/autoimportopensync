@@ -45,9 +45,6 @@ typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
-typedef struct OSyncPlgAcceptedTypes OSyncPlgAcceptedTypes;
-typedef struct OSyncPlgAcceptedType OSyncPlgAcceptedType;
-typedef struct OSyncPlgAcceptedFormat OSyncPlgAcceptedFormat;
 typedef unsigned int osync_bool;
 
 typedef struct OSyncPluginFunctions {
