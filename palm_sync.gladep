@@ -1,0 +1,11 @@
+<?xml version="1.0" standalone="no"?> <!--*- mode: xml -*-->
+<!DOCTYPE glade-project SYSTEM "http://glade.gnome.org/glade-project-2.0.dtd">
+
+<glade-project>
+  <name>palm_sync</name>
+  <program_name>palm_sync</program_name>
+  <gettext_support>FALSE</gettext_support>
+  <use_widget_names>TRUE</use_widget_names>
+  <output_build_files>FALSE</output_build_files>
+  <backup_source_files>FALSE</backup_source_files>
+</glade-project>
