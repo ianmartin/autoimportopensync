@@ -161,7 +161,8 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 			osync_flag_set(entry->fl_mapped);
 			osync_flag_set(entry->fl_has_info);
 			osync_flag_unset(entry->fl_synced);
-			osync_change_save(entry->change, TRUE, NULL);
+			OSyncError *error = NULL;
+			osync_change_save(entry->change, TRUE, &error);
 		}
 	}
 	
@@ -211,9 +212,11 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		//conflict, solve conflict
 		osync_debug("MAP", 2, "Got conflict for mapping %p", mapping);
 		osync_status_conflict(engine, mapping);
+		osync_flag_set(mapping->fl_chkconflict);
 		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict");
 		return;
 	}
+	osync_flag_set(mapping->fl_chkconflict);
 	
 	if (is_same != prod(g_list_length(engine->maptable->views) - 1)) {
 		osengine_mapping_multiply_master(engine, mapping);
@@ -264,6 +267,7 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		new_mapping = osengine_mapping_new(engine->maptable);
 		new_mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
 		osync_flag_unset(new_mapping->cmb_synced);
+		osync_flag_set(new_mapping->fl_chkconflict);
 		send_mapping_changed(engine, new_mapping);
 		osync_debug("MAP", 3, "Created new mapping for duplication %p with mappingid %lli", new_mapping, new_mapping->id);
 		new_entry= first_diff_entry;
@@ -284,7 +288,8 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		osengine_mapping_add_entry(new_mapping, first_diff_entry);
 		osync_change_set_changetype(first_diff_entry->change, CHANGE_ADDED);
 		osync_flag_set(first_diff_entry->fl_dirty);
-		osync_change_save(first_diff_entry->change, TRUE, NULL);
+		OSyncError *error = NULL;
+		osync_change_save(first_diff_entry->change, TRUE, &error);
 		send_mapping_changed(engine, new_mapping);
 	}
 	
@@ -335,6 +340,7 @@ void osengine_change_map(OSyncEngine *engine, OSyncMappingEntry *entry)
 	OSyncMapping *mapping = NULL;
 	if (!(mapping = _osengine_mapping_find(engine->maptable, entry))) {
 		mapping = osengine_mapping_new(engine->maptable);
+		osync_flag_unset(mapping->fl_chkconflict);
 		mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
 		osync_trace(TRACE_INTERNAL, "No previous mapping found. Creating new one: %p", mapping);
 	}

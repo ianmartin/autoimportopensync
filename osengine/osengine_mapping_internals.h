@@ -21,6 +21,7 @@ struct OSyncMapping {
 	long long int id;
 	OSyncMappingTable *table;
 	MSyncFlag *fl_solved;
+	MSyncFlag *fl_chkconflict;
 	//The combined flags
 	MSyncFlag *cmb_synced;
 	MSyncFlag *cmb_has_data;

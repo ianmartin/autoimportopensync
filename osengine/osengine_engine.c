@@ -167,7 +167,7 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		osync_debug("ENG", 3, "+It has mapping");
 		osync_flag_set(entry->fl_mapped);
 		osync_flag_unset(entry->mapping->fl_solved);
-		
+		osync_flag_unset(entry->mapping->fl_chkconflict);
 	}
 	
 	if (osync_change_has_data(change)) {
@@ -351,7 +351,7 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
  * @param engine The engine
  * 
  */
-void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
+static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p:%s, %p)", sender, message, message->msgname, engine);
 	
@@ -415,7 +415,7 @@ void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyncEngine
 	g_assert_not_reached();
 }
 
-void trigger_clients_sent_changes(OSyncEngine *engine)
+static void trigger_clients_sent_changes(OSyncEngine *engine)
 {
 	osync_status_update_engine(engine, ENG_ENDPHASE_READ, NULL);
 	
@@ -425,6 +425,14 @@ void trigger_clients_sent_changes(OSyncEngine *engine)
 
 	send_engine_changed(engine);
 }
+
+static void trigger_status_end_conflicts(OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_status_update_engine(engine, ENG_END_CONFLICTS, NULL);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 
 static gboolean startupfunc(gpointer data)
 {
@@ -485,6 +493,7 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_sent_changes, FALSE);
 	osync_flag_set_state(engine->cmb_entries_mapped, TRUE);
 	osync_flag_set_state(engine->cmb_synced, TRUE);
+	osync_flag_set_state(engine->cmb_chkconflict, TRUE);
 	osync_flag_set_state(engine->cmb_finished, FALSE);
 	osync_flag_set_state(engine->cmb_connected, FALSE);
 	itm_queue_flush(engine->incoming);
@@ -563,7 +572,12 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	osync_flag_set_pos_trigger(engine->cmb_finished, (MSyncFlagTriggerFunc)osync_engine_reset, engine, NULL);
 	engine->cmb_connected = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	engine->cmb_connected = osync_comb_flag_new(FALSE);
+	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	engine->cmb_chkconflict = osync_comb_flag_new(FALSE);
+	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (MSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
 	osync_flag_set(engine->fl_sync);
+	osync_flag_set(engine->cmb_chkconflict);
 	
 	int i;
 	for (i = 0; i < osync_group_num_members(group); i++) {
@@ -603,6 +617,7 @@ void osync_engine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_sent_changes);
 	osync_flag_free(engine->cmb_entries_mapped);
 	osync_flag_free(engine->cmb_synced);
+	osync_flag_free(engine->cmb_chkconflict);
 	osync_flag_free(engine->cmb_finished);
 	osync_flag_free(engine->cmb_connected);
 	

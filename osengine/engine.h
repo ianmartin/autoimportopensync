@@ -68,7 +68,8 @@ typedef enum {
 	ENG_ENDPHASE_DISCON = 4,
 	ENG_ERROR = 5,
 	ENG_SYNC_SUCCESSFULL = 6,
-	ENG_PREV_UNCLEAN = 7
+	ENG_PREV_UNCLEAN = 7,
+	ENG_END_CONFLICTS = 8
 } engineupdatetype;
 
 typedef struct OSyncEngineUpdate {

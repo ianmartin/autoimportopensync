@@ -26,6 +26,7 @@ int num_mapping_errors;
 int num_engine_errors;
 int num_engine_successfull;
 int num_engine_prev_unclean;
+int num_engine_end_conflicts;
 
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
@@ -40,7 +41,10 @@ void mapping_status(MSyncMappingUpdate *status, void *user_data);
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
 void create_case(Suite *s, const char *name, void (*function)(void));
+
 OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped);
+void mappingtable_close(OSyncMappingTable *maptable);
+
 OSyncHashTable *hashtable_load(OSyncGroup *group, int member, int entries);
 void check_hash(OSyncHashTable *table, const char *cmpuid);
 void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype);

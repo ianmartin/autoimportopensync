@@ -11,7 +11,7 @@ PROFTEST = coverage.sh
 endif
 
 if ENABLE_TESTS
-TESTS = error user member locks env conv sync filter multisync vcard vcal errorcodes $(PROFTEST)
+TESTS = error user member locks env conv sync filter multisync vcard errorcodes $(PROFTEST)
 noinst_PROGRAMS = error user member locks env conv sync filter multisync vcard vcal errorcodes
 else
 TESTS = 

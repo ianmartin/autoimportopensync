@@ -197,12 +197,15 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 	osengine_mappingtable_add_mapping(table, mapping);
 	if (table->engine) {
 		mapping->fl_solved = osync_flag_new(NULL);
+		mapping->fl_chkconflict = osync_flag_new(NULL);
 		mapping->cmb_has_data = osync_comb_flag_new(FALSE);
 		osync_flag_set_pos_trigger(mapping->cmb_has_data, (MSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
 		mapping->cmb_has_info = osync_comb_flag_new(FALSE);
 		mapping->cmb_synced = osync_comb_flag_new(FALSE);
 		mapping->cmb_deleted = osync_comb_flag_new(FALSE);
+		osync_flag_set(mapping->fl_chkconflict);
 		osync_flag_attach(mapping->cmb_synced, table->engine->cmb_synced);
+		osync_flag_attach(mapping->fl_chkconflict, table->engine->cmb_chkconflict);
 		osync_flag_set(mapping->cmb_synced);
 	}
 	osync_trace(TRACE_INTERNAL, "osengine_mapping_new(%p): %p", table, mapping);
@@ -224,6 +227,7 @@ void osengine_mapping_free(OSyncMapping *mapping)
 	osync_flag_free(mapping->cmb_has_data);
 	osync_flag_free(mapping->cmb_has_info);
 	osync_flag_free(mapping->cmb_synced);
+	osync_flag_free(mapping->fl_chkconflict);
 	osync_flag_free(mapping->cmb_deleted);
 	g_free(mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_free");
@@ -434,92 +438,3 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry)
 	
 	osync_change_reset(entry->change);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*void osengine_mappingtable_remove_mapping(OSyncMappingTable *table, OSyncMapping *mapping)
-{
-	g_assert(table);
-	
-}
-
-void osengine_mapping_remove_entry(OSyncMapping *mapping, OSyncChange *entry)
-{
-	g_assert(mapping);
-	g_assert(entry);
-	mapping->entries = g_list_remove(mapping->entries, entry);
-	entry->mapping = NULL;
-}
-
-//FIXME Do we need this function, or is there a more elegant way?
-
-
-
-
-void osengine_mappingtable_set_slow_sync(OSyncMappingTable *table, const char *objtype)
-{
-	osengine_db_reset_mappingtable(table, objtype);
-}
-
-//FIXME Remove this and replace with "views"
-OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
-{
-	int i;
-	for (i = 0; i < g_list_length(member->entries); i++) {
-		OSyncChange *entry = g_list_nth_data(member->entries, i);
-		if (!strcmp(osync_change_get_uid(entry), uid)) {
-			return entry;
-		}
-	}
-	return NULL;
-}
-
-
-
-
-
-//FIXME Remove this and replace with "views"
-int osync_member_num_changeentries(OSyncMember *member)
-{
-	return g_list_length(member->entries);
-}
-
-//FIXME Remove this and replace with "views"
-OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n)
-{
-	return g_list_nth_data(member->entries, n);
-}*/
-
-

@@ -52,7 +52,8 @@ void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, v
 {
 	num_conflicts++;
 	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
-
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
 	OSyncChange *change = osengine_mapping_nth_change(mapping, 0);
 	osengine_mapping_solve(engine, mapping, change);
 }
@@ -61,7 +62,8 @@ void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping
 {
 	num_conflicts++;
 	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
-
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
 	int i;
 	for (i = 0; i < osengine_mapping_num_changes(mapping); i++) {
 		OSyncChange *change = osengine_mapping_nth_change(mapping, i);
@@ -76,6 +78,7 @@ void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping,
 {
 	num_conflicts++;
 	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
 
 	int i;
 	for (i = 0; i < osengine_mapping_num_changes(mapping); i++) {
@@ -92,6 +95,7 @@ void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, vo
 {
 	num_conflicts++;
 	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
 	osengine_mapping_duplicate(engine, mapping);
 }
@@ -100,6 +104,7 @@ void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *u
 {
 	num_conflicts++;
 	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
 
 	int num = osengine_mapping_num_changes(mapping);
 	int choosen = g_random_int_range(0, num);
@@ -195,6 +200,10 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			osync_debug("TEST", 4, "Previous sync was unclean");
 			num_engine_prev_unclean++;
 			break;
+		case ENG_END_CONFLICTS:
+			osync_debug("TEST", 4, "End conflicts");
+			num_engine_end_conflicts++;
+			break;
 		default:
 			printf("ERROR: Unknown status type: %d\n", status->type);
 	}
@@ -240,6 +249,7 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	num_member_sync_done_errors = 0;
 	num_member_disconnect_errors = 0;
 	num_engine_prev_unclean = 0;
+	num_engine_end_conflicts = 0;
 	mark_point();
 	return osync_engine_sync_and_block(engine, error);
 }
@@ -255,11 +265,21 @@ void create_case(Suite *s, const char *name, void (*function)(void))
 OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped)
 {
 	mark_point();
-	OSyncMappingTable *maptable = _osengine_mappingtable_load_group(group);
+	printf("load\n");
+	OSyncEnv *osync = init_env();
+	OSyncGroup *newgroup = osync_group_load(osync, "configs/group", NULL);
+	OSyncMappingTable *maptable = _osengine_mappingtable_load_group(newgroup);
 	mark_point();
 	fail_unless(g_list_length(maptable->mappings) == num_mappings, NULL);
 	fail_unless(g_list_length(maptable->unmapped) == num_unmapped, NULL);
 	return maptable;
+}
+
+void mappingtable_close(OSyncMappingTable *maptable)
+{
+	printf("Start close\n");
+	osengine_mappingtable_close(maptable);
+	printf("close\n");
 }
 
 void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype)
@@ -282,7 +302,7 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 		}
 	}
 	fail_unless(mapping != NULL, NULL);
-	fail_unless(osengine_mapping_num_changes(mapping) == numentries, NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == numentries, "osengine_mapping_num_changes(mapping) == numentries for %s, %i: %i != %i", uid, memberid, osengine_mapping_num_changes(mapping), numentries);
 	mark_point();
 	
 	

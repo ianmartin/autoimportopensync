@@ -106,6 +106,8 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 
 void osync_member_free(OSyncMember *member)
 {
+	osync_assert(member, "You must set a member to free");
+	
 	if (member->group)
 		osync_group_remove_member(member->group, member);
 	
