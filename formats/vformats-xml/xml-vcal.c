@@ -347,7 +347,6 @@ static xmlNode *handle_completed_attribute(xmlNode *root, VFormatAttribute *attr
 
 static xmlNode *handle_organizer_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Organizer", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
@@ -355,7 +354,6 @@ static xmlNode *handle_organizer_attribute(xmlNode *root, VFormatAttribute *attr
 
 static xmlNode *handle_recurid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"RecurrenceID", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
@@ -363,7 +361,6 @@ static xmlNode *handle_recurid_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_status_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Status", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
@@ -371,7 +368,6 @@ static xmlNode *handle_status_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_duration_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Duration", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;

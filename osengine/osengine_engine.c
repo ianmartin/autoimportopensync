@@ -338,6 +338,9 @@ void send_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
 	itm_queue_send_with_timeout(entry->client->incoming, message, timeouts.commit_timeout, sender);
+	
+	g_assert(osync_flag_is_attached(entry->fl_committed) == TRUE);
+	osync_flag_detach(entry->fl_committed);
 }
 
 void send_sync_done(OSyncClient *target, OSyncEngine *sender)
@@ -518,7 +521,7 @@ static void trigger_clients_connected(OSyncEngine *engine)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void trigger_engine_multiplied(OSyncEngine *engine)
+static void trigger_engine_committed_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	
@@ -586,7 +589,7 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_finished, FALSE);
 	osync_flag_set_state(engine->cmb_connected, FALSE);
 	osync_flag_set_state(engine->cmb_read_all, TRUE);
-	osync_flag_set_state(engine->cmb_multiplied, FALSE);
+	osync_flag_set_state(engine->cmb_committed_all, TRUE);
 	itm_queue_flush(engine->incoming);
 	
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
@@ -674,8 +677,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_chkconflict = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (OSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
 	
-	engine->cmb_multiplied = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_multiplied, (OSyncFlagTriggerFunc)trigger_engine_multiplied, engine, NULL);
+	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
+	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)trigger_engine_committed_all, engine, NULL);
 	
 	osync_flag_set(engine->fl_sync);
 	
@@ -721,7 +724,7 @@ void osengine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_finished);
 	osync_flag_free(engine->cmb_connected);
 	osync_flag_free(engine->cmb_read_all);
-	osync_flag_free(engine->cmb_multiplied);
+	osync_flag_free(engine->cmb_committed_all);
 	
 	itm_queue_flush(engine->incoming);
 	itm_queue_free(engine->incoming);

@@ -126,7 +126,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 
 /*! @brief Used for debugging
  * 
- * Used for debugging. Severity ranges from 0=Error to 5=Full Debug
+ * Used for debugging. Severity ranges from 0=Error to 4=Full Debug
  * 
  * @param subpart String to identify the subpart (and filter on it)
  * @param level The severity of the message

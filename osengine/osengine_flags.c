@@ -62,6 +62,13 @@ void osync_flag_attach(OSyncFlag *flag, OSyncFlag *target)
 	osync_flag_calculate_comb(target);
 }
 
+osync_bool osync_flag_is_attached(OSyncFlag *flag)
+{
+	if (flag->comb_flag)
+		return TRUE;
+	return FALSE;
+}
+
 void osync_flag_detach(OSyncFlag *flag)
 {
 	OSyncFlag *target = flag->comb_flag;

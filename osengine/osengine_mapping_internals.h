@@ -45,6 +45,7 @@ struct OSyncMappingEntry {
 	OSyncFlag *fl_synced;
 	OSyncFlag *fl_deleted;
 	OSyncFlag *fl_read;
+	OSyncFlag *fl_committed;
 };
 #endif
 

@@ -119,7 +119,9 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 	g_assert(master);
 	if (osync_flag_is_not_set(master->fl_dirty))
 		osync_flag_set(master->fl_synced);
-	
+	else
+		osync_flag_attach(master->fl_committed, table->engine->cmb_committed_all);
+		
 	//Send the change to every source that is different to the master source and set state to writing in the changes
 	GList *v;
 	for (v = table->views; v; v = v->next) {
@@ -162,6 +164,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 			osync_flag_unset(entry->fl_synced);
 			OSyncError *error = NULL;
 			osync_change_save(entry->change, TRUE, &error);
+			osync_flag_attach(entry->fl_committed, table->engine->cmb_committed_all);
 		}
 	}
 	

@@ -297,7 +297,7 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
-	//fail_unless(env->committed_all == FALSE, NULL);
+	fail_unless(env->committed_all == FALSE, NULL);
 	
 	char *filename = NULL;
 	OSyncError *error = NULL;
@@ -349,7 +349,7 @@ static osync_bool mock_commit_change(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
-	//fail_unless(env->committed_all == FALSE, NULL);
+	fail_unless(env->committed_all == FALSE, NULL);
 	
 	if (mock_get_error(env->member, "COMMIT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering COMMIT_ERROR error");

@@ -290,7 +290,6 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		
 		osync_flag_attach(mapping->cmb_synced, table->engine->cmb_synced);
 		osync_flag_attach(mapping->fl_chkconflict, table->engine->cmb_chkconflict);
-		osync_flag_attach(mapping->fl_multiplied, table->engine->cmb_multiplied);
 	}
 	osync_trace(TRACE_INTERNAL, "osengine_mapping_new(%p): %p", table, mapping);
 	return mapping;
@@ -491,6 +490,7 @@ OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping)
 	entry->fl_synced = osync_flag_new(NULL);
 	entry->fl_deleted = osync_flag_new(NULL);
 	entry->fl_read = osync_flag_new(NULL);
+	entry->fl_committed = osync_flag_new(NULL);
 	osync_flag_set(entry->fl_synced);
 	
 	if (mapping)
@@ -513,6 +513,7 @@ void osengine_mappingentry_free(OSyncMappingEntry *entry)
 	osync_flag_free(entry->fl_synced);
 	osync_flag_free(entry->fl_deleted);
 	osync_flag_free(entry->fl_read);
+	osync_flag_free(entry->fl_committed);
 	
 	entry->view->changes = g_list_remove(entry->view->changes, entry);
 	entry->view = NULL;

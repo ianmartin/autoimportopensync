@@ -50,3 +50,4 @@ void osync_flag_free(OSyncFlag *flag);
 void osync_flag_set_state(OSyncFlag *flag, osync_bool state);
 void osync_flag_attach(OSyncFlag *flag, OSyncFlag *target);
 void osync_flag_detach(OSyncFlag *flag);
+osync_bool osync_flag_is_attached(OSyncFlag *flag);
