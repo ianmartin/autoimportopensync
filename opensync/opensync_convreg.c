@@ -175,12 +175,13 @@ void osync_env_register_converter(OSyncEnv *env, ConverterType type, const char 
 	env->converter_templates = g_list_append(env->converter_templates, converter);
 }
 
-void osync_env_converter_set_init(OSyncEnv *env, const char *sourcename, const char *targetname, OSyncFormatConverterInitFunc init_func)
+void osync_env_converter_set_init(OSyncEnv *env, const char *sourcename, const char *targetname, OSyncFormatConverterInitFunc init_func, OSyncFormatConverterFinalizeFunc fin_func)
 {
 	OSyncConverterTemplate *converter = osync_env_find_converter_template(env, sourcename, targetname);
 	osync_assert(converter != NULL, "You need to register the converter first");
 	
 	converter->init_func = init_func;
+	converter->fin_func = fin_func;
 }
 
 void osync_env_register_extension(OSyncEnv *env, const char *from_format, const char *to_format, const char *extension_name, OSyncFormatExtInitFunc init_func)

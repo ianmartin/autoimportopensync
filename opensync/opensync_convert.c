@@ -502,7 +502,7 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	
 	for (; path; path = path->next) {
 		OSyncFormatConverter *converter = path->data;
-		
+
 		osync_trace(TRACE_INTERNAL, "initialize converter: %p", converter->init_func);
 		
 		//Initialize the converter
@@ -538,6 +538,9 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 		}
 		
 		//Finalize the converter data
+		if (converter->fin_func)
+			converter->fin_func(converter_data);
+		
 	}
 
 	ret = TRUE;

@@ -202,6 +202,7 @@ Suite *vcard_suite(void)
 {
 	Suite *s = suite_create("Vcard");
 	//Suite *s2 = suite_create("Vcard");
+	
 	create_case(s, "conv_vcard_evolution2_full1", conv_vcard_evolution2_full1);
 	create_case(s, "conv_vcard_evolution2_full2", conv_vcard_evolution2_full2);
 	create_case(s, "conv_vcard_evolution2_photo", conv_vcard_evolution2_photo);

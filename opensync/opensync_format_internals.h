@@ -35,6 +35,7 @@ struct OSyncFormatConverter {
 	OSyncFormatConvertFunc convert_func;
 	OSyncFormatDetectDataFunc detect_func;
 	OSyncFormatConverterInitFunc init_func;
+	OSyncFormatConverterFinalizeFunc fin_func;
 	ConverterType type;
 	//void *conv_data;
 };
@@ -97,6 +98,7 @@ typedef struct OSyncConverterTemplate {
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
 	OSyncFormatConverterInitFunc init_func;
+	OSyncFormatConverterFinalizeFunc fin_func;
 } OSyncConverterTemplate;
 
 typedef struct OSyncFormatExtensionTemplate {

@@ -926,6 +926,11 @@ static void *init_vcard_to_xml(void)
 	return (void *)table;
 }
 
+static void fin_vcard_to_xml(void *data)
+{
+	g_hash_table_destroy((GHashTable *)data);
+}
+
 static void *init_xml_to_vcard(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -971,6 +976,14 @@ static void *init_xml_to_vcard(void)
 	return (void *)hooks;
 }
 
+static void fin_xml_to_vcard(void *data)
+{
+	OSyncHookTables *hooks = (OSyncHookTables *)hooks;
+	g_hash_table_destroy(hooks->attributes);
+	g_hash_table_destroy(hooks->parameters);
+	g_free(hooks);
+}
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
@@ -981,12 +994,12 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_copy_func(env, "xml-contact", osxml_copy);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
-	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml);
+	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard21", conv_xml_to_vcard21);
-	osync_env_converter_set_init(env, "xml-contact", "vcard21", init_xml_to_vcard);
+	osync_env_converter_set_init(env, "xml-contact", "vcard21", init_xml_to_vcard, fin_xml_to_vcard);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard30", "xml-contact", conv_vcard_to_xml);
-	osync_env_converter_set_init(env, "vcard30", "xml-contact", init_vcard_to_xml);
+	osync_env_converter_set_init(env, "vcard30", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard30", conv_xml_to_vcard30);
-	osync_env_converter_set_init(env, "xml-contact", "vcard30", init_xml_to_vcard);
+	osync_env_converter_set_init(env, "xml-contact", "vcard30", init_xml_to_vcard, fin_xml_to_vcard);
 }
