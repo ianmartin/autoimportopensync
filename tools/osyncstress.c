@@ -432,6 +432,7 @@ int main (int argc, char *argv[])
 		
 		printf("Finalizing engine\n");
 		osync_engine_finalize(engine);
+		osync_engine_free(engine);
 	}
 	
 	return 0;

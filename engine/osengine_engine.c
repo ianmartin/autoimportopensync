@@ -403,7 +403,6 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->maptable = osync_mappingtable_new(group);
 	osync_mappingtable_set_dbpath(engine->maptable, osync_group_get_configdir(group));
 
-	osync_mappingtable_load(engine->maptable);
 	engine->group = group;
 	engine->incoming = itm_queue_new();
 	
@@ -569,6 +568,8 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		itm_queue_setup_with_gmainloop(engine->incoming, NULL);
 	itm_queue_set_message_handler(engine->incoming, (ITMessageHandler)engine_message_handler, engine);
 	
+	osync_mappingtable_load(engine->maptable);
+	
 	osync_flag_set(engine->cmb_entries_mapped);
 	osync_flag_set(engine->cmb_synced);
 	engine->allow_sync_alert = FALSE;
@@ -604,8 +605,8 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 
 /*! @brief This will finalize a engine
  * 
- * Finalizing a engine will stop all threads and listening server and free the engine.
- * The engine can not be initialized again.
+ * Finalizing a engine will stop all threads and listening server.
+ * The engine can be initialized again.
  * 
  * @param engine A pointer to the engine, which will be finalized
  * @param error A pointer to a error struct
@@ -614,6 +615,8 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
  */
 void osync_engine_finalize(OSyncEngine *engine)
 {
+	//FIXME check if engine is running
+	
 	g_assert(engine);
 	_osync_debug(engine, "ENG", 3, "finalizing engine %p", engine);
 	g_main_loop_quit(engine->syncloop);
@@ -623,7 +626,6 @@ void osync_engine_finalize(OSyncEngine *engine)
 		osync_client_finalize(client);
 	}
 	osync_mappingtable_close(engine->maptable);
-	osync_engine_free(engine);
 }
 
 /*! @brief Starts to synchronize the given OSyncEngine

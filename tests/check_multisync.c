@@ -21,7 +21,8 @@ START_TEST (multisync_easy_new)
 	
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
-
+	osync_engine_free(engine);
+	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
@@ -82,7 +83,8 @@ START_TEST (multisync_easy_mod)
 	
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
-
+	osync_engine_free(engine);
+	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
@@ -144,7 +146,8 @@ START_TEST (multisync_dual_mod)
 	
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
-
+	osync_engine_free(engine);
+	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	

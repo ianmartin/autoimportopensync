@@ -52,6 +52,7 @@ START_TEST (sync_setup_connect)
 	osync_engine_init(engine, NULL);
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
+	osync_engine_free(engine);
 	  
 	fail_unless(num_connected == 2, NULL);
 	fail_unless(num_disconnected == 2, NULL);
@@ -98,6 +99,7 @@ START_TEST (sync_easy_new)
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
+	osync_engine_free(engine);
 	
 	char *uid;
     char *hash;
@@ -179,6 +181,7 @@ START_TEST (sync_easy_new_del)
 	
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
+	osync_engine_free(engine);
 	mark_point();
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	mark_point();
@@ -228,6 +231,7 @@ START_TEST (sync_easy_conflict)
 	osync_engine_init(engine, &error);
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
+	osync_engine_free(engine);
 	system("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -353,6 +357,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	
 	synchronize_once(engine);
 	osync_engine_finalize(engine);
+	osync_engine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
