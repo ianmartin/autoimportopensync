@@ -124,7 +124,7 @@ typedef struct OSyncMemberFunctions {
  *************************************************************/
 
 char *osync_rand_str(int maxlength);
-void osync_debug(char *subpart, int level, const char *message, ...);
+void osync_debug(const char *subpart, int level, const char *message, ...);
 void osync_print_binary(unsigned char *data, int len);
 
 /**************************************************************

@@ -1,7 +1,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-void osync_debug(char *subpart, int level, const char *message, ...)
+void osync_debug(const char *subpart, int level, const char *message, ...)
 {
 		va_list arglist;
 		char *buffer;
