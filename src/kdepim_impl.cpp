@@ -102,15 +102,17 @@ class KdePluginImplementation: public KdePluginImplementationBase
             hashtable = osync_hashtable_new();
             osync_hashtable_load(hashtable, member);
 
-            /*FIXME: check if synchronizing Calendar data is desired */
-            kcal = new KCalDataSource(member, hashtable);
-
+            /*TODO: check if synchronizing Calendar data is desired */
+            //kcal = new KCalDataSource(member, hashtable);
+            kcal = NULL; // disable kcal change reporting, by now
         }
         
         virtual ~KdePluginImplementation()
         {
-            delete kcal;
-            kcal = NULL;
+            if (kcal) {
+                delete kcal;
+                kcal = NULL;
+            }
             if (applicationptr) {
                 delete applicationptr;
                 applicationptr = NULL;
@@ -148,7 +150,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
             }
             osync_debug("kde", 3, "KDE addressbook locked OK.");
 
-            if (!kcal->connect(ctx))
+            if (kcal && !kcal->connect(ctx))
                 return;
             osync_context_report_success(ctx);
         }
@@ -159,7 +161,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
             addressbookptr->save(addressbookticket);
             addressbookticket = NULL;
 
-            if (!kcal->disconnect(ctx))
+            if (kcal && !kcal->disconnect(ctx))
                 return;
             osync_context_report_success(ctx);
         }
