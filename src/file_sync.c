@@ -344,7 +344,7 @@ static void fs_sync_done(OSyncContext *ctx)
 		return;
 #endif
 	
-	osync_hashtable_forget(fsinfo->hashtable);
+	//osync_hashtable_forget(fsinfo->hashtable);
 	osync_anchor_update(fsinfo->member, "path", fsinfo->path);
 	osync_context_report_success(ctx);
 	osync_debug("FILE-SYNC", 3, "end: %s", __func__);
