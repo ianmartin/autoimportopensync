@@ -1,0 +1,46 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT(configure.in)
+AM_INIT_AUTOMAKE(evo2-sync, 0.01)
+AM_CONFIG_HEADER(config.h)
+
+pkg_modules="glib-2.0 evolution-data-server-1.0 libebook-1.0 libecal-1.0 libedata-book-1.0 libedata-cal-1.0 libedataserver-1.0"
+
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+AC_ISC_POSIX
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_HEADER_STDC
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+
+OPENSYNC_CONFIGDIR=${datadir}/opensync
+AC_SUBST(OPENSYNC_CONFIGDIR)
+
+OPENSYNC_PLUGINDIR=${libdir}/opensync
+AC_SUBST(OPENSYNC_PLUGINDIR)
+
+OPENSYNC_FORMATSDIR=${libdir}/opensync/formats
+AC_SUBST(OPENSYNC_FORMATSDIR)
+
+AC_ARG_ENABLE(stress-test,               [  --enable-stress-test     enable support for stress testing],STRESS_TEST=1,STRESS_TEST=0)
+if test "x${STRESS_TEST}" = "x1"; then
+	AC_DEFINE(STRESS_TEST,1,[Stress Testing])
+fi
+
+AC_OUTPUT([
+Makefile
+src/Makefile
+])
+
+echo "================"
+if test "x${STRESS_TEST}" = "x1"; then
+	echo "Stress Tests are enabled."
+else
+	echo "Stress Tests are disabled."
+fi
+echo "================"

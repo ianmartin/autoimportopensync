@@ -1,0 +1,83 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT(configure.in)
+AM_INIT_AUTOMAKE(multisyncd, 0.1)
+dnl AM_MAINTAINER_MODE
+AM_CONFIG_HEADER(config.h)
+
+AC_ISC_POSIX
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_HEADER_STDC
+AC_DISABLE_STATIC
+dnl AC_DISABLE_SHARED
+AC_PROG_LIBTOOL
+
+XMLCFLAGS=`xml2-config --cflags`
+XMLLDFLAGS=`xml2-config --libs`
+AC_SUBST(XMLCFLAGS)
+AC_SUBST(XMLLDFLAGS)
+
+AM_PATH_PYTHON(2.2)
+
+OPENSYNC_CONFIGDIR=${datadir}/opensync
+AC_SUBST(OPENSYNC_CONFIGDIR)
+
+OPENSYNC_PLUGINDIR=${libdir}/opensync
+AC_SUBST(OPENSYNC_PLUGINDIR)
+
+OPENSYNC_FORMATSDIR=${libdir}/opensync/formats
+AC_SUBST(OPENSYNC_FORMATSDIR)
+
+AC_CHECK_HEADER(check.h,HAVE_CHECK=1,HAVE_CHECK=0)
+AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
+if test "x${HAVE_CHECK}" = "x1"; then
+	AM_PATH_CHECK()
+	testdir="tests"
+else
+	testdir=""
+fi
+AC_SUBST(testdir)
+
+AX_PATH_BDB([4.2],[LDFLAGS="$LDFLAGS $BDB_LDFLAGS"
+LIBS="$LIBS $BDB_LIBS"
+CPPFLAGS="$CPPFLAGS $BDB_CPPFLAGS"],AC_MSG_ERROR(You must have libdb of version 4.1 or higher installed))
+
+AC_CACHE_CHECK([for $am_display_PYTHON version], [am_cv_python_version],
+	[am_cv_python_version=`$PYTHON -c "import sys; print sys.version[[:3]]"`])
+AC_SUBST([PYTHON_VERSION], [$am_cv_python_version])
+
+AC_CHECK_PROGS(PYREX, pyrexc)
+
+py_prefix=`$PYTHON -c "import sys; print sys.prefix"`
+py_exec_prefix=`$PYTHON -c "import sys; print sys.exec_prefix"`
+PYTHON_INCLUDES="-I${py_prefix}/include/python${PYTHON_VERSION}"
+if test "$py_prefix" != "$py_exec_prefix"; then
+  PYTHON_INCLUDES="$PYTHON_INCLUDES -I${py_exec_prefix}/include/python${PYTHON_VERSION}"
+fi
+AC_SUBST(PYTHON_INCLUDES)
+
+pkg_modules="glib-2.0 gmodule-2.0"
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+AC_OUTPUT([
+Makefile
+src/Makefile
+tests/Makefile
+formats/Makefile
+])
+
+echo "================"
+if test "x${HAVE_CHECK}" = "x1"; then
+	echo "TESTS are enabled."
+else
+	echo "TESTS are disabled."
+fi
+echo
+echo "Now build opensync and install it"
+echo "Afterwards go into the plugins directory"
+echo "and build the plugins you need."
+echo "================"
