@@ -1,7 +1,6 @@
 #include "engine.h"
 #include "engine_internals.h"
 
-
 /**
  * @defgroup OSyncEnginePrivate OSyncEngine Internals
  * @ingroup MSyncInternals
@@ -148,7 +147,6 @@ void osync_client_decider(OSyncEngine *engine, MSyncClient *client)
 		return;
 	}
 	
-	//FIXME
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->fl_stop) && osync_flag_is_set(client->fl_connected)) {
 		_osync_debug(engine, "ENG", 2, "Telling client %p to disconnect", client);
 		send_disconnect(client, engine);

@@ -118,13 +118,7 @@ OSyncGroup *osync_get_nth_group(OSyncEnv *os_env, int nth)
 	return group;
 }
 
-void osync_remove_nth_group(OSyncEnv *os_env, int nth)
-{
-	OSyncGroup *group = (OSyncGroup *)g_list_nth_data(os_env->groups, nth);
-	osync_remove_group(os_env, group);
-}
-
-void osync_remove_group(OSyncEnv *os_env, OSyncGroup *group)
+void osync_env_remove_group(OSyncEnv *os_env, OSyncGroup *group)
 {
 	os_env->groups = g_list_remove(os_env->groups, group);
 }

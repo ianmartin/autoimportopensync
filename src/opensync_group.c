@@ -21,20 +21,22 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 
 void osync_group_free(OSyncGroup *group)
 {
-	//osync_db_tear_down(group->dbenv);
 	g_assert(group);
+	
+	
+	
 	g_free(group->name);
 	g_free(group->configdir);
 	g_free(group);
 }	
 
-void osync_group_set_name(OSyncGroup *group, char *name)
+void osync_group_set_name(OSyncGroup *group, const char *name)
 {
 	osync_debug("OSGRP", 3, "Setting name of group %s to %s", group->name, name);
 	group->name = g_strdup(name);
 }
 
-char *osync_group_get_name(OSyncGroup *group)
+const char *osync_group_get_name(OSyncGroup *group)
 {
 	return group->name;
 }
@@ -71,6 +73,16 @@ void osync_group_save(OSyncGroup *group)
 		OSyncMember *member = osync_group_get_nth_member(group, i);
 		osync_member_save(member);
 	}
+}
+
+void osync_group_delete(OSyncGroup *group)
+{
+	g_assert(group);
+	char *delcmd = g_strdup_printf("rm -rf %s", group->configdir);
+	system(delcmd); // FIXME?
+	g_free(delcmd);
+	osync_env_remove_group(group->env, group);
+	osync_group_free(group);
 }
 
 OSyncGroup *osync_group_load(OSyncEnv *env, char *path)

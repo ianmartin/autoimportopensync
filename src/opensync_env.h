@@ -6,8 +6,8 @@ void osync_env_finalize(OSyncEnv *os_env);
 
 int osync_env_num_plugins (OSyncEnv *osstruct);
 OSyncPlugin *osync_env_get_nth_plugin(OSyncEnv *osstruct, int nth);
-void osync_remove_nth_group(OSyncEnv *osstruct, int nth);
-void osync_remove_group(OSyncEnv *osstruct, OSyncGroup *group);
+
+void osync_env_remove_group(OSyncEnv *osstruct, OSyncGroup *group);
 char *osync_env_get_configdir(OSyncEnv *osinfo);
 void osync_env_set_configdir(OSyncEnv *osinfo, char *path);
 int osync_num_groups (OSyncEnv *osinfo);
