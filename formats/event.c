@@ -51,15 +51,35 @@ static osync_bool detect_plain_as_vevent20(OSyncFormatEnv *env, const char *data
 	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VEVENT*", data);
 }
 
+static void create_event10(OSyncChange *change)
+{
+	char *vevent = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:1.0\r\nBEGIN:VEVENT\r\nDTSTART:20050307T124500Z\r\nDTEND:20050307T130000Z\r\nSEQUENCE:0\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR", osync_rand_str(20));
+	
+	osync_change_set_data(change, vevent, strlen(vevent) + 1, TRUE);
+	if (!osync_change_get_uid(change))
+		osync_change_set_uid(change, osync_rand_str(8));
+}
+
+static void create_event20(OSyncChange *change)
+{
+	char *vevent = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART:20050307T124500Z\r\nDTEND:20050307T130000Z\r\nSEQUENCE:0\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR", osync_rand_str(20));
+	
+	osync_change_set_data(change, vevent, strlen(vevent) + 1, TRUE);
+	if (!osync_change_get_uid(change))
+		osync_change_set_uid(change, osync_rand_str(8));
+}
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "event");
 	
 	osync_env_register_objformat(env, "event", "vevent10");
 	osync_env_format_set_compare_func(env, "vevent10", compare_vevent);
+	osync_env_format_set_create_func(env, "vevent10", create_event10);
 	osync_env_register_detector(env, "plain", "vevent10", detect_plain_as_vevent10);
 	
 	osync_env_register_objformat(env, "event", "vevent20");
 	osync_env_format_set_compare_func(env, "vevent20", compare_vevent);
+	osync_env_format_set_create_func(env, "vevent20", create_event20);
 	osync_env_register_detector(env, "plain", "vevent20", detect_plain_as_vevent20);
 }

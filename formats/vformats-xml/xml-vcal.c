@@ -1139,12 +1139,16 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	
 	OSyncXMLScore score[] =
 	{
-	{100, "/vcal/event/StartTime"},
-	{100, "/vcal/event/EndTime"},
-	{100, "/vcal/event/Summary"},
-	{0, "/vcal/event/Uid"},
-	{0, "/vcal/event/Revision"},
+	{100, "/vcal/Event/StartTime"},
+	{100, "/vcal/Event/EndTime"},
+	{100, "/vcal/Event/Summary"},
+	{0, "/vcal/Event/Uid"},
+	{0, "/vcal/Event/Revision"},
 	{0, "/vcal/Method"},
+	{0, "/vcal/Event/DateCalendarCreated"},
+	{0, "/vcal/Event/DateCreated"},
+	{0, "/vcal/Event/LastModified"},
+	{0, "/vcal/Event/Sequence"},
 	{0, NULL}
 	};
 	
