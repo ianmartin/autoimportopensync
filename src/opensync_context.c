@@ -59,7 +59,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	OSyncMember *member = context->member;
 	g_assert(member);
 	
-	OSyncConvEnv *env = osync_member_get_conv_env(member);
+	OSyncFormatEnv *env = osync_member_get_format_env(member);
 	
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;

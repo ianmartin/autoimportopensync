@@ -10,6 +10,8 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 	filename = g_strdup_printf("%s/group%i", osync_env_get_configdir(osinfo), g_random_int_range(1, 1000000));
 	group->configdir = filename;
 	group->env = osinfo;
+	group->conv_env = osync_conv_env_new();
+	osync_conv_env_load(group->conv_env);
 	osync_debug("OSGRP", 3, "Generated new group:");
 	osync_debug("OSGRP", 3, "Configdirectory: %s", filename);
 	return group;
@@ -222,9 +224,8 @@ unsigned int osync_group_create_member_id(OSyncGroup *group)
 
 void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync)
 {
-	OSyncEnv *env = osync_group_get_env(group);
-	g_assert(env);
-	OSyncConvEnv *conv_env = env->conv_env;
+	g_assert(group);
+	OSyncConvEnv *conv_env = group->conv_env;
 
 	if (!strcmp(objtypestr, "*")) {
 		/* Apply this to all objtypes */
@@ -238,13 +239,12 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 	}
 }
 
-osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtypestr)
+osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 {
-	OSyncEnv *env = osync_group_get_env(group);
+	g_assert(group);
+	OSyncFormatEnv *env = group->conv_env;
 	g_assert(env);
-	OSyncConvEnv *conv_env = env->conv_env;
-
-	OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
-	g_assert(objtype);
-	return objtype->needs_slow_sync;	
+	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
+	g_assert(osync_objtype);
+	return osync_objtype->needs_slow_sync;
 }

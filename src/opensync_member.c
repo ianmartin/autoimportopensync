@@ -53,21 +53,11 @@ const char *osync_member_get_pluginname(OSyncMember *member)
 	return osync_plugin_get_name(member->plugin);
 }
 
-OSyncConvEnv *osync_member_get_conv_env(OSyncMember *member)
+OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 {
 	g_assert(member);
-	return member->group->env->conv_env;
+	return member->group->conv_env;
 }
-
-/*osync_bool osync_member_set_name(OSyncMember *member, char *name)
-{
-	member->name = g_strdup(name);
-}
-
-char *osync_member_get_name(OSyncMember *member)
-{
-	return member->name;
-}*/
 
 char *osync_member_get_configdir(OSyncMember *member)
 {
@@ -201,7 +191,11 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 {
 	g_assert(member);
 	g_assert(change);
-	OSyncPluginFunctions functions = member->plugin->info.functions;
+	//OSyncObjType *type = osync_change_get_objtype(change);
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	//OSyncObjType *plgtype = osync_conv_find_objtype(member->info.accepted_objtypes, type->name);
+	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
+	OSyncFormatFunctions functions = plgformat->functions;
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
@@ -212,7 +206,7 @@ osync_bool osync_member_make_random_data(OSyncMember *member, OSyncChange *chang
 {
 	int retry = 0;
 	g_assert(member);
-	OSyncConvEnv *env = osync_member_get_conv_env(member);
+	OSyncFormatEnv *env = osync_member_get_format_env(member);
 	
 	for (retry = 0; retry < 100; retry++) {
 		if (retry > 20)
@@ -253,10 +247,12 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member)
 {
 	OSyncContext *context = osync_context_new(member);
 	OSyncChange *change = osync_change_new();
-	OSyncPluginFunctions functions = member->plugin->info.functions;
 	change->changetype = CHANGE_ADDED;
 	if (!osync_member_make_random_data(member, change))
 		return NULL;
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
+	OSyncFormatFunctions functions = plgformat->functions;
 	if (functions.access(context, change) == TRUE)
 		return change;
 	return NULL;
@@ -266,7 +262,6 @@ osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *cha
 {
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_MODIFIED;
-	OSyncPluginFunctions functions = member->plugin->info.functions;
 	
 	char *uid = g_strdup(osync_change_get_uid(change));
 	
@@ -274,7 +269,10 @@ osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *cha
 		return FALSE;
 
 	osync_change_set_uid(change, uid);
-
+	
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
+	OSyncFormatFunctions functions = plgformat->functions;
 	return functions.access(context, change);
 }
 
@@ -282,8 +280,10 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 {
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_DELETED;
-	OSyncPluginFunctions functions = member->plugin->info.functions;
-
+	
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
+	OSyncFormatFunctions functions = plgformat->functions;
 	return functions.access(context, change);
 }
 

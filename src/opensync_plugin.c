@@ -62,62 +62,6 @@ osync_bool osync_plugin_load_info(OSyncPlugin *plugin, char *path)
 	return TRUE;
 }
 
-/*OSyncPluginFunctions *osync_plugin_load_functions(OSyncPlugin *plugin)
-{
-	OSyncPluginFunctions *functions = osync_pluginfunctions_new();
-	
-	if (!g_module_symbol (plugin->real_plugin, "name", (void *)&functions->name)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-	
-	if (!g_module_symbol (plugin->real_plugin, "type", (void *)&functions->type)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-
-	if (!g_module_symbol (plugin->real_plugin, "get_config", (void *)&functions->get_config)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-	
-	if (!g_module_symbol (plugin->real_plugin, "store_config", (void *)&functions->store_config)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-
-	if (!g_module_symbol (plugin->real_plugin, "initialize", (void *)&functions->initialize)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-	
-	if (!g_module_symbol (plugin->real_plugin, "get_changeinfo", (void *)&functions->get_changeinfo)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-
-	if (!g_module_symbol (plugin->real_plugin, "connect", (void *)&functions->connect)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-	
-	if (!g_module_symbol (plugin->real_plugin, "disconnect", (void *)&functions->disconnect)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-	
-	if (!g_module_symbol (plugin->real_plugin, "add_change", (void *)&functions->add_change)) {
-		osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-		return NULL;
-	}
-	
-	if (!g_module_symbol (plugin->real_plugin, "get_entry", (void *)&functions->get_entry)) {
-		//osync_debug("OSPLG", 0, "Unable to locate symbol: %s", g_module_error());
-	}
-	
-	return functions;
-}*/
-
 osync_bool osync_plugin_load_dir(OSyncEnv *os_env, char *path)
 {
 	GDir *dir;

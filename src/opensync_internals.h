@@ -20,7 +20,6 @@ struct OSyncEnv {
 	GList *groups;
 	char *configdir;
 	char *plugindir;
-	OSyncConvEnv *conv_env;
 };
 
 struct OSyncHashTable {
@@ -55,12 +54,13 @@ struct OSyncGroup {
 	OSyncEnv *env;
 	DB_ENV *dbenv;
 	void *data;
+	OSyncFormatEnv *conv_env;
 };
 
 struct OSyncPlugin {
-	    GModule *real_plugin;
-        gchar *path;
-        OSyncPluginInfo info;
+	GModule *real_plugin;
+	gchar *path;
+	OSyncPluginInfo info;
 };
 
 struct OSyncChange {
@@ -99,7 +99,7 @@ struct OSyncMappingTable {
 	GList *unmapped;
 };
 
-struct OSyncConvEnv {
+struct OSyncFormatEnv {
 	GList *objtypes;
 	GList *objformats;
 	GList *converters;
@@ -111,7 +111,7 @@ struct OSyncObjType {
 	char *name;
 	GList *formats;
 	GList *converters;
-	OSyncConvEnv *env;
+	OSyncFormatEnv *env;
 	osync_bool needs_slow_sync;
 };
 
@@ -131,6 +131,7 @@ struct OSyncObjFormat {
 	OSyncFormatDuplicateFunc duplicate_func;
 	OSyncFormatCreateFunc create_func;
 	GList *properties;
+	OSyncFormatFunctions functions;
 };
 
 struct OSyncFormatConverter {

@@ -32,7 +32,7 @@ void osync_member_load(OSyncMember *member);
 void osync_member_save(OSyncMember *member);
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
-OSyncConvEnv *osync_member_get_conv_env(OSyncMember *member);
+OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member);
 void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void *user_data);
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid);
 osync_bool osync_member_uid_is_unique(OSyncMember *member, const char *uid);

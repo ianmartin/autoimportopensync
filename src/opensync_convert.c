@@ -1,14 +1,14 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-OSyncConvEnv *osync_conv_env_new(void)
+OSyncFormatEnv *osync_conv_env_new(void)
 {
-	OSyncConvEnv *env = g_malloc0(sizeof(OSyncConvEnv));
+	OSyncFormatEnv *env = g_malloc0(sizeof(OSyncFormatEnv));
 	env->pluginpath = OPENSYNC_FORMATSDIR;
 	return env;
 }
 
-void osync_conv_env_free(OSyncConvEnv *env)
+void osync_conv_env_free(OSyncFormatEnv *env)
 {
 	g_assert(env);
 	g_free(env);
@@ -26,7 +26,7 @@ const char *osync_objformat_get_name(OSyncObjFormat *format)
 	return format->name;
 }
 
-void osync_conv_open_plugin(OSyncConvEnv *env, char *path)
+void osync_conv_open_plugin(OSyncFormatEnv *env, char *path)
 {
 	/* Check if this platform supports dynamic
 	 * loading of modules */
@@ -43,8 +43,8 @@ void osync_conv_open_plugin(OSyncConvEnv *env, char *path)
 		return;
 	}
 	
-	void (* fct_info)(OSyncConvEnv *env);
-	void (** fct_infop)(OSyncConvEnv *env) = &fct_info;
+	void (* fct_info)(OSyncFormatEnv *env);
+	void (** fct_infop)(OSyncFormatEnv *env) = &fct_info;
 	if (!g_module_symbol(plugin, "get_info", (void **)fct_infop)) {
 		osync_debug("OSPLG", 0, "Unable to open format plugin %s: %s", path, g_module_error());
 		return;
@@ -53,7 +53,7 @@ void osync_conv_open_plugin(OSyncConvEnv *env, char *path)
 	fct_info(env);
 }
 
-void osync_conv_env_load(OSyncConvEnv *env)
+void osync_conv_env_load(OSyncFormatEnv *env)
 {
 	g_assert(env);
 	g_assert(env->pluginpath);
@@ -89,7 +89,7 @@ void osync_conv_env_load(OSyncConvEnv *env)
 	}
 }
 
-OSyncObjType *osync_conv_find_objtype(OSyncConvEnv *env, const char *name)
+OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 {
 	g_assert(env);
 	g_assert(name);
@@ -103,7 +103,7 @@ OSyncObjType *osync_conv_find_objtype(OSyncConvEnv *env, const char *name)
 	return NULL;
 }
 
-OSyncObjType *osync_conv_register_objtype(OSyncConvEnv *env, const char *name)
+OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
 {
 	OSyncObjType *type;
 	if (!(type = osync_conv_find_objtype(env, name))) {
@@ -116,7 +116,7 @@ OSyncObjType *osync_conv_register_objtype(OSyncConvEnv *env, const char *name)
 	return type;
 }
 
-OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncConvEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
+OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncFormatEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
 {
 	GList *element;
 	for (element = env->converters; element; element = element->next) {
@@ -127,7 +127,7 @@ OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncConvEnv *env, OSy
 	return NULL;
 }
 
-OSyncFormatConverter *osync_conv_find_converter(OSyncConvEnv *env, char *sourcename, char *targetname)
+OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, char *sourcename, char *targetname)
 {
 	g_assert(env);
 	g_assert(sourcename);
@@ -166,7 +166,7 @@ OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, Converte
 	return converter;
 }
 
-OSyncObjFormat *osync_conv_find_objformat(OSyncConvEnv *env, const char *name)
+OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 {
 	g_assert(env);
 	g_assert(name);
@@ -217,7 +217,13 @@ void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreate
 	format->create_func = create_func;
 }
 
-void osync_conv_set_common_format(OSyncConvEnv *env, const char *formatname)
+void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions)
+{
+	g_assert(format);
+	format->functions = functions;
+}
+
+void osync_conv_set_common_format(OSyncFormatEnv *env, const char *formatname)
 {
 	
 }
@@ -276,7 +282,7 @@ OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChan
 	}
 }
 
-osync_bool osync_conv_detect_next_format(OSyncConvEnv *env, OSyncChange *change)
+osync_bool osync_conv_detect_next_format(OSyncFormatEnv *env, OSyncChange *change)
 {
 	GList *last = g_list_last(change->objformats);
 	OSyncObjFormat *format = last->data;
@@ -378,7 +384,7 @@ osync_bool osync_conv_find_shortest_path(GList *vertices, OSyncObjFormat *start,
 	return ret;
 }
 
-osync_bool osync_conv_find_change_path(OSyncConvEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, GList **retlist)
+osync_bool osync_conv_find_change_path(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, GList **retlist)
 {
 	OSyncFormatConverter *converter;
 	GList *vertices = g_list_copy(env->converters);
@@ -424,7 +430,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	return ret;
 }
 
-osync_bool osync_conv_desencap_change(OSyncConvEnv *env, OSyncChange *change)
+osync_bool osync_conv_desencap_change(OSyncFormatEnv *env, OSyncChange *change)
 {
 	GList *l = g_list_last(change->objformats);
 	if (!l)
@@ -442,7 +448,7 @@ osync_bool osync_conv_desencap_change(OSyncConvEnv *env, OSyncChange *change)
 	return osync_converter_invoke(converter, change);
 }
 
-osync_bool osync_conv_convert(OSyncConvEnv *env, OSyncChange *change, OSyncObjFormat *targetformat)
+osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat)
 {
 	GList *l = g_list_last(change->objformats);
 	OSyncObjFormat *source = l->data;

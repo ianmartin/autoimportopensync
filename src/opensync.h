@@ -39,7 +39,7 @@ typedef struct OSyncMapping OSyncMapping;
 typedef struct OSyncMappingColumn OSyncMappingColumn;
 typedef struct OSyncContext OSyncContext;
 typedef struct OSyncHashTable OSyncHashTable;
-typedef struct OSyncConvEnv OSyncConvEnv;
+typedef struct OSyncFormatEnv OSyncFormatEnv;
 typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
@@ -50,22 +50,25 @@ typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
 	osync_bool (* store_config) (char *, char *, int);
 	void * (* initialize) (OSyncMember *);
-	void (* get_changeinfo) (OSyncContext *);
 	void (* connect) (OSyncContext *);
+	void (* sync_done) (OSyncContext *ctx);
 	void (* disconnect) (OSyncContext *);
 	void (* finalize) (void *);
+	void (* get_changeinfo) (OSyncContext *);
 	void (* get_data) (OSyncContext *, OSyncChange *);
-	void (* commit_change) (OSyncContext *, OSyncChange *);
-	void (* sync_done) (OSyncContext *ctx);
-	osync_bool (* access) (OSyncContext *, OSyncChange *);
 } OSyncPluginFunctions;
+
+typedef struct OSyncFormatFunctions {
+	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
+	osync_bool (* access) (OSyncContext *, OSyncChange *);
+} OSyncFormatFunctions;
 
 typedef struct OSyncPluginInfo {
 	int version;
 	const char *name;
 	const char *description;
 	osync_bool is_threadsafe;
-	OSyncConvEnv *accepted_objtypes;
+	OSyncFormatEnv *accepted_objtypes;
 	OSyncPluginFunctions functions;
 } OSyncPluginInfo;
 
@@ -86,7 +89,7 @@ typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, 
 
 typedef osync_bool (* OSyncFormatConvertFunc) (const char *input, int inpsize, char **output, int *outpsize);
 
-typedef void (* OSyncFormatDetectFunc) (OSyncConvEnv *env, OSyncChange *change);
+typedef void (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, OSyncChange *change);
 
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
 

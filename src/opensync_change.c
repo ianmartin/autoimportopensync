@@ -100,7 +100,7 @@ void osync_change_set_objformat_string(OSyncChange *change, const char *name)
 {
 	OSyncObjFormat *objformat;
 	g_assert(change);
-	if ((objformat = osync_conv_find_objformat(osync_member_get_conv_env(change->member), name))) {
+	if ((objformat = osync_conv_find_objformat(osync_member_get_format_env(change->member), name))) {
 		osync_change_set_objformat(change, objformat);
 	}//FIXME: handle objformat not found
 }
@@ -309,10 +309,10 @@ void osync_change_unmarshal(OSyncMappingTable *table, OSyncChange *change, const
 	if (table && table->group) {
 		change->member = osync_member_from_id(table->group, id);
 		if (objtype)
-			change->objtype = osync_conv_find_objtype(table->group->env->conv_env, objtype);
+			change->objtype = osync_conv_find_objtype(table->group->conv_env, objtype);
 		//FIXME: handle object type not found
 		if (objformat)
-			osync_change_set_objformat(change, osync_conv_find_objformat(table->group->env->conv_env, objformat));
+			osync_change_set_objformat(change, osync_conv_find_objformat(table->group->conv_env, objformat));
 		//FIXME: handle objformat not found
 	}
 }

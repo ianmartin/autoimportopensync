@@ -8,8 +8,6 @@ OSyncEnv *osync_env_new(void)
 	OSyncUserInfo *user = osync_user_new();
 	os_env->configdir = g_strdup(osync_user_get_confdir(user));
 	os_env->plugindir = g_strdup(OPENSYNC_PLUGINDIR"/plugins");
-	
-	os_env->conv_env = osync_conv_env_new();
 
 	osync_debug("os_env", 3, "Generating new os_env:");
 	osync_debug("os_env", 3, "Configdirectory: %s", os_env->configdir);
@@ -34,8 +32,6 @@ osync_bool osync_init(OSyncEnv *os_env)
 		osync_debug("OSGRP", 3, "%s exists, but is no dir", os_env->plugindir);
 		return FALSE;
 	}
-	
-	osync_conv_env_load(os_env->conv_env);
 	
 	return osync_plugin_load_dir(os_env, os_env->plugindir);
 }
