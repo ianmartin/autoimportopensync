@@ -3,7 +3,7 @@
 
 void osync_db_trace(void *data, const char *query)
 {
-	osync_debug("OSDB", 3, "query executed: %s", query);
+	osync_debug("OSDB", 4, "query executed: %s", query);
 }
 
 OSyncDB *osync_db_open(char *filename)
