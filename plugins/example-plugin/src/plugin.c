@@ -187,9 +187,9 @@ static void disconnect(OSyncContext *ctx)
 
 static void finalize(void *data)
 {
-	plugin_environment *fsinfo = (plugin_environment *)data;
+	plugin_environment *env = (plugin_environment *)data;
 	//Free all stuff that you have allocated here.
-	osync_hashtable_free(fsinfo->hashtable);
+	osync_hashtable_free(env->hashtable);
 }
 
 void get_info(OSyncPluginInfo *info)
