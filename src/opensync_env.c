@@ -519,6 +519,12 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;
+	
+	if (!filename) {
+		osync_debug("OSYNC", 3, "No file open specified");
+		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "No file to open specified");
+		return FALSE;
+	}
 	GIOChannel *chan = g_io_channel_new_file(filename, "r", &error);
 	if (!chan) {
 		osync_debug("OSYNC", 3, "Unable to read file %s: %s", filename, error->message);

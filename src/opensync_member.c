@@ -86,11 +86,33 @@ void osync_member_free(OSyncMember *member)
 	g_free(member);
 }	
 
+void osync_member_unload_plugin(OSyncMember *member)
+{
+	g_assert(member);
+	if (!member->plugin)
+		return;
+		
+	if (!member->plugin->info.is_threadsafe) {
+		osync_plugin_unload(member->plugin);
+		osync_plugin_free(member->plugin);
+	}
+	
+	g_list_free(member->objtype_sinks);
+	g_list_free(member->format_sinks);
+	//Really free the formats!
+	
+	member->objtype_sinks = NULL;
+	member->format_sinks = NULL;
+	member->plugin = NULL;
+}
+
 osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin, OSyncError **error)
 {
 	g_assert(member);
 	g_assert(plugin);
 	osync_debug("OSMEM", 3, "Instancing plugin %s for member %i", plugin->info.name, member->id);
+	osync_member_unload_plugin(member);
+	
 	if (plugin->info.is_threadsafe) {
 		member->plugin = plugin;
 	} else {
@@ -125,6 +147,12 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin
 	return TRUE;
 }
 
+OSyncPlugin *osync_member_get_plugin(OSyncMember *member)
+{
+	g_assert(member);
+	return member->plugin;
+}
+
 const char *osync_member_get_pluginname(OSyncMember *member)
 {
 	g_assert(member);
@@ -144,7 +172,7 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 
 	if (!osync_member_read_config(member, data, size, error)) {
 		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/defaults/%s", osync_plugin_get_name(member->plugin));
-		osync_debug("OSMEM", 3, "Reading default config file for member %i", member->id);
+		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}

@@ -16,7 +16,59 @@ GList *evo2_list_calendars(evo_environment *env, void *data)
 		GSList *s = NULL;
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			source = E_SOURCE (s->data);
-			char *path = g_strdup_printf("%s:%s", e_source_get_uri(source), e_source_peek_name(source));
+			evo2_location *path = g_malloc0(sizeof(evo2_location));
+			path->uri = g_strdup(e_source_get_uri(source));
+			path->name = g_strdup(e_source_peek_name(source));
+			paths = g_list_append(paths, path);
+		}
+	}
+	return paths;
+}
+
+GList *evo2_list_tasks(evo_environment *env, void *data)
+{
+	GList *paths = NULL;
+	ESourceList *sources = NULL;
+	ESource *source = NULL;
+	
+	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_TODO, NULL)) {
+		return NULL;
+	}
+
+	GSList *g = NULL;
+	for (g = e_source_list_peek_groups (sources); g; g = g->next) {
+		ESourceGroup *group = E_SOURCE_GROUP (g->data);
+		GSList *s = NULL;
+		for (s = e_source_group_peek_sources (group); s; s = s->next) {
+			source = E_SOURCE (s->data);
+			evo2_location *path = g_malloc0(sizeof(evo2_location));
+			path->uri = g_strdup(e_source_get_uri(source));
+			path->name = g_strdup(e_source_peek_name(source));
+			paths = g_list_append(paths, path);
+		}
+	}
+	return paths;
+}
+
+GList *evo2_list_addressbooks(evo_environment *env, void *data)
+{
+	GList *paths = NULL;
+	ESourceList *sources = NULL;
+	ESource *source = NULL;
+	
+	if (!e_book_get_addressbooks(&sources, NULL)) {
+            return NULL;
+    }
+
+	GSList *g = NULL;
+	for (g = e_source_list_peek_groups (sources); g; g = g->next) {
+		ESourceGroup *group = E_SOURCE_GROUP (g->data);
+		GSList *s = NULL;
+		for (s = e_source_group_peek_sources (group); s; s = s->next) {
+			source = E_SOURCE (s->data);
+			evo2_location *path = g_malloc0(sizeof(evo2_location));
+			path->uri = g_strdup(e_source_get_uri(source));
+			path->name = g_strdup(e_source_peek_name(source));
 			paths = g_list_append(paths, path);
 		}
 	}

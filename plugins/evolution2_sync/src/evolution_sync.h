@@ -1,6 +1,8 @@
 #ifndef EVO2_SYNC_H
 #define EVO2_SYNC_H
 
+#include "evo2_sync.h"
+
 #include <opensync/opensync.h>
 #include <libecal/e-cal.h>
 #include <libebook/e-book.h>

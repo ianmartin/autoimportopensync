@@ -594,6 +594,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
  */
 void osync_engine_finalize(OSyncEngine *engine)
 {
+	g_assert(engine);
 	_osync_debug(engine, "ENG", 3, "finalizing engine %p", engine);
 	g_main_loop_quit(engine->syncloop);
 	GList *c = NULL;
@@ -617,6 +618,7 @@ void osync_engine_finalize(OSyncEngine *engine)
  */
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
+	g_assert(engine);
 	osync_flag_set(engine->fl_running);
 	return TRUE;
 }

@@ -2,8 +2,8 @@ OSyncMember *osync_member_new(OSyncGroup *group);
 void osync_member_free(OSyncMember *member);
 
 osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin, OSyncError **error);
-osync_bool osync_member_set_name(OSyncMember *member, char *name);
-const char *osync_member_get_name(OSyncMember *member);
+OSyncPlugin *osync_member_get_plugin(OSyncMember *member);
+
 const char *osync_member_get_configdir(OSyncMember *member);
 osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
 void osync_member_set_config(OSyncMember *member, const char *data, int size);
