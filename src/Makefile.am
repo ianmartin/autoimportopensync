@@ -6,9 +6,11 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
 
-dist_config_DATA = file-sync
+EXTRA_DIST = \
+	file-sync \
+	file_sync.h
 
-EXTRA_DIST = file_sync.h
+config_DATA = file-sync
 
 plugin_LTLIBRARIES = file_sync.la
 
