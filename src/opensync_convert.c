@@ -97,7 +97,7 @@ OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 	GList *element = NULL;
 	for (element = env->objtypes; element; element = element->next) {
 		OSyncObjType *type = element->data;
-		if (!strcmp(type->name, name) || osync_conv_objtype_is_any(type->name))
+		if (!strcmp(type->name, name))
 			return type;
 	}
 	return NULL;
