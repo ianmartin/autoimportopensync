@@ -198,22 +198,22 @@ void get_info(OSyncPluginInfo *info)
     info->functions.get_data = kde_get_data;
 
     osync_plugin_accept_objtype(info, "contact");
-    osync_plugin_accept_objformat(info, "contact", "vcard30");
+    osync_plugin_accept_objformat(info, "contact", "vcard30", "kde");
     osync_plugin_set_commit_objformat(info, "contact", "vcard30", kde_vcard_commit_change);
     osync_plugin_set_access_objformat(info, "contact", "vcard30", kde_vcard_access);
 
     osync_plugin_accept_objtype(info, "event");
-    osync_plugin_accept_objformat(info, "event", "vevent");
+    osync_plugin_accept_objformat(info, "event", "vevent", "kde");
     osync_plugin_set_commit_objformat(info, "event", "vevent", kde_event_commit_change);
     osync_plugin_set_access_objformat(info, "event", "vevent", kde_event_access);
 
     osync_plugin_accept_objtype(info, "todo");
-    osync_plugin_accept_objformat(info, "todo", "vtodo");
+    osync_plugin_accept_objformat(info, "todo", "vtodo", "kde");
     osync_plugin_set_commit_objformat(info, "todo", "vtodo", kde_todo_commit_change);
     osync_plugin_set_access_objformat(info, "todo", "vtodo", kde_todo_access);
 
     osync_plugin_accept_objtype(info, "note");
-    osync_plugin_accept_objformat(info, "note", "xml-note");
+    osync_plugin_accept_objformat(info, "note", "xml-note", NULL);
     osync_plugin_set_commit_objformat(info, "note", "xml-note", kde_note_commit_change);
     osync_plugin_set_access_objformat(info, "note", "xml-note", kde_note_access);
 }
