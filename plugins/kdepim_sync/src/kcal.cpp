@@ -24,14 +24,12 @@ SOFTWARE IS DISCLAIMED.
  */
 
 #include <libkcal/calendarresources.h>
-#include <libkcal/vcalformat.h>
+#include <libkcal/icalformat.h>
 #include <libkcal/calendarlocal.h>
 #include <kdeversion.h>
 
 #include "osyncbase.h"
 #include "kcal.h"
-
-char* writeMemVObject(char *s, int *len, VObject *o);
 
 KCalDataSource::KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable)
     : hashtable(hashtable), member(member)
@@ -99,13 +97,13 @@ bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, con
 	cal.addIncidence(e->clone());
 
 	/* Convert the data to vcalendar */
-	KCal::VCalFormat format;
-	/* Ugly workaround to a VCalFormat bug, format.toString()
+	KCal::ICalFormat format;
+	/* Ugly workaround to a ICalFormat bug, format.toString()
 	 * doesn't work, but if save() or load() is called before
 	 * toString(), the segmentation fault will not happen (as
 	 * the mCalendar private field will be set)
-	 */
-	format.save(&cal, "");
+	 *
+	format.save(&cal, "");*/
 	QCString datastr = format.toString(&cal).local8Bit();
 	const char *data = datastr;
 
@@ -152,6 +150,7 @@ bool KCalDataSource::get_changeinfo_todos(OSyncContext *ctx)
     osync_debug("kcal", 3, "Number of to-dos: %d", todos.size());
     
     for (KCal::Todo::List::ConstIterator i = todos.begin(); i != todos.end(); i++) {
+        osync_debug("kcal", 3, "%p: doesFloat: %d", *i, (*i)->doesFloat());
         if (!report_incidence(ctx, *i, "todo", "vtodo"))
             return false;
     }
@@ -173,6 +172,7 @@ void KCalDataSource::get_data(OSyncContext *ctx, OSyncChange *)
 bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
     OSyncChangeType type = osync_change_get_changetype(chg);
+    osync_debug("kcal", 3, "%s", __FUNCTION__);
     switch (type) {
         case CHANGE_DELETED:
             {
@@ -187,20 +187,23 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
         case CHANGE_ADDED:
         case CHANGE_MODIFIED:
         {
-            KCal::VCalFormat format;
+            KCal::ICalFormat format;
 
             /* First, parse to a temporary calendar, because
              * we should set the uid on the events
              */
             KCal::CalendarLocal cal;
             QString data = QString::fromLocal8Bit(osync_change_get_data(chg), osync_change_get_datasize(chg));
-            /* Ugly workaround to a VCalFormat bug, format.toString()
+            /* Ugly workaround to a ICalFormat bug, format.toString()
              * doesn't work, but if save() or load() is called before
              * toString(), the segmentation fault will not happen (as
              * the mCalendar private field will be set)
-             */
-            format.save(&cal, "");
-            format.fromString(&cal, data);
+             *
+            format.save(&cal, ""); */
+            if (!format.fromString(&cal, data)) {
+                osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Couldn't import calendar data");
+                return false;
+            }
 
             /*FIXME: The event/to-do will be overwritten. But I can't differentiate
              * between a field being removed and a missing field because
@@ -221,6 +224,9 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             for (KCal::Incidence::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
                 KCal::Incidence *e = (*i)->clone();
                 e->setUid(osync_change_get_uid(chg));
+
+                osync_debug("kcal", 3, "Writing incidence: uid: %s, summary: %s",
+                                (const char*)e->uid().local8Bit(), (const char*)e->summary().local8Bit());
                 calendar->addIncidence(e);
             }
 

@@ -388,10 +388,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
             return true;
         }
 
-        virtual bool vcal_access(OSyncContext *ctx, OSyncChange *chg)
+        virtual bool event_access(OSyncContext *ctx, OSyncChange *chg)
         {
             if (kcal)
-                return kcal->vcal_access(ctx, chg);
+                return kcal->event_access(ctx, chg);
             else {
                 osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
                 return false;
@@ -399,10 +399,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
             return true;
         }
 
-        virtual bool vcal_commit_change(OSyncContext *ctx, OSyncChange *chg)
+        virtual bool event_commit_change(OSyncContext *ctx, OSyncChange *chg)
         {
             if (kcal)
-                return kcal->vcal_commit_change(ctx, chg);
+                return kcal->event_commit_change(ctx, chg);
             else {
                 osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
                 return false;
