@@ -40,7 +40,7 @@ void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, member
 	}
 }
 
-void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, changeupdatetype type)
+void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, changeupdatetype type, OSyncError **error)
 {
 	OSyncMapping *mapping = osync_change_get_mapping(change);
 	if (engine->changestat_callback) {
@@ -50,11 +50,13 @@ void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, change
 		update.change = change;
 		if (mapping)
 			update.mapping_id = osync_mapping_get_id(mapping);
+		if (error)
+			update.error = *error;
 		engine->changestat_callback(engine, &update, engine->changestat_userdata);
 	}
 }
 
-void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, mappingupdatetype type)
+void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, mappingupdatetype type, OSyncError **error)
 {
 	OSyncChange *master;
 	if (engine->mapstat_callback) {
@@ -63,6 +65,8 @@ void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, map
 		update.mapping_id = osync_mapping_get_id(mapping);
 		if ((master = osync_mapping_get_masterentry(mapping)))
 			update.winner = osync_member_get_id(osync_change_get_member(master));
+		if (error)
+			update.error = *error;
 		engine->mapstat_callback(&update, engine->mapstat_userdata);
 	}
 }

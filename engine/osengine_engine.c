@@ -105,6 +105,15 @@ void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngin
 void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_debug("ENG", 3, "Received a reply %p to SYNC_DONE command from client %p", message, sender);
+	
+	if (itm_message_is_error(message)) {
+		OSyncError *error = itm_message_get_error(message);
+		osync_error_duplicate(&engine->error, &error);
+		osync_debug("ENG", 1, "Sync done command reply was a error: %s", error ? error->message : "None");
+		osync_status_update_member(engine, sender, MEMBER_SYNC_DONE_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to finish the sync for one of the members");
+	}
+	
 	osync_flag_set(sender->fl_done);
 	osync_client_decider(engine, sender);
 }
@@ -117,7 +126,14 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
 void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_debug("ENG", 3, "Received a reply %p to DISCONNECT command from client %p", message, sender);
-	osync_status_update_member(engine, sender, MEMBER_DISCONNECTED, NULL);
+	
+	if (itm_message_is_error(message)) {
+		OSyncError *error = itm_message_get_error(message);
+		osync_debug("ENG", 1, "Sync done command reply was a error: %s", error ? error->message : "None");
+		osync_status_update_member(engine, sender, MEMBER_DISCONNECT_ERROR, &error);
+	} else
+		osync_status_update_member(engine, sender, MEMBER_DISCONNECTED, NULL);
+			
 	osync_flag_unset(sender->fl_connected);
 	osync_flag_set(sender->fl_finished);
 	osync_client_decider(engine, sender);
@@ -146,7 +162,7 @@ void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 	osync_flag_changing(target->fl_done);
 	ITMessage *message = itm_message_new_methodcall(sender, "SYNC_DONE");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_sync_done_reply_receiver, sender);
-	itm_queue_send_with_timeout(target->incoming, message, 60, target);
+	itm_queue_send_with_timeout(target->incoming, message, 5, target);
 }
 
 void send_disconnect(OSyncClient *target, OSyncEngine *sender)
@@ -154,7 +170,7 @@ void send_disconnect(OSyncClient *target, OSyncEngine *sender)
 	osync_flag_changing(target->fl_connected);
 	ITMessage *message = itm_message_new_methodcall(sender, "DISCONNECT");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_disconnect_reply_receiver, sender);
-	itm_queue_send_with_timeout(target->incoming, message, 60, target);
+	itm_queue_send_with_timeout(target->incoming, message, 5, target);
 }
 
 void osync_client_deciders(OSyncEngine *engine)
@@ -258,7 +274,10 @@ void handle_new_change(OSyncEngine *engine, OSyncClient *client, OSyncChange *ch
 		osync_flag_set(flags->fl_deleted);
 	osync_flag_set(flags->fl_has_info);
 	osync_flag_unset(flags->fl_synced);
-	osync_status_update_change(engine, change, CHANGE_RECEIVED);
+	if (osync_change_has_data(change))
+		osync_status_update_change(engine, change, CHANGE_RECEIVED, NULL);
+	else
+		osync_status_update_change(engine, change, CHANGE_RECEIVED_INFO, NULL);
 	osync_change_decider(engine, change);
 }
 

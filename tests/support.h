@@ -12,10 +12,16 @@ int num_written;
 int num_read;
 int num_connected;
 int num_disconnected;
+int num_read_info;
 
 int num_member_connect_errors;
 int num_member_sent_changes;
 int num_member_get_changes_errors;
+int num_member_sync_done_errors;
+int num_member_disconnect_errors;
+
+int num_written_errors;
+int num_mapping_errors;
 
 int num_engine_errors;
 int num_engine_successfull;

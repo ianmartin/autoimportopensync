@@ -182,7 +182,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	if (fs_get_error(fsinfo->member, "GET_CHANGES_TIMEOUT"))
 		return;
 	if (fs_get_error(fsinfo->member, "GET_CHANGES_TIMEOUT2"))
-		sleep(10);
+		sleep(8);
 #endif
 	
 	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
@@ -197,11 +197,6 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 
 			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR))
 				continue;
-
-#ifdef ERROR_TEST
-			if (fs_get_error(fsinfo->member, "CHANGE_ERROR"))
-				continue;
-#endif
 
 			OSyncChange *change = osync_change_new();
 			osync_change_set_member(change, fsinfo->member);

@@ -52,18 +52,24 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
 void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_debug("ENG", 3, "Received a reply %p to GET_DATA command from client %p", message, sender);
-	
 	OSyncChange *change = itm_message_get_data(message, "change");
 	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
+	
 	if (itm_message_is_error(message)) {
-		//FIXME
+		OSyncError *error = itm_message_get_error(message);
+		osync_error_duplicate(&engine->error, &error);
+		osync_debug("MAP", 1, "Commit change command reply was a error: %s", error ? error->message : "None");
+		osync_status_update_change(engine, change, CHANGE_RECV_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to read one or more objects");
+		
+		//FIXME Do we need to do anything here?
+		osync_flag_unset(flags->fl_has_data);
 	} else {
 		osync_flag_set(flags->fl_has_data);
+		osync_status_update_change(engine, change, CHANGE_RECEIVED, NULL);
 	}
 	
 	osync_mappingtable_save_change(engine->maptable, change);
-	
-	osync_status_update_change(engine, change, CHANGE_RECEIVED);
 	osync_change_decider(engine, change);
 }
 
@@ -81,19 +87,32 @@ void send_get_change_data(OSyncEngine *sender, OSyncChange *change)
 
 void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	osync_debug("ENG", 3, "Received a reply %p to ADD_CHANGE command from client %p", message, sender);
+	osync_trace(TRACE_ENTRY, "_commit_change_reply_receiver(%p, %p, %p)", sender, message, engine);
 	OSyncChange *change = itm_message_get_data(message, "change");
 	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
+	
 	if (itm_message_is_error(message)) {
-		printf("Error adding contact\n");
-	} 
-	osync_flag_unset(flags->fl_dirty);
-	osync_flag_set(flags->fl_synced);
+		OSyncError *error = itm_message_get_error(message);
+		osync_error_duplicate(&engine->error, &error);
+		osync_debug("MAP", 1, "Commit change command reply was a error: %s", error ? error->message : "None");
+		osync_status_update_change(engine, change, CHANGE_WRITE_ERROR, &error);
+		osync_status_update_mapping(engine, osync_change_get_mapping(change), MAPPING_WRITE_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to write one or more objects");
+		
+		//FIXME Do we need to do anything here?
+		osync_flag_unset(flags->fl_dirty);
+		osync_flag_set(flags->fl_synced);
+	} else {
+		osync_status_update_change(engine, change, CHANGE_SENT, NULL);
+		osync_flag_unset(flags->fl_dirty);
+		osync_flag_set(flags->fl_synced);
+	}
 	osync_mappingtable_save_change(engine->maptable, change);
 	if (osync_change_get_changetype(change) == CHANGE_DELETED)
 		osync_flag_set(flags->fl_deleted);
-	osync_status_update_change(engine, change, CHANGE_SENT);
+	
 	osync_change_decider(engine, change);
+	osync_trace(TRACE_EXIT, "_get_changes_reply_receiver");
 }
 
 void send_commit_change(OSyncEngine *sender, OSyncChange *change)
@@ -104,7 +123,7 @@ void send_commit_change(OSyncEngine *sender, OSyncChange *change)
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_commit_change_reply_receiver, sender);
 	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
 	osync_flag_changing(flags->fl_dirty);
-	itm_queue_send(target->incoming, message);
+	itm_queue_send_with_timeout(target->incoming, message, 5, sender);
 }
 
 void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)

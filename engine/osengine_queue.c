@@ -96,6 +96,7 @@ gboolean timeoutfunc(gpointer data)
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message->msgname);
 	itm_message_set_error(reply, error);
+	itm_message_move_data(to_info->message, reply);
 	itm_message_send_reply(reply);
 	itm_message_set_answered(to_info->message);
 	return FALSE;

@@ -19,7 +19,9 @@ typedef enum {
 	MEMBER_SENT_CHANGES = 2,
 	MEMBER_DISCONNECTED = 3,
 	MEMBER_CONNECT_ERROR = 4,
-	MEMBER_GET_CHANGES_ERROR = 5
+	MEMBER_GET_CHANGES_ERROR = 5,
+	MEMBER_SYNC_DONE_ERROR = 6,
+	MEMBER_DISCONNECT_ERROR = 7
 } memberupdatetype;
 
 typedef struct MSyncMemberUpdate {
@@ -30,9 +32,10 @@ typedef struct MSyncMemberUpdate {
 
 typedef enum {
 	CHANGE_RECEIVED = 1,
-	CHANGE_SENT = 2,
-	CHANGE_WRITE_ERROR = 3,
-	CHANGE_RECV_ERROR = 4
+	CHANGE_RECEIVED_INFO = 2,
+	CHANGE_SENT = 3,
+	CHANGE_WRITE_ERROR = 4,
+	CHANGE_RECV_ERROR = 5
 } changeupdatetype;
 
 typedef struct MSyncChangeUpdate {
@@ -40,18 +43,21 @@ typedef struct MSyncChangeUpdate {
 	OSyncChange *change;
 	int member_id;
 	int mapping_id;
+	OSyncError *error;
 } MSyncChangeUpdate;
 
 typedef enum {
 	MAPPING_SOLVED = 1,
 	MAPPING_SYNCED = 2,
-	MAPPING_NEW = 4
+	MAPPING_NEW = 3,
+	MAPPING_WRITE_ERROR = 4
 } mappingupdatetype;
 
 typedef struct MSyncMappingUpdate {
 	mappingupdatetype type;
 	int winner;
 	int mapping_id;
+	OSyncError *error;
 } MSyncMappingUpdate;
 
 typedef enum {
