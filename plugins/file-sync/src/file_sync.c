@@ -91,7 +91,7 @@ static void fs_connect(OSyncContext *ctx)
 	osync_hashtable_load(fsinfo->hashtable, fsinfo->member);
 	
 	if (!osync_anchor_compare(fsinfo->member, "*", fsinfo->path))
-		osync_member_request_slow_sync(fsinfo->member, "*");
+		osync_member_set_slow_sync(fsinfo->member, "*", TRUE);
 	
 	if (direrror) {
 		//Unable to open directory
