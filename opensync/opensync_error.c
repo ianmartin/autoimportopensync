@@ -196,6 +196,9 @@ void osync_error_update(OSyncError **error, const char *format, ...)
  */
 void osync_error_duplicate(OSyncError **target, OSyncError **source)
 {
+	if (!target)
+		return;
+	
 	osync_return_if_fail(osync_error_is_set(source));
 	
 	if (!osync_error_is_set(source)) {

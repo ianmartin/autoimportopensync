@@ -348,6 +348,18 @@ static void vcard_handle_attribute(GHashTable *hooks, xmlNode *root, EVCardAttri
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, root, attr, attr ? e_vcard_attribute_get_name(attr) : "None");
 	xmlNode *current = NULL;
 	
+	//Dont add empty stuff
+	GList *v;
+	for (v = e_vcard_attribute_get_values(attr); v; v = v->next) {
+		char *value = v->data;
+		if (strlen(value) != 0)
+			goto has_value;
+	}
+	osync_trace(TRACE_EXIT, "%s: No values", __func__);
+	return;
+	
+has_value:;
+	
 	//We need to find the handler for this attribute
 	xmlNode *(* attr_handler)(xmlNode *, EVCardAttribute *) = g_hash_table_lookup(hooks, e_vcard_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
@@ -856,17 +868,22 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	
 	OSyncXMLScore score[] =
 	{
-	{30, "/contact/FullName"},
-	{50, "/contact/Name"},
-	{20, "/contact/Telephone"},
-	{20, "/contact/Address"},
-	{1, "/contact/UnknownNode"},
+	//{30, "/contact/FullName"},
+	{100, "/contact/Name"},
+	//{20, "/contact/Telephone"},
+	//{20, "/contact/Address"},
+	//{1, "/contact/UnknownNode"},
+	{0, "/contact/*/Slot"},
+	{0, "/contact/*/Type"},
+	{0, "/contact/WantsHtml"},
+	{0, "/contact/Class"},
+	{0, "/contact/FileAs"},
 	{0, "/contact/Uid"},
 	{0, "/contact/Revision"},
 	{0, NULL}
 	};
 	
-	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 10, 50);
+	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 0, 99);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;

@@ -1877,7 +1877,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Error Codes");
-	//Suite *s2 = suite_create("Error Codes");
+	Suite *s2 = suite_create("Error Codes");
 	create_case(s, "single_init_error", single_init_error);
 	create_case(s, "dual_connect_error", dual_connect_error);
 	create_case(s, "one_of_two_connect_error", one_of_two_connect_error);
@@ -1886,7 +1886,7 @@ Suite *multisync_suite(void)
 	create_case(s, "three_of_three_connect_error", three_of_three_connect_error);
 	create_case(s, "one_of_three_connect_error", one_of_three_connect_error);
 	create_case(s, "no_connect_error", no_connect_error);
-	create_case(s, "single_connect_timeout", single_connect_timeout);
+	create_case(s2, "single_connect_timeout", single_connect_timeout);
 	create_case(s, "dual_connect_timeout", dual_connect_timeout);
 	create_case(s, "one_of_three_timeout", one_of_three_timeout);
 	create_case(s, "timeout_and_error", timeout_and_error);
@@ -1919,7 +1919,7 @@ Suite *multisync_suite(void)
 	create_case(s, "disconnect_timeout_and_error", disconnect_timeout_and_error);
 	create_case(s, "get_changes_disconnect_error", get_changes_disconnect_error);
 	
-	return s;
+	return s2;
 }
 
 int main(void)
