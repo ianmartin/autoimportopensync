@@ -171,7 +171,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 		}
 	}
 	
-	osync_flag_set(mapping->fl_solved);
+	osync_flag_set(mapping->fl_multiplied);
 	osync_trace(TRACE_EXIT, "osync_mapping_multiply_master");
 }
 
@@ -211,25 +211,25 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		}
 	}
 	
-	
 	conflict:
 	if (is_conflict) {
 		//conflict, solve conflict
 		osync_debug("MAP", 2, "Got conflict for mapping %p", mapping);
 		osync_status_conflict(engine, mapping);
 		osync_flag_set(mapping->fl_chkconflict);
-		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict");
+		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: Got conflict");
 		return;
 	}
 	osync_flag_set(mapping->fl_chkconflict);
 	
-	if (is_same != prod(g_list_length(engine->maptable->views) - 1)) {
-		osengine_mapping_multiply_master(engine, mapping);
-	} else {
-		osync_flag_set(mapping->fl_solved);
+	//Our mapping is already solved since there is no conflict
+	osync_flag_set(mapping->fl_solved);
+	
+	if (is_same == prod(g_list_length(engine->maptable->views) - 1))
 		osync_flag_set(mapping->cmb_synced);
-	}
-	osync_trace(TRACE_EXIT, "osync_mapping_check_conflict");
+
+	send_mapping_changed(engine, mapping);
+	osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: No conflict");
 }
 
 
@@ -279,6 +279,8 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		new_mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
 		osync_flag_unset(new_mapping->cmb_synced);
 		osync_flag_set(new_mapping->fl_chkconflict);
+		osync_flag_unset(new_mapping->fl_multiplied);
+		osync_flag_set(new_mapping->fl_solved);
 		send_mapping_changed(engine, new_mapping);
 		osync_debug("MAP", 3, "Created new mapping for duplication %p with mappingid %lli", new_mapping, new_mapping->id);
 		
@@ -317,7 +319,6 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		
 		/* Now we can reset the different change and prepare it for
 		 * being overwriten during mulitply_master */
-		osengine_mappingentry_reset(first_diff_entry);
 		osync_change_set_changetype(first_diff_entry->change, CHANGE_UNKNOWN);
 
 		//We can now add the new mapping into the queue so it get processed
@@ -325,7 +326,8 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	}
 
 	//Multiply our original mapping
-	osengine_mapping_multiply_master(engine, dupe_mapping);
+	osync_flag_set(dupe_mapping->fl_solved);
+	send_mapping_changed(engine, dupe_mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_duplicate");
 }
 
@@ -334,6 +336,7 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
 	osync_trace(TRACE_ENTRY, "osengine_mapping_solve(%p, %p, %p)", engine, mapping, change);
 	OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, change, NULL);
 	mapping->master = entry;
+	osync_flag_set(mapping->fl_solved);
 	send_mapping_changed(engine, mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_solve");
 }

@@ -22,6 +22,7 @@ struct OSyncMapping {
 	OSyncMappingTable *table;
 	MSyncFlag *fl_solved;
 	MSyncFlag *fl_chkconflict;
+	MSyncFlag *fl_multiplied;
 	//The combined flags
 	MSyncFlag *cmb_synced;
 	MSyncFlag *cmb_has_data;

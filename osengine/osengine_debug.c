@@ -51,6 +51,7 @@ void osengine_print_all(OSyncEngine *engine)
 		osync_debug("ENG", 2, "solved: %s", osync_flag_get_state(mapping->fl_solved) ? "YES" : "NO");
 		osync_debug("ENG", 2, "synced: %s (no: %i, yes: %i)", osync_flag_get_state(mapping->cmb_synced) ? "YES" : "NO", mapping->cmb_synced->num_not_set, mapping->cmb_synced->num_set);
 		osync_debug("ENG", 2, "conflict checked: %s", osync_flag_get_state(mapping->fl_chkconflict) ? "YES" : "NO");
+		osync_debug("ENG", 2, "muliplied: %s", osync_flag_get_state(mapping->fl_multiplied) ? "YES" : "NO");
 		osync_debug("ENG", 2, "has data: %s", osync_flag_get_state(mapping->cmb_has_data) ? "YES" : "NO");
 		osync_debug("ENG", 2, "has info: %s (no: %i, yes: %i)", osync_flag_get_state(mapping->cmb_has_info) ? "YES" : "NO",  mapping->cmb_has_info->num_not_set, mapping->cmb_has_info->num_set);
 		osync_debug("ENG", 2, "delete: %s (no: %i, yes: %i)", osync_flag_get_state(mapping->cmb_deleted) ? "YES" : "NO",  mapping->cmb_deleted->num_not_set, mapping->cmb_deleted->num_set);

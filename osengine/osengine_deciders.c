@@ -73,10 +73,29 @@ void osengine_mappingentry_all_deciders(OSyncEngine *engine, OSyncMapping *mappi
 void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mapping_decider(%p, %p)", engine, mapping);
-	osync_trace(TRACE_INTERNAL, "SOLV%i,SYNC%i,DATA%i,INFO%i,DEL%i,CHK%i", osync_flag_is_set(mapping->fl_solved), osync_flag_is_set(mapping->cmb_synced), osync_flag_is_set(mapping->cmb_has_data), osync_flag_is_set(mapping->cmb_has_info), osync_flag_is_set(mapping->cmb_deleted), osync_flag_is_set(mapping->fl_chkconflict));
+	osync_trace(TRACE_INTERNAL, "SOLV%i,SYNC%i,DATA%i,INFO%i,DEL%i,CHK%i,MUL%i", osync_flag_is_set(mapping->fl_solved), osync_flag_is_set(mapping->cmb_synced), osync_flag_is_set(mapping->cmb_has_data), osync_flag_is_set(mapping->cmb_has_info), osync_flag_is_set(mapping->cmb_deleted), osync_flag_is_set(mapping->fl_chkconflict), osync_flag_is_set(mapping->fl_multiplied));
 
-	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->cmb_sent_changes) && osync_flag_is_set(engine->cmb_entries_mapped) && osync_flag_is_set(mapping->cmb_has_data) && osync_flag_is_not_set(mapping->cmb_synced) && osync_flag_is_not_set(mapping->fl_solved)) {
+	if (osync_flag_is_set(engine->fl_running) \
+		&& osync_flag_is_set(engine->cmb_sent_changes) \
+		&& osync_flag_is_set(engine->cmb_entries_mapped) \
+		&& osync_flag_is_set(mapping->cmb_has_data) \
+		&& osync_flag_is_not_set(mapping->cmb_synced) \
+		&& osync_flag_is_not_set(mapping->fl_solved) \
+		&& osync_flag_is_not_set(mapping->fl_chkconflict)) {
 		osengine_mapping_check_conflict(engine, mapping);
+		osync_trace(TRACE_EXIT, "osengine_mapping_decider");
+		return;
+	}
+	
+	if (osync_flag_is_set(engine->fl_running) \
+		&& osync_flag_is_set(engine->cmb_sent_changes) \
+		&& osync_flag_is_set(engine->cmb_entries_mapped) \
+		&& osync_flag_is_set(mapping->cmb_has_data) \
+		&& osync_flag_is_not_set(mapping->cmb_synced) \
+		&& osync_flag_is_set(mapping->fl_solved) \
+		&& osync_flag_is_set(mapping->fl_chkconflict) \
+		&& osync_flag_is_not_set(mapping->fl_multiplied)) {
+		osengine_mapping_multiply_master(engine, mapping);
 		osync_trace(TRACE_EXIT, "osengine_mapping_decider");
 		return;
 	}

@@ -1511,6 +1511,141 @@ START_TEST (multisync_multi_conflict)
 }
 END_TEST
 
+START_TEST (multisync_delayed_conflict_handler)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
+	osync_engine_init(engine, NULL);
+	
+	system("cp newdata data3/testdata1");
+	system("cp newdata1 data2/testdata2");
+	
+	synchronize_once(engine, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 3, 0);
+	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2", "file", "data");
+    mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+    check_hash(table, "testdata2");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+    check_hash(table, "testdata2");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+    check_hash(table, "testdata2");
+	osync_hashtable_close(table);
+	
+	fail_unless(num_read == 3, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_written == 6, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+	
+	sleep(2);
+	
+	system("rm -f data2/testdata");
+	system("cp newdata data3/testdata");
+
+	system("cp newdata3 data1/testdata1");
+	system("rm -f data2/testdata1");
+	
+	system("cp newdata data1/testdata2");
+	system("rm -f data3/testdata2");
+	system("rm -f data2/testdata2");
+	
+	synchronize_once(engine, NULL);
+
+	fail_unless(num_read == 7, NULL);
+	fail_unless(num_conflicts == 3, NULL);
+	fail_unless(num_written == 6, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	maptable = mappingtable_load(group, 3, 0);
+	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata2", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata2", "file", "data");
+    mappingtable_close(maptable);
+	
+	table = hashtable_load(group, 1, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+    check_hash(table, "testdata2");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+    check_hash(table, "testdata2");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+    check_hash(table, "testdata2");
+	osync_hashtable_close(table);
+	
+	system("rm -f data1/*");
+	
+	mark_point();
+	num_conflicts = 0;
+	synchronize_once(engine, NULL);
+	osync_engine_finalize(engine);
+	
+	maptable = mappingtable_load(group, 0, 0);
+    mappingtable_close(maptable);
+	
+	table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
@@ -1538,6 +1673,8 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_conflict_hybrid_duplicate", multisync_conflict_hybrid_duplicate);
 	create_case(s, "multisync_multi_conflict", multisync_multi_conflict);
 
+	create_case(s, "multisync_delayed_conflict_handler", multisync_delayed_conflict_handler);
+	
 	return s;
 }
 

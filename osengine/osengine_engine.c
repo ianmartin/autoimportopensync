@@ -244,7 +244,7 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_flag_set(entry->fl_deleted);
 	
 	osengine_mappingentry_decider(engine, entry);
-	osync_trace(TRACE_EXIT, "_get_changes_reply_receiver");
+	osync_trace(TRACE_EXIT, "_commit_change_reply_receiver");
 }
 
 void send_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data)
@@ -564,18 +564,22 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	//The combined flags
 	engine->cmb_sent_changes = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_sent_changes, (MSyncFlagTriggerFunc)trigger_clients_sent_changes, engine, NULL);
+	
 	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	
 	engine->cmb_synced = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_synced, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	
 	engine->cmb_finished = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_finished, (MSyncFlagTriggerFunc)osync_engine_reset, engine, NULL);
+	
 	engine->cmb_connected = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
-	engine->cmb_connected = osync_comb_flag_new(FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+
 	engine->cmb_chkconflict = osync_comb_flag_new(FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (MSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
+	
 	osync_flag_set(engine->fl_sync);
 	osync_flag_set(engine->cmb_chkconflict);
 	

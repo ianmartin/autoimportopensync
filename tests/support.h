@@ -32,6 +32,7 @@ void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, v
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
+void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 
 void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data);
 void member_status(MSyncMemberUpdate *status, void *user_data);

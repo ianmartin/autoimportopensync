@@ -121,10 +121,18 @@ OSyncConverterTemplate *osync_env_find_converter_template(OSyncEnv *env, const c
 
 void osync_env_register_detector(OSyncEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func)
 {
+	g_assert(detect_func);
 	OSyncDataDetector *detector = g_malloc0(sizeof(OSyncDataDetector));
 	detector->sourceformat = strdup(sourceformat);
 	detector->targetformat = strdup(format);
 	detector->detect_func = detect_func;
+
+	//Register the "inverse" detector which of course will always work
+	env->data_detectors = g_list_append(env->data_detectors, detector);
+	detector = g_malloc0(sizeof(OSyncDataDetector));
+	detector->sourceformat = strdup(format);
+	detector->targetformat = strdup(sourceformat);
+	detector->detect_func = NULL;
 
 	env->data_detectors = g_list_append(env->data_detectors, detector);
 }
