@@ -16,7 +16,7 @@
 void send_change_changed(OSyncChange *change)
 {
 	OSyncMember *member = osync_change_get_member(change);
-	MSyncClient *client = osync_member_get_data(member);
+	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(NULL, "CHANGE_CHANGED");
 	itm_message_set_data(message, "change", change);
@@ -30,7 +30,7 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
 	itm_queue_send(engine->incoming, message);
 }
 
-void _get_change_data_reply_receiver(MSyncClient *sender, ITMessage *message, OSyncEngine *engine)
+void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	_osync_debug(engine, "ENG", 3, "Received a reply %p to GET_DATA command from client %p", message, sender);
 	
@@ -52,7 +52,7 @@ void send_get_change_data(OSyncEngine *sender, OSyncChange *change)
 {
 	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
 	osync_flag_changing(flags->fl_has_data);
-	MSyncClient *target = osync_member_get_data(osync_change_get_member(change));
+	OSyncClient *target = osync_member_get_data(osync_change_get_member(change));
 	ITMessage *message = itm_message_new_methodcall(sender, "GET_DATA");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_get_change_data_reply_receiver, sender);
 	itm_message_set_data(message, "change", change);
@@ -60,7 +60,7 @@ void send_get_change_data(OSyncEngine *sender, OSyncChange *change)
 	itm_queue_send(target->incoming, message);
 }
 
-void _commit_change_reply_receiver(MSyncClient *sender, ITMessage *message, OSyncEngine *engine)
+void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	_osync_debug(engine, "ENG", 3, "Received a reply %p to ADD_CHANGE command from client %p", message, sender);
 	OSyncChange *change = itm_message_get_data(message, "change");
@@ -79,7 +79,7 @@ void _commit_change_reply_receiver(MSyncClient *sender, ITMessage *message, OSyn
 
 void send_commit_change(OSyncEngine *sender, OSyncChange *change)
 {
-	MSyncClient *target = osync_member_get_data(osync_change_get_member(change));
+	OSyncClient *target = osync_member_get_data(osync_change_get_member(change));
 	ITMessage *message = itm_message_new_methodcall(sender, "COMMIT_CHANGE");
 	itm_message_set_data(message, "change", change);
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_commit_change_reply_receiver, sender);
@@ -108,7 +108,7 @@ void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 	
 	//Send the change to every source that is different to the master source and set state to writing in the changes
 	for (i = 0; i < g_list_length(engine->clients); i++) {
-		MSyncClient *client = g_list_nth_data(engine->clients, i);
+		OSyncClient *client = g_list_nth_data(engine->clients, i);
 		//Check if this client is already listed in the mapping
 		change = osync_mapping_get_entry_by_owner(mapping, client->member);
 		if (change == master)
@@ -156,6 +156,7 @@ void osync_mapping_reset(OSyncMapping *mapping)
 		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
 		osengine_change_reset(change);
 	}
+	osync_mapping_set_masterentry(mapping, NULL);
 	osync_mapping_free_flags(mapping);
 }
 
@@ -181,38 +182,41 @@ void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	g_assert(engine != NULL);
 	g_assert(mapping != NULL);
 	
-	for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
-		leftchange = osync_mapping_nth_entry(mapping, i);
-		if (osync_change_get_changetype(leftchange) == CHANGE_UNKNOWN)
-			continue;
-		osync_mapping_set_masterentry(mapping, leftchange);
-		for (n = i + 1; n < osync_mapping_num_entries(mapping); n++) {
-			rightchange = osync_mapping_nth_entry(mapping, n);
-			if (osync_change_get_changetype(rightchange) == CHANGE_UNKNOWN)
+	if (!osync_mapping_get_masterentry(mapping)) {
+		for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
+			leftchange = osync_mapping_nth_entry(mapping, i);
+			if (osync_change_get_changetype(leftchange) == CHANGE_UNKNOWN)
 				continue;
-					
-			/*FIXME: Do we need to do any detection or conversion here? */
+			osync_mapping_set_masterentry(mapping, leftchange);
+			for (n = i + 1; n < osync_mapping_num_entries(mapping); n++) {
+				rightchange = osync_mapping_nth_entry(mapping, n);
+				if (osync_change_get_changetype(rightchange) == CHANGE_UNKNOWN)
+					continue;
+						
+				/*FIXME: Do we need to do any detection or conversion here? */
 #if 0
-/*			OSyncFormatEnv *env = osync_group_get_format_env(engine->group);
-			osync_conv_detect_and_convert(env, leftchange);
-			osync_mappingtable_save_change(engine->maptable, leftchange);
-			osync_conv_detect_and_convert(env, rightchange);
-			osync_mappingtable_save_change(engine->maptable, rightchange);*/
+/*				OSyncFormatEnv *env = osync_group_get_format_env(engine->group);
+				osync_conv_detect_and_convert(env, leftchange);
+				osync_mappingtable_save_change(engine->maptable, leftchange);
+				osync_conv_detect_and_convert(env, rightchange);
+				osync_mappingtable_save_change(engine->maptable, rightchange);*/
 #endif
-					
-			if (osync_conv_compare_changes(leftchange, rightchange) != CONV_DATA_SAME) {
-				is_conflict = TRUE;
-				goto conflict;
-			} else {
-				is_same++;
-			}
+				if (osync_conv_compare_changes(leftchange, rightchange) != CONV_DATA_SAME) {
+					is_conflict = TRUE;
+					goto conflict;
+				} else {
+					is_same++;
+				}
+			}	
 		}
-		
 	}
+	
+	
 	conflict:
 	if (is_conflict) {
 		//conflict, solve conflict
 		osync_status_conflict(engine, mapping);
+		return;
 	}
 	
 	if (is_same != fac(osync_mapping_num_entries(mapping) - 1)) {
@@ -383,7 +387,7 @@ static osync_bool _osync_change_check_level(OSyncEngine *engine, OSyncChange *ch
 	GList *c;
 	_osync_debug(engine, "MAP", 0, "checking level for change %s (%p)", osync_change_get_uid(change), change);
 	for (c = engine->clients; c; c = c->next) {
-		MSyncClient *client = c->data;
+		OSyncClient *client = c->data;
 		if (!osync_member_uid_is_unique(client->member, change, TRUE))
 			return FALSE;
 	}
@@ -443,7 +447,18 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 			_osync_change_overwrite(engine, next_change, orig_change);
 		}
 		_osync_change_overwrite(engine, orig_change, first_diff_change);
+		send_mapping_changed(engine, new_mapping);
 	}
+	
+	//FIXME multiplying the master here might not work of you duplicate a maping
+	//that did not need duplication
+	osync_mapping_multiply_master(engine, dupe_mapping);
+}
+
+void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)
+{
+	osync_mapping_set_masterentry(mapping, change);
+	send_mapping_changed(engine, mapping);
 }
 
 void osync_change_map(OSyncEngine *engine, OSyncChange *change)

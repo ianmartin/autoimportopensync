@@ -281,17 +281,17 @@ int num_conflicts;
 int num_written;
 int num_read;
 
-void conflict_handler(OSyncEngine *engine, OSyncMapping *mapping)
+void conflict_handler(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
 	
 	fail_unless(osync_mapping_num_entries(mapping) == 2, NULL);
 
 	OSyncChange *change = osync_mapping_nth_entry(mapping, 0);
-	osync_mapping_set_masterentry(mapping, change);
+	osengine_mapping_solve(engine, mapping, change);
 }
 
-void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping)
+void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
 	
@@ -300,7 +300,7 @@ void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping)
 	osync_mapping_duplicate(engine, mapping);
 }
 
-void entry_status(MSyncChangeUpdate *status)
+void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data)
 {
 	switch (status->type) {
 		case CHANGE_RECEIVED:
@@ -328,7 +328,7 @@ START_TEST (sync_easy_conflict)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler);
+  	osync_engine_set_conflict_callback(engine, conflict_handler, NULL);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	osync_engine_init(engine, &error);
@@ -362,8 +362,8 @@ START_TEST (sync_easy_new_mapping)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler);
-  	osync_engine_set_changestatus_callback(engine, entry_status);
+  	osync_engine_set_conflict_callback(engine, conflict_handler, NULL);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	osync_engine_init(engine, &error);
@@ -435,7 +435,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
 	osync_engine_synchronize(engine, &error);
@@ -586,7 +586,7 @@ START_TEST (sync_conflict_duplicate)
 
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
 	osync_engine_synchronize(engine, &error);
@@ -639,7 +639,7 @@ START_TEST (sync_conflict_duplicate2)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
 	osync_engine_synchronize(engine, &error);
@@ -728,7 +728,7 @@ START_TEST (sync_conflict_deldel)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
 	osync_engine_synchronize(engine, &error);
@@ -782,14 +782,14 @@ START_TEST (sync_conflict_deldel)
 }
 END_TEST
 
-static void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping)
+static void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	printf("random conflict handler\n");
 	num_conflicts++;
 	int num = osync_mapping_num_entries(mapping);
 	int choosen = g_random_int_range(0, num);
 	OSyncChange *change = osync_mapping_nth_entry(mapping, choosen);
-	osync_mapping_set_masterentry(mapping, change);
+	osengine_mapping_solve(engine, mapping, change);
 }
 
 START_TEST (sync_moddel)
@@ -802,7 +802,7 @@ START_TEST (sync_moddel)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_random);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_random, NULL);
 	osync_engine_init(engine, &error);
 
 	osync_engine_synchronize(engine, &error);
@@ -879,7 +879,7 @@ START_TEST (sync_easy_dualdel)
 	
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
 	osync_engine_init(engine, &error);
 
 	osync_engine_synchronize(engine, &error);

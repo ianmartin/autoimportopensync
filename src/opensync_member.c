@@ -548,12 +548,12 @@ long long int osync_member_get_id(OSyncMember *member)
 	return member->id;
 }
 
-void osync_member_call_plugin(OSyncMember *member, char *function, void *data)
+void *osync_member_call_plugin(OSyncMember *member, char *function, void *data)
 {
-	void (*plgfunc) (void *, void *);
+	void *(*plgfunc) (void *, void *);
 	if (!(plgfunc = osync_plugin_get_function(member->plugin, function)))
-		return;
-	plgfunc(member->plugindata, data);
+		return NULL;
+	return plgfunc(member->plugindata, data);
 }
 
 void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync)

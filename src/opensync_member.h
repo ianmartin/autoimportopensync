@@ -26,7 +26,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error);
 void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *user_data);
 void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, void *user_data);
 void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function, void *user_data);
-void osync_member_call_plugin(OSyncMember *member, char *function, void *data);
+void *osync_member_call_plugin(OSyncMember *member, char *function, void *data);
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member);

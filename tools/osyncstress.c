@@ -88,7 +88,7 @@ void conflict_handler(OSyncEngine *engine, OSyncMapping *mapping)
 		int num = osync_mapping_num_entries(mapping);
 		int choosen = g_random_int_range(0, num);
 		OSyncChange *change = osync_mapping_nth_entry(mapping, choosen);
-		osync_mapping_set_masterentry(mapping, change);
+		osengine_mapping_solve(engine, mapping, change);
 		printf("Conflict for Mapping %p: Choosing entry %i\n", mapping, choosen);
 	}
 }

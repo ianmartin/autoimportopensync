@@ -4,10 +4,10 @@
 void osync_status_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 {
 	if (engine->conflict_callback)
-		engine->conflict_callback(engine, mapping);
+		engine->conflict_callback(engine, mapping, engine->conflict_userdata);
 }
 
-void osync_status_update_member(OSyncEngine *engine, MSyncClient *client, memberupdatetype type)
+void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, memberupdatetype type)
 {
 	if (engine->mebstat_callback) {
 		MSyncMemberUpdate update;
@@ -27,7 +27,7 @@ void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, change
 		update.change = change;
 		if (mapping)
 			update.mapping_id = osync_mapping_get_id(mapping);
-		engine->changestat_callback(&update);
+		engine->changestat_callback(engine, &update, engine->changestat_userdata);
 	}
 }
 
@@ -49,6 +49,6 @@ void osync_status_update_engine(OSyncEngine *engine, engineupdatetype type)
 	if (engine->engstat_callback) {
 		OSyncEngineUpdate update;
 		update.type = type;
-		engine->engstat_callback(&update);
+		engine->engstat_callback(engine, &update, engine->engstat_userdata);
 	}
 }

@@ -44,7 +44,6 @@ osync_bool osync_env_initialize(OSyncEnv *os_env)
 void osync_env_finalize(OSyncEnv *os_env)
 {
 	g_assert(os_env);
-	printf("finalizing\n");
 	GList *plugins = g_list_copy(os_env->plugins);
 	GList *p;
 	for (p = plugins; p; p = p->next) {

@@ -13,7 +13,7 @@
  * Structs
  *************************************************************/
 typedef struct OSyncEngine OSyncEngine;
-typedef struct MSyncClient MSyncClient;
+typedef struct OSyncClient OSyncClient;
 
 typedef enum {
 	MEMBER_CONNECTED = 1,

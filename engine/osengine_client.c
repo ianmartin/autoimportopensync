@@ -1,9 +1,9 @@
 #include "engine.h"
 #include "engine_internals.h"
 
-MSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
+OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 {
-	MSyncClient *client = g_malloc0(sizeof(MSyncClient));
+	OSyncClient *client = g_malloc0(sizeof(OSyncClient));
 	_osync_debug(client, "CLI", 3, "Creating new client %p", client);
 	client->member = member;
 	osync_member_set_data(member, client);
@@ -20,7 +20,7 @@ MSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
     return client;
 }
 
-void osync_client_free(MSyncClient *client)
+void osync_client_free(OSyncClient *client)
 {
 	_osync_debug(client, "CLI", 3, "Freeing client");
 	itm_queue_free(client->incoming);
@@ -36,7 +36,7 @@ void osync_client_free(MSyncClient *client)
 
 void *osync_client_message_sink(OSyncMember *member, const char *name, void *data, osync_bool synchronous)
 {
-	MSyncClient *client = osync_member_get_data(member);
+	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	if (!synchronous) {
 		ITMessage *message = itm_message_new_signal(client, "PLUGIN_MESSAGE");
@@ -52,7 +52,7 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 
 void osync_client_changes_sink(OSyncMember *member, OSyncChange *change)
 {
-	MSyncClient *client = osync_member_get_data(member);
+	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(client, "NEW_CHANGE");
 	itm_message_set_data(message, "change", change);
@@ -61,7 +61,7 @@ void osync_client_changes_sink(OSyncMember *member, OSyncChange *change)
 
 void osync_client_sync_alert_sink(OSyncMember *member)
 {
-	MSyncClient *client = osync_member_get_data(member);
+	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(client, "SYNC_ALERT");
 	itm_queue_send(engine->incoming, message);
@@ -69,7 +69,7 @@ void osync_client_sync_alert_sink(OSyncMember *member)
 
 void message_callback(OSyncMember *member, ITMessage *message, OSyncError *error)
 {
-	MSyncClient *client = osync_member_get_data(member);
+	OSyncClient *client = osync_member_get_data(member);
 	ITMessage *reply = NULL;
 
 	if (!error) {
@@ -83,7 +83,7 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError *error
 	itm_message_send_reply(reply);
 }
 
-void client_message_handler(OSyncEngine *sender, ITMessage *message, MSyncClient *client)
+void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient *client)
 {
 	_osync_debug(client, "CLI", 3, "Messages handler called for message %p from engine", message);
 
@@ -130,7 +130,7 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, MSyncClient
 	g_assert_not_reached();
 }
 
-void osync_client_call_plugin(MSyncClient *client, char *function, void *data)
+void osync_client_call_plugin(OSyncClient *client, char *function, void *data)
 {
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(engine, "CALL_PLUGIN");
@@ -140,7 +140,18 @@ void osync_client_call_plugin(MSyncClient *client, char *function, void *data)
 	itm_queue_send(client->incoming, message);
 }
 
-osync_bool osync_client_init(MSyncClient *client, OSyncError **error)
+/*
+void osync_client_call_plugin_with_reply(OSyncClient *client, char *function, void *data, void ( *replyhandler)(OSyncEngine *, OSyncClient *, void *, OSyncError *), int timeout)
+{
+	OSyncEngine *engine = client->engine;
+	ITMessage *message = itm_message_new_signal(engine, "CALL_PLUGIN");
+	_osync_debug(client, "CLI", 3, "Sending message %p CALL_PLUGIN for function %s", message, function);
+	itm_message_set_data(message, "data", data);
+	itm_message_set_data(message, "function", g_strdup(function));
+	itm_queue_send_with_reply(client->incoming, message);
+}*/
+
+osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 {
 	_osync_debug(client, "CLI", 3, "Starting client mainloop");
 	GMainContext *context = g_main_context_new();
@@ -167,7 +178,7 @@ osync_bool osync_client_init(MSyncClient *client, OSyncError **error)
 	return TRUE;
 }
 
-void osync_client_finalize(MSyncClient *client)
+void osync_client_finalize(OSyncClient *client)
 {
 	_osync_debug(client, "CLI", 3, "Finalizing client");
 	g_main_loop_quit(client->memberloop);

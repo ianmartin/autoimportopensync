@@ -58,7 +58,7 @@ void osync_engine_print_all(OSyncEngine *engine)
 	printf("finished: %s\n", osync_flag_get_state(engine->cmb_finished) ? "YES" : "NO");
 	
 	for (i = 0; i < g_list_length(engine->clients); i++) {
-		MSyncClient *client = g_list_nth_data(engine->clients, i);
+		OSyncClient *client = g_list_nth_data(engine->clients, i);
 		printf("\tCLIENT %lli %s:\n", osync_member_get_id(client->member), osync_member_get_pluginname(client->member));
 		printf("\tconnected: %s\n", osync_flag_get_state(client->fl_connected) ? "YES" : "NO");
 		printf("\tsent changes: %s\n", osync_flag_get_state(client->fl_sent_changes) ? "YES" : "NO");

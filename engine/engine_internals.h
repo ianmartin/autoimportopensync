@@ -46,12 +46,15 @@ struct MSyncFlag {
 struct OSyncEngine {
 	/** The real opensync group **/
 	OSyncGroup *group;
-	void (* conflict_callback) (OSyncEngine *, OSyncMapping *);
-	void (* changestat_callback) (MSyncChangeUpdate *);
+	void (* conflict_callback) (OSyncEngine *, OSyncMapping *, void *);
+	void *conflict_userdata;
+	void (* changestat_callback) (OSyncEngine *, MSyncChangeUpdate *, void *);
+	void *changestat_userdata;
 	void (* mebstat_callback) (MSyncMemberUpdate *);
-	void (* engstat_callback) (OSyncEngineUpdate *);
+	void (* engstat_callback) (OSyncEngine *, OSyncEngineUpdate *, void *);
+	void *engstat_userdata;
 	void (* mapstat_callback) (MSyncMappingUpdate *);
-	void *(* plgmsg_callback) (OSyncEngine *, MSyncClient *, const char *, void *, void *);
+	void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
 	void *plgmsg_userdata;
 	/** A list of connected clients **/
 	GList *clients;
@@ -108,11 +111,11 @@ typedef enum {
 } ClientCaps;
 
 /**
- * @ingroup MSyncClientPrivate
+ * @ingroup OSyncClientPrivate
  * @brief Represents a SyncClient
  * 
  */
-struct MSyncClient {
+struct OSyncClient {
 	OSyncMember *member;
 	ITMQueue *incoming;
 	GMainLoop *memberloop;

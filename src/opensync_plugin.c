@@ -72,7 +72,6 @@ osync_bool osync_plugin_load_info(OSyncPlugin *plugin, const char *path)
 void osync_plugin_unload(OSyncPlugin *plugin)
 {
 	g_assert(plugin);
-	printf("unloading plugin %s\n", plugin->path);
 	g_module_close(plugin->real_plugin);
 	g_free(plugin->path);
 	plugin->path = NULL;
