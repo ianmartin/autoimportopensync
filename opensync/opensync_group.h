@@ -15,6 +15,7 @@ const char *osync_group_get_name(OSyncGroup *group);
 osync_bool osync_group_save(OSyncGroup *group, OSyncError **error);
 OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error);
 osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error);
+void osync_group_reset(OSyncGroup *group);
 
 void osync_group_add_member(OSyncGroup *group, OSyncMember *member);
 void osync_group_remove_member(OSyncGroup *group, OSyncMember *member);

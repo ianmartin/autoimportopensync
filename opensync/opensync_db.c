@@ -192,6 +192,91 @@ osync_bool osync_db_reset_changes(OSyncGroup *group, const char *objtype, OSyncE
 	return TRUE;
 }
 
+osync_bool osync_db_reset_group(OSyncGroup *group, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_db_reset_group(%p, %p)", group, error);
+	OSyncDB *db = NULL;
+	
+	if (!group) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_reset_group was called with wrong parameters");
+		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_group: %s", osync_error_print(error));
+		return FALSE;
+	}
+	
+	char *changesdb = g_strdup_printf("%s/change.db", group->configdir);
+	if (!(db = osync_db_open(changesdb, error))) {
+		g_free(changesdb);
+		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_group: %s", osync_error_print(error));
+		return FALSE;
+	}
+
+	if (sqlite3_exec(db->db, "DELETE FROM tbl_changes", NULL, NULL, NULL) != SQLITE_OK) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset changes! %s", sqlite3_errmsg(db->db));
+		g_free(changesdb);
+		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_group: %s", osync_error_print(error));
+		return FALSE;
+	}
+	
+	osync_db_close(db);
+	g_free(changesdb);
+	
+	osync_trace(TRACE_EXIT, "osync_db_reset_member");
+	return TRUE;
+}
+
+osync_bool osync_db_reset_member(OSyncMember *member, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_db_reset_member(%p, %p)", member, error);
+	OSyncDB *db = NULL;
+	
+	if (!member) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_reset_member was called with wrong parameters");
+		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_member: %s", osync_error_print(error));
+		return FALSE;
+	}
+	
+	char *hashtable = g_strdup_printf("%s/hash.db", member->configdir);
+	if (g_file_test(hashtable, G_FILE_TEST_EXISTS)) {
+		if (!(db = osync_db_open(hashtable, error))) {
+			g_free(hashtable);
+			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_member: %s", osync_error_print(error));
+			return FALSE;
+		}
+	
+		if (sqlite3_exec(db->db, "DELETE FROM tbl_hash", NULL, NULL, NULL) != SQLITE_OK) {
+			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset hashtable! %s", sqlite3_errmsg(db->db));
+			g_free(hashtable);
+			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_changes: %s", osync_error_print(error));
+			return FALSE;
+		}
+		
+		osync_db_close(db);
+	}
+	g_free(hashtable);
+	
+	char *anchordb = g_strdup_printf("%s/anchor.db", member->configdir);
+	if (g_file_test(anchordb, G_FILE_TEST_EXISTS)) {
+		if (!(db = osync_db_open(anchordb, error))) {
+			g_free(anchordb);
+			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_member: %s", osync_error_print(error));
+			return FALSE;
+		}
+	
+		if (sqlite3_exec(db->db, "DELETE FROM tbl_anchor", NULL, NULL, NULL) != SQLITE_OK) {
+			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset anchors! %s", sqlite3_errmsg(db->db));
+			g_free(anchordb);
+			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_changes: %s", osync_error_print(error));
+			return FALSE;
+		}
+		
+		osync_db_close(db);
+	}
+	g_free(anchordb);
+	
+	osync_trace(TRACE_EXIT, "osync_db_reset_member");
+	return TRUE;
+}
+
 void osync_db_close_changes(OSyncGroup *group)
 {
 	if (group->changes_db)

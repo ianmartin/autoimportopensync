@@ -560,6 +560,18 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	return group;
 }
 
+void osync_group_reset(OSyncGroup *group)
+{
+	OSyncError *error = NULL;
+	osync_db_reset_group(group, &error);
+	
+	GList *m = NULL;
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		osync_db_reset_member(member, &error);
+	}
+}
+
 /*! @brief Appends a member to the group
  * 
  * Appends a member to the group
