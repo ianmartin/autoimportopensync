@@ -6,17 +6,28 @@ AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/evolution2_sync.c)
 AC_CONFIG_HEADER(config.h)
 
-pkg_modules="glib-2.0 evolution-data-server-1.0 libebook-1.0 libecal-1.0 libedata-book-1.0 libedata-cal-1.0 libedataserver-1.0 opensync-1.0"
-pkg_modules2="glib-2.0 evolution-data-server-1.1 libebook-1.1 libecal-1.1 libedata-book-1.1 libedata-cal-1.1 libedataserver-1.1 opensync-1.0"
+pkg_modules="glib-2.0 opensync-1.0"
+pkg_emodules_10="evolution-data-server-1.0 libebook-1.0 libecal-1.0 libedata-book-1.0 libedata-cal-1.0 libedataserver-1.0"
+pkg_emodules_11="evolution-data-server-1.1 libebook-1.1 libecal-1.1 libedata-book-1.1 libedata-cal-1.1 libedataserver-1.1"
+pkg_emodules_12="evolution-data-server-1.2 libebook-1.2 libecal-1.2 libedata-book-1.2 libedata-cal-1.2 libedataserver-1.2"
 
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
-PKG_CHECK_MODULES(PACKAGE, [$pkg_modules], EDS10FOUND=1, [EDS10FOUND=0])
-if test "x${EDS10FOUND}" = "x0"; then
-	PKG_CHECK_MODULES(PACKAGE, [$pkg_modules2],,AC_MSG_ERROR(Neither evolution-data-server-1.0-dev nor evolution-data-server-1.1-dev was found))
-fi
+
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules], , AC_MSG_ERROR(GLib >= 2.0 and opensync >= 1.0 required))
 
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
+
+PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_10], EDSFOUND=1, [EDSFOUND=0])
+if test "x${EDSFOUND}" = "x0"; then
+	PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_11], EDSFOUND=1, [EDSFOUND=0])
+	if test "x${EDSFOUND}" = "x0"; then
+		PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_12],,AC_MSG_ERROR(No compatible evolution-data-server was found))
+	fi
+fi
+
+AC_SUBST(EPACKAGE_CFLAGS)
+AC_SUBST(EPACKAGE_LIBS)
 
 AC_ISC_POSIX
 AC_PROG_CC

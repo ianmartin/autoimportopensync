@@ -2,7 +2,7 @@ plugindir=@OPENSYNC_PLUGINDIR@
 configdir=@OPENSYNC_CONFIGDIR@
 opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
-INCLUDES = @PACKAGE_CFLAGS@
+INCLUDES = @PACKAGE_CFLAGS@ @EPACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -Werror
 
@@ -28,4 +28,4 @@ evo2_sync_la_SOURCES = \
 	evolution2_xml.c
 
 evo2_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
-evo2_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+evo2_sync_la_LIBADD = @PACKAGE_LIBS@ @EPACKAGE_LIBS@ @LIBS@
