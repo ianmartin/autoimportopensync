@@ -20,6 +20,58 @@
  
 #include "mock_sync.h"
 
+/*Load the state from a xml file and return it in the conn struct*/
+static osync_bool mock_parse_settings(mock_env *env, char *data, int size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, env, data, size);
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+
+	//set defaults
+	env->path = NULL;
+
+	doc = xmlParseMemory(data, size);
+
+	if (!doc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	cur = xmlDocGetRootElement(doc);
+
+	if (!cur) {
+		xmlFreeDoc(doc);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	if (xmlStrcmp(cur->name, "config")) {
+		xmlFreeDoc(doc);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		char *str = xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
+				env->path = g_strdup(str);
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+
+	xmlFreeDoc(doc);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 static osync_bool mock_get_error(OSyncMember *member, const char *domain)
 {
 	const char *env = g_getenv(domain);
@@ -50,14 +102,19 @@ static void *mock_initialize(OSyncMember *member, OSyncError **error)
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
-
 	char *configdata;
-	if (!osync_member_get_config(member, &configdata, NULL, error)) {
+	int configsize;
+	mock_env *env = g_malloc0(sizeof(mock_env));
+
+	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
-	mock_env *env = (mock_env *)configdata;
+	if (!mock_parse_settings(env, configdata, configsize, error)) {
+		g_free(env);
+		return NULL;
+	}
 	
 	env->member = member;
 	env->hashtable = osync_hashtable_new();
@@ -148,7 +205,7 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 			osync_change_set_member(change, env->member);
 			osync_change_set_uid(change, de);
 
-			osync_change_set_objformat_string(change, "file");
+			osync_change_set_objformat_string(change, "mockformat");
 			
 			struct stat buf;
 			stat(filename, &buf);
@@ -178,7 +235,8 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 		}
 	}
 	g_dir_close(dir);
-
+	osync_hashtable_report_deleted(env->hashtable, ctx, "data");
+	
 	osync_context_report_success(ctx);
 }
 
@@ -372,7 +430,7 @@ static void mock_committed_all(void *data)
 
 void get_info(OSyncPluginInfo *info)
 {
-	info->name = "mock-sync";
+	info->name = "file-sync";
 	info->longname = "Mock Plugin";
 	info->description = "Mock Plugin";
 	info->version = 1;

@@ -108,45 +108,52 @@ END_TEST
 
 START_TEST (env_check_plugin_true1)
 {
+	char *testbed = setup_testbed(NULL);
 	OSyncEnv *env = init_env();
 	
 	OSyncError *error = NULL;
-	fail_unless(osync_env_plugin_is_usable(env, "file-sync", &error), NULL);
+	fail_unless(osync_env_plugin_is_usable(env, "mock-sync", &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_check_plugin_true2)
 {
+	char *testbed = setup_testbed(NULL);
 	g_setenv("IS_AVAILABLE", "1", TRUE);
 	
 	OSyncEnv *env = init_env();
 	
 	OSyncError *error = NULL;
 	
-	fail_unless(osync_env_plugin_is_usable(env, "file-sync", &error), NULL);
+	fail_unless(osync_env_plugin_is_usable(env, "mock-sync", &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_check_plugin_false)
 {
+	char *testbed = setup_testbed(NULL);
 	OSyncEnv *env = init_env();
 	
 	OSyncError *error = NULL;
-	fail_unless(!osync_env_plugin_is_usable(env, "file-syncc", &error), NULL);
+	fail_unless(!osync_env_plugin_is_usable(env, "mock-syncc", &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_check_plugin_false2)
 {
+	char *testbed = setup_testbed(NULL);
 	g_setenv("IS_AVAILABLE", "1", TRUE);
 	g_setenv("IS_NOT_AVAILABLE", "1", TRUE);
 	
@@ -154,10 +161,11 @@ START_TEST (env_check_plugin_false2)
 	
 	OSyncError *error = NULL;
 
-	fail_unless(!osync_env_plugin_is_usable(env, "file-sync", &error), NULL);
+	fail_unless(!osync_env_plugin_is_usable(env, "mock-sync", &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	osync_env_free(env);
+	destroy_testbed(testbed);
 }
 END_TEST
 

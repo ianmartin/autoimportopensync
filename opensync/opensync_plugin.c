@@ -121,6 +121,7 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncErro
 OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_plugin_load(%p, %s, %p)", env, path, error);
+	
 	/* Check if this platform supports dynamic
 	 * loading of modules */
 	if (!g_module_supported()) {
@@ -136,7 +137,6 @@ OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **err
 	memset(&(plugin->info.functions), 0, sizeof(OSyncPluginFunctions));
 	
 	if (!plugin->real_plugin) {
-		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
 		osync_plugin_free(plugin);
 		osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
@@ -186,7 +186,7 @@ osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **erro
 	osync_trace(TRACE_ENTRY, "osync_format_plugin_load(%p, %s, %p)", env, path, error);
 	/* Check if this platform supports dynamic
 	 * loading of modules */
-	osync_debug("OSFRM", 3, "Loading formats plugin from %s", path);
+	 
 	if (!g_module_supported()) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
 		osync_debug("OSPLG", 0, "This platform does not support loading of modules");

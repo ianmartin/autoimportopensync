@@ -3,9 +3,8 @@
 START_TEST (filter_setup)
 {
 	char *testbed = setup_testbed("filter_setup");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
+	
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
@@ -32,9 +31,7 @@ END_TEST
 START_TEST (filter_flush)
 {
 	char *testbed = setup_testbed("filter_setup");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
@@ -63,9 +60,7 @@ END_TEST
 START_TEST (filter_sync_deny_all)
 {
 	char *testbed = setup_testbed("filter_sync_deny_all");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
@@ -94,9 +89,7 @@ END_TEST
 START_TEST (filter_sync_custom)
 {
 	char *testbed = setup_testbed("filter_sync_custom");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
@@ -199,9 +192,7 @@ END_TEST
 START_TEST (filter_sync_vcard_only)
 {
 	char *testbed = setup_testbed("filter_sync_vcard_only");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
@@ -239,9 +230,7 @@ START_TEST(filter_destobjtype_delete)
 	/* Check if the destobjtype of the changes is being
 	 * set when the change type os DELETE */
 	char *testbed = setup_testbed("destobjtype_delete");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	mark_point();
+	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();

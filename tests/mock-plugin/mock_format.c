@@ -25,8 +25,6 @@
 static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rightchange)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
-	fs_fileinfo *leftfile = (fs_fileinfo *)osync_change_get_data(leftchange);
-	fs_fileinfo *rightfile = (fs_fileinfo *)osync_change_get_data(rightchange);
 	
 	osync_bool data_same = FALSE;
 	osync_bool path_same = FALSE;
@@ -34,13 +32,11 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 	if (!strcmp(osync_change_get_uid(leftchange), osync_change_get_uid(rightchange)))
 		path_same = TRUE;
 	
-	osync_trace(TRACE_INTERNAL, "%i %i", leftfile->size, rightfile->size);
-	
-	if (leftfile->size == rightfile->size) {
-		if (leftfile->data == rightfile->data) {
+	if (osync_change_get_datasize(leftchange) == osync_change_get_datasize(rightchange)) {
+		if (osync_change_get_data(leftchange) == osync_change_get_data(rightchange)) {
 			data_same = TRUE;
 		} else {
-			if (!memcmp(leftfile->data, rightfile->data, leftfile->size))
+			if (!memcmp(osync_change_get_data(leftchange), osync_change_get_data(rightchange), osync_change_get_datasize(leftchange)))
 				data_same = TRUE;
 		}
 	}
@@ -60,37 +56,26 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 static osync_bool conv_file_to_plain(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
-	fs_fileinfo *file = (fs_fileinfo *)input;
 	
 	*free_input = FALSE;
-	*output = file->data;
-	*outpsize = file->size;
+	*output = input;
+	*outpsize = inpsize;
 	return TRUE;
 }
 
 static osync_bool conv_plain_to_file(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
-	fs_fileinfo *file = g_malloc0(sizeof(fs_fileinfo));
-
-	file->data = input;
-	file->size = inpsize;
 	
 	*free_input = FALSE;
-	*output = (char *)file;
-	*outpsize = sizeof(file);
+	*output = input;
+	*outpsize = inpsize;
 	return TRUE;
 }
 
 static void destroy_file(char *input, size_t inpsize)
 {
-	fs_fileinfo *file = (fs_fileinfo *)input;
-	if (inpsize != sizeof(fs_fileinfo)) {
-		osync_debug("FILE", 0, "destroy_file: Wrong data size: %d, but it should be %u", inpsize, sizeof(fs_fileinfo));
-		return;
-	}
-	g_free(file->data);
-	g_free(file);
+	g_free(input);
 }
 
 static void duplicate_file(OSyncChange *change)
@@ -104,19 +89,15 @@ static void duplicate_file(OSyncChange *change)
 static osync_bool copy_file(const char *input, int inpsize, char **output, int *outpsize)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
-	
-	fs_fileinfo *oldfile = (fs_fileinfo *)input;
-	fs_fileinfo *newfile = g_malloc0(sizeof(fs_fileinfo));
 
-	newfile->filestats = oldfile->filestats;
-	newfile->size = oldfile->size;
+	char *new = NULL;
 	
-	if (oldfile->size) {
-		newfile->data = g_malloc0(oldfile->size);
-		memcpy(newfile->data, oldfile->data, oldfile->size);
+	if (inpsize) {
+		new = g_malloc0(inpsize);
+		memcpy(new, input, inpsize);
 	}
 	
-	*output = (char *)newfile;
+	*output = new;
 	*outpsize = inpsize;
 	return TRUE;
 }
@@ -124,14 +105,9 @@ static osync_bool copy_file(const char *input, int inpsize, char **output, int *
 static void create_file(OSyncChange *change)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
-	
-	fs_fileinfo *newfile = g_malloc0(sizeof(fs_fileinfo));
 
 	char *data = osync_rand_str(g_random_int_range(1, 100));
-	newfile->data = data;
-	newfile->size = strlen(data) + 1;
-	
-	osync_change_set_data(change, (char *)newfile, sizeof(newfile), TRUE);
+	osync_change_set_data(change, data, strlen(data) + 1, TRUE);
 	if (!osync_change_get_uid(change))
 		osync_change_set_uid(change, osync_rand_str(6));
 }
@@ -139,9 +115,8 @@ static void create_file(OSyncChange *change)
 static char *print_file(OSyncChange *change)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
-	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
 
-	char *printable = g_strdup_printf ("File: %s\nSize: %i", osync_change_get_uid(change), file->size);
+	char *printable = g_strdup_printf ("File: %s\nSize: %i", osync_change_get_uid(change), osync_change_get_datasize(change));
 	return printable;
 }
 
