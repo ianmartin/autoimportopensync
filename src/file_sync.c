@@ -55,7 +55,6 @@ static void *fs_initialize(OSyncMember *member)
 	fsinfo->path = g_strstrip(g_strdup(configdata));
 	fsinfo->member = member;
 	fsinfo->hashtable = osync_hashtable_new();
-	osync_hashtable_load(fsinfo->hashtable, member);
 
 #ifdef HAVE_FAM
 
@@ -88,6 +87,7 @@ static void fs_connect(OSyncContext *ctx)
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	GError *direrror = NULL;
 	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
+	osync_hashtable_load(fsinfo->hashtable, fsinfo->member);
 	
 	if (!osync_anchor_compare(fsinfo->member, fsinfo->path))
 		osync_member_request_slow_sync(fsinfo->member);
@@ -206,7 +206,8 @@ static void fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
-	fs_access(ctx, change);
+	if (!fs_access(ctx, change))
+		return;
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_update_hash(fsinfo->hashtable, change);
@@ -226,6 +227,7 @@ static void fs_disconnect(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	g_dir_close(fsinfo->dir);
+	osync_hashtable_close(fsinfo->hashtable);
 	osync_context_report_success(ctx);
 }
 
@@ -233,7 +235,6 @@ static void fs_finalize(void *data)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)data;
-	osync_hashtable_close(fsinfo->hashtable);
 	osync_hashtable_free(fsinfo->hashtable);
 #ifdef HAVE_FAM
 	//FAMCancelMonitor(fsinfo->famConn, fsinfo->famRequest);
