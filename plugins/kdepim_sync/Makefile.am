@@ -17,17 +17,16 @@ kdepimlib_LTLIBRARIES = kdepim_impl.la
 
 # kcal_format_la_SOURCES = src/kcal_format.cpp
 # kcal_format_la_LDFLAGS = -avoid-version -export-dynamic -module
-# kcal_format_la_LIBADD = @PACKAGE_LIBS@ $(KDE_RPATH) $(LIB_KABC)
+# kcal_format_la_LIBADD = $(KDE_RPATH) $(LIB_KABC)
 
 kdepim_sync_la_SOURCES = src/kdepim_sync.cpp
 kdepim_sync_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(kdepimlibdir)\"
 kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
-kdepim_sync_la_LIBADD = @PACKAGE_LIBS@
 
 kdepim_impl_la_SOURCES = src/kdepim_impl.cpp \
                          src/kcal.cpp
 kdepim_impl_la_CXXFLAGS = -O0 -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(kdepimlibdir)\"
-kdepim_impl_la_LDFLAGS = -avoid-version -export-dynamic -module
-kdepim_impl_la_LIBADD = @PACKAGE_LIBS@ $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL)
+kdepim_impl_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
+kdepim_impl_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL)
 
 

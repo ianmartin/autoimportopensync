@@ -26,6 +26,7 @@ SOFTWARE IS DISCLAIMED.
 #include <libkcal/calendarresources.h>
 #include <libkcal/vcalformat.h>
 #include <libkcal/calendarlocal.h>
+#include <kdeversion.h>
 
 #include "osyncbase.h"
 #include "kcal.h"
@@ -44,8 +45,13 @@ bool KCalDataSource::connect(OSyncContext *ctx)
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Can't open KDE calendar");
         return false;
     }
+#if KDE_IS_VERSION(3,3,0)
+    /* On KDE 3.2, there was no readConfig() and load(): the data
+     * was loaded automatically on the CalendarResources() constructor
+     */
     calendar->readConfig();
     calendar->load();
+#endif
     osync_debug("kcal", 3, "Calendar: %d events", calendar->events().size());
     /*FIXME: load and lock here? */
     return true;
