@@ -6,7 +6,7 @@ INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@
 
 lib_LTLIBRARIES = libosengine.la
 
-osengineincludedir = @OPENSYNC_HEADERDIR@
+osengineincludedir = @OPENSYNC_ENGINEHEADERDIR@
 osengineinclude_HEADERS = \
 	engine.h \
 	osengine_mapping.h \

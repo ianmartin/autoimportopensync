@@ -11,7 +11,9 @@ pkgconfig_DATA = opensync-1.0.pc $(OSENGINE_PC)
 
 DISTCLEANFILES = \
 	opensync-1.0.pc  \
-	osengine-1.0.pc
+	opensync-1.0-uninstalled.pc \
+	osengine-1.0.pc  \
+	osengine-1.0-uninstalled.pc
 
 EXTRA_DIST = \
 	autogen.sh \

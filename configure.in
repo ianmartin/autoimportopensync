@@ -32,10 +32,13 @@ AC_SUBST(OPENSYNC_FORMATSDIR)
 OPENSYNC_HEADERDIR=${includedir}/opensync-1.0/opensync
 AC_SUBST(OPENSYNC_HEADERDIR)
 
+OPENSYNC_ENGINEHEADERDIR=${includedir}/opensync-1.0/osengine
+AC_SUBST(OPENSYNC_ENGINEHEADERDIR)
+
 AC_ARG_ENABLE(engine,[  --enable-engine        enable building of the opensync engine],ENABLE_ENGINE=$enableval)
 if test "x${ENABLE_ENGINE}" = "xyes"; then
 	AC_DEFINE(BUILD_ENGINE,1,[Stress Testing])
-	enginedir="engine"
+	enginedir="osengine"
 else
 	enginedir=""
 fi
@@ -133,6 +136,12 @@ PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
+# Workaround for autoconf 2.58, in which abs_builddir/abs_srcdir are not
+# absolute at all.
+# These are used in *-uninstalled.pc.in
+AC_SUBST(ac_workaround_abs_builddir, $PWD) # builddir is defined as '.'
+AC_SUBST(ac_workaround_abs_srcdir, $PWD/$srcdir)
+
 AC_OUTPUT([
 Makefile
 opensync/Makefile
@@ -140,9 +149,11 @@ tools/Makefile
 tests/Makefile
 formats/Makefile
 formats/vformats-xml/Makefile
-engine/Makefile
+osengine/Makefile
 opensync-1.0.pc
+opensync-1.0-uninstalled.pc
 osengine-1.0.pc
+osengine-1.0-uninstalled.pc
 Doxyfile
 ])
 
