@@ -4,6 +4,7 @@ SUBDIRS = src $(enginedir) formats tools $(testdir)
 
 EXTRA_DIST = \
 	autogen.sh \
+	buildtest.sh \
 	plugins
 
 dist-hook:
