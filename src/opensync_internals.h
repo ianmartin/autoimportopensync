@@ -113,6 +113,9 @@ struct OSyncObjType {
 	GList *converters;
 	OSyncFormatEnv *env;
 	osync_bool needs_slow_sync;
+	osync_bool enabled;
+	osync_bool write;
+	osync_bool read;
 };
 
 struct OSyncFormatProperty {

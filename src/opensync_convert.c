@@ -111,6 +111,9 @@ OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
 		g_assert(type);
 		type->name = g_strdup(name);
 		type->env = env;
+		type->write = TRUE;
+		type->read = TRUE;
+		type->enabled = TRUE;
 		env->objtypes = g_list_append(env->objtypes, type);
 	}
 	return type;

@@ -231,8 +231,7 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 		/* Apply this to all objtypes */
 		/* TODO: implement this */
 		osync_debug("OSGRP", 2, "set_slow_sync for objtype '*' not implemented yet");
-	}
-	else {
+	} else {
 		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
 		g_assert(objtype);
 		objtype->needs_slow_sync = slow_sync;
@@ -247,4 +246,31 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
 	g_assert(osync_objtype);
 	return osync_objtype->needs_slow_sync;
+}
+
+//TODO
+//For now store in the group
+///BUt it really should be set on a per member basis
+osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
+{
+	g_assert(group);
+	OSyncFormatEnv *env = group->conv_env;
+	g_assert(env);
+	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
+	g_assert(osync_objtype);
+	return osync_objtype->enabled;
+}
+
+void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, osync_bool enabled)
+{
+	g_assert(group);
+	OSyncFormatEnv *conv_env = group->conv_env;
+
+	if (!strcmp(objtypestr, "*")) {
+		g_assert_not_reached();
+	} else {
+		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
+		g_assert(objtype);
+		objtype->enabled = enabled;
+	}
 }

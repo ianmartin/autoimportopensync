@@ -483,3 +483,9 @@ void osync_member_request_synchronization(OSyncMember *member)
 	if (member->memberfunctions->rf_sync_alert)
 		member->memberfunctions->rf_sync_alert(member);
 }
+
+osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype)
+{
+	g_assert(member);
+	return osync_group_objtype_enabled(member->group, objtype);
+}

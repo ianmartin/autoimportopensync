@@ -82,7 +82,9 @@ void osync_context_send_log(OSyncContext *ctx, const char *message, ...)
 	va_start(arglist, message);
 	g_vasprintf(&buffer, message, arglist);
 	
-	member->memberfunctions->rf_log(member, buffer);
+	osync_debug("OSYNC", 3, "Sending logmessage \"%s\"", buffer);
+	if (member->memberfunctions->rf_log)
+		member->memberfunctions->rf_log(member, buffer);
 	
 	g_free(buffer);
 	va_end(arglist);

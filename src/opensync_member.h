@@ -45,3 +45,5 @@ osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *cha
 osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change);
 void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync);
 osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr);
+osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
+

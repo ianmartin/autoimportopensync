@@ -17,3 +17,5 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtypestr);
 unsigned int osync_group_create_member_id(OSyncGroup *group);
 void osync_group_set_slow_sync(OSyncGroup *group, const char *objtype, osync_bool slow_sync);
 osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype);
+osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype);
+void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled);
