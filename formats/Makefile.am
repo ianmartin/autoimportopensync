@@ -6,15 +6,19 @@ formatsdir=@OPENSYNC_FORMATSDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
 
-formats_LTLIBRARIES = data.la calendar.la todo.la contact.la
+formats_LTLIBRARIES = data.la event.la todo.la contact.la
 
 data_la_SOURCES = data.c
 data_la_LDFLAGS = -avoid-version -export-dynamic -module
 data_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
-calendar_la_SOURCES = calendar.c
-calendar_la_LDFLAGS = -avoid-version -export-dynamic -module
-calendar_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+event_la_SOURCES = event.c
+event_la_LDFLAGS = -avoid-version -export-dynamic -module
+event_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+
+note_la_SOURCES = note.c
+note_la_LDFLAGS = -avoid-version -export-dynamic -module
+note_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
 todo_la_SOURCES = todo.c
 todo_la_LDFLAGS = -avoid-version -export-dynamic -module
