@@ -148,7 +148,7 @@ src/Makefile
 tools/Makefile
 tests/Makefile
 formats/Makefile
-formats/v-xml/Makefile
+formats/vformats-xml/Makefile
 engine/Makefile
 ])
 

@@ -28,4 +28,4 @@ contact_la_SOURCES = contact.c
 contact_la_LDFLAGS = -avoid-version -export-dynamic -module
 contact_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
-SUBDIRS = v-xml
+SUBDIRS = vformats-xml
