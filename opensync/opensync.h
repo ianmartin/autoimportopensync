@@ -4,6 +4,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**************************************************************
  * Defines
  *************************************************************/
@@ -220,5 +225,9 @@ void osync_trace(OSyncTraceType type, const char *message, ...);
 #include "opensync_convert.h"
 #include "opensync_anchor.h"
 #include "opensync_filter.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
