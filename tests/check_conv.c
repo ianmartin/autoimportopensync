@@ -594,6 +594,162 @@ START_TEST (conv_env_detect_and_convert)
 }
 END_TEST
 
+START_TEST(conv_prefer_not_lossy)
+{
+  /* Test if the converter is getting the path that have no
+   * lossy detectors
+   *
+   * F1 -- F2 -- F3 -- F5
+   *   \              /
+   *     --- F4 -----
+   *
+   * All converters are not lossy, except F1->F4.
+   * The result path should be: F1 -> F2 -> F3 -> F5
+   */
+  OSyncFormatEnv *env = osync_conv_env_new();
+  OSyncObjType *type = osync_conv_register_objtype(env, "O1");
+  
+  OSyncObjFormat *format1 = osync_conv_register_objformat(env, "O1", "F1");
+  osync_conv_register_objformat(env, "O1", "F2");
+  osync_conv_register_objformat(env, "O1", "F3");
+  osync_conv_register_objformat(env, "O1", "F4");
+  OSyncObjFormat *format5 = osync_conv_register_objformat(env, "O1", "F5");
+
+  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F5", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "F4", convert_addtest2, 0); /* Lossy converter */
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest2, CONV_NOTLOSSY);
+  mark_point();
+
+  OSyncChange *change = osync_change_new();
+  osync_change_set_objformat(change, format1);
+  osync_change_set_data(change, "data", 5, TRUE);
+  
+  mark_point();
+
+  fail_unless(osync_conv_detect_and_convert(env, change, g_list_append(NULL, format5)), NULL);
+  mark_point();
+  char *data = osync_change_get_data(change);
+  fail_unless(!strcmp(data, "datatesttesttest"), NULL);
+
+  fail_unless(change->objtype == type, NULL);
+  fail_unless(change->format == format5, NULL);
+}
+END_TEST
+
+START_TEST(conv_prefer_same_objtype)
+{
+  /* Test if the converter is getting the path
+   * that doesn't change the objtype, even
+   * if it is longer.
+   *
+   * Objtypes: F and G
+   *
+   * F1 -- F2 -- F3 -- F5 -- F6
+   *   \
+   *     --- G1
+   *
+   * The target list will be [ F6, G1 ].
+   *
+   * The result should be F6.
+   */
+  OSyncFormatEnv *env = osync_conv_env_new();
+  OSyncObjType *typef = osync_conv_register_objtype(env, "F");
+  osync_conv_register_objtype(env, "G");
+  
+  OSyncObjFormat *f1 = osync_conv_register_objformat(env, "F", "F1");
+  osync_conv_register_objformat(env, "F", "F2");
+  osync_conv_register_objformat(env, "F", "F3");
+  osync_conv_register_objformat(env, "F", "F4");
+  osync_conv_register_objformat(env, "F", "F5");
+  OSyncObjFormat *f6 = osync_conv_register_objformat(env, "F", "F6");
+
+  OSyncObjFormat *g1 = osync_conv_register_objformat(env, "G", "G1");
+
+  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F4", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F5", "F6", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "G1", convert_addtest2, CONV_NOTLOSSY);
+  mark_point();
+
+  OSyncChange *change = osync_change_new();
+  osync_change_set_objformat(change, f1);
+  osync_change_set_data(change, "data", 5, TRUE);
+  
+  mark_point();
+
+  GList *targets = g_list_append(NULL, g1);
+  targets = g_list_append(targets, f6);
+  fail_unless(osync_conv_detect_and_convert(env, change, targets), NULL);
+  mark_point();
+  char *data = osync_change_get_data(change);
+  fail_unless(!strcmp(data, "datatesttesttesttesttest"), NULL);
+
+  fail_unless(change->objtype == typef, NULL);
+  fail_unless(change->format == f6, NULL);
+}
+END_TEST
+
+START_TEST(conv_prefer_not_lossy_objtype_change)
+{
+  /* Test if the converter is getting the path
+   * that have no lossy converters, even if
+   * the objtype is being changed.
+   *
+   * Objtypes: F and G
+   *
+   * F1 -- F2 -- F3 -- F5 -- F6
+   *   \
+   *     --- G1
+   *
+   * The target list will be [ F6, G1 ].
+   *
+   * The converter F2 -> F3 is lossy.
+   *
+   * The result should be G1.
+   */
+  OSyncFormatEnv *env = osync_conv_env_new();
+  osync_conv_register_objtype(env, "F");
+  OSyncObjType *typeg = osync_conv_register_objtype(env, "G");
+  
+  OSyncObjFormat *f1 = osync_conv_register_objformat(env, "F", "F1");
+  osync_conv_register_objformat(env, "F", "F2");
+  osync_conv_register_objformat(env, "F", "F3");
+  osync_conv_register_objformat(env, "F", "F4");
+  osync_conv_register_objformat(env, "F", "F5");
+  OSyncObjFormat *f6 = osync_conv_register_objformat(env, "F", "F6");
+
+  OSyncObjFormat *g1 = osync_conv_register_objformat(env, "G", "G1");
+
+  osync_conv_register_converter(env, CONVERTER_DESENCAP, "F1", "F2", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F2", "F3", convert_addtest, 0); /* Lossy */
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F3", "F4", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F4", "F5", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F5", "F6", convert_addtest, CONV_NOTLOSSY);
+  osync_conv_register_converter(env, CONVERTER_ENCAP, "F1", "G1", convert_addtest2, CONV_NOTLOSSY);
+  mark_point();
+
+  OSyncChange *change = osync_change_new();
+  osync_change_set_objformat(change, f1);
+  osync_change_set_data(change, "data", 5, TRUE);
+  
+  mark_point();
+
+  GList *targets = g_list_append(NULL, g1);
+  targets = g_list_append(targets, f6);
+  fail_unless(osync_conv_detect_and_convert(env, change, targets), NULL);
+  mark_point();
+  char *data = osync_change_get_data(change);
+  fail_unless(!strcmp(data, "datatest2"), NULL);
+
+  fail_unless(change->objtype == typeg, NULL);
+  fail_unless(change->format == g1, NULL);
+}
+END_TEST
+
 START_TEST (conv_env_detect_false)
 {
   OSyncFormatEnv *env = osync_conv_env_new();
@@ -656,6 +812,9 @@ Suite *env_suite(void)
 	tcase_add_test(tc_convert, conv_env_convert_back);
 	tcase_add_test(tc_convert, conv_env_convert_desenc);
 	tcase_add_test(tc_convert, conv_env_convert_desenc_complex);
+	tcase_add_test(tc_convert, conv_prefer_not_lossy);
+	tcase_add_test(tc_convert, conv_prefer_same_objtype);
+	tcase_add_test(tc_convert, conv_prefer_not_lossy_objtype_change);
 	tcase_add_test(tc_detect, conv_env_detect_and_convert);
 	tcase_add_test(tc_detect, conv_env_detect_false);
 	return s;

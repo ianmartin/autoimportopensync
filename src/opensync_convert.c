@@ -566,10 +566,13 @@ osync_bool osync_cheap_convert(OSyncFormatConverter *converter, char *input, siz
 {
 	char *origdata;
 	size_t origsize;
+	osync_debug("OSFRM", 4, "Invoking converter to cheap conversion: %s -> %s",
+			converter->source_format->name, converter->target_format->name);
+
 	/* Duplicate the data, if the converter will take it to himself */
 	if (converter->flags & CONV_TAKEOVER) {
 		if (!converter->source_format->copy_func) {
-			osync_debug("OSFRM", 0, "Converter %s->%s is CONV_TAKEOVER, but no copy_func", converter->source_format, converter->target_format);
+			osync_debug("OSFRM", 0, "Converter %s->%s is CONV_TAKEOVER, but no copy_func", converter->source_format->name, converter->target_format->name);
 			return FALSE;
 		}
 		if (!converter->source_format->copy_func(input, inpsize, &origdata, &origsize))
@@ -660,7 +663,7 @@ static osync_bool osync_conv_fmt_in_list(OSyncObjFormat *fmt, GList/*OSyncObjFor
 	return FALSE;
 }
 
-typedef struct edge {
+typedef struct vertice {
 	OSyncObjFormat *format;
 
 	/** Converted data: needed
@@ -674,21 +677,65 @@ typedef struct edge {
 	osync_bool free_data;
 	/** @} */
 
-	/* Keep reference counts because
+	/** The converter that needs to be run
+	 * on previous->data to get the
+	 * vertice data
+	 */
+	OSyncFormatConverter *converter;
+
+	/** Keep reference counts because
 	 * the data returned by converters
 	 * can be references to other data,
 	 * and we can't free them too early
-	 *
-	 * @{
 	 */
-	struct edge *referenced_data;
 	size_t references;
-	/** @} */
+
+	/** A reference to the previous vertice
+	 * on the path
+	 *
+	 * Used when a conversion is necessary
+	 */
+	struct vertice *previous;
 
 	/** The path of converters */
 	GList *path;
 
-} edge;
+	/** Distance data
+	 * @{
+	 */
+	unsigned losses;
+	unsigned objtype_changes;
+	unsigned conversions;
+	/** @} */
+
+} vertice;
+
+/** Compare the distance of two vertices
+ *
+ * First, try to minimize the losses. Then,
+ * try to minimize the conversions between
+ * different objtypes. Then, try to minimize
+ * the total number of conversions.
+ */
+int compare_vertice_distance(const void *a, const void *b)
+{
+	const vertice *va = a;
+	const vertice *vb = b;
+	if (va->losses < vb->losses)
+		return -1;
+	else if (va->losses > vb->losses)
+		return 1;
+	else if (va->objtype_changes < vb->objtype_changes)
+		return -1;
+	else if (va->objtype_changes > vb->objtype_changes)
+		return 1;
+	else if (va->conversions < vb->conversions)
+		return -1;
+	else if (va->conversions > vb->conversions)
+		return 1;
+	else
+		return 0;
+}
 
 typedef struct conv_tree {
 	OSyncFormatEnv *env;
@@ -700,19 +747,94 @@ typedef struct conv_tree {
 	GList *search;
 } conv_tree;
 
-edge *get_next_edge_neighbour(OSyncFormatEnv *env, conv_tree *tree, edge *me)
+
+/** Increment a vertice reference count */
+static void ref_vertice(vertice *v)
+{
+	v->references++;
+}
+
+/** Dereference an vertice
+ */
+static void deref_vertice(vertice *vertice)
+{
+	/* Decrement the reference count,
+	 * and just return if we still
+	 * have a reference
+	 */
+	if (--vertice->references > 0)
+		return;
+
+	g_list_free(vertice->path);
+	if (vertice->free_data) {
+		if (!vertice->format->destroy_func)
+			osync_debug("OSFRM", 1, "Memory leak: can't free data of type %s", vertice->format->name);
+		else {
+			osync_debug("OSFRM", 4, "Freeing data of type %s", vertice->format->name);
+			vertice->format->destroy_func(vertice->data, vertice->datasize);
+		}
+	}
+	/* Drop the v->previous reference */
+	if (vertice->previous)
+		deref_vertice(vertice->previous);
+	g_free(vertice);
+}
+
+osync_bool calc_vertice_data(vertice *v)
+{
+	g_assert(v);
+
+	/* The data was already calculated */
+	if (v->data) return TRUE;
+
+	/* Ask the previous vertice to calculate its data, too.
+	 *
+	 * FIXME: Remove recursive call. It doesn't do too much harm,
+	 * but it is better to avoid it
+	 */
+	calc_vertice_data(v->previous);
+
+	/* Convert the data, trying to keep references, not copies */
+	osync_cheap_convert(v->converter, v->previous->data, v->previous->datasize, &v->data, &v->datasize, &v->free_data);
+
+	/* Keep references to old data, if we have done a 'nocopy'
+	 * conversion.
+	 *
+	 * free_data == 0 means that the returned data is a reference
+	 * to the original data.
+	 *
+	 * So, the reference on v->previous will be kept, if
+	 * free_data == 0. Otherwise, drop the reference.
+	 */
+	if (v->free_data) {
+		deref_vertice(v->previous);
+		v->previous = NULL;
+	}
+
+	return TRUE;
+}
+
+/** Returns a neighbour of the vertice ve
+ *
+ * Returns a new reference to te vertice. The reference
+ * should be dropped using deref_vertice(), later.
+ */
+vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertice *ve)
 {
 	GList *c = NULL;
 	OSyncObjFormat *detected_fmt = NULL;
-	if (me->format->detect_func)
-		me->format->detect_func(env, me->data, me->datasize, &detected_fmt);
+
+	if (ve->format->detect_func) {
+		calc_vertice_data(ve);
+		ve->format->detect_func(env, ve->data, ve->datasize, &detected_fmt);
+	}
 		
 	for (c = tree->unused; c; c = c->next) {
 		OSyncFormatConverter *converter = c->data;
 		OSyncObjFormat *fmt_target = converter->target_format;
 		
 		/* Check only valid converters, from the right format */
-		if (strcmp(converter->source_format->name, me->format->name))
+		if (strcmp(converter->source_format->name, ve->format->name))
 			continue;
 
 		/* If CONV_DETECTFIRST is set, check if the detector for the
@@ -733,7 +855,8 @@ edge *get_next_edge_neighbour(OSyncFormatEnv *env, conv_tree *tree, edge *me)
 					continue;
 				}
 				/* Call the detector, and don't use the converter, if it returns FALSE */
-				if (!det->detect_func(env, me->data, me->datasize))
+				calc_vertice_data(ve);
+				if (!det->detect_func(env, ve->data, ve->datasize))
 					continue;
 			} else {
 				/* Convert only to the detected format, when using CONV_DETECTFIRST
@@ -743,108 +866,112 @@ edge *get_next_edge_neighbour(OSyncFormatEnv *env, conv_tree *tree, edge *me)
 					continue;
 			}
 		}
-		tree->unused = g_list_remove(tree->unused, converter);
-		edge *neighbour = g_malloc0(sizeof(edge));
-		/* Start with a reference count = 1 */
-		neighbour->references = 1;
-		neighbour->format = fmt_target;
-		neighbour->path = g_list_copy(me->path);
-		neighbour->path = g_list_append(neighbour->path, converter);
 
-		/* Convert the data, trying to keep references, not copies */
-		/*FIXME: we may convert only if we need to run a detector */
-		osync_cheap_convert(converter, me->data, me->datasize, &neighbour->data, &neighbour->datasize, &neighbour->free_data);
-		/* Keep references to old data, to avoid
-		 * destroying the edges that have
-		 * references to their data
+
+		/* From this point, we already found an edge (i.e. a converter) that may
+		 * be used
 		 */
-		if (!neighbour->free_data) {
-			/* !free_data means that the returned data is a reference */
-			me->references++;
-			neighbour->referenced_data = me;
-		}
-		return neighbour;
+
+		/* Remove the converter from the unused list */
+		tree->unused = g_list_remove(tree->unused, converter);
+
+		/* Allocate the new neighbour */
+		vertice *neigh = g_malloc0(sizeof(vertice));
+		/* Start with a reference count = 1 */
+		neigh->references = 1;
+		neigh->converter = converter;
+		neigh->format = fmt_target;
+		neigh->path = g_list_copy(ve->path);
+		neigh->path = g_list_append(neigh->path, converter);
+
+		/* Distance calculation */
+		neigh->conversions = ve->conversions + 1;
+		neigh->losses = ve->losses;
+		if (!(converter->flags & CONV_NOTLOSSY))
+			neigh->losses++;
+		neigh->objtype_changes = ve->objtype_changes;
+		if (converter->source_format->objtype != converter->target_format->objtype)
+			neigh->objtype_changes++;
+
+		/* Keep the reference to the previous vertice, as we may need
+		 * its data later
+		 */
+		ref_vertice(ve);
+		neigh->previous = ve;
+
+		return neigh;
 	}
 	return NULL;
 }
 
-/** Dereference an edge
+/*TODO: make the path search function work in a
+ * find-path-to-objtype mode, that will be used for detection:
+ * The only change is: instead of using osync_conv_fmt_in_list(current->format, targets),
+ * stop when the objtype of the vertice is different than the original
+ * objtype.
+ *
+ * Maybe we can have a validate_vertice_fn parameter, a function that would 
+ * be called to check if a vertice is 'final' or not.
  */
-void put_edge(edge *edge)
-{
-	/* Decrement the reference count,
-	 * and just return if we still
-	 * have a reference
-	 */
-	if (--edge->references > 0)
-		return;
-
-	g_list_free(edge->path);
-	if (edge->free_data) {
-		if (!edge->format->destroy_func)
-			osync_debug("OSFRM", 1, "Memory leak: can't free data of type %s", edge->format->name);
-		else {
-			osync_debug("OSFRM", 4, "Freeing data of type %s", edge->format->name);
-			edge->format->destroy_func(edge->data, edge->datasize);
-		}
-	}
-	if (edge->referenced_data)
-		/* We are not referencing the data of another edge, anymore */
-		put_edge(edge->referenced_data);
-	g_free(edge);
-}
-
 osync_bool osync_conv_find_shortest_path(OSyncFormatEnv *env, GList *vertices, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist)
 {	
 	*retlist = NULL;
 	osync_bool ret = FALSE;
 	conv_tree *tree = g_malloc0(sizeof(conv_tree));
+
 	tree->unused = g_list_copy(vertices);
-	edge *current = g_malloc0(sizeof(edge));
 
-	edge *neighbour = NULL;
-	current->format = osync_change_get_objformat(start);
-	current->path = NULL;
-	current->data = start->data;
-	current->datasize = start->size;
-	current->free_data = FALSE;
-	current->references = 1;
+	vertice *result = NULL;
+	vertice *begin = g_malloc0(sizeof(vertice));
+	begin->format = osync_change_get_objformat(start);
+	begin->path = NULL;
+	begin->data = start->data;
+	begin->datasize = start->size;
+	begin->free_data = FALSE;
+	begin->references = 1;
 	
-	while (g_list_length(tree->unused) || g_list_length(tree->search)) {
-		osync_debug("OSFRM", 4, "Searching %s neighbours", current->format->name);
-		while ((neighbour = get_next_edge_neighbour(env, tree, current))) {
-			osync_debug("OSFRM", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
-			/* Check if we have reached a target format */
-			if (osync_conv_fmt_in_list(neighbour->format, targets)) {
-				//We are done!
-				*retlist = neighbour->path;
-				ret = TRUE;
-				goto reply;
-			}
-			osync_debug("OSFRM", 4, "Adding %s to queue", neighbour->format->name);
-			tree->search = g_list_append(tree->search, neighbour);
-		}
-		if (!tree->search)
-			goto reply;
-		put_edge(current);
+	tree->search = g_list_append(NULL, begin);
+	while (g_list_length(tree->search)) {
+		vertice *neighbour;
 
-		/* Get the next item on the queue */
-		/*TODO: Use a priority queue to get the
-		 * nearest vertices first
-		 * (i.e. try to use less lossy converters)
+		/* Get the first vertice,
+		 * and remove it from the queue
 		 */
-		current = g_list_first(tree->search)->data;
-		tree->search = g_list_remove(tree->search, current);
+		vertice *current = g_list_first(tree->search)->data;
+		tree->search = g_list_delete_link(tree->search, g_list_first(tree->search));
 
+		osync_debug("OSFRM", 4, "Searching %s. distance: (l: %d, oc: %d, c: %d).", current->format->name,
+				current->losses, current->objtype_changes, current->conversions);
+		/* Check if we have reached a target format */
+		if (osync_conv_fmt_in_list(current->format, targets)) {
+			/* Done. return the result */
+			result = current;
+			/* Note: the reference to 'current' will be dropped
+			 * after getting the path from 'result' at
+			 * the end of the function.
+			 */
+			break;
+		}
+		osync_debug("OSFRM", 4, "Looking %s neighbours.", current->format->name);
+		while ((neighbour = get_next_vertice_neighbour(env, tree, current))) {
+			osync_debug("OSFRM", 4, "%s neighbour: %s", current->format->name, neighbour->format->name);
+			osync_debug("OSFRM", 4, "Adding %s to queue", neighbour->format->name);
+			tree->search = g_list_insert_sorted(tree->search, neighbour, compare_vertice_distance);
+		}
+		/* Done, drop the reference to the vertice */
+		deref_vertice(current);
 	}
 	
-	reply:
-	g_list_foreach(tree->search, (GFunc)put_edge, NULL);
+	/* Remove the references on the search queue */
+	g_list_foreach(tree->search, (GFunc)deref_vertice, NULL);
 	
-	if (neighbour)
-		g_free(neighbour);
-	if (current)
-		put_edge(current);
+	if (result) {
+		/* Found it. Copy the conversion path */
+		*retlist = g_list_copy(result->path);
+		/* Drop the reference to the result vertice */
+		deref_vertice(result);
+		ret = TRUE;
+	}
 	
 	g_list_free(tree->unused);
 	g_list_free(tree->search);
