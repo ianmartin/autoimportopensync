@@ -90,6 +90,22 @@ class kaddrbook
 
         }
 
+        /** Calculate the hash value for an Addressee.
+         * Should be called before returning/writing the
+         * data, because the revision of the Addressee
+         * can be changed.
+         */
+        QString calc_hash(KABC::Addressee &e)
+        {
+            QDateTime revdate = e.revision();
+            if (!revdate.isValid())
+            {
+                revdate = newsyncdate;      //use date of this sync as the revision date.
+                e.setRevision(revdate);   //update the Addressbook entry for future reference.
+            }
+            return revdate.toString();
+        }
+
         int connect()
         {
             //Lock the addressbook
@@ -140,19 +156,12 @@ class kaddrbook
                 //Regard entries with invalid revision dates as having just been changed.
                 osync_debug("kde", 3, "new entry, uid: %s", it->uid().latin1());
 
-                QDateTime revdate = it->revision();
-                if (!revdate.isValid())
-                {
-                    revdate = newsyncdate;      //use date of this sync as the revision date.
-                    it->setRevision(revdate);   //update the Addressbook entry for future reference.
-                }     
+                QString hash = calc_hash(*it);
 
                 // gmalloc a changed_object for this phonebook entry             
                 //FIXME: deallocate it somewhere
                 OSyncChange *chg= osync_change_new();
                 osync_change_set_member(chg, member);
-
-                QCString hash(revdate.toString());
 
                 osync_change_set_hash(chg, hash);
                 osync_change_set_uid(chg, it->uid().latin1());
@@ -235,6 +244,8 @@ class kaddrbook
                     unfold_vcard(data, &data_size);
                     KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
 
+                    QString hash = calc_hash(addressee);
+
                     // ensure it has a NULL UID
                     //addressee.setUid(QString(NULL));
                     if (!addressee.uid()) {
@@ -251,6 +262,7 @@ class kaddrbook
 
                     // return the UID of the new entry along with the result
                     osync_change_set_uid(chg, addressee.uid().latin1());
+                    osync_change_set_hash(chg, hash);
                     result = 0;
                     break;
                 }
