@@ -33,8 +33,7 @@ extern "C"
 #include <kabc/vcardconverter.h>
 #include <kabc/resource.h>
 #include <libkcal/resourcecalendar.h>
-#include <kcmdlineargs.h>
-#include <kapplication.h>
+#include <kinstance.h>
 #include <klocale.h>
 #include <qsignal.h>
 #include <qfile.h> 
@@ -68,11 +67,6 @@ void unfold_vcard(char *vcard, size_t *size)
     *size = out - vcard;
 }
 
-static KApplication *applicationptr=NULL;
-static char name[] = "kde-opensync-plugin";
-static int argc = 0;
-static char *argv[] = {name,0};
-
 class KdePluginImplementation: public KdePluginImplementationBase
 {
     private:
@@ -84,14 +78,15 @@ class KdePluginImplementation: public KdePluginImplementationBase
         OSyncMember *member;
         OSyncHashTable *hashtable;
 
+        KInstance *instance;
+
     public:
         KdePluginImplementation(OSyncMember *memb)
             :member(memb)
         {
             //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
 
-            KCmdLineArgs::init(argc, argv, "kde-opensync-plugin", i18n("KOpenSync"), "KDE OpenSync plugin", "0.1", false);
-            applicationptr = new KApplication();
+            instance = new KInstance("kde-opensync-plugin");
 
             //get a handle to the standard KDE addressbook
             addressbookptr = KABC::StdAddressBook::self();
@@ -113,9 +108,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 delete kcal;
                 kcal = NULL;
             }
-            if (applicationptr) {
-                delete applicationptr;
-                applicationptr = NULL;
+            if (instance) {
+                delete instance;
+                instance = NULL;
             }
         }
 
@@ -236,6 +231,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 return;
             if (kcal && !kcal->get_changeinfo(ctx))
                 return;
+
+            osync_context_report_success(ctx);
         }
 
         void kabc_get_data(OSyncContext *ctx, OSyncChange *chg)
