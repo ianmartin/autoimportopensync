@@ -215,6 +215,8 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 
                 osync_debug("kcal", 3, "Writing incidence: uid: %s, summary: %s",
                                 (const char*)e->uid().local8Bit(), (const char*)e->summary().local8Bit());
+                QString hash = calc_hash(*i);
+                osync_change_set_hash(chg, hash);
                 calendar->addIncidence(e);
             }
 
