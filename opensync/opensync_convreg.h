@@ -6,7 +6,8 @@ void osync_env_register_filter_function(OSyncEnv *env, const char *name, const c
 void osync_env_register_objformat(OSyncEnv *env, const char *objtypename, const char *name);
 void osync_env_register_objtype(OSyncEnv *env, const char *name);
 void osync_env_register_converter(OSyncEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func);
-void osync_env_register_extension(OSyncEnv *env, const char *objformatname, OSyncFormatConvertFunc conv_to_func, OSyncFormatConvertFunc conv_from_func);
+void osync_env_converter_set_init(OSyncEnv *env, const char *sourcename, const char *targetname, OSyncFormatConverterInitFunc init_func, OSyncFormatConverterFinalizeFunc fin_func);
+void osync_env_register_extension(OSyncEnv *env, const char *from_format, const char *to_format, const char *extension_name, OSyncFormatExtInitFunc init_func);
 void osync_env_format_set_compare_func(OSyncEnv *env, const char *formatname, OSyncFormatCompareFunc cmp_func);
 void osync_env_format_set_destroy_func(OSyncEnv *env, const char *formatname, OSyncFormatDestroyFunc destroy_func);
 void osync_env_format_set_copy_func(OSyncEnv *env, const char *formatname, OSyncFormatCopyFunc copy_func);

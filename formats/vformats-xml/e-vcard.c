@@ -34,7 +34,8 @@
 typedef enum {
 	EVC_ENCODING_RAW,    /* no encoding */
 	EVC_ENCODING_BASE64, /* base64 */
-	EVC_ENCODING_QP      /* quoted-printable */
+	EVC_ENCODING_QP,     /* quoted-printable */
+	EVC_ENCODING_8BIT
 } EVCardEncoding;
 
 struct _EVCardPrivate {
@@ -111,19 +112,21 @@ e_vcard_get_type (void)
 	static GType vcard_type = 0;
 
 	if (!vcard_type) {
-		static const GTypeInfo vcard_info =  {
-			sizeof (EVCardClass),
-			NULL,           /* base_init */
-			NULL,           /* base_finalize */
-			(GClassInitFunc) e_vcard_class_init,
-			NULL,           /* class_finalize */
-			NULL,           /* class_data */
-			sizeof (EVCard),
-			0,             /* n_preallocs */
-			(GInstanceInitFunc) e_vcard_init,
-		};
-
-		vcard_type = g_type_register_static (G_TYPE_OBJECT, "OSEVCard", &vcard_info, 0);
+		if (!(vcard_type = g_type_from_name("OSEVCard"))) {
+			static const GTypeInfo vcard_info =  {
+				sizeof (EVCardClass),
+				NULL,           /* base_init */
+				NULL,           /* base_finalize */
+				(GClassInitFunc) e_vcard_class_init,
+				NULL,           /* class_finalize */
+				NULL,           /* class_data */
+				sizeof (EVCard),
+				0,             /* n_preallocs */
+				(GInstanceInitFunc) e_vcard_init,
+			};
+	
+			vcard_type = g_type_register_static (G_TYPE_OBJECT, "OSEVCard", &vcard_info, 0);
+		}
 	}
 
 	return vcard_type;
@@ -451,6 +454,7 @@ read_attribute (char **p)
 	EVCardAttribute *attr = NULL;
 	GString *str;
 	char *lp = *p;
+	
 	gboolean is_qp = FALSE;
 
 	/* first read in the group/name */
@@ -811,7 +815,6 @@ e_vcard_to_string_vcard_21  (EVCard *evc)
 	str = g_string_append (str, "END:VCARD\r\n");
 
 	return g_string_free (str, FALSE);
-	return g_strdup ("");
 }
 
 static char*
@@ -1278,6 +1281,17 @@ e_vcard_attribute_add_value_decoded (EVCardAttribute *attr, const char *value, i
 			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
 			break;
 		}
+		case EVC_ENCODING_8BIT: {
+			char *data = g_strdup(value);
+			GString *decoded = g_string_new (value);
+	
+			/* make sure the decoded list is up to date */
+			e_vcard_attribute_get_values_decoded (attr);
+	
+			attr->values = g_list_append (attr->values, data);
+			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
+			break;
+		}
 	}
 }
 
@@ -1393,6 +1407,8 @@ e_vcard_attribute_add_param (EVCardAttribute *attr,
 				attr->encoding = EVC_ENCODING_BASE64;
 			else if (!g_ascii_strcasecmp ((char*)param->values->data, EVC_QUOTEDPRINTABLE))
 				attr->encoding = EVC_ENCODING_QP;
+			else if (!g_ascii_strcasecmp ((char *)param->values->data, "8BIT"))
+				attr->encoding = EVC_ENCODING_8BIT;
 			else {
 				g_warning ("Unknown value `%s' for ENCODING parameter.  values will be treated as raw",
 					   (char*)param->values->data);
@@ -1517,6 +1533,7 @@ e_vcard_attribute_get_values_decoded (EVCardAttribute *attr)
 		GList *l;
 		switch (attr->encoding) {
 		case EVC_ENCODING_RAW:
+		case EVC_ENCODING_8BIT:
 			for (l = attr->values; l; l = l->next)
 				attr->decoded_values = g_list_append (attr->decoded_values, g_string_new ((char*)l->data));
 			break;

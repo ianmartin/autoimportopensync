@@ -222,7 +222,7 @@ void get_info(OSyncPluginInfo *info)
 	//This can be more than one
 	osync_plugin_accept_objtype(info, "<object type name>");
 	//which format do you accept for this objtype
-	osync_plugin_accept_objformat(info, "<object type name>", "<format name>");
+	osync_plugin_accept_objformat(info, "<object type name>", "<format name>", "<name of the required extension if any>");
 	//set the commit function for this format
 	osync_plugin_set_commit_objformat(info, "<object type name>", "<format name>", commit_change);
 }

@@ -190,6 +190,8 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginn
 			objsink->formatsinks = g_list_append(objsink->formatsinks, format_sink);
 			format_sink->objtype_sink = objsink;
 			member->format_sinks = g_list_append(member->format_sinks, format_sink);
+			if (frmtemplate->extension_name)
+				member->extension = g_strdup(frmtemplate->extension_name);
 		}
 	}
 	

@@ -72,7 +72,7 @@ static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
 	return encoding;
 }
 
-static osync_bool conv_vnote_to_xml(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("VNOTE", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);
@@ -228,7 +228,7 @@ static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, 
 	g_free(tmp);
 }
 
-static osync_bool conv_xml_to_vnote(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_debug("VNOTE", 4, "start: %s", __func__);
 	xmlDocDump(stdout, (xmlDoc *)input);
@@ -309,7 +309,7 @@ static char *print_note(OSyncChange *change)
 	char *result;
 	int size;
 	osync_bool free;
-	if (!conv_xml_to_vnote((char*)doc, 0, &result, &size, &free, NULL))
+	if (!conv_xml_to_vnote(NULL, (char*)doc, 0, &result, &size, &free, NULL))
 		return NULL;
 	return result;
 }

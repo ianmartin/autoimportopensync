@@ -42,5 +42,5 @@ CLEANFILES = \
 	*.bbg \
 	*.da
 
-libosengine_la_LDFLAGS = $(PACKAGE_LIBS) -R $(libdir)
+libosengine_la_LDFLAGS = $(PACKAGE_LIBS) -R $(libdir) @GCOV_LDFLAGS@
 libosengine_la_LIBADD = $(top_builddir)/opensync/libopensync.la

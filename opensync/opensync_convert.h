@@ -25,5 +25,7 @@ osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncO
 osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *fmtname, OSyncError **error);
 osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **names, OSyncError **error);
 osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **error);
+osync_bool osync_change_convert_extension(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat, const char *extension_name, OSyncError **error);
+
 osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyncError **error);
 OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error);

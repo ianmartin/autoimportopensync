@@ -39,7 +39,7 @@ static OSyncConvCmpResult compare_format1(OSyncChange *leftchange, OSyncChange *
 	return CONV_DATA_MISMATCH;
 }
 
-static osync_bool conv_format1_to_format2(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_format1_to_format2(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	/*
 	 * This function can be used to convert your format to another format.
@@ -49,6 +49,9 @@ static osync_bool conv_format1_to_format2(char *input, int inpsize, char **outpu
 	 */
 	
 	/* The arguments mean:
+	 * 
+	 * - conv_data:
+	 * Pointer to the data you returned in your init function (if any)
 	 * 
 	 * - input:
 	 * The data you need to convert
@@ -76,7 +79,7 @@ static osync_bool conv_format1_to_format2(char *input, int inpsize, char **outpu
 	return TRUE;
 }
 
-static osync_bool conv_format2_to_format1(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_format2_to_format1(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	/*
 	 * This function can be used to convert another format to your format.

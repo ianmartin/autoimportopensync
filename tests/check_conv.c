@@ -93,7 +93,7 @@ START_TEST (conv_env_set_format_string)
 }
 END_TEST
 
-static osync_bool dummyconvert(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool dummyconvert(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = g_strdup("test");
@@ -363,7 +363,7 @@ START_TEST (conv_env_osp_complex)
 }
 END_TEST
 
-static osync_bool convert_addtest(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool convert_addtest(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = g_strdup_printf("%stest", input);
@@ -371,7 +371,7 @@ static osync_bool convert_addtest(char *input, int inpsize, char **output, int *
 	return TRUE;
 }
 
-static osync_bool convert_remtest(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool convert_remtest(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = strdup(input);
@@ -387,7 +387,7 @@ static osync_bool convert_remtest(char *input, int inpsize, char **output, int *
 	}
 }
 
-static osync_bool convert_addtest2(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool convert_addtest2(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	*output = g_strdup_printf("%stest2", input);
 	*outpsize = inpsize + 5;
@@ -395,7 +395,7 @@ static osync_bool convert_addtest2(char *input, int inpsize, char **output, int 
 	return TRUE;
 }
 
-static osync_bool convert_remtest2(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool convert_remtest2(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	*free_input = TRUE;
 	*output = strdup(input);

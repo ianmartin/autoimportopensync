@@ -100,6 +100,7 @@ struct OSyncMember {
 	GList *accepted_objtypes;
 	GList *filters;
 
+	char *extension;
 };
 
 struct OSyncContext {

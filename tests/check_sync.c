@@ -466,6 +466,49 @@ START_TEST (sync_moddel)
 }
 END_TEST
 
+START_TEST (sync_conflict_moddel)
+{
+	char *testbed = setup_testbed("sync_moddel");
+	num_conflicts = 0;
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)2);
+	osync_engine_init(engine, &error);
+
+	synchronize_once(engine, NULL);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	
+	sleep(2);
+	system("cp new_data2 data1/testdata");
+	system("rm -f data2/testdata");
+	
+	synchronize_once(engine, NULL);
+	osync_engine_finalize(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(num_conflicts == 1, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
+    osengine_mappingtable_close(maptable);
+    
+	OSyncHashTable *table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (sync_easy_dualdel)
 {
 	char *testbed = setup_testbed("sync_easy_dualdel");
@@ -506,6 +549,82 @@ START_TEST (sync_easy_dualdel)
 }
 END_TEST
 
+START_TEST (sync_subdirs_new)
+{
+	char *testbed = setup_testbed("sync_subdirs_new");
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
+	mark_point();
+	
+	system("rm -rf data1/.svn");
+	system("rm -rf data2/.svn");
+	system("rm -rf data1/subdir/.svn");
+	system("rm -rf data2/subdir/.svn");
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	mark_point();
+	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	
+	synchronize_once(engine, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" -r data1 data2)\" = \"x\""), NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 3, 0);
+	check_mapping(maptable, 1, -1, 2, "testdata", "file", "data");
+	check_mapping(maptable, 2, -1, 2, "testdata", "file", "data");
+	
+	check_mapping(maptable, 1, -1, 2, "subdir/testdata", "file", "data");
+	check_mapping(maptable, 2, -1, 2, "subdir/testdata", "file", "data");
+	
+	check_mapping(maptable, 1, -1, 2, "subdir/testdata1", "file", "data");
+	check_mapping(maptable, 2, -1, 2, "subdir/testdata1", "file", "data");
+	
+    osengine_mappingtable_close(maptable);
+    
+    OSyncHashTable *table = hashtable_load(group, 1, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "subdir/testdata");
+    check_hash(table, "subdir/testdata1");
+	osync_hashtable_close(table);
+
+	table = hashtable_load(group, 2, 3);
+    check_hash(table, "testdata");
+    check_hash(table, "subdir/testdata");
+    check_hash(table, "subdir/testdata1");
+	osync_hashtable_close(table);
+	
+	system("rm -f data2/testdata");
+	system("rm -f data1/subdir/testdata");
+	system("rm -f data1/subdir/testdata1");
+	
+	synchronize_once(engine, NULL);
+
+	maptable = mappingtable_load(group, 0, 0);
+    osengine_mappingtable_close(maptable);
+    
+    table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" -r data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data1)\" = \"xsubdir\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"xsubdir\""), NULL);
+	fail_unless(!system("test \"x$(ls data1/subdir)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2/subdir)\" = \"x\""), NULL);
+	
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Sync");
@@ -523,7 +642,9 @@ Suite *env_suite(void)
 	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2);
 	create_case(s, "sync_conflict_deldel", sync_conflict_deldel);
 	create_case(s, "sync_moddel", sync_moddel);
+	create_case(s, "sync_conflict_moddel", sync_conflict_moddel);
 	create_case(s, "sync_conflict_duplicate", sync_conflict_duplicate);
+	create_case(s, "sync_subdirs_new", sync_subdirs_new);
 
 	return s;
 }

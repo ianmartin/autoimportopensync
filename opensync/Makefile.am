@@ -57,5 +57,5 @@ CLEANFILES = \
 	*.bbg \
 	*.da
 
-libopensync_la_LDFLAGS = @PACKAGE_LIBS@
+libopensync_la_LDFLAGS = @PACKAGE_LIBS@ @GCOV_LDFLAGS@
 libopensync_la_LIBADD = @XML_LIBS@

@@ -147,6 +147,14 @@ START_TEST (error_set_null2)
 }
 END_TEST
 
+START_TEST (error_duplicate_null)
+{
+	OSyncError *error = NULL;
+	osync_error_set(&error, OSYNC_ERROR_GENERIC, "asd");
+	osync_error_duplicate(NULL, &error);
+}
+END_TEST
+
 Suite *error_suite(void)
 {
 	Suite *s = suite_create("Error");
@@ -171,6 +179,8 @@ Suite *error_suite(void)
 	tcase_add_test(tc_error, error_update2);
 	tcase_add_test(tc_error, error_set_null);
 	tcase_add_test(tc_error, error_set_null2);
+	tcase_add_test(tc_error, error_duplicate_null);
+	
 	return s;
 }
 

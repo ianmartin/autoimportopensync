@@ -107,7 +107,7 @@ static OSyncFormatConverter *osync_conv_find_converter_objformat(OSyncFormatEnv 
 	return NULL;
 }
 
-static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool convert_to, OSyncChange *change)
+/*static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool convert_to, OSyncChange *change)
 {
 	char *data = NULL;
 	int datasize = 0;
@@ -130,9 +130,9 @@ static void osync_conv_invoke_extensions(OSyncObjFormat *format, osync_bool conv
 			change->size = datasize;
 		}
 	}
-}
+}*/
 
-osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, OSyncError **error)
+osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, void *converter_data, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_converter_invoke(%p, %p, %p)", converter, change, error);
 	osync_trace(TRACE_INTERNAL, "converter: Type: %i, source: %s, target %s", converter->type, converter->source_format->name, converter->target_format->name);
@@ -147,9 +147,9 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	
 	if (change->data) {
 		//Invoke the converter and all extensions
-		osync_conv_invoke_extensions(converter->source_format, FALSE, change);
+		//osync_conv_invoke_extensions(converter->source_format, FALSE, change);
 		osync_bool free_input = FALSE;
-		if ((ret = converter->convert_func(change->data, change->size, &data, &datasize, &free_input, error))) {
+		if ((ret = converter->convert_func(converter_data, change->data, change->size, &data, &datasize, &free_input, error))) {
 		
 			if (converter->type == CONVERTER_DECAP) {
 				if (!free_input) {
@@ -176,7 +176,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 			change->data = data;
 			change->size = datasize;
 			
-			osync_conv_invoke_extensions(converter->target_format, TRUE, change);
+			//osync_conv_invoke_extensions(converter->target_format, TRUE, change);
 		}
 	}
 	
@@ -212,7 +212,7 @@ static OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter
 	if (change->data) {
 		//Invoke the converter and all extensions
 		OSyncError *error = NULL;
-		if (!converter->convert_func(change->data, change->size, &(new_change->data), &(new_change->size), free_output, &error)) {
+		if (!converter->convert_func(NULL, change->data, change->size, &(new_change->data), &(new_change->size), free_output, &error)) {
 			osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke_decap", osync_error_print(&error));
 			osync_error_free(&error);
 			return NULL;
@@ -477,7 +477,7 @@ free_tree:
 	return ret;
 }
 
-osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, OSyncError **error)
+osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, const char *extension_name, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_conv_convert_fn(%p, %p, %p, %p, %p)", env, change, target_fn, fndata, error);
 	g_assert(change);
@@ -502,10 +502,45 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	
 	for (; path; path = path->next) {
 		OSyncFormatConverter *converter = path->data;
-		if (!osync_converter_invoke(converter, change, error)) {
+
+		osync_trace(TRACE_INTERNAL, "initialize converter: %p", converter->init_func);
+		
+		//Initialize the converter
+		void *converter_data = NULL;
+		if (converter->init_func)
+			converter_data = converter->init_func();
+		
+		if (extension_name) {
+			osync_trace(TRACE_INTERNAL, "initialize extension: %s", extension_name);
+			
+			//Initialize the requested extension
+			OSyncFormatExtension *extension = osync_conv_find_extension(env, converter->source_format, converter->target_format, extension_name);
+			osync_trace(TRACE_INTERNAL, "extension: %p", extension);
+			if (extension)
+				extension->init_func(converter_data);
+		} else {
+			
+			osync_trace(TRACE_INTERNAL, "initialize all extensions");
+			//Initialize all available from extensions
+			GList *e;
+			for (e = env->extensions; e; e = e->next) {
+				OSyncFormatExtension *extension = e->data;
+				osync_trace(TRACE_INTERNAL, "extension: %s", extension->name);
+				osync_trace(TRACE_INTERNAL, "%p:%p %p:%p", extension->from_format, converter->source_format, extension->to_format, converter->target_format);
+				if (extension->from_format == converter->source_format && extension->to_format == converter->target_format)
+					extension->init_func(converter_data);
+			}
+		}
+		
+		if (!osync_converter_invoke(converter, change, converter_data, error)) {
 			osync_trace(TRACE_EXIT_ERROR, "osync_conv_convert_fn: %s", osync_error_print(error));
 			goto out_free_path;
 		}
+		
+		//Finalize the converter data
+		if (converter->fin_func)
+			converter->fin_func(converter_data);
+		
 	}
 
 	ret = TRUE;
@@ -538,7 +573,7 @@ static osync_bool target_fn_fmtlist(const void *data, OSyncObjFormat *fmt)
  */
 osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets)
 {
-	return osync_conv_convert_fn(env, change, target_fn_fmtlist, targets, NULL);
+	return osync_conv_convert_fn(env, change, target_fn_fmtlist, targets, NULL, NULL);
 }
 
 osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist)
@@ -613,9 +648,9 @@ static osync_bool target_fn_membersink(const void *data, OSyncObjFormat *fmt)
 
 /** Convert a change to the nearest format sink on a member
  */
-osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb, OSyncError **error)
+osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *member, OSyncError **error)
 {
-	return osync_conv_convert_fn(env, change, target_fn_membersink, memb, error);
+	return osync_conv_convert_fn(env, change, target_fn_membersink, member, member->extension, error);
 }
 
 osync_bool osync_conv_objtype_is_any(const char *objstr)
@@ -646,6 +681,7 @@ osync_bool osync_conv_objtype_is_any(const char *objstr)
  */
 OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 	OSyncFormatEnv *conv_env = g_malloc0(sizeof(OSyncFormatEnv));
 	GList *o;
 	
@@ -682,10 +718,29 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		conv_env->objformats = g_list_append(conv_env->objformats, format);
 	}
 	
-	//Converter templates
+	//The extension
 	GList *i;
+	for (i = env->extension_templates; i; i = i->next) {
+		OSyncFormatExtensionTemplate *extension_template = i->data;
+		OSyncObjFormat *from_format = osync_conv_find_objformat(conv_env, extension_template->from_formatname);
+		OSyncObjFormat *to_format = osync_conv_find_objformat(conv_env, extension_template->to_formatname);
+		if (!from_format || !to_format)
+			continue;
+
+		OSyncFormatExtension *extension = g_malloc0(sizeof(OSyncFormatExtension));
+		extension->name = g_strdup(extension_template->name);
+		extension->init_func = extension_template->init_func;
+		extension->from_format = from_format;
+		extension->to_format = to_format;
+		
+		conv_env->extensions = g_list_append(conv_env->extensions, extension);
+	}
+	
+	//Converter templates
 	for (i = env->converter_templates; i; i = i->next) {
 		OSyncConverterTemplate *convtmpl = i->data;
+
+		osync_trace(TRACE_INTERNAL, "New converter from %s to %s", convtmpl->source_format, convtmpl->target_format);
 
 		OSyncObjFormat *fmt_src = osync_conv_find_objformat(conv_env, convtmpl->source_format);
 		OSyncObjFormat *fmt_trg = osync_conv_find_objformat(conv_env, convtmpl->target_format);
@@ -696,7 +751,8 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		converter->target_format = fmt_trg;
 		converter->convert_func = convtmpl->convert_func;
 		converter->type = convtmpl->type;
-
+		converter->init_func = convtmpl->init_func;
+		
 		conv_env->converters = g_list_append(conv_env->converters, converter);
 	}
 	
@@ -721,22 +777,8 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 	//The filters
 	conv_env->filter_functions = g_list_copy(env->filter_functions);
 
-	//The extension
-	for (i = env->extension_templates; i; i = i->next) {
-		OSyncFormatExtensionTemplate *ext_templ = i->data;
-		OSyncObjFormat *format = osync_conv_find_objformat(conv_env, ext_templ->formatname);
-		if (!format)
-			continue;
-		
-		OSyncFormatExtension *extension = g_malloc0(sizeof(OSyncObjFormat));
-		extension->format = format;
-		extension->conv_from = ext_templ->conv_from;
-		extension->conv_to = ext_templ->conv_to;
-
-		format->extensions = g_list_append(format->extensions, extension);
-	}
-
 	osync_conv_set_common_format(conv_env, "contact", "xml-contact", NULL);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, conv_env);
 	return conv_env;
 }
 
@@ -842,6 +884,21 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char 
 	return osync_conv_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
+OSyncFormatExtension *osync_conv_find_extension(OSyncFormatEnv *env, OSyncObjFormat *from_format, OSyncObjFormat *to_format, const char *extension_name)
+{
+	g_assert(env);
+	g_assert(extension_name);
+
+	GList *i = NULL;
+	for (i = env->extensions; i; i = i->next) {
+		OSyncFormatExtension *extension = i->data;
+		osync_trace(TRACE_INTERNAL, "comparing format %p:%p %p:%p name %s:%s", extension->from_format, from_format, extension->to_format, to_format, extension->name, extension_name);
+		if ((extension->from_format == from_format || !from_format) && (extension->to_format == to_format || !to_format) && !strcmp(extension->name, extension_name))
+			return extension;
+	}
+	return NULL;
+}
+
 const char *osync_objtype_get_name(OSyncObjType *type)
 {
 	g_assert(type);
@@ -922,6 +979,18 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
 	}
 }
 
+osync_bool osync_change_convert_extension(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat, const char *extension_name, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_change_convert(%p, %p, %p:%s, %s, %p)", env, change, targetformat, targetformat ? targetformat->name : "NONE", extension_name, error);
+	if (osync_conv_convert_fn(env, change, target_fn_simple, targetformat, extension_name, error)) {
+		osync_trace(TRACE_EXIT, "osync_change_convert: TRUE");
+		return TRUE;
+	} else {
+		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert: %s", osync_error_print(error));
+		return FALSE;
+	}
+}
+
 /*! @brief Convert a change to a specific format
  * 
  * This will convert the change with its data to the specified format
@@ -936,14 +1005,7 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
  */
 osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_change_convert(%p, %p, %p:%s, %p)", env, change, targetformat, targetformat ? targetformat->name : "NONE", error);
-	if (osync_conv_convert_fn(env, change, target_fn_simple, targetformat, error)) {
-		osync_trace(TRACE_EXIT, "osync_change_convert: TRUE");
-		return TRUE;
-	} else {
-		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert: %s", osync_error_print(error));
-		return FALSE;
-	}
+	return osync_change_convert_extension(env, change, targetformat, NULL, error);
 }
 
 osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyncError **error)
@@ -1039,7 +1101,7 @@ osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **erro
  */
 osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *targetname, OSyncError **error)
 {
-	return osync_conv_convert_fn(env, change, target_fn_fmtname, targetname, error);
+	return osync_conv_convert_fn(env, change, target_fn_fmtname, targetname, NULL, error);
 }
 
 /*! @brief Convert a change to some formats
@@ -1056,7 +1118,7 @@ osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change
  */
 osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **targetnames, OSyncError **error)
 {
-	return osync_conv_convert_fn(env, change, target_fn_fmtnames, targetnames, error);
+	return osync_conv_convert_fn(env, change, target_fn_fmtnames, targetnames, NULL, error);
 }
 
 /*! @brief Tries to detect the object type of the given change

@@ -95,6 +95,28 @@ OSyncDataDetector *osync_env_find_detector(OSyncEnv *env, const char *sourcename
 	return NULL;
 }
 
+OSyncConverterTemplate *osync_env_find_converter_template(OSyncEnv *env, const char *sourcename, const char *targetname)
+{
+	GList *o;
+	for (o = env->converter_templates; o; o = o->next) {
+		OSyncConverterTemplate *tmpl = o->data;
+		if (!strcmp(tmpl->source_format, sourcename) && !strcmp(tmpl->target_format, targetname))
+			return tmpl;
+	}
+	return NULL;
+}
+
+/*OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname)
+{
+	GList *i;
+	for (i = env->extension_templates; i; i = i->next) {
+		OSyncFormatExtensionTemplate *ext_templ = i->data;
+		if (!strcmp(ext_templ->formatname, formatname))
+			return ext_templ;
+	}
+	return NULL;
+}*/
+
 /*@}*/
 
 void osync_env_register_detector(OSyncEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func)
@@ -153,12 +175,22 @@ void osync_env_register_converter(OSyncEnv *env, ConverterType type, const char 
 	env->converter_templates = g_list_append(env->converter_templates, converter);
 }
 
-void osync_env_register_extension(OSyncEnv *env, const char *objformatname, OSyncFormatConvertFunc conv_to_func, OSyncFormatConvertFunc conv_from_func)
+void osync_env_converter_set_init(OSyncEnv *env, const char *sourcename, const char *targetname, OSyncFormatConverterInitFunc init_func, OSyncFormatConverterFinalizeFunc fin_func)
+{
+	OSyncConverterTemplate *converter = osync_env_find_converter_template(env, sourcename, targetname);
+	osync_assert(converter != NULL, "You need to register the converter first");
+	
+	converter->init_func = init_func;
+	converter->fin_func = fin_func;
+}
+
+void osync_env_register_extension(OSyncEnv *env, const char *from_format, const char *to_format, const char *extension_name, OSyncFormatExtInitFunc init_func)
 {
 	OSyncFormatExtensionTemplate *ext = g_malloc0(sizeof(OSyncFormatExtensionTemplate));
-	ext->formatname = g_strdup(objformatname);
-	ext->conv_to = conv_to_func;
-	ext->conv_from = conv_from_func;
+	ext->from_formatname = g_strdup(from_format);
+	ext->to_formatname = g_strdup(to_format);
+	ext->name = g_strdup(extension_name);
+	ext->init_func = init_func;
 	
 	env->extension_templates = g_list_append(env->extension_templates, ext);
 }
