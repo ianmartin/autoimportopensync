@@ -89,29 +89,8 @@ static osync_bool detect_file(OSyncFormatEnv *env, OSyncChange *change)
 	//Call the data detectors here
 	if (osync_conv_detect_data(env, change, file->data, file->size))
 		return TRUE;
-	
-	//OSyncObjType *objtype = osync_conv_find_objtype(env, "*");
-	//osync_change_set_objtype(change, objtype);
+
 	return FALSE;
-	/*
-	//Call the smart detectors here
-	char buffer[256];
-	memset(buffer, 0, sizeof(buffer));
-	FILE *file = fopen(filename, "r");
-	fgets(buffer, 255, file);
-	fclose(file);
-	g_strstrip(buffer);
-	buffer[255] = 0;
-	
-	if (!) {
-		osync_change_set_type_and_format(change, env, "vcard", "file");
-	} else if (!strcmp(buffer, "BEGIN:VEVENT")) {
-		osync_change_set_type_and_format(change, env, "calendar", "file");
-	} else if (!strcmp(buffer, "BEGIN:VTODO")) {
-		osync_change_set_type_and_format(change, env, "todo", "file");
-	} else {
-		osync_change_set_type_and_format(change, env, "data", "file");
-	}*/
 }
 
 void get_info(OSyncFormatEnv *env)
