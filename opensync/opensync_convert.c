@@ -220,7 +220,7 @@ static OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter
 		//Invoke the converter and all extensions
 		OSyncError *error = NULL;
 		if (!converter->convert_func(NULL, change->data, change->size, &(new_change->data), &(new_change->size), free_output, &error)) {
-			osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke_decap", osync_error_print(&error));
+			osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke_decap: %s", osync_error_print(&error));
 			osync_error_free(&error);
 			return NULL;
 		}
@@ -322,12 +322,6 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 {
 	GList *c = NULL;
 	osync_trace(TRACE_ENTRY, "get_next_vertice_neighbour(%p, %p, %p:%s)", env, tree, ve, ve->format ? ve->format->name : "None");
-	//OSyncObjFormat *detected_fmt = NULL;
-
-	/*if (ve->format->detect_func) {
-		calc_vertice_data(ve);
-		ve->format->detect_func(env, ve->data, ve->datasize, &detected_fmt);
-	}*/
 		
 	for (c = tree->unused; c; c = c->next) {
 		OSyncFormatConverter *converter = c->data;
@@ -346,8 +340,8 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 			osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", converter->source_format->name, converter->target_format->name);
 		}
 
-		OSyncChange *new_change;
-		osync_bool free_output = FALSE;
+		OSyncChange *new_change = NULL;
+		osync_bool free_output = TRUE;
 		if (converter->type == CONVERTER_DECAP)
 			if (!(new_change = osync_converter_invoke_decap(converter, ve->change, &free_output)))
 				continue;
@@ -366,7 +360,16 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 		neigh->format = fmt_target;
 		neigh->path = g_list_copy(ve->path);
 		neigh->path = g_list_append(neigh->path, converter);
-		neigh->free_change_data = free_output;
+
+		if (new_change) {
+			neigh->change = new_change;
+			neigh->free_change = TRUE;
+			neigh->free_change_data = free_output;
+		} else {
+			neigh->change = ve->change;
+			neigh->free_change = FALSE;
+			neigh->free_change_data = FALSE;
+		}
 		
 		/* Distance calculation */
 		neigh->conversions = ve->conversions + 1;
@@ -409,7 +412,7 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
  */
 static osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *start, OSyncPathTargetFn target_fn, const void *fndata, GList/* OSyncConverter * */ **path_edges)
 {
-	osync_trace(TRACE_ENTRY, "osync_conv_find_path_fn(%p, %p, %p, %p, %p)", env, start, target_fn, fndata, path_edges);
+	osync_trace(TRACE_ENTRY, "osync_conv_find_path_fn(%p, %p(%s, %s), %p, %p, %p)", env, start, start ? start->uid : "None", start ? start->format->name : "None", target_fn, fndata, path_edges);
 	
 	g_assert(start->format);
 
@@ -442,9 +445,6 @@ static osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *star
 		//Get the first vertice and remove it from the queue
 		vertice *current = tree->search->data;
 		tree->search = g_list_remove(tree->search, current);
-		current->change = start;
-		current->free_change_data = FALSE;
-		current->free_change = FALSE;
 		
 		osync_debug("OSCONV", 4, "Next vertice: %s.", current->format->name);
 		/* Check if we have reached a target format */
