@@ -40,7 +40,7 @@ static KdePluginImplementationBase *impl_object_for_context(OSyncContext *ctx)
  *
  * @see KdePluginImplementationBase
  */
-static void *kde_initialize(OSyncMember *member)
+static void *kde_initialize(OSyncMember *member, OSyncError **e)
 {
     KdeImplInitFunc init_func;
     KdePluginImplementationBase *impl_object;
@@ -50,20 +50,26 @@ static void *kde_initialize(OSyncMember *member)
 
     osync_debug("kde", 3, "Loading implementation module");
     module = dlopen(KDEPIM_LIBDIR"/kdepim_impl.so", RTLD_NOW);
-    if (!module)
-        return NULL;
+    if (!module) {
+        osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module");
+        goto error;
+    }
     osync_debug("kde", 3, "Getting initialization function");
     init_func = (KdeImplInitFunc)dlsym(module, "new_KdePluginImplementation");
-    if (!init_func)
-        return NULL;
+    if (!init_func) {
+        osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Invalid plugin implementation module");
+        goto error;
+    }
 
     osync_debug("kde", 3, "Initializing implementation module");
-    impl_object = init_func(member);
+    impl_object = init_func(member, e);
     if (!impl_object)
-        return NULL;
+        goto error;
 
     /* Return the created object to the sync engine */
     return (void*)impl_object;
+error:
+	return NULL;
 }
 
 static void kde_finalize(void *data)
