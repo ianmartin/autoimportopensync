@@ -219,3 +219,32 @@ unsigned int osync_group_create_member_id(OSyncGroup *group)
 	g_free(filename);
 	return i;
 }
+
+void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync)
+{
+	OSyncEnv *env = osync_group_get_env(group);
+	g_assert(env);
+	OSyncConvEnv *conv_env = env->conv_env;
+
+	if (!strcmp(objtypestr, "*")) {
+		/* Apply this to all objtypes */
+		/* TODO: implement this */
+		osync_debug("OSGRP", 2, "set_slow_sync for objtype '*' not implemented yet");
+	}
+	else {
+		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
+		g_assert(objtype);
+		objtype->needs_slow_sync = slow_sync;
+	}
+}
+
+osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtypestr)
+{
+	OSyncEnv *env = osync_group_get_env(group);
+	g_assert(env);
+	OSyncConvEnv *conv_env = env->conv_env;
+
+	OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
+	g_assert(objtype);
+	return objtype->needs_slow_sync;	
+}

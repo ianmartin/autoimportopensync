@@ -12,4 +12,6 @@ OSyncGroup *osync_group_from_name(OSyncEnv *osinfo, char *name);
 OSyncEnv *osync_group_get_env(OSyncGroup *group);
 void *osync_group_get_data(OSyncGroup *group);
 void osync_group_set_data(OSyncGroup *group, void *data);
+void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync);
+osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtypestr);
 unsigned int osync_group_create_member_id(OSyncGroup *group);

@@ -457,29 +457,23 @@ void osync_member_call_plugin(OSyncMember *member, char *function, void *data)
 	plgfunc(member->plugindata, data);
 }
 
-void osync_member_set_slow_sync(OSyncMember *member, const char *objtype, osync_bool slow_sync)
+void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync)
 {
-	g_assert(member);
-	OSyncConvEnv *env = osync_member_get_conv_env(member);
-	g_assert(env);
+	g_assert(member);	
+	OSyncGroup *group = osync_member_get_group(member);
+	g_assert(group);
 
-	if (!strcmp(objtype, "*")) {
-		/* TODO: if objtype = "*" slow sync should be applied to all */
-		
-	}
-	else {
-		OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
-		g_assert(osync_objtype);
-		osync_objtype->needs_slow_sync = slow_sync;
-	}
+	osync_group_set_slow_sync(group, objtypestr, slow_sync);
 }
 
-void osync_member_request_slow_sync(OSyncMember *member, const char *objtype)
+osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr)
 {
-	g_assert(member);
-	
-	printf("member %p requesting slow sync\n", member);
-	//member->memberfunctions->rf_slow_sync(member);
+	g_assert(member);	
+	OSyncGroup *group = osync_member_get_group(member);
+	g_assert(group);
+
+	osync_bool needs_slow_sync = osync_group_get_slow_sync(group, objtypestr);
+	return needs_slow_sync;
 }
 
 void osync_member_request_synchronization(OSyncMember *member)
