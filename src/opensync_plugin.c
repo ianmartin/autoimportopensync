@@ -47,6 +47,9 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
 void osync_plugin_free(OSyncPlugin *plugin)
 {
 	g_assert(plugin);
+	if (plugin->env)
+		plugin->env->plugins = g_list_remove(plugin->env->plugins, plugin);
+
 	//FIXME Free more stuff?
 	g_free(plugin);
 }
