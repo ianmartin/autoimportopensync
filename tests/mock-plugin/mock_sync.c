@@ -448,7 +448,7 @@ void get_info(OSyncPluginInfo *info)
 	info->longname = "Mock Plugin";
 	info->description = "Mock Plugin";
 	info->version = 1;
-	
+
 	info->functions.initialize = mock_initialize;
 	info->functions.connect = mock_connect;
 	info->functions.sync_done = mock_sync_done;

@@ -240,4 +240,19 @@ void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format
 	va_end (args);
 }
 
+/*! @brief Sets the type of an error
+ * 
+ * @param error A pointer to a error struct to set
+ * @param type The Error type to set
+ * 
+ */
+void osync_error_set_type(OSyncError **error, OSyncErrorType type)
+{
+	if (!error)
+		return;
+	
+	(*error)->type = type;
+	return;
+}
+
 /*@}*/

@@ -66,6 +66,20 @@ typedef struct OSyncFormatFunctions {
 	void (* read) (OSyncContext *, OSyncChange *);
 } OSyncFormatFunctions;
 
+/*! @brief Gives information about wether the plugin
+ * has to be configured or not
+ * 
+ * @ingroup OSyncPluginAPI 
+ **/
+typedef enum {
+	/** Plugin has no configuration options */
+	NO_CONFIGURATION = 0,
+	/** Plugin can be configured, but will accept the default config in the initialize function */
+	OPTIONAL_CONFIGURATION = 1,
+	/** Plugin must be configured to run correctly */
+	NEEDS_CONFIGURATION = 2
+} OSyncConfigurationTypes;
+
 /*! @brief Gives information about a plugin
  * @ingroup OSyncPluginAPI 
  **/
@@ -85,7 +99,7 @@ typedef struct OSyncPluginInfo {
 	/** The timeouts of your plugin */
 	OSyncPluginTimeouts timeouts;
 	/** Does the plugin have configuration options? */
-	osync_bool has_configuration;
+	OSyncConfigurationTypes config_type;
 	/** The pointer to the plugin (for internal use) */
 	OSyncPlugin *plugin;
 } OSyncPluginInfo;

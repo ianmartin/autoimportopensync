@@ -134,7 +134,7 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
         plugin->info.timeouts.read_change_timeout = 60;
         
         plugin->info.plugin = plugin;
-        plugin->info.has_configuration = TRUE;
+        plugin->info.config_type = NEEDS_CONFIGURATION;
         
         if (env) {
         	env->plugins = g_list_append(env->plugins, plugin);
