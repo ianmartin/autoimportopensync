@@ -1357,7 +1357,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	Suite *s2 = suite_create("Multisync");
+	//Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);
@@ -1373,14 +1373,14 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_conflict_changetype_choose", multisync_conflict_changetype_choose);
 	create_case(s, "multisync_conflict_changetype_choose2", multisync_conflict_changetype_choose2);
 	create_case(s, "multisync_conflict_hybrid_choose", multisync_conflict_hybrid_choose);
-	create_case(s2, "multisync_conflict_hybrid_choose2", multisync_conflict_hybrid_choose2);
+	create_case(s, "multisync_conflict_hybrid_choose2", multisync_conflict_hybrid_choose2);
 	create_case(s, "multisync_conflict_data_duplicate", multisync_conflict_data_duplicate);
 	create_case(s, "multisync_conflict_data_duplicate2", multisync_conflict_data_duplicate2);
 	create_case(s, "multisync_conflict_changetype_duplicate", multisync_conflict_changetype_duplicate);
 	create_case(s, "multisync_conflict_changetype_duplicate2", multisync_conflict_changetype_duplicate2);
 	create_case(s, "multisync_conflict_hybrid_duplicate", multisync_conflict_hybrid_duplicate);
 
-	return s2;
+	return s;
 }
 
 int main(void)
