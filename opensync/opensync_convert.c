@@ -139,7 +139,14 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	char *data = NULL;
 	int datasize = 0;
 	osync_bool ret = TRUE;
-	if ((converter->type != CONVERTER_DETECTOR && !converter->convert_func) || (converter->type == CONVERTER_DETECTOR && !converter->detect_func)) {
+	if (converter->type == CONVERTER_DETECTOR && !converter->convert_func) {
+		change->format = converter->target_format;
+		change->objtype = osync_change_get_objformat(change)->objtype;
+		osync_trace(TRACE_EXIT, "osync_converter_invoke: TRUE: Detector path");
+		return TRUE;
+	}
+	
+	if (!converter->convert_func) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid converter");
 		osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke: %s", osync_error_print(error));
 		return FALSE;
@@ -1061,6 +1068,7 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
 	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
 	newchange->is_detected = source->is_detected;
 	newchange->changes_db = source->changes_db;
+	newchange->member = source->member;
 	
 	if (!osync_change_copy_data(source, newchange, error)) {
 		osync_change_free(newchange);

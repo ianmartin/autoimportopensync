@@ -1,5 +1,5 @@
 MSyncFlag *osync_flag_new(MSyncFlag *parent);
-MSyncFlag *osync_comb_flag_new(osync_bool any);
+MSyncFlag *osync_comb_flag_new(osync_bool any, osync_bool default_val);
 void osync_flag_set_pos_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data1, void *data2);
 void osync_flag_set_neg_trigger(MSyncFlag *flag, MSyncFlagTriggerFunc func, void *data1, void *data2);
 void osync_flag_calculate_comb(MSyncFlag *flag);

@@ -243,6 +243,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	osync_hashtable_close(table);
 	
 	system("rm -f data1/testdata-dupe");
+	system("rm -f data2/testdata-dupe");
 	
 	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);

@@ -112,6 +112,31 @@ void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *u
 	osengine_mapping_solve(engine, mapping, change);
 }
 
+static void solve_conflict(OSyncMapping *mapping)
+{
+	sleep(5);
+	
+	OSyncEngine *engine = mapping->table->engine;
+	
+	int i;
+	for (i = 0; i < osengine_mapping_num_changes(mapping); i++) {
+		OSyncChange *change = osengine_mapping_nth_change(mapping, i);
+		if (change->changetype == CHANGE_MODIFIED) {
+			osengine_mapping_solve(engine, mapping, change);
+			return;
+		}
+	}
+}
+
+void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
+{
+	num_conflicts++;
+	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
+	
+	g_thread_create ((GThreadFunc)solve_conflict, mapping, TRUE, NULL);
+}
+
 void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data)
 {
 	switch (status->type) {

@@ -208,16 +208,24 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 	osengine_mappingtable_add_mapping(table, mapping);
 	if (table->engine) {
 		mapping->fl_solved = osync_flag_new(NULL);
+		
 		mapping->fl_chkconflict = osync_flag_new(NULL);
-		mapping->cmb_has_data = osync_comb_flag_new(FALSE);
-		osync_flag_set_pos_trigger(mapping->cmb_has_data, (MSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
-		mapping->cmb_has_info = osync_comb_flag_new(FALSE);
-		mapping->cmb_synced = osync_comb_flag_new(FALSE);
-		mapping->cmb_deleted = osync_comb_flag_new(FALSE);
 		osync_flag_set(mapping->fl_chkconflict);
+		
+		mapping->fl_multiplied = osync_flag_new(NULL);
+		
+		mapping->cmb_has_data = osync_comb_flag_new(FALSE, FALSE);
+		osync_flag_set_pos_trigger(mapping->cmb_has_data, (MSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
+		
+		mapping->cmb_has_info = osync_comb_flag_new(FALSE, FALSE);
+		
+		mapping->cmb_synced = osync_comb_flag_new(FALSE, TRUE);
+		
+		mapping->cmb_deleted = osync_comb_flag_new(FALSE, FALSE);
+		
 		osync_flag_attach(mapping->cmb_synced, table->engine->cmb_synced);
 		osync_flag_attach(mapping->fl_chkconflict, table->engine->cmb_chkconflict);
-		osync_flag_set(mapping->cmb_synced);
+		
 	}
 	osync_trace(TRACE_INTERNAL, "osengine_mapping_new(%p): %p", table, mapping);
 	return mapping;
@@ -226,13 +234,13 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 void osengine_mapping_free(OSyncMapping *mapping)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mapping_free(%p)", mapping);
-	GList *c = NULL;
-	GList *entries = g_list_copy(mapping->entries);
-	for (c = entries; c; c = c->next) {
-		OSyncMappingEntry *entry = c->data;
-		osengine_mappingentry_free(entry);
-	}
-	g_list_free(entries);
+	
+	while (g_list_nth_data(mapping->entries, 0))
+		osengine_mappingentry_free(g_list_nth_data(mapping->entries, 0));
+
+	osync_flag_detach(mapping->cmb_synced);
+	osync_flag_detach(mapping->fl_chkconflict);
+
 	mapping->table->mappings = g_list_remove(mapping->table->mappings, mapping);
 	osync_flag_free(mapping->fl_solved);
 	osync_flag_free(mapping->cmb_has_data);
@@ -240,6 +248,8 @@ void osengine_mapping_free(OSyncMapping *mapping)
 	osync_flag_free(mapping->cmb_synced);
 	osync_flag_free(mapping->fl_chkconflict);
 	osync_flag_free(mapping->cmb_deleted);
+	osync_flag_free(mapping->fl_multiplied);
+	
 	g_free(mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_free");
 }
@@ -261,11 +271,13 @@ void osengine_mapping_add_entry(OSyncMapping *mapping, OSyncMappingEntry *entry)
 	osync_change_set_mappingid(entry->change, mapping->id);
 	
 	mapping->table->unmapped = g_list_remove(mapping->table->unmapped, entry);
+	mapping->table->entries = g_list_append(mapping->table->entries, entry);
 }
 
 void osengine_mapping_remove_entry(OSyncMapping *mapping, OSyncMappingEntry *entry)
 {
 	mapping->entries = g_list_remove(mapping->entries, entry);
+	mapping->table->entries = g_list_remove(mapping->table->entries, entry);
 	entry->mapping = NULL;
 	
 	osync_flag_detach(entry->fl_has_data);
@@ -316,6 +328,7 @@ void osengine_mapping_reset(OSyncMapping *mapping)
 		osengine_mappingentry_reset(entry);
 	}
 	
+	osync_flag_unset(mapping->fl_multiplied);
 	mapping->master = NULL;
 	osync_trace(TRACE_EXIT, "osengine_mapping_reset");
 }
@@ -423,6 +436,10 @@ OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping)
 void osengine_mappingentry_free(OSyncMappingEntry *entry)
 {
 	osync_trace(TRACE_INTERNAL, "osengine_mappingentry_free(%p)", entry);
+	
+	if (entry->mapping)
+		osengine_mapping_remove_entry(entry->mapping, entry);
+	
 	osync_flag_free(entry->fl_has_data);
 	osync_flag_free(entry->fl_dirty);
 	osync_flag_free(entry->fl_mapped);
@@ -440,6 +457,17 @@ void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 {
 	osync_trace(TRACE_INTERNAL, "osengine_mappingentry_update(%p, %p)", entry, change);
 	osync_change_update(change, entry->change);
+}
+
+OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry)
+{
+	OSyncMappingEntry *newentry = osengine_mappingentry_new(NULL);
+	
+	OSyncError *error  = NULL;
+	newentry->change = osync_change_copy(entry->change, &error);
+	newentry->client = entry->client;
+	osengine_mappingview_add_entry(entry->view, newentry);
+	return newentry;
 }
 
 void osengine_mappingentry_reset(OSyncMappingEntry *entry)
