@@ -11,6 +11,7 @@
 typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
 	osync_bool (* store_config) (char *, const char *, int);
+	osync_bool (* is_available) (OSyncError **);
 	void * (* initialize) (OSyncMember *, OSyncError **);
 	void (* finalize) (void *);
 	void (* connect) (OSyncContext *);

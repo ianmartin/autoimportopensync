@@ -105,6 +105,40 @@ START_TEST (env_sync_false)
 }
 END_TEST
 
+START_TEST (env_check_plugin_true1)
+{
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+	fail_unless(osync_env_check_plugin(env, "file-sync", &error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
+START_TEST (env_check_plugin_true2)
+{
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+	fail_unless(osync_env_check_plugin(env, "evo2-sync", &error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
+START_TEST (env_check_plugin_false)
+{
+	OSyncEnv *env = init_env();
+	
+	OSyncError *error = NULL;
+	fail_unless(!osync_env_check_plugin(env, "file-syncc", &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	osync_env_free(env);
+}
+END_TEST
+
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Env");
@@ -117,6 +151,9 @@ Suite *env_suite(void)
 	create_case(s, "env_init_false", env_init_false);
 	create_case(s, "env_init_false2", env_init_false2);
 	create_case(s, "env_sync_false", env_sync_false);
+	create_case(s, "env_check_plugin_true1", env_check_plugin_true1);
+	create_case(s, "env_check_plugin_true2", env_check_plugin_true2);
+	create_case(s, "env_check_plugin_false", env_check_plugin_false);
 
 	return s;
 }

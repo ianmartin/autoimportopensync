@@ -171,6 +171,16 @@ osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyn
 	if (!format)
 		format = target->format;
 	
+	if (target->data)
+		osync_change_free_data(target);
+	
+	if (!source->data) {
+		target->data = NULL;
+		target->size = 0;
+		osync_trace(TRACE_EXIT, "%s: Source had not data", __func__);
+		return TRUE;
+	}
+	
 	if (!format || !format->copy_func) {
 		osync_trace(TRACE_INTERNAL, "We cannot copy the change, falling back to memcpy");
 		target->data = g_malloc0(sizeof(char) * source->size);

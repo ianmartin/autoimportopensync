@@ -391,6 +391,35 @@ OSyncPlugin *osync_env_nth_plugin(OSyncEnv *env, int nth)
 	return (OSyncPlugin *)g_list_nth_data(env->plugins, nth);
 }
 
+/*! @brief Checks if a plugin is available and usable
+ * 
+ * @param env The environment in which the plugin should be loaded
+ * @param pluginname The name of the plugin to check for
+ * @param error If the return was FALSE, will contain the information why the plugin is not available
+ * @returns TRUE if plugin was found and is usable, FALSE otherwise
+ * 
+ */
+osync_bool osync_env_check_plugin(OSyncEnv *env, const char *pluginname, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, pluginname, error);
+	
+	OSyncPlugin *plugin = osync_env_find_plugin(env, pluginname);
+	if (!plugin) {
+		osync_error_set(error, OSYNC_ERROR_PLUGIN_NOT_FOUND, "Unable to find plugin \"%s\". This can be caused by unresolved symbols", pluginname);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	if (plugin->info.functions.is_available) {
+		osync_bool ret = plugin->info.functions.is_available(error);
+		osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return ret;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE: No is_available function", __func__);
+	return TRUE;
+}
+
 /*! @brief Loads the plugins from a given directory
  * 
  * Loads all plugins from a directory into a osync environment.

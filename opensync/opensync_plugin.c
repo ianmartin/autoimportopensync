@@ -132,7 +132,8 @@ OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **err
 	/* Try to open the module or fail if an error occurs */
 	OSyncPlugin *plugin = osync_plugin_new(env);
 	plugin->real_plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
-
+	memset(&(plugin->info.functions), 0, sizeof(OSyncPluginFunctions));
+	
 	if (!plugin->real_plugin) {
 		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());

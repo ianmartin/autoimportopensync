@@ -18,7 +18,8 @@ typedef enum {
 	OSYNC_ERROR_EXPECTED = 12,
 	OSYNC_ERROR_NO_CONNECTION = 13,
 	OSYNC_ERROR_TEMPORARY = 14,
-	OSYNC_ERROR_LOCKED = 15
+	OSYNC_ERROR_LOCKED = 15,
+	OSYNC_ERROR_PLUGIN_NOT_FOUND = 16
 } OSyncErrorType;
 
 void osync_error_free(OSyncError **error);
