@@ -88,7 +88,7 @@ bool KCalDataSource::get_changeinfo(OSyncContext *ctx)
 
         KCal::VCalFormat format;
         KCal::CalendarLocal cal(calendar->timeZoneId());
-        osync_debug("kcal", 3, "timezoneid: %s\n", cal.timeZoneId().latin1());
+        osync_debug("kcal", 3, "timezoneid: %s\n", (const char*)cal.timeZoneId().local8Bit());
         cal.addEvent(e->clone());
         /* Ugly workaround to a VCalFormat bug, format.toString()
          * doesn't work, but if save() or load() is called before
@@ -97,11 +97,11 @@ bool KCalDataSource::get_changeinfo(OSyncContext *ctx)
          */
         format.save(&cal, "");
         QString datastr(format.toString(&cal));
-        const char *data = datastr.latin1();
+        const char *data = datastr.local8Bit();
 
-        osync_debug("kcal", 3, "UID: %s\n", uid.latin1());
+        osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
         OSyncChange *chg = osync_change_new();
-        osync_change_set_uid(chg, uid.latin1());
+        osync_change_set_uid(chg, uid.local8Bit());
         osync_change_set_member(chg, member);
 
         // object type and format
@@ -127,8 +127,67 @@ void KCalDataSource::get_data(OSyncContext *ctx, OSyncChange *)
     osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Not implemented yet");
 }
 
-bool KCalDataSource::access(OSyncContext *ctx, OSyncChange *)
+bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
-    osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Not implemented yet");
-    return false;
+    OSyncChangeType type = osync_change_get_changetype(chg);
+    switch (type) {
+        case CHANGE_DELETED:
+            {
+                KCal::Event *e = calendar->event(osync_change_get_uid(chg));
+                if (!e) {
+                    osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Event not found while deleting");
+                    return false;
+                }
+                calendar->deleteEvent(e);
+            }
+        break;
+        case CHANGE_ADDED:
+        case CHANGE_MODIFIED:
+        {
+            KCal::VCalFormat format;
+
+            /* First, parse to a temporary calendar, because
+             * we should set the uid on the events
+             */
+            KCal::CalendarLocal cal;
+            QString data = QString::fromLocal8Bit(osync_change_get_data(chg), osync_change_get_datasize(chg));
+            format.fromString(&cal, data);
+
+            /* Add the events from the temporary calendar, setting the UID
+             *
+             * It should have only one event, but just in case: */
+            KCal::Event::List evts = cal.events();
+            for (KCal::Event::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
+                KCal::Event *e = (*i)->clone();
+                e->setUid(osync_change_get_uid(chg));
+                calendar->addEvent(e);
+            }
+
+            /*FIXME: Probably the addEvent() above will duplicate events */
+
+        }
+        break;
+        default:
+            osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Invalid or unsupported change type");
+            return false;
+    }
+    return true;
+}
+
+bool KCalDataSource::access(OSyncContext *ctx, OSyncChange *chg)
+{
+    if (!__access(ctx, chg))
+        return false;
+
+    osync_context_report_success(ctx);
+    return true;
+}
+
+bool KCalDataSource::commit_change(OSyncContext *ctx, OSyncChange *chg)
+{
+    if ( !__access(ctx, chg) )
+        return false;
+    osync_hashtable_update_hash(hashtable, chg);
+    osync_context_report_success(ctx);
+    return true;
 }

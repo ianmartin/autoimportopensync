@@ -20,6 +20,9 @@ class KdePluginImplementationBase {
 
         virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg) = 0;
         virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
+
+        virtual bool vcal_access(OSyncContext *ctx, OSyncChange *chg) = 0;
+        virtual bool vcal_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
 };
 
 typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m, OSyncError **e);
