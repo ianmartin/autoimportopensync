@@ -181,43 +181,32 @@ osengine-1.0-uninstalled.pc
 Doxyfile
 ])
 
+
+# AC_OPENSYNC_ISENABLED(NAME, VARIABLE, [TESTFOR = yes])
+AC_DEFUN([AC_OPENSYNC_ISENABLED],
+[
+if test "$3"; then
+	ac_opensync_isenabled_testfor="$3"
+else
+	ac_opensync_isenabled_testfor="yes"
+fi
+
+if test "x${$2}" = "x${ac_opensync_isenabled_testfor}"; then
+	echo "AS_HELP_STRING([$1:], Enabled)"
+else
+	echo "AS_HELP_STRING([$1:], Disabled)"
+fi
+])
+
 echo ""
 echo "========================================"
-if test "x${HAVE_PYTHON}" = "x1"; then
-	echo "Python Bindings:	Enabled"
-else
-	echo "Python Bindings:	Disabled"
-fi
-if test "x${HAVE_CHECK}" = "x1"; then
-	echo "Unit Tests: 		Enabled"
-else
-	echo "Unit Tests: 		Disabled"
-fi
-if test "x${WITH_DEBUG}" = "xyes"; then
-	echo "Debug Messages:		Enabled"
-else
-	echo "Debug Messages:		Disabled"
-fi
-if test "x${WITH_TRACE}" = "xyes"; then
-	echo "Tracing:		Enabled"
-else
-	echo "Tracing:		Disabled"
-fi
-if test "x${WITH_PROF}" = "xyes"; then
-	echo "Profiling:		Enabled"
-else
-	echo "Profiling:		Disabled"
-fi
-if test "x${ENABLE_ENGINE}" = "xyes"; then
-	echo "Sync Engine:		Enabled"
-else
-	echo "Sync Engine:		Disabled"
-fi
-if test "x${WITH_TOOLS}" = "xyes"; then
-	echo "Tools:			Enabled"
-else
-	echo "Tools:			Disabled"
-fi
+AC_OPENSYNC_ISENABLED([Pythong Bindings], HAVE_PYTHON, 1)
+AC_OPENSYNC_ISENABLED([Unit Tests], HAVE_CHECK, 1)
+AC_OPENSYNC_ISENABLED([Debug messages], WITH_DEBUG)
+AC_OPENSYNC_ISENABLED([Tracing], WITH_TRACE)
+AC_OPENSYNC_ISENABLED([Profiling], WITH_PROF)
+AC_OPENSYNC_ISENABLED([Sync Engine], ENABLE_ENGINE)
+AC_OPENSYNC_ISENABLED([Tools], WITH_TOOLS)
 echo
 echo "Now build opensync and install it."
 echo "Afterwards go into the plugins directory"
