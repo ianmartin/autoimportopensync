@@ -84,6 +84,12 @@ bool KCalDataSource::get_changeinfo(OSyncContext *ctx)
         KCal::CalendarLocal cal(calendar->timeZoneId());
         osync_debug("kcal", 3, "timezoneid: %s\n", cal.timeZoneId().latin1());
         cal.addEvent(e->clone());
+        /* Ugly workaround to a VCalFormat bug, format.toString()
+         * doesn't work, but if save() or load() is called before
+         * toString(), the segmentation fault will not happen (as
+         * the mCalendar private field will be set)
+         */
+        format.save(&cal, "");
         QString datastr(format.toString(&cal));
         const char *data = datastr.latin1();
 
