@@ -90,7 +90,7 @@ static void fs_connect(OSyncContext *ctx)
 	osync_hashtable_load(fsinfo->hashtable, fsinfo->member);
 	
 	if (!osync_anchor_compare(fsinfo->member, fsinfo->path))
-		osync_member_request_slow_sync(fsinfo->member);
+		osync_member_request_slow_sync(fsinfo->member, "*");
 	
 	if (direrror) {
 		//Unable to open directory
@@ -107,9 +107,10 @@ static char *fs_generate_hash(fs_fileinfo *info)
 	return hash;
 }
 
-static void fs_get_changeinfo(OSyncContext *ctx, osync_bool slow_sync)
+static void fs_get_changeinfo(OSyncContext *ctx)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	if (fsinfo->dir) {
 		const gchar *de = NULL;
@@ -131,8 +132,8 @@ static void fs_get_changeinfo(OSyncContext *ctx, osync_bool slow_sync)
 			char *hash = fs_generate_hash(info);
 			osync_change_set_hash(change, hash);
 			
-			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);
-			
+			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
+			/* Type of change is set by detect_change() */
 			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
 				osync_context_report_change(ctx, change);
 				osync_hashtable_update_hash(fsinfo->hashtable, change);

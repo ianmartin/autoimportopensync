@@ -74,11 +74,6 @@ char *osync_member_get_configdir(OSyncMember *member)
 	return member->configdir;
 }
 
-void osync_member_set_slow_sync(OSyncMember *member, osync_bool slow_sync)
-{
-	member->needs_slow_sync = slow_sync;
-}
-
 osync_bool osync_member_set_configdir(OSyncMember *member, char *path)
 {
 	osync_debug("OSMEM", 3, "Setting configdirectory for member %i to %s", member->id, path);
@@ -158,7 +153,7 @@ void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function,
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
-	functions.get_changeinfo(context, member->needs_slow_sync);
+	functions.get_changeinfo(context);
 }
 
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)
@@ -462,7 +457,24 @@ void osync_member_call_plugin(OSyncMember *member, char *function, void *data)
 	plgfunc(member->plugindata, data);
 }
 
-void osync_member_request_slow_sync(OSyncMember *member)
+void osync_member_set_slow_sync(OSyncMember *member, const char *objtype, osync_bool slow_sync)
+{
+	g_assert(member);
+	OSyncConvEnv *env = osync_member_get_conv_env(member);
+	g_assert(env);
+
+	if (!strcmp(objtype, "*")) {
+		/* TODO: if objtype = "*" slow sync should be applied to all */
+		
+	}
+	else {
+		OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
+		g_assert(osync_objtype);
+		osync_objtype->needs_slow_sync = slow_sync;
+	}
+}
+
+void osync_member_request_slow_sync(OSyncMember *member, const char *objtype)
 {
 	g_assert(member);
 	

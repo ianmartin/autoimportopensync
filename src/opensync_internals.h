@@ -38,7 +38,6 @@ struct OSyncMember {
 	OSyncGroup *group;
 	GList *entries;
 	unsigned int id;
-	osync_bool needs_slow_sync;
 };
 
 struct OSyncContext {
@@ -113,6 +112,7 @@ struct OSyncObjType {
 	GList *formats;
 	GList *converters;
 	OSyncConvEnv *env;
+	osync_bool needs_slow_sync;
 };
 
 struct OSyncFormatProperty {
