@@ -37,6 +37,7 @@ Tools to test and debug %{name}.
 
 %build
 %configure --enable-engine --disable-debug --disable-tracing --disable-profiling --enable-tools --disable-unit-tests --disable-python
+make
 
 %install
 rm -rf %{buildroot}
