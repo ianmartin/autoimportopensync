@@ -476,9 +476,6 @@ static void _parse(VFormat *evc, const char *str)
 		g_warning ("vcard ended without END:VCARD\n");
 	}
 
-	if (attr && !g_ascii_strcasecmp (attr->name, "end"))
-		vformat_attribute_free (attr);
-
 	g_free (buf);
 }
 
@@ -607,7 +604,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			break;
 		case VFORMAT_TODO_20:
 		case VFORMAT_EVENT_20:
-			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "BEGIN:VNOTE");
@@ -718,9 +715,11 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			break;
 		case VFORMAT_TODO_10:
 		case VFORMAT_EVENT_10:
+			str = g_string_append (str, "END:VCALENDAR\r\n");
+			break;
 		case VFORMAT_TODO_20:
 		case VFORMAT_EVENT_20:
-			str = g_string_append (str, "END:VCAL");
+			str = g_string_append (str, "END:VCALENDAR");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "END:VNOTE");

@@ -294,8 +294,8 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		xmlXPathFreeObject(rightxobj);
 	}
 	
-	xmlXPathObject *leftxobj = osxml_get_nodeset(leftdoc, "/contact/*");
-	xmlXPathObject *rightxobj = osxml_get_nodeset(rightdoc, "/contact/*");
+	xmlXPathObject *leftxobj = osxml_get_nodeset(leftdoc, "/*/*");
+	xmlXPathObject *rightxobj = osxml_get_nodeset(rightdoc, "/*/*");
 	
 	xmlNodeSet *lnodes = leftxobj->nodesetval;
 	xmlNodeSet *rnodes = rightxobj->nodesetval;

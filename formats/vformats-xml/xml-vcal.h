@@ -5,7 +5,9 @@ typedef struct OSyncHooksTable OSyncHooksTable;
 
 struct OSyncHooksTable {
 	GHashTable *table;
-	OSyncHooksTable *tzhooks;
+	GHashTable *tztable;
+	GHashTable *comptable;
+	GHashTable *alarmtable;
 };
 
 #define HANDLE_IGNORE (void *)1
