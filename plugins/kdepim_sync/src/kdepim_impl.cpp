@@ -84,10 +84,18 @@ class KdePluginImplementation: public KdePluginImplementationBase
         KInstance *instance;
 
     public:
-        KdePluginImplementation(OSyncMember *memb)
+        KdePluginImplementation(OSyncMember *memb, OSyncError **error)
             :member(memb)
         {
+        }
+
+        bool init(OSyncError **error)
+        {
             //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
+
+            hashtable = osync_hashtable_new();
+            if (!osync_hashtable_load(hashtable, member, error))
+                return false;
 
             instance = new KInstance("kde-opensync-plugin");
 
@@ -96,9 +104,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
             //ensure a NULL Ticket ptr
             addressbookticket=NULL;
-
-            hashtable = osync_hashtable_new();
-            osync_hashtable_load(hashtable, member);
 
             kcal = new KCalDataSource(member, hashtable);
             knotes = new KNotesDataSource(member, hashtable);
@@ -474,9 +479,15 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 extern "C" {
 
-KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **)
+KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **error)
 {
-    return new KdePluginImplementation(member);
+    KdePluginImplementation *imp = new KdePluginImplementation(member, error);
+    if (!imp->init(error)) {
+        delete imp;
+        return NULL;
+    }
+
+    return imp;
 }
 
 }// extern "C"

@@ -38,6 +38,10 @@ SOFTWARE IS DISCLAIMED.
 #include <klocale.h>
 
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 #include "knotes.h"
 
@@ -205,7 +209,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         OSyncFormatEnv *env = osync_member_get_format_env(member);
         OSyncError *e = NULL;
         if (!osync_change_convert_fmtname(env, chg, "vnote11", &e)) {
-            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Error converting data to vnote: %s", e?e->message:"(no error details)");
+            osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Error converting data to vnote: %s", e?osync_error_print(&e):"(no error details)");
             return false;
         }
 
