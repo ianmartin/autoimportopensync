@@ -1,5 +1,5 @@
 /*********************************************************************** 
-KNotesendar support for OpenSync kdepim-sync plugin
+KNotes support for OpenSync kdepim-sync plugin
 Copyright (C) 2004 Conectiva S. A.
 
 This program is free software; you can redistribute it and/or modify
