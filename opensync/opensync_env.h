@@ -8,7 +8,7 @@ void osync_env_set_option(OSyncEnv *env, const char *name, const char *value);
 int osync_env_num_plugins (OSyncEnv *osstruct);
 OSyncPlugin *osync_env_nth_plugin(OSyncEnv *osstruct, int nth);
 OSyncPlugin *osync_env_find_plugin(OSyncEnv *env, const char *name);
-osync_bool osync_env_check_plugin(OSyncEnv *env, const char *pluginname, OSyncError **error);
+osync_bool osync_env_plugin_is_usable(OSyncEnv *env, const char *pluginname, OSyncError **error);
 
 void osync_env_remove_group(OSyncEnv *osstruct, OSyncGroup *group);
 OSyncGroup *osync_env_find_group(OSyncEnv *env, const char *name);

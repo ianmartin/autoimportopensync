@@ -399,7 +399,7 @@ OSyncPlugin *osync_env_nth_plugin(OSyncEnv *env, int nth)
  * @returns TRUE if plugin was found and is usable, FALSE otherwise
  * 
  */
-osync_bool osync_env_check_plugin(OSyncEnv *env, const char *pluginname, OSyncError **error)
+osync_bool osync_env_plugin_is_usable(OSyncEnv *env, const char *pluginname, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, pluginname, error);
 	
