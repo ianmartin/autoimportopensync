@@ -26,83 +26,99 @@ SOFTWARE IS DISCLAIMED.
 #include <dlfcn.h>
 
 #include "osyncbase.h"
-#include "kaddrbook.h"
 
-static KdePluginImplementationBase *addrbook_for_context(OSyncContext *ctx)
+static KdePluginImplementationBase *impl_object_for_context(OSyncContext *ctx)
 {
     return (KdePluginImplementationBase *)osync_context_get_plugin_data(ctx);
 }
 
+/** Load actual plugin implementation
+ *
+ * Loads kde_impl.so and create a new KdePluginImplementation object,
+ * that is linked against the KDE libraries, and implements the plugin
+ * functions
+ *
+ * @see KdePluginImplementationBase
+ */
 static void *kde_initialize(OSyncMember *member)
 {
     KdeImplInitFunc init_func;
-    KdePluginImplementationBase *addrbook;
+    KdePluginImplementationBase *impl_object;
     void *module;
 
     osync_debug("kde", 3, "%s", __FUNCTION__);
-    /* Allocate and initialise a kaddrbook object. */
 
+    osync_debug("kde", 3, "Loading implementation module");
     module = dlopen(KDEPIM_LIBDIR"/kdepim_impl.so", RTLD_NOW);
     if (!module)
         return NULL;
-    init_func = (KdeImplInitFunc)dlsym(module, "new_implementation_object");
+    osync_debug("kde", 3, "Getting initialization function");
+    init_func = (KdeImplInitFunc)dlsym(module, "new_KdePluginImplementation");
     if (!init_func)
         return NULL;
 
-    addrbook = init_func(member);
-    if (!addrbook)
+    osync_debug("kde", 3, "Initializing implementation module");
+    impl_object = init_func(member);
+    if (!impl_object)
         return NULL;
 
-    /* Return kaddrbook object to the sync engine */
-    return (void*)addrbook;
+    /* Return the created object to the sync engine */
+    return (void*)impl_object;
 }
 
 static void kde_finalize(void *data)
 {
     osync_debug("kde", 3, "%s()", __FUNCTION__);
 
-    KdePluginImplementationBase *addrbook = (KdePluginImplementationBase *)data;
-    delete addrbook;
+    KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)data;
+    delete impl_object;
 }
 
 static void kde_connect(OSyncContext *ctx)
 {
-    KdePluginImplementationBase *addrbook = addrbook_for_context(ctx);
-    addrbook->connect(ctx);
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+    impl_object->connect(ctx);
 }
 
 
 static void kde_disconnect(OSyncContext *ctx)
 {
-    KdePluginImplementationBase *addrbook = addrbook_for_context(ctx);
-    addrbook->disconnect(ctx);
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+    impl_object->disconnect(ctx);
 }
 
 static void kde_get_changeinfo(OSyncContext *ctx)
 {
-    KdePluginImplementationBase *addrbook = addrbook_for_context(ctx);
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
     osync_debug("kde", 3, "%s",__FUNCTION__);
 
-    addrbook->get_changes(ctx);
+    impl_object->get_changeinfo(ctx);
 }
 
+static void kde_get_data(OSyncContext *ctx, OSyncChange *chg)
+{
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+    osync_debug("kde", 3, "%s",__FUNCTION__);
+
+    impl_object->get_data(ctx, chg);
+}
 
 static osync_bool kde_vcard_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
-    KdePluginImplementationBase *addrbook = addrbook_for_context(ctx);
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
 
     osync_debug("kde", 3, "%s()",__FUNCTION__);
 
-    return addrbook->vcard_commit_change(ctx, change); 
+    return impl_object->vcard_commit_change(ctx, change); 
 }
 
 static osync_bool kde_vcard_access(OSyncContext *ctx, OSyncChange *change)
 {
-    KdePluginImplementationBase *addrbook = addrbook_for_context(ctx);
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
 
     osync_debug("kde", 3, "%s()",__FUNCTION__);
 
-    return addrbook->vcard_access(ctx, change); 
+    return impl_object->vcard_access(ctx, change); 
 }
 
 extern "C" {
@@ -118,6 +134,7 @@ void get_info(OSyncPluginInfo *info)
     info->functions.disconnect = kde_disconnect;
     info->functions.finalize = kde_finalize;
     info->functions.get_changeinfo = kde_get_changeinfo;
+    info->functions.get_data = kde_get_data;
 
     osync_plugin_accept_objtype(info, "contact");
     osync_plugin_accept_objformat(info, "contact", "vcard");
