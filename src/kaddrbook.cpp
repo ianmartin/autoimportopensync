@@ -32,6 +32,7 @@ extern "C"
 
 #include <kabc/stdaddressbook.h>
 #include <kabc/vcardconverter.h>
+#include <kabc/resource.h>
 #include <kcmdlineargs.h>
 #include <kapplication.h>
 #include <klocale.h>
@@ -87,7 +88,31 @@ class kaddrbook
             hashtable = osync_hashtable_new();
             osync_hashtable_load(hashtable, member);
 
-        };
+        }
+
+        int connect()
+        {
+            //Lock the addressbook
+            addressbookticket = addressbookptr->requestSaveTicket();
+
+            if (!addressbookticket)
+            {
+                osync_debug("kde", 3, "kdepim_plugin: couldnt lock KDE addressbook, aborting sync.");
+                return -1;
+            }
+            osync_debug("kde", 3, "kdepim_plugin: KDE addressbook locked OK.");
+
+            return 0;
+        }
+
+        int disconnect()
+        {
+            //Unlock the addressbook
+            addressbookptr->save(addressbookticket);
+            addressbookticket = NULL;
+
+            return 0;
+        }
 
 
         int get_changes(OSyncContext *ctx)
@@ -106,15 +131,6 @@ class kaddrbook
                 return -1;
             }
             osync_debug("kde", 3, "kdepim_plugin: KDE addressbook reloaded OK.");
-
-            //Lock the addressbook
-            addressbookticket = addressbookptr->requestSaveTicket();
-            if (!addressbookticket)
-            {
-                osync_debug("kde", 3, "kdepim_plugin: couldnt lock KDE addressbook, aborting sync.");
-                return -1;
-            }
-            osync_debug("kde", 3, "kdepim_plugin: KDE addressbook locked OK.");
 
             //osync_debug("kde", 3, "%s: %s : plugin UID list has %d entries", __FILE__, __FUNCTION__, uidlist.count());
 
@@ -165,7 +181,7 @@ class kaddrbook
         }
 
 
-        int modify(OSyncChange *chg)
+        int access(OSyncChange *chg)
         {
             //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s()",__FUNCTION__);
 
@@ -180,12 +196,6 @@ class kaddrbook
             }
 
             KABC::VCardConverter converter;
-    
-            /* allocate and initialize return struct for this change entry */
-            //FIXME: check how to return errors safely
-            //modify_result = (syncobj_modify_result*)g_malloc0(sizeof(syncobj_modify_result));
-            //modify_result->result = SYNC_MSG_MODIFYERROR;
-            //modify_result->returnuid = NULL;
     
             OSyncChangeType chtype = osync_change_get_changetype(chg);
             char *uid = osync_change_get_uid(chg);
@@ -265,44 +275,22 @@ class kaddrbook
                 }
                 default:
                     result = 0;
-            }    
+            }
+            //Save the changes without dropping the lock
+            addressbookticket->resource()->save(addressbookticket);
     
             return result;
         }
 
-
-        void sync_done(bool success) 
+        int commit_change(OSyncChange *chg)
         {
-            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(%d)", __FUNCTION__, success);
-
-            if (!addressbookticket)
-            {
-                //This should never happen, but just in case
-                osync_debug("kde", 3, "kdepim_plugin: lock on KDE addressbook was lost, aborting sync.");
-
-                return;
-            }
-
-            if (success)
-            {
-                // Save and unlock the KDE addressbook
-                addressbookptr->save(addressbookticket);
-                osync_debug("kde", 3, "kdepim_plugin: KDE addressbook saved and unlocked.");
-                
-                //update the syncdate                   
-                syncdate = newsyncdate;       
-            }
-            else
-            {
-                // Unlock the KDE addressbook and discard all changes
-                addressbookptr->releaseSaveTicket(addressbookticket);
-                osync_debug("kde", 3, "kdepim_plugin: KDE addressbook unlocked and changes discarded.");
-
-            }
- 
-            addressbookticket=NULL;
+            int ret;
+            if ( (ret = access(chg)) < 0)
+                return ret;
+            osync_hashtable_update_hash(hashtable, chg);
+            return 0;
         }
-   
+
 };
 
 static KApplication *applicationptr=NULL;
@@ -339,11 +327,6 @@ static void kde_finalize(void *data)
     osync_debug("kde", 3, "kdepim_plugin: %s()", __FUNCTION__);
 
     kaddrbook *addrbook = (kaddrbook *)data;
-    /*FIXME: check when calling sync_done() with
-     * success==false is appropriate
-     */
-    addrbook->sync_done(true);
-
     delete addrbook;
 
     if (applicationptr) {
@@ -354,12 +337,22 @@ static void kde_finalize(void *data)
 
 static void kde_connect(OSyncContext *ctx)
 {
+    kaddrbook *addrbook = addrbook_for_context(ctx);
+    if (addrbook->connect() < 0) {
+        osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't lock KDE addressbook");
+        return;
+    }
     osync_context_report_success(ctx);
 }
 
 
 static void kde_disconnect(OSyncContext *ctx)
 {
+    kaddrbook *addrbook = addrbook_for_context(ctx);
+    if (addrbook->disconnect() < 0) {
+        osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't lock KDE addressbook");
+        return;
+    }
     osync_context_report_success(ctx);
 }
 
@@ -385,7 +378,25 @@ static osync_bool kde_commit_change(OSyncContext *ctx, OSyncChange *change)
 
     osync_debug("kde", 3, "kdepim_plugin: %s()",__FUNCTION__);
 
-    err = addrbook->modify(change); 
+    err = addrbook->commit_change(change); 
+
+    if (err)
+        osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't update KDE addressbook");
+    else 
+        osync_context_report_success(ctx);
+
+    /*FIXME: What should be returned? */
+    return true;
+}
+
+static osync_bool kde_access(OSyncContext *ctx, OSyncChange *change)
+{
+    kaddrbook *addrbook = addrbook_for_context(ctx);
+    int err;
+
+    osync_debug("kde", 3, "kdepim_plugin: %s()",__FUNCTION__);
+
+    err = addrbook->access(change); 
 
     if (err)
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't update KDE addressbook");
@@ -411,9 +422,8 @@ void get_info(OSyncPluginInfo *info)
 
     osync_plugin_accept_objtype(info, "contact");
     osync_plugin_accept_objformat(info, "contact", "vcard");
-    /*FIXME: check the differences between commit_change() and access() */
     osync_plugin_set_commit_objformat(info, "contact", "vcard", kde_commit_change);
-    osync_plugin_set_access_objformat(info, "contact", "vcard", kde_commit_change);
+    osync_plugin_set_access_objformat(info, "contact", "vcard", kde_access);
 
 }
 
