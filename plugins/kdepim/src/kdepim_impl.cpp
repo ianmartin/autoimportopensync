@@ -365,7 +365,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 {
                     unfold_vcard(data, &data_size);
 
-                    KABC::Addressee addressee = converter.parseVCard(QString::fromLocal8Bit(data, data_size));
+                    KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
 
                     // ensure it has the correct UID
                     addressee.setUid(uid);
