@@ -1,5 +1,5 @@
 /*********************************************************************** 
-KCalendar OSyncDataSource class
+KNotes OSyncDataSource class
 Copyright (C) 2004 Conectiva S. A.
 
 This program is free software; you can redistribute it and/or modify
