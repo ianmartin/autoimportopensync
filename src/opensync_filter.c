@@ -106,6 +106,22 @@ void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
 	group->filters = g_list_remove(group->filters, filter);
 }
 
+/*! @brief Flushes the list of filters for a group
+ *
+ * Clean the list of filters on the group
+ */
+void osync_filter_flush(OSyncGroup *group)
+{
+	g_assert(group);
+	while (group->filters) {
+		OSyncFilter *f = g_list_nth_data(group->filters, 0);
+		osync_filter_free(f);
+
+		/* Delete the first item */
+		group->filters = g_list_delete_link(group->filters, group->filters);
+	}
+}
+
 /*! @brief Register a new filter
  * 
  * @param sourcememberid The id of the member reporting the object. 0 for any

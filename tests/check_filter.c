@@ -29,6 +29,37 @@ START_TEST (filter_setup)
 }
 END_TEST
 
+START_TEST (filter_flush)
+{
+	char *testbed = setup_testbed("filter_setup");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	mark_point();
+	
+	OSyncMember *leftmember = osync_group_nth_member(group, 0);
+	OSyncMember *rightmember = osync_group_nth_member(group, 1);
+	
+	OSyncFilter *filter1 = osync_filter_add(group, leftmember, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+	OSyncFilter *filter2 = osync_filter_add(group, leftmember, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+	fail_unless(filter1 != NULL, NULL);
+	fail_unless(filter2 != NULL, NULL);
+	
+	mark_point();
+	fail_unless(osync_group_num_filters(group) == 2, NULL);
+	fail_unless(osync_group_nth_filter(group, 0) == filter1, NULL);
+	fail_unless(osync_group_nth_filter(group, 1) == filter2, NULL);
+	
+	mark_point();
+	osync_filter_flush(group);
+	fail_unless(osync_group_num_filters(group) == 0, NULL);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (filter_sync_deny_all)
 {
 	char *testbed = setup_testbed("filter_sync_deny_all");
@@ -252,6 +283,7 @@ Suite *filter_suite(void)
 	//TCase *tc_filter2 = tcase_create("setup2");
 	suite_add_tcase (s, tc_filter);
 	tcase_add_test(tc_filter, filter_setup);
+	tcase_add_test(tc_filter, filter_flush);
 	tcase_add_test(tc_filter, filter_sync_deny_all);
 	tcase_add_test(tc_filter, filter_sync_custom);
 	tcase_add_test(tc_filter, filter_save_and_load);

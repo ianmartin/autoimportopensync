@@ -74,6 +74,13 @@ OSyncObjType *osync_change_get_objtype(OSyncChange *change)
 	return change->objtype;
 }
 
+const char *osync_change_get_sourceobjtype(OSyncChange *change)
+{
+	g_assert(change);
+	return change->sourceobjtype;
+}
+
+
 void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type)
 {
 	g_assert(change);

@@ -6,6 +6,7 @@ void osync_change_set_data(OSyncChange *change, char *data, int size, osync_bool
 int osync_change_set_datasize(OSyncChange *change);
 void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *format);
 OSyncObjType *osync_change_get_objtype(OSyncChange *change);
+const char *osync_change_get_sourceobjtype(OSyncChange *change);
 void osync_change_set_changetype(OSyncChange *change, OSyncChangeType type);
 char *osync_change_get_hash(OSyncChange *change);
 char *osync_change_get_uid(OSyncChange *change);
