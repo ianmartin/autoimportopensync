@@ -1,6 +1,7 @@
 /*********************************************************************** 
 KNotes OSyncDataSource class
 Copyright (C) 2004 Conectiva S. A.
+Copyright (C) 2005 Armin Bauer
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -21,10 +22,23 @@ SOFTWARE IS DISCLAIMED.
 *************************************************************************/
 /**
  * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @autor Armin Bauer <armin.bauer@opensync.org>
  */
 
-extern "C" {
+#include <kglobal.h>
+#include <kstandarddirs.h>
+#include <kio/netaccess.h>
+#include <klocale.h>
+
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+extern "C"
+{
 #include <opensync/opensync.h>
+#include <opensync/opensync-xml.h>
 }
 
 // Forward declaration

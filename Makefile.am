@@ -40,4 +40,9 @@ kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugin
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
 kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync-xml
 
+bin_PROGRAMS = notestest
 
+
+notestest_SOURCES = src/knotes-test.cpp src/KNotesIface_stub.cpp
+notestest_LDFLAGS = $(KDE_LDFLAGS)
+notestest_LDADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@

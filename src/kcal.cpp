@@ -23,12 +23,6 @@ SOFTWARE IS DISCLAIMED.
  * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
  */
 
-#include <libkcal/calendarresources.h>
-#include <libkcal/icalformat.h>
-#include <libkcal/calendarlocal.h>
-#include <kdeversion.h>
-
-#include "osyncbase.h"
 #include "kcal.h"
 
 KCalDataSource::KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable)

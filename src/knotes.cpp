@@ -30,25 +30,10 @@ SOFTWARE IS DISCLAIMED.
  * (http://www.opensync.org/ticket/34)
  */
 
-#include <libkcal/calendarlocal.h>
-#include <libkcal/icalformat.h>
-#include <kglobal.h>
-#include <kstandarddirs.h>
-#include <kio/netaccess.h>
-#include <klocale.h>
-
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 
 #include "knotes.h"
 
-extern "C"
-{
-#include <opensync/opensync-xml.h>
-}
 
 KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
     :member(m), hashtable(h)
@@ -57,6 +42,11 @@ KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
 
 bool KNotesDataSource::connect(OSyncContext *ctx)
 {
+	//connect to dcop
+	//check knotes running
+		//start knotes if not running
+	
+	
     // Terminate knotes because we will change its data
     // Yes, it is _very_ ugly
     //FIXME: use dcop programming interface, not the commandline utility
@@ -71,76 +61,14 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
         osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Couldn't allocate calendar object");
         return false;
     }
-    if (!calendar->load(KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics")) {
+    
+    QString notes_loc = KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics";
+
+    if (!calendar->load(notes_loc)) {
         osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Couldn't load notes");
         return false;
     }
 
-    return true;
-}
-
-/** Quick hack to avoid using KIO::NetAccess (that needs a KApplication instance */
-static bool copy_file(const char *from, const char *to)
-{
-    int f1 = open(from, O_RDONLY);
-    if (f1 < 0)
-        return false;
-    int f2 = open(to, O_WRONLY);
-    if (f2 < 0) {
-        close(f1);
-        return false;
-    }
-
-    char buf[1024];
-    int ret;
-    bool result = true;
-    for (;;) {
-        ret = read(f1, buf, 1024);
-        if (ret == 0)
-            break;
-        if (ret < 0) {
-            if (errno == EINTR)
-                continue;
-            result = false;
-            break;
-        }
-        int wret = write(f2, buf, ret);
-        if (wret < ret) {
-            result = false;
-            break;
-        }
-    }
-    close(f1);
-    close(f2);
-    return result;
-}
-
-bool KNotesDataSource::saveNotes(OSyncContext *ctx)
-{
-    // shamelessly copied from KNotes source code
-    QString file = KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics";
-    QString backup = file + "~";
-
-    // if the backup fails don't even try to save the current notes
-    // (might just destroy the file that's already there)
-
-    if ( !copy_file(file, backup) )
-    {
-        osync_context_report_error(ctx, OSYNC_ERROR_IO_ERROR,
-                            i18n("Unable to save the notes backup to "
-                                 "%1! Check that there is sufficient "
-                                 "disk space!").arg( backup ) );
-        return false;
-    }
-    else if ( !calendar->save( file, new KCal::ICalFormat() ) )
-    {
-        osync_context_report_error(ctx, OSYNC_ERROR_IO_ERROR,
-                            i18n("Unable to save the notes to %1! "
-                                 "Check that there is sufficient disk space."
-                                 "There should be a backup in %2 "
-                                 "though.").arg( file ).arg( backup ) );
-        return false;
-    }
     return true;
 }
 
@@ -156,15 +84,6 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
     if (knotesWasRunning)
         system("knotes");
     return true;
-}
-
-static QString calc_hash(const KCal::Journal *note)
-{
-    QDateTime d = note->lastModified();
-    if (!d.isValid())
-        d = QDateTime::currentDateTime();
-    /*FIXME: not i18ned string */
-    return d.toString();
 }
 
 bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
@@ -227,12 +146,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
     return true;
 }
 
-void KNotesDataSource::get_data(OSyncContext *ctx, OSyncChange *)
-{
-    osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Not implemented yet");
-}
-
-bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
+bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 {
     OSyncChangeType type = osync_change_get_changetype(chg);
 
@@ -288,23 +202,14 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
         }
     }
 
-    return true;
-}
-
-bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
-{
-    if (!__access(ctx, chg))
-        return false;
-
     osync_context_report_success(ctx);
     return true;
 }
 
 bool KNotesDataSource::commit_change(OSyncContext *ctx, OSyncChange *chg)
 {
-    if (!__access(ctx, chg))
+    if (!access(ctx, chg))
         return false;
     osync_hashtable_update_hash(hashtable, chg);
-    osync_context_report_success(ctx);
     return true;
 }

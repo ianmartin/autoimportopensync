@@ -25,6 +25,9 @@ SOFTWARE IS DISCLAIMED.
 
 #include <libkcal/calendarresources.h>
 #include <libkcal/incidence.h>
+#include <libkcal/icalformat.h>
+#include <libkcal/calendarlocal.h>
+#include <kdeversion.h>
 
 #include "osyncbase.h"
 
