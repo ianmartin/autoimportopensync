@@ -8,9 +8,9 @@ typedef struct ITMQueue ITMQueue;
 
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
-typedef void (* MSyncFlagTriggerFunc) (gpointer user_data1, gpointer user_data2);
+typedef void (* OSyncFlagTriggerFunc) (gpointer user_data1, gpointer user_data2);
 
-typedef struct MSyncFlag MSyncFlag;
+typedef struct OSyncFlag OSyncFlag;
 typedef struct OSyncMappingTable OSyncMappingTable;
 typedef struct OSyncMappingView OSyncMappingView;
 typedef struct OSyncMappingEntry OSyncMappingEntry;

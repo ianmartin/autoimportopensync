@@ -6,10 +6,10 @@ struct OSyncClient {
 	GMainLoop *memberloop;
 	OSyncEngine *engine;
 
-	MSyncFlag *fl_connected;
-	MSyncFlag *fl_sent_changes;
-	MSyncFlag *fl_done;
-	MSyncFlag *fl_finished;
+	OSyncFlag *fl_connected;
+	OSyncFlag *fl_sent_changes;
+	OSyncFlag *fl_done;
+	OSyncFlag *fl_finished;
 	GThread *thread;
 	GMainContext *context;
 	

@@ -563,10 +563,10 @@ static gboolean startupfunc(gpointer data)
  * @returns TRUE if command was succcessfull, FALSE otherwise
  * 
  */
-osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
+osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 {
 	//FIXME Check if engine is running
-	osync_trace(TRACE_ENTRY, "osync_engine_reset(%p, %p)", engine, error);
+	osync_trace(TRACE_ENTRY, "osengine_reset(%p, %p)", engine, error);
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
@@ -608,7 +608,7 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 	g_cond_signal(engine->syncing);
 	g_mutex_unlock(engine->syncing_mutex);
 
-	osync_trace(TRACE_EXIT, "osync_engine_reset");
+	osync_trace(TRACE_EXIT, "osengine_reset");
 	return TRUE;
 }
 
@@ -621,9 +621,9 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
  * @returns Pointer to a newly allocated OSyncEngine on success, NULL otherwise
  * 
  */
-OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
+OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_engine_new(%p, %p)", group, error);
+	osync_trace(TRACE_ENTRY, "osengine_new(%p, %p)", group, error);
 	
 	g_assert(group);
 	OSyncEngine *engine = g_malloc0(sizeof(OSyncEngine));
@@ -647,35 +647,35 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
-	osync_flag_set_pos_trigger(engine->fl_running, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	engine->fl_sync = osync_flag_new(NULL);
 	engine->fl_stop = osync_flag_new(NULL);
-	osync_flag_set_pos_trigger(engine->fl_stop, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->fl_stop, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	//The combined flags
 	engine->cmb_sent_changes = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_sent_changes, (MSyncFlagTriggerFunc)trigger_clients_sent_changes, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_sent_changes, (OSyncFlagTriggerFunc)trigger_clients_sent_changes, engine, NULL);
 	
 	engine->cmb_read_all = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_read_all, (MSyncFlagTriggerFunc)trigger_clients_read_all, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_read_all, (OSyncFlagTriggerFunc)trigger_clients_read_all, engine, NULL);
 	
 	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	engine->cmb_synced = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_synced, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	engine->cmb_finished = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_finished, (MSyncFlagTriggerFunc)osync_engine_reset, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_finished, (OSyncFlagTriggerFunc)osengine_reset, engine, NULL);
 	
 	engine->cmb_connected = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_connected, (MSyncFlagTriggerFunc)trigger_clients_connected, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_connected, (OSyncFlagTriggerFunc)trigger_clients_connected, engine, NULL);
 
 	engine->cmb_chkconflict = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (MSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (OSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
 	
 	engine->cmb_multiplied = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_multiplied, (MSyncFlagTriggerFunc)trigger_engine_multiplied, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_multiplied, (OSyncFlagTriggerFunc)trigger_engine_multiplied, engine, NULL);
 	
 	osync_flag_set(engine->fl_sync);
 	
@@ -687,7 +687,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	
 	engine->maptable = osengine_mappingtable_new(engine);
 	
-	osync_trace(TRACE_EXIT, "osync_engine_new: %p", engine);
+	osync_trace(TRACE_EXIT, "osengine_new: %p", engine);
 	return engine;
 }
 
@@ -698,9 +698,9 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
  * @param engine A pointer to the engine, which you want to free
  * 
  */
-void osync_engine_free(OSyncEngine *engine)
+void osengine_free(OSyncEngine *engine)
 {
-	osync_trace(TRACE_ENTRY, "osync_engine_free(%p)", engine);
+	osync_trace(TRACE_ENTRY, "osengine_free(%p)", engine);
 	
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
@@ -740,7 +740,7 @@ void osync_engine_free(OSyncEngine *engine)
 	g_cond_free(engine->started);
 	
 	g_free(engine);
-	osync_trace(TRACE_EXIT, "osync_engine_free");
+	osync_trace(TRACE_EXIT, "osengine_free");
 }
 
 /*! @brief This will set the conflict handler for the given engine
@@ -752,7 +752,7 @@ void osync_engine_free(OSyncEngine *engine)
  * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_conflict_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncMapping *, void *), void *user_data)
+void osengine_set_conflict_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncMapping *, void *), void *user_data)
 {
 	engine->conflict_callback = function;
 	engine->conflict_userdata = user_data;
@@ -767,7 +767,7 @@ void osync_engine_set_conflict_callback(OSyncEngine *engine, void (* function) (
  * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_changestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, MSyncChangeUpdate *, void *), void *user_data)
+void osengine_set_changestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncChangeUpdate *, void *), void *user_data)
 {
 	engine->changestat_callback = function;
 	engine->changestat_userdata = user_data;
@@ -782,7 +782,7 @@ void osync_engine_set_changestatus_callback(OSyncEngine *engine, void (* functio
  * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* function) (MSyncMappingUpdate *, void *), void *user_data)
+void osengine_set_mappingstatus_callback(OSyncEngine *engine, void (* function) (OSyncMappingUpdate *, void *), void *user_data)
 {
 	engine->mapstat_callback = function;
 	engine->mapstat_userdata = user_data;
@@ -797,7 +797,7 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* functi
  * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncEngineUpdate *, void *), void *user_data)
+void osengine_set_enginestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncEngineUpdate *, void *), void *user_data)
 {
 	engine->engstat_callback = function;
 	engine->engstat_userdata = user_data;
@@ -812,7 +812,7 @@ void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* functio
  * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (MSyncMemberUpdate *, void *), void *user_data)
+void osengine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (OSyncMemberUpdate *, void *), void *user_data)
 {
 	engine->mebstat_callback = function;
 	engine->mebstat_userdata = user_data;
@@ -827,7 +827,7 @@ void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* functio
  * @param user_data A pointer to some user data that the callback function will get passed
  * 
  */
-void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (OSyncEngine *, OSyncClient *, const char *, void *, void *), void *user_data)
+void osengine_set_message_callback(OSyncEngine *engine, void *(* function) (OSyncEngine *, OSyncClient *, const char *, void *, void *), void *user_data)
 {
 	engine->plgmsg_callback = function;
 	engine->plgmsg_userdata = user_data;
@@ -844,20 +844,20 @@ void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (
  * @returns TRUE on success, FALSE otherwise. Check the error on FALSE.
  * 
  */
-osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
+osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_engine_init(%p, %p)", engine, error);
+	osync_trace(TRACE_ENTRY, "osengine_init(%p, %p)", engine, error);
 	
 	if (engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was already initialized");
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
 	switch (osync_group_lock(engine->group)) {
 		case OSYNC_LOCKED:
 			osync_error_set(error, OSYNC_ERROR_LOCKED, "Group is locked");
-			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
+			osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 			return FALSE;
 		case OSYNC_LOCK_STALE:
 			osync_debug("ENG", 1, "Detected stale lock file. Slow-syncing");
@@ -883,7 +883,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
 		osync_group_unlock(engine->group, TRUE);
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -893,17 +893,17 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_client_init(client, error)) {
-			osync_engine_finalize(engine);
+			osengine_finalize(engine);
 			osync_group_unlock(engine->group, TRUE);
-			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
+			osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 			return FALSE;
 		}
 	}
 	
 	if (!osengine_mappingtable_load(engine->maptable, error)) {
-		osync_engine_finalize(engine);
+		osengine_finalize(engine);
 		osync_group_unlock(engine->group, TRUE);
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -919,7 +919,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	g_cond_wait(engine->started, engine->started_mutex);
 	g_mutex_unlock(engine->started_mutex);
 	
-	osync_trace(TRACE_EXIT, "osync_engine_init");
+	osync_trace(TRACE_EXIT, "osengine_init");
 	return TRUE;
 }
 
@@ -931,13 +931,13 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
  * @param engine A pointer to the engine, which will be finalized
  * 
  */
-void osync_engine_finalize(OSyncEngine *engine)
+void osengine_finalize(OSyncEngine *engine)
 {
 	//FIXME check if engine is running
-	osync_trace(TRACE_ENTRY, "osync_engine_finalize(%p)", engine);
+	osync_trace(TRACE_ENTRY, "osengine_finalize(%p)", engine);
 
 	if (!engine->is_initialized) {
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_finalize: Not initialized");
+		osync_trace(TRACE_EXIT_ERROR, "osengine_finalize: Not initialized");
 		return;
 	}
 	
@@ -965,31 +965,31 @@ void osync_engine_finalize(OSyncEngine *engine)
 		osync_group_unlock(engine->group, TRUE);
 	
 	engine->is_initialized = FALSE;
-	osync_trace(TRACE_EXIT, "osync_engine_finalize");
+	osync_trace(TRACE_EXIT, "osengine_finalize");
 }
 
 /*! @brief Starts to synchronize the given OSyncEngine
  *
  * This function synchronizes a given engine. The Engine has to be created
- * from a OSyncGroup before by using osync_engine_new(). This function will not block
+ * from a OSyncGroup before by using osengine_new(). This function will not block
  * 
  * @param engine A pointer to the engine, which will be used to sync
  * @param error A pointer to a error struct
  * @returns TRUE on success, FALSE otherwise. Check the error on FALSE. Note that this just says if the sync has been started successfully, not if the sync itself was successfull
  * 
  */
-osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
+osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_engine_synchronize(%p)", engine);
+	osync_trace(TRACE_ENTRY, "osengine_synchronize(%p)", engine);
 	g_assert(engine);
 	if (!engine->is_initialized) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "osync_engine_synchronize: Not initialized");
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_synchronize: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "osengine_synchronize: Not initialized");
+		osync_trace(TRACE_EXIT_ERROR, "osengine_synchronize: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
 	osync_flag_set(engine->fl_running);
-	osync_trace(TRACE_EXIT, "osync_engine_synchronize");
+	osync_trace(TRACE_EXIT, "osengine_synchronize");
 	return TRUE;
 }
 
@@ -1000,7 +1000,7 @@ osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
  * 
  * @param engine A pointer to the engine, for which to set the flag
  */
-void osync_engine_flag_only_info(OSyncEngine *engine)
+void osengine_flag_only_info(OSyncEngine *engine)
 {
 	osync_flag_unset(engine->fl_sync);
 }
@@ -1008,11 +1008,11 @@ void osync_engine_flag_only_info(OSyncEngine *engine)
 /*! @brief Sets a flag on the engine that the engine should do single stepping (For debugging)
  *
  * This flag can be used to set single stepping on the engine. The engine will pause after each iteration.
- * Use osync_engine_one_iteration to initialize the next iteration. This is only for debugging purposes.
+ * Use osengine_one_iteration to initialize the next iteration. This is only for debugging purposes.
  * 
  * @param engine A pointer to the engine, for which to set the flag
  */
-void osync_engine_flag_manual(OSyncEngine *engine)
+void osengine_flag_manual(OSyncEngine *engine)
 {
 	if (engine->syncloop) {
 		g_warning("Unable to flag manual since engine is already initialized\n");
@@ -1026,7 +1026,7 @@ void osync_engine_flag_manual(OSyncEngine *engine)
  * 
  * @param engine A pointer to the engine, for which to set the flag
  */
-void osync_engine_pause(OSyncEngine *engine)
+void osengine_pause(OSyncEngine *engine)
 {
 	osync_flag_unset(engine->fl_running);
 }
@@ -1034,11 +1034,11 @@ void osync_engine_pause(OSyncEngine *engine)
 /*! @brief Sets a flag on the engine that the engine should do single stepping (For debugging)
  *
  * This flag can be used to set single stepping on the engine. The engine will pause after each iteration.
- * Use osync_engine_one_iteration to initialize the next iteration. This is only for debugging purposes.
+ * Use osengine_one_iteration to initialize the next iteration. This is only for debugging purposes.
  * 
  * @param engine A pointer to the engine, for which to set the flag
  */
-void osync_engine_abort(OSyncEngine *engine)
+void osengine_abort(OSyncEngine *engine)
 {
 	osync_flag_set(engine->fl_stop);
 }
@@ -1049,7 +1049,7 @@ void osync_engine_abort(OSyncEngine *engine)
  * 
  * @param engine The engine
  */
-void osync_engine_allow_sync_alert(OSyncEngine *engine)
+void osengine_allow_sync_alert(OSyncEngine *engine)
 {
 	engine->allow_sync_alert = TRUE;
 }
@@ -1060,7 +1060,7 @@ void osync_engine_allow_sync_alert(OSyncEngine *engine)
  * 
  * @param engine The engine
  */
-void osync_engine_deny_sync_alert(OSyncEngine *engine)
+void osengine_deny_sync_alert(OSyncEngine *engine)
 {
 	engine->allow_sync_alert = FALSE;
 }
@@ -1068,18 +1068,18 @@ void osync_engine_deny_sync_alert(OSyncEngine *engine)
 /*! @brief This function will synchronize once and block until the sync has finished
  *
  * This can be used to sync a group and wait for the synchronization end. DO NOT USE
- * osync_engine_wait_sync_end for this as this might introduce a race condition.
+ * osengine_wait_sync_end for this as this might introduce a race condition.
  * 
  * @param engine A pointer to the engine, which to sync and wait for the sync end
  * @param error A pointer to a error struct
  * @returns TRUE on success, FALSE otherwise.
  * 
  */
-osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
+osync_bool osengine_sync_and_block(OSyncEngine *engine, OSyncError **error)
 {
 	g_mutex_lock(engine->syncing_mutex);
 	
-	if (!osync_engine_synchronize(engine, error)) {
+	if (!osengine_synchronize(engine, error)) {
 		g_mutex_unlock(engine->syncing_mutex);
 		return FALSE;
 	}
@@ -1105,7 +1105,7 @@ osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
  * @param error Return location for the error if the sync was not successfull
  * @returns TRUE on success, FALSE otherwise.
  */
-osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
+osync_bool osengine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
 {
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_wait(engine->syncing, engine->syncing_mutex);
@@ -1124,7 +1124,7 @@ osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
  * 
  * @param engine A pointer to the engine, for which to wait for the info
  */
-void osync_engine_wait_info_end(OSyncEngine *engine)
+void osengine_wait_info_end(OSyncEngine *engine)
 {
 	g_mutex_lock(engine->info_received_mutex);
 	g_cond_wait(engine->info_received, engine->info_received_mutex);
@@ -1135,7 +1135,7 @@ void osync_engine_wait_info_end(OSyncEngine *engine)
  *
  * @param engine The engine to iterate
  */
-void osync_engine_one_iteration(OSyncEngine *engine)
+void osengine_one_iteration(OSyncEngine *engine)
 {
 	itm_queue_dispatch(engine->incoming);
 }
@@ -1146,7 +1146,7 @@ void osync_engine_one_iteration(OSyncEngine *engine)
  * @param id The id of the mapping
  * @returns The mapping or NULL if not found
  */
-OSyncMapping *osync_engine_mapping_from_id(OSyncEngine *engine, long long int id)
+OSyncMapping *osengine_mapping_from_id(OSyncEngine *engine, long long int id)
 {
 	return osengine_mappingtable_mapping_from_id(engine->maptable, id);
 }

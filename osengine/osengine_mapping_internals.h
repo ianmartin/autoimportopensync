@@ -22,14 +22,14 @@ struct OSyncMapping {
 	void *engine_data;
 	long long int id;
 	OSyncMappingTable *table;
-	MSyncFlag *fl_solved;
-	MSyncFlag *fl_chkconflict;
-	MSyncFlag *fl_multiplied;
+	OSyncFlag *fl_solved;
+	OSyncFlag *fl_chkconflict;
+	OSyncFlag *fl_multiplied;
 	//The combined flags
-	MSyncFlag *cmb_synced;
-	MSyncFlag *cmb_has_data;
-	MSyncFlag *cmb_has_info;
-	MSyncFlag *cmb_deleted;
+	OSyncFlag *cmb_synced;
+	OSyncFlag *cmb_has_data;
+	OSyncFlag *cmb_has_info;
+	OSyncFlag *cmb_deleted;
 	OSyncEngine *engine;
 };
 
@@ -38,13 +38,13 @@ struct OSyncMappingEntry {
 	OSyncClient *client;
 	OSyncMapping *mapping;
 	OSyncChange *change;
-	MSyncFlag *fl_has_data;
-	MSyncFlag *fl_dirty;
-	MSyncFlag *fl_mapped;
-	MSyncFlag *fl_has_info;
-	MSyncFlag *fl_synced;
-	MSyncFlag *fl_deleted;
-	MSyncFlag *fl_read;
+	OSyncFlag *fl_has_data;
+	OSyncFlag *fl_dirty;
+	OSyncFlag *fl_mapped;
+	OSyncFlag *fl_has_info;
+	OSyncFlag *fl_synced;
+	OSyncFlag *fl_deleted;
+	OSyncFlag *fl_read;
 };
 #endif
 

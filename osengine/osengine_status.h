@@ -73,19 +73,19 @@ typedef enum {
 /*! @brief Struct for the member status callback
  * @ingroup OSEnginePublic
  */
-typedef struct MSyncMemberUpdate {
+typedef struct OSyncMemberUpdate {
 	/** The type of the status update */
 	memberupdatetype type;
 	/** The member for which the status update is */
 	OSyncMember *member;
 	/** If the status was a error, this error will be set */
 	OSyncError *error;
-} MSyncMemberUpdate;
+} OSyncMemberUpdate;
 
 /*! @brief Struct for the change status callback
  * @ingroup OSEnginePublic
  */
-typedef struct MSyncChangeUpdate {
+typedef struct OSyncChangeUpdate {
 	/** The type of the status update */
 	changeupdatetype type;
 	/** The change for which the status update is */
@@ -96,12 +96,12 @@ typedef struct MSyncChangeUpdate {
 	int mapping_id;
 	/** If the status was a error, this error will be set */
 	OSyncError *error;
-} MSyncChangeUpdate;
+} OSyncChangeUpdate;
 
 /*! @brief Struct for the mapping status callback
  * @ingroup OSEnginePublic
  */
-typedef struct MSyncMappingUpdate {
+typedef struct OSyncMappingUpdate {
 	/** The type of the status update */
 	mappingupdatetype type;
 	/** If the mapping was already solved, this will have the id if the winning entry */
@@ -110,7 +110,7 @@ typedef struct MSyncMappingUpdate {
 	OSyncMapping *mapping;
 	/** If the status was a error, this error will be set */
 	OSyncError *error;
-} MSyncMappingUpdate;
+} OSyncMappingUpdate;
 
 /*! @brief Struct for the engine status callback
  * @ingroup OSEnginePublic

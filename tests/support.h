@@ -35,10 +35,10 @@ void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, vo
 void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 
-void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data);
-void member_status(MSyncMemberUpdate *status, void *user_data);
+void entry_status(OSyncEngine *engine, OSyncChangeUpdate *status, void *user_data);
+void member_status(OSyncMemberUpdate *status, void *user_data);
 void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data);
-void mapping_status(MSyncMappingUpdate *status, void *user_data);
+void mapping_status(OSyncMappingUpdate *status, void *user_data);
 
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);

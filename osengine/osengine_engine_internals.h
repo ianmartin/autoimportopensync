@@ -5,13 +5,13 @@ struct OSyncEngine {
 	OSyncGroup *group;
 	void (* conflict_callback) (OSyncEngine *, OSyncMapping *, void *);
 	void *conflict_userdata;
-	void (* changestat_callback) (OSyncEngine *, MSyncChangeUpdate *, void *);
+	void (* changestat_callback) (OSyncEngine *, OSyncChangeUpdate *, void *);
 	void *changestat_userdata;
-	void (* mebstat_callback) (MSyncMemberUpdate *, void *);
+	void (* mebstat_callback) (OSyncMemberUpdate *, void *);
 	void *mebstat_userdata;
 	void (* engstat_callback) (OSyncEngine *, OSyncEngineUpdate *, void *);
 	void *engstat_userdata;
-	void (* mapstat_callback) (MSyncMappingUpdate *, void *);
+	void (* mapstat_callback) (OSyncMappingUpdate *, void *);
 	void *mapstat_userdata;
 	void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
 	void *plgmsg_userdata;
@@ -33,19 +33,19 @@ struct OSyncEngine {
 	GMutex* started_mutex;
 	
 	//The normal flags
-	MSyncFlag *fl_running; //Is the syncengine running?
-	MSyncFlag *fl_sync; //Do we want to sync data or do we just want info?
-	MSyncFlag *fl_stop; //Do we want to stop the engine?
+	OSyncFlag *fl_running; //Is the syncengine running?
+	OSyncFlag *fl_sync; //Do we want to sync data or do we just want info?
+	OSyncFlag *fl_stop; //Do we want to stop the engine?
 	
 	//The combined flags
-	MSyncFlag *cmb_connected; //Did all client connect or error?
-	MSyncFlag *cmb_sent_changes; //Did all clients sent changes?
-	MSyncFlag *cmb_entries_mapped; //Do we have unmapped entries?
-	MSyncFlag *cmb_synced; //Are all mappings synced?
-	MSyncFlag *cmb_finished; //Are all clients done and disconnected?
-	MSyncFlag *cmb_chkconflict;
-	MSyncFlag *cmb_read_all;
-	MSyncFlag *cmb_multiplied;
+	OSyncFlag *cmb_connected; //Did all client connect or error?
+	OSyncFlag *cmb_sent_changes; //Did all clients sent changes?
+	OSyncFlag *cmb_entries_mapped; //Do we have unmapped entries?
+	OSyncFlag *cmb_synced; //Are all mappings synced?
+	OSyncFlag *cmb_finished; //Are all clients done and disconnected?
+	OSyncFlag *cmb_chkconflict;
+	OSyncFlag *cmb_read_all;
+	OSyncFlag *cmb_multiplied;
 	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;

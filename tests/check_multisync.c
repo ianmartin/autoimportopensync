@@ -10,15 +10,15 @@ START_TEST (multisync_easy_new)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -59,11 +59,11 @@ START_TEST (multisync_easy_mod)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -78,8 +78,8 @@ START_TEST (multisync_easy_mod)
 	system("cp newdata data3/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -119,11 +119,11 @@ START_TEST (multisync_dual_mod)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -139,8 +139,8 @@ START_TEST (multisync_dual_mod)
 	system("cp newdata data3/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
-	osync_engine_free(engine);
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -181,11 +181,11 @@ START_TEST (multisync_triple_mod)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -202,7 +202,7 @@ START_TEST (multisync_triple_mod)
 	system("cp newdata data3/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -243,11 +243,11 @@ START_TEST (multisync_dual_new)
 	mark_point();
 	
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_written == 1, NULL);
@@ -277,7 +277,7 @@ START_TEST (multisync_dual_new)
 	system("rm -f data2/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -312,11 +312,11 @@ START_TEST (multisync_triple_new)
 	num_written = 0;
 	num_read = 0;
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_written == 0, NULL);
@@ -346,7 +346,7 @@ START_TEST (multisync_triple_new)
 	system("rm -f data1/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -374,10 +374,10 @@ START_TEST (multisync_easy_del)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -387,7 +387,7 @@ START_TEST (multisync_easy_del)
 	system("rm -f data2/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -419,10 +419,10 @@ START_TEST (multisync_dual_del)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -433,7 +433,7 @@ START_TEST (multisync_dual_del)
 	system("rm -f data3/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -465,10 +465,10 @@ START_TEST (multisync_triple_del)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -480,7 +480,7 @@ START_TEST (multisync_triple_del)
 	system("rm -f data3/testdata");
 	
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -519,12 +519,12 @@ START_TEST (multisync_conflict_data_choose)
 	num_read = 0;
 	num_conflicts = 0;
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_written == 2, NULL);
@@ -558,7 +558,7 @@ START_TEST (multisync_conflict_data_choose)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -593,12 +593,12 @@ START_TEST (multisync_conflict_data_choose2)
 	num_read = 0;
 	num_conflicts = 0;
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 3, NULL);
@@ -631,7 +631,7 @@ START_TEST (multisync_conflict_data_choose2)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);;
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -659,10 +659,10 @@ START_TEST (multisync_conflict_changetype_choose)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -710,7 +710,7 @@ START_TEST (multisync_conflict_changetype_choose)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -738,10 +738,10 @@ START_TEST (multisync_conflict_changetype_choose2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -757,7 +757,7 @@ START_TEST (multisync_conflict_changetype_choose2)
 	num_read = 0;
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -789,10 +789,10 @@ START_TEST (multisync_conflict_hybrid_choose)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -840,7 +840,7 @@ START_TEST (multisync_conflict_hybrid_choose)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -868,10 +868,10 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -926,12 +926,12 @@ START_TEST (multisync_conflict_data_duplicate)
 	num_read = 0;
 	num_conflicts = 0;
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 2, NULL);
@@ -992,7 +992,7 @@ START_TEST (multisync_conflict_data_duplicate)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1027,12 +1027,12 @@ START_TEST (multisync_conflict_data_duplicate2)
 	num_read = 0;
 	num_conflicts = 0;
 	OSyncError *error = NULL;
-	OSyncEngine *engine = osync_engine_new(group, &error);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
 	mark_point();
 	fail_unless(engine != NULL, NULL);
-	fail_unless(osync_engine_init(engine, &error), NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 3, NULL);
@@ -1099,7 +1099,7 @@ START_TEST (multisync_conflict_data_duplicate2)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1127,10 +1127,10 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -1177,7 +1177,7 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1205,11 +1205,11 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -1257,7 +1257,7 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1285,10 +1285,10 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -1342,7 +1342,7 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1371,11 +1371,11 @@ START_TEST (multisync_multi_conflict)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data2/testdata2");
@@ -1489,7 +1489,7 @@ START_TEST (multisync_multi_conflict)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1518,11 +1518,11 @@ START_TEST (multisync_delayed_conflict_handler)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
+	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data2/testdata2");
@@ -1624,7 +1624,7 @@ START_TEST (multisync_delayed_conflict_handler)
 	mark_point();
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1653,11 +1653,11 @@ START_TEST (multisync_conflict_ignore)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_ignore, (void *)3);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_ignore, (void *)3);
+	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	
@@ -1774,7 +1774,7 @@ START_TEST (multisync_conflict_ignore)
 	osync_hashtable_close(table);
 	
 	
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_read == 5, NULL);
@@ -1812,7 +1812,7 @@ START_TEST (multisync_conflict_ignore)
 	system("rm -f data1/*");
 
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
@@ -1841,11 +1841,11 @@ START_TEST (multisync_conflict_ignore2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	osync_engine_set_conflict_callback(engine, conflict_handler_ignore, NULL);
-	osync_engine_init(engine, NULL);
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_ignore, NULL);
+	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data3/testdata");
@@ -1883,7 +1883,7 @@ START_TEST (multisync_conflict_ignore2)
 	
 	system("cp newdata2 data2/testdata");
 	
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
 	synchronize_once(engine, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -1920,7 +1920,7 @@ START_TEST (multisync_conflict_ignore2)
 	system("rm -f data1/*");
 
 	synchronize_once(engine, NULL);
-	osync_engine_finalize(engine);
+	osengine_finalize(engine);
 	
 	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);

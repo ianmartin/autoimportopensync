@@ -170,7 +170,7 @@ void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *us
 	g_thread_create ((GThreadFunc)solve_conflict, mapping, TRUE, NULL);
 }
 
-void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data)
+void entry_status(OSyncEngine *engine, OSyncChangeUpdate *status, void *user_data)
 {
 	switch (status->type) {
 		case CHANGE_RECEIVED:
@@ -192,7 +192,7 @@ void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_dat
 	}
 }
 
-void member_status(MSyncMemberUpdate *status, void *user_data)
+void member_status(OSyncMemberUpdate *status, void *user_data)
 {
 	mark_point();
 	switch (status->type) {
@@ -267,7 +267,7 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 	}
 }
 
-void mapping_status(MSyncMappingUpdate *status, void *user_data)
+void mapping_status(OSyncMappingUpdate *status, void *user_data)
 {
 	switch (status->type) {
 		case MAPPING_SOLVED:
@@ -306,7 +306,7 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	num_engine_prev_unclean = 0;
 	num_engine_end_conflicts = 0;
 	mark_point();
-	return osync_engine_sync_and_block(engine, error);
+	return osengine_sync_and_block(engine, error);
 }
 
 void create_case(Suite *s, const char *name, void (*function)(void))
