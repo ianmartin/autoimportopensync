@@ -290,7 +290,6 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 		return FALSE;
 	}
 	g_free(delcmd);
-	osync_env_remove_group(group->env, group);
 	osync_group_free(group);
 	return TRUE;
 }

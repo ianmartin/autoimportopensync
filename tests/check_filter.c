@@ -238,6 +238,46 @@ START_TEST (filter_sync_vcard_only)
 }
 END_TEST
 
+/*int num_read;
+
+START_TEST (filter_sync_read_only)
+{
+	char *testbed = setup_testbed("filter_sync_deny_all");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	mark_point();
+	
+	OSyncMember *leftmember = osync_group_nth_member(group, 0);
+	
+	osync_member_set_read_only(leftmember, "data", TRUE);
+	
+	num_read = 0;
+	mark_point();
+	OSyncError *error = NULL;
+  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	mark_point();
+  	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	mark_point();
+	fail_unless(osync_engine_synchronize(engine, &error), NULL);
+	mark_point();
+	
+	osync_engine_wait_sync_end(engine);
+	osync_engine_finalize(engine);
+
+	fail_unless(num_read == 1);
+
+	fail_unless(!system("test \"x$(ls data1/testdata)\" = \"xdata1/testdata\""), NULL);
+	fail_unless(!system("test \"x$(ls data1/testdata2)\" = \"xdata1/testdata2\""), NULL);
+	fail_unless(!system("test \"x$(ls data2/testdata2)\" = \"xdata2/testdata2\""), NULL);
+
+	destroy_testbed(testbed);
+}
+END_TEST*/
+
 Suite *filter_suite(void)
 {
 	Suite *s = suite_create("Filter");

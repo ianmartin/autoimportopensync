@@ -227,10 +227,11 @@ static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
+	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	
 	if (!fs_access(ctx, change))
 		return FALSE;
 
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_update_hash(fsinfo->hashtable, change);
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 	return TRUE;

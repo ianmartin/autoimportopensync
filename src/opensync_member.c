@@ -712,6 +712,18 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypest
 	sink->enabled = enabled;
 }
 
+/*void osync_member_set_read_only(OSyncMember *member, const char *objtypestr, osync_bool read_only)
+{
+	if (osync_conv_objtype_is_any(objtypestr))
+		g_assert_not_reached();
+	
+	g_assert(member);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
+	g_assert(sink);
+	
+	sink->read_only = read_only;
+}*/
+
 void osync_member_set_format(OSyncMember *member, const char *objtypestr, const char *objformatstr)
 {
 	g_assert(member);
