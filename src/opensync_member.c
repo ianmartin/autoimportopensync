@@ -170,6 +170,12 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	g_assert(member);
 	osync_bool ret = TRUE;
 
+	if (member->configdata) {
+		*data = member->configdata;
+		*size = member->configsize;
+		return TRUE;
+	}
+
 	if (!osync_member_read_config(member, data, size, error)) {
 		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/defaults/%s", osync_plugin_get_name(member->plugin));
 		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
