@@ -48,6 +48,7 @@ osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member, OSyn
 
 void osync_hashtable_close(OSyncHashTable *table)
 {
+	osync_hashtable_forget(table);
 	osync_db_close(table->dbhandle);
 }
 

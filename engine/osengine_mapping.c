@@ -51,7 +51,8 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
 
 void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	osync_debug("ENG", 3, "Received a reply %p to GET_DATA command from client %p", message, sender);
+	osync_trace(TRACE_ENTRY, "_get_change_data_reply_receiver(%p, %p, %p)", sender, message, engine);
+	
 	OSyncChange *change = itm_message_get_data(message, "change");
 	MSyncChangeFlags *flags = osync_change_get_engine_data(change);
 	
@@ -71,6 +72,7 @@ void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OS
 	
 	osync_mappingtable_save_change(engine->maptable, change);
 	osync_change_decider(engine, change);
+	osync_trace(TRACE_EXIT, "_get_change_data_reply_receiver");
 }
 
 void send_get_change_data(OSyncEngine *sender, OSyncChange *change)
@@ -132,14 +134,13 @@ void send_commit_change(OSyncEngine *sender, OSyncChange *change)
 
 void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 {
+	osync_trace(TRACE_ENTRY, "osync_mapping_multiply_master(%p, %p)", engine, mapping);
 	int i = 0;
 	OSyncChange *change = NULL;
 	OSyncChange *master = NULL;
 	MSyncChangeFlags *chflags = NULL;
 	
 	g_assert(engine);
-
-	osync_debug("MAP", 2, "Multiplying mapping %p", mapping);
 
 	master = osync_mapping_get_masterentry(mapping);
 	g_assert(master);
@@ -188,6 +189,7 @@ void osync_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 	
 	MSyncMappingFlags *flags = osync_mapping_get_flags(mapping);
 	osync_flag_set(flags->fl_solved);
+	osync_trace(TRACE_EXIT, "osync_mapping_multiply_master");
 }
 
 void osengine_change_reset(OSyncChange *change)
@@ -218,14 +220,13 @@ int prod(int n)
 
 void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 {
+	osync_trace(TRACE_ENTRY, "osync_mapping_check_conflict(%p, %p)", engine, mapping);
 	int i = 0;
 	int n = 0;
 	osync_bool is_conflict = FALSE;
 	int is_same = 0;
 	OSyncChange *leftchange = NULL;
 	OSyncChange *rightchange = NULL;
-	
-	osync_debug("MAP", 2, "Checking conflict for mapping %p", mapping);
 	
 	g_assert(engine != NULL);
 	g_assert(mapping != NULL);
@@ -265,6 +266,7 @@ void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		//conflict, solve conflict
 		osync_debug("MAP", 2, "Got conflict for mapping %p", mapping);
 		osync_status_conflict(engine, mapping);
+		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict");
 		return;
 	}
 	
@@ -275,34 +277,36 @@ void osync_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		osync_flag_set(flags->fl_solved);
 		osync_flag_set(flags->cmb_synced);
 	}
+	osync_trace(TRACE_EXIT, "osync_mapping_check_conflict");
 }
 
 void osync_change_decider(OSyncEngine *engine, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "osync_change_decider(%p, %p)", engine, change);
 	MSyncChangeFlags *flags = osync_change_get_flags(change);
-	
-	osync_debug("MAP", 3, "Mappingentry decider called for mappingentry %p", change);
 
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->fl_sync) && osync_flag_is_set(flags->fl_has_info) && osync_flag_is_not_set(flags->fl_has_data)) {
-		osync_debug("ENT", 2, "Getting entry data for entry %p for client %p", change, osync_member_get_data(osync_change_get_member(change)));
+		osync_debug("CHG", 2, "Getting entry data for entry %p for client %p", change, osync_member_get_data(osync_change_get_member(change)));
 		send_get_change_data(engine, change);
+		osync_trace(TRACE_EXIT, "osync_mapping_decider");
 		return;
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->cmb_sent_changes) && osync_flag_is_set(engine->fl_sync) && osync_flag_is_set(flags->fl_has_info) && osync_flag_is_set(flags->fl_has_data)) {
 		if (osync_flag_is_not_set(flags->fl_mapped)) {
-			osync_debug("ENT", 2, "Mapping change now %p", change);
 			osync_change_map(engine, change);
+			osync_trace(TRACE_EXIT, "osync_mapping_decider");
 			return;
 		}
 		if (osync_flag_is_set(flags->fl_dirty)) {
-			osync_debug("ENT", 2, "Writing entry to remote side");
+			osync_debug("CHG", 2, "Writing entry to remote side");
 			send_commit_change(engine, change);
+			osync_trace(TRACE_EXIT, "osync_mapping_decider");
 			return;
 		}
 	}
 	
-	osync_debug("MAP", 3, "Waste cycle in change decider %p", change);
+	osync_trace(TRACE_EXIT, "osync_mapping_decider");
 }
 
 void osync_mapping_all_change_deciders(OSyncEngine *engine, OSyncMapping *mapping)
@@ -331,27 +335,30 @@ void osengine_mapping_free(OSyncEngine *engine, OSyncMapping *mapping)
 
 void osync_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 {
+	osync_trace(TRACE_ENTRY, "osync_mapping_decider(%p, %p)", engine, mapping);
 	MSyncMappingFlags *flags = osync_mapping_get_flags(mapping);
-	osync_debug("MAP", 3, "Mapping decider called for mapping %p", mapping);
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->cmb_sent_changes) && osync_flag_is_set(engine->cmb_entries_mapped) && osync_flag_is_set(flags->cmb_has_info) && osync_flag_is_set(flags->cmb_has_data) && osync_flag_is_not_set(flags->cmb_synced) && osync_flag_is_not_set(flags->fl_solved)) {
 		osync_mapping_check_conflict(engine, mapping);
+		osync_trace(TRACE_EXIT, "osync_mapping_decider");
 		return;
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(flags->cmb_synced) && osync_flag_is_set(flags->cmb_has_info) && osync_flag_is_not_set(flags->cmb_deleted)) {
-		osync_debug("ENT", 2, "Reseting mapping2 %p", mapping);
+		osync_debug("MAP", 2, "Reseting mapping %p", mapping);
 		osync_mapping_reset(mapping);
+		osync_trace(TRACE_EXIT, "osync_mapping_decider");
 		return;
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(flags->cmb_synced) && osync_flag_is_set(flags->cmb_deleted)) {
-		osync_debug("ENT", 2, "Freeing mapping %p", mapping);
+		osync_debug("MAP", 2, "Freeing mapping %p", mapping);
 		osengine_mapping_free(engine, mapping);
+		osync_trace(TRACE_EXIT, "osync_mapping_decider");
 		return;
 	}
 	
-	osync_debug("MAP", 3, "Waste cycle in mapping decider %p", mapping);
+	osync_trace(TRACE_EXIT, "osync_mapping_decider");
 }
 
 void osync_mapping_all_deciders(OSyncEngine *engine)

@@ -22,6 +22,8 @@
 #include "opensync_internals.h"
 #include <pthread.h>
 
+GPrivate* current_tabs = NULL;
+
 /**
  * @defgroup OSyncDebugAPI OpenSync Debug
  * @ingroup OSyncPublic
@@ -46,31 +48,53 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 		return;
 	}
 	
+	if (!g_thread_supported ()) g_thread_init (NULL);
+	int tabs = 0;
+	if (!current_tabs)
+		current_tabs = g_private_new (g_free);
+	else
+		tabs = (int)g_private_get(current_tabs);
+	
 	unsigned long int id = (unsigned long int)pthread_self();
 	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
 	
 	va_start(arglist, message);
 	g_vasprintf(&buffer, message, arglist);
 	
+	GString *tabstr = g_string_new("");
+	int i = 0;
+	for (i = 0; i < tabs; i++) {
+		tabstr = g_string_append(tabstr, "\t");
+	}
+
 	GTimeVal curtime;
 	g_get_current_time(&curtime);
 	char *logmessage = NULL;
 	switch (type) {
 		case TRACE_ENTRY:
-			logmessage = g_strdup_printf("[%li.%li]\t------->  %s\n", curtime.tv_sec, curtime.tv_usec, buffer);
+			logmessage = g_strdup_printf("[%li.%li]\t%s>>>>>>>  %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			tabs++;
 			break;
 		case TRACE_INTERNAL:
-			logmessage = g_strdup_printf("[%li.%li]\t%s\n", curtime.tv_sec, curtime.tv_usec, buffer);
+			logmessage = g_strdup_printf("[%li.%li]\t%s%s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
 			break;
 		case TRACE_EXIT:
-			logmessage = g_strdup_printf("[%li.%li]\t<-------  %s\n", curtime.tv_sec, curtime.tv_usec, buffer);
+			logmessage = g_strdup_printf("[%li.%li]%s<<<<<<<  %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			tabs--;
+			if (tabs < 0)
+				tabs = 0;
 			break;
 		case TRACE_EXIT_ERROR:
-			logmessage = g_strdup_printf("[%li.%li]\t<--- ERROR --- %s\n", curtime.tv_sec, curtime.tv_usec, buffer);
+			logmessage = g_strdup_printf("[%li.%li]%s<--- ERROR --- %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			tabs--;
+			if (tabs < 0)
+				tabs = 0;
 			break;
 	}
+	g_private_set(current_tabs, (void *)tabs);
 	va_end(arglist);
 	g_free(buffer);
+	g_string_free(tabstr, TRUE);
 	
 	GError *error = NULL;
 	GIOChannel *chan = g_io_channel_new_file(logfile, "a", &error);
@@ -86,7 +110,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	} else
 		g_io_channel_flush(chan, NULL);
 
-	g_io_channel_shutdown(chan, FALSE, NULL);
+	g_io_channel_shutdown(chan, TRUE, NULL);
 	g_io_channel_unref(chan);
 	g_free(logmessage);
 	g_free(logfile);

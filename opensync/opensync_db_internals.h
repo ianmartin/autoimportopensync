@@ -17,8 +17,8 @@ void osync_db_save_change(OSyncMappingTable *table, OSyncChange *change);
 
 OSyncDB *osync_db_open_anchor(OSyncMember *member, OSyncError **error);
 void osync_db_close_anchor(OSyncDB *db);
-void osync_db_get_anchor(OSyncDB *sdb, char *objtype, char **retanchor);
-void osync_db_put_anchor(OSyncDB *sdb, char *objtype, char *anchor);
+void osync_db_get_anchor(OSyncDB *sdb, const char *objtype, char **retanchor);
+void osync_db_put_anchor(OSyncDB *sdb, const char *objtype, const char *anchor);
 
 osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member, OSyncError **error);
 void osync_db_close_hashtable(OSyncHashTable *table);

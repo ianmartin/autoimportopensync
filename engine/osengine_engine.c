@@ -104,7 +104,7 @@ void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngin
 
 void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	osync_debug("ENG", 3, "Received a reply %p to SYNC_DONE command from client %p", message, sender);
+	osync_trace(TRACE_ENTRY, "_sync_done_reply_receiver(%p, %p, %p)", sender, message, engine);
 	
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
@@ -116,6 +116,7 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
 	
 	osync_flag_set(sender->fl_done);
 	osync_client_decider(engine, sender);
+	osync_trace(TRACE_EXIT, "_connect_reply_receiver");
 }
 
 /*! @brief This function can be used to receive DISCONNECT command replies
@@ -125,7 +126,7 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
  */
 void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	osync_debug("ENG", 3, "Received a reply %p to DISCONNECT command from client %p", message, sender);
+	osync_trace(TRACE_ENTRY, "_disconnect_reply_receiver(%p, %p, %p)", sender, message, engine);
 	
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
@@ -137,6 +138,7 @@ void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEn
 	osync_flag_unset(sender->fl_connected);
 	osync_flag_set(sender->fl_finished);
 	osync_client_decider(engine, sender);
+	osync_trace(TRACE_EXIT, "_disconnect_reply_receiver");
 }
 
 void send_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data)
@@ -193,11 +195,12 @@ void osync_client_deciders(OSyncEngine *engine)
 
 void osync_client_decider(OSyncEngine *engine, OSyncClient *client)
 {
-	osync_debug("ENG", 3, "Client decider called for client %p", client);
+	osync_trace(TRACE_ENTRY, "osync_client_decider(%p, %p)", engine, client);
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_not_set(engine->fl_stop) && osync_flag_is_not_set(client->fl_done) && osync_flag_is_not_set(client->fl_connected) && osync_flag_is_not_set(client->fl_finished)) {
 		osync_debug("ENG", 2, "Telling client %p to connect", client);
 		send_connect(client, engine);
+		osync_trace(TRACE_EXIT, "osync_client_decider");
 		return;
 	}
 	
@@ -210,37 +213,44 @@ void osync_client_decider(OSyncEngine *engine, OSyncClient *client)
 			osync_debug("ENG", 2, "Telling client %p to send changes without data", client);
 			send_get_changes(client, engine, FALSE);
 		}
+		osync_trace(TRACE_EXIT, "osync_client_decider");
 		return;
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_not_set(engine->fl_stop) && osync_flag_is_not_set(client->fl_done) && osync_flag_is_set(client->fl_connected) && osync_flag_is_set(client->fl_sent_changes) && osync_flag_is_set(engine->cmb_sent_changes) && osync_flag_is_set(engine->cmb_synced) && osync_flag_is_set(engine->cmb_entries_mapped)) {
 		osync_debug("ENG", 2, "Telling client %p to call sync_done", client);
 		send_sync_done(client, engine);
+		osync_trace(TRACE_EXIT, "osync_client_decider");
 		return;
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(client->fl_done) && osync_flag_is_set(client->fl_connected)) {
 		osync_debug("ENG", 2, "Telling client %p to disconnect", client);
 		send_disconnect(client, engine);
+		osync_trace(TRACE_EXIT, "osync_client_decider");
 		return;
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) && osync_flag_is_set(engine->fl_stop) && osync_flag_is_set(client->fl_connected)) {
 		osync_debug("ENG", 2, "Telling client %p to disconnect", client);
 		send_disconnect(client, engine);
+		osync_trace(TRACE_EXIT, "osync_client_decider");
 		return;
 	}
 
 	osync_debug("ENG", 3, "Waste cycle in client decider %p", client);
+	osync_trace(TRACE_EXIT, "osync_client_decider");
 }
 
 void handle_new_change(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "handle_new_change(%p, %p, %p)", engine, client, change);
+	
 	OSyncMember *member = client->member;
 	MSyncChangeFlags *flags = NULL;
 	OSyncMapping *mapping = NULL;
 	
-	osync_debug("ENG", 2, "Handling new change %p with uid %s and changetype %i with data %p from member %lli", change, osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_member_get_id(client->member));
+	osync_debug("ENG", 2, "Handling new change with uid %s and changetype %i with data %p from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_member_get_id(client->member));
 	
 	//Update the change in the correct mapping
 	//Save the change
@@ -287,6 +297,7 @@ void handle_new_change(OSyncEngine *engine, OSyncClient *client, OSyncChange *ch
 	else
 		osync_status_update_change(engine, change, CHANGE_RECEIVED_INFO, NULL);
 	osync_change_decider(engine, change);
+	osync_trace(TRACE_EXIT, "handle_new_change");
 }
 
 /*! @brief The queue message handler of the engine
@@ -298,8 +309,7 @@ void handle_new_change(OSyncEngine *engine, OSyncClient *client, OSyncChange *ch
  */
 void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
-	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p, %p)", sender, message, engine);
-	osync_debug("ENG", 4, "Engine message handler called for message \"%s\"", message->msgname);
+	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p:%s, %p)", sender, message, message->msgname, engine);
 	
 	if (itm_message_is_signal (message, "CHANGE_CHANGED")) {
 		OSyncChange *change = itm_message_get_data(message, "change");
@@ -481,6 +491,8 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
  */
 OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_engine_new(%p, %p)", group, error);
+	
 	g_assert(group);
 	OSyncEngine *engine = g_malloc0(sizeof(OSyncEngine));
 	osync_group_set_data(group, engine);
@@ -531,8 +543,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 		osync_client_new(engine, member);
 	}
 	
-	osync_debug("ENG", 3, "Created a new syncengine!");
-	
+	osync_trace(TRACE_EXIT, "osync_engine_new: %p", engine);
 	return engine;
 }
 
@@ -691,12 +702,14 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	
 	if (engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was already initialized");
+		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
 	switch (osync_group_lock(engine->group)) {
 		case OSYNC_LOCKED:
 			osync_error_set(error, OSYNC_ERROR_LOCKED, "Group is locked");
+			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 			return FALSE;
 		case OSYNC_LOCK_STALE:
 			osync_debug("ENG", 1, "Detected stale lock file. Slow-syncing");
@@ -713,6 +726,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	
 	if (!osync_mappingtable_load(engine->maptable, error)) {
 		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -726,8 +740,8 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	if (osync_group_num_members(group) < 2) {
 		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -737,9 +751,9 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_client_init(client, error)) {
-			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init");
 			osync_engine_finalize(engine);
 			osync_group_unlock(engine->group, TRUE);
+			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 			return FALSE;
 		}
 	}
@@ -819,14 +833,16 @@ void osync_engine_finalize(OSyncEngine *engine)
  */
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_engine_synchronize(%p)", engine);
 	g_assert(engine);
 	if (!engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "osync_engine_synchronize: Not initialized");
-		osync_debug("ENG", 1, "osync_engine_synchronize: Not initialized");
+		osync_trace(TRACE_EXIT_ERROR, "osync_engine_synchronize: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
 	osync_flag_set(engine->fl_running);
+	osync_trace(TRACE_EXIT, "osync_engine_synchronize");
 	return TRUE;
 }
 

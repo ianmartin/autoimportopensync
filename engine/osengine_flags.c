@@ -74,13 +74,28 @@ void osync_flag_detach(MSyncFlag *flag)
 	osync_flag_calculate_comb(target);
 }
 
+/*static void trigger_send_mapping_changed(OSyncMapping *mapping)
+{
+	printf("+++++++++++ trigger send mapping %p\n", mapping);
+	MSyncMappingFlags *flags = osync_mapping_get_engine_data(mapping);
+	printf("+++++++++++ trigger send mapping %p\n", flags);
+	printf("+++++++++++ trigger send mapping2 %p\n", flags->engine);
+	if (!flags)
+		return;
+	//send_mapping_changed(flags->engine, mapping);
+	printf("done trigger send mapping\n");
+}*/
+
 MSyncMappingFlags *osync_mapping_create_flags(OSyncMapping *mapping)
 {
 	MSyncMappingFlags *flag = g_malloc0(sizeof(MSyncMappingFlags));
 	OSyncGroup *group = osync_mapping_get_group(mapping);
 	OSyncEngine *engine = osync_group_get_data(group);
+	osync_mapping_set_engine_data(mapping, flag);
+	flag->engine = engine;
 	flag->fl_solved = osync_flag_new(NULL);
 	flag->cmb_has_data = osync_comb_flag_new(FALSE);
+	//osync_flag_set_pos_trigger(flag->cmb_has_data, (MSyncFlagTriggerFunc)trigger_send_mapping_changed, mapping);
 	flag->cmb_has_info = osync_comb_flag_new(FALSE);
 	flag->cmb_synced = osync_comb_flag_new(FALSE);
 	flag->cmb_deleted = osync_comb_flag_new(FALSE);
@@ -162,11 +177,8 @@ MSyncMappingFlags *osync_mapping_get_flags(OSyncMapping *mapping)
 {
 	g_assert(mapping);
 	MSyncMappingFlags *flags = osync_mapping_get_engine_data(mapping);
-	if (!flags) {
+	if (!flags)
 		flags = osync_mapping_create_flags(mapping);
-		osync_mapping_set_engine_data(mapping, flags);
-		//Set default values
-	}
 	return flags;
 }
 

@@ -22,7 +22,6 @@
     return (val);                                                                       \
   } } while (0)
 
-
 /**
  * @defgroup PublicAPI Public APIs
  * @brief Available public APIs

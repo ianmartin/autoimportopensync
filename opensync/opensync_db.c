@@ -213,7 +213,7 @@ void osync_db_close_anchor(OSyncDB *db)
 	osync_db_close(db);
 }
 
-void osync_db_get_anchor(OSyncDB *sdb, char *objtype, char **retanchor)
+void osync_db_get_anchor(OSyncDB *sdb, const char *objtype, char **retanchor)
 {
 	sqlite3_stmt *ppStmt = NULL;
 	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", objtype);
@@ -225,7 +225,7 @@ void osync_db_get_anchor(OSyncDB *sdb, char *objtype, char **retanchor)
 	g_free(query);
 }
 
-void osync_db_put_anchor(OSyncDB *sdb, char *objtype, char *anchor)
+void osync_db_put_anchor(OSyncDB *sdb, const char *objtype, const char *anchor)
 {
 	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", objtype, anchor);
 	if (sqlite3_exec(sdb->db, query, NULL, NULL, NULL) != SQLITE_OK)

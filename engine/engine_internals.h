@@ -106,6 +106,7 @@ typedef struct MSyncMappingFlags {
 	MSyncFlag *cmb_has_data;
 	MSyncFlag *cmb_has_info;
 	MSyncFlag *cmb_deleted;
+	OSyncEngine *engine;
 } MSyncMappingFlags;
 
 typedef struct MSyncChangeFlags {
@@ -115,6 +116,7 @@ typedef struct MSyncChangeFlags {
 	MSyncFlag *fl_has_info;
 	MSyncFlag *fl_synced;
 	MSyncFlag *fl_deleted;
+	OSyncEngine *engine;
 } MSyncChangeFlags;
 
 typedef enum {

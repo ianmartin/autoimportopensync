@@ -21,7 +21,7 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_anchor)
+osync_bool osync_anchor_compare(OSyncMember *member, const char *objtype, const char *new_anchor)
 {
 	g_assert(member);
 	OSyncError *error = NULL;
@@ -53,7 +53,7 @@ osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_an
 	return retval;
 }
 
-void osync_anchor_update(OSyncMember *member, char *objtype, char *new_anchor)
+void osync_anchor_update(OSyncMember *member, const char *objtype, const char *new_anchor)
 {
 	g_assert(member);
 	OSyncError *error = NULL;

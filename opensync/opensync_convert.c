@@ -948,6 +948,7 @@ OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 		if (!strcmp(type->name, name))
 			return type;
 	}
+	osync_debug("CONV", 1, "Unable to find the requested objtype \"%s\"", name);
 	return NULL;
 }
 
@@ -986,6 +987,7 @@ OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 		if (!strcmp(format->name, name))
 			return format;
 	}
+	osync_debug("CONV", 1, "Unable to find the requested format \"%s\"", name);
 	return NULL;
 }
 
