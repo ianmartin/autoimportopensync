@@ -1799,7 +1799,7 @@ _evc_quoted_decode_simple (char *data, size_t len)
 	}
 	
 	memset(data, 0, strlen(data));
-	strcpy(data, string->str); //FIXME. will this free the whole string? guess not.
+	strcpy(data, string->str);
 	g_string_free(string, 1);
 	
 	return strlen(data);

@@ -83,6 +83,7 @@ typedef struct OSyncFormatFunctions {
 typedef struct OSyncPluginInfo {
 	int version;
 	const char *name;
+	const char *longname;
 	const char *description;
 	osync_bool is_threadsafe;
 	OSyncPluginFunctions functions;
