@@ -1,0 +1,6 @@
+opensync for Debian
+-------------------
+
+To build this package, simply run the dpkg-buildpackage -rfakeroot in the source root directory
+
+ -- norm <norm@dressler.ca>, Fri, 11 Mar 2005 11:19:43 -0500
