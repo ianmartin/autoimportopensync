@@ -265,7 +265,6 @@ void create_case(Suite *s, const char *name, void (*function)(void))
 OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped)
 {
 	mark_point();
-	printf("load\n");
 	OSyncEnv *osync = init_env();
 	OSyncGroup *newgroup = osync_group_load(osync, "configs/group", NULL);
 	OSyncMappingTable *maptable = _osengine_mappingtable_load_group(newgroup);
@@ -277,9 +276,7 @@ OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int nu
 
 void mappingtable_close(OSyncMappingTable *maptable)
 {
-	printf("Start close\n");
 	osengine_mappingtable_close(maptable);
-	printf("close\n");
 }
 
 void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype)

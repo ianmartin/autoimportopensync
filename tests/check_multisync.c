@@ -1491,10 +1491,10 @@ START_TEST (multisync_multi_conflict)
 	synchronize_once(engine, NULL);
 	osync_engine_finalize(engine);
 	
-	mappingtable_load(group, 0, 0);
+	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
 	
-	hashtable_load(group, 1, 0);
+	table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
 	
 	table = hashtable_load(group, 2, 0);
@@ -1514,7 +1514,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	Suite *s2 = suite_create("Multisync");
+	//Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);
@@ -1536,9 +1536,9 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_conflict_changetype_duplicate", multisync_conflict_changetype_duplicate);
 	create_case(s, "multisync_conflict_changetype_duplicate2", multisync_conflict_changetype_duplicate2);
 	create_case(s, "multisync_conflict_hybrid_duplicate", multisync_conflict_hybrid_duplicate);
-	create_case(s2, "multisync_multi_conflict", multisync_multi_conflict);
+	create_case(s, "multisync_multi_conflict", multisync_multi_conflict);
 
-	return s2;
+	return s;
 }
 
 int main(void)
