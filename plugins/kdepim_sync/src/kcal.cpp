@@ -53,13 +53,19 @@ bool KCalDataSource::connect(OSyncContext *ctx)
     calendar->load();
 #endif
     osync_debug("kcal", 3, "Calendar: %d events", calendar->events().size());
-    /*FIXME: load and lock here? */
+    /*FIXME: We don't lock the data */
+    //saveTicket = calendar->requestSaveTicket();
+    if (!saveTicket) {
+        osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't request write to the KDE calendar");
+        return false;
+    }
     return true;
 }
 
 bool KCalDataSource::disconnect(OSyncContext *)
 {
-    calendar->save();
+    // We are not locking the data
+    //calendar->save(saveTicket);
     delete calendar;
     calendar = NULL;
     return true;
@@ -159,9 +165,21 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             format.save(&cal, "");
             format.fromString(&cal, data);
 
+            /*FIXME: The event will be overwritten. But I can't differentiate
+             * between a field being removed and a missing field because
+             * the other device don't support them, because OpenSync currently
+             * doesn't have support for it. Yes, it is risky, but unfortunately
+             * CalendarResources don't have support for changing an event
+             * from vcard data, and not adding it.
+             */
+            KCal::Event *oldevt = calendar->event(osync_change_get_uid(chg));
+            if (oldevt)
+                calendar->deleteEvent(oldevt);
+
             /* Add the events from the temporary calendar, setting the UID
              *
-             * It should have only one event, but just in case: */
+             * We iterate over the list, but it should have only one event.
+             */
             KCal::Event::List evts = cal.events();
             for (KCal::Event::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
                 KCal::Event *e = (*i)->clone();
@@ -169,7 +187,6 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
                 calendar->addEvent(e);
             }
 
-            /*FIXME: Probably the addEvent() above will duplicate events */
 
         }
         break;
@@ -177,6 +194,10 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
             osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Invalid or unsupported change type");
             return false;
     }
+
+    /* Save the changes */
+    calendar->save();
+
     return true;
 }
 
