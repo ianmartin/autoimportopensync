@@ -602,7 +602,12 @@ START_TEST (conv_env_detect_and_convert)
 {
   /* The data will be detected as F3, so the shortest path should
    * not be taken because the path searching function should see that
-   * the encapsulated data * is a F3 object, not a F4 object
+   * the encapsulated data is a F3 object, not a F4 object
+   */
+  /*
+   * F1 -d-> F2 -d-> F3
+   *         |       |
+   *          \-d-> F4
    */
   OSyncEnv *osync = init_env_none();
   

@@ -23,3 +23,4 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* functi
 void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncEngineUpdate *, void *), void *user_data);
 void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (MSyncMemberUpdate *, void *), void *user_data);
 osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error);
+OSyncMapping *osync_engine_mapping_from_id(OSyncEngine *engine, long long id);
