@@ -785,7 +785,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 	conv_env->filter_functions = g_list_copy(env->filter_functions);
 
 	osync_conv_set_common_format(conv_env, "contact", "xml-contact", NULL);
-	osync_conv_set_common_format(conv_env, "calendar", "xml-event", NULL);
+	osync_conv_set_common_format(conv_env, "event", "xml-event", NULL);
 	osync_conv_set_common_format(conv_env, "todo", "xml-todo", NULL);
 	osync_conv_set_common_format(conv_env, "note", "xml-note", NULL);
 	

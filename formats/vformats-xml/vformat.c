@@ -719,7 +719,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			break;
 		case VFORMAT_TODO_20:
 		case VFORMAT_EVENT_20:
-			str = g_string_append (str, "END:VCALENDAR");
+			str = g_string_append (str, "END:VCALENDAR\r\n");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "END:VNOTE");
@@ -1099,10 +1099,12 @@ vformat_attribute_add_param_with_value (VFormatAttribute *attr, const char *name
 	g_return_if_fail (attr != NULL);
 	g_return_if_fail (name != NULL);
 	
+	if (!value)
+		return;
+	
 	VFormatParam *param = vformat_attribute_param_new(name);
 
-	if (value)
-		vformat_attribute_param_add_value (param, value);
+	vformat_attribute_param_add_value (param, value);
 
 	vformat_attribute_add_param (attr, param);
 }

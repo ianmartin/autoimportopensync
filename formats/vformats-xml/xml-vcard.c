@@ -861,6 +861,7 @@ static void *init_vcard_to_xml(void)
 	
 	g_hash_table_insert(table, "VERSION", HANDLE_IGNORE);
 	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
+	g_hash_table_insert(table, "END", HANDLE_IGNORE);
 	
 	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
 	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);

@@ -161,13 +161,13 @@ static xmlNode *handle_url_attribute(xmlNode *root, VFormatAttribute *attr)
 	return current;
 }
 
-static xmlNode *handle_uid_attribute(xmlNode *root, VFormatAttribute *attr)
+/*static xmlNode *handle_uid_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Uid attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Uid", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
-}
+}*/
 
 static xmlNode *handle_priority_attribute(xmlNode *root, VFormatAttribute *attr)
 {
@@ -862,6 +862,15 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 			attr = vformat_attribute_new(NULL, "END");
 			vformat_attribute_add_value(attr, "STANDARD");
 			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp(root->name, "Alarm")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "VALARM");
+			vformat_add_attribute(vcal, attr);
+			xmlNode *child = root->children;
+			xml_parse_attribute(hooks, hooks->alarmtable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "VALARM");
+			vformat_add_attribute(vcal, attr);
 		} else {
 			xml_vcal_handle_attribute(table, vcal, root);
 		}
@@ -963,7 +972,7 @@ static void *init_vcal_to_xml(void)
 	//todo attributes
 	g_hash_table_insert(hooks->comptable, "BEGIN", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->comptable, "END", HANDLE_IGNORE);
-	g_hash_table_insert(hooks->comptable, "UID", handle_uid_attribute);	
+	g_hash_table_insert(hooks->comptable, "UID", HANDLE_IGNORE);	
 	g_hash_table_insert(hooks->comptable, "DTSTAMP", handle_dtstamp_attribute);
 	g_hash_table_insert(hooks->comptable, "DESCRIPTION", handle_description_attribute);
 	g_hash_table_insert(hooks->comptable, "SUMMARY", handle_summary_attribute);
@@ -983,6 +992,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "GEO", handle_geo_attribute);
 	g_hash_table_insert(hooks->comptable, "COMPLETED", handle_completed_attribute);
 	g_hash_table_insert(hooks->comptable, "ORGANIZER", handle_organizer_attribute);
+	g_hash_table_insert(hooks->comptable, "ORGANIZER", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->comptable, "RECURRENCE-ID", handle_recurid_attribute);
 	g_hash_table_insert(hooks->comptable, "STATUS", handle_status_attribute);
 	g_hash_table_insert(hooks->comptable, "DURATION", handle_duration_attribute);
@@ -1001,6 +1011,7 @@ static void *init_vcal_to_xml(void)
 	
 	//vcal attributes
 	g_hash_table_insert(hooks->table, "PRODID", handle_prodid_attribute);
+	g_hash_table_insert(hooks->table, "PRODID", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->table, "METHOD", handle_method_attribute);
 	g_hash_table_insert(hooks->table, "VERSION", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->table, "ENCODING", HANDLE_IGNORE);
@@ -1514,8 +1525,8 @@ static void fin_xml_to_vcal(void *data)
 void get_info(OSyncEnv *env)
 {
 	//Calendar
-	osync_env_register_objtype(env, "calendar");
-	osync_env_register_objformat(env, "calendar", "xml-event");
+	osync_env_register_objtype(env, "event");
+	osync_env_register_objformat(env, "event", "xml-event");
 	osync_env_format_set_compare_func(env, "xml-event", compare_vcal);
 	osync_env_format_set_destroy_func(env, "xml-event", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-event", print_vcal);
