@@ -205,6 +205,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			OSyncChange *change = osync_change_new();
 			osync_change_set_member(change, fsinfo->member);
 			osync_change_set_uid(change, de);
+
 			osync_change_set_objformat_string(change, "file");
 			
 			fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
