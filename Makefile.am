@@ -26,6 +26,9 @@ kdepim_sync_la_SOURCES = src/kdepim_sync.cpp
 kdepim_sync_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(kdepimlibdir)\"
 kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 
+# ugly hack to make the c++ library work
+kdepim_sync_la_LIBADD = -lstdc++
+
 kdepim_impl_la_SOURCES = src/kdepim_impl.cpp \
                          src/kcal.cpp
 kdepim_impl_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(kdepimlibdir)\"
