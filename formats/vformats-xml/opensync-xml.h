@@ -9,6 +9,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef enum osxmlEncoding {
 	OSXML_8BIT = 0,
 	OSXML_QUOTED_PRINTABLE = 1,
@@ -47,5 +52,9 @@ void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLE
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression);
 xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc);
 OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
