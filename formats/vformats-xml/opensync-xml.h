@@ -38,6 +38,7 @@ typedef struct OSyncXMLScore {
 
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name);
 xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error);
+xmlNode *osxml_get_node(xmlNode *parent, const char *name);
 
 xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data);
 //void osxml_format_dump(OSyncXML *xml, char **data, int *size);

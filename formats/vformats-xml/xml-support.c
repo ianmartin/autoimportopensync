@@ -55,6 +55,8 @@ void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLE
 
 xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data)
 {
+	if (!data)
+		return NULL;
 	xmlNode *node = xmlNewTextChild(parent, NULL, name, data);
 	return node;
 }
@@ -78,15 +80,20 @@ void osxml_node_remove_unknown_mark(xmlNode *node)
 	xmlRemoveProp(attr);
 }
 
-char *osxml_find_node(xmlNode *parent, const char *name)
+xmlNode *osxml_get_node(xmlNode *parent, const char *name)
 {
 	xmlNode *cur = (parent)->xmlChildrenNode;
 	while (cur) {
 		if (!xmlStrcmp(cur->name, (const xmlChar *)name))
-			return xmlNodeGetContent(cur);
+			return cur;
 		cur = cur->next;
 	}
 	return NULL;
+}
+
+char *osxml_find_node(xmlNode *parent, const char *name)
+{
+	return xmlNodeGetContent(osxml_get_node(parent, name));
 }
 
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression)

@@ -97,6 +97,11 @@ static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, EVCardAt
 	if (!param_handler)
 		param_handler = g_hash_table_lookup(hooks, e_vcard_attribute_param_get_name(param));
 	
+	if (param_handler == HANDLE_IGNORE) {
+		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
+		return;
+	}
+	
 	if (param_handler)
 		param_handler(current, param);
 	else
@@ -199,7 +204,8 @@ static xmlNode *handle_location_attribute(xmlNode *root, EVCardAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Location attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Location", NULL);
-	osxml_node_add(current, "Content", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Latitude", attribute_get_nth_value(attr, 0));
+	osxml_node_add(current, "Longitude", attribute_get_nth_value(attr, 1));
 	return current;
 }
 
@@ -232,7 +238,15 @@ static xmlNode *handle_organization_attribute(xmlNode *root, EVCardAttribute *at
 	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
 	xmlNode *current = xmlNewChild(root, NULL, "Organization", NULL);
 	osxml_node_add(current, "Name", attribute_get_nth_value(attr, 0));
-	osxml_node_add(current, "Unit", attribute_get_nth_value(attr, 1));
+	osxml_node_add(current, "Department", attribute_get_nth_value(attr, 1));
+	
+	GList *values = e_vcard_attribute_get_values_decoded(attr);
+	values = g_list_nth(values, 2);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Unit", retstr->str);
+	}
 	return current;
 }
 
@@ -320,6 +334,12 @@ static xmlNode *handle_unknown_attribute(xmlNode *root, EVCardAttribute *attr)
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", e_vcard_attribute_get_name(attr));
 	xmlNode *current = xmlNewChild(root, NULL, "UnknownNode", NULL);
 	osxml_node_add(current, "NodeName", e_vcard_attribute_get_name(attr));
+	GList *values = e_vcard_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Content", retstr->str);
+	}
 	return current;
 }
 	
@@ -464,6 +484,14 @@ static void handle_xml_type_parameter(EVCardAttribute *attr, xmlNode *current)
 static void handle_xml_category_parameter(EVCardAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling category xml parameter");
+	char *content = xmlNodeGetContent(current);
+	e_vcard_attribute_add_value(attr, content);
+	g_free(content);
+}
+
+static void handle_xml_unit_parameter(EVCardAttribute *attr, xmlNode *current)
+{
+	osync_trace(TRACE_INTERNAL, "Handling unit xml parameter");
 	char *content = xmlNodeGetContent(current);
 	e_vcard_attribute_add_value(attr, content);
 	g_free(content);
@@ -646,7 +674,8 @@ static EVCardAttribute *handle_xml_location_attribute(EVCard *vcard, xmlNode *ro
 {
 	osync_trace(TRACE_INTERNAL, "Handling location xml attribute");
 	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "GEO");
-	add_value(attr, root, "Content", encoding);
+	add_value(attr, root, "Latitude", encoding);
+	add_value(attr, root, "Longitude", encoding);
 	e_vcard_add_attribute(vcard, attr);
 	return attr;
 }
@@ -685,7 +714,7 @@ static EVCardAttribute *handle_xml_organization_attribute(EVCard *vcard, xmlNode
 	osync_trace(TRACE_INTERNAL, "Handling organization xml attribute");
 	EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_ORG);
 	add_value(attr, root, "Name", encoding);
-	add_value(attr, root, "Unit", encoding);
+	add_value(attr, root, "Department", encoding);
 	e_vcard_add_attribute(vcard, attr);
 	return attr;
 }
@@ -805,7 +834,7 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	*free_input = TRUE;
 	*output = e_vcard_to_string(vcard, target);
 	osync_trace(TRACE_INTERNAL, "vcard output is: \n%s", *output);
-	*outpsize = strlen(*output);
+	*outpsize = strlen(*output) + 1;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
@@ -888,6 +917,9 @@ static void *init_vcard_to_xml(void)
 	g_hash_table_insert(table, "VERSION", HANDLE_IGNORE);
 	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
 	
+	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
+	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
+	
 	g_hash_table_insert(table, "TYPE", handle_type_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
@@ -931,6 +963,8 @@ static void *init_xml_to_vcard(void)
 	
 	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
 	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
+	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
+	
 	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);

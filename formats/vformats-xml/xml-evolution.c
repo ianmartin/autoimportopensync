@@ -473,6 +473,16 @@ static EVCardAttribute *handle_xml_msn_attribute(EVCard *vcard, xmlNode *root, c
 	return attr;
 }
 
+//We map the profession to the ROLE
+static EVCardAttribute *handle_xml_profession_attribute(EVCard *vcard, xmlNode *root, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling profession xml attribute");
+	EVCardAttribute *attr = e_vcard_attribute_new(NULL, "ROLE");
+	add_value(attr, root, "Content", encoding);
+	e_vcard_add_attribute(vcard, attr);
+	return attr;
+}
+
 static void handle_xml_slot_parameter(EVCardAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling slot xml parameter");
@@ -533,6 +543,9 @@ static osync_bool init_xml_to_x_evo(void *input)
 	g_hash_table_insert(hooks->attributes, "IM-AIM", handle_xml_aim_attribute);
 	g_hash_table_insert(hooks->attributes, "IM-Jabber", handle_xml_jabber_attribute);
 	g_hash_table_insert(hooks->attributes, "IM-MSN", handle_xml_msn_attribute);
+	//Overwrite Profession handler
+	g_hash_table_insert(hooks->attributes, "Profession", handle_xml_profession_attribute);
+	
 	
 	g_hash_table_insert(hooks->parameters, "Slot", handle_xml_slot_parameter);
 	g_hash_table_insert(hooks->parameters, "Type=Assistant", handle_xml_assistant_parameter);
@@ -550,5 +563,9 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objtype(env, "contact");
 	osync_env_register_objformat(env, "contact", "xml-contact");
 	
-	osync_env_register_extension(env, "xml-contact", "evolution", init_x_evo_to_xml, init_xml_to_x_evo);
+	osync_env_register_extension(env, "vcard21", "xml-contact", "evolution", init_x_evo_to_xml);
+	osync_env_register_extension(env, "xml-contact", "vcard21", "evolution", init_xml_to_x_evo);
+	
+	osync_env_register_extension(env, "vcard30", "xml-contact", "evolution", init_x_evo_to_xml);
+	osync_env_register_extension(env, "xml-contact", "vcard30", "evolution", init_xml_to_x_evo);
 }
