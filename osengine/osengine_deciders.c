@@ -166,13 +166,16 @@ void osengine_mapping_all_deciders(OSyncEngine *engine)
 void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 {
 	osync_trace(TRACE_ENTRY, "osengine_client_decider(%p, %p)", engine, client);
-	osync_trace(TRACE_INTERNAL, "ENG(SENT%i,READ%i,MAP%i),CON%i,SENT%i,DONE%i,FIN%i", \
+	osync_trace(TRACE_INTERNAL, "ENG(RUN%i,STOP%i,SENT%i,READ%i,MAP%i,SYNC%i),CON%i,SENT%i,DONE%i,FIN%i", \
+		osync_flag_is_set(engine->fl_running), \
+		osync_flag_is_not_set(engine->fl_stop), \
 		osync_flag_is_set(engine->cmb_sent_changes), \
 		osync_flag_is_set(engine->cmb_read_all), \
 		osync_flag_is_set(engine->cmb_entries_mapped), \
+		osync_flag_is_set(engine->cmb_synced), \
 		osync_flag_is_set(client->fl_connected), \
 		osync_flag_is_set(client->fl_sent_changes), \
-		osync_flag_is_set(client->fl_done), \
+		osync_flag_is_not_set(client->fl_done), \
 		osync_flag_is_set(client->fl_finished));
 		
 	if (osync_flag_is_set(engine->fl_running) \

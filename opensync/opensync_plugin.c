@@ -293,6 +293,8 @@ OSyncObjFormatSink *osync_objformat_sink_from_template(OSyncGroup *group, OSyncO
 	sink->functions.commit_change = template->commit_change;
 	sink->functions.access = template->access;
 	sink->functions.read = template->read;
+	sink->functions.committed_all = template->committed_all;
+	sink->functions.batch_commit = template->batch_commit;
 	sink->extension_name = g_strdup(template->extension_name);
 	return sink;
 }
@@ -344,6 +346,24 @@ void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypes
 	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
 	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
 	format_template->read = read;
+}
+
+void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **))
+{
+	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
+	osync_assert(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
+	format_template->batch_commit = batch;
+}
+
+void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* committed_all) (void *))
+{
+	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
+	osync_assert(format_template, "Unable to set committed_all function. Did you forget to add the objformat?");
+	format_template->committed_all = committed_all;
 }
 
 OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const char *formatstr)

@@ -281,7 +281,7 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		
 		osync_flag_attach(mapping->cmb_synced, table->engine->cmb_synced);
 		osync_flag_attach(mapping->fl_chkconflict, table->engine->cmb_chkconflict);
-		
+		osync_flag_attach(mapping->fl_multiplied, table->engine->cmb_multiplied);
 	}
 	osync_trace(TRACE_INTERNAL, "osengine_mapping_new(%p): %p", table, mapping);
 	return mapping;

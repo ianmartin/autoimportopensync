@@ -349,7 +349,6 @@ void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 
 void send_committed_all(OSyncClient *target, OSyncEngine *sender)
 {
-	osync_flag_changing(target->fl_done);
 	ITMessage *message = itm_message_new_signal(sender, "COMMITTED_ALL");
 	itm_queue_send(target->incoming, message);
 }
@@ -515,6 +514,19 @@ static void trigger_clients_connected(OSyncEngine *engine)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static void trigger_engine_multiplied(OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	
+	GList *c = NULL;
+	for (c = engine->clients; c; c = c->next) {
+		OSyncClient *client = c->data;
+		send_committed_all(client, engine);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 static gboolean startupfunc(gpointer data)
 {
 	OSyncEngine *engine = data;
@@ -566,6 +578,7 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_finished, FALSE);
 	osync_flag_set_state(engine->cmb_connected, FALSE);
 	osync_flag_set_state(engine->cmb_read_all, TRUE);
+	osync_flag_set_state(engine->cmb_multiplied, FALSE);
 	itm_queue_flush(engine->incoming);
 	
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
@@ -653,6 +666,9 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_chkconflict = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (MSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
 	
+	engine->cmb_multiplied = osync_comb_flag_new(FALSE, FALSE);
+	osync_flag_set_pos_trigger(engine->cmb_multiplied, (MSyncFlagTriggerFunc)trigger_engine_multiplied, engine, NULL);
+	
 	osync_flag_set(engine->fl_sync);
 	
 	int i;
@@ -697,6 +713,7 @@ void osync_engine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_finished);
 	osync_flag_free(engine->cmb_connected);
 	osync_flag_free(engine->cmb_read_all);
+	osync_flag_free(engine->cmb_multiplied);
 	
 	itm_queue_flush(engine->incoming);
 	itm_queue_free(engine->incoming);

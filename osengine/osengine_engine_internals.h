@@ -48,6 +48,7 @@ struct OSyncEngine {
 	MSyncFlag *cmb_finished; //Are all clients done and disconnected?
 	MSyncFlag *cmb_chkconflict;
 	MSyncFlag *cmb_read_all;
+	MSyncFlag *cmb_multiplied;
 	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
