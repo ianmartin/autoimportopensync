@@ -177,8 +177,8 @@ static void evo2_connect(OSyncContext *ctx)
 	if (osync_member_objtype_enabled(env->member, "todo") && env->tasks_path && strlen(env->tasks_path)) {
 		if (evo2_tasks_open(env)) {
 			open_any = TRUE;
-			if (!osync_anchor_compare(env->member, "tasks", env->tasks_path))
-				osync_member_set_slow_sync(env->member, "tasks", TRUE);
+			if (!osync_anchor_compare(env->member, "todo", env->tasks_path))
+				osync_member_set_slow_sync(env->member, "todo", TRUE);
 		} else {
 			osync_context_send_log(ctx, "Unable to open tasks");
 		}
