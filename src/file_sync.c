@@ -135,7 +135,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
-		osync_debug("FILE-SYNC", 1, "Setting slow sync");
+		osync_debug("FILE-SYNC", 3, "Setting slow sync");
 		osync_hashtable_set_slow_sync(fsinfo->hashtable, "data");
 	}
 	
