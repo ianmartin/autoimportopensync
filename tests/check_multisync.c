@@ -1,100 +1,4 @@
-#include <check.h>
-#include "opensync.h"
-#include "opensync_internals.h"
-#include "engine.h"
-#include "engine_internals.h"
-
-char *olddir = NULL;
-
-char *setup_testbed(char *fkt_name)
-{
-	setuid(65534);
-	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
-	mkdtemp(testbed);
-	char *command = g_strdup_printf("cp -a data/%s/* %s", fkt_name, testbed);
-	if (system(command))
-		abort();
-	olddir = g_get_current_dir();
-	if (chdir(testbed))
-		abort();
-	g_free(command);
-	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
-	return testbed;
-}
-
-void destroy_testbed(char *path)
-{
-	char *command = g_strdup_printf("rm -rf %s", path);
-	if (olddir)
-		chdir(olddir);
-	system(command);
-	g_free(command);
-	osync_debug("TEST", 4, "Tearing down %s\n", path);
-	g_free(path);
-}
-
-int num_conflicts;
-int num_written;
-int num_read;
-
-void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
-{
-	num_conflicts++;
-
-	OSyncChange *change = osync_mapping_nth_entry(mapping, 0);
-	osengine_mapping_solve(engine, mapping, change);
-}
-
-void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
-{
-	num_conflicts++;
-
-	int i;
-	for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
-		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
-		if (change->changetype == CHANGE_MODIFIED) {
-			osengine_mapping_solve(engine, mapping, change);
-			return;
-		}
-	}
-}
-
-void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
-{
-	num_conflicts++;
-
-	int i;
-	for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
-		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
-		if (change->changetype == CHANGE_DELETED) {
-			osengine_mapping_solve(engine, mapping, change);
-			return;
-		}
-	}
-	fail(NULL);
-}
-
-void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
-{
-	num_conflicts++;
-	
-	osync_mapping_duplicate(engine, mapping);
-}
-
-void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data)
-{
-	switch (status->type) {
-		case CHANGE_RECEIVED:
-			if (osync_change_has_data(status->change))
-				num_read++;
-			break;
-		case CHANGE_SENT:
-			num_written++;
-			break;
-		default:
-			printf("Unknown status\n");
-	}
-}
+#include "support.h"
 
 START_TEST (multisync_easy_new)
 {
@@ -107,23 +11,15 @@ START_TEST (multisync_easy_new)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	mark_point();
-	fail_unless(osync_engine_synchronize(engine, &error), NULL);
-	mark_point();
 	
-	osync_engine_wait_sync_end(engine);
+	synchronize_once(engine);
 	osync_engine_finalize(engine);
-	
-	char *uid;
-    char *hash;
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -131,69 +27,212 @@ START_TEST (multisync_easy_new)
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
 	
-	mark_point();
-	OSyncMappingTable *maptable = osync_mappingtable_new(group);
-	mark_point();
-	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	mark_point();
-	osync_mappingtable_load(maptable);
-	mark_point();
-	fail_unless(osync_mappingtable_num_mappings(maptable) == 1, NULL);
-	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
-	mark_point();
-	OSyncMapping *mapping = osync_mappingtable_nth_mapping(maptable, 0);
-	fail_unless(osync_mapping_num_entries(mapping) == 3, NULL);
-	mark_point();
-	OSyncChange *change = osync_mapping_nth_entry(mapping, 0);
-	OSyncMember *member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-	mark_point();
-	change = osync_mapping_nth_entry(mapping, 1);
-	member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-	mark_point();
-	change = osync_mapping_nth_entry(mapping, 2);
-	member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-    mark_point();
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
     osync_mappingtable_close(maptable);
-    
-	mark_point();
-	member = osync_member_from_id(group, 1);
-	OSyncHashTable *table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
 	
-	member = osync_member_from_id(group, 2);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
+	OSyncHashTable *table = hashtable_load(group, 1, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
 	
-	member = osync_member_from_id(group, 3);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
 	
 	destroy_testbed(testbed);
 }
 END_TEST
 
-START_TEST (multisync_easy_new_partial)
+START_TEST (multisync_easy_mod)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
+	mark_point();
+	
+	OSyncError *error = NULL;
+  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+  	mark_point();
+  	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	
+	synchronize_once(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	fail_unless(num_written == 2, NULL);
+	fail_unless(num_read == 1, NULL);
+	
+	sleep(2);
+	system("cp newdata data3/testdata");
+	
+	synchronize_once(engine);
+	osync_engine_finalize(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	fail_unless(num_written == 2, NULL);
+	fail_unless(num_read == 1, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+    osync_mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (multisync_dual_mod)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
+	mark_point();
+	
+	OSyncError *error = NULL;
+  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+  	mark_point();
+  	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	
+	synchronize_once(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	fail_unless(num_written == 2, NULL);
+	fail_unless(num_read == 1, NULL);
+	
+	sleep(2);
+	system("cp newdata data1/testdata");
+	system("cp newdata data3/testdata");
+	
+	synchronize_once(engine);
+	osync_engine_finalize(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	fail_unless(num_written == 1, NULL);
+	fail_unless(num_read == 2, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+    osync_mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (multisync_triple_mod)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	fail_unless(osync_env_num_groups(osync) == 1, NULL);
+	mark_point();
+	
+	OSyncError *error = NULL;
+  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+  	mark_point();
+  	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	
+	synchronize_once(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	fail_unless(num_written == 2, NULL);
+	fail_unless(num_read == 1, NULL);
+	
+	sleep(2);
+	system("cp newdata data1/testdata");
+	system("cp newdata data2/testdata");
+	system("cp newdata data3/testdata");
+	
+	synchronize_once(engine);
+	osync_engine_finalize(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_read == 3, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
+    osync_mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (multisync_dual_new)
 {
 	char *testbed = setup_testbed("multisync_easy_new_partial");
 	OSyncEnv *osync = osync_env_new();
@@ -204,22 +243,13 @@ START_TEST (multisync_easy_new_partial)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	mark_point();
-	fail_unless(osync_engine_synchronize(engine, &error), NULL);
-	mark_point();
-	
-	osync_engine_wait_sync_end(engine);
-	
-	char *uid;
-    char *hash;
+	synchronize_once(engine);
 
 	fail_unless(num_written == 1, NULL);
 	fail_unless(num_read == 2, NULL);
@@ -227,105 +257,40 @@ START_TEST (multisync_easy_new_partial)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
-	mark_point();
-	OSyncMappingTable *maptable = osync_mappingtable_new(group);
-	mark_point();
-	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	mark_point();
-	osync_mappingtable_load(maptable);
-	mark_point();
-	fail_unless(osync_mappingtable_num_mappings(maptable) == 1, NULL);
-	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
-	mark_point();
-	OSyncMapping *mapping = osync_mappingtable_nth_mapping(maptable, 0);
-	fail_unless(osync_mapping_num_entries(mapping) == 3, NULL);
-	mark_point();
-	OSyncChange *change = osync_mapping_nth_entry(mapping, 0);
-	OSyncMember *member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-	mark_point();
-	change = osync_mapping_nth_entry(mapping, 1);
-	member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-	mark_point();
-	change = osync_mapping_nth_entry(mapping, 2);
-	member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-    mark_point();
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
     osync_mappingtable_close(maptable);
-    
-	mark_point();
-	member = osync_member_from_id(group, 1);
-	OSyncHashTable *table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
 	
-	member = osync_member_from_id(group, 2);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
+	OSyncHashTable *table = hashtable_load(group, 1, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
 	
-	member = osync_member_from_id(group, 3);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
 	
 	system("rm -f data2/testdata");
 	
-	mark_point();
-	num_conflicts = 0;
-	osync_engine_synchronize(engine, &error);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
-	mark_point();
+	synchronize_once(engine);
 	osync_engine_finalize(engine);
 	
-	mark_point();
-	maptable = osync_mappingtable_new(group);
-	mark_point();
-	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	mark_point();
-	osync_mappingtable_load(maptable);
-	mark_point();
-	fail_unless(osync_mappingtable_num_mappings(maptable) == 0, NULL);
-	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
-    mark_point();
+	maptable = mappingtable_load(group, 0, 0);
     osync_mappingtable_close(maptable);
-    
-	mark_point();
-	member = osync_member_from_id(group, 1);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
 	
+	table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
 	
-	member = osync_member_from_id(group, 2);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
-    
-    member = osync_member_from_id(group, 3);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
 	
 	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
@@ -336,7 +301,7 @@ START_TEST (multisync_easy_new_partial)
 END_TEST
 
 
-START_TEST (multisync_easy_new_partial2)
+START_TEST (multisync_triple_new)
 {
 	char *testbed = setup_testbed("multisync_easy_new_partial2");
 	OSyncEnv *osync = osync_env_new();
@@ -355,14 +320,7 @@ START_TEST (multisync_easy_new_partial2)
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
-	mark_point();
-	fail_unless(osync_engine_synchronize(engine, &error), NULL);
-	mark_point();
-	
-	osync_engine_wait_sync_end(engine);
-	
-	char *uid;
-    char *hash;
+	synchronize_once(engine);
 
 	fail_unless(num_written == 0, NULL);
 	fail_unless(num_read == 3, NULL);
@@ -370,104 +328,181 @@ START_TEST (multisync_easy_new_partial2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
-	mark_point();
-	OSyncMappingTable *maptable = osync_mappingtable_new(group);
-	mark_point();
-	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	mark_point();
-	osync_mappingtable_load(maptable);
-	mark_point();
-	fail_unless(osync_mappingtable_num_mappings(maptable) == 1, NULL);
-	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
-	mark_point();
-	OSyncMapping *mapping = osync_mappingtable_nth_mapping(maptable, 0);
-	fail_unless(osync_mapping_num_entries(mapping) == 3, NULL);
-	mark_point();
-	OSyncChange *change = osync_mapping_nth_entry(mapping, 0);
-	OSyncMember *member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-	mark_point();
-	change = osync_mapping_nth_entry(mapping, 1);
-	member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-	mark_point();
-	change = osync_mapping_nth_entry(mapping, 2);
-	member = osync_change_get_member(change);
-	fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "file"), NULL);
-	fail_unless(!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data"), NULL);
-	fail_unless(!strcmp(osync_change_get_uid(change), "testdata"), NULL);
-    mark_point();
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+	check_mapping(maptable, 1, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, 0, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, 0, 3, "testdata", "file", "data");
     osync_mappingtable_close(maptable);
-    
-	mark_point();
-	member = osync_member_from_id(group, 1);
-	OSyncHashTable *table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
 	
-	member = osync_member_from_id(group, 2);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
+	OSyncHashTable *table = hashtable_load(group, 1, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
 	
-	member = osync_member_from_id(group, 3);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
-	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
-	fail_unless(!strcmp("testdata", uid), NULL);
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 1);
+    check_hash(table, "testdata");
+	osync_hashtable_close(table);
 	
 	system("rm -f data1/testdata");
 	
-	mark_point();
-	num_conflicts = 0;
-	osync_engine_synchronize(engine, &error);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
-	mark_point();
+	synchronize_once(engine);
 	osync_engine_finalize(engine);
 	
-	mark_point();
-	maptable = osync_mappingtable_new(group);
-	mark_point();
-	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	mark_point();
-	osync_mappingtable_load(maptable);
-	mark_point();
-	fail_unless(osync_mappingtable_num_mappings(maptable) == 0, NULL);
-	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
-    mark_point();
+	maptable = mappingtable_load(group, 0, 0);
     osync_mappingtable_close(maptable);
-    
-	mark_point();
-	member = osync_member_from_id(group, 1);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
 	
-	member = osync_member_from_id(group, 2);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
-    
-    member = osync_member_from_id(group, 3);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
+	table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (multisync_easy_del)
+{
+	char *testbed = setup_testbed("multisync_conflict_changetype_choose");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+  	OSyncEngine *engine = osync_engine_new(group, NULL);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_init(engine, NULL);
+  	
+	synchronize_once(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+
+	system("rm -f data2/testdata");
+	
+	synchronize_once(engine);
+	osync_engine_finalize(engine);
+	
+	fail_unless(num_read == 1, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_written == 2, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
+    osync_mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (multisync_dual_del)
+{
+	char *testbed = setup_testbed("multisync_conflict_changetype_choose");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+  	OSyncEngine *engine = osync_engine_new(group, NULL);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_init(engine, NULL);
+  	
+	synchronize_once(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	system("rm -f data1/testdata");
+	system("rm -f data3/testdata");
+	
+	synchronize_once(engine);
+	osync_engine_finalize(engine);
+	
+	fail_unless(num_read == 2, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_written == 1, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
+    osync_mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (multisync_triple_del)
+{
+	char *testbed = setup_testbed("multisync_conflict_changetype_choose");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+  	OSyncEngine *engine = osync_engine_new(group, NULL);
+  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_init(engine, NULL);
+  	
+	synchronize_once(engine);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	system("rm -f data1/testdata");
+	system("rm -f data2/testdata");
+	system("rm -f data3/testdata");
+	
+	synchronize_once(engine);
+	osync_engine_finalize(engine);
+	
+	fail_unless(num_read == 3, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_written == 0, NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
+    osync_mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
 	
 	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
@@ -494,7 +529,7 @@ START_TEST (multisync_conflict_data_choose)
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
@@ -638,7 +673,7 @@ START_TEST (multisync_conflict_data_choose2)
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
@@ -773,7 +808,7 @@ START_TEST (multisync_conflict_changetype_choose)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -917,7 +952,7 @@ START_TEST (multisync_conflict_changetype_choose2)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -990,7 +1025,7 @@ START_TEST (multisync_conflict_hybrid_choose)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -1135,7 +1170,7 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -1216,7 +1251,7 @@ START_TEST (multisync_conflict_data_duplicate)
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
@@ -1449,7 +1484,7 @@ START_TEST (multisync_conflict_data_duplicate2)
 	OSyncError *error = NULL;
   	OSyncEngine *engine = osync_engine_new(group, &error);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osync_engine_init(engine, &error), NULL);
@@ -1686,7 +1721,7 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -1830,7 +1865,7 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -1975,7 +2010,7 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	
   	OSyncEngine *engine = osync_engine_new(group, NULL);
   	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
+  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
   	osync_engine_init(engine, NULL);
   	
 	osync_engine_synchronize(engine, NULL);
@@ -2137,100 +2172,30 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 }
 END_TEST
 
-START_TEST (multisync_triple_del)
-{
-	char *testbed = setup_testbed("multisync_conflict_changetype_choose");
-	OSyncEnv *osync = osync_env_new();
-	osync_env_initialize(osync, NULL);
-	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-	
-  	OSyncEngine *engine = osync_engine_new(group, NULL);
-  	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-  	osync_engine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-  	osync_engine_init(engine, NULL);
-  	
-	osync_engine_synchronize(engine, NULL);
-	osync_engine_wait_sync_end(engine);
-
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
-	
-	system("rm -f data1/testdata");
-	system("rm -f data2/testdata");
-	system("rm -f data3/testdata");
-	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
-	osync_engine_synchronize(engine, NULL);
-	osync_engine_wait_sync_end(engine);
-
-	fail_unless(num_read == 3, NULL);
-	fail_unless(num_conflicts == 0, NULL);
-	fail_unless(num_written == 0, NULL);
-
-	osync_engine_finalize(engine);
-	
-	mark_point();
-	OSyncMappingTable *maptable = osync_mappingtable_new(group);
-	mark_point();
-	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	mark_point();
-	osync_mappingtable_load(maptable);
-	mark_point();
-	fail_unless(osync_mappingtable_num_mappings(maptable) == 0, NULL);
-	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
-    mark_point();
-    osync_mappingtable_close(maptable);
-    
-	mark_point();
-	OSyncMember *member = osync_member_from_id(group, 1);
-	OSyncHashTable *table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
-	
-	member = osync_member_from_id(group, 2);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
-    
-    member = osync_member_from_id(group, 3);
-	table = osync_hashtable_new();
-	mark_point();
-    osync_hashtable_load(table, member);
-    fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
-	
-	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
-	
-	destroy_testbed(testbed);
-}
-END_TEST
-
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	TCase *tc_setup = tcase_create("setup");
-	//TCase *tc_setup2 = tcase_create("setup2");
-	suite_add_tcase (s, tc_setup);
-	tcase_add_test(tc_setup, multisync_easy_new);
-	tcase_add_test(tc_setup, multisync_easy_new_partial);
-	tcase_add_test(tc_setup, multisync_easy_new_partial2);
-	tcase_add_test(tc_setup, multisync_conflict_data_choose);
-	tcase_add_test(tc_setup, multisync_conflict_data_choose2);
-	tcase_add_test(tc_setup, multisync_conflict_changetype_choose);
-	tcase_add_test(tc_setup, multisync_conflict_changetype_choose2);
-	tcase_add_test(tc_setup, multisync_conflict_hybrid_choose);
-	tcase_add_test(tc_setup, multisync_conflict_hybrid_choose2);
-	tcase_add_test(tc_setup, multisync_conflict_data_duplicate);
-	tcase_add_test(tc_setup, multisync_conflict_data_duplicate2);
-	tcase_add_test(tc_setup, multisync_conflict_changetype_duplicate);
-	tcase_add_test(tc_setup, multisync_conflict_changetype_duplicate2);
-	tcase_add_test(tc_setup, multisync_conflict_hybrid_duplicate);
-	tcase_add_test(tc_setup, multisync_triple_del);
+	create_case(s, "multisync_easy_new", multisync_easy_new);
+	create_case(s, "multisync_dual_new", multisync_dual_new);
+	create_case(s, "multisync_triple_new", multisync_triple_new);
+	create_case(s, "multisync_easy_mod", multisync_easy_mod);
+	create_case(s, "multisync_dual_mod", multisync_dual_mod);
+	create_case(s, "multisync_triple_mod", multisync_triple_mod);
+	create_case(s, "multisync_easy_del", multisync_easy_del);
+	create_case(s, "multisync_dual_del", multisync_dual_del);
+	create_case(s, "multisync_triple_del", multisync_triple_del);
+	
+	create_case(s, "multisync_conflict_data_choose", multisync_conflict_data_choose);
+	create_case(s, "multisync_conflict_data_choose2", multisync_conflict_data_choose2);
+	create_case(s, "multisync_conflict_changetype_choose", multisync_conflict_changetype_choose);
+	create_case(s, "multisync_conflict_changetype_choose2", multisync_conflict_changetype_choose2);
+	create_case(s, "multisync_conflict_hybrid_choose", multisync_conflict_hybrid_choose);
+	create_case(s, "multisync_conflict_hybrid_choose2", multisync_conflict_hybrid_choose2);
+	create_case(s, "multisync_conflict_data_duplicate", multisync_conflict_data_duplicate);
+	create_case(s, "multisync_conflict_data_duplicate2", multisync_conflict_data_duplicate2);
+	create_case(s, "multisync_conflict_changetype_duplicate", multisync_conflict_changetype_duplicate);
+	create_case(s, "multisync_conflict_changetype_duplicate2", multisync_conflict_changetype_duplicate2);
+	create_case(s, "multisync_conflict_hybrid_duplicate", multisync_conflict_hybrid_duplicate);
 
 	return s;
 }

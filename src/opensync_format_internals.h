@@ -6,6 +6,7 @@ struct OSyncFormatEnv {
 	GList *unresolved_converters;
 	GList *filter_functions;
 	char *pluginpath;
+	GList *plugins;
 };
 
 struct OSyncObjType {

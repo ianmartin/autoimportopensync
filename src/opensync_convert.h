@@ -12,7 +12,12 @@ void osync_conv_objtype_add_format(OSyncObjType *type, OSyncObjFormat *format);
 void osync_conv_format_set_detect_func(OSyncObjFormat *format, OSyncFormatDetectFunc detect_func);
 osync_bool osync_conv_detect_change_format(OSyncFormatEnv *env, OSyncChange *change);
 osync_bool osync_conv_duplicate_change(OSyncChange *change);
+osync_bool osync_conv_detect(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error);
+
 void osync_conv_env_load(OSyncFormatEnv *env);
+void osync_conv_env_unload(OSyncFormatEnv *env);
+
+osync_bool osync_conv_convert_simple(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *fmt);
 
 void osync_conv_format_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDuplicateFunc dupe_func);
 void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func);

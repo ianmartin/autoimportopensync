@@ -137,6 +137,7 @@ void osync_group_free(OSyncGroup *group)
 {
 	g_assert(group);
 	
+	osync_conv_env_unload(group->conv_env);
 	osync_conv_env_free(group->conv_env);
 	
 	while (osync_group_nth_member(group, 0))

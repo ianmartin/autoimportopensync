@@ -1,30 +1,15 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-OSyncFormatEnv *osync_conv_env_new(void)
-{
-	OSyncFormatEnv *env = g_malloc0(sizeof(OSyncFormatEnv));
-	env->pluginpath = OPENSYNC_FORMATSDIR;
-	return env;
-}
-
-void osync_conv_env_free(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	g_free(env);
-}
-
-const char *osync_objtype_get_name(OSyncObjType *type)
-{
-	g_assert(type);
-	return type->name;
-}
-
-const char *osync_objformat_get_name(OSyncObjFormat *format)
-{
-	g_assert(format);
-	return format->name;
-}
+/**
+ * @defgroup OSyncConvPrivate OpenSync Conversion Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of opensync
+ * 
+ * This gives you an insight in the private API of opensync.
+ * 
+ */
+/*@{*/
 
 void osync_conv_open_plugin(OSyncFormatEnv *env, char *path)
 {
@@ -49,86 +34,12 @@ void osync_conv_open_plugin(OSyncFormatEnv *env, char *path)
 		osync_debug("OSPLG", 0, "Unable to open format plugin %s: %s", path, g_module_error());
 		return;
 	}
+	env->plugins = g_list_append(env->plugins, plugin);
 	
 	fct_info(env);
 }
 
-void osync_conv_env_load(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	g_assert(env->pluginpath);
-	GDir *dir = NULL;
-	GError *error = NULL;
-	osync_debug("OSPLG", 3, "Trying to open formats plugin directory %s", env->pluginpath);
-	
-	if (!g_file_test(env->pluginpath, G_FILE_TEST_EXISTS)) {
-		return;
-	}
-	
-	dir = g_dir_open(env->pluginpath, 0, &error);
-	if (error) {
-		osync_debug("OSPLG", 0, "Unable to open formats plugin directory %s: %s", env->pluginpath, error->message);
-		g_error_free (error);
-		return;
-	}
-  
-	if (dir) {
-		const gchar *de = NULL;
-		while ((de = g_dir_read_name(dir))) {
-			
-			char *filename = NULL;
-			filename = g_strdup_printf ("%s/%s", env->pluginpath, de);
-			
-			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
-				continue;
-			}
-			
-			/* Try to open the syncgroup dir*/
-			osync_conv_open_plugin(env, filename);
-		}
-	}
-}
-
-OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
-{
-	g_assert(env);
-	g_assert(name);
-	
-	GList *element = NULL;
-	for (element = env->objtypes; element; element = element->next) {
-		OSyncObjType *type = element->data;
-		if (!strcmp(type->name, name))
-			return type;
-	}
-	return NULL;
-}
-
-int osync_conv_num_objtypes(OSyncFormatEnv *env)
-{
-	g_assert(env);
-	return g_list_length(env->objtypes);
-}
-
-OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth)
-{
-	g_assert(env);
-	return g_list_nth_data(env->objtypes, nth);
-}
-
-OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
-{
-	OSyncObjType *type = NULL;
-	if (!(type = osync_conv_find_objtype(env, name))) {
-		type = g_malloc0(sizeof(OSyncObjType));
-		g_assert(type);
-		type->name = g_strdup(name);
-		type->env = env;
-		env->objtypes = g_list_append(env->objtypes, type);
-	}
-	return type;
-}
-
-OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncFormatEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
+OSyncFormatConverter *osync_conv_find_converter_objformat(OSyncFormatEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
 {
 	GList *element = NULL;
 	for (element = env->converters; element; element = element->next) {
@@ -138,6 +49,7 @@ OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncFormatEnv *env, O
 	}
 	return NULL;
 }
+
 
 OSyncDataDetector *osync_conv_find_detector(OSyncFormatEnv *env, const char *origformat, const char *trgformat)
 {
@@ -164,7 +76,7 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char 
 	if (!fmt_trg)
 		return NULL;
 	
-	return osync_conf_find_converter_objformat(env, fmt_src, fmt_trg);
+	return osync_conv_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
 static osync_bool osync_register_unresolved_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
@@ -242,6 +154,131 @@ static void osync_conv_resolve_is_like(OSyncFormatEnv *env, OSyncObjFormat *fmt)
 			f->copy_func = fmt->copy_func;
 		}
 	}
+}
+
+/*@}*/
+
+/**
+ * @defgroup OSyncConvAPI OpenSync Conversion
+ * @ingroup OSyncPublic
+ * @brief The public API of opensync
+ * 
+ * Miscanellous functions
+ * 
+ */
+/*@{*/
+
+OSyncFormatEnv *osync_conv_env_new(void)
+{
+	OSyncFormatEnv *env = g_malloc0(sizeof(OSyncFormatEnv));
+	env->pluginpath = OPENSYNC_FORMATSDIR;
+	return env;
+}
+
+void osync_conv_env_free(OSyncFormatEnv *env)
+{
+	g_assert(env);
+	g_free(env);
+}
+
+const char *osync_objtype_get_name(OSyncObjType *type)
+{
+	g_assert(type);
+	return type->name;
+}
+
+const char *osync_objformat_get_name(OSyncObjFormat *format)
+{
+	g_assert(format);
+	return format->name;
+}
+
+void osync_conv_env_load(OSyncFormatEnv *env)
+{
+	g_assert(env);
+	g_assert(env->pluginpath);
+	GDir *dir = NULL;
+	GError *error = NULL;
+	osync_debug("OSPLG", 3, "Trying to open formats plugin directory %s", env->pluginpath);
+	
+	if (!g_file_test(env->pluginpath, G_FILE_TEST_EXISTS)) {
+		return;
+	}
+	
+	dir = g_dir_open(env->pluginpath, 0, &error);
+	if (error) {
+		osync_debug("OSPLG", 0, "Unable to open formats plugin directory %s: %s", env->pluginpath, error->message);
+		g_error_free (error);
+		return;
+	}
+  
+	if (dir) {
+		const gchar *de = NULL;
+		while ((de = g_dir_read_name(dir))) {
+			
+			char *filename = NULL;
+			filename = g_strdup_printf ("%s/%s", env->pluginpath, de);
+			
+			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
+				continue;
+			}
+			
+			/* Try to open the syncgroup dir*/
+			osync_conv_open_plugin(env, filename);
+		}
+	}
+}
+
+void osync_conv_env_unload(OSyncFormatEnv *env)
+{
+	g_assert(env);
+	
+	GList *p;
+	for (p = env->plugins; p; p = p->next) {
+		GModule *plugin = p->data;
+		g_module_close(plugin);
+	}
+	g_list_free(env->plugins);
+	env->plugins = NULL;
+}
+
+OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
+{
+	g_assert(env);
+	g_assert(name);
+	
+	GList *element = NULL;
+	for (element = env->objtypes; element; element = element->next) {
+		OSyncObjType *type = element->data;
+		if (!strcmp(type->name, name))
+			return type;
+	}
+	return NULL;
+}
+
+int osync_conv_num_objtypes(OSyncFormatEnv *env)
+{
+	g_assert(env);
+	return g_list_length(env->objtypes);
+}
+
+OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth)
+{
+	g_assert(env);
+	return g_list_nth_data(env->objtypes, nth);
+}
+
+OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
+{
+	OSyncObjType *type = NULL;
+	if (!(type = osync_conv_find_objtype(env, name))) {
+		type = g_malloc0(sizeof(OSyncObjType));
+		g_assert(type);
+		type->name = g_strdup(name);
+		type->env = env;
+		env->objtypes = g_list_append(env->objtypes, type);
+	}
+	return type;
 }
 
 osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
@@ -1161,3 +1198,9 @@ osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char
 }
 #endif
 
+osync_bool osync_conv_detect(OSyncFormatEnv *env, OSyncChange *change, OSyncError **error)
+{
+	return TRUE;
+}
+
+/*@}*/

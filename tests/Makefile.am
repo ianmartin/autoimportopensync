@@ -38,7 +38,7 @@ conv_LIBS = @CHECK_LIBS@
 conv_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la -lcheck
 
 sync_INCLUDES = @CHECK_CFLAGS@
-sync_SOURCES = check_sync.c
+sync_SOURCES = check_sync.c support.c
 sync_LIBS = @CHECK_LIBS@
 sync_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck
 
@@ -48,6 +48,6 @@ filter_LIBS = @CHECK_LIBS@
 filter_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck
 
 multisync_INCLUDES = @CHECK_CFLAGS@
-multisync_SOURCES = check_multisync.c
+multisync_SOURCES = check_multisync.c support.c
 multisync_LIBS = @CHECK_LIBS@
 multisync_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck

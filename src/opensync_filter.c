@@ -48,7 +48,7 @@ OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcemember
 }
 
 /**
- * @defgroup OSyncEnvAPI OpenSync Environment
+ * @defgroup OSyncFilterAPI OpenSync Filter
  * @ingroup OSyncPublic
  * @brief The public API of opensync
  * 
