@@ -47,6 +47,7 @@ struct OSyncEngine {
 	MSyncFlag *cmb_synced; //Are all mappings synced?
 	MSyncFlag *cmb_finished; //Are all clients done and disconnected?
 	MSyncFlag *cmb_chkconflict;
+	MSyncFlag *cmb_read_all;
 	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
@@ -66,3 +67,5 @@ void send_connect(OSyncClient *target, OSyncEngine *sender);
 void send_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data);
 void send_sync_done(OSyncClient *target, OSyncEngine *sender);
 void send_disconnect(OSyncClient *target, OSyncEngine *sender);
+void send_read_change(OSyncEngine *sender, OSyncMappingEntry *entry);
+void send_engine_changed(OSyncEngine *engine);

@@ -143,27 +143,32 @@ osync_bool osengine_mappingtable_load(OSyncMappingTable *table, OSyncError **err
 		entry->change = change;
 		//entry->orig_change = change;
 		entry->client = (OSyncClient *)osync_member_get_data(osync_change_get_member(change));
-		if (osync_change_get_changetype(change) != CHANGE_UNKNOWN) {
-			table->logchange = g_list_append(table->logchange, change);
+
+		if (!osync_change_get_mappingid(change)) {
+    		table->unmapped = g_list_append(table->unmapped, entry);
 		} else {
-			if (!osync_change_get_mappingid(change)) {
-	    		table->unmapped = g_list_append(table->unmapped, entry);
-			} else {
-	    		if (!mapping || mapping->id != osync_change_get_mappingid(change)) {
-					mapping = osengine_mapping_new(table);
-					mapping->id = osync_change_get_mappingid(change);
-	    		}
-	    		osengine_mapping_add_entry(mapping, entry);
-	    	}
-	    	
-	    	osync_flag_set(entry->fl_has_data);
-	    	
-	    	OSyncMappingView *view = osengine_mappingtable_find_view(table, osync_change_get_member(change));
-	    	if (view)
-	    		osengine_mappingview_add_entry(view, entry);
+    		if (!mapping || mapping->id != osync_change_get_mappingid(change)) {
+				mapping = osengine_mapping_new(table);
+				mapping->id = osync_change_get_mappingid(change);
+    		}
+    		osengine_mapping_add_entry(mapping, entry);
+    	}
+    	
+    	osync_flag_set(entry->fl_has_data);
+    	
+    	OSyncMappingView *view = osengine_mappingtable_find_view(table, osync_change_get_member(change));
+    	if (view)
+    		osengine_mappingview_add_entry(view, entry);
+
+		if (osync_change_get_changetype(change) != CHANGE_UNKNOWN) {
+			osync_trace(TRACE_INTERNAL, "Adding %p to logchanges", entry);
+			table->logchanges = g_list_append(table->logchanges, entry);
 		}
+		
     	i++;
 	}
+	
+	osync_trace(TRACE_INTERNAL, "#logchanges: %i", g_list_length(table->logchanges));
 	osync_trace(TRACE_EXIT, "osengine_mappingtable_load: TRUE");
 	return TRUE;
 }
@@ -180,22 +185,31 @@ long long int osengine_mappingtable_get_next_id(OSyncMappingTable *table)
 	return new_id;
 }
 
-void osync_mappingtable_inject_changes(OSyncMappingTable *table)
+void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 	OSyncEngine *engine = table->engine;
+
+	char **uids = NULL;
+	int *types = NULL;
+	char *uid = NULL;
+	int type = 0;
+	int i = 0;
+	osync_db_load_changelog(table->engine->group, &uids, &types, NULL);
 	
-	GList *c;
-	OSyncChange *change = NULL;
-	while ((change = g_list_nth_data(table->logchanges, 0))) {
-		table->logchange = g_list_remove(table->logchange, change);
-		OSyncMember *member = osync_change_get_member(change);
-		OSyncClient *client = osync_member_get_data(member);
-		
-		ITMessage *message = itm_message_new_signal(client, "NEW_CHANGE");
-		itm_message_set_data(message, "change", change);
-		itm_message_reset_timeout(orig);
-		itm_queue_send(engine->incoming, message);
+	if (!uids)
+		send_engine_changed(engine);
+	
+	while ((uid = uids[i])) {
+		type = types[i];
+		OSyncMappingEntry *entry = osengine_mappingtable_find_entry(table, uid);
+		osync_change_set_changetype(entry->change, type);
+		osync_trace(TRACE_INTERNAL, "Injecting %p with changetype %i", entry, osync_change_get_changetype(entry->change));
+		osync_flag_attach(entry->fl_read, table->engine->cmb_read_all);
+		send_read_change(engine, entry);
+		i++;
 	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 OSyncMappingTable *_osengine_mappingtable_load_group(OSyncGroup *group)
@@ -447,6 +461,7 @@ OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping)
 	entry->fl_has_info = osync_flag_new(NULL);
 	entry->fl_synced = osync_flag_new(NULL);
 	entry->fl_deleted = osync_flag_new(NULL);
+	entry->fl_read = osync_flag_new(NULL);
 	osync_flag_set(entry->fl_synced);
 	
 	if (mapping)
@@ -468,6 +483,7 @@ void osengine_mappingentry_free(OSyncMappingEntry *entry)
 	osync_flag_free(entry->fl_has_info);
 	osync_flag_free(entry->fl_synced);
 	osync_flag_free(entry->fl_deleted);
+	osync_flag_free(entry->fl_read);
 	
 	entry->view->changes = g_list_remove(entry->view->changes, entry);
 	entry->view = NULL;

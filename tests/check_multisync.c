@@ -1742,8 +1742,71 @@ START_TEST (multisync_conflict_ignore)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_read == 0, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_read == 5, NULL);
+	fail_unless(num_conflicts == 2, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+	
+	maptable = mappingtable_load(group, 2, 0);
+	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+    mappingtable_close(maptable);
+	
+	table = hashtable_load(group, 1, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	synchronize_once(engine, NULL);
+
+	fail_unless(num_read == 5, NULL);
+	fail_unless(num_conflicts == 2, NULL);
+	fail_unless(num_written == 4, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	maptable = mappingtable_load(group, 2, 0);
+	check_mapping(maptable, 1, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "file", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "file", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "file", "data");
+    mappingtable_close(maptable);
+	
+	table = hashtable_load(group, 1, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 1);
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
 	
 	system("rm -f data1/*");
 
@@ -1880,7 +1943,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	//Suite *s2 = suite_create("Multisync");
+	Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);
@@ -1905,10 +1968,10 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_multi_conflict", multisync_multi_conflict);
 
 	create_case(s, "multisync_delayed_conflict_handler", multisync_delayed_conflict_handler);
-	create_case(s, "multisync_conflict_ignore", multisync_conflict_ignore);
+	create_case(s2, "multisync_conflict_ignore", multisync_conflict_ignore);
 	create_case(s, "multisync_conflict_ignore2", multisync_conflict_ignore2);
 	
-	return s;
+	return s2;
 }
 
 int main(void)

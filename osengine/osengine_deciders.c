@@ -35,7 +35,18 @@
 void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mappingentry_decider(%p, %p)", engine, entry);
-
+	osync_trace(TRACE_INTERNAL, "ENG(SYNC%i,SENT%i,READ%i)DATA%i,DRY%i,MAP%i,INFO%i,SYNC%i,DEL%i", \
+		osync_flag_is_set(engine->cmb_synced), \
+		osync_flag_is_set(engine->cmb_sent_changes), \
+		osync_flag_is_set(engine->cmb_read_all), \
+		osync_flag_is_set(entry->fl_has_data), \
+		osync_flag_is_set(entry->fl_dirty), \
+		osync_flag_is_set(entry->fl_mapped), \
+		osync_flag_is_set(entry->fl_has_info), \
+		osync_flag_is_set(entry->fl_synced), \
+		osync_flag_is_set(entry->fl_deleted));
+	
+	
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_set(engine->fl_sync) \
 	&& osync_flag_is_set(entry->fl_has_info) \
@@ -47,6 +58,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 	}
 	
 	if (osync_flag_is_set(engine->fl_running) \
+	&& osync_flag_is_set(engine->cmb_read_all) \
 	&& osync_flag_is_set(engine->cmb_sent_changes) \
 	&& osync_flag_is_set(engine->fl_sync) \
 	&& osync_flag_is_set(entry->fl_has_info) \
@@ -80,7 +92,10 @@ void osengine_mappingentry_all_deciders(OSyncEngine *engine, OSyncMapping *mappi
 void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mapping_decider(%p, %p)", engine, mapping);
-	osync_trace(TRACE_INTERNAL, "SOLV%i,SYNC%i,DATA%i,INFO%i,DEL%i,CHK%i,MUL%i", \
+	osync_trace(TRACE_INTERNAL, "ENG(SENT%i,READ%i,MAP%i),SOLV%i,SYNC%i,DATA%i,INFO%i,DEL%i,CHK%i,MUL%i", \
+		osync_flag_is_set(engine->cmb_sent_changes), \
+		osync_flag_is_set(engine->cmb_read_all), \
+		osync_flag_is_set(engine->cmb_entries_mapped), \
 		osync_flag_is_set(mapping->fl_solved), \
 		osync_flag_is_set(mapping->cmb_synced), \
 		osync_flag_is_set(mapping->cmb_has_data), \
@@ -91,6 +106,7 @@ void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_set(engine->cmb_sent_changes) \
+	&& osync_flag_is_set(engine->cmb_read_all) \
 	&& osync_flag_is_set(engine->cmb_entries_mapped) \
 	&& osync_flag_is_set(mapping->cmb_has_data) \
 	&& osync_flag_is_not_set(mapping->cmb_synced) \
@@ -103,6 +119,7 @@ void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 	
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_set(engine->cmb_sent_changes) \
+	&& osync_flag_is_set(engine->cmb_read_all) \
 	&& osync_flag_is_set(engine->cmb_entries_mapped) \
 	&& osync_flag_is_set(mapping->cmb_has_data) \
 	&& osync_flag_is_not_set(mapping->cmb_synced) \
@@ -149,7 +166,15 @@ void osengine_mapping_all_deciders(OSyncEngine *engine)
 void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 {
 	osync_trace(TRACE_ENTRY, "osengine_client_decider(%p, %p)", engine, client);
-	
+	osync_trace(TRACE_INTERNAL, "ENG(SENT%i,READ%i,MAP%i),CON%i,SENT%i,DONE%i,FIN%i", \
+		osync_flag_is_set(engine->cmb_sent_changes), \
+		osync_flag_is_set(engine->cmb_read_all), \
+		osync_flag_is_set(engine->cmb_entries_mapped), \
+		osync_flag_is_set(client->fl_connected), \
+		osync_flag_is_set(client->fl_sent_changes), \
+		osync_flag_is_set(client->fl_done), \
+		osync_flag_is_set(client->fl_finished));
+		
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_not_set(engine->fl_stop) \
 	&& osync_flag_is_not_set(client->fl_done) \
@@ -184,6 +209,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_not_set(client->fl_done) \
 	&& osync_flag_is_set(client->fl_connected) \
 	&& osync_flag_is_set(client->fl_sent_changes) \
+	&& osync_flag_is_set(engine->cmb_read_all) \
 	&& osync_flag_is_set(engine->cmb_sent_changes) \
 	&& osync_flag_is_set(engine->cmb_synced) \
 	&& osync_flag_is_set(engine->cmb_entries_mapped)) {

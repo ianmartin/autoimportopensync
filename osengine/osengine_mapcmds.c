@@ -116,6 +116,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 	OSyncMappingEntry *master = NULL;
 
 	master = mapping->master;
+	g_assert(master);
 	if (osync_flag_is_not_set(master->fl_dirty))
 		osync_flag_set(master->fl_synced);
 	
@@ -164,6 +165,11 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 		}
 	}
 	
+	osync_change_reset(master->change);
+	
+	OSyncError *error = NULL;
+	osync_change_save(master->change, TRUE, &error);
+	
 	osync_flag_set(mapping->fl_multiplied);
 	osync_trace(TRACE_EXIT, "osync_mapping_multiply_master");
 }
@@ -182,26 +188,25 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	
 	g_assert(engine != NULL);
 	g_assert(mapping != NULL);
+	g_assert(!mapping->master);
 	
-	if (!mapping->master) {
-		for (e = mapping->entries; e; e = e->next) {
-			leftentry = e->data;
-			if (osync_change_get_changetype(leftentry->change) == CHANGE_UNKNOWN)
+	for (e = mapping->entries; e; e = e->next) {
+		leftentry = e->data;
+		if (osync_change_get_changetype(leftentry->change) == CHANGE_UNKNOWN)
+			continue;
+		mapping->master = leftentry;
+		for (n = e->next; n; n = n->next) {
+			rightentry = n->data;
+			if (osync_change_get_changetype(rightentry->change) == CHANGE_UNKNOWN)
 				continue;
-			mapping->master = leftentry;
-			for (n = e->next; n; n = n->next) {
-				rightentry = n->data;
-				if (osync_change_get_changetype(rightentry->change) == CHANGE_UNKNOWN)
-					continue;
-				
-				if (osync_change_compare(leftentry->change, rightentry->change) != CONV_DATA_SAME) {
-					is_conflict = TRUE;
-					goto conflict;
-				} else {
-					is_same++;
-				}
-			}	
-		}
+			
+			if (osync_change_compare(leftentry->change, rightentry->change) != CONV_DATA_SAME) {
+				is_conflict = TRUE;
+				goto conflict;
+			} else {
+				is_same++;
+			}
+		}	
 	}
 	
 	conflict:
@@ -213,6 +218,7 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: Got conflict");
 		return;
 	}
+	g_assert(mapping->master);
 	osync_flag_set(mapping->fl_chkconflict);
 	
 	//Our mapping is already solved since there is no conflict
@@ -385,8 +391,12 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
 	
-	//Mark all members of this conflict to be reloaded again next time.
-	osengine_mappintable_store_mapping(mapping);
+	GList *e = NULL;
+	for (e = mapping->entries; e; e = e->next) {
+		OSyncMappingEntry *entry = e->data;
+		osync_trace(TRACE_INTERNAL, "Adding %p to logchanges", entry);
+		engine->maptable->logchanges = g_list_append(engine->maptable->logchanges, entry);
+	}
 	
 	//And make sure we dont synchronize it this time
 	osengine_mapping_reset(mapping);

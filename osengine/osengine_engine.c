@@ -156,6 +156,8 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		return;
 	}
 	
+	engine->maptable->logchanges = g_list_remove(engine->maptable->logchanges, entry);
+	
 	//We convert to the common format here to make sure we always pass it
 	osync_change_convert_to_common(change, NULL);
 	
@@ -216,6 +218,28 @@ void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OS
 	osync_trace(TRACE_EXIT, "_get_change_data_reply_receiver");
 }
 
+void _read_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "_read_change_reply_receiver(%p, %p, %p)", sender, message, engine);
+	
+	OSyncMappingEntry *entry = itm_message_get_data(message, "entry");
+	
+	osync_flag_detach(entry->fl_read);
+	
+	osync_flag_unset(entry->mapping->fl_solved);
+	osync_flag_unset(entry->mapping->fl_chkconflict);
+	
+	if (osync_change_get_changetype(entry->change) == CHANGE_DELETED)
+		osync_flag_set(entry->fl_deleted);
+	
+	osync_flag_set(entry->fl_has_info);
+	osync_flag_unset(entry->fl_synced);
+	
+	osync_change_save(entry->change, TRUE, NULL);
+	osengine_mappingentry_decider(engine, entry);
+	osync_trace(TRACE_EXIT, "_read_change_reply_receiver");
+}
+
 void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "_commit_change_reply_receiver(%p, %p, %p)", sender, message, engine);
@@ -238,10 +262,15 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_flag_set(entry->fl_synced);
 	}
 	
-	OSyncError *error = NULL;
-	osync_change_save(entry->change, TRUE, &error);
+	engine->maptable->logchanges = g_list_remove(engine->maptable->logchanges, entry);
+	
 	if (osync_change_get_changetype(entry->change) == CHANGE_DELETED)
 		osync_flag_set(entry->fl_deleted);
+	
+	osync_change_reset(entry->change);
+	
+	OSyncError *error = NULL;
+	osync_change_save(entry->change, TRUE, &error);
 	
 	osengine_mappingentry_decider(engine, entry);
 	osync_trace(TRACE_EXIT, "_commit_change_reply_receiver");
@@ -270,6 +299,19 @@ void send_get_change_data(OSyncEngine *sender, OSyncMappingEntry *entry)
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
 	itm_queue_send_with_timeout(entry->client->incoming, message, timeouts.get_data_timeout, sender);
+}
+
+void send_read_change(OSyncEngine *sender, OSyncMappingEntry *entry)
+{
+	//osync_flag_changing(entry->fl_has_data);
+	ITMessage *message = itm_message_new_methodcall(sender, "READ_CHANGE");
+	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_read_change_reply_receiver, sender);
+	itm_message_set_data(message, "change", entry->change);
+	itm_message_set_data(message, "entry", entry);
+	osync_debug("ENG", 3, "Sending read_change message %p to client %p", message, entry->client);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
+	itm_queue_send_with_timeout(entry->client->incoming, message, timeouts.read_change_timeout, sender);
 }
 
 void send_connect(OSyncClient *target, OSyncEngine *sender)
@@ -435,6 +477,12 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 
 static void trigger_clients_sent_changes(OSyncEngine *engine)
 {
+	//Load the old mappings
+	osengine_mappingtable_inject_changes(engine->maptable);
+}
+
+static void trigger_clients_read_all(OSyncEngine *engine)
+{
 	osync_status_update_engine(engine, ENG_ENDPHASE_READ, NULL);
 	
 	g_mutex_lock(engine->info_received_mutex);
@@ -454,9 +502,8 @@ static void trigger_status_end_conflicts(OSyncEngine *engine)
 static void trigger_clients_connected(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-	//Load the old mappings
-	osengine_mappintable_load_mappings(engine->maptable);
 	send_engine_changed(engine);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -510,6 +557,7 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_chkconflict, TRUE);
 	osync_flag_set_state(engine->cmb_finished, FALSE);
 	osync_flag_set_state(engine->cmb_connected, FALSE);
+	osync_flag_set_state(engine->cmb_read_all, TRUE);
 	itm_queue_flush(engine->incoming);
 	
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
@@ -579,6 +627,9 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_sent_changes = osync_comb_flag_new(FALSE, FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_sent_changes, (MSyncFlagTriggerFunc)trigger_clients_sent_changes, engine, NULL);
 	
+	engine->cmb_read_all = osync_comb_flag_new(FALSE, TRUE);
+	osync_flag_set_pos_trigger(engine->cmb_read_all, (MSyncFlagTriggerFunc)trigger_clients_read_all, engine, NULL);
+	
 	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE, FALSE);
 	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (MSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
@@ -637,6 +688,7 @@ void osync_engine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_chkconflict);
 	osync_flag_free(engine->cmb_finished);
 	osync_flag_free(engine->cmb_connected);
+	osync_flag_free(engine->cmb_read_all);
 	
 	itm_queue_flush(engine->incoming);
 	itm_queue_free(engine->incoming);

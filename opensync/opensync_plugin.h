@@ -29,6 +29,7 @@ typedef struct OSyncPluginTimeouts {
 	unsigned int get_changeinfo_timeout;
 	unsigned int get_data_timeout;
 	unsigned int commit_timeout;
+	unsigned int read_change_timeout;
 } OSyncPluginTimeouts;
 
 /*! @brief The functions for accessing formats on a plugin */

@@ -172,7 +172,7 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 
 	if (itm_message_is_methodcall(message, "READ_CHANGE")) {
 		OSyncChange *change = itm_message_get_data(message, "change");
-		osync_member_read_change(client->member, change, (OSyncEngCallback)osync_client_changes_sink, message);
+		osync_member_read_change(client->member, change, (OSyncEngCallback)message_callback, message);
 		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}

@@ -15,6 +15,7 @@ struct OSyncMappingTable {
 	OSyncGroup *group;
 	GList *views;
 	GList *entries;
+	GList *logchanges;
 };
 
 /*! @brief A view to the mappingtable, represents one source
@@ -58,6 +59,7 @@ struct OSyncMappingEntry {
 	MSyncFlag *fl_has_info;
 	MSyncFlag *fl_synced;
 	MSyncFlag *fl_deleted;
+	MSyncFlag *fl_read;
 };
 
 OSyncMappingTable *osengine_mappingtable_new(OSyncEngine *engine);
@@ -71,6 +73,7 @@ OSyncMappingTable *_osengine_mappingtable_load_group(OSyncGroup *group);
 void osengine_mappingtable_close(OSyncMappingTable *table);
 long long int osengine_mappingtable_get_next_id(OSyncMappingTable *table);
 void osengine_mappingtable_reset(OSyncMappingTable *table);
+void osengine_mappingtable_inject_changes(OSyncMappingTable *table);
 
 OSyncMapping *osengine_mapping_new(OSyncMappingTable *table);
 void osengine_mapping_free(OSyncMapping *mapping);

@@ -50,6 +50,7 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
 		plugin->info.timeouts.get_changeinfo_timeout = 60;
 		plugin->info.timeouts.get_data_timeout = 60;
         plugin->info.timeouts.commit_timeout = 60;
+        plugin->info.timeouts.read_change_timeout = 60;
         
         plugin->info.plugin = plugin;
         
