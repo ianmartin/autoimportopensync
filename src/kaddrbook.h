@@ -23,13 +23,7 @@ SOFTWARE IS DISCLAIMED.
 #ifndef KADDRBOOK_H
 #define KADDRBOOK_H
 
-void  kaddrbook_init();
-void  kaddrbook_quit(void);
-void* kaddrbook_connect();
-int   kaddrbook_disconnect(void* ptr);
-int   kaddrbook_get_changes(void *pkaddrbook, OSyncContext *ctx, OSyncMember *memb, int newdbs);
-int   kaddrbook_modify(void *pkaddrbook, OSyncChange *chg);
-void  kaddrbook_sync_done(void *kaddrbook, int success); 
+#include "osyncbase.h"
 
 #endif
 
