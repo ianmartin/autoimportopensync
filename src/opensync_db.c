@@ -242,9 +242,14 @@ void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx, const char *
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
 	
-	char **azResult;
+	char **azResult = NULL;
 	int numrows = 0;
-	char *query = g_strdup_printf("SELECT uid, hash FROM tbl_hash WHERE objtype='%s'", objtype);
+	char *query = NULL;
+	if (osync_conv_objtype_is_any(objtype)) {
+		query = g_strdup_printf("SELECT uid, hash FROM tbl_hash");
+	} else {
+		query = g_strdup_printf("SELECT uid, hash FROM tbl_hash WHERE objtype='%s'", objtype);
+	}
 	sqlite3_get_table(sdb, query, &azResult, &numrows, NULL, NULL);
 	g_free(query);
 	
