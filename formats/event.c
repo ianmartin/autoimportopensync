@@ -18,12 +18,21 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 }
 
 
-/*FIXME: write a proper vevent detector, as vtodos are inside a vcalendar, too */
+static const char *begin_vcalendar = "BEGIN:VCALENDAR";
+static const char *begin_vevent = "\nBEGIN:VEVENT";
+
 static osync_bool detect_plain_as_vevent(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
-	if (size >= 15 && !strncmp(data, "BEGIN:VCALENDAR", 15))
+
+	// first, check if it is a vcalendar
+	if (size < strlen(begin_vcalendar) || strncmp(data, begin_vcalendar, strlen(begin_vcalendar)))
+		return FALSE;
+
+	// it is a vcalendar, search for BEGIN:VEVENT
+	if (g_strstr_len(data, size, begin_vevent))
 		return TRUE;
+
 	return FALSE;
 }
 
