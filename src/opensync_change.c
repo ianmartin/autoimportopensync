@@ -81,11 +81,10 @@ void osync_change_set_objtype_string(OSyncChange *change, const char *name)
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 {
 	g_assert(change);
-	if (!change->objformats)
-		return NULL;
-	return g_list_last(change->objformats)->data;
+	return change->format;
 }
 
+#if 0
 void osync_change_append_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 {
 	g_assert(change);
@@ -97,14 +96,14 @@ void osync_change_prepend_objformat(OSyncChange *change, OSyncObjFormat *objform
 	g_assert(change);
 	change->objformats = g_list_prepend(change->objformats, objformat);
 }
+#endif
 
 void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 {
 	g_assert(change);
-	//FIXME Free the prev list
-	change->objformats = g_list_append(NULL, objformat);
+	change->format = objformat;
+	change->objtype = objformat->objtype;
 
-	/*FIXME: should objtype be set here? */
 }
 
 void osync_change_set_objformat_string(OSyncChange *change, const char *name)
@@ -218,8 +217,7 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	target->has_data = source->has_data;
 	target->changetype = source->changetype;
 	//FIXME?
-	if (source->objformats)
-		target->objformats = g_list_append(NULL, g_list_last(source->objformats)->data);
+	target->format = source->format;
 	if (source->objtype)
 		target->objtype = source->objtype;
 }

@@ -19,6 +19,7 @@ struct OSyncObjType {
 typedef struct OSyncObjFormatSink {
 	OSyncObjFormat *format;
 	OSyncFormatFunctions functions;
+	struct OSyncObjTypeSink *objtype_sink;
 } OSyncObjFormatSink;
 
 typedef struct OSyncObjTypeSink {
@@ -52,13 +53,27 @@ struct OSyncFormatProperty {
 
 struct OSyncObjFormat {
 	char *name;
+
+	/** This field is necessary only because
+	 * the is_like() function can be called
+	 * before the base_format is registered.
+	 *
+	 * This may be not necessary if we add
+	 * dependency information to the plugins.
+	 *
+	 * @see OSyncUnresolvedConverter
+	 */
+	char *is_like;
+	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
 	GList *properties;
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDetectFunc detect_func;
 	OSyncFormatDuplicateFunc duplicate_func;
+	OSyncFormatCopyFunc copy_func;
 	OSyncFormatCreateFunc create_func;
+	OSyncFormatDestroyFunc destroy_func;
 };
 
 struct OSyncFormatConverter {
@@ -66,25 +81,55 @@ struct OSyncFormatConverter {
 	OSyncObjFormat *target_format;
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
+	ConverterFlags flags;
 };
 
 /** Unresolved converter
  * 
  * Used to keep the list of converters
  * to types that weren't registered yet.
+ *
+ *FIXME: We have similar problems with the
+ * detectors and other functions that refers
+ * to other formats. We have two possible solutions:
+ *
+ * - Add a OSyncUnresolvedXXX struct for every type,
+ *   and do the same that is done for the converters
+ * - Add dependency information to the plugins
+ *
+ * The second approach can be easier. Two possible
+ * implementations:
+ *
+ * - make get_info() function return RUN_LATER, and
+ *   loop on the list of plugins until all initialized
+ *   sucessfully (or all returned error)
+ * - Provide a osync_require_format_plugin() or something
+ *   similar, that will load the required plugin, if
+ *   it is not loaded yet
  */
 typedef struct OSyncUnresolvedConverter {
 	const char *source_format;
 	const char *target_format;
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
+	ConverterFlags flags;
 } OSyncUnresolvedConverter;
 
+/** Data detector for a format
+ *
+ * It takes the data on a given format and detects
+ * if it can be converted to another format.
+ *
+ * The format references are strings because
+ * of the plugin loading order problem.
+ *
+ * @see OSyncUnresolvedConverter
+ */
 typedef struct OSyncDataDetector {
-	OSyncObjType *objtype;
-	OSyncObjFormat *objformat;
+	const char *sourceformat;
+	const char *targetformat;
 	OSyncFormatDetectDataFunc detect_func;
 } OSyncDataDetector;
 
-osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change);
-
+OSyncDataDetector *osync_conv_find_detector(OSyncFormatEnv *env, const char *origformat, const char *trgformat);
+osync_bool osync_conv_detect_and_convert(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets);

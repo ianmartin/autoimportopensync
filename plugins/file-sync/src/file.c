@@ -55,7 +55,7 @@ static void create_file(OSyncChange *change)
 }
 #endif
 
-static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_file_to_plain(const char *input, int inpsize, char **output, int *outpsize)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)input;
@@ -66,12 +66,14 @@ static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **outp
 	return TRUE;
 }
 
-static osync_bool conv_vcard_to_file(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_plain_to_file(const char *input, int inpsize, char **output, int *outpsize)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = g_malloc0(sizeof(fs_fileinfo));
-	file->data = g_malloc0(inpsize * sizeof(char));
-	memcpy(file->data, input, inpsize);
+
+	/* Just take the data pointers, as we are a CONV_TAKEOVER converter */
+	/*FIXME: all CONV_TAKEOVER converters will need a typecast because input is const */
+	file->data = (char*)input;
 	file->size = inpsize;
 	
 	*output = (char *)file;
@@ -79,24 +81,23 @@ static osync_bool conv_vcard_to_file(const char *input, int inpsize, char **outp
 	return TRUE;
 }
 
-void duplicate_file(OSyncChange *change)
+static void destroy_file(char *input, size_t inpsize)
+{
+	fs_fileinfo *file = (fs_fileinfo *)input;
+	if (inpsize != sizeof(fs_fileinfo)) {
+		osync_debug("FILE", 0, "destroy_file: Wrong data size: %d, but it should be %u", inpsize, sizeof(fs_fileinfo));
+		return;
+	}
+	g_free(file->data);
+	g_free(file);
+}
+
+static void duplicate_file(OSyncChange *change)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	char *newuid = g_strdup_printf ("%s-dupe", osync_change_get_uid(change));
 	osync_change_set_uid(change, newuid);
 	g_free(newuid);
-}
-
-static osync_bool detect_file(OSyncFormatEnv *env, OSyncChange *change)
-{
-	osync_debug("FILE", 3, "start: %s", __func__);
-	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
-	
-	//Call the data detectors here
-	if (osync_conv_detect_data(env, change, file->data, file->size))
-		return TRUE;
-
-	return FALSE;
 }
 
 void get_info(OSyncFormatEnv *env)
@@ -106,11 +107,11 @@ void get_info(OSyncFormatEnv *env)
 	
 	OSyncObjFormat *format = osync_conv_register_objformat(env, "data", "file");
 	osync_conv_format_set_compare_func(format, compare_file);
-	osync_conv_format_set_detect_func(format, detect_file);
 	osync_conv_format_set_duplicate_func(format, duplicate_file);
+	osync_conv_format_set_destroy_func(format, destroy_file);
 #ifdef STRESS_TEST
 	osync_conv_format_set_create_func(format, create_file);
 #endif
-	osync_conv_register_converter(env, CONVERTER_CONV, "file", "vcard", conv_file_to_vcard);
-	osync_conv_register_converter(env, CONVERTER_CONV, "vcard", "file", conv_vcard_to_file);
+	osync_conv_register_converter(env, CONVERTER_CONV, "file", "plain", conv_file_to_plain, 0);
+	osync_conv_register_converter(env, CONVERTER_CONV, "plain", "file", conv_plain_to_file, CONV_NOTLOSSY|CONV_TAKEOVER);
 }
