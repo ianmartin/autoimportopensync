@@ -14,6 +14,7 @@ struct OSyncClient {
 	MSyncFlag *fl_sent_changes;
 	MSyncFlag *fl_done;
 	MSyncFlag *fl_finished;
+	MSyncFlag *cmb_written;
 	GThread *thread;
 	GMainContext *context;
 	

@@ -347,6 +347,13 @@ void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 	itm_queue_send_with_timeout(target->incoming, message, timeouts.sync_done_timeout, target);
 }
 
+void send_committed_all(OSyncClient *target, OSyncEngine *sender)
+{
+	osync_flag_changing(target->fl_done);
+	ITMessage *message = itm_message_new_signal(sender, "COMMITTED_ALL");
+	itm_queue_send(target->incoming, message);
+}
+
 void send_disconnect(OSyncClient *target, OSyncEngine *sender)
 {
 	osync_flag_changing(target->fl_connected);

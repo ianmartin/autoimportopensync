@@ -41,8 +41,10 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 	client->fl_sent_changes = osync_flag_new(engine->cmb_sent_changes);
 	client->fl_done = osync_flag_new(NULL);
 	client->fl_finished = osync_flag_new(engine->cmb_finished);
-	//client->fl_reset = osync_flag_new(engine->cmb_reset);
 	
+	client->cmb_written = osync_comb_flag_new(FALSE, FALSE);
+	osync_flag_set_pos_trigger(client->cmb_written, (MSyncFlagTriggerFunc)send_committed_all, client, engine);
+		
     return client;
 }
 
@@ -60,6 +62,7 @@ void osync_client_free(OSyncClient *client)
 	osync_flag_free(client->fl_sent_changes);
 	osync_flag_free(client->fl_done);
 	osync_flag_free(client->fl_finished);
+	osync_flag_free(client->cmb_written);
 
 	g_free(client);
 	osync_trace(TRACE_EXIT, "osync_client_free");
@@ -170,6 +173,12 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 		return;
 	}
 
+	if (itm_message_is_methodcall(message, "COMMITTED_ALL")) {
+		osync_member_committed_all(client->member);
+		osync_trace(TRACE_EXIT, "client_message_handler");
+		return;
+	}
+	
 	if (itm_message_is_methodcall(message, "READ_CHANGE")) {
 		OSyncChange *change = itm_message_get_data(message, "change");
 		osync_member_read_change(client->member, change, (OSyncEngCallback)message_callback, message);

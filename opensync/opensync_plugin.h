@@ -35,6 +35,8 @@ typedef struct OSyncPluginTimeouts {
 /*! @brief The functions for accessing formats on a plugin */
 typedef struct OSyncFormatFunctions {
 	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
+	void (* committed_all) (void *);
+	void (* batch_commit) (void *, OSyncContext **, OSyncChange **);
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
 	void (* read) (OSyncContext *, OSyncChange *);
 } OSyncFormatFunctions;

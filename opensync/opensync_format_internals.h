@@ -83,6 +83,8 @@ typedef struct OSyncObjFormatSink {
 	OSyncFormatFunctions functions;
 	char *extension_name;
 	struct OSyncObjTypeSink *objtype_sink;
+	GList *commit_changes;
+	GList *commit_contexts;
 } OSyncObjFormatSink;
 
 typedef struct OSyncObjTypeSink {

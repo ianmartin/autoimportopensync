@@ -562,11 +562,11 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	g_assert(member);
 	g_assert(change);
 
+	OSyncFormatEnv *env = osync_member_get_format_env(member);
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
-
-	OSyncFormatEnv *env = osync_member_get_format_env(member);
+	
 	
 	OSyncObjType *type = change->objtype;
 	
@@ -617,15 +617,73 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 
 		osync_debug("OSYNC", 2, "Comparing change %s with sink %s", osync_change_get_objformat(change)->name, fmtsink->format ? fmtsink->format->name : "None");
 		if (fmtsink->format == osync_change_get_objformat(change)) {
-			// Send the change
-			fmtsink->functions.commit_change(context, change);
-			osync_trace(TRACE_EXIT, "%s", __func__);
-			return;
+			if (fmtsink->functions.batch_commit) {
+				//Append to the stored changes
+				fmtsink->commit_changes = g_list_append(fmtsink->commit_changes, change);
+				fmtsink->commit_contexts = g_list_append(fmtsink->commit_contexts, context);
+				osync_trace(TRACE_EXIT, "%s: Waiting for batch processing", __func__);
+				return;
+			} else {
+				// Send the change
+				fmtsink->functions.commit_change(context, change);
+				osync_trace(TRACE_EXIT, "%s", __func__);
+				return;
+			}
 		}
 	}
 
 	osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
 	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find a sink", __func__);
+}
+
+void osync_member_committed_all(OSyncMember *member)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+
+	GList *f;
+	for (f = member->format_sinks; f; f = f->next) {
+		OSyncObjFormatSink *fmtsink = f->data;
+		osync_debug("OSYNC", 2, "Sending committed all to sink %s", fmtsink->format ? fmtsink->format->name : "None");
+
+		OSyncFormatFunctions functions = fmtsink->functions;
+
+		if (functions.batch_commit) {
+			GList *o = fmtsink->commit_contexts;
+			GList *c = NULL;
+			
+			int i = 0;
+			OSyncChange **changes = g_malloc0(sizeof(OSyncChange *) * (g_list_length(fmtsink->commit_changes) + 1));
+			OSyncContext **contexts = g_malloc0(sizeof(OSyncContext *) * (g_list_length(fmtsink->commit_changes) + 1));;
+			
+			for (c = fmtsink->commit_changes; c && o; c = c->next) {
+				OSyncChange *change = c->data;
+				OSyncContext *context = o->data;
+				
+				changes[i] = change;
+				contexts[i] = context;
+				
+				i++;
+				o = o->next;
+			}
+			
+			changes[i] = NULL;
+			contexts[i] = NULL;
+			functions.batch_commit(member->plugindata, contexts, changes);
+			
+			g_free(changes);
+			g_free(contexts);
+			
+			g_list_free(fmtsink->commit_changes);
+			fmtsink->commit_changes = NULL;
+			
+			g_list_free(fmtsink->commit_contexts);
+			fmtsink->commit_contexts = NULL;
+		} else if (functions.committed_all) {
+			functions.committed_all(member->plugindata);
+		}
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change, const char *objtypename)

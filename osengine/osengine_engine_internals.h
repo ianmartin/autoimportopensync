@@ -69,3 +69,4 @@ void send_sync_done(OSyncClient *target, OSyncEngine *sender);
 void send_disconnect(OSyncClient *target, OSyncEngine *sender);
 void send_read_change(OSyncEngine *sender, OSyncMappingEntry *entry);
 void send_engine_changed(OSyncEngine *engine);
+void send_committed_all(OSyncClient *target, OSyncEngine *sender);
