@@ -7,7 +7,7 @@ const char *osync_objtype_get_name(OSyncObjType *type);
 const char *osync_objformat_get_name(OSyncObjFormat *format);
 char *osync_conv_objtype_get_name(OSyncObjType *type);
 OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char *sourcename, const char *targetname);
-osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func);
+osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags);
 osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *targetformat);
 void osync_conv_objtype_add_format(OSyncObjType *type, OSyncObjFormat *format);
 void osync_conv_format_set_detect_func(OSyncObjFormat *format, OSyncFormatDetectFunc detect_func);
@@ -17,6 +17,9 @@ void osync_conv_format_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDup
 void osync_conv_env_load(OSyncFormatEnv *env);
 void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func);
 void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func);
+void osync_conv_format_set_malloced(OSyncObjFormat *format);
+void osync_conv_format_set_plain_malloced(OSyncObjFormat *format);
+void osync_conv_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func);
 //void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions);
 OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth);
 osync_bool osync_conv_objtype_is_any(const char *objstr);

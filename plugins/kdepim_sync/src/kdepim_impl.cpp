@@ -189,7 +189,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
             for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
 
-                QString uid = "kabc" + it->uid();
+                QString uid = it->uid();
 
                 osync_debug("kde", 3, "new entry, uid: %s", uid.latin1());
 

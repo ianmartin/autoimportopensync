@@ -39,9 +39,11 @@ static void create_vcard(OSyncChange *change)
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "contact");
-	OSyncObjFormat *format = osync_conv_register_objformat(env, "contact", "vcard");
-	osync_conv_format_set_compare_func(format, compare_vcard);
-	osync_conv_format_set_create_func(format, create_vcard);
+	OSyncObjFormat *vcard = osync_conv_register_objformat(env, "contact", "vcard");
+	osync_conv_format_set_compare_func(vcard, compare_vcard);
+	osync_conv_format_set_create_func(vcard, create_vcard);
 	
 	osync_conv_register_data_detector(env, "contact", "vcard", detect_vcard);
+
+	osync_conv_format_set_plain_malloced(vcard);
 }

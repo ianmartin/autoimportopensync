@@ -52,6 +52,7 @@ struct OSyncFormatProperty {
 
 struct OSyncObjFormat {
 	char *name;
+	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
 	GList *properties;
 	OSyncFormatCompareFunc cmp_func;
@@ -59,6 +60,7 @@ struct OSyncObjFormat {
 	OSyncFormatDetectFunc detect_func;
 	OSyncFormatDuplicateFunc duplicate_func;
 	OSyncFormatCreateFunc create_func;
+	OSyncFormatDestroyFunc destroy_func;
 };
 
 struct OSyncFormatConverter {
@@ -66,6 +68,7 @@ struct OSyncFormatConverter {
 	OSyncObjFormat *target_format;
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
+	ConverterFlags flags;
 };
 
 /** Unresolved converter
@@ -78,6 +81,7 @@ typedef struct OSyncUnresolvedConverter {
 	const char *target_format;
 	OSyncFormatConvertFunc convert_func;
 	ConverterType type;
+	ConverterFlags flags;
 } OSyncUnresolvedConverter;
 
 typedef struct OSyncDataDetector {

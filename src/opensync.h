@@ -88,9 +88,28 @@ typedef enum {
 } OSyncConvCmpResult;
 
 typedef enum {
+	/** Not Lossy converter
+	 *
+	 * Set this flag if information is not lossy when
+	 * converting through this converter.
+	 */
+	CONV_NOTLOSSY = 1<<0,
+
+	/** Data take-over converter
+	 *
+	 * Set this flag if the converter takes the ownership and responsibility
+	 * of deallocating the data passed as input.
+	 */
+	CONV_TAKEOVER = 1<<1,
+} ConverterFlags;
+
+typedef enum {
+	/** Simple converter */
 	CONVERTER_CONV = 1,
+	/** Encapsulator */
 	CONVERTER_ENCAP = 2,
-	CONVERTER_DESENCAP = 3
+	/** Desencapsulator */
+	CONVERTER_DESENCAP = 3,
 } ConverterType;
 
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
@@ -100,6 +119,7 @@ typedef osync_bool (* OSyncFormatDetectDataFunc) (OSyncFormatEnv *env, const cha
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
 typedef void (* OSyncFormatMergeFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
+typedef void (* OSyncFormatDestroyFunc) (char *data, size_t size);
 
 /**************************************************************
  * Structs

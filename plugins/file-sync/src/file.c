@@ -55,7 +55,7 @@ static void create_file(OSyncChange *change)
 }
 #endif
 
-static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_file_to_plain(const char *input, int inpsize, char **output, int *outpsize)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)input;
@@ -66,12 +66,14 @@ static osync_bool conv_file_to_vcard(const char *input, int inpsize, char **outp
 	return TRUE;
 }
 
-static osync_bool conv_vcard_to_file(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_plain_to_file(const char *input, int inpsize, char **output, int *outpsize)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = g_malloc0(sizeof(fs_fileinfo));
-	file->data = g_malloc0(inpsize * sizeof(char));
-	memcpy(file->data, input, inpsize);
+
+	/* Just take the data pointers, as we are a CONV_TAKEOVER converter */
+	/*FIXME: all CONV_TAKEOVER converters will need a typecast because input is const */
+	file->data = (char*)input;
 	file->size = inpsize;
 	
 	*output = (char *)file;
@@ -111,6 +113,6 @@ void get_info(OSyncFormatEnv *env)
 #ifdef STRESS_TEST
 	osync_conv_format_set_create_func(format, create_file);
 #endif
-	osync_conv_register_converter(env, CONVERTER_CONV, "file", "vcard", conv_file_to_vcard);
-	osync_conv_register_converter(env, CONVERTER_CONV, "vcard", "file", conv_vcard_to_file);
+	osync_conv_register_converter(env, CONVERTER_CONV, "file", "plain", conv_file_to_plain, 0);
+	osync_conv_register_converter(env, CONVERTER_CONV, "plain", "file", conv_plain_to_file, CONV_NOTLOSSY|CONV_TAKEOVER);
 }

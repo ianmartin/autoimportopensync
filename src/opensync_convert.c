@@ -155,7 +155,7 @@ OSyncFormatConverter *osync_conv_find_converter(OSyncFormatEnv *env, const char 
 	return osync_conf_find_converter_objformat(env, fmt_src, fmt_trg);
 }
 
-static osync_bool osync_register_unresolved_converter(OSyncFormatEnv *env, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
+static osync_bool osync_register_unresolved_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
 {
 	OSyncUnresolvedConverter *conv = g_malloc0(sizeof(OSyncUnresolvedConverter));
 	g_assert(conv);
@@ -163,20 +163,22 @@ static osync_bool osync_register_unresolved_converter(OSyncFormatEnv *env, Conve
 	conv->source_format = sourcename;
 	conv->target_format = targetname;
 	conv->convert_func = convert_func;
-	conv->type = convtype;
+	conv->type = type;
+	conv->flags = flags;
 	env->unresolved_converters = g_list_append(env->unresolved_converters, conv);
 
 	return TRUE;
 }
 
-static osync_bool _osync_conv_register_converter(OSyncFormatEnv *env, ConverterType convtype, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg, OSyncFormatConvertFunc convert_func)
+static osync_bool _osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
 {
 	OSyncFormatConverter *converter = g_malloc0(sizeof(OSyncFormatConverter));
 	g_assert(converter);
 	converter->source_format = fmt_src;
 	converter->target_format = fmt_trg;
 	converter->convert_func = convert_func;
-	converter->type = convtype;
+	converter->type = type;
+	converter->flags = flags;
 
 	env->converters = g_list_append(env->converters, converter);
 	if (fmt_src->objtype)
@@ -202,14 +204,14 @@ static void osync_conv_resolve_converters(OSyncFormatEnv *env)
 		OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, conv->target_format);
 		if (fmt_src && fmt_trg) {
 			_osync_conv_register_converter(env, conv->type,
-			                               fmt_src, fmt_trg, conv->convert_func);
+			                               fmt_src, fmt_trg, conv->convert_func, conv->flags);
 			env->unresolved_converters = g_list_delete_link(env->unresolved_converters, i);
 			g_free(conv);
 		}
 	}
 }
 
-osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType convtype, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func)
+osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func, ConverterFlags flags)
 {
 	if (osync_conv_find_converter(env, sourcename, targetname))
 		return FALSE;
@@ -217,9 +219,9 @@ osync_bool osync_conv_register_converter(OSyncFormatEnv *env, ConverterType conv
 	OSyncObjFormat *fmt_src = osync_conv_find_objformat(env, sourcename);
 	OSyncObjFormat *fmt_trg = osync_conv_find_objformat(env, targetname);
 	if (!fmt_src || !fmt_trg)
-		return osync_register_unresolved_converter(env, convtype, sourcename, targetname, convert_func);
+		return osync_register_unresolved_converter(env, type, sourcename, targetname, convert_func, flags);
 	else
-		return _osync_conv_register_converter(env, convtype, fmt_src, fmt_trg, convert_func);
+		return _osync_conv_register_converter(env, type, fmt_src, fmt_trg, convert_func, flags);
 }
 
 int osync_conv_num_objformats(OSyncObjType *type)
@@ -262,6 +264,7 @@ OSyncObjFormat *osync_conv_register_objformat(OSyncFormatEnv *env, const char *t
 		g_assert(format);
 		format->name = strdup(name);
 		format->objtype = type;
+		format->env = env;
 		env->objformats = g_list_append(env->objformats, format);
 		type->formats = g_list_append(type->formats, format);
 	}
@@ -275,6 +278,67 @@ void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompa
 {
 	g_assert(format);
 	format->cmp_func = cmp_func;
+}
+
+/** The destroy_func to call free() on a block of data
+ */
+static void osync_format_simple_destroy(char *data, size_t size)
+{
+	free(data);
+}
+
+/** Set the format as a simple malloc()ed block
+ *
+ * This will tell that this format is a block of data that can
+ * be deallocated using simple a call to free().
+ *
+ * This will set the destroy function to a function that just
+ * calls free() on the data
+ */
+void osync_conv_format_set_malloced(OSyncObjFormat *format)
+{
+	g_assert(format);
+	format->destroy_func = osync_format_simple_destroy;
+}
+
+/** Simple copy converter function
+ *
+ * @see osync_conv_format_set_plain_malloced()
+ * */
+static osync_bool conv_simple_copy(const char *input, int inpsize, char **output, int *outpsize)
+{
+	*output = g_malloc0(inpsize);
+	if (!*output)
+		return FALSE;
+
+	memcpy(*output, input, inpsize);
+	*outpsize = inpsize;
+
+	return TRUE;
+}
+
+/** Set the format as a simple plain block of data
+ *
+ * This will tell that this format can be converted to/from
+ * the "plain" format by simply doing a malloc/memcpy of its
+ * block of data. This also implies that the block of data
+ * for this type is a simple malloc()ed block. And a call
+ * to osync_conv_format_set_malloced() is implicit.
+ *
+ * The conversion plain->myformat will be registered as lossy.
+ * the conversion myformat->plain will be registered as CONV_NOTLOSSY.
+ */
+void osync_conv_format_set_plain_malloced(OSyncObjFormat *format)
+{
+	osync_conv_format_set_malloced(format);
+	osync_conv_register_converter(format->env, CONVERTER_CONV, format->name, "plain", conv_simple_copy, CONV_NOTLOSSY);
+	osync_conv_register_converter(format->env, CONVERTER_CONV, "plain", format->name, conv_simple_copy, 0);
+}
+
+void osync_conv_format_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func)
+{
+	g_assert(format);
+	format->destroy_func = destroy_func;
 }
 
 void osync_conv_format_set_detect_func(OSyncObjFormat *format, OSyncFormatDetectFunc detect_func)
@@ -507,7 +571,14 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	
 	if (change->data) {
 		ret = converter->convert_func(change->data, change->size, &data, &datasize);
-		//Fixme free prev data
+		/* Free the data, unless the converter took the ownership of the data */
+		if (!(converter->flags & CONV_TAKEOVER)) {
+			if (converter->source_format->destroy_func)
+				converter->source_format->destroy_func(change->data, change->size);
+			else
+				osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak",
+							converter->source_format->name);
+		}
 		change->data = data;
 		change->size = datasize;
 	}
