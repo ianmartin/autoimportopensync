@@ -77,6 +77,24 @@ struct OSyncFormatConverter {
  * Used to keep the list of converters
  * to types that weren't registered yet.
  */
+/*FIXME: We have similar problems with the
+ * detectors and other functions that refers
+ * to other formats. We have two possible solutions:
+ *
+ * - Add a OSyncUnresolvedXXX struct for every type,
+ *   and do the same that is done for the converters
+ * - Add dependency information to the plugins
+ *
+ * The second approach can be easier. Two possible
+ * implementations:
+ *
+ * - make get_info() function return RUN_LATER, and
+ *   loop on the list of plugins until all initialized
+ *   sucessfully (or all returned error)
+ * - Provide a osync_require_format_plugin() or something
+ *   similar, that will load the required plugin, if
+ *   it is not loaded yet
+ */
 typedef struct OSyncUnresolvedConverter {
 	const char *source_format;
 	const char *target_format;

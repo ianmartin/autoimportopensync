@@ -18,7 +18,7 @@ void osync_conv_env_load(OSyncFormatEnv *env);
 void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func);
 void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func);
 void osync_conv_format_set_malloced(OSyncObjFormat *format);
-void osync_conv_format_set_plain_malloced(OSyncObjFormat *format);
+void osync_conv_format_set_like(OSyncObjFormat *format, const char *base_format, ConverterFlags to_flags, ConverterFlags from_flags);
 void osync_conv_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func);
 //void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions);
 OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth);

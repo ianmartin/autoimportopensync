@@ -295,58 +295,83 @@ void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompa
 
 /** The destroy_func to call free() on a block of data
  */
-static void osync_format_simple_destroy(char *data, size_t size)
+static void osync_format_malloced_destroy(char *data, size_t size)
 {
 	if (data)
 		free(data);
 }
 
+/** The copy_func that does a malloc()/memcpy() on the data
+ */
+static osync_bool osync_format_malloced_copy(const char *input, int inpsize, char **output, int *outpsize)
+{
+	*output = malloc(inpsize);
+	if (!*output)
+		return FALSE;
+	memcpy(*output, input, inpsize);
+	return TRUE;
+}
+
 /** Set the format as a simple malloc()ed block
  *
- * This will tell that this format is a block of data that can
- * be deallocated using simple a call to free().
- *
- * This will set the destroy function to a function that just
- * calls free() on the data
+ * This will tell that this format is a block of data that can be
+ * deallocated using simple a call to free(), and copied using a simple
+ * call to malloc()/memcpy(). This will set the destroy and copy functions
+ * of the format to functions that use free()/malloc()/memcpy(), accordingly.
  */
 void osync_conv_format_set_malloced(OSyncObjFormat *format)
 {
 	g_assert(format);
-	format->destroy_func = osync_format_simple_destroy;
+	format->destroy_func = osync_format_malloced_destroy;
+	format->copy_func = osync_format_malloced_copy;
 }
 
 /** Simple copy converter function
  *
- * @see osync_conv_format_set_plain_malloced()
+ * @see osync_conv_format_set_like()
  * */
 static osync_bool conv_simple_copy(const char *input, int inpsize, char **output, int *outpsize)
 {
-	*output = g_malloc0(inpsize);
-	if (!*output)
-		return FALSE;
-
-	memcpy(*output, input, inpsize);
+	/*FIXME: Remove 'const' from input? */
+	*output = (char*)input;
 	*outpsize = inpsize;
-
 	return TRUE;
 }
 
-/** Set the format as a simple plain block of data
+/** Set the format as behaving like another format
  *
  * This will tell that this format can be converted to/from
- * the "plain" format by simply doing a malloc/memcpy of its
- * block of data. This also implies that the block of data
- * for this type is a simple malloc()ed block. And a call
- * to osync_conv_format_set_malloced() is implicit.
+ * base_format by just copying the pointer and size of data.
  *
- * The conversion plain->myformat will be registered as lossy.
- * the conversion myformat->plain will be registered as CONV_NOTLOSSY.
+ * Calling this function implies that the copy and destroy functions
+ * for the format will be the same of base_format.
+ *
+ * Converter flags may be specified for the converters that will be
+ * registered. to_flags will contain flags for the converter
+ * format -> base_format. from_flags will contain flags for the converter
+ * base_format -> format. Currently, he only flag allowed on these parameters
+ * is CONV_NOTLOSSY.
+ *
+ * The common use of this function is for the "plain" format, as:
+ *
+ * osync_conv_format_set_like(myformat, "plain", CONV_NOTLOSSY, 0);
+ *
+ * The call above will make the format be easily converted to the "plain"
+ * format, marking the myformat -> "plain" conversion as CONV_NOTLOSSY,
+ * and marking the "plain" -> myformat as lossy. This is the most common
+ * use, as when comparing the data, a single byte change on the block
+ * will make a difference, and most of other formats (like "vcard")
+ * can represent the same information as a different block of bytes
+ * (i.e. the order of the fields doesn't matter).
  */
-void osync_conv_format_set_plain_malloced(OSyncObjFormat *format)
+void osync_conv_format_set_like(OSyncObjFormat *format, const char *base_format, ConverterFlags to_flags, ConverterFlags from_flags)
 {
-	osync_conv_format_set_malloced(format);
-	osync_conv_register_converter(format->env, CONVERTER_CONV, format->name, "plain", conv_simple_copy, CONV_NOTLOSSY);
-	osync_conv_register_converter(format->env, CONVERTER_CONV, "plain", format->name, conv_simple_copy, 0);
+	/*FIXME:
+	 * format->copy_func = base_format->copy_func
+	 * format->destroy_func = base_format->destroy_func
+	 */
+	osync_conv_register_converter(format->env, CONVERTER_CONV, format->name, base_format, conv_simple_copy, CONV_NOCOPY|to_flags);
+	osync_conv_register_converter(format->env, CONVERTER_CONV, base_format, format->name, conv_simple_copy, CONV_NOCOPY|from_flags);
 }
 
 void osync_conv_format_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func)
