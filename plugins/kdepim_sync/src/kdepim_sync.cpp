@@ -163,6 +163,24 @@ static osync_bool kde_todo_access(OSyncContext *ctx, OSyncChange *change)
     return impl_object->todo_access(ctx, change); 
 }
 
+static osync_bool kde_note_commit_change(OSyncContext *ctx, OSyncChange *change)
+{
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+
+    osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+    return impl_object->note_commit_change(ctx, change); 
+}
+
+static osync_bool kde_note_access(OSyncContext *ctx, OSyncChange *change)
+{
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+
+    osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+    return impl_object->note_access(ctx, change); 
+}
+
 extern "C" {
 void get_info(OSyncPluginInfo *info)
 {
@@ -192,6 +210,11 @@ void get_info(OSyncPluginInfo *info)
     osync_plugin_accept_objformat(info, "todo", "vtodo");
     osync_plugin_set_commit_objformat(info, "todo", "vtodo", kde_todo_commit_change);
     osync_plugin_set_access_objformat(info, "todo", "vtodo", kde_todo_access);
+
+    osync_plugin_accept_objtype(info, "note");
+    osync_plugin_accept_objformat(info, "note", "vnote");
+    osync_plugin_set_commit_objformat(info, "note", "vnote", kde_note_commit_change);
+    osync_plugin_set_access_objformat(info, "note", "vnote", kde_note_access);
 }
 
 }// extern "C"

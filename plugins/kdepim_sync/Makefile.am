@@ -30,7 +30,8 @@ kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 kdepim_sync_la_LIBADD = -lstdc++
 
 kdepim_impl_la_SOURCES = src/kdepim_impl.cpp \
-                         src/kcal.cpp
+                         src/kcal.cpp \
+                         src/knotes.cpp
 kdepim_impl_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(kdepimlibdir)\"
 kdepim_impl_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
 kdepim_impl_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL)

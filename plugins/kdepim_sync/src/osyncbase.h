@@ -26,6 +26,9 @@ class KdePluginImplementationBase {
 
         virtual bool todo_access(OSyncContext *ctx, OSyncChange *chg) = 0;
         virtual bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
+
+        virtual bool note_access(OSyncContext *ctx, OSyncChange *chg) = 0;
+        virtual bool note_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
 };
 
 typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m, OSyncError **e);
