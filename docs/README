@@ -1,0 +1,8 @@
+The documentation in this directory is generated from comments in the source.
+
+To generate it go one directory up and run: "doxygen Doxyfile". This will generate a "html"
+directory in here.
+
+after this use your favorite browser and go to "docs/html/index.html"
+
+Armin

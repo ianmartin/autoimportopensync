@@ -164,13 +164,12 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 	if (filter->destobjtype && strcmp(filter->destobjtype, change->destobjtype))
 		return OSYNC_FILTER_IGNORE;
 	if (filter->detectobjtype) {
-		if (!change->is_detected) {
-			//Detect change
-			//FIXME can we do that? can we just detect the change or will it break something?
-		}
-		if (!change->objtype)
+		printf("Starting to do detect objtype filtering on change %s looking for %s\n", change->uid, filter->detectobjtype);
+		OSyncObjType *objtype = osync_conv_detect_objtype(osync_member_get_format_env(destmember), change);
+		printf("change %s objtype is %p name %s\n", change->uid, objtype, objtype ? objtype->name : "None");
+		if (!objtype)
 			return OSYNC_FILTER_IGNORE;
-		if (strcmp(filter->detectobjtype, change->objtype->name))
+		if (strcmp(filter->detectobjtype, objtype->name))
 			return OSYNC_FILTER_IGNORE;
 	}
 	

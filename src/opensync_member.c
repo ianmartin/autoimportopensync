@@ -258,7 +258,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	
 	if (!g_file_test(member->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_debug("OSMEM", 3, "Creating config directory: %s for member %i", member->configdir, member->id);
-		if (mkdir(member->configdir, 0777)) {
+		if (mkdir(member->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for member %li\n", member->id);
 			return FALSE;
 		}
@@ -284,7 +284,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 			ret = functions.store_config(member->configdir, member->configdata, member->configsize);
 		} else {
 			filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
-			if (!osync_file_write(filename, member->configdata, member->configsize, error)) {
+			if (!osync_file_write(filename, member->configdata, member->configsize, 0600, error)) {
 				ret = FALSE;
 			}
 			g_free(filename);
@@ -305,11 +305,10 @@ long long int osync_member_get_id(OSyncMember *member)
 
 void *osync_member_call_plugin(OSyncMember *member, const char *function, void *data, OSyncError **error)
 {
-	void *(*plgfunc) (void *, void *);
+	void *(*plgfunc) (void *, void *, OSyncError **);
 	if (!(plgfunc = osync_plugin_get_function(member->plugin, function, error)))
 		return NULL;
-	//FIXME Should we pass the error through?
-	return plgfunc(member->plugindata, data);
+	return plgfunc(member->plugindata, data, error);
 }
 
 void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync)
@@ -357,10 +356,8 @@ osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 	g_assert(member->plugin);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	g_assert(functions.finalize);
-	if (!(member->plugindata = functions.initialize(member))) {
-		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "Unable to initialize member");
+	if (!(member->plugindata = functions.initialize(member, error)))
 		return FALSE;
-	}
 	return TRUE;
 }
 

@@ -31,6 +31,11 @@ typedef enum {
 	OSYNC_ERROR_PARAMETER = 11
 } OSyncErrorType;
 
+typedef struct OSyncError {
+	OSyncErrorType type;
+	char *message;
+} OSyncError;
+
 typedef struct OSyncEnv OSyncEnv;
 typedef struct OSyncPlugin OSyncPlugin;
 typedef struct OSyncGroup OSyncGroup;
@@ -54,7 +59,7 @@ typedef int osync_bool;
 typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
 	osync_bool (* store_config) (char *, const char *, int);
-	void * (* initialize) (OSyncMember *);
+	void * (* initialize) (OSyncMember *, OSyncError **);
 	void (* connect) (OSyncContext *);
 	void (* sync_done) (OSyncContext *ctx);
 	void (* disconnect) (OSyncContext *);
@@ -158,11 +163,6 @@ typedef OSyncFilterAction (* OSyncFilterFunction)(OSyncChange *, char *config);
 /**************************************************************
  * Structs
  *************************************************************/
-
-typedef struct OSyncError {
-	OSyncErrorType type;
-	char *message;
-} OSyncError;
 
 typedef void (* OSyncEngCallback)(OSyncMember *, void *, OSyncError **);
 

@@ -425,6 +425,8 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 void osync_engine_free(OSyncEngine *engine)
 {
 	_osync_debug(engine, "ENG", 3, "Freeing engine %p", engine);
+	osync_mappingtable_free(engine->maptable);
+	
 	itm_queue_free(engine->incoming);
 
 	g_list_free(engine->clients);
@@ -442,8 +444,6 @@ void osync_engine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_entries_mapped);
 	osync_flag_free(engine->cmb_synced);
 	osync_flag_free(engine->cmb_finished);
-	
-	osync_mappingtable_free(engine->maptable);
 	
 	g_free(engine);
 }
@@ -584,8 +584,8 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 
 /*! @brief This will finalize a engine
  * 
- * Finalizing a engine will stop all threads and listening server but not free the engine.
- * The engine can be initialized again.
+ * Finalizing a engine will stop all threads and listening server and free the engine.
+ * The engine can not be initialized again.
  * 
  * @param engine A pointer to the engine, which will be finalized
  * @param error A pointer to a error struct

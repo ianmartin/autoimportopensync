@@ -1,4 +1,6 @@
 OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **);
+void osync_engine_free(OSyncEngine *engine);
+
 void osync_engine_calculate_flags(OSyncEngine *engine);
 void osync_client_deciders(OSyncEngine *engine);
 void osync_engine_decider(OSyncEngine *engine);

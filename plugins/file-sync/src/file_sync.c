@@ -41,7 +41,7 @@ static void fam_setup(filesyncinfo *fsinfo, GMainContext *context)
 }
 #endif
 
-static void *fs_initialize(OSyncMember *member)
+static void *fs_initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	char *configdata;
@@ -49,7 +49,7 @@ static void *fs_initialize(OSyncMember *member)
 	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
 	if (!fsinfo)
 		goto error_ret;
-	if (!osync_member_get_config(member, &configdata, &configsize, NULL))
+	if (!osync_member_get_config(member, &configdata, &configsize, error))
 		goto error_free;
 	//FIXME Remove g_strstrip from the next line!
 	fsinfo->path = g_strstrip(g_strdup(configdata));
@@ -204,7 +204,8 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 			}
 			/* No break. Continue below */
 		case CHANGE_MODIFIED:
-			if (!osync_file_write(filename, file_info->data, file_info->size, &error)) {
+			//FIXME add permission and ownership for file-sync
+			if (!osync_file_write(filename, file_info->data, file_info->size, 0700, &error)) {
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
 				osync_context_report_osyncerror(ctx, &error);
 				g_free(filename);

@@ -12,6 +12,7 @@ void osync_mappingtable_free(OSyncMappingTable *table)
 {
 	GList *c = NULL;
 	GList *m = NULL;
+
 	GList *mappings = g_list_copy(table->mappings);
 	GList *unmapped = g_list_copy(table->unmapped);
 
@@ -57,6 +58,7 @@ void osync_mappingtable_add_mapping(OSyncMappingTable *table, OSyncMapping *mapp
 
 void osync_mappingtable_remove_mapping(OSyncMappingTable *table, OSyncMapping *mapping)
 {
+	g_assert(table);
 	table->mappings = g_list_remove(table->mappings, mapping);
 }
 

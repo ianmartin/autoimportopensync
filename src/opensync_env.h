@@ -22,5 +22,5 @@ void osync_set_data(OSyncEnv *osync, void *data);
 
 osync_bool osync_env_load_groups(OSyncEnv *osyncinfo, const char *path, OSyncError **error);
 
-osync_bool osync_file_write(const char *filename, const char *data, int size, OSyncError **error);
+osync_bool osync_file_write(const char *filename, const char *data, int size, int mode, OSyncError **error);
 osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncError **error);

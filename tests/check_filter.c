@@ -200,6 +200,47 @@ START_TEST (filter_save_and_load)
 }
 END_TEST
 
+START_TEST (filter_sync_vcard_only)
+{
+	char *testbed = setup_testbed("filter_sync_vcard_only");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	mark_point();
+	
+	OSyncMember *rightmember = osync_group_nth_member(group, 1);
+	
+	osync_filter_add(group, NULL, rightmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+	osync_filter_add(group, NULL, rightmember, NULL, NULL, "contact", OSYNC_FILTER_ALLOW);
+	
+	mark_point();
+	OSyncError *error = NULL;
+  	OSyncEngine *engine = osync_engine_new(group, &error);
+  	mark_point();
+  	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	mark_point();
+	fail_unless(osync_engine_synchronize(engine, &error), NULL);
+	mark_point();
+	osync_engine_wait_sync_end(engine);
+	osync_engine_finalize(engine);
+	osync_env_finalize(osync, NULL);
+	osync_env_free(osync);
+
+	fail_unless(!system("test \"x$(ls data1/testdata)\" = \"xdata1/testdata\""), NULL);
+	fail_unless(!system("test \"x$(ls data1/testdata2)\" = \"xdata1/testdata2\""), NULL);
+	fail_unless(!system("test \"x$(ls data1/testdata3)\" = \"xdata1/testdata3\""), NULL);
+	fail_unless(!system("test \"x$(ls data1/vcard.vcf)\" = \"xdata1/vcard.vcf\""), NULL);
+	
+	fail_unless(!system("test \"x$(ls data2/testdata3)\" = \"xdata2/testdata3\""), NULL);
+	fail_unless(!system("test \"x$(ls data2/vcard.vcf)\" = \"xdata2/vcard.vcf\""), NULL);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *filter_suite(void)
 {
 	Suite *s = suite_create("Filter");
@@ -210,6 +251,8 @@ Suite *filter_suite(void)
 	tcase_add_test(tc_filter, filter_sync_deny_all);
 	tcase_add_test(tc_filter, filter_sync_custom);
 	tcase_add_test(tc_filter, filter_save_and_load);
+	tcase_add_test(tc_filter, filter_sync_vcard_only);
+	
 	return s;
 }
 

@@ -209,7 +209,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_debug("OSGRP", 3, "Creating group configdirectory %s", group->configdir);
-		if (mkdir(group->configdir, 0777)) {
+		if (mkdir(group->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
 			return FALSE;
 		}

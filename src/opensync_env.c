@@ -76,7 +76,7 @@ osync_bool osync_env_initialize(OSyncEnv *env, OSyncError **error)
 
 	//Load groups
 	if (!g_file_test(env->configdir, G_FILE_TEST_EXISTS)) {
-		mkdir(env->configdir, 0777);
+		mkdir(env->configdir, 0700);
 		osync_debug("OSGRP", 3, "Created groups configdir %s\n", env->configdir);
 	}
 	if (!osync_env_load_groups(env, env->configdir, error))
@@ -480,7 +480,7 @@ osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *pat
  * @returns TRUE if successfull, FALSE otherwise
  * 
  */
-osync_bool osync_file_write(const char *filename, const char *data, int size, OSyncError **oserror)
+osync_bool osync_file_write(const char *filename, const char *data, int size, int mode, OSyncError **oserror)
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;
@@ -489,6 +489,14 @@ osync_bool osync_file_write(const char *filename, const char *data, int size, OS
 		osync_debug("OSYNC", 3, "Unable to open file %s for writing: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open file %s for writing: %s", filename, error->message);
 		return FALSE;
+	}
+	if (mode) {
+		int fd = g_io_channel_unix_get_fd(chan);
+		if (fchmod(fd, mode)) {
+			osync_debug("OSYNC", 3, "Unable to set file permissions %i for file %s", mode, filename);
+			osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to set file permissions %i for file %s", mode, filename);
+			return FALSE;
+		}
 	}
 	gsize writen;
 	g_io_channel_set_encoding(chan, NULL, NULL);
