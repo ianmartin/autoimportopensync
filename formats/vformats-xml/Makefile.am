@@ -25,7 +25,7 @@ xml_vnote_la_SOURCES = xml-vnote.c e-vcard.c
 xml_vnote_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_vnote_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
-xml_evolution_la_SOURCES = xml-evolution.c
+xml_evolution_la_SOURCES = xml-evolution.c e-vcard.c
 xml_evolution_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_evolution_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 

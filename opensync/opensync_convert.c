@@ -646,6 +646,7 @@ osync_bool osync_conv_objtype_is_any(const char *objstr)
  */
 OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 	OSyncFormatEnv *conv_env = g_malloc0(sizeof(OSyncFormatEnv));
 	GList *o;
 	
@@ -697,6 +698,8 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 	for (i = env->converter_templates; i; i = i->next) {
 		OSyncConverterTemplate *convtmpl = i->data;
 
+		osync_trace(TRACE_INTERNAL, "New converter from %s to %s", convtmpl->source_format, convtmpl->target_format);
+
 		OSyncObjFormat *fmt_src = osync_conv_find_objformat(conv_env, convtmpl->source_format);
 		OSyncObjFormat *fmt_trg = osync_conv_find_objformat(conv_env, convtmpl->target_format);
 		if (!fmt_src || !fmt_trg)
@@ -718,6 +721,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		extension_template = osync_env_find_extension_template(env, fmt_src->name);
 		if (extension_template) {
 			extension->name = g_strdup(extension_template->name);
+			osync_trace(TRACE_INTERNAL, "New from-extension \"%s\" for format %s", extension->name, fmt_src->name);
 			//extension->conv_func = extension_template->conv_from;
 			extension_template->init_from_func(converter->conv_data);
 			//converter->extension = extension;
@@ -725,6 +729,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 			extension_template = osync_env_find_extension_template(env, fmt_trg->name);
 			if (extension_template) {
 				extension->name = g_strdup(extension_template->name);
+				osync_trace(TRACE_INTERNAL, "New to-extension \"%s\" for format %s", extension->name, fmt_trg->name);
 				//extension->conv_func = extension_template->conv_to;
 				extension_template->init_to_func(converter->conv_data);
 				//converter->extension = extension;
@@ -757,6 +762,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 	conv_env->filter_functions = g_list_copy(env->filter_functions);
 
 	osync_conv_set_common_format(conv_env, "contact", "xml-contact", NULL);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, conv_env);
 	return conv_env;
 }
 
