@@ -482,7 +482,7 @@ static void _parse(VFormat *evc, const char *str)
 	g_free (buf);
 }
 
-char *vformat_escape_string (const char *s)
+char *vformat_escape_string (const char *s, VFormatType type)
 {
 	GString *str;
 	const char *p;
@@ -504,7 +504,10 @@ char *vformat_escape_string (const char *s)
 			str = g_string_append (str, "\\;");
 			break;
 		case ',':
-			str = g_string_append (str, "\\,");
+			if (type == VFORMAT_CARD_30)
+				str = g_string_append (str, "\\,");
+			else
+				str = g_string_append_c (str, *p);
 			break;
 		case '\\':
 			str = g_string_append (str, "\\\\");
@@ -579,40 +582,35 @@ VFormat *vformat_new_from_string (const char *str)
 	return evc;
 }
 
-VFormat *vevent_new(void)
+VFormat *vformat_new(void)
 {
-	VFormat *format = vformat_new_from_string ("");
-	format->type = VFORMAT_EVENT;
-	return format;
+	return vformat_new_from_string ("");
 }
 
-VFormat *vtodo_new(void)
-{
-	VFormat *format = vformat_new_from_string ("");
-	format->type = VFORMAT_TODO;
-	return format;
-}
-
-VFormat *vcard_new(VFormatType type)
-{
-	VFormat *format = vformat_new_from_string ("");
-	format->type = type;
-	return format;
-}
-
-VFormat *vnote_new(void)
-{
-	VFormat *format = vformat_new_from_string ("");
-	format->type = VFORMAT_NOTE;
-	return format;
-}
-
-char *vformat_to_string (VFormat *evc)
+char *vformat_to_string (VFormat *evc, VFormatType type)
 {
 	GList *l;
 	GList *v;
 
 	GString *str = g_string_new ("");
+
+	switch (type) {
+		case VFORMAT_CARD_21:
+			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:2.1\r\n");
+			break;
+		case VFORMAT_CARD_30:
+			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:3.0\r\n");
+			break;
+		case VFORMAT_EVENT:
+			str = g_string_append (str, "BEGIN:VEVENT");
+			break;
+		case VFORMAT_TODO:
+			str = g_string_append (str, "BEGIN:VTODO");
+			break;
+		case VFORMAT_NOTE:
+			str = g_string_append (str, "BEGIN:VNOTE");
+			break;
+	}
 
 	for (l = evc->attributes; l; l = l->next) {
 		GList *p;
@@ -639,7 +637,7 @@ char *vformat_to_string (VFormat *evc)
 			/* 5.8.2:
 			 * param        = param-name "=" param-value *("," param-value)
 			 */
-			if (!g_ascii_strcasecmp (param->name, "CHARSET") && evc->type == VFORMAT_CARD_30)
+			if (!g_ascii_strcasecmp (param->name, "CHARSET") && type == VFORMAT_CARD_30)
 				continue;
 			attr_str = g_string_append_c (attr_str, ';');
 			attr_str = g_string_append (attr_str, param->name);
@@ -673,7 +671,7 @@ char *vformat_to_string (VFormat *evc)
 			char *value = v->data;
 			char *escaped_value = NULL;
 
-			escaped_value = vformat_escape_string (value);
+			escaped_value = vformat_escape_string (value, type);
 
 			attr_str = g_string_append (attr_str, escaped_value);
 			if (v->next) {
@@ -709,7 +707,7 @@ char *vformat_to_string (VFormat *evc)
 		g_string_free (attr_str, TRUE);
 	}
 
-	switch (evc->type) {
+	switch (type) {
 		case VFORMAT_CARD_21:
 			str = g_string_append (str, "END:VCARD\r\n");
 			break;
@@ -723,7 +721,7 @@ char *vformat_to_string (VFormat *evc)
 			str = g_string_append (str, "END:VTODO");
 			break;
 		case VFORMAT_NOTE:
-			str = g_string_append (str, "END:NOTE");
+			str = g_string_append (str, "END:VNOTE");
 			break;
 	}
 	
@@ -749,7 +747,7 @@ void vformat_dump_structure (VFormat *evc)
 				printf ("    |   [%d] = %s", i,param->name);
 				printf ("(");
 				for (v = param->values; v; v = v->next) {
-					char *value = vformat_escape_string ((char*)v->data);
+					char *value = vformat_escape_string ((char*)v->data, VFORMAT_CARD_21);
 					printf ("%s", value);
 					if (v->next)
 						printf (",");
@@ -1050,7 +1048,7 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 		if (param->values && param->values->data) {
 			if (!g_ascii_strcasecmp ((char*)param->values->data, "b"))
 				attr->encoding = VF_ENCODING_BASE64;
-			else if (!g_ascii_strcasecmp ((char*)param->values->data, "QP"))
+			else if (!g_ascii_strcasecmp ((char*)param->values->data, "QUOTED-PRINTABLE"))
 				attr->encoding = VF_ENCODING_QP;
 			else if (!g_ascii_strcasecmp ((char *)param->values->data, "8BIT"))
 				attr->encoding = VF_ENCODING_8BIT;
@@ -1319,8 +1317,7 @@ static void base64_init(char *rank)
 
 /* call this when finished encoding everything, to
    flush off the last little bit */
-static size_t
-_evc_base64_encode_close(unsigned char *in, size_t inlen, gboolean break_lines, unsigned char *out, int *state, int *save)
+static size_t base64_encode_close(unsigned char *in, size_t inlen, gboolean break_lines, unsigned char *out, int *state, int *save)
 {
 	int c1, c2;
 	unsigned char *outptr = out;
@@ -1483,8 +1480,7 @@ static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *o
 	return outptr-out;
 }
 
-char *
-_evc_base64_encode_simple (const char *data, size_t len)
+char *base64_encode_simple (const char *data, size_t len)
 {
 	unsigned char *out;
 	int state = 0, outlen;
@@ -1493,14 +1489,13 @@ _evc_base64_encode_simple (const char *data, size_t len)
 	g_return_val_if_fail (data != NULL, NULL);
 
 	out = g_malloc (len * 4 / 3 + 5);
-	outlen = _evc_base64_encode_close ((unsigned char *)data, len, FALSE,
+	outlen = base64_encode_close ((unsigned char *)data, len, FALSE,
 				      out, &state, &save);
 	out[outlen] = '\0';
 	return (char *)out;
 }
 
-size_t
-_evc_base64_decode_simple (char *data, size_t len)
+size_t base64_decode_simple (char *data, size_t len)
 {
 	int state = 0;
 	unsigned int save = 0;

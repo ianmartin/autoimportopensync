@@ -391,7 +391,7 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
 	//Parse the vcard
-	VFormat *vcard = vcard_new_from_string(input);
+	VFormat *vcard = vformat_new_from_string(input);
 	
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
@@ -827,7 +827,7 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	}
 	
 	//Make the new vcard
-	VFormat *vcard = vcard_new(VFORMAT_CARD_21);
+	VFormat *vcard = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing cml attributes");
 	const char *std_encoding = NULL;
@@ -842,7 +842,7 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	}
 	
 	*free_input = TRUE;
-	*output = vformat_to_string(vcard);
+	*output = vformat_to_string(vcard, target);
 	osync_trace(TRACE_INTERNAL, "vcard output is: \n%s", *output);
 	*outpsize = strlen(*output) + 1;
 	osync_trace(TRACE_EXIT, "%s", __func__);

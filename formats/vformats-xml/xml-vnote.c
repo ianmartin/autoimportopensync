@@ -80,7 +80,7 @@ static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, c
 	GList *a = NULL;
 	OSyncXMLEncoding encoding;
 	
-	VFormat *vcard = vnote_new_from_string(input);
+	VFormat *vcard = vformat_new_from_string(input);
 	vformat_dump_structure (vcard);
 	GList *attributes = vformat_get_attributes(vcard);
 	xmlDoc *doc = xmlNewDoc("1.0");
@@ -236,7 +236,7 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	if (!root)
 		return FALSE;
 	
-	VFormat *vcard = vnote_new();
+	VFormat *vcard = vformat_new();
 	
 	const char *std_encoding = "QUOTED-PRINTABLE";
 		
@@ -282,7 +282,7 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	}
 	
 	*free_input = TRUE;
-	*output = vformat_to_string(vcard);
+	*output = vformat_to_string(vcard, VFORMAT_NOTE);
 	*outpsize = strlen(*output);
 	return TRUE;
 }

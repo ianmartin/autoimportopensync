@@ -34,7 +34,7 @@ typedef enum {
 } VFormatType;
 
 typedef struct VFormat {
-	VFormatType type;
+	//VFormatType type;
 	GList *attributes;
 } VFormat;
 
@@ -62,8 +62,9 @@ typedef struct VFormatParam {
 	GList    *values;  /* GList of char*'s*/
 } VFormatParam;
 
-VFormat *vcard_new(VFormatType type);
-VFormat *vcard_new_from_string(const char *str);
+
+/*VFormat *vcard_new(VFormatType type);
+VFormat *vcard_new_from_string (const char *str, VFormatType type);
 //char *vcard_to_string(VFormat *card, VFormatType format);
 
 VFormat *vnote_new(void);
@@ -76,12 +77,14 @@ VFormat *vevent_new_from_string(const char *str);
 //char *vevent_to_string(VFormat *event);
 
 VFormat *vtodo_new(void);
-VFormat *vtodo_new_from_string(const char *str);
+VFormat *vtodo_new_from_string(const char *str);*/
 //char *vtodo_to_string(VFormat *todo);
 
 /* mostly for debugging */
+VFormat *vformat_new(void);
+VFormat *vformat_new_from_string(const char *str);
 void vformat_dump_structure(VFormat *format);
-char *vformat_to_string(VFormat *evc);
+char *vformat_to_string(VFormat *evc, VFormatType type);
 
 /* attributes */
 VFormatAttribute *vformat_attribute_new               (const char *attr_group, const char *attr_name);
@@ -135,7 +138,7 @@ GList*           vformat_attribute_param_get_values (VFormatParam *param);
 gboolean         vformat_attribute_has_type         (VFormatAttribute *attr, const char *typestr);
 
 /* Utility functions. */
-char*            vformat_escape_string (const char *str);
+char*            vformat_escape_string (const char *str, VFormatType type);
 char*            vformat_unescape_string (const char *str);
 
 #endif /* _VFORMAT_H */
