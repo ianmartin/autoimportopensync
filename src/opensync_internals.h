@@ -38,6 +38,7 @@ struct OSyncMember {
 	OSyncGroup *group;
 	GList *entries;
 	unsigned int id;
+	osync_bool needs_slow_sync;
 };
 
 struct OSyncContext {

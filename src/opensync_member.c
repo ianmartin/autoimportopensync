@@ -74,6 +74,11 @@ char *osync_member_get_configdir(OSyncMember *member)
 	return member->configdir;
 }
 
+void osync_member_set_slow_sync(OSyncMember *member, osync_bool slow_sync)
+{
+	member->needs_slow_sync = slow_sync;
+}
+
 osync_bool osync_member_set_configdir(OSyncMember *member, char *path)
 {
 	osync_debug("OSMEM", 3, "Setting configdirectory for member %i to %s", member->id, path);
@@ -153,7 +158,7 @@ void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function,
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
-	functions.get_changeinfo(context);
+	functions.get_changeinfo(context, member->needs_slow_sync);
 }
 
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data)

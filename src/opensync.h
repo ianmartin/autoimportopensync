@@ -50,7 +50,7 @@ typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
 	osync_bool (* store_config) (char *, char *, int);
 	void * (* initialize) (OSyncMember *);
-	void (* get_changeinfo) (OSyncContext *);
+	void (* get_changeinfo) (OSyncContext *, osync_bool);
 	void (* connect) (OSyncContext *);
 	void (* disconnect) (OSyncContext *);
 	void (* finalize) (void *);
