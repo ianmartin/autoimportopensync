@@ -76,7 +76,7 @@ class kaddrbook
         kaddrbook(OSyncMember *memb)
             :member(memb)
         {
-            //osync_debug("kde", 3, "kdepim_plugin: %s(%s)\n", __FUNCTION__);
+            //osync_debug("kde", 3, "kdepim_plugin: %s(%s)", __FUNCTION__);
 
             //get a handle to the standard KDE addressbook
             addressbookptr = KABC::StdAddressBook::self();
@@ -92,7 +92,7 @@ class kaddrbook
 
         int get_changes(OSyncContext *ctx)
         {
-            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(newdbs=%d)\n", __FUNCTION__, newdbs);
+            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(newdbs=%d)", __FUNCTION__, newdbs);
 
             osync_bool slow_sync = osync_member_get_slow_sync(member, "contact");
 
@@ -102,27 +102,27 @@ class kaddrbook
             // We must reload the KDE addressbook in order to retrieve the latest changes.
             if (!addressbookptr->load())
             {
-                osync_debug("kde", 3, "kdepim_plugin: couldnt reload KDE addressbook, aborting sync.\n");
+                osync_debug("kde", 3, "kdepim_plugin: couldnt reload KDE addressbook, aborting sync.");
                 return -1;
             }
-            osync_debug("kde", 3, "kdepim_plugin: KDE addressbook reloaded OK.\n");
+            osync_debug("kde", 3, "kdepim_plugin: KDE addressbook reloaded OK.");
 
             //Lock the addressbook
             addressbookticket = addressbookptr->requestSaveTicket();
             if (!addressbookticket)
             {
-                osync_debug("kde", 3, "kdepim_plugin: couldnt lock KDE addressbook, aborting sync.\n");
+                osync_debug("kde", 3, "kdepim_plugin: couldnt lock KDE addressbook, aborting sync.");
                 return -1;
             }
-            osync_debug("kde", 3, "kdepim_plugin: KDE addressbook locked OK.\n");
+            osync_debug("kde", 3, "kdepim_plugin: KDE addressbook locked OK.");
 
-            //osync_debug("kde", 3, "%s: %s : plugin UID list has %d entries\n", __FILE__, __FUNCTION__, uidlist.count());
+            //osync_debug("kde", 3, "%s: %s : plugin UID list has %d entries", __FILE__, __FUNCTION__, uidlist.count());
 
             //Check the entries of the KDE addressbook against the last entries seen by the sync-engine
             for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
                 //Get the revision date of the KDE addressbook entry.
                 //Regard entries with invalid revision dates as having just been changed.
-                osync_debug("kde", 3, "new entry, uid: %s\n", it->uid().latin1());
+                osync_debug("kde", 3, "new entry, uid: %s", it->uid().latin1());
 
                 QDateTime revdate = it->revision();
                 if (!revdate.isValid())
@@ -167,7 +167,7 @@ class kaddrbook
 
         int modify(OSyncChange *chg)
         {
-            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s()\n",__FUNCTION__);
+            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s()",__FUNCTION__);
 
             int result = 0;
     
@@ -175,7 +175,7 @@ class kaddrbook
             if (addressbookticket==NULL)
             {
                 //This should never happen, but just in case....
-                osync_debug("kde", 3, "kdepim_plugin: lock on KDE addressbook was lost, aborting sync.\n");
+                osync_debug("kde", 3, "kdepim_plugin: lock on KDE addressbook was lost, aborting sync.");
                 return -1;
             }
 
@@ -213,7 +213,7 @@ class kaddrbook
                     // replace the current addressbook entry (if any) with the new one
                     addressbookptr->insertAddressee(addressee);
 
-                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)\n", uid); 
+                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", uid); 
                     result = 0;
                     break;
                 }
@@ -231,7 +231,7 @@ class kaddrbook
                     // add the new address to the addressbook
                     addressbookptr->insertAddressee(addressee);
 
-                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY ADDED (UID=%s)\n", addressee.uid().latin1());
+                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", addressee.uid().latin1());
 
 
                     // return the UID of the new entry along with the result
@@ -253,7 +253,7 @@ class kaddrbook
                     if(!addressee.isEmpty())
                        addressbookptr->removeAddressee(addressee);
 
-                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY DELETED (UID=%s)\n", uid);
+                    osync_debug("kde", 3, "kdepim_plugin: KDE ADDRESSBOOK ENTRY DELETED (UID=%s)", uid);
 
                     result = 0;
                     break;
@@ -268,12 +268,12 @@ class kaddrbook
 
         void sync_done(bool success) 
         {
-            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(%d)\n", __FUNCTION__, success);
+            //osync_debug("kde", 3, "kdepim_plugin: kaddrbook::%s(%d)", __FUNCTION__, success);
 
             if (!addressbookticket)
             {
                 //This should never happen, but just in case
-                osync_debug("kde", 3, "kdepim_plugin: lock on KDE addressbook was lost, aborting sync.\n");
+                osync_debug("kde", 3, "kdepim_plugin: lock on KDE addressbook was lost, aborting sync.");
 
                 return;
             }
@@ -282,7 +282,7 @@ class kaddrbook
             {
                 // Save and unlock the KDE addressbook
                 addressbookptr->save(addressbookticket);
-                osync_debug("kde", 3, "kdepim_plugin: KDE addressbook saved and unlocked.\n");
+                osync_debug("kde", 3, "kdepim_plugin: KDE addressbook saved and unlocked.");
                 
                 //update the syncdate                   
                 syncdate = newsyncdate;       
@@ -291,7 +291,7 @@ class kaddrbook
             {
                 // Unlock the KDE addressbook and discard all changes
                 addressbookptr->releaseSaveTicket(addressbookticket);
-                osync_debug("kde", 3, "kdepim_plugin: KDE addressbook unlocked and changes discarded.\n");
+                osync_debug("kde", 3, "kdepim_plugin: KDE addressbook unlocked and changes discarded.");
 
             }
  
@@ -313,9 +313,9 @@ static void *kde_initialize(OSyncMember *member)
 {
     kaddrbook *addrbook;
 
-    osync_debug("kde", 3, "kdepim_plugin: %s()\n",__FUNCTION__);
+    osync_debug("kde", 3, "kdepim_plugin: %s()",__FUNCTION__);
 
-    osync_debug("kde", 3, "kdepim_plugin: %s\n", __FUNCTION__);
+    osync_debug("kde", 3, "kdepim_plugin: %s", __FUNCTION__);
     KCmdLineArgs::init(1, argv, "kde-opensync-plugin", i18n("KOpenSync"), "KDE OpenSync plugin", "0.1", false);
     applicationptr = new KApplication();
 
@@ -331,9 +331,14 @@ static void *kde_initialize(OSyncMember *member)
 
 static void kde_finalize(void *data)
 {
-    osync_debug("kde", 3, "kdepim_plugin: %s()\n", __FUNCTION__);
+    osync_debug("kde", 3, "kdepim_plugin: %s()", __FUNCTION__);
 
     kaddrbook *addrbook = (kaddrbook *)data;
+    /*FIXME: check when calling sync_done() with
+     * success==false is appropriate
+     */
+    addrbook->sync_done(true);
+
     delete addrbook;
 
     if (applicationptr) {
@@ -356,7 +361,7 @@ static void kde_disconnect(OSyncContext *ctx)
 static void kde_get_changeinfo(OSyncContext *ctx)
 {
     kaddrbook *addrbook = addrbook_for_context(ctx);
-    osync_debug("kde", 3, "kdepim_plugin: %s\n",__FUNCTION__);
+    osync_debug("kde", 3, "kdepim_plugin: %s",__FUNCTION__);
 
     int err = addrbook->get_changes(ctx);
     if (err) {
@@ -373,12 +378,10 @@ static osync_bool kde_commit_change(OSyncContext *ctx, OSyncChange *change)
     kaddrbook *addrbook = addrbook_for_context(ctx);
     int err;
 
-    osync_debug("kde", 3, "kdepim_plugin: %s()\n",__FUNCTION__);
+    osync_debug("kde", 3, "kdepim_plugin: %s()",__FUNCTION__);
 
     err = addrbook->modify(change); 
 
-    //FIXME: check when call sync_done()
-    addrbook->sync_done(!err);
     if (err)
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't update KDE addressbook");
     else 
