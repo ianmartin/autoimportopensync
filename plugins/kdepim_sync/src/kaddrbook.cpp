@@ -92,8 +92,6 @@ class kaddrbook
 
         int get_changes(OSyncContext *ctx, int newdbs) 
         {
-            OSyncConvEnv *env = osync_member_get_conv_env(member);
-
             //printf("kdepim_plugin: kaddrbook::%s(newdbs=%d)\n", __FUNCTION__, newdbs);
 
             const char* multisync_debug = getenv("MULTISYNC_DEBUG");
@@ -152,10 +150,12 @@ class kaddrbook
                 osync_change_set_data(chg, strdup(data), data.length(), 1);
 
                 // set the remaining fields
-                osync_change_set_type_and_format(chg, env, "contact", "vcard");
+                osync_change_set_objtype_string(chg, "contact");
+                osync_change_set_objformat_string(chg, "vcard");
+                osync_change_set_hash(chg, hash.data());
                 if (osync_hashtable_detect_change(hashtable, chg)) {
                     osync_context_report_change(ctx, chg);
-                    osync_hashtable_update_hash(hashtable, chg, hash.data());
+                    osync_hashtable_update_hash(hashtable, chg);
                 }
 
                 //Append the changed_object to the return list
@@ -332,7 +332,7 @@ static kaddrbook *addrbook_for_context(OSyncContext *ctx)
     return (kaddrbook *)osync_context_get_plugin_data(ctx);
 }
 
-static void *kde_initialize(OSyncMember *member, char *datapath)
+static void *kde_initialize(OSyncMember *member)
 {
     kaddrbook *addrbook;
 
@@ -395,7 +395,7 @@ static void kde_get_changeinfo(OSyncContext *ctx)
 }
 
 
-static void kde_commit_change(OSyncContext *ctx, OSyncChange *change)
+static osync_bool kde_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
     kaddrbook *addrbook = addrbook_for_context(ctx);
     int err;
@@ -411,11 +411,18 @@ static void kde_commit_change(OSyncContext *ctx, OSyncChange *change)
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't update KDE addressbook");
     else 
         osync_context_report_success(ctx);
+
+    /*FIXME: What should be returned? */
+    return true;
 }
 
 
 void get_info(OSyncPluginInfo *info)
 {
+    OSyncObjType *contactType;
+    OSyncObjFormat *vcardFormat;
+    OSyncFormatFunctions functions;
+
     info->version = 1;
     info->name = "kde-sync";
     info->description = i18n("Plugin for the KDE 3.x Addressbook");
@@ -425,6 +432,10 @@ void get_info(OSyncPluginInfo *info)
     info->functions.disconnect = kde_disconnect;
     info->functions.finalize = kde_finalize;
     info->functions.get_changeinfo = kde_get_changeinfo;
-    info->functions.commit_change = kde_commit_change;
+
+    contactType = osync_conv_register_objtype(info->accepted_objtypes, "contact");
+    vcardFormat = osync_conv_register_objformat(contactType, "vcard");
+    functions.commit_change = kde_commit_change;
+    osync_conv_format_set_functions(vcardFormat, functions);
 }
 
