@@ -209,7 +209,15 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 			case 'n': str = g_string_append_c (str, '\n'); break;
 			case 'r': str = g_string_append_c (str, '\r'); break;
 			case ';': str = g_string_append_c (str, ';'); break;
-			case ',': str = g_string_append_c (str, ','); break;
+			case ',':
+				if (!strcmp (attr->name, "CATEGORIES")) {
+					//We need to handle categories here to work
+					//aroung a bug in evo2
+					vformat_attribute_add_value (attr, str->str);
+					g_string_assign (str, "");
+				} else
+					str = g_string_append_c (str, ',');
+				break;
 			case '\\': str = g_string_append_c (str, '\\'); break;
 			default:
 				g_warning ("invalid escape, passing it through");
