@@ -12,4 +12,4 @@ osyncdump_LDADD = $(top_builddir)/src/libopensync.la
 
 osyncstress_SOURCES = osyncstress.c
 osyncstress_LDFLAGS = @PACKAGE_LIBS@
-osyncstress_LDADD = $(top_builddir)/engine/libosengine.la
+osyncstress_LDADD = $(top_builddir)/engine/libosengine.la $(top_builddir)/src/libopensync.la
