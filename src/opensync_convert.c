@@ -183,7 +183,7 @@ static osync_bool osync_format_malloced_copy(const char *input, int inpsize, cha
  *
  * @see osync_conv_format_set_like()
  * */
-static osync_bool conv_simple_copy(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_simple_copy(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	/*FIXME: Remove 'const' from input? */
 	*output = (char*)input;
@@ -220,7 +220,7 @@ osync_bool osync_cheap_convert(OSyncFormatConverter *converter, char *input, siz
 		origsize = inpsize;
 	}
 	/* Call the converter */
-	if (!converter->convert_func(origdata, origsize, output, outsize))
+	if (!converter->convert_func(origdata, origsize, output, outsize, NULL))
 		return FALSE;
 
 	/* Don't free the data if we got just a reference to it */
@@ -232,7 +232,7 @@ osync_bool osync_cheap_convert(OSyncFormatConverter *converter, char *input, siz
 	return TRUE;
 }
 
-osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change)
+osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change, OSyncError **error)
 {
 	char *data = NULL;
 	int datasize = 0;
@@ -241,7 +241,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 		return FALSE;
 	
 	if (change->data) {
-		ret = converter->convert_func(change->data, change->size, &data, &datasize);
+		ret = converter->convert_func(change->data, change->size, &data, &datasize, error);
 		if (converter->flags & CONV_NOCOPY) {
 			/* Duplicate the returned data, as the original data will be destroyed */
 			if (!converter->target_format->copy_func) {
@@ -249,6 +249,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 				 * we can't copy the data before destroying it
 				 */
 				osync_debug("OSYNC", 0, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
 				return FALSE;
 			}
 			converter->target_format->copy_func(data, datasize, &data, &datasize);
@@ -258,8 +259,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 			if (converter->source_format->destroy_func)
 				converter->source_format->destroy_func(change->data, change->size);
 			else
-				osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak",
-							converter->source_format->name);
+				osync_debug("OSYNC", 1, "Format %s don't have a destroy function. Possible memory leak", converter->source_format->name);
 		}
 		change->data = data;
 		change->size = datasize;
@@ -635,8 +635,7 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	
 	for (; path; path = path->next) {
 		OSyncFormatConverter *converter = path->data;
-		if (!osync_converter_invoke(converter, change)) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error while trying to convert a change");
+		if (!osync_converter_invoke(converter, change, error)) {
 			goto out_free_path;
 		}
 	}

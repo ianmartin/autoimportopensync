@@ -23,7 +23,7 @@ static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
 	return ret;
 }
 
-static osync_bool conv_vcard30_to_xml(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_vcard30_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	osync_debug("VCARD30", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);
@@ -112,7 +112,7 @@ static void add_parameter(EVCardAttribute *attr, const char *name, const char *d
 		e_vcard_attribute_add_param(attr, param);
 }
 
-static osync_bool conv_xml_to_vcard30(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_xml_to_vcard30(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);

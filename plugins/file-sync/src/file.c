@@ -55,7 +55,7 @@ static void create_file(OSyncChange *change)
 }
 #endif
 
-static osync_bool conv_file_to_plain(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_file_to_plain(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)input;
@@ -66,7 +66,7 @@ static osync_bool conv_file_to_plain(const char *input, int inpsize, char **outp
 	return TRUE;
 }
 
-static osync_bool conv_plain_to_file(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_plain_to_file(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = g_malloc0(sizeof(fs_fileinfo));

@@ -3,7 +3,7 @@
 #include <vobject.h>
 #include <vcc.h>
 
-static osync_bool conv_xml_to_vcard21(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_xml_to_vcard21(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	osync_debug("EVO21", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);
@@ -63,7 +63,7 @@ static void myMimeErrorHandler(char *s)
   printf("%s\n", s);
 }
 
-static osync_bool conv_vcard21_to_xml(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool conv_vcard21_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
 	printf("input is %i\n%s\n", inpsize, input);

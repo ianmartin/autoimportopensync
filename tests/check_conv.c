@@ -104,7 +104,7 @@ START_TEST (conv_env_set_format_string)
 }
 END_TEST
 
-static osync_bool dummyconvert(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool dummyconvert(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	*output = g_strdup("test");
 	*outpsize = 5;
@@ -333,14 +333,14 @@ START_TEST (conv_env_osp_complex)
 }
 END_TEST
 
-static osync_bool convert_addtest(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool convert_addtest(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	*output = g_strdup_printf("%stest", input);
 	*outpsize = inpsize + 4;
 	return TRUE;
 }
 
-static osync_bool convert_remtest(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool convert_remtest(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	*output = strdup(input);
 	char *test = g_strrstr(*output, "test");
@@ -355,14 +355,14 @@ static osync_bool convert_remtest(const char *input, int inpsize, char **output,
 	}
 }
 
-static osync_bool convert_addtest2(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool convert_addtest2(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	*output = g_strdup_printf("%stest2", input);
 	*outpsize = inpsize + 5;
 	return TRUE;
 }
 
-static osync_bool convert_remtest2(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool convert_remtest2(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	*output = strdup(input);
 	char *test = g_strrstr(*output, "test2");
