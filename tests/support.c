@@ -2,6 +2,12 @@
 
 char *olddir = NULL;
 
+static void reset_env(void)
+{
+	g_unsetenv("CONNECT_ERROR");
+	g_unsetenv("CONNECT_TIMEOUT");
+}
+
 char *setup_testbed(char *fkt_name)
 {
 	setuid(65534);
@@ -17,6 +23,7 @@ char *setup_testbed(char *fkt_name)
 	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
 	printf(".");
 	fflush(NULL);
+	reset_env();
 	return testbed;
 }
 
@@ -115,6 +122,9 @@ void member_status(MSyncMemberUpdate *status, void *user_data)
 		case MEMBER_DISCONNECTED:
 			num_disconnected++;
 			break;
+		case MEMBER_SENT_CHANGES:
+			num_member_sent_changes++;
+			break;
 		case MEMBER_CONNECT_ERROR:
 			fail_unless(osync_error_is_set(&(status->error)), NULL);
 			printf("MEMBER_CONNECT_ERROR: %s\n", status->error->message);
@@ -144,6 +154,10 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			fail_unless(osync_error_is_set(&(status->error)), NULL);
 			printf("ENG_ERROR: %s\n", status->error->message);
 			num_engine_errors++;
+			break;
+		case ENG_SYNC_SUCCESSFULL:
+			printf("Sync Successfull\n");
+			num_engine_successfull++;
 			break;
 		default:
 			printf("ERrro\n");
@@ -175,7 +189,9 @@ void synchronize_once(OSyncEngine *engine)
 	num_written = 0;
 	num_read = 0;
 	num_member_connect_errors = 0;
+	num_member_sent_changes = 0;
 	num_engine_errors = 0;
+	num_engine_successfull = 0;
 	mark_point();
 	osync_engine_sync_and_block(engine, NULL);
 }

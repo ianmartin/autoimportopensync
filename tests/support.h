@@ -14,8 +14,10 @@ int num_connected;
 int num_disconnected;
 
 int num_member_connect_errors;
+int num_member_sent_changes;
 
 int num_engine_errors;
+int num_engine_successfull;
 
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
