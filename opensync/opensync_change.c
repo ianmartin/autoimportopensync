@@ -253,7 +253,13 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 		target->uid = g_strdup(source->uid);
 	target->hash = g_strdup(source->hash);
 	target->data = g_malloc0(source->size);
+	/* FIXME: Use the copy function for the format, if any.
+	 * Just memcpy() won't work for e.g. xml-* formats.
+	 * (http://www.opensync.org/ticket/36)
+	 */
 	memcpy(target->data, source->data, source->size);
+
+
 	target->size = source->size;
 	target->has_data = source->has_data;
 	target->changetype = source->changetype;

@@ -45,7 +45,6 @@ static osync_bool detect_plain_as_vtodo(OSyncFormatEnv *env, const char *data, i
 	return FALSE;
 }
 
-/*TODO: Write the vtodo detector */
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "todo");
