@@ -65,7 +65,7 @@ static gboolean _fam_dispatch(GSource *source, GSourceFunc callback, gpointer us
 	FAMEvent famEvent;
 	if (FAMPending(fsinfo->famConn)) {
 		if (FAMNextEvent(fsinfo->famConn, &famEvent) < 0) {
-			osync_debug("FILE-SYNC", 1, "Error getting fam event\n");
+			osync_debug("FILE-SYNC", 1, "Error getting fam event");
 		} else {
 			if (famEvent.code == 1 || famEvent.code == 2 || famEvent.code == 5 || famEvent.code == 6)
 				osync_member_request_synchronization(fsinfo->member);
@@ -118,10 +118,10 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 	fsinfo->famRequest = g_malloc0(sizeof(FAMRequest));
 
 	if (FAMOpen(fsinfo->famConn) < 0) {
-		osync_debug("FILE-SYNC", 3, "Cannot connect to FAM\n");
+		osync_debug("FILE-SYNC", 3, "Cannot connect to FAM");
 	} else {
 		if( FAMMonitorDirectory(fsinfo->famConn, fsinfo->path, fsinfo->famRequest, fsinfo ) < 0 ) {
-			osync_debug("FILE-SYNC", 3, "Cannot monitor directory %s\n", fsinfo->path);
+			osync_debug("FILE-SYNC", 3, "Cannot monitor directory %s", fsinfo->path);
 			FAMClose(fsinfo->famConn);
 		} else {
 			fam_setup(fsinfo, NULL);
@@ -184,7 +184,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 #endif
 	
 	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
-		osync_debug("FILE-SYNC", 3, "Setting slow sync");
+		osync_debug("FILE-SYNC", 3, "Slow sync requested");
 		osync_hashtable_set_slow_sync(fsinfo->hashtable, "data");
 	}
 
