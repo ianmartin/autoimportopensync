@@ -426,6 +426,17 @@ void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 	osync_change_update(change, entry->change);
 }
 
+OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry)
+{
+	OSyncMappingEntry *newentry = osengine_mappingentry_new(NULL);
+	
+	OSyncError *error  = NULL;
+	newentry->change = osync_change_copy(entry->change, &error);
+	newentry->client = entry->client;
+	osengine_mappingview_add_entry(entry->view, newentry);
+	return newentry;
+}
+
 void osengine_mappingentry_reset(OSyncMappingEntry *entry)
 {
 	osync_trace(TRACE_INTERNAL, "osengine_mappingentry_reset(%p)", entry);

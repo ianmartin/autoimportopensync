@@ -75,3 +75,4 @@ void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping);
 void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
+OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);

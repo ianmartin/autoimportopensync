@@ -237,7 +237,6 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	OSyncMappingEntry *orig_entry = NULL;
 	OSyncMappingEntry *first_diff_entry = NULL;
 	OSyncMappingEntry *next_entry = NULL;
-	OSyncMappingEntry *new_entry = NULL;
 	OSyncMapping *new_mapping = NULL;
 	
 	//Remove all deleted items first.
@@ -253,7 +252,7 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	}
 	g_list_free(entries);
 	
-	//Choose the first modified change
+	//Choose the first modified change as the master of the mapping to duplicate
 	GList *i = dupe_mapping->entries;
 	do {
 		orig_entry = i->data;
@@ -262,7 +261,14 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	dupe_mapping->master = orig_entry;
 	osync_change_set_changetype(orig_entry->change, CHANGE_MODIFIED);
 	
+	/* Now we go through the list of changes in the mapping to
+	 * duplicate and search for the next entry that is different
+	 * to our choosen master. This entry then has to be moved to a
+	 * new mapping along with all changes to are the same as this next
+	 * different change
+	 */
 	while ((first_diff_entry = _osync_find_next_diff(dupe_mapping, orig_entry))) {
+		//We found a different change
 		elevation = 0;
 		new_mapping = osengine_mapping_new(engine->maptable);
 		new_mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
@@ -270,32 +276,50 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		osync_flag_set(new_mapping->fl_chkconflict);
 		send_mapping_changed(engine, new_mapping);
 		osync_debug("MAP", 3, "Created new mapping for duplication %p with mappingid %lli", new_mapping, new_mapping->id);
-		new_entry= first_diff_entry;
+		
+		/* Now we copy the change that differs, and set it as the master of the new
+		 * mapping.*/
+		OSyncMappingEntry *newentry = osengine_mappingentry_copy(first_diff_entry);	
+		new_mapping->master = newentry;
+		osengine_mapping_add_entry(new_mapping, newentry);
+		osync_change_set_changetype(newentry->change, CHANGE_ADDED);
+		osync_flag_set(newentry->fl_has_data);
+		osync_flag_set(newentry->fl_mapped);
+		osync_flag_set(newentry->fl_has_info);
+		osync_flag_set(newentry->fl_dirty);
+		osync_flag_unset(newentry->fl_synced);
+		
+		/* Now we elevate the change (which might be done by adding a -dupe
+		 * or a (2) to the change uid. We then check if there is already
+		 * another change on this level and if there is, we elevate again */
 		do {
-			if (!_osync_change_elevate(engine, new_entry->change, 1))
+			if (!_osync_change_elevate(engine, newentry->change, 1))
 				break;
 			elevation += 1;
-		} while (!_osync_change_check_level(engine, new_entry));
+		} while (!_osync_change_check_level(engine, newentry));
+		OSyncError *error = NULL;
+		osync_change_save(newentry->change, TRUE, &error);
 		
+		/* Now we search for all changes to belong to the new mapping, so
+		 * we are searching for changes to do not differ from the change we found
+		 * to be different from the master of the mapping to duplicate */
 		while ((next_entry = _osync_find_next_same(dupe_mapping, first_diff_entry))) {
-			new_entry = _osync_change_clone(engine, new_mapping, first_diff_entry);
-			_osync_change_elevate(engine, new_entry->change, elevation);
+			newentry = _osync_change_clone(engine, new_mapping, first_diff_entry);
+			_osync_change_elevate(engine, newentry->change, elevation);
 			osengine_mappingentry_update(orig_entry, next_entry->change);
 			osync_change_save(next_entry->change, TRUE, NULL);
 		}
-		osengine_mapping_remove_entry(dupe_mapping, first_diff_entry);
-		new_mapping->master = first_diff_entry;
-		osengine_mapping_add_entry(new_mapping, first_diff_entry);
-		osync_change_set_changetype(first_diff_entry->change, CHANGE_ADDED);
-		osync_flag_set(first_diff_entry->fl_dirty);
-		OSyncError *error = NULL;
-		osync_change_save(first_diff_entry->change, TRUE, &error);
+		
+		/* Now we can reset the different change and prepare it for
+		 * being overwriten during mulitply_master */
+		osengine_mappingentry_reset(first_diff_entry);
+		osync_change_set_changetype(first_diff_entry->change, CHANGE_UNKNOWN);
+
+		//We can now add the new mapping into the queue so it get processed
 		send_mapping_changed(engine, new_mapping);
 	}
-	
-	//FIXME multiplying the master here might not work of you duplicate a maping
-	//that did not need duplication
-	
+
+	//Multiply our original mapping
 	osengine_mapping_multiply_master(engine, dupe_mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_duplicate");
 }
