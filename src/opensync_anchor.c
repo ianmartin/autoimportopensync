@@ -16,16 +16,15 @@ DB *osync_anchor_load(OSyncMember *member)
 	return dbhandle;
 }
 
-osync_bool osync_anchor_compare(OSyncMember *member, char *new_anchor)
+osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_anchor)
 {
 	DB *dbhandle = osync_anchor_load(member);
 	
 	osync_bool retval = FALSE;
 	
 	void *old_anchorp;
-	char *anchorstr = "Anchor";
 		
-	if (osync_db_get(dbhandle, anchorstr, strlen(anchorstr) + 1, &old_anchorp)) {
+	if (osync_db_get(dbhandle, objtype, strlen(objtype) + 1, &old_anchorp)) {
 		char *old_anchor = (char *)old_anchorp;
 		if (!strcmp(old_anchor, new_anchor)) {
 			retval = TRUE;
@@ -41,12 +40,9 @@ osync_bool osync_anchor_compare(OSyncMember *member, char *new_anchor)
 	return retval;
 }
 
-void osync_anchor_update(OSyncMember *member, char *new_anchor)
+void osync_anchor_update(OSyncMember *member, char *objtype, char *new_anchor)
 {
 	DB *dbhandle = osync_anchor_load(member);
-	
-	char *anchorstr = "Anchor";
-	osync_db_put(dbhandle, anchorstr, strlen(anchorstr) + 1, new_anchor, strlen(new_anchor) + 1);
-
+	osync_db_put(dbhandle, objtype, strlen(objtype) + 1, new_anchor, strlen(new_anchor) + 1);
 	osync_db_close(dbhandle);
 }
