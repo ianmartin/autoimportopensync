@@ -147,7 +147,7 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin
 		OSyncObjTypeTemplate *objtemplate = o->data;
 		OSyncObjTypeSink *objsink = osync_objtype_sink_from_template(member->group, objtemplate);
 		if (!objsink) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to instance plugin. Could not create object type from template");
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find object type \"%s\"", objtemplate->name);
 			return FALSE;
 		}
 		member->objtype_sinks = g_list_append(member->objtype_sinks, objsink);
@@ -156,7 +156,7 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin
 			OSyncObjFormatTemplate *frmtemplate = f->data;
 			OSyncObjFormatSink *format_sink = osync_objformat_sink_from_template(member->group, frmtemplate);
 			if (!format_sink) {
-				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to instance plugin. Could not create format from template");
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not find format \"%s\"", frmtemplate->name);
 				return FALSE;
 			}
 			objsink->formatsinks = g_list_append(objsink->formatsinks, format_sink);

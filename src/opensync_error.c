@@ -144,7 +144,7 @@ osync_bool osync_error_is_set (OSyncError **error)
  * @param format The new message
  * 
  */
-void osync_error_update_message(OSyncError **error, const char *format, ...)
+void osync_error_update(OSyncError **error, const char *format, ...)
 {
 	osync_return_if_fail(error != NULL);
 	osync_return_if_fail(*error != NULL);

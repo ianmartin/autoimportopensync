@@ -103,7 +103,7 @@ END_TEST
 
 START_TEST (error_update_null)
 {
-	osync_error_update_message(NULL, NULL);
+	osync_error_update(NULL, NULL);
 
 }
 END_TEST
@@ -111,7 +111,7 @@ END_TEST
 START_TEST (error_update_null2)
 {
 	OSyncError *error = NULL;
-	osync_error_update_message(&error, NULL);
+	osync_error_update(&error, NULL);
 }
 END_TEST
 
@@ -119,7 +119,7 @@ START_TEST (error_update)
 {
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_GENERIC, "test");
-	osync_error_update_message(&error, "test2%i", 1);
+	osync_error_update(&error, "test2%i", 1);
 	fail_unless(!strcmp(error->message, "test21"), NULL);
 }
 END_TEST
@@ -128,7 +128,7 @@ START_TEST (error_update2)
 {
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_GENERIC, "test");
-	osync_error_update_message(&error, "test2%s", error->message);
+	osync_error_update(&error, "test2%s", error->message);
 	fail_unless(!strcmp(error->message, "test2test"), NULL);
 }
 END_TEST
@@ -143,7 +143,7 @@ END_TEST
 START_TEST (error_set_null2)
 {
 	OSyncError *error = NULL;
-	osync_error_update_message(&error, OSYNC_NO_ERROR, NULL);
+	osync_error_update(&error, OSYNC_NO_ERROR, NULL);
 }
 END_TEST
 
