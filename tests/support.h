@@ -25,6 +25,7 @@ int num_mapping_errors;
 
 int num_engine_errors;
 int num_engine_successfull;
+int num_engine_prev_unclean;
 
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);

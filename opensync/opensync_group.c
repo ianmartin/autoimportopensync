@@ -20,6 +20,11 @@
  
 #include "opensync.h"
 #include "opensync_internals.h"
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/file.h>
+
+extern int errno;
 
 /**
  * @defgroup OSyncGroupPrivateAPI OpenSync Group Internals
@@ -169,6 +174,10 @@ void osync_group_free(OSyncGroup *group)
 		osync_conv_env_free(group->conv_env);
 	}
 	
+	if (group->lock_fd) {
+		osync_group_unlock(group, FALSE);
+	}
+	
 	while (osync_group_nth_member(group, 0))
 		osync_member_free(osync_group_nth_member(group, 0));
 	
@@ -182,7 +191,120 @@ void osync_group_free(OSyncGroup *group)
 		g_free(group->configdir);
 		
 	g_free(group);
-}	
+}
+
+/*! @brief Locks a group
+ * 
+ * Tries to acquire a lock for the given group.
+ * 
+ * If the lock was successfully acquired, OSYNC_LOCK_OK will
+ * be returned.
+ * 
+ * If the lock was acquired, but a old lock file was detected,
+ * OSYNC_LOCK_STALE will be returned. Use this to detect if the
+ * last sync of this group was successfull, or if this something crashed.
+ * If you get this answer you should perform a slow-sync
+ * 
+ * If the group is locked, OSYNC_LOCKED is returned
+ * 
+ * @param group The group
+ * @returns if the lockfile was acquired
+ * 
+ */
+OSyncLockState osync_group_lock(OSyncGroup *group)
+{
+	g_assert(group);
+	g_assert(group->configdir);
+	
+	osync_bool exists = FALSE;
+	osync_bool locked = FALSE;
+	
+	if (group->lock_fd)
+		return OSYNC_LOCKED;
+	
+	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
+	osync_debug("GRP", 4, "locking file %s", lockfile);
+	/*group->fl.l_type = F_WRLCK;
+	group->fl.l_whence = SEEK_SET;
+	group->fl.l_start = 0;
+	group->fl.l_len = 0;
+	group->fl.l_pid = getpid();*/
+
+	if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
+		osync_debug("GRP", 4, "locking group: file exists");
+		exists = TRUE;
+	}
+	
+	if ((group->lock_fd = open(lockfile, O_CREAT | O_RDONLY)) == -1) {
+		group->lock_fd = 0;
+		if (errno == EACCES) {
+			osync_debug("GRP", 4, "locking group: is locked: %s", strerror(errno));
+			locked = TRUE;
+		} else {
+			osync_debug("GRP", 1, "error opening file: %s", strerror(errno));
+			g_free(lockfile);
+			return OSYNC_LOCK_STALE;
+		}
+	} else {
+		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
+			if (errno == EWOULDBLOCK) {
+				osync_debug("GRP", 4, "locking group: is locked2");
+				locked = TRUE;
+				close(group->lock_fd);
+				group->lock_fd = 0;
+			} else
+				osync_debug("GRP", 1, "error setting lock: %s", strerror(errno));
+		}
+	}
+	g_free(lockfile);
+	
+	if (!exists)
+		return OSYNC_LOCK_OK;
+	else {
+		if (locked)
+			return OSYNC_LOCKED;
+		else
+			return OSYNC_LOCK_STALE;
+	}
+}
+
+/*! @brief Unlocks a group
+ * 
+ * if you set remove = FALSE, the lock file will not be removed
+ * and the next call to osync_lock_group() for this group will
+ * return OSYNC_LOCK_STALE.
+ * 
+ * @param group The group
+ * @param remove If the lockfile should be removed
+ * 
+ */
+void osync_group_unlock(OSyncGroup *group, osync_bool remove)
+{
+	g_assert(group);
+	g_assert(group->configdir);
+	osync_debug("GRP", 4, "unlocking group %s", group->name);
+	
+	if (!group->lock_fd) {
+		osync_debug("GRP", 1, "You have to lock the group before unlocking");
+		return;
+	}
+    
+	if (flock(group->lock_fd, LOCK_UN) == -1) {
+		osync_debug("GRP", 1, "error releasing lock: %s", strerror(errno));
+		return;
+	}
+	
+	fsync(group->lock_fd);
+	close(group->lock_fd);
+	
+	group->lock_fd = 0;
+	
+	if (remove) {
+		char *lockfile = g_strdup_printf("%s/lock", group->configdir);
+		unlink(lockfile);
+		g_free(lockfile);
+	}
+}
 
 /*! @brief Sets the name for the group
  * 

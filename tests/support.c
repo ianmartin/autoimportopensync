@@ -191,6 +191,10 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			osync_debug("TEST", 4, "Sync Successfull");
 			num_engine_successfull++;
 			break;
+		case ENG_PREV_UNCLEAN:
+			osync_debug("TEST", 0, "Previous sync was unclean");
+			num_engine_prev_unclean++;
+			break;
 		default:
 			printf("ERrro\n");
 	}
@@ -235,6 +239,7 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	num_mapping_errors = 0;
 	num_member_sync_done_errors = 0;
 	num_member_disconnect_errors = 0;
+	num_engine_prev_unclean = 0;
 	mark_point();
 	return osync_engine_sync_and_block(engine, error);
 }

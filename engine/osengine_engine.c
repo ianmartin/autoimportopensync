@@ -680,17 +680,34 @@ void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (
 osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_engine_init(%p, %p)", engine, error);
+	osync_debug("ENG", 0, "About to init engine");
 	if (engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was already initialized");
 		return FALSE;
+	}
+	
+	osync_debug("ENG", 0, "About to lock engine");
+	switch (osync_group_lock(engine->group)) {
+		case OSYNC_LOCKED:
+			osync_error_set(error, OSYNC_ERROR_LOCKED, "Group is locked");
+			return FALSE;
+		case OSYNC_LOCK_STALE:
+			osync_debug("ENG", 0, "Detected stale lock file. Slow-syncing");
+			osync_status_update_engine(engine, ENG_PREV_UNCLEAN, NULL);
+			osync_group_set_slow_sync(engine->group, "data", TRUE);
+			break;
+		default:
+			break;
 	}
 	
 	if (!(engine->man_dispatch))
 		itm_queue_setup_with_gmainloop(engine->incoming, engine->context);
 	itm_queue_set_message_handler(engine->incoming, (ITMessageHandler)engine_message_handler, engine);
 	
-	if (!osync_mappingtable_load(engine->maptable, error))
+	if (!osync_mappingtable_load(engine->maptable, error)) {
+		osync_group_unlock(engine->group, TRUE);
 		return FALSE;
+	}
 	
 	osync_flag_set(engine->cmb_entries_mapped);
 	osync_flag_set(engine->cmb_synced);
@@ -703,6 +720,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
 		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
+		osync_group_unlock(engine->group, TRUE);
 		return FALSE;
 	}
 	
@@ -714,6 +732,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		if (!osync_client_init(client, error)) {
 			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init");
 			osync_engine_finalize(engine);
+			osync_group_unlock(engine->group, TRUE);
 			return FALSE;
 		}
 	}
@@ -771,6 +790,11 @@ void osync_engine_finalize(OSyncEngine *engine)
 	osync_mappingtable_close(engine->maptable);
 	
 	itm_queue_flush(engine->incoming);
+	
+	if (engine->error)
+		osync_group_unlock(engine->group, FALSE);
+	else
+		osync_group_unlock(engine->group, TRUE);
 	
 	engine->is_initialized = FALSE;
 	osync_trace(TRACE_EXIT, "osync_engine_finalize");

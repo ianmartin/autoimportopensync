@@ -1,6 +1,15 @@
 OSyncGroup *osync_group_new(OSyncEnv *osinfo);
 void osync_group_free(OSyncGroup *group);
 
+typedef enum OSyncLockState {
+	OSYNC_LOCK_OK,
+	OSYNC_LOCKED,
+	OSYNC_LOCK_STALE
+} OSyncLockState;
+
+OSyncLockState osync_group_lock(OSyncGroup *group);
+void osync_group_unlock(OSyncGroup *group, osync_bool remove);
+
 void osync_group_set_name(OSyncGroup *group, const char *name);
 const char *osync_group_get_name(OSyncGroup *group);
 osync_bool osync_group_save(OSyncGroup *group, OSyncError **error);
