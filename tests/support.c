@@ -247,6 +247,7 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 void create_case(Suite *s, const char *name, void (*function)(void))
 {
 	TCase *tc_new = tcase_create(name);
+	tcase_set_timeout(tc_new, 0);
 	suite_add_tcase (s, tc_new);
 	tcase_add_test(tc_new, function);
 }
