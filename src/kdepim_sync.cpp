@@ -186,9 +186,9 @@ extern "C" {
 void get_info(OSyncPluginInfo *info)
 {
     info->version = 1;
-    info->name = "kde-sync";
+    info->name = "kdepim";
     /*FIXME: i18n */
-    info->description = "Plugin for the KDE 3.x Addressbook";
+    info->description = "Plugin for the KDEPIM on KDE 3.x";
 
     info->functions.initialize = kde_initialize;
     info->functions.connect = kde_connect;
