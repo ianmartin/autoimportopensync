@@ -227,7 +227,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
             if (!addrbook_get_changeinfo(ctx))
                 return;
-            if (kcal && !kcal->get_changeinfo(ctx))
+            if (kcal && !kcal->get_changeinfo_events(ctx))
+                return;
+
+            if (kcal && !kcal->get_changeinfo_todos(ctx))
                 return;
 
             osync_context_report_success(ctx);
@@ -388,7 +391,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
         virtual bool vcal_access(OSyncContext *ctx, OSyncChange *chg)
         {
             if (kcal)
-                return kcal->access(ctx, chg);
+                return kcal->vcal_access(ctx, chg);
             else {
                 osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
                 return false;
@@ -399,7 +402,29 @@ class KdePluginImplementation: public KdePluginImplementationBase
         virtual bool vcal_commit_change(OSyncContext *ctx, OSyncChange *chg)
         {
             if (kcal)
-                return kcal->commit_change(ctx, chg);
+                return kcal->vcal_commit_change(ctx, chg);
+            else {
+                osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
+                return false;
+            }
+            return true;
+        }
+
+        virtual bool todo_access(OSyncContext *ctx, OSyncChange *chg)
+        {
+            if (kcal)
+                return kcal->todo_access(ctx, chg);
+            else {
+                osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
+                return false;
+            }
+            return true;
+        }
+
+        virtual bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg)
+        {
+            if (kcal)
+                return kcal->todo_commit_change(ctx, chg);
             else {
                 osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
                 return false;

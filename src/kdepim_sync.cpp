@@ -145,6 +145,23 @@ static osync_bool kde_vcal_access(OSyncContext *ctx, OSyncChange *change)
     return impl_object->vcal_access(ctx, change); 
 }
 
+static osync_bool kde_todo_commit_change(OSyncContext *ctx, OSyncChange *change)
+{
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+
+    osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+    return impl_object->todo_commit_change(ctx, change); 
+}
+
+static osync_bool kde_todo_access(OSyncContext *ctx, OSyncChange *change)
+{
+    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
+
+    osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+    return impl_object->todo_access(ctx, change); 
+}
 
 extern "C" {
 void get_info(OSyncPluginInfo *info)
@@ -166,11 +183,15 @@ void get_info(OSyncPluginInfo *info)
     osync_plugin_set_commit_objformat(info, "contact", "vcard", kde_vcard_commit_change);
     osync_plugin_set_access_objformat(info, "contact", "vcard", kde_vcard_access);
 
-    osync_plugin_accept_objtype(info, "calendar");
-    osync_plugin_accept_objformat(info, "calendar", "vcalendar");
-    osync_plugin_set_commit_objformat(info, "calendar", "vcalendar", kde_vcal_commit_change);
-    osync_plugin_set_access_objformat(info, "calendar", "vcalendar", kde_vcal_access);
+    osync_plugin_accept_objtype(info, "event");
+    osync_plugin_accept_objformat(info, "event", "vevent");
+    osync_plugin_set_commit_objformat(info, "event", "vevent", kde_vcal_commit_change);
+    osync_plugin_set_access_objformat(info, "event", "vevent", kde_vcal_access);
 
+    osync_plugin_accept_objtype(info, "todo");
+    osync_plugin_accept_objformat(info, "todo", "vtodo");
+    osync_plugin_set_commit_objformat(info, "todo", "vtodo", kde_todo_commit_change);
+    osync_plugin_set_access_objformat(info, "todo", "vtodo", kde_todo_access);
 }
 
 }// extern "C"

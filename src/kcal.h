@@ -24,6 +24,7 @@ SOFTWARE IS DISCLAIMED.
  */
 
 #include <libkcal/calendarresources.h>
+#include <libkcal/incidence.h>
 
 #include "osyncbase.h"
 
@@ -46,6 +47,8 @@ class KCalDataSource
          * operations
          */
         bool __access(OSyncContext *ctx, OSyncChange *chg);
+        bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e,
+                const char *objtype, const char *objformat);
     public:
         KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable);
 
@@ -63,27 +66,47 @@ class KCalDataSource
          */
         bool disconnect(OSyncContext *ctx);
 
-        /** get_changeinfo() method.
+        /** get_changeinfo() method for events
          *
          * On success, returns true, but doesn't call osync_context_report_success()
          * On error, returns false, after calling osync_context_report_error()
          */
-        bool get_changeinfo(OSyncContext *ctx);
+        bool get_changeinfo_events(OSyncContext *ctx);
+
+        /** get_changeinfo() method for to-dos
+         *
+         * On success, returns true, but doesn't call osync_context_report_success()
+         * On error, returns false, after calling osync_context_report_error()
+         */
+        bool get_changeinfo_todos(OSyncContext *ctx);
 
         void get_data(OSyncContext *ctx, OSyncChange *chg);
 
-        /** access() method.
+        /** access() method for evnets
          *
          * On success, returns true, after calling osync_context_report_success()
          * On error, returns false, after calling osync_context_report_error()
          */
-        bool access(OSyncContext *ctx, OSyncChange *chg);
+        bool event_access(OSyncContext *ctx, OSyncChange *chg);
 
-        /** commit_change() method.
+        /** commit_change() method for events
          *
          * On success, returns true, after calling osync_context_report_success()
          * On error, returns false, after calling osync_context_report_error()
          */
-         bool commit_change(OSyncContext *ctx, OSyncChange *chg);
+         bool event_commit_change(OSyncContext *ctx, OSyncChange *chg);
 
+        /** access() method fot vtodo
+         *
+         * On success, returns true, after calling osync_context_report_success()
+         * On error, returns false, after calling osync_context_report_error()
+         */
+        bool todo_access(OSyncContext *ctx, OSyncChange *chg);
+
+        /** commit_change() method for vtodo
+         *
+         * On success, returns true, after calling osync_context_report_success()
+         * On error, returns false, after calling osync_context_report_error()
+         */
+         bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg);
 };
