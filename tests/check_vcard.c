@@ -56,18 +56,53 @@ static void conv_vcard(const char *filename)
 	osync_env_free(env);
 }
 
-START_TEST (conv_vcard_evolution2)
+START_TEST (conv_vcard_evolution2_full1)
 {
 	conv_vcard("data/vcards/evolution2/evo2-full1.vcf");
+}
+END_TEST
+
+START_TEST (conv_vcard_evolution2_full2)
+{
+	conv_vcard("data/vcards/evolution2/evo2-full2.vcf");
+}
+END_TEST
+
+START_TEST (conv_vcard_evolution2_photo)
+{
+	conv_vcard("data/vcards/evolution2/evo2-photo.vcf");
+}
+END_TEST
+
+START_TEST (conv_vcard_evolution2_multiline)
+{
+	conv_vcard("data/vcards/evolution2/evo2-multiline.vcf");
+}
+END_TEST
+
+START_TEST (conv_vcard_evolution2_umlaute)
+{
+	conv_vcard("data/vcards/evolution2/evo2-umlaute.vcf");
+}
+END_TEST
+
+START_TEST (conv_vcard_evolution2_special)
+{
+	conv_vcard("data/vcards/evolution2/evo2-special.vcf");
 }
 END_TEST
 
 Suite *vcard_suite(void)
 {
 	Suite *s = suite_create("Vcard");
-	//Suite *s2 = suite_create("ConvVcard");
-	create_case(s, "conv_vcard_evolution2", conv_vcard_evolution2);
-
+	//Suite *s2 = suite_create("Vcard");
+	create_case(s, "conv_vcard_evolution2_full1", conv_vcard_evolution2_full1);
+	create_case(s, "conv_vcard_evolution2_full2", conv_vcard_evolution2_full2);
+	create_case(s, "conv_vcard_evolution2_photo", conv_vcard_evolution2_photo);
+	create_case(s, "conv_vcard_evolution2_multiline", conv_vcard_evolution2_multiline);
+	create_case(s, "conv_vcard_evolution2_umlaute", conv_vcard_evolution2_umlaute);
+	create_case(s, "conv_vcard_evolution2_special", conv_vcard_evolution2_special);
+	
 	return s;
 }
 
