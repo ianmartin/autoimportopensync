@@ -49,7 +49,7 @@ static void create_file(OSyncChange *change)
 		}
 	}
 	fclose(fd);
-	osync_change_set_uid(change, osync_rand_str(4));
+	osync_change_set_uid(change, osync_rand_str(6));
 }
 #endif
 

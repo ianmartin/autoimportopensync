@@ -107,7 +107,7 @@ static char *fs_generate_hash(fs_fileinfo *info)
 	return hash;
 }
 
-static void fs_get_changeinfo(OSyncContext *ctx)
+static void fs_get_changeinfo(OSyncContext *ctx, osync_bool slow_sync)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
@@ -115,7 +115,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 		const gchar *de = NULL;
 		while ((de = g_dir_read_name(fsinfo->dir))) {
 			char *filename = g_strdup_printf ("%s/%s", fsinfo->path, de);
-			
+
 			if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR))
 				continue;
 				
