@@ -20,7 +20,6 @@
  
 #include "opensync.h"
 #include "opensync_internals.h"
-#include <fcntl.h>
 #include <errno.h>
 #include <sys/file.h>
 
@@ -224,27 +223,17 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 	
 	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
 	osync_debug("GRP", 4, "locking file %s", lockfile);
-	/*group->fl.l_type = F_WRLCK;
-	group->fl.l_whence = SEEK_SET;
-	group->fl.l_start = 0;
-	group->fl.l_len = 0;
-	group->fl.l_pid = getpid();*/
 
 	if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
 		osync_debug("GRP", 4, "locking group: file exists");
 		exists = TRUE;
 	}
 	
-	if ((group->lock_fd = open(lockfile, O_CREAT | O_RDONLY)) == -1) {
+	if ((group->lock_fd = open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
 		group->lock_fd = 0;
-		if (errno == EACCES) {
-			osync_debug("GRP", 4, "locking group: is locked: %s", strerror(errno));
-			locked = TRUE;
-		} else {
-			osync_debug("GRP", 1, "error opening file: %s", strerror(errno));
-			g_free(lockfile);
-			return OSYNC_LOCK_STALE;
-		}
+		osync_debug("GRP", 1, "error opening file: %s", strerror(errno));
+		g_free(lockfile);
+		return OSYNC_LOCK_STALE;
 	} else {
 		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
 			if (errno == EWOULDBLOCK) {
@@ -254,7 +243,8 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 				group->lock_fd = 0;
 			} else
 				osync_debug("GRP", 1, "error setting lock: %s", strerror(errno));
-		}
+		} else
+			osync_debug("GRP", 4, "Successfully locked");
 	}
 	g_free(lockfile);
 	

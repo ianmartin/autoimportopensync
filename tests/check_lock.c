@@ -205,7 +205,7 @@ START_TEST (dual_sync_engine_unclean)
 	fail_unless(osync_engine_init(engine, &error), NULL);
 	osync_engine_free(engine);
 	osync_group_free(group);
-	
+
 	group = osync_group_load(osync, "configs/group", NULL);
 	engine = osync_engine_new(group, &error);
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);

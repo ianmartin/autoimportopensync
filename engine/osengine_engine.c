@@ -688,19 +688,18 @@ void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (
 osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_engine_init(%p, %p)", engine, error);
-	osync_debug("ENG", 0, "About to init engine");
+	
 	if (engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was already initialized");
 		return FALSE;
 	}
 	
-	osync_debug("ENG", 0, "About to lock engine");
 	switch (osync_group_lock(engine->group)) {
 		case OSYNC_LOCKED:
 			osync_error_set(error, OSYNC_ERROR_LOCKED, "Group is locked");
 			return FALSE;
 		case OSYNC_LOCK_STALE:
-			osync_debug("ENG", 0, "Detected stale lock file. Slow-syncing");
+			osync_debug("ENG", 1, "Detected stale lock file. Slow-syncing");
 			osync_status_update_engine(engine, ENG_PREV_UNCLEAN, NULL);
 			osync_group_set_slow_sync(engine->group, "data", TRUE);
 			break;

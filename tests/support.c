@@ -192,7 +192,7 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			num_engine_successfull++;
 			break;
 		case ENG_PREV_UNCLEAN:
-			osync_debug("TEST", 0, "Previous sync was unclean");
+			osync_debug("TEST", 4, "Previous sync was unclean");
 			num_engine_prev_unclean++;
 			break;
 		default:
