@@ -60,7 +60,7 @@ static void *fs_initialize(OSyncMember *member)
 #ifdef HAVE_FAM
 
 	fsinfo->famConn = g_malloc0(sizeof(FAMConnection));
-    fsinfo->famRequest = g_malloc0(sizeof(FAMRequest));
+	fsinfo->famRequest = g_malloc0(sizeof(FAMRequest));
 
 	if (FAMOpen(fsinfo->famConn) < 0) {
 		printf( "Cannot connect to FAM\n");
