@@ -139,20 +139,23 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 	char *data = NULL;
 	int datasize = 0;
 	osync_bool ret = TRUE;
-	if ((converter->type != CONVERTER_DETECTOR && !converter->convert_func) || (converter->type == CONVERTER_DETECTOR && !converter->detect_func)) {
+	if (converter->type == CONVERTER_DETECTOR && !converter->convert_func) {
+		change->format = converter->target_format;
+		change->objtype = osync_change_get_objformat(change)->objtype;
+		osync_trace(TRACE_EXIT, "osync_converter_invoke: TRUE: Detector path");
+		return TRUE;
+	}
+	
+	if (!converter->convert_func) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid converter");
 		osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke: %s", osync_error_print(error));
 		return FALSE;
 	}
-
-
-	if (!converter->convert_func) {
-		osync_trace(TRACE_INTERNAL, "osync_converter_invoke: no convert func, just keep the same data");
-		ret = TRUE;
-	} else if (change->data) {
+	
+	if (change->data) {
 		//Invoke the converter and all extensions
 		//osync_conv_invoke_extensions(converter->source_format, FALSE, change);
-		osync_bool free_input = TRUE;
+		osync_bool free_input = FALSE;
 		if ((ret = converter->convert_func(converter_data, change->data, change->size, &data, &datasize, &free_input, error))) {
 		
 			if (converter->type == CONVERTER_DECAP) {
@@ -162,7 +165,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *
 						/* There is nothing we can do, here. The returned data is a reference, but
 						 * we can't copy the data before destroying it
 						 */
-						osync_debug("OSYNC", 0, "Format %s don't have a copy function, but a no-copy %s->%s converter was registered", converter->target_format->name, converter->source_format->name, converter->target_format->name);
+						osync_debug("OSYNC", 0, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
 						osync_error_set(error, OSYNC_ERROR_GENERIC, "Format %s don't have a copy function, but a no-copy converter was registered", converter->target_format->name);
 						osync_trace(TRACE_EXIT_ERROR, "osync_converter_invoke: %s", osync_error_print(error));
 						return FALSE;
@@ -336,10 +339,6 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 
 		// If the converter type is a detector we need to know wether the input is correct
 		if (converter->detect_func) {
-			if (!ve->change) {
-				osync_trace(TRACE_INTERNAL, "Detector for converter from %s to %s would be called, but we haven't converted the data to the source format for the converter", converter->source_format->name, converter->target_format->name);
-				continue;
-			}
 			if (!converter->detect_func(env, ve->change->data, ve->change->size)) {
 				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", converter->source_format->name, converter->target_format->name);
 				continue;
@@ -347,16 +346,11 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 			osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", converter->source_format->name, converter->target_format->name);
 		}
 
-		OSyncChange *new_change = NULL;
+		OSyncChange *new_change;
 		osync_bool free_output = FALSE;
-		if (converter->type == CONVERTER_DECAP) {
-			if (!ve->change) {
-				osync_trace(TRACE_INTERNAL, "Desencapsulator from %s to %s would be called, but we haven't converted the data to the source format for the converter", converter->source_format->name, converter->target_format->name);
-				continue;
-			}
+		if (converter->type == CONVERTER_DECAP)
 			if (!(new_change = osync_converter_invoke_decap(converter, ve->change, &free_output)))
 				continue;
-		}
 
 		/* From this point, we already found an edge (i.e. a converter) that may
 		 * be used
@@ -372,11 +366,8 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 		neigh->format = fmt_target;
 		neigh->path = g_list_copy(ve->path);
 		neigh->path = g_list_append(neigh->path, converter);
-		if (new_change) {
-			neigh->change = new_change;
-			neigh->free_change_data = free_output;
-		}
-
+		neigh->free_change_data = free_output;
+		
 		/* Distance calculation */
 		neigh->conversions = ve->conversions + 1;
 		neigh->losses = ve->losses;
@@ -451,6 +442,9 @@ static osync_bool osync_conv_find_path_fn(OSyncFormatEnv *env, OSyncChange *star
 		//Get the first vertice and remove it from the queue
 		vertice *current = tree->search->data;
 		tree->search = g_list_remove(tree->search, current);
+		current->change = start;
+		current->free_change_data = FALSE;
+		current->free_change = FALSE;
 		
 		osync_debug("OSCONV", 4, "Next vertice: %s.", current->format->name);
 		/* Check if we have reached a target format */
@@ -1074,6 +1068,7 @@ OSyncChange *osync_change_copy(OSyncChange *source, OSyncError **error)
 	newchange->sourceobjtype = g_strdup(osync_change_get_objtype(source)->name);
 	newchange->is_detected = source->is_detected;
 	newchange->changes_db = source->changes_db;
+	newchange->member = source->member;
 	
 	if (!osync_change_copy_data(source, newchange, error)) {
 		osync_change_free(newchange);

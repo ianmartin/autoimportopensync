@@ -5,6 +5,7 @@ struct OSyncMappingTable {
 	GList *unmapped;
 	OSyncGroup *group;
 	GList *views;
+	GList *entries;
 };
 
 struct OSyncMappingView {
@@ -22,6 +23,7 @@ struct OSyncMapping {
 	OSyncMappingTable *table;
 	MSyncFlag *fl_solved;
 	MSyncFlag *fl_chkconflict;
+	MSyncFlag *fl_multiplied;
 	//The combined flags
 	MSyncFlag *cmb_synced;
 	MSyncFlag *cmb_has_data;
@@ -75,4 +77,4 @@ void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 OSyncMappingEntry *osengine_mappingentry_new(OSyncMapping *mapping);
 void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
-OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id);
+OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);

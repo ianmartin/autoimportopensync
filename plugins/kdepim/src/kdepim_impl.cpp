@@ -79,8 +79,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 {
     private:
         KABC::AddressBook* addressbookptr;   
-        KABC::Ticket* addressbookticket;
-        QDateTime syncdate, newsyncdate;
 
         KCalDataSource *kcal;
         KNotesDataSource *knotes;
@@ -118,9 +116,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
             //get a handle to the standard KDE addressbook
             addressbookptr = KABC::StdAddressBook::self();
 
-            //ensure a NULL Ticket ptr
-            addressbookticket=NULL;
-
             hashtable = osync_hashtable_new();
 
             kcal = new KCalDataSource(member, hashtable);
@@ -157,19 +152,20 @@ class KdePluginImplementation: public KdePluginImplementationBase
             //Get the revision date of the KDE addressbook entry.
             //Regard entries with invalid revision dates as having just been changed.
             QDateTime revdate = e.revision();
+            osync_debug("kde", 3, "Getting hash: %s", revdate.toString().data());
             if (!revdate.isValid())
             {
-                revdate = newsyncdate;      //use date of this sync as the revision date.
-                e.setRevision(revdate);   //update the Addressbook entry for future reference.
+            	revdate = QDateTime::currentDateTime();
+            	e.setRevision(revdate);
             }
-            /*FIXME: not i18ned string */
+
             return revdate.toString();
         }
 
         virtual void connect(OSyncContext *ctx)
         {
             //Lock the addressbook
-            addressbookticket = addressbookptr->requestSaveTicket();
+            //addressbookticket = addressbookptr->requestSaveTicket();
 
 			OSyncError *error = NULL;
 			if (!osync_hashtable_load(hashtable, member, &error))
@@ -184,11 +180,11 @@ class KdePluginImplementation: public KdePluginImplementationBase
 				osync_anchor_update(member, "synced", "true");
 			}
 
-            if (!addressbookticket)
+            /*if (!addressbookticket)
             {
                 osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't lock KDE addressbook");
                 return;
-            }
+            }*/
             osync_debug("kde", 3, "KDE addressbook locked OK.");
 
             if (kcal && !kcal->connect(ctx))
@@ -201,8 +197,19 @@ class KdePluginImplementation: public KdePluginImplementationBase
         virtual void disconnect(OSyncContext *ctx)
         {
             //Unlock the addressbook
-            addressbookptr->save(addressbookticket);
-            addressbookticket = NULL;
+            //addressbookptr->save(addressbookticket);
+            //addressbookticket = NULL;
+
+			KABC::Ticket *ticket = addressbookptr->requestSaveTicket();
+		    if ( !ticket ) {
+		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unable to get save ticket");
+		      return;
+		    }
+		
+		    if ( !addressbookptr->save( ticket ) ) {
+		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unable to get save using ticket");
+		      return;
+		    }
 
 			osync_hashtable_close(hashtable);
 
@@ -222,12 +229,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             if (osync_member_get_slow_sync(member, "contact"))
                 osync_hashtable_set_slow_sync(hashtable, "contact");
 
-            //remember when we started this current sync
-            newsyncdate = QDateTime::currentDateTime();
-
             // We must reload the KDE addressbook in order to retrieve the latest changes.
-            if (!addressbookptr->load())
-            {
+            if (!addressbookptr->load()) {
                 osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't reload KDE addressbook");
                 return false;
             }
@@ -236,26 +239,18 @@ class KdePluginImplementation: public KdePluginImplementationBase
             KABC::VCardConverter converter;
 
             for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
-
                 QString uid = it->uid();
 
-                osync_debug("kde", 3, "new entry, uid: %s", (const char *)uid.local8Bit());
-
-                QString hash = calc_hash(*it);
-
-                // gmalloc a changed_object for this phonebook entry             
-                //FIXME: deallocate it somewhere
-                OSyncChange *chg= osync_change_new();
+                OSyncChange *chg = osync_change_new();
+                
                 osync_change_set_member(chg, member);
-
-                osync_change_set_hash(chg, hash);
                 osync_change_set_uid(chg, uid.local8Bit());
 
+				QString hash = calc_hash(*it);
+				
                 // Convert the VCARD data into a string
-                QCString card = converter.createVCard(*it).utf8();
-                const char *data = card;
-                //FIXME: deallocate data somewhere
-                osync_change_set_data(chg, strdup(data), strlen(data), 1);
+                const char *data = converter.createVCard(*it).utf8();
+                osync_change_set_data(chg, strdup(data), strlen(data) + 1, TRUE);
 
                 // object type and format
                 osync_change_set_objtype_string(chg, "contact");
@@ -334,45 +329,30 @@ class KdePluginImplementation: public KdePluginImplementationBase
          */
         int __vcard_access(OSyncContext *ctx, OSyncChange *chg)
         {
-            //osync_debug("kde", 3, "kaddrbook::%s()",__FUNCTION__);
-
-            QString uid = osync_change_get_uid(chg);
-
-            // Ensure we still have a lock on the KDE addressbook (we ought to)
-            if (addressbookticket==NULL)
-            {
-                //This should never happen, but just in case....
-                osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Lock on KDE addressbook was lost");
-                return -1;
-            }
-
             KABC::VCardConverter converter;
     
-            OSyncChangeType chtype = osync_change_get_changetype(chg);
-            /* treat modified objects without UIDs as if they were newly added objects */
-            if (chtype == CHANGE_MODIFIED && uid.isEmpty())
-                chtype = CHANGE_ADDED;
-
             // convert VCARD string from obj->comp into an Addresse object.
-            char *data;
-            size_t data_size;
-            data = (char*)osync_change_get_data(chg);
-            data_size = osync_change_get_datasize(chg);
-
+            char *data = osync_change_get_data(chg);
+            size_t data_size = osync_change_get_datasize(chg);
+			QString uid = osync_change_get_uid(chg);
+			
+			OSyncChangeType chtype = osync_change_get_changetype(chg);
             switch(chtype)
             {
                 case CHANGE_MODIFIED:
                 {
                     unfold_vcard(data, &data_size);
-
                     KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
 
-                    // ensure it has the correct UID
+                    // ensure it has the correct UID and revision
                     addressee.setUid(uid);
-                    QString hash = calc_hash(addressee);
+                    addressee.setRevision(QDateTime::currentDateTime());
 
                     // replace the current addressbook entry (if any) with the new one
+					
                     addressbookptr->insertAddressee(addressee);
+                    
+                    QString hash = calc_hash(addressee);
                     osync_change_set_hash(chg, hash);
                     osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit()); 
                     break;
@@ -380,19 +360,19 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
                 case CHANGE_ADDED:
                 {
-                    // convert VCARD string from obj->comp into an Addresse object
-                    // KABC::VCardConverter doesnt do VCARD unfolding so we must do it ourselves first.
                     unfold_vcard(data, &data_size);
                     KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
 
-                    QString hash = calc_hash(addressee);
+                   	// ensure it has the correct revision
+                    addressee.setRevision(QDateTime::currentDateTime());
 
                     // add the new address to the addressbook
                     addressbookptr->insertAddressee(addressee);
 
                     osync_change_set_uid(chg, addressee.uid().local8Bit());
+                    
+                    QString hash = calc_hash(addressee);
                     osync_change_set_hash(chg, hash);
-
                     osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", (const char *)addressee.uid().local8Bit());
 
                     break;
@@ -419,8 +399,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
                     osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
                     return -1;
             }
-            //Save the changes without dropping the lock
-            addressbookticket->resource()->save(addressbookticket);
     
             return 0;
         }

@@ -32,6 +32,7 @@ typedef struct timeout_info timeout_info;
 struct MSyncFlag {
 	osync_bool is_set;
 	osync_bool is_changing;
+	osync_bool default_val;
 	MSyncFlag *comb_flag;
 	unsigned int num_not_set;
 	unsigned int num_set;
