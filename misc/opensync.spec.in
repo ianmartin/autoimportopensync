@@ -36,7 +36,7 @@ Tools to test and debug %{name}.
 %setup -q
 
 %build
-%configure --enable-engine --disable-debug --disable-tracing --disable-profiling --enable-tools --disable-unit-tests --disable-python
+%configure --enable-engine --enable-debug --disable-tracing --disable-profiling --enable-tools --disable-unit-tests --disable-python
 make
 
 %install
