@@ -31,7 +31,7 @@ static osync_bool fs_get_error(OSyncMember *member, const char *domain)
 	
 	int num = atoi(env);
 	int mask = 1 << (osync_member_get_id(member) - 1);
-	osync_debug("FILE-SYNC", 4, "returning \"%s\" for error domain %s", (num & mask) ? "TRUE" : "FALSE", domain);
+	osync_debug("FILE-SYNC", 2, "returning \"%s\" for error domain %s", (num & mask) ? "TRUE" : "FALSE", domain);
 	if (num & mask) {
 		char *chancestr = g_strdup_printf("%s_PROB", domain);
 		const char *chance = g_getenv(chancestr);
@@ -41,7 +41,7 @@ static osync_bool fs_get_error(OSyncMember *member, const char *domain)
 		int prob = atoi(chance);
 		if (prob >= g_random_int_range(0, 100))
 			return TRUE;
-		osync_debug("FILE-SYNC", 4, "returning \"FALSE\" for error domain %s", domain);
+		osync_debug("FILE-SYNC", 2, "returning \"FALSE\" for error domain %s", domain);
 	}
 	return FALSE;
 }
