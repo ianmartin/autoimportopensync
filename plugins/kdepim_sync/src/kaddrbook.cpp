@@ -226,7 +226,12 @@ class kaddrbook
                     KABC::Addressee addressee = converter.parseVCard(QString::fromLatin1(data, data_size));
 
                     // ensure it has a NULL UID
-                    addressee.setUid(QString(NULL));
+                    //addressee.setUid(QString(NULL));
+                    if (!addressee.uid()) {
+                        osync_debug("kde", 1, "New addresse has null uid!");
+                        addressee.setUid(KApplication::randomString( 10 ));
+                    }
+
 
                     // add the new address to the addressbook
                     addressbookptr->insertAddressee(addressee);
