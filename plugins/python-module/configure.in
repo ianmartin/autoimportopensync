@@ -1,0 +1,70 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(src/python_module.c)
+AM_INIT_AUTOMAKE(python-module, 0.01)
+AM_CONFIG_HEADER(config.h)
+
+AC_ISC_POSIX
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_HEADER_STDC
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
+
+
+# Python SDK detection Code taken from Autoconf input script for Crystal Space
+# Copyright (C)2003 by Eric Sunshine <sunshine@sunshineco.com>
+#------------------------------------------------------------------------------
+# Check if Python SDK is installed and which compiler and linker flags are
+# required to embed Python.  Several techniques are used in an attempt to
+# determine the proper flags.  First, an attempt it made to query Python's
+# "distutils.sysconfig" module.  This should work for Python 2.x.  If that
+# fails, Python's "sys" module is queried to find the path of the Python
+# standard library.  Inside the library's "config" directory is a makefile
+# which can be parsed to glean the necessary flags.  If the Python executable
+# is not available, try locating the Python directories and Makefile manually.
+# As a last resort, if the environment variables PYTHON_INC and PYTHON_LIB are
+# set, then use those values.
+#------------------------------------------------------------------------------
+AC_CHECK_PROGS([PYTHON], [python])
+
+AS_IF([test -n "$PYTHON"],
+    [AC_CACHE_CHECK([for python distutils module], [cs_cv_python_distutils],
+	[AS_IF([AC_RUN_LOG([$PYTHON -c 'import distutils.sysconfig' 1>&2])],
+	    [cs_cv_python_distutils=yes], [cs_cv_python_distutils=no])])])
+
+AC_CACHE_CHECK([for python SDK], [cs_cv_python_sdk],
+    [cs_cv_python_sdk=no
+    cs_python_lib_dir=''
+    cs_python_makefile=''
+
+    AS_IF([test -n "$PYTHON"],
+	[# Python 2.x?
+	AS_IF([test $cs_cv_python_distutils = yes],
+	    [cs_cv_python_base=`AC_RUN_LOG([$PYTHON -c \
+		'import distutils.sysconfig ; import os.path ; \
+		print os.path.basename( \
+		    distutils.sysconfig.get_python_lib(0,1))'])`
+	    cs_cv_python_base_cflags=`AC_RUN_LOG([$PYTHON -c \
+		'import distutils.sysconfig ; \
+		print "-I"+distutils.sysconfig.get_python_inc()'])`
+	    cs_cv_python_base_lflags=`AC_RUN_LOG([$PYTHON -c \
+		'import distutils.sysconfig ; import os.path ; \
+		print "-L"+distutils.sysconfig.get_python_lib(0,1)+" "+ \
+		    "-L"+distutils.sysconfig.get_python_lib(0,1)+"/config"'])`
+	    cs_cv_python_base_libs=`AC_RUN_LOG([$PYTHON -c \
+		'import distutils.sysconfig ; \
+		print (distutils.sysconfig.get_config_var("LIBS") or "") + \
+		" " + (distutils.sysconfig.get_config_var("SYSLIBS") or "")'])`
+		CFLAGS="$CFLAGS $cs_cv_python_base_cflags"
+		LDFLAGS="$LFLAGS $cs_cv_python_base_lflags"
+		LIBS="$LIBS $cs_cv_python_base_libs -l$cs_cv_python_base"
+	    cs_cv_python_sdk=yes])])])
+
+OPENSYNC_PLUGINDIR=${libdir}/opensync/plugins
+AC_SUBST(OPENSYNC_PLUGINDIR)
+
+OPENSYNC_PYTHONPLG_DIR=${libdir}/opensync/python-plugins
+AC_SUBST(OPENSYNC_PYTHONPLG_DIR)
+
+AC_OUTPUT([Makefile])
