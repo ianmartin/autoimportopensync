@@ -149,9 +149,14 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 			osync_change_set_member(entry->change, view->client->member);
 			osengine_mapping_add_entry(mapping, entry);
 		} else {
+			osync_bool had_data = osync_change_has_data(entry->change);
 			osengine_mappingentry_update(entry, master->change);
 			if (osync_change_get_changetype(entry->change) == CHANGE_ADDED) {
 				osync_change_set_changetype(entry->change, CHANGE_MODIFIED);
+			}
+			
+			if (osync_member_get_slow_sync(view->client->member, osync_objtype_get_name(osync_change_get_objtype(entry->change))) && !had_data) {
+				osync_change_set_changetype(entry->change, CHANGE_ADDED);
 			}
 		}
 		if (osync_flag_is_set(view->client->fl_sent_changes)) {	
