@@ -222,8 +222,42 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 
 	doc = xmlNewDoc("1.0");
 	doc->children = xmlNewDocNode(doc, NULL, "syncgroup", NULL);
+	
+	//The filters
+	GList *f;
+	for (f = group->filters; f; f = f->next) {
+		printf("saving filters\n");
+		OSyncFilter *filter = f->data;
+		xmlNodePtr child = xmlNewChild(doc->children, NULL, "filter", NULL);
+		
+		if (filter->sourcememberid) {
+			char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
+			xmlNewChild(child, NULL, "sourcemember", sourcememberid);
+			g_free(sourcememberid);
+		}
+		if (filter->destmemberid) {
+			char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
+			xmlNewChild(child, NULL, "destmember", destmemberid);
+			g_free(destmemberid);
+		}
+		if (filter->sourceobjtype)
+			xmlNewChild(child, NULL, "sourceobjtype", filter->sourceobjtype);
+		if (filter->destobjtype)
+			xmlNewChild(child, NULL, "destobjtype", filter->destobjtype);
+		if (filter->detectobjtype)
+			xmlNewChild(child, NULL, "detectobjtype", filter->detectobjtype);
+		if (filter->action) {
+			char *action = g_strdup_printf("%i", filter->action);
+			xmlNewChild(child, NULL, "action", action);
+			g_free(action);
+		}
+		if (filter->function_name)
+			xmlNewChild(child, NULL, "function_name", filter->function_name);
+		if (filter->config)
+			xmlNewChild(child, NULL, "config", filter->config);
+	}
 
-	xmlNewChild(doc->children, NULL, "name", group->name);
+	xmlNewChild(doc->children, NULL, "groupname", group->name);
 
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
@@ -292,6 +326,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 
 	xmlDocPtr doc;
 	xmlNodePtr cur;
+	xmlNodePtr filternode;
 	
 	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
 		osync_group_free(group);
@@ -300,13 +335,71 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	}
 
 	while (cur != NULL) {
-		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-		if (!str)
-			continue;
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
-			group->name = g_strdup(str);
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
+			group->name = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
+			filternode = cur->xmlChildrenNode;
+			OSyncFilter *filter = osync_filter_new();
+			printf("Loading filter\n");
+			filter->group = group;
+			
+			while (filternode != NULL) {
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
+					filter->sourceobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
+					filter->destobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
+					filter->detectobjtype = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
+					filter->config = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					osync_filter_update_hook(filter, group, str);
+					xmlFree(str);
+				}
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					filter->sourcememberid = atoll(str);
+					xmlFree(str);
+				}
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					filter->destmemberid = atoll(str);
+					xmlFree(str);
+				}
+				
+				if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
+					char *str = xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					if (!str) {
+						filternode = filternode->next;
+						continue;
+					}
+					filter->action = atoi(str);
+					xmlFree(str);
+				}
+				filternode = filternode->next;
+			}
+			osync_filter_register(group, filter);
 		}
-		xmlFree(str);
 		cur = cur->next;
 	}
 	xmlFreeDoc(doc);

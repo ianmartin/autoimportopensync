@@ -271,8 +271,6 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
 	//The plugin name
 	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
-	//The filters
-	//FIXME
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);

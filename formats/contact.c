@@ -36,6 +36,12 @@ static void create_vcard(OSyncChange *change)
 		osync_change_set_uid(change, osync_rand_str(6));
 }
 
+static OSyncFilterAction vcard_categories_filter(OSyncChange *change, char *config)
+{
+	//Check what categories are supported here.
+	return OSYNC_FILTER_IGNORE;
+}
+
 void get_info(OSyncFormatEnv *env)
 {
 	osync_conv_register_objtype(env, "contact");
@@ -46,4 +52,6 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_register_data_detector(env, "plain", "vcard", detect_plain_as_vcard);
 
 	osync_conv_format_set_like(vcard, "plain", CONV_NOTLOSSY, CONV_DETECTFIRST);
+	
+	osync_conv_register_filter_function(env, "vcard_categories_filter", "contact", "vcard", vcard_categories_filter);
 }

@@ -1044,6 +1044,17 @@ void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *sourcefo
 	env->data_detectors = g_list_append(env->data_detectors, detector);
 }
 
+void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook)
+{
+	OSyncCustomFilter *function = g_malloc0(sizeof(OSyncCustomFilter));
+	g_assert(function);
+	function->name = g_strdup(name);
+	function->objtype = g_strdup(objtype);
+	function->format = g_strdup(format);
+	function->hook = hook;
+	
+	env->filter_functions = g_list_append(env->filter_functions, function);
+}
 
 #if 0
 osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size)

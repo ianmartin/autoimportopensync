@@ -32,3 +32,4 @@ OSyncObjType *osync_conv_nth_objtype(OSyncFormatEnv *env, int nth);
 int osync_conv_num_objformats(OSyncObjType *type);
 void osync_conv_env_free(OSyncFormatEnv *env);
 void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname);
+void osync_conv_register_filter_function(OSyncFormatEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook);

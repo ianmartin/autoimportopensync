@@ -7,7 +7,28 @@ void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
 	group->filters = g_list_append(group->filters, filter);
 }
 
-OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
+void osync_filter_update_hook(OSyncFilter *filter, OSyncGroup *group, const char *function_name)
+{
+	g_assert(filter);
+	g_assert(group);
+	g_assert(function_name);
+	
+	OSyncFilterFunction hook = NULL;
+	GList *f;
+	for (f = group->conv_env->filter_functions; f; f = f->next) {
+		OSyncCustomFilter *custom = f->data;
+		if (!strcmp(custom->name, function_name)) 
+			hook = custom->hook;
+	}
+	if (!hook) {
+		printf("Unable to add custom filter, hook not found!\n");
+		return;
+	}
+	filter->hook = hook;
+	filter->function_name = g_strdup(function_name);
+}
+
+OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action, const char *function_name)
 {
 	OSyncFilter *filter = osync_filter_new();
 	filter->group = group;
@@ -17,6 +38,10 @@ OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcemember
 	filter->destobjtype = g_strdup(destobjtype);
 	filter->detectobjtype = g_strdup(detectobjtype);
 	filter->action = action;
+	
+	if (function_name) {
+		osync_filter_update_hook(filter, group, function_name);
+	}
 	
 	osync_filter_register(group, filter);
 	return filter;
@@ -40,6 +65,19 @@ OSyncFilter *osync_filter_new(void)
 }
 
 
+void osync_filter_free(OSyncFilter *filter)
+{
+	g_assert(filter);
+	if (filter->sourceobjtype)
+		g_free(filter->sourceobjtype);
+	if (filter->destobjtype)
+		g_free(filter->destobjtype);
+	if (filter->detectobjtype)
+		g_free(filter->detectobjtype);
+	
+	g_free(filter);
+}
+
 /*! @brief Register a new filter
  * 
  * @param group For which group to register the filter
@@ -59,7 +97,7 @@ OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyn
 		sourcememberid = sourcemember->id;
 	if (destmember)
 		destmemberid = destmember->id;
-	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action);
+	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action, NULL);
 }
 
 void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
@@ -77,18 +115,27 @@ void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
  * @param hook The filter function to call to decide if to filter the object.
  * 
  */
-void osync_filter_add_complete(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterFunction hook)
+OSyncFilter *osync_filter_add_custom(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, const char *function_name)
 {
-	OSyncFilter *filter = osync_filter_new();
-	filter->group = group;
-	filter->sourcememberid = sourcememberid;
-	filter->destmemberid = destmemberid;
-	filter->sourceobjtype = g_strdup(sourceobjtype);
-	filter->destobjtype = g_strdup(destobjtype);
-	filter->detectobjtype = g_strdup(detectobjtype);
-	filter->hook = hook;
-	
-	osync_filter_register(group, filter);
+	long long int sourcememberid = 0;
+	long long int destmemberid = 0;
+	if (sourcemember)
+		sourcememberid = sourcemember->id;
+	if (destmember)
+		destmemberid = destmember->id;
+	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, OSYNC_FILTER_IGNORE, function_name);
+}
+
+void osync_filter_set_config(OSyncFilter *filter, const char *config)
+{
+	g_assert(filter);
+	filter->config = g_strdup(config);
+}
+
+const char *osync_filter_get_config(OSyncFilter *filter)
+{
+	g_assert(filter);
+	return filter->config;
 }
 
 GList *_osync_filter_find(OSyncMember *member)
@@ -133,7 +180,7 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 		return filter->action;
 	
 	//What exactly do we need to pass to the hook?
-	return filter->hook(change->member, change);		
+	return filter->hook(change, filter->config);		
 }
 
 osync_bool osync_filter_change_allowed(OSyncMember *destmember, OSyncChange *change)
