@@ -130,8 +130,13 @@ OSyncObjType *osync_change_get_objtype(OSyncChange *change)
 	if (change->objtype)
 		return change->objtype;
 	
-	if (!change->objtype_name)
-		return NULL;
+	if (!change->objtype_name) {
+		OSyncObjFormat *format = osync_change_get_objformat(change);
+		if (!format)
+			return NULL;
+		change->objtype = format->objtype;
+		return format->objtype;
+	}
 
 	change->objtype = osync_conv_find_objtype(change->member->group->conv_env, change->objtype_name);
 	return change->objtype;
