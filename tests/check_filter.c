@@ -225,6 +225,39 @@ START_TEST (filter_sync_vcard_only)
 }
 END_TEST
 
+START_TEST(filter_destobjtype_delete)
+{
+	/* Check if the destobjtype of the changes is being
+	 * set when the change type os DELETE */
+	char *testbed = setup_testbed("destobjtype_delete");
+	OSyncEnv *osync = osync_env_new();
+	osync_env_initialize(osync, NULL);
+	mark_point();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	mark_point();
+	
+	mark_point();
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	mark_point();
+	fail_unless(engine != NULL, NULL);
+	fail_unless(osync_engine_init(engine, &error), NULL);
+	synchronize_once(engine);
+	mark_point();
+
+	/* Synchronize once, delete a file, and synchronize again */
+
+	fail_unless(!system("rm data1/file"), NULL);
+
+	synchronize_once(engine);
+	mark_point();
+	osync_engine_finalize(engine);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 /*int num_read;
 
 START_TEST (filter_sync_read_only)
@@ -273,6 +306,7 @@ Suite *filter_suite(void)
 	tcase_add_test(tc_filter, filter_sync_custom);
 	tcase_add_test(tc_filter, filter_save_and_load);
 	tcase_add_test(tc_filter, filter_sync_vcard_only);
+	tcase_add_test(tc_filter, filter_destobjtype_delete);
 	
 	return s;
 }
