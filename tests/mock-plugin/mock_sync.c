@@ -52,7 +52,6 @@ static void *mock_initialize(OSyncMember *member, OSyncError **error)
 	}
 
 	char *configdata;
-	int configsize;
 	if (!osync_member_get_config(member, &configdata, NULL, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -86,7 +85,7 @@ static void mock_connect(OSyncContext *ctx)
 	OSyncError *error = NULL;
 	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
 		osync_context_report_osyncerror(ctx, &error);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 		osync_error_free(&error);
 		return;
 	}
@@ -108,9 +107,9 @@ static void mock_connect(OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static char *mock_generate_hash(mock_fileinfo *info)
+static char *mock_generate_hash(struct stat *buf)
 {
-	char *hash = g_strdup_printf("%i-%i", (int)info->filestats.st_mtime, (int)info->filestats.st_ctime);
+	char *hash = g_strdup_printf("%i-%i", (int)buf->st_mtime, (int)buf->st_ctime);
 	return hash;
 }
 
@@ -138,7 +137,7 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 	
 	dir = g_dir_open(env->path, 0, &gerror);
 	if (!dir) {
-		osync_trace(TRACE_EXIT_ERROR, "mock_report_dir: Unable to open directory %s: %s", path, gerror ? gerror->message : "None");
+		osync_trace(TRACE_EXIT_ERROR, "mock_report_dir: Unable to open directory %s: %s", env->path, gerror ? gerror->message : "None");
 		return;
 	}
 	while ((de = g_dir_read_name(dir))) {
@@ -151,23 +150,24 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 
 			osync_change_set_objformat_string(change, "file");
 			
-			mock_fileinfo *info = g_malloc0(sizeof(mock_fileinfo));
-			
 			struct stat buf;
 			stat(filename, &buf);
 			char *hash = mock_generate_hash(&buf);
 			osync_change_set_hash(change, hash);
 			
 			if (mock_get_error(env->member, "ONLY_INFO")) {
-				osync_change_set_data(change, (char *)info, sizeof(mock_fileinfo), FALSE);			
+				osync_change_set_data(change, NULL, 0, FALSE);			
 			} else {
-				if (!osync_file_read(filename, &info->data, &info->size, &error)) {
+				char *data = NULL;
+				int size = 0;
+				OSyncError *error = NULL;
+				if (!osync_file_read(filename, &data, &size, &error)) {
 					osync_context_report_osyncerror(ctx, &error);
 					g_free(filename);
 					return;
 				}
 				
-				osync_change_set_data(change, (char *)file_info, sizeof(mock_fileinfo), TRUE);
+				osync_change_set_data(change, data, size, TRUE);
 			}
 			
 			if (osync_hashtable_detect_change(env->hashtable, change)) {
@@ -185,8 +185,7 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 static void mock_get_data(OSyncContext *ctx, OSyncChange *change)
 {
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
-	mock_fileinfo *file_info = (mock_fileinfo *)osync_change_get_data(change);
-	
+
 	if (mock_get_error(env->member, "GET_DATA_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_DATA_ERROR error");
 		return;
@@ -195,14 +194,16 @@ static void mock_get_data(OSyncContext *ctx, OSyncChange *change)
 		return;
 
 	char *filename = g_strdup_printf("%s/%s", env->path, osync_change_get_uid(change));
+	char *data = NULL;
+	int size = 0;
 	OSyncError *error = NULL;
-	if (!osync_file_read(filename, &file_info->data, &file_info->size, &error)) {
+	if (!osync_file_read(filename, &data, &size, &error)) {
 		osync_context_report_osyncerror(ctx, &error);
 		g_free(filename);
 		return;
 	}
 	
-	osync_change_set_data(change, (char *)file_info, sizeof(mock_fileinfo), TRUE);
+	osync_change_set_data(change, data, size, TRUE);
 	g_free(filename);
 	
 	osync_context_report_success(ctx);
@@ -213,18 +214,17 @@ static void mock_read(OSyncContext *ctx, OSyncChange *change)
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
 	char *filename = g_strdup_printf("%s/%s", env->path, osync_change_get_uid(change));
-
-	mock_fileinfo *info = g_malloc0(sizeof(mock_fileinfo));
-	stat(filename, &info->filestats);
 	
+	char *data = NULL;
+	int size = 0;
 	OSyncError *error = NULL;
-	if (!osync_file_read(filename, &info->data, &info->size, &error)) {
+	if (!osync_file_read(filename, &data, &size, &error)) {
 		osync_context_report_osyncerror(ctx, &error);
 		g_free(filename);
 		return;
 	}
-		
-	osync_change_set_data(change, (char *)info, sizeof(mock_fileinfo), TRUE);
+	
+	osync_change_set_data(change, data, size, TRUE);
 
 	g_free(filename);
 	
@@ -236,8 +236,7 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 	/*TODO: Create directory for file, if it doesn't exist */
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
-	mock_fileinfo *file_info = (mock_fileinfo *)osync_change_get_data(change);
-
+	
 	char *filename = NULL;
 	OSyncError *error = NULL;
 	filename = g_strdup_printf ("%s/%s", env->path, osync_change_get_uid(change));
@@ -261,14 +260,17 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 			/* No break. Continue below */
 		case CHANGE_MODIFIED:
 			//FIXME add permission and ownership for file-sync
-			if (!osync_file_write(filename, file_info->data, file_info->size, 0700, &error)) {
+			if (!osync_file_write(filename, osync_change_get_data(change), osync_change_get_datasize(change), 0700, &error)) {
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
 				osync_context_report_osyncerror(ctx, &error);
 				g_free(filename);
 				return FALSE;
 			}
-			stat(filename, &file_info->filestats);
-			osync_change_set_hash(change, mock_generate_hash(file_info));
+			
+			struct stat buf;
+			stat(filename, &buf);
+			char *hash = mock_generate_hash(&buf);
+			osync_change_set_hash(change, hash);
 			break;
 		default:
 			osync_debug("FILE-SYNC", 0, "Unknown change type");

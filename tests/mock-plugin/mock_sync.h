@@ -8,9 +8,9 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-typedef struct mockenv {
+typedef struct mock_env {
         char *path;
         OSyncMember *member;
         GDir *dir;
         OSyncHashTable *hashtable;
-} filesyncinfo;
+} mock_env;
