@@ -29,21 +29,27 @@ SOFTWARE IS DISCLAIMED.
 #include <kstandarddirs.h>
 #include <kio/netaccess.h>
 #include <klocale.h>
+#include <kapplication.h>
+#include <qmap.h>
+#include "KNotesIface.h"
+#include "KNotesIface_stub.h"
+#include <stdio.h>
+#include <qtimer.h>
+#include <dcopclient.h>
+#include <qstring.h>
+#include <qstringlist.h>
 
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
+typedef QString KNoteID_t;
+
 extern "C"
 {
 #include <opensync/opensync.h>
 #include <opensync/opensync-xml.h>
-}
-
-// Forward declaration
-namespace KCal {
-    class CalendarLocal;
 }
 
 /** KNotes access implementation interface
@@ -52,9 +58,10 @@ class KNotesDataSource
 {
     private:
         OSyncMember *member;
-		KNotesIface_stub *fKNotes;
-		DCOPClient *kn_dcop
-		KNotesIface_stub kn_iface;
+        OSyncHashTable *hashtable;
+        
+		DCOPClient *kn_dcop;
+		KNotesIface_stub *kn_iface;
 		
         /** Ugly hack to restart KNotes if it
          * was running

@@ -24,14 +24,9 @@ SOFTWARE IS DISCLAIMED.
  * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
  */
 
-extern "C"
-{
-#include <opensync/opensync.h>
-}
 
-#include <kabc/stdaddressbook.h>
-#include <kabc/vcardconverter.h>
-#include <kabc/resource.h>
+
+
 #include <libkcal/resourcecalendar.h>
 #include <kinstance.h>
 #include <klocale.h>
@@ -50,41 +45,15 @@ extern "C"
 #include "kcal.h"
 #include "knotes.h"
 
-
-/*TODO: check why/if the function below is necessary */
-static
-void unfold_vcard(char *vcard, size_t *size)
-{
-    char* in  = vcard;
-    char* out = vcard;
-    char *end = vcard + *size;
-    while ( in < end)
-    {
-        /* remove any occurrences of "=[CR][LF]"                */
-        /* these denote folded line markers in VCARD format.    */
-        /* Dont know why, but Evolution uses the leading "="    */
-        /* character to (presumably) denote a control sequence. */
-        /* This is not quite how I interpret the VCARD RFC2426  */
-        /* spec (section 2.6 line delimiting and folding).      */
-        /* This seems to work though, so thats the main thing!  */
-        if (in[0]=='=' && in[1]==13 && in[2]==10)
-            in+=3;
-        else
-            *out++ = *in++;
-    }
-    *size = out - vcard;
-}
-
 class KdePluginImplementation: public KdePluginImplementationBase
 {
     private:
-        KABC::AddressBook* addressbookptr;   
-
         KCalDataSource *kcal;
         KNotesDataSource *knotes;
-
-        OSyncMember *member;
+        KContactDataSource *kaddrbook;
+        
         OSyncHashTable *hashtable;
+        OSyncMember *member;
 
         KApplication *application;
 
@@ -99,10 +68,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
             //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
 
             KAboutData aboutData(
-                       "opensync-kdepim-plugin",                        // internal program name
-                       I18N_NOOP( "OpenSync-KDE-plugin"),        // displayable program name.
+                       "libopensync-kdepim-plugin",                        // internal program name
+                       "OpenSync-KDE-plugin",        // displayable program name.
                        "0.1",                           // version string
-                       I18N_NOOP( "OpenSync KDEPIM plugin" ),           // short porgram description
+                       "OpenSync KDEPIM plugin",           // short porgram description
                        KAboutData::License_GPL,         // license type
                        "(c) 2005, Eduardo Pereira Habkost", // copyright statement
                        0,                               // any free form text
@@ -113,13 +82,11 @@ class KdePluginImplementation: public KdePluginImplementationBase
             KCmdLineArgs::init(&aboutData);
             application = new KApplication();
 
-            //get a handle to the standard KDE addressbook
-            addressbookptr = KABC::StdAddressBook::self();
-
-            hashtable = osync_hashtable_new();
+			hashtable = osync_hashtable_new();
 
             kcal = new KCalDataSource(member, hashtable);
             knotes = new KNotesDataSource(member, hashtable);
+            kaddrbook = new KContactDataSource(member, hashtable);
 
             return true;
         }
@@ -130,35 +97,89 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 delete kcal;
                 kcal = NULL;
             }
+            
             if (knotes) {
                 delete knotes;
                 knotes = NULL;
             }
+            
             if (application) {
                 delete application;
                 application = NULL;
             }
+            
             if (hashtable)
             	osync_hashtable_free(hashtable);
         }
 
+        virtual void connect(OSyncContext *ctx)
+        {
+			if (kcal && !kcal->connect(ctx))
+				return;
+			
+			if (knotes && !knotes->connect(ctx))
+				return;
+			
+			if (kaddrbook && !kaddrbook->connect(ctx))
+				return;
+			
+			osync_context_report_success(ctx);
+        }
+        
+        virtual void disconnect(OSyncContext *ctx)
+        {
+        	osync_hashtable_close(hashtable);
+
+			if (kcal && !kcal->disconnect(ctx))
+				return;
+			if (knotes && !knotes->disconnect(ctx))
+				return;
+			if (kaddrbook && !kaddrbook->disconnect(ctx))
+				return;
+			
+			osync_context_report_success(ctx);
+        }
+
+		virtual void get_changeinfo(OSyncContext *ctx)
+		{
+			if (!kaddrbook && !kaddrbook->contact_get_changeinfo(ctx))
+				return;
+			
+			if (kcal && !kcal->get_changeinfo_events(ctx))
+				return;
+			
+			if (kcal && !kcal->get_changeinfo_todos(ctx))
+				return;
+			
+			if (knotes && !knotes->get_changeinfo(ctx))
+				return;
+			
+			osync_context_report_success(ctx);
+		}
+
         virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg)
         {
-            if (__vcard_access(ctx, chg) < 0)
-                return false;
-            osync_context_report_success(ctx);
-            /*FIXME: What should be returned? */
-            return true;
+			if (kaddrbook)
+				return kaddrbook->vcard_access(ctx, chg);
+			else {
+				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
+				return false;
+			}
+			return true;
         }
 
         virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg)
         {
-            if ( __vcard_access(ctx, chg) < 0)
-                return false;
-            osync_hashtable_update_hash(hashtable, chg);
-            osync_context_report_success(ctx);
-            /*FIXME: What should be returned? */
-            return true;
+			if (kaddrbook)
+				if (kaddrbook->vcard_access(ctx, chg))
+            		osync_hashtable_update_hash(hashtable, chg);
+            	else
+            		return FALSE;
+			else {
+				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
+				return false;
+			}
+			return true;
         }
 
         virtual bool event_access(OSyncContext *ctx, OSyncChange *chg)
