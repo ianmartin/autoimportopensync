@@ -7,7 +7,8 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 EXTRA_DIST = \
 		e-vcard.h \
-		opensync-xml.h
+		opensync-xml.h \
+		xml-vcard.h
 
 opensyncheader_HEADERS = opensync-xml.h
 

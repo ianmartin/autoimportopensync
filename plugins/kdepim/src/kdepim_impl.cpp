@@ -383,7 +383,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
                     // convert VCARD string from obj->comp into an Addresse object
                     // KABC::VCardConverter doesnt do VCARD unfolding so we must do it ourselves first.
                     unfold_vcard(data, &data_size);
-                    KABC::Addressee addressee = converter.parseVCard(QString::fromLocal8Bit(data, data_size));
+                    KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
 
                     QString hash = calc_hash(addressee);
 
