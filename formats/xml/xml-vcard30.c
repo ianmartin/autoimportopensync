@@ -8,98 +8,299 @@ static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
 	if (!values)
 		return NULL;
 	ret = g_list_nth_data(values, nth);
-	g_list_free(values);
+	//g_list_free(values);
 	return ret;
 }
 
 static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
 {
-	const char *ret = NULL;
-	GList *values = e_vcard_attribute_get_values(attr);
+	GList *values = e_vcard_attribute_get_values_decoded(attr);
 	if (!values)
 		return NULL;
-	ret = g_list_nth_data(values, nth);
-	//g_list_free(values);
-	return ret;
+	GString *retstr = (GString *)g_list_nth_data(values, nth);
+	if (!retstr)
+		return NULL;
+	return retstr->str;
 }
 
-static osync_bool conv_vcard30_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
 {
-	osync_debug("VCARD30", 4, "start: %s", __func__);
-	printf("input is %i\n%s\n", inpsize, input);
+	OSyncXMLEncoding encoding;
+	memset(&encoding, 0, sizeof(encoding));
+	
+	encoding.charset = OSXML_UTF8;
+	encoding.encoding = OSXML_8BIT;
+	
+	GList *params = e_vcard_attribute_get_params(attr);
+	GList *p;
+	for (p = params; p; p = p->next) {
+		EVCardAttributeParam *param = p->data;
+		if (!strcmp("ENCODING", e_vcard_attribute_param_get_name(param))) {
+			if (!g_ascii_strcasecmp(property_get_nth_value(param, 0), "b"))
+				encoding.encoding = OSXML_BASE64;
+		}
+	}
+	return encoding;
+}
+
+static osync_bool conv_vcard_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_debug("VCARD", 4, "start: %s", __func__);
+	//printf("input is %i\n%s\n", inpsize, input);
 	GList *p = NULL;
 	GList *a = NULL;
+	OSyncXMLEncoding encoding;
 	
 	g_type_init();
 	EVCard *vcard = e_vcard_new_from_string(input);
+
 	GList *attributes = e_vcard_get_attributes(vcard);
-	OSyncXML *xml = osxml_format_new();
-	OSyncXMLNode *root = osxml_node_add_root(xml, "contact");
+	xmlDoc *doc = xmlNewDoc("1.0");
+	xmlNode *root = osxml_node_add_root(doc, "contact");
 	
 	for (a = attributes; a; a = a->next) {
 		EVCardAttribute *attr = a->data;
+		encoding = property_to_xml_encoding(attr);
 		const char *name = e_vcard_attribute_get_name(attr);
 
-		//Name
-		if (!strcmp(name, "N")) {
-			OSyncXMLNode *name = osxml_node_add(root, "Name", NULL);
-			osxml_node_add(name, "LastName", attribute_get_nth_value(attr, 0));
-			osxml_node_add(name, "FirstName", attribute_get_nth_value(attr, 1));
+		if (!strcmp(name, "VERSION"))
 			continue;
+		
+		if (!strcmp(name, "BEGIN")) {
+			root = osxml_node_add_root(doc, "contact");
+			continue;
+		}
+		
+		//printf("Processing node %s\n", name);
+		xmlNode *current = xmlNewChild(root, NULL, "test", NULL);
+
+		GList *params = e_vcard_attribute_get_params(attr);
+		for (p = params; p; p = p->next) {
+			EVCardAttributeParam *param = p->data;
+			
+			//printf("Processing property %s=%s\n", e_vcard_attribute_param_get_name(param), property_get_nth_value(param, 0));
+			
+			const char *propname = property_get_nth_value(param, 0);
+			if (propname) {
+				if (!strcmp(propname, "QUOTED-PRINTABLE"))
+					continue;
+				
+				//const char *content = property_get_nth_value(param, 0);
+				if (!strcmp(propname, "WORK"))
+					osxml_node_add(current, "Location", "Work", encoding);
+				else if (!strcmp(propname, "HOME"))
+					osxml_node_add(current, "Location", "Home", encoding);
+				else if (!strcmp(propname, "POSTAL"))
+					osxml_node_add(current, "Type", "Postal", encoding);
+				else if (!strcmp(propname, "PARCEL"))
+					osxml_node_add(current, "Type", "Parcel", encoding);
+				else if (!strcmp(propname, "DOM"))
+					osxml_node_add(current, "Range", "Domestic", encoding);
+				else if (!strcmp(propname, "INTL"))
+					osxml_node_add(current, "Range", "International", encoding);
+				else if (!strcmp(propname, "PREF"))
+					osxml_node_add_property(current, "Order", "1");
+				else if (!strcmp(propname, "VOICE"))
+					osxml_node_add(current, "Type", "Voice", encoding);
+				else if (!strcmp(propname, "FAX"))
+					osxml_node_add(current, "Type", "Fax", encoding);
+				else if (!strcmp(propname, "MSG"))
+					osxml_node_add(current, "Type", "Message", encoding);
+				else if (!strcmp(propname, "CELL"))
+					osxml_node_add(current, "Type", "Cellular", encoding);
+				else if (!strcmp(propname, "PAGER"))
+					osxml_node_add(current, "Type", "Pager", encoding);
+				else if (!strcmp(propname, "BBS"))
+					osxml_node_add(current, "Type", "BulletinBoard", encoding);
+				else if (!strcmp(propname, "MODEM"))
+					osxml_node_add(current, "Type", "Modem", encoding);
+				else if (!strcmp(propname, "CAR"))
+					osxml_node_add(current, "Location", "Car", encoding);
+				else if (!strcmp(propname, "ISDN"))
+					osxml_node_add(current, "Type", "ISDN", encoding);
+				else if (!strcmp(propname, "VIDEO"))
+					osxml_node_add(current, "Type", "Video", encoding);
+				else if (!strcmp(propname, "INTERNET"))
+					osxml_node_add(current, "Type", "Internet", encoding);
+				else if (!strcmp(propname, "X509"))
+					osxml_node_add(current, "Type", "X509", encoding);
+				else if (!strcmp(propname, "PGP"))
+					osxml_node_add(current, "Type", "PGP", encoding);
+				else {
+					printf("unknown property\n");
+					xmlNode *property = osxml_node_add(current, propname, NULL, encoding);
+					osxml_node_add_property(property, "Type", "Property");
+					osxml_node_mark_unknown(current);
+				}
+				/*if (content)
+					g_free(content);
+				g_free(propname);*/
+			}
 		}
 		
 		//FullName
 		if (!strcmp(name, "FN")) {
-			osxml_node_add(root, "FullName", attribute_get_nth_value(attr, 0));
+			osxml_node_set(current, "FullName", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+
+		//Name
+		if (!strcmp(name, "N")) {
+			osxml_node_set(current, "Name", NULL, encoding);
+			osxml_node_add(current, "LastName", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_add(current, "FirstName", attribute_get_nth_value(attr, 1), encoding);
+			osxml_node_add(current, "Additional", attribute_get_nth_value(attr, 2), encoding);
+			osxml_node_add(current, "Prefix", attribute_get_nth_value(attr, 3), encoding);
+			osxml_node_add(current, "Suffix", attribute_get_nth_value(attr, 4), encoding);
+			continue;
+		}
+		
+		//Photo
+		if (!strcmp(name, "PHOTO")) {
+			printf("Photo not supported yet\n");
+			continue;
+		}
+		
+		//Birthday
+		if (!strcmp(name, "BDAY")) {
+			osxml_node_set(current, "Birthday", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Address
+		if (!strcmp(name, "ADR")) {
+			osxml_node_set(current, "Address", NULL, encoding);
+			osxml_node_add(current, "PostalBox", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_add(current, "ExtendedAddress", attribute_get_nth_value(attr, 1), encoding);
+			osxml_node_add(current, "Street", attribute_get_nth_value(attr, 2), encoding);
+			osxml_node_add(current, "City", attribute_get_nth_value(attr, 3), encoding);
+			osxml_node_add(current, "Region", attribute_get_nth_value(attr, 4), encoding);
+			osxml_node_add(current, "PostalCode", attribute_get_nth_value(attr, 5), encoding);
+			osxml_node_add(current, "Country", attribute_get_nth_value(attr, 6), encoding);
+			continue;
+		}
+		
+		//Address Labeling
+		if (!strcmp(name, "LABEL")) {
+			osxml_node_set(current, "AddressLabel", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Telephone
+		if (!strcmp(name, "TEL")) {
+			osxml_node_set(current, "Telephone", attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//EMail
 		if (!strcmp(name, "EMAIL")) {
-			OSyncXMLNode *email = osxml_node_add(root, "EMail", attribute_get_nth_value(attr, 0));
-			GList *params = e_vcard_attribute_get_params(attr);
-			for (p = params; p; p = p->next) {
-				EVCardAttributeParam *param = p->data;
-				if (!strcmp(property_get_nth_value(param, 0), "INTERNET"))
-					osxml_node_add_property(email, "Internet", "Type");
-			}
+			osxml_node_set(current, "EMail", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Mailer
+		if (!strcmp(name, "MAILER")) {
+			osxml_node_set(current, "Mailer", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Timezone
+		if (!strcmp(name, "TZ")) {
+			osxml_node_set(current, "Timezone", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Location
+		if (!strcmp(name, "GEO")) {
+			osxml_node_set(current, "Location", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Title
+		if (!strcmp(name, "TITLE")) {
+			osxml_node_set(current, "Title", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Role
+		if (!strcmp(name, "ROLE")) {
+			osxml_node_set(current, "Role", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Logo
+		if (!strcmp(name, "LOGO")) {
+			printf("Logo is not supported yet\n");
 			continue;
 		}
 		
 		//Company
 		if (!strcmp(name, "ORG")) {
-			OSyncXMLNode *name = osxml_node_add(root, "Organization", NULL);
-			osxml_node_add(name, "Name", attribute_get_nth_value(attr, 0));
+			osxml_node_set(current, "Organization", NULL, encoding);
+			osxml_node_add(current, "Name", attribute_get_nth_value(attr, 0), encoding);
+			osxml_node_add(current, "Unit", attribute_get_nth_value(attr, 1), encoding);
+			continue;
+		}
+		
+		//Note
+		if (!strcmp(name, "NOTE")) {
+			osxml_node_set(current, "Note", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Revision
+		if (!strcmp(name, "REV")) {
+			osxml_node_set(current, "Revision", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Sound
+		if (!strcmp(name, "SOUND")) {
+			printf("Sound is not supported yet\n");
+			continue;
+		}
+		
+		//Url
+		if (!strcmp(name, "URL")) {
+			osxml_node_set(current, "Url", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Uid
+		if (!strcmp(name, "UID")) {
+			osxml_node_set(current, "Uid", attribute_get_nth_value(attr, 0), encoding);
+			continue;
+		}
+		
+		//Public Key
+		if (!strcmp(name, "KEY")) {
+			osxml_node_set(current, "Key", attribute_get_nth_value(attr, 0), encoding);
 			continue;
 		}
 		
 		//Unknown tag.
-		if (!strcmp(name, "VERSION"))
-			continue;
-		
+		osxml_node_mark_unknown(current);
+		printf("unknown attribute\n");
 		GList *values = e_vcard_attribute_get_values(attr);
 		GString *string = g_string_new(attribute_get_nth_value(attr, 0));
 		for (p = values->next; p; p = p->next) {
 			g_string_sprintfa(string, ";%s", (char *)p->data);
 		}
-		OSyncXMLNode *unknown = osxml_node_add(root, "Unknown", string->str);
+		osxml_node_set(current, name, string->str, encoding);
 		g_string_free(string, 1);
 		
-		values = e_vcard_attribute_get_params(attr);
+		/*values = e_vcard_attribute_get_params(attr);
 		for (p = values; p; p = p->next) {
 			EVCardAttributeParam *param = p->data;
 			if (!strcmp(e_vcard_attribute_param_get_name(param), "TYPE"))
 				osxml_node_add_property(unknown, property_get_nth_value(param, 0), "Type");
-		}
-		
-		osxml_node_add_property(unknown, "Name", name);
-		//if ((prop = isAPropertyOfO(v, "ORGNAME")))
-		//	osxml_node_add(org, "Name", fakeCStringO(vObjectUStringZValueO(prop)));
-		//continue;
+		}*/
 	}
-
-	osxml_format_dump(xml, output, outpsize);
-	printf("xml string is: %s\n", *output);
+	
+	*output = (char *)doc;
+	*outpsize = sizeof(doc);
+	//osxml_format_dump(xml, output, outpsize);
+	//printf("\noutput:\n%s\n", *output);
 	return TRUE;
 }
 
@@ -112,54 +313,282 @@ static void add_parameter(EVCardAttribute *attr, const char *name, const char *d
 		e_vcard_attribute_add_param(attr, param);
 }
 
-static osync_bool conv_xml_to_vcard30(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
+{
+	int i = 0;
+	if (!strcmp(encoding, "QUOTED-PRINTABLE")) {
+		while (tmp[i] != 0) {
+			if (tmp[i] > 127 || tmp[i] == 10 || tmp[i] == 13)
+				return TRUE;
+			i++;
+		}
+	} else {
+		return !g_utf8_validate(tmp, -1, NULL);
+	}
+	return FALSE;
+}
+
+static osync_bool needs_charset(const unsigned char *tmp)
+{
+	int i = 0;
+	while (tmp[i] != 0) {
+		if (tmp[i] > 127)
+			return TRUE;
+		i++;
+	}
+	return FALSE;
+}
+
+static osync_bool has_param(EVCardAttribute *attr, const char *name)
+{
+	GList *params = e_vcard_attribute_get_params(attr);
+	GList *p;
+	for (p = params; p; p = p->next) {
+		EVCardAttributeParam *param = p->data;
+		if (!strcmp(name, e_vcard_attribute_param_get_name(param)))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
+{
+	char *tmp = osxml_find_node(parent, name);
+	if (!tmp)
+		return;
+	
+	if (needs_charset(tmp))
+		if (!has_param (attr, "CHARSET"))
+			add_parameter(attr, "CHARSET", "UTF-8");
+	
+	if (needs_encoding(tmp, encoding)) {
+		if (!has_param (attr, "ENCODING"))
+			add_parameter(attr, "ENCODING", encoding);
+		e_vcard_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
+	} else
+		e_vcard_attribute_add_value(attr, tmp);
+	g_free(tmp);
+}
+
+static osync_bool conv_xml_to_vcard(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error, int target)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
-	printf("input is %i\n%s\n", inpsize, input);
+	EVCardAttribute *attr = NULL;
+	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
+	if (!root)
+		return FALSE;
 	
-	xmlNode *root = osxml_format_parse(input, inpsize, "contact");
+	printf("We have to following unknown nodes:\n");
+	xmlXPathObject *object = osxml_get_unknown_nodes(root->doc);
+	xmlNodeSet *nodes = object->nodesetval;
+	
+	int size = (nodes) ? nodes->nodeNr : 0;
+	
+	printf("found %i nodes\n", size);
+	
+	int i;
+	for(i = 0; i < size; i++) {
+		g_assert(nodes->nodeTab[i]);
+		printf("found node %s\n", nodes->nodeTab[i]->name);
+	}
+	
+	printf("done searching\n");
 	
 	g_type_init();
 	EVCard *vcard = e_vcard_new();
 	
+	const char *std_encoding = NULL;
+	if (target == EVC_FORMAT_VCARD_21)
+		std_encoding = "QUOTED-PRINTABLE";
+	else
+		std_encoding = "B";
+		
 	while (root) {
-		char *str = xmlNodeGetContent(root);
-		if (str) {
-			if (!xmlStrcmp(root->name, (const xmlChar *)"Name")) {
-				//Decode Name
-				EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_N);
-				e_vcard_attribute_add_value(attr, osxml_find_node(root, "FirstName"));
-				e_vcard_attribute_add_value(attr, osxml_find_node(root, "LastName"));
-				e_vcard_add_attribute(vcard, attr);
-			}
-			if (!xmlStrcmp(root->name, (const xmlChar *)"Org")) {
-				printf("%s\n", str);
-			}
-			if (!xmlStrcmp(root->name, (const xmlChar *)"FullName")) {
-				EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_FN);
-				e_vcard_add_attribute_with_value(vcard, attr, str);
-			}
-			if (!xmlStrcmp(root->name, (const xmlChar *)"EMail")) {
-				//Decode Name
-				EVCardAttribute *attr = e_vcard_attribute_new(NULL, EVC_EMAIL);
-				if (osxml_has_property(root, "Internet"))
-					add_parameter(attr, "TYPE", "INTERNET");
-				e_vcard_add_attribute_with_value(vcard, attr, str);
+		if (!strcmp(root->name, "Fullname")) {
+			//FullName
+			attr = e_vcard_attribute_new(NULL, EVC_FN);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Name")) {
+			//Name
+			attr = e_vcard_attribute_new(NULL, EVC_N);
+			add_value(attr, root, "FirstName", std_encoding);
+			add_value(attr, root, "LastName", std_encoding);
+			add_value(attr, root, "Additional", std_encoding);
+			add_value(attr, root, "Prefix", std_encoding);
+			add_value(attr, root, "Suffix", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Photo")) {
+			//Photo
+			printf("Photo not supported yet\n");
+		} else if (!strcmp(root->name, "Birthday")) {
+			//Birthday
+			attr = e_vcard_attribute_new(NULL, EVC_BDAY);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Address")) {
+			//Address
+			attr = e_vcard_attribute_new(NULL, EVC_ADR);
+			add_value(attr, root, "PostalBox", std_encoding);
+			add_value(attr, root, "ExtendedAddress", std_encoding);
+			add_value(attr, root, "Street", std_encoding);
+			add_value(attr, root, "City", std_encoding);
+			add_value(attr, root, "Region", std_encoding);
+			add_value(attr, root, "PostalCode", std_encoding);
+			add_value(attr, root, "Country", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "AddressLabel")) {
+			//Address Labeling
+			attr = e_vcard_attribute_new(NULL, EVC_LABEL);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Telephone")) {
+			//Telephone
+			attr = e_vcard_attribute_new(NULL, EVC_TEL);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "EMail")) {
+			//EMail
+			attr = e_vcard_attribute_new(NULL, EVC_EMAIL);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Mailer")) {
+			//Mailer
+			attr = e_vcard_attribute_new(NULL, EVC_MAILER);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Timezone")) {
+			//Timezone
+			attr = e_vcard_attribute_new(NULL, "TZ");
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Location")) {
+			//Location
+			attr = e_vcard_attribute_new(NULL, "GEO");
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Title")) {
+			//Title
+			attr = e_vcard_attribute_new(NULL, EVC_TITLE);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Role")) {
+			//Role
+			attr = e_vcard_attribute_new(NULL, EVC_ROLE);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Logo")) {
+			//Logo
+			printf("Logo is not supported yet\n");
+		} else if (!strcmp(root->name, "Organization")) {
+			//Company
+			attr = e_vcard_attribute_new(NULL, EVC_ORG);
+			add_value(attr, root, "Name", std_encoding);
+			add_value(attr, root, "Unit", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Note")) {
+			//Note
+			attr = e_vcard_attribute_new(NULL, EVC_NOTE);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Revision")) {
+			//Revision
+			attr = e_vcard_attribute_new(NULL, EVC_REV);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Sound")) {
+			//Sound
+			printf("Sound is not supported yet\n");
+		} else if (!strcmp(root->name, "Url")) {
+			//Url
+			attr = e_vcard_attribute_new(NULL, EVC_URL);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Uid")) {
+			//Uid
+			attr = e_vcard_attribute_new(NULL, EVC_UID);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		} else if (!strcmp(root->name, "Key")) {
+			//Public Key
+			attr = e_vcard_attribute_new(NULL, EVC_KEY);
+			add_value(attr, root, "Content", std_encoding);
+			e_vcard_add_attribute(vcard, attr);
+		}
+		
+		/*
+		//Unknown tags
+		attr = e_vcard_attribute_new(NULL, root->name);
+		e_vcard_add_attribute_with_value(vcard, attr, str);*/
+		
+		xmlNode *child = root->xmlChildrenNode;;
+		while (child) {
+			char *content = xmlNodeGetContent(child);
+			if (!content) {
+				child = child->next;
+				continue;
 			}
 			
-			//Unknown tags
-			if (!xmlStrcmp(root->name, (const xmlChar *)"Unknown")) {
-				EVCardAttribute *attr = e_vcard_attribute_new(NULL, osxml_find_property(root, "Name"));
-				e_vcard_add_attribute_with_value(vcard, attr, str);
-			}
-			xmlFree(str);
+			if (!strcmp(content, "Work"))
+				add_parameter(attr, "TYPE", "WORK");
+			if (!strcmp(content, "Home"))
+				add_parameter(attr, "TYPE", "HOME");
+			if (!strcmp(content, "Postal"))
+				add_parameter(attr, "TYPE", "POSTAL");
+			if (!strcmp(content, "Parcel"))
+				add_parameter(attr, "TYPE", "PARCEL");
+			if (!strcmp(content, "Domestic"))
+				add_parameter(attr, "TYPE", "DOM");
+			if (!strcmp(content, "International"))
+				add_parameter(attr, "TYPE", "INTL");
+			if (!strcmp(content, "1"))
+				add_parameter(attr, "TYPE", "PREF");
+			if (!strcmp(content, "Voice"))
+				add_parameter(attr, "TYPE", "VOICE");
+			if (!strcmp(content, "Fax"))
+				add_parameter(attr, "TYPE", "FAX");
+			if (!strcmp(content, "Message"))
+				add_parameter(attr, "TYPE", "MSG");
+			if (!strcmp(content, "Cellular"))
+				add_parameter(attr, "TYPE", "CELL");
+			if (!strcmp(content, "Pager"))
+				add_parameter(attr, "TYPE", "PAGER");
+			if (!strcmp(content, "BulletinBoard"))
+				add_parameter(attr, "TYPE", "BBS");
+			if (!strcmp(content, "Modem"))
+				add_parameter(attr, "TYPE", "MODEM");
+			if (!strcmp(content, "Car"))
+				add_parameter(attr, "TYPE", "CAR");
+			if (!strcmp(content, "ISDN"))
+				add_parameter(attr, "TYPE", "ISDN");
+			if (!strcmp(content, "Video"))
+				add_parameter(attr, "TYPE", "VIDEO");
+			if (!strcmp(content, "Internet"))
+				add_parameter(attr, "TYPE", "INTERNET");
+			if (!strcmp(content, "X509"))
+				add_parameter(attr, "TYPE", "X509");
+			if (!strcmp(content, "PGP"))
+				add_parameter(attr, "TYPE", "PGP");
+			g_free(content);
+			child = child->next;
 		}
+		
 		root = root->next;
 	}
 	
-	*output = e_vcard_to_string(vcard, EVC_FORMAT_VCARD_30);
-	*outpsize = strlen(*output) + 1;
+	*output = e_vcard_to_string(vcard, target);
+	*outpsize = strlen(*output);
 	return TRUE;
+}
+
+static osync_bool conv_xml_to_vcard30(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	return conv_xml_to_vcard(input, inpsize, output, outpsize, error, EVC_FORMAT_VCARD_30);
+}
+
+static osync_bool conv_xml_to_vcard21(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	return conv_xml_to_vcard(input, inpsize, output, outpsize, error, EVC_FORMAT_VCARD_21);
 }
 
 void get_info(OSyncFormatEnv *env)
@@ -167,6 +596,9 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_register_objtype(env, "contact");
 	osync_conv_register_objformat(env, "contact", "x-opensync-xml");
 	
-	osync_conv_register_converter(env, CONVERTER_CONV, "vcard30", "x-opensync-xml", conv_vcard30_to_xml, 0);
+	osync_conv_register_converter(env, CONVERTER_CONV, "vcard21", "x-opensync-xml", conv_vcard_to_xml, 0);
+	osync_conv_register_converter(env, CONVERTER_CONV, "x-opensync-xml", "vcard21", conv_xml_to_vcard21, 0);
+	
+	osync_conv_register_converter(env, CONVERTER_CONV, "vcard30", "x-opensync-xml", conv_vcard_to_xml, 0);
 	osync_conv_register_converter(env, CONVERTER_CONV, "x-opensync-xml", "vcard30", conv_xml_to_vcard30, 0);
 }

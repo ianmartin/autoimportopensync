@@ -55,6 +55,22 @@ osync_bool osync_error_is_set (OSyncError **error)
 	return FALSE;
 }
 
+void osync_error_update_message(OSyncError **error, const char *format, ...)
+{
+	g_assert(error);
+	g_assert(*error);
+	va_list args;
+	va_start(args, format);
+	
+	char *buffer;
+	g_vasprintf(&buffer, format, args);
+	
+	g_free((*error)->message);
+	(*error)->message = buffer;
+	
+	va_end (args);
+}
+
 void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
 	if (error == NULL)

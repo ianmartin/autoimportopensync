@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include "e-vcard.h"
@@ -62,6 +63,9 @@ static size_t _evc_base64_encode_step(unsigned char *in, size_t len, gboolean br
 static size_t _evc_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
 size_t _evc_base64_decode_simple (char *data, size_t len);
 char  *_evc_base64_encode_simple (const char *data, size_t len);
+
+size_t _evc_quoted_decode_simple (char *data, size_t len);
+char *_evc_quoted_encode_simple (const unsigned char *string, int len);
 
 static void
 e_vcard_dispose (GObject *object)
@@ -303,6 +307,7 @@ read_attribute_params (EVCardAttribute *attr, char **p, gboolean *quoted_printab
 	EVCardAttributeParam *param = NULL;
 	gboolean in_quote = FALSE;
 	str = g_string_new ("");
+	
 	while (*lp != '\0') {
 		if (*lp == '"') {
 			in_quote = !in_quote;
@@ -677,7 +682,6 @@ EVCard *
 e_vcard_new_from_string (const char *str)
 {
 	EVCard *evc;
-
 	g_return_val_if_fail (str != NULL, NULL);
 
 	evc = g_object_new (E_TYPE_VCARD, NULL);
@@ -690,7 +694,122 @@ e_vcard_new_from_string (const char *str)
 static char*
 e_vcard_to_string_vcard_21  (EVCard *evc)
 {
-	g_warning ("need to implement e_vcard_to_string_vcard_21");
+	GList *l;
+	GList *v;
+
+	GString *str = g_string_new ("");
+
+	str = g_string_append (str, "BEGIN:VCARD" CRLF);
+
+	/* we hardcode the version (since we're outputting to a
+	   specific version) and ignore any version attributes the
+	   vcard might contain */
+	str = g_string_append (str, "VERSION:2.1" CRLF);
+
+	for (l = evc->priv->attributes; l; l = l->next) {
+		GList *p;
+		EVCardAttribute *attr = l->data;
+		GString *attr_str;
+		int l;
+
+		if (!g_ascii_strcasecmp (attr->name, "VERSION"))
+			continue;
+
+		attr_str = g_string_new ("");
+
+		/* From rfc2425, 5.8.2
+		 *
+		 * contentline  = [group "."] name *(";" param) ":" value CRLF
+		 */
+
+		if (attr->group) {
+			attr_str = g_string_append (attr_str, attr->group);
+			attr_str = g_string_append_c (attr_str, '.');
+		}
+		attr_str = g_string_append (attr_str, attr->name);
+
+		/* handle the parameters */
+		for (p = attr->params; p; p = p->next) {
+			EVCardAttributeParam *param = p->data;
+			/* 5.8.2:
+			 * param        = param-name "=" param-value *("," param-value)
+			 */
+			gboolean has_name = FALSE;
+			attr_str = g_string_append_c (attr_str, ';');
+			if (g_ascii_strcasecmp (param->name, "TYPE") && g_ascii_strcasecmp (param->name, "ENCODING")) {
+				attr_str = g_string_append (attr_str, param->name);
+				has_name = TRUE;
+			}
+			if (param->values) {
+				if (has_name)
+					attr_str = g_string_append_c (attr_str, '=');
+				for (v = param->values; v; v = v->next) {
+					char *value = v->data;
+					char *p = value;
+					gboolean quotes = FALSE;
+					while (*p) {
+						if (g_utf8_get_char (p) != '-' && !g_unichar_isalnum (g_utf8_get_char (p))) {
+							quotes = TRUE;
+							break;
+						}
+						p = g_utf8_next_char (p);
+					}
+					if (quotes)
+						attr_str = g_string_append_c (attr_str, '"');
+					attr_str = g_string_append (attr_str, value);
+					if (quotes)
+						attr_str = g_string_append_c (attr_str, '"');
+					if (v->next)
+						attr_str = g_string_append_c (attr_str, ',');
+				}
+			}
+		}
+
+		attr_str = g_string_append_c (attr_str, ':');
+
+		for (v = attr->values; v; v = v->next) {
+			char *value = v->data;
+			char *escaped_value = NULL;
+
+			escaped_value = e_vcard_escape_string (value);
+
+			attr_str = g_string_append (attr_str, escaped_value);
+			if (v->next) {
+				/* XXX toshok - i hate you, rfc 2426.
+				   why doesn't CATEGORIES use a ; like
+				   a normal list attribute? */
+				if (!strcmp (attr->name, "CATEGORIES"))
+					attr_str = g_string_append_c (attr_str, ',');
+				else
+					attr_str = g_string_append_c (attr_str, ';');
+			}
+
+			g_free (escaped_value);
+		}
+
+		/* 5.8.2:
+		 * When generating a content line, lines longer than 75
+		 * characters SHOULD be folded
+		 */
+		l = 0;
+		do {
+			if (attr_str->len - l > 75) {
+				l += 75;
+				attr_str = g_string_insert_len (attr_str, l, CRLF " ", sizeof (CRLF " ") - 1);
+			}
+			else
+				break;
+		} while (l < attr_str->len);
+
+		attr_str = g_string_append (attr_str, CRLF);
+
+		str = g_string_append (str, attr_str->str);
+		g_string_free (attr_str, TRUE);
+	}
+
+	str = g_string_append (str, "END:VCARD\r\n\r\n");
+
+	return g_string_free (str, FALSE);
 	return g_strdup ("");
 }
 
@@ -1008,26 +1127,34 @@ e_vcard_attribute_add_value_decoded (EVCardAttribute *attr, const char *value, i
 	g_return_if_fail (attr != NULL);
 
 	switch (attr->encoding) {
-	case EVC_ENCODING_RAW:
-		g_warning ("can't add_value_decoded with an attribute using RAW encoding.  you must set the ENCODING parameter first");
-		break;
-	case EVC_ENCODING_BASE64: {
-		char *b64_data = _evc_base64_encode_simple (value, len);
-		GString *decoded = g_string_new_len (value, len);
-
-		/* make sure the decoded list is up to date */
-		e_vcard_attribute_get_values_decoded (attr);
-
-		d(printf ("base64 encoded value: %s\n", b64_data));
-		d(printf ("original length: %d\n", len));
-
-		attr->values = g_list_append (attr->values, b64_data);
-		attr->decoded_values = g_list_append (attr->decoded_values, decoded);
-		break;
-	}
-	case EVC_ENCODING_QP:
-		g_warning ("need to implement quoted printable decoding");
-		break;
+		case EVC_ENCODING_RAW:
+			g_warning ("can't add_value_decoded with an attribute using RAW encoding.  you must set the ENCODING parameter first");
+			break;
+		case EVC_ENCODING_BASE64: {
+			char *b64_data = _evc_base64_encode_simple (value, len);
+			GString *decoded = g_string_new_len (value, len);
+	
+			/* make sure the decoded list is up to date */
+			e_vcard_attribute_get_values_decoded (attr);
+	
+			d(printf ("base64 encoded value: %s\n", b64_data));
+			d(printf ("original length: %d\n", len));
+	
+			attr->values = g_list_append (attr->values, b64_data);
+			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
+			break;
+		}
+		case EVC_ENCODING_QP: {
+			char *qp_data = _evc_quoted_encode_simple (value, len);
+			GString *decoded = g_string_new (value);
+	
+			/* make sure the decoded list is up to date */
+			e_vcard_attribute_get_values_decoded (attr);
+	
+			attr->values = g_list_append (attr->values, qp_data);
+			attr->decoded_values = g_list_append (attr->decoded_values, decoded);
+			break;
+		}
 	}
 }
 
@@ -1279,7 +1406,14 @@ e_vcard_attribute_get_values_decoded (EVCardAttribute *attr)
 			}
 			break;
 		case EVC_ENCODING_QP:
-			g_warning ("need to implement quoted printable decoding");
+			for (l = attr->values; l; l = l->next) {
+				if (!(l->data))
+					continue;
+				char *decoded = g_strdup ((char*)l->data);
+				int len = _evc_quoted_decode_simple (decoded, strlen (decoded));
+				attr->decoded_values = g_list_append (attr->decoded_values, g_string_new_len (decoded, len));
+				g_free (decoded);
+			}
 			break;
 		}
 	}
@@ -1613,4 +1747,57 @@ _evc_base64_decode_simple (char *data, size_t len)
 
 	return _evc_base64_decode_step ((unsigned char *)data, len,
 					(unsigned char *)data, &state, &save);
+}
+
+char *
+_evc_quoted_encode_simple(const unsigned char *string, int len)
+{
+	GString *tmp = g_string_new("");
+	
+	int i = 0;
+	while(string[i] != 0) {
+		if (string[i] > 127 || string[i] == 13 || string[i] == 10 || string[i] == '=') {
+			g_string_append_printf(tmp, "=%02X", string[i]);
+		} else {
+			g_string_append_c(tmp, string[i]);
+		}
+		i++;
+	}
+	
+	char *ret = tmp->str;
+	g_string_free(tmp, FALSE);
+	return ret;
+}
+
+
+size_t
+_evc_quoted_decode_simple (char *data, size_t len)
+{
+	g_return_val_if_fail (data != NULL, 0);
+
+	GString *string = g_string_new(data);
+	if (!string)
+		return 0;
+
+	char hex[5];
+	hex[4] = 0;
+
+	while (1) {
+		//Get the index of the next encoded char
+		int i = strcspn(string->str, "=");
+		if (i >= strlen(string->str))
+			break;
+		
+		strcpy(hex, "0x");
+		strncat(hex, &string->str[i + 1], 2);
+		char rep = ((int)(strtod(hex, NULL)));
+		g_string_erase(string, i, 2);
+		g_string_insert_c(string, i, rep);
+	}
+	
+	memset(data, 0, strlen(data));
+	strcpy(data, string->str); //FIXME. will this free the whole string? guess not.
+	g_string_free(string, 1);
+	
+	return strlen(data);
 }
