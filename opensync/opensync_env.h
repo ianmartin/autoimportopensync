@@ -26,3 +26,4 @@ osync_bool osync_env_load_plugins(OSyncEnv *env, const char *path, OSyncError **
 
 osync_bool osync_file_write(const char *filename, const char *data, int size, int mode, OSyncError **error);
 osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncError **error);
+const char *osync_get_version(void);

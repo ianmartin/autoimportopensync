@@ -692,4 +692,17 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 	return ret;
 }
 
+/*! @brief Returns the version of opensync
+ * 
+ * Returns a string identifying the major and minor version
+ * of opensync (something like "0.11")
+ * 
+ * @returns String with version
+ * 
+ */
+const char *osync_get_version(void)
+{
+	return VERSION;
+}
+
 /*@}*/
