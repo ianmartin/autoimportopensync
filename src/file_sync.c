@@ -271,8 +271,11 @@ static void fs_finalize(void *data)
 	//g_free(fsinfo);
 }
 
-void get_info(OSyncPluginInfo *info) {
+void get_info(OSyncPluginInfo *info)
+{
 	info->name = "file-sync";
+	info->longname = "File Synchronization Plugin";
+	info->description = "Plugin to synchronize files on the local filesystem";
 	info->version = 1;
 	info->is_threadsafe = TRUE;
 	
