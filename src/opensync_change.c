@@ -17,18 +17,29 @@ void osync_change_free(OSyncChange *change)
 		osync_mapping_remove_entry(change->mapping, change);
 	if (change->member)
 		osync_member_remove_changeentry(change->member, change);
+	if (change->sourceobjtype)
+		g_free(change->sourceobjtype);
+	if (change->destobjtype)
+		g_free(change->destobjtype);
 	g_free(change);
 }
 
 void osync_change_reset(OSyncChange *change)
 {
 	g_free(change->hash);
+	if (change->sourceobjtype)
+		g_free(change->sourceobjtype);
+	if (change->destobjtype)
+		g_free(change->destobjtype);
 	change->hash = NULL;
 	//FIXME Release data
 	change->data = NULL;
 	change->size = 0;
 	change->has_data = FALSE;
 	change->changetype = CHANGE_UNKNOWN;
+	change->sourceobjtype = NULL;
+	change->destobjtype = NULL;
+	change->is_detected = FALSE;
 }
 
 void osync_change_ref(OSyncChange *change)
@@ -218,6 +229,9 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	target->changetype = source->changetype;
 	if (source->format)
 		target->format = source->format;
-	if (source->objtype)
+	if (source->objtype) {
 		target->objtype = source->objtype;
+		target->sourceobjtype = g_strdup(source->objtype->name);
+	}
+	target->is_detected = source->is_detected;
 }

@@ -476,14 +476,26 @@ osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
  * @param enabled What do you want to set today?
  * 
  */
-void osync_group_set_objtype_enabled(OSyncMember *group, const char *objtypestr, osync_bool enabled)
+void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, osync_bool enabled)
 {
 	g_assert(group);
 	GList *m;
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
-		osync_group_set_objtype_enabled(member, objtypestr, enabled);
+		osync_member_set_objtype_enabled(member, objtypestr, enabled);
 	}
+}
+
+int osync_group_num_filters(OSyncGroup *group)
+{
+	g_assert(group);
+	return g_list_length(group->filters);
+}
+
+OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
+{
+	g_assert(group);
+	return g_list_nth_data(group->filters, nth);
 }
 
 /*@}*/

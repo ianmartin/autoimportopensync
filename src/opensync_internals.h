@@ -113,6 +113,8 @@ struct OSyncGroup {
 	OSyncFormatEnv *conv_env;
 	long long int id;
 	OSyncChangeHook before_convert_hook;
+	
+	GList *filters;
 };
 
 struct OSyncPlugin {
@@ -140,6 +142,12 @@ struct OSyncChange {
 	long long int id;
 	int refcount;
 	OSyncMapping *mapping;
+	
+	//For the filters
+	char *destobjtype;
+	char *sourceobjtype;
+	OSyncMember *sourcemember;
+	osync_bool is_detected;
 };
 
 struct OSyncMapping {

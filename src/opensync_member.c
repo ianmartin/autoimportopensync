@@ -271,14 +271,8 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
 	//The plugin name
 	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
-	//The accepted object types
-	GList *o;
-	for (o = member->objtype_sinks; o; o = o->next) {
-		OSyncObjTypeSink *sink = o->data;
-		if (osync_conv_objtype_is_any(sink->objtype->name) || !strcmp(sink->objtype->name, objtypestr))
-			return sink;
-	}
-	return NULL;
+	//The filters
+	//FIXME
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);
@@ -476,6 +470,14 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	if (!osync_conv_detect_and_convert(env, change, targets)) {
 		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
 		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+		return;
+	}
+	
+	//Filter the change
+	change->destobjtype = g_strdup(sink->objtype->name);
+	if (!osync_filter_change_allowed(member, change)) {
+		osync_debug("OSYNC", 2, "Change %s filtered out for member %lli", change->uid, member->id);
+		osync_context_report_success(context);
 		return;
 	}
 

@@ -1,27 +1,25 @@
-#include "opensync"
+#include "opensync.h"
 #include "opensync_internals.h"
-
-typedef enum OSyncFilterAction {
-	OSYNC_FILTER_IGNORE = 0,
-	OSYNC_FILTER_ALLOW = 1,
-	OSYNC_FILTER_DENY = 2
-} OSyncFilterAction;
-
-typedef struct OSyncFilter {
-	OSyncGroup *group;
-	long long int sourcememberid;
-	long long int destmemberid;
-	const char *sourceobjtype;
-	const char *destobjtype;
-	const char *detectobjtype;
-	OSyncFilterAction allow;
-	OSyncFilterFunction hook;
-} OSyncFilter;
 
 void osync_filter_register(OSyncGroup *group, OSyncFilter *filter)
 {
 	g_assert(group);
 	group->filters = g_list_append(group->filters, filter);
+}
+
+OSyncFilter *_osync_filter_add_ids(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
+{
+	OSyncFilter *filter = osync_filter_new();
+	filter->group = group;
+	filter->sourcememberid = sourcememberid;
+	filter->destmemberid = destmemberid;
+	filter->sourceobjtype = g_strdup(sourceobjtype);
+	filter->destobjtype = g_strdup(destobjtype);
+	filter->detectobjtype = g_strdup(detectobjtype);
+	filter->action = action;
+	
+	osync_filter_register(group, filter);
+	return filter;
 }
 
 /**
@@ -53,18 +51,21 @@ OSyncFilter *osync_filter_new(void)
  * @param allow Set to TRUE if this filter should allow the object, To false if it should deny
  * 
  */
-void osync_filter_add(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
+OSyncFilter *osync_filter_add(OSyncGroup *group, OSyncMember *sourcemember, OSyncMember *destmember, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterAction action)
 {
-	OSyncFilter *filter = osync_filter_new();
-	filter->group = group;
-	filter->sourcememberid = sourcememberid;
-	filter->destmemberid = destmemberid;
-	filter->sourceobjtype = g_strdup(sourceobjtype);
-	filter->destobjtype = g_strdup(destobjtype);
-	filter->detectobjtype = g_strdup(detectobjtype);
-	filter->action = action;
-	
-	osync_filter_register(group, filter);
+	long long int sourcememberid = 0;
+	long long int destmemberid = 0;
+	if (sourcemember)
+		sourcememberid = sourcemember->id;
+	if (destmember)
+		destmemberid = destmember->id;
+	return _osync_filter_add_ids(group, sourcememberid, destmemberid, sourceobjtype, destobjtype, detectobjtype, action);
+}
+
+void osync_filter_remove(OSyncGroup *group, OSyncFilter *filter)
+{
+	g_assert(group);
+	group->filters = g_list_remove(group->filters, filter);
 }
 
 /*! @brief Register a new filter
@@ -76,7 +77,7 @@ void osync_filter_add(OSyncGroup *group, long long int sourcememberid, long long
  * @param hook The filter function to call to decide if to filter the object.
  * 
  */
-void osync_filter_add_complete(long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *detectobjtype, OSyncFilterFunction hook)
+void osync_filter_add_complete(OSyncGroup *group, long long int sourcememberid, long long int destmemberid, const char *sourceobjtype, const char *destobjtype, const char *detectobjtype, OSyncFilterFunction hook)
 {
 	OSyncFilter *filter = osync_filter_new();
 	filter->group = group;
@@ -94,36 +95,39 @@ GList *_osync_filter_find(OSyncMember *member)
 {
 	GList *f = NULL;
 	GList *ret = NULL;
-	for (f = destmember->group->filters; f; f = f->next) {
+	for (f = member->group->filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
-		if (filter->destmemberid = destmember->id)
+		if (!filter->destmemberid || filter->destmemberid == member->id)
 			ret = g_list_append(ret, filter);
 	}
 	return ret;
 }
 
-OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change)
+OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, OSyncMember *destmember)
 {
-	//Need to add to change: destobjtype sourceobjtype detected
-	
 	g_assert(filter);
 	g_assert(change);
-	if (filter->sourcememberid && filter->sourcememberid != change->sourcemember->id)
-		return OSYNC_FILTER_IGNORED;
-	//destmemberid already checked by filter_find
+	osync_debug("OSFLT", 0, "Starting to invoke filter for change %s", change->uid);
+	if (filter->sourcememberid && change->sourcemember && filter->sourcememberid != change->sourcemember->id)
+		return OSYNC_FILTER_IGNORE;
+	if (filter->destmemberid && filter->destmemberid != destmember->id)
+		return OSYNC_FILTER_IGNORE;
 	if (filter->sourceobjtype && strcmp(filter->sourceobjtype, change->sourceobjtype))
-		return OSYNC_FILTER_IGNORED;
+		return OSYNC_FILTER_IGNORE;
 	if (filter->destobjtype && strcmp(filter->destobjtype, change->destobjtype))
-		return OSYNC_FILTER_IGNORED;
+		return OSYNC_FILTER_IGNORE;
 	if (filter->detectobjtype) {
 		if (!change->is_detected) {
 			//Detect change
 			//FIXME can we do that? can we just detect the change or will it break something?
 		}
-		if (strcmp(filter->detectobjtype, change->objtype))
-			return OSYNC_FILTER_IGNORED;
+		if (!change->objtype)
+			return OSYNC_FILTER_IGNORE;
+		if (strcmp(filter->detectobjtype, change->objtype->name))
+			return OSYNC_FILTER_IGNORE;
 	}
 	
+	osync_debug("OSFLT", 0, "Change %s passed the filter!", change->uid);
 	//We passed the filter. Now we can return the action
 	if (!filter->hook)
 		return filter->action;
@@ -135,11 +139,12 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change)
 osync_bool osync_filter_change_allowed(OSyncMember *destmember, OSyncChange *change)
 {
 	GList *filters = _osync_filter_find(destmember);
-	GList *f;
-	int ret;
+	GList *f = NULL;
+	int ret = TRUE;
+	osync_debug("OSFLT", 0, "Checking if change %s is allowed for member %lli. Filters to invoke: %i", change->uid, destmember->id, g_list_length(filters));
 	for (f = filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
-		OSyncFilterAction action = osync_filter_invoke(member, change);
+		OSyncFilterAction action = osync_filter_invoke(filter, change, destmember);
 		if (action == OSYNC_FILTER_ALLOW)
 			ret = TRUE;
 		if (action == OSYNC_FILTER_DENY)

@@ -48,6 +48,7 @@ typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
+typedef struct OSyncFilter OSyncFilter;
 typedef gboolean osync_bool;
 
 typedef struct OSyncPluginFunctions {
