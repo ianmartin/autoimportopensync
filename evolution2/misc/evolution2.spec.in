@@ -1,0 +1,51 @@
+Summary:		Evolution 2 sync. plugin for OpenSync
+Name:			@PACKAGE@
+Version:		@VERSION@
+Release:		1
+License:		GPL
+Group:			Development/Libraries
+Source:			%{name}-%{version}.tar.gz
+BuildRoot:		%{_tmppath}/%{name}-%{version}
+Requires:		glib2 libopensync evolution-data-server
+BuildRequires:	glib2-devel libopensync-devel evolution-data-server-devel
+
+%description
+This plugin allows applications using OpenSync to synchronise to and from
+Evolution 2.
+
+%package devel
+Summary:		Header files, libraries and development documentation for %{name}
+Group:			Development/Libraries
+Requires:		%{name} = %{version}
+
+%description devel
+This package contains the header files, static libraries and development
+documentation for %{name}. If you like to develop programs using %{name},
+you will need to install %{name}-devel.
+
+%prep
+%setup -q
+
+%build
+%configure
+
+%install
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot}
+rm -f %{buildroot}%{_libdir}/opensync/plugins/*.la
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root)
+%{_libdir}/opensync/plugins/evo2_sync.so
+%{_datadir}/opensync/defaults/evo2-sync
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/opensync-1.0/opensync/evo2_sync.h
+
+%changelog
+* Wed Apr  6 2005 Pierre Ossman <drzeus@drzeus.cx> 0.15-1
+- Initial package

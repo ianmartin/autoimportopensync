@@ -3,4 +3,6 @@
 SUBDIRS = src
 
 EXTRA_DIST = \
-	autogen.sh
+	autogen.sh \
+	misc/evolution2.spec \
+	misc/evolution2.spec.in
