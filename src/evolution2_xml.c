@@ -47,7 +47,7 @@ osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
 		return FALSE;
 	}
 
-	if (xmlStrcmp(cur->name, "config")) {
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
 		osync_debug("EVO2-SYNC", 0, "data seems not to be a valid configdata.\n");
 		xmlFreeDoc(doc);
 		return FALSE;
@@ -56,7 +56,7 @@ osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
 	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		char *str = xmlNodeGetContent(cur);
+		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"adress_path")) {
 				env->addressbook_path = g_strdup(str);
