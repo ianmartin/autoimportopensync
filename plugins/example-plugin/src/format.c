@@ -6,9 +6,9 @@
  * 
  */
 #include <opensync/opensync.h>
-#include <your-header.h>
+#include "plugin.h"
 
-static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rightchange)
+static OSyncConvCmpResult compare_format1(OSyncChange *leftchange, OSyncChange *rightchange)
 {
 	/*
 	 * This function can be used to compare two types of your formats.
@@ -36,7 +36,7 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 	 * This means the objects are not the same and not similar.
 	 * 
 	 */
-	
+	return CONV_DATA_MISMATCH;
 }
 
 static osync_bool conv_format1_to_format2(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
@@ -71,7 +71,7 @@ static void destroy_format1(char *input, size_t inpsize)
 	 */
 }
 
-static void duplicate_file(OSyncChange *change)
+static void duplicate_format1(OSyncChange *change)
 {
 	/*
 	 * This function can be used to duplicate your format.
@@ -84,7 +84,7 @@ static void duplicate_file(OSyncChange *change)
 	 */
 }
 
-static char *print_file(OSyncChange *change)
+static char *print_format1(OSyncChange *change)
 {
 	/*
 	 * If your format is not in a human printable format already
@@ -93,6 +93,7 @@ static char *print_file(OSyncChange *change)
 	 * which object to pick in a conflict.
 	 * 
 	 */
+	 return NULL;
 }
 
 void get_info(OSyncFormatEnv *env)
