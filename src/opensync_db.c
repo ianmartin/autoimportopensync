@@ -203,8 +203,7 @@ void osync_db_get_anchor(OSyncDB *sdb, char *objtype, char **retanchor)
 	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", objtype);
 	if (sqlite3_prepare(sdb->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare anchor! %s", sqlite3_errmsg(sdb->db));
-	if (sqlite3_step(ppStmt) != SQLITE_OK)
-		osync_debug("OSDB", 3, "Unable step anchor! %s", sqlite3_errmsg(sdb->db));
+	sqlite3_step(ppStmt);
 	*retanchor = g_strdup(sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);

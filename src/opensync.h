@@ -177,7 +177,8 @@ typedef struct OSyncMemberFunctions {
 typedef enum OSyncTraceType {
 	TRACE_ENTRY,
 	TRACE_EXIT,
-	TRACE_INTERNAL
+	TRACE_INTERNAL,
+	TRACE_EXIT_ERROR
 } OSyncTraceType;
 
 char *osync_rand_str(int maxlength);

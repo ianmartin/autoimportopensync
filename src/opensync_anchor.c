@@ -35,9 +35,11 @@ osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_an
 		if (!strcmp(old_anchor, new_anchor)) {
 			retval = TRUE;
 		} else {
+			osync_debug("ANCH", 1, "Anchor mismatch. Requesting slow sync");
 			retval = FALSE;
 		}
 	} else {
+		osync_debug("ANCH", 2, "No previous anchor. Requesting slow sync");
 		retval = FALSE;
 	}
 	

@@ -340,7 +340,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	char *filename = NULL;
 	char *real_path = NULL;
 	
-	osync_trace(TRACE_ENTRY, "osync_group_load");
+	osync_trace(TRACE_ENTRY, "osync_group_load(%p, %s, %p)", env, path, error);
 	
 	osync_debug("OSGRP", 3, "Trying to load group from directory %s", path);
 	
@@ -361,7 +361,7 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
 		osync_group_free(group);
 		g_free(filename);
-		osync_trace(TRACE_EXIT, "osync_group_load");
+		osync_trace(TRACE_EXIT_ERROR, "osync_group_load");
 		return NULL;
 	}
 
@@ -440,11 +440,13 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Loaded a group without a name");
 		osync_debug("OSGRP", 0, "Loaded a group without a name");
 		osync_group_free(group);
+		osync_trace(TRACE_EXIT_ERROR, "osync_group_load");
 		return NULL;
 	}
 	
 	if (!osync_group_load_members(group, real_path, error)) {
 		osync_group_free(group);
+		osync_trace(TRACE_EXIT_ERROR, "osync_group_load");
 		return NULL;
 	}
 	

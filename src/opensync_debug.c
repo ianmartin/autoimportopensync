@@ -35,6 +35,8 @@
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
 #if defined ENABLE_TRACE
+	va_list arglist;
+	char *buffer;
 	const char *trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
 		return;
@@ -47,24 +49,33 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	unsigned long int id = (unsigned long int)pthread_self();
 	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
 	
+	va_start(arglist, message);
+	g_vasprintf(&buffer, message, arglist);
+	
 	GTimeVal curtime;
 	g_get_current_time(&curtime);
 	char *logmessage = NULL;
 	switch (type) {
 		case TRACE_ENTRY:
-			logmessage = g_strdup_printf("[%li.%li]\t------->  %s\n", curtime.tv_sec, curtime.tv_usec, message);
+			logmessage = g_strdup_printf("[%li.%li]\t------->  %s\n", curtime.tv_sec, curtime.tv_usec, buffer);
 			break;
 		case TRACE_INTERNAL:
-			logmessage = g_strdup_printf("[%li.%li]\t%s\n", curtime.tv_sec, curtime.tv_usec, message);
+			logmessage = g_strdup_printf("[%li.%li]\t%s\n", curtime.tv_sec, curtime.tv_usec, buffer);
 			break;
 		case TRACE_EXIT:
-			logmessage = g_strdup_printf("[%li.%li]\t<-------  %s\n", curtime.tv_sec, curtime.tv_usec, message);
+			logmessage = g_strdup_printf("[%li.%li]\t<-------  %s\n", curtime.tv_sec, curtime.tv_usec, buffer);
+			break;
+		case TRACE_EXIT_ERROR:
+			logmessage = g_strdup_printf("[%li.%li]\t<--- ERROR --- %s\n", curtime.tv_sec, curtime.tv_usec, buffer);
 			break;
 	}
+	va_end(arglist);
+	g_free(buffer);
 	
-	GIOChannel *chan = g_io_channel_new_file(logfile, "a", NULL);
+	GError *error = NULL;
+	GIOChannel *chan = g_io_channel_new_file(logfile, "a", &error);
 	if (!chan) {
-		printf("unable to open %s for writing\n", logfile);
+		printf("unable to open %s for writing: %s\n", logfile, error->message);
 		return;
 	}
 	
