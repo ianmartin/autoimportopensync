@@ -1,5 +1,3 @@
-## Process this file with automake to produce Makefile.in ../dbus/glib/libdbus-glib-1.la
-# not a nice way to do it
 plugindir=@OPENSYNC_PLUGINDIR@/plugins
 
 configdir=@OPENSYNC_CONFIGDIR@/defaults
