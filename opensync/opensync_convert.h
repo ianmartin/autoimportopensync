@@ -1,6 +1,6 @@
 OSyncFormatEnv *osync_conv_env_new(void);
 void osync_conv_env_free(OSyncFormatEnv *env);
-void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname);
+osync_bool osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname, OSyncError **error);
 osync_bool osync_conv_env_load(OSyncFormatEnv *env, OSyncError **error);
 void osync_conv_env_unload(OSyncFormatEnv *env);
 

@@ -50,9 +50,9 @@ void osync_mappingtable_free(OSyncMappingTable *table)
 	g_free(table);
 }
 
-void osync_mappingtable_load(OSyncMappingTable *table)
+osync_bool osync_mappingtable_load(OSyncMappingTable *table, OSyncError **error)
 {
-	osync_db_open_mappingtable(table);
+	return osync_db_open_mappingtable(table, error);
 }
 
 void osync_mappingtable_close(OSyncMappingTable *table)

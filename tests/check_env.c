@@ -70,19 +70,57 @@ START_TEST (env_pre_fin)
 }
 END_TEST
 
+
+START_TEST (env_init_false)
+{
+  char *testbed = setup_testbed("sync_setup_false");
+  OSyncEnv *osync = osync_env_new();
+  osync_env_set_configdir(osync, "dont_load_groups_on_initialize");
+  osync_env_initialize(osync, NULL);
+  OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+  fail_unless(group != NULL, NULL);
+  fail_unless(osync_env_num_groups(osync) == 1, NULL);
+  destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (env_sync_false)
+{
+	char *testbed = setup_testbed("sync_setup_false");
+	OSyncEnv *env = osync_env_new();
+	osync_env_set_configdir(env, NULL);
+	osync_env_initialize(env, NULL);
+	OSyncGroup *group = osync_group_load(env, "configs/group", NULL);
+	
+	OSyncEngine *engine = osync_engine_new(group, NULL);
+	
+	OSyncError *error = NULL;
+	fail_unless(!osync_engine_init(engine, &error), NULL);
+	fail_unless(!synchronize_once(engine, NULL), NULL);
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	osync_env_finalize(env, NULL);
+	osync_env_free(env);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *env_suite(void)
 {
-  Suite *s = suite_create("Env");
-  TCase *tc_core = tcase_create("Core");
+	Suite *s = suite_create("Env");
+	
+	create_case(s, "env_create", env_create);
+	create_case(s, "env_free", env_free);
+	create_case(s, "env_configdir", env_configdir);
+	create_case(s, "env_init", env_init);
+	create_case(s, "env_double_init", env_double_init);
+	create_case(s, "env_pre_fin", env_pre_fin);
+	create_case(s, "env_init_false", env_init_false);
+	create_case(s, "env_sync_false", env_sync_false);
 
-  suite_add_tcase (s, tc_core);
-  tcase_add_test(tc_core, env_create);
-  tcase_add_test(tc_core, env_free);
-  tcase_add_test(tc_core, env_configdir);
-  tcase_add_test(tc_core, env_init);
-  tcase_add_test(tc_core, env_double_init);
-  tcase_add_test(tc_core, env_pre_fin);
-  return s;
+	return s;
 }
 
 int main(void)

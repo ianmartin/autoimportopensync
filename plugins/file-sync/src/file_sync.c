@@ -102,7 +102,7 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
 	
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
-		osync_error_update(error, "Unable to get config data: %s", (*error)->message);
+		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
 		g_free(fsinfo);
 		return NULL;
 	}
@@ -146,13 +146,17 @@ static void fs_connect(OSyncContext *ctx)
 		return;
 #endif
 
-	GError *direrror = NULL;
-	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
-	osync_hashtable_load(fsinfo->hashtable, fsinfo->member);
+	OSyncError *error = NULL;
+	if (!osync_hashtable_load(fsinfo->hashtable, fsinfo->member, &error)) {
+		osync_context_report_osyncerror(ctx, &error);
+		return;
+	}
 	
 	if (!osync_anchor_compare(fsinfo->member, "path", fsinfo->path))
 		osync_member_set_slow_sync(fsinfo->member, "data", TRUE);
 	
+	GError *direrror = NULL;
+	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
 	if (direrror) {
 		//Unable to open directory
 		osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to open directory %s", fsinfo->path);

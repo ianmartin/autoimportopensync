@@ -122,20 +122,6 @@ OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 	return change->format;
 }
 
-#if 0
-void osync_change_append_objformat(OSyncChange *change, OSyncObjFormat *objformat)
-{
-	g_assert(change);
-	change->objformats = g_list_append(change->objformats, objformat);
-}
-
-void osync_change_prepend_objformat(OSyncChange *change, OSyncObjFormat *objformat)
-{
-	g_assert(change);
-	change->objformats = g_list_prepend(change->objformats, objformat);
-}
-#endif
-
 void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 {
 	g_assert(change);
@@ -144,13 +130,15 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 
 }
 
-void osync_change_set_objformat_string(OSyncChange *change, const char *name)
+osync_bool osync_change_set_objformat_string(OSyncChange *change, const char *name)
 {
 	OSyncObjFormat *objformat;
 	g_assert(change);
 	if ((objformat = osync_conv_find_objformat(osync_member_get_format_env(change->member), name))) {
 		osync_change_set_objformat(change, objformat);
-	}//FIXME: handle objformat not found
+	} else
+		return FALSE;
+	return TRUE;
 }
 
 OSyncChangeType osync_change_get_changetype(OSyncChange *change)

@@ -50,6 +50,9 @@ OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 
 osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
+	if (!osync_member_instance_default_plugin(member, error))
+		return FALSE;
+	
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	osync_bool ret = FALSE;
 	if (!member->configdir)
@@ -102,6 +105,9 @@ void osync_member_free(OSyncMember *member)
 		osync_plugin_free(member->plugin);
 	}
 	
+	if (member->pluginname)
+		g_free(member->pluginname);
+	
 	g_free(member->memberfunctions);
 	g_free(member);
 }	
@@ -126,10 +132,19 @@ void osync_member_unload_plugin(OSyncMember *member)
 	member->plugin = NULL;
 }
 
-osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin, OSyncError **error)
+osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginname, OSyncError **error)
 {
 	g_assert(member);
-	g_assert(plugin);
+	g_assert(member->group);
+	g_assert(pluginname);
+	
+	OSyncPlugin *plugin = osync_env_find_plugin(member->group->env, pluginname);
+	if (!plugin) {
+		osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", pluginname);
+		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to find the plugin \"%s\"", pluginname);
+		return FALSE;
+	}
+	
 	osync_debug("OSMEM", 3, "Instancing plugin %s for member %i", plugin->info.name, member->id);
 	osync_member_unload_plugin(member);
 	
@@ -164,19 +179,35 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin
 			member->format_sinks = g_list_append(member->format_sinks, format_sink);
 		}
 	}
+	
+	member->pluginname = g_strdup(pluginname);
 	return TRUE;
+}
+
+osync_bool osync_member_instance_default_plugin(OSyncMember *member, OSyncError **error)
+{
+	if (member->plugin)
+		return TRUE;
+	
+	if (!member->pluginname) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No default plugin set while instancing");
+		return FALSE;
+	}
+	
+	return osync_member_instance_plugin(member, member->pluginname, error);
 }
 
 OSyncPlugin *osync_member_get_plugin(OSyncMember *member)
 {
 	g_assert(member);
+	osync_member_instance_default_plugin(member, NULL);
 	return member->plugin;
 }
 
 const char *osync_member_get_pluginname(OSyncMember *member)
 {
 	g_assert(member);
-	return osync_plugin_get_name(member->plugin);
+	return member->pluginname;
 }
 
 const char *osync_member_get_configdir(OSyncMember *member)
@@ -197,7 +228,9 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	}
 
 	if (!osync_member_read_config(member, data, size, error)) {
-		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", osync_plugin_get_name(member->plugin));
+		if (osync_error_is_set(error))
+			return FALSE;
+		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
 		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
@@ -236,26 +269,8 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 	while (cur != NULL) {
 		char *str = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
 		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
-				OSyncPlugin *plugin = osync_env_find_plugin(group->env, str);
-				if (!plugin) {
-					osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", str);
-					osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to find the plugin %s for the member", str);
-					xmlFree(str);
-					xmlFreeDoc(doc);
-					g_free(filename);
-					osync_member_free(member);
-					return NULL;
-				} else {
-					if (!osync_member_instance_plugin(member, plugin, error)) {
-						xmlFree(str);
-						xmlFreeDoc(doc);
-						g_free(filename);
-						osync_member_free(member);
-						return NULL;
-					}
-				}
-			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname"))
+				member->pluginname = g_strdup(str);
 			xmlFree(str);
 		}
 		cur = cur->next;
@@ -269,6 +284,9 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
+
+	if (!osync_member_instance_default_plugin(member, error))
+		return FALSE;
 
 	if (!member->id) {
 		member->id = osync_group_create_member_id(member->group);
@@ -290,7 +308,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc = xmlNewDoc("1.0");
 	doc->children = xmlNewDocNode(doc, NULL, "syncmember", NULL);
 	//The plugin name
-	xmlNewChild(doc->children, NULL, "pluginname", osync_plugin_get_name(member->plugin));
+	xmlNewChild(doc->children, NULL, "pluginname", member->pluginname);
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);
@@ -325,6 +343,9 @@ long long int osync_member_get_id(OSyncMember *member)
 
 void *osync_member_call_plugin(OSyncMember *member, const char *function, void *data, OSyncError **error)
 {
+	if (!osync_member_instance_default_plugin(member, error))
+		return FALSE;
+	
 	void *(*plgfunc) (void *, void *, OSyncError **);
 	if (!(plgfunc = osync_plugin_get_function(member->plugin, function, error)))
 		return NULL;
@@ -372,6 +393,9 @@ void osync_member_request_synchronization(OSyncMember *member)
 
 osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 {
+	if (!osync_member_instance_default_plugin(member, error))
+		return FALSE;
+	
 	g_assert(member);
 	g_assert(member->plugin);
 	OSyncPluginFunctions functions = member->plugin->info.functions;

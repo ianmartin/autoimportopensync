@@ -134,6 +134,32 @@ osync_bool osync_error_is_set (OSyncError **error)
 	return FALSE;
 }
 
+/*! @brief Returns the type of the error
+ * 
+ * @param error The error
+ * @returns The type of the error or OSYNC_NO_ERROR if no error
+ * 
+ */
+OSyncErrorType osync_error_get_type(OSyncError **error)
+{
+	if (!osync_error_is_set(error))
+		return OSYNC_NO_ERROR;
+	return (*error)->type;
+}
+
+/*! @brief Returns the message of the error
+ * 
+ * @param error The error to print
+ * @returns The message of the error or NULL if no error
+ * 
+ */
+const char *osync_error_print(OSyncError **error)
+{
+	if (!osync_error_is_set(error))
+		return NULL;
+	return (*error)->message;
+}
+
 /*! @brief Updates the error message
  * 
  * You can use this function to update the error message on

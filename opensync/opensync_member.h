@@ -1,7 +1,7 @@
 OSyncMember *osync_member_new(OSyncGroup *group);
 void osync_member_free(OSyncMember *member);
 
-osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin, OSyncError **error);
+osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginname, OSyncError **error);
 OSyncPlugin *osync_member_get_plugin(OSyncMember *member);
 
 const char *osync_member_get_configdir(OSyncMember *member);

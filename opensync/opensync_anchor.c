@@ -24,7 +24,13 @@
 osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_anchor)
 {
 	g_assert(member);
-	OSyncDB *db = osync_db_open_anchor(member);
+	OSyncError *error = NULL;
+	OSyncDB *db = NULL;
+	if (!(db = osync_db_open_anchor(member, &error))) {
+		osync_debug("ANCH", 0, "Unable to open anchor table: %s", error->message);
+		osync_error_free(&error);
+		return FALSE;
+	}
 	
 	osync_bool retval = FALSE;
 	
@@ -50,7 +56,13 @@ osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_an
 void osync_anchor_update(OSyncMember *member, char *objtype, char *new_anchor)
 {
 	g_assert(member);
-	OSyncDB *db = osync_db_open_anchor(member);
+	OSyncError *error = NULL;
+	OSyncDB *db = NULL;
+	if (!(db = osync_db_open_anchor(member, &error))) {
+		osync_debug("ANCH", 0, "Unable to open anchor table: %s", error->message);
+		osync_error_free(&error);
+		return;
+	}
 	osync_db_put_anchor(db, objtype, new_anchor);
 	osync_db_close_anchor(db);
 }

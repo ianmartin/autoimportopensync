@@ -41,9 +41,9 @@ void osync_hashtable_forget(OSyncHashTable *table)
 	table->used_entries = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
-osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member)
+osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member, OSyncError **error)
 {
-	return osync_db_open_hashtable(table, member);
+	return osync_db_open_hashtable(table, member, error);
 }
 
 void osync_hashtable_close(OSyncHashTable *table)

@@ -81,7 +81,7 @@ struct OSyncMember {
 	long long int id;
 	GList *format_sinks;
 	GList *objtype_sinks;
-	
+	char *pluginname;
 	//For the filters
 	GList *accepted_objtypes;
 	GList *filters;
@@ -92,7 +92,6 @@ struct OSyncContext {
 	OSyncEngCallback callback_function;
 	void *calldata;
 	OSyncMember *member;
-	OSyncError error;
 	osync_bool success;
 };
 

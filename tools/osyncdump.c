@@ -34,7 +34,7 @@ void dump_map(OSyncEnv *osync, char *groupname)
 	
 	OSyncMappingTable *table = osync_mappingtable_new(group);
 	osync_mappingtable_set_dbpath(table, osync_group_get_configdir(group));
-	osync_db_open_mappingtable(table);
+	osync_db_open_mappingtable(table, NULL);
 	
 	int i, n;
 	for (i = 0; i < osync_mappingtable_num_mappings(table); i++) {
@@ -69,7 +69,7 @@ void dump_unmapped(OSyncEnv *osync, char *groupname)
 	}
 	
 	char *filename = g_strdup_printf("%s/change.db", osync_group_get_configdir(group));
-	OSyncDB *db = osync_db_open(filename);
+	OSyncDB *db = osync_db_open(filename, NULL);
 	g_free(filename);
 	
 	sqlite3 *sdb = db->db;
@@ -136,7 +136,7 @@ void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
 	}
 	
     OSyncHashTable *table = osync_hashtable_new();
-    osync_db_open_hashtable(table, member);
+    osync_db_open_hashtable(table, member, NULL);
     
     sqlite3 *sdb = table->dbhandle->db;
 	

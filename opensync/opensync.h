@@ -34,11 +34,7 @@ typedef enum {
 	OSYNC_ERROR_TEMPORARY = 14
 } OSyncErrorType;
 
-typedef struct OSyncError {
-	OSyncErrorType type;
-	char *message;
-} OSyncError;
-
+typedef struct OSyncError OSyncError;
 typedef struct OSyncEnv OSyncEnv;
 typedef struct OSyncPlugin OSyncPlugin;
 typedef struct OSyncGroup OSyncGroup;

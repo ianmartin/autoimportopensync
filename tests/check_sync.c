@@ -11,19 +11,6 @@ START_TEST (sync_setup)
 }
 END_TEST
 
-START_TEST (sync_setup_false)
-{
-  char *testbed = setup_testbed("sync_setup_false");
-  OSyncEnv *osync = osync_env_new();
-  osync_env_set_configdir(osync, "dont_load_groups_on_initialize");
-  osync_env_initialize(osync, NULL);
-  OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-  fail_unless(group == NULL, NULL);
-  fail_unless(osync_env_num_groups(osync) == 0, NULL);
-  destroy_testbed(testbed);
-}
-END_TEST
-
 START_TEST (sync_setup_init)
 {
   char *testbed = setup_testbed("sync_setup_init");
@@ -111,7 +98,7 @@ START_TEST (sync_easy_new)
 	mark_point();
 	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
 	mark_point();
-	osync_mappingtable_load(maptable);
+	osync_mappingtable_load(maptable, NULL);
 	mark_point();
 	fail_unless(osync_mappingtable_num_mappings(maptable) == 1, NULL);
 	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
@@ -139,7 +126,7 @@ START_TEST (sync_easy_new)
 	member = osync_member_from_id(group, 1);
 	OSyncHashTable *table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    osync_hashtable_load(table, member, NULL);
     fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
 	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
 	fail_unless(!strcmp("testdata", uid), NULL);
@@ -147,7 +134,7 @@ START_TEST (sync_easy_new)
 	member = osync_member_from_id(group, 2);
 	table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    osync_hashtable_load(table, member, NULL);
     fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
 	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
 	fail_unless(!strcmp("testdata", uid), NULL);
@@ -187,7 +174,7 @@ START_TEST (sync_easy_new_del)
 	mark_point();
 	OSyncMappingTable *maptable = osync_mappingtable_new(group);
 	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	osync_mappingtable_load(maptable);
+	osync_mappingtable_load(maptable, NULL);
 	mark_point();
 	fail_unless(osync_mappingtable_num_mappings(maptable) == 0, NULL);
 	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
@@ -197,13 +184,13 @@ START_TEST (sync_easy_new_del)
 	OSyncMember *member = osync_member_from_id(group, 1);
 	OSyncHashTable *table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    osync_hashtable_load(table, member, NULL);
     fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
 	
 	member = osync_member_from_id(group, 2);
 	table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    osync_hashtable_load(table, member, NULL);
     fail_unless(osync_hashtable_num_entries(table) == 0, NULL);
 	
 	destroy_testbed(testbed);
@@ -271,7 +258,7 @@ START_TEST (sync_easy_new_mapping)
 	mark_point();
 	OSyncMappingTable *maptable = osync_mappingtable_new(group);
 	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
-	osync_mappingtable_load(maptable);
+	osync_mappingtable_load(maptable, NULL);
 	mark_point();
 	fail_unless(osync_mappingtable_num_mappings(maptable) == 1, NULL);
 	fail_unless(osync_mappingtable_num_unmapped(maptable) == 0, NULL);
@@ -300,7 +287,7 @@ START_TEST (sync_easy_new_mapping)
 	member = osync_member_from_id(group, 1);
 	OSyncHashTable *table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    osync_hashtable_load(table, member, NULL);
     fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
 	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
 	fail_unless(!strcmp("testdata", uid), NULL);
@@ -308,7 +295,7 @@ START_TEST (sync_easy_new_mapping)
 	member = osync_member_from_id(group, 2);
 	table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    osync_hashtable_load(table, member, NULL);
     fail_unless(osync_hashtable_num_entries(table) == 1, NULL);
 	fail_unless(osync_hashtable_nth_entry(table, 0, &uid, &hash), NULL);
 	fail_unless(!strcmp("testdata", uid), NULL);
@@ -627,7 +614,6 @@ Suite *env_suite(void)
 	Suite *s = suite_create("Sync");
 	//Suite *s2 = suite_create("Sync");
 	create_case(s, "sync_setup", sync_setup);
-	create_case(s, "sync_setup_false", sync_setup_false);
 	create_case(s, "sync_setup_init", sync_setup_init);
 	create_case(s, "sync_init_error", sync_init_error);
 	create_case(s, "sync_setup_connect", sync_setup_connect);

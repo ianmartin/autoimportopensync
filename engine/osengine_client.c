@@ -118,7 +118,7 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError **erro
 	} else {
 		reply = itm_message_new_errorreply(client, message);
 		itm_message_set_error(reply, *error);
-		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%s\" with error %i", reply, message, message->msgname, (*error)->type);
+		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%s\" with error %i: %s", reply, message, message->msgname, osync_error_get_type(error), osync_error_print(error));
 	}
 	
 	itm_message_move_data(message, reply);
@@ -231,7 +231,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 
 	//Call the init function
 	if (!osync_member_initialize(client->member, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "osync_client_init: %s", (*error)->message);
+		osync_trace(TRACE_EXIT_ERROR, "osync_client_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	

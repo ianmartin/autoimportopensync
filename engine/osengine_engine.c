@@ -45,7 +45,7 @@ void _get_changes_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncE
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
 		osync_error_duplicate(&engine->error, &error);
-		osync_debug("ENG", 1, "Get changes command reply was a error: %s", error ? error->message : "None");
+		osync_debug("ENG", 1, "Get changes command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_GET_CHANGES_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to read from one of the members");
 		osync_flag_unset(sender->fl_sent_changes);
@@ -79,7 +79,7 @@ void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngin
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
 		osync_error_duplicate(&engine->error, &error);
-		osync_debug("ENG", 1, "Connect command reply was a error: %s", error ? error->message : "None");
+		osync_debug("ENG", 1, "Connect command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_CONNECT_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to connect one of the members");
 		osync_flag_unset(sender->fl_connected);
@@ -109,7 +109,7 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
 		osync_error_duplicate(&engine->error, &error);
-		osync_debug("ENG", 1, "Sync done command reply was a error: %s", error ? error->message : "None");
+		osync_debug("ENG", 1, "Sync done command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_SYNC_DONE_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to finish the sync for one of the members");
 	}
@@ -129,7 +129,7 @@ void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEn
 	
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
-		osync_debug("ENG", 1, "Sync done command reply was a error: %s", error ? error->message : "None");
+		osync_debug("ENG", 1, "Sync done command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_DISCONNECT_ERROR, &error);
 	} else
 		osync_status_update_member(engine, sender, MEMBER_DISCONNECTED, NULL);
@@ -689,7 +689,8 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 		itm_queue_setup_with_gmainloop(engine->incoming, engine->context);
 	itm_queue_set_message_handler(engine->incoming, (ITMessageHandler)engine_message_handler, engine);
 	
-	osync_mappingtable_load(engine->maptable);
+	if (!osync_mappingtable_load(engine->maptable, error))
+		return FALSE;
 	
 	osync_flag_set(engine->cmb_entries_mapped);
 	osync_flag_set(engine->cmb_synced);
@@ -701,7 +702,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	if (osync_group_num_members(group) < 2) {
 		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
-		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", (*error)->message);
+		osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -711,7 +712,7 @@ osync_bool osync_engine_init(OSyncEngine *engine, OSyncError **error)
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_client_init(client, error)) {
-			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init: %s", (*error)->message);
+			osync_trace(TRACE_EXIT_ERROR, "osync_engine_init");
 			osync_engine_finalize(engine);
 			return FALSE;
 		}

@@ -921,12 +921,20 @@ void osync_conv_env_unload(OSyncFormatEnv *env)
 	env->plugins = NULL;
 }
 
-void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname)
+osync_bool osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, const char *formatname, OSyncError **error)
 {
 	OSyncObjType *type = osync_conv_find_objtype(env, objtypestr);
-	g_assert(type);
+	if (!type) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set a common format: Unable to find the object-type \"%s\"", objtypestr);
+		return FALSE;
+	}
 	OSyncObjFormat *format = osync_conv_find_objformat(env, formatname);
+	if (!format) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set a common format: Unable to find the format \"%s\"", formatname);
+		return FALSE;
+	}
 	type->common_format = format;
+	return TRUE;
 }
 
 OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)

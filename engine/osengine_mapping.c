@@ -58,7 +58,7 @@ void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OS
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
 		osync_error_duplicate(&engine->error, &error);
-		osync_debug("MAP", 1, "Commit change command reply was a error: %s", error ? error->message : "None");
+		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_change(engine, change, CHANGE_RECV_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to read one or more objects");
 		
@@ -94,7 +94,7 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 	if (itm_message_is_error(message)) {
 		OSyncError *error = itm_message_get_error(message);
 		osync_error_duplicate(&engine->error, &error);
-		osync_debug("MAP", 1, "Commit change command reply was a error: %s", error ? error->message : "None");
+		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_change(engine, change, CHANGE_WRITE_ERROR, &error);
 		osync_status_update_mapping(engine, osync_change_get_mapping(change), MAPPING_WRITE_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to write one or more objects");

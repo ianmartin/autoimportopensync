@@ -1,5 +1,5 @@
 OSyncMappingTable *osync_mappingtable_new(OSyncGroup *);
-void osync_mappingtable_load(OSyncMappingTable *table);
+osync_bool osync_mappingtable_load(OSyncMappingTable *table, OSyncError **error);
 void osync_mappingtable_close(OSyncMappingTable *table);
 void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *change);
 void osync_mappingtable_delete_change(OSyncMappingTable *table, OSyncChange *change);

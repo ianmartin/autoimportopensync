@@ -253,7 +253,7 @@ OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int nu
 	mark_point();
 	osync_mappingtable_set_dbpath(maptable, osync_group_get_configdir(group));
 	mark_point();
-	osync_mappingtable_load(maptable);
+	fail_unless(osync_mappingtable_load(maptable, NULL), NULL);
 	mark_point();
 	fail_unless(osync_mappingtable_num_mappings(maptable) == num_mappings, NULL);
 	fail_unless(osync_mappingtable_num_unmapped(maptable) == num_unmapped, NULL);
@@ -302,7 +302,7 @@ OSyncHashTable *hashtable_load(OSyncGroup *group, int memberid, int entries)
 	mark_point();
 	OSyncHashTable *table = osync_hashtable_new();
 	mark_point();
-    osync_hashtable_load(table, member);
+    fail_unless(osync_hashtable_load(table, member, NULL), NULL);
     mark_point();
     fail_unless(osync_hashtable_num_entries(table) == entries, NULL);
     return table;

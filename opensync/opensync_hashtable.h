@@ -1,4 +1,4 @@
-osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member);
+osync_bool osync_hashtable_load(OSyncHashTable *table, OSyncMember *member, OSyncError **error);
 void osync_hashtable_close(OSyncHashTable *table);
 void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change);
 osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change);

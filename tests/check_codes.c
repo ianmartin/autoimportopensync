@@ -68,6 +68,7 @@ START_TEST (single_init_error)
 	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
 	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
 	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	
 	fail_unless(!osync_engine_init(engine, &error), NULL);
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);

@@ -244,7 +244,7 @@ static osync_bool check_hashtables(OSyncEngine *engine)
 	for (m = members; m; m = m->next) {
 		member_info *meminfo = m->data;
 		OSyncHashTable *table = osync_hashtable_new();
-		osync_hashtable_load(table, meminfo->member);
+		osync_hashtable_load(table, meminfo->member, NULL);
 		/*if (osync_hashtable_num_entries(table) != g_list_length(meminfo->changes)) {
 			printf("Hashtable for member %i has wrong number %i compared to %i\n", osync_member_get_id(meminfo->member), osync_hashtable_num_entries(table), g_list_length(meminfo->changes));
 			abort();

@@ -26,13 +26,13 @@ void osync_db_trace(void *data, const char *query)
 	osync_debug("OSDB", 4, "query executed: %s", query);
 }
 
-OSyncDB *osync_db_open(char *filename)
+OSyncDB *osync_db_open(char *filename, OSyncError **error)
 {
 	OSyncDB *db = g_malloc0(sizeof(OSyncDB));
 	int rc;
 	rc = sqlite3_open(filename, &(db->db));
 	if (rc) {
-		osync_debug("OSDB", 3, "Can't open database: %s", sqlite3_errmsg(db->db));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(db->db));
 		sqlite3_close(db->db);
 		return NULL;
 	}
@@ -108,7 +108,7 @@ void osync_db_delete_change(OSyncMappingTable *table, OSyncChange *change)
 	g_free(query);
 }
 
-void osync_db_open_mappingtable(OSyncMappingTable *table)
+osync_bool osync_db_open_mappingtable(OSyncMappingTable *table, OSyncError **error)
 {
 	g_assert(table != NULL);
 	g_assert(table->db_path != NULL);
@@ -116,7 +116,10 @@ void osync_db_open_mappingtable(OSyncMappingTable *table)
 	OSyncMapping *mapping = NULL;
 
 	char *filename = g_strdup_printf("%s/change.db", table->db_path);
-	table->entrytable = osync_db_open(filename);
+	if (!(table->entrytable = osync_db_open(filename, error))) {
+		osync_error_update(error, "Unable to open mappingtable: %s", (*error)->message);
+		return FALSE;
+	}
 	osync_debug("OSDB", 3, "Preparing to load changes from file %s", filename);
 	g_assert(table->entrytable);
 	g_free(filename);
@@ -139,12 +142,20 @@ void osync_db_open_mappingtable(OSyncMappingTable *table)
     	if (table && table->group) {
     		change->member = osync_member_from_id(table->group, memberid);
 			osync_member_add_changeentry(change->member, change);
-			if (objtype)
+			if (objtype) {
 				change->objtype = osync_conv_find_objtype(table->group->conv_env, objtype);
-			//FIXME: handle object type not found
-			if (objformat)
-				osync_change_set_objformat(change, osync_conv_find_objformat(table->group->conv_env, objformat));
-			//FIXME: handle objformat not found
+				if (!change->objtype) {
+					osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open mappingtable: Unable to find the format-plugin which has the object-type \"%s\"", objtype);
+					return FALSE;
+				}
+			}
+			
+			if (objformat) {
+				if (!osync_change_set_objformat_string(change, objformat)) {
+					osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open mappingtable: Unable to find the format-plugin which has the format \"%s\"", objformat);
+					return FALSE;
+				}
+			}
 		}
 		
 		if (!mappingid) {
@@ -158,6 +169,7 @@ void osync_db_open_mappingtable(OSyncMappingTable *table)
     	}
 	}
 	sqlite3_finalize(ppStmt);
+	return TRUE;
 }
 
 void osync_db_close_mappingtable(OSyncMappingTable *table)
@@ -179,11 +191,15 @@ void osync_db_reset_mappingtable(OSyncMappingTable *table, const char *objtype)
 	g_free(query);
 }
 
-OSyncDB *osync_db_open_anchor(OSyncMember *member)
+OSyncDB *osync_db_open_anchor(OSyncMember *member, OSyncError **error)
 {
 	g_assert(member);
+	OSyncDB *sdb = NULL;
 	char *filename = g_strdup_printf ("%s/anchor.db", member->configdir);
-	OSyncDB *sdb = osync_db_open(filename);
+	if (!(sdb = osync_db_open(filename, error))) {
+		osync_error_update(error, "Unable to open anchor table: %s", (*error)->message);
+		return NULL;
+	}
 	g_free(filename);
 	
 	if (sqlite3_exec(sdb->db, "CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)", NULL, NULL, NULL) != SQLITE_OK)
@@ -219,11 +235,14 @@ void osync_db_put_anchor(OSyncDB *sdb, char *objtype, char *anchor)
 }
 
 
-osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member)
+osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member, OSyncError **error)
 {
 	g_assert(member);
 	char *filename = g_strdup_printf ("%s/hash.db", member->configdir);
-	table->dbhandle = osync_db_open(filename);
+	if (!(table->dbhandle = osync_db_open(filename, error))) {
+		osync_error_update(error, "Unable to open hashtable: %s", (*error)->message);
+		return FALSE;
+	}
 	g_free(filename);
 	
 	sqlite3 *db = table->dbhandle->db;
