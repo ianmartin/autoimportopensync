@@ -1,6 +1,6 @@
 #include "evolution_sync.h"
 
-GList *evo2_list_calendars( )
+GList *evo2_list_calendars(evo_environment *env, void *data)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
@@ -20,6 +20,7 @@ GList *evo2_list_calendars( )
 			paths = g_list_append(paths, path);
 		}
 	}
+	return paths;
 }
 
 static void *evo2_initialize(OSyncMember *member)
@@ -30,15 +31,14 @@ static void *evo2_initialize(OSyncMember *member)
 	evo_environment *env = g_malloc0(sizeof(evo_environment));
 	if (!env)
 		goto error_ret;
-	if (!osync_member_get_config(member, &configdata, &configsize))
+	if (!osync_member_get_config(member, &configdata, &configsize, NULL)) 
 		goto error_free;
 	if (!evo2_parse_settings(env, configdata, configsize))
 		goto error_free_data;
 	env->member = member;
 	OSyncGroup *group = osync_member_get_group(member);
-	char *name = osync_group_get_name(group);
-	printf("evo2 init %s\n", name);
-	env->change_id = g_strdup_printf(name);
+	env->change_id = g_strdup(osync_group_get_name(group));
+	printf("evo2 init %s\n", env->change_id);
 	
 	g_free(configdata);
 	return (void *)env;
