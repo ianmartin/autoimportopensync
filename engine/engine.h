@@ -17,8 +17,9 @@ typedef struct OSyncClient OSyncClient;
 
 typedef enum {
 	MEMBER_CONNECTED = 1,
-	MEMBER_DISCONNECTED = 2,
-	MEMBER_CONNECT_ERROR = 3
+	MEMBER_SENT_CHANGES = 2,
+	MEMBER_DISCONNECTED = 3,
+	MEMBER_CONNECT_ERROR = 4
 } memberupdatetype;
 
 typedef struct MSyncMemberUpdate {

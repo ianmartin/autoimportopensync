@@ -17,6 +17,7 @@ struct ITMQueue {
 	/** The user_data associated with this queue **/
 	gpointer user_data;
 	GSource *source;
+	GMainContext *context;
 };
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS

@@ -36,10 +36,11 @@ struct ITMessage {
 	GHashTable *payload;
 	ITMessageHandler callback;
 	gpointer user_data;
-	int timeout_id;
+	//int timeout_id;
+	GSource *source;
 	ITMQueue *replyqueue;
 	gpointer parent;
-	OSyncError **error;
+	OSyncError *error;
 };
 
 /*@}*/
@@ -50,8 +51,8 @@ ITMessage *itm_message_new_methodcall(gpointer parent, char *msgname);
 void itm_message_set_handler(ITMessage *message, ITMQueue *replyqueue, ITMessageHandler handler, gpointer user_data);
 ITMessage *itm_message_new_methodreply (gpointer parent, ITMessage *message);
 ITMessage *itm_message_new_errorreply(gpointer parent, ITMessage *message);
-void itm_message_set_error(ITMessage *message, OSyncError **error);
-OSyncError **itm_message_get_error(ITMessage *message);
+void itm_message_set_error(ITMessage *message, OSyncError *error);
+OSyncError *itm_message_get_error(ITMessage *message);
 gboolean itm_message_is_methodcall(ITMessage *message, char *msgname);
 gboolean itm_message_is_error(ITMessage *message);
 gboolean itm_message_is_type(ITMessage *message, ITMessageType type);

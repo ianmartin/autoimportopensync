@@ -74,8 +74,6 @@ struct OSyncEngine {
 	
 	GCond* info_received;
 	GMutex* info_received_mutex;
-	//GMutex *syncing;
-	//GMutex *info_received;
 	
 	//The normal flags
 	MSyncFlag *fl_running; //Is the syncengine running?
@@ -83,6 +81,7 @@ struct OSyncEngine {
 	MSyncFlag *fl_stop; //Do we want to stop the engine?
 	
 	//The combined flags
+	MSyncFlag *cmb_connected; //Did all client connect or error?
 	MSyncFlag *cmb_sent_changes; //Did all clients sent changes?
 	MSyncFlag *cmb_entries_mapped; //Do we have unmapped entries?
 	MSyncFlag *cmb_synced; //Are all mappings synced?
@@ -93,6 +92,7 @@ struct OSyncEngine {
 	OSyncMappingTable *maptable;
 	
 	OSyncError *error;
+	GThread *thread;
 };
 
 typedef struct MSyncMappingFlags {
@@ -133,7 +133,7 @@ struct OSyncClient {
 	MSyncFlag *fl_sent_changes;
 	MSyncFlag *fl_done;
 	MSyncFlag *fl_finished;
-	unsigned long capabilities;
+	GThread *thread;
 };
 
 #include "osengine_debug.h"

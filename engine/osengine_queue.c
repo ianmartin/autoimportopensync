@@ -78,6 +78,8 @@ void itm_queue_set_message_handler(ITMQueue *queue, ITMessageHandler handler, gp
  */
 void itm_queue_send(ITMQueue *queue, ITMessage *message)
 {
+	if (!queue)
+		return;
 	g_async_queue_push(queue->queue, message);
 }
 
@@ -86,9 +88,10 @@ gboolean timeoutfunc(gpointer data)
 {
 	timeout_info *to_info = data;
 	ITMessage *reply = itm_message_new_errorreply(to_info->replysender, to_info->message);
+	osync_debug("ENG", 0, "Timeout while waiting for a reply to message %p:\"%s\". Sending error %p", to_info->message, to_info->message->msgname, reply);
 	OSyncError *error = NULL;
-	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message);
-	itm_message_set_error(reply, &error);
+	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message->msgname);
+	itm_message_set_error(reply, error);
 	itm_message_send_reply(reply);
 	return FALSE;
 }
@@ -111,7 +114,9 @@ void itm_queue_send_with_timeout(ITMQueue *queue, ITMessage *message, int timeou
 	to_info->message = message;
 	to_info->sendingqueue = queue;
 	to_info->replysender = replysender;
-	message->timeout_id = g_timeout_add(timeout * 1000, timeoutfunc, to_info);
+	message->source = g_timeout_source_new(timeout * 1000);
+	g_source_set_callback(message->source, timeoutfunc, to_info, NULL);
+	g_source_attach(message->source, queue->context);
 	itm_queue_send(queue, message);
 }
 
@@ -176,6 +181,7 @@ void itm_queue_setup_with_gmainloop(ITMQueue *queue, GMainContext *context)
 	g_source_set_callback(source, NULL, queue, NULL);
 	queue->source = source;
 	g_source_attach(source, context);
+	queue->context = context;
 }
 
 void itm_queue_dispatch(ITMQueue *queue)

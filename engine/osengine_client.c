@@ -24,14 +24,14 @@
 OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 {
 	OSyncClient *client = g_malloc0(sizeof(OSyncClient));
-	_osync_debug(client, "CLI", 3, "Creating new client %p", client);
+	osync_debug("CLI", 3, "Creating new client %p", client);
 	client->member = member;
 	osync_member_set_data(member, client);
 	client->engine = engine;
 	engine->clients = g_list_append(engine->clients, client);
 	client->incoming = itm_queue_new();
 	
-	client->fl_connected = osync_flag_new(NULL);
+	client->fl_connected = osync_flag_new(engine->cmb_connected);
 	client->fl_sent_changes = osync_flag_new(engine->cmb_sent_changes);
 	client->fl_done = osync_flag_new(NULL);
 	client->fl_finished = osync_flag_new(engine->cmb_finished);
@@ -42,7 +42,7 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 
 void osync_client_free(OSyncClient *client)
 {
-	_osync_debug(client, "CLI", 3, "Freeing client");
+	osync_debug("CLI", 3, "Freeing client");
 	itm_queue_free(client->incoming);
 	g_main_loop_unref(client->memberloop);
 
@@ -60,7 +60,7 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 	OSyncEngine *engine = client->engine;
 	if (!synchronous) {
 		ITMessage *message = itm_message_new_signal(client, "PLUGIN_MESSAGE");
-		_osync_debug(client, "CLI", 3, "Sending message %p PLUGIN_MESSAGE for message", message, name);
+		osync_debug("CLI", 3, "Sending message %p PLUGIN_MESSAGE for message", message, name);
 		itm_message_set_data(message, "data", data);
 		itm_message_set_data(message, "name", g_strdup(name));
 		itm_queue_send(engine->incoming, message);
@@ -94,11 +94,11 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError **erro
 
 	if (!osync_error_is_set(error)) {
 		reply = itm_message_new_methodreply(client, message);
-		_osync_debug(client, "CLI", 4, "Member is replying with message %p to message %p:\"%s\" with no error", reply, message, message->msgname);
+		osync_debug("CLI", 4, "Member is replying with message %p to message %p:\"%s\" with no error", reply, message, message->msgname);
 	} else {
 		reply = itm_message_new_errorreply(client, message);
-		itm_message_set_error(reply, error);
-		_osync_debug(client, "CLI", 1, "Member is replying with message %p to message %p:\"%s\" with error %i", reply, message, message->msgname, (*error)->type);
+		itm_message_set_error(reply, *error);
+		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%s\" with error %i", reply, message, message->msgname, (*error)->type);
 	}
 	
 	itm_message_move_data(message, reply);
@@ -107,37 +107,44 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError **erro
 
 void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient *client)
 {
-	_osync_debug(client, "CLI", 3, "Messages handler called for message %p from engine", message);
+	osync_trace(TRACE_ENTRY, "client_message_handler(%p, %p, %p)", sender, message, client);
+	osync_debug("CLI", 3, "Client message handler called for message \"%s\"", message->msgname);
 
 	if (itm_message_is_methodcall(message, "CONNECT")) {
 		osync_member_connect(client->member, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
 	if (itm_message_is_methodcall(message, "GET_CHANGES")) {
 		osync_member_get_changeinfo(client->member, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
 	if (itm_message_is_methodcall(message, "COMMIT_CHANGE")) {
 		OSyncChange *change = itm_message_get_data(message, "change");
 		osync_member_commit_change(client->member, change, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
 	if (itm_message_is_methodcall(message, "SYNC_DONE")) {
 		osync_member_sync_done(client->member, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
 	if (itm_message_is_methodcall(message, "DISCONNECT")) {
 		osync_member_disconnect(client->member, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
 	if (itm_message_is_methodcall(message, "GET_DATA")) {
 		OSyncChange *change = itm_message_get_data(message, "change");
 		osync_member_get_change_data(client->member, change, (OSyncEngCallback)message_callback, message);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
@@ -148,10 +155,12 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 		osync_member_call_plugin(client->member, function, data, &error);
 		if (osync_error_is_set(&error))
 			message_callback(client->member, message, &error);
+		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
 	
-	_osync_debug(client, "CLI", 0, "Unknown message \"%s\"\n", itm_message_get_msgname(message));
+	osync_debug("CLI", 0, "Unknown message \"%s\"\n", itm_message_get_msgname(message));
+	osync_trace(TRACE_EXIT_ERROR, "client_message_handler: Unknown message");
 	g_assert_not_reached();
 }
 
@@ -159,7 +168,7 @@ void osync_client_call_plugin(OSyncClient *client, char *function, void *data)
 {
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(engine, "CALL_PLUGIN");
-	_osync_debug(client, "CLI", 3, "Sending message %p CALL_PLUGIN for function %s", message, function);
+	osync_debug("CLI", 3, "Sending message %p CALL_PLUGIN for function %s", message, function);
 	itm_message_set_data(message, "data", data);
 	itm_message_set_data(message, "function", g_strdup(function));
 	itm_queue_send(client->incoming, message);
@@ -170,7 +179,7 @@ void osync_client_call_plugin_with_reply(OSyncClient *client, char *function, vo
 {
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(engine, "CALL_PLUGIN");
-	_osync_debug(client, "CLI", 3, "Sending message %p CALL_PLUGIN for function %s", message, function);
+	osync_debug("CLI", 3, "Sending message %p CALL_PLUGIN for function %s", message, function);
 	itm_message_set_data(message, "data", data);
 	itm_message_set_data(message, "function", g_strdup(function));
 	itm_queue_send_with_reply(client->incoming, message);
@@ -178,7 +187,8 @@ void osync_client_call_plugin_with_reply(OSyncClient *client, char *function, vo
 
 osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 {
-	_osync_debug(client, "CLI", 3, "Starting client mainloop");
+	osync_trace(TRACE_ENTRY, "osync_client_init(%p, %p)", client, error);
+	
 	GMainContext *context = g_main_context_new();
 	client->memberloop = g_main_loop_new(context, FALSE);
 	
@@ -193,18 +203,24 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 	itm_queue_setup_with_gmainloop(client->incoming, context);
 
 	//Call the init function
-	if (!osync_member_initialize(client->member, error))
+	if (!osync_member_initialize(client->member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "osync_client_init: %s", (*error)->message);
 		return FALSE;
+	}
 	
-	_osync_debug(client, "CLI", 3, "Spawning new client thread");
-	g_thread_create ((GThreadFunc)g_main_loop_run, client->memberloop, TRUE, NULL);
+	client->thread = g_thread_create ((GThreadFunc)g_main_loop_run, client->memberloop, TRUE, NULL);
+	osync_trace(TRACE_EXIT, "osync_client_init");
 	return TRUE;
 }
 
 void osync_client_finalize(OSyncClient *client)
 {
-	_osync_debug(client, "CLI", 3, "Finalizing client");
-	g_main_loop_quit(client->memberloop);
+	osync_debug("CLI", 3, "Finalizing client");
 	osync_member_finalize(client->member);
-	osync_client_free(client);
+	
+	g_main_loop_quit(client->memberloop);
+	g_thread_join(client->thread);
+	
+	itm_queue_flush(client->incoming);
+	//osync_client_free(client);
 }

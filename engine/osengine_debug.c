@@ -21,48 +21,6 @@
 #include "engine.h"
 #include "engine_internals.h"
 
-void _osync_debug(gpointer sender, char *subpart, int level, char *message, ...)
-{
-	va_list arglist;
-	char buffer[4096];
-	
-	int color = ((int)sender % 6) + 31;
-	
-	va_start(arglist, message);
-	vsprintf(buffer, message, arglist);
-	
-	const char *dbgstr = g_getenv("MSYNC_DEBUG");
-	if (!dbgstr)
-		return;
-	int debug = atoi(dbgstr);
-	if (debug < level)
-		return;
-		
-	switch (level) {
-		case 0:
-			//Error
-			printf("[%p:%s] ERROR: %s\n", sender, subpart, buffer);
-			break;
-		case 1:
-			// Warning
-			printf("[%p:%s] WARNING: %s\n", sender, subpart, buffer);
-			break;
-		case 2:
-			//Information
-			printf("[%p:%s] INFORMATION: %s\n", sender, subpart, buffer);
-			break;
-		case 3:
-			//debug
-			printf("\033[%im[%p:%s]\033[0m DEBUG: %s\n", color, sender, subpart, buffer);
-			break;
-		case 4:
-			//fulldebug
-			printf("\033[%im[%p:%s]\033[0m FULLDEBUG: %s\n", color, sender, subpart, buffer);
-			break;
-	}
-	va_end(arglist);
-}
-
 void osync_engine_print_all(OSyncEngine *engine)
 {
 	int i;
@@ -76,6 +34,7 @@ void osync_engine_print_all(OSyncEngine *engine)
 	printf("all mapped: %s (no: %i, yes: %i)\n", osync_flag_get_state(engine->cmb_entries_mapped) ? "YES" : "NO", engine->cmb_entries_mapped->num_not_set, engine->cmb_entries_mapped->num_set);
 	printf("synced: %s (no: %i, yes: %i)\n", osync_flag_get_state(engine->cmb_synced) ? "YES" : "NO", engine->cmb_synced->num_not_set, engine->cmb_synced->num_set);
 	printf("finished: %s\n", osync_flag_get_state(engine->cmb_finished) ? "YES" : "NO");
+	printf("connected: %s (no: %i, yes: %i)\n", osync_flag_get_state(engine->cmb_connected) ? "YES" : "NO", engine->cmb_connected->num_not_set, engine->cmb_connected->num_set);
 	
 	for (i = 0; i < g_list_length(engine->clients); i++) {
 		OSyncClient *client = g_list_nth_data(engine->clients, i);

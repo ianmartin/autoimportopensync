@@ -56,8 +56,6 @@ void itm_message_free(ITMessage *message)
 	if (message->msgname)
 		g_free(message->msgname);
 	g_hash_table_destroy(message->payload);
-	if (message->error)
-		osync_error_free(message->error);
 	g_free(message);
 }
 
@@ -137,12 +135,12 @@ ITMessage *itm_message_new_errorreply(gpointer parent, ITMessage *message)
 	return reply;
 }
 
-void itm_message_set_error(ITMessage *message, OSyncError **error)
+void itm_message_set_error(ITMessage *message, OSyncError *error)
 {
 	message->error = error;
 }
 
-OSyncError **itm_message_get_error(ITMessage *message)
+OSyncError *itm_message_get_error(ITMessage *message)
 {
 	return message->error;
 }
@@ -212,13 +210,20 @@ gboolean itm_message_is_type(ITMessage *message, ITMessageType type)
  */
 void itm_message_send_reply(ITMessage *reply)
 {
-	itm_queue_send(reply->replyqueue, reply);
-	if (reply->timeout_id) {
-		GSource *source = g_main_context_find_source_by_id(NULL, reply->timeout_id);
-		if (source)
-			g_source_remove(reply->timeout_id);
+	//printf("sending reply %p %i %p\n", reply, reply->timeout_id, reply->replyqueue->context);
+	
+	if (reply->source) {
+		/*GSource *source = g_main_context_find_source_by_id(reply->replyqueue->context, reply->timeout_id);
+		printf("source %p\n", source);
+		if (!source)
+			return;*/
+			
+		//FIXME we have a race condition here if the main thread times out
+		//While we are replying...
+		g_source_destroy(reply->source);
 			//FIXME Free it
 	}
+	itm_queue_send(reply->replyqueue, reply);
 }
 
 /*! @brief Sets the data on a message
@@ -274,7 +279,7 @@ void itm_message_move_data(ITMessage *source, ITMessage *target)
 {
 	g_hash_table_destroy(target->payload);
 	target->payload = source->payload;
-	target->timeout_id = source->timeout_id;
+	target->source = source->source;
 	source->payload = NULL;
 }
 
