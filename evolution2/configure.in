@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Evolution 2 Plugin], 0.01, [], [libopensync-plugin-evo2])
+AC_INIT([OpenSync Evolution 2 Plugin], 0.15, [], [libopensync-plugin-evolution2])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/evolution2_sync.c)
 AC_CONFIG_HEADER(config.h)
@@ -35,20 +35,7 @@ AC_SUBST(OPENSYNC_PLUGINDIR)
 AC_SUBST(OPENSYNC_FORMATSDIR)
 AC_SUBST(OPENSYNC_HEADERDIR)
 
-AC_ARG_ENABLE(stress-test,               [  --enable-stress-test     enable support for stress testing],STRESS_TEST=1,STRESS_TEST=0)
-if test "x${STRESS_TEST}" = "x1"; then
-	AC_DEFINE(STRESS_TEST,1,[Stress Testing])
-fi
-
 AC_OUTPUT([
 Makefile
 src/Makefile
 ])
-
-echo "================"
-if test "x${STRESS_TEST}" = "x1"; then
-	echo "Stress Tests are enabled."
-else
-	echo "Stress Tests are disabled."
-fi
-echo "================"
