@@ -193,7 +193,7 @@ int main (int argc, char *argv[])
 	}
 	
 	OSyncEnv *osync = osync_env_new();
-	osync_init(osync);
+	osync_env_initialize(osync);
 	if (configdir)
 		osync_env_set_configdir(osync, configdir);
 	osync_env_load_groups_dir(osync);

@@ -8,8 +8,8 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 	fs_fileinfo *leftfile = (fs_fileinfo *)osync_change_get_data(leftchange);
 	fs_fileinfo *rightfile = (fs_fileinfo *)osync_change_get_data(rightchange);
 	
-	gboolean data_same = FALSE;
-	gboolean path_same = FALSE;
+	osync_bool data_same = FALSE;
+	osync_bool path_same = FALSE;
 	
 	if (!strcmp(osync_change_get_uid(leftchange), osync_change_get_uid(rightchange)))
 		path_same = TRUE;

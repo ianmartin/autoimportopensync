@@ -2,37 +2,45 @@
 
 osync_bool evo2_addrbook_open(evo_environment *env)
 {
+	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	GError *error = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
 
-	if (!env->adressbook_path)
-		return FALSE;
-	
-  	if (!e_book_get_addressbooks(&sources, NULL)) {
-		osync_debug("EVO2-SYNC", 0, "Report error\n");
+	if (!env->adressbook_path) {
+		osync_debug("EVO2-SYNC", 0, "no addressbook path error");
 		return FALSE;
 	}
-	
+
+	printf("about to read adressbooks\n");
+  	if (!e_book_get_addressbooks(&sources, &error)) {
+  		if (error) {
+  			osync_debug("EVO2-SYNC", 0, "Report error %s", error->message);
+  		}
+		osync_debug("EVO2-SYNC", 0, "Report error");
+		return FALSE;
+	}
+	printf("read adressbooks\n");
 	source = evo2_find_source(sources, env->adressbook_path);
 	if (!source) {
 		osync_debug("EVO2-SYNC", 0, "Error2\n");
 		return FALSE;
 	}
-	
+	printf("found adressbooks\n");
 	env->adressbook = e_book_new(source, &error);
-	
+	printf("made new adressbooks\n");
 	if(!env->adressbook) {
 		osync_debug("EVO2-SYNC", 1, "failed new open addressboo %sk\n", error->message);
 		return FALSE;
 	}
-	
+	printf("new adressbooks\n");
 	if (!e_book_open(env->adressbook, TRUE, NULL)) {
 		osync_debug("EVO2-SYNC", 1, "Could not load addressbook\n");
 		return FALSE;
 		//FIXME Free
 	}
 	
+	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
 	return TRUE;
 }
 

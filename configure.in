@@ -40,6 +40,14 @@ else
 fi
 AC_SUBST(testdir)
 
+AC_ARG_ENABLE(engine,[  --enable-engine        enable building of the opensync engine],ENABLE_ENGINE=$enableval,ENABLE_ENGINE="yes")
+if test "x${ENABLE_ENGINE}" = "xyes"; then
+	AC_DEFINE(BUILD_ENGINE,1,[Stress Testing])
+	enginedir="engine"
+else
+	enginedir=""
+fi
+AC_SUBST(enginedir)
 
 dnl AX_PATH_BDB([4.2],[LDFLAGS="$LDFLAGS $BDB_LDFLAGS"
 dnl LIBS="$LIBS $BDB_LIBS"
@@ -59,7 +67,7 @@ if test "$py_prefix" != "$py_exec_prefix"; then
 fi
 AC_SUBST(PYTHON_INCLUDES)
 
-pkg_modules="glib-2.0 gmodule-2.0 sqlite3"
+pkg_modules="glib-2.0 gmodule-2.0 gthread-2.0 sqlite3"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
@@ -70,6 +78,7 @@ src/Makefile
 tools/Makefile
 tests/Makefile
 formats/Makefile
+engine/Makefile
 ])
 
 echo "================"
@@ -77,6 +86,11 @@ if test "x${HAVE_CHECK}" = "x1"; then
 	echo "TESTS are enabled."
 else
 	echo "TESTS are disabled."
+fi
+if test "x${ENABLE_ENGINE}" = "xyes"; then
+	echo "The opensync engine will be built."
+else
+	echo "The opensync engine will NOT be built."
 fi
 echo
 echo "Now build opensync and install it"
