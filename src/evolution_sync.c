@@ -37,6 +37,7 @@ ESource *evo2_find_source(ESourceList *list, char *uri)
 		GSList *s;
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			ESource *source = E_SOURCE (s->data);
+			printf("Comparing %s with %s\n", e_source_get_uri(source), uri);
 			if (!strcmp(e_source_get_uri(source), uri))
 				return source;
 		}
@@ -49,7 +50,6 @@ static void evo2_connect(OSyncContext *ctx)
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	osync_bool open_any = FALSE;
-	
 	if (osync_member_objtype_enabled(env->member, "contact") &&  env->adressbook_path && strlen(env->adressbook_path)) {
 		if (evo2_addrbook_open(env)) {
 			open_any = TRUE;
@@ -59,7 +59,7 @@ static void evo2_connect(OSyncContext *ctx)
 			osync_context_send_log(ctx, "Unable to open addressbook");
 		}
 	}
-	
+
 	if (osync_member_objtype_enabled(env->member, "calendar") &&  env->calendar_path && strlen(env->calendar_path)) {
 		if (evo2_calendar_open(env)) {
 			open_any = TRUE;
@@ -69,7 +69,7 @@ static void evo2_connect(OSyncContext *ctx)
 			osync_context_send_log(ctx, "Unable to open calendar");
 		}
 	}
-	
+
 	if (osync_member_objtype_enabled(env->member, "todo") && env->tasks_path && strlen(env->tasks_path)) {
 		if (evo2_tasks_open(env)) {
 			open_any = TRUE;
@@ -79,13 +79,14 @@ static void evo2_connect(OSyncContext *ctx)
 			osync_context_send_log(ctx, "Unable to open tasks");
 		}
 	}
-	
+
 	srand(time(NULL));
 	if (!open_any) {
-		printf("Reporting error\n");
+		osync_debug("EVO2-SYNC", 0, "Unable to open anything!");
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to open anything");
 		return;
 	}
+	printf("Reporting success\n");
 	osync_context_report_success(ctx);
 }
 

@@ -2,8 +2,10 @@
 
 osync_bool evo2_addrbook_open(evo_environment *env)
 {
-	ESourceList *sources;
-	ESource *source;
+	GError *error = NULL;
+	ESourceList *sources = NULL;
+	ESource *source = NULL;
+
 	if (!env->adressbook_path)
 		return FALSE;
 	
@@ -18,10 +20,10 @@ osync_bool evo2_addrbook_open(evo_environment *env)
 		return FALSE;
 	}
 	
-	env->adressbook = e_book_new(source, NULL);
+	env->adressbook = e_book_new(source, &error);
 	
 	if(!env->adressbook) {
-		osync_debug("EVO2-SYNC", 1, "failed new open addressbook\n");
+		osync_debug("EVO2-SYNC", 1, "failed new open addressboo %sk\n", error->message);
 		return FALSE;
 	}
 	
@@ -41,6 +43,9 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 	char *uid = osync_change_get_uid(change);
 	EContact *contact;
 	
+	printf("Trying to commit changtype %i\n", osync_change_get_changetype(change));
+	printf("VCARD is:\n%s\n", osync_change_get_data(change));
+	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
 			if (!e_book_remove_contact(env->adressbook, uid, NULL)) {
@@ -50,6 +55,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			break;
 		case CHANGE_ADDED:
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
+			printf("trying to add contact %p\n", contact);
 			if (e_book_add_contact(env->adressbook, contact, NULL)) {
 				uid = e_contact_get_const(contact, E_CONTACT_UID);
 				osync_change_set_uid(change, uid);
@@ -60,6 +66,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			break;
 		case CHANGE_MODIFIED:
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
+			printf("trying to mod contact %p\n", contact);
 			e_contact_set(contact, E_CONTACT_UID, uid);
 			if (e_book_commit_contact(env->adressbook, contact, NULL)) {
 				uid = e_contact_get_const (contact, E_CONTACT_UID);
@@ -78,13 +85,9 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 	return TRUE;
 }
 
-static OSyncFormatFunctions vcard_functions = {
-	.commit_change = evo2_addrbook_modify,
-	.access = evo2_addrbook_modify,
-};
-
 void evo2_addrbook_setup(OSyncPluginInfo *info)
 {
-	osync_plugin_register_accepted_objtype(info, "contact");
-	osync_plugin_register_accepted_objformat(info, "contact", "vcard", &vcard_functions);
+	osync_plugin_accept_objtype(info, "contact");
+	osync_plugin_accept_objformat(info, "contact", "vcard");
+	osync_plugin_set_commit_objformat(info, "contact", "vcard", evo2_addrbook_modify);
 }
