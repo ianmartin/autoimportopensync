@@ -90,7 +90,7 @@ class kaddrbook
         };
 
 
-        int get_changes(OSyncContext *ctx, int newdbs) 
+        int get_changes(OSyncContext *ctx)
         {
             //printf("kdepim_plugin: kaddrbook::%s(newdbs=%d)\n", __FUNCTION__, newdbs);
 
@@ -153,7 +153,8 @@ class kaddrbook
                 osync_change_set_objtype_string(chg, "contact");
                 osync_change_set_objformat_string(chg, "vcard");
                 osync_change_set_hash(chg, hash.data());
-                if (osync_hashtable_detect_change(hashtable, chg)) {
+                /*FIXME: slowsync */
+                if (osync_hashtable_detect_change(hashtable, chg, 0)) {
                     osync_context_report_change(ctx, chg);
                     osync_hashtable_update_hash(hashtable, chg);
                 }
@@ -162,7 +163,7 @@ class kaddrbook
                 osync_context_report_change(ctx, chg);
             }
 
-            osync_hashtable_report_deleted(hashtable, ctx);
+            osync_hashtable_report_deleted(hashtable, ctx, 0);
 
             return 0;
         }
@@ -383,9 +384,7 @@ static void kde_get_changeinfo(OSyncContext *ctx)
     if (getenv ("MULTISYNC_DEBUG"))
         printf("kdepim_plugin: %s\n",__FUNCTION__);
 
-    //FIXME: newdbs support
-    int reset = 0;
-    int err = addrbook->get_changes(ctx, reset);
+    int err = addrbook->get_changes(ctx);
     if (err) {
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't access KDE addressbook");
         return;
@@ -416,8 +415,6 @@ static osync_bool kde_commit_change(OSyncContext *ctx, OSyncChange *change)
     return true;
 }
 
-static OSyncFormatFunctions vcard_functions;
-
 extern "C" {
 void get_info(OSyncPluginInfo *info)
 {
@@ -431,12 +428,12 @@ void get_info(OSyncPluginInfo *info)
     info->functions.finalize = kde_finalize;
     info->functions.get_changeinfo = kde_get_changeinfo;
 
-    vcard_functions.commit_change = kde_commit_change,
+    osync_plugin_accept_objtype(info, "contact");
+    osync_plugin_accept_objformat(info, "contact", "vcard");
     /*FIXME: check the differences between commit_change() and access() */
-    vcard_functions.access = kde_commit_change,
+    osync_plugin_set_commit_objformat(info, "contact", "vcard", kde_commit_change);
+    osync_plugin_set_access_objformat(info, "contact", "vcard", kde_commit_change);
 
-    osync_plugin_register_accepted_objtype(info, "contact");
-    osync_plugin_register_accepted_objformat(info, "contact", "vcard", &vcard_functions);
 }
 
 }// extern "C"
