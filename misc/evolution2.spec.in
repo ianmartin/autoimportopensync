@@ -28,6 +28,7 @@ you will need to install %{name}-devel.
 
 %build
 %configure
+make
 
 %install
 rm -rf %{buildroot}
