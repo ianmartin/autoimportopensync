@@ -181,7 +181,7 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 		return OSYNC_FILTER_IGNORE;
 	if (filter->sourceobjtype && strcmp(filter->sourceobjtype, change->sourceobjtype))
 		return OSYNC_FILTER_IGNORE;
-	if (filter->destobjtype && strcmp(filter->destobjtype, change->destobjtype))
+	if (filter->destobjtype && change->destobjtype && strcmp(filter->destobjtype, change->destobjtype))
 		return OSYNC_FILTER_IGNORE;
 	if (filter->detectobjtype) {
 		OSyncObjType *objtype = osync_change_detect_objtype_full(osync_member_get_format_env(destmember), change, NULL);

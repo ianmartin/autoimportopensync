@@ -297,18 +297,17 @@ END_TEST*/
 Suite *filter_suite(void)
 {
 	Suite *s = suite_create("Filter");
-	TCase *tc_filter = tcase_create("setup");
-	//TCase *tc_filter2 = tcase_create("setup2");
-	suite_add_tcase (s, tc_filter);
-	tcase_add_test(tc_filter, filter_setup);
-	tcase_add_test(tc_filter, filter_flush);
-	tcase_add_test(tc_filter, filter_sync_deny_all);
-	tcase_add_test(tc_filter, filter_sync_custom);
-	tcase_add_test(tc_filter, filter_save_and_load);
-	tcase_add_test(tc_filter, filter_sync_vcard_only);
-	tcase_add_test(tc_filter, filter_destobjtype_delete);
+	Suite *s2 = suite_create("Filter");
 	
-	return s;
+	create_case(s, "filter_setup", filter_setup);
+	create_case(s, "filter_flush", filter_flush);
+	create_case(s, "filter_sync_deny_all", filter_sync_deny_all);
+	create_case(s, "filter_sync_custom", filter_sync_custom);
+	create_case(s, "filter_save_and_load", filter_save_and_load);
+	create_case(s, "filter_sync_vcard_only", filter_sync_vcard_only);
+	create_case(s2, "filter_destobjtype_delete", filter_destobjtype_delete);
+	
+	return s2;
 }
 
 int main(void)
