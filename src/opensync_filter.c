@@ -174,7 +174,7 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 {
 	g_assert(filter);
 	g_assert(change);
-	osync_debug("OSFLT", 0, "Starting to invoke filter for change %s", change->uid);
+	osync_debug("OSFLT", 3, "Starting to invoke filter for change %s", change->uid);
 	if (filter->sourcememberid && change->sourcemember && filter->sourcememberid != change->sourcemember->id)
 		return OSYNC_FILTER_IGNORE;
 	if (filter->destmemberid && filter->destmemberid != destmember->id)
@@ -191,7 +191,7 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 			return OSYNC_FILTER_IGNORE;
 	}
 	
-	osync_debug("OSFLT", 0, "Change %s passed the filter!", change->uid);
+	osync_debug("OSFLT", 3, "Change %s passed the filter!", change->uid);
 	//We passed the filter. Now we can return the action
 	if (!filter->hook)
 		return filter->action;
@@ -205,7 +205,7 @@ osync_bool osync_filter_change_allowed(OSyncMember *destmember, OSyncChange *cha
 	GList *filters = _osync_filter_find(destmember);
 	GList *f = NULL;
 	int ret = TRUE;
-	osync_debug("OSFLT", 0, "Checking if change %s is allowed for member %lli. Filters to invoke: %i", change->uid, destmember->id, g_list_length(filters));
+	osync_debug("OSFLT", 3, "Checking if change %s is allowed for member %lli. Filters to invoke: %i", change->uid, destmember->id, g_list_length(filters));
 	for (f = filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
 		OSyncFilterAction action = osync_filter_invoke(filter, change, destmember);

@@ -7,19 +7,19 @@ To make a release of OpenSync, do the following:
 
  - increment the version number in configure.in
 
- - "make distcheck" (DO NOT just "make dist" - pass the check!)
+ - run ./buildtest.sh and pass tes test!
 
- - if make distcheck fails, fix it.
+ - if ./buildtest.sh fails, fix it.
 
  - Run "make check" again several times to try to see race conditions.
    You can also use the osyncstress tool.
 
- - once distcheck succeeds, "svn commit"
+ - once ./buildtest.sh succeeds, "svn commit"
 
  - if someone else made changes and the commit fails,
-   you have to "svn up" and run "make distcheck" again
+   you have to "svn up" and run ./buildtest.sh again
 
- - once the commit succeeds, "svn cp trunk branches/opensync-0.XX"
+ - once the commit succeeds, "svn cp trunk tags/opensync-0.XX"
 
  - upload the tarball to releases. make sure the version numbers are the same!
 

@@ -190,9 +190,11 @@ OSyncHashTable *hashtable_load(OSyncGroup *group, int memberid, int entries)
 {
 	mark_point();
 	OSyncMember *member = osync_member_from_id(group, memberid);
+	mark_point();
 	OSyncHashTable *table = osync_hashtable_new();
 	mark_point();
     osync_hashtable_load(table, member);
+    mark_point();
     fail_unless(osync_hashtable_num_entries(table) == entries, NULL);
     return table;
 }

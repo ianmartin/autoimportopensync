@@ -2139,6 +2139,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
+	//Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);

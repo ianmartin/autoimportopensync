@@ -297,7 +297,7 @@ END_TEST*/
 Suite *filter_suite(void)
 {
 	Suite *s = suite_create("Filter");
-	Suite *s2 = suite_create("Filter");
+	//Suite *s2 = suite_create("Filter");
 	
 	create_case(s, "filter_setup", filter_setup);
 	create_case(s, "filter_flush", filter_flush);
@@ -305,9 +305,9 @@ Suite *filter_suite(void)
 	create_case(s, "filter_sync_custom", filter_sync_custom);
 	create_case(s, "filter_save_and_load", filter_save_and_load);
 	create_case(s, "filter_sync_vcard_only", filter_sync_vcard_only);
-	create_case(s2, "filter_destobjtype_delete", filter_destobjtype_delete);
+	create_case(s, "filter_destobjtype_delete", filter_destobjtype_delete);
 	
-	return s2;
+	return s;
 }
 
 int main(void)
