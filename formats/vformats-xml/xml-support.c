@@ -18,7 +18,7 @@
  * 
  */
  
-#include "xml.h"
+#include "opensync-xml.h"
 
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name)
 {

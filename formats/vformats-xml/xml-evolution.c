@@ -18,7 +18,7 @@
  * 
  */
  
-#include "xml.h"
+#include "opensync-xml.h"
 
 static osync_bool conv_x_evo_to_xml(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {

@@ -3,10 +3,13 @@
 AM_CFLAGS = -Werror -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Wall @XML_CFLAGS@ 
 
 formatsdir=@OPENSYNC_FORMATSDIR@
+opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 EXTRA_DIST = \
 		e-vcard.h \
-		xml.h
+		opensync-xml.h
+
+opensyncheader_HEADERS = opensync-xml.h
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
 

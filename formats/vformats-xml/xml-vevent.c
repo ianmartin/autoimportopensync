@@ -18,9 +18,9 @@
  * 
  */
  
-#include "xml.h"
-
+#include "opensync-xml.h"
 #include "e-vcard.h"
+
 static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
 {
 	const char *ret = NULL;
