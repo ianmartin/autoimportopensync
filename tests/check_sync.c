@@ -39,6 +39,7 @@ START_TEST (sync_setup_connect)
 	  
 	fail_unless(num_connected == 2, NULL);
 	fail_unless(num_disconnected == 2, NULL);
+	fail_unless(num_engine_end_conflicts == 0, NULL);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -85,7 +86,7 @@ START_TEST (sync_easy_new)
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 2, "testdata", "file", "data");
 	check_mapping(maptable, 2, 0, 2, "testdata", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     OSyncHashTable *table = hashtable_load(group, 1, 1);
     check_hash(table, "testdata");
 	osync_hashtable_close(table);
@@ -125,7 +126,7 @@ START_TEST (sync_easy_new_del)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
     OSyncHashTable *table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
@@ -192,7 +193,7 @@ START_TEST (sync_easy_new_mapping)
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 2, "testdata", "file", "data");
 	check_mapping(maptable, 2, 0, 2, "testdata", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
     OSyncHashTable *table = hashtable_load(group, 1, 1);
     check_hash(table, "testdata");
@@ -229,7 +230,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	check_mapping(maptable, 1, -1, 2, "testdata-dupe", "file", "data");
 	check_mapping(maptable, 2, -1, 2, "testdata", "file", "data");
 	check_mapping(maptable, 1, -1, 2, "testdata-dupe", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 2);
     check_hash(table, "testdata");
@@ -253,7 +254,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 2, "testdata", "file", "data");
 	check_mapping(maptable, 2, 0, 2, "testdata", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 1);
     check_hash(table, "testdata");
@@ -291,7 +292,7 @@ START_TEST (sync_conflict_duplicate)
 	check_mapping(maptable, 2, -1, 2, "testdata", "file", "data");
 	check_mapping(maptable, 2, -1, 2, "testdata-dupe", "file", "data");
 	check_mapping(maptable, 2, -1, 2, "testdata-dupe-dupe", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
 	
 	OSyncHashTable *table = hashtable_load(group, 1, 3);
     check_hash(table, "testdata");
@@ -315,7 +316,7 @@ START_TEST (sync_conflict_duplicate)
 	maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 2, "testdata", "file", "data");
 	check_mapping(maptable, 2, 0, 2, "testdata", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
 	
 	table = hashtable_load(group, 1, 1);
     check_hash(table, "testdata");
@@ -359,7 +360,7 @@ START_TEST (sync_conflict_duplicate2)
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 2, "testdata", "file", "data");
 	check_mapping(maptable, 2, 0, 2, "testdata", "file", "data");
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
     OSyncHashTable *table = hashtable_load(group, 1, 1);
     check_hash(table, "testdata");
@@ -401,7 +402,7 @@ START_TEST (sync_conflict_deldel)
 	fail_unless(num_conflicts == 0, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
 	OSyncHashTable *table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
@@ -451,7 +452,7 @@ START_TEST (sync_moddel)
 	fail_unless(num_conflicts == 0, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
 	OSyncHashTable *table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
@@ -494,7 +495,7 @@ START_TEST (sync_conflict_moddel)
 	fail_unless(num_conflicts == 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
 	OSyncHashTable *table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
@@ -534,7 +535,7 @@ START_TEST (sync_easy_dualdel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
 	OSyncHashTable *table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
@@ -583,7 +584,7 @@ START_TEST (sync_subdirs_new)
 	check_mapping(maptable, 1, -1, 2, "subdir/testdata1", "file", "data");
 	check_mapping(maptable, 2, -1, 2, "subdir/testdata1", "file", "data");
 	
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
     OSyncHashTable *table = hashtable_load(group, 1, 3);
     check_hash(table, "testdata");
@@ -604,7 +605,7 @@ START_TEST (sync_subdirs_new)
 	synchronize_once(engine, NULL);
 
 	maptable = mappingtable_load(group, 0, 0);
-    osengine_mappingtable_close(maptable);
+    mappingtable_close(maptable);
     
     table = hashtable_load(group, 1, 0);
 	osync_hashtable_close(table);
