@@ -133,7 +133,7 @@ static osync_bool evo2_todo_modify(OSyncContext *ctx, OSyncChange *change)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
-	char *uid = osync_change_get_uid(change);
+	const char *uid = osync_change_get_uid(change);
 	char *data = osync_change_get_data(change);
 	icalcomponent *icomp = NULL;
 	char *returnuid = NULL;
@@ -186,6 +186,7 @@ static osync_bool evo2_todo_modify(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 			
+			icalcomponent_set_uid (icomp, uid);
 			if (!e_cal_modify_object(env->tasks, icomp, CALOBJ_MOD_ALL, &gerror)) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify todo: %s", gerror ? gerror->message : "None");
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify todo: %s", __func__, gerror ? gerror->message : "None");
