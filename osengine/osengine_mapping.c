@@ -98,7 +98,7 @@ OSyncMapping *osengine_mappingtable_find_mapping(OSyncMappingTable *table, OSync
 	return NULL;
 }
 
-OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id)
+OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long int id)
 {
 	GList *m;
 	for (m = table->mappings; m; m = m->next) {
