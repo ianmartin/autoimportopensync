@@ -155,7 +155,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             //osync_debug("kde", 3, "kaddrbook::%s(newdbs=%d)", __FUNCTION__, newdbs);
 
             //FIXME: should I detect if slow_sync is necessary?
-            osync_bool slow_sync = osync_member_get_slow_sync(member, "contact");
+            if (osync_member_get_slow_sync(member, "contact"))
+                osync_hashtable_set_slow_sync(hashtable, "contact");
 
             //remember when we started this current sync
             newsyncdate = QDateTime::currentDateTime();
@@ -197,14 +198,14 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 // Use the hash table to check if the object
                 // needs to be reported
                 osync_change_set_hash(chg, hash.data());
-                if (osync_hashtable_detect_change(hashtable, chg, slow_sync)) {
+                if (osync_hashtable_detect_change(hashtable, chg)) {
                     osync_context_report_change(ctx, chg);
                     osync_hashtable_update_hash(hashtable, chg);
                 }
             }
 
             // Use the hashtable to report deletions
-            osync_hashtable_report_deleted(hashtable, ctx, slow_sync);
+            osync_hashtable_report_deleted(hashtable, ctx, "contact");
 
             osync_context_report_success(ctx);
         }

@@ -237,14 +237,16 @@ void osync_db_delete_hash(OSyncHashTable *table, char *uid)
 	g_free(query);
 }
 
-void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx)
+void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx, const char *objtype)
 {
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
 	
 	char **azResult;
 	int numrows = 0;
-	sqlite3_get_table(sdb, "SELECT uid, hash FROM tbl_hash", &azResult, &numrows, NULL, NULL);
+	char *query = g_strdup_printf("SELECT uid, hash FROM tbl_hash WHERE objtype='%s'", objtype);
+	sqlite3_get_table(sdb, query, &azResult, &numrows, NULL, NULL);
+	g_free(query);
 	
 	int i;
 	int ccell = 2;
@@ -253,6 +255,7 @@ void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx)
 		ccell++;
 		char *hash = azResult[ccell];
 		ccell++;
+		/*FIXME: should we reset used_entries somewhere? */
 		if (!g_hash_table_lookup(table->used_entries, uid)) {
 			OSyncChange *change = osync_change_new();
 			change->changetype = CHANGE_DELETED;

@@ -149,7 +149,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			g_free(hash);
 			g_free(filename);
 		}
-		osync_hashtable_report_deleted(fsinfo->hashtable, ctx);
+		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, "data");
 	}
 	osync_context_report_success(ctx);
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);

@@ -78,9 +78,9 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 	}
 }
 
-void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context)
-{	
-	osync_db_report_hash(table, context);
+void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context, const char *objtype)
+{
+	osync_db_report_hash(table, context, objtype);
 }
 
 osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *change)
