@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = @XMLCFLAGS@ -Wall -Werror
+AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src -I$(top_srcdir)/engine
 
