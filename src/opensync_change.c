@@ -69,6 +69,15 @@ void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type)
 	change->objtype = type;
 }
 
+void osync_change_set_objtype_string(OSyncChange *change, const char *name)
+{
+	OSyncObjType *objtype;
+	g_assert(change);
+	if ((objtype = osync_conv_find_objtype(osync_member_get_format_env(change->member), name))) {
+		osync_change_set_objtype(change, objtype);
+	}//FIXME: handle objtype not found
+}
+
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 {
 	g_assert(change);
@@ -94,6 +103,8 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 	g_assert(change);
 	//FIXME Free the prev list
 	change->objformats = g_list_append(NULL, objformat);
+
+	/*FIXME: should objtype be set here? */
 }
 
 void osync_change_set_objformat_string(OSyncChange *change, const char *name)

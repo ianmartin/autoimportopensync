@@ -20,6 +20,7 @@ OSyncMember *osync_change_get_member(OSyncChange *change);
 void osync_change_unmarshal(OSyncMappingTable *, OSyncChange *change, const void *data);
 void osync_change_update(OSyncChange *source, OSyncChange *target);
 void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type);
+void osync_change_set_objtype_string(OSyncChange *change, const char *name);
 void osync_change_set_info(OSyncChange *change, char *data, int size);
 char *osync_change_get_info(OSyncChange *change);
 int osync_change_get_infosize(OSyncChange *change);
