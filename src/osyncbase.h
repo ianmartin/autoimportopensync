@@ -22,7 +22,7 @@ class KdePluginImplementationBase {
         virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
 };
 
-typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m);
+typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m, OSyncError **e);
 
 /*TODO: provide base classes like below,
  * for hiding the implementation details of a plugin

@@ -396,7 +396,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 extern "C" {
 
-KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member)
+KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **)
 {
     return new KdePluginImplementation(member);
 }

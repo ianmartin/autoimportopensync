@@ -13,7 +13,6 @@ plugin_LTLIBRARIES = kdepim_sync.la
 kdepimlib_LTLIBRARIES = kdepim_impl.la
 # format_LTLIBRARIES = kcal_format.la
 
-
 EXTRA_DIST = \
 			src/kaddrbook.h \
 			src/kcal.h \
