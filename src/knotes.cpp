@@ -27,6 +27,7 @@ SOFTWARE IS DISCLAIMED.
  * stored on KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics"
  *
  * TODO: Check how notes are stored on KDE 3.3/3.4, and use the right interface.
+ * (http://www.opensync.org/ticket/34)
  */
 
 #include <libkcal/calendarlocal.h>
