@@ -264,3 +264,24 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		return CONV_DATA_SIMILAR;
 	return CONV_DATA_MISMATCH;
 }
+
+osync_bool osxml_write_to_string(xmlDoc *doc, char **result, int *result_length)
+{
+  osync_bool format = TRUE;
+
+  xmlIndentTreeOutput = format;
+  xmlChar* buffer = NULL;
+  int length = 0;
+
+  xmlDocDumpFormatMemoryEnc(doc, &buffer, &length, /*encoding*/ NULL, format);
+
+  *result = (char*)g_memdup(buffer, length);
+
+  if (result_length)
+    *result_length = length;
+
+  xmlFree(buffer);
+  
+  return TRUE;
+}
+
