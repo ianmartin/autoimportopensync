@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <glib.h>
 
 /**************************************************************
  * Enumerations
@@ -50,7 +49,7 @@ typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
 typedef struct OSyncFilter OSyncFilter;
 typedef struct OSyncCustomFilter OSyncCustomFilter;
-typedef gboolean osync_bool;
+typedef int osync_bool;
 
 typedef struct OSyncPluginFunctions {
 	osync_bool (* get_config) (char *, char **, int *);
