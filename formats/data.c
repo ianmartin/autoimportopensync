@@ -59,9 +59,8 @@ static OSyncConvCmpResult compare_plain(OSyncChange *a, OSyncChange *b)
 
 static osync_bool copy_plain(const char *input, int inpsize, char **output, int *outpsize)
 {
-	char *r = malloc(inpsize);
-	if (!r)
-		return FALSE;
+	char *r = g_malloc0(inpsize);
+
 	memcpy(r, input, inpsize);
 	*output = r;
 	*outpsize = inpsize;

@@ -24,7 +24,7 @@
 
 static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rightchange)
 {
-	osync_debug("FILE", 4, "start: %s", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
 	fs_fileinfo *leftfile = (fs_fileinfo *)osync_change_get_data(leftchange);
 	fs_fileinfo *rightfile = (fs_fileinfo *)osync_change_get_data(rightchange);
 	
@@ -33,6 +33,8 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 	
 	if (!strcmp(osync_change_get_uid(leftchange), osync_change_get_uid(rightchange)))
 		path_same = TRUE;
+	
+	osync_trace(TRACE_INTERNAL, "%i %i", leftfile->size, rightfile->size);
 	
 	if (leftfile->size == rightfile->size) {
 		if (leftfile->data == rightfile->data) {
@@ -43,11 +45,15 @@ static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rig
 		}
 	}
 	
-	if (data_same && path_same)
+	if (data_same && path_same) {
+		osync_trace(TRACE_EXIT, "%s: Same", __func__);
 		return CONV_DATA_SAME;
-	if (path_same)
+	}
+	if (path_same) {
+		osync_trace(TRACE_EXIT, "%s: Similar", __func__);
 		return CONV_DATA_SIMILAR;
-	
+	}
+	osync_trace(TRACE_EXIT, "%s: Mismatch", __func__);
 	return CONV_DATA_MISMATCH;
 }
 
@@ -119,6 +125,41 @@ static void duplicate_file(OSyncChange *change)
 	g_free(newuid);
 }
 
+static osync_bool copy_file(const char *input, int inpsize, char **output, int *outpsize)
+{
+	osync_debug("FILE", 4, "start: %s", __func__);
+	
+	fs_fileinfo *oldfile = (fs_fileinfo *)input;
+	fs_fileinfo *newfile = g_malloc0(sizeof(fs_fileinfo));
+
+	newfile->filestats = oldfile->filestats;
+	newfile->size = oldfile->size;
+	
+	if (oldfile->size) {
+		newfile->data = g_malloc0(oldfile->size);
+		memcpy(newfile->data, oldfile->data, oldfile->size);
+	}
+	
+	*output = (char *)newfile;
+	*outpsize = inpsize;
+	return TRUE;
+}
+
+static void create_file(OSyncChange *change)
+{
+	osync_debug("FILE", 4, "start: %s", __func__);
+	
+	fs_fileinfo *newfile = g_malloc0(sizeof(fs_fileinfo));
+
+	char *data = osync_rand_str(g_random_int_range(1, 100));
+	newfile->data = data;
+	newfile->size = strlen(data) + 1;
+	
+	osync_change_set_data(change, (char *)newfile, sizeof(newfile), TRUE);
+	if (!osync_change_get_uid(change))
+		osync_change_set_uid(change, osync_rand_str(6));
+}
+
 static char *print_file(OSyncChange *change)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
@@ -136,6 +177,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_duplicate_func(env, "file", duplicate_file);
 	osync_env_format_set_destroy_func(env, "file", destroy_file);
 	osync_env_format_set_print_func(env, "file", print_file);
+	osync_env_format_set_copy_func(env, "file", copy_file);
+	osync_env_format_set_create_func(env, "file", create_file);
 	
 #ifdef STRESS_TEST
 	osync_env_format_set_create_func(env, "file", create_file);
