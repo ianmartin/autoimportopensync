@@ -206,4 +206,5 @@ void evo2_calendar_setup(OSyncPluginInfo *info)
 	osync_plugin_accept_objtype(info, "event");
 	osync_plugin_accept_objformat(info, "event", "vevent20", NULL);
 	osync_plugin_set_commit_objformat(info, "event", "vevent20", evo2_calendar_modify);
+	osync_plugin_set_access_objformat(info, "event", "vevent20", evo2_calendar_modify);
 }

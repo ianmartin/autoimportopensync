@@ -186,7 +186,7 @@ static osync_bool evo2_todo_modify(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 			
-			if (!e_cal_modify_object(env->tasks, icomp, CALOBJ_MOD_ALL, &gerror)) {
+			if (!e_cal_modify_object(env->tasks, icomp, CALOBJ_MOD_THIS, &gerror)) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify todo: %s", gerror ? gerror->message : "None");
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify todo: %s", __func__, gerror ? gerror->message : "None");
 				g_clear_error(&gerror);
@@ -207,4 +207,5 @@ void evo2_tasks_setup(OSyncPluginInfo *info)
 	osync_plugin_accept_objtype(info, "todo");
 	osync_plugin_accept_objformat(info, "todo", "vtodo20", NULL);
 	osync_plugin_set_commit_objformat(info, "todo", "vtodo20", evo2_todo_modify);
+	osync_plugin_set_access_objformat(info, "todo", "vtodo20", evo2_todo_modify);
 }
