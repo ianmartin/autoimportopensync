@@ -6,8 +6,13 @@ AM_INIT_AUTOMAKE(evo2-sync, 0.01)
 AM_CONFIG_HEADER(config.h)
 
 pkg_modules="glib-2.0 evolution-data-server-1.0 libebook-1.0 libecal-1.0 libedata-book-1.0 libedata-cal-1.0 libedataserver-1.0"
+pkg_modules2="glib-2.0 evolution-data-server-1.1 libebook-1.1 libecal-1.1 libedata-book-1.1 libedata-cal-1.1 libedataserver-1.1"
 
-PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules], EDS10FOUND=1, [EDS10FOUND=0])
+if test "x${EDS10FOUND}" = "x0"; then
+	PKG_CHECK_MODULES(PACKAGE, [$pkg_modules2],,AC_MSG_ERROR(Neither evolution-data-server-1.0-dev nor evolution-data-server-1.1-dev was found))
+fi
+
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
