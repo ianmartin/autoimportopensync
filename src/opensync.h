@@ -44,6 +44,9 @@ typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
+typedef struct OSyncPlgAcceptedTypes OSyncPlgAcceptedTypes;
+typedef struct OSyncPlgAcceptedType OSyncPlgAcceptedType;
+typedef struct OSyncPlgAcceptedFormat OSyncPlgAcceptedFormat;
 typedef unsigned int osync_bool;
 
 typedef struct OSyncPluginFunctions {
@@ -63,12 +66,19 @@ typedef struct OSyncFormatFunctions {
 	osync_bool (* access) (OSyncContext *, OSyncChange *);
 } OSyncFormatFunctions;
 
+/*FIXME:
+ * The plugin get_info() function just gets a OSyncPluginInfo
+ * structure, and the accepted object types should be registered
+ * to the PluginInfo structure, but it would be better if
+ * osync_plugin_find_accepted_objtype() functions get a OSyncPlugin object
+ * as parameter.
+ */
 typedef struct OSyncPluginInfo {
 	int version;
 	const char *name;
 	const char *description;
 	osync_bool is_threadsafe;
-	OSyncFormatEnv *accepted_objtypes;
+	OSyncPlgAcceptedTypes *accepted_objtypes;
 	OSyncPluginFunctions functions;
 } OSyncPluginInfo;
 

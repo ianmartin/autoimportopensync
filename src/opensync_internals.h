@@ -99,18 +99,24 @@ struct OSyncMappingTable {
 	GList *unmapped;
 };
 
-/*FIXME: OSyncformatEnv is used on two
- * different cases:
- * - To store the list of all valid formats, types,
- *   and converters and their related functions (i.e. conversion
- *   functions)
- * - To store the list of supported formats and
- *   types of a plugin, and their related functions (i.e.
- *   commit_change)
- *
- * These two cases are distinct and on each case, different information
- * is stored. I think that this needs to be changed. -- ehabkost
- */
+struct OSyncPlgAcceptedTypes
+{
+	GList *types;
+};
+
+struct OSyncPlgAcceptedType
+{
+	/*FIXME: Use 'OSyncObjType *type' or 'const char *name'? */
+	const char *name;
+	GList *formats;
+};
+
+struct OSyncPlgAcceptedFormat
+{
+	const char *name;
+	OSyncFormatFunctions *functions;
+};
+
 struct OSyncFormatEnv {
 	GList *objtypes;
 	GList *objformats;
@@ -146,7 +152,6 @@ struct OSyncObjFormat {
 	OSyncFormatDuplicateFunc duplicate_func;
 	OSyncFormatCreateFunc create_func;
 	GList *properties;
-	OSyncFormatFunctions functions;
 };
 
 struct OSyncFormatConverter {

@@ -17,4 +17,4 @@ void osync_conv_format_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDup
 void osync_conv_env_load(OSyncFormatEnv *env);
 void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func);
 void osync_conv_format_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func);
-void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions);
+//void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions);

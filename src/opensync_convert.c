@@ -220,11 +220,11 @@ void osync_conv_format_set_create_func(OSyncObjFormat *format, OSyncFormatCreate
 	format->create_func = create_func;
 }
 
-void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions)
+/*void osync_conv_format_set_functions(OSyncObjFormat *format, OSyncFormatFunctions functions)
 {
 	g_assert(format);
 	format->functions = functions;
-}
+}*/
 
 void osync_conv_set_common_format(OSyncFormatEnv *env, const char *formatname)
 {

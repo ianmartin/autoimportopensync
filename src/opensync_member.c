@@ -191,15 +191,14 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 {
 	g_assert(member);
 	g_assert(change);
-	//OSyncObjType *type = osync_change_get_objtype(change);
+	OSyncObjType *type = osync_change_get_objtype(change);
 	OSyncObjFormat *format = osync_change_get_objformat(change);
-	//OSyncObjType *plgtype = osync_conv_find_objtype(member->info.accepted_objtypes, type->name);
-	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
-	OSyncFormatFunctions functions = plgformat->functions;
+	OSyncFormatFunctions *functions = osync_plugin_get_objformat_functions(member->plugin, type->name, format->name);
+
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
-	functions.commit_change(context, change);
+	functions->commit_change(context, change);
 }
 
 osync_bool osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
@@ -230,12 +229,12 @@ osync_bool osync_member_make_random_data(OSyncMember *member, OSyncChange *chang
 		format->create_func(change);
 		osync_change_set_objformat(change, format);
 		//Convert the data to a format the plugin understands
-		objtype = osync_conv_find_objtype(member->plugin->info.accepted_objtypes, objtype->name);
-		if (!objtype)
+		OSyncPlgAcceptedType *plgtype = osync_plugin_find_accepted_type(&member->plugin->info, objtype->name);
+		if (!plgtype)
 			continue; //We had a objtype we cannot add
 		
-		selected = g_random_int_range(0, g_list_length(objtype->formats));
-		format = g_list_nth_data(objtype->formats, selected);
+		selected = g_random_int_range(0, g_list_length(plgtype->formats));
+		format = g_list_nth_data(plgtype->formats, selected);
 		if (!osync_conv_convert(env, change, format))
 			continue; //Unable to convert to selected format
 		break;
@@ -251,9 +250,9 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member)
 	if (!osync_member_make_random_data(member, change))
 		return NULL;
 	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
-	OSyncFormatFunctions functions = plgformat->functions;
-	if (functions.access(context, change) == TRUE)
+	OSyncFormatFunctions *functions =
+			osync_plugin_get_objformat_functions(member->plugin, format->objtype->name, format->name);
+	if (functions->access(context, change) == TRUE)
 		return change;
 	return NULL;
 }
@@ -271,9 +270,9 @@ osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *cha
 	osync_change_set_uid(change, uid);
 	
 	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
-	OSyncFormatFunctions functions = plgformat->functions;
-	return functions.access(context, change);
+	OSyncFormatFunctions *functions =
+			osync_plugin_get_objformat_functions(member->plugin, format->objtype->name, format->name);
+	return functions->access(context, change);
 }
 
 osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
@@ -282,9 +281,9 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 	change->changetype = CHANGE_DELETED;
 	
 	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncObjFormat *plgformat = osync_conv_find_objformat(member->plugin->info.accepted_objtypes, format->name);
-	OSyncFormatFunctions functions = plgformat->functions;
-	return functions.access(context, change);
+	OSyncFormatFunctions *functions =
+			osync_plugin_get_objformat_functions(member->plugin, format->objtype->name, format->name);
+	return functions->access(context, change);
 }
 
 void *osync_member_get_data(OSyncMember *member)

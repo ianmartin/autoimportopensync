@@ -5,3 +5,7 @@ osync_bool osync_plugin_load_info(OSyncPlugin *plugin, char *path);
 OSyncPluginFunctions *osync_plugin_load_functions(OSyncPlugin *plugin);
 const char *osync_plugin_get_name(OSyncPlugin *plugin);
 void *osync_plugin_get_function(OSyncPlugin *plugin, char *name);
+OSyncFormatFunctions *osync_plugin_get_objformat_functions(OSyncPlugin *plugin, const char *type, const char *format);
+struct OSyncPlgAcceptedType *osync_plugin_find_accepted_type(OSyncPluginInfo *info, const char *name);
+osync_bool osync_plugin_register_accepted_objtype(OSyncPluginInfo *info, const char *name);
+osync_bool osync_plugin_register_accepted_objformat(OSyncPluginInfo *info, const char *type, const char *format, OSyncFormatFunctions *functions);

@@ -78,12 +78,13 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 	return TRUE;
 }
 
+static OSyncFormatFunctions vcard_functions = {
+	.commit_change = evo2_addrbook_modify,
+	.access = evo2_addrbook_modify,
+};
+
 void evo2_addrbook_setup(OSyncPluginInfo *info)
 {
-	OSyncFormatFunctions functions;
-	OSyncObjType *contact = osync_conv_register_objtype(info->accepted_objtypes, "contact");
-	OSyncObjFormat *vcard = osync_conv_register_objformat(contact, "vcard");
-	functions.commit_change = evo2_addrbook_modify;
-	functions.access = evo2_addrbook_modify;
-	osync_conv_format_set_functions(vcard, functions);
+	osync_plugin_register_accepted_objtype(info, "contact");
+	osync_plugin_register_accepted_objformat(info, "contact", "vcard", &vcard_functions);
 }
