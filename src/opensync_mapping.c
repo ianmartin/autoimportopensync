@@ -29,6 +29,26 @@ void osync_mappingtable_free(OSyncMappingTable *table)
 	g_free(table);
 }
 
+void osync_mappingtable_load(OSyncMappingTable *table)
+{
+	osync_db_open_mappingtable(table);
+}
+
+void osync_mappingtable_close(OSyncMappingTable *table)
+{
+	osync_db_close_mappingtable(table);
+}
+
+void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *change)
+{
+	osync_db_save_change(table, change);
+}
+
+void osync_mappingtable_delete_change(OSyncMappingTable *table, OSyncChange *change)
+{
+	osync_db_delete_change(table, change);
+}
+
 void osync_mappingtable_add_mapping(OSyncMappingTable *table, OSyncMapping *mapping)
 {
 	table->mappings = g_list_append(table->mappings, mapping);
@@ -45,75 +65,11 @@ int osync_mappingtable_num_mappings(OSyncMappingTable *table)
 	return g_list_length(table->mappings);
 }
 
-void osync_mapping_create_changeid(OSyncMappingTable *table, OSyncChange *entry)
-{
-	g_assert(table != NULL);
-	g_assert(entry != NULL);
-	
-	void *entryidp;
-	char *anchorstr = "ID";
-	unsigned long entryid = 1;
-
-	if (osync_db_get(table->entryidtable, anchorstr, strlen(anchorstr) + 1, &entryidp)) {
-		entryid = *((unsigned long *)entryidp) + 1;
-	}
-
-	osync_db_put(table->entryidtable, anchorstr, strlen(anchorstr) + 1, &(entryid), sizeof(unsigned long));
-	entry->id = entryid;
-}
-
-void osync_mapping_create_id(OSyncMappingTable *table, OSyncMapping *mapping)
-{
-	g_assert(table != NULL);
-	g_assert(mapping != NULL);
-	
-	void *mapidp;
-	char *anchorstr = "ID";
-	unsigned long mapid = 1;
-
-	if (osync_db_get(table->mapidtable, anchorstr, strlen(anchorstr) + 1, &mapidp)) {
-		mapid = *((unsigned long *)mapidp) + 1;
-	}
-	osync_db_put(table->mapidtable, anchorstr, strlen(anchorstr) + 1, &(mapid), sizeof(unsigned long));
-	mapping->id = mapid;
-}
-
 OSyncGroup *osync_mapping_get_group(OSyncMapping *mapping)
 {
 	OSyncMappingTable *table = mapping->table;
 	g_assert(table);
 	return table->group;
-}
-
-void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *change)
-{
-	g_assert(table->entrytable != NULL);
-	
-	DBT key, data;
-	memset(&data, 0, sizeof(data));
-	memset(&key, 0, sizeof(key));
-	key.data = &(change->id);
-	key.size = sizeof(unsigned long);
-	
-	if (!change->id) {
-		osync_mapping_create_changeid(table, change);
-	}
-	
-	if (change->mapping) {
-		if (!change->mapping->id) {
-			osync_mapping_create_id(table, change->mapping);
-		}
-	}
-	osync_change_marshal(change, &data);
-	osync_db_put_dbt(table->entrytable, &key, &data);
-	osync_db_sync(table->maptable);
-}
-
-void osync_mappingtable_delete_change(OSyncMappingTable *table, OSyncChange *change)
-{
-	g_assert(table->entrytable != NULL);
-	osync_db_del(table->entrytable, &(change->id), sizeof(unsigned long));
-	osync_db_sync(table->maptable);
 }
 
 OSyncMapping *osync_mappingtable_nth_mapping(OSyncMappingTable *table, int num)
@@ -239,95 +195,22 @@ void osync_mappingtable_set_dbpath(OSyncMappingTable *table, char *path)
 	table->db_path = g_strdup(path);
 }
 
-int getmapid(DB *sdbp, const DBT *key, const DBT *data, DBT *res)
-{
-	OSyncChange *change = osync_change_new();
-	osync_change_unmarshal(NULL, change, data->data);
-	unsigned long mapid = 0;
-	memcpy(&mapid, data->data, sizeof(unsigned long));
-	
-	if (mapid) {
-		res->data = data->data;
-		res->size = sizeof(unsigned long);
-		return 0;
-	} else {
-		return DB_DONOTINDEX;
-	}
-}
-
-void osync_mappingtable_load(OSyncMappingTable *table)
-{
-	g_assert(table != NULL);
-	g_assert(table->db_path != NULL);
-	g_assert(table->group);
-	g_assert(table->group->dbenv);
-
-	char *filename = g_strdup_printf("%s/change.db", table->db_path);
-	table->entrytable = osync_db_open(filename, "Entries", DB_BTREE, table->group->dbenv);
-	table->entryidtable = osync_db_open(filename, "ID", DB_BTREE, table->group->dbenv);
-	g_free(filename);
-	filename = g_strdup_printf("%s/mapping.db", table->db_path);
-	table->maptable = osync_db_open_secondary(table->entrytable, filename, "Mappings", getmapid, table->group->dbenv);
-	table->mapidtable = osync_db_open(filename, "ID", DB_BTREE, table->group->dbenv);
-	g_free(filename);
-
-	g_assert(table->entrytable);
-	g_assert(table->maptable);
-	
-	DBC *dbcp = osync_db_cursor_new(table->maptable);
-
-    void *mapidp = NULL;
-    void *entryidp = NULL;
-    void *data = NULL;
-    
-    OSyncMapping *mapping = NULL;
-	OSyncChange *change = NULL;
-	
-	while (osync_db_cursor_next_sec(dbcp, &entryidp, &mapidp, &data)) {
-		unsigned long mapid = *(unsigned long *)mapidp;
-		unsigned long entryid = *(unsigned long *)entryidp;
-		change = osync_change_new();
-    	osync_change_unmarshal(table, change, data);
-    	
-    	if (!(mapid)) {
-    		osync_mappingtable_add_unmapped(table, change);
-    	} else {
-    		if (!mapping || mapping->id != mapid) {
-				mapping = osync_mapping_new(table);
-				mapping->id = mapid;
-    		}
-    		osync_mapping_add_entry(mapping, change);
-    	}
-    	change->id = entryid;
-    	osync_member_add_changeentry(change->member, change);
-    }
-    osync_db_cursor_close(dbcp);
-}
-
-void osync_mappingtable_close(OSyncMappingTable *table)
-{
-	osync_db_close(table->entrytable);
-	osync_db_close(table->entryidtable);
-	osync_db_close(table->maptable);
-	osync_db_close(table->mapidtable);
-}
-
 void osync_mapping_delete(OSyncMapping *mapping)
 {
 	int i;
 	OSyncMappingTable *table = mapping->table;
 	for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
 		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
-		osync_mappingtable_delete_change(table, change);
+		osync_db_delete_change(table, change);
 	}
 }
 
-unsigned long osync_mapping_get_id(OSyncMapping *mapping)
+long long int osync_mapping_get_id(OSyncMapping *mapping)
 {
 	return mapping->id;
 }
 
-void osync_mapping_set_id(OSyncMapping *mapping, unsigned long id)
+void osync_mapping_set_id(OSyncMapping *mapping, long long int id)
 {
 	mapping->id = id;
 }

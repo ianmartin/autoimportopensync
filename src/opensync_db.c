@@ -1,274 +1,268 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-void osync_db_errcall_fcn(const char *errpfx, char *msg)
+OSyncDB *osync_db_open(char *filename)
 {
-	osync_debug("OSGRP", 3, "BDB error %s: %s", errpfx, msg);
+	OSyncDB *db = g_malloc0(sizeof(OSyncDB));
+	int rc;
+	rc = sqlite3_open(filename, &(db->db));
+	if (rc) {
+		osync_debug("OSDB", 3, "Can't open database: %s", sqlite3_errmsg(db->db));
+		sqlite3_close(db->db);
+		return NULL;
+	}
+	return db;
 }
 
-DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
+void osync_db_close(OSyncDB *db)
 {
-	DB_ENV *dbenv;
-	int ret;
-
-    if ((ret = db_env_create(&dbenv, 0)) != 0) {
-    	fprintf(errfp, "opensync: %s\n", db_strerror(ret));
-    	return (NULL);
-    }
-    dbenv->set_errfile(dbenv, errfp);
-    dbenv->set_errpfx(dbenv, "opensync");
-    
-    if ((ret = dbenv->set_verbose(dbenv, DB_VERB_RECOVERY, 1)) != 0) {
-    	dbenv->err(dbenv, ret, "set_verbose: db");
-    	goto err;
-    }
-
-    dbenv->set_errcall(dbenv, osync_db_errcall_fcn);
-
-    /*if ((ret = dbenv->set_cachesize(dbenv, 0, 5 * 1024 * 1024, 0)) != 0) {
-    	dbenv->err(dbenv, ret, "set_cachesize");
-    	goto err;
-    }*/
-    
-    if ((ret = dbenv->set_data_dir(dbenv, "db")) != 0) {
-    	dbenv->err(dbenv, ret, "set_data_dir: db");
-    	goto err;
-    }
-
-    if ((ret = dbenv->set_flags(dbenv, DB_LOG_AUTOREMOVE, 1)) != 0) {
-    	dbenv->err(dbenv, ret, "set_flags: db");
-    	goto err;
-    }
-
-    if ((ret = dbenv->open(dbenv, configdir, DB_CREATE | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | DB_RECOVER | DB_PRIVATE | DB_INIT_LOCK, 0)) != 0) {
-    	dbenv->err(dbenv, ret, "environment open: %s", configdir);
-    	goto err;
-    }
-
-    return (dbenv);
-
-    err:
-    	(void)dbenv->close(dbenv, 0);
-    	return (NULL);
+	int ret = sqlite3_close(db->db);
+	if (ret)
+		osync_debug("OSDB", 1, "Can't close database: %s", sqlite3_errmsg(db->db));
 }
 
-void osync_db_tear_down(DB_ENV *dbenv)
-{
-	dbenv->close(dbenv, 0);
-}
-
-DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
+int osync_db_count(OSyncDB *db, char *table)
 {
 	int ret = 0;
-	DB *dbp = NULL;
-	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
-		printf("db_create: %s\n", db_strerror(ret));
-		return NULL;
-	}
+	char *query = g_strdup_printf("SELECT count(*) FROM %s", table);
+	
+	sqlite3_stmt *ppStmt = NULL;
+	if (sqlite3_prepare(db->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable prepare count! %s", sqlite3_errmsg(db->db));
+	if (sqlite3_step(ppStmt) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable step count! %s", sqlite3_errmsg(db->db));
+	ret = sqlite3_column_int64(ppStmt, 0);
+	sqlite3_finalize(ppStmt);
+	g_free(query);
+	return ret;
+}
 
-	//Verify
-	//FIXME
-	if ((ret = dbp->verify(dbp, g_strdup(filename), NULL, NULL, 0)) != 0) {
-		if (ret != 2) { //ENOENT FIXME
-			printf("%i verify failed for db %s: %s\n", ret, filename, db_strerror(ret));
-			return NULL;
+void osync_db_save_change(OSyncMappingTable *table, OSyncChange *change)
+{
+	g_assert(table->entrytable);
+	sqlite3 *sdb = table->entrytable->db;
+	long long int mappingid = 0;
+	
+	if (change->mapping) {
+		if (!change->mapping->id) {
+			sqlite3_stmt *ppStmt = NULL;
+			if (sqlite3_prepare(sdb, "SELECT max(mappingid) FROM tbl_changes", -1, &ppStmt, NULL) != SQLITE_OK)
+				osync_debug("OSDB", 3, "Unable prepare max! %s", sqlite3_errmsg(sdb));
+			if (sqlite3_step(ppStmt) != SQLITE_OK)
+				osync_debug("OSDB", 3, "Unable step max! %s", sqlite3_errmsg(sdb));
+			change->mapping->id = sqlite3_column_int64(ppStmt, 0) + 1;
+			sqlite3_finalize(ppStmt);
+		}
+		mappingid = change->mapping->id;
+	}
+	
+	char *query = NULL;
+	if (!change->id) {
+		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, format, memberid, mappingid) VALUES('%s', '%s', '%s', '%lli', '%lli')", change->uid, change->objtype->name, osync_objformat_get_name(osync_change_get_objformat(change)), change->member->id, mappingid);
+		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
+			osync_debug("OSDB", 1, "Unable to insert change! %s", sqlite3_errmsg(sdb));
+			g_free(query);
+			return;
+		}
+		change->id = sqlite3_last_insert_rowid(sdb);
+	} else {
+		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, change->objtype->name, osync_objformat_get_name(osync_change_get_objformat(change)), change->member->id, mappingid, change->id);
+		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
+			osync_debug("OSDB", 1, "Unable to update change! %s", sqlite3_errmsg(sdb));
+	}
+	g_free(query);
+}
+
+
+void osync_db_delete_change(OSyncMappingTable *table, OSyncChange *change)
+{
+	g_assert(table->entrytable);
+	sqlite3 *sdb = table->entrytable->db;
+	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE id=%lli", change->id);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 1, "Unable to delete change! %s", sqlite3_errmsg(sdb));
+	g_free(query);
+}
+
+void osync_db_open_mappingtable(OSyncMappingTable *table)
+{
+	g_assert(table != NULL);
+	g_assert(table->db_path != NULL);
+	g_assert(table->group);
+	OSyncMapping *mapping = NULL;
+
+	char *filename = g_strdup_printf("%s/change.db", table->db_path);
+	table->entrytable = osync_db_open(filename);
+	g_assert(table->entrytable);
+	g_free(filename);
+	
+	sqlite3 *sdb = table->entrytable->db;
+	
+	if (sqlite3_exec(sdb, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, format VARCHAR, memberid INTEGER, mappingid INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 2, "Unable create mapping table! %s", sqlite3_errmsg(sdb));
+	
+	sqlite3_stmt *ppStmt = NULL;
+	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes", -1, &ppStmt, NULL);
+	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
+		OSyncChange *change = osync_change_new();
+		change->id = sqlite3_column_int64(ppStmt, 0);
+		change->uid = g_strdup(sqlite3_column_text(ppStmt, 1));
+		char *objtype = g_strdup(sqlite3_column_text(ppStmt, 2));
+		char *objformat = g_strdup(sqlite3_column_text(ppStmt, 3));
+		long long int memberid = sqlite3_column_int64(ppStmt, 4);
+		long long int mappingid = sqlite3_column_int64(ppStmt, 5);
+		
+    	if (table && table->group) {
+    		change->member = osync_member_from_id(table->group, memberid);
+			osync_member_add_changeentry(change->member, change);
+			if (objtype)
+				change->objtype = osync_conv_find_objtype(table->group->conv_env, objtype);
+			//FIXME: handle object type not found
+			if (objformat)
+				osync_change_set_objformat(change, osync_conv_find_objformat(table->group->conv_env, objformat));
+			//FIXME: handle objformat not found
+		}
+		
+		if (!mappingid) {
+    		osync_mappingtable_add_unmapped(table, change);
+    	} else {
+    		if (!mapping || mapping->id != mappingid) {
+				mapping = osync_mapping_new(table);
+				mapping->id = mappingid;
+    		}
+    		osync_mapping_add_entry(mapping, change);
+    	}
+	}
+	sqlite3_finalize(ppStmt);
+}
+
+void osync_db_close_mappingtable(OSyncMappingTable *table)
+{
+	osync_db_close(table->entrytable);
+}
+
+OSyncDB *osync_db_open_anchor(OSyncMember *member)
+{
+	g_assert(member);
+	char *filename = g_strdup_printf ("%s/anchor.db", member->configdir);
+	OSyncDB *sdb = osync_db_open(filename);
+	g_free(filename);
+	
+	if (sqlite3_exec(sdb->db, "CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)", NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable create anchor table! %s", sqlite3_errmsg(sdb->db));
+	
+	return sdb;
+}
+
+void osync_db_close_anchor(OSyncDB *db)
+{
+	osync_db_close(db);
+}
+
+void osync_db_get_anchor(OSyncDB *sdb, char *objtype, char **retanchor)
+{
+	sqlite3_stmt *ppStmt = NULL;
+	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", objtype);
+	if (sqlite3_prepare(sdb->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable prepare anchor! %s", sqlite3_errmsg(sdb->db));
+	if (sqlite3_step(ppStmt) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable step anchor! %s", sqlite3_errmsg(sdb->db));
+	*retanchor = g_strdup(sqlite3_column_text(ppStmt, 0));
+	sqlite3_finalize(ppStmt);
+	g_free(query);
+}
+
+void osync_db_put_anchor(OSyncDB *sdb, char *objtype, char *anchor)
+{
+	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", objtype, anchor);
+	if (sqlite3_exec(sdb->db, query, NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 1, "Unable put anchor! %s", sqlite3_errmsg(sdb->db));
+
+	g_free(query);
+}
+
+
+osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member)
+{
+	g_assert(member);
+	char *filename = g_strdup_printf ("%s/hash.db", member->configdir);
+	table->dbhandle = osync_db_open(filename);
+	g_free(filename);
+	
+	sqlite3 *db = table->dbhandle->db;
+	
+	if (sqlite3_exec(db, "CREATE TABLE tbl_hash (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable create hash table! %s", sqlite3_errmsg(db));
+	
+	return TRUE; //FIXME
+}
+
+void osync_db_close_hashtable(OSyncHashTable *table)
+{
+	osync_db_close(table->dbhandle);
+}
+
+void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash)
+{
+	g_assert(table->dbhandle);
+	sqlite3 *sdb = table->dbhandle->db;
+	
+	char *query = g_strdup_printf("REPLACE INTO tbl_hash ('uid', 'hash') VALUES('%s', '%s')", uid, hash);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 1, "Unable to insert hash! %s", sqlite3_errmsg(sdb));
+	g_free(query);
+}
+
+
+void osync_db_delete_hash(OSyncHashTable *table, char *uid)
+{
+	g_assert(table->dbhandle);
+	sqlite3 *sdb = table->dbhandle->db;
+	
+	char *query = g_strdup_printf("DELETE FROM tbl_hash WHERE uid='%s'", uid);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 1, "Unable to delete hash! %s", sqlite3_errmsg(sdb));
+	g_free(query);
+}
+
+void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx)
+{
+	g_assert(table->dbhandle);
+	sqlite3 *sdb = table->dbhandle->db;
+	
+	char **azResult;
+	int numrows = 0;
+	sqlite3_get_table(sdb, "SELECT uid, hash FROM tbl_hash", &azResult, &numrows, NULL, NULL);
+	
+	int i;
+	int ccell = 2;
+	for (i = 0; i < numrows; i++) {
+		char *uid = azResult[ccell];
+		ccell++;
+		char *hash = azResult[ccell];
+		ccell++;
+		if (!g_hash_table_lookup(table->used_entries, uid)) {
+			OSyncChange *change = osync_change_new();
+			change->changetype = CHANGE_DELETED;
+			osync_change_set_hash(change, hash);
+			osync_change_set_uid(change, uid);
+			osync_context_report_change(ctx, change);
+			osync_hashtable_update_hash(table, change);
 		}
 	}
-	dbp = NULL;
+	sqlite3_free_table(azResult);
+}	
 
-	if ((ret = db_create(&dbp, dbenv, 0)) != 0) {
-		printf("db_create: %s\n", db_strerror(ret));
-		return NULL;
-	}
-	
-	if ((ret = dbp->set_flags(dbp, DB_RECNUM)) != 0) {
-		dbp->err(dbp, ret, "set_flags: DB_RECNUM");
-		return NULL;
-	}
-	
-	//FIXME g_strdup
-	if ((ret = dbp->open(dbp, NULL, g_strdup(filename), g_strdup(dbname), type, DB_CREATE, 0664)) != 0) {
-		printf("opening db %s", filename);
-		return NULL;
-	}
-	return dbp;
-}
-
-int stubcallback(DB *dbp, const DBT *dbt1, const DBT *dbt2, DBT *dbt3)
+void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
 {
-	printf("Stubcallback called\n");
-	return DB_DONOTINDEX;
-}
-
-void osync_db_sync(DB *dbp)
-{
-	dbp->sync(dbp, 0);
-}
-
-DB *osync_db_open_secondary(DB *firstdb, char *filename, char *dbname, int (*callback)(DB *, const DBT *, const DBT *, DBT *), DB_ENV *dbenv)
-{
-	DB *sdbp = NULL;
-	int ret;
-	int (*secfunc)(DB *, const DBT *, const DBT *, DBT *);
-	
-	if ((ret = db_create(&sdbp, dbenv, 0)) != 0) {
-		printf("sec_db_create: %s\n", db_strerror(ret));
-		return NULL;
-	}
-	if ((ret = sdbp->set_flags(sdbp, DB_DUP | DB_DUPSORT)) != 0) {
-		printf("sec_db_set_flag: %s\n", db_strerror(ret));
-		return NULL;
-	}
-	if ((ret = sdbp->open(sdbp, NULL, filename, dbname, DB_BTREE, DB_CREATE, 0600)) != 0) {
-		printf("sec_db_open: %s\n", db_strerror(ret));
-		return NULL;
-	}
-
-	if (!callback) {
-		secfunc = stubcallback;
-	} else {
-		secfunc = callback;
-	}
-	if ((ret = firstdb->associate(firstdb, NULL, sdbp, secfunc, 0)) != 0) {
-		printf("sec_db_associate: %s\n", db_strerror(ret));
-		return NULL;
-	}
-	return sdbp;
-}
-
-osync_bool osync_db_put_dbt(DB *dbp, DBT *key, DBT *data)
-{
-	int ret;
-	if ((ret = dbp->put(dbp, NULL, key, data, 0)) != 0) {
-		dbp->err(dbp, ret, "DB->put");
-		return FALSE;
-	}
-	dbp->sync(dbp, 0);
-	return TRUE;
-}
-
-osync_bool osync_db_put(DB *dbp, void *key, int keysize, void *data, int datasize)
-{
-	DBT keydbt, datadbt;
-	memset(&keydbt, 0, sizeof(keydbt));
-	memset(&datadbt, 0, sizeof(datadbt));
-	
-	keydbt.data = key;
-	keydbt.size = keysize;
-	datadbt.data = data;
-	datadbt.size = datasize;
-	
-	return osync_db_put_dbt(dbp, &keydbt, &datadbt);
-}
-
-osync_bool osync_db_del_dbt(DB *dbp, DBT *key)
-{
-	int ret;
-	
-	if ((ret = dbp->del(dbp, NULL, key, 0)) != 0) {
-		dbp->err(dbp, ret, "DB->del");
-		return FALSE;
-	}
-	dbp->sync(dbp, 0);
-	return TRUE;
-}
-
-osync_bool osync_db_del(DB *dbp, void *key, int keysize)
-{
-	DBT keydbt;
-	memset(&keydbt, 0, sizeof(keydbt));
-	
-	keydbt.data = key;
-	keydbt.size = keysize;
-	return osync_db_del_dbt(dbp, &keydbt);
-}
-
-void osync_db_close(DB *dbp)
-{
-	dbp->close(dbp, 0);
-}
-
-DBC *osync_db_cursor_new(DB *dbp)
-{
-	DBC *dbcp;
-	int ret;
-	
-	if ((ret = dbp->cursor(dbp, NULL, &dbcp, 0)) != 0) {
-    	dbp->err(dbp, ret, "DB->cursor");
-    	return NULL;
-    }
-	return dbcp;
-}
-
-osync_bool osync_db_cursor_next_sec(DBC *dbcp, void **pkey, void **skey, void **data)
-{
-	DBT pkeydbt, skeydbt, datadbt;
-	int ret;
-
-    memset(&pkeydbt, 0, sizeof(pkeydbt));
-    memset(&skeydbt, 0, sizeof(skeydbt));
-    memset(&datadbt, 0, sizeof(datadbt));
-    
-    if ((ret = dbcp->c_pget(dbcp, &skeydbt, &pkeydbt, &datadbt, DB_NEXT)) == 0) {
-    	*pkey = g_malloc0(pkeydbt.size);
-    	memcpy(*pkey, pkeydbt.data, pkeydbt.size);
-    	*skey = g_malloc0(skeydbt.size);
-    	memcpy(*skey, skeydbt.data, skeydbt.size);
-    	*data = g_malloc0(datadbt.size);
-    	memcpy(*data, datadbt.data, datadbt.size);
-    	return TRUE;
-    } else {
-    	return FALSE;
-    }
-}
-osync_bool osync_db_cursor_next(DBC *dbcp, void **key, void **data)
-{
-	DBT keydbt, datadbt;
-	int ret;
-
-    memset(&keydbt, 0, sizeof(keydbt));
-    memset(&datadbt, 0, sizeof(datadbt));
-    
-    if ((ret = dbcp->c_get(dbcp, &keydbt, &datadbt, DB_NEXT)) == 0) {
-    	*key = g_malloc0(keydbt.size);
-    	memcpy(*key, keydbt.data, keydbt.size);
-    	*data = g_malloc0(datadbt.size);
-    	memcpy(*data, datadbt.data, datadbt.size);
-    	return TRUE;
-    } else {
-    	return FALSE;
-    }
-}
-
-osync_bool osync_db_get(DB *dbp, void *key, int keysize, void **target)
-{
-	DBT keydbt, datadbt;
-	int ret;
-	memset(&keydbt, 0, sizeof(keydbt));
-	memset(&datadbt, 0, sizeof(datadbt));
-	
-	keydbt.data = key;
-	keydbt.size = keysize;
-	
-	if ((ret = dbp->get(dbp, NULL, &keydbt, &datadbt, 0)) == 0) {
-		*target = g_malloc0(datadbt.size);
-		memcpy(*target, datadbt.data, datadbt.size);
-		return TRUE;
-	} else {
-		if (ret != DB_NOTFOUND) {
-			dbp->err(dbp, ret, "DB->get");
-		}
-		return FALSE;
-	}
-}
-
-void osync_db_empty(DB *db)
-{
-	u_int32_t deleted = 0;
-	db->truncate(db, NULL, &deleted, DB_AUTO_COMMIT);
-}
-
-void osync_db_cursor_close(DBC *dbcp)
-{
-    dbcp->c_close(dbcp);
+	sqlite3 *sdb = table->dbhandle->db;
+	sqlite3_stmt *ppStmt = NULL;
+	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid=\"%s\"", uid);
+	if (sqlite3_prepare(sdb, query, -1, &ppStmt, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
+	if (sqlite3_step(ppStmt) != SQLITE_OK)
+		osync_debug("OSDB", 3, "Unable step get hash! %s", sqlite3_errmsg(sdb));
+	*rethash = g_strdup(sqlite3_column_text(ppStmt, 0));
+	sqlite3_finalize(ppStmt);
+	g_free(query);
 }

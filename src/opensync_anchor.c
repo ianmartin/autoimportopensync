@@ -1,32 +1,17 @@
 #include <opensync.h>
 #include "opensync_internals.h"
 
-DB *osync_anchor_load_file(char *file, OSyncGroup *group)
-{
-	DB *dbhandle = osync_db_open(file, "Anchor", DB_BTREE, group->dbenv);
-	return dbhandle;
-}
-
-DB *osync_anchor_load(OSyncMember *member)
-{
-	g_assert(member);
-	char *filename = g_strdup_printf ("%s/anchor.db", member->configdir);
-	DB *dbhandle = osync_anchor_load_file(filename, member->group);
-	g_free(filename);
-	return dbhandle;
-}
-
 osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_anchor)
 {
 	g_assert(member);
-	DB *dbhandle = osync_anchor_load(member);
+	OSyncDB *db = osync_db_open_anchor(member);
 	
 	osync_bool retval = FALSE;
 	
-	void *old_anchorp = NULL;
+	char *old_anchor = NULL;
+	osync_db_get_anchor(db, objtype, &old_anchor);
 	
-	if (osync_db_get(dbhandle, objtype, strlen(objtype) + 1, &old_anchorp)) {
-		char *old_anchor = (char *)old_anchorp;
+	if (old_anchor) {
 		if (!strcmp(old_anchor, new_anchor)) {
 			retval = TRUE;
 		} else {
@@ -36,14 +21,14 @@ osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_an
 		retval = FALSE;
 	}
 	
-	osync_db_close(dbhandle);
-	
+	osync_db_close_anchor(db);
 	return retval;
 }
 
 void osync_anchor_update(OSyncMember *member, char *objtype, char *new_anchor)
 {
-	DB *dbhandle = osync_anchor_load(member);
-	osync_db_put(dbhandle, objtype, strlen(objtype) + 1, new_anchor, strlen(new_anchor) + 1);
-	osync_db_close(dbhandle);
+	g_assert(member);
+	OSyncDB *db = osync_db_open_anchor(member);
+	osync_db_put_anchor(db, objtype, new_anchor);
+	osync_db_close_anchor(db);
 }

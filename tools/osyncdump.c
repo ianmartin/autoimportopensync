@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <db.h>
+#include <sqlite3.h>
 
 static void usage (char *name, int ecode)
 {
@@ -34,12 +34,12 @@ void dump_map(OSyncEnv *osync, char *groupname)
 	
 	OSyncMappingTable *table = osync_mappingtable_new(group);
 	osync_mappingtable_set_dbpath(table, osync_group_get_configdir(group));
-	osync_mappingtable_load(table);
+	osync_db_open_mappingtable(table);
 	
 	int i, n;
 	for (i = 0; i < osync_mappingtable_num_mappings(table); i++) {
 		OSyncMapping *mapping = osync_mappingtable_nth_mapping(table, i);	
-		printf("\nNEW MAPPING: %lu\n", osync_mapping_get_id(mapping));
+		printf("\nNEW MAPPING: %lli\n", osync_mapping_get_id(mapping));
 		for (n = 0; n < osync_mapping_num_entries(mapping); n++) {
 			OSyncChange *change = osync_mapping_nth_entry(mapping, n);
 			OSyncMember *member = osync_change_get_member(change);
@@ -52,11 +52,11 @@ void dump_map(OSyncEnv *osync, char *groupname)
 	    	const char *objname = NULL;
 	    	if (osync_change_get_objtype(change))
 	    		objname = osync_objtype_get_name(osync_change_get_objtype(change));
-			printf("ID: %lu UID: %s MEMBER: %i\n\tOBJTYPE: %s OBJFORMAT: %s\n", osync_change_get_id(change), osync_change_get_uid(change), memberid, objname, formatname);
+			printf("ID: %lli UID: %s MEMBER: %i\n\tOBJTYPE: %s OBJFORMAT: %s\n", osync_change_get_id(change), osync_change_get_uid(change), memberid, objname, formatname);
 		}
 	}
     
-	osync_mappingtable_close(table);
+	osync_db_close_mappingtable(table);
 }
 
 void dump_unmapped(OSyncEnv *osync, char *groupname)
@@ -67,6 +67,31 @@ void dump_unmapped(OSyncEnv *osync, char *groupname)
 		printf("Unable to find group with name \"%s\"\n", groupname);
 		return;
 	}
+	
+	char *filename = g_strdup_printf("%s/change.db", osync_group_get_configdir(group));
+	OSyncDB *db = osync_db_open(filename);
+	g_free(filename);
+	
+	sqlite3 *sdb = db->db;
+	
+	sqlite3_stmt *ppStmt = NULL;
+	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid, mappingid FROM tbl_changes", -1, &ppStmt, NULL);
+	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
+		long long int entryid = sqlite3_column_int64(ppStmt, 0);
+		char *uid = g_strdup(sqlite3_column_text(ppStmt, 1));
+		char *objtype = g_strdup(sqlite3_column_text(ppStmt, 2));
+		char *objformat = g_strdup(sqlite3_column_text(ppStmt, 3));
+		long long int memberid = sqlite3_column_int64(ppStmt, 4);
+		long long int mappingid = sqlite3_column_int64(ppStmt, 5);
+		
+    	printf("ID: %lli UID: %s MEMBER: %lli, TYPE %s, FORMAT %s, MAPPING %lli\n", entryid, uid, memberid, objtype, objformat, mappingid);
+	}
+	sqlite3_finalize(ppStmt);
+	
+	osync_db_close(db);
+	
+	
+	/*
 	
 	OSyncMappingTable *table = osync_mappingtable_new(group);
 	char *entrydb = g_strdup_printf("%s/change.db", osync_group_get_configdir(group)); //FIXME!!!
@@ -87,20 +112,16 @@ void dump_unmapped(OSyncEnv *osync, char *groupname)
 	while (osync_db_cursor_next(dbcp, &entryid, &data)) {
 		change = osync_change_new();
     	osync_change_unmarshal(table, change, data);
-    	OSyncMember *member = osync_change_get_member(change);
-    	int memberid = 0;
-    	if (member)
-    		memberid = osync_member_get_id(member);
-    	printf("ID: %lu UID: %s MEMBER: %i\n", *(unsigned long *)entryid, osync_change_get_uid(change), memberid);
+    	
     }
     osync_db_cursor_close(dbcp);
     
-    osync_db_close(entrytable);
+    osync_db_close(entrytable);*/
 }
 
 void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
 {
-	unsigned int id = atoi(memberid);
+	long long int id = atoi(memberid);
 	OSyncGroup *group = osync_group_from_name(osync, groupname);
 	
 	if (!group) {
@@ -114,16 +135,21 @@ void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
 		return;
 	}
 	
-	char *uid;
-    char *hash;
     OSyncHashTable *table = osync_hashtable_new();
-    osync_hashtable_load(table, member);
-    int i;
-	for (i = 0; i < osync_hashtable_num_entries(table); i++) {
-		if (osync_hashtable_nth_entry(table, i, &uid, &hash))
-			printf("UID: %s HASH: %s\n", uid, hash);
+    osync_db_open_hashtable(table, member);
+    
+    sqlite3 *sdb = table->dbhandle->db;
+	
+	sqlite3_stmt *ppStmt = NULL;
+	sqlite3_prepare(sdb, "SELECT uid, hash FROM tbl_hash", -1, &ppStmt, NULL);
+	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
+		char *uid = g_strdup(sqlite3_column_text(ppStmt, 0));
+		char *hash = g_strdup(sqlite3_column_text(ppStmt, 1));
+    	printf("UID: %s HASH: %s\n", uid, hash);
 	}
-	osync_hashtable_close(table);
+	sqlite3_finalize(ppStmt);
+
+	osync_db_close_hashtable(table);
 }
 
 int main (int argc, char *argv[])

@@ -40,9 +40,10 @@ else
 fi
 AC_SUBST(testdir)
 
-AX_PATH_BDB([4.2],[LDFLAGS="$LDFLAGS $BDB_LDFLAGS"
-LIBS="$LIBS $BDB_LIBS"
-CPPFLAGS="$CPPFLAGS $BDB_CPPFLAGS"],AC_MSG_ERROR(You must have libdb of version 4.1 or higher installed))
+
+dnl AX_PATH_BDB([4.2],[LDFLAGS="$LDFLAGS $BDB_LDFLAGS"
+dnl LIBS="$LIBS $BDB_LIBS"
+dnl CPPFLAGS="$CPPFLAGS $BDB_CPPFLAGS"],AC_MSG_ERROR(You must have libdb of version 4.1 or higher installed))
 
 AC_CACHE_CHECK([for $am_display_PYTHON version], [am_cv_python_version],
 	[am_cv_python_version=`$PYTHON -c "import sys; print sys.version[[:3]]"`])
@@ -58,7 +59,7 @@ if test "$py_prefix" != "$py_exec_prefix"; then
 fi
 AC_SUBST(PYTHON_INCLUDES)
 
-pkg_modules="glib-2.0 gmodule-2.0"
+pkg_modules="glib-2.0 gmodule-2.0 sqlite3"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)

@@ -20,8 +20,7 @@ OSyncGroup *osync_group_new(OSyncEnv *osinfo)
 
 void osync_group_free(OSyncGroup *group)
 {
-	printf("Freeing group\n");
-	osync_db_tear_down(group->dbenv);
+	//osync_db_tear_down(group->dbenv);
 	g_assert(group);
 	g_free(group->name);
 	g_free(group->configdir);
@@ -137,12 +136,12 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 			}
 		}
 	}
-	char *dbdir = g_strdup_printf("%s/db", group->configdir);
-	char *logfile = g_strdup_printf("%s/group.log", dbdir);
-	FILE *log = fopen(logfile, "rw");
-	group->dbenv = osync_db_setup(dbdir, log);
-	g_free(dbdir);
-	g_free(logfile);
+	//char *dbdir = g_strdup_printf("%s/db", group->configdir);
+	//char *logfile = g_strdup_printf("%s/group.log", dbdir);
+	//FILE *log = fopen(logfile, "rw");
+	//group->dbenv = osync_db_setup(dbdir, log);
+	//g_free(dbdir);
+	//g_free(logfile);
 	osync_env_append_group(env, group);
 	return group;
 }
@@ -214,15 +213,15 @@ void osync_group_set_data(OSyncGroup *group, void *data)
 	group->data = data;
 }
 
-unsigned int osync_group_create_member_id(OSyncGroup *group)
+long long int osync_group_create_member_id(OSyncGroup *group)
 {
 	char *filename = NULL;
-	int i = 0;
+	long long int i = 0;
 	do {
 		i++;
 		if (filename)
 			g_free(filename);
-		filename = g_strdup_printf("%s/%i", group->configdir, i);
+		filename = g_strdup_printf("%s/%lli", group->configdir, i);
 	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
 	g_free(filename);
 	return i;

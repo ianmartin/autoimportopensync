@@ -21,7 +21,7 @@ OSyncChange *osync_member_get_changeentry(OSyncMember *member, char *uid);
 int osync_member_num_changeentries(OSyncMember *member);
 OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n);
 void osync_member_create(OSyncMember *member);
-unsigned int osync_member_get_id(OSyncMember *member);
+long long int osync_member_get_id(OSyncMember *member);
 osync_bool osync_member_load(OSyncMember *member);
 void osync_member_save(OSyncMember *member);
 void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *user_data);

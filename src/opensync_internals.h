@@ -15,6 +15,8 @@ void osync_error_set_vargs(OSyncError *error, OSyncErrorType type, const char *f
 #define osync_assert(x, msg) if (!(x)) { printf("** ERROR **: file %s: line %i (%s):\n%s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
+typedef struct OSyncDB OSyncDB;
+
 struct OSyncEnv {
 	GList *plugins;
 	GList *groups;
@@ -23,12 +25,11 @@ struct OSyncEnv {
 };
 
 struct OSyncHashTable {
-	DB *dbhandle;
+	OSyncDB *dbhandle;
 	GHashTable *used_entries;
 };
 
 struct OSyncMember {
-	//char *name;
 	char *configdir;
 	OSyncPlugin *plugin;
 	void *enginedata;
@@ -36,7 +37,7 @@ struct OSyncMember {
 	OSyncMemberFunctions *memberfunctions;
 	OSyncGroup *group;
 	GList *entries;
-	unsigned int id;
+	long long int id;
 	GList *objtype_sinks;
 };
 
@@ -53,7 +54,7 @@ struct OSyncGroup {
 	GList *members;
 	gchar *configdir;
 	OSyncEnv *env;
-	DB_ENV *dbenv;
+	//OSyncDBEnv *dbenv;
 	void *data;
 	OSyncFormatEnv *conv_env;
 };
@@ -75,9 +76,8 @@ struct OSyncChange {
 	GList *objformats;
 	OSyncMember *member;
 	OSyncChangeType changetype;
-	//OSyncMappingEntry *entry;
 	void *engine_data;
-	unsigned long id;
+	long long int id;
 	int refcount;
 	OSyncMapping *mapping;
 };
@@ -86,21 +86,19 @@ struct OSyncMapping {
 	GList *entries;
 	OSyncChange *master;
 	void *engine_data;
-	unsigned long id;
+	long long int id;
 	OSyncMappingTable *table;
 };
 
 struct OSyncMappingTable {
 	GList *mappings;
-	DB *maptable;
-	DB *mapidtable;
-	DB *entrytable;
-	DB *entryidtable;
+	OSyncDB *entrytable;
 	char *db_path;
 	OSyncGroup *group;
 	GList *unmapped;
 };
 
+#include "opensync_db_internals.h"
 #include "opensync_format_internals.h"
 #include "opensync_member_internals.h"
 #include "opensync_plugin_internals.h"

@@ -137,7 +137,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			
 			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
 
-			if (osync_hashtable_detect_change(fsinfo->hashtable, change, slow_sync)) {
+			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
 				osync_context_report_change(ctx, change);
 				osync_hashtable_update_hash(fsinfo->hashtable, change);
 			}
@@ -145,7 +145,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			g_free(hash);
 			g_free(filename);
 		}
-		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, slow_sync);
+		osync_hashtable_report_deleted(fsinfo->hashtable, ctx);
 	}
 	osync_context_report_success(ctx);
 }
