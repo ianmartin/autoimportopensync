@@ -2,10 +2,23 @@
 
 SUBDIRS = src $(enginedir) formats $(toolsdir) $(testdir)
 
+if BUILD_ENGINE
+OSENGINE_PC = osengine.pc
+endif
+
+pkgconfigdir = /usr/lib/pkgconfig
+pkgconfig_DATA = opensync.pc $(OSENGINE_PC)
+
+DISTCLEANFILES = \
+	opensync.pc  \
+	osengine.pc
+
 EXTRA_DIST = \
 	autogen.sh \
 	buildtest.sh \
-	plugins
+	plugins \
+	opensync.pc.in \
+	osengine.pc.in
 
 dist-hook:
 	find $(distdir) -name .svn -print0 | xargs -0 rm -rf

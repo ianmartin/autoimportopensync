@@ -205,7 +205,7 @@ static void evo_disconnect(OSyncContext *ctx)
 	osync_context_report_success(ctx);
 }
 
-static void evo2_finalize(void *data)
+static void evo_finalize(void *data)
 {
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
 	evo_environment *env = (evo_environment *)data;

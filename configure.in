@@ -37,6 +37,8 @@ else
 	enginedir=""
 fi
 AC_SUBST(enginedir)
+AC_SUBST(BUILD_ENGINE)
+AM_CONDITIONAL(BUILD_ENGINE, test x$ENABLE_ENGINE = xyes)
 
 AC_ARG_ENABLE(debug,[  --enable-debug        enable debug messages],WITH_DEBUG=$enableval)
 if test "x${WITH_DEBUG}" = "xyes"; then
@@ -150,6 +152,8 @@ tests/Makefile
 formats/Makefile
 formats/vformats-xml/Makefile
 engine/Makefile
+opensync.pc
+osengine.pc
 ])
 
 echo ""

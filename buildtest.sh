@@ -21,9 +21,9 @@ make dist || exit 1
 mkdir _inst > /dev/null
 rm -rf opensync-0.??
 
-tar zxvf opensync* || exit 1
+tar zxvf opensync-0.??.tar.gz || exit 1
 
-cd opensync*
+cd opensync-0.??
 
 ./configure --prefix=$TOP_SRCDIR/_inst || exit 1
 make install || exit 1
