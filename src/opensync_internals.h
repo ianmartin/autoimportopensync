@@ -37,6 +37,7 @@ struct OSyncMember {
 	OSyncGroup *group;
 	GList *entries;
 	unsigned int id;
+	GList *objtype_sinks;
 };
 
 struct OSyncContext {
@@ -61,6 +62,7 @@ struct OSyncPlugin {
 	GModule *real_plugin;
 	gchar *path;
 	OSyncPluginInfo info;
+	GList *accepted_objtypes;
 };
 
 struct OSyncChange {
@@ -99,66 +101,7 @@ struct OSyncMappingTable {
 	GList *unmapped;
 };
 
-struct OSyncPlgAcceptedTypes
-{
-	GList *types;
-};
-
-struct OSyncPlgAcceptedType
-{
-	/*FIXME: Use 'OSyncObjType *type' or 'const char *name'? */
-	const char *name;
-	GList *formats;
-};
-
-struct OSyncPlgAcceptedFormat
-{
-	const char *name;
-	OSyncFormatFunctions *functions;
-};
-
-struct OSyncFormatEnv {
-	GList *objtypes;
-	GList *objformats;
-	GList *converters;
-	char *pluginpath;
-	OSyncObjFormat *common_format;
-};
-
-struct OSyncObjType {
-	char *name;
-	GList *formats;
-	GList *converters;
-	OSyncFormatEnv *env;
-	osync_bool needs_slow_sync;
-	osync_bool enabled;
-	osync_bool write;
-	osync_bool read;
-};
-
-struct OSyncFormatProperty {
-	char *name;
-	void *add_func;
-	void *remove_func;
-	OSyncFormatDetectFunc detect_func;
-};
-
-struct OSyncObjFormat {
-	OSyncObjType *objtype;
-	char *name;
-	OSyncFormatCompareFunc cmp_func;
-	OSyncFormatMergeFunc merge_func;
-	OSyncFormatDetectFunc detect_func;
-	OSyncFormatDuplicateFunc duplicate_func;
-	OSyncFormatCreateFunc create_func;
-	GList *properties;
-};
-
-struct OSyncFormatConverter {
-	OSyncObjFormat *source_format;
-	OSyncObjFormat *target_format;
-	OSyncFormatConvertFunc convert_func;
-	ConverterType type;
-};
-
+#include "opensync_format_internals.h"
+#include "opensync_member_internals.h"
+#include "opensync_plugin_internals.h"
 #include <sys/stat.h>

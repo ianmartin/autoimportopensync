@@ -79,13 +79,9 @@ static osync_bool evo2_calendar_modify(OSyncContext *ctx, OSyncChange *change)
 	return TRUE;
 }
 
-OSyncFormatFunctions vcalendar_functions = {
-	.commit_change = evo2_calendar_modify,
-	.access = evo2_calendar_modify,
-};
-
 void evo2_calendar_setup(OSyncPluginInfo *info)
 {
-	osync_plugin_register_accepted_objtype(info, "calendar");
-	osync_plugin_register_accepted_objformat(info, "calendar", "vcalendar", &vcalendar_functions);
+	osync_plugin_accept_objtype(info, "calendar");
+	osync_plugin_accept_objformat(info, "calendar", "vcalendar");
+	osync_plugin_set_commit_objformat(info, "calendar", "vcalendar", evo2_calendar_modify);
 }

@@ -59,14 +59,8 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	OSyncMember *member = context->member;
 	g_assert(member);
 	
-	OSyncFormatEnv *env = osync_member_get_format_env(member);
-	
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;
-	
-	//Convert to the common format if it set.
-	if (env->common_format)
-		osync_conv_convert(env, change, env->common_format);
 	
 	member->memberfunctions->rf_change(member, change);
 }

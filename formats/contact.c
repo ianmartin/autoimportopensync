@@ -20,9 +20,9 @@ static OSyncConvCmpResult compare_vcard(OSyncChange *leftchange, OSyncChange *ri
 	return CONV_DATA_MISMATCH;
 }
 
-osync_bool detect_vcard(OSyncFormatEnv *env, void *data, int size)
+static osync_bool detect_vcard(OSyncFormatEnv *env, const char *data, int size)
 {
-	if (!strcmp(data, "BEGIN:VCARD"))
+	if (!strncmp(data, "BEGIN:VCARD", 11))
 		return TRUE;
 	return FALSE;
 }
@@ -38,5 +38,6 @@ void get_info(OSyncFormatEnv *env)
 	OSyncObjFormat *format = osync_conv_register_objformat(type, "vcard");
 	osync_conv_format_set_compare_func(format, compare_vcard);
 	osync_conv_format_set_create_func(format, create_vcard);
-	//osync_conv_register_data_detector(format, "contact", "vcard", detect_vcard);
+	
+	osync_conv_register_data_detector(env, "contact", "vcard", detect_vcard);
 }

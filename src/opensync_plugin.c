@@ -8,7 +8,7 @@ OSyncPlugin *osync_plugin_new(void)
         OSyncPlugin *plugin = g_malloc0(sizeof(OSyncPlugin));
         memset(&(plugin->info), 0, sizeof(plugin->info));
         memset(&(plugin->info.functions), 0, sizeof(plugin->info.functions));
-        plugin->info.accepted_objtypes = g_malloc0(sizeof(OSyncPlgAcceptedTypes));
+        plugin->info.plugin = plugin;
         return plugin;
 }
 
@@ -185,8 +185,96 @@ const char *osync_plugin_get_name(OSyncPlugin *plugin)
 	return plugin->info.name;
 }
 
-/*void osync_plugin_set_name(OSyncPlugin *plugin, char *name)
+OSyncObjTypeSink *osync_objtype_sink_from_template(OSyncGroup *group, OSyncObjTypeTemplate *template)
 {
-	g_assert(plugin);
-	plugin->info.name = name;
-}*/
+	OSyncObjTypeSink *sink = g_malloc0(sizeof(OSyncObjTypeSink));
+	OSyncObjType *type = osync_conv_find_objtype(group->conv_env, template->name);
+	if (!type) {
+		osync_debug("OSYNC", 0, "Unable to find objtype named %s to create objtype sink", template->name);
+		return NULL;
+	}
+	sink->objtype = type;
+	sink->enabled = TRUE;
+	sink->write = TRUE;
+	sink->read = TRUE;
+	return sink;
+}
+
+OSyncObjFormatSink *osync_objformat_sink_from_template(OSyncGroup *group, OSyncObjFormatTemplate *template)
+{
+	OSyncObjFormatSink *sink = g_malloc0(sizeof(OSyncObjFormatSink));
+	OSyncObjFormat *format = osync_conv_find_objformat(group->conv_env, template->name);
+	if (!format)
+		return NULL;
+	sink->format = format;
+	sink->functions.commit_change = template->commit_change;
+	sink->functions.access = template->access;
+	return sink;
+}
+
+OSyncObjTypeTemplate *osync_plugin_find_objtype_template(OSyncPlugin *plugin, const char *objtypestr)
+{
+	GList *o;
+	for (o = plugin->accepted_objtypes; o; o = o->next) {
+		OSyncObjTypeTemplate *template = o->data;
+		if (!strcmp(template->name, objtypestr))
+			return template;
+	}
+	return NULL;
+}
+
+OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplate *type_template, const char *objformatstr)
+{
+	GList *f;
+	for (f = type_template->formats; f; f = f->next) {
+		OSyncObjFormatTemplate *template = f->data;
+		if (!strcmp(template->name, objformatstr))
+			return template;
+	}
+	return NULL;
+}
+
+void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
+{
+	OSyncObjTypeTemplate *template = g_malloc0(sizeof(OSyncObjTypeTemplate));
+	template->name = g_strdup(objtypestr);
+	info->plugin->accepted_objtypes = g_list_append(info->plugin->accepted_objtypes, template);
+}
+
+void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr)
+{
+	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	OSyncObjFormatTemplate *format_template = g_malloc0(sizeof(OSyncObjFormatTemplate));
+	format_template->name = g_strdup(formatstr);
+	template->formats = g_list_append(template->formats, format_template);
+}
+
+void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
+{
+	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
+	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+	format_template->commit_change = commit_change;
+}
+
+void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *))
+{
+	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
+	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+	format_template->access = access;
+}
+
+OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const char *formatstr)
+{
+	GList *f;
+	for (f = sink->formatsinks; f; f = f->next) {
+		OSyncObjFormatSink *sink = f->data;
+		if (!strcmp(sink->format->name, formatstr))
+			return sink;
+	}
+	return NULL;
+}

@@ -37,21 +37,23 @@ DB_ENV *osync_db_setup(char *configdir, FILE *errfp)
 
 DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 {
-	int ret;
-	DB *dbp;
+	int ret = 0;
+	DB *dbp = NULL;
 	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
 		printf("db_create: %s\n", db_strerror(ret));
 		return NULL;
 	}
 	
 	//Verify
-	if ((ret = dbp->verify(dbp, filename, NULL, NULL, 0)) != 0) {
+	//FIXME
+	if ((ret = dbp->verify(dbp, g_strdup(filename), NULL, NULL, 0)) != 0) {
 		if (ret != 2) { //ENOENT FIXME
 			printf("%i verify failed for db %s: %s\n", ret, filename, db_strerror(ret));
 			return NULL;
 		}
 	}
-	
+	dbp = NULL;
+
 	if ((ret = db_create(&dbp, dbenv, 0)) != 0) {
 		printf("db_create: %s\n", db_strerror(ret));
 		return NULL;
@@ -62,28 +64,13 @@ DB *osync_db_open(char *filename, char *dbname, int type, DB_ENV *dbenv)
 		return NULL;
 	}
 	
-	if ((ret = dbp->open(dbp, NULL, filename, dbname, type, DB_CREATE, 0664)) != 0) {
+	//FIXME g_strdup
+	if ((ret = dbp->open(dbp, NULL, g_strdup(filename), g_strdup(dbname), type, DB_CREATE, 0664)) != 0) {
 		printf("opening db %s", filename);
 		return NULL;
 	}
 	return dbp;
 }
-
-/*u_long osync_db_create_unique_id(DB *dbp)
-{
-	DB_BTREE_STAT *statp;
-	int ret;
-	u_long uid;
-	
-	if ((ret = dbp->stat(dbp, &statp,  0)) != 0) {
-		dbp->err(dbp, ret, "DB->stat");
-		return 0;
-	}
-	uid = ((u_long)statp->bt_nkeys) + 1;
-	free(statp);
-	
-	return uid;
-}*/
 
 int stubcallback(DB *dbp, const DBT *dbt1, const DBT *dbt2, DBT *dbt3)
 {

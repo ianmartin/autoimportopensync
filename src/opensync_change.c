@@ -345,7 +345,4 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 		target->objformats = g_list_append(NULL, g_list_last(source->objformats)->data);
 	if (source->objtype)
 		target->objtype = source->objtype;
-	//target->member = source->member;
-	//target->mapping = source->mapping;
-	//target->flags = source->flags;
 }

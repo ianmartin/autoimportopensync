@@ -1,5 +1,3 @@
-//#include <unistd.h>
-
 OSyncMember *osync_member_new(OSyncGroup *group);
 osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin);
 osync_bool osync_member_set_name(OSyncMember *member, char *name);
@@ -10,7 +8,6 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size);
 osync_bool osync_member_set_config(OSyncMember *member, char *data, int size);
 const char *osync_member_get_pluginname(OSyncMember *member);
 osync_bool osync_member_initialize(OSyncMember *member);
-//void osync_member_get_changeinfo(OSyncMember *member, void (*function)(OSyncCall *call, void *), void *user_data);
 void *osync_member_get_enginedata(OSyncMember *member);
 void osync_member_set_enginedata(OSyncMember *member, void *data);
 void *osync_member_get_report_function(OSyncMember *member);
@@ -20,22 +17,23 @@ void *osync_member_get_data(OSyncMember *member);
 void osync_member_set_data(OSyncMember *member, void *data);
 OSyncMemberFunctions *osync_member_get_memberfunctions(OSyncMember *member);
 OSyncMember *osync_member_from_id(OSyncGroup *group, int id);
-//void osync_member_add_change(OSyncMember *member, OSyncChange *change, void (*function)(OSyncCall *call, void *), void *user_data);
 OSyncChange *osync_member_get_changeentry(OSyncMember *member, char *uid);
-//void osync_member_set_state(OSyncMember *member, OSyncMemberState state);
-//OSyncMemberState osync_member_get_state(OSyncMember *member);
 int osync_member_num_changeentries(OSyncMember *member);
 OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n);
 void osync_member_create(OSyncMember *member);
 unsigned int osync_member_get_id(OSyncMember *member);
-void osync_member_load(OSyncMember *member);
+osync_bool osync_member_load(OSyncMember *member);
 void osync_member_save(OSyncMember *member);
+void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *user_data);
+void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, void *user_data);
+void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function, void *user_data);
+void osync_member_call_plugin(OSyncMember *member, char *function, void *data);
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 void osync_member_get_change_data(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member);
 void osync_member_sync_done(OSyncMember *member, OSyncEngCallback function, void *user_data);
 OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid);
-osync_bool osync_member_uid_is_unique(OSyncMember *member, const char *uid);
+osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, osync_bool spare_deleted);
 void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry);
 void osync_member_request_synchronization(OSyncMember *member);
 OSyncChange *osync_member_add_random_data(OSyncMember *member);
@@ -46,4 +44,4 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change);
 void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync);
 osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr);
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
-
+osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change);

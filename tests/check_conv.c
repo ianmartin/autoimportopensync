@@ -286,7 +286,6 @@ END_TEST
 
 static osync_bool convert_addtest(const char *input, int inpsize, char **output, int *outpsize)
 {
-	printf("conv 1\n");
 	*output = g_strdup_printf("%stest", input);
 	*outpsize = inpsize + 4;
 	return TRUE;
@@ -294,7 +293,6 @@ static osync_bool convert_addtest(const char *input, int inpsize, char **output,
 
 static osync_bool convert_remtest(const char *input, int inpsize, char **output, int *outpsize)
 {
-	printf("remconv 1\n");
 	*output = strdup(input);
 	char *test = g_strrstr(*output, "test");
 	*outpsize = 0;
@@ -310,7 +308,6 @@ static osync_bool convert_remtest(const char *input, int inpsize, char **output,
 
 static osync_bool convert_addtest2(const char *input, int inpsize, char **output, int *outpsize)
 {
-	printf("conv 2\n");
 	*output = g_strdup_printf("%stest2", input);
 	*outpsize = inpsize + 5;
 	return TRUE;
@@ -318,7 +315,6 @@ static osync_bool convert_addtest2(const char *input, int inpsize, char **output
 
 static osync_bool convert_remtest2(const char *input, int inpsize, char **output, int *outpsize)
 {
-	printf("remconv 2\n");
 	*output = strdup(input);
 	char *test = g_strrstr(*output, "test2");
 	*outpsize = 0;
@@ -491,22 +487,24 @@ START_TEST (conv_env_convert_desenc_complex)
 }
 END_TEST
 
-void detect_format1_no(OSyncFormatEnv *env, OSyncChange *change)
+osync_bool detect_format1_no(OSyncFormatEnv *env, OSyncChange *change)
 {
-	
+	return FALSE;
 }
 
-void detect_format1(OSyncFormatEnv *env, OSyncChange *change)
+osync_bool detect_format1(OSyncFormatEnv *env, OSyncChange *change)
 {	
 	OSyncObjFormat *format2 = osync_conv_find_objformat(env, "F2");
 	osync_change_prepend_objformat(change, format2);
+	return TRUE;
 }
 
-void detect_format2(OSyncFormatEnv *env, OSyncChange *change)
+osync_bool detect_format2(OSyncFormatEnv *env, OSyncChange *change)
 {
 	change->objtype = osync_conv_find_objtype(env, "O1");
 	OSyncObjFormat *format3 = osync_conv_find_objformat(env, "F3");
 	osync_change_prepend_objformat(change, format3);
+	return TRUE;
 }
 
 START_TEST (conv_env_detect_and_convert)
@@ -533,6 +531,7 @@ START_TEST (conv_env_detect_and_convert)
   osync_change_set_data(change, "data", 5, TRUE);
   
   mark_point();
+
   fail_unless(osync_conv_convert(env, change, format4), NULL);
   mark_point();
   char *data = osync_change_get_data(change);

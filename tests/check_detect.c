@@ -27,7 +27,6 @@ END_TEST
 
 START_TEST (conv_env_detect_smart2)
 {
-	printf("\n2\n");
 	OSyncFormatEnv *env = osync_conv_env_new();
 	OSyncObjType *type = osync_conv_register_objtype(env, "Type1", FALSE);
 	OSyncObjFormat *format1 = osync_conv_register_objformat(type, "Format1", NULL);
@@ -41,7 +40,6 @@ END_TEST
 
 START_TEST (conv_env_detect_smart_no)
 {
-	printf("\n");
 	OSyncFormatEnv *env = osync_conv_env_new();
 	OSyncObjType *type = osync_conv_register_objtype(env, "Type1", FALSE);
 	OSyncObjFormat *format1 = osync_conv_register_objformat(type, "Format1", NULL);

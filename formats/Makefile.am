@@ -6,7 +6,11 @@ formatsdir=@OPENSYNC_FORMATSDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
 
-formats_LTLIBRARIES = calendar.la todo.la contact.la
+formats_LTLIBRARIES = data.la calendar.la todo.la contact.la
+
+data_la_SOURCES = data.c
+data_la_LDFLAGS = -avoid-version -export-dynamic -module
+data_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
 calendar_la_SOURCES = calendar.c
 calendar_la_LDFLAGS = -avoid-version -export-dynamic -module

@@ -25,7 +25,8 @@ typedef enum {
 	OSYNC_ERROR_TIMEOUT = 4,
 	OSYNC_ERROR_DISCONNECTED = 5,
 	OSYNC_ERROR_FILE_NOT_FOUND = 6,
-	OSYNC_ERROR_EXISTS = 7
+	OSYNC_ERROR_EXISTS = 7,
+	OSYNC_ERROR_CONVERT = 8
 } OSyncErrorType;
 
 typedef struct OSyncEnv OSyncEnv;
@@ -78,8 +79,8 @@ typedef struct OSyncPluginInfo {
 	const char *name;
 	const char *description;
 	osync_bool is_threadsafe;
-	OSyncPlgAcceptedTypes *accepted_objtypes;
 	OSyncPluginFunctions functions;
+	OSyncPlugin *plugin;
 } OSyncPluginInfo;
 
 typedef enum {
@@ -96,16 +97,13 @@ typedef enum {
 } ConverterType;
 
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
-
 typedef osync_bool (* OSyncFormatConvertFunc) (const char *input, int inpsize, char **output, int *outpsize);
-
-typedef void (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, OSyncChange *change);
-
+typedef osync_bool (* OSyncFormatDetectFunc) (OSyncFormatEnv *env, OSyncChange *change);
+typedef osync_bool (* OSyncFormatDetectDataFunc) (OSyncFormatEnv *env, const char *data, int size);
 typedef void (* OSyncFormatDuplicateFunc) (OSyncChange *change);
-
 typedef void (* OSyncFormatCreateFunc) (OSyncChange *change);
-
 typedef void (* OSyncFormatMergeFunc) (OSyncChange *leftchange, OSyncChange *rightchange);
+
 /**************************************************************
  * Structs
  *************************************************************/

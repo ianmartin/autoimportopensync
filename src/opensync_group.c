@@ -128,7 +128,10 @@ OSyncGroup *osync_group_load(OSyncEnv *env, char *path)
 			}
 			member = osync_member_new(group);
 			osync_member_set_configdir(member, filename);
-			osync_member_load(member);
+			if (!osync_member_load(member)) {
+				osync_debug("OSGRP", 0, "Unable to load one of the members");
+				return NULL;
+			}
 		}
 	}
 	char *dbdir = g_strdup_printf("%s/db", group->configdir);
@@ -227,14 +230,12 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 	g_assert(group);
 	OSyncFormatEnv *conv_env = group->conv_env;
 
-	if (!strcmp(objtypestr, "*")) {		
-		// FIXME: this will probably be rewritten with the new conversion API
+	if (osync_conv_objtype_is_any(objtypestr)) {
 		GList *element;
 		for (element = conv_env->objtypes; element; element = element->next) {
 			OSyncObjType *objtype = element->data;
 			objtype->needs_slow_sync = slow_sync;
 		}
-		
 	} else {
 		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
 		g_assert(objtype);
@@ -252,29 +253,8 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	return osync_objtype->needs_slow_sync;
 }
 
-//TODO
-//For now store in the group
-///BUt it really should be set on a per member basis
-osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
+OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
 {
 	g_assert(group);
-	OSyncFormatEnv *env = group->conv_env;
-	g_assert(env);
-	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, objtype);
-	g_assert(osync_objtype);
-	return osync_objtype->enabled;
-}
-
-void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, osync_bool enabled)
-{
-	g_assert(group);
-	OSyncFormatEnv *conv_env = group->conv_env;
-
-	if (!strcmp(objtypestr, "*")) {
-		g_assert_not_reached();
-	} else {
-		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
-		g_assert(objtype);
-		objtype->enabled = enabled;
-	}
+	return group->conv_env;
 }

@@ -94,8 +94,11 @@ void osync_mappingtable_save_change(OSyncMappingTable *table, OSyncChange *chang
 	memset(&key, 0, sizeof(key));
 	key.data = &(change->id);
 	key.size = sizeof(unsigned long);
-	if (!change->id)
+	
+	if (!change->id) {
 		osync_mapping_create_changeid(table, change);
+	}
+	
 	if (change->mapping) {
 		if (!change->mapping->id) {
 			osync_mapping_create_id(table, change->mapping);
@@ -256,6 +259,9 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 {
 	g_assert(table != NULL);
 	g_assert(table->db_path != NULL);
+	g_assert(table->group);
+	g_assert(table->group->dbenv);
+
 	char *filename = g_strdup_printf("%s/change.db", table->db_path);
 	table->entrytable = osync_db_open(filename, "Entries", DB_BTREE, table->group->dbenv);
 	table->entryidtable = osync_db_open(filename, "ID", DB_BTREE, table->group->dbenv);
@@ -270,9 +276,9 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 	
 	DBC *dbcp = osync_db_cursor_new(table->maptable);
 
-    void *mapidp;
-    void *entryidp;
-    void *data;
+    void *mapidp = NULL;
+    void *entryidp = NULL;
+    void *data = NULL;
     
     OSyncMapping *mapping = NULL;
 	OSyncChange *change = NULL;
@@ -282,8 +288,8 @@ void osync_mappingtable_load(OSyncMappingTable *table)
 		unsigned long entryid = *(unsigned long *)entryidp;
 		change = osync_change_new();
     	osync_change_unmarshal(table, change, data);
-		if (!(mapid)) {
-    		printf("Got change without mapping\n");
+    	
+    	if (!(mapid)) {
     		osync_mappingtable_add_unmapped(table, change);
     	} else {
     		if (!mapping || mapping->id != mapid) {

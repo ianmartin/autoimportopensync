@@ -16,16 +16,9 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	OSyncMember *member = g_malloc0(sizeof(OSyncMember));
 	osync_group_add_member(group, member);
 
-	//filename = g_strdup_printf("%s/member%i", osync_group_get_configdir(group), g_random_int_range(1, 1000000));
-	//member->name = g_path_get_basename(filename);
-	//member->configdir = filename;
-	//member->hashtable = g_hash_table_new (g_str_hash, g_str_equal);
 	member->group = group;
 	member->memberfunctions = osync_memberfunctions_new();
-	//printf("hashtable: %p\n", member->hashtable);
 	osync_debug("OSMEM", 3, "Generated new member");
-	//osync_debug("OSMEM", 3, "Name: %s, %p", member->name, member);
-	//osync_debug("OSMEM", 3, "Configdirectory: %s", filename);
 
 	return member;
 }	
@@ -37,6 +30,8 @@ OSyncMemberFunctions *osync_member_get_memberfunctions(OSyncMember *member)
 
 osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin)
 {
+	g_assert(member);
+	g_assert(plugin);
 	osync_debug("OSMEM", 3, "Insstancing plugin %s for member %i", osync_plugin_get_name(plugin), member->id);
 	if (plugin->info.is_threadsafe) {
 		member->plugin = plugin;
@@ -44,6 +39,24 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, OSyncPlugin *plugin
 		OSyncPlugin *newplugin = osync_plugin_new();
 		osync_plugin_load_info(newplugin, plugin->path);
 		member->plugin = newplugin;
+	}
+	
+	//Prepare the sinks;
+	GList *o;
+	for (o = member->plugin->accepted_objtypes; o; o = o->next) {
+		OSyncObjTypeTemplate *objtemplate = o->data;
+		OSyncObjTypeSink *objsink = osync_objtype_sink_from_template(member->group, objtemplate);
+		if (!objsink)
+			return FALSE;
+		member->objtype_sinks = g_list_append(member->objtype_sinks, objsink);
+		GList *f;
+		for (f = objtemplate->formats; f; f = f->next) {
+			OSyncObjFormatTemplate *frmtemplate = f->data;
+			OSyncObjFormatSink *format_sink = osync_objformat_sink_from_template(member->group, frmtemplate);
+			if (!format_sink)
+				return FALSE;
+			objsink->formatsinks = g_list_append(objsink->formatsinks, format_sink);
+		}
 	}
 	return TRUE;
 }
@@ -56,7 +69,7 @@ const char *osync_member_get_pluginname(OSyncMember *member)
 OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 {
 	g_assert(member);
-	return member->group->conv_env;
+	return osync_group_get_format_env(member->group);
 }
 
 char *osync_member_get_configdir(OSyncMember *member)
@@ -191,25 +204,53 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 {
 	g_assert(member);
 	g_assert(change);
-	OSyncObjType *type = osync_change_get_objtype(change);
-	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncFormatFunctions *functions = osync_plugin_get_objformat_functions(member->plugin, type->name, format->name);
 
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
-	functions->commit_change(context, change);
+
+	OSyncFormatEnv *env = osync_member_get_format_env(member);
+	if (!change->objtype) {
+		osync_conv_detect_objtype(env, change);
+	}
+	OSyncObjType *type = change->objtype;
+	
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, type->name);
+	if (!sink) {
+		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+		return;
+	}
+
+	if (!sink->enabled) {
+		osync_context_report_success(context);
+		return;
+	}
+
+	if (!sink->selected_format) {
+		osync_member_select_format(member, sink);	
+	}
+	
+	OSyncObjFormatSink *frmtsink = sink->selected_format;
+	if (!osync_conv_convert(osync_member_get_format_env(member), change, frmtsink->format)) {
+		osync_debug("OSYNC", 0, "Unable to convert to any format on the plugin");
+		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
+		return;
+	}
+
+	frmtsink->functions.commit_change(context, change);
 }
 
-osync_bool osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
+OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change)
 {
 	int retry = 0;
 	g_assert(member);
 	OSyncFormatEnv *env = osync_member_get_format_env(member);
 	
+	OSyncObjFormatSink *format_sink = NULL;
+	
 	for (retry = 0; retry < 100; retry++) {
 		if (retry > 20)
-			return FALSE; //Giving up
+			return NULL; //Giving up
 		
 		//Select a random objtype
 		int selected = g_random_int_range(0, g_list_length(env->objtypes));
@@ -229,17 +270,17 @@ osync_bool osync_member_make_random_data(OSyncMember *member, OSyncChange *chang
 		format->create_func(change);
 		osync_change_set_objformat(change, format);
 		//Convert the data to a format the plugin understands
-		OSyncPlgAcceptedType *plgtype = osync_plugin_find_accepted_type(&member->plugin->info, objtype->name);
-		if (!plgtype)
+		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype->name);
+		if (!objtype_sink)
 			continue; //We had a objtype we cannot add
 		
-		selected = g_random_int_range(0, g_list_length(plgtype->formats));
-		format = g_list_nth_data(plgtype->formats, selected);
-		if (!osync_conv_convert(env, change, format))
+		selected = g_random_int_range(0, g_list_length(objtype_sink->formatsinks));
+		format_sink = g_list_nth_data(objtype->formats, selected);
+		if (!osync_conv_convert(env, change, format_sink->format))
 			continue; //Unable to convert to selected format
 		break;
 	}
-	return TRUE;
+	return format_sink;
 }
 
 OSyncChange *osync_member_add_random_data(OSyncMember *member)
@@ -247,12 +288,11 @@ OSyncChange *osync_member_add_random_data(OSyncMember *member)
 	OSyncContext *context = osync_context_new(member);
 	OSyncChange *change = osync_change_new();
 	change->changetype = CHANGE_ADDED;
-	if (!osync_member_make_random_data(member, change))
+	OSyncObjFormatSink *format_sink;
+	if (!(format_sink = osync_member_make_random_data(member, change)))
 		return NULL;
-	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncFormatFunctions *functions =
-			osync_plugin_get_objformat_functions(member->plugin, format->objtype->name, format->name);
-	if (functions->access(context, change) == TRUE)
+
+	if (format_sink->functions.access(context, change) == TRUE)
 		return change;
 	return NULL;
 }
@@ -261,18 +301,15 @@ osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *cha
 {
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_MODIFIED;
-	
+	OSyncObjFormatSink *format_sink;
 	char *uid = g_strdup(osync_change_get_uid(change));
 	
-	if (!osync_member_make_random_data(member, change))
+	if (!(format_sink = osync_member_make_random_data(member, change)))
 		return FALSE;
 
 	osync_change_set_uid(change, uid);
 	
-	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncFormatFunctions *functions =
-			osync_plugin_get_objformat_functions(member->plugin, format->objtype->name, format->name);
-	return functions->access(context, change);
+	return format_sink->functions.access(context, change);
 }
 
 osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
@@ -280,10 +317,16 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 	OSyncContext *context = osync_context_new(member);
 	change->changetype = CHANGE_DELETED;
 	
+	OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, change->objtype->name);
+	if (!objtype_sink)
+		return FALSE;
+	
 	OSyncObjFormat *format = osync_change_get_objformat(change);
-	OSyncFormatFunctions *functions =
-			osync_plugin_get_objformat_functions(member->plugin, format->objtype->name, format->name);
-	return functions->access(context, change);
+	OSyncObjFormatSink *format_sink = osync_objtype_find_format_sink(objtype_sink, format->name);
+	if (!format_sink)
+		return FALSE;
+	
+	return format_sink->functions.access(context, change);
 }
 
 void *osync_member_get_data(OSyncMember *member)
@@ -317,9 +360,10 @@ OSyncMember *osync_member_from_id(OSyncGroup *group, int id)
 
 void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry)
 {
-	if (!member)
-		return;
-	osync_assert(osync_member_uid_is_unique(member, entry->uid), "Member uid is not unique while adding. Did you try to open several mapping tables?\n");
+	g_assert(member);
+	//if (!member)
+	//	return;
+	//osync_assert(osync_member_uid_is_unique(member, entry, FALSE), "Member uid is not unique while adding. Did you try to open several mapping tables?\n");
 
 	member->entries = g_list_append(member->entries, entry);
 	entry->member = member;
@@ -344,17 +388,18 @@ OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid)
 	return NULL;
 }
 
-osync_bool osync_member_uid_is_unique(OSyncMember *member, const char *uid)
+osync_bool osync_member_uid_is_unique(OSyncMember *member, OSyncChange *change, osync_bool spare_deleted)
 {
 	GList *c = NULL;
 	int found = 0;
+
 	for (c = member->entries; c; c = c->next) {
 		OSyncChange *entry = c->data;
-		if (!strcmp(osync_change_get_uid(entry), uid)) {
+		if ((change != entry) && (!spare_deleted || (entry->changetype != CHANGE_DELETED)) && !strcmp(entry->uid, change->uid)) {
 			found++;
 		}
 	}
-	if (found <= 1)
+	if (found == 0)
 		return TRUE;
 	return FALSE;
 }
@@ -380,7 +425,7 @@ OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n)
 	return g_list_nth_data(member->entries, n);
 }
 
-void osync_member_load(OSyncMember *member)
+osync_bool osync_member_load(OSyncMember *member)
 {
 	xmlDocPtr doc;
 	xmlNodePtr cur;
@@ -390,8 +435,7 @@ void osync_member_load(OSyncMember *member)
 	member->id = atoi(g_path_get_basename(member->configdir));
 
 	if (!_osync_open_xml_file(&doc, &cur, filename, "syncmember")) {
-		printf("Returning\n");
-		return;
+		return FALSE;
 	}
 
 	while (cur != NULL) {
@@ -401,8 +445,10 @@ void osync_member_load(OSyncMember *member)
 				OSyncPlugin *plugin = osync_plugin_from_name(member->group->env, str);
 				if (!plugin) {
 					osync_debug("OSPLG", 0, "Couldn't find the plugin %s for member", str);
+					return FALSE;
 				} else {
-					osync_member_instance_plugin(member, plugin);
+					if (!osync_member_instance_plugin(member, plugin))
+						return FALSE;
 				}
 			}
 			xmlFree(str);
@@ -411,6 +457,7 @@ void osync_member_load(OSyncMember *member)
 	}
 	xmlFreeDoc(doc);
 	g_free(filename);
+	return TRUE;
 }
 
 void osync_member_save(OSyncMember *member)
@@ -483,8 +530,55 @@ void osync_member_request_synchronization(OSyncMember *member)
 		member->memberfunctions->rf_sync_alert(member);
 }
 
+OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)
+{
+	GList *o;
+	for (o = member->objtype_sinks; o; o = o->next) {
+		OSyncObjTypeSink *sink = o->data;
+		if (osync_conv_objtype_is_any(sink->objtype->name) || !strcmp(sink->objtype->name, objtypestr))
+			return sink;
+	}
+	return NULL;
+}
+
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype)
 {
 	g_assert(member);
-	return osync_group_objtype_enabled(member->group, objtype);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
+	g_assert(sink);
+	return sink->enabled;
+}
+
+void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled)
+{
+	if (osync_conv_objtype_is_any(objtypestr))
+		g_assert_not_reached();
+	
+	g_assert(member);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
+	g_assert(sink);
+	
+	sink->enabled = enabled;
+}
+
+void osync_member_set_format(OSyncMember *member, const char *objtypestr, const char *objformatstr)
+{
+	g_assert(member);
+	OSyncObjTypeSink *objsink = osync_member_find_objtype_sink(member, objtypestr);
+	if (!objsink)
+		return;
+	OSyncObjFormatSink *frmsink = osync_objtype_find_format_sink(objsink, objformatstr);
+	if (!frmsink)
+		return;
+	objsink->selected_format = frmsink;
+}
+
+void osync_member_select_format(OSyncMember *member, OSyncObjTypeSink *objsink)
+{
+	g_assert(member);
+	g_assert(objsink);
+
+	//FIXME For now we just select the first one
+	OSyncObjFormatSink *frmsink = g_list_nth_data(objsink->formatsinks, 0);
+	objsink->selected_format = frmsink;
 }

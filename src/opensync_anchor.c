@@ -18,12 +18,13 @@ DB *osync_anchor_load(OSyncMember *member)
 
 osync_bool osync_anchor_compare(OSyncMember *member, char *objtype, char *new_anchor)
 {
+	g_assert(member);
 	DB *dbhandle = osync_anchor_load(member);
 	
 	osync_bool retval = FALSE;
 	
-	void *old_anchorp;
-		
+	void *old_anchorp = NULL;
+	
 	if (osync_db_get(dbhandle, objtype, strlen(objtype) + 1, &old_anchorp)) {
 		char *old_anchor = (char *)old_anchorp;
 		if (!strcmp(old_anchor, new_anchor)) {

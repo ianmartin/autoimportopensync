@@ -43,7 +43,7 @@ void osync_conv_open_plugin(OSyncFormatEnv *env, char *path)
 		return;
 	}
 	
-	void (* fct_info)(OSyncFormatEnv *env);
+	void (* fct_info)(OSyncFormatEnv *env) = NULL;
 	void (** fct_infop)(OSyncFormatEnv *env) = &fct_info;
 	if (!g_module_symbol(plugin, "get_info", (void **)fct_infop)) {
 		osync_debug("OSPLG", 0, "Unable to open format plugin %s: %s", path, g_module_error());
@@ -57,7 +57,7 @@ void osync_conv_env_load(OSyncFormatEnv *env)
 {
 	g_assert(env);
 	g_assert(env->pluginpath);
-	GDir *dir;
+	GDir *dir = NULL;
 	GError *error = NULL;
 	osync_debug("OSPLG", 3, "Trying to open formats plugin directory %s", env->pluginpath);
 	
@@ -94,10 +94,10 @@ OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 	g_assert(env);
 	g_assert(name);
 	
-	GList *element;
+	GList *element = NULL;
 	for (element = env->objtypes; element; element = element->next) {
 		OSyncObjType *type = element->data;
-		if (!strcmp(type->name, name))
+		if (!strcmp(type->name, name) || osync_conv_objtype_is_any(type->name))
 			return type;
 	}
 	return NULL;
@@ -105,15 +105,12 @@ OSyncObjType *osync_conv_find_objtype(OSyncFormatEnv *env, const char *name)
 
 OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
 {
-	OSyncObjType *type;
+	OSyncObjType *type = NULL;
 	if (!(type = osync_conv_find_objtype(env, name))) {
 		type = g_malloc0(sizeof(OSyncObjType));
 		g_assert(type);
 		type->name = g_strdup(name);
 		type->env = env;
-		type->write = TRUE;
-		type->read = TRUE;
-		type->enabled = TRUE;
 		env->objtypes = g_list_append(env->objtypes, type);
 	}
 	return type;
@@ -121,7 +118,7 @@ OSyncObjType *osync_conv_register_objtype(OSyncFormatEnv *env, const char *name)
 
 OSyncFormatConverter *osync_conf_find_converter_objformat(OSyncFormatEnv *env, OSyncObjFormat *fmt_src, OSyncObjFormat *fmt_trg)
 {
-	GList *element;
+	GList *element = NULL;
 	for (element = env->converters; element; element = element->next) {
 		OSyncFormatConverter *converter = element->data;
 		if (fmt_src == converter->source_format && fmt_trg == converter->target_format)
@@ -169,12 +166,17 @@ OSyncFormatConverter *osync_conv_register_converter(OSyncObjType *type, Converte
 	return converter;
 }
 
+OSyncObjFormat *osync_conv_nth_objformat(OSyncObjType *type, int nth)
+{
+	return g_list_nth_data(type->formats, nth);
+}
+
 OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 {
 	g_assert(env);
 	g_assert(name);
 	
-	GList *element;
+	GList *element = NULL;
 	for (element = env->objformats; element; element = element->next) {
 		OSyncObjFormat *format = element->data;
 		if (!strcmp(format->name, name))
@@ -185,7 +187,7 @@ OSyncObjFormat *osync_conv_find_objformat(OSyncFormatEnv *env, const char *name)
 
 OSyncObjFormat *osync_conv_register_objformat(OSyncObjType *type, const char *name)
 {
-	OSyncObjFormat *format;
+	OSyncObjFormat *format = NULL;
 	if (!(format = osync_conv_find_objformat(type->env, name))) {
 		format = g_malloc0(sizeof(OSyncObjFormat));
 		g_assert(format);
@@ -237,9 +239,9 @@ void osync_conv_duplicate_change(OSyncChange *change)
 	OSyncObjFormat *format = l->data;
 	if (!format || !format->duplicate_func)
 			return;
-	do {
+	//do {
 		format->duplicate_func(change);
-	} while (!osync_member_uid_is_unique(change->member, change->uid));
+	//} while (!osync_member_uid_is_unique(change->member, change->uid));
 }
 
 char *osync_conv_objtype_get_name(OSyncObjType *type)
@@ -248,15 +250,23 @@ char *osync_conv_objtype_get_name(OSyncObjType *type)
 	return type->name;
 }
 
-/*OSyncConvCmpResult osync_conv_compare(OSyncObjFormat *format, const char *leftinput, int leftinpsize, char *rightinput, int rightinpsize)
+osync_bool osync_conv_detect_and_convert(OSyncFormatEnv *env, OSyncChange *change)
 {
-	g_assert(format);
-	g_assert(format->cmp_func);
-	return format->cmp_func(leftinput, leftinpsize, rightinput, rightinpsize);
-}*/
+	//Convert to the common format if it set.
+	if (!change->objtype) {
+		osync_conv_detect_objtype(env, change);
+	}
+			
+	if (change->objtype && change->objtype->common_format)
+		return osync_conv_convert(env, change, change->objtype->common_format);
+	return FALSE;
+}
 
 OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChange *rightchange)
 {
+	g_assert(rightchange);
+	g_assert(leftchange);
+
 	if (rightchange->changetype == leftchange->changetype) {
 		if (!(rightchange->data == leftchange->data)) {
 			if (!(leftchange->objtype == rightchange->objtype)) {
@@ -271,9 +281,10 @@ OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChan
 				printf("One change has no data\n");
 				return CONV_DATA_MISMATCH;
 			}
-			OSyncObjFormat *format;
+			OSyncObjFormat *format = NULL;
 			format = g_list_last(leftchange->objformats)->data;
 			g_assert(format);
+			
 			return format->cmp_func(leftchange, rightchange);
 		} else {
 			printf("OK. data point to same memory: %p, %p\n", rightchange->data, leftchange->data);
@@ -290,15 +301,14 @@ osync_bool osync_conv_detect_next_format(OSyncFormatEnv *env, OSyncChange *chang
 	GList *last = g_list_last(change->objformats);
 	OSyncObjFormat *format = last->data;
 	g_assert(format);
-	g_assert(format->detect_func);
+	if (!format->detect_func)
+		return FALSE;
 	//Call the format detector now.
-	format->detect_func(env, change);
-		
-	if (change->objtype)
+	if (format->detect_func(env, change))
 		return TRUE;
 		
 	//Call the property detectors now.
-	GList *p;
+	GList *p = NULL;
 	for (p = format->properties; p; p = p->next) {
 		OSyncFormatProperty *property = p->data;
 		if (property->detect_func)
@@ -307,6 +317,20 @@ osync_bool osync_conv_detect_next_format(OSyncFormatEnv *env, OSyncChange *chang
 			return TRUE;
 	}
 	return FALSE;
+}
+
+osync_bool osync_conv_detect_objtype(OSyncFormatEnv *env, OSyncChange *change)
+{
+	g_assert(change);
+	if (change->changetype == CHANGE_DELETED)
+		return FALSE;
+	while (!change->objtype) {
+		if (!osync_conv_detect_next_format(env, change)) {
+			change->objtype = osync_conv_find_objtype(env, "data");
+			return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 typedef struct edge {
@@ -326,6 +350,7 @@ edge *next_edge_neighbour(conv_tree *tree, edge *me)
 	for (c = tree->unused; c; c = c->next) {
 		OSyncFormatConverter *converter = c->data;
 		OSyncObjFormat *fmt_target = converter->target_format;
+		
 		if (!strcmp(converter->source_format->name, me->format->name)) {
 			tree->unused = g_list_remove(tree->unused, converter);
 			edge *neighbour = g_malloc0(sizeof(edge));
@@ -392,7 +417,7 @@ osync_bool osync_conv_find_change_path(OSyncFormatEnv *env, OSyncObjFormat *sour
 	OSyncFormatConverter *converter;
 	GList *vertices = g_list_copy(env->converters);
 	//Remove all desencaps
-	GList *v;
+	GList *v = NULL;
 	for (v = vertices; v; v = v->next) {
 		converter = v->data;
 		if (converter->type == CONVERTER_DESENCAP)
@@ -404,27 +429,28 @@ osync_bool osync_conv_find_change_path(OSyncFormatEnv *env, OSyncObjFormat *sour
 
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncChange *change)
 {
-	char *data;
-	int size;
-	osync_bool ret;
+	char *data = NULL;
+	int datasize = 0;
+	osync_bool ret = FALSE;
 	if (!converter->convert_func)
 		return FALSE;
-	ret = converter->convert_func(change->data, change->size, &data, &size);
+
+	ret = converter->convert_func(change->data, change->size, &data, &datasize);
 	//Fixme free prev data
 	change->data = data;
-	change->size = size;
+	change->size = datasize;
 	switch (converter->type) {
 		case CONVERTER_CONV:
-			printf("Converting! replacing format %s with %s\n", converter->source_format->name, converter->target_format->name);
+			osync_debug("OSYNC", 3, "Converting! replacing format %s with %s", converter->source_format->name, converter->target_format->name);
 			change->objformats = g_list_remove(change->objformats, converter->source_format);
 			change->objformats = g_list_append(change->objformats, converter->target_format);
 			break;
 		case CONVERTER_ENCAP:
-			printf("Encaping! adding format %s\n", converter->target_format->name);
+			osync_debug("OSYNC", 3, "Encaping! adding format %s", converter->target_format->name);
 			change->objformats = g_list_append(change->objformats, converter->target_format);
 			break;
 		case CONVERTER_DESENCAP:
-			printf("desencaping! removing format %s\n", converter->source_format->name);
+			osync_debug("OSYNC", 3, "desencaping! removing format %s", converter->source_format->name);
 			change->objformats = g_list_remove(change->objformats, converter->source_format);
 			break;
 		default:
@@ -455,7 +481,7 @@ osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObj
 {
 	GList *l = g_list_last(change->objformats);
 	OSyncObjFormat *source = l->data;
-	GList *path;
+	GList *path = NULL;
 	if (!strcmp(source->name, targetformat->name))
 		return TRUE;
 	while (!osync_conv_find_change_path(env, g_list_last(change->objformats)->data, targetformat, &path)) {
@@ -463,9 +489,9 @@ osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObj
 			if (!osync_conv_detect_next_format(env, change))
 				return FALSE;
 		}
+
 		if (!osync_conv_desencap_change(env, change))
 			return FALSE;
-			
 		if (g_list_last(change->objformats)->data == targetformat)
 			return TRUE;
 	}
@@ -474,5 +500,39 @@ osync_bool osync_conv_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObj
 		if (!osync_converter_invoke(converter, change))
 			return FALSE;
 	}
+
 	return TRUE;
+}
+
+osync_bool osync_conv_objtype_is_any(const char *objstr)
+{
+	if (!strcmp(objstr, "data"))
+		return TRUE;
+	return FALSE;
+}
+
+void osync_conv_register_data_detector(OSyncFormatEnv *env, const char *objtypestr, const char *objformatstr, OSyncFormatDetectDataFunc detect_func)
+{
+	OSyncDataDetector *detector = g_malloc0(sizeof(OSyncDataDetector));
+	detector->objtype = osync_conv_find_objtype(env, objtypestr);
+	detector->objformat = osync_conv_find_objformat(env, objformatstr);
+	detector->detect_func = detect_func;
+	env->data_detectors = g_list_append(env->data_detectors, detector);
+}
+
+osync_bool osync_conv_detect_data(OSyncFormatEnv *env, OSyncChange *change, char *data, int size)
+{
+	GList *d = NULL;
+	if (!change->has_data)
+		return FALSE;
+	for (d = env->data_detectors; d; d = d->next) {
+		OSyncDataDetector *detector = d->data;
+		if (detector->detect_func(env, data, size)) {
+			change->objformats = g_list_prepend(change->objformats, detector->objformat);
+			if (detector->objtype)
+				change->objtype = detector->objtype;
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
