@@ -120,6 +120,15 @@ static void duplicate_file(OSyncChange *change)
 	g_free(newuid);
 }
 
+static char *print_file(OSyncChange *change)
+{
+	osync_debug("FILE", 4, "start: %s", __func__);
+	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
+
+	char *printable = g_strdup_printf ("File: %s\nSize: %i", osync_change_get_uid(change), file->size);
+	return printable;
+}
+
 void get_info(OSyncFormatEnv *env)
 {
 	OSyncObjType *type = osync_conv_register_objtype(env, "data");
@@ -129,6 +138,8 @@ void get_info(OSyncFormatEnv *env)
 	osync_conv_format_set_compare_func(format, compare_file);
 	osync_conv_format_set_duplicate_func(format, duplicate_file);
 	osync_conv_format_set_destroy_func(format, destroy_file);
+	osync_conv_format_set_print_func(format, print_file);
+	
 #ifdef STRESS_TEST
 	osync_conv_format_set_create_func(format, create_file);
 #endif
