@@ -67,7 +67,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	//"get_all" and decide which to use using
 	//osync_member_get_slow_sync
 	if (osync_member_get_slow_sync(fsinfo->member, "<object type>"))
-		osync_hashtable_set_slow_sync(fsinfo->hashtable, "<object type>"");
+		osync_hashtable_set_slow_sync(fsinfo->hashtable, "<object type>");
 
 	/*
 	 * Now you can get the changes.
