@@ -226,7 +226,6 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	//The filters
 	GList *f;
 	for (f = group->filters; f; f = f->next) {
-		printf("saving filters\n");
 		OSyncFilter *filter = f->data;
 		xmlNodePtr child = xmlNewChild(doc->children, NULL, "filter", NULL);
 		
@@ -341,7 +340,6 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 			filternode = cur->xmlChildrenNode;
 			OSyncFilter *filter = osync_filter_new();
-			printf("Loading filter\n");
 			filter->group = group;
 			
 			while (filternode != NULL) {

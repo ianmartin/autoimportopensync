@@ -466,7 +466,7 @@ osync_bool osync_conv_duplicate_change(OSyncChange *change)
 {
 	g_assert(change);
 	OSyncObjFormat *format = change->format;
-	printf("Duplicating change %s with format %s\n", change->uid, format->name);
+	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
 	if (!format || !format->duplicate_func)
 		return FALSE;
 	format->duplicate_func(change);
@@ -489,15 +489,15 @@ OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChan
 	if (rightchange->changetype == leftchange->changetype) {
 		if (!(rightchange->data == leftchange->data)) {
 			if (!(leftchange->objtype == rightchange->objtype)) {
-				printf("Objtypes do not match\n");
+				osync_debug("OSCONV", 4, "Objtypes do not match\n");
 				return CONV_DATA_MISMATCH;
 			}
 			if (leftchange->format != rightchange->format) {
-				printf("Objformats do not match\n");
+				osync_debug("OSCONV", 4, "Objformats do not match\n");
 				return CONV_DATA_MISMATCH;
 			}
 			if (!rightchange->data || !leftchange->data) {
-				printf("One change has no data\n");
+				osync_debug("OSCONV", 4, "One change has no data\n");
 				return CONV_DATA_MISMATCH;
 			}
 			OSyncObjFormat *format = leftchange->format;
@@ -505,11 +505,11 @@ OSyncConvCmpResult osync_conv_compare_changes(OSyncChange *leftchange, OSyncChan
 			
 			return format->cmp_func(leftchange, rightchange);
 		} else {
-			printf("OK. data point to same memory: %p, %p\n", rightchange->data, leftchange->data);
+			osync_debug("OSCONV", 4, "OK. data point to same memory: %p, %p\n", rightchange->data, leftchange->data);
 			return CONV_DATA_SAME;
 		}
 	} else {
-		printf("Change types do not match\n");
+		osync_debug("OSCONV", 4, "Change types do not match\n");
 		return CONV_DATA_MISMATCH;
 	}
 }

@@ -16,7 +16,7 @@ char *setup_testbed(char *fkt_name)
 	if (chdir(testbed))
 		abort();
 	g_free(command);
-	printf("Seting up %s at %s\n", fkt_name, testbed);
+	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
 	return testbed;
 }
 
@@ -27,7 +27,7 @@ void destroy_testbed(char *path)
 		chdir(olddir);
 	system(command);
 	g_free(command);
-	printf("Tearing down %s\n", path);
+	osync_debug("TEST", 4, "Tearing down %s\n", path);
 	g_free(path);
 }
 

@@ -79,7 +79,7 @@ void osync_engine_print_all(OSyncEngine *engine)
 		for (n = 0; n < osync_mapping_num_entries(mapping); n++) {
 			change = osync_mapping_nth_entry(mapping, n);
 			MSyncChangeFlags *chflags = osync_change_get_flags(change);
-			printf("\tCHANGE %p:\n", change);
+			printf("\tCHANGE %p, Member %lli:\n", change, osync_member_get_id(osync_change_get_member(change)));
 			printf("\tuid: %s, changetype: %i\n", osync_change_get_uid(change), osync_change_get_changetype(change));
 			printf("\tObjType: %s, Format %s\n", osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
 			printf("\thas data: %s\n", osync_flag_get_state(chflags->fl_has_data) ? "YES" : "NO");

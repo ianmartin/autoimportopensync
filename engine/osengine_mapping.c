@@ -326,6 +326,8 @@ static OSyncChange *_osync_find_next_diff(OSyncMapping *mapping, OSyncChange *or
 	int i;
 	for (i = 0; i < osync_mapping_num_entries(mapping); i++) {
 		OSyncChange *change = osync_mapping_nth_entry(mapping, i);
+		if (osync_change_get_changetype(change) == CHANGE_UNKNOWN)
+			continue;
 		if ((change != orig_change) && osync_conv_compare_changes(orig_change, change) != CONV_DATA_SAME)
 			return change;
 	}
@@ -416,27 +418,35 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 	OSyncChange *new_change = NULL;
 	OSyncMapping *new_mapping = NULL;
 	
-	_osync_debug(engine, "MAP", 0, "Duplicating mapping %p", dupe_mapping);
+	_osync_debug(engine, "MAP", 2, "Duplicating mapping %p", dupe_mapping);
 	
 	orig_change = osync_mapping_nth_entry(dupe_mapping, 0);
 	
 	//Remove all deleted items first.
 	int i;
-	for (i = 0; i < osync_mapping_num_entries(dupe_mapping); i++) {
-		OSyncChange *change = osync_mapping_nth_entry(dupe_mapping, i);
+	for (i = osync_mapping_num_entries(dupe_mapping); i > 0; i--) {
+		OSyncChange *change = osync_mapping_nth_entry(dupe_mapping, i - 1);
 		if (osync_change_get_changetype(change) == CHANGE_DELETED) {
 			osync_change_flags_detach(change);
 			osync_mappingtable_delete_change(engine->maptable, change);
+			osync_mapping_remove_entry(dupe_mapping, change);
 			osync_change_free_flags(change);
 			osync_change_free(change);
 		}
 	}
 	
-	orig_change = osync_mapping_nth_entry(dupe_mapping, 0);
+	//Choose the first modified change
+	i = 0;
+	do {
+		orig_change = osync_mapping_nth_entry(dupe_mapping, i);
+		g_assert(orig_change);
+		i++;
+	} while (osync_change_get_changetype(orig_change) != CHANGE_MODIFIED && osync_change_get_changetype(orig_change) != CHANGE_ADDED);
 	osync_mapping_set_masterentry(dupe_mapping, orig_change);
+	osync_change_set_changetype(orig_change, CHANGE_MODIFIED);
 	
 	while ((first_diff_change = _osync_find_next_diff(dupe_mapping, orig_change))) {
-		osync_change_set_changetype(orig_change, CHANGE_MODIFIED);
+		
 		elevation = 0;
 		new_mapping = _osync_mapping_new(engine);
 		_osync_debug(engine, "MAP", 0, "Created new mapping for duplication %p", new_mapping);
@@ -460,6 +470,7 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		osync_change_flags_attach(first_diff_change, new_mapping);
 		osync_mapping_set_masterentry(new_mapping, first_diff_change);
 		osync_mapping_add_entry(new_mapping, first_diff_change);
+		osync_change_set_changetype(first_diff_change, CHANGE_ADDED);
 		
 		MSyncChangeFlags *changeflags = osync_change_get_flags(first_diff_change);
 		osync_flag_set(changeflags->fl_dirty);

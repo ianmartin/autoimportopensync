@@ -18,7 +18,7 @@ char *setup_testbed(char *fkt_name)
 	if (chdir(testbed))
 		abort();
 	g_free(command);
-	printf("Seting up %s at %s\n", fkt_name, testbed);
+	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
 	return testbed;
 }
 
@@ -29,7 +29,7 @@ void destroy_testbed(char *path)
 		chdir(olddir);
 	system(command);
 	g_free(command);
-	printf("Tearing down %s\n", path);
+	osync_debug("TEST", 4, "Tearing down %s\n", path);
 	g_free(path);
 }
 
@@ -157,7 +157,6 @@ START_TEST (filter_save_and_load)
 	mark_point();
 	osync_env_finalize(osync, NULL);
 	osync_env_free(osync);
-	printf("2. run\n");
 	osync = osync_env_new();
 	osync_env_initialize(osync, NULL);
 	mark_point();
@@ -167,9 +166,7 @@ START_TEST (filter_save_and_load)
 
 	fail_unless(osync_group_num_filters(group) == 3, NULL);
 	filter1 = osync_group_nth_filter(group, 0);
-	printf("filter1 %p %i\n", filter1, osync_group_num_filters(group));
 	fail_unless(filter1 != NULL, NULL);
-	printf("filter1 %p\n", filter1);
 	fail_unless(filter1->sourcememberid == 1, NULL);
 	fail_unless(filter1->destmemberid == 2, NULL);
 	fail_unless(!strcmp(filter1->sourceobjtype, "1"), NULL);

@@ -17,7 +17,7 @@ char *setup_testbed(char *fkt_name)
 	if (chdir(testbed))
 		abort();
 	g_free(command);
-	printf("Seting up %s at %s\n", fkt_name, testbed);
+	osync_debug("TEST", 4, "Seting up %s at %s\n", fkt_name, testbed);
 	return testbed;
 }
 
@@ -28,7 +28,7 @@ void destroy_testbed(char *path)
 		chdir(olddir);
 	system(command);
 	g_free(command);
-	printf("Tearing down %s\n", path);
+	osync_debug("TEST", 4, "Tearing down %s\n", path);
 	g_free(path);
 }
 
@@ -127,7 +127,6 @@ START_TEST (sync_init_error)
 
 	fail_unless(error != NULL, NULL);
 	fail_unless(error->type == OSYNC_ERROR_MISCONFIGURATION, NULL);
-	printf("message: %s\n", error->message);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -775,7 +774,6 @@ END_TEST
 
 static void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
-	printf("random conflict handler\n");
 	num_conflicts++;
 	int num = osync_mapping_num_entries(mapping);
 	int choosen = g_random_int_range(0, num);
