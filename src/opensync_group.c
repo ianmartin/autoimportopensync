@@ -225,7 +225,7 @@ unsigned int osync_group_create_member_id(OSyncGroup *group)
 void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync)
 {
 	g_assert(group);
-	OSyncConvEnv *conv_env = group->conv_env;
+	OSyncFormatEnv *conv_env = group->conv_env;
 
 	if (!strcmp(objtypestr, "*")) {
 		/* Apply this to all objtypes */

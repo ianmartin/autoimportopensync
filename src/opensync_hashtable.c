@@ -21,6 +21,12 @@ void osync_hashtable_forget(OSyncHashTable *table)
 	table->used_entries = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
+void osync_hashtable_reset(OSyncHashTable *table)
+{
+	osync_db_empty(table->dbhandle);
+	osync_db_sync(table->dbhandle);
+}
+
 osync_bool osync_hashtable_load_file(OSyncHashTable *table, char *file, OSyncGroup *group)
 {
 	table->dbhandle = osync_db_open(file, "Hash", DB_BTREE, group->dbenv);

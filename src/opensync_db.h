@@ -12,3 +12,4 @@ DB *osync_db_open_secondary(DB *firstdb, char *filename, char *dbname, int (*cal
 void osync_db_sync(DB *dbp);
 osync_bool osync_db_put_dbt(DB *dbp, DBT *key, DBT *data);
 DB_ENV *osync_db_setup(char *configdir, FILE *errfp);
+void osync_db_empty(DB *db);

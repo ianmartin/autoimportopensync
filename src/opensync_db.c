@@ -253,6 +253,11 @@ osync_bool osync_db_get(DB *dbp, void *key, int keysize, void **target)
 	}
 }
 
+void osync_db_empty(DB *db)
+{
+	db->truncate(db, NULL, NULL, DB_AUTO_COMMIT);
+}
+
 void osync_db_cursor_close(DBC *dbcp)
 {
     dbcp->c_close(dbcp);

@@ -8,3 +8,4 @@ void osync_hashtable_free(OSyncHashTable *table);
 void osync_hashtable_forget(OSyncHashTable *table);
 int osync_hashtable_num_entries(OSyncHashTable *table);
 osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash);
+void osync_hashtable_reset(OSyncHashTable *table);
