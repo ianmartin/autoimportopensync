@@ -50,13 +50,19 @@ OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 
 osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
-	if (!osync_member_instance_default_plugin(member, error))
+	osync_trace(TRACE_ENTRY, "osync_member_read_config(%p, %p, %p, %p)", member, data, size, error);
+	if (!osync_member_instance_default_plugin(member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %i", osync_error_print(error));
 		return FALSE;
+	}
 	
 	OSyncPluginFunctions functions = member->plugin->info.functions;
 	osync_bool ret = FALSE;
-	if (!member->configdir)
+	if (!member->configdir) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Member has no config directory set");
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %i", osync_error_print(error));
 		return FALSE;
+	}
 	
 	if (functions.get_config) {
 		ret = functions.get_config(member->configdir, data, size);
@@ -65,6 +71,11 @@ osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size,
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
+	
+	if (ret)
+		osync_trace(TRACE_EXIT, "osync_member_read_config: TRUE");
+	else
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %s", osync_error_print(error));
 	return ret;
 }
 
@@ -217,6 +228,7 @@ const char *osync_member_get_configdir(OSyncMember *member)
 
 osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "osync_member_get_config(%p, %p, %p, %p)", member, data, size, error);
 	g_assert(member);
 	osync_bool ret = TRUE;
 
@@ -227,13 +239,17 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	}
 
 	if (!osync_member_read_config(member, data, size, error)) {
-		if (osync_error_is_set(error))
-			return FALSE;
+		if (osync_error_is_set(error)) {
+			osync_trace(TRACE_INTERNAL, "Read config not successfull: %s", osync_error_print(error));
+			osync_error_free(error);
+		}
+		
 		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
 		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
 		ret = osync_file_read(filename, data, size, error);
 		g_free(filename);
 	}
+	osync_trace(TRACE_EXIT, "osync_member_get_config: %i", ret);
 	return ret;
 }
 

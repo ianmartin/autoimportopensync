@@ -659,6 +659,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		OSyncObjTypeTemplate *otempl = o->data;
 		type = g_malloc0(sizeof(OSyncObjType));
 		type->name = g_strdup(otempl->name);
+		type->env = conv_env;
 		conv_env->objtypes = g_list_append(conv_env->objtypes, type);
 	}
 	
@@ -726,7 +727,7 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 	// if simple conversion
 	//	osync_env_register_converter(env, CONVERTER_CONV, format->name, base_format, conv_simple_copy, CONV_NOCOPY|to_flags);
 	//osync_env_register_converter(env, CONVERTER_CONV, base_format, format->name, conv_simple_copy, CONV_NOCOPY|from_flags);
-	osync_conv_set_common_format(conv_env, "contact", "vcard30", NULL);
+	osync_conv_set_common_format(conv_env, "contact", "xml-contact", NULL);
 	return conv_env;
 }
 
@@ -863,35 +864,53 @@ osync_bool osync_change_duplicate(OSyncChange *change)
 
 OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange)
 {
+	osync_trace(TRACE_ENTRY, "osync_change_compare(%p, %p,)", leftchange, rightchange);
+	
 	g_assert(rightchange);
 	g_assert(leftchange);
 
-	/*FIXME: Convert data if the formats are different */
+	OSyncError *error = NULL;
+	osync_change_convert_to_common(leftchange, &error);
+	if (error) {
+		osync_trace(TRACE_INTERNAL, "osync_change_compare: %s", osync_error_print(&error));
+		osync_error_free(&error);
+		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Could not convert leftchange to common format");
+		return CONV_DATA_MISMATCH;
+	}
+	osync_change_convert_to_common(rightchange, &error);
+	if (error) {
+		osync_trace(TRACE_INTERNAL, "osync_change_compare: %s", osync_error_print(&error));
+		osync_error_free(&error);
+		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Could not convert leftchange to common format");
+		return CONV_DATA_MISMATCH;
+	}
 
 	if (rightchange->changetype == leftchange->changetype) {
 		if (!(rightchange->data == leftchange->data)) {
 			if (!(leftchange->objtype == rightchange->objtype)) {
-				osync_debug("OSCONV", 4, "Objtypes do not match\n");
+				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Objtypes do not match");
 				return CONV_DATA_MISMATCH;
 			}
 			if (leftchange->format != rightchange->format) {
-				osync_debug("OSCONV", 4, "Objformats do not match\n");
+				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Objformats do not match");
 				return CONV_DATA_MISMATCH;
 			}
 			if (!rightchange->data || !leftchange->data) {
-				osync_debug("OSCONV", 4, "One change has no data\n");
+				osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: One change has no data");
 				return CONV_DATA_MISMATCH;
 			}
 			OSyncObjFormat *format = leftchange->format;
 			g_assert(format);
 			
-			return format->cmp_func(leftchange, rightchange);
+			OSyncConvCmpResult ret = format->cmp_func(leftchange, rightchange);
+			osync_trace(TRACE_EXIT, "osync_change_compare: %i", ret);
+			return ret;
 		} else {
-			osync_debug("OSCONV", 4, "OK. data point to same memory: %p, %p\n", rightchange->data, leftchange->data);
+			osync_trace(TRACE_EXIT, "osync_change_compare: SAME: OK. data point to same memory");
 			return CONV_DATA_SAME;
 		}
 	} else {
-		osync_debug("OSCONV", 4, "Change types do not match\n");
+		osync_trace(TRACE_EXIT, "osync_change_compare: MISMATCH: Change types do not match");
 		return CONV_DATA_MISMATCH;
 	}
 }
@@ -916,6 +935,32 @@ osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncO
 		return TRUE;
 	} else {
 		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert: %s", osync_error_print(error));
+		return FALSE;
+	}
+}
+
+osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_change_convert_to_common(%p, %p)", change, error);
+	
+	if (!change->objtype) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "The change has no objtype");
+		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert_to_common: %s", osync_error_print(error));
+	}
+	OSyncFormatEnv *env = change->objtype->env;
+	
+	if (!change->objtype->common_format) {
+		osync_trace(TRACE_EXIT, "osync_change_convert_to_common: No common format set");
+		return TRUE;
+	}
+	
+	osync_trace(TRACE_INTERNAL, "Converting from %s to %s", change->format->name, change->objtype->common_format->name);
+	
+	if (osync_change_convert(env, change, change->objtype->common_format, error)) {
+		osync_trace(TRACE_EXIT, "osync_change_convert_to_common: TRUE");
+		return TRUE;
+	} else {
+		osync_trace(TRACE_EXIT_ERROR, "osync_change_convert_to_common: %s", osync_error_print(error));
 		return FALSE;
 	}
 }

@@ -3,7 +3,7 @@
 
 void osync_env_register_detector(OSyncEnv *env, const char *sourceformat, const char *format, OSyncFormatDetectDataFunc detect_func);
 void osync_env_register_filter_function(OSyncEnv *env, const char *name, const char *objtype, const char *format, OSyncFilterFunction hook);
-void osync_env_register_objformat(OSyncEnv *env, const char *typename, const char *name);
+void osync_env_register_objformat(OSyncEnv *env, const char *objtypename, const char *name);
 void osync_env_register_objtype(OSyncEnv *env, const char *name);
 void osync_env_register_converter(OSyncEnv *env, ConverterType type, const char *sourcename, const char *targetname, OSyncFormatConvertFunc convert_func);
 void osync_env_register_extension(OSyncEnv *env, const char *objformatname, OSyncFormatConvertFunc conv_to_func, OSyncFormatConvertFunc conv_from_func);

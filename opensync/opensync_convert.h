@@ -24,4 +24,4 @@ OSyncObjType *osync_change_detect_objtype_full(OSyncFormatEnv *env, OSyncChange 
 osync_bool osync_change_convert(OSyncFormatEnv *env, OSyncChange *change, OSyncObjFormat *fmt, OSyncError **error);
 osync_bool osync_change_convert_fmtname(OSyncFormatEnv *env, OSyncChange *change, const char *fmtname, OSyncError **error);
 osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *change, const char **names, OSyncError **error);
-
+osync_bool osync_change_convert_to_common(OSyncChange *change, OSyncError **error);
