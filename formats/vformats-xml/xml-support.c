@@ -145,6 +145,7 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 
 OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, leftinpdoc, rightinpdoc, scores);
 	int z = 0, i = 0, n;
 	xmlDoc *leftdoc = xmlCopyDoc(leftinpdoc, TRUE);
 	xmlDoc *rightdoc = xmlCopyDoc(rightinpdoc, TRUE);
@@ -167,6 +168,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 				if (!rnodes->nodeTab[n])
 					continue;
 				if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
+					osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
 					res_score += score->value;
 					xmlUnlinkNode(lnodes->nodeTab[i]);
 					xmlFreeNode(lnodes->nodeTab[i]);
@@ -177,6 +179,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 					goto next;
 				}
 			}
+			osync_trace(TRACE_INTERNAL, "Subtracting %i for %s", score->value, score->path);
 			res_score -= score->value;
 			next:;
 		}
@@ -256,11 +259,16 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	if (lroot->children || rroot->children)
 		same = FALSE;
 	*/
-	
-	printf("end score %i\n", res_score);
-	if (same)
+	int treshold = 5;
+	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
+	if (same) {
+		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
 		return CONV_DATA_SAME;
-	if (res_score >= 5)
+	}
+	if (res_score >= treshold) {
+		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
 		return CONV_DATA_SIMILAR;
+	}
+	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
 	return CONV_DATA_MISMATCH;
 }

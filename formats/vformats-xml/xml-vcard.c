@@ -74,8 +74,9 @@ static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
 
 static osync_bool conv_vcard_to_xml(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	osync_debug("VCARD", 4, "start: %s", __func__);
-	//printf("input is %i\n%s\n", inpsize, input);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+	
+	osync_trace(TRACE_INTERNAL, "input is:\n%s", input);
 	GList *p = NULL;
 	GList *a = NULL;
 	OSyncXMLEncoding encoding;
@@ -322,6 +323,7 @@ static osync_bool conv_vcard_to_xml(char *input, int inpsize, char **output, int
 	*free_input = TRUE;
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
 }
 
@@ -393,7 +395,8 @@ static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, 
 
 static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error, int target)
 {
-	osync_debug("FILE", 4, "start: %s", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+	
 	//xmlDocDump(stdout, (xmlDoc *)input);
 	EVCardAttribute *attr = NULL;
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
@@ -597,6 +600,8 @@ static osync_bool conv_xml_to_vcard(char *input, int inpsize, char **output, int
 	*free_input = TRUE;
 	*output = e_vcard_to_string(vcard, target);
 	*outpsize = strlen(*output);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	
 	return TRUE;
 }
 
@@ -612,6 +617,8 @@ static osync_bool conv_xml_to_vcard21(char *input, int inpsize, char **output, i
 
 static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *rightchange)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
+	
 	OSyncXMLScore score[] =
 	{
 	{50, "/contact/FullName"},
@@ -621,7 +628,10 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	{0, NULL}
 	};
 	
-	return osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score);
+	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
 }
 
 static char *print_contact(OSyncChange *change)
