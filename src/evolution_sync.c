@@ -103,6 +103,9 @@ static void *evo2_initialize(OSyncMember *member, OSyncError **error)
 	char *configdata = NULL;
 	int configsize = 0;
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
+	
+	g_type_init();
+	
 	evo_environment *env = g_malloc0(sizeof(evo_environment));
 	if (!env)
 		goto error_ret;
