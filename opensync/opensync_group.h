@@ -40,3 +40,6 @@ int osync_group_num_filters(OSyncGroup *group);
 OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth);
 void osync_group_flush_filters(OSyncGroup *group);
 
+osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error);
+osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);
+osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);

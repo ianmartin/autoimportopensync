@@ -764,5 +764,41 @@ void osync_group_flush_filters(OSyncGroup *group)
 	}
 }
 
+/*! @brief Can be used to load all items from the changelog. Loaded items will be removed
+ * 
+ * @param group The group for which to load the log
+ * @param uids Place to return an array with the saved uids
+ * @param changetypes Place to return an array with the saved changetypes. Same size as uids
+ * @param error Place to return the error
+ * @returns TRUE if successfull, FALSE otherwise
+ */
+osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error)
+{
+	return osync_db_open_changelog(group, uids, memberids, changetypes, error);
+}
+
+/*! @brief Saves a change to the changelog.
+ * 
+ * @param group The group in which to save
+ * @param change The change to save
+ * @param error Place to return the error
+ * @returns TRUE if successfull, FALSE otherwise
+ */
+osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
+{
+	return osync_db_save_changelog(group, change, error);
+}
+
+/*! @brief Removes a change from the changelog.
+ * 
+ * @param group The group in which to save
+ * @param change The change to remove
+ * @param error Place to return the error
+ * @returns TRUE if successfull, FALSE otherwise
+ */
+osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
+{
+	return osync_db_remove_changelog(group, change, error);
+}
 
 /*@}*/

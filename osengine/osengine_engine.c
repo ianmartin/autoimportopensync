@@ -156,7 +156,7 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		return;
 	}
 	
-	engine->maptable->logchanges = g_list_remove(engine->maptable->logchanges, entry);
+	osync_group_remove_changelog(engine->group, change, &error);
 	
 	//We convert to the common format here to make sure we always pass it
 	osync_change_convert_to_common(change, NULL);
@@ -236,6 +236,9 @@ void _read_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncE
 	osync_flag_unset(entry->fl_synced);
 	
 	osync_change_save(entry->change, TRUE, NULL);
+	
+	osync_status_update_change(engine, entry->change, CHANGE_RECEIVED, NULL);
+	
 	osengine_mappingentry_decider(engine, entry);
 	osync_trace(TRACE_EXIT, "_read_change_reply_receiver");
 }
@@ -261,8 +264,6 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_flag_unset(entry->fl_dirty);
 		osync_flag_set(entry->fl_synced);
 	}
-	
-	engine->maptable->logchanges = g_list_remove(engine->maptable->logchanges, entry);
 	
 	if (osync_change_get_changetype(entry->change) == CHANGE_DELETED)
 		osync_flag_set(entry->fl_deleted);

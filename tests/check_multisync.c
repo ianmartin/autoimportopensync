@@ -1799,7 +1799,8 @@ START_TEST (multisync_conflict_ignore)
     check_hash(table, "testdata1");
 	osync_hashtable_close(table);
 	
-	table = hashtable_load(group, 2, 1);
+	table = hashtable_load(group, 2, 2);
+    check_hash(table, "testdata");
     check_hash(table, "testdata1");
 	osync_hashtable_close(table);
 	
@@ -1882,9 +1883,10 @@ START_TEST (multisync_conflict_ignore2)
 	
 	system("cp newdata2 data2/testdata");
 	
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
 	synchronize_once(engine, NULL);
-	fail_unless(num_read == 1, NULL);
-	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_read == 3, NULL);
+	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
 	
@@ -1943,7 +1945,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	Suite *s2 = suite_create("Multisync");
+	//Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);
@@ -1968,10 +1970,10 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_multi_conflict", multisync_multi_conflict);
 
 	create_case(s, "multisync_delayed_conflict_handler", multisync_delayed_conflict_handler);
-	create_case(s2, "multisync_conflict_ignore", multisync_conflict_ignore);
+	create_case(s, "multisync_conflict_ignore", multisync_conflict_ignore);
 	create_case(s, "multisync_conflict_ignore2", multisync_conflict_ignore2);
 	
-	return s2;
+	return s;
 }
 
 int main(void)

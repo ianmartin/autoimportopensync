@@ -165,8 +165,6 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 		}
 	}
 	
-	osync_change_reset(master->change);
-	
 	OSyncError *error = NULL;
 	osync_change_save(master->change, TRUE, &error);
 	
@@ -395,7 +393,9 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	for (e = mapping->entries; e; e = e->next) {
 		OSyncMappingEntry *entry = e->data;
 		osync_trace(TRACE_INTERNAL, "Adding %p to logchanges", entry);
-		engine->maptable->logchanges = g_list_append(engine->maptable->logchanges, entry);
+		OSyncError *error = NULL;
+		if (osync_change_get_changetype(entry->change) != CHANGE_UNKNOWN)
+			osync_group_save_changelog(engine->group, entry->change, &error);
 	}
 	
 	//And make sure we dont synchronize it this time

@@ -15,7 +15,6 @@ struct OSyncMappingTable {
 	OSyncGroup *group;
 	GList *views;
 	GList *entries;
-	GList *logchanges;
 };
 
 /*! @brief A view to the mappingtable, represents one source

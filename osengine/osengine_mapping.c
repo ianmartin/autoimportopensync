@@ -77,6 +77,30 @@ void osengine_mappingtable_free(OSyncMappingTable *table)
 	osync_trace(TRACE_EXIT, "osengine_mappingtable_free");
 }
 
+OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, const char *uid, long long int memberid)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
+	GList *v;
+	for (v = table->views; v; v = v->next) {
+		OSyncMappingView *view = v->data;
+		GList *c;
+		
+		if (memberid && memberid != osync_member_get_id(view->client->member))
+			continue;
+		
+		for (c = view->changes; c; c = c->next) {
+			OSyncMappingEntry *entry = c->data;
+			g_assert(entry->change);
+			if (!strcmp(osync_change_get_uid(entry->change), uid)) {
+				osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
+				return entry;
+			}
+		}
+	}
+	osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
+	return NULL;
+}
+
 OSyncMappingEntry *osengine_mappingtable_store_change(OSyncMappingTable *table, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "osengine_mappingtable_store_change(%p, %p)", table, change);
@@ -160,15 +184,9 @@ osync_bool osengine_mappingtable_load(OSyncMappingTable *table, OSyncError **err
     	if (view)
     		osengine_mappingview_add_entry(view, entry);
 
-		if (osync_change_get_changetype(change) != CHANGE_UNKNOWN) {
-			osync_trace(TRACE_INTERNAL, "Adding %p to logchanges", entry);
-			table->logchanges = g_list_append(table->logchanges, entry);
-		}
-		
     	i++;
 	}
 	
-	osync_trace(TRACE_INTERNAL, "#logchanges: %i", g_list_length(table->logchanges));
 	osync_trace(TRACE_EXIT, "osengine_mappingtable_load: TRUE");
 	return TRUE;
 }
@@ -191,24 +209,26 @@ void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 	OSyncEngine *engine = table->engine;
 
 	char **uids = NULL;
+	long long int *memberids = NULL;
 	int *types = NULL;
 	char *uid = NULL;
 	int type = 0;
 	int i = 0;
-	osync_db_load_changelog(table->engine->group, &uids, &types, NULL);
-	
-	if (!uids)
-		send_engine_changed(engine);
+	OSyncError *error = NULL;
+	osync_group_open_changelog(table->engine->group, &uids, &memberids, &types, &error);	
 	
 	while ((uid = uids[i])) {
 		type = types[i];
-		OSyncMappingEntry *entry = osengine_mappingtable_find_entry(table, uid);
+		long long int memberid = memberids[i];
+		OSyncMappingEntry *entry = osengine_mappingtable_find_entry(table, uid, memberid);
 		osync_change_set_changetype(entry->change, type);
 		osync_trace(TRACE_INTERNAL, "Injecting %p with changetype %i", entry, osync_change_get_changetype(entry->change));
 		osync_flag_attach(entry->fl_read, table->engine->cmb_read_all);
 		send_read_change(engine, entry);
 		i++;
 	}
+	
+	send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
