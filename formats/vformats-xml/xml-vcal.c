@@ -1237,6 +1237,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->comptable, "RESOURCES", handle_resources_attribute);
 	g_hash_table_insert(hooks->comptable, "DTEND", handle_dtend_attribute);
 	g_hash_table_insert(hooks->comptable, "TRANSP", handle_transp_attribute);
+	g_hash_table_insert(hooks->comptable, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	g_hash_table_insert(hooks->comptable, "TZID", handle_tzid_parameter);
 	g_hash_table_insert(hooks->comptable, "VALUE", handle_value_parameter);
