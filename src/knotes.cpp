@@ -128,10 +128,16 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 		return FALSE;
 	}
 	
+	if (osync_member_get_slow_sync(member, "note")) {
+		osync_debug("kcal", 3, "Setting slow-sync for notes");
+		osync_hashtable_set_slow_sync(hashtable, "note");
+	}
+	
 	QMap<KNoteID_t,QString>::ConstIterator i;
 	for (i = fNotes.begin(); i != fNotes.end(); i++) {
 		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
         osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
+		printf("reporting notes %s\n", (const char*)i.key().local8Bit());
 		
         QString uid = i.key();
 		QString hash = NULL;
@@ -174,6 +180,8 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
             osync_hashtable_update_hash(hashtable, chg);
         }
     }
+
+    osync_hashtable_report_deleted(hashtable, ctx, "note");
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
     return true;
@@ -250,7 +258,8 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 				return false;
         }
     } else {
-		kn_iface->killNote(uid, true);
+        osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
+		kn_iface->killNote(uid);
 		if (kn_iface->status() != DCOPStub::CallSucceeded) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete note");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);

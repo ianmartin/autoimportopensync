@@ -59,14 +59,6 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 	//get a handle to the standard KDE addressbook
 	addressbookptr = KABC::StdAddressBook::self();
 	
-	OSyncError *error = NULL;
-	
-	if (!osync_hashtable_load(hashtable, member, &error)) {
-		osync_context_report_osyncerror(ctx, &error);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-		return FALSE;
-	}
-
 	//Detection mechanismn if this is the first sync
 	if (!osync_anchor_compare(member, "synced", "true")) {
 		osync_trace(TRACE_INTERNAL, "Setting slow-sync");

@@ -63,9 +63,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
         {
         }
 
-        bool init(OSyncError **)
+        bool init(OSyncError **error)
         {
-            //osync_debug("kde", 3, "%s(%s)", __FUNCTION__);
+            osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 
             KAboutData aboutData(
                        "libopensync-kdepim-plugin",                        // internal program name
@@ -83,11 +83,16 @@ class KdePluginImplementation: public KdePluginImplementationBase
             application = new KApplication();
 
 			hashtable = osync_hashtable_new();
-
+			if (!osync_hashtable_load(hashtable, member, error)) {
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+				return false;
+			}
+			
             kcal = new KCalDataSource(member, hashtable);
             knotes = new KNotesDataSource(member, hashtable);
             kaddrbook = new KContactDataSource(member, hashtable);
 
+            osync_trace(TRACE_EXIT, "%s", __func__);
             return true;
         }
         
