@@ -14,6 +14,7 @@
 struct MemberData {
 	PyThreadState *interp_thread;
 	PyObject *module;
+	PyObject *object;
 };
 
 /*FIXME: Provide the opensync plugin API to python modules.
@@ -59,6 +60,11 @@ error_sys:
 	return rv;
 }
 
+/** Calls the method initialize function
+ *
+ * The initialize() function should return an object that
+ * has the other plugin methods (get_changeinfo, commit, etc.)
+ */
 static void *py_initialize(OSyncMember *member)
 {
 	struct MemberData *data = malloc(sizeof(struct MemberData));
@@ -91,15 +97,12 @@ static void *py_initialize(OSyncMember *member)
 		PyErr_Clear();
 		goto error_free_interp;
 	}
-	{
-		/* Call the method */
-		PyObject *ret = PyObject_CallMethod(data->module, "initialize", NULL);
-		if (!ret) {
-			osync_debug("python", 1, "Error during initialize()");
-			PyErr_Clear();
-			goto error_unload_module;
-		}
-		Py_DECREF(ret);
+	/* Call the method */
+	data->object = PyObject_CallMethod(data->module, "initialize", NULL);
+	if (!data->object) {
+		osync_debug("python", 1, "Error during initialize()");
+		PyErr_Clear();
+		goto error_unload_module;
 	}
 
 	/* Done */
@@ -119,17 +122,17 @@ error_free_data:
 static void py_finalize(void *data)
 { /*FIXME: Implement me */
 	struct MemberData *mydata = data;
-	PyObject *module = mydata->module;
 	PyEval_AcquireThread(mydata->interp_thread);
 	{
-		PyObject *ret = PyObject_CallMethod(module, "finalize", NULL);
+		PyObject *ret = PyObject_CallMethod(mydata->object, "finalize", NULL);
 		if (!ret) {
 			osync_debug("python", 1, "Error during finalize()");
 			PyErr_Clear();
 		} else
 			Py_DECREF(ret);
 	}
-	Py_DECREF(module);
+	Py_DECREF(mydata->object);
+	Py_DECREF(mydata->module);
 	Py_EndInterpreter(mydata->interp_thread);
 }
 
@@ -139,7 +142,7 @@ static void call_module_method(OSyncContext *ctx, char *name)
 	PyEval_AcquireThread(data->interp_thread);
 	/*FIXME: send parameters */
 	{
-		PyObject *ret = PyObject_CallMethod(data->module, name, NULL);
+		PyObject *ret = PyObject_CallMethod(data->object, name, NULL);
 		if (!ret) {
 			osync_debug("python", 1, "Error during %s() method", name);
 			PyErr_Clear();
