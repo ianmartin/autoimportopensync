@@ -29,7 +29,9 @@ EXTRA_DIST = \
 	opensync_db_internals.h \
 	opensync_format_internals.h \
 	opensync_member_internals.h \
-	opensync_plugin_internals.h
+	opensync_plugin_internals.h \
+	opensync_env_internals.h \
+	opensync_error_internals.h
 
 libopensync_la_SOURCES = \
 	opensync_debug.c \
