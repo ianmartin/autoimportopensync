@@ -182,7 +182,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 
         // object type and format
         osync_change_set_objtype_string(chg, "note");
-        osync_change_set_objformat_string(chg, "vnote");
+        osync_change_set_objformat_string(chg, "vnote11");
         osync_change_set_data(chg, strdup(data), strlen(data), 1);
 
         // Use the hash table to check if the object
