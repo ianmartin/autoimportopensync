@@ -282,11 +282,9 @@ static osync_bool conv_xml_to_vnote(const char *input, int inpsize, char **outpu
 		root = root->next;
 	}
 	
-	//*output = e_vnote_to_string(vcard);
-	//*outpsize = strlen(*output);
-	*output = NULL;
-	*outpsize = 0;
-	return FALSE;
+	*output = e_vnote_to_string(vcard);
+	*outpsize = strlen(*output);
+	return TRUE;
 }
 
 static OSyncConvCmpResult compare_notes(OSyncChange *leftchange, OSyncChange *rightchange)
