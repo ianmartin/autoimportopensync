@@ -134,11 +134,14 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 			osync_change_set_hash(change, hash);
 			
 			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
-			/* Type of change is set by detect_change() */
-			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
+			osync_bool slow_sync = osync_member_get_slow_sync(fsinfo->member, "data");
+			osync_debug("FILE-SYNC", 3, "slow_sync=%s", slow_sync ? "true" : "false");
+			if (osync_hashtable_detect_change(fsinfo->hashtable, change) || slow_sync)
+			{
 				osync_context_report_change(ctx, change);
 				osync_hashtable_update_hash(fsinfo->hashtable, change);
 			}
+
 			g_free(hash);
 			g_free(filename);
 		}
