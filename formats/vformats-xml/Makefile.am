@@ -6,9 +6,9 @@ formatsdir=@OPENSYNC_FORMATSDIR@
 opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 EXTRA_DIST = \
-		e-vcard.h \
-		opensync-xml.h \
-		xml-vcard.h
+	vformat.h \
+	opensync-xml.h \
+	xml-vcard.h
 
 opensyncheader_HEADERS = opensync-xml.h
 
@@ -18,19 +18,19 @@ formats_LTLIBRARIES = xml-vcard.la xml-evolution.la xml-vnote.la xml-kde.la
 
 lib_LTLIBRARIES =  libopensync-xml.la
 
-xml_vcard_la_SOURCES = xml-vcard.c e-vcard.c
+xml_vcard_la_SOURCES = xml-vcard.c vformat.c
 xml_vcard_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_vcard_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
-xml_vnote_la_SOURCES = xml-vnote.c e-vcard.c
+xml_vnote_la_SOURCES = xml-vnote.c vformat.c
 xml_vnote_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_vnote_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
-xml_evolution_la_SOURCES = xml-evolution.c e-vcard.c
+xml_evolution_la_SOURCES = xml-evolution.c vformat.c
 xml_evolution_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_evolution_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
-xml_kde_la_SOURCES = xml-kde.c e-vcard.c
+xml_kde_la_SOURCES = xml-kde.c vformat.c
 xml_kde_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_kde_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 

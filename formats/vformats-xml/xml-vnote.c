@@ -19,13 +19,13 @@
  */
  
 #include "opensync-xml.h"
-#include "e-vcard.h"
+#include "vformat.h"
 #include <glib.h>
 
-static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
+static const char *property_get_nth_value(VFormatParam *param, int nth)
 {
 	const char *ret = NULL;
-	GList *values = e_vcard_attribute_param_get_values(param);
+	GList *values = vformat_attribute_param_get_values(param);
 	if (!values)
 		return NULL;
 	ret = g_list_nth_data(values, nth);
@@ -33,9 +33,9 @@ static const char *property_get_nth_value(EVCardAttributeParam *param, int nth)
 	return ret;
 }
 
-static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
+static const char *attribute_get_nth_value(VFormatAttribute *attr, int nth)
 {
-	GList *values = e_vcard_attribute_get_values_decoded(attr);
+	GList *values = vformat_attribute_get_values_decoded(attr);
 	if (!values)
 		return NULL;
 	GString *retstr = (GString *)g_list_nth_data(values, nth);
@@ -43,7 +43,7 @@ static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
 		return NULL;
 	
 	if (!g_utf8_validate(retstr->str, -1, NULL)) {
-		values = e_vcard_attribute_get_values(attr);
+		values = vformat_attribute_get_values(attr);
 		if (!values)
 			return NULL;
 		return g_list_nth_data(values, nth);
@@ -52,7 +52,7 @@ static const char *attribute_get_nth_value(EVCardAttribute *attr, int nth)
 	return retstr->str;
 }
 
-static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
+static OSyncXMLEncoding property_to_xml_encoding(VFormatAttribute *attr)
 {
 	OSyncXMLEncoding encoding;
 	memset(&encoding, 0, sizeof(encoding));
@@ -60,11 +60,11 @@ static OSyncXMLEncoding property_to_xml_encoding(EVCardAttribute *attr)
 	encoding.charset = OSXML_UTF8;
 	encoding.encoding = OSXML_8BIT;
 	
-	GList *params = e_vcard_attribute_get_params(attr);
+	GList *params = vformat_attribute_get_params(attr);
 	GList *p;
 	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
-		if (!strcmp("ENCODING", e_vcard_attribute_param_get_name(param))) {
+		VFormatParam *param = p->data;
+		if (!strcmp("ENCODING", vformat_attribute_param_get_name(param))) {
 			if (!g_ascii_strcasecmp(property_get_nth_value(param, 0), "b"))
 				encoding.encoding = OSXML_BASE64;
 		}
@@ -80,17 +80,16 @@ static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, c
 	GList *a = NULL;
 	OSyncXMLEncoding encoding;
 	
-	g_type_init();
-	EVCard *vcard = e_vcard_new_from_string(input);
-	e_vcard_dump_structure (vcard);
-	GList *attributes = e_vcard_get_attributes(vcard);
+	VFormat *vcard = vnote_new_from_string(input);
+	vformat_dump_structure (vcard);
+	GList *attributes = vformat_get_attributes(vcard);
 	xmlDoc *doc = xmlNewDoc("1.0");
 	xmlNode *root = osxml_node_add_root(doc, "note");
 	
 	for (a = attributes; a; a = a->next) {
-		EVCardAttribute *attr = a->data;
+		VFormatAttribute *attr = a->data;
 		encoding = property_to_xml_encoding(attr);
-		const char *name = e_vcard_attribute_get_name(attr);
+		const char *name = vformat_attribute_get_name(attr);
 
 		if (!strcmp(name, "VERSION"))
 			continue;
@@ -140,7 +139,7 @@ static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, c
 		
 		//Unknown tag.
 		osxml_node_mark_unknown(current);
-		GList *values = e_vcard_attribute_get_values(attr);
+		GList *values = vformat_attribute_get_values(attr);
 		GString *string = g_string_new(attribute_get_nth_value(attr, 0));
 		for (p = values->next; p; p = p->next) {
 			g_string_sprintfa(string, ";%s", (char *)p->data);
@@ -162,13 +161,13 @@ static osync_bool conv_vnote_to_xml(void *user_data, char *input, int inpsize, c
 	return TRUE;
 }
 
-static void add_parameter(EVCardAttribute *attr, const char *name, const char *data)
+static void add_parameter(VFormatAttribute *attr, const char *name, const char *data)
 {
-	EVCardAttributeParam *param = e_vcard_attribute_param_new(name);
+	VFormatParam *param = vformat_attribute_param_new(name);
 	if (data)
-		e_vcard_attribute_add_param_with_value(attr, param, data);
+		vformat_attribute_add_param_with_value(attr, param, data);
 	else
-		e_vcard_attribute_add_param(attr, param);
+		vformat_attribute_add_param(attr, param);
 }
 
 static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
@@ -197,19 +196,19 @@ static osync_bool needs_charset(const unsigned char *tmp)
 	return FALSE;
 }
 
-static osync_bool has_param(EVCardAttribute *attr, const char *name)
+static osync_bool has_param(VFormatAttribute *attr, const char *name)
 {
-	GList *params = e_vcard_attribute_get_params(attr);
+	GList *params = vformat_attribute_get_params(attr);
 	GList *p;
 	for (p = params; p; p = p->next) {
-		EVCardAttributeParam *param = p->data;
-		if (!strcmp(name, e_vcard_attribute_param_get_name(param)))
+		VFormatParam *param = p->data;
+		if (!strcmp(name, vformat_attribute_param_get_name(param)))
 			return TRUE;
 	}
 	return FALSE;
 }
 
-static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
+static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
 	if (!tmp)
@@ -222,9 +221,9 @@ static void add_value(EVCardAttribute *attr, xmlNode *parent, const char *name, 
 	if (needs_encoding(tmp, encoding)) {
 		if (!has_param (attr, "ENCODING"))
 			add_parameter(attr, "ENCODING", encoding);
-		e_vcard_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
+		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
 	} else
-		e_vcard_attribute_add_value(attr, tmp);
+		vformat_attribute_add_value(attr, tmp);
 	g_free(tmp);
 }
 
@@ -232,59 +231,58 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 {
 	osync_debug("VNOTE", 4, "start: %s", __func__);
 	xmlDocDump(stdout, (xmlDoc *)input);
-	EVCardAttribute *attr = NULL;
+	VFormatAttribute *attr = NULL;
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "note", error);
 	if (!root)
 		return FALSE;
 	
-	g_type_init();
-	EVCard *vcard = e_vcard_new();
+	VFormat *vcard = vnote_new();
 	
 	const char *std_encoding = "QUOTED-PRINTABLE";
 		
 	while (root) {
 		if (!strcmp(root->name, "Created")) {
 			//Created
-			attr = e_vcard_attribute_new(NULL, "DCREATED");
+			attr = vformat_attribute_new(NULL, "DCREATED");
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "LastModifed")) {
 			//LastModifed
-			attr = e_vcard_attribute_new(NULL, "LAST-MODIFIED");
+			attr = vformat_attribute_new(NULL, "LAST-MODIFIED");
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "Summary")) {
 			//Summary
-			attr = e_vcard_attribute_new(NULL, "SUMMARY");
+			attr = vformat_attribute_new(NULL, "SUMMARY");
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "Body")) {
 			//Body
-			attr = e_vcard_attribute_new(NULL, "BODY");
+			attr = vformat_attribute_new(NULL, "BODY");
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "Categories")) {
 			//Categories
-			attr = e_vcard_attribute_new(NULL, "CATEGORIES");
+			attr = vformat_attribute_new(NULL, "CATEGORIES");
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "Class")) {
 			//Class
-			attr = e_vcard_attribute_new(NULL, "CLASS");
+			attr = vformat_attribute_new(NULL, "CLASS");
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		} else if (!strcmp(root->name, "UnknownNode")) {
 			//Unknown Node
-			attr = e_vcard_attribute_new(NULL, osxml_find_node(root, "NodeName"));
+			attr = vformat_attribute_new(NULL, osxml_find_node(root, "NodeName"));
 			add_value(attr, root, "Content", std_encoding);
-			e_vcard_add_attribute(vcard, attr);
+			vformat_add_attribute(vcard, attr);
 		}
 		
 		root = root->next;
 	}
 	
 	*free_input = TRUE;
-	*output = e_vnote_to_string(vcard);
+	*output = vformat_to_string(vcard);
 	*outpsize = strlen(*output);
 	return TRUE;
 }
