@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
 
-config_DATA = file-sync
+dist_config_DATA = file-sync
 
 EXTRA_DIST = file_sync.h
 
