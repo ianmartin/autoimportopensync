@@ -1,0 +1,38 @@
+kdepim_plugin is a OpenSync plugin for accessing the KDE 3.x Addressbook.
+It requires OpenSync and kdepim3.
+
+This software is provided freely under the GNU GENERAL PUBLIC
+LICENSE (Version 2) and is copyright
+(C) 2005 Conectiva S.A.
+Written by Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+
+Some parts based on the multisync 0.8x kdepim plugin, copyright:
+(C) 2004 Stewart Heitmann <sheitmann@users.sourceforge.net>
+
+
+Compiling and installing kdepim_plugin
+--------------------------------------
+    $ cd kdepim_plugin
+    $ ./autogen.sh
+    $ make
+    $ su
+    $ make install
+
+
+Troubleshooting
+---------------
+If the configuration step fails (ie: autogen.sh) make sure you have the
+correct versions of autoconf (2.59) (it should work with 2.58, though)
+and automake (1.9.2) installed and they are not being overshadowed by
+other versions that may be installed.
+
+    $ autoconf --version
+    autoconf (GNU Autoconf) 2.59
+    Written by David J. MacKenzie and Akim Demaille.
+
+    $ automake --version
+    automake (GNU automake) 1.9.2
+    Written by Tom Tromey <tromey@redhat.com>.
+
+Other versions of autoconf and automake may work, but have not been
+tested.
