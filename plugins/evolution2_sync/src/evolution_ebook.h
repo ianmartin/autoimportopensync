@@ -1,6 +1,7 @@
-#ifndef XML_H
-#define XML_H
+#ifndef EBOOK_H
+#define EBOOK_H
 
-osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
+void evo2_addrbook_setup(OSyncPluginInfo *info);
+osync_bool evo2_addrbook_open(evo_environment *env);
 
-#endif /*  XML_H */
+#endif /*  EBOOK_H */

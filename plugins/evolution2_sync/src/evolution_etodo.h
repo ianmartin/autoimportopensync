@@ -1,6 +1,7 @@
-#ifndef XML_H
-#define XML_H
+#ifndef ETODO_H
+#define ETODO_H
 
-osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
+void evo2_tasks_setup(OSyncPluginInfo *info);
+osync_bool evo2_tasks_open(evo_environment *env);
 
-#endif /*  XML_H */
+#endif /*  ETODO_H */

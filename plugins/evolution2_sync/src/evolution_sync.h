@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <string.h>
 
 typedef struct {
 	OSyncMember *member;
@@ -27,7 +28,7 @@ typedef struct {
 	int debuglevel;
 } evo_environment;
 
-static ESource *find_source(ESourceList *list, char *uri);
+ESource *evo2_find_source(ESourceList *list, char *uri);
 
 #include "evolution_ebook.h"
 #include "evolution_ecal.h"

@@ -2,7 +2,7 @@
 
 /*Load the state from a xml file and return it in the conn struct*/
 osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
-{	
+{
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
@@ -12,28 +12,28 @@ osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
 	env->calendar_path = NULL;
 	env->tasks_path = NULL;
 
-	*doc = xmlParseMemory(data, size);
+	doc = xmlParseMemory(data, size);
 
-	if (!*doc) {
-		osync_debug(env, 1, "Could not parse data!\n");
+	if (!doc) {
+		osync_debug("EVO2-SYNC", 1, "Could not parse data!\n");
 		return FALSE;
 	}
 
-	*cur = xmlDocGetRootElement(*doc);
+	cur = xmlDocGetRootElement(doc);
 
-	if (!*cur) {
-		evo_debug(env, 0, "%s seems to be empty", file);
-		xmlFreeDoc(*doc);
+	if (!cur) {
+		osync_debug("EVO2-SYNC", 0, "data seems to be empty");
+		xmlFreeDoc(doc);
 		return FALSE;
 	}
 
-	if (xmlStrcmp((*cur)->name, (const xmlChar *) topentry)) {
-		evo_debug(env, 0, "%s seems not to be a valid configfile.\n", file);
-		xmlFreeDoc(*doc);
+	if (xmlStrcmp(cur->name, "config")) {
+		osync_debug("EVO2-SYNC", 0, "data seems not to be a valid configdata.\n");
+		xmlFreeDoc(doc);
 		return FALSE;
 	}
 
-	*cur = (*cur)->xmlChildrenNode;
+	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
 		char *str = xmlNodeGetContent(cur);

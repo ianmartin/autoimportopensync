@@ -7,7 +7,7 @@ AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
 
 config_DATA = evo2-sync
 
-lib_LTLIBRARIES = evo2_sync.la
+plugin_LTLIBRARIES = evo2_sync.la
 
 evo2_sync_la_SOURCES = \
 	evolution_sync.c \

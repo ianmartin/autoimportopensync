@@ -1,6 +1,7 @@
-#ifndef XML_H
-#define XML_H
+#ifndef ECAL_H
+#define ECAL_H
 
-osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
+void evo2_calendar_setup(OSyncPluginInfo *info);
+osync_bool evo2_calendar_open(evo_environment *env);
 
-#endif /*  XML_H */
+#endif /*  ECAL_H */
