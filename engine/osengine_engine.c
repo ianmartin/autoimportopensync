@@ -703,6 +703,30 @@ void osync_engine_deny_sync_alert(OSyncEngine *engine)
 	engine->allow_sync_alert = FALSE;
 }
 
+/*! @brief This function will synchronize once and block until the sync has finished
+ *
+ * This can be used to sync a group and wait for the synchronization end. DO NOT USE
+ * osync_engine_wait_sync_end for this as this might introduce a race condition.
+ * 
+ * @param engine A pointer to the engine, which to sync and wait for the sync end
+ * @param error A pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise. Check the error on FALSE. Note that this just says if the sync has been started successfully, not if the sync itself was successfull
+ * 
+ */
+osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error)
+{
+	g_mutex_lock(engine->syncing_mutex);
+	
+	if (!osync_engine_synchronize(engine, error)) {
+		g_mutex_unlock(engine->syncing_mutex);
+		return FALSE;
+	}
+	
+	g_cond_wait(engine->syncing, engine->syncing_mutex);
+	g_mutex_unlock(engine->syncing_mutex);
+	return TRUE;
+}
+
 /*! @brief This function will block until a synchronization has ended
  *
  * This can be used to wait until the synchronization has ended. Note that this function will always

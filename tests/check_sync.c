@@ -172,18 +172,12 @@ START_TEST (sync_easy_new_del)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	osync_engine_init(engine, &error);
-	mark_point();
-	osync_engine_synchronize(engine, &error);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
+	synchronize_once(engine);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	system("rm data1/testdata");
 	
-	mark_point();
-	osync_engine_synchronize(engine, &error);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
+	synchronize_once(engine);
 	osync_engine_finalize(engine);
 	mark_point();
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -232,10 +226,7 @@ START_TEST (sync_easy_conflict)
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	osync_engine_init(engine, &error);
-	mark_point();
-	osync_engine_synchronize(engine, &error);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
+	synchronize_once(engine);
 	osync_engine_finalize(engine);
 	system("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -268,9 +259,7 @@ START_TEST (sync_easy_new_mapping)
 	osync_engine_init(engine, &error);
 	mark_point();
 	
-	osync_engine_synchronize(engine, &error);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
+	synchronize_once(engine);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 0, NULL);

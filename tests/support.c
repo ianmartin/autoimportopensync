@@ -127,9 +127,7 @@ void synchronize_once(OSyncEngine *engine)
 	num_written = 0;
 	num_read = 0;
 	mark_point();
-	osync_engine_synchronize(engine, NULL);
-	mark_point();
-	osync_engine_wait_sync_end(engine);
+	osync_engine_sync_and_block(engine, NULL);
 }
 
 void create_case(Suite *s, const char *name, void (*function)(void))

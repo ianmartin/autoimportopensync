@@ -227,7 +227,7 @@ char *osync_change_get_printable(OSyncChange *change)
 	g_assert(format);
 	
 	if (!format->print_func)
-		return NULL;
+		return g_strndup(change->data, change->size);
 		
 	return format->print_func(change);
 }

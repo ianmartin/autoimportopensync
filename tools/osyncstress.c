@@ -413,12 +413,11 @@ int main (int argc, char *argv[])
 			change_content(engine);
 
 			printf("Starting to synchronize\n");
-			if (!osync_engine_synchronize(engine, &error)) {
+			if (!osync_engine_sync_and_block(engine, &error)) {
 				printf("Error while starting synchronization: %s\n", error->message);
 				osync_error_free(&error);
 				abort();
 			}
-			osync_engine_wait_sync_end(engine);
 			
 			if (!compare_content(engine))
 				abort();
