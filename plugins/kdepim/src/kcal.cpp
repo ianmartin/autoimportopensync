@@ -98,7 +98,7 @@ bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, con
 
 	/* Convert the data to vcalendar */
 	KCal::ICalFormat format;
-	QCString datastr = format.toString(&cal).local8Bit();
+	QCString datastr = format.toString(&cal).utf8();
 	const char *data = datastr;
 
 	osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
@@ -187,7 +187,7 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
              * we should set the uid on the events
              */
             KCal::CalendarLocal cal;
-            QString data = QString::fromLocal8Bit(osync_change_get_data(chg), osync_change_get_datasize(chg));
+            QString data = QString::fromUtf8(osync_change_get_data(chg), osync_change_get_datasize(chg));
             if (!format.fromString(&cal, data)) {
                 osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Couldn't import calendar data");
                 return false;
