@@ -1,8 +1,7 @@
 #ifndef HAVE_osync_H
 #define HAVE_osync_H
 
-#include <glib.h>
-#include "opensync.h"
+#include <opensync/opensync.h>
 
 /**************************************************************
  * Enumerations

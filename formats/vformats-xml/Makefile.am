@@ -11,7 +11,7 @@ EXTRA_DIST = \
 
 opensyncheader_HEADERS = opensync-xml.h
 
-INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
+INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@
 
 formats_LTLIBRARIES = xml-vcard.la xml-evolution.la xml-vnote.la
 

@@ -18,7 +18,7 @@
  * 
  */
  
-#include <opensync.h>
+#include <opensync/opensync.h>
 #include <string.h>
 
 /** @defgroup data_plain data/plain format

@@ -1,5 +1,5 @@
-#include "opensync.h"
-#include "opensync_internals.h"
+#include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

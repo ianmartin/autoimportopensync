@@ -2,7 +2,7 @@
 
 AM_CFLAGS = -Werror -Wall
 
-INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
+INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ 
 
 lib_LTLIBRARIES = libosengine.la
 
@@ -34,4 +34,4 @@ EXTRA_DIST = \
 	osengine_queue_internals.h
 
 libosengine_la_LDFLAGS = $(PACKAGE_LIBS) -R $(libdir)
-libosengine_la_LIBADD = $(top_builddir)/src/libopensync.la
+libosengine_la_LIBADD = $(top_builddir)/opensync/libopensync.la

@@ -1,4 +1,4 @@
-#include <opensync.h>
+#include <opensync/opensync.h>
 #include <glib.h>
 #include <stdio.h>
 

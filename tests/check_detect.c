@@ -1,8 +1,8 @@
 #include <check.h>
 #include <glib.h>
 #include <gmodule.h>
-#include <opensync.h>
-#include <opensync_internals.h>
+#include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 #include <stdlib.h>
 #include <string.h>
 

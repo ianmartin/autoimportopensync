@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src $(enginedir) formats $(toolsdir) $(testdir)
+SUBDIRS = opensync $(enginedir) formats $(toolsdir) $(testdir)
 
 if BUILD_ENGINE
 OSENGINE_PC = osengine-1.0.pc

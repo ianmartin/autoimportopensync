@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <glib.h>
 
 typedef struct ITMessage ITMessage;
 typedef struct ITMQueue ITMQueue;

@@ -320,7 +320,118 @@ START_TEST (single_connect_timeout)
 	fail_unless(num_member_connect_errors == 1, NULL);
 	fail_unless(num_connected == 1, NULL);
 	fail_unless(num_disconnected == 1, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (dual_connect_timeout)
+{
+	char *testbed = setup_testbed("sync_easy_new");
+	
+	g_setenv("CONNECT_TIMEOUT", "3", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	synchronize_once(engine);
+	
+	fail_unless(num_member_connect_errors == 2, NULL);
+	fail_unless(num_connected == 0, NULL);
+	fail_unless(num_disconnected == 0, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (one_of_three_timeout)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	synchronize_once(engine);
+	
+	fail_unless(num_member_connect_errors == 1, NULL);
+	fail_unless(num_connected == 2, NULL);
+	fail_unless(num_disconnected == 2, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	osync_engine_finalize(engine);
+	osync_engine_free(engine);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (timeout_and_error)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
+	g_setenv("CONNECT_ERROR", "4", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	synchronize_once(engine);
+	
+	fail_unless(num_member_connect_errors == 2, NULL);
+	fail_unless(num_connected == 1, NULL);
+	fail_unless(num_disconnected == 1, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
 	
 	osync_engine_finalize(engine);
 	osync_engine_free(engine);
@@ -343,6 +454,10 @@ Suite *multisync_suite(void)
 	create_case(s, "one_of_three_connect_error", one_of_three_connect_error);
 	create_case(s, "no_connect_error", no_connect_error);
 	create_case(s, "single_connect_timeout", single_connect_timeout);
+	create_case(s, "dual_connect_timeout", dual_connect_timeout);
+	create_case(s, "one_of_three_timeout", one_of_three_timeout);
+	create_case(s, "timeout_and_error", timeout_and_error);
+	
 	
 	return s;
 }

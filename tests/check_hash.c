@@ -2,6 +2,7 @@
 #include <glib.h>
 #include <gmodule.h>
 #include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 #include <stdlib.h>
 
 START_TEST (user_create)

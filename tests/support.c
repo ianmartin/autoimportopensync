@@ -127,7 +127,7 @@ void member_status(MSyncMemberUpdate *status, void *user_data)
 			break;
 		case MEMBER_CONNECT_ERROR:
 			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			printf("MEMBER_CONNECT_ERROR: %s\n", status->error->message);
+			osync_debug("TEST", 4, "MEMBER_CONNECT_ERROR: %s\n", status->error->message);
 			num_member_connect_errors++;
 			break;
 		default:
@@ -139,24 +139,24 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 {
 	switch (status->type) {
 		case ENG_ENDPHASE_CON:
-			printf("All clients connected or error\n");
+			osync_debug("TEST", 4, "All clients connected or error\n");
 			break;
 		case ENG_ENDPHASE_READ:
-			printf("All clients sent changes or error\n");
+			osync_debug("TEST", 4, "All clients sent changes or error\n");
 			break;
 		case ENG_ENDPHASE_WRITE:
-			printf("All clients have writen\n");
+			osync_debug("TEST", 4, "All clients have writen\n");
 			break;
 		case ENG_ENDPHASE_DISCON:
-			printf("All clients have disconnected\n");
+			osync_debug("TEST", 4, "All clients have disconnected\n");
 			break;
 		case ENG_ERROR:
 			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			printf("ENG_ERROR: %s\n", status->error->message);
+			osync_debug("TEST", 4, "ENG_ERROR: %s\n", status->error->message);
 			num_engine_errors++;
 			break;
 		case ENG_SYNC_SUCCESSFULL:
-			printf("Sync Successfull\n");
+			osync_debug("TEST", 4, "Sync Successfull\n");
 			num_engine_successfull++;
 			break;
 		default:
@@ -168,13 +168,13 @@ void mapping_status(MSyncMappingUpdate *status, void *user_data)
 {
 	switch (status->type) {
 		case MAPPING_SOLVED:
-			printf("Mapping solved\n");
+			osync_debug("TEST", 4, "Mapping solved\n");
 			break;
 		case MAPPING_NEW:
-			printf("New Mapping\n");
+			osync_debug("TEST", 4, "New Mapping\n");
 			break;
 		case MAPPING_SYNCED:
-			printf("Mapping Synced\n");
+			osync_debug("TEST", 4, "Mapping Synced\n");
 			break;
 		default:
 			printf("errro\n");

@@ -1,6 +1,6 @@
 #include <check.h>
-#include "opensync.h"
-#include "opensync_internals.h"
+#include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 
 START_TEST (user_create)
 {

@@ -1,5 +1,6 @@
 #include <check.h>
-#include <opensync.h>
+#include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 #include <stdlib.h>
 
 #include <glib.h>

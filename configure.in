@@ -135,7 +135,7 @@ AC_SUBST(PACKAGE_LIBS)
 
 AC_OUTPUT([
 Makefile
-src/Makefile
+opensync/Makefile
 tools/Makefile
 tests/Makefile
 formats/Makefile

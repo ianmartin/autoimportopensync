@@ -2,7 +2,7 @@
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 
-#include <opensync.h>
+#include <opensync/opensync.h>
 #include <string.h>
 #include <stdio.h>
 

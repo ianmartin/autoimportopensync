@@ -18,7 +18,7 @@
  * 
  */
  
-#include <opensync.h>
+#include <opensync/opensync.h>
 #include <glib.h>
 #include <string.h>
 #include <stdio.h>
