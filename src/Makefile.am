@@ -8,6 +8,8 @@ AM_CFLAGS = -Wall -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Werror
 
 config_DATA = file-sync
 
+EXTRA_DIST = file_sync.h
+
 plugin_LTLIBRARIES = file_sync.la
 
 file_sync_la_SOURCES = file_sync.c
