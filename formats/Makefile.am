@@ -2,13 +2,11 @@
 
 AM_CFLAGS = -Werror -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\" -Wall @XML_CFLAGS@
 
-EXTRA_DIST = xml.h
-
 formatsdir=@OPENSYNC_FORMATSDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
 
-formats_LTLIBRARIES = data.la event.la todo.la contact.la note.la xml.la
+formats_LTLIBRARIES = data.la event.la todo.la contact.la note.la
 
 data_la_SOURCES = data.c
 data_la_LDFLAGS = -avoid-version -export-dynamic -module
@@ -29,9 +27,5 @@ todo_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 contact_la_SOURCES = contact.c
 contact_la_LDFLAGS = -avoid-version -export-dynamic -module
 contact_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
-
-xml_la_SOURCES = xml-support.c
-xml_la_LDFLAGS = -avoid-version -export-dynamic -module
-xml_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
 SUBDIRS = v-xml

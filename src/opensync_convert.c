@@ -43,7 +43,7 @@ osync_bool osync_conv_plugin_load(OSyncFormatEnv *env, char *path, OSyncError **
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	GModule *plugin = g_module_open(path, G_MODULE_BIND_LAZY);
+	GModule *plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
 	if (!plugin) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
 		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
@@ -885,7 +885,7 @@ osync_bool osync_conv_env_load(OSyncFormatEnv *env, OSyncError **oserror)
 		char *filename = NULL;
 		filename = g_strdup_printf ("%s/%s", env->pluginpath, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.la", filename)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*lib.la", filename) || !g_pattern_match_simple("*.la", filename)) {
 			g_free(filename);
 			continue;
 		}

@@ -263,9 +263,3 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		return CONV_DATA_SIMILAR;
 	return CONV_DATA_MISMATCH;
 }
-
-void get_info(OSyncFormatEnv *env)
-{
-	osync_conv_register_objtype(env, "contact");
-	osync_conv_register_objformat(env, "contact", "xml-contact");
-}
