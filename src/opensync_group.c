@@ -198,7 +198,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	g_assert(group);
 	osync_assert(group->env, "You must specify a Environment prior to saving the group");
 	
-	if (!group->id) {
+	if (!group->configdir) {
 		group->id = _osync_env_create_group_id(group->env);
 		group->configdir = g_strdup_printf("%s/group%lli", group->env->configdir, group->id);
 	}
