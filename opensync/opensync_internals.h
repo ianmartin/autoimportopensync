@@ -125,7 +125,7 @@ struct OSyncGroup {
 
 struct OSyncPlugin {
 	GModule *real_plugin;
-	gchar *path;
+	char *path;
 	OSyncPluginInfo info;
 	GList *accepted_objtypes;
 	OSyncEnv *env;

@@ -110,10 +110,10 @@ void osync_member_free(OSyncMember *member)
 		osync_group_remove_member(member->group, member);
 	
 	//Free the plugin if we are not thread-safe
-	if (member->plugin && !member->plugin->info.is_threadsafe) {
+	/*if (member->plugin && !member->plugin->info.is_threadsafe) {
 		osync_plugin_unload(member->plugin);
 		osync_plugin_free(member->plugin);
-	}
+	}*/
 	
 	if (member->pluginname)
 		g_free(member->pluginname);
@@ -128,10 +128,10 @@ void osync_member_unload_plugin(OSyncMember *member)
 	if (!member->plugin)
 		return;
 		
-	if (!member->plugin->info.is_threadsafe) {
+	/*if (!member->plugin->info.is_threadsafe) {
 		osync_plugin_unload(member->plugin);
 		osync_plugin_free(member->plugin);
-	}
+	}*/
 	
 	g_list_free(member->objtype_sinks);
 	g_list_free(member->format_sinks);
@@ -158,13 +158,16 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginn
 	osync_debug("OSMEM", 3, "Instancing plugin %s for member %i", plugin->info.name, member->id);
 	osync_member_unload_plugin(member);
 	
-	if (plugin->info.is_threadsafe) {
+	//For now we disable the threadsafety feature since dlopen doesnt like it
+	member->plugin = plugin;
+	/*if (plugin->info.is_threadsafe) {
 		member->plugin = plugin;
 	} else {
 		member->plugin = osync_plugin_load(NULL, plugin->path, error);
 		if (!member->plugin)
 			return FALSE;
-	}
+	}*/
+	member->pluginname = g_strdup(osync_plugin_get_name(member->plugin));
 	
 	//Prepare the sinks;
 	GList *o;

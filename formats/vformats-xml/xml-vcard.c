@@ -661,6 +661,7 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_compare_func(env, "xml-contact", compare_contact);
 	osync_env_format_set_destroy_func(env, "xml-contact", destroy_xml);
 	osync_env_format_set_print_func(env, "xml-contact", print_contact);
+	osync_env_format_set_copy_func(env, "xml-contact", osxml_copy);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard21", conv_xml_to_vcard21);

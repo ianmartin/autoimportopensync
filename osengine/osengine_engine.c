@@ -425,6 +425,7 @@ void trigger_clients_sent_changes(OSyncEngine *engine)
 static gboolean startupfunc(gpointer data)
 {
 	OSyncEngine *engine = data;
+	osync_trace(TRACE_INTERNAL, "+++++++++ This is the engine of group \"%s\" +++++++++", osync_group_get_name(engine->group));
 	g_mutex_lock(engine->started_mutex);
 	g_cond_signal(engine->started);
 	g_mutex_unlock(engine->started_mutex);

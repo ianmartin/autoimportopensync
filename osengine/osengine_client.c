@@ -194,6 +194,8 @@ OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client)
 static gboolean startupfunc(gpointer data)
 {
 	OSyncClient *client = data;
+	osync_trace(TRACE_INTERNAL, "+++++++++ This is the client #%lli (%s plugin) of group %s +++++++++", osync_member_get_id(client->member), osync_member_get_pluginname(client->member), osync_group_get_name(client->engine->group));
+	
 	g_mutex_lock(client->started_mutex);
 	g_cond_signal(client->started);
 	g_mutex_unlock(client->started_mutex);

@@ -292,6 +292,7 @@ long long int osync_change_get_id(OSyncChange *change)
 
 void osync_change_update(OSyncChange *source, OSyncChange *target)
 {
+	osync_trace(TRACE_ENTRY, "osync_change_update(%p, %p)", source, target);
 	//FIXME free stuff
 	g_assert(source);
 	g_assert(target);
@@ -299,14 +300,20 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 		target->uid = g_strdup(source->uid);
 	target->hash = g_strdup(source->hash);
 	target->data = g_malloc0(source->size);
-	/* FIXME: Use the copy function for the format, if any.
-	 * Just memcpy() won't work for e.g. xml-* formats.
-	 * (http://www.opensync.org/ticket/36)
-	 */
-	memcpy(target->data, source->data, source->size);
-
-
-	target->size = source->size;
+	
+	OSyncObjFormat *format = NULL;
+	format = source->format;
+	osync_trace(TRACE_INTERNAL, "format 1 is: %p: %s", format, format ? format->name : "None");
+	if (!format)
+		format = target->format;
+	osync_trace(TRACE_INTERNAL, "format 1 is: %p: %s %p", format, format ? format->name : "None", format, format ? format->copy_func : NULL);
+	if (!format || !format->copy_func) {
+		osync_trace(TRACE_INTERNAL, "We cannot copy the change, falling back to memcpy");
+		memcpy(target->data, source->data, source->size);
+		target->size = source->size;
+	} else
+		format->copy_func(source->data, source->size, &(target->data), &(target->size));
+	
 	target->has_data = source->has_data;
 	target->changetype = source->changetype;
 	if (source->format)
@@ -316,4 +323,5 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 		target->sourceobjtype = g_strdup(source->objtype->name);
 	}
 	target->is_detected = source->is_detected;
+	osync_trace(TRACE_EXIT, "osync_change_update");
 }

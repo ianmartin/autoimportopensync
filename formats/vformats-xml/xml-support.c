@@ -293,3 +293,11 @@ osync_bool osxml_write_to_string(xmlDoc *doc, char **result, int *result_length)
   return TRUE;
 }
 
+osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize)
+{
+	xmlDoc *doc = (xmlDoc *)(input);
+	xmlDoc *newdoc = xmlCopyDoc(doc, TRUE);
+	*output = (char *)newdoc;
+	*outpsize = sizeof(newdoc);
+	return TRUE;
+}
