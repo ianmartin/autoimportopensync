@@ -161,6 +161,27 @@ void osync_error_update(OSyncError **error, const char *format, ...)
 	va_end (args);
 }
 
+/*! @brief Duplicates the error into the target
+ * 
+ * 
+ * @param target The target error to update
+ * @param source The source error which to duplicate
+ * 
+ */
+void osync_error_duplicate(OSyncError **target, OSyncError **source)
+{
+	osync_return_if_fail(osync_error_is_set(source));
+	
+	if (!osync_error_is_set(source)) {
+		*target = NULL;
+		return;
+	}
+	
+	*target = g_malloc0(sizeof(OSyncError));
+	(*target)->message = g_strdup((*source)->message);
+	(*target)->type = (*source)->type;
+}
+
 /*! @brief Sets the error
  * 
  * You can use this function to set the error to the given type and message

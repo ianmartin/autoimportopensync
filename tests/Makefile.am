@@ -7,8 +7,8 @@ AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror
 INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src -I$(top_srcdir)/engine
 
 if ENABLE_TESTS
-TESTS = error user member env conv sync filter multisync
-noinst_PROGRAMS = error user member env conv sync filter multisync
+TESTS = error user member env conv sync filter multisync errorcodes
+noinst_PROGRAMS = error user member env conv sync filter multisync errorcodes
 else
 TESTS = 
 noinst_PROGRAMS = 
@@ -53,3 +53,8 @@ multisync_INCLUDES = @CHECK_CFLAGS@
 multisync_SOURCES = check_multisync.c support.c
 multisync_LIBS = @CHECK_LIBS@
 multisync_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck -R $(libdir)
+
+errorcodes_INCLUDES = @CHECK_CFLAGS@
+errorcodes_SOURCES = check_codes.c support.c
+errorcodes_LIBS = @CHECK_LIBS@
+errorcodes_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/src/libopensync.la $(top_builddir)/engine/libosengine.la -lcheck -R $(libdir)

@@ -57,16 +57,20 @@ void _connect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngin
 	_osync_debug(engine, "ENG", 3, "Received a reply %p to CONNECT command from client %p, engine is at %p", message, sender, engine);
 	
 	if (itm_message_is_error(message)) {
+		osync_status_update_member(engine, sender, MEMBER_CONNECT_ERROR, itm_message_get_error(message));
+		osync_error_duplicate(&engine->error, itm_message_get_error(message));
+		osync_error_update(&engine->error, "Unable to connect one of the members");
 		osync_flag_unset(sender->fl_connected);
 		osync_flag_set(sender->fl_finished);
 		osync_flag_set(sender->fl_sent_changes);
 		osync_flag_set(sender->fl_done);
+		
 	} else {
-		osync_flag_set(sender->fl_connected);
+		osync_status_update_member(engine, sender, MEMBER_CONNECTED, NULL);
+		osync_flag_set(sender->fl_connected);	
 	}
 
 	osync_client_decider(engine, sender);
-	osync_status_update_member(engine, sender, MEMBER_CONNECTED);
 }
 
 void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
@@ -84,7 +88,7 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
 void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	_osync_debug(engine, "ENG", 3, "Received a reply %p to DISCONNECT command from client %p", message, sender);
-	osync_status_update_member(engine, sender, MEMBER_DISCONNECTED);
+	osync_status_update_member(engine, sender, MEMBER_DISCONNECTED, NULL);
 	osync_flag_unset(sender->fl_connected);
 	osync_flag_set(sender->fl_finished);
 	osync_client_decider(engine, sender);
@@ -311,7 +315,7 @@ void send_client_changed(OSyncEngine *engine, OSyncClient *client)
 
 void trigger_clients_sent_changes(OSyncEngine *engine)
 {
-	osync_status_update_engine(engine, ENG_ENDPHASE_READ);
+	osync_status_update_engine(engine, ENG_ENDPHASE_READ, NULL);
 	
 	g_mutex_lock(engine->info_received_mutex);
 	g_cond_signal(engine->info_received);
@@ -372,7 +376,13 @@ osync_bool osync_engine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_finished, FALSE);
 	itm_queue_flush(engine->incoming);
 	
-	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON);
+	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
+	
+	if (engine->error) {
+		osync_status_update_engine(engine, ENG_ERROR, &engine->error);
+		osync_error_free(&engine->error);
+	} else
+		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);
 	
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_signal(engine->syncing);
@@ -477,6 +487,7 @@ void osync_engine_free(OSyncEngine *engine)
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the conflict
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
 void osync_engine_set_conflict_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncMapping *, void *), void *user_data)
@@ -491,6 +502,7 @@ void osync_engine_set_conflict_callback(OSyncEngine *engine, void (* function) (
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the change status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
 void osync_engine_set_changestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, MSyncChangeUpdate *, void *), void *user_data)
@@ -505,11 +517,13 @@ void osync_engine_set_changestatus_callback(OSyncEngine *engine, void (* functio
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the mapping status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* function) (MSyncMappingUpdate *))
+void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* function) (MSyncMappingUpdate *, void *), void *user_data)
 {
 	engine->mapstat_callback = function;
+	engine->mapstat_userdata = user_data;
 }
 
 /*! @brief This will set the engine status handler for the given engine
@@ -518,6 +532,7 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* functi
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the engine status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
 void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncEngineUpdate *, void *), void *user_data)
@@ -532,11 +547,13 @@ void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* functio
  * 
  * @param engine A pointer to the engine, for which to set the callback
  * @param function A pointer to a function which will receive the member status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
  * 
  */
-void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (MSyncMemberUpdate *))
+void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (MSyncMemberUpdate *, void *), void *user_data)
 {
 	engine->mebstat_callback = function;
+	engine->mebstat_userdata = user_data;
 }
 
 /*! @brief This will set the callback handler for a custom message

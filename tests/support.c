@@ -105,8 +105,9 @@ void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_dat
 	}
 }
 
-void member_status(MSyncMemberUpdate *status)
+void member_status(MSyncMemberUpdate *status, void *user_data)
 {
+	mark_point();
 	switch (status->type) {
 		case MEMBER_CONNECTED:
 			num_connected++;
@@ -114,8 +115,55 @@ void member_status(MSyncMemberUpdate *status)
 		case MEMBER_DISCONNECTED:
 			num_disconnected++;
 			break;
+		case MEMBER_CONNECT_ERROR:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			printf("MEMBER_CONNECT_ERROR: %s\n", status->error->message);
+			num_member_connect_errors++;
+			break;
 		default:
 			printf("Unknown status\n");
+	}
+}
+
+void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data)
+{
+	switch (status->type) {
+		case ENG_ENDPHASE_CON:
+			printf("All clients connected or error\n");
+			break;
+		case ENG_ENDPHASE_READ:
+			printf("All clients sent changes or error\n");
+			break;
+		case ENG_ENDPHASE_WRITE:
+			printf("All clients have writen\n");
+			break;
+		case ENG_ENDPHASE_DISCON:
+			printf("All clients have disconnected\n");
+			break;
+		case ENG_ERROR:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			printf("ENG_ERROR: %s\n", status->error->message);
+			num_engine_errors++;
+			break;
+		default:
+			printf("ERrro\n");
+	}
+}
+
+void mapping_status(MSyncMappingUpdate *status, void *user_data)
+{
+	switch (status->type) {
+		case MAPPING_SOLVED:
+			printf("Mapping solved\n");
+			break;
+		case MAPPING_NEW:
+			printf("New Mapping\n");
+			break;
+		case MAPPING_SYNCED:
+			printf("Mapping Synced\n");
+			break;
+		default:
+			printf("errro\n");
 	}
 }
 
@@ -126,6 +174,8 @@ void synchronize_once(OSyncEngine *engine)
 	num_conflicts = 0;
 	num_written = 0;
 	num_read = 0;
+	num_member_connect_errors = 0;
+	num_engine_errors = 0;
 	mark_point();
 	osync_engine_sync_and_block(engine, NULL);
 }

@@ -27,13 +27,16 @@ void osync_status_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		engine->conflict_callback(engine, mapping, engine->conflict_userdata);
 }
 
-void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, memberupdatetype type)
+void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, memberupdatetype type, OSyncError **error)
 {
 	if (engine->mebstat_callback) {
 		MSyncMemberUpdate update;
+		memset(&update, 0, sizeof(MSyncMemberUpdate));
 		update.type = type;
 		update.member = client->member;
-		engine->mebstat_callback(&update);
+		if (error)
+			update.error = *error;
+		engine->mebstat_callback(&update, engine->mebstat_userdata);
 	}
 }
 
@@ -60,15 +63,18 @@ void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, map
 		update.mapping_id = osync_mapping_get_id(mapping);
 		if ((master = osync_mapping_get_masterentry(mapping)))
 			update.winner = osync_member_get_id(osync_change_get_member(master));
-		engine->mapstat_callback(&update);
+		engine->mapstat_callback(&update, engine->mapstat_userdata);
 	}
 }
 
-void osync_status_update_engine(OSyncEngine *engine, engineupdatetype type)
+void osync_status_update_engine(OSyncEngine *engine, engineupdatetype type, OSyncError **error)
 {
 	if (engine->engstat_callback) {
 		OSyncEngineUpdate update;
+		memset(&update, 0, sizeof(OSyncEngineUpdate));
 		update.type = type;
+		if (error)
+			update.error = *error;
 		engine->engstat_callback(engine, &update, engine->engstat_userdata);
 	}
 }

@@ -334,7 +334,7 @@ void osync_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 void osync_mapping_all_deciders(OSyncEngine *engine)
 {
 	int i = 0;
-	_osync_debug(engine, "ENG", 2, "Calling all mapping deciders (%i)", osync_mappingtable_num_mappings(engine->maptable));
+	_osync_debug(engine, "ENG", 4, "Calling all mapping deciders (%i)", osync_mappingtable_num_mappings(engine->maptable));
 	for (i = 0; i < osync_mappingtable_num_mappings(engine->maptable); i++) {
 		OSyncMapping *mapping = osync_mappingtable_nth_mapping(engine->maptable, i);
 		send_mapping_changed(engine, mapping);
@@ -351,7 +351,7 @@ static OSyncChange *_osync_find_next_diff(OSyncMapping *mapping, OSyncChange *or
 		if ((change != orig_change) && osync_change_compare(orig_change, change) != CONV_DATA_SAME)
 			return change;
 	}
-	_osync_debug(NULL, "MAP", 0, "Could not find next diff");
+	_osync_debug(NULL, "MAP", 3, "Could not find next diff");
 	return NULL;
 }
 
@@ -363,7 +363,7 @@ static OSyncChange *_osync_find_next_same(OSyncMapping *mapping, OSyncChange *or
 		if ((change != orig_change) && osync_change_compare(orig_change, change) == CONV_DATA_SAME)
 			return change;
 	}
-	_osync_debug(NULL, "MAP", 0, "Could not find next same");
+	_osync_debug(NULL, "MAP", 3, "Could not find next same");
 	return NULL;
 }
 
@@ -389,7 +389,7 @@ static OSyncChange *_osync_change_clone(OSyncEngine *engine, OSyncMapping *new_m
 static OSyncMapping *_osync_mapping_new(OSyncEngine *engine)
 {
 	OSyncMapping *new_mapping = osync_mapping_new(engine->maptable);
-	_osync_debug(engine, "MAP", 0, "Creating new duplicated mapping %p", new_mapping);
+	_osync_debug(engine, "MAP", 3, "Creating new duplicated mapping %p", new_mapping);
 	MSyncMappingFlags *mapflags = osync_mapping_get_flags(new_mapping);
 	osync_flag_unset(mapflags->cmb_synced);
 	send_mapping_changed(engine, new_mapping);
@@ -398,13 +398,13 @@ static OSyncMapping *_osync_mapping_new(OSyncEngine *engine)
 
 static osync_bool _osync_change_elevate(OSyncEngine *engine, OSyncChange *change, int level)
 {
-	_osync_debug(engine, "MAP", 0, "elevating change %s (%p) to level %i", osync_change_get_uid(change), change, level);
+	_osync_debug(engine, "MAP", 3, "elevating change %s (%p) to level %i", osync_change_get_uid(change), change, level);
 	int i = 0;
 	for (i = 0; i < level; i++) {
 		if (!osync_change_duplicate(change))
 			return FALSE;
 	}
-	_osync_debug(engine, "MAP", 0, "change after being elevated %s (%p)", osync_change_get_uid(change), change);
+	_osync_debug(engine, "MAP", 3, "change after being elevated %s (%p)", osync_change_get_uid(change), change);
 	osync_mappingtable_save_change(engine->maptable, change);
 	return TRUE;
 }
@@ -412,7 +412,7 @@ static osync_bool _osync_change_elevate(OSyncEngine *engine, OSyncChange *change
 static osync_bool _osync_change_check_level(OSyncEngine *engine, OSyncChange *change)
 {
 	GList *c;
-	_osync_debug(engine, "MAP", 0, "checking level for change %s (%p)", osync_change_get_uid(change), change);
+	_osync_debug(engine, "MAP", 3, "checking level for change %s (%p)", osync_change_get_uid(change), change);
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_member_uid_is_unique(client->member, change, TRUE))
@@ -423,7 +423,7 @@ static osync_bool _osync_change_check_level(OSyncEngine *engine, OSyncChange *ch
 
 static void _osync_change_overwrite(OSyncEngine *engine, OSyncChange *source, OSyncChange *target)
 {
-	_osync_debug(engine, "MAP", 0, "overwriting change %s (%p) with change %s (%p)", osync_change_get_uid(source), source, osync_change_get_uid(target), target);
+	_osync_debug(engine, "MAP", 3, "overwriting change %s (%p) with change %s (%p)", osync_change_get_uid(source), source, osync_change_get_uid(target), target);
 	osync_change_update(source, target);
 	osync_mappingtable_save_change(engine->maptable, target);
 }
@@ -469,7 +469,7 @@ void osync_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		
 		elevation = 0;
 		new_mapping = _osync_mapping_new(engine);
-		_osync_debug(engine, "MAP", 0, "Created new mapping for duplication %p", new_mapping);
+		_osync_debug(engine, "MAP", 3, "Created new mapping for duplication %p", new_mapping);
 		new_change = first_diff_change;
 		//new_change = _osync_change_clone(engine, new_mapping, first_diff_change);
 		//osync_member_add_changeentry(osync_change_get_member(first_diff_change), new_change);

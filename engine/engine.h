@@ -18,12 +18,13 @@ typedef struct OSyncClient OSyncClient;
 typedef enum {
 	MEMBER_CONNECTED = 1,
 	MEMBER_DISCONNECTED = 2,
-	MEMBER_ERROR = 5
+	MEMBER_CONNECT_ERROR = 3
 } memberupdatetype;
 
 typedef struct MSyncMemberUpdate {
 	memberupdatetype type;
 	OSyncMember *member;
+	OSyncError *error;
 } MSyncMemberUpdate;
 
 typedef enum {
@@ -53,12 +54,15 @@ typedef struct MSyncMappingUpdate {
 typedef enum {
 	ENG_ENDPHASE_CON = 1,
 	ENG_ENDPHASE_READ = 2,
-	ENG_ENDPHASE_WRITE = 4,
-	ENG_ENDPHASE_DISCON = 8
+	ENG_ENDPHASE_WRITE = 3,
+	ENG_ENDPHASE_DISCON = 4,
+	ENG_ERROR = 5,
+	ENG_SYNC_SUCCESSFULL = 6
 } engineupdatetype;
 
 typedef struct OSyncEngineUpdate {
 	engineupdatetype type;
+	OSyncError *error;
 } OSyncEngineUpdate;
 
 /**************************************************************

@@ -51,6 +51,16 @@ ITMessage *itm_message_new(gpointer parent, char *msgname, ITMessageType type)
 	return message;
 }
 
+void itm_message_free(ITMessage *message)
+{
+	if (message->msgname)
+		g_free(message->msgname);
+	g_hash_table_destroy(message->payload);
+	if (message->error)
+		osync_error_free(message->error);
+	g_free(message);
+}
+
 /*! @brief Creates a new message of the signal type
  * 
  * @param parent Who send this message. Can be any pointer.
@@ -127,20 +137,14 @@ ITMessage *itm_message_new_errorreply(gpointer parent, ITMessage *message)
 	return reply;
 }
 
-void itm_message_set_error(ITMessage *message, char *msg, int errortype)
+void itm_message_set_error(ITMessage *message, OSyncError **error)
 {
-	itm_message_set_data(message, "message", msg);
-	itm_message_set_data(message, "errortype", (void *)errortype);
+	message->error = error;
 }
 
-const char *itm_message_get_errormsg(ITMessage *message)
+OSyncError **itm_message_get_error(ITMessage *message)
 {
-	return itm_message_get_data(message, "message");
-}
-
-int itm_message_get_errortype(ITMessage *message)
-{
-	return (int)itm_message_get_data(message, "errortype");
+	return message->error;
 }
 
 /*! @brief Checks if the message is of type methodcall with the given name

@@ -94,13 +94,13 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError **erro
 
 	if (!osync_error_is_set(error)) {
 		reply = itm_message_new_methodreply(client, message);
-		_osync_debug(client, "CLI", 3, "Member is replying with message %p to message %p with no error", reply, message);
+		_osync_debug(client, "CLI", 4, "Member is replying with message %p to message %p:\"%s\" with no error", reply, message, message->msgname);
 	} else {
 		reply = itm_message_new_errorreply(client, message);
-		itm_message_set_error(reply, (*error)->message, (*error)->type);
-		_osync_debug(client, "CLI", 3, "Member is replying with message %p to message %p with error %i", reply, message, (*error)->type);
-		osync_error_free(error);
+		itm_message_set_error(reply, error);
+		_osync_debug(client, "CLI", 1, "Member is replying with message %p to message %p:\"%s\" with error %i", reply, message, message->msgname, (*error)->type);
 	}
+	
 	itm_message_move_data(message, reply);
 	itm_message_send_reply(reply);
 }

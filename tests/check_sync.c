@@ -47,7 +47,7 @@ START_TEST (sync_setup_connect)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = osync_engine_new(group, NULL);
-	osync_engine_set_memberstatus_callback(engine, member_status);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	
 	osync_engine_init(engine, NULL);
 	synchronize_once(engine);
@@ -70,7 +70,7 @@ START_TEST (sync_init_error)
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(error == NULL, NULL);
-	osync_engine_set_memberstatus_callback(engine, member_status);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
 	mark_point();
 	osync_engine_init(engine, &error);
 

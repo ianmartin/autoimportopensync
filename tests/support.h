@@ -6,19 +6,27 @@
 
 char *setup_testbed(char *fkt_name);
 void destroy_testbed(char *path);
+
 int num_conflicts;
 int num_written;
 int num_read;
 int num_connected;
 int num_disconnected;
 
+int num_member_connect_errors;
+
+int num_engine_errors;
 
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
+
 void entry_status(OSyncEngine *engine, MSyncChangeUpdate *status, void *user_data);
-void member_status(MSyncMemberUpdate *status);
+void member_status(MSyncMemberUpdate *status, void *user_data);
+void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data);
+void mapping_status(MSyncMappingUpdate *status, void *user_data);
+
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void synchronize_once(OSyncEngine *engine);
 void create_case(Suite *s, const char *name, void (*function)(void));

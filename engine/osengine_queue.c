@@ -86,7 +86,9 @@ gboolean timeoutfunc(gpointer data)
 {
 	timeout_info *to_info = data;
 	ITMessage *reply = itm_message_new_errorreply(to_info->replysender, to_info->message);
-	itm_message_set_error(reply, "TIMEOUT", 0);
+	OSyncError *error = NULL;
+	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message);
+	itm_message_set_error(reply, &error);
 	itm_message_send_reply(reply);
 	return FALSE;
 }

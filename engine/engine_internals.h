@@ -53,10 +53,12 @@ struct OSyncEngine {
 	void *conflict_userdata;
 	void (* changestat_callback) (OSyncEngine *, MSyncChangeUpdate *, void *);
 	void *changestat_userdata;
-	void (* mebstat_callback) (MSyncMemberUpdate *);
+	void (* mebstat_callback) (MSyncMemberUpdate *, void *);
+	void *mebstat_userdata;
 	void (* engstat_callback) (OSyncEngine *, OSyncEngineUpdate *, void *);
 	void *engstat_userdata;
-	void (* mapstat_callback) (MSyncMappingUpdate *);
+	void (* mapstat_callback) (MSyncMappingUpdate *, void *);
+	void *mapstat_userdata;
 	void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
 	void *plgmsg_userdata;
 	/** A list of connected clients **/
@@ -89,6 +91,8 @@ struct OSyncEngine {
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
 	OSyncMappingTable *maptable;
+	
+	OSyncError *error;
 };
 
 typedef struct MSyncMappingFlags {

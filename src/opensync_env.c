@@ -95,12 +95,14 @@ osync_bool osync_env_initialize(OSyncEnv *env, OSyncError **error)
 		return FALSE;
 
 	//Load groups
-	if (!g_file_test(env->configdir, G_FILE_TEST_EXISTS)) {
-		mkdir(env->configdir, 0700);
-		osync_debug("OSGRP", 3, "Created groups configdir %s\n", env->configdir);
+	if (env->configdir) {
+		if (!g_file_test(env->configdir, G_FILE_TEST_EXISTS)) {
+			mkdir(env->configdir, 0700);
+			osync_debug("OSGRP", 3, "Created groups configdir %s\n", env->configdir);
+		}
+		if (!osync_env_load_groups(env, env->configdir, error))
+			return FALSE;
 	}
-	if (!osync_env_load_groups(env, env->configdir, error))
-		return FALSE;
 
 	env->is_initialized = TRUE;
 	return TRUE;
