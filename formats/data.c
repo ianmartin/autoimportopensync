@@ -21,6 +21,7 @@
 #include <opensync/opensync.h>
 #include <string.h>
 #include <stdlib.h>
+#include <glib.h>
 
 /** @defgroup data_plain data/plain format
  *
