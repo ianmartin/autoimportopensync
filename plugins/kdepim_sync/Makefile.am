@@ -15,6 +15,11 @@ kdepimlib_LTLIBRARIES = kdepim_impl.la
 # format_LTLIBRARIES = kcal_format.la
 
 
+EXTRA_DIST = \
+			src/kaddrbook.h \
+			src/kcal.h \
+			src/osyncbase.h
+
 # kcal_format_la_SOURCES = src/kcal_format.cpp
 # kcal_format_la_LDFLAGS = -avoid-version -export-dynamic -module
 # kcal_format_la_LIBADD = $(KDE_RPATH) $(LIB_KABC)
