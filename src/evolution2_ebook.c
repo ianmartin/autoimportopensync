@@ -62,6 +62,9 @@ osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
 		return FALSE;
 	}
 	
+	if (!osync_anchor_compare(env->member, "contact", env->addressbook_path))
+		osync_member_set_slow_sync(env->member, "contact", TRUE);
+	
 	osync_trace(TRACE_EXIT, "EVO2-SYNC: %s", __func__);
 	return TRUE;
 }
@@ -139,12 +142,8 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 	EContact *contact = NULL;
 	GError *gerror = NULL;
 	
-	osync_trace(TRACE_INTERNAL, "Trying to commit %s with changtype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
-	osync_trace(TRACE_INTERNAL, "VCARD is:\n%s", osync_change_get_data(change));
-	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
-			printf("trying to delete contact\n");
 			if (!e_book_remove_contact(env->addressbook, uid, NULL)) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete contact");
 				osync_trace(TRACE_EXIT_ERROR, "%s: unable to delete contact", __func__);
@@ -153,7 +152,6 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			break;
 		case CHANGE_ADDED:
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
-			printf("trying to add contact %p\n", contact);
 			e_contact_set(contact, E_CONTACT_UID, NULL);
 			if (e_book_add_contact(env->addressbook, contact, &gerror)) {
 				uid = e_contact_get_const(contact, E_CONTACT_UID);
@@ -168,11 +166,9 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
 			e_contact_set(contact, E_CONTACT_UID, g_strdup(osync_change_get_uid(change)));
-			printf("trying to mod contact %p\n", contact);
 			e_contact_set(contact, E_CONTACT_UID, uid);
 			if (e_book_commit_contact(env->addressbook, contact, &gerror)) {
 				uid = e_contact_get_const (contact, E_CONTACT_UID);
-				printf("new uid after modding %s\n", uid);
 				if (uid)
 					osync_change_set_uid(change, uid);
 			} else {
@@ -192,7 +188,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 void evo2_addrbook_setup(OSyncPluginInfo *info)
 {
 	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "vcard30", "evolution");
+	osync_plugin_accept_objformat(info, "contact", "vcard30", NULL);
 	osync_plugin_set_commit_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
 	osync_plugin_set_access_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
 }
