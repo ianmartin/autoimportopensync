@@ -755,6 +755,51 @@ START_TEST (get_changes_timeout_and_error)
 }
 END_TEST
 
+START_TEST (get_changes_timeout_sleep)
+{
+	char *testbed = setup_testbed("multisync_conflict_data_choose2");
+	
+	g_setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
+	
+	OSyncEnv *osync = osync_env_new();
+	osync_env_set_configdir(osync, NULL);
+	osync_env_initialize(osync, NULL);
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osync_engine_new(group, &error);
+	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
+	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
+	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osync_engine_init(engine, &error);
+	
+	fail_unless(!osync_engine_sync_and_block(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	mark_point();
+	osync_error_free(&error);
+	mark_point();
+	osync_engine_finalize(engine);
+	mark_point();
+	osync_engine_free(engine);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_sent_changes == 0, NULL);
+	fail_unless(num_read == 0, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Error Codes");
@@ -777,6 +822,7 @@ Suite *multisync_suite(void)
 	create_case(s, "one_of_three_get_changes_error", one_of_three_get_changes_error);
 	create_case(s, "one_of_three_get_changes_timeout", one_of_three_get_changes_timeout);
 	create_case(s, "get_changes_timeout_and_error", get_changes_timeout_and_error);
+	create_case(s, "get_changes_timeout_sleep", get_changes_timeout_sleep);
 	
 	return s;
 }

@@ -239,6 +239,16 @@ void itm_message_send_reply(ITMessage *reply)
 	itm_queue_send(reply->replyqueue, reply);
 }
 
+osync_bool itm_message_is_answered(ITMessage *message)
+{
+	return message->is_answered;
+}
+
+void itm_message_set_answered(ITMessage *message)
+{
+	message->is_answered = TRUE;
+}
+
 /*! @brief Sets the data on a message
  * 
  * This function will set data on a message with that given name

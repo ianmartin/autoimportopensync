@@ -87,12 +87,17 @@ void itm_queue_send(ITMQueue *queue, ITMessage *message)
 gboolean timeoutfunc(gpointer data)
 {
 	timeout_info *to_info = data;
+	//FIXME Protect this with a mutex and free stuff!
+	if (itm_message_is_answered(to_info->message))
+		return FALSE;
+	
 	ITMessage *reply = itm_message_new_errorreply(to_info->replysender, to_info->message);
 	osync_debug("ENG", 0, "Timeout while waiting for a reply to message %p:\"%s\". Sending error %p", to_info->message, to_info->message->msgname, reply);
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message->msgname);
 	itm_message_set_error(reply, error);
 	itm_message_send_reply(reply);
+	itm_message_set_answered(to_info->message);
 	return FALSE;
 }
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */

@@ -181,6 +181,8 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	}
 	if (fs_get_error(fsinfo->member, "GET_CHANGES_TIMEOUT"))
 		return;
+	if (fs_get_error(fsinfo->member, "GET_CHANGES_TIMEOUT2"))
+		sleep(10);
 #endif
 	
 	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
@@ -225,6 +227,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, "data");
 	}
 	osync_context_report_success(ctx);
+	
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
@@ -330,7 +333,7 @@ static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 
 static void fs_sync_done(OSyncContext *ctx)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	
 #ifdef ERROR_TEST
@@ -345,12 +348,12 @@ static void fs_sync_done(OSyncContext *ctx)
 	osync_hashtable_forget(fsinfo->hashtable);
 	osync_anchor_update(fsinfo->member, "path", fsinfo->path);
 	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+	osync_debug("FILE-SYNC", 3, "end: %s", __func__);
 }
 
 static void fs_disconnect(OSyncContext *ctx)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	
 #ifdef ERROR_TEST
@@ -365,12 +368,12 @@ static void fs_disconnect(OSyncContext *ctx)
 	g_dir_close(fsinfo->dir);
 	osync_hashtable_close(fsinfo->hashtable);
 	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+	osync_debug("FILE-SYNC", 3, "end: %s", __func__);
 }
 
 static void fs_finalize(void *data)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
+	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)data;
 	osync_hashtable_free(fsinfo->hashtable);
 #ifdef HAVE_FAM

@@ -49,7 +49,7 @@ void _get_changes_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncE
 		osync_status_update_member(engine, sender, MEMBER_GET_CHANGES_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to read from one of the members");
 		osync_flag_unset(sender->fl_sent_changes);
-		osync_flag_set(sender->fl_finished);
+		//osync_flag_set(sender->fl_finished);
 		osync_flag_set(sender->fl_done);
 		/*
 		 * FIXME: For now we want to stop the engine if
@@ -734,10 +734,13 @@ void osync_engine_finalize(OSyncEngine *engine)
 		return;
 	}
 	
-	osync_mappingtable_close(engine->maptable);
-	
 	g_assert(engine);
 	osync_debug("ENG", 3, "finalizing engine %p", engine);
+	
+	if (engine->thread) {
+		g_main_loop_quit(engine->syncloop);
+		g_thread_join(engine->thread);
+	}
 	
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
@@ -745,10 +748,7 @@ void osync_engine_finalize(OSyncEngine *engine)
 		osync_client_finalize(client);
 	}
 	
-	if (engine->thread) {
-		g_main_loop_quit(engine->syncloop);
-		g_thread_join(engine->thread);
-	}
+	osync_mappingtable_close(engine->maptable);
 	
 	itm_queue_flush(engine->incoming);
 	

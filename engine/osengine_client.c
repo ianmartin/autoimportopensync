@@ -83,6 +83,10 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *user_data)
 {
 	ITMessage *orig = (ITMessage *)user_data;
+	
+	if (itm_message_is_answered(orig))
+		return; //FIXME How do we free the change here?
+	
 	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(client, "NEW_CHANGE");
@@ -104,6 +108,10 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError **erro
 	OSyncClient *client = osync_member_get_data(member);
 	ITMessage *reply = NULL;
 
+	//FIXME This has to be protected by a mutex
+	if (itm_message_is_answered(message) == TRUE)
+		return;
+
 	if (!osync_error_is_set(error)) {
 		reply = itm_message_new_methodreply(client, message);
 		osync_debug("CLI", 4, "Member is replying with message %p to message %p:\"%s\" with no error", reply, message, message->msgname);
@@ -115,6 +123,7 @@ void message_callback(OSyncMember *member, ITMessage *message, OSyncError **erro
 	
 	itm_message_move_data(message, reply);
 	itm_message_send_reply(reply);
+	itm_message_set_answered(message);
 }
 
 void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient *client)
@@ -245,10 +254,10 @@ void osync_client_finalize(OSyncClient *client)
 		return;
 	
 	osync_debug("CLI", 3, "Finalizing client");
-	osync_member_finalize(client->member);
-	
 	g_main_loop_quit(client->memberloop);
 	g_thread_join(client->thread);
+	
+	osync_member_finalize(client->member);
 	
 	itm_queue_flush(client->incoming);
 }

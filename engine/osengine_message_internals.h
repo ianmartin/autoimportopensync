@@ -41,6 +41,7 @@ struct ITMessage {
 	gpointer parent;
 	OSyncError *error;
 	timeout_info *to_info;
+	osync_bool is_answered;
 };
 
 /*@}*/
@@ -63,3 +64,5 @@ void itm_message_move_data(ITMessage *source, ITMessage *target);
 const char *itm_message_get_msgname(ITMessage *message);
 gboolean itm_message_is_signal(ITMessage *message, char *msgname);
 void itm_message_reset_timeout(ITMessage *message);
+osync_bool itm_message_is_answered(ITMessage *message);
+void itm_message_set_answered(ITMessage *message);

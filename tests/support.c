@@ -8,6 +8,8 @@ static void reset_env(void)
 	g_unsetenv("CONNECT_TIMEOUT");
 	g_unsetenv("INIT_NULL");
 	g_unsetenv("GET_CHANGES_ERROR");
+	g_unsetenv("GET_CHANGES_TIMEOUT");
+	g_unsetenv("GET_CHANGES_TIMEOUT2");
 }
 
 char *setup_testbed(char *fkt_name)

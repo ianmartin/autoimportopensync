@@ -54,7 +54,7 @@ echo -n "."
 make install > /dev/null || exit 1
 echo "."
 
-cd $TOP_SRCDIR/opensync* || exit 1
+cd $TOP_SRCDIR/opensync-0.?? || exit 1
 
 echo "Running tests now."
 make check || exit 1
