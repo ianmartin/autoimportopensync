@@ -195,6 +195,7 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 				g_free(filename);
 				return FALSE;
 			}
+			/* No break. Continue below */
 		case CHANGE_MODIFIED:
 			if (!osync_file_write(filename, file_info->data, file_info->size)) {
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
