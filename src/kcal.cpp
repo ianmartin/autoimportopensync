@@ -96,8 +96,8 @@ bool KCalDataSource::get_changeinfo(OSyncContext *ctx)
          * the mCalendar private field will be set)
          */
         format.save(&cal, "");
-        QString datastr(format.toString(&cal));
-        const char *data = datastr.local8Bit();
+        QCString datastr = format.toString(&cal).local8Bit();
+        const char *data = datastr;
 
         osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
         OSyncChange *chg = osync_change_new();
@@ -151,6 +151,12 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
              */
             KCal::CalendarLocal cal;
             QString data = QString::fromLocal8Bit(osync_change_get_data(chg), osync_change_get_datasize(chg));
+            /* Ugly workaround to a VCalFormat bug, format.toString()
+             * doesn't work, but if save() or load() is called before
+             * toString(), the segmentation fault will not happen (as
+             * the mCalendar private field will be set)
+             */
+            format.save(&cal, "");
             format.fromString(&cal, data);
 
             /* Add the events from the temporary calendar, setting the UID

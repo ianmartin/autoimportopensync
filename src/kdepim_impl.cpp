@@ -97,9 +97,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
             hashtable = osync_hashtable_new();
             osync_hashtable_load(hashtable, member);
 
-            /*TODO: check if synchronizing Calendar data is desired */
-            //kcal = new KCalDataSource(member, hashtable);
-            kcal = NULL; // disable kcal change reporting, by now
+            kcal = new KCalDataSource(member, hashtable);
         }
         
         virtual ~KdePluginImplementation()
@@ -201,8 +199,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 osync_change_set_uid(chg, uid.local8Bit());
 
                 // Convert the VCARD data into a string
-                QString card = converter.createVCard(*it);
-                const char *data = card.local8Bit();
+                QCString card = converter.createVCard(*it).local8Bit();
+                const char *data = card;
                 //FIXME: deallocate data somewhere
                 osync_change_set_data(chg, strdup(data), strlen(data), 1);
 
@@ -240,8 +238,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
             QString uid = osync_change_get_uid(chg);
             KABC::Addressee a = addressbookptr->findByUid(uid);
             KABC::VCardConverter converter;
-            QString card = converter.createVCard(a);
-            const char *data = card.local8Bit();
+            QCString card = converter.createVCard(a).local8Bit();
+            const char *data = card;
             //FIXME: deallocate data somewhere
             osync_change_set_data(chg, strdup(data), strlen(data), 1);
             osync_context_report_success(ctx);
