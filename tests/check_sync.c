@@ -44,9 +44,8 @@ START_TEST (sync_setup)
 {
   char *testbed = setup_testbed("sync_setup");
   OSyncEnv *osync = osync_env_new();
+  osync_env_set_configdir(osync, "configs");
   osync_env_initialize(osync, NULL);
-  OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
-  fail_unless(group != NULL, NULL);
   fail_unless(osync_env_num_groups(osync) == 1, NULL);
   destroy_testbed(testbed);
 }
