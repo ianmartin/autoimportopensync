@@ -381,4 +381,19 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
 	osync_trace(TRACE_EXIT, "osengine_mapping_solve");
 }
 
+void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, change);
+	OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, change, NULL);
+	mapping->master = entry;
+	
+	osync_flag_set(entry->fl_dirty);
+	osync_flag_unset(entry->fl_synced);
+	send_mappingentry_changed(engine, entry);
+	
+	osync_flag_set(mapping->fl_solved);
+	send_mapping_changed(engine, mapping);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 /*@}*/
