@@ -29,6 +29,9 @@ tar zxvf libopensync-0.??.tar.gz > /dev/null || exit 1
 
 cd libopensync-0.??
 
+echo -n "Checking if configure is working"
+./configure --enable-tests=no > /dev/null || exit 1
+./configure --enable-tests=yes > /dev/null || exit 1
 echo -n "Making OpenSync"
 ./autogen.sh --prefix=$TOP_SRCDIR/_inst > /dev/null || exit 1
 echo -n "."
