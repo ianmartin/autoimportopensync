@@ -10,6 +10,11 @@ PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
+## Defaults ##
+CRASH_TEST=no
+STRESS_TEST=no
+ERROR_TEST=no
+
 AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
@@ -26,9 +31,21 @@ AC_SUBST(OPENSYNC_PLUGINDIR)
 OPENSYNC_FORMATSDIR=${libdir}/opensync/formats
 AC_SUBST(OPENSYNC_FORMATSDIR)
 
-AC_ARG_ENABLE(stress-test,               [  --enable-stress-test     enable support for stress testing],STRESS_TEST=1,STRESS_TEST=0)
-if test "x${STRESS_TEST}" = "x1"; then
+AC_ARG_ENABLE(stress-tests,               [  --enable-stress-tests     enable support for stress testing],STRESS_TEST=$enableval)
+echo "blub"
+echo $STRESS_TEST
+if test "x${STRESS_TEST}" = "xyes"; then
 	AC_DEFINE(STRESS_TEST,1,[Stress Testing])
+fi
+
+AC_ARG_ENABLE(crash-tests,               [  --enable-crash-tests     enable support for crash testing],CRASH_TEST=$enableval)
+if test "x${CRASH_TEST}" = "xyes"; then
+	AC_DEFINE(CRASH_TEST,1,[Crash Testing])
+fi
+
+AC_ARG_ENABLE(error-tests,               [  --enable-error-tests     enable support for error testing],ERROR_TEST=$enableval)
+if test "x${ERROR_TEST}" = "xyes"; then
+	AC_DEFINE(ERROR_TEST,1,[Error Testing])
 fi
 
 AC_CHECK_HEADER(fam.h,HAVE_FAM=1,HAVE_FAM=0)
@@ -52,13 +69,24 @@ if test "x${HAVE_FAM}" = "x1"; then
 else
 	echo "FAM not available."
 	echo "No sync alerts are supported."
-	echo "To enable sync alert you must"
+	echo "To enable sync alerts you must"
 	echo "have libfam-dev installed."
 fi
 echo ""
-if test "x${STRESS_TEST}" = "x1"; then
-	echo "Stress Tests are enabled."
+echo "Settings:"
+if test "x${STRESS_TEST}" = "xyes"; then
+	echo "Stress Tests:		Enabled."
 else
-	echo "Stress Tests are disabled."
+	echo "Stress Tests:		Disabled."
+fi
+if test "x${ERROR_TEST}" = "xyes"; then
+	echo "Error Tests:		Enabled."
+else
+	echo "Error Tests:		Disabled."
+fi
+if test "x${CRASH_TEST}" = "xyes"; then
+	echo "Crash Tests:		Enabled."
+else
+	echo "Crash Tests:		Disabled."
 fi
 echo "================"
