@@ -214,3 +214,8 @@ void osync_mapping_set_id(OSyncMapping *mapping, long long int id)
 {
 	mapping->id = id;
 }
+
+void osync_mappingtable_set_slow_sync(OSyncMappingTable *table, const char *objtype)
+{
+	osync_db_reset_mappingtable(table, objtype);
+}

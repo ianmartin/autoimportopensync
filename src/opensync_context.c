@@ -59,6 +59,11 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	OSyncMember *member = context->member;
 	g_assert(member);
 	
+	osync_assert(change->uid, "You forgot to set a uid on the change you reported!");
+	osync_assert(change->data || change->changetype == CHANGE_DELETED, "You need to report some data unless you report CHANGE_DELETED");
+	osync_assert((!(change->data) && change->size == 0) || (change->data && change->size != 0), "No data and datasize was not 0!");
+	osync_assert((!change->data && change->changetype == CHANGE_DELETED) || (change->data && change->changetype != CHANGE_DELETED), "You cannot report data if you report CHANGE_DELETED. Just report the uid");
+	
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;
 	

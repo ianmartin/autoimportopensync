@@ -100,6 +100,7 @@ static void fs_connect(OSyncContext *ctx)
 	} else {
 		osync_context_report_success(ctx);
 	}
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
 static char *fs_generate_hash(fs_fileinfo *info)
@@ -151,6 +152,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 		osync_hashtable_report_deleted(fsinfo->hashtable, ctx);
 	}
 	osync_context_report_success(ctx);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
 static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
@@ -165,6 +167,7 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 	g_free(filename);
 	
 	osync_context_report_success(ctx);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
 static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
@@ -207,6 +210,7 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 	}
 	osync_context_report_success(ctx);
 	g_free(filename);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 	return TRUE;
 }
 
@@ -219,6 +223,7 @@ static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	osync_hashtable_update_hash(fsinfo->hashtable, change);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 	return TRUE;
 }
 
@@ -229,6 +234,7 @@ static void fs_sync_done(OSyncContext *ctx)
 	osync_hashtable_forget(fsinfo->hashtable);
 	osync_anchor_update(fsinfo->member, "path", fsinfo->path);
 	osync_context_report_success(ctx);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
 static void fs_disconnect(OSyncContext *ctx)
@@ -238,6 +244,7 @@ static void fs_disconnect(OSyncContext *ctx)
 	g_dir_close(fsinfo->dir);
 	osync_hashtable_close(fsinfo->hashtable);
 	osync_context_report_success(ctx);
+	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
 static void fs_finalize(void *data)

@@ -249,15 +249,15 @@ void osync_conv_set_common_format(OSyncFormatEnv *env, const char *objtypestr, c
 	type->common_format = format;
 }
 
-void osync_conv_duplicate_change(OSyncChange *change)
+osync_bool osync_conv_duplicate_change(OSyncChange *change)
 {
 	GList *l = g_list_last(change->objformats);
 	OSyncObjFormat *format = l->data;
+	printf("Duplicating change %s with format %s\n", change->uid, format->name);
 	if (!format || !format->duplicate_func)
-			return;
-	//do {
-		format->duplicate_func(change);
-	//} while (!osync_member_uid_is_unique(change->member, change->uid));
+		return FALSE;
+	format->duplicate_func(change);
+	return TRUE;
 }
 
 char *osync_conv_objtype_get_name(OSyncObjType *type)

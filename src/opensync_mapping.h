@@ -41,3 +41,4 @@ void osync_mapping_remove_entry(OSyncMapping *mapping, OSyncChange *entry);
 void osync_mappingtable_free(OSyncMappingTable *table);
 void osync_mapping_free(OSyncMapping *mapping);
 void osync_mapping_add_entry(OSyncMapping *mapping, OSyncChange *entry);
+void osync_mappingtable_set_slow_sync(OSyncMappingTable *table, const char *objtype);

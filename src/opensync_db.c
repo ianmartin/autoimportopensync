@@ -138,6 +138,21 @@ void osync_db_close_mappingtable(OSyncMappingTable *table)
 	osync_db_close(table->entrytable);
 }
 
+void osync_db_reset_mappingtable(OSyncMappingTable *table, const char *objtype)
+{
+	sqlite3 *sdb = table->entrytable->db;
+	char *query = NULL;
+	if (osync_conv_objtype_is_any(objtype)) {
+		query = g_strdup_printf("DELETE FROM tbl_changes");
+	} else {
+		query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s'", objtype);
+	}
+	printf("+++reseting mappintable %s\n", query);
+	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
+		osync_debug("OSDB", 1, "Unable to reset mappingtable! %s", sqlite3_errmsg(sdb));
+	g_free(query);
+}
+
 OSyncDB *osync_db_open_anchor(OSyncMember *member)
 {
 	g_assert(member);
@@ -267,7 +282,13 @@ void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
 void osync_db_reset_hash(OSyncHashTable *table, const char *objtype)
 {
 	sqlite3 *sdb = table->dbhandle->db;
-	char *query = g_strdup_printf("DELETE FROM tbl_hash WHERE objtype='%s'", objtype);
+	char *query = NULL;
+	if (osync_conv_objtype_is_any(objtype)) {
+		query = g_strdup_printf("DELETE FROM tbl_hash");
+	} else {
+		query = g_strdup_printf("DELETE FROM tbl_hash WHERE objtype='%s'", objtype);
+	}
+	printf("+++reseting hashtable %s\n", query);
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable to reset hash! %s", sqlite3_errmsg(sdb));
 	g_free(query);

@@ -10,6 +10,7 @@ int osync_db_count(OSyncDB *db, char *table);
 
 void osync_db_open_mappingtable(OSyncMappingTable *table);
 void osync_db_close_mappingtable(OSyncMappingTable *table);
+void osync_db_reset_mappingtable(OSyncMappingTable *table, const char *objtype);
 
 void osync_db_delete_change(OSyncMappingTable *table, OSyncChange *change);
 void osync_db_save_change(OSyncMappingTable *table, OSyncChange *change);

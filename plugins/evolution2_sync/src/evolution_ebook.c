@@ -45,6 +45,9 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 	EBookChange *ebc = NULL;
 	EVCard vcard;
 	GList *l = NULL;
+	char *data = NULL;
+	char *uid = NULL;
+	int datasize = 0;
 	
 	if (osync_member_get_slow_sync(env->member, "contact") == FALSE) {
 		osync_debug("EVO2-SYNC", 4, "No slow_sync for contact");
@@ -55,18 +58,26 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 		
 		for (l = changes; l; l = l->next) {
 			ebc = (EBookChange *)l->data;
-			vcard = ebc->contact->parent;
-			char *data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
-			char *uid = e_contact_get_const(ebc->contact, E_CONTACT_UID);
-			int datasize = strlen(data) + 1;
+			uid = g_strdup(e_contact_get_const(ebc->contact, E_CONTACT_UID));
+			e_contact_set(ebc->contact, E_CONTACT_UID, NULL);
 			switch (ebc->change_type) {
 				case E_BOOK_CHANGE_CARD_ADDED:
+					vcard = ebc->contact->parent;
+					data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
+					datasize = strlen(data) + 1;
 					evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_ADDED);
+					break;
 				case E_BOOK_CHANGE_CARD_MODIFIED:
+					vcard = ebc->contact->parent;
+					data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
+					datasize = strlen(data) + 1;
 					evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_MODIFIED);
+					break;
 				case E_BOOK_CHANGE_CARD_DELETED:
-					evo2_report_change(ctx, "contact", "vcard", data, datasize, uid, CHANGE_DELETED);
+					evo2_report_change(ctx, "contact", "vcard", NULL, 0, uid, CHANGE_DELETED);
+					break;
 			}
+			g_free(uid);
 		}
 	} else {
 		osync_debug("EVO2-SYNC", 4, "slow_sync for contact");
@@ -86,6 +97,7 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 		}
 		e_book_query_unref(query);
 	}
+	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
 }
 
 static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
@@ -121,7 +133,9 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			}
 			break;
 		case CHANGE_MODIFIED:
+			
 			contact = e_contact_new_from_vcard(osync_change_get_data(change));
+			e_contact_set(contact, E_CONTACT_UID, g_strdup(osync_change_get_uid(change)));
 			printf("trying to mod contact %p\n", contact);
 			e_contact_set(contact, E_CONTACT_UID, uid);
 			if (e_book_commit_contact(env->adressbook, contact, NULL)) {
@@ -139,6 +153,7 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 			printf("Error\n");
 	}
 	osync_context_report_success(ctx);
+	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
 	return TRUE;
 }
 

@@ -22,6 +22,7 @@ static OSyncConvCmpResult compare_vcard(OSyncChange *leftchange, OSyncChange *ri
 
 static osync_bool detect_vcard(OSyncFormatEnv *env, const char *data, int size)
 {
+	osync_debug("VCARD", 3, "start: %s", __func__);
 	if (!strncmp(data, "BEGIN:VCARD", 11))
 		return TRUE;
 	return FALSE;
