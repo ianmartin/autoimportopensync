@@ -1,10 +1,16 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = data support.h
-
 AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ -I$(top_srcdir)/osengine
+
+EXTRA_DIST = \
+	data \
+	support.h \
+	mock-plugin/mock_sync.h \
+	mock-plugin/mock_format.c \
+	mock-plugin/mock_sync.c \
+	mock-plugin/Makefile.am
 
 if ENABLE_PROF
 PROFTEST = coverage.sh
