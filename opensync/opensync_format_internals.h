@@ -3,6 +3,7 @@ struct OSyncFormatEnv {
 	GList *objformats;
 	GList *converters;
 	GList *filter_functions;
+	GList *extensions;
 };
 
 struct OSyncObjType {
@@ -18,7 +19,7 @@ struct OSyncObjFormat {
 	char *name;
 	OSyncFormatEnv *env;
 	OSyncObjType *objtype;
-	GList *extensions;
+	//GList *extensions;
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDuplicateFunc duplicate_func;
@@ -33,8 +34,9 @@ struct OSyncFormatConverter {
 	OSyncObjFormat *target_format;
 	OSyncFormatConvertFunc convert_func;
 	OSyncFormatDetectDataFunc detect_func;
+	OSyncFormatConverterInitFunc init_func;
 	ConverterType type;
-	void *conv_data;
+	//void *conv_data;
 };
 
 typedef struct OSyncDataDetector {
@@ -62,9 +64,11 @@ typedef struct OSyncObjTypeSink {
 } OSyncObjTypeSink;
 
 typedef struct OSyncFormatExtension {
-	OSyncObjFormat *format;
+	OSyncObjFormat *from_format;
+	OSyncObjFormat *to_format;
 	char *name;
 	OSyncFormatConvertFunc conv_func;
+	OSyncFormatExtInitFunc init_func;
 } OSyncFormatExtension;
 
 typedef struct OSyncObjTypeTemplate {
@@ -96,10 +100,10 @@ typedef struct OSyncConverterTemplate {
 } OSyncConverterTemplate;
 
 typedef struct OSyncFormatExtensionTemplate {
-	const char *formatname;
+	char *from_formatname;
+	char *to_formatname;
 	char *name;
-	OSyncFormatExtInitFunc init_from_func;
-	OSyncFormatExtInitFunc init_to_func;
+	OSyncFormatExtInitFunc init_func;
 } OSyncFormatExtensionTemplate;
 
 /** A target function for osync_conv_find_path_fn() */
@@ -107,9 +111,10 @@ typedef osync_bool (*OSyncPathTargetFn)(const void *data, OSyncObjFormat *fmt);
 
 osync_bool osync_conv_find_path_fmtlist(OSyncFormatEnv *env, OSyncChange *start, GList/*OSyncObjFormat * */ *targets, GList **retlist);
 
-osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, OSyncError **error);
+osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSyncPathTargetFn target_fn, const void *fndata, const char *extension_name, OSyncError **error);
 osync_bool osync_conv_convert_fmtlist(OSyncFormatEnv *env, OSyncChange *change, GList/*OSyncObjFormat * */ *targets);
 osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *memb, OSyncError **error);
 OSyncDataDetector *osync_env_find_detector(OSyncEnv *env, const char *sourcename, const char *targetname);
 osync_bool osync_conv_objtype_is_any(const char *objstr);
 OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname);
+OSyncFormatExtension *osync_conv_find_extension(OSyncFormatEnv *env, OSyncObjFormat *from_format, OSyncObjFormat *to_format, const char *extension_name);

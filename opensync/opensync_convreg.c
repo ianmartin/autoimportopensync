@@ -106,7 +106,7 @@ OSyncConverterTemplate *osync_env_find_converter_template(OSyncEnv *env, const c
 	return NULL;
 }
 
-OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname)
+/*OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, const char *formatname)
 {
 	GList *i;
 	for (i = env->extension_templates; i; i = i->next) {
@@ -115,7 +115,7 @@ OSyncFormatExtensionTemplate *osync_env_find_extension_template(OSyncEnv *env, c
 			return ext_templ;
 	}
 	return NULL;
-}
+}*/
 
 /*@}*/
 
@@ -183,13 +183,13 @@ void osync_env_converter_set_init(OSyncEnv *env, const char *sourcename, const c
 	converter->init_func = init_func;
 }
 
-void osync_env_register_extension(OSyncEnv *env, const char *objformatname, const char *extension_name, OSyncFormatExtInitFunc init_to_func, OSyncFormatExtInitFunc init_from_func)
+void osync_env_register_extension(OSyncEnv *env, const char *from_format, const char *to_format, const char *extension_name, OSyncFormatExtInitFunc init_func)
 {
 	OSyncFormatExtensionTemplate *ext = g_malloc0(sizeof(OSyncFormatExtensionTemplate));
-	ext->formatname = g_strdup(objformatname);
+	ext->from_formatname = g_strdup(from_format);
+	ext->to_formatname = g_strdup(to_format);
 	ext->name = g_strdup(extension_name);
-	ext->init_to_func = init_to_func;
-	ext->init_from_func = init_from_func;
+	ext->init_func = init_func;
 	
 	env->extension_templates = g_list_append(env->extension_templates, ext);
 }
