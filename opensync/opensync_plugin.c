@@ -276,11 +276,6 @@ OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplat
 
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
 {
-	osync_plugin_set_commit_objformat_to(info, objtypestr, formatstr, commit_change, 60);
-}
-
-void osync_plugin_set_commit_objformat_to(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *), unsigned int timeout)
-{
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
 	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
 	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);

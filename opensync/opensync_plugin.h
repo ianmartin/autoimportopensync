@@ -14,5 +14,4 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncErro
 void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr);
 void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr);
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *));
-void osync_plugin_set_commit_objformat_to(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *), unsigned int timeout);
 void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *));
