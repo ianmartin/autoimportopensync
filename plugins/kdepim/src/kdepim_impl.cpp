@@ -169,7 +169,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
         virtual void connect(OSyncContext *ctx)
         {
             //Lock the addressbook
-            addressbookticket = addressbookptr->requestSaveTicket();
+            //addressbookticket = addressbookptr->requestSaveTicket();
 
 			OSyncError *error = NULL;
 			if (!osync_hashtable_load(hashtable, member, &error))
@@ -184,11 +184,11 @@ class KdePluginImplementation: public KdePluginImplementationBase
 				osync_anchor_update(member, "synced", "true");
 			}
 
-            if (!addressbookticket)
+            /*if (!addressbookticket)
             {
                 osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't lock KDE addressbook");
                 return;
-            }
+            }*/
             osync_debug("kde", 3, "KDE addressbook locked OK.");
 
             if (kcal && !kcal->connect(ctx))
@@ -201,8 +201,22 @@ class KdePluginImplementation: public KdePluginImplementationBase
         virtual void disconnect(OSyncContext *ctx)
         {
             //Unlock the addressbook
-            addressbookptr->save(addressbookticket);
-            addressbookticket = NULL;
+            //addressbookptr->save(addressbookticket);
+            //addressbookticket = NULL;
+
+			KABC::Ticket *ticket = addressbookptr->requestSaveTicket();
+		    if ( !ticket ) {
+		      kdWarning() << "KABCKonnector::writeSyncees(). Couldn't get ticket for "
+		                  << "resource." << endl;
+		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
+		      return;
+		    }
+		
+		    if ( !addressbookptr->save( ticket ) ) {
+		      kdWarning() << "KABCKonnector::writeSyncees(). Couldn't save resource." << endl;
+		      osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
+		      return;
+		    }
 
 			osync_hashtable_close(hashtable);
 
@@ -339,12 +353,12 @@ class KdePluginImplementation: public KdePluginImplementationBase
             QString uid = osync_change_get_uid(chg);
 
             // Ensure we still have a lock on the KDE addressbook (we ought to)
-            if (addressbookticket==NULL)
+            /*if (addressbookticket==NULL)
             {
                 //This should never happen, but just in case....
                 osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Lock on KDE addressbook was lost");
                 return -1;
-            }
+            }*/
 
             KABC::VCardConverter converter;
     
@@ -373,6 +387,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
                     // replace the current addressbook entry (if any) with the new one
                     addressbookptr->insertAddressee(addressee);
+                    
                     osync_change_set_hash(chg, hash);
                     osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit()); 
                     break;
@@ -419,8 +434,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
                     osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
                     return -1;
             }
+            
+        
             //Save the changes without dropping the lock
-            addressbookticket->resource()->save(addressbookticket);
+            //addressbookticket->resource()->save(addressbookticket);
     
             return 0;
         }
