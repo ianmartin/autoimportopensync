@@ -106,8 +106,12 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 		g_free(fsinfo);
 		return NULL;
 	}
-	//FIXME Remove g_strstrip from the next line!
-	fsinfo->path = g_strstrip(g_strdup(configdata));
+	
+	if (!fs_parse_settings(fsinfo, configdata, configsize, error)) {
+		g_free(fsinfo);
+		return NULL;
+	}
+	
 	fsinfo->member = member;
 	fsinfo->hashtable = osync_hashtable_new();
 	g_free(configdata);
@@ -185,40 +189,45 @@ static char *fs_generate_hash(fs_fileinfo *info)
  *            start with a slash. See note above.
  *
  */
-static void fs_report_dir(filesyncinfo *fsinfo, const gchar *subdir, OSyncContext *ctx)
+static void fs_report_dir(filesyncinfo *fsinfo, const char *subdir, OSyncContext *ctx)
 {
-	const gchar *de = NULL;
-	gchar *path = g_strdup_printf("%s%s", fsinfo->path, subdir);
+	osync_trace(TRACE_ENTRY, "fs_report_dir(%p, %s, %p)", fsinfo, subdir, ctx);
+	const char *de = NULL;
+	
+	char *path = g_build_filename(fsinfo->path, subdir, NULL);
+	osync_trace(TRACE_INTERNAL, "path %s", path);
+		
 	GDir *dir;
-	GError *error = NULL;
+	GError *gerror = NULL;
 
-	osync_debug("FILE-SYNC", 4, "fs_report_dir start: [%s] / [%s]", fsinfo->path, subdir);
-
-	dir = g_dir_open(path, 0, &error);
-	if (!dir || error)
+	dir = g_dir_open(path, 0, &gerror);
+	if (!dir) {
 		/*FIXME: Permission errors may make files to be reported as deleted.
 		 * Make fs_report_dir() able to report errors
 		 */
+		osync_trace(TRACE_EXIT_ERROR, "fs_report_dir: Unable to open directory %s: %s", path, gerror ? gerror->message : "None");
 		return;
+	}
 
 	while ((de = g_dir_read_name(dir))) {
-		gchar *filename = g_strdup_printf ("%s/%s", path, de);
-		gchar *relative_filename = g_strdup_printf("%s/%s", subdir, de);
-
-
-		/* Recurse into subdirectories */
-		if (g_file_test(filename, G_FILE_TEST_IS_DIR))
-			fs_report_dir(fsinfo, relative_filename, ctx);
-
-		/* Report normal files */
-		if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-
+		char *filename = g_build_filename(path, de, NULL);
+		char *relative_filename = NULL;
+		if (!subdir)
+			relative_filename = g_strdup(de);
+		else
+			relative_filename = g_build_filename(subdir, de, NULL);
+			
+		osync_trace(TRACE_INTERNAL, "path2 %s %s", filename, relative_filename);
+		
+		if (g_file_test(filename, G_FILE_TEST_IS_DIR)) {
+			/* Recurse into subdirectories */
+			if (fsinfo->recursive)
+				fs_report_dir(fsinfo, relative_filename, ctx);
+		} else if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+			/* Report normal files */
 			OSyncChange *change = osync_change_new();
 			osync_change_set_member(change, fsinfo->member);
-			/* Small trick here: the relative names will always have a '/'
-			 * as the first char, so remove it using relative_filename+1
-			 */
-			osync_change_set_uid(change, relative_filename+1);
+			osync_change_set_uid(change, relative_filename);
 
 			osync_change_set_objformat_string(change, "file");
 			
@@ -242,8 +251,8 @@ static void fs_report_dir(filesyncinfo *fsinfo, const gchar *subdir, OSyncContex
 	}
 	g_dir_close(dir);
 
-	osync_debug("FILE-SYNC", 4, "fs_report_dir end: [%s] / [%s]", fsinfo->path, subdir);
 	g_free(path);
+	osync_trace(TRACE_EXIT, "fs_report_dir");
 }
 
 static void fs_get_changeinfo(OSyncContext *ctx)
@@ -268,7 +277,7 @@ static void fs_get_changeinfo(OSyncContext *ctx)
 	}
 
 	if (fsinfo->dir) {
-		fs_report_dir(fsinfo, "", ctx);
+		fs_report_dir(fsinfo, NULL, ctx);
 		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, "data");
 	}
 	osync_context_report_success(ctx);

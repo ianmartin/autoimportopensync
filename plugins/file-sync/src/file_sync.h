@@ -9,6 +9,9 @@
 #include <string.h>
 #include <config.h>
 
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+
 #ifdef HAVE_FAM
 #include <fam.h>
 #endif
@@ -18,6 +21,7 @@ typedef struct filesyncinfo {
         OSyncMember *member;
         GDir *dir;
         OSyncHashTable *hashtable;
+        osync_bool recursive;
 #ifdef HAVE_FAM
         FAMConnection *famConn;
         FAMRequest *famRequest;
@@ -30,5 +34,7 @@ typedef struct fs_fileinfo {
 	char *data;
 	int size;
 } fs_fileinfo;
+
+osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError **error);
 
 #endif

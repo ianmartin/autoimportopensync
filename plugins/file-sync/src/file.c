@@ -20,7 +20,7 @@
  
 #include <opensync/opensync.h>
 #include <glib.h>
-#include <file_sync.h>
+#include "file_sync.h"
 
 static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rightchange)
 {
