@@ -2,6 +2,8 @@ plugindir=@OPENSYNC_LIBDIR@/plugins
 kdepimlibdir=@OPENSYNC_LIBDIR@/kdepim
 # formatdir=@OPENSYNC_LIBDIR@/formats
 
+#FIXME: set EXTRA_DIST
+
 INCLUDES = $(KDE_INCLUDES) $(QT_INCLUDES)
 
 #FIXME: Is there a KDE macro to set this?
