@@ -69,9 +69,11 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
     calendar = new KCal::CalendarLocal;
     if (!calendar) {
         osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Couldn't allocate calendar object");
+        return false;
     }
     if (!calendar->load(KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics")) {
         osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Couldn't load notes");
+        return false;
     }
 
     return true;
