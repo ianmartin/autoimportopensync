@@ -47,7 +47,7 @@ static osync_bool mock_parse_settings(mock_env *env, char *data, int size, OSync
 		return FALSE;
 	}
 
-	if (xmlStrcmp(cur->name, "config")) {
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
 		xmlFreeDoc(doc);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -57,7 +57,7 @@ static osync_bool mock_parse_settings(mock_env *env, char *data, int size, OSync
 	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		char *str = xmlNodeGetContent(cur);
+		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
 				env->path = g_strdup(str);
