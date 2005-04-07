@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "This unit test will empty all tasks from Kde. Do you want to continue?"
+echo "[y/N]"
+read -n 1 reply
+if [ "$reply" != "y" ]
+then
+        exit 1
+fi
+osyncplugin kdepim --type todo || exit 1

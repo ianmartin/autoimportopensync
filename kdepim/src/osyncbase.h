@@ -16,7 +16,6 @@ class KdePluginImplementationBase {
         virtual void disconnect(OSyncContext *ctx) = 0;
 
         virtual void get_changeinfo(OSyncContext *ctx) = 0;
-        virtual void get_data(OSyncContext *ctx, OSyncChange *chg) = 0;
 
         virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg) = 0;
         virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
@@ -37,26 +36,5 @@ class KdePluginImplementationBase {
 };
 
 typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m, OSyncError **e);
-
-/*TODO: provide base classes like below,
- * for hiding the implementation details of a plugin
- */
-#if 0
-/** Base class to a OpenSync plugin */
-class OSyncPluginBase {
-    public:
-        virtual void connect(OSyncContext *ctx) = 0;
-        void disconnect(OSyncContext *ctx) = 0;
-
-        virtual void get_changes(OSyncContext *ctx) = 0;
-};
-
-/** Base class to OpenSync objtype data sink */
-class OSyncDataSinkBase {
-    public:
-        virtual void access(OSyncContext *ctx, OSyncChange *chg) = 0;
-        virtual void commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
-};
-#endif
 
 #endif // KDEPIM_OSYNC_BASE_H

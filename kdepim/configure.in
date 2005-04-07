@@ -46,7 +46,7 @@ dnl PACKAGE set before
 AC_C_BIGENDIAN
 AC_CHECK_KDEMAXPATHLEN
 
-AC_CONFIG_FILES([ Makefile ])
+AC_CONFIG_FILES([ Makefile tests/Makefile])
 AC_OUTPUT
 
 if test "$all_tests" = "bad"; then

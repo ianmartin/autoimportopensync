@@ -23,7 +23,28 @@ SOFTWARE IS DISCLAIMED.
 #ifndef KADDRBOOK_H
 #define KADDRBOOK_H
 
+#include <kabc/stdaddressbook.h>
+#include <kabc/vcardconverter.h>
+#include <kabc/resource.h>
+
 #include "osyncbase.h"
+
+class KContactDataSource {
+    private:
+		KABC::AddressBook* addressbookptr;
+
+        OSyncHashTable *hashtable;
+        OSyncMember *member;
+    public:
+        KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable);
+
+		QString calc_hash(KABC::Addressee &e);
+        bool connect(OSyncContext *ctx);
+        bool disconnect(OSyncContext *ctx);
+        bool contact_get_changeinfo(OSyncContext *ctx);
+        bool vcard_access(OSyncContext *ctx, OSyncChange *chg);
+		bool connected;
+};
 
 #endif
 

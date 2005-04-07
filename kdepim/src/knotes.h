@@ -1,6 +1,7 @@
 /*********************************************************************** 
 KNotes OSyncDataSource class
 Copyright (C) 2004 Conectiva S. A.
+Copyright (C) 2005 Armin Bauer
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -21,15 +22,34 @@ SOFTWARE IS DISCLAIMED.
 *************************************************************************/
 /**
  * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @autor Armin Bauer <armin.bauer@opensync.org>
  */
 
-extern "C" {
-#include <opensync/opensync.h>
-}
+#include <kglobal.h>
+#include <kstandarddirs.h>
+#include <kio/netaccess.h>
+#include <klocale.h>
+#include <kapplication.h>
+#include <qmap.h>
+#include "KNotesIface.h"
+#include "KNotesIface_stub.h"
+#include <stdio.h>
+#include <qtimer.h>
+#include <dcopclient.h>
+#include <qstring.h>
+#include <qstringlist.h>
 
-// Forward declaration
-namespace KCal {
-    class CalendarLocal;
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+typedef QString KNoteID_t;
+
+extern "C"
+{
+#include <opensync/opensync.h>
+#include <opensync/opensync-xml.h>
 }
 
 /** KNotes access implementation interface
@@ -39,8 +59,10 @@ class KNotesDataSource
     private:
         OSyncMember *member;
         OSyncHashTable *hashtable;
-        KCal::CalendarLocal *calendar;
-
+        
+		DCOPClient *kn_dcop;
+		KNotesIface_stub *kn_iface;
+		
         /** Ugly hack to restart KNotes if it
          * was running
          */
@@ -92,6 +114,6 @@ class KNotesDataSource
          * On success, returns true, after calling osync_context_report_success()
          * On error, returns false, after calling osync_context_report_error()
          */
-         bool commit_change(OSyncContext *ctx, OSyncChange *chg);
-
+        bool commit_change(OSyncContext *ctx, OSyncChange *chg);
+		bool connected;
 };

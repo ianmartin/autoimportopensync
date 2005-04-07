@@ -102,14 +102,6 @@ static void kde_get_changeinfo(OSyncContext *ctx)
     impl_object->get_changeinfo(ctx);
 }
 
-static void kde_get_data(OSyncContext *ctx, OSyncChange *chg)
-{
-    KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-    osync_debug("kde", 3, "%s",__FUNCTION__);
-
-    impl_object->get_data(ctx, chg);
-}
-
 static osync_bool kde_vcard_commit_change(OSyncContext *ctx, OSyncChange *change)
 {
     KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
@@ -196,12 +188,14 @@ void get_info(OSyncPluginInfo *info)
     info->functions.disconnect = kde_disconnect;
     info->functions.finalize = kde_finalize;
     info->functions.get_changeinfo = kde_get_changeinfo;
-    info->functions.get_data = kde_get_data;
 
     osync_plugin_accept_objtype(info, "contact");
     osync_plugin_accept_objformat(info, "contact", "vcard30", "kde");
     osync_plugin_set_commit_objformat(info, "contact", "vcard30", kde_vcard_commit_change);
     osync_plugin_set_access_objformat(info, "contact", "vcard30", kde_vcard_access);
+	osync_plugin_accept_objformat(info, "contact", "vcard21", "kde");
+    osync_plugin_set_commit_objformat(info, "contact", "vcard21", kde_vcard_commit_change);
+    osync_plugin_set_access_objformat(info, "contact", "vcard21", kde_vcard_access);
 
     osync_plugin_accept_objtype(info, "event");
     osync_plugin_accept_objformat(info, "event", "vevent20", "kde");
