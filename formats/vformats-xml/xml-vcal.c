@@ -1175,8 +1175,8 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	
 	OSyncXMLScore score[] =
 	{
-	{100, "/vcal/Event/StartTime"},
-	{100, "/vcal/Event/EndTime"},
+	{10, "/vcal/Event/StartTime"},
+	{10, "/vcal/Event/EndTime"},
 	{100, "/vcal/Event/Summary"},
 	{0, "/vcal/Event/Uid"},
 	{0, "/vcal/Event/Revision"},
@@ -1185,10 +1185,13 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{0, "/vcal/Event/DateCreated"},
 	{0, "/vcal/Event/LastModified"},
 	{0, "/vcal/Event/Sequence"},
+	{0, "/vcal/Event/Class[Content = \"PUBLIC\"]"},
+	{0, "/vcal/Event/Priority[Content = 3]"},
+	{0, "/vcal/Event/Transparency[Content = \"OPAQUE\"]"},
 	{0, NULL}
 	};
 	
-	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 0, 299);
+	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 0, 99);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -1208,6 +1211,9 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/DateCreated"},
 	{0, "/vcal/Todo/LastModified"},
 	{0, "/vcal/Todo/Sequence"},
+	{0, "/vcal/Todo/Class[Content = \"PUBLIC\"]"},
+	{0, "/vcal/Todo/Priority[Content = 3]"},
+	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
 	{0, NULL}
 	};
 	

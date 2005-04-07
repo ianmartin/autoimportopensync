@@ -3,7 +3,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 AM_CFLAGS = -Wall -Werror @XML_CFLAGS@
 AM_LDFLAGS = -rpath @libdir@
 
-EXTRA_DIST = mock_sync.h
+EXTRA_DIST = mock_sync.h Makefile.in
 
 if ENABLE_TESTS
 noinst_LTLIBRARIES = mock_sync.la mockformat.la

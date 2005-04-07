@@ -15,8 +15,8 @@ PROFTEST = coverage.sh
 endif
 
 if ENABLE_TESTS
-TESTS = error user member plugin locks env conv sync filter multisync vcard vcal errorcodes $(PROFTEST)
-noinst_PROGRAMS = error user member plugin locks env conv sync filter multisync vcard vcal errorcodes
+TESTS = error user member plugin locks env conv sync filter multisync vcard vcal vnote errorcodes $(PROFTEST)
+noinst_PROGRAMS = error user member plugin locks env conv sync filter multisync vcard vcal vnote errorcodes
 else
 TESTS = 
 noinst_PROGRAMS = 
@@ -82,6 +82,11 @@ vcal_INCLUDES = @CHECK_CFLAGS@
 vcal_SOURCES = check_vcal.c support.c
 vcal_LIBS = @CHECK_LIBS@
 vcal_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+vnote_INCLUDES = @CHECK_CFLAGS@
+vnote_SOURCES = check_vnote.c support.c
+vnote_LIBS = @CHECK_LIBS@
+vnote_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
 
 errorcodes_INCLUDES = @CHECK_CFLAGS@
 errorcodes_SOURCES = check_codes.c support.c
