@@ -31,16 +31,17 @@ kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 # ugly hack to make the c++ library work
 kdepim_sync_la_LIBADD = -lstdc++ -L@OPENSYNC_LIBDIR@
 
-kdepim_lib_la_SOURCES = \
-	src/KNotesIface_stub.cpp \
+dist_kdepim_lib_la_SOURCES = \
 	src/kdepim_impl.cpp \
 	src/kcal.cpp \
+	src/KNotesIface_stub.h \
 	src/knotes.cpp \
 	src/kaddrbook.cpp
+nodist_kdepim_lib_la_SOURCES = src/KNotesIface_stub.h src/KNotesIface_stub.cpp
 kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall -Werror
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
 kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync-xml
 
-src/KNotesIface_stub.cpp:
+src/KNotesIface_stub.h:
 	dcopidl src/KNotesIface.h > src/KNotesIface.kidl
 	dcopidl2cpp src/KNotesIface.kidl
