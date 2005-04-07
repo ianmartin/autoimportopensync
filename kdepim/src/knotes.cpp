@@ -150,7 +150,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 		QString hash = NULL;
         // Create osxml doc containing the note
         xmlDoc *doc = xmlNewDoc((const xmlChar*)"1.0");
-        xmlNode *root = osxml_node_add_root(doc, "note");
+        xmlNode *root = osxml_node_add_root(doc, "Note");
 
         OSyncXMLEncoding enc;
         enc.encoding = OSXML_8BIT;
