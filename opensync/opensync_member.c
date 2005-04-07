@@ -825,14 +825,25 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
  */
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled)
 {
-	if (osync_conv_objtype_is_any(objtypestr))
-		g_assert_not_reached();
-	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtypestr, enabled);
+	OSyncObjTypeSink *sink = NULL;
 	g_assert(member);
-	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
-	g_assert(sink);
 	
-	sink->enabled = enabled;
+	if (osync_conv_objtype_is_any(objtypestr)) {
+		GList *o = NULL;
+		for (o = member->objtype_sinks; o; o = o->next) {
+			OSyncObjTypeSink *sink = o->data;
+			sink->enabled = enabled;
+		}
+	} else {
+		sink = osync_member_find_objtype_sink(member, objtypestr);
+		if (!sink) {
+			osync_trace(TRACE_EXIT_ERROR, "Unable to find sink with name \"%s\"", objtypestr);
+			return;
+		}
+		sink->enabled = enabled;
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*@}*/

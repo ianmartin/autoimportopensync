@@ -9,6 +9,13 @@
 GMutex *working;
 GMutex *working2;
 GList *changes;
+GList *tests;
+osync_bool alwaysempty;
+	
+typedef struct OSyncPluginTest {
+	char *name;
+	void (*test)(OSyncMember *, const char *);
+} OSyncPluginTest;
 
 static void usage (char *name, int ecode)
 {
@@ -236,32 +243,66 @@ static void empty_all(OSyncMember *member)
 	connect(member);
 	GList *chg = get_changes(member);
 	GList *i = NULL;
+	int num_del = 0;
 	for (i = chg; i; i = i->next) {
 		OSyncChange *change = i->data;
 		delete_data(member, change);
+		num_del++;
 	}
 	disconnect(member);
 	
-	connect(member);
-	get_changes(member);
-	disconnect(member);
+	if (!alwaysempty) {
+		connect(member);
+		chg = get_changes(member);
+		g_assert(g_list_length(chg) == num_del);
+		disconnect(member);
+		
+		connect(member);
+		chg = get_changes(member);
+		g_assert(g_list_length(chg) == 0);
+		disconnect(member);
+	}
 }
 
-static void run_tests(OSyncMember *member, const char *objtype)
+static void run_all_tests(OSyncMember *member, const char *objtype)
 {
-	printf("Emptying...\n");
 	empty_all(member);
-	
-	printf("\nStarting tests...\n");
-	printf("Add test 1...\n");
-	add_test1(member, objtype);
-	printf("\nAdd test 2...\n");
-	add_test2(member, objtype);
-	printf("\nModify test 1...\n");
-	modify_test1(member, objtype);
-	
-	printf("\nDone testing!\n");
+	GList *t;
+	for (t = tests; t; t = t->next) {
+		OSyncPluginTest *test = t->data;
+		test->test(member, objtype);
+	}
 }
+
+static void run_test(const char *name, OSyncMember *member, const char *objtype)
+{
+	empty_all(member);
+	GList *t;
+	for (t = tests; t; t = t->next) {
+		OSyncPluginTest *test = t->data;
+		if (!strcmp(name, test->name))
+			test->test(member, objtype);
+	}
+}
+
+static void register_test(const char *name, void test(OSyncMember *, const char *))
+{
+	OSyncPluginTest *newtest = g_malloc0(sizeof(OSyncPluginTest));
+	newtest->name = g_strdup(name);
+	newtest->test = test;
+	tests = g_list_append(tests, newtest);
+}
+
+static void register_tests(void)
+{
+	tests = NULL;
+	register_test("add_test1", add_test1);
+	register_test("add_test1", add_test1);
+	register_test("add_test2", add_test2);
+	register_test("modify_test1", modify_test1);
+}
+
+
 
 int main (int argc, char *argv[])
 {
@@ -269,7 +310,10 @@ int main (int argc, char *argv[])
 	char *pluginname = NULL;
 	char *configfile = NULL;
 	char *objtype = NULL;
+	char *testname = NULL;
 	OSyncError *error = NULL;
+	alwaysempty = FALSE;
+	
 	if (argc < 2)
 		usage (argv[0], 1);
 
@@ -288,12 +332,12 @@ int main (int argc, char *argv[])
 				usage (argv[0], 1);
 		} else if (!strcmp (arg, "--help")) {
 			usage (argv[0], 0);
-		} else if (!strcmp (arg, "--")) {
-			break;
-		} else if (arg[0] == '-') {
-			usage (argv[0], 1);
+		} else if (!strcmp (arg, "--alwaysempty")) {
+			alwaysempty = TRUE;
 		} else {
-			usage (argv[0], 1);
+			if (testname)
+				usage (argv[0], 1);
+			testname = argv[i + 1];
 		}
 	}
 	
@@ -325,6 +369,7 @@ int main (int argc, char *argv[])
 	
 	if (configfile)
 		osync_member_set_config(member, config, size);
+	
 	osync_member_set_pluginname(member, pluginname);
 	osync_member_set_configdir(member, testdir);
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);
@@ -335,11 +380,21 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	
+	if (objtype) {
+		osync_member_set_objtype_enabled(member, "data", FALSE);
+		osync_member_set_objtype_enabled(member, objtype, TRUE);
+	}
+	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	working = g_mutex_new();
 	working2 = g_mutex_new();
 	
-	run_tests(member, objtype);
+	register_tests();
+	
+	if (testname)
+		run_test(testname, member, objtype);
+	else
+		run_all_tests(member, objtype);
 	
 	osync_member_finalize(member);
 	
