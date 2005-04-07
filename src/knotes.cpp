@@ -81,19 +81,16 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	
 	// FIXME: ugly, but necessary
-	system("dcop knotes MainApplication-Interface quit");
-	if (knotesWasRunning) {
-		//start knotes
-		system("knotes");
-		system("dcop knotes KNotesIface hideAllNotes");
+	if (!knotesWasRunning) {
+		system("dcop knotes MainApplication-Interface quit");
 	}
 	
 	//detach dcop
-	if (!kn_dcop->detach()) {
+	/*if (!kn_dcop->detach()) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to detach dcop for knotes");
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to detach dcop for knotes", __func__);
 		return FALSE;
-	}
+	}*/
 	//destroy dcop
 	delete kn_iface;
 	kn_iface = NULL;
