@@ -1,0 +1,3 @@
+#!/bin/bash
+
+osyncplugin kdepim --type contact || exit 1

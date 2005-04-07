@@ -193,6 +193,9 @@ void get_info(OSyncPluginInfo *info)
     osync_plugin_accept_objformat(info, "contact", "vcard30", "kde");
     osync_plugin_set_commit_objformat(info, "contact", "vcard30", kde_vcard_commit_change);
     osync_plugin_set_access_objformat(info, "contact", "vcard30", kde_vcard_access);
+	osync_plugin_accept_objformat(info, "contact", "vcard21", "kde");
+    osync_plugin_set_commit_objformat(info, "contact", "vcard21", kde_vcard_commit_change);
+    osync_plugin_set_access_objformat(info, "contact", "vcard21", kde_vcard_access);
 
     osync_plugin_accept_objtype(info, "event");
     osync_plugin_accept_objformat(info, "event", "vevent20", "kde");

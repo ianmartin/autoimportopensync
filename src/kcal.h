@@ -111,4 +111,5 @@ class KCalDataSource
          * On error, returns false, after calling osync_context_report_error()
          */
          bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg);
+		bool connected;
 };

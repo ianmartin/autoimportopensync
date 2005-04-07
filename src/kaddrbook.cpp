@@ -26,10 +26,12 @@ SOFTWARE IS DISCLAIMED.
  */
 
 #include "kaddrbook.h"
+#include <qdeepcopy.h>
 
 KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) 
     : hashtable(hashtable), member(member)
 {
+	connected = false;
 }
 
 /** Calculate the hash value for an Addressee.
@@ -66,6 +68,7 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 		osync_anchor_update(member, "synced", "true");
 	}
 
+	connected = true;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
@@ -87,6 +90,7 @@ bool KContactDataSource::disconnect(OSyncContext *ctx)
 		return FALSE;
 	}
 
+	connected = false;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
@@ -109,7 +113,6 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 	}
 
 	KABC::VCardConverter converter;
-
 	for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
 		QString uid = it->uid();
 		
@@ -121,8 +124,10 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 		QString hash = calc_hash(*it);
 			
 		// Convert the VCARD data into a string
-		const char *data = converter.createVCard(*it).utf8();
-		osync_change_set_data(chg, strdup(data), strlen(data) + 1, TRUE);
+		QString tmp = converter.createVCard(*it);
+		char *data = strdup((const char *)tmp.utf8());
+		
+		osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
 		
 		// object type and format
 		osync_change_set_objtype_string(chg, "contact");

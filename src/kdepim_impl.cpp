@@ -83,10 +83,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
             application = new KApplication();
 
 			hashtable = osync_hashtable_new();
-			if (!osync_hashtable_load(hashtable, member, error)) {
-				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-				return false;
-			}
 			
             kcal = new KCalDataSource(member, hashtable);
             knotes = new KNotesDataSource(member, hashtable);
@@ -119,27 +115,52 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
         virtual void connect(OSyncContext *ctx)
         {
-			if (kcal && !kcal->connect(ctx))
+        	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+        	
+        	OSyncError *error = NULL;
+        	if (!osync_hashtable_load(hashtable, member, &error)) {
+				osync_context_report_osyncerror(ctx, &error);
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+				osync_error_free(&error);
 				return;
+			}
 			
-			if (knotes && !knotes->connect(ctx))
+        	
+			if (kcal && \
+			(osync_member_objtype_enabled(member, "todo") || \
+			osync_member_objtype_enabled(member, "event")) && \
+			!kcal->connect(ctx)) {
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open calendar", __func__);
 				return;
+			}
 			
-			if (kaddrbook && !kaddrbook->connect(ctx))
+			if (knotes && \
+			osync_member_objtype_enabled(member, "note") && \
+			!knotes->connect(ctx)) {
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open notes", __func__);
 				return;
+			}
+			
+			if (kaddrbook && \
+			osync_member_objtype_enabled(member, "contact") && \
+			!kaddrbook->connect(ctx)) {
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open addressbook", __func__);
+				return;
+			}
 			
 			osync_context_report_success(ctx);
+            osync_trace(TRACE_EXIT, "%s", __func__);
         }
         
         virtual void disconnect(OSyncContext *ctx)
         {
         	osync_hashtable_close(hashtable);
 
-			if (kcal && !kcal->disconnect(ctx))
+			if (kcal && kcal->connected && !kcal->disconnect(ctx))
 				return;
-			if (knotes && !knotes->disconnect(ctx))
+			if (knotes && knotes->connected && !knotes->disconnect(ctx))
 				return;
-			if (kaddrbook && !kaddrbook->disconnect(ctx))
+			if (kaddrbook && kaddrbook->connected && !kaddrbook->disconnect(ctx))
 				return;
 			
 			osync_context_report_success(ctx);
@@ -147,16 +168,16 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 		virtual void get_changeinfo(OSyncContext *ctx)
 		{
-			if (!kaddrbook && !kaddrbook->contact_get_changeinfo(ctx))
+			if (kaddrbook && kaddrbook->connected && !kaddrbook->contact_get_changeinfo(ctx))
 				return;
 			
-			if (kcal && !kcal->get_changeinfo_events(ctx))
+			if (kcal && kcal->connected && !kcal->get_changeinfo_events(ctx))
 				return;
 			
-			if (kcal && !kcal->get_changeinfo_todos(ctx))
+			if (kcal && kcal->connected && !kcal->get_changeinfo_todos(ctx))
 				return;
 			
-			if (knotes && !knotes->get_changeinfo(ctx))
+			if (knotes && knotes->connected && !knotes->get_changeinfo(ctx))
 				return;
 			
 			osync_context_report_success(ctx);

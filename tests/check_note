@@ -1,0 +1,3 @@
+#!/bin/bash
+
+osyncplugin kdepim --type note || exit 1

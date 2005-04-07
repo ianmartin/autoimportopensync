@@ -35,7 +35,6 @@ class KContactDataSource {
 
         OSyncHashTable *hashtable;
         OSyncMember *member;
-
     public:
         KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable);
 
@@ -44,6 +43,7 @@ class KContactDataSource {
         bool disconnect(OSyncContext *ctx);
         bool contact_get_changeinfo(OSyncContext *ctx);
         bool vcard_access(OSyncContext *ctx, OSyncChange *chg);
+		bool connected;
 };
 
 #endif

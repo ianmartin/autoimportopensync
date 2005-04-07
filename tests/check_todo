@@ -1,0 +1,3 @@
+#!/bin/bash
+
+osyncplugin kdepim --type todo || exit 1

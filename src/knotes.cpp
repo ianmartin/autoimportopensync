@@ -26,8 +26,6 @@ SOFTWARE IS DISCLAIMED.
  * This module implements the access to the KDE 3.2 Notes, that are
  * stored on KGlobal::dirs()->saveLocation( "data" , "knotes/" ) + "notes.ics"
  *
- * TODO: Check how notes are stored on KDE 3.3/3.4, and use the right interface.
- * (http://www.opensync.org/ticket/34)
  */
 
 
@@ -38,6 +36,7 @@ SOFTWARE IS DISCLAIMED.
 KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
     :member(m), hashtable(h)
 {
+	connected = false;
 }
 
 bool KNotesDataSource::connect(OSyncContext *ctx)
@@ -58,16 +57,21 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 		return FALSE;
 	}
 	
+	QString appId = kn_dcop->registerAs("opensync");
+	
 	//check knotes running
 	QCStringList apps = kn_dcop->registeredApplications();
 	if (!apps.contains("knotes")) {
 		//start knotes if not running
         knotesWasRunning = false;
+        system("knotes");
+		system("dcop knotes KNotesIface hideAllNotes");
 	} else
         knotesWasRunning = true;
 
 	kn_iface = new KNotesIface_stub("knotes", "KNotesIface");
 
+	connected = true;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
 }
@@ -77,8 +81,11 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	
 	// FIXME: ugly, but necessary
-	if (!knotesWasRunning) {
-		//Terminate knotes
+	system("dcop knotes MainApplication-Interface quit");
+	if (knotesWasRunning) {
+		//start knotes
+		system("knotes");
+		system("dcop knotes KNotesIface hideAllNotes");
 	}
 	
 	//detach dcop
@@ -93,6 +100,7 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 	//delete kn_dcop;
 	//kn_dcop = NULL;
 	
+	connected = false;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
 }
@@ -107,13 +115,15 @@ static QString strip_html(QString input)
 		QCharRef cur = input[i];
 		if (cur == '<')
 			inbraces = 1;
-		if (cur == '>')
+		if (cur == '>') {
 			inbraces = 0;
+			continue;
+		}
 		if (!inbraces)
 			output += input[i];
 	}
-	printf("output is %s\n", (const char*)output.local8Bit());
-	return output;
+	printf("output is %s\n", (const char*)output.stripWhiteSpace().local8Bit());
+	return output.stripWhiteSpace();
 }
 
 bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
@@ -259,7 +269,7 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
         }
     } else {
         osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
-		kn_iface->killNote(uid);
+		kn_iface->killNote(uid, true);
 		if (kn_iface->status() != DCOPStub::CallSucceeded) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete note");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);

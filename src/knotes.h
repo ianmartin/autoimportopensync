@@ -114,6 +114,6 @@ class KNotesDataSource
          * On success, returns true, after calling osync_context_report_success()
          * On error, returns false, after calling osync_context_report_error()
          */
-         bool commit_change(OSyncContext *ctx, OSyncChange *chg);
-
+        bool commit_change(OSyncContext *ctx, OSyncChange *chg);
+		bool connected;
 };
