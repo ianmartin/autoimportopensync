@@ -299,7 +299,7 @@ osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **
 		char *filename = NULL;
 		filename = g_strdup_printf ("%s/%s", path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*lib.la", filename) || !g_pattern_match_simple("*.la", filename)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*lib.la", filename) || g_pattern_match_simple("*.la", filename)) {
 			g_free(filename);
 			continue;
 		}

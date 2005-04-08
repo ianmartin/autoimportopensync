@@ -193,7 +193,7 @@ fi
 
 echo ""
 echo "========================================"
-AC_OPENSYNC_ISENABLED([Pythong Bindings], HAVE_PYTHON, 1)
+AC_OPENSYNC_ISENABLED([Python Bindings], HAVE_PYTHON, 1)
 AC_OPENSYNC_ISENABLED([Unit Tests], HAVE_CHECK, 1)
 AC_OPENSYNC_ISENABLED([Debug messages], WITH_DEBUG)
 AC_OPENSYNC_ISENABLED([Tracing], WITH_TRACE)
