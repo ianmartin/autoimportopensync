@@ -252,6 +252,11 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 
 		// If the converter type is a detector we need to know wether the input is correct
 		if (converter->detect_func) {
+			if (!ve->change) {
+				osync_trace(TRACE_INTERNAL,
+						"We would call a converter to %s, but there is no change data on vertice", fmt_target->name);
+				continue;
+			}
 			if (!converter->detect_func(env, ve->change->data, ve->change->size)) {
 				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", converter->source_format->name, converter->target_format->name);
 				continue;
@@ -261,9 +266,14 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 
 		OSyncChange *new_change = NULL;
 		osync_bool free_output = TRUE;
-		if (converter->type == CONVERTER_DECAP)
+		if (converter->type == CONVERTER_DECAP) {
+			if (!ve->change) {
+				osync_trace(TRACE_INTERNAL, "A desencapsulator to %s would be called, but we can't because the data on this vertice wasn't converted", fmt_target->name);
+				continue;
+			}
 			if (!(new_change = osync_converter_invoke_decap(converter, ve->change, &free_output)))
 				continue;
+		}
 
 		/* From this point, we already found an edge (i.e. a converter) that may
 		 * be used
@@ -285,7 +295,7 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 			neigh->free_change = TRUE;
 			neigh->free_change_data = free_output;
 		} else {
-			neigh->change = ve->change;
+			neigh->change = NULL;
 			neigh->free_change = FALSE;
 			neigh->free_change_data = FALSE;
 		}
