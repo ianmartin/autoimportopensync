@@ -119,6 +119,43 @@ static void delete_data(OSyncMember *member, OSyncChange *change)
 	return;
 }
 
+static void multi_init(OSyncMember *member, const char *objtype)
+{
+	printf("initializing multiple times\n");
+	connect(member);
+	disconnect(member);
+	
+	osync_member_finalize(member);
+	
+	OSyncError *error = NULL;
+	if (!osync_member_initialize(member, &error)) {
+		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
+		printf("Unable to initialize\n");
+		exit(1);
+	}
+	
+	if (objtype) {
+		osync_member_set_objtype_enabled(member, "data", FALSE);
+		osync_member_set_objtype_enabled(member, objtype, TRUE);
+	}
+	
+	connect(member);
+	disconnect(member);
+	
+	osync_member_finalize(member);
+	
+	if (!osync_member_initialize(member, &error)) {
+		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
+		printf("Unable to initialize\n");
+		exit(1);
+	}
+	
+	if (objtype) {
+		osync_member_set_objtype_enabled(member, "data", FALSE);
+		osync_member_set_objtype_enabled(member, objtype, TRUE);
+	}
+}
+
 static void add_test1(OSyncMember *member, const char *objtype)
 {
 	connect(member);
@@ -300,6 +337,7 @@ static void register_tests(void)
 	register_test("add_test1", add_test1);
 	register_test("add_test2", add_test2);
 	register_test("modify_test1", modify_test1);
+	register_test("multi_init", multi_init);
 }
 
 
