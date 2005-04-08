@@ -48,7 +48,7 @@ osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError
 		return FALSE;
 	}
 
-	if (xmlStrcmp(cur->name, "config")) {
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
 		xmlFreeDoc(doc);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -58,7 +58,7 @@ osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError
 	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		char *str = xmlNodeGetContent(cur);
+		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
 				env->path = g_strdup(str);
