@@ -1,4 +1,5 @@
 #include "support.h"
+#include <time.h>
 
 static void conv_vcal(const char *filename)
 {
@@ -353,19 +354,22 @@ END_TEST
 
 START_TEST (todo_get_revision1)
 {
-	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full1.vcf") == 1110067010, NULL);
+	struct tm testtm = {50, 56, 0, 6, 3 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full1.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (todo_get_revision2)
 {
-	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full2.vcf") == 1110067010, NULL);
+	struct tm testtm = {50, 56, 0, 6, 3 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full2.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (todo_get_revision3)
 {
-	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full3.vcf") == 1110063600, NULL);
+	struct tm testtm = {0, 0, 0, 6, 3 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcal_get_revision("data/vtodos/evolution2/todo-full3.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 

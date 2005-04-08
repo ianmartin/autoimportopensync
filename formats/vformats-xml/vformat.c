@@ -73,7 +73,7 @@ time_t vformat_time_to_unix(const char *inptime)
 		btime.tm_min = time[2] * 10 + time[3] - '0' * 11;
 		btime.tm_sec = time[4] * 10 + time[5] - '0' * 11;
 	}
-
+	
 	time_t utime = mktime(&btime);
 	return utime;
 }
