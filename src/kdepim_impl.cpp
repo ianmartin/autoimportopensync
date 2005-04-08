@@ -81,7 +81,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
             KCmdLineArgs::init(&aboutData);
             application = new KApplication();
-
+            
 			hashtable = osync_hashtable_new();
 			
             kcal = new KCalDataSource(member, hashtable);
