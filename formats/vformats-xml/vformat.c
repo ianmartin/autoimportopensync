@@ -661,7 +661,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n");
 			break;
 		case VFORMAT_NOTE:
-			str = g_string_append (str, "BEGIN:VNOTE");
+			str = g_string_append (str, "BEGIN:VNOTE\r\nVERSION:1.1\r\n");
 			break;
 	}
 
@@ -765,7 +765,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			str = g_string_append (str, "END:VCARD\r\n");
 			break;
 		case VFORMAT_CARD_30:
-			str = g_string_append (str, "END:VCARD");
+			str = g_string_append (str, "END:VCARD\r\n");
 			break;
 		case VFORMAT_TODO_10:
 		case VFORMAT_EVENT_10:
@@ -776,7 +776,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			str = g_string_append (str, "END:VCALENDAR\r\n");
 			break;
 		case VFORMAT_NOTE:
-			str = g_string_append (str, "END:VNOTE");
+			str = g_string_append (str, "END:VNOTE\r\n");
 			break;
 	}
 	
