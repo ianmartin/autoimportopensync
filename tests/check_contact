@@ -7,6 +7,10 @@ if [ "$reply" != "y" ]
 then
 	exit 1
 fi
-osyncplugin evo2-sync --config evo2-def.conf --type contact || exit 1
 
-# osyncplugin evo2-sync --type contact || exit 1
+TMPFILE=`mktemp /tmp/evo2-sync.XXXXXX` || exit 1
+echo "<config><adress_path>default</adress_path><calendar_path>default</calendar_path><tasks_path>default</tasks_path></config>" > $TMPFILE
+
+osyncplugin evo2-sync --config $TMPFILE --type contact --plugindir ../src/.libs || exit 1
+
+rm -f $TMPFILE
