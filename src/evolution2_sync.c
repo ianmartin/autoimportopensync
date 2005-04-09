@@ -25,6 +25,7 @@ GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
+	osync_bool first = FALSE;
 	
 	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_EVENT, NULL)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list calendars. Unable to get sources");
@@ -38,7 +39,12 @@ GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			source = E_SOURCE (s->data);
 			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			path->uri = g_strdup(e_source_get_uri(source));
+			if (!first) {
+				first = TRUE;
+				path->uri = g_strdup("default");
+			} else {
+				path->uri = g_strdup(e_source_get_uri(source));
+			}
 			path->name = g_strdup(e_source_peek_name(source));
 			paths = g_list_append(paths, path);
 		}
@@ -51,6 +57,7 @@ GList *evo2_list_tasks(evo_environment *env, void *data, OSyncError **error)
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
+	osync_bool first = FALSE;
 	
 	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_TODO, NULL)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list tasks. Unable to get sources");
@@ -64,7 +71,12 @@ GList *evo2_list_tasks(evo_environment *env, void *data, OSyncError **error)
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			source = E_SOURCE (s->data);
 			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			path->uri = g_strdup(e_source_get_uri(source));
+			if (!first) {
+				first = TRUE;
+				path->uri = g_strdup("default");
+			} else {
+				path->uri = g_strdup(e_source_get_uri(source));
+			}
 			path->name = g_strdup(e_source_peek_name(source));
 			paths = g_list_append(paths, path);
 		}
@@ -77,7 +89,7 @@ GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **err
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
-	
+	osync_bool first = FALSE;
 	if (!e_book_get_addressbooks(&sources, NULL)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to list addressbooks. Unable to get sources");
 		return NULL;
@@ -90,7 +102,12 @@ GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **err
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			source = E_SOURCE (s->data);
 			evo2_location *path = g_malloc0(sizeof(evo2_location));
-			path->uri = g_strdup(e_source_get_uri(source));
+			if (!first) {
+				first = TRUE;
+				path->uri = g_strdup("default");
+			} else {
+				path->uri = g_strdup(e_source_get_uri(source));
+			}
 			path->name = g_strdup(e_source_peek_name(source));
 			paths = g_list_append(paths, path);
 		}
@@ -108,22 +125,19 @@ static void *evo2_initialize(OSyncMember *member, OSyncError **error)
 	
 	evo_environment *env = g_malloc0(sizeof(evo_environment));
 
-	if (!osync_member_get_config(member, &configdata, &configsize, error))
+	if (!osync_member_get_config_or_default(member, &configdata, &configsize, error))
 		goto error_free;
 	if (!evo2_parse_settings(env, configdata, configsize)) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to parse plugin configuration for evo2 plugin");
-		goto error_free_data;
+		goto error_free;
 	}
 	env->member = member;
 	OSyncGroup *group = osync_member_get_group(member);
 	env->change_id = g_strdup(osync_group_get_name(group));
 	
-	g_free(configdata);
 	osync_trace(TRACE_EXIT, "EVO2-SYNC %s: %p", __func__, env);
 	return (void *)env;
 	
-	error_free_data:
-		g_free(configdata);
 	error_free:
 		g_free(env);
 		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC %s: %s", __func__, osync_error_print(error));
@@ -289,6 +303,7 @@ void get_info(OSyncPluginInfo *info) {
 	info->name = "evo2-sync";
 	info->version = 1;
 	info->is_threadsafe = TRUE;
+    info->config_type = OPTIONAL_CONFIGURATION;
 	
 	info->functions.initialize = evo2_initialize;
 	info->functions.connect = evo2_connect;

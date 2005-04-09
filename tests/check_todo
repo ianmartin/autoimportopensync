@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "This unit test will empty all tasks from evolution2. Do you want to continue?"
+echo "[y/N]"
+read -n 1 reply
+if [ "$reply" != "y" ]
+then
+        exit 1
+fi
+
+osyncplugin evo2-sync --config evo2-def.conf --type todo || exit 1
+
+osyncplugin evo2-sync --type todo || exit 1
