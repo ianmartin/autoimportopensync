@@ -27,34 +27,45 @@ osync_bool evo2_calendar_open(evo_environment *env, OSyncError **error)
 	ESource *source = NULL;
 	GError *gerror = NULL;
 	
-  	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_EVENT, &gerror)) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get sources for calendar: %s", gerror ? gerror->message : "None");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_clear_error(&gerror);
-		return FALSE;
-	}
 	
-	source = evo2_find_source(sources, env->calendar_path);
-	if (!source) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find source for calendar");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	env->calendar = e_cal_new(source, E_CAL_SOURCE_TYPE_EVENT);
-	if(!env->calendar) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create new calendar");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	if(!e_cal_open(env->calendar, FALSE, &gerror)) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open calendar: %s", gerror ? gerror->message : "None");
-		g_object_unref(env->calendar);
-		env->calendar = NULL;
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_clear_error(&gerror);
-		return FALSE;
+	if (strcmp(env->calendar_path, "default")) {
+	  	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_EVENT, &gerror)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get sources for calendar: %s", gerror ? gerror->message : "None");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
+		
+		source = evo2_find_source(sources, env->calendar_path);
+		if (!source) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find source for calendar");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		env->calendar = e_cal_new(source, E_CAL_SOURCE_TYPE_EVENT);
+		if(!env->calendar) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create new calendar");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		if(!e_cal_open(env->calendar, FALSE, &gerror)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open calendar: %s", gerror ? gerror->message : "None");
+			g_object_unref(env->calendar);
+			env->calendar = NULL;
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
+	} else {
+		if (!e_cal_open_default (&env->calendar, E_CAL_SOURCE_TYPE_EVENT, NULL, NULL, &gerror)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open default calendar: %s", gerror ? gerror->message : "None");
+			env->calendar = NULL;
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
 	}
 	
 	if (!osync_anchor_compare(env->member, "event", env->calendar_path))

@@ -27,34 +27,44 @@ osync_bool evo2_todo_open(evo_environment *env, OSyncError **error)
 	ESource *source = NULL;
 	GError *gerror = NULL;
 	
-  	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_TODO, &gerror)) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get sources for tasks: %s", gerror ? gerror->message : "None");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_clear_error(&gerror);
-		return FALSE;
-	}
-	
-	source = evo2_find_source(sources, env->tasks_path);
-	if (!source) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find source for tasks");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	env->tasks = e_cal_new(source, E_CAL_SOURCE_TYPE_TODO);
-	if(!env->tasks) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create new tasks");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	if(!e_cal_open(env->tasks, FALSE, &gerror)) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open tasks: %s", gerror ? gerror->message : "None");
-		g_object_unref(env->tasks);
-		env->tasks = NULL;
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_clear_error(&gerror);
-		return FALSE;
+	if (strcmp(env->tasks_path, "default")) {
+	  	if (!e_cal_get_sources(&sources, E_CAL_SOURCE_TYPE_TODO, &gerror)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get sources for tasks: %s", gerror ? gerror->message : "None");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
+		
+		source = evo2_find_source(sources, env->tasks_path);
+		if (!source) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find source for tasks");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		env->tasks = e_cal_new(source, E_CAL_SOURCE_TYPE_TODO);
+		if(!env->tasks) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to create new tasks");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		if(!e_cal_open(env->tasks, FALSE, &gerror)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open tasks: %s", gerror ? gerror->message : "None");
+			g_object_unref(env->tasks);
+			env->tasks = NULL;
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
+	} else {
+		if (!e_cal_open_default (&env->tasks, E_CAL_SOURCE_TYPE_TODO, NULL, NULL, &gerror)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to open default tasks: %s", gerror ? gerror->message : "None");
+			env->calendar = NULL;
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
 	}
 	
 	if (!osync_anchor_compare(env->member, "todo", env->tasks_path))

@@ -50,4 +50,5 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 misc/evolution2.spec
+tests/Makefile
 ])

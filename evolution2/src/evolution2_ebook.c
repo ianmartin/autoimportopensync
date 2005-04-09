@@ -33,24 +33,33 @@ osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
 		return FALSE;
 	}
 
-	if (!e_book_get_addressbooks(&sources, NULL)) {
-  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error getting addressbooks: %s", gerror ? gerror->message : "None");
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-		g_clear_error(&gerror);
-		return FALSE;
-	}
-	
-	if (!(source = evo2_find_source(sources, env->addressbook_path))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->addressbook_path);
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	if(!(env->addressbook = e_book_new(source, &gerror))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new addressbook: %s", gerror ? gerror->message : "None");
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-		g_clear_error(&gerror);
-		return FALSE;
+	if (strcmp(env->addressbook_path, "default")) {
+		if (!e_book_get_addressbooks(&sources, NULL)) {
+	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error getting addressbooks: %s", gerror ? gerror->message : "None");
+			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
+		
+		if (!(source = evo2_find_source(sources, env->addressbook_path))) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->addressbook_path);
+			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		if (!(env->addressbook = e_book_new(source, &gerror))) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new addressbook: %s", gerror ? gerror->message : "None");
+			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
+	} else {
+		if (!(env->addressbook = e_book_new_default_addressbook(&gerror))) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
+			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
+			g_clear_error(&gerror);
+			return FALSE;
+		}
 	}
 	
 	if (!e_book_open(env->addressbook, TRUE, &gerror)) {
