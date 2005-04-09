@@ -3,4 +3,6 @@
 SUBDIRS = src
 
 EXTRA_DIST = \
-	autogen.sh
+	autogen.sh \
+	misc/file-sync.spec \
+	misc/file-sync.spec.in
