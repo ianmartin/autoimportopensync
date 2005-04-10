@@ -8,4 +8,5 @@ then
         exit 1
 fi
 
+export KDE_DEBUG=true
 osyncplugin kdepim --type event || exit 1

@@ -51,11 +51,11 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 		return FALSE;
 	}
 	
-	if (!kn_dcop->attach()) {
+	/*if (!kn_dcop->attach()) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to attach dcop for knotes");
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to attach dcop for knotes", __func__);
 		return FALSE;
-	}
+	}*/
 	
 	QString appId = kn_dcop->registerAs("opensync");
 	
@@ -223,8 +223,7 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
         QString summary = QString(osxml_find_node(root, "Summary"));
         QString body = osxml_find_node(root, "Body");
 
-        QString hash, uid;
-        // end of the ugly-format parsing
+        QString hash;
         switch (type) {
             case CHANGE_ADDED:
             	printf("addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
@@ -265,13 +264,16 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 				return false;
         }
     } else {
+		system("dcop knotes KNotesIface hideAllNotes");
+		QString asdasd = "dcop knotes KNotesIface killNote " + uid + " true";
+		system((const char*)asdasd.local8Bit());
         osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
-		kn_iface->killNote(uid, true);
+		/*kn_iface->killNote(uid, true);
 		if (kn_iface->status() != DCOPStub::CallSucceeded) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete note");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
 			return false;
-		}
+		}*/
     }
 
     osync_context_report_success(ctx);

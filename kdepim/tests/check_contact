@@ -7,4 +7,5 @@ if [ "$reply" != "y" ]
 then
 	exit 1
 fi
+export KDE_DEBUG=true
 osyncplugin kdepim --type contact || exit 1

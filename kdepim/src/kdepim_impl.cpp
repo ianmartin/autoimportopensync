@@ -44,6 +44,7 @@ SOFTWARE IS DISCLAIMED.
 #include "kaddrbook.h"
 #include "kcal.h"
 #include "knotes.h"
+static bool sentinal = false;
 
 class KdePluginImplementation: public KdePluginImplementationBase
 {
@@ -57,30 +58,41 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
         KApplication *application;
 
+			
     public:
         KdePluginImplementation(OSyncMember *memb)
             :member(memb)
         {
         }
 
+		void initKDE() {
+			if (sentinal) {
+				return;
+			}
+			
+			KAboutData aboutData(
+	               "libopensync-kdepim-plugin",                        // internal program name
+	               "OpenSync-KDE-plugin",        // displayable program name.
+	               "0.1",                           // version string
+	               "OpenSync KDEPIM plugin",           // short porgram description
+	               KAboutData::License_GPL,         // license type
+	               "(c) 2005, Eduardo Pereira Habkost", // copyright statement
+	               0,                               // any free form text
+	               "http://www.opensync.org",       // program home page address
+	               "http://www.opensync.org/newticket"  // bug report email address
+	            );
+			
+            KCmdLineArgs::init(&aboutData);
+            application = new KApplication();
+            
+			sentinal = true;
+		}
+
         bool init(OSyncError **error)
         {
             osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 
-            KAboutData aboutData(
-                       "libopensync-kdepim-plugin",                        // internal program name
-                       "OpenSync-KDE-plugin",        // displayable program name.
-                       "0.1",                           // version string
-                       "OpenSync KDEPIM plugin",           // short porgram description
-                       KAboutData::License_GPL,         // license type
-                       "(c) 2005, Eduardo Pereira Habkost", // copyright statement
-                       0,                               // any free form text
-                       "http://www.opensync.org",       // program home page address
-                       "http://www.opensync.org/newticket"  // bug report email address
-                    );
-
-            KCmdLineArgs::init(&aboutData);
-            application = new KApplication();
+			initKDE();
 
 			hashtable = osync_hashtable_new();
 			
@@ -104,10 +116,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
                 knotes = NULL;
             }
             
-            if (application) {
+            /*if (application) {
                 delete application;
                 application = NULL;
-            }
+            }*/
             
             if (hashtable)
             	osync_hashtable_free(hashtable);
