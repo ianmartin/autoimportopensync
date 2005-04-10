@@ -922,7 +922,7 @@ static void handle_xml_sent_by_parameter(VFormatAttribute *attr, xmlNode *curren
 static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", root->name);
-	char *name = osxml_find_node(root, "Name");
+	char *name = osxml_find_node(root, "NodeName");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);

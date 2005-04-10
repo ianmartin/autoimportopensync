@@ -109,6 +109,7 @@ void osync_plugin_free(OSyncPlugin *plugin);
 
 OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error);
 void osync_plugin_unload(OSyncPlugin *plugin);
+osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error);
 
 OSyncPlugin *osync_plugin_from_name(OSyncEnv *osinfo, const char *name);
 const char *osync_plugin_get_name(OSyncPlugin *plugin);

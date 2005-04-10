@@ -278,6 +278,10 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 static void empty_all(OSyncMember *member)
 {
 	connect(member);
+	sync_done(member);
+	disconnect(member);
+	
+	connect(member);
 	GList *chg = get_changes(member);
 	GList *i = NULL;
 	int num_del = 0;
@@ -346,6 +350,9 @@ int main (int argc, char *argv[])
 {
 	int i;
 	char *pluginname = NULL;
+	char *plugindir = NULL;
+	char *plugin = NULL;
+	char *format = NULL;
 	char *configfile = NULL;
 	char *objtype = NULL;
 	char *testname = NULL;
@@ -368,6 +375,21 @@ int main (int argc, char *argv[])
 			i++;
 			if (!objtype)
 				usage (argv[0], 1);
+		} else if (!strcmp (arg, "--plugindir")) {
+			plugindir = argv[i + 1];
+			i++;
+			if (!plugindir)
+				usage (argv[0], 1);
+		} else if (!strcmp (arg, "--plugin")) {
+			plugin = argv[i + 1];
+			i++;
+			if (!plugin)
+				usage (argv[0], 1);
+		} else if (!strcmp (arg, "--format")) {
+			format = argv[i + 1];
+			i++;
+			if (!format)
+				usage (argv[0], 1);
 		} else if (!strcmp (arg, "--help")) {
 			usage (argv[0], 0);
 		} else if (!strcmp (arg, "--alwaysempty")) {
@@ -382,6 +404,27 @@ int main (int argc, char *argv[])
 	OSyncEnv *env = osync_env_new();
 	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
 	
+	if (plugin) {
+		osync_env_set_option(env, "LOAD_PLUGINS", "FALSE");
+		if (!osync_plugin_load(env, plugin, &error)) {
+			printf("Unable to load plugin: %s\n", osync_error_print(&error));
+			osync_error_free(&error);
+			return 1;
+		}
+	} else {
+		if (plugindir)
+			osync_env_set_option(env, "PLUGINS_DIRECTORY", plugindir);
+	}
+	
+	if (format) {
+		osync_env_set_option(env, "LOAD_FORMATS", "FALSE");
+		if (!osync_format_plugin_load(env, format, &error)) {
+			printf("Unable to load format: %s\n", osync_error_print(&error));
+			osync_error_free(&error);
+			return 1;
+		}
+	}
+	
 	if (!osync_env_initialize(env, &error)) {
 		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
@@ -392,21 +435,19 @@ int main (int argc, char *argv[])
 	osync_group_set_name(group, osync_rand_str(8));
 	OSyncMember *member = osync_member_new(group);
 	
-	char *config;
-	int size;
+	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
+	mkdtemp(testdir);
+	
+	char *config = NULL;
+	int size = 0;
 	if (configfile) {
 		if (!osync_file_read(configfile, &config, &size, &error)) {
 			fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
 			return 1;
 		}
-	}
-	
-	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	mkdtemp(testdir);
-	
-	if (configfile)
 		osync_member_set_config(member, config, size);
+	}
 	
 	osync_member_set_pluginname(member, pluginname);
 	osync_member_set_configdir(member, testdir);

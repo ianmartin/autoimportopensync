@@ -459,6 +459,7 @@ void osync_member_set_config(OSyncMember *member, const char *data, int size)
 	//FIXME free old data
 	member->configdata = g_strdup(data);
 	member->configsize = size;
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -876,7 +877,7 @@ osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error)
 	g_assert(member);
 	g_assert(member->plugin);
 	OSyncPluginFunctions functions = member->plugin->info.functions;
-	g_assert(functions.finalize);
+	g_assert(functions.initialize);
 	if (!(member->plugindata = functions.initialize(member, error))) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
