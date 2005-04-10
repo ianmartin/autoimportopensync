@@ -83,7 +83,6 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 	
 	fsinfo->member = member;
 	fsinfo->hashtable = osync_hashtable_new();
-	g_free(configdata);
 
 #ifdef HAVE_FAM
 
