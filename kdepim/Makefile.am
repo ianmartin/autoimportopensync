@@ -18,7 +18,9 @@ EXTRA_DIST = \
 	src/kcal.h \
 	src/osyncbase.h \
 	src/knotes.h \
-	src/KNotesIface.h
+	src/KNotesIface.h \
+	misc/kdepim.spec \
+	misc/kdepim.spec.in
 	
 CLEANFILES = \
 	KNotesIface_stub.h \

@@ -1,0 +1,38 @@
+Summary:		KDE PIM sync. plugin for OpenSync
+Name:			@PACKAGE@
+Version:		@VERSION@
+Release:		1
+License:		GPL
+Group:			Development/Libraries
+Source:			%{name}-%{version}.tar.gz
+BuildRoot:		%{_tmppath}/%{name}-%{version}
+Requires:		glib2 libopensync qt >= 3.0.0 kdelibs kdepim
+BuildRequires:	glib2-devel libopensync-devel qt-devel >= 3.0.0 kdelibs-devel kdepim-devel
+
+%description
+This plugin allows applications using OpenSync to synchronise to and from
+files stored on disk.
+
+%prep
+%setup -q
+
+%build
+%configure
+make
+
+%install
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot}
+rm -f %{buildroot}%{_libdir}/opensync/plugins/*.la
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root)
+%{_libdir}/opensync/plugins/kdepim_lib.so
+%{_libdir}/opensync/plugins/kdepim_sync.so
+
+%changelog
+* Sun Apr 10 2005 Pierre Ossman <drzeus@drzeus.cx> 0.16-1
+- Initial package
