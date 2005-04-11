@@ -46,6 +46,8 @@ export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
 echo -n "."
 make install > /dev/null || exit 1
 echo "."
+make distclean > /dev/null || exit 1
+echo "."
 
 cd $TOP_SRCDIR/libopensync-0.?? || exit 1
 
