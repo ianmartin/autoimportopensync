@@ -48,15 +48,23 @@ static void conv_vcard(const char *filename, const char *extension)
 	//Convert to
 	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, extension, &error), NULL);
 	
+	//Detect the output
+	osync_change_set_objformat_string(change, "plain");
+	fail_unless(osync_change_detect_objformat(conv_env, change, &error) == targetformat, NULL);
+	
 	//Compare old to new
 	fail_unless(osync_change_compare(newchange, change) == CONV_DATA_SAME, NULL);
 	
 	//Convert back
-	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, extension, &error), NULL);
+	fail_unless(osync_change_convert_extension(conv_env, change, sourceformat, extension, &error), NULL);
+	
+	//Detect the output again
+	osync_change_set_objformat_string(change, "plain");
+	fail_unless(osync_change_detect_objformat(conv_env, change, &error) == sourceformat, NULL);
 	
 	//Compare again
 	fail_unless(osync_change_compare(newchange, change) == CONV_DATA_SAME, NULL);
-	
+
 	osync_conv_env_free(conv_env);
 	osync_env_finalize(env, NULL);
 	osync_env_free(env);

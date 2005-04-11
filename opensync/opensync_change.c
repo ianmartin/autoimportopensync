@@ -298,7 +298,11 @@ void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type)
 void osync_change_set_objtype_string(OSyncChange *change, const char *name)
 {
 	g_assert(change);
+	if (change->objtype_name)
+		g_free(change->objtype_name);
 	change->objtype_name = g_strdup(name);
+	//Invalidate the previous object type
+	change->objtype = NULL;
 }
 
 /*! @brief Gets the object format of a change
@@ -346,7 +350,11 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
 void osync_change_set_objformat_string(OSyncChange *change, const char *name)
 {
 	g_assert(change);
+	if (change->format_name)
+		g_free(change->format_name);
 	change->format_name = g_strdup(name);
+	//Invalidate the previous format
+	change->format = NULL;
 }
 
 /*! @brief Gets the changetype of a change

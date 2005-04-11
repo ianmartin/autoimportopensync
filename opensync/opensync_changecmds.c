@@ -532,6 +532,7 @@ OSyncObjFormat *osync_change_detect_objformat(OSyncFormatEnv *env, OSyncChange *
 	GList *d = NULL;
 	for (d = env->converters; d; d = d->next) {
 		OSyncFormatConverter *converter = d->data;
+		osync_trace(TRACE_INTERNAL, "running detector %s for format %s\n", converter->source_format->name, osync_change_get_objformat(change)->name);
 		if (!strcmp(converter->source_format->name, osync_change_get_objformat(change)->name)) {
 			if (converter->detect_func && converter->detect_func(env, change->data, change->size)) {
 				osync_trace(TRACE_EXIT, "osync_change_detect_objformat: %p:%s", converter->target_format, converter->target_format->name);

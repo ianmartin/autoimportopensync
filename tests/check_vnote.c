@@ -45,7 +45,11 @@ static void conv_vnote(const char *filename)
 	fail_unless(osync_change_compare(newchange, change) == CONV_DATA_SAME, NULL);
 	
 	//Convert back
-	fail_unless(osync_change_convert(conv_env, change, targetformat, &error), NULL);
+	fail_unless(osync_change_convert(conv_env, change, sourceformat, &error), NULL);
+
+	//Detect the output again
+	osync_change_set_objformat_string(change, "plain");
+	fail_unless(osync_change_detect_objformat(conv_env, change, &error) == sourceformat, NULL);
 	
 	//Compare again
 	fail_unless(osync_change_compare(newchange, change) == CONV_DATA_SAME, NULL);
