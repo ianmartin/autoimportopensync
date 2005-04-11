@@ -1,4 +1,5 @@
 #include "support.h"
+#include <time.h>
 
 static void conv_vnote(const char *filename)
 {
@@ -187,19 +188,22 @@ END_TEST
 
 START_TEST (get_revision1)
 {
-	fail_unless(vnote_get_revision("data/vnotes/vnote1.vnt") == 1112742000, NULL);
+	struct tm testtm = {0, 0, 0, 6, 4 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vnote_get_revision("data/vnotes/vnote1.vnt") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision2)
 {
-	fail_unless(vnote_get_revision("data/vnotes/vnote2.vnt") == 1112745661, NULL);
+	struct tm testtm = {1, 1, 1, 6, 4 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vnote_get_revision("data/vnotes/vnote2.vnt") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision3)
 {
-	fail_unless(vnote_get_revision("data/vnotes/vnote3.vnt") == 1112742000, NULL);
+	struct tm testtm = {0, 0, 0, 6, 4 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vnote_get_revision("data/vnotes/vnote3.vnt") == mktime(&testtm), NULL);
 }
 END_TEST
 

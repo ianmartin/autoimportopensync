@@ -287,19 +287,22 @@ END_TEST
 
 START_TEST (event_get_revision1)
 {
-	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour-alarm.vcf") == 1112090762, NULL);
+	struct tm testtm = {2, 6, 11, 29, 3 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour-alarm.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (event_get_revision2)
 {
-	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour-alarm2.vcf") == 1112090881, NULL);
+	struct tm testtm = {1, 8, 11, 29, 3 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour-alarm2.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (event_get_revision3)
 {
-	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour.vcf") == 1112090713, NULL);
+	struct tm testtm = {13, 5, 11, 29, 3 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcal_get_revision("data/vevents/evolution2/1-hour.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 

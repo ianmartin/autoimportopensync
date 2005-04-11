@@ -1,4 +1,5 @@
 #include "support.h"
+#include <time.h>
 
 static void conv_vcard(const char *filename, const char *extension)
 {
@@ -354,25 +355,29 @@ END_TEST
 
 START_TEST (get_revision1)
 {
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full1.vcf") == 1109410884, NULL);
+	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full1.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision2)
 {
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full2.vcf") == 1109372400, NULL);
+	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full2.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision3)
 {
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-multiline.vcf") == 1109372400, NULL);
+	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-multiline.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision4)
 {
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-photo.vcf") == 1109410884, NULL);
+	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
+	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-photo.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
