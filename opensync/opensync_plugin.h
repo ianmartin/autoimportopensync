@@ -102,12 +102,19 @@ typedef struct OSyncPluginInfo {
 	OSyncConfigurationTypes config_type;
 	/** The pointer to the plugin (for internal use) */
 	OSyncPlugin *plugin;
+	/** Plugin-specific data
+	 *
+	 * Can be used when a single module registers many plugins,
+	 * such as the python-module plugin
+	 */
+	void *plugin_data;
 } OSyncPluginInfo;
 
 OSyncPlugin *osync_plugin_new(OSyncEnv *env);
+OSyncPluginInfo *osync_plugin_new_info(OSyncEnv *env);
 void osync_plugin_free(OSyncPlugin *plugin);
 
-OSyncPlugin *osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error);
+osync_bool osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error);
 void osync_plugin_unload(OSyncPlugin *plugin);
 osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error);
 
@@ -116,6 +123,7 @@ const char *osync_plugin_get_name(OSyncPlugin *plugin);
 const char *osync_plugin_get_longname(OSyncPlugin *plugin);
 const char *osync_plugin_get_description(OSyncPlugin *plugin);
 OSyncPluginTimeouts osync_plugin_get_timeouts(OSyncPlugin *plugin);
+void *osync_plugin_get_plugin_data(OSyncPlugin *plugin);
 
 void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncError **error);
 void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr);

@@ -428,7 +428,7 @@ OSyncEnv *init_env(void)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), "mock_sync.so");	
-	fail_unless(osync_plugin_load(osync, path, &error) != NULL, NULL);
+	fail_unless(osync_plugin_load(osync, path, &error), NULL);
 	g_free(path);
 	
 	load_format(osync, "contact.so");
