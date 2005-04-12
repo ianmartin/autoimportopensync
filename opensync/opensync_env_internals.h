@@ -7,8 +7,9 @@ struct OSyncEnv {
 	
 	char *groupsdir;
 	
-	GList *plugins;
-	GList *formatplugins;
+	GList *plugins; //The registered plugins
+	GList *formatplugins; //The registered formats
+	GList *modules; //The loaded modules
 	
 	GList *format_templates;
 	GList *converter_templates;

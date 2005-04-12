@@ -410,7 +410,7 @@ static void load_format(OSyncEnv *env, const char *name)
 {
 	OSyncError *error = NULL;
 	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), name);	
-	fail_unless(osync_format_plugin_load(env, path, &error), NULL);
+	fail_unless(osync_module_load(env, path, &error), NULL);
 	g_free(path);
 }
 
@@ -428,7 +428,7 @@ OSyncEnv *init_env(void)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), "mock_sync.so");	
-	fail_unless(osync_plugin_load(osync, path, &error), NULL);
+	fail_unless(osync_module_load(osync, path, &error), NULL);
 	g_free(path);
 	
 	load_format(osync, "contact.so");

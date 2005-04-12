@@ -22,6 +22,7 @@ START_TEST (env_init)
   fail_unless(env != NULL, NULL);
   
   osync_env_set_option(env, "GROUPS_DIRECTORY", "configs");
+  osync_env_set_option(env, "LOAD_PLUGINS", "FALSE");
   
   fail_unless(osync_env_initialize(env, NULL), NULL);
   
@@ -38,6 +39,7 @@ START_TEST (env_double_init)
   fail_unless(env != NULL, NULL);
   
   osync_env_set_option(env, "GROUPS_DIRECTORY", "configs");
+  osync_env_set_option(env, "LOAD_PLUGINS", "FALSE");
   fail_unless(osync_env_initialize(env, NULL), NULL);
   fail_unless(!osync_env_initialize(env, NULL), NULL);
   
@@ -67,6 +69,7 @@ START_TEST (env_init_false)
   char *testbed = setup_testbed("sync_setup_false");
   OSyncEnv *osync = osync_env_new();
   osync_env_set_option(osync, "GROUPS_DIRECTORY", "configs");
+  osync_env_set_option(osync, "LOAD_PLUGINS", "FALSE");
   OSyncError *error = NULL;
   osync_env_initialize(osync, &error);
   fail_unless(osync_env_num_groups(osync) == 1, NULL);

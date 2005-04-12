@@ -114,9 +114,8 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env);
 OSyncPluginInfo *osync_plugin_new_info(OSyncEnv *env);
 void osync_plugin_free(OSyncPlugin *plugin);
 
-osync_bool osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error);
-void osync_plugin_unload(OSyncPlugin *plugin);
-osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error);
+osync_bool osync_module_load(OSyncEnv *env, const char *path, OSyncError **error);
+osync_bool osync_module_load_dir(OSyncEnv *env, const char *path, osync_bool must_exist, OSyncError **oserror);
 
 OSyncPlugin *osync_plugin_from_name(OSyncEnv *osinfo, const char *name);
 const char *osync_plugin_get_name(OSyncPlugin *plugin);

@@ -18,4 +18,4 @@ OSyncObjTypeTemplate *osync_plugin_find_objtype_template(OSyncPlugin *plugin, co
 OSyncObjFormatTemplate *osync_plugin_find_objformat_template(OSyncObjTypeTemplate *type_template, const char *objformatstr);
 OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const char *formatstr);
 
-osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error);
+void osync_module_unload(OSyncEnv *env, GModule *module);

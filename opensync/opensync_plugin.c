@@ -189,104 +189,6 @@ void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncErro
 	return function;
 }
 
-/*! @brief dlopen()s a plugin and returns the information from it
- * 
- * The get_info() function on the plugin gets called and the information is stored
- * in the plugin struct
- * 
- * @param env The environment in which to open the plugin
- * @param path Where to find this plugin
- * @param error Pointer to a error struct
- * @return Pointer to the plugin on success, NULL otherwise
- * 
- */
-osync_bool osync_plugin_load(OSyncEnv *env, const char *path, OSyncError **error)
-{
-	GModule *module;
-
-	osync_trace(TRACE_ENTRY, "osync_plugin_load(%p, %s, %p)", env, path, error);
-	
-	/* Check if this platform supports dynamic
-	 * loading of modules */
-	if (!g_module_supported()) {
-		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
-		goto error;
-	}
-
-	/* Try to open the module or fail if an error occurs */
-	module = g_module_open(path, 0); //G_MODULE_BIND_LOCAL);
-  
-	if (!module) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
-		goto error;
-	}
-	
-	/* There are two type of plugins: simple plugins and multiple plugins.
-	 *
-	 * - Simple plugins register only one plugin object
-	 * - Multiple plugins can register many plugins. Plugins for modules
-	 *   in other languages (such as python-module plugin) can use this
-	 *   feature
-	 */
-	void (* fct_info)(OSyncPluginInfo *info);
-	void (* fct_register)(OSyncEnv *env);
-	if (!g_module_symbol(module, "get_info", (void*)&fct_info))
-		fct_info = NULL;
-	if (!g_module_symbol(module, "register_plugins", (void*)&fct_register))
-		fct_register = NULL;
-	if (!fct_info && !fct_register) {
-		osync_debug("OSPLG", 0, "Unable to open plugin: No get_info or register_plugins symbol");
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Module %s is not a valid OpenSync plugin (no symbol get_info or register_plugins)", path);
-		goto error_unload;
-	}
-	
-	/* Simple plugin: call get_info */
-	if (fct_info) {
-		OSyncPlugin *plugin = osync_plugin_new(env);
-		plugin->real_plugin = module;
-		fct_info(&(plugin->info));
-		plugin->path = g_strdup(path);
-		osync_trace(TRACE_INTERNAL, "osync_plugin_load: simple plugin: %p", plugin);
-	}
-
-	/* Multiple plugin: call register_plugins */
-	if (fct_register) {
-		osync_trace(TRACE_INTERNAL, "osync_plugin_load: multiple plugin");
-		fct_register(env);
-	}
-	
-	osync_trace(TRACE_EXIT, "osync_plugin_load: success");
-	return TRUE;
-
-error_unload:
-	g_module_close(module);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "osync_plugin_load: %s", osync_error_print(error));
-	return FALSE;
-}
-
-/*! @brief unloads a previously loaded plugin
- * 
- * This unloads the plugin (but does not free the struct itself)
- * 
- * @param plugin Pointer to the plugin
- * 
- */
-void osync_plugin_unload(OSyncPlugin *plugin)
-{
-	g_assert(plugin);
-	if (!plugin->real_plugin) {
-		osync_debug("OSPLG", 0, "You need to load a plugin before unloading it");
-		return;
-	}
-	
-	//FIXME Close the module! This crashes the evo2 plugin at the moment, i have no idea why...
-	//g_module_close(plugin->real_plugin);
-	g_free(plugin->path);
-	plugin->path = NULL;
-}
-
 /*! @brief dlopen()s a format plugin
  * 
  * The get_info() function on the format plugin gets called
@@ -297,40 +199,119 @@ void osync_plugin_unload(OSyncPlugin *plugin)
  * @return Pointer to the plugin on success, NULL otherwise
  * 
  */
-osync_bool osync_format_plugin_load(OSyncEnv *env, char *path, OSyncError **error)
+osync_bool osync_module_load(OSyncEnv *env, const char *path, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_format_plugin_load(%p, %s, %p)", env, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
 	/* Check if this platform supports dynamic
 	 * loading of modules */
 	 
 	if (!g_module_supported()) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "This platform does not support loading of modules");
-		osync_debug("OSPLG", 0, "This platform does not support loading of modules");
-		osync_trace(TRACE_EXIT_ERROR, "osync_format_plugin_load: %s", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	GModule *plugin = g_module_open(path, G_MODULE_BIND_LOCAL);
-	if (!plugin) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open plugin %s: %s", path, g_module_error());
-		osync_debug("OSPLG", 0, "Unable to open plugin %s", path);
-		osync_trace(TRACE_EXIT_ERROR, "osync_format_plugin_load: %s", osync_error_print(error));
+	GModule *module = g_module_open(path, G_MODULE_BIND_LOCAL);
+	if (!module) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open module %s: %s", path, g_module_error());
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
+	/* Load the get_info symbol */
 	void (* fct_info)(OSyncEnv *env) = NULL;
 	void (** fct_infop)(OSyncEnv *env) = &fct_info;
-	if (!g_module_symbol(plugin, "get_info", (void **)fct_infop)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open format plugin %s: %s", path, g_module_error());
-		osync_debug("OSPLG", 0, "Unable to open format plugin %s", path);
-		osync_trace(TRACE_EXIT_ERROR, "osync_format_plugin_load: %s", osync_error_print(error));
+	if (!g_module_symbol(module, "get_info", (void **)fct_infop)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get symbol from module %s: %s", path, g_module_error());
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
-	env->formatplugins = g_list_append(env->formatplugins, plugin);
+	env->modules = g_list_append(env->modules, module);
 	
+	/* Call the get_info function */
 	fct_info(env);
-	osync_trace(TRACE_EXIT, "osync_format_plugin_load: %p", plugin);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, module);
+	return TRUE;
+}
+
+/*! @brief Closes a module
+ * 
+ * @param module The module to unload
+ * 
+ */
+void osync_module_unload(OSyncEnv *env, GModule *module)
+{
+	osync_trace(TRACE_INTERNAL, "%s(%p, %p)", __func__, env, module);
+	//FIXME Close the module! This crashes the evo2 plugin at the moment, i have no idea why...
+	//g_module_close(plugin->real_plugin);
+	env->modules = g_list_remove(env->modules, module);
+}
+
+/*! @brief Loads the modules from a given directory
+ * 
+ * Loads all modules from a directory into a osync environment
+ * 
+ * @param env Pointer to a OSyncEnv environment
+ * @param path The path where to look for plugins, NULL for the default sync module directory
+ * @param must_exist If set to TRUE, this function will return an error if the directory does not exist
+ * @param error Pointer to a error struct to return a error
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_module_load_dir(OSyncEnv *env, const char *path, osync_bool must_exist, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	GDir *dir;
+	GError *gerror = NULL;
+	char *filename = NULL;
+
+	if (!path) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Not path given to load the modules from");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	//Load all available shared libraries (plugins)
+	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		if (must_exist) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		} else {
+			osync_trace(TRACE_EXIT, "%s: Directory does not exist (non-fatal)", __func__);
+			return TRUE;
+		}
+	}
+	
+	dir = g_dir_open(path, 0, &gerror);
+	if (!dir) {
+		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", path, gerror->message);
+		g_error_free(gerror);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+  
+	const gchar *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		filename = g_strdup_printf ("%s/%s", path, de);
+		
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.so", filename)) {
+			g_free(filename);
+			continue;
+		}
+		
+		OSyncError *error = NULL;
+		if (!osync_module_load(env, filename, &error)) {
+			osync_debug("OSPLG", 0, "Unable to load plugin %s: %s", filename, error->message);
+			osync_error_free(&error);
+		}
+		g_free(filename);
+	}
+	g_dir_close(dir);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 

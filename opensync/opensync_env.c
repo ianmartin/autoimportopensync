@@ -240,18 +240,17 @@ osync_bool osync_env_finalize(OSyncEnv *env, OSyncError **error)
 	GList *p;
 	for (p = plugins; p; p = p->next) {
 		OSyncPlugin *plugin = p->data;
-		osync_plugin_unload(plugin);
 		osync_plugin_free(plugin);
 	}
 	g_list_free(plugins);
 	
-	plugins = g_list_copy(env->formatplugins);
-	for (p = plugins; p; p = p->next) {
-		GModule *gplugin = p->data;
-		osync_trace(TRACE_INTERNAL, "osync_format_plugin_free %p", gplugin);
-		g_module_close(gplugin);
+	//Unload all loaded modules
+	GList *modules = g_list_copy(env->modules);
+	for (p = modules; p; p = p->next) {
+		GModule *module = p->data;
+		osync_module_unload(env, module);
 	}
-	g_list_free(plugins);
+	g_list_free(modules);
 
 	osync_trace(TRACE_EXIT, "osync_env_finalize");
 	return TRUE;
@@ -269,55 +268,28 @@ osync_bool osync_env_finalize(OSyncEnv *env, OSyncError **error)
  * @returns TRUE if successfull, FALSE otherwise
  * 
  */
-osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **oserror)
+osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **error)
 {
-	g_assert(env);
-	osync_bool not_fatal = FALSE;
-
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_bool must_exist = TRUE;
+	
 	if (!path) {
 		path = OPENSYNC_FORMATSDIR;
-		not_fatal = TRUE;
+		must_exist = FALSE;
 	}
 	
-	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
-		osync_debug("ENV", 1, "directory %s does not exist", path);
-		return not_fatal;
-	}
-	
-	GDir *dir = NULL;
-	GError *error = NULL;
-	dir = g_dir_open(path, 0, &error);
-	if (!dir) {
-		osync_debug("OSCONV", 0, "Unable to open format plugin directory %s: %s", path, error->message);
-		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open format directory %s: %s", path, error->message);
-		g_error_free(error);
+	if (!osync_module_load_dir(env, path, must_exist, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
-	const gchar *de = NULL;
-	while ((de = g_dir_read_name(dir))) {
-		char *filename = NULL;
-		filename = g_strdup_printf ("%s/%s", path, de);
-		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*lib.la", filename) || g_pattern_match_simple("*.la", filename)) {
-			g_free(filename);
-			continue;
-		}
-		
-		OSyncError *error = NULL;
-		if (!osync_format_plugin_load(env, filename, &error)) {
-			osync_debug("OSCONV", 0, "Unable to load format plugin %s: %s", filename, error->message);
-			osync_error_free(&error);
-		}
-		g_free(filename);
-	}
-	g_dir_close(dir);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
-/*! @brief Loads the plugins from a given directory
+/*! @brief Loads the sync modules from a given directory
  * 
- * Loads all plugins from a directory into a osync environment
+ * Loads all sync modules from a directory into a osync environment
  * 
  * @param env Pointer to a OSyncEnv environment
  * @param path The path where to look for plugins
@@ -325,49 +297,22 @@ osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **
  * @returns TRUE on success, FALSE otherwise
  * 
  */
-osync_bool osync_env_load_plugins(OSyncEnv *env, const char *path, OSyncError **oserror)
+osync_bool osync_env_load_plugins(OSyncEnv *env, const char *path, OSyncError **error)
 {
-	GDir *dir;
-	GError *error = NULL;
-	char *filename = NULL;
-	osync_bool not_fatal = FALSE;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_bool must_exist = TRUE;
 	
 	if (!path) {
 		path = OPENSYNC_PLUGINDIR;
-		not_fatal = TRUE;
+		must_exist = FALSE;
 	}
 	
-	//Load all available shared libraries (plugins)
-	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		osync_debug("OSGRP", 3, "%s is no dir", path);
-		return not_fatal;
-	}
-	
-	dir = g_dir_open(path, 0, &error);
-	if (!dir) {
-		osync_debug("OSPLG", 0, "Unable to open plugin directory %s: %s", path, error->message);
-		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", path, error->message);
-		g_error_free(error);
+	if (!osync_module_load_dir(env, path, must_exist, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
-  
-	const gchar *de = NULL;
-	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s", path, de);
-		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple("*.la", filename) || g_pattern_match_simple("*lib.so", filename)) {
-			g_free(filename);
-			continue;
-		}
-		
-		OSyncError *error = NULL;
-		if (!osync_plugin_load(env, filename, &error)) {
-			osync_debug("OSPLG", 0, "Unable to load plugin %s: %s", filename, error->message);
-			osync_error_free(&error);
-		}
-		g_free(filename);
-	}
-	g_dir_close(dir);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 

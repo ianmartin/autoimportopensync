@@ -376,6 +376,7 @@ int main (int argc, char *argv[])
 			if (!objtype)
 				usage (argv[0], 1);
 		} else if (!strcmp (arg, "--plugindir")) {
+			printf("plugindir %s\n", argv[i + 1]);
 			plugindir = argv[i + 1];
 			i++;
 			if (!plugindir)
@@ -406,7 +407,7 @@ int main (int argc, char *argv[])
 	
 	if (plugin) {
 		osync_env_set_option(env, "LOAD_PLUGINS", "FALSE");
-		if (!osync_plugin_load(env, plugin, &error)) {
+		if (!osync_module_load(env, plugin, &error)) {
 			printf("Unable to load plugin: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
 			return 1;
@@ -418,7 +419,7 @@ int main (int argc, char *argv[])
 	
 	if (format) {
 		osync_env_set_option(env, "LOAD_FORMATS", "FALSE");
-		if (!osync_format_plugin_load(env, format, &error)) {
+		if (!osync_module_load(env, format, &error)) {
 			printf("Unable to load format: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
 			return 1;

@@ -442,8 +442,10 @@ static void mock_committed_all(void *data)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void get_info(OSyncPluginInfo *info)
+void get_info(OSyncEnv *env)
 {
+	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	
 	info->name = "file-sync";
 	info->longname = "Mock Plugin";
 	info->description = "Mock Plugin";
