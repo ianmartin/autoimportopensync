@@ -135,6 +135,14 @@ cdef class Change:
 		if f: return osync_objformat_get_name(f)
 		else: return None
 
+	#TODO: Implement set_data and get_data
+	#TODO: Write some wrappers to common formats having structs,
+	#      such as fs_info. In the case of known object formats,
+	#      return a python object wrapping the object sotred
+	#      on the change data
+
+
+
 cdef class PluginInfo:
 	"""opensync OSyncPluginInfo object"""
 
