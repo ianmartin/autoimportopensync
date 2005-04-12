@@ -436,7 +436,7 @@ out:
 	return ret;
 }
 
-void register_plugins(OSyncEnv *env)
+void get_info(OSyncEnv *env)
 {
 	/* Python initialization */
 	struct sigaction old_sigint;
