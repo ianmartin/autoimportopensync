@@ -1,3 +1,4 @@
+
 /*
  * xml-vnote - A plugin for parsing vnote objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>

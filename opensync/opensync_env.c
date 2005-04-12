@@ -347,7 +347,7 @@ OSyncPlugin *osync_env_find_plugin(OSyncEnv *env, const char *name)
  * @returns Number of plugins
  * 
  */
-int osync_env_num_plugins (OSyncEnv *env)
+int osync_env_num_plugins(OSyncEnv *env)
 {
 	return g_list_length(env->plugins);
 }
