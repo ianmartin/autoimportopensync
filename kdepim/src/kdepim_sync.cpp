@@ -175,8 +175,9 @@ static osync_bool kde_note_access(OSyncContext *ctx, OSyncChange *change)
 }
 
 extern "C" {
-void get_info(OSyncPluginInfo *info)
+void get_info(OSyncEnv *env)
 {
+	OSyncPluginInfo *info = osync_plugin_new_info(env);
     info->version = 1;
     info->name = "kdepim";
     /*FIXME: i18n */

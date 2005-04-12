@@ -8,4 +8,4 @@ then
         exit 1
 fi
 export KDE_DEBUG=true
-osyncplugin kdepim --type todo || exit 1
+osyncplugin kdepim --type todo --plugindir ../.libs || exit 1

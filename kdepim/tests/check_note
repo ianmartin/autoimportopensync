@@ -10,5 +10,5 @@ fi
 export KDE_DEBUG=true
 dcop knotes MainApplication-Interface quit
 knotes
-osyncplugin kdepim --type note || exit 1
+osyncplugin kdepim --type note --plugindir ../.libs || exit 1
 dcop knotes MainApplication-Interface quit

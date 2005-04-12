@@ -9,4 +9,4 @@ then
 fi
 
 export KDE_DEBUG=true
-osyncplugin kdepim --type event || exit 1
+osyncplugin kdepim --type event --plugindir ../.libs || exit 1

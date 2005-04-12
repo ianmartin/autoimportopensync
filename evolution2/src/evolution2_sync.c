@@ -299,7 +299,9 @@ static void evo2_finalize(void *data)
 	g_free(env);
 }
 
-void get_info(OSyncPluginInfo *info) {
+void get_info(OSyncEnv *env)
+{
+	OSyncPluginInfo *info = osync_plugin_new_info(env);
 	info->name = "evo2-sync";
 	info->version = 1;
 	info->is_threadsafe = TRUE;
