@@ -1,0 +1,20 @@
+
+INCLUDES= @PACKAGE_CFLAGS@ $(PYTHON_INCLUDES) -I$(top_srcdir) -I$(top_srcdir)/opensync
+
+opensync_wrap.c: opensync.i
+	$(SWIG) -python -I$(top_srcdir)/opensync $(PYTHON_INCLUDES) opensync.i
+
+EXTRA_DIST = opensync.i
+
+CLEANFILES = \
+	opensync.py \
+	opensync.pyc \
+	opensync_wrap.c
+
+if HAVE_PYTHON
+noinst_LTLIBRARIES = _opensync.la
+endif
+
+_opensync_la_SOURCES = opensync_wrap.c
+_opensync_la_LDFLAGS = @PACKAGE_LIBS@ @XML_LIBS@ -R $(libdir) -module
+_opensync_la_LIBADD = $(top_builddir)/opensync/libopensync.la

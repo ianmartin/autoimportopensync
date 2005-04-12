@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = opensync osengine formats tests tools
+SUBDIRS = opensync osengine formats tests tools wrapper
 
 if BUILD_ENGINE
 OSENGINE_PC = osengine-1.0.pc
