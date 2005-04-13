@@ -9,8 +9,8 @@
 
 #include <opensync/opensync.h>
 #include <signal.h>
-
-#include "pywrap.h"
+#include <glib.h>
+#include "config.h"
 
 struct MemberData {
 	PyThreadState *interp_thread;
@@ -19,6 +19,7 @@ struct MemberData {
 	PyObject *osync_module;
 };
 
+#if 0
 /** Insert plugin search path in sys.path
  *
  * Isn't there an easier way of setting it?
@@ -26,7 +27,7 @@ struct MemberData {
  *FIXME: It would be better if we just load modules from
  * their filename, not setting the module search path
  */
-static int change_sys_path()
+/*static int change_sys_path()
 {
 	int rv = -1;
 	PyObject *sys = NULL;
@@ -45,7 +46,6 @@ static int change_sys_path()
 	if (PyList_Insert(path, 0, dir) < 0)
 		goto error;
 
-	/* Success */
 	rv = 0;
 
 error:
@@ -53,7 +53,7 @@ error:
 	Py_XDECREF(path);
 	Py_XDECREF(sys);
 	return rv;
-}
+}*/
 
 /** Calls the method initialize function
  *
@@ -293,6 +293,7 @@ static void py_disconnect(OSyncContext *ctx)
 {
 	call_module_method(ctx, NULL, "disconnect");
 }
+#endif
 
 /** Register a new plugin from python module called name.
  *
@@ -301,52 +302,92 @@ static void py_disconnect(OSyncContext *ctx)
  *       plugin information on another place (including
  *       accepted objtypes/formats info)
  */
-static int register_plugin(OSyncEnv *env, PyObject *osync_module, char *name)
+static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *filename, OSyncError **error)
 {
-	PyObject *module = NULL;
-	PyObject *get_info_result = NULL;
-	PythonPluginInfo pyinfo;
-	PyObject *pyinfo_cobject = NULL;
-	PyObject *get_info_parm = NULL;
-	OSyncPluginInfo *info;
-	int ret = -1;
+	osync_trace(TRACE_ENTRY, "%s(%p. %p, %s, %p)", __func__, env, osync_module, filename, error);
+	//PyObject *get_info_result = NULL;
+	//PythonPluginInfo pyinfo;
+	//PyObject *pyinfo_cobject = NULL;
+	//PyObject *get_info_parm = NULL;
+	//OSyncPluginInfo *info;
 
-	osync_trace(TRACE_ENTRY, "register_plugin");
-
-	module = PyImport_ImportModule(name);
+	osync_trace(TRACE_INTERNAL, "Opening file");
+	FILE *fp = fopen(filename, "r");
+	osync_trace(TRACE_INTERNAL, "Running file");
+	PyImport_AddModule("sys");
+	PyRun_SimpleFile(fp, filename);
+	
+	PyObject *module = PyImport_AddModule("__main__");
+	
 	if (!module) {
-		osync_debug("python", 1, "Couldn't load testmodule");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load module from file %s", filename);
 		PyErr_Print();
 		PyErr_Clear();
-		goto out;
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
 	}
+	
+	
+	osync_trace(TRACE_INTERNAL, "Calling file");
+	osync_trace(TRACE_INTERNAL, "Calling file %i", PyModule_Check(module));
+	
+	PyObject *pyret = PyObject_CallMethod(module, "blubbasd", "i", 1);
+	if (PyErr_Occurred())
+			PyErr_Print();
+	if (pyret != NULL) {
+			printf("Result of call: %ld\n", PyInt_AsLong(pyret));
+			Py_DECREF(pyret);
+		}
+	
+	PyObject *pDict = PyModule_GetDict(module);
+	osync_trace(TRACE_INTERNAL, "Dict is %p", pDict);
+	/* pDict is a borrowed reference */
+	
+	PyObject *pFunc = PyDict_GetItemString(pDict, "blubbasd");
+	osync_trace(TRACE_INTERNAL, "func is %p", pFunc);
+	/* pFun: Borrowed reference */
 
+	if (pFunc && PyCallable_Check(pFunc)) {
+		PyObject *pArgs = PyTuple_New(1);
+		PyObject *pValue = PyInt_FromLong(2);
+		if (!pValue) {
+			Py_DECREF(pArgs);
+			fprintf(stderr, "Cannot convert argument\n");
+			return 1;
+		}
+		/* pValue reference stolen here: */
+		PyTuple_SetItem(pArgs, 0, pValue);
+		pValue = PyObject_CallObject(pFunc, pArgs);
+		Py_DECREF(pArgs);
+		if (pValue != NULL) {
+			printf("Result of call: %ld\n", PyInt_AsLong(pValue));
+			Py_DECREF(pValue);
+		}
+	} else {
+		if (PyErr_Occurred())
+			PyErr_Print();
+		fprintf(stderr, "Cannot find function \"blubbasd\"\n");
+	}
+	
+#if 0
 	info = osync_plugin_new_info(env);
-	if (!info) {
-		osync_debug("python", 1, "Couldn't create a new plugin object");
-		goto error;
-	}
-
-	info->functions.initialize = py_initialize;
+	/*info->functions.initialize = py_initialize;
 	info->functions.connect = py_connect;
 	info->functions.sync_done = py_sync_done;
 	info->functions.disconnect = py_disconnect;
 	info->functions.finalize = py_finalize;
 	info->functions.get_changeinfo = py_get_changeinfo;
-	info->functions.get_data = py_get_data;
+	info->functions.get_data = py_get_data;*/
 	
-	/*TODO: let the module get_info function fill the fields below: */
-	info->is_threadsafe = 1;
-
 	/* The plugin data is just the plugin name,
 	 * to be used on py_initialize()
 	 */
-	info->plugin_data = strdup(name);
+	info->plugin_data = strdup(filename);
 	
 	/** Build a PluginInfo object for use by get_info */
-	pyinfo.commit_fn = py_commit_change;
-	pyinfo.access_fn = py_access;
-	pyinfo.osync_info = info;
+	//pyinfo.commit_fn = py_commit_change;
+	//pyinfo.access_fn = py_access;
+	//pyinfo.osync_info = info;
 
 	pyinfo_cobject = PyCObject_FromVoidPtr(&pyinfo, NULL);
 	if (!pyinfo_cobject) {
@@ -377,63 +418,43 @@ static int register_plugin(OSyncEnv *env, PyObject *osync_module, char *name)
 		osync_debug("python", 1, "The plugin didn't set its name!");
 		goto error_cancel_register;
 	}
-
 	osync_trace(TRACE_EXIT, "register_plugin");
-	ret = 0;
 
-out:
 	Py_XDECREF(get_info_result);
 	Py_XDECREF(get_info_parm);
 	Py_XDECREF(pyinfo_cobject);
 	Py_XDECREF(module);
+#endif
 
-	return ret;
-
-error_cancel_register:
-	osync_plugin_free(info->plugin);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "register_plugin");
-	goto out;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
-static int scan_for_plugins(OSyncEnv *env)
+static osync_bool scan_for_plugins(OSyncEnv *env, PyObject *osync_module)
 {
-	PyObject *osync_module;
-	int ret = -1;
-	osync_trace(TRACE_ENTRY, "scan_for_plugins");
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 
-	if (change_sys_path() < 0) {
-		osync_debug("python", 1, "Exception when initializing python intepreter");
-		PyErr_Print();
-		PyErr_Clear();
-		goto out;
-	}
-	osync_module = PyImport_ImportModule("opensync");
-	if (!osync_module) {
-		osync_debug("python", 1, "Couldn't load OpenSync module");
-		PyErr_Print();
-		PyErr_Clear();
-		goto out;
+	char *path = OPENSYNC_PYTHONPLG_DIR;
+	GError *gerror = NULL;
+	GDir *dir = g_dir_open(path, 0, &gerror);
+	if (!dir) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open directory %s: %s", __func__, path, gerror ? gerror->message : "None");
+		return FALSE;
 	}
 
-	/*TODO: do a directory listing */
-	char *name = "testmodule";
-	{
-		ret = register_plugin(env, osync_module, name);
-		if (ret < 0) {
-			osync_debug("python", 1, "Couldn't register plugin %s", name);
-			goto out_unload_osync;
-		}
+	const char *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		char *filename = g_build_filename(path, de, NULL);
+		OSyncError *error = NULL;
+		if (!register_plugin(env, osync_module, filename, &error))
+			osync_debug("python", 1, "Couldn't register plugin \"%s\": %s", filename, osync_error_print(&error));
+
+		g_free(filename);
 	}
+	g_dir_close(dir);
 
-	ret = 0;
-
-	osync_trace(TRACE_EXIT, "scan_for_plugins: ret = %d", ret);
-
-out_unload_osync:
-	Py_DECREF(osync_module);
-out:
-	return ret;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 void get_info(OSyncEnv *env)
@@ -447,5 +468,13 @@ void get_info(OSyncEnv *env)
 	sigaction(SIGINT, &old_sigint, NULL);  /* Restore it */
 	PyEval_InitThreads();
 
-	scan_for_plugins(env);
+	PyObject *osync_module = PyImport_ImportModule("opensync");
+	if (!osync_module) {
+		osync_debug("python", 1, "Couldn't load OpenSync module");
+		PyErr_Print();
+		PyErr_Clear();
+		return;
+	}
+
+	scan_for_plugins(env, osync_module);
 }
