@@ -1,4 +1,4 @@
-%module opensync_impl
+%module opensync
 
 %{
 #include "opensync.h"
@@ -22,8 +22,16 @@ typedef struct {} OSyncPlugin;
 		printf("Trying to set it to %i\n", inp);
 	}
 	
-	int name_get() {
-		return 5;
+	%pythoncode %{
+	def get_name(self):
+		return self.name_get()
+	def set_name(self, name):
+		self.name_set(name)
+	name = property(get_name, set_name)
+	%}
+	
+	const char *name_get() {
+		return osync_plugin_get_name(self);
 	}
 };
 
@@ -37,11 +45,11 @@ typedef struct {} OSyncPlugin;
 		osync_env_free(self);
 	}
 	
-	osync_bool initialize() {
+	int initialize() {
 		return osync_env_initialize(self, NULL);
 	}
 	
-	osync_bool finalize() {
+	int finalize() {
 		return osync_env_finalize(self, NULL);
 	}
 	
