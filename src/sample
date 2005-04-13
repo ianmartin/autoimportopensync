@@ -32,6 +32,10 @@ def initialize():
 	print "Initialize called!!"
 	return A()
 
+def blubbasd(i):
+	print "juhu" + str(i)
+	return 2;
+
 def get_info(info):
 	info.accept_objtype("contact")
 	info.accept_objformat("contact", "vcard30")
