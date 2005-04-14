@@ -32,8 +32,9 @@ def initialize():
 	print "Initialize called!!"
 	return A()
 
-def blubbasd(i):
-	print "juhu" + str(i)
+def blubbasd(info):
+	print "juhu"
+	print info
 	return 2;
 
 def get_info(info):

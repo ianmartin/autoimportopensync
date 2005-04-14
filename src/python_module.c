@@ -311,14 +311,22 @@ static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *f
 	//PyObject *get_info_parm = NULL;
 	//OSyncPluginInfo *info;
 
-	osync_trace(TRACE_INTERNAL, "Opening file");
 	FILE *fp = fopen(filename, "r");
-	osync_trace(TRACE_INTERNAL, "Running file");
-	PyImport_AddModule("sys");
-	PyRun_SimpleFile(fp, filename);
+	if (!fp) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open file %s", filename);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	if (PyRun_SimpleFile(fp, filename) == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't run module from file %s", filename);
+		PyErr_Print();
+		PyErr_Clear();
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 	
 	PyObject *module = PyImport_AddModule("__main__");
-	
 	if (!module) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load module from file %s", filename);
 		PyErr_Print();
@@ -327,18 +335,20 @@ static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *f
 		return FALSE;
 	}
 	
-	
-	osync_trace(TRACE_INTERNAL, "Calling file");
-	osync_trace(TRACE_INTERNAL, "Calling file %i", PyModule_Check(module));
+	PyObject *pyenv = 
 	
 	PyObject *pyret = PyObject_CallMethod(module, "blubbasd", "i", 1);
-	if (PyErr_Occurred())
-			PyErr_Print();
-	if (pyret != NULL) {
-			printf("Result of call: %ld\n", PyInt_AsLong(pyret));
-			Py_DECREF(pyret);
-		}
-	
+	if (pyret == NULL) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No result from call");
+		PyErr_Print();
+		PyErr_Clear();
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	printf("Result of call: %ld\n", PyInt_AsLong(pyret));
+	Py_DECREF(pyret);
+
+#if 0
 	PyObject *pDict = PyModule_GetDict(module);
 	osync_trace(TRACE_INTERNAL, "Dict is %p", pDict);
 	/* pDict is a borrowed reference */
@@ -369,7 +379,7 @@ static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *f
 		fprintf(stderr, "Cannot find function \"blubbasd\"\n");
 	}
 	
-#if 0
+
 	info = osync_plugin_new_info(env);
 	/*info->functions.initialize = py_initialize;
 	info->functions.connect = py_connect;
