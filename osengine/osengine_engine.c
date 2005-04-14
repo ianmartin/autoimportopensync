@@ -677,6 +677,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_chkconflict = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_chkconflict, (OSyncFlagTriggerFunc)trigger_status_end_conflicts, engine, NULL);
 	
+	engine->cmb_multiplied = osync_comb_flag_new(FALSE, TRUE);
+	
 	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)trigger_engine_committed_all, engine, NULL);
 	
@@ -724,6 +726,7 @@ void osengine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_finished);
 	osync_flag_free(engine->cmb_connected);
 	osync_flag_free(engine->cmb_read_all);
+	osync_flag_free(engine->cmb_multiplied);
 	osync_flag_free(engine->cmb_committed_all);
 	
 	itm_queue_flush(engine->incoming);
