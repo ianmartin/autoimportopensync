@@ -36,7 +36,9 @@ typedef struct {} OSyncPlugin;
 };
 
 %extend OSyncEnv {
-	OSyncEnv() {
+	OSyncEnv(OSyncEnv *exenv) {
+		if (exenv)
+			return exenv;
 		OSyncEnv *env = osync_env_new();
 		return env;
 	}
