@@ -229,11 +229,16 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 				osync_change_set_data(change, data, size, TRUE);
 			}
 			
+			if (mock_get_error(env->member, "SLOW_REPORT"))
+				sleep(1);
+			
 			if (osync_hashtable_detect_change(env->hashtable, change)) {
 				osync_context_report_change(ctx, change);
 				osync_hashtable_update_hash(env->hashtable, change);
 			}
 			g_free(hash);
+			
+			
 		}
 	}
 	g_dir_close(dir);

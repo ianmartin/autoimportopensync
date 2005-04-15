@@ -1646,6 +1646,124 @@ START_TEST (multisync_delayed_conflict_handler)
 }
 END_TEST
 
+START_TEST (multisync_delayed_slow)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncEngine *engine = osengine_new(group, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
+	osengine_init(engine, NULL);
+	
+	system("cp newdata data3/testdata1");
+	g_setenv("SLOW_REPORT", "2", TRUE);
+	
+	synchronize_once(engine, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	OSyncMappingTable *maptable = mappingtable_load(group, 2, 0);
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
+    mappingtable_close(maptable);
+	
+	OSyncHashTable *table = hashtable_load(group, 1, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	fail_unless(num_read == 2, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_written == 4, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+	
+	sleep(2);
+	
+	system("cp newdata data3/testdata");
+
+	system("cp newdata3 data1/testdata1");
+	system("rm -f data2/testdata1");
+	
+	synchronize_once(engine, NULL);
+
+	fail_unless(num_read == 1, NULL);
+	fail_unless(num_conflicts == 1, NULL);
+	fail_unless(num_written == 4, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
+
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
+	
+	maptable = mappingtable_load(group, 2, 0);
+	check_mapping(maptable, 1, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata", "mockformat", "data");
+	check_mapping(maptable, 1, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 2, -1, 3, "testdata1", "mockformat", "data");
+	check_mapping(maptable, 3, -1, 3, "testdata1", "mockformat", "data");
+    mappingtable_close(maptable);
+	
+	table = hashtable_load(group, 1, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 2);
+    check_hash(table, "testdata");
+    check_hash(table, "testdata1");
+	osync_hashtable_close(table);
+	
+	system("rm -f data1/*");
+	
+	mark_point();
+	num_conflicts = 0;
+	synchronize_once(engine, NULL);
+	osengine_finalize(engine);
+	
+	maptable = mappingtable_load(group, 0, 0);
+    mappingtable_close(maptable);
+	
+	table = hashtable_load(group, 1, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 2, 0);
+	osync_hashtable_close(table);
+	
+	table = hashtable_load(group, 3, 0);
+	osync_hashtable_close(table);
+	
+	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (multisync_conflict_ignore)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
@@ -1970,6 +2088,8 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_multi_conflict", multisync_multi_conflict);
 
 	create_case(s, "multisync_delayed_conflict_handler", multisync_delayed_conflict_handler);
+	create_case(s, "multisync_delayed_slow", multisync_delayed_slow);
+	
 	create_case(s, "multisync_conflict_ignore", multisync_conflict_ignore);
 	create_case(s, "multisync_conflict_ignore2", multisync_conflict_ignore2);
 	
