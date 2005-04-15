@@ -148,6 +148,8 @@ void osync_change_free_data(OSyncChange *change)
  */
 void osync_change_reset(OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, change);
+	
 	if (change->hash)
 		g_free(change->hash);
 	change->hash = NULL;
@@ -158,6 +160,7 @@ void osync_change_reset(OSyncChange *change)
 	change->changetype = CHANGE_UNKNOWN;
 	//change->sourceobjtype = NULL;
 	//change->destobjtype = NULL;
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief This will save a change into the database
@@ -365,7 +368,9 @@ void osync_change_set_objformat_string(OSyncChange *change, const char *name)
  */
 OSyncChangeType osync_change_get_changetype(OSyncChange *change)
 {
-	if (!change) return CHANGE_UNKNOWN;
+	if (!change)
+		return CHANGE_UNKNOWN;
+	
 	return change->changetype;
 }
 

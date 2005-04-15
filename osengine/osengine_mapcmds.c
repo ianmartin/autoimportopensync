@@ -226,6 +226,7 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	osync_flag_set(mapping->fl_solved);
 	
 	if (is_same == prod(g_list_length(engine->maptable->views) - 1)) {
+		osync_trace(TRACE_INTERNAL, "No need to sync. All entries are the same");
 		osync_flag_set(mapping->cmb_synced);
 		osync_flag_set(mapping->fl_multiplied);
 	}

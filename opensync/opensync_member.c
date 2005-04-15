@@ -1158,7 +1158,7 @@ void osync_member_committed_all(OSyncMember *member)
 	GList *f;
 	for (f = member->format_sinks; f; f = f->next) {
 		OSyncObjFormatSink *fmtsink = f->data;
-		osync_debug("OSYNC", 2, "Sending committed all to sink %s", fmtsink->format ? fmtsink->format->name : "None");
+		osync_debug("OSYNC", 2, "Sending committed all to sink %p:%s", fmtsink, fmtsink->format ? fmtsink->format->name : "None");
 
 		OSyncFormatFunctions functions = fmtsink->functions;
 

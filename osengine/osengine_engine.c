@@ -345,6 +345,9 @@ void send_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 
 void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 {
+	if (!sender->committed_all_sent)
+		send_engine_committed_all(sender);
+	
 	osync_flag_changing(target->fl_done);
 	ITMessage *message = itm_message_new_methodcall(sender, "SYNC_DONE");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_sync_done_reply_receiver, sender);
@@ -521,15 +524,31 @@ static void trigger_clients_connected(OSyncEngine *engine)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void trigger_engine_committed_all(OSyncEngine *engine)
+void send_engine_committed_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	
+	engine->committed_all_sent = TRUE;
 	
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		send_committed_all(client, engine);
 	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void trigger_engine_committed_all(OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	
+	if (osync_flag_is_not_set(engine->cmb_multiplied)) {
+		osync_trace(TRACE_EXIT, "%s: Not multiplied yet", __func__);
+		return;
+	}
+	
+	send_engine_committed_all(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -593,6 +612,8 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	itm_queue_flush(engine->incoming);
 	
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
+	
+	engine->committed_all_sent = FALSE;
 	
 	osengine_mappingtable_reset(engine->maptable);
 	
