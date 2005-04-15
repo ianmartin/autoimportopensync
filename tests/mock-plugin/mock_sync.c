@@ -116,6 +116,14 @@ static void *mock_initialize(OSyncMember *member, OSyncError **error)
 		return NULL;
 	}
 	
+	//Rewrite the batch commit functions so we can disable them if necessary
+	if (!mock_get_error(member, "BATCH_COMMIT")) {
+		OSyncObjFormatSink *fmtsink = member->format_sinks->data;
+		osync_trace(TRACE_INTERNAL, "Disabling batch_commit on %p:%s: %i", fmtsink, fmtsink->format ? fmtsink->format->name : "None", g_list_length(member->format_sinks));
+		OSyncFormatFunctions *functions = &(fmtsink->functions);
+		functions->batch_commit = NULL;
+	}
+	
 	env->member = member;
 	env->hashtable = osync_hashtable_new();
 
@@ -299,21 +307,21 @@ static void mock_read(OSyncContext *ctx, OSyncChange *change)
 static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 {
 	/*TODO: Create directory for file, if it doesn't exist */
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
 	
-	fail_unless(env->committed_all == FALSE, NULL);
+	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
 	char *filename = NULL;
 	OSyncError *error = NULL;
 	filename = g_strdup_printf ("%s/%s", env->path, osync_change_get_uid(change));
-	
+		
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
 			if (!remove(filename) == 0) {
 				osync_debug("FILE-SYNC", 0, "Unable to remove file %s", filename);
 				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
 				g_free(filename);
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to write", __func__);
 				return FALSE;
 			}
 			break;
@@ -322,6 +330,7 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 				osync_debug("FILE-SYNC", 0, "File %s already exists", filename);
 				osync_context_report_error(ctx, OSYNC_ERROR_EXISTS, "Entry already exists");
 				g_free(filename);
+				osync_trace(TRACE_EXIT_ERROR, "%s: Entry already exists", __func__);
 				return FALSE;
 			}
 			/* No break. Continue below */
@@ -331,6 +340,7 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
 				osync_context_report_osyncerror(ctx, &error);
 				g_free(filename);
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 				return FALSE;
 			}
 			
@@ -340,11 +350,11 @@ static osync_bool mock_access(OSyncContext *ctx, OSyncChange *change)
 			osync_change_set_hash(change, hash);
 			break;
 		default:
-			osync_debug("FILE-SYNC", 0, "Unknown change type");
+			fail("no changetype given");
 	}
-	osync_context_report_success(ctx);
 	g_free(filename);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
@@ -367,6 +377,7 @@ static osync_bool mock_commit_change(OSyncContext *ctx, OSyncChange *change)
 		return FALSE;
 
 	osync_hashtable_update_hash(env->hashtable, change);
+	osync_context_report_success(ctx);
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 	return TRUE;
 }
@@ -392,6 +403,9 @@ static void mock_disconnect(OSyncContext *ctx)
 {
 	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
+	
+	fail_unless(env->committed_all == TRUE, NULL);
+	env->committed_all = FALSE;
 	
 	if (mock_get_error(env->member, "DISCONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering DISCONNECT_ERROR error");
@@ -427,23 +441,31 @@ static osync_bool mock_is_available(OSyncError **error)
 
 static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange **changes)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, contexts, changes);
 	mock_env *env = (mock_env *)data;
 	
 	fail_unless(env->committed_all == FALSE, NULL);
 	env->committed_all = TRUE;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, contexts, changes);
+	int i;
+	for (i = 0; contexts[i]; i++) {
+		if (mock_access(contexts[i], changes[i])) {
+			osync_hashtable_update_hash(env->hashtable, changes[i]);
+			osync_context_report_success(contexts[i]);
+		}
+	}
+		
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void mock_committed_all(void *data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	mock_env *env = (mock_env *)data;
 	
 	fail_unless(env->committed_all == FALSE, NULL);
 	env->committed_all = TRUE;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -476,16 +498,12 @@ void get_info(OSyncEnv *env)
 	info->timeouts.sync_done_timeout = 5;
 	info->timeouts.get_changeinfo_timeout = 5;
 	info->timeouts.get_data_timeout = 5;
-	info->timeouts.commit_timeout = 5;
+	info->timeouts.commit_timeout = 15;
 	
 	if (g_getenv("IS_AVAILABLE"))
 		info->functions.is_available = mock_is_available;
 	
-	if (g_getenv("BATCH_COMMIT")) {
-		osync_plugin_set_batch_commit_objformat(info, "data", "mockformat", mock_batch_commit);
-	} else {
-		osync_plugin_set_commit_objformat(info, "data", "mockformat", mock_commit_change);
-		if (!g_getenv("BATCH_COMMIT")) 
-			osync_plugin_set_committed_all_objformat(info, "data", "mockformat", mock_committed_all);
-	}
+	osync_plugin_set_batch_commit_objformat(info, "data", "mockformat", mock_batch_commit);
+	osync_plugin_set_commit_objformat(info, "data", "mockformat", mock_commit_change);
+	osync_plugin_set_committed_all_objformat(info, "data", "mockformat", mock_committed_all);
 }

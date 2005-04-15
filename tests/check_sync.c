@@ -647,8 +647,7 @@ Suite *env_suite(void)
 	create_case(s, "sync_moddel", sync_moddel);
 	create_case(s, "sync_conflict_moddel", sync_conflict_moddel);
 	create_case(s, "sync_conflict_duplicate", sync_conflict_duplicate);
-	//create_case(s, "sync_subdirs_new", sync_subdirs_new);
-
+	
 	return s;
 }
 

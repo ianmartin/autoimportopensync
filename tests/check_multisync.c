@@ -1705,7 +1705,7 @@ START_TEST (multisync_delayed_slow)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_read == 1, NULL);
+	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 4, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
@@ -1759,6 +1759,8 @@ START_TEST (multisync_delayed_slow)
 	fail_unless(!system("test \"x$(ls data1)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
+	
+	g_unsetenv("SLOW_REPORT");
 	
 	destroy_testbed(testbed);
 }
@@ -2060,6 +2062,110 @@ START_TEST (multisync_conflict_ignore2)
 }
 END_TEST
 
+START_TEST(multisync_easy_new_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_easy_new();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_triple_del_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_triple_del();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_conflict_hybrid_choose2_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_conflict_hybrid_choose2();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_delayed_conflict_handler_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_delayed_conflict_handler();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_delayed_slow_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_delayed_slow();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_conflict_ignore_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_conflict_ignore();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_conflict_ignore2_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_conflict_ignore2();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_conflict_hybrid_duplicate_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_conflict_hybrid_duplicate();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_multi_conflict_b)
+{
+	g_setenv("BATCH_COMMIT", "7", TRUE);
+	multisync_multi_conflict();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_conflict_hybrid_choose2_b2)
+{
+	g_setenv("BATCH_COMMIT", "2", TRUE);
+	multisync_conflict_hybrid_choose2();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_delayed_conflict_handler_b2)
+{
+	g_setenv("BATCH_COMMIT", "2", TRUE);
+	multisync_delayed_conflict_handler();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_conflict_ignore_b2)
+{
+	g_setenv("BATCH_COMMIT", "2", TRUE);
+	multisync_conflict_ignore();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
+START_TEST(multisync_multi_conflict_b2)
+{
+	g_setenv("BATCH_COMMIT", "2", TRUE);
+	multisync_multi_conflict();
+	g_unsetenv("BATCH_COMMIT");
+}
+END_TEST
+
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
@@ -2092,6 +2198,21 @@ Suite *multisync_suite(void)
 	
 	create_case(s, "multisync_conflict_ignore", multisync_conflict_ignore);
 	create_case(s, "multisync_conflict_ignore2", multisync_conflict_ignore2);
+	
+	create_case(s, "multisync_easy_new_b", multisync_easy_new_b);
+	create_case(s, "multisync_triple_del_b", multisync_triple_del_b);
+	create_case(s, "multisync_conflict_hybrid_choose2_b", multisync_conflict_hybrid_choose2_b);
+	create_case(s, "multisync_delayed_conflict_handler_b", multisync_delayed_conflict_handler_b);
+	create_case(s, "multisync_delayed_slow_b", multisync_delayed_slow_b);
+	create_case(s, "multisync_conflict_ignore_b", multisync_conflict_ignore_b);
+	create_case(s, "multisync_conflict_ignore2_b", multisync_conflict_ignore2_b);
+	create_case(s, "multisync_conflict_hybrid_duplicate_b", multisync_conflict_hybrid_duplicate_b);
+	create_case(s, "multisync_multi_conflict_b", multisync_multi_conflict_b);
+	
+	create_case(s, "multisync_conflict_hybrid_choose2_b2", multisync_conflict_hybrid_choose2_b2);
+	create_case(s, "multisync_delayed_conflict_handler_b2", multisync_delayed_conflict_handler_b2);
+	create_case(s, "multisync_conflict_ignore_b2", multisync_conflict_ignore_b2);
+	create_case(s, "multisync_multi_conflict_b2", multisync_multi_conflict_b2);
 	
 	return s;
 }

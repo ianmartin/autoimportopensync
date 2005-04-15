@@ -1,4 +1,5 @@
 #include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <glib.h>

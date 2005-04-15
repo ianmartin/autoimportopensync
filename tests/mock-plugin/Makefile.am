@@ -11,8 +11,8 @@ endif
 
 mock_sync_la_SOURCES = mock_sync.c
 mock_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
-mock_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ @XML_LIBS@
+mock_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ @XML_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la
 
 mockformat_la_SOURCES = mock_format.c
 mockformat_la_LDFLAGS = -avoid-version -export-dynamic -module
-mockformat_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+mockformat_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la
