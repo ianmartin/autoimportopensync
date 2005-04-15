@@ -2113,8 +2113,10 @@ END_TEST
 START_TEST(multisync_conflict_ignore2_b)
 {
 	g_setenv("BATCH_COMMIT", "7", TRUE);
+	g_setenv("NO_TIMEOUTS", "7", TRUE);
 	multisync_conflict_ignore2();
 	g_unsetenv("BATCH_COMMIT");
+	g_unsetenv("NO_TIMEOUTS");
 }
 END_TEST
 
@@ -2169,7 +2171,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	//Suite *s2 = suite_create("Multisync");
+	Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);
@@ -2205,7 +2207,7 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_delayed_conflict_handler_b", multisync_delayed_conflict_handler_b);
 	create_case(s, "multisync_delayed_slow_b", multisync_delayed_slow_b);
 	create_case(s, "multisync_conflict_ignore_b", multisync_conflict_ignore_b);
-	create_case(s, "multisync_conflict_ignore2_b", multisync_conflict_ignore2_b);
+	create_case(s2, "multisync_conflict_ignore2_b", multisync_conflict_ignore2_b);
 	create_case(s, "multisync_conflict_hybrid_duplicate_b", multisync_conflict_hybrid_duplicate_b);
 	create_case(s, "multisync_multi_conflict_b", multisync_multi_conflict_b);
 	
@@ -2214,7 +2216,7 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_conflict_ignore_b2", multisync_conflict_ignore_b2);
 	create_case(s, "multisync_multi_conflict_b2", multisync_multi_conflict_b2);
 	
-	return s;
+	return s2;
 }
 
 int main(void)

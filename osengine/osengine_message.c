@@ -208,7 +208,8 @@ gboolean itm_message_is_type(ITMessage *message, ITMessageType type)
  */
 void itm_message_reset_timeout(ITMessage *message)
 {
-	g_assert(message->source);
+	if (!message->source)
+		return;
 
 	//FIXME we might have a race condition here.
 	GMainContext *context = g_source_get_context(message->source);

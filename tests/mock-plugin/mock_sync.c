@@ -500,6 +500,16 @@ void get_info(OSyncEnv *env)
 	info->timeouts.get_data_timeout = 5;
 	info->timeouts.commit_timeout = 15;
 	
+	
+	if (g_getenv("NO_TIMEOUTS")) {
+		info->timeouts.disconnect_timeout = 0;
+		info->timeouts.connect_timeout = 0;
+		info->timeouts.sync_done_timeout = 0;
+		info->timeouts.get_changeinfo_timeout = 0;
+		info->timeouts.get_data_timeout = 0;
+		info->timeouts.commit_timeout = 0;
+	}
+	
 	if (g_getenv("IS_AVAILABLE"))
 		info->functions.is_available = mock_is_available;
 	

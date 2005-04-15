@@ -430,7 +430,8 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	}
 	
 	//And make sure we dont synchronize it this time
-	osengine_mapping_reset(mapping);
+	//osengine_mapping_reset(mapping);
+	osync_flag_set(mapping->fl_multiplied);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
