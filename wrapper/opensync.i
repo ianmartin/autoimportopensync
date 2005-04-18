@@ -36,9 +36,11 @@ typedef struct {} OSyncPlugin;
 };
 
 %extend OSyncEnv {
-	OSyncEnv(OSyncEnv *exenv) {
-		if (exenv)
+	OSyncEnv(PyObject *obj) {
+		if (obj) {
+			OSyncEnv *exenv = (OSyncEnv *)PyCObject_AsVoidPtr(obj);
 			return exenv;
+		}
 		OSyncEnv *env = osync_env_new();
 		return env;
 	}
