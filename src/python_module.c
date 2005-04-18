@@ -20,41 +20,6 @@ struct MemberData {
 };
 
 #if 0
-/** Insert plugin search path in sys.path
- *
- * Isn't there an easier way of setting it?
- *
- *FIXME: It would be better if we just load modules from
- * their filename, not setting the module search path
- */
-/*static int change_sys_path()
-{
-	int rv = -1;
-	PyObject *sys = NULL;
-	PyObject *path = NULL;
-	PyObject *dir = NULL;
-
-	sys = PyImport_ImportModule("sys");
-	if (!sys) goto error;
-
-	path = PyObject_GetAttrString(sys, "path");
-	if (!path) goto error;
-
-	dir = PyString_FromString(OPENSYNC_PYTHONPLG_DIR);
-	if (!dir) goto error;
-
-	if (PyList_Insert(path, 0, dir) < 0)
-		goto error;
-
-	rv = 0;
-
-error:
-	Py_XDECREF(dir);
-	Py_XDECREF(path);
-	Py_XDECREF(sys);
-	return rv;
-}*/
-
 /** Calls the method initialize function
  *
  * The python initialize() function should return an object that
@@ -335,16 +300,41 @@ static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *f
 		return FALSE;
 	}
 	
-	PyObject *pyenv = 
+	PyObject *pyenv_cobject = PyCObject_FromVoidPtr(&env, NULL);
+	if (!pyenv_cobject) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnt make pyenv cobject");
+		PyErr_Print();
+		PyErr_Clear();
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	PyObject *pyenv = PyObject_CallMethod(module, "OSyncEnv", "O", pyenv_cobject);
+	if (!pyenv) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OsyncEnv");
+		PyErr_Print();
+		PyErr_Clear();
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 	
 	PyObject *pyret = PyObject_CallMethod(module, "blubbasd", "i", 1);
-	if (pyret == NULL) {
+	if (!pyret) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No result from call");
 		PyErr_Print();
 		PyErr_Clear();
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	
+	if (!PyObject_CallMethod(module, "get_info", "O", pyenv)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error calling get_info");
+		PyErr_Print();
+		PyErr_Clear();
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
 	printf("Result of call: %ld\n", PyInt_AsLong(pyret));
 	Py_DECREF(pyret);
 
@@ -408,7 +398,7 @@ static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *f
 	}
 
 	/* get_info_parm = opensync.PluginInfo(pyinfo_cobject) */
-	get_info_parm = PyObject_CallMethod(osync_module, "PluginInfo", "O", pyinfo_cobject);
+	get_info_parm = PyObject_CallMethod(osync_module, "PluginInfo", NULL, NULL);
 	if (!get_info_parm) {
 		osync_debug("python", 1, "Can't create get_info_parm");
 		PyErr_Print();

@@ -37,9 +37,10 @@ def blubbasd(info):
 	print info
 	return 2;
 
-def get_info(info):
-	info.accept_objtype("contact")
-	info.accept_objformat("contact", "vcard30")
-	info.set_name("testmodule", 1)
+def get_info(env):
+	print "Number of plugins: " + str(env.num_plugins())
+#	info.accept_objtype("contact")
+#	info.accept_objformat("contact", "vcard30")
+#	info.set_name("testmodule", 1)
 
 # vim: ts=4:sw=4:noet
