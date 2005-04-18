@@ -2171,7 +2171,7 @@ END_TEST
 Suite *multisync_suite(void)
 {
 	Suite *s = suite_create("Multisync");
-	Suite *s2 = suite_create("Multisync");
+	//Suite *s2 = suite_create("Multisync");
 	create_case(s, "multisync_easy_new", multisync_easy_new);
 	create_case(s, "multisync_dual_new", multisync_dual_new);
 	create_case(s, "multisync_triple_new", multisync_triple_new);
@@ -2207,7 +2207,7 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_delayed_conflict_handler_b", multisync_delayed_conflict_handler_b);
 	create_case(s, "multisync_delayed_slow_b", multisync_delayed_slow_b);
 	create_case(s, "multisync_conflict_ignore_b", multisync_conflict_ignore_b);
-	create_case(s2, "multisync_conflict_ignore2_b", multisync_conflict_ignore2_b);
+	create_case(s, "multisync_conflict_ignore2_b", multisync_conflict_ignore2_b);
 	create_case(s, "multisync_conflict_hybrid_duplicate_b", multisync_conflict_hybrid_duplicate_b);
 	create_case(s, "multisync_multi_conflict_b", multisync_multi_conflict_b);
 	
@@ -2216,7 +2216,7 @@ Suite *multisync_suite(void)
 	create_case(s, "multisync_conflict_ignore_b2", multisync_conflict_ignore_b2);
 	create_case(s, "multisync_multi_conflict_b2", multisync_multi_conflict_b2);
 	
-	return s2;
+	return s;
 }
 
 int main(void)
