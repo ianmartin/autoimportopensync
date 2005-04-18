@@ -136,6 +136,8 @@ static void mock_connect(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 
+	env->committed_all = TRUE;
+
 	if (mock_get_error(env->member, "CONNECT_ERROR")) {
 		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering CONNECT_ERROR error");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Triggering CONNECT_ERROR error");
@@ -168,9 +170,7 @@ static void mock_connect(OSyncContext *ctx)
 	} else {
 		osync_context_report_success(ctx);
 	}
-	
-	env->committed_all = FALSE;
-	
+		
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -251,6 +251,9 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 	}
 	g_dir_close(dir);
 	osync_hashtable_report_deleted(env->hashtable, ctx, "data");
+	
+	fail_unless(env->committed_all == TRUE, NULL);
+	env->committed_all = FALSE;
 	
 	osync_context_report_success(ctx);
 }
@@ -404,7 +407,8 @@ static void mock_disconnect(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
-	fail_unless(env->committed_all == TRUE, NULL);
+	if (!g_getenv("NO_COMMITTED_ALL_CHECK"))
+		fail_unless(env->committed_all == TRUE, NULL);
 	env->committed_all = FALSE;
 	
 	if (mock_get_error(env->member, "DISCONNECT_ERROR")) {
@@ -454,7 +458,13 @@ static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange *
 			osync_context_report_success(contexts[i]);
 		}
 	}
-		
+	
+	if (g_getenv("NUM_BATCH_COMMITS")) {
+		int req = atoi(g_getenv("NUM_BATCH_COMMITS"));
+		printf("%i %i\n", req, i);
+		fail_unless(req == i, NULL);
+	}
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
