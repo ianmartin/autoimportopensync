@@ -31,9 +31,8 @@ CLEANFILES = \
 kdepim_sync_la_SOURCES = src/kdepim_sync.cpp
 kdepim_sync_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall
 kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
-
 # ugly hack to make the c++ library work
-kdepim_sync_la_LIBADD = -lstdc++ -L@OPENSYNC_LIBDIR@
+kdepim_sync_la_LIBADD = -lstdc++ -L@OPENSYNC_LIBDIR@ -lopensync
 
 src/kdepim_impl.cpp: KNotesIface_stub.h
 
@@ -49,4 +48,4 @@ dist_kdepim_lib_la_SOURCES = \
 nodist_kdepim_lib_la_SOURCES = KNotesIface_stub.cpp
 kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
-kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync-xml
+kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync -lopensync-xml
