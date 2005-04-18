@@ -278,6 +278,7 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		osync_flag_set(mapping->fl_chkconflict);
 		
 		mapping->fl_multiplied = osync_flag_new(NULL);
+		osync_flag_set(mapping->fl_multiplied);
 		
 		mapping->cmb_has_data = osync_comb_flag_new(FALSE, FALSE);
 		osync_flag_set_pos_trigger(mapping->cmb_has_data, (OSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
@@ -305,6 +306,7 @@ void osengine_mapping_free(OSyncMapping *mapping)
 
 	osync_flag_detach(mapping->cmb_synced);
 	osync_flag_detach(mapping->fl_chkconflict);
+	osync_flag_detach(mapping->fl_multiplied);
 
 	mapping->table->mappings = g_list_remove(mapping->table->mappings, mapping);
 	osync_flag_free(mapping->fl_solved);
@@ -393,7 +395,8 @@ void osengine_mapping_reset(OSyncMapping *mapping)
 		osengine_mappingentry_reset(entry);
 	}
 	
-	osync_flag_unset(mapping->fl_multiplied);
+	osync_flag_set(mapping->fl_multiplied);
+	osync_flag_set(mapping->fl_chkconflict);
 	mapping->master = NULL;
 	osync_trace(TRACE_EXIT, "osengine_mapping_reset");
 }

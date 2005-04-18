@@ -173,6 +173,7 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		osync_flag_set(entry->fl_mapped);
 		osync_flag_unset(entry->mapping->fl_solved);
 		osync_flag_unset(entry->mapping->fl_chkconflict);
+		osync_flag_unset(entry->mapping->fl_multiplied);
 	}
 	
 	if (osync_change_has_data(change)) {
@@ -231,6 +232,7 @@ void _read_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncE
 	
 	osync_flag_unset(entry->mapping->fl_solved);
 	osync_flag_unset(entry->mapping->fl_chkconflict);
+	osync_flag_unset(entry->mapping->fl_multiplied);
 	
 	if (osync_change_get_changetype(entry->change) == CHANGE_DELETED)
 		osync_flag_set(entry->fl_deleted);
@@ -530,6 +532,8 @@ void send_engine_committed_all(OSyncEngine *engine)
 	
 	engine->committed_all_sent = TRUE;
 	
+	osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Committed all ++++");
+		
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;

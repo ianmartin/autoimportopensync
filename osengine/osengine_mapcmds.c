@@ -267,6 +267,7 @@ void osengine_change_map(OSyncEngine *engine, OSyncMappingEntry *entry)
 	if (!(mapping = _osengine_mapping_find(engine->maptable, entry))) {
 		mapping = osengine_mapping_new(engine->maptable);
 		osync_flag_unset(mapping->fl_chkconflict);
+		osync_flag_unset(mapping->fl_multiplied);
 		mapping->id = osengine_mappingtable_get_next_id(engine->maptable);
 		osync_trace(TRACE_INTERNAL, "No previous mapping found. Creating new one: %p", mapping);
 	}
@@ -432,6 +433,8 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	//And make sure we dont synchronize it this time
 	//osengine_mapping_reset(mapping);
 	osync_flag_set(mapping->fl_multiplied);
+	osync_flag_set(mapping->cmb_synced);
+	osync_flag_set(mapping->cmb_has_info);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
