@@ -165,7 +165,7 @@ static char *print_file(OSyncChange *change)
 	osync_debug("FILE", 4, "start: %s", __func__);
 	fs_fileinfo *file = (fs_fileinfo *)osync_change_get_data(change);
 
-	char *printable = g_strdup_printf ("File: %s\nSize: %i", osync_change_get_uid(change), file->size);
+	char *printable = g_strdup_printf ("File: %s\nSize: %i", osync_change_get_uid(change), file ? file->size : 0);
 	return printable;
 }
 
