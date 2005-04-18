@@ -15,12 +15,12 @@ CLEANFILES = \
 
 if HAVE_PYTHON
 osdir = $(pythondir)
-os_PYTHON = opensync.py
+nodist_os_PYTHON = opensync.py
 
 osbindingsdir = $(pythondir)
 osbindings_LTLIBRARIES = _opensync.la
 endif
 
-_opensync_la_SOURCES = opensync_wrap.c
+nodist__opensync_la_SOURCES = opensync_wrap.c
 _opensync_la_LDFLAGS = @PACKAGE_LIBS@ @XML_LIBS@ $(PYTHON_LDFLAGS) -R $(libdir) -module
 _opensync_la_LIBADD = $(top_builddir)/opensync/libopensync.la

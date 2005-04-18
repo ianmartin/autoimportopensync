@@ -471,7 +471,6 @@ static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange *
 	
 	if (g_getenv("NUM_BATCH_COMMITS")) {
 		int req = atoi(g_getenv("NUM_BATCH_COMMITS"));
-		printf("%i %i\n", req, i);
 		fail_unless(req == i, NULL);
 	}
 	

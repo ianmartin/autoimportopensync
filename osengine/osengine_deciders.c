@@ -140,7 +140,8 @@ void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_set(engine->cmb_synced) \
 	&& osync_flag_is_set(mapping->cmb_has_info) \
-	&& osync_flag_is_not_set(mapping->cmb_deleted)) {
+	&& osync_flag_is_not_set(mapping->cmb_deleted) \
+	&& osync_flag_is_set(engine->cmb_multiplied)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Reset Mapping (Mapping %p) ++++", mapping);
 		osengine_mapping_reset(mapping);
 		osync_trace(TRACE_EXIT, "osengine_mapping_decider");
