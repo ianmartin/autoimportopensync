@@ -17,6 +17,8 @@ struct OSyncEnv {
 	GList *data_detectors;
 	GList *filter_functions;
 	GList *extension_templates;
+	
+	GModule *current_module;
 };
 #endif
 

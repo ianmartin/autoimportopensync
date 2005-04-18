@@ -139,6 +139,7 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
 	if (env) {
 		env->plugins = g_list_append(env->plugins, plugin);
 		plugin->env = env;
+		plugin->real_plugin = env->current_module;
 	}
 	
 	return plugin;
@@ -230,7 +231,9 @@ osync_bool osync_module_load(OSyncEnv *env, const char *path, OSyncError **error
 	env->modules = g_list_append(env->modules, module);
 	
 	/* Call the get_info function */
+	env->current_module = module;
 	fct_info(env);
+	env->current_module = NULL;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, module);
 	return TRUE;

@@ -20,9 +20,9 @@
  
 #include "mock_sync.h"
 
-int mock_custom_function(int input)
+int mock_custom_function(mock_env *env, int input, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, input);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, input, error);
 	
 	fail_unless(input == 1, NULL);
 	
