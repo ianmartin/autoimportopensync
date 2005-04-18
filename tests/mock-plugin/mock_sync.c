@@ -20,6 +20,16 @@
  
 #include "mock_sync.h"
 
+int mock_custom_function(int input)
+{
+	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, input);
+	
+	fail_unless(input == 1, NULL);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return 2;
+}
+
 /*Load the state from a xml file and return it in the conn struct*/
 static osync_bool mock_parse_settings(mock_env *env, char *data, int size, OSyncError **error)
 {

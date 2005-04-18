@@ -118,30 +118,30 @@ OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const
  */
 OSyncPlugin *osync_plugin_new(OSyncEnv *env)
 {
-        OSyncPlugin *plugin = g_malloc0(sizeof(OSyncPlugin));
-        g_assert(plugin);
-        memset(&(plugin->info), 0, sizeof(plugin->info));
-        memset(&(plugin->info.functions), 0, sizeof(plugin->info.functions));
-        memset(&(plugin->info.timeouts), 0, sizeof(plugin->info.timeouts));
-        
-        //Set the default timeouts;
-        plugin->info.timeouts.connect_timeout = 60;
-		plugin->info.timeouts.sync_done_timeout = 60;
-		plugin->info.timeouts.disconnect_timeout = 60;
-		plugin->info.timeouts.get_changeinfo_timeout = 60;
-		plugin->info.timeouts.get_data_timeout = 60;
-        plugin->info.timeouts.commit_timeout = 60;
-        plugin->info.timeouts.read_change_timeout = 60;
-        
-        plugin->info.plugin = plugin;
-        plugin->info.config_type = NEEDS_CONFIGURATION;
-        
-        if (env) {
-        	env->plugins = g_list_append(env->plugins, plugin);
-        	plugin->env = env;
-        }
-        
-        return plugin;
+	OSyncPlugin *plugin = g_malloc0(sizeof(OSyncPlugin));
+	g_assert(plugin);
+	memset(&(plugin->info), 0, sizeof(plugin->info));
+	memset(&(plugin->info.functions), 0, sizeof(plugin->info.functions));
+	memset(&(plugin->info.timeouts), 0, sizeof(plugin->info.timeouts));
+	
+	//Set the default timeouts;
+	plugin->info.timeouts.connect_timeout = 60;
+	plugin->info.timeouts.sync_done_timeout = 60;
+	plugin->info.timeouts.disconnect_timeout = 60;
+	plugin->info.timeouts.get_changeinfo_timeout = 60;
+	plugin->info.timeouts.get_data_timeout = 60;
+	plugin->info.timeouts.commit_timeout = 60;
+	plugin->info.timeouts.read_change_timeout = 60;
+	
+	plugin->info.plugin = plugin;
+	plugin->info.config_type = NEEDS_CONFIGURATION;
+	
+	if (env) {
+		env->plugins = g_list_append(env->plugins, plugin);
+		plugin->env = env;
+	}
+	
+	return plugin;
 }
 
 /*! @brief Used to free a plugin

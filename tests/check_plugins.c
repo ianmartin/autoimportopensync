@@ -7,7 +7,7 @@ START_TEST (plugin_create)
 }
 END_TEST
 
-START_TEST (plugin_no_config)
+START_TEST(plugin_no_config)
 {
 	char *testbed = setup_testbed("plugin_no_config");
 	OSyncEnv *osync = init_env();
@@ -31,6 +31,26 @@ START_TEST (plugin_no_config)
 }
 END_TEST
 
+START_TEST(plugin_call_custom)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncMember *member = osync_group_nth_member(group, 0);
+	
+	OSyncError *error = NULL;
+	int ret = (int)osync_member_call_plugin(member, "mock_custom_function", (void *)1, &error);
+	fail_unless(ret == 2, NULL);
+	
+	osync_env_finalize(osync, &error);
+	osync_env_free(osync);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *plugin_suite(void)
 {
 	Suite *s = suite_create("Plugins");
@@ -38,6 +58,7 @@ Suite *plugin_suite(void)
 	
 	create_case(s, "plugin_create", plugin_create);
 	create_case(s, "plugin_no_config", plugin_no_config);
+	create_case(s, "plugin_call_custom", plugin_call_custom);
 
 	return s;
 }
