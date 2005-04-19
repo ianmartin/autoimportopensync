@@ -68,3 +68,4 @@ osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change)
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled);
 void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
 void osync_member_set_configdir(OSyncMember *member, const char *configdir);
+void *osync_member_get_plugindata(OSyncMember *member);

@@ -313,6 +313,23 @@ void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
 	member->pluginname = g_strdup(pluginname);
 }
 
+/** @brief Returns the custom data set to the OSyncPluginInfo
+ * 
+ * You can set custom data to the OSyncPluginInfo struct using
+ * info->plugin_data = something; you can then query this data later
+ * using this function.
+ * 
+ * @param member The member
+ * @returns The plugin data set before, or NULL if none was set
+ * 
+ */
+void *osync_member_get_plugindata(OSyncMember *member)
+{
+	g_assert(member);
+	OSyncPlugin *plugin = osync_member_get_plugin(member);
+	return osync_plugin_get_plugin_data(plugin);
+}
+
 /** @brief Returns the configuration directory where this member is stored
  * 
  * @param member The member
@@ -921,6 +938,11 @@ void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function,
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
+	if (!functions.get_changeinfo) {
+		osync_context_report_error(context, OSYNC_ERROR_GENERIC, "No get_changeinfo function was given");
+		osync_trace(TRACE_EXIT_ERROR, "%s: No get_changeinfo function was given", __func__);
+		return;
+	}
 	functions.get_changeinfo(context);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1004,6 +1026,11 @@ void osync_member_connect(OSyncMember *member, OSyncEngCallback function, void *
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
+	if (!functions.connect) {
+		osync_context_report_error(context, OSYNC_ERROR_GENERIC, "No connect function was given");
+		osync_trace(TRACE_EXIT_ERROR, "%s: No connect function was given", __func__);
+		return;
+	}
 	functions.connect(context);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1024,6 +1051,11 @@ void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, voi
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
+	if (!functions.disconnect) {
+		osync_context_report_error(context, OSYNC_ERROR_GENERIC, "No disconnect function was given");
+		osync_trace(TRACE_EXIT_ERROR, "%s: No disconnect function was given", __func__);
+		return;
+	}
 	functions.disconnect(context);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -1132,6 +1164,11 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 				return;
 			} else {
 				// Send the change
+				if (!fmtsink->functions.commit_change) {
+					osync_context_report_error(context, OSYNC_ERROR_GENERIC, "No commit_change function was given");
+					osync_trace(TRACE_EXIT_ERROR, "%s: No commit_change function was given", __func__);
+					return;
+				}
 				fmtsink->functions.commit_change(context, change);
 				osync_trace(TRACE_EXIT, "%s", __func__);
 				return;
