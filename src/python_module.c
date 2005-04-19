@@ -12,61 +12,137 @@
 #include <glib.h>
 #include "config.h"
 
-struct MemberData {
+typedef struct MemberData {
 	PyThreadState *interp_thread;
 	PyObject *module;
 	PyObject *object;
-	PyObject *osync_module;
-};
+} MemberData;
 
-#if 0
+static PyObject *pm_load_opensync(OSyncError **error)
+{
+	PyObject *osync_module = PyImport_ImportModule("opensync");
+	if (!osync_module) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load OpenSync module");
+		PyErr_Print();
+		return NULL;
+	}
+	return osync_module;
+}
+
+static PyObject *pm_load_script(const char *filename, OSyncError **error)
+{
+	FILE *fp = fopen(filename, "r");
+	if (!fp) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open file %s", filename);
+		return NULL;
+	}
+	
+	if (PyRun_SimpleFile(fp, filename) == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't run module from file %s", filename);
+		PyErr_Print();
+		return NULL;
+	}
+	
+	PyObject *module = PyImport_AddModule("__main__");
+	if (!module) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load module from file %s", filename);
+		PyErr_Print();
+		return NULL;
+	}
+	return module;
+}
+
+static PyObject *pm_make_change(PyObject *module, OSyncChange *change, OSyncError **error)
+{
+	PyObject *pychg_cobject = PyCObject_FromVoidPtr(change, NULL);
+	if (!pychg_cobject) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnt make pychg cobject");
+		PyErr_Print();
+		return NULL;
+	}
+	
+	PyObject *pychg = PyObject_CallMethod(module, "OSyncChange", "O", pychg_cobject);
+	if (!pychg) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncChange");
+		PyErr_Print();
+		Py_XDECREF(pychg_cobject);
+		return NULL;
+	}
+	return pychg;
+}
+
+static PyObject *pm_make_context(PyObject *module, OSyncContext *ctx, OSyncError **error)
+{
+	PyObject *pyctx_cobject = PyCObject_FromVoidPtr(ctx, NULL);
+	if (!pyctx_cobject) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnt make pyctx cobject");
+		PyErr_Print();
+		return NULL;
+	}
+	
+	PyObject *pyctx = PyObject_CallMethod(module, "OSyncContext", "O", pyctx_cobject);
+	if (!pyctx) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncContext");
+		PyErr_Print();
+		Py_XDECREF(pyctx_cobject);
+		return NULL;
+	}
+	return pyctx;
+}
+
+static PyObject *pm_make_member(PyObject *module, OSyncMember *member, OSyncError **error)
+{
+	PyObject *pymember_cobject = PyCObject_FromVoidPtr(member, NULL);
+	if (!pymember_cobject) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnt make pymember cobject");
+		PyErr_Print();
+		return NULL;
+	}
+	
+	PyObject *pymember = PyObject_CallMethod(module, "OSyncMember", "O", pymember_cobject);
+	if (!pymember) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncMember");
+		PyErr_Print();
+		Py_XDECREF(pymember_cobject);
+		return NULL;
+	}
+	return pymember;
+}
+
 /** Calls the method initialize function
  *
  * The python initialize() function should return an object that
  * has the other plugin methods (get_changeinfo, commit, etc.)
  */
-static void *py_initialize(OSyncMember *member, OSyncError **error)
+static void *pm_initialize(OSyncMember *member, OSyncError **error)
 {
-	char *name;
-	struct MemberData *data = malloc(sizeof(struct MemberData));
-	if (!data)
-		/*FIXME: set error info */
-		return NULL;
+	printf("Init called!\n");
 
-	/* The plugin name was set on register_plugin() on plugin_data */
-	name = osync_plugin_get_plugin_data(osync_member_get_plugin(member));
-	if (!name)
-		/*FIXME: set error info */
+	const char *name = osync_member_get_plugindata(member);
+	if (!name) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No script name was set");
 		return NULL;
+	}
+
+	MemberData *data = g_malloc(sizeof(MemberData));
 
 	data->interp_thread = Py_NewInterpreter();
-	if (0 && !data->interp_thread) {
-		osync_debug("python", 1, "Couldn't initialize python interpreter");
+	if (!data->interp_thread) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't initialize python sub interpreter");
 		goto error_free_data;
 	}
-	if (change_sys_path() < 0) {
-		osync_debug("python", 1, "Exception when initializing python intepreter");
-		PyErr_Print();
-		PyErr_Clear();
+	
+	if (!pm_load_opensync(error))
 		goto error_free_interp;
-	}
-	data->osync_module = PyImport_ImportModule("opensync");
-	if (!data->module) {
-		osync_debug("python", 1, "Couldn't load OpenSync module");
-		PyErr_Print();
-		PyErr_Clear();
+	
+	if (!(data->module = pm_load_script(name, error)))
 		goto error_free_interp;
-	}
-	data->module = PyImport_ImportModule(name);
-	if (!data->module) {
-		osync_debug("python", 1, "Couldn't load testmodule");
-		PyErr_Print();
-		PyErr_Clear();
-		goto error_unload_osync_mod;
-	}
-
-	/* Call the method */
-	data->object = PyObject_CallMethod(data->module, "initialize", NULL);
+	
+	PyObject *pymember = pm_make_member(data->module, member, error);
+	if (!pymember)
+		goto error_unload_module;
+	
+	data->object = PyObject_CallMethod(data->module, "initialize", "O", pymember);
 	if (!data->object) {
 		osync_debug("python", 1, "Error during initialize()");
 		PyErr_Print();
@@ -74,15 +150,12 @@ static void *py_initialize(OSyncMember *member, OSyncError **error)
 		goto error_unload_module;
 	}
 
-	/* Done */
 	PyEval_ReleaseThread(data->interp_thread);
 
 	return data;
 
 error_unload_module:
 	Py_DECREF(data->module);
-error_unload_osync_mod:
-	Py_DECREF(data->osync_module);
 error_free_interp:
 	Py_EndInterpreter(data->interp_thread);
 error_free_data:
@@ -90,77 +163,25 @@ error_free_data:
 	return NULL;
 }
 
-static void py_finalize(void *data)
+static void pm_finalize(void *data)
 {
-	struct MemberData *mydata = data;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+	MemberData *mydata = data;
 	PyEval_AcquireThread(mydata->interp_thread);
 	{
 		PyObject *ret = PyObject_CallMethod(mydata->object, "finalize", NULL);
 		if (!ret) {
-			osync_debug("python", 1, "Error during finalize()");
+			osync_trace(TRACE_INTERNAL, "Error during finalize()");
 			PyErr_Print();
-			PyErr_Clear();
 		} else
 			Py_DECREF(ret);
 	}
 	Py_DECREF(mydata->object);
 	Py_DECREF(mydata->module);
-	Py_DECREF(mydata->osync_module);
-	free(mydata);
-
 	Py_EndInterpreter(mydata->interp_thread);
-}
-
-/** Create a new opensync.Change object for a given change */
-static PyObject *new_pychange(struct MemberData *mydata, OSyncChange *chg)
-{
-	PyObject *cobject = NULL;
-	PyObject *ret = NULL;
-
-	cobject = PyCObject_FromVoidPtr(chg, NULL);
-	if (!cobject)
-		goto error;
-
-	/* ret = opensync.Context(member=None, chg=cobject) */
-	ret = PyObject_CallMethod(mydata->osync_module, "Change", "OO", Py_None, cobject);
-
-	/* Done, drop reference even on success (the opensync.Change object
-	 * will hold a reference to the cobject)
-	 */
-	Py_XDECREF(cobject);
-
-	return ret;
-
-error:
-	Py_XDECREF(ret);
-	Py_XDECREF(cobject);
-	return NULL;
-}
-
-/** Create a new opensync.Context object for a given context */
-static PyObject *new_pycontext(struct MemberData *mydata, OSyncContext *ctx)
-{
-	PyObject *cobject = NULL;
-	PyObject *ret = NULL;
-
-	cobject = PyCObject_FromVoidPtr(ctx, NULL);
-	if (!cobject)
-		goto error;
-
-	/* ret = opensync.Context(cobject) */
-	ret = PyObject_CallMethod(mydata->osync_module, "Context", "O", cobject);
-
-	/* Done, drop reference even on success (the opensync.Context object
-	 * will hold a reference to the cobject)
-	 */
-	Py_XDECREF(cobject);
-
-	return ret;
-
-error:
-	Py_XDECREF(ret);
-	Py_XDECREF(cobject);
-	return NULL;
+	
+	free(mydata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /** Call a python method
@@ -171,94 +192,112 @@ error:
  * - function(context)
  * - function(context, change)
  */
-static void call_module_method(OSyncContext *ctx, OSyncChange *chg, char *name)
+static osync_bool pm_call_module_method(OSyncContext *ctx, OSyncChange *chg, char *name, OSyncError **error)
 {
-	PyObject *context = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, ctx, chg, name, error);
+	PyObject *pycontext = NULL;
 	PyObject *ret = NULL;
-	PyObject *change = NULL;
 
-	struct MemberData *data = osync_context_get_plugin_data(ctx);
+	MemberData *data = osync_context_get_plugin_data(ctx);
 	PyEval_AcquireThread(data->interp_thread);
 
+	pycontext = pm_make_context(data->module, ctx, error);
+	if (!pycontext) {
+		PyEval_ReleaseThread(data->interp_thread);
+		osync_context_report_osyncerror(ctx, error);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
 	if (chg) {
-		change = new_pychange(data, chg);
-		if (!change) {
-			osync_debug("python", 1, "Can't create a change object");
-			PyErr_Print();
-			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't create a opensync.Change object");
-			PyErr_Clear();
-			goto out;
+		PyObject *pychange = pm_make_change(data->module, chg, error);
+		if (!pychange) {
+			PyEval_ReleaseThread(data->interp_thread);
+			osync_context_report_osyncerror(ctx, error);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
 		}
+		
+		ret = PyObject_CallMethod(data->object, name, "OO", pycontext, pychange);
+		
+		Py_XDECREF(pychange);
+	} else {
+		ret = PyObject_CallMethod(data->object, name, "O", pycontext);
 	}
-
-	context = new_pycontext(data, ctx);
-	if (!context) {
-		osync_debug("python", 1, "Can't create a context object");
-		PyErr_Print();
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't create a opensync.Context object");
-		PyErr_Clear();
-		goto out;
-	}
-
-	if (change)
-		ret = PyObject_CallMethod(data->object, name, "OO", context, change);
-	else
-		ret = PyObject_CallMethod(data->object, name, "O", context);
-
+	
 	if (!ret) {
-		osync_debug("python", 1, "Error during %s() method", name);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error during %s() method", name);
 		PyErr_Print();
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't call python %s() method", name);
-		PyErr_Clear();
-		goto out;
+		PyEval_ReleaseThread(data->interp_thread);
+		osync_context_report_osyncerror(ctx, error);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
 	}
 
-out:
 	Py_XDECREF(ret);
-	Py_XDECREF(change);
-	Py_XDECREF(context);
 	PyEval_ReleaseThread(data->interp_thread);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
-static void py_connect(OSyncContext *ctx)
+static void pm_connect(OSyncContext *ctx)
 {
-	call_module_method(ctx, NULL, "connect");
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	OSyncError *error = NULL;
+	pm_call_module_method(ctx, NULL, "connect", &error);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 
-static void py_get_changeinfo(OSyncContext *ctx)
+static void pm_get_changeinfo(OSyncContext *ctx)
 {
-	call_module_method(ctx, NULL, "get_changeinfo");
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	OSyncError *error = NULL;
+	pm_call_module_method(ctx, NULL, "get_changeinfo", &error);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-
+#if 0
 static void py_get_data(OSyncContext *ctx, OSyncChange *change)
 {
 	call_module_method(ctx, change, "get_data");
 }
+#endif
 
-static osync_bool py_access(OSyncContext *ctx, OSyncChange *change)
-{
-	call_module_method(ctx, change, "access");
+static osync_bool pm_access(OSyncContext *ctx, OSyncChange *change)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	OSyncError *error = NULL;
+	pm_call_module_method(ctx, change, "access", &error);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
-static osync_bool py_commit_change(OSyncContext *ctx, OSyncChange *change)
-{
-	call_module_method(ctx, change, "commit_change");
-	return 0;
+static osync_bool pm_commit_change(OSyncContext *ctx, OSyncChange *change)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	OSyncError *error = NULL;
+	pm_call_module_method(ctx, change, "commit_change", &error);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
-static void py_sync_done(OSyncContext *ctx)
+static void pm_sync_done(OSyncContext *ctx)
 {
-	call_module_method(ctx, NULL, "sync_done");
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	OSyncError *error = NULL;
+	pm_call_module_method(ctx, NULL, "sync_done", &error);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void py_disconnect(OSyncContext *ctx)
+static void pm_disconnect(OSyncContext *ctx)
 {
-	call_module_method(ctx, NULL, "disconnect");
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	OSyncError *error = NULL;
+	pm_call_module_method(ctx, NULL, "disconnect", &error);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
-#endif
 
 /** Register a new plugin from python module called name.
  *
@@ -267,67 +306,46 @@ static void py_disconnect(OSyncContext *ctx)
  *       plugin information on another place (including
  *       accepted objtypes/formats info)
  */
-static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *filename, OSyncError **error)
+static osync_bool register_plugin(OSyncEnv *env, const char *filename, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p. %p, %s, %p)", __func__, env, osync_module, filename, error);
-	//PyObject *get_info_result = NULL;
-	//PythonPluginInfo pyinfo;
-	//PyObject *pyinfo_cobject = NULL;
-	//PyObject *get_info_parm = NULL;
-	//OSyncPluginInfo *info;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, filename, error);
 
-	FILE *fp = fopen(filename, "r");
-	if (!fp) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open file %s", filename);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	if (PyRun_SimpleFile(fp, filename) == -1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't run module from file %s", filename);
-		PyErr_Print();
-		PyErr_Clear();
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	PyObject *module = PyImport_AddModule("__main__");
+	PyObject *module = pm_load_script(filename, error);
 	if (!module) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load module from file %s", filename);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	info->functions.initialize = pm_initialize;
+	info->functions.connect = pm_connect;
+	info->functions.get_changeinfo = pm_get_changeinfo;
+	info->functions.sync_done = pm_sync_done;
+	info->functions.disconnect = pm_disconnect;
+	info->functions.finalize = pm_finalize;
+	
+	info->plugin_data = g_strdup(filename);
+	
+	PyObject *pyinfo_cobject = PyCObject_FromVoidPtr(info, NULL);
+	if (!pyinfo_cobject) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnt make pyinfo cobject");
 		PyErr_Print();
 		PyErr_Clear();
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
-	PyObject *pyenv_cobject = PyCObject_FromVoidPtr(&env, NULL);
-	if (!pyenv_cobject) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldnt make pyenv cobject");
+	PyObject *pyinfo = PyObject_CallMethod(module, "OSyncPluginInfo", "O", pyinfo_cobject);
+	osync_trace(TRACE_INTERNAL, "pyinfo: %p\n", pyinfo);
+	if (!pyinfo) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncPluginInfo");
 		PyErr_Print();
 		PyErr_Clear();
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
-	PyObject *pyenv = PyObject_CallMethod(module, "OSyncEnv", "O", pyenv_cobject);
-	if (!pyenv) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OsyncEnv");
-		PyErr_Print();
-		PyErr_Clear();
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	PyObject *pyret = PyObject_CallMethod(module, "blubbasd", "i", 1);
-	if (!pyret) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "No result from call");
-		PyErr_Print();
-		PyErr_Clear();
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
-	if (!PyObject_CallMethod(module, "get_info", "O", pyenv)) {
+	if (!PyObject_CallMethod(module, "get_info", "O", pyinfo)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error calling get_info");
 		PyErr_Print();
 		PyErr_Clear();
@@ -335,102 +353,18 @@ static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module, char *f
 		return FALSE;
 	}
 	
-	printf("Result of call: %ld\n", PyInt_AsLong(pyret));
-	Py_DECREF(pyret);
-
-#if 0
-	PyObject *pDict = PyModule_GetDict(module);
-	osync_trace(TRACE_INTERNAL, "Dict is %p", pDict);
-	/* pDict is a borrowed reference */
-	
-	PyObject *pFunc = PyDict_GetItemString(pDict, "blubbasd");
-	osync_trace(TRACE_INTERNAL, "func is %p", pFunc);
-	/* pFun: Borrowed reference */
-
-	if (pFunc && PyCallable_Check(pFunc)) {
-		PyObject *pArgs = PyTuple_New(1);
-		PyObject *pValue = PyInt_FromLong(2);
-		if (!pValue) {
-			Py_DECREF(pArgs);
-			fprintf(stderr, "Cannot convert argument\n");
-			return 1;
-		}
-		/* pValue reference stolen here: */
-		PyTuple_SetItem(pArgs, 0, pValue);
-		pValue = PyObject_CallObject(pFunc, pArgs);
-		Py_DECREF(pArgs);
-		if (pValue != NULL) {
-			printf("Result of call: %ld\n", PyInt_AsLong(pValue));
-			Py_DECREF(pValue);
-		}
-	} else {
-		if (PyErr_Occurred())
-			PyErr_Print();
-		fprintf(stderr, "Cannot find function \"blubbasd\"\n");
-	}
-	
-
-	info = osync_plugin_new_info(env);
-	/*info->functions.initialize = py_initialize;
-	info->functions.connect = py_connect;
-	info->functions.sync_done = py_sync_done;
-	info->functions.disconnect = py_disconnect;
-	info->functions.finalize = py_finalize;
-	info->functions.get_changeinfo = py_get_changeinfo;
-	info->functions.get_data = py_get_data;*/
-	
-	/* The plugin data is just the plugin name,
-	 * to be used on py_initialize()
-	 */
-	info->plugin_data = strdup(filename);
-	
-	/** Build a PluginInfo object for use by get_info */
-	//pyinfo.commit_fn = py_commit_change;
-	//pyinfo.access_fn = py_access;
-	//pyinfo.osync_info = info;
-
-	pyinfo_cobject = PyCObject_FromVoidPtr(&pyinfo, NULL);
-	if (!pyinfo_cobject) {
-		osync_debug("python", 1, "Can't create pyinfo_cobject");
-		PyErr_Print();
-		PyErr_Clear();
-		goto error_cancel_register;
-	}
-
-	/* get_info_parm = opensync.PluginInfo(pyinfo_cobject) */
-	get_info_parm = PyObject_CallMethod(osync_module, "PluginInfo", NULL, NULL);
-	if (!get_info_parm) {
-		osync_debug("python", 1, "Can't create get_info_parm");
-		PyErr_Print();
-		PyErr_Clear();
-		goto error_cancel_register;
-	}
-	/* Call get_info */
-	get_info_result = PyObject_CallMethod(module, "get_info", "O", get_info_parm);
-	if (!get_info_result) {
-		osync_debug("python", 1, "Error during initialize()");
-		PyErr_Print();
-		PyErr_Clear();
-		goto error_cancel_register;
-	}
-
 	if (!info->name) {
 		osync_debug("python", 1, "The plugin didn't set its name!");
-		goto error_cancel_register;
 	}
-	osync_trace(TRACE_EXIT, "register_plugin");
 
-	Py_XDECREF(get_info_result);
-	Py_XDECREF(get_info_parm);
-	Py_XDECREF(pyinfo_cobject);
-	Py_XDECREF(module);
-#endif
+	osync_plugin_set_access_objformat(info, NULL, NULL, pm_access);
+	osync_plugin_set_commit_objformat(info, NULL, NULL, pm_commit_change);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
-static osync_bool scan_for_plugins(OSyncEnv *env, PyObject *osync_module)
+static osync_bool scan_for_plugins(OSyncEnv *env)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 
@@ -446,7 +380,7 @@ static osync_bool scan_for_plugins(OSyncEnv *env, PyObject *osync_module)
 	while ((de = g_dir_read_name(dir))) {
 		char *filename = g_build_filename(path, de, NULL);
 		OSyncError *error = NULL;
-		if (!register_plugin(env, osync_module, filename, &error))
+		if (!register_plugin(env, filename, &error))
 			osync_debug("python", 1, "Couldn't register plugin \"%s\": %s", filename, osync_error_print(&error));
 
 		g_free(filename);
@@ -468,13 +402,8 @@ void get_info(OSyncEnv *env)
 	sigaction(SIGINT, &old_sigint, NULL);  /* Restore it */
 	PyEval_InitThreads();
 
-	PyObject *osync_module = PyImport_ImportModule("opensync");
-	if (!osync_module) {
-		osync_debug("python", 1, "Couldn't load OpenSync module");
-		PyErr_Print();
-		PyErr_Clear();
+	if (!pm_load_opensync(NULL))
 		return;
-	}
 
-	scan_for_plugins(env, osync_module);
+	scan_for_plugins(env);
 }
