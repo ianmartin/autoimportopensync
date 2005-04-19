@@ -1,28 +1,11 @@
 #ifndef _OPENSYNC_CHANGE_H_
 #define _OPENSYNC_CHANGE_H_
 
-/*! 
- * @ingroup OSyncChange
- * @brief The changetypes of a change object */
-typedef enum  {
-	/** Unknown changetype */
-	CHANGE_UNKNOWN = 0,
-	/** Object was added */
-	CHANGE_ADDED = 1,
-	/** Object is unmodifed */
-	CHANGE_UNMODIFIED = 2,
-	/** Object is deleted */
-	CHANGE_DELETED = 3,
-	/** Object has been modified */
-	CHANGE_MODIFIED = 4
-} OSyncChangeType;
-
 OSyncChange *osync_change_new(void);
 OSyncChangeType osync_change_get_changetype(OSyncChange *change);
 void osync_change_set_hash(OSyncChange *change, const char *hash);
 void osync_change_set_uid(OSyncChange *change, const char *uid);
 void osync_change_set_data(OSyncChange *change, char *data, int size, osync_bool has_data);
-int osync_change_set_datasize(OSyncChange *change);
 void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *format);
 OSyncObjType *osync_change_get_objtype(OSyncChange *change);
 const char *osync_change_get_sourceobjtype(OSyncChange *change);

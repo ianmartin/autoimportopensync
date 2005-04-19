@@ -145,6 +145,25 @@ OSyncPlugin *osync_plugin_new(OSyncEnv *env)
 	return plugin;
 }
 
+
+/*! @brief Registers a new plugin
+ *
+ * This function creates a new OSyncPluginInfo object, that
+ * can be used to register a new plugin dynamically. This
+ * can be used by a module to register multiple plugins,
+ * instead of using get_info() function, that allows
+ * registering of only one plugin.
+ */
+OSyncPluginInfo *osync_plugin_new_info(OSyncEnv *env)
+{
+	OSyncPlugin *plg = osync_plugin_new(env);
+	osync_trace(TRACE_INTERNAL, "%s(%p): %p", __func__, env, plg);
+	if (!plg)
+		return NULL;
+
+	return &plg->info;
+}
+
 /*! @brief Used to free a plugin
  * 
  * Frees a plugin
@@ -377,6 +396,21 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
 	return plugin->info.plugin_data;
 }
 
+void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
+{
+	OSyncObjFormatTemplate *format_template = NULL;
+	if (formatstr) {
+		OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
+		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+		format_template->commit_change = commit_change;
+	} else {
+		GList *f = NULL;
+		for (f = template->formats; f; f = f->next) {
+			format_template = f->data;
+			format_template->commit_change = commit_change;
+		}
+	}
+}
 
 /*! @brief Sets the commit function of a format
  * 
@@ -388,11 +422,35 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
  */
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
 {
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
-	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
-	format_template->commit_change = commit_change;
+	OSyncObjTypeTemplate *template = NULL;
+	
+	if (objtypestr) {
+		OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+		osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+		_osync_format_set_commit(template, formatstr, commit_change);
+	} else {
+		GList *o = NULL;
+		for (o = info->plugin->accepted_objtypes; o; o = o->next) {
+			template = o->data;
+			_osync_format_set_commit(template, formatstr, commit_change);
+		}
+	}
+}
+
+void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *))
+{
+	OSyncObjFormatTemplate *format_template = NULL;
+	if (formatstr) {
+		format_template = osync_plugin_find_objformat_template(template, formatstr);
+		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+		format_template->access = access;
+	} else {
+		GList *f = NULL;
+		for (f = template->formats; f; f = f->next) {
+			format_template = f->data;
+			format_template->access = access;
+		}
+	}
 }
 
 /*! @brief Sets the access function of a format
@@ -405,11 +463,19 @@ void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtyp
  */
 void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *))
 {
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
-	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
-	format_template->access = access;
+	OSyncObjTypeTemplate *template = NULL;
+	
+	if (objtypestr) {
+		template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+		osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+		_osync_format_set_access(template, formatstr, access);
+	} else {
+		GList *o = NULL;
+		for (o = info->plugin->accepted_objtypes; o; o = o->next) {
+			template = o->data;
+			_osync_format_set_access(template, formatstr, access);
+		}
+	}
 }
 
 /*! @brief Sets the read function of a format
@@ -429,6 +495,22 @@ void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypes
 	format_template->read = read;
 }
 
+void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **))
+{
+	OSyncObjFormatTemplate *format_template = NULL;
+	if (formatstr) {
+		format_template = osync_plugin_find_objformat_template(template, formatstr);
+		osync_assert(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
+		format_template->batch_commit = batch;
+	} else {
+		GList *f = NULL;
+		for (f = template->formats; f; f = f->next) {
+			format_template = f->data;
+			format_template->batch_commit = batch;
+		}
+	}
+}
+
 /*! @brief Sets the batch_commit function of a format
  * 
  * @param info Pointer to a plugin info struct to fill
@@ -439,11 +521,19 @@ void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypes
  */
 void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **))
 {
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
-	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-	osync_assert(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
-	format_template->batch_commit = batch;
+	OSyncObjTypeTemplate *template = NULL;
+	
+	if (objtypestr) {
+		template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
+		osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+		_osync_format_set_batch(template, formatstr, batch);
+	} else {
+		GList *o = NULL;
+		for (o = info->plugin->accepted_objtypes; o; o = o->next) {
+			template = o->data;
+			_osync_format_set_batch(template, formatstr, batch);
+		}
+	}
 }
 
 /*! @brief Sets the committed_all function of a format
@@ -461,23 +551,6 @@ void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char 
 	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
 	osync_assert(format_template, "Unable to set committed_all function. Did you forget to add the objformat?");
 	format_template->committed_all = committed_all;
-}
-
-/*! @brief Registers a new plugin
- *
- * This function creates a new OSyncPluginInfo object, that
- * can be used to register a new plugin dynamically. This
- * can be used by a module to register multiple plugins,
- * instead of using get_info() function, that allows
- * registering of only one plugin.
- */
-OSyncPluginInfo *osync_plugin_new_info(OSyncEnv *env)
-{
-	OSyncPlugin *plg = osync_plugin_new(env);
-	if (!plg)
-		return NULL;
-
-	return &plg->info;
 }
 
 /*! @brief Tells opensync that the plugin can accepts this object

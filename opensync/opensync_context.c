@@ -84,6 +84,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	g_assert(context);
 	OSyncMember *member = context->member;
 	g_assert(member);
+	osync_change_set_member(change, member);
 	
 	osync_assert(change->uid, "You forgot to set a uid on the change you reported!");
 	osync_assert(change->data || change->changetype == CHANGE_DELETED, "You need to report some data unless you report CHANGE_DELETED");
@@ -92,13 +93,13 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	
 	osync_assert((osync_change_get_objformat(change) != NULL) || change->changetype == CHANGE_DELETED, "The reported change did not have a format set");
 	osync_assert((osync_change_get_objtype(change) != NULL) || change->changetype == CHANGE_DELETED, "The reported change did not have a objtype set");
+	osync_assert((osync_change_get_changetype(change) != CHANGE_UNKNOWN), "The reported change did not have a changetype set");
 	
 	
 	if (change->changetype == CHANGE_DELETED)
 		change->has_data = TRUE;
 	
 	change->initial_format = osync_change_get_objformat(change);
-	change->member = context->member;
 	
 	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, format %s and objtype %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
 	

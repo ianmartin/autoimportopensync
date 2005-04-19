@@ -20,6 +20,22 @@ extern "C"
 #define FALSE 0
 #endif
 
+/*! 
+ * @ingroup OSyncChange
+ * @brief The changetypes of a change object */
+typedef enum  {
+	/** Unknown changetype */
+	CHANGE_UNKNOWN = 0,
+	/** Object was added */
+	CHANGE_ADDED = 1,
+	/** Object is unmodifed */
+	CHANGE_UNMODIFIED = 2,
+	/** Object is deleted */
+	CHANGE_DELETED = 3,
+	/** Object has been modified */
+	CHANGE_MODIFIED = 4
+} OSyncChangeType;
+
 /**************************************************************
  * Structs
  *************************************************************/
