@@ -116,8 +116,6 @@ static PyObject *pm_make_member(PyObject *module, OSyncMember *member, OSyncErro
  */
 static void *pm_initialize(OSyncMember *member, OSyncError **error)
 {
-	printf("Init called!\n");
-
 	const char *name = osync_member_get_plugindata(member);
 	if (!name) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No script name was set");
@@ -144,9 +142,8 @@ static void *pm_initialize(OSyncMember *member, OSyncError **error)
 	
 	data->object = PyObject_CallMethod(data->module, "initialize", "O", pymember);
 	if (!data->object) {
-		osync_debug("python", 1, "Error during initialize()");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't initialize module");
 		PyErr_Print();
-		PyErr_Clear();
 		goto error_unload_module;
 	}
 
@@ -257,13 +254,6 @@ static void pm_get_changeinfo(OSyncContext *ctx)
 	pm_call_module_method(ctx, NULL, "get_changeinfo", &error);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
-
-#if 0
-static void py_get_data(OSyncContext *ctx, OSyncChange *change)
-{
-	call_module_method(ctx, change, "get_data");
-}
-#endif
 
 static osync_bool pm_access(OSyncContext *ctx, OSyncChange *change)
 {	
@@ -402,7 +392,8 @@ void get_info(OSyncEnv *env)
 	sigaction(SIGINT, &old_sigint, NULL);  /* Restore it */
 	PyEval_InitThreads();
 
-	if (!pm_load_opensync(NULL))
+	OSyncError *error = NULL;
+	if (!pm_load_opensync(&error))
 		return;
 
 	scan_for_plugins(env);
