@@ -22,8 +22,7 @@ EXTRA_DIST = \
 	misc/opensync.spec.in \
 	misc/opensync.spec \
 	misc/buildtest.sh \
-	misc/doxygen.css \
-	py-compile
+	misc/doxygen.css
 
 dist-hook:
 	find $(distdir) -name .svn -print0 | xargs -0 rm -rf
