@@ -66,7 +66,8 @@ AC_CACHE_CHECK([for python SDK], [os_cv_python_sdk],
 		AC_SUBST(PYTHON_LIBS)
 		os_cv_python_sdk=yes])])])
 
-PKG_CHECK_MODULES(OSYNC, [opensync-1.0])
+export PKG_CONFIG_PATH=$prefix/lib/pkgconfig:${PKG_CONFIG_PATH}
+PKG_CHECK_MODULES(OSYNC, [opensync-1.0 glib-2.0])
 
 OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
 OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
