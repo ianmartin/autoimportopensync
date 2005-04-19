@@ -35,7 +35,11 @@ kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 kdepim_sync_la_LIBADD = -lstdc++ -L@OPENSYNC_LIBDIR@ -lopensync
 
 src/kdepim_impl.cpp: KNotesIface_stub.h
+KNotesIface_stub.cpp: KNotesIface_stub.h
 
+KNotesIface_stub.cpp:
+	dcopidl $(top_srcdir)/src/KNotesIface.h > KNotesIface.kidl
+	dcopidl2cpp KNotesIface.kidl
 KNotesIface_stub.h:
 	dcopidl $(top_srcdir)/src/KNotesIface.h > KNotesIface.kidl
 	dcopidl2cpp KNotesIface.kidl
