@@ -325,7 +325,6 @@ OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 	
 	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
 	change->format = osync_conv_find_objformat(change->conv_env, change->format_name);
-	printf("Found objformat %p for name %s\n", change->format, change->format_name);
 	return change->format;
 }
 
@@ -359,7 +358,6 @@ void osync_change_set_objformat_string(OSyncChange *change, const char *name)
 	change->format_name = g_strdup(name);
 	//Invalidate the previous format
 	change->format = NULL;
-	printf("Set format to %s\n", name);
 }
 
 /*! @brief Gets the changetype of a change

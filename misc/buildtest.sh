@@ -7,8 +7,7 @@ echo -n "."
 rm -rf libopensync-0.?? > /dev/null
 echo -n "."
 rm -f libopensync-0.??.tar.gz > /dev/null
-echo -n "."
-echo ""
+echo "."
 
 TOP_SRCDIR=$(pwd)
 
@@ -16,7 +15,7 @@ echo -n "Making sure build environment is sane"
 ./autogen.sh > /dev/null
 echo -n "."
 make clean > /dev/null || exit 1
-echo -n "."
+echo "."
 
 echo "Making tarball"
 make dist > /dev/null || exit 1
@@ -40,10 +39,8 @@ echo "."
 echo "Makeing clean"
 make distclean > /dev/null || exit 1
 
-echo -n "Checking if configure is working"
-./configure --enable-tests=no --enable-python > /dev/null || exit 1
 echo -n "Making OpenSync"
-./autogen.sh --prefix=$TOP_SRCDIR/_inst > /dev/null || exit 1
+./configure --enable-tests=no --enable-python --prefix=$TOP_SRCDIR/_inst > /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
 echo "."
@@ -55,7 +52,7 @@ export PKG_CONFIG_PATH=$TOP_SRCDIR/_inst/lib
 ./autogen.sh --prefix=$TOP_SRCDIR/_inst > /dev/null || exit 1
 echo -n "."
 make install > /dev/null || exit 1
-echo "."
+echo -n "."
 make distclean > /dev/null || exit 1
 echo "."
 

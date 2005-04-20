@@ -425,6 +425,12 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	g_assert(member);
 	osync_bool ret = TRUE;
 
+	if (!member->plugin) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Member has not instanced a plugin yet");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
 	if (member->plugin->info.config_type == NO_CONFIGURATION) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "This member has no configuration options");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
