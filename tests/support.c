@@ -4,18 +4,18 @@ char *olddir = NULL;
 
 static void reset_env(void)
 {
-	g_unsetenv("CONNECT_ERROR");
-	g_unsetenv("CONNECT_TIMEOUT");
-	g_unsetenv("INIT_NULL");
-	g_unsetenv("GET_CHANGES_ERROR");
-	g_unsetenv("GET_CHANGES_TIMEOUT");
-	g_unsetenv("GET_CHANGES_TIMEOUT2");
-	g_unsetenv("COMMIT_ERROR");
-	g_unsetenv("COMMIT_TIMEOUT");
-	g_unsetenv("SYNC_DONE_ERROR");
-	g_unsetenv("SYNC_DONE_TIMEOUT");
-	g_unsetenv("DISCONNECT_ERROR");
-	g_unsetenv("DISCONNECT_TIMEOUT");
+	unsetenv("CONNECT_ERROR");
+	unsetenv("CONNECT_TIMEOUT");
+	unsetenv("INIT_NULL");
+	unsetenv("GET_CHANGES_ERROR");
+	unsetenv("GET_CHANGES_TIMEOUT");
+	unsetenv("GET_CHANGES_TIMEOUT2");
+	unsetenv("COMMIT_ERROR");
+	unsetenv("COMMIT_TIMEOUT");
+	unsetenv("SYNC_DONE_ERROR");
+	unsetenv("SYNC_DONE_TIMEOUT");
+	unsetenv("DISCONNECT_ERROR");
+	unsetenv("DISCONNECT_TIMEOUT");
 }
 
 char *setup_testbed(char *fkt_name)
@@ -26,23 +26,23 @@ char *setup_testbed(char *fkt_name)
 	
 	char *command = NULL;
 	if (fkt_name) {
-		command = g_strdup_printf("cp -a %s%sdata/%s/* %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", fkt_name, testbed);
+		command = g_strdup_printf("cp -R %s%sdata/%s/* %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", fkt_name, testbed);
 		if (system(command))
 			abort();
 		g_free(command);
 	}
 	
-	command = g_strdup_printf("cp -a %s%smock-plugin/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
+	command = g_strdup_printf("cp -R %s%smock-plugin/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp -a %s%s../formats/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
+	command = g_strdup_printf("cp -R %s%s../formats/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp -a %s%s../formats/vformats-xml/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
+	command = g_strdup_printf("cp -R %s%s../formats/vformats-xml/.libs/*.so %s", g_getenv("srcdir") ? g_getenv("srcdir") : "", g_getenv("srcdir") ? "/" : "", testbed);
 	if (system(command))
 		abort();
 	g_free(command);

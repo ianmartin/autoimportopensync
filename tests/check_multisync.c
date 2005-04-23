@@ -1660,7 +1660,7 @@ START_TEST (multisync_delayed_slow)
 	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
-	g_setenv("SLOW_REPORT", "2", TRUE);
+	setenv("SLOW_REPORT", "2", TRUE);
 	
 	synchronize_once(engine, NULL);
 
@@ -1760,7 +1760,7 @@ START_TEST (multisync_delayed_slow)
 	fail_unless(!system("test \"x$(ls data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
 	
-	g_unsetenv("SLOW_REPORT");
+	unsetenv("SLOW_REPORT");
 	
 	destroy_testbed(testbed);
 }
@@ -2064,81 +2064,81 @@ END_TEST
 
 START_TEST(multisync_easy_new_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_easy_new();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_triple_del_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_triple_del();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_conflict_hybrid_choose2_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_conflict_hybrid_choose2();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_delayed_conflict_handler_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_delayed_conflict_handler();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_delayed_slow_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_delayed_slow();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_conflict_ignore_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_conflict_ignore();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_conflict_ignore2_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
-	g_setenv("NO_TIMEOUTS", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("NO_TIMEOUTS", "7", TRUE);
 	multisync_conflict_ignore2();
-	g_unsetenv("BATCH_COMMIT");
-	g_unsetenv("NO_TIMEOUTS");
+	unsetenv("BATCH_COMMIT");
+	unsetenv("NO_TIMEOUTS");
 }
 END_TEST
 
 START_TEST(multisync_conflict_hybrid_duplicate_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_conflict_hybrid_duplicate();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_multi_conflict_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	multisync_multi_conflict();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_zero_changes_b)
 {
-	g_setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("BATCH_COMMIT", "7", TRUE);
 	char *testbed = setup_testbed("multisync_easy_new");
 	
 	OSyncEnv *osync = init_env();
@@ -2178,7 +2178,7 @@ START_TEST(multisync_zero_changes_b)
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
 
-	g_setenv("NUM_BATCH_COMMITS", "0", TRUE);
+	setenv("NUM_BATCH_COMMITS", "0", TRUE);
 	
 	synchronize_once(engine, NULL);
 
@@ -2189,7 +2189,7 @@ START_TEST(multisync_zero_changes_b)
 
 	system("rm -f data1/*");
 		
-	g_unsetenv("NUM_BATCH_COMMITS");
+	unsetenv("NUM_BATCH_COMMITS");
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
@@ -2211,39 +2211,39 @@ START_TEST(multisync_zero_changes_b)
 	fail_unless(!system("test \"x$(ls data3)\" = \"x\""), NULL);
 	
 	destroy_testbed(testbed);
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_conflict_hybrid_choose2_b2)
 {
-	g_setenv("BATCH_COMMIT", "2", TRUE);
+	setenv("BATCH_COMMIT", "2", TRUE);
 	multisync_conflict_hybrid_choose2();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_delayed_conflict_handler_b2)
 {
-	g_setenv("BATCH_COMMIT", "2", TRUE);
+	setenv("BATCH_COMMIT", "2", TRUE);
 	multisync_delayed_conflict_handler();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_conflict_ignore_b2)
 {
-	g_setenv("BATCH_COMMIT", "2", TRUE);
+	setenv("BATCH_COMMIT", "2", TRUE);
 	multisync_conflict_ignore();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 
 START_TEST(multisync_multi_conflict_b2)
 {
-	g_setenv("BATCH_COMMIT", "2", TRUE);
+	setenv("BATCH_COMMIT", "2", TRUE);
 	multisync_multi_conflict();
-	g_unsetenv("BATCH_COMMIT");
+	unsetenv("BATCH_COMMIT");
 }
 END_TEST
 

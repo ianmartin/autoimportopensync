@@ -126,7 +126,7 @@ END_TEST
 START_TEST (env_check_plugin_true2)
 {
 	char *testbed = setup_testbed(NULL);
-	g_setenv("IS_AVAILABLE", "1", TRUE);
+	setenv("IS_AVAILABLE", "1", TRUE);
 	
 	OSyncEnv *env = init_env();
 	
@@ -157,8 +157,8 @@ END_TEST
 START_TEST (env_check_plugin_false2)
 {
 	char *testbed = setup_testbed(NULL);
-	g_setenv("IS_AVAILABLE", "1", TRUE);
-	g_setenv("IS_NOT_AVAILABLE", "1", TRUE);
+	setenv("IS_AVAILABLE", "1", TRUE);
+	setenv("IS_NOT_AVAILABLE", "1", TRUE);
 	
 	OSyncEnv *env = init_env();
 	

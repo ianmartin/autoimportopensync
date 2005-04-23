@@ -4,7 +4,7 @@ START_TEST (single_init_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("INIT_NULL", "2", TRUE);
+	setenv("INIT_NULL", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -34,7 +34,7 @@ START_TEST (dual_connect_error)
 {
 	char *testbed = setup_testbed("sync_easy_new");
 	
-	g_setenv("CONNECT_ERROR", "3", TRUE);
+	setenv("CONNECT_ERROR", "3", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -69,7 +69,7 @@ START_TEST (one_of_two_connect_error)
 {
 	char *testbed = setup_testbed("sync_easy_new");
 	
-	g_setenv("CONNECT_ERROR", "1", TRUE);
+	setenv("CONNECT_ERROR", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -105,7 +105,7 @@ START_TEST (two_of_three_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("CONNECT_ERROR", "5", TRUE);
+	setenv("CONNECT_ERROR", "5", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -141,7 +141,7 @@ START_TEST (two_of_three_connect_error2)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("CONNECT_ERROR", "6", TRUE);
+	setenv("CONNECT_ERROR", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -177,7 +177,7 @@ START_TEST (three_of_three_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("CONNECT_ERROR", "7", TRUE);
+	setenv("CONNECT_ERROR", "7", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -213,7 +213,7 @@ START_TEST (one_of_three_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 
-	g_setenv("CONNECT_ERROR", "2", TRUE);
+	setenv("CONNECT_ERROR", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -249,7 +249,7 @@ START_TEST (no_connect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("CONNECT_ERROR", "0", TRUE);
+	setenv("CONNECT_ERROR", "0", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -286,7 +286,7 @@ START_TEST (single_connect_timeout)
 {
 	char *testbed = setup_testbed("sync_easy_new");
 	
-	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
+	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -323,7 +323,7 @@ START_TEST (dual_connect_timeout)
 {
 	char *testbed = setup_testbed("sync_easy_new");
 	
-	g_setenv("CONNECT_TIMEOUT", "3", TRUE);
+	setenv("CONNECT_TIMEOUT", "3", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -360,7 +360,7 @@ START_TEST (one_of_three_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
+	setenv("CONNECT_TIMEOUT", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -397,8 +397,8 @@ START_TEST (timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("CONNECT_TIMEOUT", "2", TRUE);
-	g_setenv("CONNECT_ERROR", "4", TRUE);
+	setenv("CONNECT_TIMEOUT", "2", TRUE);
+	setenv("CONNECT_ERROR", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -435,7 +435,7 @@ START_TEST (single_get_changes_error)
 {
 	char *testbed = setup_testbed("sync_easy_conflict");
 	
-	g_setenv("GET_CHANGES_ERROR", "2", TRUE);
+	setenv("GET_CHANGES_ERROR", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -474,7 +474,7 @@ START_TEST (dual_get_changes_error)
 {
 	char *testbed = setup_testbed("sync_easy_conflict");
 	
-	g_setenv("GET_CHANGES_ERROR", "3", TRUE);
+	setenv("GET_CHANGES_ERROR", "3", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -514,7 +514,7 @@ START_TEST (two_of_three_get_changes_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
-	g_setenv("GET_CHANGES_ERROR", "5", TRUE);
+	setenv("GET_CHANGES_ERROR", "5", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -552,8 +552,8 @@ START_TEST (one_of_three_get_changes_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
-	g_setenv("GET_CHANGES_ERROR", "1", TRUE);
-	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	setenv("GET_CHANGES_ERROR", "1", TRUE);
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -592,8 +592,8 @@ START_TEST (one_of_three_get_changes_timeout)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
-	g_setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
-	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	setenv("GET_CHANGES_TIMEOUT", "1", TRUE);
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -634,8 +634,8 @@ START_TEST (get_changes_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
-	g_setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
-	g_setenv("GET_CHANGES_ERROR", "4", TRUE);
+	setenv("GET_CHANGES_TIMEOUT", "3", TRUE);
+	setenv("GET_CHANGES_ERROR", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -675,8 +675,8 @@ START_TEST (get_changes_timeout_sleep)
 {
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
-	g_setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
-	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	setenv("GET_CHANGES_TIMEOUT2", "7", TRUE);
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -719,7 +719,7 @@ START_TEST (single_commit_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("COMMIT_ERROR", "4", TRUE);
+	setenv("COMMIT_ERROR", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -766,7 +766,7 @@ START_TEST (dual_commit_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("COMMIT_ERROR", "6", TRUE);
+	setenv("COMMIT_ERROR", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -813,7 +813,7 @@ START_TEST (single_commit_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("COMMIT_TIMEOUT", "4", TRUE);
+	setenv("COMMIT_TIMEOUT", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -860,7 +860,7 @@ START_TEST (dual_commit_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("COMMIT_TIMEOUT", "6", TRUE);
+	setenv("COMMIT_TIMEOUT", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -907,8 +907,8 @@ START_TEST (commit_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("COMMIT_TIMEOUT", "4", TRUE);
-	g_setenv("COMMIT_ERROR", "2", TRUE);
+	setenv("COMMIT_TIMEOUT", "4", TRUE);
+	setenv("COMMIT_ERROR", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -955,8 +955,8 @@ START_TEST (commit_timeout_and_error2)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("COMMIT_TIMEOUT", "2", TRUE);
-	g_setenv("COMMIT_ERROR", "4", TRUE);
+	setenv("COMMIT_TIMEOUT", "2", TRUE);
+	setenv("COMMIT_ERROR", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1018,8 +1018,8 @@ START_TEST (commit_error_modify)
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	g_setenv("COMMIT_TIMEOUT", "2", TRUE);
-	g_setenv("COMMIT_ERROR", "4", TRUE);
+	setenv("COMMIT_TIMEOUT", "2", TRUE);
+	setenv("COMMIT_ERROR", "4", TRUE);
 	
 	sleep(2);
 	
@@ -1074,8 +1074,8 @@ START_TEST (commit_error_delete)
 	fail_unless(synchronize_once(engine, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
-	g_setenv("COMMIT_TIMEOUT", "2", TRUE);
-	g_setenv("COMMIT_ERROR", "4", TRUE);
+	setenv("COMMIT_TIMEOUT", "2", TRUE);
+	setenv("COMMIT_ERROR", "4", TRUE);
 	
 	sleep(2);
 	
@@ -1115,7 +1115,7 @@ START_TEST (single_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("SYNC_DONE_ERROR", "4", TRUE);
+	setenv("SYNC_DONE_ERROR", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1163,7 +1163,7 @@ START_TEST (dual_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("SYNC_DONE_ERROR", "6", TRUE);
+	setenv("SYNC_DONE_ERROR", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1211,7 +1211,7 @@ START_TEST (triple_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("SYNC_DONE_ERROR", "7", TRUE);
+	setenv("SYNC_DONE_ERROR", "7", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1259,7 +1259,7 @@ START_TEST (single_sync_done_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("SYNC_DONE_TIMEOUT", "4", TRUE);
+	setenv("SYNC_DONE_TIMEOUT", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1307,7 +1307,7 @@ START_TEST (dual_sync_done_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("SYNC_DONE_TIMEOUT", "6", TRUE);
+	setenv("SYNC_DONE_TIMEOUT", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1355,8 +1355,8 @@ START_TEST (sync_done_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("SYNC_DONE_TIMEOUT", "5", TRUE);
-	g_setenv("SYNC_DONE_ERROR", "2", TRUE);
+	setenv("SYNC_DONE_TIMEOUT", "5", TRUE);
+	setenv("SYNC_DONE_ERROR", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1404,7 +1404,7 @@ START_TEST (single_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_ERROR", "4", TRUE);
+	setenv("DISCONNECT_ERROR", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1453,7 +1453,7 @@ START_TEST (dual_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_ERROR", "6", TRUE);
+	setenv("DISCONNECT_ERROR", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1502,7 +1502,7 @@ START_TEST (triple_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_ERROR", "7", TRUE);
+	setenv("DISCONNECT_ERROR", "7", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1551,7 +1551,7 @@ START_TEST (single_disconnect_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_TIMEOUT", "4", TRUE);
+	setenv("DISCONNECT_TIMEOUT", "4", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1600,7 +1600,7 @@ START_TEST (dual_disconnect_timeout)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_TIMEOUT", "6", TRUE);
+	setenv("DISCONNECT_TIMEOUT", "6", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1649,8 +1649,8 @@ START_TEST (disconnect_timeout_and_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_TIMEOUT", "5", TRUE);
-	g_setenv("DISCONNECT_ERROR", "2", TRUE);
+	setenv("DISCONNECT_TIMEOUT", "5", TRUE);
+	setenv("DISCONNECT_ERROR", "2", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1699,10 +1699,10 @@ START_TEST (get_changes_disconnect_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
 	
-	g_setenv("DISCONNECT_TIMEOUT", "1", TRUE);
-	g_setenv("DISCONNECT_ERROR", "2", TRUE);
-	g_setenv("GET_CHANGES_TIMEOUT", "6", TRUE);
-	g_setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
+	setenv("DISCONNECT_TIMEOUT", "1", TRUE);
+	setenv("DISCONNECT_ERROR", "2", TRUE);
+	setenv("GET_CHANGES_TIMEOUT", "6", TRUE);
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
