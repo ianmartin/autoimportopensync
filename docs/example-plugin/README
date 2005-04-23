@@ -43,5 +43,9 @@ format.c
 Before running ./configure the first time you need to run
 ./autogen.sh once.
 
-If you need help, feel free to ask on the opensync mailing list
-or on our irc channel.
+If you need help, feel free to ask on the opensync mailing lists:
+http://sourceforge.net/projects/opensync and go to "Lists"
+
+or ask on our irc channel:
+server: irc.freenode.org
+channel: #multisync
