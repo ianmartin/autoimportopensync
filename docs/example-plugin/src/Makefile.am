@@ -7,7 +7,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -Werror @PACKAGE_CFLAGS@
 
-EXTRA_DIST = plugin-name
+EXTRA_DIST = plugin-name plugin.h
 
 config_DATA = plugin-name
 
