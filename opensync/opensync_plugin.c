@@ -232,7 +232,7 @@ osync_bool osync_module_load(OSyncEnv *env, const char *path, OSyncError **error
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	GModule *module = g_module_open(path, G_MODULE_BIND_LOCAL);
+	GModule *module = g_module_open(path, 0);
 	if (!module) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open module %s: %s", path, g_module_error());
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
