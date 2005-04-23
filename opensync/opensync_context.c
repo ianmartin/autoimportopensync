@@ -115,15 +115,15 @@ void osync_context_send_log(OSyncContext *ctx, const char *message, ...)
 	g_assert(member);
 	
 	va_list arglist;
-	char *buffer;
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
 	va_start(arglist, message);
-	g_vasprintf(&buffer, message, arglist);
+	g_vsnprintf(buffer, 1024, message, arglist);
 	
 	osync_debug("OSYNC", 3, "Sending logmessage \"%s\"", buffer);
 	if (member->memberfunctions->rf_log)
 		member->memberfunctions->rf_log(member, buffer);
 	
-	g_free(buffer);
 	va_end(arglist);
 }
 

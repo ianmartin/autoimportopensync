@@ -45,7 +45,8 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 {
 #if defined ENABLE_TRACE
 	va_list arglist;
-	char *buffer;
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
 	const char *trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
 		return;
@@ -66,7 +67,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
 	
 	va_start(arglist, message);
-	g_vasprintf(&buffer, message, arglist);
+	g_vsnprintf(buffer, 1024, message, arglist);
 	
 	GString *tabstr = g_string_new("");
 	int i = 0;
@@ -100,7 +101,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	}
 	g_private_set(current_tabs, (void *)tabs);
 	va_end(arglist);
-	g_free(buffer);
+	
 	g_string_free(tabstr, TRUE);
 	
 	GError *error = NULL;
@@ -138,12 +139,12 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 #if defined ENABLE_DEBUG
 		osync_assert(level <= 4 && level >= 0, "The debug level must be between 0 and 4.");
 		va_list arglist;
-		char *buffer;
+		char buffer[1024];
+		memset(buffer, 0, sizeof(buffer));
 		int debug = -1;
 
 		va_start(arglist, message);
-		g_vasprintf(&buffer, message, arglist);
-		
+		g_vsnprintf(buffer, 1024, message, arglist);
 		
 		char *debugstr = NULL;
 		switch (level) {
@@ -170,7 +171,7 @@ void osync_debug(const char *subpart, int level, const char *message, ...)
 		}
 		g_assert(debugstr);
 		va_end(arglist);
-		g_free(buffer);
+		
 		osync_trace(TRACE_INTERNAL, debugstr);
 		
 		const char *dbgstr = g_getenv("OSYNC_DEBUG");

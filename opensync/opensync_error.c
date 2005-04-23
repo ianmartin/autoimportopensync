@@ -74,11 +74,12 @@ void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *
 	
 	osync_return_if_fail(osync_error_is_set(error) == FALSE);
 	
-	char *buffer;
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
 	*error = g_malloc0(sizeof(OSyncError));
-	g_vasprintf(&buffer, format, args);
+	g_vsnprintf(buffer, 1024, format, args);
 	
-	(*error)->message = buffer;
+	(*error)->message = g_strdup(buffer);
 	(*error)->type = type;
 	return;
 }
@@ -190,11 +191,12 @@ void osync_error_update(OSyncError **error, const char *format, ...)
 	va_list args;
 	va_start(args, format);
 	
-	char *buffer = NULL;
-	g_vasprintf(&buffer, format, args);
+	char buffer[1024];
+	memset(buffer, 0, sizeof(buffer));
+	g_vsnprintf(buffer, 1024, format, args);
 	
 	g_free((*error)->message);
-	(*error)->message = buffer;
+	(*error)->message = g_strdup(buffer);
 	
 	va_end (args);
 }
