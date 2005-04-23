@@ -326,7 +326,6 @@ static osync_bool register_plugin(OSyncEnv *env, const char *filename, OSyncErro
 	}
 	
 	PyObject *pyinfo = PyObject_CallMethod(module, "OSyncPluginInfo", "O", pyinfo_cobject);
-	osync_trace(TRACE_INTERNAL, "pyinfo: %p\n", pyinfo);
 	if (!pyinfo) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncPluginInfo");
 		PyErr_Print();
