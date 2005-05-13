@@ -1,4 +1,5 @@
 #include <opensync/opensync.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -437,7 +438,14 @@ int main (int argc, char *argv[])
 	OSyncMember *member = osync_member_new(group);
 	
 	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	mkdtemp(testdir);
+	char *result = mkdtemp(testdir);
+	
+	if (result == NULL)
+	{
+		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
+			strerror(errno));
+		return 1;
+	}
 	
 	char *config = NULL;
 	int size = 0;
