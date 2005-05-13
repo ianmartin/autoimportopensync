@@ -67,5 +67,8 @@ rm -rf %{buildroot}
 %{_bindir}/osyncstress
 
 %changelog
+* Fri May 13 2005 Pierre Ossman <drzeus@drzeus.cx> 0.17-1
+- Enable debug and tracing flags to ease debugging.
+
 * Fri Mar 18 2005 Pierre Ossman <drzeus@drzeus.cx> 0.13-1
 - Initial package
