@@ -84,4 +84,4 @@ AC_SUBST(OPENSYNC_HEADERDIR)
 OPENSYNC_PYTHONPLG_DIR=${libdir}/opensync/python-plugins
 AC_SUBST(OPENSYNC_PYTHONPLG_DIR)
 
-AC_OUTPUT([Makefile])
+AC_OUTPUT([Makefile misc/python-module.spec])

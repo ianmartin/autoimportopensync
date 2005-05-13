@@ -3,7 +3,9 @@ pythonplgdir=@OPENSYNC_PYTHONPLG_DIR@
 
 INCLUDES = -I$(top_srcdir)
 
-EXTRA_DIST = src/sample.py
+EXTRA_DIST = src/sample.py \
+	misc/python-module.spec \
+	misc/python-module.spec.in
 
 OPENSYNC_LIBS=-lopensync
 
