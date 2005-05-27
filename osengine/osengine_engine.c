@@ -485,6 +485,8 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 	if (itm_message_is_signal (message, "SYNC_ALERT")) {
 		if (engine->allow_sync_alert)
 			osync_flag_set(engine->fl_running);
+		else
+			osync_trace(TRACE_INTERNAL, "Sync Alert not allowed");
 		osync_trace(TRACE_EXIT, "engine_message_handler");
 		return;
 	}
@@ -672,7 +674,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->info_received = g_cond_new();
 	engine->started_mutex = g_mutex_new();
 	engine->started = g_cond_new();
-	
+		
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
 	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
@@ -905,7 +907,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	
 	osync_flag_set(engine->cmb_entries_mapped);
 	osync_flag_set(engine->cmb_synced);
-	engine->allow_sync_alert = FALSE;
+	engine->allow_sync_alert = TRUE;
 	
 	//OSyncMember *member = NULL;
 	OSyncGroup *group = engine->group;

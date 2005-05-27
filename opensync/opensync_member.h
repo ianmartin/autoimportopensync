@@ -69,3 +69,6 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypest
 void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
 void osync_member_set_configdir(OSyncMember *member, const char *configdir);
 void *osync_member_get_plugindata(OSyncMember *member);
+
+void *osync_member_get_loop(OSyncMember *member);
+void osync_member_set_loop(OSyncMember *member, void *loop);

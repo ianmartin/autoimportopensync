@@ -486,6 +486,27 @@ void osync_member_set_config(OSyncMember *member, const char *data, int size)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Gets the loop in which the member is dispatched
+ * 
+ * @param member The member
+ * @returns The loop
+ * 
+ */
+void *osync_member_get_loop(OSyncMember *member)
+{
+	g_assert(member);
+	osync_trace(TRACE_INTERNAL, "%s: %p %p", __func__, member, member->loop);
+	return member->loop;
+}
+
+void osync_member_set_loop(OSyncMember *member, void *loop)
+{
+	g_assert(member);
+	osync_trace(TRACE_INTERNAL, "%s: %p %p", __func__, member, loop);
+	member->loop = loop;
+}
+
+
 /** @brief Returns if the member has configuation options
  * 
  * @param member The member
@@ -688,10 +709,16 @@ osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypest
  */
 void osync_member_request_synchronization(OSyncMember *member)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	g_assert(member);
 	
 	if (member->memberfunctions->rf_sync_alert)
 		member->memberfunctions->rf_sync_alert(member);
+	else {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Alert not handled", __func__);
+		return;
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 

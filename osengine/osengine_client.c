@@ -97,10 +97,12 @@ void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *u
 
 void osync_client_sync_alert_sink(OSyncMember *member)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
 	ITMessage *message = itm_message_new_signal(client, "SYNC_ALERT");
 	itm_queue_send(engine->incoming, message);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void message_callback(OSyncMember *member, ITMessage *message, OSyncError **error)
@@ -248,6 +250,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 	//Start the queue
 	itm_queue_set_message_handler(client->incoming, (ITMessageHandler)client_message_handler, client);
 	itm_queue_setup_with_gmainloop(client->incoming, client->context);
+	osync_member_set_loop(client->member, client->context);
 
 	//Call the init function
 	if (!osync_member_initialize(client->member, error)) {
@@ -259,8 +262,10 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 	GSource *idle = g_idle_source_new();
 	g_source_set_callback(idle, startupfunc, client, NULL);
     g_source_attach(idle, client->context);
+	osync_trace(TRACE_INTERNAL, "Waiting for startup");
 	client->thread = g_thread_create ((GThreadFunc)g_main_loop_run, client->memberloop, TRUE, NULL);
 	g_cond_wait(client->started, client->started_mutex);
+	osync_trace(TRACE_INTERNAL, "startup done!");
 	g_mutex_unlock(client->started_mutex);
 	
 	osync_trace(TRACE_EXIT, "osync_client_init");

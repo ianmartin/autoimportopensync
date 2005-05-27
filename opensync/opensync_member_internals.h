@@ -22,6 +22,8 @@ struct OSyncMember {
 	GList *filters;
 
 	char *extension;
+	
+	void *loop;
 #endif
 };
 
