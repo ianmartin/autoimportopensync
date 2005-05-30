@@ -179,7 +179,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 
 void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 {
-	osync_trace(TRACE_ENTRY, "osync_mapping_check_conflict(%p, %p)", engine, mapping);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
 	GList *e;
 	GList *n;
 	osync_bool is_conflict = FALSE;
@@ -216,7 +216,7 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		osync_debug("MAP", 2, "Got conflict for mapping %p", mapping);
 		osync_status_conflict(engine, mapping);
 		osync_flag_set(mapping->fl_chkconflict);
-		osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: Got conflict");
+		osync_trace(TRACE_EXIT, "%s: Got conflict", __func__);
 		return;
 	}
 	g_assert(mapping->master);
@@ -232,7 +232,7 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 	}
 
 	send_mapping_changed(engine, mapping);
-	osync_trace(TRACE_EXIT, "osync_mapping_check_conflict: No conflict");
+	osync_trace(TRACE_EXIT, "%s: No conflict", __func__);
 }
 
 static OSyncMapping *_osengine_mapping_find(OSyncMappingTable *table, OSyncMappingEntry *orig_entry)
