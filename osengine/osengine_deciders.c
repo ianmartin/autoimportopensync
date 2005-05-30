@@ -78,7 +78,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 		}
 	}
 	
-	osync_trace(TRACE_EXIT, "osengine_mapping_decider: Waste");
+	osync_trace(TRACE_EXIT, "osengine_mappingentry_decider: Waste");
 }
 
 void osengine_mappingentry_all_deciders(OSyncEngine *engine, OSyncMapping *mapping)
