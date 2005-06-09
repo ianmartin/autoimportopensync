@@ -10,6 +10,7 @@ struct OSyncClient {
 	OSyncFlag *fl_sent_changes;
 	OSyncFlag *fl_done;
 	OSyncFlag *fl_finished;
+	OSyncFlag *fl_committed_all;
 	GThread *thread;
 	GMainContext *context;
 	
@@ -29,3 +30,4 @@ void osync_client_free(OSyncClient *client);
 osync_bool osync_client_init(OSyncClient *client, OSyncError **error);
 void osync_client_finalize(OSyncClient *client);
 OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client);
+void osync_client_reset(OSyncClient *client);

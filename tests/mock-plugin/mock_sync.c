@@ -453,10 +453,10 @@ static osync_bool mock_is_available(OSyncError **error)
 	return TRUE;
 }
 
-static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange **changes)
+static void mock_batch_commit(OSyncContext *context, OSyncContext **contexts, OSyncChange **changes)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, contexts, changes);
-	mock_env *env = (mock_env *)data;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, context, contexts, changes);
+	mock_env *env = (mock_env *)osync_context_get_plugin_data(context);
 	
 	fail_unless(env->committed_all == FALSE, NULL);
 	env->committed_all = TRUE;
@@ -473,17 +473,31 @@ static void mock_batch_commit(void *data, OSyncContext **contexts, OSyncChange *
 		int req = atoi(g_getenv("NUM_BATCH_COMMITS"));
 		fail_unless(req == i, NULL);
 	}
+		
+	if (mock_get_error(env->member, "COMMITTED_ALL_ERROR")) {
+		osync_context_report_error(context, OSYNC_ERROR_EXPECTED, "Triggering COMMITTED_ALL_ERROR error");
+		return;
+	}
+	
+	osync_context_report_success(context);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void mock_committed_all(void *data)
+static void mock_committed_all(OSyncContext *context)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
-	mock_env *env = (mock_env *)data;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, context);
+	mock_env *env = (mock_env *)osync_context_get_plugin_data(context);
 	
 	fail_unless(env->committed_all == FALSE, NULL);
 	env->committed_all = TRUE;
+	
+	if (mock_get_error(env->member, "COMMITTED_ALL_ERROR")) {
+		osync_context_report_error(context, OSYNC_ERROR_EXPECTED, "Triggering COMMITTED_ALL_ERROR error");
+		return;
+	}
+	
+	osync_context_report_success(context);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

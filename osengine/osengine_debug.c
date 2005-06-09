@@ -83,3 +83,50 @@ void osengine_print_all(OSyncEngine *engine)
 		osync_debug("ENG", 2, "synced: %s", osync_flag_get_state(entry->fl_synced) ? "YES" : "NO");
 	}
 }
+
+void osengine_print_flags(OSyncEngine *engine)
+{
+	osync_trace(TRACE_INTERNAL, "ENG(RUN%i,STOP%i,SENT%i,READ%i,MAP%i,CHK%i,MUL%i,SYNC%i,COMMITTED%i)", \
+		osync_flag_is_set(engine->fl_running), \
+		osync_flag_is_not_set(engine->fl_stop), \
+		osync_flag_is_set(engine->cmb_sent_changes), \
+		osync_flag_is_set(engine->cmb_read_all), \
+		osync_flag_is_set(engine->cmb_entries_mapped), \
+		osync_flag_is_set(engine->cmb_chkconflict), \
+		osync_flag_is_set(engine->cmb_multiplied), \
+		osync_flag_is_set(engine->cmb_synced), \
+		osync_flag_is_set(engine->cmb_committed_all));
+}
+
+void osync_client_print_flags(OSyncClient *client)
+{
+	osync_trace(TRACE_INTERNAL, "CL(CON%i,SENT%i,DONE%i,FIN%i,COMMITTED%i)", \
+		osync_flag_is_set(client->fl_connected), \
+		osync_flag_is_set(client->fl_sent_changes), \
+		osync_flag_is_set(client->fl_done), \
+		osync_flag_is_set(client->fl_finished), \
+		osync_flag_is_set(client->fl_committed_all));
+}
+
+void osengine_mappingentry_print_flags(OSyncMappingEntry *entry)
+{
+	osync_trace(TRACE_INTERNAL, "ENT(DATA%i,DRY%i,MAP%i,INFO%i,SYNC%i,DEL%i)", \
+		osync_flag_is_set(entry->fl_has_data), \
+		osync_flag_is_set(entry->fl_dirty), \
+		osync_flag_is_set(entry->fl_mapped), \
+		osync_flag_is_set(entry->fl_has_info), \
+		osync_flag_is_set(entry->fl_synced), \
+		osync_flag_is_set(entry->fl_deleted));
+}
+
+void osengine_mapping_print_flags(OSyncMapping *mapping)
+{
+	osync_trace(TRACE_INTERNAL, "MAP(SOLV%i,SYNC%i,DATA%i,INFO%i,DEL%i,CHK%i,MUL%i)", \
+		osync_flag_is_set(mapping->fl_solved), \
+		osync_flag_is_set(mapping->cmb_synced), \
+		osync_flag_is_set(mapping->cmb_has_data), \
+		osync_flag_is_set(mapping->cmb_has_info), \
+		osync_flag_is_set(mapping->cmb_deleted), \
+		osync_flag_is_set(mapping->fl_chkconflict), \
+		osync_flag_is_set(mapping->fl_multiplied));
+}

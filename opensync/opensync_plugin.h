@@ -50,20 +50,26 @@ typedef struct OSyncPluginTimeouts {
 	unsigned int read_change_timeout;
 } OSyncPluginTimeouts;
 
+typedef osync_bool (* OSyncFormatCommitFn) (OSyncContext *, OSyncChange *);
+typedef osync_bool (* OSyncFormatAccessFn) (OSyncContext *, OSyncChange *);
+typedef void (* OSyncFormatCommittedAllFn) (OSyncContext *);
+typedef void (* OSyncFormatReadFn) (OSyncContext *, OSyncChange *);
+typedef void (* OSyncFormatBatchCommitFn) (OSyncContext *, OSyncContext **, OSyncChange **);
+
 /*! @brief The functions for accessing formats on a plugin
  * @ingroup OSyncPluginAPI 
  **/
 typedef struct OSyncFormatFunctions {
 	/** The commit function of this format */
-	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
+	OSyncFormatCommitFn commit_change;
 	/** The function that will be called once the plugin has received all commits */
-	void (* committed_all) (void *);
+	OSyncFormatCommittedAllFn committed_all;
 	/** This function will be called by opensync with an array of changes to commit */
-	void (* batch_commit) (void *, OSyncContext **, OSyncChange **);
+	OSyncFormatBatchCommitFn batch_commit;
 	/** The function to write a change WITHOUT updating hashtables or similar stuff */
-	osync_bool (* access) (OSyncContext *, OSyncChange *);
+	OSyncFormatAccessFn access;
 	/** The function to read a change by its uid */
-	void (* read) (OSyncContext *, OSyncChange *);
+	OSyncFormatReadFn read;
 } OSyncFormatFunctions;
 
 /*! @brief Gives information about wether the plugin
@@ -127,8 +133,8 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin);
 void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncError **error);
 void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr);
 void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension);
-void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *));
-void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access_fn) (OSyncContext *, OSyncChange *));
-void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* read_fn) (OSyncContext *, OSyncChange *));
-void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **));
-void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* committed_all) (void *));
+void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatCommitFn commit_change);
+void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatAccessFn access_fn);
+void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatReadFn read_fn);
+void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatBatchCommitFn batch);
+void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatCommittedAllFn committed_all);

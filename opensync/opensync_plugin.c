@@ -396,7 +396,7 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
 	return plugin->info.plugin_data;
 }
 
-void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
+void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatCommitFn commit_change)
 {
 	OSyncObjFormatTemplate *format_template = NULL;
 	if (formatstr) {
@@ -420,7 +420,7 @@ void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *format
  * @param commit_change The pointer to your commit_change function
  * 
  */
-void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* commit_change) (OSyncContext *, OSyncChange *))
+void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatCommitFn commit_change)
 {
 	OSyncObjTypeTemplate *template = NULL;
 	
@@ -437,7 +437,7 @@ void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtyp
 	}
 }
 
-void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *))
+void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatAccessFn access)
 {
 	OSyncObjFormatTemplate *format_template = NULL;
 	if (formatstr) {
@@ -461,7 +461,7 @@ void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *format
  * @param access The pointer to your access function
  * 
  */
-void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, osync_bool (* access) (OSyncContext *, OSyncChange *))
+void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatAccessFn access)
 {
 	OSyncObjTypeTemplate *template = NULL;
 	
@@ -486,7 +486,7 @@ void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtyp
  * @param read The pointer to your read function
  * 
  */
-void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* read) (OSyncContext *, OSyncChange *))
+void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatReadFn read)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
 	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
@@ -495,7 +495,7 @@ void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypes
 	format_template->read = read;
 }
 
-void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **))
+void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatBatchCommitFn batch)
 {
 	OSyncObjFormatTemplate *format_template = NULL;
 	if (formatstr) {
@@ -519,7 +519,7 @@ void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formats
  * @param batch The pointer to your batch_commit function
  * 
  */
-void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* batch) (void *, OSyncContext **, OSyncChange **))
+void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatBatchCommitFn batch)
 {
 	OSyncObjTypeTemplate *template = NULL;
 	
@@ -544,7 +544,7 @@ void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *
  * @param committed_all The pointer to your committed_all function
  * 
  */
-void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, void (* committed_all) (void *))
+void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatCommittedAllFn committed_all)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
 	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");

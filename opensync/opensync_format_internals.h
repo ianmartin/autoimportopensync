@@ -122,11 +122,11 @@ typedef struct OSyncObjFormatTemplate {
 	const char *name;
 	const char *objtype;
 	char *extension_name;
-	osync_bool (* commit_change) (OSyncContext *, OSyncChange *);
-	osync_bool (* access) (OSyncContext *, OSyncChange *);
-	void (* read) (OSyncContext *, OSyncChange *);
-	void (* committed_all) (void *);
-	void (* batch_commit) (void *, OSyncContext **, OSyncChange **);
+	OSyncFormatCommitFn commit_change;
+	OSyncFormatAccessFn access;
+	OSyncFormatReadFn read;
+	OSyncFormatCommittedAllFn committed_all;
+	OSyncFormatBatchCommitFn batch_commit;
 	OSyncFormatCompareFunc cmp_func;
 	OSyncFormatMergeFunc merge_func;
 	OSyncFormatDuplicateFunc duplicate_func;

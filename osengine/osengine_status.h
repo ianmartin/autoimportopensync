@@ -13,10 +13,12 @@ typedef enum {
 	MEMBER_CONNECT_ERROR = 4,
 	/** The member had problems getting the changes */
 	MEMBER_GET_CHANGES_ERROR = 5,
+	/** The member had problems getting the changes */
+	MEMBER_COMMITTED_ALL_ERROR = 6,
 	/** The member had problems during sync_done */
-	MEMBER_SYNC_DONE_ERROR = 6,
+	MEMBER_SYNC_DONE_ERROR = 7,
 	/** There was an error while disconnecting */
-	MEMBER_DISCONNECT_ERROR = 7
+	MEMBER_DISCONNECT_ERROR = 8
 } memberupdatetype;
 
 /** @brief The types of status updates for changes

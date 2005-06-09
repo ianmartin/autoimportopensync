@@ -127,6 +127,23 @@ void _sync_done_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEng
 	osync_trace(TRACE_EXIT, "_sync_done_reply_receiver");
 }
 
+void _committed_all_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sender, message, engine);
+	
+	if (itm_message_is_error(message)) {
+		OSyncError *error = itm_message_get_error(message);
+		osync_error_duplicate(&engine->error, &error);
+		osync_debug("ENG", 1, "Committed all command reply was a error: %s", osync_error_print(&error));
+		osync_status_update_member(engine, sender, MEMBER_COMMITTED_ALL_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to write changes to one of the members");
+	}
+	
+	osync_flag_set(sender->fl_committed_all);
+	osengine_client_decider(engine, sender);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "_disconnect_reply_receiver(%p, %p, %p)", sender, message, engine);
@@ -347,9 +364,6 @@ void send_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 
 void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 {
-	if (!sender->committed_all_sent)
-		send_engine_committed_all(sender);
-	
 	osync_flag_changing(target->fl_done);
 	ITMessage *message = itm_message_new_methodcall(sender, "SYNC_DONE");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_sync_done_reply_receiver, sender);
@@ -360,7 +374,11 @@ void send_sync_done(OSyncClient *target, OSyncEngine *sender)
 
 void send_committed_all(OSyncClient *target, OSyncEngine *sender)
 {
-	ITMessage *message = itm_message_new_signal(sender, "COMMITTED_ALL");
+	osync_trace(TRACE_INTERNAL, "%s(%p, %p)", __func__, target, sender);
+	osync_flag_changing(target->fl_committed_all);
+	ITMessage *message = itm_message_new_methodcall(sender, "COMMITTED_ALL");
+	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_committed_all_reply_receiver, sender);
+	
 	itm_queue_send(target->incoming, message);
 }
 
@@ -528,7 +546,7 @@ static void trigger_clients_connected(OSyncEngine *engine)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void send_engine_committed_all(OSyncEngine *engine)
+/*void send_engine_committed_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	
@@ -539,7 +557,8 @@ void send_engine_committed_all(OSyncEngine *engine)
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
-		send_committed_all(client, engine);
+		if (osync_flag_is_not_set(client->fl_committed_all))
+			send_committed_all(client, engine);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -557,7 +576,7 @@ static void trigger_engine_committed_all(OSyncEngine *engine)
 	send_engine_committed_all(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-}
+}*/
 
 static gboolean startupfunc(gpointer data)
 {
@@ -598,11 +617,7 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
-		osync_flag_set_state(client->fl_connected, FALSE);
-		osync_flag_set_state(client->fl_sent_changes, FALSE);
-		osync_flag_set_state(client->fl_done, FALSE);
-		osync_flag_set_state(client->fl_finished, FALSE);
-		itm_queue_flush(client->incoming);
+		osync_client_reset(client);
 	}
 	
 	osync_flag_set_state(engine->fl_running, FALSE);
@@ -707,7 +722,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_multiplied = osync_comb_flag_new(FALSE, TRUE);
 	
 	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)trigger_engine_committed_all, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	osync_flag_set(engine->fl_sync);
 	

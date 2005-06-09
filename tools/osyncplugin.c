@@ -83,6 +83,12 @@ static void sync_done(OSyncMember *member)
 	//g_mutex_unlock(working);
 }
 
+static void committed_all(OSyncMember *member)
+{
+	osync_member_committed_all(member, (OSyncEngCallback)stress_message_callback, NULL);
+	g_main_loop_run(loop);
+}
+
 static GList *get_changes(OSyncMember *member)
 {
 	changes = NULL;
@@ -300,7 +306,7 @@ static void empty_all(OSyncMember *member)
 		delete_data(member, change);
 		num_del++;
 	}
-	osync_member_committed_all(member);
+	committed_all(member);
 	disconnect(member);
 	
 	if (!alwaysempty) {

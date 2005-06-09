@@ -1221,9 +1221,13 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
  * @param member The member
  * 
  */
-void osync_member_committed_all(OSyncMember *member)
+void osync_member_committed_all(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+
+	OSyncContext *context = osync_context_new(member);
+	context->callback_function = function;
+	context->calldata = user_data;
 
 	GList *f;
 	for (f = member->format_sinks; f; f = f->next) {
@@ -1253,7 +1257,7 @@ void osync_member_committed_all(OSyncMember *member)
 			
 			changes[i] = NULL;
 			contexts[i] = NULL;
-			functions.batch_commit(member->plugindata, contexts, changes);
+			functions.batch_commit(context, contexts, changes);
 			
 			g_free(changes);
 			g_free(contexts);
@@ -1264,7 +1268,9 @@ void osync_member_committed_all(OSyncMember *member)
 			g_list_free(fmtsink->commit_contexts);
 			fmtsink->commit_contexts = NULL;
 		} else if (functions.committed_all) {
-			functions.committed_all(member->plugindata);
+			functions.committed_all(context);
+		} else {
+			osync_context_report_success(context);
 		}
 	}
 	

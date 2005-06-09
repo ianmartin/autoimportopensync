@@ -1111,6 +1111,101 @@ START_TEST (commit_error_delete)
 }
 END_TEST
 
+START_TEST (committed_all_error)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
+	
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_memberstatus_callback(engine, member_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_init(engine, &error);
+	
+	fail_unless(!synchronize_once(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	mark_point();
+	osync_error_free(&error);
+	mark_point();
+	osengine_finalize(engine);
+	mark_point();
+	osengine_free(engine);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_read == 1, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_mapping_errors == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (committed_all_batch_error)
+{
+	char *testbed = setup_testbed("multisync_easy_new");
+	
+	setenv("BATCH_COMMIT", "7", TRUE);
+	setenv("COMMITTED_ALL_ERROR", "3", TRUE);
+	
+	OSyncEnv *osync = init_env();
+	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
+	
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_memberstatus_callback(engine, member_status, NULL);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_init(engine, &error);
+	
+	fail_unless(!synchronize_once(engine, &error), NULL);
+	fail_unless(osync_error_is_set(&error), NULL);
+	
+	mark_point();
+	osync_error_free(&error);
+	mark_point();
+	osengine_finalize(engine);
+	mark_point();
+	osengine_free(engine);
+	
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_read == 1, NULL);
+	fail_unless(num_written == 0, NULL);
+	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_mapping_errors == 0, NULL);
+	fail_unless(num_conflicts == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
+	fail_unless(num_engine_successfull == 0, NULL);
+	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (single_sync_done_error)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
@@ -1778,6 +1873,8 @@ Suite *multisync_suite(void)
 	create_case(s, "commit_timeout_and_error2", commit_timeout_and_error2);
 	create_case(s, "commit_error_modify", commit_error_modify);
 	create_case(s, "commit_error_delete", commit_error_delete);
+	create_case(s, "committed_all_error", committed_all_error);
+	create_case(s, "committed_all_batch_error", committed_all_batch_error);
 	create_case(s, "single_sync_done_error", single_sync_done_error);
 	create_case(s, "dual_sync_done_error", dual_sync_done_error);
 	create_case(s, "triple_sync_done_error", triple_sync_done_error);

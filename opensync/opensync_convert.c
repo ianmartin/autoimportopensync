@@ -161,7 +161,7 @@ OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter, OSync
 	OSyncChange *new_change = osync_change_new();
 	
 	
-	if (change->data) {
+	if (change->changetype != CHANGE_DELETED && change->data) {
 		//Invoke the converter and all extensions
 		OSyncError *error = NULL;
 		if (!converter->convert_func(NULL, change->data, change->size, &(new_change->data), &(new_change->size), free_output, &error)) {
@@ -257,10 +257,14 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 						"We would call a converter to %s, but there is no change data on vertice", fmt_target->name);
 				continue;
 			}
-			if (!converter->detect_func(env, ve->change->data, ve->change->size)) {
-				osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", converter->source_format->name, converter->target_format->name);
-				continue;
+			
+			if (ve->change->changetype != CHANGE_DELETED) {
+				if (!converter->detect_func(env, ve->change->data, ve->change->size)) {
+					osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: FALSE", converter->source_format->name, converter->target_format->name);
+					continue;
+				}
 			}
+			
 			osync_trace(TRACE_INTERNAL, "Invoked detector for converter from %s to %s: TRUE", converter->source_format->name, converter->target_format->name);
 		}
 
@@ -271,6 +275,7 @@ vertice *get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertic
 				osync_trace(TRACE_INTERNAL, "A desencapsulator to %s would be called, but we can't because the data on this vertice wasn't converted", fmt_target->name);
 				continue;
 			}
+			
 			if (!(new_change = osync_converter_invoke_decap(converter, ve->change, &free_output)))
 				continue;
 		}
@@ -430,12 +435,17 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	}
 
 	//We can convert the deleted change directly since it has no data
-	if (change->changetype == CHANGE_DELETED) {
+	/*if (change->changetype == CHANGE_DELETED) {
 		change->format = osync_change_get_initial_objformat(change);
 		change->objtype = osync_change_get_objformat(change)->objtype;
+		if (!target_fn(fndata, source)) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "converted delete target would not be valid");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
 		osync_trace(TRACE_EXIT, "osync_conv_convert_fn: converted deleted change");
 		return TRUE;
-	}
+	}*/
 	
 	ret = FALSE;
 	if (!osync_conv_find_path_fn(env, change, target_fn, fndata, &path)) {
@@ -444,47 +454,53 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 		goto out;
 	}
 	
-	for (; path; path = path->next) {
-		OSyncFormatConverter *converter = path->data;
-
-		osync_trace(TRACE_INTERNAL, "initialize converter: %p", converter->init_func);
-		
-		//Initialize the converter
-		void *converter_data = NULL;
-		if (converter->init_func)
-			converter_data = converter->init_func();
-		
-		if (extension_name) {
-			osync_trace(TRACE_INTERNAL, "initialize extension: %s", extension_name);
+	if (change->changetype == CHANGE_DELETED) {
+		OSyncFormatConverter *converter = g_list_last(path)->data;
+		change->format = converter->target_format;
+		change->objtype = osync_change_get_objformat(change)->objtype;
+	} else {
+		for (; path; path = path->next) {
+			OSyncFormatConverter *converter = path->data;
+	
+			osync_trace(TRACE_INTERNAL, "initialize converter: %p", converter->init_func);
 			
-			//Initialize the requested extension
-			OSyncFormatExtension *extension = osync_conv_find_extension(env, converter->source_format, converter->target_format, extension_name);
-			osync_trace(TRACE_INTERNAL, "extension: %p", extension);
-			if (extension)
-				extension->init_func(converter_data);
-		} else {
+			//Initialize the converter
+			void *converter_data = NULL;
+			if (converter->init_func)
+				converter_data = converter->init_func();
 			
-			osync_trace(TRACE_INTERNAL, "initialize all extensions");
-			//Initialize all available from extensions
-			GList *e;
-			for (e = env->extensions; e; e = e->next) {
-				OSyncFormatExtension *extension = e->data;
-				osync_trace(TRACE_INTERNAL, "extension: %s", extension->name);
-				osync_trace(TRACE_INTERNAL, "%p:%p %p:%p", extension->from_format, converter->source_format, extension->to_format, converter->target_format);
-				if (extension->from_format == converter->source_format && extension->to_format == converter->target_format)
+			if (extension_name) {
+				osync_trace(TRACE_INTERNAL, "initialize extension: %s", extension_name);
+				
+				//Initialize the requested extension
+				OSyncFormatExtension *extension = osync_conv_find_extension(env, converter->source_format, converter->target_format, extension_name);
+				osync_trace(TRACE_INTERNAL, "extension: %p", extension);
+				if (extension)
 					extension->init_func(converter_data);
+			} else {
+				
+				osync_trace(TRACE_INTERNAL, "initialize all extensions");
+				//Initialize all available from extensions
+				GList *e;
+				for (e = env->extensions; e; e = e->next) {
+					OSyncFormatExtension *extension = e->data;
+					osync_trace(TRACE_INTERNAL, "extension: %s", extension->name);
+					osync_trace(TRACE_INTERNAL, "%p:%p %p:%p", extension->from_format, converter->source_format, extension->to_format, converter->target_format);
+					if (extension->from_format == converter->source_format && extension->to_format == converter->target_format)
+						extension->init_func(converter_data);
+				}
 			}
+			
+			if (!osync_converter_invoke(converter, change, converter_data, error)) {
+				osync_trace(TRACE_EXIT_ERROR, "osync_conv_convert_fn: %s", osync_error_print(error));
+				goto out_free_path;
+			}
+			
+			//Finalize the converter data
+			if (converter->fin_func)
+				converter->fin_func(converter_data);
+			
 		}
-		
-		if (!osync_converter_invoke(converter, change, converter_data, error)) {
-			osync_trace(TRACE_EXIT_ERROR, "osync_conv_convert_fn: %s", osync_error_print(error));
-			goto out_free_path;
-		}
-		
-		//Finalize the converter data
-		if (converter->fin_func)
-			converter->fin_func(converter_data);
-		
 	}
 	ret = TRUE;
 

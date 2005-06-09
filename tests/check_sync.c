@@ -632,6 +632,7 @@ Suite *env_suite(void)
 {
 	Suite *s = suite_create("Sync");
 	//Suite *s2 = suite_create("Sync");
+	
 	create_case(s, "sync_setup", sync_setup);
 	create_case(s, "sync_setup_init", sync_setup_init);
 	create_case(s, "sync_init_error", sync_init_error);
