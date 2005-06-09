@@ -1376,16 +1376,24 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 		return FALSE;
 	}
 	
-	if (!format_sink->functions.access) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: No access function", __func__);
-		return FALSE;
+	if (format_sink->functions.batch_commit) {
+		//Append to the stored changes
+		format_sink->commit_changes = g_list_append(format_sink->commit_changes, change);
+		format_sink->commit_contexts = g_list_append(format_sink->commit_contexts, context);
+		osync_trace(TRACE_EXIT, "%s: Waiting for batch processing", __func__);
+		return TRUE;
+	} else {
+		if (!format_sink->functions.access) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: No access function", __func__);
+			return FALSE;
+		}
+		
+		if (!format_sink->functions.access(context, change)) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify change", __func__);
+			return FALSE;
+		}
 	}
-	
-	if (!format_sink->functions.access(context, change)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify change", __func__);
-		return FALSE;
-	}
-	
+		
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }

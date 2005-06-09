@@ -23,12 +23,16 @@ static void usage (char *name, int ecode)
   fprintf (stderr, "Usage: %s <pluginname>\n", name);
   fprintf (stderr, "--config <filename>\tSet the config file to use\n");
   fprintf (stderr, "--type <object type>\tSets the objtype to test\n");
+  fprintf (stderr, "--empty\tOnly deleta all data. Do not test\n");
   exit (ecode);
 }
 
+GMainLoop *loop = NULL;
+
 static void stress_message_callback(OSyncMember *member, void *user_data, OSyncError *error)
 {
-	g_mutex_unlock(working);
+	//g_mutex_unlock(working);
+	g_main_loop_quit(loop);
 }
 
 static void stress_message_callback2(OSyncMember *member, void *user_data, OSyncError *error)
@@ -49,10 +53,11 @@ static void changes_sink(OSyncMember *member, OSyncChange *change, void *user_da
 
 static void connect(OSyncMember *member)
 {
-	g_mutex_lock(working);
+	//g_mutex_lock(working);
 	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_mutex_lock(working);
-	g_mutex_unlock(working);
+	g_main_loop_run(loop);
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 }
 
 static void disconnect(OSyncMember *member)
@@ -62,27 +67,30 @@ static void disconnect(OSyncMember *member)
 	g_mutex_lock(working);
 	g_mutex_unlock(working);*/
 	
-	g_mutex_lock(working);
+	//g_mutex_lock(working);
 	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_mutex_lock(working);
-	g_mutex_unlock(working);
+	g_main_loop_run(loop);
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 }
 
 static void sync_done(OSyncMember *member)
 {
-	g_mutex_lock(working);
+	//g_mutex_lock(working);
 	osync_member_sync_done(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_mutex_lock(working);
-	g_mutex_unlock(working);
+	g_main_loop_run(loop);
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 }
 
 static GList *get_changes(OSyncMember *member)
 {
 	changes = NULL;
-	g_mutex_lock(working);
+	//g_mutex_lock(working);
 	osync_member_get_changeinfo(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_mutex_lock(working);
-	g_mutex_unlock(working);
+	g_main_loop_run(loop);
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 	printf("Number of changes %i\n", g_list_length(changes));
 	return changes;
 }
@@ -278,10 +286,11 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 
 static void empty_all(OSyncMember *member)
 {
-	connect(member);
-	sync_done(member);
-	disconnect(member);
+	//connect(member);
+	//sync_done(member);
+	//disconnect(member);
 	
+	osync_member_set_slow_sync(member, "data", TRUE);
 	connect(member);
 	GList *chg = get_changes(member);
 	GList *i = NULL;
@@ -291,6 +300,7 @@ static void empty_all(OSyncMember *member)
 		delete_data(member, change);
 		num_del++;
 	}
+	osync_member_committed_all(member);
 	disconnect(member);
 	
 	if (!alwaysempty) {
@@ -345,8 +355,6 @@ static void register_tests(void)
 	register_test("multi_init", multi_init);
 }
 
-
-
 int main (int argc, char *argv[])
 {
 	int i;
@@ -359,6 +367,7 @@ int main (int argc, char *argv[])
 	char *testname = NULL;
 	OSyncError *error = NULL;
 	alwaysempty = FALSE;
+	gboolean emptyonly = FALSE;
 	
 	if (argc < 2)
 		usage (argv[0], 1);
@@ -396,6 +405,8 @@ int main (int argc, char *argv[])
 			usage (argv[0], 0);
 		} else if (!strcmp (arg, "--alwaysempty")) {
 			alwaysempty = TRUE;
+		} else if (!strcmp (arg, "--empty")) {
+			emptyonly = TRUE;
 		} else {
 			if (testname)
 				usage (argv[0], 1);
@@ -463,6 +474,20 @@ int main (int argc, char *argv[])
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);
 	functions->rf_change = changes_sink;
 	
+	//started_mutex = g_mutex_new();
+	//started = g_cond_new();
+	//GMainContext *context = g_main_context_new();
+	loop = g_main_loop_new(NULL, TRUE);
+	//g_mutex_lock(started_mutex);
+	//GSource *idle = g_idle_source_new();
+	//g_source_set_callback(idle, startupfunc, NULL, NULL);
+   // g_source_attach(idle, context);
+	//g_thread_create ((GThreadFunc)g_main_loop_run, loop, TRUE, NULL);
+	//g_cond_wait(started, started_mutex);
+	//g_mutex_unlock(started_mutex);
+	
+	//osync_member_set_loop(member, context);
+	
 	if (!osync_member_initialize(member, &error)) {
 		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
 		return 1;
@@ -477,12 +502,16 @@ int main (int argc, char *argv[])
 	working = g_mutex_new();
 	working2 = g_mutex_new();
 	
-	register_tests();
-	
-	if (testname)
-		run_test(testname, member, objtype);
-	else
-		run_all_tests(member, objtype);
+	if (emptyonly) {
+		empty_all(member);
+	} else {
+		register_tests();
+		
+		if (testname)
+			run_test(testname, member, objtype);
+		else
+			run_all_tests(member, objtype);
+	}
 	
 	osync_member_finalize(member);
 	
