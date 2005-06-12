@@ -69,7 +69,7 @@ static const char *osync_error_name_from_type(OSyncErrorType type)
  */
 void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
-	if (!error)
+	if (!error || !format)
 		return;
 	
 	osync_return_if_fail(osync_error_is_set(error) == FALSE);
