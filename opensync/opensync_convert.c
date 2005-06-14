@@ -174,6 +174,7 @@ OSyncChange *osync_converter_invoke_decap(OSyncFormatConverter *converter, OSync
 	osync_debug("OSYNC", 3, "Converting! replacing format %s with %s", converter->source_format->name, converter->target_format->name);
 	new_change->format = converter->target_format;
 	new_change->objtype = osync_change_get_objformat(new_change)->objtype;
+	new_change->changetype = change->changetype;
 	osync_trace(TRACE_EXIT, "osync_converter_invoke_decap: %p", new_change);
 	return new_change;
 }
