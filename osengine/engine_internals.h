@@ -26,3 +26,4 @@ typedef struct timeout_info timeout_info;
 #include "osengine_mapping_internals.h"
 #include "osengine_mapcmds_internals.h"
 #include "osengine_client_internals.h"
+#include "osengine_debug_internals.h"

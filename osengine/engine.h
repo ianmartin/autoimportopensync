@@ -17,5 +17,6 @@ typedef struct OSyncMapping OSyncMapping;
 #include "osengine_status.h"
 #include "osengine_engine.h"
 #include "osengine_mapping.h"
+#include "osengine_debug.h"
 
 #endif

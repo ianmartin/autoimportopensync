@@ -39,7 +39,8 @@ EXTRA_DIST = \
 	osengine_mapcmds_internals.h \
 	osengine_message_internals.h \
 	osengine_deciders_internals.h \
-	osengine_queue_internals.h
+	osengine_queue_internals.h \
+	osengine_debug_internals.h
 
 CLEANFILES = \
 	*.bb \
