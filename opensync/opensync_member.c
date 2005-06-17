@@ -1224,27 +1224,47 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 void osync_member_committed_all(OSyncMember *member, OSyncEngCallback function, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	OSyncChange **changes = NULL;
+	OSyncContext **contexts = NULL;
 
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
 
+	GList *pendingchanges = NULL;
+	GList *pendingcontexts = NULL;
+
 	GList *f;
 	for (f = member->format_sinks; f; f = f->next) {
 		OSyncObjFormatSink *fmtsink = f->data;
-		osync_debug("OSYNC", 2, "Sending committed all to sink %p:%s", fmtsink, fmtsink->format ? fmtsink->format->name : "None");
+		osync_debug("OSYNC", 2, "Sending changes to sink %p:%s", fmtsink, fmtsink->format ? fmtsink->format->name : "None");
 
 		OSyncFormatFunctions functions = fmtsink->functions;
 
 		if (functions.batch_commit) {
-			GList *o = fmtsink->commit_contexts;
+			pendingchanges = g_list_concat(pendingchanges, fmtsink->commit_changes);
+			pendingcontexts = g_list_concat(pendingcontexts, fmtsink->commit_contexts);
+			
+			fmtsink->commit_changes = NULL;
+			fmtsink->commit_contexts = NULL;
+		}
+	}
+	
+	f = member->format_sinks;
+	if (f) {
+		OSyncObjFormatSink *fmtsink = f->data;
+		osync_debug("OSYNC", 2, "Sending committed all to sink %p:%s", fmtsink, fmtsink->format ? fmtsink->format->name : "None");
+
+		OSyncFormatFunctions functions = fmtsink->functions;
+	
+		if (functions.batch_commit) {
+			int i = 0;
+			changes = g_malloc0(sizeof(OSyncChange *) * (g_list_length(pendingchanges) + 1));
+			contexts = g_malloc0(sizeof(OSyncContext *) * (g_list_length(pendingcontexts) + 1));;
+			GList *o = pendingcontexts;
 			GList *c = NULL;
 			
-			int i = 0;
-			OSyncChange **changes = g_malloc0(sizeof(OSyncChange *) * (g_list_length(fmtsink->commit_changes) + 1));
-			OSyncContext **contexts = g_malloc0(sizeof(OSyncContext *) * (g_list_length(fmtsink->commit_changes) + 1));;
-			
-			for (c = fmtsink->commit_changes; c && o; c = c->next) {
+			for (c = pendingchanges; c && o; c = c->next) {
 				OSyncChange *change = c->data;
 				OSyncContext *context = o->data;
 				
@@ -1255,18 +1275,13 @@ void osync_member_committed_all(OSyncMember *member, OSyncEngCallback function, 
 				o = o->next;
 			}
 			
-			changes[i] = NULL;
-			contexts[i] = NULL;
+			g_list_free(pendingchanges);
+			g_list_free(pendingcontexts);
+			
 			functions.batch_commit(context, contexts, changes);
 			
 			g_free(changes);
 			g_free(contexts);
-			
-			g_list_free(fmtsink->commit_changes);
-			fmtsink->commit_changes = NULL;
-			
-			g_list_free(fmtsink->commit_contexts);
-			fmtsink->commit_contexts = NULL;
 		} else if (functions.committed_all) {
 			functions.committed_all(context);
 		} else {

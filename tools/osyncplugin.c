@@ -28,11 +28,13 @@ static void usage (char *name, int ecode)
 }
 
 GMainLoop *loop = NULL;
+gboolean busy = FALSE;
 
 static void stress_message_callback(OSyncMember *member, void *user_data, OSyncError *error)
 {
 	//g_mutex_unlock(working);
 	g_main_loop_quit(loop);
+	busy = FALSE;
 }
 
 static void stress_message_callback2(OSyncMember *member, void *user_data, OSyncError *error)
@@ -68,8 +70,13 @@ static void disconnect(OSyncMember *member)
 	g_mutex_unlock(working);*/
 	
 	//g_mutex_lock(working);
+	busy = TRUE;
+	
 	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_main_loop_run(loop);
+	
+	if (busy)
+		g_main_loop_run(loop);
+	
 	//g_mutex_lock(working);
 	//g_mutex_unlock(working);
 }
