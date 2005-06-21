@@ -12,6 +12,7 @@ GMutex *working2;
 GList *changes;
 GList *tests;
 osync_bool alwaysempty;
+osync_bool noaccess = FALSE;
 	
 typedef struct OSyncPluginTest {
 	char *name;
@@ -180,33 +181,66 @@ static void multi_init(OSyncMember *member, const char *objtype)
 
 static void add_test1(OSyncMember *member, const char *objtype)
 {
+	printf("Test \"Add1\" starting\n");
+	printf("Adding data... ");
+	fflush(stdout);
 	connect(member);
+	get_changes(member);
 	OSyncChange *change = add_data(member, objtype);
+	committed_all(member);
+	if (noaccess)
+		sync_done(member);
 	disconnect(member);
+	printf("success\n");
 	
+	if (noaccess)
+		osync_member_set_slow_sync(member, "data", TRUE);
+	
+	
+	printf("Reading data... \r");
 	connect(member);
 	GList *chg = get_changes(member);
 	
 	g_assert(g_list_length(chg) == 1);
 	OSyncChange *newchange = g_list_nth_data(chg, 0);
 	g_assert(osync_change_compare(newchange, osync_change_copy(change, NULL)) == CONV_DATA_SAME);
+	committed_all(member);
 	sync_done(member);
 	disconnect(member);
+	printf("success\n");
 	
+	printf("Deleting data... \r");
 	connect(member);
 	delete_data(member, change);
+	committed_all(member);
+	if (noaccess)
+		sync_done(member);
 	disconnect(member);
+	printf("success\n");
 	
+	if (noaccess)
+		osync_member_set_slow_sync(member, "data", TRUE);
+	
+	
+	printf("Reading remaining data... \r");
 	connect(member);
 	chg = get_changes(member);
-	g_assert(g_list_length(chg) == 1);
-	newchange = g_list_nth_data(chg, 0);
-	g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+	if (noaccess) {
+		g_assert(g_list_length(chg) == 0);
+	} else {
+		g_assert(g_list_length(chg) == 1);
+		newchange = g_list_nth_data(chg, 0);
+		g_assert(osync_change_get_changetype(newchange) == CHANGE_DELETED);
+	}
 	disconnect(member);
+	printf("success\n");
+	
+	printf("Test \"Add1\" ended\n");
 }
 
 static void add_test2(OSyncMember *member, const char *objtype)
 {
+	printf("Test \"Add2\" starting\n");
 	connect(member);
 	OSyncChange *change1 = add_data(member, objtype);
 	OSyncChange *change2 = add_data(member, objtype);
@@ -254,10 +288,13 @@ static void add_test2(OSyncMember *member, const char *objtype)
 	chg = get_changes(member);
 	g_assert(g_list_length(chg) == 0);
 	disconnect(member);
+	printf("Test \"Add3\" ended\n");
 }
 
 static void modify_test1(OSyncMember *member, const char *objtype)
 {
+	printf("Test \"Modify1\" starting\n");
+	
 	connect(member);
 	OSyncChange *change = add_data(member, objtype);
 	disconnect(member);
@@ -295,10 +332,12 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 	chg = get_changes(member);
 	g_assert(g_list_length(chg) == 0);
 	disconnect(member);
+	printf("Test \"Modify1\" ended\n");
 }
 
 static void empty_all(OSyncMember *member)
 {
+	printf("Emptying requested sources (Access available: %s)\n", noaccess == TRUE ? "No" : "Yes");
 	//connect(member);
 	//sync_done(member);
 	//disconnect(member);
@@ -316,7 +355,7 @@ static void empty_all(OSyncMember *member)
 	committed_all(member);
 	disconnect(member);
 	
-	if (!alwaysempty) {
+	if (!alwaysempty && !noaccess) {
 		connect(member);
 		chg = get_changes(member);
 		g_assert(g_list_length(chg) == num_del);
@@ -327,6 +366,7 @@ static void empty_all(OSyncMember *member)
 		g_assert(g_list_length(chg) == 0);
 		disconnect(member);
 	}
+	printf("Done emptying\n");
 }
 
 static void run_all_tests(OSyncMember *member, const char *objtype)
@@ -381,6 +421,7 @@ int main (int argc, char *argv[])
 	OSyncError *error = NULL;
 	alwaysempty = FALSE;
 	gboolean emptyonly = FALSE;
+	noaccess = TRUE;
 	
 	if (argc < 2)
 		usage (argv[0], 1);
@@ -418,6 +459,8 @@ int main (int argc, char *argv[])
 			usage (argv[0], 0);
 		} else if (!strcmp (arg, "--alwaysempty")) {
 			alwaysempty = TRUE;
+		} else if (!strcmp (arg, "--noaccess")) {
+			noaccess = TRUE;
 		} else if (!strcmp (arg, "--empty")) {
 			emptyonly = TRUE;
 		} else {
@@ -502,7 +545,7 @@ int main (int argc, char *argv[])
 	//osync_member_set_loop(member, context);
 	
 	if (!osync_member_initialize(member, &error)) {
-		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
+		printf("unable to initialize: %s\n", osync_error_print(&error));
 		return 1;
 	}
 	
