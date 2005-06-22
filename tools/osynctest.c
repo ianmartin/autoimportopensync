@@ -349,7 +349,7 @@ int main (int argc, char *argv[])
 	}
 	
 	int count = 0;
-	if (random) {
+	if (only_random) {
 		do {
 			count++;
 			printf("++++++++++++++++++++++++++++++\n");
