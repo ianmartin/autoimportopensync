@@ -30,7 +30,6 @@ static void usage (char *name, int ecode)
   exit (ecode);
 }
 
-GMainLoop *loop = NULL;
 gboolean busy = FALSE;
 gboolean only_random = FALSE;
 
@@ -48,28 +47,22 @@ static void sync_now(OSyncEngine *engine)
 
 static void stress_message_callback(OSyncMember *member, void *user_data, OSyncError *error)
 {
-	g_main_loop_quit(loop);
 	busy = FALSE;
 }
 
 static void connect(OSyncMember *member)
 {
 	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_main_loop_run(loop);
 }
 
 static void disconnect(OSyncMember *member)
 {
-	busy = TRUE;
 	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	if (busy)
-		g_main_loop_run(loop);
 }
 
 static void committed_all(OSyncMember *member)
 {
 	osync_member_committed_all(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_main_loop_run(loop);
 }
 
 static OSyncChange *add_data(OSyncMember *member, const char *objtype)
@@ -110,7 +103,6 @@ static GList *get_changes(OSyncMember *member)
 	changes = NULL;
 	
 	osync_member_get_changeinfo(member, (OSyncEngCallback)stress_message_callback, NULL);
-	g_main_loop_run(loop);
 
 	printf("Number of changes %i\n", g_list_length(changes));
 	return changes;
@@ -121,10 +113,7 @@ void change_content(OSyncMember *member)
 	OSyncChange *change = NULL;
 	osync_member_set_slow_sync(member, "data", TRUE);
 	
-	busy = TRUE;
 	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	if (busy)
-		g_main_loop_run(loop);
 	
 	GList *c = get_changes(member);
 	for (; c; c = c->next) {
@@ -153,10 +142,7 @@ void change_content(OSyncMember *member)
 			printf("Adding new data %s. Objtype: %s Format: %s\n", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_objformat_get_name(osync_change_get_objformat(change)));
 	}
 	
-	busy = TRUE;
 	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	if (busy)
-		g_main_loop_run(loop);
 }
 
 void check_sync(OSyncEngine *engine)
@@ -337,11 +323,15 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	
-	config = "<config></config>";
+	config = g_strdup_printf("<config><path>%s</path><recursive>0</recursive></config>", testdir);
 	osync_member_set_config(file, config, strlen(config) + 1);
 	osync_member_set_pluginname(file, "file-sync");
 	
-	osync_group_save(group, NULL);
+	if (!osync_group_save(group, &error)) {
+		printf("Error while creating syncengine: %s\n", osync_error_print(&error));
+		osync_error_free(&error);
+		goto error_free_env;
+	}
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	
