@@ -1,12 +1,13 @@
 #include <opensync/opensync.h>
-#include <opensync/opensync_internals.h>
 #include "engine.h"
 #include "engine_internals.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <glib.h>
 
 static void usage (char *name, int ecode)
 {
@@ -18,8 +19,7 @@ static void usage (char *name, int ecode)
   exit (ecode);
 }
 
-
-GList *members;
+GList *members = NULL;
 
 typedef struct member_info {
 	OSyncMember *member;
@@ -149,9 +149,13 @@ void entry_status(OSyncChangeUpdate *status)
 
 GMutex *working;
 
+GMainLoop *loop = NULL;
+gboolean busy = FALSE;
+
 void stress_message_callback(OSyncMember *member, void *user_data, OSyncError *error)
 {
-	g_mutex_unlock(working);
+	g_main_loop_quit(loop);
+	busy = FALSE;
 }
 
 void change_content(OSyncEngine *engine)
@@ -160,10 +164,10 @@ void change_content(OSyncEngine *engine)
 	for (m = members; m; m = m->next) {
 		member_info *meminfo = m->data;
 		
-		g_mutex_lock(working);
+		busy = TRUE;
 		osync_member_connect(meminfo->member, (OSyncEngCallback)stress_message_callback, NULL);
-		g_mutex_lock(working);
-		g_mutex_unlock(working);
+		if (busy)
+			g_main_loop_run(loop);
 		
 		GList *c = NULL;
 		for (c = meminfo->changes; c; c = c->next) {
@@ -210,10 +214,10 @@ void change_content(OSyncEngine *engine)
 			}
 		}
 		
-		g_mutex_lock(working);
+		busy = TRUE;
 		osync_member_disconnect(meminfo->member, (OSyncEngCallback)stress_message_callback, NULL);
-		g_mutex_lock(working);
-		g_mutex_unlock(working);
+		if (busy)
+			g_main_loop_run(loop);
 	}
 }
 
@@ -286,10 +290,10 @@ static osync_bool check_hashtables(OSyncEngine *engine)
 
 static osync_bool compare_content(OSyncEngine *engine)
 {
-	if (system("test \"x$(diff -x \".*\" r1 r2)\" = \"x\"")) { //FIXME
+	/*if (system("test \"x$(diff -x \".*\" r1 r2)\" = \"x\"")) { //FIXME
 		printf("Content did not match!\n");
 		return FALSE;
-	}
+	}*/
 	return TRUE;
 }
 
@@ -302,6 +306,7 @@ int main (int argc, char *argv[])
 	osync_bool failed = FALSE;
 	osync_bool tryrecover = FALSE;
 	OSyncError *error = NULL;
+	OSyncEngine *engine = NULL;
 	
 	if (argc <= 1)
 		usage (argv[0], 1);
@@ -332,37 +337,41 @@ int main (int argc, char *argv[])
 		}
 	}
 	
+	loop = g_main_loop_new(NULL, TRUE);	
+	if (!g_thread_supported ()) g_thread_init (NULL);
+	
+	osync_trace(TRACE_ENTRY, "++++ Started the sync stress test +++");
 	OSyncEnv *osync = osync_env_new();
 	osync_env_set_option(osync, "GROUPS_DIRECTORY", configdir);
 	
 	if (!osync_env_initialize(osync, &error)) {
-		printf("Unable to initialize environment: %s\n", error->message);
+		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
-		return 1;
+		goto error_free_env;
 	}
 	
 	OSyncGroup *group = osync_env_find_group(osync, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
-		return 1;
+		goto error_free_env;
 	}
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	working = g_mutex_new();
 	int count = 0;
 	while (1) {
-		OSyncEngine *engine = osengine_new(group, &error);
+		engine = osengine_new(group, &error);
 		if (!engine) {
-			printf("Error while creating syncengine: %s\n", error->message);
+			printf("Error while creating syncengine: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
-			abort();
+			goto error_free_env;
 		}
 		
 		if (!osengine_init(engine, &error)) {
-			printf("Error while initializing syncengine: %s\n", error->message);
+			printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
-			abort();
+			goto error_free_engine;
 		}
 		
 		do {
@@ -388,12 +397,12 @@ int main (int argc, char *argv[])
 			if (!check_mappings(engine) || !check_hashtables(engine) || !compare_content(engine)) {
 				if (failed) {
 					printf("already failed last round...\n");
-					abort();
+					goto error_free_engine;
 				}
 				failed = TRUE;
 				if (!tryrecover) {
 					printf("Failed. Not trying to recover\n");
-					abort();
+					goto error_free_engine;
 				} else {
 					printf("Failed. Trying to recover!\n");
 					osync_group_set_slow_sync(group, "data", TRUE);
@@ -406,20 +415,19 @@ int main (int argc, char *argv[])
 
 			printf("Starting to synchronize\n");
 			if (!osengine_sync_and_block(engine, &error)) {
-				printf("Error while starting synchronization: %s\n", error->message);
+				printf("Error while starting synchronization: %s\n", osync_error_print(&error));
 				osync_error_free(&error);
-				abort();
+				goto error_free_engine;
 			}
 			
 			if (!compare_content(engine))
-				abort();
+				goto error_free_engine;
 			
 			sleep(2);
 			printf("End of synchronization\n");
-			/*if (!compare_updates(engine))
-				abort();*/
+			
 			if (count == num)
-				exit(0);
+				goto out;
 		} while (g_random_int_range(0, 3) != 0);
 		
 		printf("Finalizing engine\n");
@@ -427,5 +435,17 @@ int main (int argc, char *argv[])
 		osengine_free(engine);
 	}
 	
+out:
+	osync_trace(TRACE_EXIT, "Stress test successful");
+	printf("Stress test successful\n");
 	return 0;
+	
+error_free_engine:
+	osengine_free(engine);
+error_free_env:
+	osync_env_free(osync);
+	g_main_loop_unref(loop);
+	osync_trace(TRACE_EXIT_ERROR, "Stress test failed");
+	printf("ERROR: Stress test failed\n");
+	return 1;
 }

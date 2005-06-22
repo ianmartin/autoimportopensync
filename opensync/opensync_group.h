@@ -26,6 +26,7 @@ OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth);
 int osync_group_num_members(OSyncGroup *group);
 
 const char *osync_group_get_configdir(OSyncGroup *group);
+void osync_group_set_configdir(OSyncGroup *group, const char *directory);
 OSyncEnv *osync_group_get_env(OSyncGroup *group);
 void *osync_group_get_data(OSyncGroup *group);
 void osync_group_set_data(OSyncGroup *group, void *data);

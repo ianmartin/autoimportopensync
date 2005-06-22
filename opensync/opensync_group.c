@@ -360,6 +360,7 @@ const char *osync_group_get_name(OSyncGroup *group)
  */
 osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	g_assert(group);
 	osync_assert(group->env, "You must specify a Environment prior to saving the group");
 	
@@ -376,7 +377,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 		osync_debug("OSGRP", 3, "Creating group configdirectory %s", group->configdir);
 		if (mkdir(group->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
-			return FALSE;
+			goto error;
 		}
 	}
 	
@@ -430,10 +431,15 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		OSyncMember *member = osync_group_nth_member(group, i);
 		if (!osync_member_save(member, error))
-			return FALSE;
+			goto error;
 	}
 	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*! @brief Deletes a group from disc
@@ -676,6 +682,20 @@ const char *osync_group_get_configdir(OSyncGroup *group)
 {
 	g_assert(group);
 	return group->configdir;
+}
+
+/*! @brief Sets the configdir of the group
+ * 
+ * @param group The group
+ * @returns String with the path of the config directory
+ * 
+ */
+void osync_group_set_configdir(OSyncGroup *group, const char *directory)
+{
+	g_assert(group);
+	if (group->configdir)
+		g_free(group->configdir);
+	group->configdir = g_strdup(directory);
 }
 
 /*! @brief Sets if the group requires slow-sync for the given object type
