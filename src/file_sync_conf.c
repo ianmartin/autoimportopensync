@@ -70,6 +70,12 @@ osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError
 		}
 		cur = cur->next;
 	}
+	
+	if (!env->path) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Path not set");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 
 	xmlFreeDoc(doc);
 	osync_trace(TRACE_EXIT, "%s", __func__);

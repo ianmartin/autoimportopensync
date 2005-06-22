@@ -315,6 +315,7 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 				g_free(filename);
 				return FALSE;
 			}
+			
 			stat(filename, &file_info->filestats);
 			osync_change_set_hash(change, fs_generate_hash(file_info));
 			break;
