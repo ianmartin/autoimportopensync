@@ -227,6 +227,7 @@ bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			return FALSE;
 	}
 	
-    osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
