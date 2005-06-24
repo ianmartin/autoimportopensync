@@ -954,6 +954,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
+	itm_queue_flush(engine->incoming);
 	
 	osync_debug("ENG", 3, "Running the main loop");
 

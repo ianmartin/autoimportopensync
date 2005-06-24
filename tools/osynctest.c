@@ -1,4 +1,5 @@
 #include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
 #include "engine.h"
 #include "engine_internals.h"
 #include <errno.h>
@@ -8,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <glib.h>
+#include <sys/time.h>
 
 GMutex *working;
 GMutex *working2;
@@ -18,7 +20,9 @@ osync_bool noaccess = FALSE;
 	
 typedef struct OSyncPluginTest {
 	char *name;
-	void (*test)(OSyncEngine *engine, OSyncMember *file, const char *);
+	double (*test)(OSyncEngine *engine, OSyncMember *file, int num, const char *);
+	double time;
+	int num;
 } OSyncPluginTest;
 
 static void usage (char *name, int ecode)
@@ -30,206 +34,307 @@ static void usage (char *name, int ecode)
   exit (ecode);
 }
 
-gboolean busy = FALSE;
 gboolean only_random = FALSE;
+char *localdir = NULL;
 
 static void sync_now(OSyncEngine *engine)
 {
 	OSyncError *error = NULL;
-	printf("Starting to synchronize\n");
+	printf(".");
+	fflush(stdout);
+	
 	if (!osengine_sync_and_block(engine, &error)) {
 		printf("Error while starting synchronization: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
 		exit(1);
 	}
-	printf("Done synchronizing\n");
-}
-
-static void stress_message_callback(OSyncMember *member, void *user_data, OSyncError *error)
-{
-	busy = FALSE;
-}
-
-static void connect(OSyncMember *member)
-{
-	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
-}
-
-static void disconnect(OSyncMember *member)
-{
-	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
-}
-
-static void committed_all(OSyncMember *member)
-{
-	osync_member_committed_all(member, (OSyncEngCallback)stress_message_callback, NULL);
-}
-
-static OSyncChange *add_data(OSyncMember *member, const char *objtype)
-{
-	OSyncChange *change = NULL;
-	if (!(change = osync_member_add_random_data(member, objtype))) {
-		printf("unable to add data\n");
-		g_assert_not_reached();
-	}
-	printf("Added change with uid %s\n", osync_change_get_uid(change));
-	return change;
-}
-
-/*static void modify_data(OSyncMember *member, OSyncChange *change)
-{
-	sleep(2);
-	if (!osync_member_modify_random_data(member, change)) {
-		printf("unable to modify data\n");
-		g_assert_not_reached();
-	}
-	printf("Modified change with uid %s\n", osync_change_get_uid(change));
-	return;
-}*/
-
-static void delete_data(OSyncMember *member, OSyncChange *change)
-{
-	if (!osync_member_delete_data(member, change)) {
-		printf("unable to delete data\n");
-		g_assert_not_reached();
-	}
 	
-	printf("Deleted change with uid %s\n", osync_change_get_uid(change));
-	return;
+	printf(".");
+	fflush(stdout);
 }
 
-static GList *get_changes(OSyncMember *member)
+static void check_empty(void)
 {
-	changes = NULL;
-	
-	osync_member_get_changeinfo(member, (OSyncEngCallback)stress_message_callback, NULL);
-
-	printf("Number of changes %i\n", g_list_length(changes));
-	return changes;
-}
-
-void change_content(OSyncMember *member)
-{
-	OSyncChange *change = NULL;
-	osync_member_set_slow_sync(member, "data", TRUE);
-	
-	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
-	
-	GList *c = get_changes(member);
-	for (; c; c = c->next) {
-		change = c->data;
-		if (g_random_int_range(0, 3) == 0) {
-			switch (g_random_int_range(1, 6)) {
-				case 1:
-				case 5:
-					if (osync_member_modify_random_data(member, change))
-						printf("Modifying data %s. Objtype: %s Format: %s\n", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_objformat_get_name(osync_change_get_objformat(change)));
-					break;
-				case 2:
-					if (osync_member_delete_data(member, change))
-						printf("Deleting data %s. Objtype: %s Format: %s\n", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_objformat_get_name(osync_change_get_objformat(change)));
-					break;
-				default:
-					break;
-			}
-		}
-	}
-	
-	int num_new = g_random_int_range(0, 8);
-	int n = 0;
-	for (n = 0; n < num_new; n++) {
-		if ((change = osync_member_add_random_data(member, NULL)))
-			printf("Adding new data %s. Objtype: %s Format: %s\n", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_objformat_get_name(osync_change_get_objformat(change)));
-	}
-	
-	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
+	printf("Checking empty... ");
+	fflush(stdout);
+	char *command = g_strdup_printf("test \"x$(ls %s)\" = \"x\"", localdir);
+	int ret = system(command);
+	g_free(command);
+	if (ret)
+		abort();
+	printf("success\n");
 }
 
 void check_sync(OSyncEngine *engine)
 {
-	printf("Synchronizing... ");
+	printf("Synchronizing");
 	fflush(stdout);
 	sync_now(engine);
-	printf("success\n");
+	printf(" success\n");
 	
-	printf("Checking source... ");
-	//Move testdir
+	printf("Checking source");
 	fflush(stdout);
-	sync_now(engine);
-	//Check empty
-	printf("success\n");
 	
-	printf("Getting data... \r");
+	char *tempdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
+	if (!mkdtemp(tempdir))
+	{
+		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", strerror(errno));
+		abort();
+	}
+	char *command = g_strdup_printf("mv %s/* %s &> /dev/null", localdir, tempdir);
+	system(command);
+	g_free(command);	
+	printf(" success\n");
+		
+	check_empty();
+	
+	printf("Getting data");
+	fflush(stdout);
+	
 	osync_group_set_slow_sync(engine->group, "data", TRUE);
 	fflush(stdout);
 	sync_now(engine);
-	printf("success\n");
+	printf(" success\n");
 	
-	printf("Comparing data... \r");
-	//diff dir
-	printf("success\n");
+	printf("Comparing data");
+	fflush(stdout);
+	command = g_strdup_printf("test \"x$(diff -x \".*\" %s %s)\" = \"x\"", localdir, tempdir);
+	int result = system(command);
+	g_free(command);	
+	
+	g_free(tempdir);
+	if (result)
+		abort();
+	printf(" success\n");
 }
 
-static void add_test1(OSyncEngine *engine, OSyncMember *file, const char *objtype)
+void add_data(OSyncMember *member, const char *objtype)
 {
-	printf("Test \"Add1\" starting\n");
-	printf("Adding data... ");
+	OSyncChange *change = osync_change_new();
+	if (!osync_member_make_random_data(member, change, objtype)) {
+		printf("Unable to create random data\n");
+		abort();
+	}
+	
+	char *filename = NULL;
+	while (1) {
+		char *randstr = osync_rand_str(8);
+		filename = g_strdup_printf("%s/%s", localdir, randstr);
+		g_free(randstr);
+		char *command = g_strdup_printf("ls %s &> /dev/null", filename);
+		int ret = system(command);
+		g_free(command);
+		if (ret)
+			break;
+		g_free(filename);
+	}
+	
+	OSyncError *error = NULL;
+	if (!osync_file_write(filename, osync_change_get_data(change), osync_change_get_datasize(change), 0700, &error)) {
+		printf("Unable to write to file %s\n", osync_error_print(&error));
+		abort();
+	}
+	g_free(filename);
+}
+
+void modify_data(OSyncMember *member, const char *objtype)
+{
+	GDir *dir;
+	GError *gerror = NULL;
+
+	dir = g_dir_open(localdir, 0, &gerror);
+	if (!dir)
+		abort();
+
+	const char *de = NULL;
+	while ((de = g_dir_read_name(dir))) {
+		char *filename = g_build_filename(localdir, de, NULL);
+		
+		OSyncChange *change = osync_change_new();
+		if (!osync_member_make_random_data(member, change, objtype)) {
+			printf("Unable to create random data\n");
+			abort();
+		}
+		
+		OSyncError *error = NULL;
+		if (!osync_file_write(filename, osync_change_get_data(change), osync_change_get_datasize(change), 0700, &error)) {
+			printf("Unable to write to file %s\n", osync_error_print(&error));
+			abort();
+		}
+	
+		g_free(filename);
+	}
+	g_dir_close(dir);
+}
+
+
+void delete_data(OSyncMember *member, const char *objtype)
+{
+	char *command = g_strdup_printf("rm -f %s/*", localdir);
+	system(command);
+	g_free(command);
+}
+
+double _second()     /* note that some compilers like AIX xlf do not require the trailing  '_' */
+{
+    struct timeval tp;
+    int rtn;
+    rtn=gettimeofday(&tp, NULL);
+
+    return ((double)tp.tv_sec+(1.e-6)*tp.tv_usec);
+}
+
+static void empty_all(OSyncEngine *engine)
+{
+	printf("Emptying requested sources");
 	fflush(stdout);
 	
-	connect(file);
-	add_data(file, objtype);
-	disconnect(file);
-	printf("success\n");
+	osync_group_set_slow_sync(engine->group, "data", TRUE);
+	sync_now(engine);
+
+	char *command = g_strdup_printf("rm -f %s/*", localdir);
+	system(command);
+	g_free(command);
+	sync_now(engine);
+	
+	printf(" success\n");
+	
+	check_empty();
+	
+}
+
+static double add_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
+{
+	printf("Test \"Add %i\" starting\n", num);
+	
+	empty_all(engine);
+	
+	printf("Adding data...");
+	fflush(stdout);
+	int i = 0;
+	for (i = 0; i < num; i++)
+		add_data(member, objtype);
+	printf(" success\n");
+
+	double t1 = _second();
+	check_sync(engine);
+	
+	printf("Test \"Add\" ended\n");
+	return _second() - t1;
+}
+
+static double modify_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
+{
+	printf("Test \"Modify %i\" starting\n", num);
+	
+	empty_all(engine);
+	
+	printf("Adding data...");
+	fflush(stdout);
+	int i = 0;
+	for (i = 0; i < num; i++)
+		add_data(member, objtype);
+	printf(" success\n");
 
 	check_sync(engine);
 	
-	printf("Test \"Add1\" ended\n");
+	printf("Modifying data...");
+	fflush(stdout);
+	modify_data(member, objtype);
+	printf(" success\n");
+
+	double t1 = _second();
+	check_sync(engine);
+	
+	printf("Test \"Modify\" ended\n");
+	return _second() - t1;
 }
 
-static void empty_all(OSyncMember *member)
+static double delete_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
 {
-	printf("Emptying requested sources\n");
+	printf("Test \"Delete %i\" starting\n", num);
 	
-	osync_member_set_slow_sync(member, "data", TRUE);
-	connect(member);
-	GList *chg = get_changes(member);
-	GList *i = NULL;
-	int num_del = 0;
-	for (i = chg; i; i = i->next) {
-		OSyncChange *change = i->data;
-		delete_data(member, change);
-		num_del++;
-	}
-	committed_all(member);
-	disconnect(member);
+	empty_all(engine);
+	
+	printf("Adding data...");
+	fflush(stdout);
+	int i = 0;
+	for (i = 0; i < num; i++)
+		add_data(member, objtype);
+	printf(" success\n");
 
-	printf("Done emptying\n");
+	check_sync(engine);
+	
+	printf("Deleting data...");
+	fflush(stdout);
+	delete_data(member, objtype);
+	printf(" success\n");
+
+	double t1 = _second();
+	check_sync(engine);
+	
+	printf("Test \"Delete\" ended\n");
+	return _second() - t1;
 }
 
 static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *target, const char *objtype)
 {
-	empty_all(file);
-	empty_all(target);
+	empty_all(engine);
 	
 	GList *t;
 	for (t = tests; t; t = t->next) {
 		OSyncPluginTest *test = t->data;
-		test->test(engine, file, objtype);
+		test->time = test->test(engine, target, test->num, objtype);
+	}
+	
+	printf("\nOutcome:\n");
+	
+	for (t = tests; t; t = t->next) {
+		OSyncPluginTest *test = t->data;
+		printf("Test \"%s\":\t%f\n", test->name, test->time);
 	}
 }
 
-static void register_test(const char *name, void test(OSyncEngine *engine, OSyncMember *file, const char *))
+static void register_test(const char *name, double test(OSyncEngine *engine, OSyncMember *file, int num, const char *), int num)
 {
 	OSyncPluginTest *newtest = g_malloc0(sizeof(OSyncPluginTest));
 	newtest->name = g_strdup(name);
 	newtest->test = test;
+	newtest->num = num;
 	tests = g_list_append(tests, newtest);
 }
 
 static void register_tests(void)
 {
 	tests = NULL;
-	register_test("add_test1", add_test1);
+	register_test("add_test1", add_test, 1);
+	register_test("add_test5", add_test, 5);
+	register_test("add_test10", add_test, 10);
+	register_test("add_test20", add_test, 20);
+	register_test("add_test50", add_test, 50);
+	register_test("add_test100", add_test, 100);
+	register_test("add_test200", add_test, 200);
+	
+	register_test("modify_test1", modify_test, 1);
+	register_test("modify_test5", modify_test, 5);
+	register_test("modify_test10", modify_test, 10);
+	register_test("modify_test20", modify_test, 20);
+	register_test("modify_test50", modify_test, 50);
+	register_test("modify_test100", modify_test, 100);
+	register_test("modify_test200", modify_test, 200);
+	
+	register_test("delete_test1", delete_test, 1);
+	register_test("delete_test5", delete_test, 5);
+	register_test("delete_test10", delete_test, 10);
+	register_test("delete_test20", delete_test, 20);
+	register_test("delete_test50", delete_test, 50);
+	register_test("delete_test100", delete_test, 100);
+	register_test("delete_test200", delete_test, 200);
+}
+
+void change_content(void)
+{
+	printf("changing content\n");
 }
 
 int main (int argc, char *argv[])
@@ -313,8 +418,8 @@ int main (int argc, char *argv[])
 	
 	OSyncMember *file = osync_member_new(group);
 	
-	testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	result = mkdtemp(testdir);
+	localdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
+	result = mkdtemp(localdir);
 	
 	if (result == NULL)
 	{
@@ -323,7 +428,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	
-	config = g_strdup_printf("<config><path>%s</path><recursive>0</recursive></config>", testdir);
+	config = g_strdup_printf("<config><path>%s</path><recursive>0</recursive></config>", localdir);
 	osync_member_set_config(file, config, strlen(config) + 1);
 	osync_member_set_pluginname(file, "file-sync");
 	
@@ -368,7 +473,7 @@ int main (int argc, char *argv[])
 				osync_conv_env_free(env);
 			}
 			
-			change_content(file);
+			change_content();
 			
 			check_sync(engine);
 		} while (g_random_int_range(0, 3) != 0);
@@ -394,6 +499,7 @@ int main (int argc, char *argv[])
 		run_all_tests(engine, file, member, objtype);
 	}
 	
+	printf("\nCompleted successfully\n");
 	return 0;
 
 error_free_engine:
