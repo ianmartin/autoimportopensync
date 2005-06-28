@@ -21,7 +21,10 @@ osync_bool noaccess = FALSE;
 typedef struct OSyncPluginTest {
 	char *name;
 	double (*test)(OSyncEngine *engine, OSyncMember *file, int num, const char *);
-	double time;
+	double alltime;
+	double connecttime;
+	double readtime;
+	double writetime;
 	int num;
 } OSyncPluginTest;
 
@@ -203,6 +206,62 @@ static void empty_all(OSyncEngine *engine)
 	
 }
 
+double starttime;
+double currenttime;
+
+double connecttime;
+double readtime;
+double writetime;
+
+void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data)
+{
+	printf("status\n");
+		switch (status->type) {
+		case ENG_PREV_UNCLEAN:
+			printf("The previous synchronization was unlean. Slow-syncing\n");
+			break;
+		case ENG_ENDPHASE_CON:
+			printf("All clients connected or error\n");
+			break;
+		case ENG_END_CONFLICTS:
+			printf("All conflicts have been reported\n");
+			break;
+		case ENG_ENDPHASE_READ:
+			printf("All clients sent changes or error\n");
+			break;
+		case ENG_ENDPHASE_WRITE:
+			printf("All clients have writen\n");
+			break;
+		case ENG_ENDPHASE_DISCON:
+			printf("All clients have disconnected\n");
+			break;
+		case ENG_SYNC_SUCCESSFULL:
+			printf("The sync was successfull\n");
+			break;
+		case ENG_ERROR:
+			printf("The sync failed: %s\n", osync_error_print(&(status->error)));
+			break;
+	}
+	/*switch (status->type) {
+		case ENG_ENDPHASE_CON:
+			printf("All clients connected or error\n");
+			connecttime = _second() - starttime;
+			currenttime = _second();
+			break;
+		case ENG_ENDPHASE_READ:
+			printf("All clients sent changes or error\n");
+			readtime = _second() - currenttime;
+			break;
+		case ENG_ENDPHASE_WRITE:
+			printf("All clients have writen\n");
+			writetime = _second() - currenttime;
+			currenttime = _second();
+			break;
+		default:
+			;
+	}*/
+}
+
 static double add_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
 {
 	printf("Test \"Add %i\" starting\n", num);
@@ -216,11 +275,11 @@ static double add_test(OSyncEngine *engine, OSyncMember *member, int num, const 
 		add_data(member, objtype);
 	printf(" success\n");
 
-	double t1 = _second();
+	starttime = _second();
 	check_sync(engine);
 	
 	printf("Test \"Add\" ended\n");
-	return _second() - t1;
+	return _second() - starttime;
 }
 
 static double modify_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
@@ -243,11 +302,11 @@ static double modify_test(OSyncEngine *engine, OSyncMember *member, int num, con
 	modify_data(member, objtype);
 	printf(" success\n");
 
-	double t1 = _second();
+	starttime = _second();
 	check_sync(engine);
 	
 	printf("Test \"Modify\" ended\n");
-	return _second() - t1;
+	return _second() - starttime;
 }
 
 static double delete_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
@@ -270,11 +329,11 @@ static double delete_test(OSyncEngine *engine, OSyncMember *member, int num, con
 	delete_data(member, objtype);
 	printf(" success\n");
 
-	double t1 = _second();
+	starttime = _second();
 	check_sync(engine);
 	
 	printf("Test \"Delete\" ended\n");
-	return _second() - t1;
+	return _second() - starttime;
 }
 
 static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *target, const char *objtype)
@@ -284,14 +343,17 @@ static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *t
 	GList *t;
 	for (t = tests; t; t = t->next) {
 		OSyncPluginTest *test = t->data;
-		test->time = test->test(engine, target, test->num, objtype);
+		test->alltime = test->test(engine, target, test->num, objtype);
+		test->connecttime = connecttime;
+		test->readtime = readtime;
+		test->writetime = writetime;
 	}
 	
 	printf("\nOutcome:\n");
 	
 	for (t = tests; t; t = t->next) {
 		OSyncPluginTest *test = t->data;
-		printf("Test \"%s\":\t%f\n", test->name, test->time);
+		printf("Test \"%s\": All: %f Connect: %f Read %f Write %f\n", test->name, test->alltime, test->connecttime, test->readtime, test->writetime);
 	}
 }
 
@@ -308,28 +370,28 @@ static void register_tests(void)
 {
 	tests = NULL;
 	register_test("add_test1", add_test, 1);
-	register_test("add_test5", add_test, 5);
-	register_test("add_test10", add_test, 10);
+	//register_test("add_test5", add_test, 5);
+	/*register_test("add_test10", add_test, 10);
 	register_test("add_test20", add_test, 20);
 	register_test("add_test50", add_test, 50);
 	register_test("add_test100", add_test, 100);
-	register_test("add_test200", add_test, 200);
+	register_test("add_test200", add_test, 200);*/
 	
 	register_test("modify_test1", modify_test, 1);
-	register_test("modify_test5", modify_test, 5);
-	register_test("modify_test10", modify_test, 10);
+	//register_test("modify_test5", modify_test, 5);
+	/*register_test("modify_test10", modify_test, 10);
 	register_test("modify_test20", modify_test, 20);
 	register_test("modify_test50", modify_test, 50);
 	register_test("modify_test100", modify_test, 100);
-	register_test("modify_test200", modify_test, 200);
+	register_test("modify_test200", modify_test, 200);*/
 	
 	register_test("delete_test1", delete_test, 1);
-	register_test("delete_test5", delete_test, 5);
-	register_test("delete_test10", delete_test, 10);
+	//register_test("delete_test5", delete_test, 5);
+	/*register_test("delete_test10", delete_test, 10);
 	register_test("delete_test20", delete_test, 20);
 	register_test("delete_test50", delete_test, 50);
 	register_test("delete_test100", delete_test, 100);
-	register_test("delete_test200", delete_test, 200);
+	register_test("delete_test200", delete_test, 200);*/
 }
 
 void change_content(void)
@@ -446,6 +508,8 @@ int main (int argc, char *argv[])
 		osync_error_free(&error);
 		goto error_free_env;
 	}
+	
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	
 	if (!osengine_init(engine, &error)) {
 		printf("Error while initializing syncengine: %s\n", osync_error_print(&error));

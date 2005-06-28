@@ -27,7 +27,11 @@ int num_engine_errors;
 int num_engine_successfull;
 int num_engine_prev_unclean;
 int num_engine_end_conflicts;
-
+int num_engine_connected;
+int num_engine_read;
+int num_engine_wrote;
+int num_engine_disconnected;
+	
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);

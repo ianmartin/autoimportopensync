@@ -23,9 +23,13 @@ START_TEST (multisync_easy_new)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
@@ -84,6 +88,10 @@ START_TEST (multisync_easy_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
 	
@@ -130,9 +138,13 @@ START_TEST (multisync_dual_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 	
 	sleep(2);
 	system("cp newdata data1/testdata");
@@ -145,9 +157,13 @@ START_TEST (multisync_dual_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 1, NULL);
 	fail_unless(num_read == 2, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 	
 	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
 	check_mapping(maptable, 1, 0, 3, "testdata", "mockformat", "data");
@@ -192,9 +208,14 @@ START_TEST (multisync_triple_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
+	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 	
 	sleep(2);
 	system("cp newdata data1/testdata");
@@ -250,6 +271,10 @@ START_TEST (multisync_dual_new)
 	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 
@@ -319,6 +344,10 @@ START_TEST (multisync_triple_new)
 	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 0, NULL);
 	fail_unless(num_read == 3, NULL);
 
@@ -389,6 +418,10 @@ START_TEST (multisync_easy_del)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -435,6 +468,10 @@ START_TEST (multisync_dual_del)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 1, NULL);
@@ -482,6 +519,10 @@ START_TEST (multisync_triple_del)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 0, NULL);
@@ -515,9 +556,6 @@ START_TEST (multisync_conflict_data_choose)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
@@ -527,10 +565,14 @@ START_TEST (multisync_conflict_data_choose)
 	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -601,9 +643,13 @@ START_TEST (multisync_conflict_data_choose2)
 	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -679,10 +725,14 @@ START_TEST (multisync_conflict_changetype_choose)
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
-	fail_unless(num_engine_end_conflicts = 1, NULL);
+	fail_unless(num_engine_end_conflicts == 1, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
@@ -753,12 +803,13 @@ START_TEST (multisync_conflict_changetype_choose2)
 	system("rm -f data1/testdata");
 	system("cp newdata data3/testdata");
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -805,11 +856,12 @@ START_TEST (multisync_conflict_hybrid_choose)
 	system("cp newdata data3/testdata");
 	system("cp newdata2 data2/testdata");
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -884,11 +936,12 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	system("cp newdata data3/testdata");
 	system("cp newdata2 data2/testdata");
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -934,6 +987,10 @@ START_TEST (multisync_conflict_data_duplicate)
 	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 5, NULL);
@@ -1023,9 +1080,6 @@ START_TEST (multisync_conflict_data_duplicate2)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
@@ -1035,6 +1089,10 @@ START_TEST (multisync_conflict_data_duplicate2)
 	fail_unless(osengine_init(engine, &error), NULL);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 8, NULL);
@@ -1142,11 +1200,12 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	system("rm -f data1/testdata");
 	system("cp newdata data3/testdata");
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -1222,11 +1281,12 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	system("rm -f data3/testdata");
 	system("cp newdata2 data1/testdata");
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -1301,11 +1361,12 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	system("cp newdata data3/testdata");
 	system("cp newdata2 data1/testdata");
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 5, NULL);
@@ -1415,6 +1476,10 @@ START_TEST (multisync_multi_conflict)
     check_hash(table, "testdata2");
 	osync_hashtable_close(table);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 6, NULL);
@@ -1562,6 +1627,10 @@ START_TEST (multisync_delayed_conflict_handler)
     check_hash(table, "testdata2");
 	osync_hashtable_close(table);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 6, NULL);
@@ -1705,6 +1774,10 @@ START_TEST (multisync_delayed_slow)
 	
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 4, NULL);
@@ -1810,6 +1883,10 @@ START_TEST (multisync_conflict_ignore)
     check_hash(table, "testdata1");
 	osync_hashtable_close(table);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 4, NULL);
@@ -1829,6 +1906,10 @@ START_TEST (multisync_conflict_ignore)
 	
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 5, NULL);
 	fail_unless(num_conflicts == 2, NULL);
 	fail_unless(num_written == 0, NULL);
@@ -1897,6 +1978,10 @@ START_TEST (multisync_conflict_ignore)
 	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 5, NULL);
 	fail_unless(num_conflicts == 2, NULL);
 	fail_unless(num_written == 4, NULL);
@@ -1971,6 +2056,11 @@ START_TEST (multisync_conflict_ignore2)
 	system("cp newdata1 data3/testdata");
 	
 	synchronize_once(engine, NULL);
+	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -2005,6 +2095,11 @@ START_TEST (multisync_conflict_ignore2)
 	
 	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
 	synchronize_once(engine, NULL);
+	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -2173,6 +2268,10 @@ START_TEST(multisync_zero_changes_b)
     check_hash(table, "testdata");
 	osync_hashtable_close(table);
 	
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -2182,6 +2281,10 @@ START_TEST(multisync_zero_changes_b)
 	
 	synchronize_once(engine, NULL);
 
+	fail_unless(num_engine_connected == 3, NULL);
+	fail_unless(num_engine_read == 3, NULL);
+	fail_unless(num_engine_wrote == 3, NULL);
+	fail_unless(num_engine_disconnected == 3, NULL);
 	fail_unless(num_read == 0, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 0, NULL);

@@ -197,12 +197,15 @@ void member_status(OSyncMemberUpdate *status, void *user_data)
 	mark_point();
 	switch (status->type) {
 		case MEMBER_CONNECTED:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
 			num_connected++;
 			break;
 		case MEMBER_DISCONNECTED:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
 			num_disconnected++;
 			break;
 		case MEMBER_SENT_CHANGES:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
 			num_member_sent_changes++;
 			break;
 		case MEMBER_CONNECT_ERROR:
@@ -235,15 +238,19 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 	switch (status->type) {
 		case ENG_ENDPHASE_CON:
 			osync_debug("TEST", 4, "All clients connected or error");
+			num_engine_connected++;
 			break;
 		case ENG_ENDPHASE_READ:
 			osync_debug("TEST", 4, "All clients sent changes or error");
+			num_engine_read++;
 			break;
 		case ENG_ENDPHASE_WRITE:
 			osync_debug("TEST", 4, "All clients have writen");
+			num_engine_wrote++;
 			break;
 		case ENG_ENDPHASE_DISCON:
 			osync_debug("TEST", 4, "All clients have disconnected");
+			num_engine_disconnected++;
 			break;
 		case ENG_ERROR:
 			fail_unless(osync_error_is_set(&(status->error)), NULL);
@@ -262,8 +269,6 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			osync_debug("TEST", 4, "End conflicts");
 			num_engine_end_conflicts++;
 			break;
-		default:
-			printf("ERROR: Unknown status type: %d\n", status->type);
 	}
 }
 
@@ -305,6 +310,10 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	num_member_disconnect_errors = 0;
 	num_engine_prev_unclean = 0;
 	num_engine_end_conflicts = 0;
+	num_engine_connected = 0;
+	num_engine_read = 0;
+	num_engine_wrote = 0;
+	num_engine_disconnected = 0;
 	mark_point();
 	return osengine_sync_and_block(engine, error);
 }
