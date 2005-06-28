@@ -174,12 +174,15 @@ void entry_status(OSyncEngine *engine, OSyncChangeUpdate *status, void *user_dat
 {
 	switch (status->type) {
 		case CHANGE_RECEIVED:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			num_read++;
 			break;
 		case CHANGE_RECEIVED_INFO:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			num_read_info++;
 			break;
 		case CHANGE_SENT:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			num_written++;
 			break;
 		case CHANGE_WRITE_ERROR:
@@ -187,8 +190,11 @@ void entry_status(OSyncEngine *engine, OSyncChangeUpdate *status, void *user_dat
 			osync_debug("TEST", 4, "CHANGE_WRITE_ERROR: %s", status->error->message);
 			num_written_errors++;
 			break;
-		default:
-			printf("Unknown status\n");
+		case CHANGE_RECV_ERROR:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			osync_debug("TEST", 4, "CHANGE_RECV_ERROR: %s", status->error->message);
+			num_recv_errors++;
+			break;
 	}
 }
 
@@ -197,16 +203,20 @@ void member_status(OSyncMemberUpdate *status, void *user_data)
 	mark_point();
 	switch (status->type) {
 		case MEMBER_CONNECTED:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			num_connected++;
 			break;
 		case MEMBER_DISCONNECTED:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			num_disconnected++;
 			break;
 		case MEMBER_SENT_CHANGES:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			num_member_sent_changes++;
+			break;
+		case MEMBER_COMMITTED_ALL:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
+			num_member_comitted_all++;
 			break;
 		case MEMBER_CONNECT_ERROR:
 			fail_unless(osync_error_is_set(&(status->error)), NULL);
@@ -228,8 +238,11 @@ void member_status(OSyncMemberUpdate *status, void *user_data)
 			osync_debug("TEST", 4, "MEMBER_DISCONNECT_ERROR: %s", status->error->message);
 			num_member_disconnect_errors++;
 			break;
-		default:
-			printf("Unknown status\n");
+		case MEMBER_COMMITTED_ALL_ERROR:
+			fail_unless(osync_error_is_set(&(status->error)), NULL);
+			osync_debug("TEST", 4, "MEMBER_COMMITTED_ALL_ERROR: %s", status->error->message);
+			num_member_comitted_all_errors++;
+			break;
 	}
 }
 
@@ -237,18 +250,22 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 {
 	switch (status->type) {
 		case ENG_ENDPHASE_CON:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "All clients connected or error");
 			num_engine_connected++;
 			break;
 		case ENG_ENDPHASE_READ:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "All clients sent changes or error");
 			num_engine_read++;
 			break;
 		case ENG_ENDPHASE_WRITE:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "All clients have writen");
 			num_engine_wrote++;
 			break;
 		case ENG_ENDPHASE_DISCON:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "All clients have disconnected");
 			num_engine_disconnected++;
 			break;
@@ -258,14 +275,17 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 			num_engine_errors++;
 			break;
 		case ENG_SYNC_SUCCESSFULL:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "Sync Successfull");
 			num_engine_successfull++;
 			break;
 		case ENG_PREV_UNCLEAN:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "Previous sync was unclean");
 			num_engine_prev_unclean++;
 			break;
 		case ENG_END_CONFLICTS:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "End conflicts");
 			num_engine_end_conflicts++;
 			break;
@@ -276,9 +296,11 @@ void mapping_status(OSyncMappingUpdate *status, void *user_data)
 {
 	switch (status->type) {
 		case MAPPING_SOLVED:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "Mapping solved");
 			break;
 		case MAPPING_SYNCED:
+			fail_unless(!osync_error_is_set(&(status->error)), NULL);
 			osync_debug("TEST", 4, "Mapping Synced");
 			break;
 		case MAPPING_WRITE_ERROR:
@@ -286,9 +308,21 @@ void mapping_status(OSyncMappingUpdate *status, void *user_data)
 			osync_debug("TEST", 4, "MAPPING_WRITE_ERROR: %s", status->error->message);
 			num_mapping_errors++;
 			break;
-		default:
-			printf("errro\n");
 	}
+}
+
+OSyncEngine *init_engine(OSyncGroup *group)
+{
+	OSyncError *error = NULL;
+	OSyncEngine *engine = osengine_new(group, &error);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	osengine_set_memberstatus_callback(engine, member_status, NULL);
+	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
+	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	mark_point();
+	fail_unless(engine != NULL, NULL);
+	fail_unless(osengine_init(engine, &error), NULL);
+	return engine;
 }
 
 osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
@@ -314,6 +348,10 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	num_engine_read = 0;
 	num_engine_wrote = 0;
 	num_engine_disconnected = 0;
+	num_member_comitted_all_errors = 0;
+	num_recv_errors = 0;
+	num_member_comitted_all = 0;
+	
 	mark_point();
 	return osengine_sync_and_block(engine, error);
 }

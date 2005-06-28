@@ -23,12 +23,18 @@
 
 void osync_status_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
 	if (engine->conflict_callback)
 		engine->conflict_callback(engine, mapping, engine->conflict_userdata);
+	else
+		osync_trace(TRACE_INTERNAL, "Conflict Ignored");
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, memberupdatetype type, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, engine, client, type, error);
 	if (engine->mebstat_callback) {
 		OSyncMemberUpdate update;
 		memset(&update, 0, sizeof(OSyncMemberUpdate));
@@ -36,12 +42,18 @@ void osync_status_update_member(OSyncEngine *engine, OSyncClient *client, member
 		update.member = client->member;
 		if (error)
 			update.error = *error;
+		else
+			update.error = NULL;
 		engine->mebstat_callback(&update, engine->mebstat_userdata);
-	}
+	} else
+		osync_trace(TRACE_INTERNAL, "Status Update Ignored");
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, changeupdatetype type, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, engine, change, type, error);
 	if (engine->changestat_callback) {
 		OSyncChangeUpdate update;
 		update.type = type;
@@ -50,12 +62,18 @@ void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, change
 		update.mapping_id = osync_change_get_mappingid(change);
 		if (error)
 			update.error = *error;
+		else
+			update.error = NULL;
 		engine->changestat_callback(engine, &update, engine->changestat_userdata);
-	}
+	} else
+		osync_trace(TRACE_INTERNAL, "Status Update Ignored");
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, mappingupdatetype type, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, engine, mapping, type, error);
 	if (engine->mapstat_callback) {
 		OSyncMappingUpdate update;
 		update.type = type;
@@ -64,18 +82,29 @@ void osync_status_update_mapping(OSyncEngine *engine, OSyncMapping *mapping, map
 			update.winner = osync_member_get_id(mapping->master->client->member);
 		if (error)
 			update.error = *error;
+		else
+			update.error = NULL;
 		engine->mapstat_callback(&update, engine->mapstat_userdata);
-	}
+	} else
+		osync_trace(TRACE_INTERNAL, "Status Update Ignored");
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_status_update_engine(OSyncEngine *engine, engineupdatetype type, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, engine, type, error);
 	if (engine->engstat_callback) {
 		OSyncEngineUpdate update;
 		memset(&update, 0, sizeof(OSyncEngineUpdate));
 		update.type = type;
 		if (error)
 			update.error = *error;
+		else
+			update.error = NULL;
 		engine->engstat_callback(engine, &update, engine->engstat_userdata);
-	}
+	} else
+		osync_trace(TRACE_INTERNAL, "Status Update Ignored");
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }

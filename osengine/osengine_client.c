@@ -40,7 +40,7 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member)
 	client->fl_connected = osync_flag_new(engine->cmb_connected);
 	client->fl_sent_changes = osync_flag_new(engine->cmb_sent_changes);
 	client->fl_done = osync_flag_new(NULL);
-	client->fl_committed_all = osync_flag_new(NULL);
+	client->fl_committed_all = osync_flag_new(engine->cmb_committed_all_sent);
 	client->fl_finished = osync_flag_new(engine->cmb_finished);
 	
     return client;

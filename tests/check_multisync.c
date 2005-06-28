@@ -9,12 +9,7 @@ START_TEST (multisync_easy_new)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+	OSyncEngine *engine = init_engine(group);
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
@@ -23,10 +18,10 @@ START_TEST (multisync_easy_new)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
@@ -62,12 +57,7 @@ START_TEST (multisync_easy_mod)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+	OSyncEngine *engine = init_engine(group);
 	
 	synchronize_once(engine, NULL);
 
@@ -88,10 +78,10 @@ START_TEST (multisync_easy_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
 	
@@ -126,22 +116,17 @@ START_TEST (multisync_dual_mod)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+	OSyncEngine *engine = init_engine(group);
 	
 	synchronize_once(engine, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
@@ -157,10 +142,10 @@ START_TEST (multisync_dual_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
@@ -196,12 +181,7 @@ START_TEST (multisync_triple_mod)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+	OSyncEngine *engine = init_engine(group);
 	
 	synchronize_once(engine, NULL);
 
@@ -209,10 +189,10 @@ START_TEST (multisync_triple_mod)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
@@ -263,18 +243,14 @@ START_TEST (multisync_dual_new)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+	OSyncEngine *engine = init_engine(group);
+	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 
@@ -334,20 +310,14 @@ START_TEST (multisync_triple_new)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+	OSyncEngine *engine = init_engine(group);
+	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 0, NULL);
 	fail_unless(num_read == 3, NULL);
 
@@ -403,10 +373,8 @@ START_TEST (multisync_easy_del)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -418,10 +386,10 @@ START_TEST (multisync_easy_del)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -452,10 +420,8 @@ START_TEST (multisync_dual_del)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -468,10 +434,10 @@ START_TEST (multisync_dual_del)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 1, NULL);
@@ -502,10 +468,8 @@ START_TEST (multisync_triple_del)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, NULL);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -519,10 +483,10 @@ START_TEST (multisync_triple_del)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 0, NULL);
@@ -556,19 +520,15 @@ START_TEST (multisync_conflict_data_choose)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_written == 2, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -631,22 +591,15 @@ START_TEST (multisync_conflict_data_choose2)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
@@ -705,10 +658,8 @@ START_TEST (multisync_conflict_changetype_choose)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -725,10 +676,10 @@ START_TEST (multisync_conflict_changetype_choose)
 	num_conflicts = 0;
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -788,10 +739,8 @@ START_TEST (multisync_conflict_changetype_choose2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -806,10 +755,10 @@ START_TEST (multisync_conflict_changetype_choose2)
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -840,10 +789,8 @@ START_TEST (multisync_conflict_hybrid_choose)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -858,10 +805,10 @@ START_TEST (multisync_conflict_hybrid_choose)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -920,10 +867,8 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -938,10 +883,10 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -975,22 +920,15 @@ START_TEST (multisync_conflict_data_duplicate)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	num_written = 0;
-	num_read = 0;
-	num_conflicts = 0;
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 5, NULL);
@@ -1080,19 +1018,15 @@ START_TEST (multisync_conflict_data_duplicate2)
 	fail_unless(osync_env_num_groups(osync) == 1, NULL);
 	mark_point();
 	
-	OSyncError *error = NULL;
-	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	mark_point();
-	fail_unless(engine != NULL, NULL);
-	fail_unless(osengine_init(engine, &error), NULL);
+
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 8, NULL);
@@ -1185,10 +1119,8 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -1202,10 +1134,10 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -1264,11 +1196,8 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -1283,10 +1212,10 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -1345,10 +1274,8 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -1363,10 +1290,10 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 5, NULL);
@@ -1432,11 +1359,8 @@ START_TEST (multisync_multi_conflict)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data2/testdata2");
@@ -1475,15 +1399,37 @@ START_TEST (multisync_multi_conflict)
     check_hash(table, "testdata1");
     check_hash(table, "testdata2");
 	osync_hashtable_close(table);
-	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+		
+	//Change statuses
 	fail_unless(num_read == 3, NULL);
+	fail_unless(num_read_info == 0, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 6, NULL);
+	fail_unless(num_written_errors == 0, NULL);
+	fail_unless(num_recv_errors == 0, NULL);
+	
+	//Member statuses
+	fail_unless(num_connected == 3, NULL);
+	fail_unless(num_disconnected == 3, NULL);
+	fail_unless(num_member_comitted_all == 3, NULL);
+	fail_unless(num_member_sent_changes == 3, NULL);
+	fail_unless(num_member_connect_errors == 0, NULL);
+	fail_unless(num_member_get_changes_errors == 0, NULL);
+	fail_unless(num_member_sync_done_errors == 0, NULL);
+	fail_unless(num_member_disconnect_errors == 0, NULL);
+	fail_unless(num_member_comitted_all_errors == 0, NULL);
+	
+	//Engine statuses
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
+	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_successfull == 1, NULL);
+	fail_unless(num_engine_prev_unclean == 0, NULL);
 	fail_unless(num_engine_end_conflicts == 1, NULL);
+	
+
 	
 	sleep(2);
 	
@@ -1583,11 +1529,8 @@ START_TEST (multisync_delayed_conflict_handler)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
-	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data2/testdata2");
@@ -1627,10 +1570,10 @@ START_TEST (multisync_delayed_conflict_handler)
     check_hash(table, "testdata2");
 	osync_hashtable_close(table);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 6, NULL);
@@ -1722,11 +1665,8 @@ START_TEST (multisync_delayed_slow)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
-	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	setenv("SLOW_REPORT", "2", TRUE);
@@ -1774,10 +1714,10 @@ START_TEST (multisync_delayed_slow)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 4, NULL);
@@ -1846,11 +1786,8 @@ START_TEST (multisync_conflict_ignore)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_ignore, (void *)3);
-	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	
@@ -1883,10 +1820,10 @@ START_TEST (multisync_conflict_ignore)
     check_hash(table, "testdata1");
 	osync_hashtable_close(table);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 2, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 4, NULL);
@@ -1906,10 +1843,10 @@ START_TEST (multisync_conflict_ignore)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 5, NULL);
 	fail_unless(num_conflicts == 2, NULL);
 	fail_unless(num_written == 0, NULL);
@@ -1978,10 +1915,10 @@ START_TEST (multisync_conflict_ignore)
 	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 5, NULL);
 	fail_unless(num_conflicts == 2, NULL);
 	fail_unless(num_written == 4, NULL);
@@ -2046,21 +1983,18 @@ START_TEST (multisync_conflict_ignore2)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_ignore, NULL);
-	osengine_init(engine, NULL);
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data3/testdata");
 	
 	synchronize_once(engine, NULL);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -2096,10 +2030,10 @@ START_TEST (multisync_conflict_ignore2)
 	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
 	synchronize_once(engine, NULL);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 3, NULL);
 	fail_unless(num_conflicts == 1, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -2239,11 +2173,8 @@ START_TEST(multisync_zero_changes_b)
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
-	OSyncEngine *engine = osengine_new(group, NULL);
-	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
+	OSyncEngine *engine = init_engine(group);
 	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
-	osengine_init(engine, NULL);
 	
 	synchronize_once(engine, NULL);
 
@@ -2268,10 +2199,10 @@ START_TEST(multisync_zero_changes_b)
     check_hash(table, "testdata");
 	osync_hashtable_close(table);
 	
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 1, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 2, NULL);
@@ -2281,10 +2212,10 @@ START_TEST(multisync_zero_changes_b)
 	
 	synchronize_once(engine, NULL);
 
-	fail_unless(num_engine_connected == 3, NULL);
-	fail_unless(num_engine_read == 3, NULL);
-	fail_unless(num_engine_wrote == 3, NULL);
-	fail_unless(num_engine_disconnected == 3, NULL);
+	fail_unless(num_engine_connected == 1, NULL);
+	fail_unless(num_engine_read == 1, NULL);
+	fail_unless(num_engine_wrote == 1, NULL);
+	fail_unless(num_engine_disconnected == 1, NULL);
 	fail_unless(num_read == 0, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_written == 0, NULL);

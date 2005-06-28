@@ -66,8 +66,8 @@ AC_ARG_ENABLE(profiling,
   AS_HELP_STRING([--enable-profiling], [enable code profiling]),
   WITH_PROF=$enableval)
 if test "x${WITH_PROF}" = "xyes"; then
-	GCOV_CFLAGS="-fprofile-arcs -ftest-coverage -pg"
-	GCOV_LDFLAGS=""
+	GCOV_CFLAGS=`fc-config --cflags`
+	GCOV_LDFLAGS=`fc-config --libs`
 else
 	GCOV_CFLAGS=""
 	GCOV_LDFLAGS=""

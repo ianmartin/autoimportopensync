@@ -4,21 +4,23 @@
  **/
 typedef enum {
 	/** The member just connected */
-	MEMBER_CONNECTED = 1,
+	MEMBER_CONNECTED,
 	/** The member just sent its changes */
-	MEMBER_SENT_CHANGES = 2,
+	MEMBER_SENT_CHANGES,
+	/** The member just wrote its changes */
+	MEMBER_COMMITTED_ALL,
 	/** The member just disconnected */
-	MEMBER_DISCONNECTED = 3,
+	MEMBER_DISCONNECTED,
 	/** The member had problems connecting */
-	MEMBER_CONNECT_ERROR = 4,
+	MEMBER_CONNECT_ERROR,
 	/** The member had problems getting the changes */
-	MEMBER_GET_CHANGES_ERROR = 5,
+	MEMBER_GET_CHANGES_ERROR,
 	/** The member had problems getting the changes */
-	MEMBER_COMMITTED_ALL_ERROR = 6,
+	MEMBER_COMMITTED_ALL_ERROR,
 	/** The member had problems during sync_done */
-	MEMBER_SYNC_DONE_ERROR = 7,
+	MEMBER_SYNC_DONE_ERROR,
 	/** There was an error while disconnecting */
-	MEMBER_DISCONNECT_ERROR = 8
+	MEMBER_DISCONNECT_ERROR
 } memberupdatetype;
 
 /** @brief The types of status updates for changes

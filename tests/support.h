@@ -19,9 +19,12 @@ int num_member_sent_changes;
 int num_member_get_changes_errors;
 int num_member_sync_done_errors;
 int num_member_disconnect_errors;
+int num_member_comitted_all_errors;
+int num_member_comitted_all;
 
 int num_written_errors;
 int num_mapping_errors;
+int num_recv_errors;
 
 int num_engine_errors;
 int num_engine_successfull;
@@ -44,6 +47,7 @@ void member_status(OSyncMemberUpdate *status, void *user_data);
 void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data);
 void mapping_status(OSyncMappingUpdate *status, void *user_data);
 
+OSyncEngine *init_engine(OSyncGroup *group);
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error);
 void create_case(Suite *s, const char *name, void (*function)(void));

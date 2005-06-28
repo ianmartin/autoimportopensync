@@ -137,7 +137,8 @@ void _committed_all_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_debug("ENG", 1, "Committed all command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_COMMITTED_ALL_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to write changes to one of the members");
-	}
+	} else
+		osync_status_update_member(engine, sender, MEMBER_COMMITTED_ALL, NULL);
 	
 	osync_flag_set(sender->fl_committed_all);
 	osengine_client_decider(engine, sender);
@@ -516,35 +517,52 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 
 static void trigger_clients_sent_changes(OSyncEngine *engine)
 {
-	//Load the old mappings
-	osengine_mappingtable_inject_changes(engine->maptable);
-}
-
-static void trigger_clients_read_all(OSyncEngine *engine)
-{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	osync_status_update_engine(engine, ENG_ENDPHASE_READ, NULL);
 	
 	g_mutex_lock(engine->info_received_mutex);
 	g_cond_signal(engine->info_received);
 	g_mutex_unlock(engine->info_received_mutex);
+	
+	//Load the old mappings
+	osengine_mappingtable_inject_changes(engine->maptable);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void trigger_clients_read_all(OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
 	send_engine_changed(engine);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void trigger_status_end_conflicts(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	osync_status_update_engine(engine, ENG_END_CONFLICTS, NULL);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void trigger_clients_connected(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_status_update_engine(engine, ENG_ENDPHASE_CON, NULL);
 	send_engine_changed(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+
+static void trigger_clients_comitted_all(OSyncEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_status_update_engine(engine, ENG_ENDPHASE_WRITE, NULL);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 
 /*void send_engine_committed_all(OSyncEngine *engine)
 {
@@ -630,6 +648,7 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_connected, FALSE);
 	osync_flag_set_state(engine->cmb_read_all, TRUE);
 	osync_flag_set_state(engine->cmb_committed_all, TRUE);
+	osync_flag_set_state(engine->cmb_committed_all_sent, FALSE);
 	itm_queue_flush(engine->incoming);
 	
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
@@ -723,6 +742,9 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	
 	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+
+	engine->cmb_committed_all_sent = osync_comb_flag_new(FALSE, TRUE);
+	osync_flag_set_pos_trigger(engine->cmb_committed_all_sent, (OSyncFlagTriggerFunc)trigger_clients_comitted_all, engine, NULL);
 	
 	osync_flag_set(engine->fl_sync);
 	
@@ -770,6 +792,7 @@ void osengine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_read_all);
 	osync_flag_free(engine->cmb_multiplied);
 	osync_flag_free(engine->cmb_committed_all);
+	osync_flag_free(engine->cmb_committed_all_sent);
 	
 	itm_queue_flush(engine->incoming);
 	itm_queue_free(engine->incoming);
