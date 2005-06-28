@@ -25,6 +25,7 @@ typedef struct OSyncPluginTest {
 	double connecttime;
 	double readtime;
 	double writetime;
+	double othertime;
 	int num;
 } OSyncPluginTest;
 
@@ -215,51 +216,22 @@ double writetime;
 
 void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data)
 {
-	printf("status\n");
-		switch (status->type) {
-		case ENG_PREV_UNCLEAN:
-			printf("The previous synchronization was unlean. Slow-syncing\n");
-			break;
+	switch (status->type) {
 		case ENG_ENDPHASE_CON:
-			printf("All clients connected or error\n");
-			break;
-		case ENG_END_CONFLICTS:
-			printf("All conflicts have been reported\n");
+			currenttime = _second();
+			connecttime = currenttime - starttime;
 			break;
 		case ENG_ENDPHASE_READ:
-			printf("All clients sent changes or error\n");
-			break;
-		case ENG_ENDPHASE_WRITE:
-			printf("All clients have writen\n");
-			break;
-		case ENG_ENDPHASE_DISCON:
-			printf("All clients have disconnected\n");
-			break;
-		case ENG_SYNC_SUCCESSFULL:
-			printf("The sync was successfull\n");
-			break;
-		case ENG_ERROR:
-			printf("The sync failed: %s\n", osync_error_print(&(status->error)));
-			break;
-	}
-	/*switch (status->type) {
-		case ENG_ENDPHASE_CON:
-			printf("All clients connected or error\n");
-			connecttime = _second() - starttime;
+			readtime = _second() - currenttime;
 			currenttime = _second();
 			break;
-		case ENG_ENDPHASE_READ:
-			printf("All clients sent changes or error\n");
-			readtime = _second() - currenttime;
-			break;
 		case ENG_ENDPHASE_WRITE:
-			printf("All clients have writen\n");
 			writetime = _second() - currenttime;
 			currenttime = _second();
 			break;
 		default:
 			;
-	}*/
+	}
 }
 
 static double add_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
@@ -347,13 +319,14 @@ static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *t
 		test->connecttime = connecttime;
 		test->readtime = readtime;
 		test->writetime = writetime;
+		test->othertime  = test->alltime - test->connecttime - test->readtime - test->writetime;
 	}
 	
 	printf("\nOutcome:\n");
 	
 	for (t = tests; t; t = t->next) {
 		OSyncPluginTest *test = t->data;
-		printf("Test \"%s\": All: %f Connect: %f Read %f Write %f\n", test->name, test->alltime, test->connecttime, test->readtime, test->writetime);
+		printf("Test \"%s\": All: %f Connect: %f(%i%%) Read: %f(%i%%) Write: %f(%i%%) Other: %f(%i%%)\n", test->name, test->alltime, test->connecttime, (int)((test->connecttime / test->alltime)* 100), test->readtime, (int)((test->readtime / test->alltime)* 100), test->writetime, (int)((test->writetime / test->alltime)* 100), test->othertime, (int)((test->othertime / test->alltime)* 100));
 	}
 }
 
