@@ -59,24 +59,72 @@ static void sync_now(OSyncEngine *engine)
 
 static void check_empty(void)
 {
-	printf("Checking empty... ");
+	printf(".");
 	fflush(stdout);
 	char *command = g_strdup_printf("test \"x$(ls %s)\" = \"x\"", localdir);
 	int ret = system(command);
 	g_free(command);
 	if (ret)
 		abort();
-	printf("success\n");
+	printf(".");
+	fflush(stdout);
 }
 
-void check_sync(OSyncEngine *engine)
+double starttime;
+double currenttime;
+
+double connecttime;
+double readtime;
+double writetime;
+
+double _second()     /* note that some compilers like AIX xlf do not require the trailing  '_' */
 {
-	printf("Synchronizing");
+    struct timeval tp;
+    int rtn;
+    rtn=gettimeofday(&tp, NULL);
+
+    return ((double)tp.tv_sec+(1.e-6)*tp.tv_usec);
+}
+
+void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data)
+{
+	switch (status->type) {
+		case ENG_ENDPHASE_CON:
+			osync_trace(TRACE_INTERNAL, "++++++++++++++++ Connection Phase ended ++++++++++++++");
+			currenttime = _second();
+			connecttime = currenttime - starttime;
+			break;
+		case ENG_ENDPHASE_READ:
+			osync_trace(TRACE_INTERNAL, "++++++++++++++++ Read Phase ended ++++++++++++++");
+			readtime = _second() - currenttime;
+			currenttime = _second();
+			break;
+		case ENG_ENDPHASE_WRITE:
+			osync_trace(TRACE_INTERNAL, "++++++++++++++++ Write Phase ended ++++++++++++++");
+			writetime = _second() - currenttime;
+			currenttime = _second();
+			break;
+		default:
+			;
+	}
+}
+
+double check_sync(OSyncEngine *engine, const char *name, int num)
+{
+	printf(".");
 	fflush(stdout);
+	starttime = _second();
+	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" starting ++++++++++++++", name, num);
+	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	sync_now(engine);
-	printf(" success\n");
+	osengine_set_enginestatus_callback(engine, NULL, NULL);
+	int wasted = 0;
+	int alldeciders = 0;
+	osengine_get_wasted(engine, &alldeciders, &wasted);
+	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" ended (%i / %i (%i%%)) ++++++++++++++", name, num, wasted, alldeciders, (int)(((float)wasted / (float)alldeciders) * 100));
+	double thistime = _second() - starttime;
 	
-	printf("Checking source");
+	printf(".");
 	fflush(stdout);
 	
 	char *tempdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
@@ -88,19 +136,18 @@ void check_sync(OSyncEngine *engine)
 	char *command = g_strdup_printf("mv %s/* %s &> /dev/null", localdir, tempdir);
 	system(command);
 	g_free(command);	
-	printf(" success\n");
+	printf(".");
+	fflush(stdout);
 		
 	check_empty();
 	
-	printf("Getting data");
+	printf(".");
 	fflush(stdout);
 	
 	osync_group_set_slow_sync(engine->group, "data", TRUE);
-	fflush(stdout);
-	sync_now(engine);
-	printf(" success\n");
 	
-	printf("Comparing data");
+	sync_now(engine);
+	printf(".");
 	fflush(stdout);
 	command = g_strdup_printf("test \"x$(diff -x \".*\" %s %s)\" = \"x\"", localdir, tempdir);
 	int result = system(command);
@@ -109,7 +156,9 @@ void check_sync(OSyncEngine *engine)
 	g_free(tempdir);
 	if (result)
 		abort();
+	
 	printf(" success\n");
+	return thistime;
 }
 
 void add_data(OSyncMember *member, const char *objtype)
@@ -179,18 +228,9 @@ void delete_data(OSyncMember *member, const char *objtype)
 	g_free(command);
 }
 
-double _second()     /* note that some compilers like AIX xlf do not require the trailing  '_' */
-{
-    struct timeval tp;
-    int rtn;
-    rtn=gettimeofday(&tp, NULL);
-
-    return ((double)tp.tv_sec+(1.e-6)*tp.tv_usec);
-}
-
 static void empty_all(OSyncEngine *engine)
 {
-	printf("Emptying requested sources");
+	printf(".");
 	fflush(stdout);
 	
 	osync_group_set_slow_sync(engine->group, "data", TRUE);
@@ -201,116 +241,85 @@ static void empty_all(OSyncEngine *engine)
 	g_free(command);
 	sync_now(engine);
 	
-	printf(" success\n");
+	printf(".");
+	fflush(stdout);
 	
 	check_empty();
 	
 }
 
-double starttime;
-double currenttime;
-
-double connecttime;
-double readtime;
-double writetime;
-
-void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data)
+double add_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
 {
-	switch (status->type) {
-		case ENG_ENDPHASE_CON:
-			currenttime = _second();
-			connecttime = currenttime - starttime;
-			break;
-		case ENG_ENDPHASE_READ:
-			readtime = _second() - currenttime;
-			currenttime = _second();
-			break;
-		case ENG_ENDPHASE_WRITE:
-			writetime = _second() - currenttime;
-			currenttime = _second();
-			break;
-		default:
-			;
-	}
-}
-
-static double add_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
-{
-	printf("Test \"Add %i\" starting\n", num);
+	printf("Test \"Add %i\" starting", num);
+	fflush(stdout);
 	
 	empty_all(engine);
 	
-	printf("Adding data...");
+	printf(".");
 	fflush(stdout);
 	int i = 0;
 	for (i = 0; i < num; i++)
 		add_data(member, objtype);
-	printf(" success\n");
+	printf(".");
+	fflush(stdout);
 
-	starttime = _second();
-	check_sync(engine);
-	
-	printf("Test \"Add\" ended\n");
-	return _second() - starttime;
+	return check_sync(engine, "Add", num);
 }
 
-static double modify_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
+double modify_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
 {
-	printf("Test \"Modify %i\" starting\n", num);
+	printf("Test \"Modify %i\" starting", num);
+	fflush(stdout);
 	
 	empty_all(engine);
 	
-	printf("Adding data...");
+	printf(".");
 	fflush(stdout);
 	int i = 0;
 	for (i = 0; i < num; i++)
 		add_data(member, objtype);
-	printf(" success\n");
+	printf(".");
+	fflush(stdout);
 
-	check_sync(engine);
+	check_sync(engine, "None", num);
 	
-	printf("Modifying data...");
+	printf(".");
 	fflush(stdout);
 	modify_data(member, objtype);
-	printf(" success\n");
+	printf(".");
+	fflush(stdout);
 
-	starttime = _second();
-	check_sync(engine);
-	
-	printf("Test \"Modify\" ended\n");
-	return _second() - starttime;
+	return check_sync(engine, "Modify", num);
 }
 
-static double delete_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
+double delete_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
 {
-	printf("Test \"Delete %i\" starting\n", num);
+	printf("Test \"Delete %i\" starting", num);
+	fflush(stdout);
 	
 	empty_all(engine);
 	
-	printf("Adding data...");
+	printf(".");
 	fflush(stdout);
 	int i = 0;
 	for (i = 0; i < num; i++)
 		add_data(member, objtype);
-	printf(" success\n");
+	printf(".");
+	fflush(stdout);
 
-	check_sync(engine);
+	check_sync(engine, "None", num);
 	
-	printf("Deleting data...");
+	printf(".");
 	fflush(stdout);
 	delete_data(member, objtype);
-	printf(" success\n");
-
-	starttime = _second();
-	check_sync(engine);
+	printf(".");
+	fflush(stdout);
 	
-	printf("Test \"Delete\" ended\n");
-	return _second() - starttime;
+	return check_sync(engine, "Delete", num);
 }
 
 static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *target, const char *objtype)
 {
-	empty_all(engine);
 	
 	GList *t;
 	for (t = tests; t; t = t->next) {
@@ -342,29 +351,29 @@ static void register_test(const char *name, double test(OSyncEngine *engine, OSy
 static void register_tests(void)
 {
 	tests = NULL;
-	register_test("add_test1", add_test, 1);
-	//register_test("add_test5", add_test, 5);
-	/*register_test("add_test10", add_test, 10);
-	register_test("add_test20", add_test, 20);
-	register_test("add_test50", add_test, 50);
+	/*register_test("add_test1", add_test, 1);
+	register_test("add_test5", add_test, 5);
+	register_test("add_test10", add_test, 10);
+	register_test("add_test20", add_test, 20);*/
+	/*register_test("add_test50", add_test, 50);
 	register_test("add_test100", add_test, 100);
 	register_test("add_test200", add_test, 200);*/
 	
-	register_test("modify_test1", modify_test, 1);
-	//register_test("modify_test5", modify_test, 5);
-	/*register_test("modify_test10", modify_test, 10);
+	/*register_test("modify_test1", modify_test, 1);
+	register_test("modify_test5", modify_test, 5);
+	register_test("modify_test10", modify_test, 10);
 	register_test("modify_test20", modify_test, 20);
-	register_test("modify_test50", modify_test, 50);
+	register_test("modify_test50", modify_test, 50);*/
 	register_test("modify_test100", modify_test, 100);
-	register_test("modify_test200", modify_test, 200);*/
+	//register_test("modify_test200", modify_test, 200);
 	
-	register_test("delete_test1", delete_test, 1);
-	//register_test("delete_test5", delete_test, 5);
-	/*register_test("delete_test10", delete_test, 10);
+	/*register_test("delete_test1", delete_test, 1);
+	register_test("delete_test5", delete_test, 5);
+	register_test("delete_test10", delete_test, 10);
 	register_test("delete_test20", delete_test, 20);
-	register_test("delete_test50", delete_test, 50);
-	register_test("delete_test100", delete_test, 100);
-	register_test("delete_test200", delete_test, 200);*/
+	register_test("delete_test50", delete_test, 50);*/
+	//register_test("delete_test100", delete_test, 100);
+	//register_test("delete_test200", delete_test, 200);
 }
 
 void change_content(void)
@@ -411,6 +420,11 @@ int main (int argc, char *argv[])
 			usage (argv[0], 1);
 		}
 	}
+	
+	TAU_PROFILE_TIMER(tautimer,"main()", "int (int, char **)", TAU_DEFAULT);
+	TAU_PROFILE_START(tautimer);
+	TAU_PROFILE_INIT(argc, argv);
+	TAU_PROFILE_SET_NODE(0);
 	
 	OSyncEnv *env = osync_env_new();
 	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
@@ -482,8 +496,6 @@ int main (int argc, char *argv[])
 		goto error_free_env;
 	}
 	
-	osengine_set_enginestatus_callback(engine, engine_status, NULL);
-	
 	if (!osengine_init(engine, &error)) {
 		printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
@@ -512,7 +524,7 @@ int main (int argc, char *argv[])
 			
 			change_content();
 			
-			check_sync(engine);
+			check_sync(engine, "Random", 1);
 		} while (g_random_int_range(0, 3) != 0);
 		
 		printf("Finalizing engine\n");
@@ -537,6 +549,7 @@ int main (int argc, char *argv[])
 	}
 	
 	printf("\nCompleted successfully\n");
+	TAU_PROFILE_STOP(tautimer);
 	return 0;
 
 error_free_engine:
@@ -544,5 +557,6 @@ error_free_engine:
 error_free_env:
 	osync_group_free(group);
 	osync_env_free(env);
+	TAU_PROFILE_STOP(tautimer);
 	return 1;
 }

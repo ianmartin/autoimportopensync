@@ -21,9 +21,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 #include <pthread.h>
-
 GPrivate* current_tabs = NULL;
-
 /**
  * @defgroup OSyncDebugAPI OpenSync Debug
  * @ingroup OSyncPublic
@@ -44,6 +42,7 @@ GPrivate* current_tabs = NULL;
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
 #if defined ENABLE_TRACE
+
 	va_list arglist;
 	char buffer[1024];
 	memset(buffer, 0, sizeof(buffer));
@@ -58,6 +57,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	int tabs = 0;
+	
 	if (!current_tabs)
 		current_tabs = g_private_new (g_free);
 	else
@@ -68,7 +68,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	
 	va_start(arglist, message);
 	g_vsnprintf(buffer, 1024, message, arglist);
-	
+		
 	GString *tabstr = g_string_new("");
 	int i = 0;
 	for (i = 0; i < tabs; i++) {
@@ -82,6 +82,8 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 		case TRACE_ENTRY:
 			logmessage = g_strdup_printf("[%li.%li]\t%s>>>>>>>  %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
 			tabs++;
+			TAU_PROFILE_TIMER(currenttimer,buffer, "test", TAU_DEFAULT);
+			TAU_PROFILE_START(currenttimer);
 			break;
 		case TRACE_INTERNAL:
 			logmessage = g_strdup_printf("[%li.%li]\t%s%s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
@@ -91,6 +93,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
+			TAU_PROFILE_STOP(currenttimer);
 			break;
 		case TRACE_EXIT_ERROR:
 			logmessage = g_strdup_printf("[%li.%li]%s<--- ERROR --- %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
@@ -122,6 +125,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	g_io_channel_unref(chan);
 	g_free(logmessage);
 	g_free(logfile);
+	
 #endif
 }
 

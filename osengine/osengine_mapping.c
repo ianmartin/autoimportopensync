@@ -237,7 +237,6 @@ void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 		i++;
 	}
 	
-	send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

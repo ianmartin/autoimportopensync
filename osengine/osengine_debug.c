@@ -130,3 +130,9 @@ void osengine_mapping_print_flags(OSyncMapping *mapping)
 		osync_flag_is_set(mapping->fl_chkconflict), \
 		osync_flag_is_set(mapping->fl_multiplied));
 }
+
+void osengine_get_wasted(OSyncEngine *engine, int *all, int *wasted)
+{
+	*all = engine->alldeciders;
+	*wasted = engine->wasted;
+}

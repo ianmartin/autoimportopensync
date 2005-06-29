@@ -57,6 +57,9 @@ struct OSyncEngine {
 	
 	OSyncError *error;
 	GThread *thread;
+	
+	int wasted;
+	int alldeciders;
 };
 #endif
 

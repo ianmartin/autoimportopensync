@@ -527,6 +527,7 @@ static void trigger_clients_sent_changes(OSyncEngine *engine)
 	//Load the old mappings
 	osengine_mappingtable_inject_changes(engine->maptable);
 	
+	osengine_mapping_all_deciders(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -550,7 +551,7 @@ static void trigger_clients_connected(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	osync_status_update_engine(engine, ENG_ENDPHASE_CON, NULL);
-	send_engine_changed(engine);
+	osengine_client_all_deciders(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -711,10 +712,10 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 		
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
-	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
 	engine->fl_sync = osync_flag_new(NULL);
 	engine->fl_stop = osync_flag_new(NULL);
-	osync_flag_set_pos_trigger(engine->fl_stop, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->fl_stop, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
 	
 	//The combined flags
 	engine->cmb_sent_changes = osync_comb_flag_new(FALSE, FALSE);
@@ -1059,6 +1060,9 @@ osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 		osync_trace(TRACE_EXIT_ERROR, "osengine_synchronize: %s", osync_error_print(error));
 		return FALSE;
 	}
+	
+	engine->wasted = 0;
+	engine->alldeciders = 0;
 	
 	osync_flag_set(engine->fl_running);
 	osync_trace(TRACE_EXIT, "osengine_synchronize");

@@ -39,6 +39,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 	osengine_print_flags(engine);
 	osengine_mappingentry_print_flags(entry);
 	
+	engine->alldeciders++;
 	
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_set(engine->fl_sync) \
@@ -70,6 +71,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 		}
 	}
 	
+	engine->wasted++;
 	osync_trace(TRACE_EXIT, "osengine_mappingentry_decider: Waste");
 }
 
@@ -89,6 +91,8 @@ void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 	osengine_print_flags(engine);
 	osengine_mapping_print_flags(mapping);
 
+	engine->alldeciders++;
+	
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_set(engine->cmb_sent_changes) \
 	&& osync_flag_is_set(engine->cmb_read_all) \
@@ -138,13 +142,14 @@ void osengine_mapping_decider(OSyncEngine *engine, OSyncMapping *mapping)
 		return;
 	}
 	
+	engine->wasted++;
 	osync_trace(TRACE_EXIT, "osengine_mapping_decider: Waste");
 }
 
 void osengine_mapping_all_deciders(OSyncEngine *engine)
 {
 	GList *m;
-	osync_debug("ENG", 4, "Calling all mapping deciders (%i)", g_list_length(engine->maptable->mappings));
+	osync_trace(TRACE_INTERNAL, "Calling all mapping deciders (%i)", g_list_length(engine->maptable->mappings));
 	for (m = engine->maptable->mappings; m; m = m->next) {
 		OSyncMapping *mapping = m->data;
 		send_mapping_changed(engine, mapping);
@@ -156,7 +161,9 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	osync_trace(TRACE_ENTRY, "osengine_client_decider(%p, %p)", engine, client);
 	osengine_print_flags(engine);
 	osync_client_print_flags(client);
-		
+	
+	engine->alldeciders++;
+	
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_not_set(engine->fl_stop) \
 	&& osync_flag_is_not_set(client->fl_done) \
@@ -229,6 +236,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 		return;
 	}
 	
+	engine->wasted++;
 	osync_trace(TRACE_EXIT, "osengine_client_decider: Waste");
 }
 
