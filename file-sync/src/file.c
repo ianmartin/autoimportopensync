@@ -160,6 +160,13 @@ static void create_file(OSyncChange *change)
 		osync_change_set_uid(change, osync_rand_str(6));
 }
 
+static time_t revision_file(OSyncChange *change, OSyncError **error)
+{
+	osync_debug("FILE", 4, "start: %s", __func__);
+	fs_fileinfo *filechange = (fs_fileinfo *)osync_change_get_data(change);
+	return filechange->filestats.st_mtime;
+}
+
 static char *print_file(OSyncChange *change)
 {
 	osync_debug("FILE", 4, "start: %s", __func__);
@@ -179,7 +186,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_print_func(env, "file", print_file);
 	osync_env_format_set_copy_func(env, "file", copy_file);
 	osync_env_format_set_create_func(env, "file", create_file);
-	
+	osync_env_format_set_revision_func(env, "file", revision_file);
+
 #ifdef STRESS_TEST
 	osync_env_format_set_create_func(env, "file", create_file);
 #endif
