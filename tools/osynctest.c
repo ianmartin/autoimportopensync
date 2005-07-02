@@ -421,11 +421,6 @@ int main (int argc, char *argv[])
 		}
 	}
 	
-	TAU_PROFILE_TIMER(tautimer,"main()", "int (int, char **)", TAU_DEFAULT);
-	TAU_PROFILE_START(tautimer);
-	TAU_PROFILE_INIT(argc, argv);
-	TAU_PROFILE_SET_NODE(0);
-	
 	OSyncEnv *env = osync_env_new();
 	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
 	
@@ -549,7 +544,6 @@ int main (int argc, char *argv[])
 	}
 	
 	printf("\nCompleted successfully\n");
-	TAU_PROFILE_STOP(tautimer);
 	return 0;
 
 error_free_engine:
@@ -557,6 +551,5 @@ error_free_engine:
 error_free_env:
 	osync_group_free(group);
 	osync_env_free(env);
-	TAU_PROFILE_STOP(tautimer);
 	return 1;
 }

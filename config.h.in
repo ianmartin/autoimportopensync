@@ -6,6 +6,9 @@
 /* Debugging */
 #undef ENABLE_DEBUG
 
+/* Profiling */
+#undef ENABLE_PROF
+
 /* Tracing */
 #undef ENABLE_TRACE
 

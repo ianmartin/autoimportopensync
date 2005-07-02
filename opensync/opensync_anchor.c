@@ -23,14 +23,13 @@
 
 osync_bool osync_anchor_compare(OSyncMember *member, const char *objtype, const char *new_anchor)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, member, objtype, new_anchor);
 	g_assert(member);
+	
 	OSyncError *error = NULL;
 	OSyncDB *db = NULL;
-	if (!(db = osync_db_open_anchor(member, &error))) {
-		osync_debug("ANCH", 0, "Unable to open anchor table: %s", error->message);
-		osync_error_free(&error);
-		return FALSE;
-	}
+	if (!(db = osync_db_open_anchor(member, &error)))
+		goto error;
 	
 	osync_bool retval = FALSE;
 	
@@ -41,28 +40,66 @@ osync_bool osync_anchor_compare(OSyncMember *member, const char *objtype, const 
 		if (!strcmp(old_anchor, new_anchor)) {
 			retval = TRUE;
 		} else {
-			osync_debug("ANCH", 1, "Anchor mismatch. Requesting slow sync");
+			osync_trace(TRACE_INTERNAL, "Anchor mismatch");
 			retval = FALSE;
 		}
 	} else {
-		osync_debug("ANCH", 2, "No previous anchor. Requesting slow sync");
+		osync_trace(TRACE_INTERNAL, "No previous anchor");
 		retval = FALSE;
 	}
 	
 	osync_db_close_anchor(db);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, retval);
 	return retval;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
+	return FALSE;
 }
 
 void osync_anchor_update(OSyncMember *member, const char *objtype, const char *new_anchor)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, member, objtype, new_anchor);
 	g_assert(member);
+	
 	OSyncError *error = NULL;
 	OSyncDB *db = NULL;
-	if (!(db = osync_db_open_anchor(member, &error))) {
-		osync_debug("ANCH", 0, "Unable to open anchor table: %s", error->message);
-		osync_error_free(&error);
-		return;
-	}
+	if (!(db = osync_db_open_anchor(member, &error)))
+		goto error;
+	
 	osync_db_put_anchor(db, objtype, new_anchor);
 	osync_db_close_anchor(db);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
+	return;
+}
+
+char *osync_anchor_retrieve(OSyncMember *member, const char *objtype)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, member, objtype);
+	g_assert(member);
+	
+	OSyncError *error = NULL;
+	OSyncDB *db = NULL;
+	if (!(db = osync_db_open_anchor(member, &error)))
+		goto error;
+	
+	char *anchor = NULL;
+	osync_db_get_anchor(db, objtype, &anchor);
+	osync_db_close_anchor(db);
+	
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, anchor);
+	return anchor;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
+	return NULL;
 }

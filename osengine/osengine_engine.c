@@ -527,7 +527,7 @@ static void trigger_clients_sent_changes(OSyncEngine *engine)
 	//Load the old mappings
 	osengine_mappingtable_inject_changes(engine->maptable);
 	
-	osengine_mapping_all_deciders(engine);
+	send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

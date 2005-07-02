@@ -39,6 +39,7 @@ GPrivate* current_tabs = NULL;
  * @param message The message to save
  * 
  */
+ 
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
 #if defined ENABLE_TRACE
@@ -82,8 +83,6 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 		case TRACE_ENTRY:
 			logmessage = g_strdup_printf("[%li.%li]\t%s>>>>>>>  %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
 			tabs++;
-			TAU_PROFILE_TIMER(currenttimer,buffer, "test", TAU_DEFAULT);
-			TAU_PROFILE_START(currenttimer);
 			break;
 		case TRACE_INTERNAL:
 			logmessage = g_strdup_printf("[%li.%li]\t%s%s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
@@ -93,7 +92,6 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
-			TAU_PROFILE_STOP(currenttimer);
 			break;
 		case TRACE_EXIT_ERROR:
 			logmessage = g_strdup_printf("[%li.%li]%s<--- ERROR --- %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
