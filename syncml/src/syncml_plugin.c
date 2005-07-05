@@ -1,8 +1,5 @@
 #include <opensync/opensync.h>
-#include "plugin.h"
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include "syncml_plugin.h"
 
 static void *initialize(OSyncMember *member, OSyncError **error)
 {
@@ -12,8 +9,6 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 	//You need to specify the <some name>_environment somewhere with
 	//all the members you need
 	plugin_environment *env = malloc(sizeof(plugin_environment));
-	assert(env != NULL);
-	memset(env, 0, sizeof(plugin_environment));
 	
 	//now you can get the config file for this plugin
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) {

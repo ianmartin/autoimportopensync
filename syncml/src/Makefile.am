@@ -7,21 +7,16 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -Werror @PACKAGE_CFLAGS@
 
-EXTRA_DIST = plugin-name plugin.h
+EXTRA_DIST = \
+	syncml-http-server \
+	syncml_plugin.h
 
-config_DATA = plugin-name
+config_DATA = syncml-http-server
 
-opensyncheader_HEADER = plugin.h
+opensyncheader_HEADER = syncml_plugin.h
 
-plugin_LTLIBRARIES = plugin.la
+plugin_LTLIBRARIES = syncml_plugin.la
 
-plugin_la_SOURCES = plugin.c
-plugin_la_LDFLAGS = -avoid-version -export-dynamic -module
-plugin_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
-
-## if you plan to install format libraries: ##
-formats_LTLIBRARIES = format.la
-
-format_la_SOURCES = format.c
-format_la_LDFLAGS = -avoid-version -export-dynamic -module
-format_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+syncml_plugin_la_SOURCES = syncml_plugin.c
+syncml_plugin_la_LDFLAGS = -avoid-version -export-dynamic -module
+syncml_plugin_la_LIBADD = @PACKAGE_LIBS@ @LIBS@

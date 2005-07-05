@@ -6,3 +6,5 @@ typedef struct plugin_environment {
 	OSyncHashTable *hashtable;
 	//More stuff you need goes here
 } plugin_environment;
+
+#include <stdlib.h>
