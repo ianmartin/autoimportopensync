@@ -192,8 +192,12 @@ static void finalize(void *data)
 	osync_hashtable_free(env->hashtable);
 }
 
-void get_info(OSyncPluginInfo *info)
+void get_info(OSyncEnv *env)
 {
+	//Now you can create a new plugin information and fill in the details
+	//Note that you can create several plugins here
+	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	
 	//Tell opensync something about your plugin
 	info->name = "short name, maybe < 15 chars";
 	info->longname = "long name. maybe < 50 chars";
@@ -219,10 +223,14 @@ void get_info(OSyncPluginInfo *info)
 	//There are more timeouts for the other functions
 	
 	//Now you have to tell opensync all the object types that your are accepting.
-	//This can be more than one
+	//There can be more than one type you accept (for example: contact, event, note etc)
 	osync_plugin_accept_objtype(info, "<object type name>");
 	//which format do you accept for this objtype
 	osync_plugin_accept_objformat(info, "<object type name>", "<format name>", "<name of the required extension if any>");
-	//set the commit function for this format
+	//set the commit function for this format. this function will be called for
+	//each object to write once
 	osync_plugin_set_commit_objformat(info, "<object type name>", "<format name>", commit_change);
+	//the other possibility is to do a batch commit by setting
+	//osync_plugin_set_batch_commit_objformat(info, "<object type name>", "<format name>", batch_commit);
+	//this function will be called exactly once with all objects to write gathered in an array
 }
