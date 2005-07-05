@@ -1,11 +1,24 @@
+## Process this file with automake to produce Makefile.in
 
-plugindir=$(OPENSYNC_PLUGINDIR)
+SUBDIRS = src
+
+EXTRA_DIST = \
+	autogen.sh
 
 
-AM_CPPFLAGS = $(SYNCML_CFLAGS) $(OPENSYNC_CFLAGS) $(SYNCML_DEPS_CFLAGS)
+## The distclean files are just there so we can ship the example correctly. Remove these ##
+DISTCLEANFILES = \
+	aclocal.m4 \
+	config.status \
+	Makefile.in \
+	stamp-h1 \
+	config.h \
+	configure \
+	config.h.in \
+	Makefile \
+	config.log \
+	src/Makefile \
+	src/Makefile.in
 
-plugin_LTLIBRARIES = syncml.la
-
-syncml_la_SOURCES = src/syncml_plugin.c
-syncml_la_LDFLAGS = -avoid-version -export-dynamic -module
-syncml_la_LIBADD = $(SYNCML_LIBS) $(OPENSYNC_LIBS) $(SYNCML_DEPS_LIBS)
+distclean-local:
+	rm -rf autom4te.cache
