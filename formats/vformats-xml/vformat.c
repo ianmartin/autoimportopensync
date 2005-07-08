@@ -693,10 +693,10 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			if (!g_ascii_strcasecmp (param->name, "CHARSET") && type == VFORMAT_CARD_30)
 				continue;
 			attr_str = g_string_append_c (attr_str, ';');
-			if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || VFORMAT_TODO_20 || VFORMAT_EVENT_20)
+			if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
 				attr_str = g_string_append (attr_str, param->name);
 			if (param->values) {
-				if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || VFORMAT_TODO_20 || VFORMAT_EVENT_20)
+				if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
 					attr_str = g_string_append_c (attr_str, '=');
 				for (v = param->values; v; v = v->next) {
 					char *value = v->data;

@@ -703,4 +703,15 @@ const char *osync_get_version(void)
 	return VERSION;
 }
 
+void *osync_try_malloc0(unsigned int size, OSyncError **error)
+{
+	void *result = g_try_malloc(size);
+	if (!result) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No memory left");
+		return NULL;
+	}
+	memset(result, 0, size);
+	return result;
+}
+
 /*@}*/
