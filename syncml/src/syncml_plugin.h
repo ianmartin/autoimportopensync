@@ -42,6 +42,7 @@ typedef struct SmlPluginEnv {
 	SmlTransport *tsp;
 	SmlAuthenticator *auth;
 	SmlDsServer *contactserver;
+	SmlSession *session;
 } SmlPluginEnv;
 
 #include <stdlib.h>
