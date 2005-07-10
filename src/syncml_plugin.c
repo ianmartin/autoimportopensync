@@ -20,12 +20,66 @@
 
 #include "syncml_plugin.h"
 
-
 void _send_success(void *userData, SmlTransportResult result, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, userData, result, error);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+SmlBool _recv_change(SmlDsServer *server, SmlDsChange *change, void *userdata, SmlError **error)
+{
+	
+	/*
+	 * Now you can get the changes.
+	 * Loop over all changes you get and do the following:
+	 */
+	/*	char *data = NULL;
+		//Now get the data of this change
+		
+		//Make the new change to report
+		OSyncChange *change = osync_change_new();
+		//Set the member
+		osync_change_set_member(change, env->member);
+		//Now set the uid of the object
+		osync_change_set_uid(change, "<some uid>");
+		//Set the object format
+		osync_change_set_objformat_string(change, "<the format of the object>");
+		//Set the hash of the object (optional, only required if you use hashtabled)
+		osync_change_set_hash(change, "the calculated hash of the object");
+		//Now you can set the data for the object
+		//Set the last argument to FALSE if the real data
+		//should be queried later in a "get_data" function
+		
+		osync_change_set_data(change, data, sizeof(data), TRUE);		*/	
+
+		//otherwise just report the change via
+		//osync_context_report_change(ctx, change);
+	return TRUE;
+}
+
+SmlBool _recv_sync(SmlDsServer *server, void *userdata, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, server, sync, error);
+	osync_context_report_success((OSyncContext *)userdata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+SmlBool _recv_alert(SmlDsServer *server, void *userdata, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, server, userdata, error);
+	osync_context_report_success((OSyncContext *)userdata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+SmlBool _sent_change(SmlDsServer *server, void *userdata, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, server, userdata, error);
+	osync_context_report_success((OSyncContext *)userdata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 void _recv_final(SmlSession *session, void *userdata)
@@ -35,6 +89,13 @@ void _recv_final(SmlSession *session, void *userdata)
 	SmlError *error = NULL;
 	smlSessionEndPackage(session, _send_success, NULL, &error);
 	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void _recv_end(SmlSession *session, void *userdata)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, userdata);
+	osync_context_report_success((OSyncContext *)userdata);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -50,6 +111,8 @@ SmlBool _new_session(SmlTransport *tsp, SmlSession *session, void *userdata, Sml
 		
 	if (!smlAuthRegister(env->auth, session, error))
 		goto error;
+	
+	env->session = session;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -180,89 +243,127 @@ static void connect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
-
-
-	//you can also use the anchor system to detect a device reset
-	//or some parameter change here. Check the docs to see how it works
-	char *lanchor = NULL;
-	//Now you get the last stored anchor from the device
-	if (!osync_anchor_compare(env->member, "lanchor", lanchor))
-		osync_member_set_slow_sync(env->member, "contact", TRUE);
+	SmlError *error = NULL;
+	SmlNotification *san = NULL;
+	OSyncError *oserror = NULL;
+	
+	/* Check if we need to alert the other side (SAN)
+	 * or if we already received an alert */
+	if (!smlDsServerReceivedAlert(env->contactserver)) {
+		san = smlNotificationNew(&error);
+		if (!san)
+			goto error;
 		
-	osync_context_report_success(ctx);
+		if (!smlDsServerSendSan(env->contactserver, san, &error))
+			goto error_free_san;
+		
+		if (!smlNotificationSend(san, env->tsp, &error))
+			goto error_free_san;
+	}
+	
+	/* Tell the DsServer to notify us as soon as we receive the alert */
+	if (!smlDsServerRequestAlert(env->contactserver, _recv_alert, ctx, &error))
+		goto error;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_san:
+	smlNotificationFree(san);
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorFree(&error);
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 static void get_changeinfo(OSyncContext *ctx)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	OSyncError *oserror = NULL;
 	
+	SmlError *error = NULL;
 	if (osync_member_get_slow_sync(env->member, "contact")) {
-		;
+		smlDsServerSetSyncType(env->contactserver, SML_ALERT_TWO_WAY);
 	}
 
-	/*
-	 * Now you can get the changes.
-	 * Loop over all changes you get and do the following:
-	 */
-	/*	char *data = NULL;
-		//Now get the data of this change
-		
-		//Make the new change to report
-		OSyncChange *change = osync_change_new();
-		//Set the member
-		osync_change_set_member(change, env->member);
-		//Now set the uid of the object
-		osync_change_set_uid(change, "<some uid>");
-		//Set the object format
-		osync_change_set_objformat_string(change, "<the format of the object>");
-		//Set the hash of the object (optional, only required if you use hashtabled)
-		osync_change_set_hash(change, "the calculated hash of the object");
-		//Now you can set the data for the object
-		//Set the last argument to FALSE if the real data
-		//should be queried later in a "get_data" function
-		
-		osync_change_set_data(change, data, sizeof(data), TRUE);		*/	
-
-		//otherwise just report the change via
-		//osync_context_report_change(ctx, change);
-
-	//Now we need to answer the call
-	osync_context_report_success(ctx);
+	if (!smlDsServerRequestChanges(env->contactserver, _recv_change, _recv_sync, ctx, &error))
+		goto error;
+	
+	if (!smlSessionEndPackage(env->session, _send_success, ctx, &error))
+		goto error;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorFree(&error);
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	SmlError *error = NULL;
+	SmlDsChange *smlchange = NULL;
+	OSyncError *oserror = NULL;
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	int i = 0;
+	for (i = 0; changes[i] && contexts[i]; i++) {
+		OSyncChange *change = changes[i];
+		OSyncContext *context = contexts[i];
+		osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+		
+		smlchange = smlDsChangeNew(osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), 0, &error);
+		if (!smlchange)
+			goto error;
+		
+		if (!smlDsServerSendChange(env->contactserver, smlchange, _sent_change, context, &error))
+			goto error_free_change;
+	}
+	
+	if (!smlSessionEndPackage(env->session, _send_success, ctx, &error))
+		goto error;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error_free_change:
+	smlDsChangeFree(smlchange);
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorFree(&error);
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 static void sync_done(OSyncContext *ctx)
 {
-	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
-	
-	/*
-	 * This function will only be called if the sync was successfull
-	 */
-	
-	//If we use anchors we have to update it now.
-	char *lanchor = NULL;
-	//Now you get/calculate the current anchor of the device
-	osync_anchor_update(env->member, "lanchor", lanchor);
-	
-	//Answer the call
 	osync_context_report_success(ctx);
 }
 
 static void disconnect(OSyncContext *ctx)
 {
-	//SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	OSyncError *oserror = NULL;
+	SmlError *error = NULL;
 	
-	//Close all stuff you need to close
+	if (!smlSessionEnd(env->session, _recv_end, ctx, &error))
+		goto error;
 	
-	//Answer the call
-	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorFree(&error);
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 static void finalize(void *data)
