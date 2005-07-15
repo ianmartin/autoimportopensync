@@ -23,6 +23,14 @@
 #include "xml-vcal.h"
 #include <glib.h>
 
+/*TODO: replace all g_hash_table_insert by functions with well-defined-type parameters
+ * (like insert_xml_attr_handler() and insert_attr_handler()) */
+
+/*TODO: Refactor this and other xml-*.c code, to put all common code in the same place */
+
+typedef xmlNode *(* vattr_handler_t)(xmlNode *, VFormatAttribute *);
+typedef VFormatAttribute *(* xml_attr_handler_t)(VFormat *vcard, xmlNode *root, const char *encoding);
+
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
@@ -639,7 +647,7 @@ static void vcal_handle_attribute(GHashTable *table, GHashTable *paramtable, xml
 has_value:;
 	
 	//We need to find the handler for this attribute
-	xmlNode *(* attr_handler)(xmlNode *, VFormatAttribute *) = g_hash_table_lookup(table, vformat_attribute_get_name(attr));
+	vattr_handler_t attr_handler = g_hash_table_lookup(table, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -776,7 +784,7 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 		if (!vformat_attribute_has_param (attr, "CHARSET"))
 			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
 	
-	if (needs_encoding((unsigned char*)tmp, encoding)) {
+	if (encoding && needs_encoding((unsigned char*)tmp, encoding)) {
 		if (!vformat_attribute_has_param (attr, "ENCODING"))
 			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
 		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
@@ -1023,14 +1031,15 @@ static void xml_vcal_handle_attribute(GHashTable *table, VFormat *vcard, xmlNode
 	VFormatAttribute *attr = NULL;
 	
 	//We need to find the handler for this attribute
-	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, xmlNode *root) = g_hash_table_lookup(table, root->name);
+	xml_attr_handler_t xml_attr_handler = g_hash_table_lookup(table, root->name);
 	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
 	if (xml_attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
 		return;
 	}
 	if (xml_attr_handler)
-		attr = xml_attr_handler(vcard, root);
+		/*FIXME: What the encoding parameter is supposed to be. Is it necessary? */
+		attr = xml_attr_handler(vcard, root, NULL);
 	else {
 		osync_trace(TRACE_EXIT, "%s: Ignored2", __func__);
 		return;
@@ -1235,6 +1244,11 @@ static void destroy_xml(char *data, size_t size)
 	xmlFreeDoc((xmlDoc *)data);
 }
 
+static void insert_attr_handler(GHashTable *table, const char *attrname, vattr_handler_t handler)
+{
+	g_hash_table_insert(table, (gpointer)attrname, handler);
+}
+
 static void *init_vcal_to_xml(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -1247,46 +1261,46 @@ static void *init_vcal_to_xml(void)
 	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
 	
 	//todo attributes
-	g_hash_table_insert(hooks->comptable, "BEGIN", HANDLE_IGNORE);
-	g_hash_table_insert(hooks->comptable, "END", HANDLE_IGNORE);
-	g_hash_table_insert(hooks->comptable, "UID", HANDLE_IGNORE);	
-	g_hash_table_insert(hooks->comptable, "DTSTAMP", handle_dtstamp_attribute);
-	g_hash_table_insert(hooks->comptable, "DESCRIPTION", handle_description_attribute);
-	g_hash_table_insert(hooks->comptable, "SUMMARY", handle_summary_attribute);
-	g_hash_table_insert(hooks->comptable, "DUE", handle_due_attribute);
-	g_hash_table_insert(hooks->comptable, "DTSTART", handle_dtstart_attribute);
-	g_hash_table_insert(hooks->comptable, "PERCENT-COMPLETE", handle_percent_complete_attribute);
-	g_hash_table_insert(hooks->comptable, "CLASS", handle_class_attribute);
-	g_hash_table_insert(hooks->comptable, "CATEGORIES", handle_categories_attribute);
-	g_hash_table_insert(hooks->comptable, "PRIORITY", handle_priority_attribute);
-	g_hash_table_insert(hooks->comptable, "URL", handle_url_attribute);
-	g_hash_table_insert(hooks->comptable, "SEQUENCE", handle_sequence_attribute);
-	g_hash_table_insert(hooks->comptable, "LAST-MODIFIED", handle_last_modified_attribute);
-	g_hash_table_insert(hooks->comptable, "CREATED", handle_created_attribute);
-	g_hash_table_insert(hooks->comptable, "DCREATED", handle_created_attribute);
-	g_hash_table_insert(hooks->comptable, "RRULE", handle_rrule_attribute);
-	g_hash_table_insert(hooks->comptable, "RDATE", handle_rdate_attribute);
-	g_hash_table_insert(hooks->comptable, "LOCATION", handle_location_attribute);
-	g_hash_table_insert(hooks->comptable, "GEO", handle_geo_attribute);
-	g_hash_table_insert(hooks->comptable, "COMPLETED", handle_completed_attribute);
-	g_hash_table_insert(hooks->comptable, "ORGANIZER", handle_organizer_attribute);
-	g_hash_table_insert(hooks->comptable, "ORGANIZER", HANDLE_IGNORE);
-	g_hash_table_insert(hooks->comptable, "X-ORGANIZER", HANDLE_IGNORE);
-	g_hash_table_insert(hooks->comptable, "RECURRENCE-ID", handle_recurid_attribute);
-	g_hash_table_insert(hooks->comptable, "STATUS", handle_status_attribute);
-	g_hash_table_insert(hooks->comptable, "DURATION", handle_duration_attribute);
-	g_hash_table_insert(hooks->comptable, "ATTACH", handle_attach_attribute);
-	g_hash_table_insert(hooks->comptable, "ATTENDEE", handle_attendee_attribute);
-	g_hash_table_insert(hooks->comptable, "COMMENT", HANDLE_IGNORE);
-	g_hash_table_insert(hooks->comptable, "CONTACT", handle_contact_attribute);
-	g_hash_table_insert(hooks->comptable, "EXDATE", handle_exdate_attribute);
-	g_hash_table_insert(hooks->comptable, "EXRULE", handle_exrule_attribute);
-	g_hash_table_insert(hooks->comptable, "RSTATUS", handle_rstatus_attribute);
-	g_hash_table_insert(hooks->comptable, "RELATED-TO", handle_related_attribute);
-	g_hash_table_insert(hooks->comptable, "RESOURCES", handle_resources_attribute);
-	g_hash_table_insert(hooks->comptable, "DTEND", handle_dtend_attribute);
-	g_hash_table_insert(hooks->comptable, "TRANSP", handle_transp_attribute);
-	g_hash_table_insert(hooks->comptable, "X-LIC-ERROR", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "BEGIN", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "END", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "UID", HANDLE_IGNORE);	
+	insert_attr_handler(hooks->comptable, "DTSTAMP", handle_dtstamp_attribute);
+	insert_attr_handler(hooks->comptable, "DESCRIPTION", handle_description_attribute);
+	insert_attr_handler(hooks->comptable, "SUMMARY", handle_summary_attribute);
+	insert_attr_handler(hooks->comptable, "DUE", handle_due_attribute);
+	insert_attr_handler(hooks->comptable, "DTSTART", handle_dtstart_attribute);
+	insert_attr_handler(hooks->comptable, "PERCENT-COMPLETE", handle_percent_complete_attribute);
+	insert_attr_handler(hooks->comptable, "CLASS", handle_class_attribute);
+	insert_attr_handler(hooks->comptable, "CATEGORIES", handle_categories_attribute);
+	insert_attr_handler(hooks->comptable, "PRIORITY", handle_priority_attribute);
+	insert_attr_handler(hooks->comptable, "URL", handle_url_attribute);
+	insert_attr_handler(hooks->comptable, "SEQUENCE", handle_sequence_attribute);
+	insert_attr_handler(hooks->comptable, "LAST-MODIFIED", handle_last_modified_attribute);
+	insert_attr_handler(hooks->comptable, "CREATED", handle_created_attribute);
+	insert_attr_handler(hooks->comptable, "DCREATED", handle_created_attribute);
+	insert_attr_handler(hooks->comptable, "RRULE", handle_rrule_attribute);
+	insert_attr_handler(hooks->comptable, "RDATE", handle_rdate_attribute);
+	insert_attr_handler(hooks->comptable, "LOCATION", handle_location_attribute);
+	insert_attr_handler(hooks->comptable, "GEO", handle_geo_attribute);
+	insert_attr_handler(hooks->comptable, "COMPLETED", handle_completed_attribute);
+	insert_attr_handler(hooks->comptable, "ORGANIZER", handle_organizer_attribute);
+	insert_attr_handler(hooks->comptable, "ORGANIZER", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "X-ORGANIZER", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "RECURRENCE-ID", handle_recurid_attribute);
+	insert_attr_handler(hooks->comptable, "STATUS", handle_status_attribute);
+	insert_attr_handler(hooks->comptable, "DURATION", handle_duration_attribute);
+	insert_attr_handler(hooks->comptable, "ATTACH", handle_attach_attribute);
+	insert_attr_handler(hooks->comptable, "ATTENDEE", handle_attendee_attribute);
+	insert_attr_handler(hooks->comptable, "COMMENT", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "CONTACT", handle_contact_attribute);
+	insert_attr_handler(hooks->comptable, "EXDATE", handle_exdate_attribute);
+	insert_attr_handler(hooks->comptable, "EXRULE", handle_exrule_attribute);
+	insert_attr_handler(hooks->comptable, "RSTATUS", handle_rstatus_attribute);
+	insert_attr_handler(hooks->comptable, "RELATED-TO", handle_related_attribute);
+	insert_attr_handler(hooks->comptable, "RESOURCES", handle_resources_attribute);
+	insert_attr_handler(hooks->comptable, "DTEND", handle_dtend_attribute);
+	insert_attr_handler(hooks->comptable, "TRANSP", handle_transp_attribute);
+	insert_attr_handler(hooks->comptable, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	g_hash_table_insert(hooks->compparamtable, "TZID", handle_tzid_parameter);
 	g_hash_table_insert(hooks->compparamtable, "VALUE", handle_value_parameter);
@@ -1335,6 +1349,8 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->tztable, "TZURL", handle_tzurl_attribute);
 	g_hash_table_insert(hooks->tztable, "COMMENT", HANDLE_IGNORE);
     g_hash_table_insert(hooks->tztable, "RDATE", handle_tzrdate_attribute);
+
+	/*FIXME: The functions below shoudn't be on tztable, but on another hash table */
 	g_hash_table_insert(hooks->tztable, "VALUE", handle_value_parameter);
 	g_hash_table_insert(hooks->tztable, "ALTREP", handle_altrep_parameter);
 	g_hash_table_insert(hooks->tztable, "CN", handle_cn_parameter);
@@ -1362,6 +1378,8 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->alarmtable, "DESCRIPTION", handle_adescription_attribute);
 	g_hash_table_insert(hooks->alarmtable, "ATTENDEE", handle_aattendee_attribute);
 	g_hash_table_insert(hooks->alarmtable, "SUMMARY", handle_asummary_attribute);
+
+	/*FIXME: The functions below shoudn't be on alarmtable, but on another hash table */
 	g_hash_table_insert(hooks->alarmtable, "TZID", handle_tzid_parameter);
 	g_hash_table_insert(hooks->alarmtable, "VALUE", handle_value_parameter);
 	g_hash_table_insert(hooks->alarmtable, "ALTREP", handle_altrep_parameter);
@@ -1770,6 +1788,11 @@ static VFormatAttribute *handle_xml_asummary_attribute(VFormat *vcard, xmlNode *
 	return attr;
 }
 
+static void insert_xml_attr_handler(GHashTable *table, const char *name, xml_attr_handler_t handler)
+{
+	g_hash_table_insert(table, (gpointer)name, handler);
+}
+
 static void *init_xml_to_vcal(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
@@ -1782,39 +1805,42 @@ static void *init_xml_to_vcal(void)
 	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
 	
 	//todo attributes
-	g_hash_table_insert(hooks->comptable, "Uid", handle_xml_uid_attribute);	
-	g_hash_table_insert(hooks->comptable, "DateCalendarCreated", handle_xml_dtstamp_attribute);
-	g_hash_table_insert(hooks->comptable, "Description", handle_xml_description_attribute);
-	g_hash_table_insert(hooks->comptable, "Summary", handle_xml_summary_attribute);
-	g_hash_table_insert(hooks->comptable, "DateDue", handle_xml_due_attribute);
-	g_hash_table_insert(hooks->comptable, "DateStarted", handle_xml_dtstart_attribute);
-	g_hash_table_insert(hooks->comptable, "PercentComplete", handle_xml_percent_complete_attribute);
-	g_hash_table_insert(hooks->comptable, "Class", handle_xml_class_attribute);
-	g_hash_table_insert(hooks->comptable, "Categories", handle_xml_categories_attribute);
-	g_hash_table_insert(hooks->comptable, "Priority", handle_xml_priority_attribute);
-	g_hash_table_insert(hooks->comptable, "Url", handle_xml_url_attribute);
-	g_hash_table_insert(hooks->comptable, "Sequence", handle_xml_sequence_attribute);
-	g_hash_table_insert(hooks->comptable, "LastModified", handle_xml_last_modified_attribute);
-	g_hash_table_insert(hooks->comptable, "DateCreated", handle_xml_created_attribute);
-	g_hash_table_insert(hooks->comptable, "RecurrenceRule", handle_xml_rrule_attribute);
-	g_hash_table_insert(hooks->comptable, "RecurrenceDate", handle_xml_rdate_attribute);
-	g_hash_table_insert(hooks->comptable, "Location", handle_xml_location_attribute);
-	g_hash_table_insert(hooks->comptable, "Geo", handle_xml_geo_attribute);
-	g_hash_table_insert(hooks->comptable, "Completed", handle_xml_completed_attribute);
-	g_hash_table_insert(hooks->comptable, "Organizer", handle_xml_organizer_attribute);
-	g_hash_table_insert(hooks->comptable, "RecurrenceID", handle_xml_recurid_attribute);
-	g_hash_table_insert(hooks->comptable, "Status", handle_xml_status_attribute);
-	g_hash_table_insert(hooks->comptable, "Duration", handle_xml_duration_attribute);
-	g_hash_table_insert(hooks->comptable, "Attach", handle_xml_attach_attribute);
-	g_hash_table_insert(hooks->comptable, "Attendee", handle_xml_attendee_attribute);
-	g_hash_table_insert(hooks->comptable, "Contact", handle_xml_contact_attribute);
-	g_hash_table_insert(hooks->comptable, "ExclusionDate", handle_xml_exdate_attribute);
-	g_hash_table_insert(hooks->comptable, "ExclusionRule", handle_xml_exrule_attribute);
-	g_hash_table_insert(hooks->comptable, "RStatus", handle_xml_rstatus_attribute);
-	g_hash_table_insert(hooks->comptable, "Related", handle_xml_related_attribute);
-	g_hash_table_insert(hooks->comptable, "Resources", handle_xml_resources_attribute);
-	g_hash_table_insert(hooks->comptable, "DateEnd", handle_xml_dtend_attribute);
-	g_hash_table_insert(hooks->comptable, "Transparency", handle_xml_transp_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Uid", handle_xml_uid_attribute);
+	insert_xml_attr_handler(hooks->comptable, "DateCalendarCreated", handle_xml_dtstamp_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Description", handle_xml_description_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Summary", handle_xml_summary_attribute);
+	insert_xml_attr_handler(hooks->comptable, "DateDue", handle_xml_due_attribute);
+	insert_xml_attr_handler(hooks->comptable, "DateStarted", handle_xml_dtstart_attribute);
+	insert_xml_attr_handler(hooks->comptable, "PercentComplete", handle_xml_percent_complete_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Class", handle_xml_class_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Categories", handle_xml_categories_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Priority", handle_xml_priority_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Url", handle_xml_url_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Sequence", handle_xml_sequence_attribute);
+	insert_xml_attr_handler(hooks->comptable, "LastModified", handle_xml_last_modified_attribute);
+	insert_xml_attr_handler(hooks->comptable, "DateCreated", handle_xml_created_attribute);
+	insert_xml_attr_handler(hooks->comptable, "RecurrenceRule", handle_xml_rrule_attribute);
+	insert_xml_attr_handler(hooks->comptable, "RecurrenceDate", handle_xml_rdate_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Location", handle_xml_location_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Geo", handle_xml_geo_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Completed", handle_xml_completed_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Organizer", handle_xml_organizer_attribute);
+	insert_xml_attr_handler(hooks->comptable, "RecurrenceID", handle_xml_recurid_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Status", handle_xml_status_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Duration", handle_xml_duration_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Attach", handle_xml_attach_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Attendee", handle_xml_attendee_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Contact", handle_xml_contact_attribute);
+	insert_xml_attr_handler(hooks->comptable, "ExclusionDate", handle_xml_exdate_attribute);
+	insert_xml_attr_handler(hooks->comptable, "ExclusionRule", handle_xml_exrule_attribute);
+	insert_xml_attr_handler(hooks->comptable, "RStatus", handle_xml_rstatus_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Related", handle_xml_related_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Resources", handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->comptable, "DateEnd", handle_xml_dtend_attribute);
+	insert_xml_attr_handler(hooks->comptable, "Transparency", handle_xml_transp_attribute);
+
+
+	/*FIXME: The functions below shouldn't be on comptable, but on other hash table */
 	g_hash_table_insert(hooks->comptable, "Category", handle_xml_category_parameter);
 	g_hash_table_insert(hooks->comptable, "Rule", handle_xml_rule_parameter);
 	g_hash_table_insert(hooks->comptable, "Value", handle_xml_value_parameter);
@@ -1852,6 +1878,8 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->tztable, "LastModified", handle_xml_tz_last_modified_attribute);
 	g_hash_table_insert(hooks->tztable, "TimezoneUrl", handle_xml_tzurl_attribute);
     g_hash_table_insert(hooks->tztable, "RecurrenceDate", handle_xml_tzrdate_attribute);
+
+	/*FIXME: The functions below shouldn't be on tztable, but on other hash table */
     g_hash_table_insert(hooks->tztable, "Category", handle_xml_category_parameter);
 	g_hash_table_insert(hooks->tztable, "Rule", handle_xml_rule_parameter);
 	g_hash_table_insert(hooks->tztable, "Value", handle_xml_value_parameter);
@@ -1880,6 +1908,8 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->alarmtable, "AlarmDescription", handle_xml_adescription_attribute);
 	g_hash_table_insert(hooks->alarmtable, "AlarmAttendee", handle_xml_aattendee_attribute);
 	g_hash_table_insert(hooks->alarmtable, "AlarmSummary", handle_xml_asummary_attribute);
+
+	/*FIXME: The functions below shouldn't be on alarmtable, but on other hash table */
 	g_hash_table_insert(hooks->alarmtable, "Category", handle_xml_category_parameter);
 	g_hash_table_insert(hooks->alarmtable, "Rule", handle_xml_rule_parameter);
 	g_hash_table_insert(hooks->alarmtable, "Value", handle_xml_value_parameter);
