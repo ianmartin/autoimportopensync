@@ -43,6 +43,8 @@ typedef struct SmlPluginEnv {
 	SmlAuthenticator *auth;
 	SmlDsServer *contactserver;
 	SmlSession *session;
+	char *username;
+	char *password;
 } SmlPluginEnv;
 
 #include <stdlib.h>

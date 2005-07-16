@@ -19,46 +19,85 @@
  */
 
 #include "syncml_plugin.h"
+#include <string.h>
+#include <time.h>
 
-void _send_success(void *userData, SmlTransportResult result, SmlError **error)
+static void _verify_user(SmlAuthenticator *auth, const char *username, const char *password, void *userdata, SmlErrorType *reply)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p)", __func__, auth, username, password, userdata, reply);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _send_success(void *userData, SmlTransportResult result, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, userData, result, error);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-SmlBool _recv_change(SmlDsServer *server, SmlDsChange *change, void *userdata, SmlError **error)
+const char *_contenttype_to_format(SmlContentType type)
 {
-	
-	/*
-	 * Now you can get the changes.
-	 * Loop over all changes you get and do the following:
-	 */
-	/*	char *data = NULL;
-		//Now get the data of this change
-		
-		//Make the new change to report
-		OSyncChange *change = osync_change_new();
-		//Set the member
-		osync_change_set_member(change, env->member);
-		//Now set the uid of the object
-		osync_change_set_uid(change, "<some uid>");
-		//Set the object format
-		osync_change_set_objformat_string(change, "<the format of the object>");
-		//Set the hash of the object (optional, only required if you use hashtabled)
-		osync_change_set_hash(change, "the calculated hash of the object");
-		//Now you can set the data for the object
-		//Set the last argument to FALSE if the real data
-		//should be queried later in a "get_data" function
-		
-		osync_change_set_data(change, data, sizeof(data), TRUE);		*/	
-
-		//otherwise just report the change via
-		//osync_context_report_change(ctx, change);
-	return TRUE;
+	switch (type) {
+		case SML_CONTENT_TYPE_VCARD:
+			return "contact";
+			break;
+		default:
+			;
+	}
+	return NULL;
 }
 
-SmlBool _recv_sync(SmlDsServer *server, void *userdata, SmlError **error)
+OSyncChangeType _to_osync_changetype(SmlChangeType type)
+{
+	switch (type) {
+		case SML_CHANGE_ADD:
+			return CHANGE_ADDED;
+		case SML_CHANGE_REPLACE:
+			return CHANGE_MODIFIED;
+		case SML_CHANGE_DELETE:
+			return CHANGE_DELETED;
+		default:
+			;
+	}
+	return CHANGE_UNKNOWN;
+}
+
+static SmlBool _recv_change(SmlDsServer *server, SmlChangeType type, const char *uid, char *data, unsigned int size, SmlContentType contenttype, void *userdata, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %i, %p, %p)", __func__, server, type, uid, data, size, contenttype, userdata, error);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data((OSyncContext *)userdata);
+
+	OSyncChange *change = osync_change_new();
+	if (!change) {
+		smlErrorSet(error, SML_ERROR_GENERIC, "No change created");
+		goto error;
+	}
+	
+	osync_change_set_member(change, env->member);
+	osync_change_set_uid(change, uid);
+	
+	switch (contenttype) {
+		case SML_CONTENT_TYPE_VCARD:
+			osync_change_set_objformat_string(change, "vcard21");
+			break;
+		default:
+			;
+	}
+	
+	osync_change_set_data(change, data, size, TRUE);
+	osync_change_set_changetype(change, _to_osync_changetype(type));
+	osync_context_report_change((OSyncContext *)userdata, change);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(error));
+	return FALSE;
+}
+
+static SmlBool _recv_sync(SmlDsServer *server, void *userdata, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, server, sync, error);
 	osync_context_report_success((OSyncContext *)userdata);
@@ -66,40 +105,79 @@ SmlBool _recv_sync(SmlDsServer *server, void *userdata, SmlError **error)
 	return TRUE;
 }
 
-SmlBool _recv_alert(SmlDsServer *server, void *userdata, SmlError **error)
+static void _recv_init_alert(SmlDsServer *server, void *userdata)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, server, userdata, error);
-	osync_context_report_success((OSyncContext *)userdata);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, server, userdata);
+	SmlPluginEnv *env = (SmlPluginEnv *)userdata;
+	osync_member_request_synchronization(env->member);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
 }
 
-SmlBool _sent_change(SmlDsServer *server, void *userdata, SmlError **error)
+static SmlBool _recv_alert(SmlDsServer *server, SmlAlertType type, const char *last, const char *next, void *userdata)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, server, userdata, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %s, %p)", __func__, server, type, last, next, userdata);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data((OSyncContext *)userdata);
+	SmlBool ret = TRUE;
+	
+	char *key = g_strdup_printf("remoteanchor%s", smlDsServerGetLocation(server));
+	
+	if ((!last || !osync_anchor_compare(env->member, key, last)) && type == SML_ALERT_TWO_WAY)
+		ret = FALSE;
+	
+	if (!ret || type != SML_ALERT_TWO_WAY)
+		osync_member_set_slow_sync(env->member, _contenttype_to_format(smlDsServerGetContentType(server)), TRUE);
+		
+	
+	osync_anchor_update(env->member, key, next);
+	g_free(key);
+	
 	osync_context_report_success((OSyncContext *)userdata);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
 }
 
-void _recv_final(SmlSession *session, void *userdata)
+struct commitContext {
+	OSyncContext *context;
+	OSyncChange *change;
+};
+
+static void _sent_change(SmlDsServer *server, SmlStatus *status, const char *newuid, void *userdata)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, server, status, newuid, userdata);
+	struct commitContext *ctx = userdata;
+	OSyncContext *context = ctx->context;
+	
+	if (newuid)
+		osync_change_set_uid(ctx->change, newuid);
+	g_free(ctx);
+	
+	osync_context_report_success(context);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _sent_sync(SmlDsServer *server, void *userdata)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, server, userdata);
+	osync_context_report_success((OSyncContext *)userdata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _recv_final(SmlSession *session, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, userdata);
 	
-	SmlError *error = NULL;
-	smlSessionEndPackage(session, _send_success, NULL, &error);
-	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void _recv_end(SmlSession *session, void *userdata)
+static void _recv_end(SmlSession *session, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, userdata);
 	osync_context_report_success((OSyncContext *)userdata);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-SmlBool _new_session(SmlTransport *tsp, SmlSession *session, void *userdata, SmlError **error)
+static SmlBool _new_session(SmlTransport *tsp, SmlSession *session, void *userdata, SmlError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, tsp, session, userdata, error);
 	SmlPluginEnv *env = (SmlPluginEnv *)userdata;
@@ -108,7 +186,8 @@ SmlBool _new_session(SmlTransport *tsp, SmlSession *session, void *userdata, Sml
 		goto error;
 	
 	smlSessionRegisterFinalHandler(session, _recv_final, userdata);
-		
+	smlDsServerSetAlertCallback(env->contactserver, _recv_init_alert, env);
+	
 	if (!smlAuthRegister(env->auth, session, error))
 		goto error;
 	
@@ -122,9 +201,9 @@ error:
 	return FALSE;
 }
 
-osync_bool syncml_http_server_parse_config(SmlTransportHttpServerConfig *env, const char *config, unsigned int size, OSyncError **error)
+static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTransportHttpServerConfig *env, const char *config, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, env, config, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, plugin, env, config, size, error);
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
 
@@ -161,6 +240,14 @@ osync_bool syncml_http_server_parse_config(SmlTransportHttpServerConfig *env, co
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
 				env->interface = g_strdup(str);
 			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
+				plugin->username = g_strdup(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
+				plugin->password = g_strdup(str);
+			}
 			xmlFree(str);
 		}
 		cur = cur->next;
@@ -196,9 +283,9 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	if (!env->tsp)
 		goto error_free_config;
 		
-	smlTransportSetNewSessionCallback(env->tsp, _new_session, NULL);
+	smlTransportSetNewSessionCallback(env->tsp, _new_session, env);
 	
-	if (!syncml_http_server_parse_config(&serverConfig, configdata, configsize, error))
+	if (!syncml_http_server_parse_config(env, &serverConfig, configdata, configsize, error))
 		goto error_free_transport;
 	
 	env->context = osync_member_get_loop(member);
@@ -209,7 +296,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	
 	SmlLocation *loc = smlLocationNew("/vcards", NULL, &serror);
 	
-	env->contactserver = smlDsServerNew(loc, &serror);
+	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
 	if (!env->contactserver)
 		goto error_free_loc;
 	
@@ -217,6 +304,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	if (!env->auth)
 		goto error_free_contactserver;
 
+	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
 	
 	g_free(configdata);
 	
@@ -282,14 +370,29 @@ static void get_changeinfo(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *oserror = NULL;
+	SmlAlertType type = SML_ALERT_TWO_WAY;
 	
 	SmlError *error = NULL;
-	if (osync_member_get_slow_sync(env->member, "contact")) {
-		smlDsServerSetSyncType(env->contactserver, SML_ALERT_TWO_WAY);
-	}
-
+	if (osync_member_get_slow_sync(env->member, "contact"))
+		type = SML_ALERT_SLOW_SYNC;
+	
 	if (!smlDsServerRequestChanges(env->contactserver, _recv_change, _recv_sync, ctx, &error))
 		goto error;
+	
+	char *key = g_strdup_printf("local%s", smlDsServerGetLocation(env->contactserver));
+	
+	char *next = g_strdup_printf("%i", (int)time(NULL));
+	char *last = osync_anchor_retrieve(env->member, key);
+	osync_anchor_update(env->member, key, next);
+	g_free(key);
+	
+	if (!smlDsServerSendAlert(env->contactserver, type, last, next, &error)) {
+		g_free(next);
+		g_free(last);
+		goto error;
+	}
+	g_free(next);
+	g_free(last);
 	
 	if (!smlSessionEndPackage(env->session, _send_success, ctx, &error))
 		goto error;
@@ -304,12 +407,34 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
+SmlChangeType _get_changetype(OSyncChange *change)
+{
+	switch (osync_change_get_changetype(change)) {
+		case CHANGE_ADDED:
+			return SML_CHANGE_ADD;
+		case CHANGE_MODIFIED:
+			return SML_CHANGE_REPLACE;
+		case CHANGE_DELETED:
+			return SML_CHANGE_DELETE;
+		default:
+			;
+	}
+	return SML_CHANGE_UNKNOWN;
+}
+
+SmlContentType _format_to_contenttype(OSyncChange *change)
+{
+	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "contact")) {
+		return SML_CONTENT_TYPE_VCARD;
+	}
+	return SML_CONTENT_TYPE_UNKNOWN;
+}
+
 static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
 	SmlError *error = NULL;
-	SmlDsChange *smlchange = NULL;
 	OSyncError *oserror = NULL;
 	
 	int i = 0;
@@ -318,25 +443,30 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 		OSyncContext *context = contexts[i];
 		osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
 		
-		smlchange = smlDsChangeNew(osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), 0, &error);
-		if (!smlchange)
-			goto error;
+		struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+		if (!tracer)
+			goto oserror;
 		
-		if (!smlDsServerSendChange(env->contactserver, smlchange, _sent_change, context, &error))
-			goto error_free_change;
+		tracer->change = change;
+		tracer->context = context;
+		
+		if (!smlDsServerQueueChange(env->contactserver, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _sent_change, tracer, &error))
+			goto error;
 	}
 	
-	if (!smlSessionEndPackage(env->session, _send_success, ctx, &error))
+	if (!smlDsServerWriteChanges(env->contactserver, _sent_sync, ctx, &error))
+		goto error;
+	
+	if (!smlSessionEndPackage(env->session, _send_success, NULL, &error))
 		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 
-error_free_change:
-	smlDsChangeFree(smlchange);
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorFree(&error);
+oserror:
 	osync_context_report_osyncerror(ctx, &oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
