@@ -42,10 +42,13 @@
 #define XML_CONTACT_ADDRESS           "Address"
 #define XML_CONTACT_ADDRESS_LABEL     "AddressLabel"
 #define XML_CONTACT_BIRTHDAY          "Birthday"
+#define XML_CONTACT_CATEGORIES        "Categories"
 #define XML_CONTACT_CITY              "City"
+#define XML_CONTACT_CLASS             "Class"
 #define XML_CONTACT_COUNTRY           "Country"
 #define XML_CONTACT_EMAIL             "EMail"
 #define XML_CONTACT_EXTENDED_ADDRESS  "ExtendedAddress"
+#define XML_CONTACT_FILE_AS           "FileAs"
 #define XML_CONTACT_FIRST_NAME        "FirstName"
 #define XML_CONTACT_FULL_NAME         "FullName"
 #define XML_CONTACT_KEY               "Key"
@@ -54,6 +57,7 @@
 #define XML_CONTACT_LOGO              "Logo"
 #define XML_CONTACT_MAILER            "Mailer"
 #define XML_CONTACT_NAME              "Name"
+#define XML_CONTACT_NICKNAME          "Nickname"
 #define XML_CONTACT_NOTE              "Note"
 #define XML_CONTACT_ORGANIZATION      "Organization"
 #define XML_CONTACT_PHOTO             "Photo"
@@ -72,11 +76,12 @@
 #define XML_CONTACT_UID               "Uid"
 #define XML_CONTACT_UNIT              "Unit"
 #define XML_CONTACT_URL               "Url"
+#define XML_CONTACT_WANTS_HTML        "WantsHtml"
 
 #define XML_CONTACT_CONTENT           "Content"
 
 /* Unknown parameter */
-#define XML_CONTACT_UNKNOWN_PARAMETER   "UnknownParam"
+#define XML_CONTACT_UNKNOWN_PARAM       "UnknownParam"
 #define XML_CONTACT_PARAMETER_NAME      "ParamName"
 
 /* Unknown node */
