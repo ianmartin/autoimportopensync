@@ -200,7 +200,7 @@ static void evo2_connect(OSyncContext *ctx)
 	if (!open_any) {
 		osync_debug("EVO2-SYNC", 0, "Unable to open anything!");
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to open anything");
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__);
+		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s", __func__);
 		return;
 	}
 	
