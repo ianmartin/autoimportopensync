@@ -128,9 +128,11 @@ static void *evo2_initialize(OSyncMember *member, OSyncError **error)
 	if (!osync_member_get_config_or_default(member, &configdata, &configsize, error))
 		goto error_free;
 	if (!evo2_parse_settings(env, configdata, configsize)) {
+		g_free(configdata);
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to parse plugin configuration for evo2 plugin");
 		goto error_free;
 	}
+	g_free(configdata);
 	env->member = member;
 	OSyncGroup *group = osync_member_get_group(member);
 	env->change_id = g_strdup(osync_group_get_name(group));
