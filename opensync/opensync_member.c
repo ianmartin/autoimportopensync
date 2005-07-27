@@ -47,6 +47,10 @@ OSyncFormatEnv *osync_member_get_format_env(OSyncMember *member)
 	return osync_group_get_format_env(member->group);
 }
 
+/** Find the objtype_sink for a member, corresponding to objtypestr
+ *
+ * Note: Only call this function after calling osync_member_require_sink_info()
+ */
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtypestr)
 {
 	GList *o;
@@ -56,6 +60,42 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
 			return sink;
 	}
 	return NULL;
+}
+
+/** Be sure that the sink information for the member is available
+ *
+ * This function should be used on every code that will access the objtype_sinks
+ * or objformat_sinks members on OSyncMember.
+ *
+ * This function will either load the plugin or load the plugin information
+ * for the member, in order to get the objtype_sink list information for
+ * the member.
+ */
+osync_bool osync_member_require_sink_info(OSyncMember *member, OSyncError **error)
+{
+	// Currently, the only way to get the objtype_sink information
+	// is loading the plugin
+	if (!osync_member_instance_default_plugin(member, error))
+		return FALSE;
+
+	return TRUE;
+}
+
+/** Returns the list of objtype_sinks of a member
+ *
+ * @param member The member
+ * @param list_ptr Pointer to where the list will be returned
+ * @param error Pointer to error info
+ *
+ * @returns TRUE on success, FALSE on error
+ */
+osync_bool osync_member_get_objtype_sinks(OSyncMember *member, GList **list_ptr, OSyncError **error)
+{
+	if (!osync_member_require_sink_info(member, error))
+		return FALSE;
+
+	*list_ptr = member->objtype_sinks;
+	return TRUE;
 }
 
 /** @brief Reads the configuration data of this member
@@ -873,6 +913,11 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
  * @param objtypestr The name of the object type to change
  * @param enabled Set to TRUE if you want to sync the object type, FALSE otherwise
  * 
+ * Note: this function should be called only after sink information for the member
+ *       is available (osync_member_require_sink_info())
+ *
+ * @todo Change function interface to not require the plugin to be instanced manually.
+ *       See comments on osync_group_set_objtype_enabled()
  */
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled)
 {

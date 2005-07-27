@@ -784,6 +784,10 @@ osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
  * @param objtypestr The name of the object type
  * @param enabled What do you want to set today?
  * 
+ * Note: the plugin needs to be instanced for this function to be called
+ *
+ * @todo Change interface to remove requirement to instance the plugin manually.
+ *       It needs to be able to return error in order to load the plugin
  */
 void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, osync_bool enabled)
 {
@@ -791,6 +795,19 @@ void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, 
 	GList *m;
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
+
+		/*TODO: What this function should do if we don't have
+		 *      any objtype sink information?
+		 *      It can't return error currently. We should either
+		 *      require that the plugin is instanced, or change the function
+		 *      interface. As changing the function interface require more
+		 *      care, currently the function is marked as requiring the plugin to be instanced
+		 */
+		if (!osync_member_require_sink_info(member, NULL)) {
+			osync_debug("OSGRP", 0, "%s: No sink information, can't load plugin, and I can't return error");
+			continue;
+		}
+
 		osync_member_set_objtype_enabled(member, objtypestr, enabled);
 	}
 }

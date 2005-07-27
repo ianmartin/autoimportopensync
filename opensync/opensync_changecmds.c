@@ -466,6 +466,9 @@ osync_bool osync_change_convert_fmtnames(OSyncFormatEnv *env, OSyncChange *chang
  */
 osync_bool osync_change_convert_member_sink(OSyncFormatEnv *env, OSyncChange *change, OSyncMember *member, OSyncError **error)
 {
+	if (!osync_member_require_sink_info(member, error))
+		return FALSE;
+
 	return osync_conv_convert_fn(env, change, target_fn_membersink, member, member->extension, error);
 }
 
