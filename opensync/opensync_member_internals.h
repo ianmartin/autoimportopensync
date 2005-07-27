@@ -13,8 +13,24 @@ struct OSyncMember {
 	void *enginedata;
 	void *plugindata;
 	
+	/* List of sinks, by format
+	 *
+	 * Note: only use this field after calling osync_member_require_sink_info()
+	 *
+	 * @todo Add osync_member_get_format_sinks() function
+	 * @todo Review users of format_sinks to check if they may
+	 *       possibly fail silently if sink information isn't available
+	 */
 	GList *format_sinks;
+
+	/* List of sinks, by objtype
+	 *
+	 * Note: only use this field using osync_member_get_objtype_sinks(), or
+	 *       after calling osync_member_require_sink_info()
+	 */
 	GList *objtype_sinks;
+
+
 	char *pluginname;
 	
 	//For the filters
@@ -31,3 +47,4 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
 void osync_member_select_format(OSyncMember *member, OSyncObjTypeSink *objsink);
 osync_bool osync_member_instance_default_plugin(OSyncMember *member, OSyncError **error);
 OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change, const char *objtypename);
+osync_bool osync_member_require_sink_info(OSyncMember *member, OSyncError **error);
