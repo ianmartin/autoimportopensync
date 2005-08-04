@@ -22,10 +22,14 @@
 #include "opensync_internals.h"
 
 /**
- * @defgroup PrivateAPI Private APIs
- * @brief Available private APIs
+ * @defgroup OSyncHashtablePrivateAPI OpenSync Hashtable Internals
+ * @ingroup OSyncPrivate
+ * @brief The private API of the Hashtables
+ * 
+ * This gives you an insight in the private API of the Hashtables
  * 
  */
+/*@{*/
 
 static void osync_hashtable_assert_loaded(OSyncHashTable *table)
 {
@@ -33,19 +37,12 @@ static void osync_hashtable_assert_loaded(OSyncHashTable *table)
 	osync_assert(table->dbhandle, "Hashtable not loaded yet. You have to load the hashtable first using osync_hashtable_load!");
 }
 
-/**
- * @defgroup OSyncPrivate OpenSync Private API
- * @ingroup PrivateAPI
- * @brief The private API of opensync
- * 
- * This gives you an insight in the private API of opensync.
- * 
- */
+/*@}*/
 
 /**
- * @defgroup OSyncEnvPrivate OpenSync Environment Internals
- * @ingroup OSyncPrivate
- * @brief The internals of the opensync environment
+ * @defgroup OSyncHashtableAPI OpenSync Hashtables
+ * @ingroup OSyncPublic
+ * @brief A Hashtable can be used to detect changes
  * 
  */
 /*@{*/
@@ -142,7 +139,7 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
  * 
  * @param table The hashtable
  * @param i The number of the entry to return
- * @param char A pointer to a char * that will hold the uid. The caller is responible for freeing
+ * @param uid A pointer to a char * that will hold the uid. The caller is responible for freeing
  * @param hash A pointer to a char * that will hold the hash. The caller is responible for freeing
  * @returns TRUE if successfull, FALSE otherwise
  * 

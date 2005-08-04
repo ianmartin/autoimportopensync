@@ -539,6 +539,12 @@ void *osync_member_get_loop(OSyncMember *member)
 	return member->loop;
 }
 
+/** @brief Sets the loop in which the member is dispatched
+ * 
+ * @param member The member
+ * @param loop The pointer to the loop
+ * 
+ */
 void osync_member_set_loop(OSyncMember *member, void *loop)
 {
 	g_assert(member);
@@ -1264,6 +1270,8 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
  * depending on which function the plugin wants to use.
  * 
  * @param member The member
+ * @param function The callback that will receive the answer
+ * @param user_data The userdata to pass to the callback
  * 
  */
 void osync_member_committed_all(OSyncMember *member, OSyncEngCallback function, void *user_data)

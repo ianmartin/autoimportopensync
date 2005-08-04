@@ -264,7 +264,7 @@ osync_bool osync_env_finalize(OSyncEnv *env, OSyncError **error)
  * 
  * @param env The format environment
  * @param path The path to load from or NULL if to load from default path
- * @param oserror The location to return a error to
+ * @param error The location to return a error to
  * @returns TRUE if successfull, FALSE otherwise
  * 
  */
@@ -293,7 +293,7 @@ osync_bool osync_env_load_formats(OSyncEnv *env, const char *path, OSyncError **
  * 
  * @param env Pointer to a OSyncEnv environment
  * @param path The path where to look for plugins
- * @param oserror Pointer to a error struct to return a error
+ * @param error Pointer to a error struct to return a error
  * @returns TRUE on success, FALSE otherwise
  * 
  */
@@ -703,6 +703,16 @@ const char *osync_get_version(void)
 	return VERSION;
 }
 
+/*! @brief Safely tries to malloc memory
+ * 
+ * Tries to malloc memory but returns an error in an OOM situation instead
+ * of aborting
+ * 
+ * @param size The size in bytes to malloc
+ * @param error The error which will hold the info in case of an error
+ * @returns A pointer to the new memory or NULL in case of error
+ * 
+ */
 void *osync_try_malloc0(unsigned int size, OSyncError **error)
 {
 	void *result = g_try_malloc(size);
