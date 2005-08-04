@@ -1122,6 +1122,18 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 	}
 }
 
+VFormatParam *vformat_attribute_find_param(VFormatAttribute *attr, const char *name)
+{
+	g_return_val_if_fail (attr != NULL, NULL);
+	GList *p = NULL;
+	for (p = attr->params; p; p = p->next) {
+		VFormatParam *param = p->data;
+		if (!g_ascii_strcasecmp (param->name, name))
+			return param;
+	}
+	return NULL;
+}
+
 void
 vformat_attribute_param_add_value (VFormatParam *param,
 				   const char *value)

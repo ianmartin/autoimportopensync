@@ -34,8 +34,12 @@ static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
-	xmlNewChild(current, NULL, (xmlChar*)"Type",
-		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
+	
+	GList *v = vformat_attribute_param_get_values(param);
+	for (; v; v = v->next) {
+		xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)v->data);
+	}
+	
 }
 
 static xmlNode *handle_fullname_attribute(xmlNode *root, VFormatAttribute *attr)
@@ -420,7 +424,9 @@ static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
 	char *content = (char*)xmlNodeGetContent(current);
-	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+	VFormatParam *param = vformat_attribute_param_new("TYPE");
+	vformat_attribute_param_add_value(param, content);
+	vformat_attribute_add_param (attr, param);
 	g_free(content);
 }
 
