@@ -1,1 +1,1 @@
-<config><username></username><password></password><url></url><port>8080</port></config>
+<config><username></username><password></password><url></url><port>8080</port><usestringtable>1</usestringtable></config>

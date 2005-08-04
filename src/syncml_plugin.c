@@ -22,11 +22,18 @@
 #include <string.h>
 #include <time.h>
 
-static void _verify_user(SmlAuthenticator *auth, const char *username, const char *password, void *userdata, SmlErrorType *reply)
+static void _verify_user(SmlAuthenticator *auth, const char *username, const char *password, void *userdata, SmlSessionAuthType *reply)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p)", __func__, auth, username, password, userdata, reply);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	SmlPluginEnv *env = userdata;
+	
+	osync_trace(TRACE_INTERNAL, "configured is %s, %s", env->username, env->password);
+	if (env->username && (!env->password || !username || !password || strcmp(env->username, username) || strcmp(env->password, password))) {
+		*reply = SML_AUTH_REJECTED;
+	} else {
+		*reply = SML_AUTH_ACCEPTED;
+	}
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, *reply);
 }
 
 static void _send_success(void *userData, SmlTransportResult result, SmlError **error)
@@ -173,6 +180,11 @@ static void _recv_final(SmlSession *session, void *userdata)
 static void _recv_end(SmlSession *session, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, userdata);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data((OSyncContext *)userdata);
+	
+	
+	smlDsServerReset(env->contactserver);
+	
 	osync_context_report_success((OSyncContext *)userdata);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -248,6 +260,10 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
 				plugin->password = g_strdup(str);
 			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
+				env->port = atoi(str);
+			}
 			xmlFree(str);
 		}
 		cur = cur->next;
@@ -305,7 +321,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 		goto error_free_contactserver;
 
 	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
-	
+	//smlAuthSetEnable(env->auth, FALSE);
 	g_free(configdata);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
