@@ -204,6 +204,7 @@ static SmlBool _new_session(SmlTransport *tsp, SmlSession *session, void *userda
 		goto error;
 	
 	env->session = session;
+	smlSessionUseStringTable(session, env->useStringtable);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -262,7 +263,7 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
-				env->port = atoi(str);
+				plugin->useStringtable = atoi(str);
 			}
 			xmlFree(str);
 		}

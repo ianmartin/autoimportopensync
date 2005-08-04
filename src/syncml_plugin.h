@@ -45,6 +45,7 @@ typedef struct SmlPluginEnv {
 	SmlSession *session;
 	char *username;
 	char *password;
+	SmlBool useStringtable;
 } SmlPluginEnv;
 
 #include <stdlib.h>
