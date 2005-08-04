@@ -474,7 +474,7 @@ void osync_db_close_hashtable(OSyncHashTable *table)
 	osync_db_close(table->dbhandle);
 }
 
-void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash, char *objtype)
+void osync_db_save_hash(OSyncHashTable *table, const char *uid, const char *hash, const char *objtype)
 {
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
@@ -486,7 +486,7 @@ void osync_db_save_hash(OSyncHashTable *table, char *uid, char *hash, char *objt
 }
 
 
-void osync_db_delete_hash(OSyncHashTable *table, char *uid)
+void osync_db_delete_hash(OSyncHashTable *table, const char *uid)
 {
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
@@ -497,7 +497,7 @@ void osync_db_delete_hash(OSyncHashTable *table, char *uid)
 	g_free(query);
 }
 
-void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx, const char *objtype)
+char **osync_db_get_deleted_hash(OSyncHashTable *table, const char *objtype)
 {
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
@@ -505,6 +505,7 @@ void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx, const char *
 	char **azResult = NULL;
 	int numrows = 0;
 	char *query = NULL;
+	
 	if (osync_conv_objtype_is_any(objtype)) {
 		query = g_strdup_printf("SELECT uid, hash FROM tbl_hash");
 	} else {
@@ -513,27 +514,25 @@ void osync_db_report_hash(OSyncHashTable *table, OSyncContext *ctx, const char *
 	sqlite3_get_table(sdb, query, &azResult, &numrows, NULL, NULL);
 	g_free(query);
 	
+	char **ret = g_malloc0((numrows + 1) * sizeof(char *));
+	
 	int i;
 	int ccell = 2;
+	int num = 0;
 	for (i = 0; i < numrows; i++) {
 		char *uid = azResult[ccell];
-		ccell++;
-		char *hash = azResult[ccell];
-		ccell++;
-		/*FIXME: should we reset used_entries somewhere? */
+		ccell += 2;
+		
 		if (!g_hash_table_lookup(table->used_entries, uid)) {
-			OSyncChange *change = osync_change_new();
-			change->changetype = CHANGE_DELETED;
-			osync_change_set_hash(change, hash);
-			osync_change_set_uid(change, uid);
-			osync_context_report_change(ctx, change);
-			osync_hashtable_update_hash(table, change);
+			ret[num] = g_strdup(uid);
+			num++;
 		}
 	}
 	sqlite3_free_table(azResult);
+	return ret;
 }	
 
-void osync_db_get_hash(OSyncHashTable *table, char *uid, char **rethash)
+void osync_db_get_hash(OSyncHashTable *table, const char *uid, char **rethash)
 {
 	sqlite3 *sdb = table->dbhandle->db;
 	sqlite3_stmt *ppStmt = NULL;
