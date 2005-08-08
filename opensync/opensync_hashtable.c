@@ -44,6 +44,41 @@ static void osync_hashtable_assert_loaded(OSyncHashTable *table)
  * @ingroup OSyncPublic
  * @brief A Hashtable can be used to detect changes
  * 
+ * Hashtables can be used to detect changes since the last invokation. They do this
+ * by keeping track of all reported uids and the hashes of the objects.
+ * 
+ * Hashes are strings that change when the objects is updated or when the content of
+ * the object changes. So hashes can either be a real hash like an MD5 or something 
+ * like a timestamp. The only important thing is that the hash changes once the item
+ * gets updated.
+ * 
+ * The hashtable works like this:
+ * - You first malloc it with osync_hashtable_new()
+ * - Then you load the saved hashtable from disk with osync_hashtable_load()
+ * 
+ * Now you can query and alter the table. You can ask if a item has changed by doing:
+ * - osync_hashtable_get_changetype() to get the changetype of a certain uid and hash
+ * - or the convience function osync_hashtable_detect_change which calls 
+ * osync_hashtable_get_changetype() and sets this changetype on the change object and then
+ * automatically calls osync_hashtable_report()
+ * After you reported all objects you can query the table for the deleted objects using
+ * osync_hashtable_get_deleted() or osync_hashtable_report_deleted()
+ * 
+ * After you are done call:
+ * - osync_hashtable_close()
+ * - osync_hashtable_free()
+ * 
+ * The hashtable works like this:
+ * 
+ * First the items are reported with a certain uid or hash. If the uid does not yet
+ * exist in the database it is reported as ADDED. if the uid exists and the hash is different
+ * it is reported as MODIFIED. if the uid exists but the hash is the same it means that the
+ * object is UNMODIFIED.
+ * 
+ * To be able to report deleted objects the hashtables keeps track of the uids you reported.
+ * After you are done with asking the hashtable for changes you can ask it for deleted objects.
+ * All items that are in the hashtable but where not reported by you have to be DELETED.
+ * 
  */
 /*@{*/
 
@@ -240,6 +275,23 @@ void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context
 	g_free(uidarr);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+/*! @brief Get the uid of all deleted items
+ * 
+ * @param table The hashtable
+ * @param objtype The object type which to report, NULL for all
+ * @returns An Null terminated array of uids. The uids and this array have to be freed.
+ * 
+ */
+char **osync_hashtable_get_deleted(OSyncHashTable *table, const char *objtype)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, objtype);
+	osync_hashtable_assert_loaded(table);
+	
+	char **retarr = osync_db_get_deleted_hash(table, objtype);	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, retarr);
+	return retarr;
 }
 
 /*! @brief Gets the changetype for a given uid and hash
