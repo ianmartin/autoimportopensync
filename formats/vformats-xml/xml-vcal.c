@@ -1186,7 +1186,7 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{
 	{50, "/vcal/Event/StartTime"},
 	{50, "/vcal/Event/EndTime"},
-	{50, "/vcal/Event/Summary"},
+	{0, "/vcal/Event/Summary"},
 	{0, "/vcal/Event/Uid"},
 	{0, "/vcal/Event/Revision"},
 	{0, "/vcal/Method"},

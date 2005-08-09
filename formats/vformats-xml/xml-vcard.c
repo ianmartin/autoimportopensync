@@ -798,7 +798,7 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	
 	OSyncXMLScore score[] =
 	{
-	{100, "/contact/FullName"},
+	//{100, "/contact/FullName"},
 	{100, "/contact/Name"},
 	//{20, "/contact/Telephone"},
 	//{20, "/contact/Address"},
