@@ -133,7 +133,7 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 			EContact *contact = E_CONTACT(l->data);
 			vcard = contact->parent;
 			char *data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
-			char *uid = e_contact_get_const(contact, E_CONTACT_UID);
+			const char *uid = e_contact_get_const(contact, E_CONTACT_UID);
 			int datasize = strlen(data) + 1;
 			evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_ADDED);
 		}
