@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
 	char *output = argv[2];
 	
 	char *buffer = NULL;
-	unsigned int size = 0;
+	int size = 0;
 	if (!osync_file_read(input, &buffer, &size, &error)) {
 		fprintf(stderr, "%s\n", osync_error_print(&error));
 		osync_error_free(&error);
