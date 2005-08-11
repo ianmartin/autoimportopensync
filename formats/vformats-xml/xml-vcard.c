@@ -404,8 +404,14 @@ static osync_bool needs_charset(const unsigned char *tmp)
 static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
-	if (!tmp)
-		return;
+
+	if (!tmp) {
+		/* If there is no node with the given name, add an empty value to the list.
+		 * This is necessary because some fields (N and ADR, for example) need
+		 * a specific order of the values
+		 */
+		tmp = "";
+	}
 	
 	if (needs_charset((unsigned char*)tmp))
 		if (!vformat_attribute_has_param (attr, "CHARSET"))
