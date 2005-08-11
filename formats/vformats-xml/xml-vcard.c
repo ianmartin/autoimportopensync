@@ -34,8 +34,12 @@ static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
-	xmlNewChild(current, NULL, (xmlChar*)"Type",
-		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
+	
+	GList *v = vformat_attribute_param_get_values(param);
+	for (; v; v = v->next) {
+		xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)v->data);
+	}
+	
 }
 
 static xmlNode *handle_fullname_attribute(xmlNode *root, VFormatAttribute *attr)
@@ -400,8 +404,14 @@ static osync_bool needs_charset(const unsigned char *tmp)
 static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
-	if (!tmp)
-		return;
+
+	if (!tmp) {
+		/* If there is no node with the given name, add an empty value to the list.
+		 * This is necessary because some fields (N and ADR, for example) need
+		 * a specific order of the values
+		 */
+		tmp = "";
+	}
 	
 	if (needs_charset((unsigned char*)tmp))
 		if (!vformat_attribute_has_param (attr, "CHARSET"))
@@ -420,7 +430,9 @@ static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
 	char *content = (char*)xmlNodeGetContent(current);
-	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+	VFormatParam *param = vformat_attribute_param_new("TYPE");
+	vformat_attribute_param_add_value(param, content);
+	vformat_attribute_add_param (attr, param);
 	g_free(content);
 }
 

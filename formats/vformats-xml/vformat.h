@@ -110,6 +110,7 @@ VFormatParam* vformat_attribute_param_new             (const char *param_name);
 void                  vformat_attribute_param_free            (VFormatParam *param);
 VFormatParam* vformat_attribute_param_copy            (VFormatParam *param);
 void                  vformat_attribute_add_param             (VFormatAttribute *attr, VFormatParam *param);
+VFormatParam *vformat_attribute_find_param(VFormatAttribute *attr, const char *name);
 void                  vformat_attribute_add_param_with_value  (VFormatAttribute *attr, const char *name, const char *value);
 void                  vformat_attribute_add_param_with_values (VFormatAttribute *attr,
 							       VFormatParam *param, ...);

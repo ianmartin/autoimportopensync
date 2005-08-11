@@ -687,6 +687,7 @@ const char *osync_group_get_configdir(OSyncGroup *group)
 /*! @brief Sets the configdir of the group
  * 
  * @param group The group
+ * @param directory The new configdir
  * @returns String with the path of the config directory
  * 
  */

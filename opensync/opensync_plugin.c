@@ -96,6 +96,54 @@ OSyncObjFormatSink *osync_objtype_find_format_sink(OSyncObjTypeSink *sink, const
 	}
 	return NULL;
 }
+
+void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatCommitFn commit_change)
+{
+	OSyncObjFormatTemplate *format_template = NULL;
+	if (formatstr) {
+		OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
+		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+		format_template->commit_change = commit_change;
+	} else {
+		GList *f = NULL;
+		for (f = template->formats; f; f = f->next) {
+			format_template = f->data;
+			format_template->commit_change = commit_change;
+		}
+	}
+}
+
+void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatAccessFn access)
+{
+	OSyncObjFormatTemplate *format_template = NULL;
+	if (formatstr) {
+		format_template = osync_plugin_find_objformat_template(template, formatstr);
+		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+		format_template->access = access;
+	} else {
+		GList *f = NULL;
+		for (f = template->formats; f; f = f->next) {
+			format_template = f->data;
+			format_template->access = access;
+		}
+	}
+}
+
+void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatBatchCommitFn batch)
+{
+	OSyncObjFormatTemplate *format_template = NULL;
+	if (formatstr) {
+		format_template = osync_plugin_find_objformat_template(template, formatstr);
+		osync_assert(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
+		format_template->batch_commit = batch;
+	} else {
+		GList *f = NULL;
+		for (f = template->formats; f; f = f->next) {
+			format_template = f->data;
+			format_template->batch_commit = batch;
+		}
+	}
+}
 #endif
 
 /*@}*/
@@ -260,6 +308,7 @@ osync_bool osync_module_load(OSyncEnv *env, const char *path, OSyncError **error
 
 /*! @brief Closes a module
  * 
+ * @param env The environment from which to remove the module
  * @param module The module to unload
  * 
  */
@@ -396,22 +445,6 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
 	return plugin->info.plugin_data;
 }
 
-void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatCommitFn commit_change)
-{
-	OSyncObjFormatTemplate *format_template = NULL;
-	if (formatstr) {
-		OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
-		format_template->commit_change = commit_change;
-	} else {
-		GList *f = NULL;
-		for (f = template->formats; f; f = f->next) {
-			format_template = f->data;
-			format_template->commit_change = commit_change;
-		}
-	}
-}
-
 /*! @brief Sets the commit function of a format
  * 
  * @param info Pointer to a plugin info struct to fill
@@ -433,22 +466,6 @@ void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtyp
 		for (o = info->plugin->accepted_objtypes; o; o = o->next) {
 			template = o->data;
 			_osync_format_set_commit(template, formatstr, commit_change);
-		}
-	}
-}
-
-void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatAccessFn access)
-{
-	OSyncObjFormatTemplate *format_template = NULL;
-	if (formatstr) {
-		format_template = osync_plugin_find_objformat_template(template, formatstr);
-		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
-		format_template->access = access;
-	} else {
-		GList *f = NULL;
-		for (f = template->formats; f; f = f->next) {
-			format_template = f->data;
-			format_template->access = access;
 		}
 	}
 }
@@ -493,22 +510,6 @@ void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypes
 	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
 	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
 	format_template->read = read;
-}
-
-void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formatstr, OSyncFormatBatchCommitFn batch)
-{
-	OSyncObjFormatTemplate *format_template = NULL;
-	if (formatstr) {
-		format_template = osync_plugin_find_objformat_template(template, formatstr);
-		osync_assert(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
-		format_template->batch_commit = batch;
-	} else {
-		GList *f = NULL;
-		for (f = template->formats; f; f = f->next) {
-			format_template = f->data;
-			format_template->batch_commit = batch;
-		}
-	}
 }
 
 /*! @brief Sets the batch_commit function of a format
