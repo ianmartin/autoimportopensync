@@ -41,11 +41,13 @@ typedef struct SmlPluginEnv {
 	GMainLoop *loop;
 	SmlTransport *tsp;
 	SmlAuthenticator *auth;
-	SmlDsServer *contactserver;
 	SmlSession *session;
 	char *username;
 	char *password;
 	SmlBool useStringtable;
+	
+	SmlDsServer *contactserver;
+	char *contact_url;
 } SmlPluginEnv;
 
 #include <stdlib.h>

@@ -221,7 +221,10 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 	xmlNodePtr cur = NULL;
 
 	env->port = 8080;
-
+	env->interface = NULL;
+	env->url = NULL;
+	plugin->contact_url = NULL;
+	
 	if (!(doc = xmlParseMemory(config, size))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
 		goto error;
@@ -265,9 +268,20 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
 				plugin->useStringtable = atoi(str);
 			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
+				plugin->contact_url = g_strdup(str);
+			}
 			xmlFree(str);
 		}
 		cur = cur->next;
+	}
+	
+	xmlFreeDoc(doc);
+
+	if (!plugin->contact_url) {
+		osync_error_set(error, SML_ERROR_GENERIC, "Missing database name");
+		goto error;
 	}
 
 	xmlFreeDoc(doc);
@@ -311,9 +325,9 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	if (!smlTransportInitialize(env->tsp, &serverConfig, env->context, &serror))
 		goto error_free_transport;
 	
-	SmlLocation *loc = smlLocationNew("/vcards", NULL, &serror);
+	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
 	
-	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
+	env->contactserver = smlDsServerNew(SML_DS_SERVER, SML_CONTENT_TYPE_VCARD, loc, &serror);
 	if (!env->contactserver)
 		goto error_free_loc;
 	
@@ -411,7 +425,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	g_free(next);
 	g_free(last);
 	
-	if (!smlSessionEndPackage(env->session, _send_success, ctx, &error))
+	if (!smlSessionFlush(env->session, _send_success, ctx, TRUE, &error))
 		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -474,7 +488,7 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 	if (!smlDsServerWriteChanges(env->contactserver, _sent_sync, ctx, &error))
 		goto error;
 	
-	if (!smlSessionEndPackage(env->session, _send_success, NULL, &error))
+	if (!smlSessionFlush(env->session, _send_success, NULL, TRUE, &error))
 		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
