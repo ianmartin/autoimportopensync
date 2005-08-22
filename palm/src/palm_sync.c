@@ -1,109 +1,126 @@
 #include "palm_sync.h"
-#include "vcard.h"
-#include "xml.h"
+
+osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
+	xmlDoc *doc = NULL;
+	xmlNode *cur = NULL;
+
+	//set defaults
+	env->sockaddr = g_strdup("/dev/pilot");
+	env->username = g_strdup("");
+	env->codepage = g_strdup("cp1252");
+	env->id = 0;
+	env->debuglevel = 0;
+	env->conntype = 0;
+	env->speed = 57600;
+	env->timeout = 2;
+	env->mismatch = 1;
+	env->popup = 0;
+
+	doc = xmlParseMemory(data, size);
+
+	if (!doc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+		goto error;
+	}
+
+	cur = xmlDocGetRootElement(doc);
+
+	if (!cur) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
+		goto error_free_doc;
+	}
+
+	if (xmlStrcmp(cur->name, "config")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
+		goto error_free_doc;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		char *str = xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"sockaddr"))) {
+				g_free(env->sockaddr);
+				env->sockaddr = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"username"))) {
+				g_free(env->username);
+				env->username = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"codepage"))) {
+				g_free(env->codepage);
+				env->codepage = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout"))) {
+				env->timeout = atoi(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"type"))) {
+				env->conntype = atoi(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"speed"))) {
+				env->speed = atoi(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"id"))) {
+				env->id = atoi(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"popup"))) {
+				env->popup = atoi(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"mismatch"))) {
+				env->mismatch = atoi(str);
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+
+	xmlFreeDoc(doc);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error_free_doc:
+		xmlFreeDoc(doc);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
 
 static GMutex *piMutex = NULL;
 gboolean dbCreated = FALSE;
 gboolean tryConnecting = TRUE;
-int dialogShowing = 0;
-//GtkWidget *dialogConnecting = NULL;
-//extern void async_add_pairlist_log(sync_pair *pair, char* logstring, sync_log_type type);
 
-
-/***********************************************************************
+/** @brief initialize the global mutex to protect the libpisock
  *
- * Function:    piMutex_create
- *
- * Summary:   initialize the global mutex to protect the libpisock
- *
- ***********************************************************************/
+ */
 void piMutex_create()
 {
+	osync_trace(TRACE_ENTRY, "%s()", __func__);
+	
 	g_assert (piMutex == NULL);
 	piMutex = g_mutex_new ();
-}
-
-/***********************************************************************
- *
- * Function:    palm_debug
- *
- * Summary:   used to write Debug messages where leve = 0 is the highest
- *			(error) and 4 is the lowest (full debug)
- *
- ***********************************************************************/
-void palm_debug(palm_connection *conn, int level, char *message, ...)
-{
-	va_list arglist;
-	char buffer[4096];
-	int debuglevel = conn->debuglevel;
-
-	if (level > debuglevel) { return; }
-	va_start(arglist, message);
-	vsprintf(buffer, message, arglist);
-
-	switch (level) {
-		case 0:
-			//Error
-			printf("[palm-sync] ERROR: %s\n", buffer);
-			break;
-		case 1:
-			//Warning
-			printf("[palm-sync] WARNING: %s\n", buffer);
-			break;
-		case 2:
-			//Information
-			printf("[palm-sync] INFORMATION: %s\n",  buffer);
-			break;
-		case 3:
-			//debug
-			printf("[palm-sync] DEBUG: %s\n", buffer);
-			break;
-		case 4:
-			//fulldebug
-			printf("[palm-sync] FULL DEBUG: %s\n", buffer);
-			break;
-	}
-	va_end(arglist);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 gboolean pingfunc(gpointer data)
 {
-	palm_connection *conn = data;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+	PSyncEnv *env = data;
 
-	if (!conn->socket)
+	if (!env->socket)
 		return FALSE;
 
 	if (g_mutex_trylock(piMutex) == FALSE) {
-		palm_debug(conn, 3, "Ping: Mutex locked!");
+		osync_trace(TRACE_EXIT, "Ping: Mutex locked!");
 		return TRUE;
 	}
 
-	if (pi_tickle(conn->socket) < 0) {
-		palm_debug(conn, 1, "Ping: Error");
+	if (pi_tickle(env->socket) < 0) {
+		osync_trace(TRACE_INTERNAL, "Ping: Error");
 	} else {
-		palm_debug(conn, 3, "Ping");
+		osync_trace(TRACE_INTERNAL, "Ping");
 	}
 
 	g_mutex_unlock(piMutex);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
-
-/*
-void cancelButton(void *data)
-{
-	printf("Cancel\n");
-	if (data)
-		gtk_widget_destroy((GtkWidget *)data);
-	tryConnecting = FALSE;
-}
-
-gboolean showDialogConnecting(void *data)
-{
-	dialogConnecting = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_INFO, GTK_BUTTONS_CANCEL, "Please connect device and press the HotSync button or cancel the operation.");
-	gtk_signal_connect (GTK_OBJECT (dialogConnecting), "response", G_CALLBACK (cancelButton), dialogConnecting);
-	gtk_widget_show(dialogConnecting);
-	return FALSE;
-}*/
 
 int connectDevice(palm_connection *conn, gboolean block, gboolean popup)
 {
