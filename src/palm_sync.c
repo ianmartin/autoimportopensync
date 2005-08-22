@@ -18,7 +18,7 @@ osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int si
 	env->mismatch = 1;
 	env->popup = 0;
 
-	doc = xmlParseMemory(data, size);
+	doc = xmlParseMemory(config, size);
 
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
@@ -42,31 +42,37 @@ osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int si
 	while (cur != NULL) {
 		char *str = xmlNodeGetContent(cur);
 		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"sockaddr"))) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"sockaddr")) {
 				g_free(env->sockaddr);
 				env->sockaddr = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"username"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
 				g_free(env->username);
 				env->username = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"codepage"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"codepage")) {
 				g_free(env->codepage);
 				env->codepage = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"timeout")) {
 				env->timeout = atoi(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"type"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"type")) {
 				env->conntype = atoi(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"speed"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"speed")) {
 				env->speed = atoi(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"id"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"id")) {
 				env->id = atoi(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"popup"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"popup")) {
 				env->popup = atoi(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"mismatch"))) {
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"mismatch")) {
 				env->mismatch = atoi(str);
 			}
 			xmlFree(str);
 		}
 		cur = cur->next;
+	}
+
+	if (env->conntype == PILOT_DEVICE_NETWORK) {
+		if (env->sockaddr)
+			g_free(env->sockaddr);
+		env->sockaddr = "net:any";
 	}
 
 	xmlFreeDoc(doc);
@@ -122,20 +128,22 @@ gboolean pingfunc(gpointer data)
 	return TRUE;
 }
 
-int connectDevice(palm_connection *conn, gboolean block, gboolean popup)
+static osync_bool _connectDevice(PSyncEnv *env, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	struct pi_sockaddr addr;
 	int listen_sd, pf;
-	char rate_buf[128];
-	long timeout;
+	char *rate_buf = NULL;
+	//long timeout;
 
-	if (conn->conntype != PILOT_DEVICE_NETWORK) {
-		g_snprintf (rate_buf,128,"PILOTRATE=%i", conn->speed);
-		palm_debug(conn, 2, "setting PILOTRATE=%i", conn->speed);
-		putenv (rate_buf);
+	if (env->conntype != PILOT_DEVICE_NETWORK) {
+		rate_buf = g_strdup_printf("PILOTRATE=%i", env->speed);
+		osync_trace(TRACE_INTERNAL, "setting PILOTRATE=%i", env->speed);
+		putenv(rate_buf);
+		g_free(rate_buf);
 	}
 
-	switch (conn->conntype) {
+	switch (env->conntype) {
 		case PILOT_DEVICE_SERIAL:
 			pf = PI_PF_PADP;
 			break;
@@ -154,149 +162,94 @@ int connectDevice(palm_connection *conn, gboolean block, gboolean popup)
 	}
 
 	if (!(listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, pf))) {
-		palm_debug(conn, 0, "pi_socket: %s", strerror (errno));
-		return -1;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create listen sock");
+		goto error;
 	}
 
 	addr.pi_family = PI_AF_PILOT;
 
-	if (conn->conntype == PILOT_DEVICE_NETWORK) {
-		conn->sockaddr = "net:any";
+	strcpy(addr.pi_device, env->sockaddr);
+
+	struct pi_sockaddr *tmpaddr = &addr;
+	if (pi_bind(listen_sd, (struct sockaddr*)tmpaddr, sizeof (addr)) == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to bind to pilot");
+		goto error_free_listen;
 	}
-
-	strcpy (addr.pi_device, conn->sockaddr);
-
-	if (pi_bind (listen_sd, (struct sockaddr*)&addr, sizeof (addr)) == -1) {
-		palm_debug(conn, 0, "Unable to bind to pilot");
-		pi_close(listen_sd);
-		return -2;
-	}
-
+	
 	if (pi_listen (listen_sd, 1) != 0) {
-		palm_debug(conn, 0, "pi_listen: %s", strerror (errno));
-		pi_close(listen_sd);
-		return -3;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to listen: %s", strerror (errno));
+		goto error_free_listen;
 	}
 
-	//sync_set_pair_status(conn->handle, "Press \"Hotsync\" now.");
-
-	tryConnecting = TRUE;
-	if (popup) {
-		//g_idle_add(showDialogConnecting, NULL);
-	}
-
-	if (!block) {
-		timeout = 0;
-		while (tryConnecting) {
-			conn->socket = pi_accept_to(listen_sd, 0, 0, 100);
-			timeout += 100;
-			if (timeout > conn->timeout * 1000 && conn->timeout > 0) {
-				palm_debug(conn, 1, "pi_accept_to: timeout");
-				palm_debug(conn, 1, "pi_accept_to: timeout was %i secs", conn->timeout);
-				pi_close(listen_sd);
-				//if (popup && dialogConnecting)
-				//	gtk_widget_destroy(dialogConnecting);
-				return -4;
-			}
-			if (conn->socket == -1) {
-				//while (gtk_events_pending ())
-				//	gtk_main_iteration();
-				continue;
-			}
-			if (conn->socket < -1) {
-				palm_debug(conn, 0, "Unable to accept() listen socket");
-				pi_close(listen_sd);
-				//if (popup && dialogConnecting)
-				//	gtk_widget_destroy(dialogConnecting);
-				return -5;
-			}
-			//if (popup && dialogConnecting)
-			//	gtk_widget_destroy(dialogConnecting);
-			break;
-		}
-	} else {
-		conn->socket = pi_accept_to(listen_sd, 0, 0, conn->timeout * 1000);
-		if (conn->socket == -1) {
-			palm_debug(conn, 1, "pi_accept_to: %s", strerror (errno));
-			palm_debug(conn, 1, "pi_accept_to: timeout was %i secs", conn->timeout);
-			pi_close(listen_sd);
-			return -6;
-		}
+	env->socket = pi_accept_to(listen_sd, 0, 0, env->timeout * 1000);
+	if (env->socket == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to accept: %s", strerror (errno));
+		goto error_free_listen;
 	}
 
 	pi_close(listen_sd);
-	if (!tryConnecting)
-		return -7;
-	return 0;
-}
 
-/*
-gboolean showDialogMismatch(void *data)
-{
-	GtkWidget *dialog = NULL;
-	dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_OK_CANCEL, (char *)data);
-	if (gtk_dialog_run (GTK_DIALOG (dialog)) == GTK_RESPONSE_OK) {
-		dialogShowing = 1;
-	} else {
-		dialogShowing = 2;
-	}
-	gtk_widget_destroy (dialog);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_listen:
+	pi_close(listen_sd);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
+}
 
-}*/
-
-char *get_config(char *path)
+static void *psyncInitialize(OSyncMember *member, OSyncError **error)
 {
-	char buffer[1024];
-	char *filename = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+
+	PSyncEnv *env = osync_try_malloc0(sizeof(PSyncEnv), error);
+	if (!env)
+		goto error;
+		
+	char *configdata = NULL;
+	unsigned int configsize = 0;
+	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
+		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
+		goto error_free_env;
+	}
 	
-	filename = g_strdup_printf ("%s/palm-sync.conf", path);
-	FILE *file = fopen(filename, "r");
-	if (!file)
-		return NULL;
-	fgets(buffer, 255, file);
-	fclose(file);
-	g_free(filename);
-	return g_strdup(buffer);
+	if (!psyncSettingsParse(env, configdata, configsize, error))
+		goto error_free_config;
+	
+	env->member = member;
+	g_free(configdata);
+	
+	osync_trace(TRACE_EXIT, "%s, %p", __func__, env);
+	return (void *)env;
+
+error_free_config:
+	g_free(configdata);
+error_free_env:
+	g_free(env);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
-void store_config(char *data, char *path)
+static void psyncConnect(OSyncContext *ctx)
 {
-	char *filename = NULL;
-	filename = g_strdup_printf ("%s/palm-sync.conf", path);
-	FILE *file = fopen(filename, "w");
-	fputs(data, file);
-	fclose(file);
-	g_free(filename);
-}
-
-palm_connection *initialize(OSyncMember *member, char *path)
-{
-	palm_connection *conn = g_malloc0(sizeof(palm_connection));
-	char *filename = NULL;
-	filename = g_strdup_printf ("%s/file-sync.conf", path);
-	load_palm_settings(conn, filename);
-	conn->member = member;
-	return conn;
-}
-
-void connect(palm_connection *conn, OSyncContext *context){
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	OSyncError *error = NULL;
 	struct PilotUser User;
-	gchar *txt;
-
-	palm_debug(conn, 3, "start: sync_connect");
 
 	//now connect with the palm
-	if (connectDevice(conn, FALSE, conn->popup)) {
-		goto failed;
-	}
+	if (!_connectDevice(env, &error))
+		goto error;
 
 	//check the user
-	if (dlp_ReadUserInfo(conn->socket, &User) >= 0) {
+	if (dlp_ReadUserInfo(env->socket, &User) >= 0) {
 		if (User.userID == 0)
 			strcpy(User.username, "");
-		palm_debug(conn, 2, "User: %s, %i\n", User.username, User.userID);
-		if (strcmp(User.username, conn->username) || User.userID != conn->id) {
+			
+		osync_trace(TRACE_INTERNAL, "User: %s, %i\n", User.username, User.userID);
+		/*if (strcmp(User.username, conn->username) || User.userID != conn->id) {
 			//Id or username mismatch
 			switch (conn->mismatch) {
 				case 0:
@@ -319,29 +272,32 @@ void connect(palm_connection *conn, OSyncContext *context){
 					goto failed;
 					break;
 			}
-		}
+		}*/
 	} else {
-		palm_debug(conn, 0, "Unable to read UserInfo");
-		goto failed;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to read UserInfo");
+		goto error;
 	}
 
 	//init the mutex
 	piMutex_create();
+	
 	//Add the ping function every 5 secs
-	g_timeout_add(5000, pingfunc, conn);
-
-	srand(time(NULL));
-	palm_debug(conn, 3, "end: sync_connect");
-	osync_context_report_success(context);
+	//g_timeout_add(5000, pingfunc, conn);
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 
-	failed:
-		if(conn->socket) {
-			dlp_EndOfSync(conn->socket, 0);
-			pi_close(conn->socket);
-		}
-		conn->socket = 0;
-		osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to open directory");
+error:
+	if (env->socket) {
+		dlp_EndOfSync(env->socket, 0);
+		pi_close(env->socket);
+		env->socket = 0;
+	}
+	
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 /***********************************************************************
@@ -351,58 +307,57 @@ void connect(palm_connection *conn, OSyncContext *context){
 * Summary:   closes the currently open DB and unsets the conn variables
 *
  ***********************************************************************/
-void CloseDB(palm_connection *conn)
+static void _closeDB(PSyncEnv *env)
 {
-	dlp_CloseDB(conn->socket, conn->database);
-	strcpy(conn->databasename, "");
-	conn->database = 0;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	
+	dlp_CloseDB(env->socket, env->database);
+	strcpy(env->databasename, "");
+	env->database = 0;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/***********************************************************************
-*
-* Function:    openDB
-*
-* Summary:   tries to open a given DB. if it is already open it does nothing.
-*			if another db is opened it closes this one first.
-*
-* Returns:	0 on success
-*			-1 on unable to find DB
-*			-2 on unable to open DB
-*
- ***********************************************************************/
-int openDB(palm_connection *conn, char *name)
+static osync_bool _openDB(PSyncEnv *env, char *name, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name, error);
+	
 	struct DBInfo dbInfo;
 	memset(&dbInfo, 0, sizeof(struct DBInfo));
 
-	if (conn->database) {
-		if (strcmp(conn->databasename, name) != 0) {
+	if (env->database) {
+		if (strcmp(env->databasename, name) != 0) {
 			//We have another DB open. close it first
-			palm_debug(conn, 2, "OpenDB called, closing %s first", conn->databasename);
-			CloseDB(conn);
+			_closeDB(env);
 		} else {
 			//It was already open
-			return 0;
+			osync_trace(TRACE_EXIT, "%s: Already opened", __func__);
+			return TRUE;
 		}
 	}
 
  	//Search it
-	if (dlp_FindDBInfo(conn->socket, 0, 0, name, 0, 0, &dbInfo) < 0) {
-		palm_debug(conn, 1, "Unable to locate %s. Assuming it has been reset", name);
-		return -1;
+	if (dlp_FindDBInfo(env->socket, 0, 0, name, 0, 0, &dbInfo) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to locate %s. Assuming it has been reset", name);
+		goto error;
 	}
 
 	//open it
-	if (dlp_OpenDB(conn->socket, 0, dlpOpenReadWrite, name, &conn->database) < 0) {
-		palm_debug(conn, 0, "Unable to open %s", name);
-		conn->database = 0;
-		return -2;
+	if (dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &env->database) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open %s", name);
+		env->database = 0;
+		goto error;
 	}
 
-	palm_debug(conn, 2, "Successfully opened %s", name);
-	strcpy(conn->databasename, name);
+	g_free(env->databasename);
+	env->databasename = g_strdup(name);
 
-	return 0;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 
@@ -418,30 +373,41 @@ int openDB(palm_connection *conn, char *name)
  * Summary:   gets the installed categories as a GList
  *
  ***********************************************************************/
-gchar *get_category_name_from_id(palm_connection *conn, int id)
+char *get_category_name_from_id(PSyncEnv *env, int id, OSyncError **error)
 {	
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, id, error);
+	
 	int size;
 	unsigned char buf[65536];
 	struct CategoryAppInfo cai;
 	int r;
 
-	if (id == 0)
-		return NULL;
+	if (id == 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Id was null");
+		goto error;
+	}
 	
 	/* buffer size passed in cannot be any larger than 0xffff */
-	size = dlp_ReadAppBlock(conn->socket, conn->database, 0, buf, min(sizeof(buf), 0xFFFF));
-	if (size<=0) {
-		palm_debug(conn, 0, "Error reading appinfo block\n");
-		return NULL;
+	size = dlp_ReadAppBlock(env->socket, env->database, 0, buf, min(sizeof(buf), 0xFFFF));
+	if (size <= 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error reading appinfo block");
+		goto error;
 	}
 
 	r = unpack_CategoryAppInfo(&cai, buf, size);
 	if ((r <= 0) || (size <= 0)) {
-		palm_debug(conn, 0, "unpack_AddressAppInfo failed %s %d\n", __FILE__, __LINE__);
-		return NULL;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "unpack_AddressAppInfo failed");
+		goto error;
 	}
-   
-	return g_strdup(cai.name[id]);
+
+	char *ret = g_strdup(cai.name[id]);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, ret);
+	return ret;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 /***********************************************************************
@@ -451,89 +417,95 @@ gchar *get_category_name_from_id(palm_connection *conn, int id)
  * Summary:   gets the installed categories as a GList
  *
  ***********************************************************************/
-int get_category_id_from_name(palm_connection *conn, char *name)
+int get_category_id_from_name(PSyncEnv *env, const char *name, OSyncError **error)
 {	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name, error);
+	
 	int size;
 	unsigned char buf[65536];
 	struct CategoryAppInfo cai;
 	int r, i;
 
-	if (!name)
-		return 0;
+	if (!name) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Name was null");
+		goto error;
+	}
 	
 	/* buffer size passed in cannot be any larger than 0xffff */
-	size = dlp_ReadAppBlock(conn->socket, conn->database, 0, buf, min(sizeof(buf), 0xFFFF));
+	size = dlp_ReadAppBlock(env->socket, env->database, 0, buf, min(sizeof(buf), 0xFFFF));
 	if (size<=0) {
-		palm_debug(conn, 0, "Error reading appinfo block\n");
-		return 0;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error reading appinfo block");
+		goto error;
 	}
 
 	r = unpack_CategoryAppInfo(&cai, buf, size);
 	if ((r <= 0) || (size <= 0)) {
-		palm_debug(conn, 0, "unpack_AddressAppInfo failed %s %d\n", __FILE__, __LINE__);
-		return 0;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "unpack_AddressAppInfo failed");
+		goto error;
 	}
    
 	for (i = 0; i < CATCOUNT; i++) {
 		if (cai.name[i][0] != '\0') {
-			palm_debug(conn, 3, "remote: cat %d [%s] ID %d renamed %d\n", i, cai.name[i], cai.ID[i], cai.renamed[i]);
+			osync_trace(TRACE_INTERNAL, "remote: cat %d [%s] ID %d renamed %d", i, cai.name[i], cai.ID[i], cai.renamed[i]);
 			if (!strcmp(cai.name[i], name)) {
+				osync_trace(TRACE_EXIT, "%s: %i", i);
 				return i;
 			}
 		}
 	}
+	
+	osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
+	return 0;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return 0;
 }
 
-/***********************************************************************
- *
- * Function:    get_changes
- *
- * Summary:   gets called by Multisync. returns a GList with all the changes requested
- *
- ***********************************************************************/
-void get_changeinfo(palm_connection *conn, OSyncContext *call)
+void psyncGetChangeinfo(OSyncContext *ctx)
 {
-	int l, n, ret, i;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	
+	int l, ret, i;
 	unsigned char buffer[65536];
 	recordid_t id=0;
 	int index, size, attr, category;
 	palm_entry entry;
 	struct  PilotUser User;
 	char *database;
-	OSyncChangeFormat format;
-
+	const char *format = NULL;
+	
 	//Lock our Mutex
 	g_mutex_lock(piMutex);
 
-	dlp_OpenConduit(conn->socket);
+	dlp_OpenConduit(env->socket);
 
 	//Loop over everything for every type
 	for (i = 0; i < 3; i++) {
 		//Addressbook
 		if (i == 0) {
-			format = OSYNC_VCARD;
+			format = "palm-contact";
 			database = "AddressDB";
 		} else if (i == 1) {
-			format = OSYNC_VCALENDAR;
+			format = "palm-event";
 			database = "DatebookDB";
 		} else if (i == 2) {
-			format = OSYNC_VTODO;
+			format = "palm-todo";
 			database = "ToDoDB";
 		} else {
 			continue;
 		}
 
 		//Open the database
-		ret = openDB(conn, database);
-		if (ret == -1) {
+		SmlError *error = NULL;
+		if (!_openDB(env, database, &error)) {
 			//database does not exist. we definetly need a resync for that
 			//FIXME
-		}
-		if (ret != 0) {
 			continue;
 		}
-		l = dlp_ReadAppBlock(conn->socket, conn->database, 0, buffer, 0xffff);
+		
+		l = dlp_ReadAppBlock(env->socket, env->database, 0, buffer, 0xffff);
 
 
 		//Now we choose if we want everything or just the modified stuff FIXME
@@ -547,14 +519,14 @@ void get_changeinfo(palm_connection *conn, OSyncContext *call)
 				changes = g_list_append(changes, add_changed(conn, &entry, SYNC_OBJ_ADDED));
 			}
 		} else {*/
-		while((ret = dlp_ReadNextModifiedRec(conn->socket, conn->database, buffer, &id, &index, &size, &attr, &category)) >= 0) {
+		while((ret = dlp_ReadNextModifiedRec(env->socket, env->database, buffer, &id, &index, &size, &attr, &category)) >= 0) {
 			OSyncChange *change = osync_change_new();
 			osync_change_set_uid(change, g_strdup_printf("uid-%s-%ld", database, id));
-			osync_change_set_format(change, format);
+			osync_change_set_objformat_string(change, format);
 			
 			if ((attr &  dlpRecAttrDeleted) || (attr & dlpRecAttrArchived)) {
 				if ((attr & dlpRecAttrArchived)) {
-					palm_debug(conn, 2, "Archieved\n");
+					osync_trace(TRACE_INTERNAL, "Archieved");
 				}
 				//we have a deleted record
 				osync_change_set_changetype(change, CHANGE_DELETED);
@@ -562,43 +534,41 @@ void get_changeinfo(palm_connection *conn, OSyncContext *call)
 
 			if (attr & dlpRecAttrDirty) {
 				//We have a modified record
-				osync_change_set_data(change, buffer, l);
+				osync_change_set_data(change, buffer, l, TRUE);
 				osync_change_set_changetype(change, CHANGE_MODIFIED);
 
-				palm_debug(conn, 2, "Found a modified record on palm: %s", entry.uid);
+				osync_trace(TRACE_INTERNAL, "Found a modified record on palm: %s", entry.uid);
 			}
-			osync_context_report_change(call, change);
+			osync_context_report_change(ctx, change);
 			
 		}
 	}
 	
-	palm_debug(conn, 2, "Done searching for changes");
+	osync_trace(TRACE_INTERNAL, "Done searching for changes");
 
-	if (dlp_ReadUserInfo(conn->socket, &User) >= 0) {
+	if (dlp_ReadUserInfo(env->socket, &User) >= 0) {
 		if (User.lastSyncPC == 0) {
 			//Device has been reseted
-			palm_debug(conn, 3, "Detected that the Device has been reset");
+			osync_trace(TRACE_INTERNAL, "Detected that the Device has been reset");
 			//chinfo->newdbs = SYNC_OBJECT_TYPE_ANY;
 		}
 	}
 
-	osync_call_set_success(call);
-	//palm_debug(conn, 2, "Found %i changes", g_list_length(changes));
-
-	osync_call_answer(call);
-	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
+
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+/*error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));*/
 }
- 
-/***********************************************************************
- *
- * Function:    syncobj_modify
- *
- * Summary:   opens the database and tries to modify the entry in the given db
- *
- ***********************************************************************/
-void add_change(palm_connection *conn, OSyncChange *change, OSyncContext *context)
+
+void psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	
 	int l, ret;
 	unsigned char buffer[65536];
 	unsigned char orig_buffer[65536];
@@ -615,30 +585,15 @@ void add_change(palm_connection *conn, OSyncChange *change, OSyncContext *contex
 	//Lock our Mutex
 	g_mutex_lock(piMutex);
 
-	palm_debug(conn, 2, "start: syncobj_modify");
-	//palm_debug(conn, 3, "uid: %s\nCOMP: %s\n", uid, comp);
-
-	/*if (!comp) {
-		sync_set_requestfailed(conn->handle);
-		//Unlock our Mutex
-		g_mutex_unlock(piMutex);
-		return;
-	}*/
-
 	//detect the db needed
-	switch (osync_change_get_format(change)) {
-		case OSYNC_VCARD:
-			database = "AddressDB";
-			break;
-		case OSYNC_VCALENDAR:
-			database = "DatebookDB";
-			break;
-		case OSYNC_VTODO:
-			database = "ToDoDB";
-			break;
-		default:
-			printf("Unsupported\n");
-	}
+	if (!strcmp(osync_change_get_objformat(change), "palm-contact")) {
+		database = "AddressDB";
+	} else if (!strcmp(osync_change_get_objformat(change), "palm-event")) {
+		database = "DatebookDB";
+	} else if (!strcmp(osync_change_get_objformat(change), "palm-todo")) {
+		database = "ToDoDB";
+	} else {
+		osync_error_set(
 
 	palm_debug(conn, 2, "Detected vcard to belong to %s", database);
 
@@ -725,7 +680,14 @@ void add_change(palm_connection *conn, OSyncChange *change, OSyncContext *contex
 
 	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
+	
 	osync_context_report_success(context);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 /***********************************************************************
@@ -736,9 +698,11 @@ void add_change(palm_connection *conn, OSyncChange *change, OSyncContext *contex
  *				and write some information to the Palm
  *
  ***********************************************************************/
-void sync_done(palm_connection *conn, gboolean success)
+void psyncDone(OSyncContext *ctx)
 {
-        struct  PilotUser User;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	
+	struct  PilotUser User;
 	int i = 0, ret;
 	char *database = NULL;
 
@@ -797,6 +761,13 @@ void sync_done(palm_connection *conn, gboolean success)
 
 	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 /***********************************************************************
@@ -806,8 +777,9 @@ void sync_done(palm_connection *conn, gboolean success)
  * Summary:		gets called by Multisync. Closes the connection with the Palm
  *
  ***********************************************************************/
-void disconnect(palm_connection *conn, OSyncContext *context)
+void psyncDisconnect(OSyncContext *ctx)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	//Lock our Mutex
 	g_mutex_lock(piMutex);
 
@@ -822,12 +794,41 @@ void disconnect(palm_connection *conn, OSyncContext *context)
 	//Free it
 	g_mutex_free(piMutex);
 	piMutex = NULL;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-int type() {
-	return 5;
+static void psyncFinalize(void *data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+	PSyncEnv *env = (filesyncinfo *)data;
+
+	g_free(env);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-char *name() {
-	return "palm-sync";
+void get_info(OSyncEnv *env)
+{
+	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	info->name = "palm-sync";
+	info->longname = "Palm Synchronization Plugin";
+	info->description = "Plugin to synchronize Palm devices";
+	info->version = 1;
+	
+	info->functions.initialize = psyncInitialize;
+	info->functions.connect = psyncConnect;
+	info->functions.sync_done = psyncDone;
+	info->functions.disconnect = psyncDisconnect;
+	info->functions.finalize = psyncFinalize;
+	info->functions.get_changeinfo = psyncGetChangeinfo;
+
+	osync_plugin_accept_objtype(info, "contact");
+	osync_plugin_accept_objformat(info, "contact", "palm-contact", NULL);
+	osync_plugin_set_commit_objformat(info, "contact", "palm-contact", psyncCommitChange);
 }
