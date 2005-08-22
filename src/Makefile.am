@@ -1,17 +1,26 @@
-## Process this file with automake to produce Makefile.in ../dbus/glib/libdbus-glib-1.la
-# not a nice way to do it
-plugindir = $(libdir)/opensync/plugins
+plugindir=@OPENSYNC_PLUGINDIR@
+configdir=@OPENSYNC_CONFIGDIR@
+formatsdir=@OPENSYNC_FORMATSDIR@
+opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
-AM_CFLAGS = @XML_CFLAGS@
+AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall -Werror
 
-INCLUDES = @PACKAGE_CFLAGS@
+EXTRA_DIST = \
+	palm-sync \
+	palm_config.h
 
-plugin_LTLIBRARIES = libpalm_sync.la
+config_DATA = palm-sync
 
-libpalm_sync_la_SOURCES = \
-	palm_sync.c \
-	xml.c
+opensyncheader_HEADER = palm_sync.h palm_format.h
 
-libpalm_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
-libpalm_sync_la_LIBADD = @PACKAGE_LIBS@ @XML_LIBS@ @LIBS@ -lopensync
+plugin_LTLIBRARIES = palm_sync.la
 
+palm_sync_la_SOURCES = palm_sync.c palm_config.c
+palm_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
+palm_sync_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+
+formats_LTLIBRARIES = palm.la
+
+palm_la_SOURCES = palm_format.c
+palm_la_LDFLAGS = -avoid-version -export-dynamic -module
+palm_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
