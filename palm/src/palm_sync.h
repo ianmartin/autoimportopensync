@@ -1,5 +1,5 @@
-#ifndef PALM_PLUGIN_H
-#define PALM_PLUGIN_H
+#ifndef PALM_SYNC_H
+#define PALM_SYNC_H
 
 #include <opensync/opensync.h>
 
@@ -19,19 +19,17 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 #define PILOT_DEVICE_SERIAL 0
 #define PILOT_DEVICE_USB_VISOR 1
 #define PILOT_DEVICE_IRDA 2
 #define PILOT_DEVICE_NETWORK 4
 
-typedef struct {
-	//client_connection commondata;
-	//sync_pair *handle;
-	//connection_type type;
+typedef struct PSyncEnv {
 	OSyncMember *member;
-	char statefile[1024];
-	char username[1024];
+	char *statefile;
+	char *username;
 	int id;
 	char *sockaddr;
 	int timeout;
@@ -42,9 +40,9 @@ typedef struct {
 	int database;
 	int popup;
 	int mismatch;
-	char databasename[1024];
-	char codepage[1024];
-} palm_connection;
+	char *databasename;
+	char *codepage;
+} PSyncEnv;
 
 typedef struct {
 	struct Address address;
@@ -56,12 +54,4 @@ typedef struct {
 	int catID;
 } palm_entry;
 
-GString *address2vcard(palm_connection *, struct Address, char *);
-GString *calendar2vevent(palm_connection *, struct Appointment);
-GString *todo2vcal(palm_connection *, struct ToDo, char *);
-void palm_debug(palm_connection *conn, int level, char *message, ...);
-int connectDevice(palm_connection *conn, gboolean block, gboolean popup);
-int get_category_id_from_name(palm_connection *conn, char *name);
-void VObjectOErrorHander(char *);
-
-#endif
+#endif //PALM_SYNC_H
