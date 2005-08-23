@@ -730,179 +730,184 @@ void vcal2todo(palm_connection *conn, palm_entry *entry, char *vcard)
 
 	deleteVObjectO(vcal);
 }
+#endif
 
-GString *address2vcard(palm_connection *conn, struct Address address, char *category)
+char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
+	char *tmp = NULL;
+	
+	osync_trace(TRACE_INTERNAL, "Entry: %p", entry->address.entry[i]);
+	if (entry->address.entry[i]) {
+		osync_trace(TRACE_INTERNAL, "Before: %s", entry->address.entry[i]);
+		tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), "utf8", entry->codepage, NULL, NULL, NULL);
+	}
+	osync_trace(TRACE_INTERNAL, "Palm Entry: %i: %s", i, tmp);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return tmp;
+}
+
+osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
 {
-	VObjectO *nameprop = NULL, *prop = NULL, *addrprop = NULL;
-	VObjectO *vcard;
-	int i = 0;
-	GString *vcardstr;
-	char *vcardptr;
-	gchar *label = NULL;
-	gchar *fullname = NULL;
+	return entry->address.entry[i] ? TRUE : FALSE;
+}
 
-	palm_debug(conn, 2, "Converting address to vcard");
-
-	vcard = newVObjectO(VCCardPropO);
-	addPropValueO(vcard, VCVersionPropO, "2.1");
-
-	for (i = 0; i < 19; i++) {
-		if (address.entry[i]) {
-		char *tmp;
-			palm_debug(conn, 3, "Palm Entry: %i: %s", i, address.entry[i]);
-			
-			printf("test %s, %s, %i\n", conn->codepage, address.entry[i], (address.entry[i])[1]);
-			tmp = g_convert(address.entry[i], strlen(address.entry[i]), "utf8", conn->codepage, NULL, NULL, NULL);
-			free(address.entry[i]);
-			address.entry[i] = tmp;
-
-			switch (i) {
-				case 0:
-					//Last Name
-					if (!nameprop)
-						nameprop = addPropO(vcard, "N");
-					addPropValueO(nameprop, VCFamilyNamePropO, address.entry[i]);
-					fullname = g_strdup(address.entry[0]);
-					break;
-				case 1:
-					//First Name
-					if (!nameprop)
-						nameprop = addPropO(vcard, "N");
-					addPropValueO(nameprop, VCGivenNamePropO, address.entry[i]);
-					if (fullname)
-						g_free(fullname);
-					fullname = g_strconcat(address.entry[1], " ", address.entry[0], NULL);
-					break;
-				case 2:
-					//Company
-					prop = addPropO(vcard, "ORG");
-					addPropValueO(prop, "ORGNAME", address.entry[i]);
-					break;
-				case 3:
-				case 4:
-				case 5:
-				case 6:
-				case 7:
-					palm_debug(conn, 3, "GOT TEL with phoneLabel %i", address.phoneLabel[i - 3]);
-					switch (address.phoneLabel[i - 3]) {
-						case 0:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "WORK");
-							addPropO(prop, "VOICE");
-							break;
-						case 1:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "HOME");
-							break;
-						case 2:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "WORK");
-							addPropO(prop, "FAX");
-							break;
-						case 3:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "VOICE");
-							break;
-						case 4:
-							prop = addPropValueO(vcard, "EMAIL", address.entry[i]);
-							addPropO(prop, "INTERNET");
-							break;
-						case 5:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "PREF");
-							break;
-						case 6:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "PAGER");
-							break;
-						case 7:
-							prop = addPropValueO(vcard, "TEL", address.entry[i]);
-							addPropO(prop, "CELL");
-							break;
-					}
-					break;
-				case 8:
-					if (!addrprop) {
-						addrprop = addPropO(vcard, "ADR");
-						addPropValueO(addrprop, "ENCODING", "QUOTED-PRINTABLE");
-					}
-					addPropValueO(addrprop, "STREET", address.entry[i]);
-					break;
-				case 9:
-					if (!addrprop) {
-						addrprop = addPropO(vcard, "ADR");
-						addPropValueO(addrprop, "ENCODING", "QUOTED-PRINTABLE");
-					}
-					addPropValueO(addrprop, "L", address.entry[i]);
-					break;
-				case 10:
-					if (!addrprop) {
-						addrprop = addPropO(vcard, "ADR");
-						addPropValueO(addrprop, "ENCODING", "QUOTED-PRINTABLE");
-					}
-					addPropValueO(addrprop, "R", address.entry[i]);
-					break;
-				case 11:
-					if (!addrprop) {
-						addrprop = addPropO(vcard, "ADR");
-						addPropValueO(addrprop, "ENCODING", "QUOTED-PRINTABLE");
-					}
-					addPropValueO(addrprop, "PC", address.entry[i]);
-					break;
-				case 12:
-					if (!addrprop) {
-						addrprop = addPropO(vcard, "ADR");
-						addPropValueO(addrprop, "ENCODING", "QUOTED-PRINTABLE");
-					}
-					addPropValueO(addrprop, "C", address.entry[i]);
-					break;
-				case 13:
-					prop = addPropValueO(vcard, "TITLE", address.entry[i]);
-					break;
-				case 18:
-					prop = addPropValueO(vcard, "NOTE", address.entry[i]);
-					addPropValueO(prop, "ENCODING", "QUOTED-PRINTABLE");
-					break;
-			}
-		}
-	}
-
-	if (addrprop) {
-		//Make the Label
-		for (i = 8; i <= 12; i++) {
-			if (address.entry[i]) {
-				if (!label) {
-					label = "";
-				} else {
-					label = g_strconcat(label, "\n", NULL);
-				}
-				label = g_strconcat(label, address.entry[i], NULL);
-			}
-		}
-		prop = addPropValueO(vcard, "LABEL", label);
-		addPropValueO(prop, "ENCODING", "QUOTED-PRINTABLE");
-		addPropO(prop, "WORK");
-	}
-
-	if (category) {
-		addPropValueO(vcard, "CATEGORIES", category);
+static osync_bool conv_palm_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	PSyncContactEntry *entry = (PSyncContactEntry *)input;
+	char *tmp = NULL;
+	xmlNode *current = NULL;
+	
+	if (inpsize != sizeof(PSyncContactEntry)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong size");
+		goto error;
 	}
 	
-	//Write the Fullname
-	if (fullname) {
-		addPropValueO(vcard, VCFullNamePropO, fullname);
-		g_free(fullname);
+	//Create a new xml document
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *root = osxml_node_add_root(doc, "contact");
+
+	//Names
+	if (has_entry(entry, 0) || has_entry(entry, 1)) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
+		//Last Name
+		tmp = return_next_entry(entry, 0);
+		if (tmp) {
+			osxml_node_add(current, "LastName", tmp);
+			g_free(tmp);
+		}
+	
+		//First Name
+		tmp = return_next_entry(entry, 1);
+		if (tmp) {
+			osxml_node_add(current, "FirstName", tmp);
+			g_free(tmp);
+		}
+	}
+	
+	//Company
+	tmp = return_next_entry(entry, 2);
+	if (tmp) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
+		osxml_node_add(current, "Name", tmp);
+		g_free(tmp);
 	}
 
-	vcardptr = writeMemVObjectO(0,0,vcard);
-	vcardstr = g_string_new(vcardptr);
-	free(vcardptr);
-	deleteVObjectO(vcard);
+	//Telephones and email
+	int i;
+	for (i = 3; i <= 7; i++) {
+		tmp = return_next_entry(entry, i);
+		if (tmp) {
+			current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", tmp);
+			g_free(tmp);
+			
+			switch (entry->address.phoneLabel[i - 3]) {
+				case 0:
+					osxml_node_add(current, "Work", NULL);
+					osxml_node_add(current, "Voice", NULL);
+					break;
+				case 1:
+					osxml_node_add(current, "Home", NULL);
+					break;
+				case 2:
+					osxml_node_add(current, "Work", NULL);
+					osxml_node_add(current, "Fax", NULL);
+					break;
+				case 3:
+					osxml_node_add(current, "Voice", NULL);
+					break;
+				case 4:
+					osxml_node_add(current, "EMail", NULL);
+					break;
+				case 5:
+					osxml_node_add(current, "Pref", NULL);
+					break;
+				case 6:
+					osxml_node_add(current, "Pager", NULL);
+					break;
+				case 7:
+					osxml_node_add(current, "Cellular", NULL);
+					break;
+			}
+		}
+		
+	}
 
-	palm_debug(conn, 3, "VCARD:\n%s", vcardstr->str);
-	return vcardstr;
+	//Address
+	if (has_entry(entry, 8) || has_entry(entry, 9) || has_entry(entry, 10) || has_entry(entry, 11) || has_entry(entry, 12)) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Address", NULL);
+		//Street
+		tmp = return_next_entry(entry, 8);
+		if (tmp) {
+			osxml_node_add(current, "Street", tmp);
+			g_free(tmp);
+		}
+	
+		//City
+		tmp = return_next_entry(entry, 9);
+		if (tmp) {
+			osxml_node_add(current, "City", tmp);
+			g_free(tmp);
+		}
+		
+		//Region
+		tmp = return_next_entry(entry, 10);
+		if (tmp) {
+			osxml_node_add(current, "Region", tmp);
+			g_free(tmp);
+		}
+		
+		//Code
+		tmp = return_next_entry(entry, 11);
+		if (tmp) {
+			osxml_node_add(current, "Code", tmp);
+			g_free(tmp);
+		}
+		
+		//Country
+		tmp = return_next_entry(entry, 12);
+		if (tmp) {
+			osxml_node_add(current, "Country", tmp);
+			g_free(tmp);
+		}
+	}
+	
+	tmp = return_next_entry(entry, 13);
+	if (tmp) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Title", tmp);
+		g_free(tmp);
+	}
+	
+	//Note
+	tmp = return_next_entry(entry, 18);
+	if (tmp) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Note", tmp);
+		g_free(tmp);
+	}
+
+	GList *c = NULL;
+	current = NULL;
+	for (c = entry->categories; c; c = c->next) {
+		if (!current)
+			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+		osxml_node_add(current, "Category", (char *)c->data);
+	}
+
+	*free_input = TRUE;
+	*output = (char *)doc;
+	*outpsize = sizeof(doc);
+
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
-#endif
 
 static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
@@ -911,15 +916,19 @@ static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, ch
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
 	//Get the root node of the input document
-	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-contact");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
 	}
 	
+	if (xmlStrcmp(root->name, (const xmlChar *)"contact")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
+		goto error;
+	}
+
 	/* Start the new entry */
-	PSyncPalmEntry *entry = osync_try_malloc0(sizeof(PSyncPalmEntry), error);
+	PSyncContactEntry *entry = osync_try_malloc0(sizeof(PSyncContactEntry), error);
 	if (!entry)
 		goto error;
 	
@@ -934,8 +943,8 @@ static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, ch
 	//Name
 	xmlNode *cur = osxml_get_node(root, "Name");
 	if (cur) {
-		entry->address.entry[0] = osxml_find_node(cur, "First");
-		entry->address.entry[1] = osxml_find_node(cur, "First");
+		entry->address.entry[0] = osxml_find_node(cur, "LastName");
+		entry->address.entry[1] = osxml_find_node(cur, "FirstName");
 	}
 
 	//Company
@@ -1012,8 +1021,8 @@ static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, ch
 	}
 
 	/* Now convert to the charset */
-	/*for (i = 0; i < 19; i++) {
-	  if (entry->address.entry[i]) {
+	for (i = 0; i < 19; i++) {
+	  /*if (entry->address.entry[i]) {
 	    char *tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), conn->codepage ,"utf8", NULL, NULL, NULL);
 	    free(entry->address.entry[i]);
 	    entry->address.entry[i] = tmp;
@@ -1022,12 +1031,13 @@ static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, ch
 	    free(entry->address.entry[i]);
 	    entry->address.entry[i] = NULL;
 	    palm_debug(conn, 3, "Address %i: %s", i, entry->address.entry[i]);
-	  }
-	}*/
+	  }*/
+	  osync_trace(TRACE_INTERNAL, "entry %i: %s", i, entry->address.entry[i]);
+	}
 	
 	*free_input = TRUE;
 	*output = (void *)entry;
-	*outpsize = sizeof(PSyncPalmEntry);
+	*outpsize = sizeof(PSyncContactEntry);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1049,6 +1059,12 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_create_func(env, "file", create_file);
 	osync_env_format_set_revision_func(env, "file", revision_file);*/
 
-	//osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "vcard21", conv_palm_to_vcard);
-	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "palm-contact", conv_xml_to_palm);
+	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm);
+	
+	osync_env_register_objtype(env, "todo");
+	osync_env_register_objformat(env, "todo", "palm-todo");
+	
+	osync_env_register_objtype(env, "event");
+	osync_env_register_objformat(env, "event", "palm-event");
 }

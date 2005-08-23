@@ -46,7 +46,9 @@
 #define PILOT_DEVICE_IRDA 2
 #define PILOT_DEVICE_NETWORK 4
 
-typedef struct PSyncPalmEntry PSyncPalmEntry;
+typedef struct PSyncContactEntry PSyncContactEntry;
+typedef struct PSyncEventEntry PSyncEventEntry;
+typedef struct PSyncTodoEntry PSyncTodoEntry;
 
 typedef struct PSyncEnv {
 	OSyncMember *member;
