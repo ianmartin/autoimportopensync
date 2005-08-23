@@ -19,6 +19,7 @@
  */
 
 #include "palm_sync.h"
+#include "palm_format.h"
 
 osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
 {
@@ -491,7 +492,7 @@ void psyncGetChangeinfo(OSyncContext *ctx)
 	unsigned char buffer[65536];
 	recordid_t id=0;
 	int index, size, attr, category;
-	palm_entry entry;
+	PSyncPalmEntry entry;
 	struct  PilotUser User;
 	char *database;
 	const char *format = NULL;
@@ -590,15 +591,14 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 	int ret = 0;
 	unsigned char buffer[65536];
 	unsigned char orig_buffer[65536];
-	palm_entry entry;
+	PSyncPalmEntry *entry = NULL;
 	//palm_entry orig_entry;
 	recordid_t id=0;
 	int size;
-	int attr, category;
+	int attr, category = 0;
 	//int category_new;
 	char *database = NULL;
 	int dbhandle;
-	entry.catID = 0;
 	OSyncError *error = NULL;
 	
 	//Lock our Mutex
@@ -639,6 +639,18 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 		}
 	}
 	
+	if (osync_change_get_changetype(change) != CHANGE_DELETED) {
+		entry = (PSyncPalmEntry *)osync_change_get_data(change);
+		GList *c = NULL;
+		for (c = entry->categories; c; c = c->next) {
+			category = get_category_id_from_name(env, c->data, NULL);
+			if (category != 0) {
+				osync_trace(TRACE_INTERNAL, "Found category %i\n", category);
+				break;
+			}
+		}
+	}
+	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			//Modify a entry
@@ -659,7 +671,7 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 				l = pack_Address(&entry.address, buffer, sizeof(buffer));
 			}*/
 			
-			ret = dlp_WriteRecord(env->socket, env->database, attr, id, entry.catID, buffer, l, 0);
+			ret = dlp_WriteRecord(env->socket, env->database, attr, id, category, buffer, l, 0);
 			if (ret < 0) {
 				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to modify entry");
 				goto error;
@@ -669,7 +681,7 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 			//Add a new entry
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			id = 0;
-			if (dlp_WriteRecord(env->socket, env->database, 0, 0, entry.catID, buffer, l, &id) < 0) {
+			if (dlp_WriteRecord(env->socket, env->database, 0, 0, category, buffer, l, &id) < 0) {
 				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to add new entry");
 				goto error;
 			}

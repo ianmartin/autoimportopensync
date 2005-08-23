@@ -21,14 +21,13 @@
 #ifndef _PALM_FORMAT_H
 #define _PALM_FORMAT_H
 
-struct {
+struct PSyncPalmEntry {
 	struct Address address;
 	struct Appointment appointment;
 	struct ToDo todo;
 //	sync_object_type type;
 	char uid[1024];
-	char *category;
-	int catID;
-} PSyncPalmEntry;
+	GList *categories;
+};
 
 #endif /* _PALM_FORMAT_H */
