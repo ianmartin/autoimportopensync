@@ -23,6 +23,8 @@
 
 #include <opensync/opensync-xml.h>
 
+
+#if 0
 /***********************************************************************
  *
  * Function:    tm2vcaldatetime
@@ -99,7 +101,6 @@ char *escape_chars(char *str)
 	return time;
 }
 
-#if 0
 GString *calendar2vevent(palm_connection *conn, struct Appointment appointment)
 {
 	VObjectO *vcal;
@@ -729,7 +730,6 @@ void vcal2todo(palm_connection *conn, palm_entry *entry, char *vcard)
 
 	deleteVObjectO(vcal);
 }
-#endif
 
 GString *address2vcard(palm_connection *conn, struct Address address, char *category)
 {
@@ -902,13 +902,11 @@ GString *address2vcard(palm_connection *conn, struct Address address, char *cate
 	palm_debug(conn, 3, "VCARD:\n%s", vcardstr->str);
 	return vcardstr;
 }
+#endif
 
 static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	const char *attributes;
-	int teliter = 0;
-	int i;
 
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
@@ -925,157 +923,96 @@ static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, ch
 	if (!entry)
 		goto error;
 	
-	while (root) {
-		xml_vcard_handle_attribute((OSyncHookTables *)user_data, vcard, root, std_encoding);
-		root = root->next;
-	}
-	
-
-	for (i = 0; i < 19; i++) {
-		entry->address.entry[i] = NULL;
-	}
+	/* Set the entries */
 	entry->address.phoneLabel[0] = 0;
 	entry->address.phoneLabel[1] = 1;
 	entry->address.phoneLabel[2] = 2;
 	entry->address.phoneLabel[3] = 3;
 	entry->address.phoneLabel[4] = 4;
-	
 	entry->address.showPhone = 0;
-
-	while(moreIterationO(&iter))
-	{
-		v = nextVObjectO(&iter);
-		attributes = vObjectNameO(v);
-		palm_debug(conn, 3, "Translatings %s", attributes);
-
-		//Name
-		if (!strcmp(attributes, "N")) {
-			if ((prop = isAPropertyOfO(v, "F"))) {
-				entry->address.entry[0] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			if ((prop = isAPropertyOfO(v, "G"))) {
-				entry->address.entry[1] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			continue;
-		}
-
-		//Company
-		if (!strcmp(attributes, "ORG")) {
-			if ((prop = isAPropertyOfO(v, "ORGNAME"))) {
-				entry->address.entry[2] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			continue;
-		}
-
-		//Telephone
-		if (!strcmp(attributes, "TEL") && (teliter <= 4)) {
-			entry->address.entry[3 + teliter] = fakeCStringO(vObjectUStringZValueO(v));
-
-			if (isAPropertyOfO(v, "WORK") && isAPropertyOfO(v, "VOICE")) {
-				entry->address.phoneLabel[teliter] = 0;
-				teliter++;
-				continue;
-			}
-			if (isAPropertyOfO(v, "HOME") && !(isAPropertyOfO(v, "FAX"))) {
-				entry->address.phoneLabel[teliter] = 1;
-				teliter++;
-				continue;
-			}
-			if (isAPropertyOfO(v, "FAX")) {
-				entry->address.phoneLabel[teliter] = 2;
-				teliter++;
-				continue;
-			}
-			if (!(isAPropertyOfO(v, "WORK")) && !(isAPropertyOfO(v, "HOME")) && isAPropertyOfO(v, "VOICE")) {
-				entry->address.phoneLabel[teliter] = 3;
-				teliter++;
-				continue;
-			}
-			if (isAPropertyOfO(v, "PREF") && !(isAPropertyOfO(v, "FAX"))) {
-				entry->address.phoneLabel[teliter] = 5;
-				teliter++;
-				continue;
-			}
-			if (isAPropertyOfO(v, "PAGER")) {
-				entry->address.phoneLabel[teliter] = 6;
-				teliter++;
-				continue;
-			}
-			if (isAPropertyOfO(v, "CELL")) {
-				entry->address.phoneLabel[teliter] = 7;
-				teliter++;
-				continue;
-			}
-
-			palm_debug(conn, 0, "Unknown TEL entry");
-		}
-
-		//EMail
-		if (!strcmp(attributes, "EMAIL")  && (teliter <= 4)) {
-			entry->address.entry[3 + teliter] = fakeCStringO(vObjectUStringZValueO(v));
-			entry->address.phoneLabel[teliter] = 4;
-			teliter++;
-			continue;
-		}
-		
-		if (!strcmp(attributes, "ADR")) {
-			if ((prop = isAPropertyOfO(v, VCStreetAddressPropO))) {
-				entry->address.entry[8] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			if ((prop = isAPropertyOfO(v, VCCityPropO))) {
-				entry->address.entry[9] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			if ((prop = isAPropertyOfO(v, VCRegionPropO))) {
-				entry->address.entry[10] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			if ((prop = isAPropertyOfO(v, VCPostalCodePropO))) {
-				entry->address.entry[11] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			if ((prop = isAPropertyOfO(v, VCCountryNamePropO))) {
-				entry->address.entry[12] = fakeCStringO(vObjectUStringZValueO(prop));
-			}
-			continue;
-		}
-
-		//Title
-		if (!strcmp(attributes, "TITLE")) {
-			entry->address.entry[13] = fakeCStringO(vObjectUStringZValueO(v));
-			continue;
-		}
-
-		//Note
-		if (!strcmp(attributes, "NOTE")) {
-			entry->address.entry[18] = fakeCStringO(vObjectUStringZValueO(v));
-			continue;
-		}
-		
-		//Categories
-		if (!strcmp(attributes, "CATEGORIES")) {
-			palm_debug(conn, 3, "GOT CATEGORIES: %s\n", fakeCStringO(vObjectUStringZValueO(v)));
-			gchar **array = g_strsplit(fakeCStringO(vObjectUStringZValueO(v)), ",", 0);
-			int z = 0;
-			while (array[z] != NULL) {
-				palm_debug(conn, 3, "testing %s\n", array[z]);
-				entry->catID = get_category_id_from_name(conn, array[z]);
-				if (entry->catID != 0) {
-					palm_debug(conn, 3, "Found category %i\n", entry->catID);
-					break;
-				}
-				z++;
-			}
-			g_strfreev(array);
-			continue;
-		}
-
-		//Ignore these
-		if (!strcmp(attributes, "LABEL") || !strcmp(attributes, "FN") || !strcmp(attributes, "VERSION") || !strcmp(attributes, "X-EVOLUTION-FILE-AS") || !strcmp(attributes, "UID"))
-			continue;
-
-		//Catch all
-		palm_debug(conn, 1, "Unable to translate Vcard prop %s to a palm entry", attributes);
+	
+	//Name
+	xmlNode *cur = osxml_get_node(root, "Name");
+	if (cur) {
+		entry->address.entry[0] = osxml_find_node(cur, "First");
+		entry->address.entry[1] = osxml_find_node(cur, "First");
 	}
 
-	for (i = 0; i < 19; i++) {
+	//Company
+	cur = osxml_get_node(root, "Organization");
+	if (cur)
+		entry->address.entry[2] = osxml_find_node(cur, "Name");
+
+	//Telephone
+	int i = 0;
+	xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)input, "/Telephone");
+	xmlNodeSet *nodes = xobj->nodesetval;
+	int numnodes = (nodes) ? nodes->nodeNr : 0;
+	for (i = 0; i < 4 && i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
+
+		if (osxml_has_property(cur, "Work") && osxml_has_property(cur, "Voice")) {
+			entry->address.phoneLabel[i] = 0;
+		} else if (osxml_has_property(cur, "HOME") && !(osxml_has_property(cur, "FAX"))) {
+			entry->address.phoneLabel[i] = 1;
+		} else if (osxml_has_property(cur, "FAX")) {
+			entry->address.phoneLabel[i] = 2;
+		} else if (!(osxml_has_property(cur, "WORK")) && !(osxml_has_property(cur, "HOME")) && osxml_has_property(cur, "VOICE")) {
+			entry->address.phoneLabel[i] = 3;
+		} else if (osxml_has_property(cur, "PREF") && !(osxml_has_property(cur, "FAX"))) {
+			entry->address.phoneLabel[i] = 5;
+		} else if (osxml_has_property(cur, "PAGER")) {
+			entry->address.phoneLabel[i] = 6;
+		} else if (osxml_has_property(cur, "CELL")) {
+			entry->address.phoneLabel[i] = 7;
+		} else osync_trace(TRACE_INTERNAL, "Unknown TEL entry");
+	}
+	xmlXPathFreeObject(xobj);
+	
+	//EMail
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/EMail");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+	int n;
+	for (n = 0; i < 4 && n < numnodes; n++) {
+		cur = nodes->nodeTab[n];
+		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
+		entry->address.phoneLabel[i] = 4;
+		i++;
+	}
+	xmlXPathFreeObject(xobj);
+	
+	//Address
+	cur = osxml_get_node(root, "Organization");
+	if (cur) {
+		entry->address.entry[8] = osxml_find_node(cur, "Address");
+		entry->address.entry[9] = osxml_find_node(cur, "City");
+		entry->address.entry[10] = osxml_find_node(cur, "Region");
+		entry->address.entry[11] = osxml_find_node(cur, "Code");
+		entry->address.entry[12] = osxml_find_node(cur, "Country");
+	}
+
+	//Title
+	cur = osxml_get_node(root, "Summary");
+	if (cur)
+		entry->address.entry[13] = (char*)xmlNodeGetContent(cur);
+
+	//Note
+	cur = osxml_get_node(root, "Note");
+	if (cur)
+		entry->address.entry[18] = (char*)xmlNodeGetContent(cur);
+	
+	//Categories
+	cur = osxml_get_node(root, "Categories");
+	if (cur) {
+		for (cur = cur->children; cur; cur = cur->next) {
+			entry->categories = g_list_append(entry->categories, (char*)xmlNodeGetContent(cur));
+		}
+	}
+
+	/* Now convert to the charset */
+	/*for (i = 0; i < 19; i++) {
 	  if (entry->address.entry[i]) {
 	    char *tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), conn->codepage ,"utf8", NULL, NULL, NULL);
 	    free(entry->address.entry[i]);
@@ -1086,10 +1023,10 @@ static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, ch
 	    entry->address.entry[i] = NULL;
 	    palm_debug(conn, 3, "Address %i: %s", i, entry->address.entry[i]);
 	  }
-	}
+	}*/
 	
 	*free_input = TRUE;
-	*output = entry;
+	*output = (void *)entry;
 	*outpsize = sizeof(PSyncPalmEntry);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1112,6 +1049,6 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_create_func(env, "file", create_file);
 	osync_env_format_set_revision_func(env, "file", revision_file);*/
 
-	osync_env_register_converter(env, CONVERTER, "palm-contact", "vcard21", conv_palm_to_vcard);
-	osync_env_register_converter(env, CONVERTER, "vcard21", "palm-contact", conv_xml_to_palm);
+	//osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "vcard21", conv_palm_to_vcard);
+	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "palm-contact", conv_xml_to_palm);
 }
