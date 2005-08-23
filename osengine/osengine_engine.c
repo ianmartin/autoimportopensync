@@ -518,7 +518,7 @@ static void engine_message_handler(OSyncClient *sender, ITMessage *message, OSyn
 static void trigger_clients_sent_changes(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-	osync_status_update_engine(engine, ENG_ENDPHASE_WRITE, NULL);
+	osync_status_update_engine(engine, ENG_ENDPHASE_READ, NULL);
 	
 	g_mutex_lock(engine->info_received_mutex);
 	g_cond_signal(engine->info_received);
@@ -534,8 +534,6 @@ static void trigger_clients_sent_changes(OSyncEngine *engine)
 static void trigger_clients_read_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-	
-	osync_status_update_engine(engine, ENG_ENDPHASE_READ, NULL);
 
 	send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
