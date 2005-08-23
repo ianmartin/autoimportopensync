@@ -98,8 +98,12 @@ OSyncObjFormat *osync_change_get_initial_objformat(OSyncChange *change)
  */
 OSyncChange *osync_change_new(void)
 {
+	osync_trace(TRACE_ENTRY, "%s()", __func__);
+	
 	OSyncChange *change = g_malloc0(sizeof(OSyncChange));
 	change->refcount = 1;
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
 	return change;
 }
 
@@ -110,10 +114,13 @@ OSyncChange *osync_change_new(void)
  */
 void osync_change_free(OSyncChange *change)
 {
-	
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, change);
 	g_assert(change);
+	
 	//FIXME cleanly release the change!
 	g_free(change);
+
+	osync_trace(TRACE_EXIT, "%s");
 }
 
 /*! @brief Frees the data of a change
@@ -160,6 +167,7 @@ void osync_change_reset(OSyncChange *change)
 	change->changetype = CHANGE_UNKNOWN;
 	//change->sourceobjtype = NULL;
 	//change->destobjtype = NULL;
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -300,12 +308,16 @@ void osync_change_set_objtype(OSyncChange *change, OSyncObjType *type)
  */
 void osync_change_set_objtype_string(OSyncChange *change, const char *name)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, change, name);
+	
 	g_assert(change);
 	if (change->objtype_name)
 		g_free(change->objtype_name);
 	change->objtype_name = g_strdup(name);
 	//Invalidate the previous object type
 	change->objtype = NULL;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Gets the object format of a change
@@ -316,15 +328,23 @@ void osync_change_set_objtype_string(OSyncChange *change, const char *name)
  */
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, change);
 	g_assert(change);
-	if (change->format)
-		return change->format;
 	
-	if (!change->format_name)
+	if (change->format) {
+		osync_trace(TRACE_EXIT, "%s: %p", __func__, change->format);
+		return change->format;
+	}
+	
+	if (!change->format_name) {
+		osync_trace(TRACE_EXIT, "%s: No name yet", __func__);
 		return NULL;
+	}
 	
 	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
 	change->format = osync_conv_find_objformat(change->conv_env, change->format_name);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change->format);
 	return change->format;
 }
 
@@ -352,12 +372,16 @@ void osync_change_set_objformat(OSyncChange *change, OSyncObjFormat *objformat)
  */
 void osync_change_set_objformat_string(OSyncChange *change, const char *name)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, change, name);
+	
 	g_assert(change);
 	if (change->format_name)
 		g_free(change->format_name);
 	change->format_name = g_strdup(name);
 	//Invalidate the previous format
 	change->format = NULL;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Gets the changetype of a change
