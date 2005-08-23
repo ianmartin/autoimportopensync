@@ -44,3 +44,6 @@ void osync_group_flush_filters(OSyncGroup *group);
 osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error);
 osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);
 osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);
+
+void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync);
+time_t osync_group_get_last_synchronization(OSyncGroup *group);

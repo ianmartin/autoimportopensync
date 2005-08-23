@@ -1,38 +1,37 @@
 #include "support.h"
 
-START_TEST (env_create)
+START_TEST (group_last_sync)
 {
-  OSyncEnv *os_env = osync_env_new();
-  fail_unless(os_env != NULL, NULL);
-}
-END_TEST
-
-START_TEST (env_free)
-{
-  OSyncEnv *os_env = osync_env_new();
-  fail_unless(os_env != NULL, NULL);
-  osync_env_free(os_env);
-}
-END_TEST
-
-START_TEST (env_configdir)
-{
-  OSyncEnv *os_env = osync_env_new();
-  fail_unless(osync_env_get_configdir(os_env) != NULL, "configpath == NULL on creation");
-  osync_env_set_configdir(os_env, "test");
-  if (g_ascii_strcasecmp (osync_env_get_configdir(os_env), "test") != 0)
-  	fail("configpath == \"test\"");
-}
-END_TEST
-
-START_TEST (env_init)
-{
-  char *testbed = setup_testbed("env_init");
+  char *testbed = setup_testbed("filter_save_and_load");
   OSyncEnv *env = osync_env_new();
   fail_unless(env != NULL, NULL);
   
-  osync_env_set_configdir(env, "configs/group");
+  osync_env_set_option(env, "GROUPS_DIRECTORY", "configs");
   fail_unless(osync_env_initialize(env, NULL), NULL);
+  
+  OSyncGroup *group = osync_env_find_group(env, "test");
+  fail_unless(group != NULL, NULL);
+  
+  osync_group_set_last_synchronization(group, (time_t)1000);
+  
+  fail_unless((int)osync_group_get_last_synchronization(group) == 1000, NULL);
+  
+  OSyncError *error = NULL;
+  fail_unless(osync_group_save(group, &error), NULL);
+  
+  fail_unless(osync_env_finalize(env, NULL), NULL);
+  osync_env_free(env);
+  
+  env = osync_env_new();
+  fail_unless(env != NULL, NULL);
+  
+  osync_env_set_option(env, "GROUPS_DIRECTORY", "configs");
+  fail_unless(osync_env_initialize(env, NULL), NULL);
+  
+  group = osync_env_find_group(env, "test");
+  fail_unless(group != NULL, NULL);
+  
+  fail_unless((int)osync_group_get_last_synchronization(group) == 1000, NULL);
   
   fail_unless(osync_env_finalize(env, NULL), NULL);
   osync_env_free(env);
@@ -40,48 +39,14 @@ START_TEST (env_init)
 }
 END_TEST
 
-START_TEST (env_double_init)
+Suite *group_suite(void)
 {
-  char *testbed = setup_testbed("env_init");
-  OSyncEnv *env = osync_env_new();
-  fail_unless(env != NULL, NULL);
-  
-  osync_env_set_configdir(env, "configs/group");
-  fail_unless(osync_env_initialize(env, NULL), NULL);
-  fail_unless(!osync_env_initialize(env, NULL), NULL);
-  
-  fail_unless(osync_env_finalize(env, NULL), NULL);
-  osync_env_free(env);
-  destroy_testbed(testbed);
-}
-END_TEST
-
-START_TEST (env_pre_fin)
-{
-  char *testbed = setup_testbed("env_init");
-  OSyncEnv *env = osync_env_new();
-  fail_unless(env != NULL, NULL);
-  
-  osync_env_set_configdir(env, "configs/group");
-  
-  fail_unless(!osync_env_finalize(env, NULL), NULL);
-  osync_env_free(env);
-  destroy_testbed(testbed);
-}
-END_TEST
-
-Suite *env_suite(void)
-{
-  Suite *s = suite_create("Env");
+  Suite *s = suite_create("Group");
   TCase *tc_core = tcase_create("Core");
 
   suite_add_tcase (s, tc_core);
-  tcase_add_test(tc_core, env_create);
-  tcase_add_test(tc_core, env_free);
-  tcase_add_test(tc_core, env_configdir);
-  tcase_add_test(tc_core, env_init);
-  tcase_add_test(tc_core, env_double_init);
-  tcase_add_test(tc_core, env_pre_fin);
+  tcase_add_test(tc_core, group_last_sync);
+  
   return s;
 }
 
@@ -89,7 +54,7 @@ int main(void)
 {
 	int nf;
 	
-	Suite *s = env_suite();
+	Suite *s = group_suite();
 	
 	SRunner *sr;
 	sr = srunner_create(s);
