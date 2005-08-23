@@ -1,3 +1,23 @@
+/*
+ * libopensync-palm-plugin - A palm plugin for opensync
+ * Copyright (C) 2005  Armin Bauer <armin.bauer@opensync.org>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301
+ * 
+ */
+
 #include "palm_sync.h"
 
 osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
@@ -498,7 +518,7 @@ void psyncGetChangeinfo(OSyncContext *ctx)
 		}
 
 		//Open the database
-		SmlError *error = NULL;
+		OSyncError *error = NULL;
 		if (!_openDB(env, database, &error)) {
 			//database does not exist. we definetly need a resync for that
 			//FIXME
@@ -559,78 +579,73 @@ void psyncGetChangeinfo(OSyncContext *ctx)
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-
-/*error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));*/
 }
 
-void psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
+static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 	
-	int l, ret;
+	int l = 0;
+	int ret = 0;
 	unsigned char buffer[65536];
 	unsigned char orig_buffer[65536];
 	palm_entry entry;
-	palm_entry orig_entry;
+	//palm_entry orig_entry;
 	recordid_t id=0;
 	int size;
 	int attr, category;
-	int category_new;
+	//int category_new;
 	char *database = NULL;
 	int dbhandle;
 	entry.catID = 0;
+	OSyncError *error = NULL;
 	
 	//Lock our Mutex
 	g_mutex_lock(piMutex);
 
 	//detect the db needed
-	if (!strcmp(osync_change_get_objformat(change), "palm-contact")) {
+	if (!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "palm-contact")) {
 		database = "AddressDB";
-	} else if (!strcmp(osync_change_get_objformat(change), "palm-event")) {
+	} else if (!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "palm-event")) {
 		database = "DatebookDB";
-	} else if (!strcmp(osync_change_get_objformat(change), "palm-todo")) {
+	} else if (!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "palm-todo")) {
 		database = "ToDoDB";
 	} else {
-		osync_error_set(
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unknown format");
+		goto error;
+	}
 
-	palm_debug(conn, 2, "Detected vcard to belong to %s", database);
+	osync_trace(TRACE_INTERNAL, "Detected vcard to belong to %s", database);
 
 	//open the DB
-	ret = openDB(conn, database);
-	if (ret == -2) {
-		osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unasble to open directory");
-		palm_debug(conn, 1, "Unable to modify entry: Unable to open DB %s", database);
-		//Unlock our Mutex
-		g_mutex_unlock(piMutex);
-		return;
-	}
-	if (ret == -1 && (dbCreated == FALSE) && !strcmp(database, "DatebookDB")) {
-		//Unlock our Mutex so the palm does not die will the messagebox is open
-		dbCreated = TRUE;
-		if (dlp_CreateDB(conn->socket, 1684108389, 1145132097, 0, 8, 0, "DatebookDB", &dbhandle) < 0) {
-			dlp_AddSyncLogEntry(conn->socket, "Unable to create Calendar.\n");
-			palm_debug(conn, 0, "Unable to create Calendar");
-			g_mutex_unlock(piMutex);
-			osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
-			return;
+	if (_openDB(env, database, &error)) {
+		if (osync_error_get_type(&error) == OSYNC_ERROR_FILE_NOT_FOUND) {
+			if ((dbCreated == FALSE) && !strcmp(database, "DatebookDB")) {
+				//Unlock our Mutex so the palm does not die will the messagebox is open
+				dbCreated = TRUE;
+				if (dlp_CreateDB(env->socket, 1684108389, 1145132097, 0, 8, 0, "DatebookDB", &dbhandle) < 0) {
+					dlp_AddSyncLogEntry(env->socket, "Unable to create Calendar.\n");
+					osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to create Calendar");
+					goto error;
+				}
+				env->database = dbhandle;
+				dlp_AddSyncLogEntry(env->socket, "Created Calendar.\n");
+				osync_trace(TRACE_INTERNAL, "Created Calendar.");
+			}
+		} else {
+			osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
+			goto error;
 		}
-		conn->database = dbhandle;
-		dlp_AddSyncLogEntry(conn->socket, "Created Calendar.\n");
-		palm_debug(conn, 2, "Created Calendar.");
 	}
-
+	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			//Modify a entry
 			sscanf(osync_change_get_uid(change), "uid-%[^-]-%ld", database, &id);
-			if (dlp_ReadRecordById(conn->socket, conn->database, id, orig_buffer, NULL, &size, &attr, &category) < 0) {
-				palm_debug(conn, 1, "Unable to find entry i want to modify");
-				osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
-				//Unlock our Mutex
-				g_mutex_unlock(piMutex);
-				return;
+			if (dlp_ReadRecordById(env->socket, env->database, id, orig_buffer, NULL, &size, &attr, &category) < 0) {
+				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to find entry i want to modify");
+				goto error;
 			}
 			
 			//Now retrieve the info about "show in list"
@@ -644,25 +659,19 @@ void psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 				l = pack_Address(&entry.address, buffer, sizeof(buffer));
 			}*/
 			
-			ret = dlp_WriteRecord(conn->socket, conn->database, attr, id, entry.catID, buffer, l, 0);
+			ret = dlp_WriteRecord(env->socket, env->database, attr, id, entry.catID, buffer, l, 0);
 			if (ret < 0) {
-				palm_debug(conn, 0, "Unable to modify entry");
-				osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
-				//Unlock our Mutex
-				g_mutex_unlock(piMutex);
-				return;
+				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to modify entry");
+				goto error;
 			}
 			break;
 		case CHANGE_ADDED:
 			//Add a new entry
-			palm_debug(conn, 2, "Adding new entry");
+			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			id = 0;
-			if (dlp_WriteRecord(conn->socket, conn->database, 0, 0, entry.catID, buffer, l, &id) < 0) {
-				palm_debug(conn, 0, "Unable to add new entry");
-				osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
-				//Unlock our Mutex
-				g_mutex_unlock(piMutex);
-				return;
+			if (dlp_WriteRecord(env->socket, env->database, 0, 0, entry.catID, buffer, l, &id) < 0) {
+				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to add new entry");
+				goto error;
 			}
 			//Make the new uid
 			osync_change_set_uid(change, g_strdup_printf("uid-%s-%ld", database, id));
@@ -670,24 +679,26 @@ void psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 		case CHANGE_DELETED:
 			sscanf(osync_change_get_uid(change), "uid-%[^-]-%ld", database, &id);
 		
-			if (dlp_DeleteRecord(conn->socket, conn->database, 0,  id) < 0) {
-				osync_context_report_error(context, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
-				//Unlock our Mutex
-				g_mutex_unlock(piMutex);
-				return;
+			if (dlp_DeleteRecord(env->socket, env->database, 0,  id) < 0) {
+				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
+				goto error;
 			}
+		default:
+			osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Wrong change type");
+			goto error;
 	}
 
 	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
 	
-	osync_context_report_success(context);
+	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
+	return TRUE;
 
 error:
 	osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	return FALSE;
 }
 
 /***********************************************************************
@@ -701,93 +712,87 @@ error:
 void psyncDone(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 	
 	struct  PilotUser User;
 	int i = 0, ret;
 	char *database = NULL;
-
+	OSyncError *error = NULL;
+	
 	//Lock our Mutex
 	g_mutex_lock(piMutex);
 
-	if (success == TRUE) {
-		//reset change counters
-		for (i = 0; i < 3; i++) {
-			switch (i) {
-				case 0:
-					database = "AddressDB";
-					break;
-				case 1:
-					database = "DatebookDB";
-					break;
-				case 2:
-					database = "ToDoDB";
-					break;
-			}
-
-			if (openDB(conn, database) == 0) {
-				palm_debug(conn, 2, "Reseting Sync Flags for %s", database);
-				dlp_ResetSyncFlags(conn->socket, conn->database);
-				dlp_CleanUpDatabase(conn->socket, conn->database);
-				CloseDB(conn);
-			}
+	//reset change counters
+	for (i = 0; i < 3; i++) {
+		switch (i) {
+			case 0:
+				database = "AddressDB";
+				break;
+			case 1:
+				database = "DatebookDB";
+				break;
+			case 2:
+				database = "ToDoDB";
+				break;
 		}
 
-		//Set the log and sync entries on the palm
-		dlp_AddSyncLogEntry(conn->socket, "Sync Successfull\n");
-		dlp_AddSyncLogEntry(conn->socket, "Thank you for using\n");
-		dlp_AddSyncLogEntry(conn->socket, "Multisync");
-
-		ret = dlp_ReadUserInfo(conn->socket, &User);
-		if (ret >= 0) {
-			if (User.userID == 0)
-				strcpy(User.username, "");
-			User.lastSyncPC = 1;
-			User.lastSyncDate = time(NULL);
-			User.successfulSyncDate = time(NULL);
-			if (dlp_WriteUserInfo(conn->socket, &User) < 0) {
-				palm_debug(conn, 0, "Unable to write UserInfo");
-			} else {
-				palm_debug(conn, 2, "Done writing new UserInfo");
-			}
-		} else {
-			palm_debug(conn, 0, "Unable to read UserInfo: %i, %s", ret, dlp_strerror(ret));
+		if (_openDB(env, database, &error)) {
+			osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for %s", database);
+			dlp_ResetSyncFlags(env->socket, env->database);
+			dlp_CleanUpDatabase(env->socket, env->database);
+			_closeDB(env);
 		}
 	}
 
-	dbCreated = FALSE;
+	//Set the log and sync entries on the palm
+	dlp_AddSyncLogEntry(env->socket, "Sync Successfull\n");
+	dlp_AddSyncLogEntry(env->socket, "Thank you for using\n");
+	dlp_AddSyncLogEntry(env->socket, "OpenSync");
 
-	dlp_EndOfSync(conn->socket, 0);
-	palm_debug(conn, 2, "Done syncing");
+	ret = dlp_ReadUserInfo(env->socket, &User);
+	if (ret >= 0) {
+		if (User.userID == 0)
+			strcpy(User.username, "");
+		User.lastSyncPC = 1;
+		User.lastSyncDate = time(NULL);
+		User.successfulSyncDate = time(NULL);
+		if (dlp_WriteUserInfo(env->socket, &User) < 0) {
+			osync_trace(TRACE_INTERNAL, "Unable to write UserInfo");
+		} else {
+			osync_trace(TRACE_INTERNAL, "Done writing new UserInfo");
+		}
+	} else {
+		osync_trace(TRACE_INTERNAL, "Unable to read UserInfo: %i, %s", ret, dlp_strerror(ret));
+	}
+
+	
 
 	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-/***********************************************************************
- *
- * Function:    sync_disconnect
- *
- * Summary:		gets called by Multisync. Closes the connection with the Palm
- *
- ***********************************************************************/
 void psyncDisconnect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	
 	//Lock our Mutex
 	g_mutex_lock(piMutex);
 
-	if(conn->socket) {
-		pi_close(conn->socket);
+	dbCreated = FALSE;
+
+	dlp_EndOfSync(env->socket, 0);
+	osync_trace(TRACE_INTERNAL, "Done syncing");
+
+	if (env->socket) {
+		pi_close(env->socket);
+		env->socket = 0;
 	}
-	conn->socket = 0;
-	osync_context_report_success(context);
+	
+	osync_context_report_success(ctx);
 
 	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
@@ -797,16 +802,12 @@ void psyncDisconnect(OSyncContext *ctx)
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 static void psyncFinalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
-	PSyncEnv *env = (filesyncinfo *)data;
+	PSyncEnv *env = (PSyncEnv *)data;
 
 	g_free(env);
 	
