@@ -763,9 +763,15 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
 	//Get the root node of the input document
-	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-contact");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	if (xmlStrcmp(root->name, (const xmlChar *)"contact")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
@@ -780,6 +786,8 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	else
 		std_encoding = "B";
 	
+	if (root)
+		root = root->children;
 	while (root) {
 		xml_vcard_handle_attribute((OSyncHookTables *)user_data, vcard, root, std_encoding);
 		root = root->next;
