@@ -1,0 +1,10 @@
+Ported by Holger Hans Peter Freyther <freyther@handhelds.org>
+
+Based on the MultiSync Plugin
+Written by: Tom Foottit <tom@foottit.com>
+QCop support added by: Eike Lang <mail@elang.de>
+
+Many thanks to other people who have provided patches or
+helped me debug problems with the Opie plugin. This plugin
+would not exist without your help!
+
