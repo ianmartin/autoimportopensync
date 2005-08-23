@@ -21,12 +21,24 @@
 #ifndef _PALM_FORMAT_H
 #define _PALM_FORMAT_H
 
-struct PSyncPalmEntry {
+struct PSyncContactEntry {
 	struct Address address;
+	char *codepage;
+	char *uid;
+	GList *categories;
+};
+
+struct PSyncEventEntry {
 	struct Appointment appointment;
+	char *codepage;
+	char *uid;
+	GList *categories;
+};
+
+struct PSyncTodoEntry {
 	struct ToDo todo;
-//	sync_object_type type;
-	char uid[1024];
+	char *codepage;
+	char *uid;
 	GList *categories;
 };
 

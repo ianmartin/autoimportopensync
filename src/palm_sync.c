@@ -153,7 +153,7 @@ static osync_bool _connectDevice(PSyncEnv *env, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	struct pi_sockaddr addr;
-	int listen_sd, pf;
+	int listen_sd = 0;
 	char *rate_buf = NULL;
 	//long timeout;
 
@@ -164,25 +164,8 @@ static osync_bool _connectDevice(PSyncEnv *env, OSyncError **error)
 		g_free(rate_buf);
 	}
 
-	switch (env->conntype) {
-		case PILOT_DEVICE_SERIAL:
-			pf = PI_PF_PADP;
-			break;
-		case PILOT_DEVICE_USB_VISOR:
-			pf = PI_PF_NET;
-			break;
-		case PILOT_DEVICE_IRDA:
-			pf = PI_PF_PADP;
-			break;
-		case PILOT_DEVICE_NETWORK:
-			pf = PI_PF_NET;
-			break;
-		default:
-			pf = PI_PF_DLP;
-			break;
-	}
-
-	if (!(listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, pf))) {
+	osync_trace(TRACE_INTERNAL, "Creating socket");
+	if (!(listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, PI_PF_DLP))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create listen sock");
 		goto error;
 	}
@@ -192,22 +175,26 @@ static osync_bool _connectDevice(PSyncEnv *env, OSyncError **error)
 	strcpy(addr.pi_device, env->sockaddr);
 
 	struct pi_sockaddr *tmpaddr = &addr;
+	osync_trace(TRACE_INTERNAL, "Binding socket");
 	if (pi_bind(listen_sd, (struct sockaddr*)tmpaddr, sizeof (addr)) == -1) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to bind to pilot");
 		goto error_free_listen;
 	}
 	
+	osync_trace(TRACE_INTERNAL, "Starting to listen");
 	if (pi_listen (listen_sd, 1) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to listen: %s", strerror (errno));
 		goto error_free_listen;
 	}
 
+	osync_trace(TRACE_INTERNAL, "Accepting connection");
 	env->socket = pi_accept_to(listen_sd, 0, 0, env->timeout * 1000);
 	if (env->socket == -1) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to accept: %s", strerror (errno));
 		goto error_free_listen;
 	}
 
+	osync_trace(TRACE_INTERNAL, "Done");
 	pi_close(listen_sd);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -349,6 +336,7 @@ static osync_bool _openDB(PSyncEnv *env, char *name, OSyncError **error)
 	if (env->database) {
 		if (strcmp(env->databasename, name) != 0) {
 			//We have another DB open. close it first
+			osync_trace(TRACE_INTERNAL, "Other db open, closing first");
 			_closeDB(env);
 		} else {
 			//It was already open
@@ -359,7 +347,7 @@ static osync_bool _openDB(PSyncEnv *env, char *name, OSyncError **error)
 
  	//Search it
 	if (dlp_FindDBInfo(env->socket, 0, 0, name, 0, 0, &dbInfo) < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to locate %s. Assuming it has been reset", name);
+		osync_error_set(error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to locate %s. Assuming it has been reset", name);
 		goto error;
 	}
 
@@ -483,67 +471,54 @@ error:
 	return 0;
 }
 
-void psyncGetChangeinfo(OSyncContext *ctx)
+static osync_bool psyncReportContacts(OSyncContext *ctx, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	int l, ret, i;
+	int l, ret;
 	unsigned char buffer[65536];
 	recordid_t id=0;
 	int index, size, attr, category;
-	PSyncPalmEntry entry;
-	struct  PilotUser User;
-	char *database;
-	const char *format = NULL;
 	
-	//Lock our Mutex
-	g_mutex_lock(piMutex);
-
-	dlp_OpenConduit(env->socket);
-
-	//Loop over everything for every type
-	for (i = 0; i < 3; i++) {
-		//Addressbook
-		if (i == 0) {
-			format = "palm-contact";
-			database = "AddressDB";
-		} else if (i == 1) {
-			format = "palm-event";
-			database = "DatebookDB";
-		} else if (i == 2) {
-			format = "palm-todo";
-			database = "ToDoDB";
-		} else {
-			continue;
-		}
-
-		//Open the database
-		OSyncError *error = NULL;
-		if (!_openDB(env, database, &error)) {
-			//database does not exist. we definetly need a resync for that
-			//FIXME
-			continue;
-		}
-		
-		l = dlp_ReadAppBlock(env->socket, env->database, 0, buffer, 0xffff);
-
-
-		//Now we choose if we want everything or just the modified stuff FIXME
-		/*if (newdbs & type) {
-			for (n = 0; dlp_ReadRecordByIndex(conn->socket, conn->database, n, buffer, &id, &size, &attr, &category) >= 0; n++) {
-				//we have a record
-				unpackEntry(&entry, buffer, l, type);
-				entry.category = get_category_name_from_id(conn, category);
-				snprintf(entry.uid, 1024, "uid-%s-%ld", database, id);
-				palm_debug(conn, 2, "NEWDBS: Found a record on palm: %s", entry.uid);
-				changes = g_list_append(changes, add_changed(conn, &entry, SYNC_OBJ_ADDED));
-			}
-		} else {*/
-		while((ret = dlp_ReadNextModifiedRec(env->socket, env->database, buffer, &id, &index, &size, &attr, &category)) >= 0) {
+	if (!_openDB(env, "AddressDB", error))
+		goto error;
+	
+	l = dlp_ReadAppBlock(env->socket, env->database, 0, buffer, 0xffff);
+	
+	if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
+		int n;
+		osync_trace(TRACE_INTERNAL, "slow sync");
+			
+		for (n = 0; dlp_ReadRecordByIndex(env->socket, env->database, n, buffer, &id, &size, &attr, &category) >= 0; n++) {
+			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", id);
+			
 			OSyncChange *change = osync_change_new();
-			osync_change_set_uid(change, g_strdup_printf("uid-%s-%ld", database, id));
-			osync_change_set_objformat_string(change, format);
+			osync_change_set_uid(change, g_strdup_printf("uid-AddressDB-%ld", id));
+			osync_change_set_objformat_string(change, "palm-contact");
+			
+			PSyncContactEntry *entry = osync_try_malloc0(sizeof(PSyncContactEntry), error);
+			if (!entry)
+				goto error;
+			entry->codepage = g_strdup(env->codepage);
+			
+            unpack_Address(&(entry->address), buffer, l);
+            char *catname = get_category_name_from_id(env, category, NULL);
+            if (catname)
+				entry->categories = g_list_append(entry->categories, catname);
+			
+			//We have a modified record
+			osync_change_set_data(change, (void *)entry, sizeof(PSyncContactEntry), TRUE);
+			osync_change_set_changetype(change, CHANGE_ADDED);
+			
+			osync_context_report_change(ctx, change);
+		}
+	} else {
+		while ((ret = dlp_ReadNextModifiedRec(env->socket, env->database, buffer, &id, &index, &size, &attr, &category)) >= 0) {
+			osync_trace(TRACE_INTERNAL, "Got modified recored with id %ld", id);
+			
+			OSyncChange *change = osync_change_new();
+			osync_change_set_uid(change, g_strdup_printf("uid-AddressDB-%ld", id));
+			osync_change_set_objformat_string(change, "palm-contact");
 			
 			if ((attr &  dlpRecAttrDeleted) || (attr & dlpRecAttrArchived)) {
 				if ((attr & dlpRecAttrArchived)) {
@@ -551,19 +526,54 @@ void psyncGetChangeinfo(OSyncContext *ctx)
 				}
 				//we have a deleted record
 				osync_change_set_changetype(change, CHANGE_DELETED);
-			}
-
-			if (attr & dlpRecAttrDirty) {
+			} else if (attr & dlpRecAttrDirty) {
+				PSyncContactEntry *entry = osync_try_malloc0(sizeof(PSyncContactEntry), error);
+				if (!entry)
+					goto error;
+				entry->codepage = g_strdup(env->codepage);
+				
+	            unpack_Address(&(entry->address), buffer, l);
+	            char *catname = get_category_name_from_id(env, category, NULL);
+	            if (catname)
+					entry->categories = g_list_append(entry->categories, catname);
+				
 				//We have a modified record
-				osync_change_set_data(change, buffer, l, TRUE);
+				osync_change_set_data(change, (void *)entry, sizeof(PSyncContactEntry), TRUE);
 				osync_change_set_changetype(change, CHANGE_MODIFIED);
-
-				osync_trace(TRACE_INTERNAL, "Found a modified record on palm: %s", entry.uid);
-			}
-			osync_context_report_change(ctx, change);
 			
+				osync_trace(TRACE_INTERNAL, "Found a modified record on palm: %s", entry->uid);
+			} else
+				continue;
+			
+			osync_context_report_change(ctx, change);
 		}
 	}
+	
+	_closeDB(env);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+void psyncGetChangeinfo(OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	
+	OSyncError *error = NULL;
+	struct  PilotUser User;
+	
+	//Lock our Mutex
+	g_mutex_lock(piMutex);
+
+	osync_trace(TRACE_INTERNAL, "Opening conduit");
+	dlp_OpenConduit(env->socket);
+
+	if (!psyncReportContacts(ctx, &error))
+		goto error;
 	
 	osync_trace(TRACE_INTERNAL, "Done searching for changes");
 
@@ -580,6 +590,11 @@ void psyncGetChangeinfo(OSyncContext *ctx)
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	g_mutex_unlock(piMutex);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
@@ -591,7 +606,7 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 	int ret = 0;
 	unsigned char buffer[65536];
 	unsigned char orig_buffer[65536];
-	PSyncPalmEntry *entry = NULL;
+	PSyncContactEntry *entry = NULL;
 	//palm_entry orig_entry;
 	recordid_t id=0;
 	int size;
@@ -619,7 +634,7 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 	osync_trace(TRACE_INTERNAL, "Detected vcard to belong to %s", database);
 
 	//open the DB
-	if (_openDB(env, database, &error)) {
+	if (!_openDB(env, database, &error)) {
 		if (osync_error_get_type(&error) == OSYNC_ERROR_FILE_NOT_FOUND) {
 			if ((dbCreated == FALSE) && !strcmp(database, "DatebookDB")) {
 				//Unlock our Mutex so the palm does not die will the messagebox is open
@@ -639,22 +654,12 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 		}
 	}
 	
-	if (osync_change_get_changetype(change) != CHANGE_DELETED) {
-		entry = (PSyncPalmEntry *)osync_change_get_data(change);
-		GList *c = NULL;
-		for (c = entry->categories; c; c = c->next) {
-			category = get_category_id_from_name(env, c->data, NULL);
-			if (category != 0) {
-				osync_trace(TRACE_INTERNAL, "Found category %i\n", category);
-				break;
-			}
-		}
-	}
-	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			//Modify a entry
-			sscanf(osync_change_get_uid(change), "uid-%[^-]-%ld", database, &id);
+			osync_trace(TRACE_INTERNAL, "Find orig");
+			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
+			osync_trace(TRACE_INTERNAL, "id %i", id);
 			if (dlp_ReadRecordById(env->socket, env->database, id, orig_buffer, NULL, &size, &attr, &category) < 0) {
 				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to find entry i want to modify");
 				goto error;
@@ -670,7 +675,11 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 				//Repack it
 				l = pack_Address(&entry.address, buffer, sizeof(buffer));
 			}*/
+			entry = (PSyncContactEntry *)osync_change_get_data(change);
+			osync_trace(TRACE_INTERNAL, "pack %p", entry);
+			l = pack_Address(&(entry->address), buffer, sizeof(buffer));
 			
+			osync_trace(TRACE_INTERNAL, "write id %i", id);
 			ret = dlp_WriteRecord(env->socket, env->database, attr, id, category, buffer, l, 0);
 			if (ret < 0) {
 				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to modify entry");
@@ -679,7 +688,22 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 			break;
 		case CHANGE_ADDED:
 			//Add a new entry
+			osync_trace(TRACE_INTERNAL, "Find category");
+			entry = (PSyncContactEntry *)osync_change_get_data(change);
+			GList *c = NULL;
+			for (c = entry->categories; c; c = c->next) {
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				category = get_category_id_from_name(env, c->data, NULL);
+				if (category != 0) {
+					osync_trace(TRACE_INTERNAL, "Found category %i\n", category);
+					break;
+				}
+			}
+			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
+			
+			l = pack_Address(&entry->address, buffer, sizeof(buffer));
+			
 			id = 0;
 			if (dlp_WriteRecord(env->socket, env->database, 0, 0, category, buffer, l, &id) < 0) {
 				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to add new entry");
@@ -689,14 +713,17 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 			osync_change_set_uid(change, g_strdup_printf("uid-%s-%ld", database, id));
 			break;
 		case CHANGE_DELETED:
-			sscanf(osync_change_get_uid(change), "uid-%[^-]-%ld", database, &id);
+			osync_trace(TRACE_INTERNAL, "delete: Find orig");
+			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
+			osync_trace(TRACE_INTERNAL, "id %i", id);
 		
 			if (dlp_DeleteRecord(env->socket, env->database, 0,  id) < 0) {
-				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
+				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to delete");
 				goto error;
 			}
+			break;
 		default:
-			osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Wrong change type");
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
 			goto error;
 	}
 
@@ -708,6 +735,7 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 	return TRUE;
 
 error:
+	g_mutex_unlock(piMutex);
 	osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 	return FALSE;
@@ -782,6 +810,7 @@ void psyncDone(OSyncContext *ctx)
 	//Unlock our Mutex
 	g_mutex_unlock(piMutex);
 
+	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
