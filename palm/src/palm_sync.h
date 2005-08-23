@@ -1,5 +1,25 @@
-#ifndef PALM_SYNC_H
-#define PALM_SYNC_H
+/*
+ * libopensync-palm-plugin - A palm plugin for opensync
+ * Copyright (C) 2005  Armin Bauer <armin.bauer@opensync.org>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301
+ * 
+ */
+
+#ifndef _PALM_SYNC_H
+#define _PALM_SYNC_H
 
 #include <opensync/opensync.h>
 
@@ -26,6 +46,8 @@
 #define PILOT_DEVICE_IRDA 2
 #define PILOT_DEVICE_NETWORK 4
 
+typedef struct PSyncPalmEntry PSyncPalmEntry;
+
 typedef struct PSyncEnv {
 	OSyncMember *member;
 	char *statefile;
@@ -44,14 +66,4 @@ typedef struct PSyncEnv {
 	char *codepage;
 } PSyncEnv;
 
-typedef struct {
-	struct Address address;
-	struct Appointment appointment;
-	struct ToDo todo;
-//	sync_object_type type;
-	char uid[1024];
-	char *category;
-	int catID;
-} palm_entry;
-
-#endif //PALM_SYNC_H
+#endif //_PALM_SYNC_H

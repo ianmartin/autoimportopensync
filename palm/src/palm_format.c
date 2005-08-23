@@ -1,4 +1,27 @@
+/*
+ * libopensync-palm-plugin - A palm plugin for opensync
+ * Copyright (C) 2005  Armin Bauer <armin.bauer@opensync.org>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301
+ * 
+ */
+
 #include "palm_sync.h"
+#include "palm_format.h"
+
+#include <opensync/opensync-xml.h>
 
 /***********************************************************************
  *
@@ -76,13 +99,7 @@ char *escape_chars(char *str)
 	return time;
 }
 
-/***********************************************************************
- *
- * Function:    calendar2vevent
- *
- * Summary:   converts an palm calendar record to an vevent card
- *
- ***********************************************************************/
+#if 0
 GString *calendar2vevent(palm_connection *conn, struct Appointment appointment)
 {
 	VObjectO *vcal;
@@ -712,14 +729,8 @@ void vcal2todo(palm_connection *conn, palm_entry *entry, char *vcard)
 
 	deleteVObjectO(vcal);
 }
+#endif
 
-/***********************************************************************
- *
- * Function:    address2vcard
- *
- * Summary:   converts an palm address entry to a vcard entry
- *
- ***********************************************************************/
 GString *address2vcard(palm_connection *conn, struct Address address, char *category)
 {
 	VObjectO *nameprop = NULL, *prop = NULL, *addrprop = NULL;
@@ -892,29 +903,33 @@ GString *address2vcard(palm_connection *conn, struct Address address, char *cate
 	return vcardstr;
 }
 
-/***********************************************************************
- *
- * Function:    vcard2address
- *
- * Summary:   converts an vcard to a palm address entry
- *
- ***********************************************************************/
-void vcard2address(palm_connection *conn, palm_entry *entry, char *vcard)
+static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	VObjectO *v, *prop, *vcontact;
-	VObjectIteratorO iter;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	const char *attributes;
 	int teliter = 0;
 	int i;
 
-	palm_debug(conn, 2, "converting vcard to address");
-
-	registerMimeErrorHandlerO(VObjectOErrorHander);
-	vcontact = Parse_MIMEO(vcard, strlen(vcard));
-
-	initPropIteratorO(&iter,vcontact);
-
-	//memset(&entry->address, 0, sizeof(entry->address));
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	
+	//Get the root node of the input document
+	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "contact", error);
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-contact");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	/* Start the new entry */
+	PSyncPalmEntry *entry = osync_try_malloc0(sizeof(PSyncPalmEntry), error);
+	if (!entry)
+		goto error;
+	
+	while (root) {
+		xml_vcard_handle_attribute((OSyncHookTables *)user_data, vcard, root, std_encoding);
+		root = root->next;
+	}
+	
 
 	for (i = 0; i < 19; i++) {
 		entry->address.entry[i] = NULL;
@@ -1073,18 +1088,30 @@ void vcard2address(palm_connection *conn, palm_entry *entry, char *vcard)
 	  }
 	}
 	
-	deleteVObjectO(vcontact);
-	palm_debug(conn, 2, "end: vcard2address");
+	*free_input = TRUE;
+	*output = entry;
+	*outpsize = sizeof(PSyncPalmEntry);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-/***********************************************************************
- *
- * Function:    VObjectOErrorHander
- *
- * Summary:   generic parse error handler
- *
- ***********************************************************************/
-void VObjectOErrorHander(char *errstr)
+void get_info(OSyncEnv *env)
 {
-	printf("VObjectO parse failed: %s\n", errstr);
+	osync_env_register_objtype(env, "contact");
+	osync_env_register_objformat(env, "contact", "palm-contact");
+	/*osync_env_format_set_compare_func(env, "file", compare_file);
+	osync_env_format_set_duplicate_func(env, "file", duplicate_file);
+	osync_env_format_set_destroy_func(env, "file", destroy_file);
+	osync_env_format_set_print_func(env, "file", print_file);
+	osync_env_format_set_copy_func(env, "file", copy_file);
+	osync_env_format_set_create_func(env, "file", create_file);
+	osync_env_format_set_revision_func(env, "file", revision_file);*/
+
+	osync_env_register_converter(env, CONVERTER, "palm-contact", "vcard21", conv_palm_to_vcard);
+	osync_env_register_converter(env, CONVERTER, "vcard21", "palm-contact", conv_xml_to_palm);
 }
