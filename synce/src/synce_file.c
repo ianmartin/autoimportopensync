@@ -147,35 +147,71 @@ static bool print_entry(CE_FIND_DATA* entry)
 }
 #endif
 
+struct	MyCeFileInfo {
+	DWORD	attrib;
+	DWORD	size;
+	WCHAR	*wfn;
+#if 0
+	LPFILETIME	time_create, time_access, time_write;
+#endif
+};
 osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
 {
 	plugin_environment	*env;
 	OSyncChange		*change;
 	char			path[MAX_PATH];
-	char			*buffer;
-	size_t			sz, rsz;
+	struct MyCeFileInfo	mi;
+	WCHAR			*wfn;
+	HANDLE			h;
 
 	fprintf(stderr, "FilesReportFileChange(%s/%s)\n", dir, wstr_to_current(entry->cFileName));
-	if (ctx) {
-		env = (plugin_environment *)osync_context_get_plugin_data(ctx);
-		change = osync_change_new();
-	}
+
 
 	sprintf(path, "%s\\%s", dir, wstr_to_current(entry->cFileName));
+	wfn = wstr_from_current(path);
+
 	fprintf(stderr, "Report(%s)\n", path);
 
 	if (ctx) {
+		env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+		change = osync_change_new();
+
 		osync_change_set_member(change, env->member);
 		osync_change_set_uid(change, path);	/* Pass the full file name as UID */
-		osync_change_set_objformat_string(change, "data");	/* FIX ME */
+		osync_change_set_objformat_string(change, "file");	/* Copied from file-sync */
+
+		/* Assemble a structure with data about this file */
+		mi.attrib = CeGetFileAttributes(wfn);
+		h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
+				OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+#if 0
+		/* SynCE doesn't do this yet */
+		(void) CeGetFileTime(h, &mi.time_create, &mi.time_access, &mi.time_write);
+#endif
+		mi.size = CeGetFileSize(h, NULL);
+		mi.wfn = wfn;			/* FIX ME memory leak/problem ? */
+		CeCloseHandle(h);
+
+		/*
+		 * Pass the structure to OpenSync
+		 * The final parameter is FALSE to indicate a get_data() call will fetch
+		 * the file contents if necessary later on.
+		 */
+		osync_change_set_data(change, (char *)&mi, sizeof(struct MyCeFileInfo), FALSE);
+
+		/* ??? */
+		osync_change_set_changetype(change, CHANGE_ADDED);
+		osync_context_report_change(ctx, change);
+
 	}
 
+#if 0
 	/* Read the file through SynCE */
 	if (1) {
 		HANDLE	h;
-		WCHAR	*wfn;
+		char	*buffer;
+		size_t	sz, rsz;
 
-		wfn = wstr_from_current(path);
 		sz = 4096;
 		buffer = malloc(sz);
 
@@ -185,9 +221,17 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		 * Should do this in a loop, as CeReadFile() will return success
 		 * with 0 bytes read when we're done.
 		 */
-		if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
-			/* Error */
-			fprintf(stderr, "CeReadFile failed\n");
+		rsz = 1;
+		while (rsz) {
+			if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
+				/* Error */
+				fprintf(stderr, "CeReadFile failed\n");
+			}
+			/* Send its contents */
+			if (ctx)
+				osync_change_set_data(change,
+					buffer, rsz,
+					(rsz == 0) ? TRUE : FALSE);	/* TRUE if complete */
 		}
 		fprintf(stderr, "CeReadFile ok\n");
 		CeCloseHandle(h);
@@ -209,10 +253,12 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		}
 #endif
 	}
+#endif
 
-	/* Send its contents */
-	if (ctx)
-		osync_change_set_data(change, NULL, 0, TRUE);	/* FIX ME */
+	/*
+	 * Cannot free this if we pass it to OpenSync.
+	wstr_free_string(wfn);
+	*/
 	return TRUE;
 }
 
@@ -266,6 +312,60 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir)
  */
 extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
 {
+#if 0
+	plugin_environment *env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+#endif
+	uint32_t id=0;
+
+	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+		
+	switch (osync_change_get_changetype(change)) {
+		case CHANGE_DELETED:
+			id=strtol(osync_change_get_uid(change),NULL,16);
+			osync_debug("SYNCE-SYNC", 4, "deleting contact id: %08x",id);
+		
+			osync_debug("SYNCE-SYNC", 4, "done");
+			break;
+		case CHANGE_ADDED:
+		{
+			char *object=NULL;
+#if 0
+			size_t data_size;
+			uint8_t *data;
+			uint32_t dummy_id,id;
+#endif
+			
+			object=osync_change_get_data(change);
+			id=strtol(osync_change_get_uid(change),NULL,16);			
+
+			osync_debug("SYNCE-SYNC", 4, "adding contact id %08x",id);
+
+			osync_debug("SYNCE-SYNC", 4, "done");
+			break;
+		}
+		case CHANGE_MODIFIED:
+		{
+			char *object=NULL;
+#if 0
+			size_t data_size;
+			uint8_t *data;
+			uint32_t dummy_id,id;
+#endif
+
+			object=osync_change_get_data(change);
+			id=strtol(osync_change_get_uid(change),NULL,16);			
+
+			osync_debug("SYNCE-SYNC", 4, "updating contact id %08x",id);
+
+			osync_debug("SYNCE-SYNC", 4, "done");
+			break;
+		}
+		default:
+			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
+	}
+
+	//Answer the call
+	osync_context_report_success(ctx);
 	return TRUE;
 }
 
@@ -390,6 +490,50 @@ extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t 
 extern void file_sync_done(OSyncContext *ctx)
 {
 	fprintf(stderr, "file_sync_done\n");
+}
+
+extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
+{
+	plugin_environment	*env;
+	struct MyCeFileInfo	*mip;
+	HANDLE			h;
+	char			*buffer;
+	size_t			sz, rsz;
+
+
+	osync_debug("SynCE-File", 4, "start : %s", __func__);
+	env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+	mip = (struct MyCeFileInfo *)osync_change_get_data(change);
+
+	/* Read the file through SynCE */
+	sz = 4096;
+	buffer = malloc(sz);
+
+	h = CeCreateFile(mip->wfn, GENERIC_READ, 0, NULL,
+			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	/*
+	 * Should do this in a loop, as CeReadFile() will return success
+	 * with 0 bytes read when we're done.
+	 */
+	rsz = 1;
+	while (rsz) {
+		if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
+			/* Error */
+			osync_context_report_error(ctx, 1, "Error from CeReadFile");
+			CeCloseHandle(h);
+			return;
+		}
+		/* Send its contents */
+		if (ctx)
+			osync_change_set_data(change,
+				buffer, rsz,
+				(rsz == 0) ? TRUE : FALSE);	/* TRUE if complete */
+	}
+	fprintf(stderr, "CeReadFile ok\n");
+	CeCloseHandle(h);
+
+	osync_context_report_success(ctx);
+	osync_debug("SynCE-File", 4, "end : %s", __func__);
 }
 
 #ifdef	TEST_FILE

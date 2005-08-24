@@ -7,3 +7,4 @@ extern void file_connect(OSyncContext *ctx);
 extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count, uint32_t* ids, void* cookie);
 extern void file_sync_done(OSyncContext *ctx);
 
+extern void file_get_data(OSyncContext *ctx, OSyncChange *change);

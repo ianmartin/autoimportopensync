@@ -510,6 +510,7 @@ static void get_changeinfo(OSyncContext *ctx)
 		osync_context_report_error(ctx, 1, "not connected to device, exit.");
 		return;
 	}
+	osync_debug("SYNCE-SYNC", 4, "Testing connection -> ok");
 
 	if (env->config_todos) {
 		osync_debug("SYNCE-SYNC", 4, "checking todos");
@@ -557,6 +558,15 @@ static void get_changeinfo(OSyncContext *ctx)
 		}
 	}
 
+	if (env->config_files_ndirs) {
+		osync_debug("SYNCE-SYNC", 4, "checking files to synchronize");
+
+		if (! file_get_changeinfo(ctx)) {
+			osync_context_report_error(ctx, 1, "Error while checking files");
+			return;
+		}
+	}
+
 	//need to reinit the connection
 	rra_syncmgr_disconnect(env->syncmgr);
 	
@@ -574,7 +584,7 @@ static void get_changeinfo(OSyncContext *ctx)
 commit_change: called when it's time to update device once a time for every update
 */
 static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
-{		
+{
 	plugin_environment *env = (plugin_environment *)osync_context_get_plugin_data(ctx);
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
@@ -920,6 +930,7 @@ void get_info(OSyncPluginInfo *env)
 	info->functions.disconnect = disconnect;
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
+	info->functions.get_data = file_get_data;
 
 	info->timeouts.connect_timeout = 5;
 	

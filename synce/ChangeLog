@@ -12,4 +12,5 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
 * Add some test code to learn how to work with SynCE. There's also a simple
   test program hidden in src/synce_file.c that currently lists all the files
   it finds on the WinCE device.
-* 
+* More of the necessary hookups between SynCE's file access and OpenSync are
+  now in place but the implementation is still incomplete and crashes.
