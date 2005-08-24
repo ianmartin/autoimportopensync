@@ -25,6 +25,8 @@ typedef struct plugin_environment {
 	int last_change_counter;
 	int change_counter;
 	ids_list* contact_ids;
+	ids_list* todo_ids;
+	ids_list* cal_ids;
 	
 } plugin_environment;
 
