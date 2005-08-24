@@ -1,4 +1,24 @@
-#include <opensync-1.0/opensync/opensync.h>
+/*
+ * OpenSync SynCE plugin
+ *
+ * Copyright © 2005 by MirKuZ
+ * Copyright © 2005 Danny Backx <dannybackx@users.sourceforge.net>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ */
+#include <opensync/opensync.h>
 
 #include <rra/appointment.h>
 #include <rra/contact.h>
@@ -9,10 +29,14 @@
 #include <rapi.h>
 
 #include "synce_plugin.h"
+#include "synce_file.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+
+#include <glib.h>
 
 static void *initialize(OSyncMember *member, OSyncError **error)
 {
@@ -24,10 +48,8 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 	
 	//You need to specify the <some name>_environment somewhere with
 	//all the members you need
-	plugin_environment *env = malloc(sizeof(plugin_environment));
-	assert(env != NULL);
-	memset(env, 0, sizeof(plugin_environment));
-	
+	plugin_environment *env = g_malloc0(sizeof(plugin_environment));
+
 	//now you can get the config file for this plugin
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
 		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
@@ -35,6 +57,11 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 		return NULL;
 	}
 	
+	if (!synce_parse_settings(env, configdata, configsize, error)) {
+		g_free(env);
+		return NULL;
+	}
+
 	//Process the configdata here and set the options on your environment
 	free(configdata);
 	env->member = member;
@@ -484,43 +511,50 @@ static void get_changeinfo(OSyncContext *ctx)
 		return;
 	}
 
-	osync_debug("SYNCE-SYNC", 4, "checking todos");
+	if (env->config_todos) {
+		osync_debug("SYNCE-SYNC", 4, "checking todos");
 	
-	if (!m_report_todo(ctx)){
-		osync_context_report_error(ctx, 1, "Error while checking todos");
-		return;
+		if (!m_report_todo(ctx)){
+			osync_context_report_error(ctx, 1, "Error while checking todos");
+			return;
+		}
+
+		//need to reinit the connection
+		rra_syncmgr_disconnect(env->syncmgr);
+		
+		if (!rra_syncmgr_connect(env->syncmgr))
+		{
+			osync_context_report_error(ctx, 1, "can't connect");
+			return;
+		}
+		
 	}
 	
-	//need to reinit the connection
-	rra_syncmgr_disconnect(env->syncmgr);
-	
-	if (!rra_syncmgr_connect(env->syncmgr))
-	{
-		osync_context_report_error(ctx, 1, "can't connect");
-		return;
+	if (env->config_contacts) {
+		osync_debug("SYNCE-SYNC", 4, "checking contacts");
+		
+		if (!m_report_contact(ctx)){
+			osync_context_report_error(ctx, 1, "Error while checking contact");
+			return;
+		}
+		
+		//need to reinit the connection
+		rra_syncmgr_disconnect(env->syncmgr);
+		
+		if (!rra_syncmgr_connect(env->syncmgr))
+		{
+			osync_context_report_error(ctx, 1, "can't connect");
+			return;
+		}
 	}
-	
-	osync_debug("SYNCE-SYNC", 4, "checking contacts");
-	
-	if (!m_report_contact(ctx)){
-		osync_context_report_error(ctx, 1, "Error while checking contact");
-		return;
-	}
-	
-	//need to reinit the connection
-	rra_syncmgr_disconnect(env->syncmgr);
-	
-	if (!rra_syncmgr_connect(env->syncmgr))
-	{
-		osync_context_report_error(ctx, 1, "can't connect");
-		return;
-	}
-	
-	osync_debug("SYNCE-SYNC", 4, "checking calendar");
-	
-	if (!m_report_cal(ctx)){
-		osync_context_report_error(ctx, 1, "Error while checking calendar");
-		return;
+
+	if (env->config_cal) {
+		osync_debug("SYNCE-SYNC", 4, "checking calendar");
+		
+		if (!m_report_cal(ctx)){
+			osync_context_report_error(ctx, 1, "Error while checking calendar");
+			return;
+		}
 	}
 
 	//All Right
@@ -773,39 +807,49 @@ static void sync_done(OSyncContext *ctx)
 	int i;
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 	
-	//commit any change done to forget contact changes
-	for(i=0;i<(env->contact_ids)->changed_count;i++){
-		rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->contact_ids)->type)->id,(env->contact_ids)->changed_ids[i]);
-		osync_debug("SYNCE-SYNC", 4, "commit changed contact id %08x",(env->contact_ids)->changed_ids[i]);
-	}
+	if (env->config_contacts) {
+		//commit any change done to forget contact changes
+		for(i=0;i<(env->contact_ids)->changed_count;i++){
+			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->contact_ids)->type)->id,(env->contact_ids)->changed_ids[i]);
+			osync_debug("SYNCE-SYNC", 4, "commit changed contact id %08x",(env->contact_ids)->changed_ids[i]);
+		}
 
-	for(i=0;i<(env->contact_ids)->deleted_count;i++){
-		rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->contact_ids)->type)->id,(env->contact_ids)->deleted_ids[i]);
-		osync_debug("SYNCE-SYNC", 4, "commit deleted contact id %08x",(env->contact_ids)->deleted_ids[i]);
+		for(i=0;i<(env->contact_ids)->deleted_count;i++){
+			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->contact_ids)->type)->id,(env->contact_ids)->deleted_ids[i]);
+			osync_debug("SYNCE-SYNC", 4, "commit deleted contact id %08x",(env->contact_ids)->deleted_ids[i]);
+		}
 	}
 	
-	//commit any change done to forget task changes
-	for(i=0;i<(env->todo_ids)->changed_count;i++){
-		rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->todo_ids)->type)->id,(env->todo_ids)->changed_ids[i]);
-		osync_debug("SYNCE-SYNC", 4, "commit changed cal id %08x",(env->todo_ids)->changed_ids[i]);
-	}
+	if (env->config_todos) {
+		//commit any change done to forget task changes
+		for(i=0;i<(env->todo_ids)->changed_count;i++){
+			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->todo_ids)->type)->id,(env->todo_ids)->changed_ids[i]);
+			osync_debug("SYNCE-SYNC", 4, "commit changed cal id %08x",(env->todo_ids)->changed_ids[i]);
+		}
 
-	for(i=0;i<(env->todo_ids)->deleted_count;i++){
-		rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->todo_ids)->type)->id,(env->todo_ids)->deleted_ids[i]);
-		osync_debug("SYNCE-SYNC", 4, "commit deleted todo id %08x",(env->todo_ids)->deleted_ids[i]);
+		for(i=0;i<(env->todo_ids)->deleted_count;i++){
+			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->todo_ids)->type)->id,(env->todo_ids)->deleted_ids[i]);
+			osync_debug("SYNCE-SYNC", 4, "commit deleted todo id %08x",(env->todo_ids)->deleted_ids[i]);
+		}
 	}
 	
-	//commit any change done to forget calendar changes
-	for(i=0;i<(env->cal_ids)->changed_count;i++){
-		rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->changed_ids[i]);
-		osync_debug("SYNCE-SYNC", 4, "commit changed cal id %08x",(env->cal_ids)->changed_ids[i]);
-	}
+	if (env->config_cal) {
+		//commit any change done to forget calendar changes
+		for(i=0;i<(env->cal_ids)->changed_count;i++){
+			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->changed_ids[i]);
+			osync_debug("SYNCE-SYNC", 4, "commit changed cal id %08x",(env->cal_ids)->changed_ids[i]);
+		}
 
-	for(i=0;i<(env->cal_ids)->deleted_count;i++){
-		rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->deleted_ids[i]);
-		osync_debug("SYNCE-SYNC", 4, "commit deleted cal id %08x",(env->cal_ids)->deleted_ids[i]);
+		for(i=0;i<(env->cal_ids)->deleted_count;i++){
+			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->deleted_ids[i]);
+			osync_debug("SYNCE-SYNC", 4, "commit deleted cal id %08x",(env->cal_ids)->deleted_ids[i]);
+		}
 	}
 	
+	if (env->config_files) {
+		file_sync_done(ctx);
+	}
+
 	osync_debug("SYNCE-SYNC", 4, "Sync done.");	
 	
 	osync_context_report_success(ctx);
@@ -880,4 +924,7 @@ void get_info(OSyncPluginInfo *env)
     	osync_plugin_accept_objformat(info, "todo", "vtodo10", NULL);
     	osync_plugin_set_commit_objformat(info, "todo", "vtodo10", commit_todo_change);
 	
+	osync_plugin_accept_objtype(info, "data");
+	osync_plugin_accept_objformat(info, "data", "file", NULL);
+	osync_plugin_set_commit_objformat(info, "data", "file", commit_file_change);
 }
