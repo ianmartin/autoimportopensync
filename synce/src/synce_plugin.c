@@ -226,7 +226,7 @@ bool m_report_todo_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids
 		
 		sprintf(strid,"%08x",ids[i]);
 	
-		osync_debug("SYNCE-SYNC", 4, "got object type: contact ids: %08x data_size: %i",ids[i],data_size);
+		osync_debug("SYNCE-SYNC", 4, "got object type: todo ids: %08x data_size: %i",ids[i],data_size);
 	
 		rra_task_to_vtodo(RRA_TASK_ID_UNKNOWN,data,data_size,&vtodo,0,&env->timezone);
 
@@ -268,9 +268,9 @@ bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,
 		
 		sprintf(strid,"%08x",ids[i]);
 	
-		osync_debug("SYNCE-SYNC", 4, "got object type: contact ids: %08x data_size: %i",ids[i],data_size);
+		osync_debug("SYNCE-SYNC", 4, "got object type: cal ids: %08x data_size: %i",ids[i],data_size);
 	
-		rra_appointment_to_vevent(RRA_TASK_ID_UNKNOWN,data,data_size,&vevent,0,&env->timezone);
+		rra_appointment_to_vevent(RRA_APPOINTMENT_ID_UNKNOWN,data,data_size,&vevent,0,&env->timezone);
 
 		OSyncChange *change = osync_change_new();
 		osync_change_set_member(change, env->member);
@@ -482,7 +482,7 @@ bool m_report_cal(OSyncContext *ctx)
 	};
 
 	//unchanged only if fullsync
-	if (osync_member_get_slow_sync(env->member, "cal")){
+	if (osync_member_get_slow_sync(env->member, "event")){
 		if(!m_report_cal_changes(ctx,type,(env->cal_ids)->unchanged_ids,(env->cal_ids)->unchanged_count,CHANGE_UNMODIFIED)){
 			osync_context_report_error(ctx, 1, "error reporting cal");
 			return FALSE;
@@ -557,6 +557,15 @@ static void get_changeinfo(OSyncContext *ctx)
 		}
 	}
 
+	//need to reinit the connection
+	rra_syncmgr_disconnect(env->syncmgr);
+	
+	if (!rra_syncmgr_connect(env->syncmgr))
+	{
+		osync_context_report_error(ctx, 1, "can't connect");
+		return;
+	}
+	
 	//All Right
 	osync_context_report_success(ctx);
 }
@@ -869,11 +878,10 @@ static void disconnect(OSyncContext *ctx)
 		return;
 	}
 	
-	rra_syncmgr_destroy(env->syncmgr);
-        env->syncmgr = NULL;
-        
-       	osync_debug("SYNCE-SYNC", 4, "Connection closed.");	
+	rra_syncmgr_disconnect(env->syncmgr);
 	
+	osync_debug("SYNCE-SYNC", 4, "Connection closed.");	
+		
 	osync_context_report_success(ctx);
 }
 
@@ -886,6 +894,9 @@ static void finalize(void *data)
 	
 	plugin_environment *env = (plugin_environment *)data;
 	
+	rra_syncmgr_destroy(env->syncmgr);
+        env->syncmgr = NULL;
+
 	CeRapiUninit();
 
 	free(env);
