@@ -1,0 +1,12 @@
+Synce plugin for opensync README.
+
+Warning: this is experimental software: it may lost your data, kill your dog or crash your car.. so use at your own risk.
+
+To use this plugin you need a fully installation of opensync and synce.
+See www.opensync.org and synce.sourceforge.net for instruction regarding those software.
+
+This preliminary version will work only with contacts. Calendar and task syncronization will be added in the future.
+
+After installing this plugins you should use it in a group with the msynctool utility from opensync.
+
+happy hacking ;)
