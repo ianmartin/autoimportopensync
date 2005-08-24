@@ -25,3 +25,10 @@ synce_plugin_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ -lrapi -lsynce -lrra
 ##format_la_SOURCES = format.c
 ##format_la_LDFLAGS = -avoid-version -export-dynamic -module
 ##format_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
+
+noinst_PROGRAMS = ft
+
+ft_SOURCES=	synce_file.c synce_file.h
+ft_CFLAGS = -DTEST_FILE
+ft_LDADD = @PACKAGE_LIBS@ @LIBS@ -lrapi -lsynce -lrra
+

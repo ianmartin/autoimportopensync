@@ -1,3 +1,15 @@
 version 0.01: initial version, only contact sync working... very buggy ;)
 version 0.02: added appointment and todo handling, but still very buggy.. ;)
+
+* Add preliminary support for configuration (as outlined by OpenSync).
+* Add a source file to support synchronizing files on the WinCE device,
+  hook it up to the main plugin source.
+
 version 0.03: bugfixes: connection hangup after commit // calendar report wrong object type
+
+* Make the configuration work for file sync (allows specifying more than one
+  directory to synchronize).
+* Add some test code to learn how to work with SynCE. There's also a simple
+  test program hidden in src/synce_file.c that currently lists all the files
+  it finds on the WinCE device.
+* 

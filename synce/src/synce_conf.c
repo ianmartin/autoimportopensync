@@ -1,5 +1,5 @@
 /*
- * file-sync - A plugin for the opensync framework
+ * Configuration file reading module for the SynCE plugin to OpenSync.
  *
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright © 2005 Danny Backx <dannybackx@users.sourceforge.net>
@@ -39,6 +39,7 @@ osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, O
 	env->config_cal = NULL;
 	env->config_todos = NULL;
 	env->config_files = NULL;
+	env->config_files_ndirs = 0;
 
 	doc = xmlParseMemory(data, size);
 
@@ -73,7 +74,29 @@ osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, O
 				env->config_contacts = g_strdup(str);
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"files")) {
-				env->config_files = g_strdup(str);
+				xmlNodePtr p;
+
+				p = cur->xmlChildrenNode;
+				while (p) {
+					char *str = (char *)xmlNodeGetContent(p);
+					if (str) {
+						if (! xmlStrcmp(p->name, (const xmlChar *)"dir")) {
+							char	**a, *d;
+
+							env->config_files_ndirs++;
+							d = g_strdup(str);
+							if (env->config_files)
+								a = (char **)realloc(env->config_files, sizeof(char *) * env->config_files_ndirs);
+							else
+								a = (char **)calloc(1, sizeof(char *));
+							a[env->config_files_ndirs-1] = d;
+							env->config_files = a;
+
+						}
+					}
+					xmlFree(str);
+					p = p->next;
+				}
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"cal")) {
 				env->config_cal = g_strdup(str);

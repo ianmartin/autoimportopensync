@@ -31,8 +31,10 @@ typedef struct plugin_environment {
 	/* Configuration */
 	char	*config_contacts,
 		*config_todos,
-		*config_cal,
-		*config_files;
+		*config_cal;
+
+	char	**config_files;
+	int	config_files_ndirs;
 	
 } plugin_environment;
 

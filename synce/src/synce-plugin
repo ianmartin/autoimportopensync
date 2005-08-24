@@ -1,1 +1,8 @@
-<config><contacts></contacts><todos></todos><cal></cal><files></files></config>
+<config>
+	<contacts></contacts>
+	<todos></todos>
+	<cal></cal>
+	<files>
+		<dir></dir>
+	</files>
+</config>

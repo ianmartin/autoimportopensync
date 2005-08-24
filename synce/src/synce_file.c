@@ -21,13 +21,16 @@
 #define	NEW_TIME
 /* $Id: pls.c,v 1.11 2005/01/13 21:37:03 twogood Exp $ */
 
-// #include "pcommon.h"
 #include <rapi.h>
 #include <synce_log.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <opensync/opensync.h>
 
@@ -41,124 +44,7 @@
 #include "synce_plugin.h"
 
 
-/* From pcommon.h */
-void convert_to_backward_slashes(char* path);
-bool is_remote_file(const char* filename);
-WCHAR* adjust_remote_path(WCHAR* old_path, bool free_path);
-
-/* End pcommon.h copy */
-
-/* Start pcommon.c copy */
-#define WIDE_BACKSLASH   htole16('\\')
-
-WCHAR* adjust_remote_path(WCHAR* old_path, bool free_path)
-{
-	WCHAR wide_backslash[2];
-	WCHAR path[MAX_PATH];
-
-	wide_backslash[0] = WIDE_BACKSLASH;
-	wide_backslash[1] = '\0';
-
-	/* Nothing to adjust if we have an absolute path */
-	if (WIDE_BACKSLASH == old_path[0])
-		return old_path;
-
-	if (!CeGetSpecialFolderPath(CSIDL_PERSONAL, sizeof(path), path)) {
-		fprintf(stderr, "Unable to get the \"My Documents\" path.\n");
-		return NULL;
-	}
-
-	wstr_append(path, wide_backslash, sizeof(path));
-	wstr_append(path, old_path, sizeof(path));
-
-	if (free_path)
-		wstr_free_string(old_path);
-
-	synce_trace_wstr(path);
-	return wstrdup(path);
-}
-
-void convert_to_backward_slashes(char* path)
-{
-	while (*path) {
-		if ('/' == *path)
-			*path = '\\';
-		path++;
-	}
-}
-/* End pcommon.c copy */
-
-static bool numeric_file_attributes = false;
-static bool show_hidden_files = false;
-
-#ifdef	TEST_FILE
-static void show_usage(const char* name)
-{
-	fprintf(stderr,
-			"Syntax:\n"
-			"\n"
-			"\t%s [-a] [-d LEVEL] [-h] [-n] [DIRECTORY]\n"
-			"\n"
-			"\t-a        Show all files including those marked as hidden\n"
-			"\t-d LEVEL  Set debug log level\n"
-			"\t              0 - No logging (default)\n"
-			"\t              1 - Errors only\n"
-			"\t              2 - Errors and warnings\n"
-			"\t              3 - Everything\n"
-			"\t-h         Show this help message\n"
-			"\t-n         Show numeric value for file attributes\n"
-			"\tDIRECTORY  The remote directory where you want to list files\n",
-			name);
-}
-#endif
-
 #if 0
-static bool handle_parameters(int argc, char** argv, char** path)
-{
-	int c;
-	int log_level = SYNCE_LOG_LEVEL_LOWEST;
-
-	while ((c = getopt(argc, argv, "ad:hn")) != -1)
-	{
-		switch (c)
-		{
-			case 'a':
-				show_hidden_files = true;
-				break;
-				
-			case 'd':
-				log_level = atoi(optarg);
-				break;
-
-			case 'n':
-				numeric_file_attributes = true;
-				break;
-			
-			case 'h':
-			default:
-				show_usage(argv[0]);
-				return false;
-		}
-	}
-
-	synce_log_set_level(log_level);
-
-	/* TODO: handle more than one path */
-	if (optind < argc)
-		*path = strdup(argv[optind++]);
-
-	return true;
-}
-#endif
-
-static void print_attribute(CE_FIND_DATA* entry, DWORD attribute, int c)
-{
-	if (entry->dwFileAttributes & attribute)
-		putchar(c);
-	else
-		putchar('-');
-}
-
 static bool print_entry(CE_FIND_DATA* entry)
 {
 #ifndef	NEW_TIME
@@ -259,71 +145,74 @@ static bool print_entry(CE_FIND_DATA* entry)
 	printf("\n");
 	return true;
 }
-
-static bool list_matching_files(WCHAR* wide_path)
-{
-	bool success = false;
-	BOOL result;
-	CE_FIND_DATA* find_data = NULL;
-	DWORD file_count = 0;
-	unsigned i;
-
-	synce_trace_wstr(wide_path);
-	wide_path = adjust_remote_path(wide_path, true);
-	synce_trace_wstr(wide_path);
-
-	result = CeFindAllFiles(wide_path,
-		(show_hidden_files ? 0 : FAF_ATTRIB_NO_HIDDEN)
-		| FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW|FAF_OID,
-		&file_count, &find_data);
-
-	if (!result)
-		goto exit;
-
-	for (i = 0; i < file_count; i++)
-		print_entry(find_data + i);
-
-	success = true;
-
-exit:
-	CeRapiFreeBuffer(find_data);
-
-	return success;
-}
-
-static const char *wildcards = "*.*";
-
-bool list_directory(WCHAR* directory)
-{
-	WCHAR path[MAX_PATH];
-	WCHAR* tmp = NULL;
-
-	if (!directory) {
-		synce_error("Directory is NULL. How did that happen?");
-		return false;
-	}
-
-	synce_trace_wstr(directory);
-	wstrcpy(path, directory);
-	synce_trace_wstr(path);
-	wstr_append(path, (tmp = wstr_from_current(wildcards)), sizeof(path));
-	wstr_free_string(tmp);
-	return list_matching_files(path);
-}
+#endif
 
 osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
 {
-	plugin_environment	*env = (plugin_environment *)osync_context_get_plugin_data(ctx);
-	OSyncChange		*change = osync_change_new();
+	plugin_environment	*env;
+	OSyncChange		*change;
 	char			path[MAX_PATH];
+	char			*buffer;
+	size_t			sz, rsz;
+
+	fprintf(stderr, "FilesReportFileChange(%s/%s)\n", dir, wstr_to_current(entry->cFileName));
+	if (ctx) {
+		env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+		change = osync_change_new();
+	}
 
 	sprintf(path, "%s\\%s", dir, wstr_to_current(entry->cFileName));
 	fprintf(stderr, "Report(%s)\n", path);
 
-	osync_change_set_member(change, env->member);
-	osync_change_set_uid(change, path);
-	osync_change_set_objformat_string(change, "data");
-	osync_change_set_data(change, NULL, 0, TRUE);	/* FIX ME */
+	if (ctx) {
+		osync_change_set_member(change, env->member);
+		osync_change_set_uid(change, path);	/* Pass the full file name as UID */
+		osync_change_set_objformat_string(change, "data");	/* FIX ME */
+	}
+
+	/* Read the file through SynCE */
+	if (1) {
+		HANDLE	h;
+		WCHAR	*wfn;
+
+		wfn = wstr_from_current(path);
+		sz = 4096;
+		buffer = malloc(sz);
+
+		h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
+				OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+		/*
+		 * Should do this in a loop, as CeReadFile() will return success
+		 * with 0 bytes read when we're done.
+		 */
+		if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
+			/* Error */
+			fprintf(stderr, "CeReadFile failed\n");
+		}
+		fprintf(stderr, "CeReadFile ok\n");
+		CeCloseHandle(h);
+		wstr_free_string(wfn);
+
+#if 0
+		/* A test - write all the files you find locally */
+		{
+			int	fd;
+			static int	cnt = 0;
+			char	p[MAX_PATH];
+
+			sprintf(p, "log/file.%03d", cnt++);
+			fd = open(p, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+			if (fd) {
+				write(fd, buffer, rsz);
+				close(fd);
+			}
+		}
+#endif
+	}
+
+	/* Send its contents */
+	if (ctx)
+		osync_change_set_data(change, NULL, 0, TRUE);	/* FIX ME */
 	return TRUE;
 }
 
@@ -341,9 +230,8 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir)
 	sprintf(path, "%s\\*", dir);
 
 	wd = wstr_from_current(path);
-	wd = adjust_remote_path(wd, true);
-	if (CeFindAllFiles(wd, (show_hidden_files ? 0 : FAF_ATTRIB_NO_HIDDEN)
-			| FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW|FAF_OID,
+	if (CeFindAllFiles(wd,
+			FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW|FAF_OID,
 			&file_count, &find_data)) {
 		for (i=0; i<file_count; i++) {
 			CE_FIND_DATA	*entry = &find_data[i];
@@ -386,7 +274,8 @@ extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
  */
 extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 {
-	plugin_environment *env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+	plugin_environment	*env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+	int			i;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 
@@ -400,17 +289,14 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 	osync_debug("SynCE-file", 4, "checking files");
 
 	/*
-	 * FIX ME
-	 * The list of directories to replicate should come from configuration,
-	 * for now it's hardcoded to something useful to me.
+	 * Read the list of directories to replicate from configuration.
 	 */
-	if (! FilesFindAllFromDirectory(ctx, "\\Storage Card")) {
-		osync_context_report_error(ctx, 1, "Error while checking for files (storage card)");
-		return FALSE;
-	}
-	if (! FilesFindAllFromDirectory(ctx, "\\My Documents")) {
-		osync_context_report_error(ctx, 1, "Error while checking for files (my docs)");
-		return FALSE;
+	for (i=0; i<env->config_files_ndirs; i++) {
+		fprintf(stderr, "Yow <%s>\n", env->config_files[i]);
+		if (! FilesFindAllFromDirectory(ctx, env->config_files[i])) {
+			osync_context_report_error(ctx, 1, "Error while checking for files (my docs)");
+			return FALSE;
+		}
 	}
 
 	/* Don't report via
