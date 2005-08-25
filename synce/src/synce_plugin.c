@@ -424,7 +424,7 @@ bool m_report_todo(OSyncContext *ctx)
 
 	//unchanged only if fullsync
 	if (osync_member_get_slow_sync(env->member, "todo")){
-		if(!m_report_todo_changes(ctx,type,(env->todo_ids)->unchanged_ids,(env->todo_ids)->unchanged_count,CHANGE_UNMODIFIED)){
+		if(!m_report_todo_changes(ctx,type,(env->todo_ids)->unchanged_ids,(env->todo_ids)->unchanged_count,CHANGE_ADDED)){
 			osync_context_report_error(ctx, 1, "error reporting todo");
 			return FALSE;
 		}
@@ -494,7 +494,7 @@ bool m_report_cal(OSyncContext *ctx)
 
 	//unchanged only if fullsync
 	if (osync_member_get_slow_sync(env->member, "event")){
-		if(!m_report_cal_changes(ctx,type,(env->cal_ids)->unchanged_ids,(env->cal_ids)->unchanged_count,CHANGE_UNMODIFIED)){
+		if(!m_report_cal_changes(ctx,type,(env->cal_ids)->unchanged_ids,(env->cal_ids)->unchanged_count,CHANGE_ADDED)){
 			osync_context_report_error(ctx, 1, "error reporting cal");
 			return FALSE;
 		}
