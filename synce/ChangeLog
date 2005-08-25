@@ -14,3 +14,8 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
   it finds on the WinCE device.
 * More of the necessary hookups between SynCE's file access and OpenSync are
   now in place but the implementation is still incomplete and crashes.
+
+* Strip some functionality from the XML based configuration. Only one
+  directory can be specified, and the other stuff is meant to disappear too - 
+  only the mechanism for enabling/disabling stuff from the GUI is to remain.
+  This is as Armin suggested.

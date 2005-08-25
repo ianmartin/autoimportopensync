@@ -29,13 +29,8 @@ typedef struct plugin_environment {
 	ids_list* cal_ids;
 
 	/* Configuration */
-	char	*config_contacts,
-		*config_todos,
-		*config_cal;
-
-	char	**config_files;
-	int	config_files_ndirs;
-	
+	osync_bool	config_contacts, config_todos, config_calendar;
+	char		*config_file;
 } plugin_environment;
 
 extern osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, OSyncError **error);

@@ -35,11 +35,10 @@ osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, O
 	xmlNodePtr cur;
 
 	//set defaults
-	env->config_contacts = NULL;
-	env->config_cal = NULL;
-	env->config_todos = NULL;
-	env->config_files = NULL;
-	env->config_files_ndirs = 0;
+	env->config_contacts = FALSE;
+	env->config_calendar = FALSE;
+	env->config_todos = FALSE;
+	env->config_file = NULL;
 
 	doc = xmlParseMemory(data, size);
 
@@ -70,49 +69,47 @@ osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, O
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"contacts")) {
-				env->config_contacts = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact")) {
+				/* Disable by mentioning NO or FALSE, otherwise enable. */
+				env->config_contacts = TRUE;
+				if (g_ascii_strcasecmp(str, "FALSE") == 0)
+					env->config_contacts = FALSE;
+				if (g_ascii_strcasecmp(str, "NO") == 0)
+					env->config_contacts = FALSE;
 			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"files")) {
-				xmlNodePtr p;
-
-				p = cur->xmlChildrenNode;
-				while (p) {
-					char *str = (char *)xmlNodeGetContent(p);
-					if (str) {
-						if (! xmlStrcmp(p->name, (const xmlChar *)"dir")) {
-							char	**a, *d;
-
-							env->config_files_ndirs++;
-							d = g_strdup(str);
-							if (env->config_files)
-								a = (char **)realloc(env->config_files, sizeof(char *) * env->config_files_ndirs);
-							else
-								a = (char **)calloc(1, sizeof(char *));
-							a[env->config_files_ndirs-1] = d;
-							env->config_files = a;
-
-						}
-					}
-					xmlFree(str);
-					p = p->next;
-				}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"file")) {
+				env->config_file = g_strdup(str);
 			}
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"cal")) {
-				env->config_cal = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar")) {
+				/* Disable by mentioning NO or FALSE, otherwise enable. */
+				env->config_calendar = TRUE;
+				if (g_ascii_strcasecmp(str, "FALSE") == 0)
+					env->config_calendar = FALSE;
+				if (g_ascii_strcasecmp(str, "NO") == 0)
+					env->config_calendar = FALSE;
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"todos")) {
-				env->config_todos = g_strdup(str);
+				/* Disable by mentioning NO or FALSE, otherwise enable. */
+				env->config_todos = TRUE;
+				if (g_ascii_strcasecmp(str, "FALSE") == 0)
+					env->config_todos = FALSE;
+				if (g_ascii_strcasecmp(str, "NO") == 0)
+					env->config_todos = FALSE;
 			}
 			xmlFree(str);
 		}
 		cur = cur->next;
 	}
+
+	if (!osync_member_objtype_enabled(env->member, "contact"))
+		env->config_contacts = FALSE;
+	if (!osync_member_objtype_enabled(env->member, "todos"))
+		env->config_todos = FALSE;
+	if (!osync_member_objtype_enabled(env->member, "calendar"))
+		env->config_calendar = FALSE;
 	
-	if (env->config_contacts == NULL
-			&& env->config_cal == NULL
-			&& env->config_todos == NULL
-			&& env->config_files == NULL) {
+	if (env->config_contacts == 0 && env->config_calendar == 0
+			&& env->config_todos == 0 && env->config_file == NULL) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Nothing was configured");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;

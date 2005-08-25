@@ -560,7 +560,7 @@ static void get_changeinfo(OSyncContext *ctx)
 		}
 	}
 
-	if (env->config_cal) {
+	if (env->config_calendar) {
 		osync_debug("SYNCE-SYNC", 4, "checking calendar");
 		
 		if (!m_report_cal(ctx)){
@@ -578,7 +578,7 @@ static void get_changeinfo(OSyncContext *ctx)
 		}
 	}
 
-	if (env->config_files_ndirs) {
+	if (env->config_file) {
 		osync_debug("SYNCE-SYNC", 4, "checking files to synchronize");
 
 		if (! file_get_changeinfo(ctx)) {
@@ -872,7 +872,7 @@ static void sync_done(OSyncContext *ctx)
 		}
 	}
 	
-	if (env->config_cal) {
+	if (env->config_calendar) {
 		//commit any change done to forget calendar changes
 		for(i=0;i<(env->cal_ids)->changed_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->changed_ids[i]);
@@ -885,7 +885,7 @@ static void sync_done(OSyncContext *ctx)
 		}
 	}
 	
-	if (env->config_files) {
+	if (env->config_file) {
 		file_sync_done(ctx);
 	}
 

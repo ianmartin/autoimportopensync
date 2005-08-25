@@ -375,7 +375,6 @@ extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
 extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 {
 	plugin_environment	*env = (plugin_environment *)osync_context_get_plugin_data(ctx);
-	int			i;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 
@@ -389,14 +388,11 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 	osync_debug("SynCE-file", 4, "checking files");
 
 	/*
-	 * Read the list of directories to replicate from configuration.
+	 * We're supporting sync of exactly one directory.
 	 */
-	for (i=0; i<env->config_files_ndirs; i++) {
-		fprintf(stderr, "Yow <%s>\n", env->config_files[i]);
-		if (! FilesFindAllFromDirectory(ctx, env->config_files[i])) {
-			osync_context_report_error(ctx, 1, "Error while checking for files (my docs)");
-			return FALSE;
-		}
+	if (env->config_file && ! FilesFindAllFromDirectory(ctx, env->config_file)) {
+		osync_context_report_error(ctx, 1, "Error while checking for files");
+		return FALSE;
 	}
 
 	/* Don't report via
