@@ -567,6 +567,15 @@ static void get_changeinfo(OSyncContext *ctx)
 			osync_context_report_error(ctx, 1, "Error while checking calendar");
 			return;
 		}
+		
+		//need to reinit the connection
+		rra_syncmgr_disconnect(env->syncmgr);
+		
+		if (!rra_syncmgr_connect(env->syncmgr))
+		{
+			osync_context_report_error(ctx, 1, "can't connect");
+			return;
+		}
 	}
 
 	if (env->config_files_ndirs) {
@@ -576,15 +585,15 @@ static void get_changeinfo(OSyncContext *ctx)
 			osync_context_report_error(ctx, 1, "Error while checking files");
 			return;
 		}
-	}
-
-	//need to reinit the connection
-	rra_syncmgr_disconnect(env->syncmgr);
+		
+		//need to reinit the connection
+		rra_syncmgr_disconnect(env->syncmgr);
 	
-	if (!rra_syncmgr_connect(env->syncmgr))
-	{
-		osync_context_report_error(ctx, 1, "can't connect");
-		return;
+		if (!rra_syncmgr_connect(env->syncmgr))
+		{
+			osync_context_report_error(ctx, 1, "can't connect");
+			return;
+		}
 	}
 	
 	//All Right
