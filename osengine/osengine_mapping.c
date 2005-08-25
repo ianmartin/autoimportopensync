@@ -226,15 +226,26 @@ void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 	OSyncError *error = NULL;
 	osync_group_open_changelog(table->engine->group, &uids, &memberids, &types, &error);	
 	
-	while ((uid = uids[i])) {
+	for (i = 0; (uid = uids[i]) ; i++) {
 		type = types[i];
 		long long int memberid = memberids[i];
 		OSyncMappingEntry *entry = osengine_mappingtable_find_entry(table, uid, memberid);
+
+		if (!entry) {
+			osync_trace(TRACE_INTERNAL, "Mappingtable and changelog inconsistent: no entry with uid %s", uid);
+			/*FIXME: We should be able to return error here. What if entry == NULL? */
+			g_assert_not_reached();
+		}
+
 		osync_change_set_changetype(entry->change, type);
 		osync_trace(TRACE_INTERNAL, "Injecting %p with changetype %i", entry, osync_change_get_changetype(entry->change));
 		osync_flag_attach(entry->fl_read, table->engine->cmb_read_all);
+
+		/* Set fl_mapped accordingly, if the entry was already mapped previously */
+		if (entry->mapping)
+			osync_flag_set(entry->fl_mapped);
+
 		send_read_change(engine, entry);
-		i++;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
