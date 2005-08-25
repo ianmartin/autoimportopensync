@@ -163,9 +163,9 @@ static void _sent_change(SmlDsServer *server, SmlStatus *status, const char *new
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _sent_sync(SmlDsServer *server, void *userdata)
+static void _sent_sync(SmlSession *session, SmlStatus *status, void *userdata, SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, server, userdata);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, session, userdata);
 	osync_context_report_success((OSyncContext *)userdata);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -198,7 +198,7 @@ static SmlBool _new_session(SmlTransport *tsp, SmlSession *session, void *userda
 		goto error;
 	
 	smlSessionRegisterFinalHandler(session, _recv_final, userdata);
-	smlDsServerSetAlertCallback(env->contactserver, _recv_init_alert, env);
+	smlDsServerSetConnectCallback(env->contactserver, _recv_init_alert, env);
 	
 	if (!smlAuthRegister(env->auth, session, error))
 		goto error;
@@ -327,7 +327,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	
 	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
 	
-	env->contactserver = smlDsServerNew(SML_DS_SERVER, SML_CONTENT_TYPE_VCARD, loc, &serror);
+	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
 	if (!env->contactserver)
 		goto error_free_loc;
 	
@@ -396,6 +396,13 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
+static void _alert_reply(SmlSession *session, SmlStatus *status, void *userdata, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, session, status, userdata, error);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 static void get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
@@ -417,7 +424,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	osync_anchor_update(env->member, key, next);
 	g_free(key);
 	
-	if (!smlDsServerSendAlert(env->contactserver, type, last, next, &error)) {
+	if (!smlDsServerSendAlert(env->contactserver, type, last, next, _alert_reply, NULL, &error)) {
 		g_free(next);
 		g_free(last);
 		goto error;
@@ -468,6 +475,9 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 	
+	if (!smlDsServerSendSync(env->contactserver, _sent_sync, ctx, &error))
+		goto error;
+	
 	int i = 0;
 	for (i = 0; changes[i] && contexts[i]; i++) {
 		OSyncChange *change = changes[i];
@@ -485,7 +495,7 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 			goto error;
 	}
 	
-	if (!smlDsServerWriteChanges(env->contactserver, _sent_sync, ctx, &error))
+	if (!smlDsServerCloseSync(env->contactserver, &error))
 		goto error;
 	
 	if (!smlSessionFlush(env->session, _send_success, NULL, TRUE, &error))
