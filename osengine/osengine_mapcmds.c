@@ -108,7 +108,7 @@ static int prod(int n)
 
 void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping)
 {
-	osync_trace(TRACE_ENTRY, "osync_mapping_multiply_master(%p, %p)", engine, mapping);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
 	g_assert(engine);
 	
 	OSyncMappingTable *table = engine->maptable;
@@ -172,7 +172,7 @@ void osengine_mapping_multiply_master(OSyncEngine *engine, OSyncMapping *mapping
 	osync_change_save(master->change, TRUE, &error);
 	
 	osync_flag_set(mapping->fl_multiplied);
-	osync_trace(TRACE_EXIT, "osync_mapping_multiply_master");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 
