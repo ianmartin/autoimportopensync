@@ -193,7 +193,7 @@ bool m_report_contact_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *
 		osync_change_set_uid(change, strid); // %08x
 		osync_change_set_objformat_string(change, "vcard30");
 		
-		osync_change_set_data(change, vcard, strlen(vcard)*sizeof(char), TRUE);
+		osync_change_set_data(change, vcard, strlen(vcard) + 1, TRUE);
 		osync_change_set_changetype(change, change_type);
 					
 		osync_context_report_change(ctx, change);
@@ -229,14 +229,19 @@ bool m_report_todo_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids
 		osync_debug("SYNCE-SYNC", 4, "got object type: todo ids: %08x data_size: %i",ids[i],data_size);
 	
 		rra_task_to_vtodo(RRA_TASK_ID_UNKNOWN,data,data_size,&vtodo,0,&env->timezone);
-
+		/* Workaround since a single vevent component would be broken */
+		char *newvtodo = g_strdup_printf("BEGIN:VCALENDAR\r\nVERSION:1.0\r\n%sEND:VCALENDAR\r\n", vtodo);
+		g_free(vtodo);
+		vtodo = newvtodo;
+		osync_trace(TRACE_INTERNAL, "Generated vtodo: %s", osync_print_binary(vtodo, strlen(vtodo)));
+		
 		OSyncChange *change = osync_change_new();
 		osync_change_set_member(change, env->member);
 		
 		osync_change_set_uid(change, strid); // %08x
 		osync_change_set_objformat_string(change, "vtodo10");
 	
-		osync_change_set_data(change, vtodo, strlen(vtodo)*sizeof(char), TRUE);
+		osync_change_set_data(change, vtodo, strlen(vtodo) + 1, TRUE);
 		osync_change_set_changetype(change, change_type);
 	
 		osync_context_report_change(ctx, change);
@@ -272,13 +277,19 @@ bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,
 	
 		rra_appointment_to_vevent(RRA_APPOINTMENT_ID_UNKNOWN,data,data_size,&vevent,0,&env->timezone);
 
+		/* Workaround since a single vevent component would be broken */
+		char *newvevent = g_strdup_printf("BEGIN:VCALENDAR\r\nVERSION:1.0\r\n%sEND:VCALENDAR\r\n", vevent);
+		g_free(vevent);
+		vevent = newvevent;
+		osync_trace(TRACE_INTERNAL, "Generated vevent: %s", osync_print_binary(vevent, strlen(vevent)));
+		
 		OSyncChange *change = osync_change_new();
 		osync_change_set_member(change, env->member);
 		
 		osync_change_set_uid(change, strid); // %08x
 		osync_change_set_objformat_string(change, "vevent10");
 	
-		osync_change_set_data(change, vevent, strlen(vevent)*sizeof(char), TRUE);
+		osync_change_set_data(change, vevent, strlen(vevent) + 1, TRUE);
 		osync_change_set_changetype(change, change_type);
 	
 		osync_context_report_change(ctx, change);
