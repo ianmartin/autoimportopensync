@@ -343,7 +343,7 @@ bool m_report_contact(OSyncContext *ctx)
 
 	//unchanged only if fullsync
 	if (osync_member_get_slow_sync(env->member, "contact")){
-		if(!m_report_contact_changes(ctx,type,(env->contact_ids)->unchanged_ids,(env->contact_ids)->unchanged_count,CHANGE_UNMODIFIED)){
+		if(!m_report_contact_changes(ctx,type,(env->contact_ids)->unchanged_ids,(env->contact_ids)->unchanged_count,CHANGE_ADDED)){
 			osync_context_report_error(ctx, 1, "error reporting contacts");
 			return FALSE;
 		}
