@@ -41,6 +41,7 @@
 #include <rra/uint32vector.h>
 #include <rra/syncmgr.h>
 #include <rapi.h>
+#include <synce.h>
 #include "synce_plugin.h"
 
 
@@ -533,7 +534,7 @@ extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
 }
 
 #ifdef	TEST_FILE
-static       WCHAR empty[]   = {'\0'};
+//static       WCHAR empty[]   = {'\0'};
 
 int main(int argc, char** argv)
 {

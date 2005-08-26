@@ -12,6 +12,9 @@ PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
+AC_CHECK_HEADER(rra/contact.h, ,AC_ERROR("You need to install the librra devel libraries"))
+AC_CHECK_HEADER(synce.h, ,AC_ERROR("You need to install the libsynce devel libraries"))
+
 AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
