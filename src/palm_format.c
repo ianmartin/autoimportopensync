@@ -539,198 +539,171 @@ void vevent2calendar(palm_connection *conn, palm_entry *entry, char *vevent)
 
 	deleteVObjectO(vcal);
 }
+#endif
 
-/***********************************************************************
- *
- * Function:    todo2vcard
- *
- * Summary:   converts an palm todo record to an vcard
- *
- ***********************************************************************/
-GString *todo2vcal(palm_connection *conn, struct ToDo todo, char *category)
+static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	VObjectO *vcal;
-	VObjectO *vtodo;
-	VObjectO *prop;
-	GString *vcalstr;
-	char *vcalptr;
-	char buffer[1024];
-	time_t now;
-	struct tm *now_tm;
-	char *tmp;
-
-	palm_debug(conn, 2, "Translating todo to vcard");
-	palm_debug(conn, 2, "ToDo Entry:\nIndefinite: %i\nDue: %s\nPriority: %i\nComplete: %i\nDescription: %s\nNote: %s", todo.indefinite, tm2vcaldatetime(todo.due), todo.priority, todo.complete, todo.description, todo.note);
-
-  	vcal = newVObjectO(VCCalPropO);
-  	vtodo = addPropO(vcal, VCTodoPropO);
-	addPropValueO(vtodo, VCVersionPropO, "2.0");
-
-	//UTF8 conversion
-	if (todo.description) {
-		tmp = g_convert(todo.description, strlen(todo.description), "utf8", conn->codepage, NULL, NULL, NULL);
-		free(todo.description);
-		todo.description = tmp;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	PSyncTodoEntry *entry = (PSyncTodoEntry *)input;
+	char *tmp = NULL;
+	xmlNode *current = NULL;
+	
+	if (inpsize != sizeof(PSyncTodoEntry)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong size");
+		goto error;
 	}
+	
+	//Create a new xml document
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *root = osxml_node_add_root(doc, "todo");
 
-	if (todo.note) {
-		tmp = g_convert(todo.note, strlen(todo.note), "utf8", conn->codepage, NULL, NULL, NULL);
-		free(todo.note);
-		todo.note = tmp;
-	}
-
-
+	//Summary
+	if (entry->todo.description)
+		xmlNewChild(root, NULL, (xmlChar*)"Summary", entry->todo.description);
+	
+	//Note
+	if (entry->todo.note)
+		xmlNewChild(root, NULL, (xmlChar*)"Note", entry->todo.note);
+	
 	//priority
-	if (todo.priority) {
-		snprintf(buffer, 1024, "%i", todo.priority + 2);
-		addPropValueO(vtodo, VCPriorityPropO, buffer);
+	if (entry->todo.priority) {
+		tmp = g_strdup_printf("%i", entry->todo.priority + 2);
+		xmlNewChild(root, NULL, (xmlChar*)"Note", tmp);
+		g_free(tmp);
 	}
 
 	//due
-	if (todo.indefinite == 0) {
-		prop = addPropValueO(vtodo, VCDuePropO, tm2vcaldatetime(todo.due));
-		addPropValueO(prop, VCValuePropO, "DATE");
+	if (entry->todo.indefinite == 0) {
+		time_t ttm = mktime(&(entry->todo.due));
+		tmp = g_strdup_printf("%i", (int)ttm);
+		xmlNewChild(root, NULL, (xmlChar*)"Due", tmp);
+		g_free(tmp);
 	}
 
-	/* completed */
-	if(todo.complete) {
-		now = time(NULL);
-		now_tm = gmtime(&now);
-		addPropValueO(vtodo, VCCompletedPropO, tm2vcaldatetime(*now_tm));
-		addPropValueO(vtodo, VCStatusPropO, "COMPLETED");
+	//completed
+	if (entry->todo.complete) {
+		time_t now = time(NULL);
+		tmp = g_strdup_printf("%i", (int)now);
+		xmlNewChild(root, NULL, (xmlChar*)"Completed", tmp);
+		g_free(tmp);
 	}
 
-	/* note */
-	if(todo.note && strlen(todo.note)) {
-		prop = addPropValueO(vtodo, VCDescriptionPropO, escape_chars(todo.note));
-		//addPropValueO(prop, "ENCODING", "QUOTED-PRINTABLE");
+	GList *c = NULL;
+	current = NULL;
+	for (c = entry->categories; c; c = c->next) {
+		if (!current)
+			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+		osxml_node_add(current, "Category", (char *)c->data);
 	}
 
-	/* description */
-	if(todo.description) {
-		addPropValueO(vtodo, VCSummaryPropO,  escape_chars(todo.description));
-	}
+	*free_input = TRUE;
+	*output = (char *)doc;
+	*outpsize = sizeof(doc);
+
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
 	
-	if (category) {
-		addPropValueO(vtodo, "CATEGORIES", category);
-	}
-	
-	vcalptr = writeMemVObjectO(0,0,vcal);
-	vcalstr = g_string_new(vcalptr);
-	free(vcalptr);
-	deleteVObjectO(vcal);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 
-	palm_debug(conn, 3, "VCARD:\n%s", vcalstr->str);
-	return vcalstr;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-/***********************************************************************
- *
- * Function:    vcal2todo
- *
- * Summary:   converts an vcard to an palm todo record
- *
- ***********************************************************************/
-void vcal2todo(palm_connection *conn, palm_entry *entry, char *vcard)
+static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
-	VObjectO *v, *t, *vcal;
-	VObjectIteratorO iter, j;
-	const char *n;
-	char *attrValue;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
-	palm_debug(conn, 2, "converting vcal to todo");
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	
+	//Get the root node of the input document
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
+	}
+	
+	if (xmlStrcmp(root->name, (const xmlChar *)"contact")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
+		goto error;
+	}
 
-	registerMimeErrorHandlerO(VObjectOErrorHander);
-	vcal = Parse_MIMEO(vcard, strlen(vcard));
+	/* Start the new entry */
+	PSyncTodoEntry *entry = osync_try_malloc0(sizeof(PSyncTodoEntry), error);
+	if (!entry)
+		goto error;
 
-	initPropIteratorO(&iter,vcal);
-
-	memset(&(entry->todo), 0, sizeof(entry->todo));
 	entry->todo.priority = 0;
 	entry->todo.complete = 0;
 	entry->todo.description = "";
 	entry->todo.note = "";
 	entry->todo.indefinite = 1;
 
-	while(moreIterationO(&iter)) {
-		v = nextVObjectO(&iter);
-		n = vObjectNameO(v);
-
-		if (n) {
-			if (strcmp(n,VCTodoPropO) == 0) {
-				initPropIteratorO(&j,v);
-				while(moreIterationO(&j)) {
-					t = nextVObjectO(&j);
-					n = vObjectNameO(t);
-					attrValue = fakeCStringO(vObjectUStringZValueO(t));
-
-
-					//Priority
-					if(strcmp(n,VCPriorityPropO) == 0) {
-						entry->todo.priority = atoi(attrValue) - 2;
-						if (entry->todo.priority < 1) {
-							//Never go lower than 1
-							entry->todo.priority = 1;
-						}
-						if (atoi(attrValue) == 0) {
-							//Default to priority 5
-							entry->todo.priority = 5;
-						}
-					}
-
-					//Complete
-					if(strcmp(n,VCStatusPropO) == 0) {
-						if(!strcmp(attrValue, "COMPLETED")) {
-							entry->todo.complete = 1;
-						}
-					}
-
-					//Summary
-					if(strcmp(n,VCSummaryPropO) == 0) {
-						entry->todo.description = g_strcompress(g_convert(attrValue, strlen(attrValue), conn->codepage ,"utf8", NULL, NULL, NULL));
-					}
-
-					//Note
-					if(strcmp(n,VCDescriptionPropO) == 0) {
-						entry->todo.note = g_strcompress(g_convert(attrValue, strlen(attrValue), conn->codepage ,"utf8", NULL, NULL, NULL));
-					}
-
-					//Due
-					if(strcmp(n,VCDuePropO) == 0) {
-						entry->todo.due = vcaltime2tm(attrValue);
-						entry->todo.indefinite = 0;
-					}
-
-					//Categories
-					if (!strcmp(n, "CATEGORIES")) {
-						palm_debug(conn, 3, "GOT CATEGORIES: %s\n", attrValue);
-						gchar **array = g_strsplit(g_strcompress(attrValue), ",", 0);
-						int z = 0;
-						while (array[z] != NULL) {
-							palm_debug(conn, 3, "testing %s\n", array[z]);
-							entry->catID = get_category_id_from_name(conn, array[z]);
-							if (entry->catID != 0) {
-								palm_debug(conn, 3, "Found category %i\n", entry->catID);
-								break;
-							}
-							z++;
-						}
-						g_strfreev(array);
-					}
-					
-					if (attrValue)
-						free(attrValue);
-				}
+	//Priority
+	xmlNode *cur = osxml_get_node(root, "Priority");
+	if (cur) {
+		char *prio = (char *)xmlNodeGetContent(cur);
+		if (prio) {
+			entry->todo.priority = atoi(prio) - 2;
+			if (entry->todo.priority < 1) {
+				//Never go lower than 1
+				entry->todo.priority = 1;
 			}
+			if (atoi(prio) == 0) {
+				//Default to priority 5
+				entry->todo.priority = 5;
+			}
+			g_free(prio);
 		}
 	}
+	
+	//Completed
+	cur = osxml_get_node(root, "Completed");
+	if (cur)
+		entry->todo.complete = 1;
 
-	palm_debug(conn, 2 , "end: vcal2todo");
-	palm_debug(conn, 2, "ToDo Entry:\nIndefinite: %i\nDue: %s\nPriority: %i\nComplete: %i\nDescription: %s\nNote: %s", entry->todo.indefinite, tm2vcaldatetime(entry->todo.due), entry->todo.priority, entry->todo.complete, entry->todo.description, entry->todo.note);
+	//Summary
+	cur = osxml_get_node(root, "Summary");
+	if (cur) {
+		entry->todo.description = (char *)xmlNodeGetContent(cur);
+	}
+	
+	//Note
+	cur = osxml_get_node(root, "Note");
+	if (cur) {
+		entry->todo.note = (char *)xmlNodeGetContent(cur);
+	}
+	
+	//Due
+	cur = osxml_get_node(root, "Due");
+	if (cur) {
+		char *content = (char *)xmlNodeGetContent(cur);
+		time_t ttm = atoi(content);
+		struct tm *tm = gmtime(&ttm);
+		entry->todo.due = *tm;
+		g_free(tm);
+		entry->todo.indefinite = 0;
+	}
 
-	deleteVObjectO(vcal);
+	//Categories
+	cur = osxml_get_node(root, "Categories");
+	if (cur) {
+		for (cur = cur->children; cur; cur = cur->next) {
+			entry->categories = g_list_append(entry->categories, (char*)xmlNodeGetContent(cur));
+		}
+	}
+	
+	*free_input = TRUE;
+	*output = (void *)entry;
+	*outpsize = sizeof(PSyncTodoEntry);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
-#endif
 
 char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
 {	
@@ -753,7 +726,7 @@ osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
 	return entry->address.entry[i] ? TRUE : FALSE;
 }
 
-static osync_bool conv_palm_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	PSyncContactEntry *entry = (PSyncContactEntry *)input;
@@ -909,7 +882,7 @@ error:
 	return FALSE;
 }
 
-static osync_bool conv_xml_to_palm(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
@@ -1059,11 +1032,14 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_create_func(env, "file", create_file);
 	osync_env_format_set_revision_func(env, "file", revision_file);*/
 
-	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm);
+	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_contact_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm_contact);
 	
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "palm-todo");
+	
+	osync_env_register_converter(env, CONVERTER_CONV, "palm-todo", "xml-todo", conv_palm_todo_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo", "palm-todo", conv_xml_to_palm_todo);
 	
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "palm-event");
