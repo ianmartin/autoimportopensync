@@ -22,6 +22,7 @@
 #define _PALM_SYNC_H
 
 #include <opensync/opensync.h>
+#include <stdio.h>
 
 #include <pi-socket.h>
 #include <pi-dlp.h>
@@ -50,22 +51,47 @@ typedef struct PSyncContactEntry PSyncContactEntry;
 typedef struct PSyncEventEntry PSyncEventEntry;
 typedef struct PSyncTodoEntry PSyncTodoEntry;
 
-typedef struct PSyncEnv {
+typedef struct PSyncEnv PSyncEnv;
+
+typedef struct PSyncDatabase {
+	unsigned char buffer[65536];
+	//pi_buffer_t *buffer;
+	int size;
+	int handle;
+	PSyncEnv *env;
+	struct CategoryAppInfo cai;
+	char *name;
+} PSyncDatabase;
+
+typedef struct PSyncEntry {
+	PSyncDatabase *db;
+	unsigned char buffer[65536];
+	//pi_buffer_t *buffer;
+	recordid_t id;
+	int attr;
+	int size;
+	int category;
+	int index;
+} PSyncEntry;
+
+struct PSyncEnv {
 	OSyncMember *member;
-	char *statefile;
+	
 	char *username;
 	int id;
 	char *sockaddr;
 	int timeout;
 	int speed;
 	int conntype;
-	int debuglevel;
-	int socket;
-	int database;
 	int popup;
 	int mismatch;
-	char *databasename;
+	
+	int socket;
+	
+	PSyncDatabase *currentDB;
+	struct PilotUser user;
+	
 	char *codepage;
-} PSyncEnv;
+};
 
 #endif //_PALM_SYNC_H

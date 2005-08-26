@@ -21,7 +21,340 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
+#define CATCOUNT 16
+
+static void _psyncDBClose(PSyncDatabase *db)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
+	
+	dlp_CloseDB(db->env->socket, db->handle);
+	db->env->currentDB = NULL;
+	g_free(db->name);
+	g_free(db);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name, error);
+	
+	struct DBInfo dbInfo;
+	memset(&dbInfo, 0, sizeof(struct DBInfo));
+
+	if (env->currentDB) {
+		if (strcmp(env->currentDB->name, name) != 0) {
+			//We have another DB open. close it first
+			osync_trace(TRACE_INTERNAL, "Other db open, closing first");
+			_psyncDBClose(env->currentDB);
+		} else {
+			//It was already open
+			osync_trace(TRACE_EXIT, "%s: Already opened", __func__);
+			return env->currentDB;
+		}
+	}
+
+ 	//Search it
+	if (dlp_FindDBInfo(env->socket, 0, 0, name, 0, 0, &dbInfo) < 0) {
+		osync_error_set(error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to locate %s. Assuming it has been reset", name);
+		goto error;
+	}
+
+	PSyncDatabase *db = osync_try_malloc0(sizeof(PSyncDatabase), error);
+	if (!db)
+		goto error;
+	db->env = env;
+	//db->buffer = pi_buffer_new(65536);
+	
+	//open it
+	if (dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &(db->handle)) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open %s", name);
+		goto error_free_db;
+	}
+
+	//db->size = dlp_ReadAppBlock(env->socket, db->handle, 0, 0xffff, db->buffer);
+	db->size = dlp_ReadAppBlock(env->socket, db->handle, 0, db->buffer, 0xffff);
+	if (db->size < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read %s", name);
+		goto error_free_db;
+	}
+	
+	if (unpack_CategoryAppInfo(&(db->cai), db->buffer, db->size) <= 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "unpack_AddressAppInfo failed");
+		goto error;
+	}
+	
+	env->currentDB = db;
+	db->name = g_strdup(name);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
+	return db;
+
+error_free_db:
+	g_free(db);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, nth, error);
+	
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
+	if (!entry)
+		goto error;
+	entry->index = nth;
+	entry->db = db;
+	//entry->buffer = pi_buffer_new(65536);
+	
+	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth, entry->buffer, &entry->id, &entry->size, &entry->attr, &entry->category);
+	if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
+		goto error_free_entry;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
+	return entry;
+
+error_free_entry:
+	g_free(entry);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
+	
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
+	if (!entry)
+		goto error;
+	entry->db = db;
+	//entry->buffer = pi_buffer_new(65536);
+	
+	int ret = dlp_ReadNextModifiedRec(db->env->socket, db->handle, entry->buffer, &entry->id, &entry->index, &entry->size, &entry->attr, &entry->category);
+	if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
+		goto error_free_entry;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
+	return entry;
+
+error_free_entry:
+	g_free(entry);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static osync_bool _psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, id, error);
+	
+	int ret = dlp_DeleteRecord(db->env->socket, db->handle, 0,  id);
+	if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to delete file: %i", ret);
+		goto error;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, db, entry, error);
+	
+	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, entry->buffer, sizeof(entry->buffer), 0);
+	if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to write file: %i", ret);
+		goto error;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, long *id, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p %p)", __func__, db, entry, id, error);
+	
+	int ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, entry->buffer, sizeof(entry->buffer), id);
+	if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to write file: %i", ret);
+		goto error;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static const char *_psyncDBCategoryFromId(PSyncDatabase *db, int id, OSyncError **error)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, id, error);
+
+	if (id > CATCOUNT || id < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid id %i", id);
+		goto error;
+	}
+		
+	const char *ret = db->cai.name[id];
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, ret);
+	return ret;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static int _psyncDBCategoryToId(PSyncDatabase *db, const char *name, OSyncError **error)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, name, error);
+	
+	int i = 0;
+	for (i = 0; i < CATCOUNT; i++) {
+		if (db->cai.name[i][0] != '\0') {
+			osync_trace(TRACE_INTERNAL, "remote: cat %d [%s] ID %d renamed %d", i, db->cai.name[i], db->cai.ID[i], db->cai.renamed[i]);
+			if (!strcmp(db->cai.name[i], name)) {
+				osync_trace(TRACE_EXIT, "%s: %i", i);
+				return i;
+			}
+		}
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
+	return 0;
+}
+
+static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, timeout, error);
+	struct pi_sockaddr addr;
+	int listen_sd = 0;
+	char *rate_buf = NULL;
+	int ret = 0;
+
+	if (env->conntype != PILOT_DEVICE_NETWORK) {
+		rate_buf = g_strdup_printf("PILOTRATE=%i", env->speed);
+		osync_trace(TRACE_INTERNAL, "setting PILOTRATE=%i", env->speed);
+		putenv(rate_buf);
+		g_free(rate_buf);
+	}
+
+	osync_trace(TRACE_INTERNAL, "Creating socket");
+	if (!(listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, PI_PF_DLP))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create listen sock");
+		goto error;
+	}
+
+	addr.pi_family = PI_AF_PILOT;
+
+	strcpy(addr.pi_device, env->sockaddr);
+
+	struct pi_sockaddr *tmpaddr = &addr;
+	osync_trace(TRACE_INTERNAL, "Binding socket");
+	if ((ret = pi_bind(listen_sd, (struct sockaddr*)tmpaddr, sizeof (addr))) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to bind to pilot: %i", ret);
+		goto error_free_listen;
+	}
+	
+	osync_trace(TRACE_INTERNAL, "Starting to listen");
+	if (pi_listen (listen_sd, 1) != 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to listen: %s", strerror (errno));
+		goto error_free_listen;
+	}
+
+	osync_trace(TRACE_INTERNAL, "Accepting connection");
+	env->socket = pi_accept_to(listen_sd, 0, 0, timeout * 1000);
+	if (env->socket == -1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to accept: %s", strerror (errno));
+		goto error_free_listen;
+	}
+
+	osync_trace(TRACE_INTERNAL, "Done");
+	pi_close(listen_sd);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_listen:
+	pi_close(listen_sd);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static gboolean _psyncPoll(gpointer data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+	PSyncEnv *env = (PSyncEnv *)data;
+	
+	if (env->socket > 0) {
+		osync_trace(TRACE_EXIT, "%s: Already have a socket", __func__);
+		return TRUE;
+	}
+	
+	OSyncError *error = NULL;
+	if (_connectDevice(env, 1, &error))
+		osync_member_request_synchronization(env->member);
+	else
+		osync_error_free(&error);
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+static gboolean _psyncPing(gpointer data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+	PSyncEnv *env = (PSyncEnv *)data;
+
+	if (!env->socket) {
+		osync_trace(TRACE_EXIT, "%s: No socket yet", __func__);
+		return TRUE;
+	}
+	
+	if (pi_tickle(env->socket) < 0) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Error", __func__);
+		return TRUE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+static void psyncThreadStart(PSyncEnv *env)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	
+	GMainContext *context = osync_member_get_loop(env->member);
+	
+	GSource *source = g_timeout_source_new(5000);
+	g_source_set_callback(source, _psyncPing, env, NULL);
+	g_source_attach(source, context);
+	
+	source = g_timeout_source_new(1000);
+	g_source_set_callback(source, _psyncPoll, env, NULL);
+	g_source_attach(source, context);
+}
+
+static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
 	xmlDoc *doc = NULL;
@@ -32,7 +365,6 @@ osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int si
 	env->username = g_strdup("");
 	env->codepage = g_strdup("cp1252");
 	env->id = 0;
-	env->debuglevel = 0;
 	env->conntype = 0;
 	env->speed = 57600;
 	env->timeout = 2;
@@ -107,106 +439,6 @@ error:
 	return FALSE;
 }
 
-static GMutex *piMutex = NULL;
-gboolean dbCreated = FALSE;
-gboolean tryConnecting = TRUE;
-
-/** @brief initialize the global mutex to protect the libpisock
- *
- */
-void piMutex_create()
-{
-	osync_trace(TRACE_ENTRY, "%s()", __func__);
-	
-	g_assert (piMutex == NULL);
-	piMutex = g_mutex_new ();
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-gboolean pingfunc(gpointer data)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
-	PSyncEnv *env = data;
-
-	if (!env->socket)
-		return FALSE;
-
-	if (g_mutex_trylock(piMutex) == FALSE) {
-		osync_trace(TRACE_EXIT, "Ping: Mutex locked!");
-		return TRUE;
-	}
-
-	if (pi_tickle(env->socket) < 0) {
-		osync_trace(TRACE_INTERNAL, "Ping: Error");
-	} else {
-		osync_trace(TRACE_INTERNAL, "Ping");
-	}
-
-	g_mutex_unlock(piMutex);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
-
-static osync_bool _connectDevice(PSyncEnv *env, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
-	struct pi_sockaddr addr;
-	int listen_sd = 0;
-	char *rate_buf = NULL;
-	//long timeout;
-
-	if (env->conntype != PILOT_DEVICE_NETWORK) {
-		rate_buf = g_strdup_printf("PILOTRATE=%i", env->speed);
-		osync_trace(TRACE_INTERNAL, "setting PILOTRATE=%i", env->speed);
-		putenv(rate_buf);
-		g_free(rate_buf);
-	}
-
-	osync_trace(TRACE_INTERNAL, "Creating socket");
-	if (!(listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, PI_PF_DLP))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create listen sock");
-		goto error;
-	}
-
-	addr.pi_family = PI_AF_PILOT;
-
-	strcpy(addr.pi_device, env->sockaddr);
-
-	struct pi_sockaddr *tmpaddr = &addr;
-	osync_trace(TRACE_INTERNAL, "Binding socket");
-	if (pi_bind(listen_sd, (struct sockaddr*)tmpaddr, sizeof (addr)) == -1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to bind to pilot");
-		goto error_free_listen;
-	}
-	
-	osync_trace(TRACE_INTERNAL, "Starting to listen");
-	if (pi_listen (listen_sd, 1) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to listen: %s", strerror (errno));
-		goto error_free_listen;
-	}
-
-	osync_trace(TRACE_INTERNAL, "Accepting connection");
-	env->socket = pi_accept_to(listen_sd, 0, 0, env->timeout * 1000);
-	if (env->socket == -1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to accept: %s", strerror (errno));
-		goto error_free_listen;
-	}
-
-	osync_trace(TRACE_INTERNAL, "Done");
-	pi_close(listen_sd);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error_free_listen:
-	pi_close(listen_sd);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
 static void *psyncInitialize(OSyncMember *member, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
@@ -228,6 +460,8 @@ static void *psyncInitialize(OSyncMember *member, OSyncError **error)
 	env->member = member;
 	g_free(configdata);
 	
+	psyncThreadStart(env);
+	
 	osync_trace(TRACE_EXIT, "%s, %p", __func__, env);
 	return (void *)env;
 
@@ -245,52 +479,51 @@ static void psyncConnect(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
-	struct PilotUser User;
 
 	//now connect with the palm
-	if (!_connectDevice(env, &error))
+	if (!_connectDevice(env, env->timeout, &error))
 		goto error;
 
 	//check the user
-	if (dlp_ReadUserInfo(env->socket, &User) >= 0) {
-		if (User.userID == 0)
-			strcpy(User.username, "");
-			
-		osync_trace(TRACE_INTERNAL, "User: %s, %i\n", User.username, User.userID);
-		/*if (strcmp(User.username, conn->username) || User.userID != conn->id) {
-			//Id or username mismatch
-			switch (conn->mismatch) {
-				case 0:
-					break;
-				case 1:
-					//ask
-					dialogShowing = 0;
-					printf("The username \"%s\" or the ID %i on the device  did not match the username or ID from this syncpair.\nPress \"Cancel\" to abort the synchronization.\n\"OK\" to sync anyway", User.username, (int)User.userID);
-					//g_idle_add(showDialogMismatch, txt);
-					//while (!dialogShowing) {
-					//	usleep(100000);
-					//}
-					//if (dialogShowing == 2) {
-					//	palm_debug(conn, 0, "Sync aborted because of User mismatch");
-					//	goto failed;
-					//}
-					break;
-				case 2:
-					palm_debug(conn, 0, "Sync aborted because of User mismatch");
-					goto failed;
-					break;
-			}
-		}*/
-	} else {
+	if (dlp_ReadUserInfo(env->socket, &env->user) < 0) {
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to read UserInfo");
 		goto error;
 	}
-
-	//init the mutex
-	piMutex_create();
 	
-	//Add the ping function every 5 secs
-	//g_timeout_add(5000, pingfunc, conn);
+	if (env->user.userID == 0)
+		strcpy(env->user.username, "");
+		
+	osync_trace(TRACE_INTERNAL, "User: %s, %i\n", env->user.username, env->user.userID);
+	/*if (strcmp(User.username, conn->username) || User.userID != conn->id) {
+		//Id or username mismatch
+		switch (conn->mismatch) {
+			case 0:
+				break;
+			case 1:
+				//ask
+				dialogShowing = 0;
+				printf("The username \"%s\" or the ID %i on the device  did not match the username or ID from this syncpair.\nPress \"Cancel\" to abort the synchronization.\n\"OK\" to sync anyway", User.username, (int)User.userID);
+				//g_idle_add(showDialogMismatch, txt);
+				//while (!dialogShowing) {
+				//	usleep(100000);
+				//}
+				//if (dialogShowing == 2) {
+				//	palm_debug(conn, 0, "Sync aborted because of User mismatch");
+				//	goto failed;
+				//}
+				break;
+			case 2:
+				palm_debug(conn, 0, "Sync aborted because of User mismatch");
+				goto failed;
+				break;
+		}
+	}*/
+	
+	if (env->user.lastSyncPC == 0) {
+		//Device has been reseted
+		osync_trace(TRACE_INTERNAL, "Detected that the Device has been reset");
+		osync_member_set_slow_sync(env->member, "data", TRUE);
+	}
 	
 	osync_context_report_success(ctx);
 	
@@ -308,333 +541,312 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-/***********************************************************************
-*
-* Function:    CloseDB
-*
-* Summary:   closes the currently open DB and unsets the conn variables
-*
- ***********************************************************************/
-static void _closeDB(PSyncEnv *env)
+static OSyncChange *_psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+	PSyncDatabase *db = entry->db;
 	
-	dlp_CloseDB(env->socket, env->database);
-	strcpy(env->databasename, "");
-	env->database = 0;
+	OSyncChange *change = osync_change_new();
+	if (!change)
+		goto error;
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	char *uid = g_strdup_printf("uid-ToDoDB-%ld", entry->id);
+	osync_change_set_uid(change, uid);
+	g_free(uid);
+	
+	osync_change_set_objformat_string(change, "palm-todo");
+	
+	PSyncTodoEntry *todo = osync_try_malloc0(sizeof(PSyncTodoEntry), error);
+	if (!todo)
+		goto error_free_change;
+	todo->codepage = g_strdup(db->env->codepage);
+	osync_change_set_data(change, (void *)todo, sizeof(PSyncTodoEntry), TRUE);
+	
+	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+	unpack_ToDo(&(todo->todo), entry->buffer, db->size);
+    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+    if (catname)
+		todo->categories = g_list_append(todo->categories, g_strdup(catname));
+	
+	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
+		if ((entry->attr & dlpRecAttrArchived)) {
+			osync_trace(TRACE_INTERNAL, "Archieved");
+		}
+		//we have a deleted record
+		osync_change_set_changetype(change, CHANGE_DELETED);
+	} else if (entry->attr & dlpRecAttrDirty) {
+		osync_change_set_changetype(change, CHANGE_MODIFIED);
+	} else {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown change types");
+		goto error_free_change;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
+	return change;
+	
+error_free_change:
+	osync_change_free(change);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
-static osync_bool _openDB(PSyncEnv *env, char *name, OSyncError **error)
+static osync_bool _psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
 	
-	struct DBInfo dbInfo;
-	memset(&dbInfo, 0, sizeof(struct DBInfo));
-
-	if (env->database) {
-		if (strcmp(env->databasename, name) != 0) {
-			//We have another DB open. close it first
-			osync_trace(TRACE_INTERNAL, "Other db open, closing first");
-			_closeDB(env);
-		} else {
-			//It was already open
-			osync_trace(TRACE_EXIT, "%s: Already opened", __func__);
-			return TRUE;
+	if (!(db = _psyncDBOpen(env, "ToDoDB", error)))
+		goto error;
+	
+	if (osync_member_get_slow_sync(env->member, "todo") == TRUE) {
+		osync_trace(TRACE_INTERNAL, "slow sync");
+		
+		int n;
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
+			
+			OSyncChange *change = _psyncTodoCreate(entry, error);
+			if (!change)
+				goto error;
+			
+			osync_change_set_changetype(change, CHANGE_ADDED);
+			osync_context_report_change(ctx, change);
+		}
+	} else {
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			OSyncChange *change = _psyncTodoCreate(entry, error);
+			if (!change)
+				goto error;
+			
+			osync_context_report_change(ctx, change);
 		}
 	}
-
- 	//Search it
-	if (dlp_FindDBInfo(env->socket, 0, 0, name, 0, 0, &dbInfo) < 0) {
-		osync_error_set(error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to locate %s. Assuming it has been reset", name);
-		goto error;
-	}
-
-	//open it
-	if (dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &env->database) < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open %s", name);
-		env->database = 0;
-		goto error;
-	}
-
-	g_free(env->databasename);
-	env->databasename = g_strdup(name);
-
+	
+	if (osync_error_is_set(error))
+		goto error_close_db;
+	
+	_psyncDBClose(db);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
+error_close_db:
+	_psyncDBClose(db);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
+static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	PSyncTodoEntry *todo = NULL;
+	OSyncError *error = NULL;
+	long id = 0;
 
-#define CATCOUNT 16
-#ifndef min
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-#endif
-
-/***********************************************************************
- *
- * Function:    get_category_name_from_id
- *
- * Summary:   gets the installed categories as a GList
- *
- ***********************************************************************/
-char *get_category_name_from_id(PSyncEnv *env, int id, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, id, error);
+	//open the DB
+	if (!(db = _psyncDBOpen(env, "ToDoDB", &error)))
+		goto error;
 	
-	int size;
-	unsigned char buf[65536];
-	struct CategoryAppInfo cai;
-	int r;
+	todo = (PSyncTodoEntry *)osync_change_get_data(change);
+			
+	switch (osync_change_get_changetype(change)) {
+		case CHANGE_MODIFIED:
+			//Get the id
+			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
+			osync_trace(TRACE_INTERNAL, "id %ld", id);
 
-	if (id == 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Id was null");
-		goto error;
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+			pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
+	
+			if (!_psyncDBWrite(db, entry, &error))
+				goto error;
+				
+			break;
+		case CHANGE_ADDED:
+			//Add a new entry
+			osync_trace(TRACE_INTERNAL, "Find category");
+			
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+			GList *c = NULL;
+			for (c = todo->categories; c; c = c->next) {
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				entry->category = _psyncDBCategoryToId(db, c->data, NULL);
+				if (entry->category != 0) {
+					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
+					break;
+				}
+			}
+			
+			osync_trace(TRACE_INTERNAL, "Adding new entry");
+			
+			pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
+	
+			
+			if (!_psyncDBAdd(db, entry, &id, &error))
+				goto error;
+			
+			//Make the new uid
+			char *uid = g_strdup_printf("uid-ToDoDB-%ld", id);
+			osync_change_set_uid(change, uid);
+			g_free(uid);
+			break;
+		case CHANGE_DELETED:
+			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
+			osync_trace(TRACE_INTERNAL, "id %ld", id);
+		
+			if (!_psyncDBDelete(db, id, &error))
+				goto error;
+				
+			break;
+		default:
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
+			goto error;
 	}
 	
-	/* buffer size passed in cannot be any larger than 0xffff */
-	size = dlp_ReadAppBlock(env->socket, env->database, 0, buf, min(sizeof(buf), 0xFFFF));
-	if (size <= 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error reading appinfo block");
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	return FALSE;
+}
+
+PSyncContactEntry *_psyncContactCreate(PSyncEntry *entry, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+	PSyncDatabase *db = entry->db;
+
+	PSyncContactEntry *contact = osync_try_malloc0(sizeof(PSyncContactEntry), error);
+	if (!contact)
 		goto error;
-	}
+	contact->codepage = g_strdup(db->env->codepage);
+	
+	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+	unpack_Address(&(contact->address), entry->buffer, db->size);
+    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+    if (catname)
+		contact->categories = g_list_append(contact->categories, g_strdup(catname));
 
-	r = unpack_CategoryAppInfo(&cai, buf, size);
-	if ((r <= 0) || (size <= 0)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "unpack_AddressAppInfo failed");
-		goto error;
-	}
-
-	char *ret = g_strdup(cai.name[id]);
-
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, ret);
-	return ret;
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, contact);
+	return contact;
 
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
-/***********************************************************************
- *
- * Function:    get_category_id_from_name
- *
- * Summary:   gets the installed categories as a GList
- *
- ***********************************************************************/
-int get_category_id_from_name(PSyncEnv *env, const char *name, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name, error);
-	
-	int size;
-	unsigned char buf[65536];
-	struct CategoryAppInfo cai;
-	int r, i;
 
-	if (!name) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Name was null");
-		goto error;
-	}
-	
-	/* buffer size passed in cannot be any larger than 0xffff */
-	size = dlp_ReadAppBlock(env->socket, env->database, 0, buf, min(sizeof(buf), 0xFFFF));
-	if (size<=0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error reading appinfo block");
-		goto error;
-	}
 
-	r = unpack_CategoryAppInfo(&cai, buf, size);
-	if ((r <= 0) || (size <= 0)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "unpack_AddressAppInfo failed");
+static OSyncChange *_psyncContactChangeCreate(PSyncEntry *entry, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+
+	OSyncChange *change = osync_change_new();
+	if (!change)
 		goto error;
-	}
-   
-	for (i = 0; i < CATCOUNT; i++) {
-		if (cai.name[i][0] != '\0') {
-			osync_trace(TRACE_INTERNAL, "remote: cat %d [%s] ID %d renamed %d", i, cai.name[i], cai.ID[i], cai.renamed[i]);
-			if (!strcmp(cai.name[i], name)) {
-				osync_trace(TRACE_EXIT, "%s: %i", i);
-				return i;
-			}
+	
+	char *uid = g_strdup_printf("uid-AddressDB-%ld", entry->id);
+	osync_change_set_uid(change, uid);
+	g_free(uid);
+	
+	osync_change_set_objformat_string(change, "palm-contact");
+	
+	PSyncContactEntry *contact = _psyncContactCreate(entry, error);
+	if (!contact)
+		goto error_free_change;
+	
+	osync_change_set_data(change, (void *)contact, sizeof(PSyncContactEntry), TRUE);
+	
+	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
+		if ((entry->attr & dlpRecAttrArchived)) {
+			osync_trace(TRACE_INTERNAL, "Archieved");
 		}
+		//we have a deleted record
+		osync_change_set_changetype(change, CHANGE_DELETED);
+	} else if (entry->attr & dlpRecAttrDirty) {
+		osync_change_set_changetype(change, CHANGE_MODIFIED);
+	} else {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown change types");
+		goto error_free_change;
 	}
 	
-	osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
-	return 0;
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
+	return change;
 
+error_free_change:
+	osync_change_free(change);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return 0;
+	return NULL;
 }
 
-static osync_bool psyncReportContacts(OSyncContext *ctx, OSyncError **error)
+static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	int l, ret;
-	unsigned char buffer[65536];
-	recordid_t id=0;
-	int index, size, attr, category;
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
 	
-	if (!_openDB(env, "AddressDB", error))
+	if (!(db = _psyncDBOpen(env, "AddressDB", error)))
 		goto error;
 	
-	l = dlp_ReadAppBlock(env->socket, env->database, 0, buffer, 0xffff);
-	
 	if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
-		int n;
 		osync_trace(TRACE_INTERNAL, "slow sync");
+		
+		int n;
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
-		for (n = 0; dlp_ReadRecordByIndex(env->socket, env->database, n, buffer, &id, &size, &attr, &category) >= 0; n++) {
-			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", id);
-			
-			OSyncChange *change = osync_change_new();
-			osync_change_set_uid(change, g_strdup_printf("uid-AddressDB-%ld", id));
-			osync_change_set_objformat_string(change, "palm-contact");
-			
-			PSyncContactEntry *entry = osync_try_malloc0(sizeof(PSyncContactEntry), error);
-			if (!entry)
+			OSyncChange *change = _psyncContactChangeCreate(entry, error);
+			if (!change)
 				goto error;
-			entry->codepage = g_strdup(env->codepage);
 			
-            unpack_Address(&(entry->address), buffer, l);
-            char *catname = get_category_name_from_id(env, category, NULL);
-            if (catname)
-				entry->categories = g_list_append(entry->categories, catname);
-			
-			//We have a modified record
-			osync_change_set_data(change, (void *)entry, sizeof(PSyncContactEntry), TRUE);
 			osync_change_set_changetype(change, CHANGE_ADDED);
-			
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((ret = dlp_ReadNextModifiedRec(env->socket, env->database, buffer, &id, &index, &size, &attr, &category)) >= 0) {
-			osync_trace(TRACE_INTERNAL, "Got modified recored with id %ld", id);
-			
-			OSyncChange *change = osync_change_new();
-			osync_change_set_uid(change, g_strdup_printf("uid-AddressDB-%ld", id));
-			osync_change_set_objformat_string(change, "palm-contact");
-			
-			if ((attr &  dlpRecAttrDeleted) || (attr & dlpRecAttrArchived)) {
-				if ((attr & dlpRecAttrArchived)) {
-					osync_trace(TRACE_INTERNAL, "Archieved");
-				}
-				//we have a deleted record
-				osync_change_set_changetype(change, CHANGE_DELETED);
-			} else if (attr & dlpRecAttrDirty) {
-				PSyncContactEntry *entry = osync_try_malloc0(sizeof(PSyncContactEntry), error);
-				if (!entry)
-					goto error;
-				entry->codepage = g_strdup(env->codepage);
-				
-	            unpack_Address(&(entry->address), buffer, l);
-	            char *catname = get_category_name_from_id(env, category, NULL);
-	            if (catname)
-					entry->categories = g_list_append(entry->categories, catname);
-				
-				//We have a modified record
-				osync_change_set_data(change, (void *)entry, sizeof(PSyncContactEntry), TRUE);
-				osync_change_set_changetype(change, CHANGE_MODIFIED);
-			
-				osync_trace(TRACE_INTERNAL, "Found a modified record on palm: %s", entry->uid);
-			} else
-				continue;
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			OSyncChange *change = _psyncContactChangeCreate(entry, error);
+			if (!change)
+				goto error;
 			
 			osync_context_report_change(ctx, change);
 		}
 	}
 	
-	_closeDB(env);
+	if (osync_error_is_set(error))
+		goto error_close_db;
+	
+	_psyncDBClose(db);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
+error_close_db:
+	_psyncDBClose(db);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
-void psyncGetChangeinfo(OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	OSyncError *error = NULL;
-	struct  PilotUser User;
-	
-	//Lock our Mutex
-	g_mutex_lock(piMutex);
-
-	osync_trace(TRACE_INTERNAL, "Opening conduit");
-	dlp_OpenConduit(env->socket);
-
-	if (!psyncReportContacts(ctx, &error))
-		goto error;
-	
-	osync_trace(TRACE_INTERNAL, "Done searching for changes");
-
-	if (dlp_ReadUserInfo(env->socket, &User) >= 0) {
-		if (User.lastSyncPC == 0) {
-			//Device has been reseted
-			osync_trace(TRACE_INTERNAL, "Detected that the Device has been reset");
-			//chinfo->newdbs = SYNC_OBJECT_TYPE_ANY;
-		}
-	}
-
-	g_mutex_unlock(piMutex);
-
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	g_mutex_unlock(piMutex);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	int l = 0;
-	int ret = 0;
-	unsigned char buffer[65536];
-	unsigned char orig_buffer[65536];
-	PSyncContactEntry *entry = NULL;
-	//palm_entry orig_entry;
-	recordid_t id=0;
-	int size;
-	int attr, category = 0;
-	//int category_new;
-	char *database = NULL;
-	int dbhandle;
-	OSyncError *error = NULL;
-	
-	//Lock our Mutex
-	g_mutex_lock(piMutex);
-
-	//detect the db needed
-	if (!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "palm-contact")) {
-		database = "AddressDB";
-	} else if (!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "palm-event")) {
-		database = "DatebookDB";
-	} else if (!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "palm-todo")) {
-		database = "ToDoDB";
-	} else {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unknown format");
-		goto error;
-	}
-
-	osync_trace(TRACE_INTERNAL, "Detected vcard to belong to %s", database);
-
-	//open the DB
-	if (!_openDB(env, database, &error)) {
+/*
 		if (osync_error_get_type(&error) == OSYNC_ERROR_FILE_NOT_FOUND) {
 			if ((dbCreated == FALSE) && !strcmp(database, "DatebookDB")) {
 				//Unlock our Mutex so the palm does not die will the messagebox is open
@@ -648,140 +860,352 @@ static osync_bool psyncCommitChange(OSyncContext *ctx, OSyncChange *change)
 				dlp_AddSyncLogEntry(env->socket, "Created Calendar.\n");
 				osync_trace(TRACE_INTERNAL, "Created Calendar.");
 			}
-		} else {
-			osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unsasble to open directory");
-			goto error;
-		}
-	}
+		} else {*/
+
+static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	PSyncContactEntry *contact = NULL;
+	OSyncError *error = NULL;
+	long id = 0;
+
+	//open the DB
+	if (!(db = _psyncDBOpen(env, "AddressDB", &error)))
+		goto error;
 	
+	contact = (PSyncContactEntry *)osync_change_get_data(change);
+			
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
-			//Modify a entry
-			osync_trace(TRACE_INTERNAL, "Find orig");
+			//Get the id
 			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %i", id);
-			if (dlp_ReadRecordById(env->socket, env->database, id, orig_buffer, NULL, &size, &attr, &category) < 0) {
-				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to find entry i want to modify");
-				goto error;
-			}
+			osync_trace(TRACE_INTERNAL, "id %ld", id);
 			
-			//Now retrieve the info about "show in list"
-/*			if (!strcmp(database, "AddressDB")) {	
-				unpackEntry(&orig_entry, orig_buffer, l, objtype);
-				palm_debug(conn, 2, "Using orig \"show in list\": %i", orig_entry.address.showPhone);
-				if ((orig_entry.address.showPhone) > 4)
-					orig_entry.address.showPhone = 0;
-				entry.address.showPhone = orig_entry.address.showPhone;
-				//Repack it
-				l = pack_Address(&entry.address, buffer, sizeof(buffer));
-			}*/
-			entry = (PSyncContactEntry *)osync_change_get_data(change);
-			osync_trace(TRACE_INTERNAL, "pack %p", entry);
-			l = pack_Address(&(entry->address), buffer, sizeof(buffer));
-			
-			osync_trace(TRACE_INTERNAL, "write id %i", id);
-			ret = dlp_WriteRecord(env->socket, env->database, attr, id, category, buffer, l, 0);
-			if (ret < 0) {
-				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to modify entry");
+			PSyncEntry *orig_entry = _psyncDBGetNthEntry(db, id, &error);
+			if (!orig_entry)
 				goto error;
-			}
+			
+			PSyncContactEntry *orig_contact = _psyncContactCreate(orig_entry, &error);
+			if (!orig_contact)
+				goto error;
+				
+			if ((orig_contact->address.showPhone) > 4)
+				orig_contact->address.showPhone = 0;
+			contact->address.showPhone = orig_contact->address.showPhone;
+
+			g_free(orig_entry);
+			g_free(orig_contact);
+
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+			pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
+	
+			if (!_psyncDBWrite(db, entry, &error))
+				goto error;
+				
 			break;
 		case CHANGE_ADDED:
 			//Add a new entry
 			osync_trace(TRACE_INTERNAL, "Find category");
-			entry = (PSyncContactEntry *)osync_change_get_data(change);
+			
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
 			GList *c = NULL;
-			for (c = entry->categories; c; c = c->next) {
+			for (c = contact->categories; c; c = c->next) {
 				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
-				category = get_category_id_from_name(env, c->data, NULL);
-				if (category != 0) {
-					osync_trace(TRACE_INTERNAL, "Found category %i\n", category);
+				entry->category = _psyncDBCategoryToId(db, c->data, NULL);
+				if (entry->category != 0) {
+					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
 					break;
 				}
 			}
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			l = pack_Address(&entry->address, buffer, sizeof(buffer));
+			pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
+	
 			
-			id = 0;
-			if (dlp_WriteRecord(env->socket, env->database, 0, 0, category, buffer, l, &id) < 0) {
-				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to add new entry");
+			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
-			}
+			
 			//Make the new uid
-			osync_change_set_uid(change, g_strdup_printf("uid-%s-%ld", database, id));
+			char *uid = g_strdup_printf("uid-AddressDB-%ld", id);
+			osync_change_set_uid(change, uid);
+			g_free(uid);
 			break;
 		case CHANGE_DELETED:
-			osync_trace(TRACE_INTERNAL, "delete: Find orig");
 			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %i", id);
+			osync_trace(TRACE_INTERNAL, "id %ld", id);
 		
-			if (dlp_DeleteRecord(env->socket, env->database, 0,  id) < 0) {
-				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to delete");
+			if (!_psyncDBDelete(db, id, &error))
 				goto error;
-			}
+				
 			break;
 		default:
 			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
 			goto error;
 	}
-
-	//Unlock our Mutex
-	g_mutex_unlock(piMutex);
 	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
-	g_mutex_unlock(piMutex);
 	osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 	return FALSE;
 }
 
-/***********************************************************************
- *
- * Function:    sync_done
- *
- * Summary:		gets called by Multisync. opens each DB, reset the sync flags
- *				and write some information to the Palm
- *
- ***********************************************************************/
-void psyncDone(OSyncContext *ctx)
+static OSyncChange *_psyncEventCreate(PSyncEntry *entry, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+	PSyncDatabase *db = entry->db;
+	
+	OSyncChange *change = osync_change_new();
+	if (!change)
+		goto error;
+	
+	char *uid = g_strdup_printf("uid-DatebookDB-%ld", entry->id);
+	osync_change_set_uid(change, uid);
+	g_free(uid);
+	
+	osync_change_set_objformat_string(change, "palm-event");
+	
+	PSyncEventEntry *event = osync_try_malloc0(sizeof(PSyncEventEntry), error);
+	if (!event)
+		goto error_free_change;
+	event->codepage = g_strdup(db->env->codepage);
+	
+	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+	unpack_Appointment(&(event->appointment), entry->buffer, db->size);
+    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+    if (catname)
+		event->categories = g_list_append(event->categories, g_strdup(catname));
+	
+	osync_change_set_data(change, (void *)event, sizeof(PSyncEventEntry), TRUE);
+	
+	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
+		if ((entry->attr & dlpRecAttrArchived)) {
+			osync_trace(TRACE_INTERNAL, "Archieved");
+		}
+		//we have a deleted record
+		osync_change_set_changetype(change, CHANGE_DELETED);
+	} else if (entry->attr & dlpRecAttrDirty) {
+		osync_change_set_changetype(change, CHANGE_MODIFIED);
+	} else {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown change types");
+		goto error_free_change;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
+	return change;
+
+error_free_change:
+	osync_change_free(change);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static osync_bool _psyncEventGetChangeInfo(OSyncContext *ctx, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	
+	if (!(db = _psyncDBOpen(env, "DatebookDB", error)))
+		goto error;
+	
+	if (osync_member_get_slow_sync(env->member, "event") == TRUE) {
+		osync_trace(TRACE_INTERNAL, "slow sync");
+		
+		int n;
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
+			
+			OSyncChange *change = _psyncEventCreate(entry, error);
+			if (!change)
+				goto error;
+			
+			osync_change_set_changetype(change, CHANGE_ADDED);
+			osync_context_report_change(ctx, change);
+		}
+	} else {
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			OSyncChange *change = _psyncEventCreate(entry, error);
+			if (!change)
+				goto error;
+			
+			osync_context_report_change(ctx, change);
+		}
+	}
+	
+	if (osync_error_is_set(error))
+		goto error_close_db;
+	
+	_psyncDBClose(db);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_close_db:
+	_psyncDBClose(db);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	PSyncEventEntry *event = NULL;
+	OSyncError *error = NULL;
+	long id = 0;
+
+	//open the DB
+	if (!(db = _psyncDBOpen(env, "DatebookDB", &error)))
+		goto error;
+	
+	event = (PSyncEventEntry *)osync_change_get_data(change);
+			
+	switch (osync_change_get_changetype(change)) {
+		case CHANGE_MODIFIED:
+			//Get the id
+			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
+			osync_trace(TRACE_INTERNAL, "id %ld", id);
+
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+			pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
+	
+			if (!_psyncDBWrite(db, entry, &error))
+				goto error;
+				
+			break;
+		case CHANGE_ADDED:
+			//Add a new entry
+			osync_trace(TRACE_INTERNAL, "Find category");
+			
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+			GList *c = NULL;
+			for (c = event->categories; c; c = c->next) {
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				entry->category = _psyncDBCategoryToId(db, c->data, NULL);
+				if (entry->category != 0) {
+					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
+					break;
+				}
+			}
+			
+			osync_trace(TRACE_INTERNAL, "Adding new entry");
+			
+			pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
+	
+			if (!_psyncDBAdd(db, entry, &id, &error))
+				goto error;
+			
+			//Make the new uid
+			char *uid = g_strdup_printf("uid-DatebookDB-%ld", id);
+			osync_change_set_uid(change, uid);
+			g_free(uid);
+			break;
+		case CHANGE_DELETED:
+			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
+			osync_trace(TRACE_INTERNAL, "id %ld", id);
+		
+			if (!_psyncDBDelete(db, id, &error))
+				goto error;
+				
+			break;
+		default:
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
+			goto error;
+	}
+	
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	return FALSE;
+}
+
+static void psyncGetChangeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	struct  PilotUser User;
-	int i = 0, ret;
-	char *database = NULL;
 	OSyncError *error = NULL;
+
+	osync_trace(TRACE_INTERNAL, "Opening conduit");
+	dlp_OpenConduit(env->socket);
+
+	if (!_psyncTodoGetChangeInfo(ctx, &error))
+		goto error;
 	
-	//Lock our Mutex
-	g_mutex_lock(piMutex);
+	if (!_psyncContactGetChangeInfo(ctx, &error))
+		goto error;
+		
+	if (!_psyncEventGetChangeInfo(ctx, &error))
+		goto error;
 
-	//reset change counters
-	for (i = 0; i < 3; i++) {
-		switch (i) {
-			case 0:
-				database = "AddressDB";
-				break;
-			case 1:
-				database = "DatebookDB";
-				break;
-			case 2:
-				database = "ToDoDB";
-				break;
-		}
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
 
-		if (_openDB(env, database, &error)) {
-			osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for %s", database);
-			dlp_ResetSyncFlags(env->socket, env->database);
-			dlp_CleanUpDatabase(env->socket, env->database);
-			_closeDB(env);
-		}
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+}
+
+static void psyncDone(OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+
+	PSyncDatabase *db = NULL;
+	OSyncError *error = NULL;
+
+	if ((db = _psyncDBOpen(env, "AddressDB", &error))) {
+		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for AddressDB");
+		dlp_ResetSyncFlags(env->socket, db->handle);
+		dlp_CleanUpDatabase(env->socket, db->handle);
+		_psyncDBClose(db);
+	}
+	
+	if ((db = _psyncDBOpen(env, "ToDoDB", &error))) {
+		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for ToDoDB");
+		dlp_ResetSyncFlags(env->socket, db->handle);
+		dlp_CleanUpDatabase(env->socket, db->handle);
+		_psyncDBClose(db);
+	}
+	
+	if ((db = _psyncDBOpen(env, "DatebookDB", &error))) {
+		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for DatebookDB");
+		dlp_ResetSyncFlags(env->socket, db->handle);
+		dlp_CleanUpDatabase(env->socket, db->handle);
+		_psyncDBClose(db);
 	}
 
 	//Set the log and sync entries on the palm
@@ -789,42 +1213,26 @@ void psyncDone(OSyncContext *ctx)
 	dlp_AddSyncLogEntry(env->socket, "Thank you for using\n");
 	dlp_AddSyncLogEntry(env->socket, "OpenSync");
 
-	ret = dlp_ReadUserInfo(env->socket, &User);
-	if (ret >= 0) {
-		if (User.userID == 0)
-			strcpy(User.username, "");
-		User.lastSyncPC = 1;
-		User.lastSyncDate = time(NULL);
-		User.successfulSyncDate = time(NULL);
-		if (dlp_WriteUserInfo(env->socket, &User) < 0) {
-			osync_trace(TRACE_INTERNAL, "Unable to write UserInfo");
-		} else {
-			osync_trace(TRACE_INTERNAL, "Done writing new UserInfo");
-		}
-	} else {
-		osync_trace(TRACE_INTERNAL, "Unable to read UserInfo: %i, %s", ret, dlp_strerror(ret));
+	env->user.lastSyncPC = 1;
+	env->user.lastSyncDate = time(NULL);
+	env->user.successfulSyncDate = time(NULL);
+	if (dlp_WriteUserInfo(env->socket, &env->user) < 0) {
+		osync_trace(TRACE_INTERNAL, "Unable to write UserInfo");
 	}
-
-	
-
-	//Unlock our Mutex
-	g_mutex_unlock(piMutex);
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
 
-void psyncDisconnect(OSyncContext *ctx)
+static void psyncDisconnect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	//Lock our Mutex
-	g_mutex_lock(piMutex);
 
-	dbCreated = FALSE;
-
+	if (env->currentDB)
+		_psyncDBClose(env->currentDB);
+		
 	dlp_EndOfSync(env->socket, 0);
 	osync_trace(TRACE_INTERNAL, "Done syncing");
 
@@ -832,15 +1240,8 @@ void psyncDisconnect(OSyncContext *ctx)
 		pi_close(env->socket);
 		env->socket = 0;
 	}
-	
+
 	osync_context_report_success(ctx);
-
-	//Unlock our Mutex
-	g_mutex_unlock(piMutex);
-	//Free it
-	g_mutex_free(piMutex);
-	piMutex = NULL;
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
@@ -872,5 +1273,13 @@ void get_info(OSyncEnv *env)
 
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "palm-contact", NULL);
-	osync_plugin_set_commit_objformat(info, "contact", "palm-contact", psyncCommitChange);
+	osync_plugin_set_commit_objformat(info, "contact", "palm-contact", psyncContactCommit);
+	
+	osync_plugin_accept_objtype(info, "todo");
+	osync_plugin_accept_objformat(info, "todo", "palm-todo", NULL);
+	osync_plugin_set_commit_objformat(info, "todo", "palm-todo", psyncTodoCommit);
+	
+	osync_plugin_accept_objtype(info, "event");
+	osync_plugin_accept_objformat(info, "event", "palm-event", NULL);
+	osync_plugin_set_commit_objformat(info, "event", "palm-event", psyncEventCommit);
 }
