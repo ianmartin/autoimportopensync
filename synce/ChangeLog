@@ -19,3 +19,6 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
   directory can be specified, and the other stuff is meant to disappear too - 
   only the mechanism for enabling/disabling stuff from the GUI is to remain.
   This is as Armin suggested.
+
+* Rename the structure in synce_plugin.h so it has "synce" in its name. Make
+  the include file safe against multiple inclusion, add a copyright.

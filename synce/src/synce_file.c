@@ -32,6 +32,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <glib.h>
+
 #include <opensync/opensync.h>
 
 #include <rra/appointment.h>
@@ -151,14 +153,67 @@ static bool print_entry(CE_FIND_DATA* entry)
 struct	MyCeFileInfo {
 	DWORD	attrib;
 	DWORD	size;
-	WCHAR	*wfn;
-#if 0
-	LPFILETIME	time_create, time_access, time_write;
-#endif
+	FILETIME	time_create, time_write;
+	WCHAR	wfn[MAX_PATH];
 };
+
+/*
+ * A hash appears to be a string.
+ * The file-sync plugin allocates new memory in this occasion so I guess that's the right
+ * thing to do.
+ */
+static char *FileHash(struct MyCeFileInfo *p)
+{
+	char	path[MAX_PATH], *x;
+	char	write_time_string[50] = {0},
+		create_time_string[50] = {0};
+#ifndef	NEW_TIME
+	time_t seconds;
+	struct tm	*time_struct = NULL;
+#else
+	TIME_FIELDS	write_time_fields, create_time_fields;
+#endif
+
+	if (!p)
+		return "";
+	x = wstr_to_current(p->wfn);
+	strcpy(path, x);
+	free(x);
+
+#ifndef	NEW_TIME
+	seconds = filetime_to_unix_time(p->time_create);
+	time_struct = localtime(&seconds);
+	strftime(create_time_string, sizeof(create_time_string), "%c", time_struct);
+	seconds = filetime_to_unix_time(p->time_write);
+	time_struct = localtime(&seconds);
+	strftime(write_time_string, sizeof(write_time_string), "%c", time_struct);
+#else
+	time_fields_from_filetime(&p->time_create, &create_time_fields);
+	time_fields_from_filetime(&p->time_write, &write_time_fields);
+	sprintf(create_time_string, "%04i-%02i-%02i %02i:%02i:%02i",
+		create_time_fields.Year, create_time_fields.Month, create_time_fields.Day,
+		create_time_fields.Hour, create_time_fields.Minute, create_time_fields.Second); 
+	sprintf(write_time_string, "%04i-%02i-%02i %02i:%02i:%02i",
+		write_time_fields.Year, write_time_fields.Month, write_time_fields.Day,
+		write_time_fields.Hour, write_time_fields.Minute, write_time_fields.Second); 
+#endif
+	return g_strdup_printf("%ld %s %s %s",
+			(long int)p->size, write_time_string, create_time_string, path);
+}
+
+static void my_wstrcpy(WCHAR *dst, WCHAR *src, int ml)
+{
+	int	i;
+
+	for (i=0; i<ml && src[i]; i++)
+		dst[i] = src[i];
+	if (i != ml)
+		dst[i] = 0;
+}
+
 osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
 {
-	plugin_environment	*env;
+	synce_plugin_environment	*env;
 	OSyncChange		*change;
 	char			path[MAX_PATH];
 	struct MyCeFileInfo	mi;
@@ -171,10 +226,8 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 	sprintf(path, "%s\\%s", dir, wstr_to_current(entry->cFileName));
 	wfn = wstr_from_current(path);
 
-	fprintf(stderr, "Report(%s)\n", path);
-
 	if (ctx) {
-		env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+		env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 		change = osync_change_new();
 
 		osync_change_set_member(change, env->member);
@@ -185,13 +238,22 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		mi.attrib = CeGetFileAttributes(wfn);
 		h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
 				OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-#if 0
-		/* SynCE doesn't do this yet */
-		(void) CeGetFileTime(h, &mi.time_create, &mi.time_access, &mi.time_write);
-#endif
+		/* Include create and write times, but not access time. */
+		mi.time_create = entry->ftCreationTime;
+		mi.time_write = entry->ftLastWriteTime;
 		mi.size = CeGetFileSize(h, NULL);
-		mi.wfn = wfn;			/* FIX ME memory leak/problem ? */
+		my_wstrcpy(mi.wfn, wfn, MAX_PATH);
 		CeCloseHandle(h);
+
+		/* Set the hash */
+		osync_change_set_hash(change, FileHash(&mi));
+		if (osync_hashtable_detect_change(env->hashtable, change)) {
+#if 0
+			osync_change_set_changetype(change, CHANGE_ADDED);	/* ?? */
+#endif
+			osync_context_report_change(ctx, change);
+			osync_hashtable_update_hash(env->hashtable, change);
+		}
 
 		/*
 		 * Pass the structure to OpenSync
@@ -199,11 +261,6 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		 * the file contents if necessary later on.
 		 */
 		osync_change_set_data(change, (char *)&mi, sizeof(struct MyCeFileInfo), FALSE);
-
-		/* ??? */
-		osync_change_set_changetype(change, CHANGE_ADDED);
-		osync_context_report_change(ctx, change);
-
 	}
 
 #if 0
@@ -256,10 +313,7 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 	}
 #endif
 
-	/*
-	 * Cannot free this if we pass it to OpenSync.
 	wstr_free_string(wfn);
-	*/
 	return TRUE;
 }
 
@@ -313,9 +367,7 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir)
  */
 extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
 {
-#if 0
-	plugin_environment *env = (plugin_environment *)osync_context_get_plugin_data(ctx);
-#endif
+	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	uint32_t id=0;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
@@ -341,6 +393,8 @@ extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
 
 			osync_debug("SYNCE-SYNC", 4, "adding contact id %08x",id);
 
+			osync_change_set_hash(change, FileHash(NULL));
+
 			osync_debug("SYNCE-SYNC", 4, "done");
 			break;
 		}
@@ -358,6 +412,8 @@ extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
 
 			osync_debug("SYNCE-SYNC", 4, "updating contact id %08x",id);
 
+			osync_change_set_hash(change, FileHash(NULL));
+
 			osync_debug("SYNCE-SYNC", 4, "done");
 			break;
 		}
@@ -365,8 +421,10 @@ extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
 	}
 
-	//Answer the call
+	/* Answer the call */
 	osync_context_report_success(ctx);
+	osync_hashtable_update_hash(env->hashtable, change);
+
 	return TRUE;
 }
 
@@ -375,9 +433,13 @@ extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
  */
 extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 {
-	plugin_environment	*env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+	synce_plugin_environment	*env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+
+	/* Detect whether we need to do a slow sync - this is supported by the hash table */
+	if (osync_member_get_slow_sync(env->member, "file"))
+		osync_hashtable_set_slow_sync(env->hashtable, "file");
 
 	/* SynCE : check if RRA is connected */
 	if (!env->syncmgr || !rra_syncmgr_is_connected(env->syncmgr)){
@@ -396,6 +458,8 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 		return FALSE;
 	}
 
+	osync_hashtable_report_deleted(env->hashtable, ctx, "file");
+
 	/* Don't report via
 	 *	osync_context_report_success(ctx)
 	 * here, our caller will already be doing that.
@@ -405,7 +469,8 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 
 extern void file_connect(OSyncContext *ctx)
 {
-	RRA_Matchmaker* matchmaker = NULL;
+	RRA_Matchmaker	*matchmaker = NULL;
+	OSyncError	*error = NULL;
 
 	osync_debug("SynCE-File", 4, "start: %s", __func__);
 
@@ -413,7 +478,13 @@ extern void file_connect(OSyncContext *ctx)
 	 * Each time you get passed a context (which is used to track calls to your plugin)
 	 * you can get the data your returned in initialize via this call :
 	 */
-	plugin_environment *env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+
+	/* Load the hash table */
+	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
+		osync_context_report_osyncerror(ctx, &error);
+		return;
+	}
 
 	/*
 	 * Now connect to your devices and report
@@ -486,12 +557,31 @@ extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t 
 
 extern void file_sync_done(OSyncContext *ctx)
 {
+	synce_plugin_environment	*env;
+
+	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	osync_hashtable_forget(env->hashtable);
+
 	fprintf(stderr, "file_sync_done\n");
+}
+
+extern void file_disconnect(OSyncContext *ctx)
+{
+	synce_plugin_environment	*env;
+
+	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	osync_hashtable_close(env->hashtable);
+}
+
+extern void file_finalize(void *data)
+{
+	synce_plugin_environment	*env = (synce_plugin_environment *)data;
+	osync_hashtable_free(env->hashtable);
 }
 
 extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
 {
-	plugin_environment	*env;
+	synce_plugin_environment	*env;
 	struct MyCeFileInfo	*mip;
 	HANDLE			h;
 	char			*buffer;
@@ -499,7 +589,7 @@ extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
 
 
 	osync_debug("SynCE-File", 4, "start : %s", __func__);
-	env = (plugin_environment *)osync_context_get_plugin_data(ctx);
+	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	mip = (struct MyCeFileInfo *)osync_change_get_data(change);
 
 	/* Read the file through SynCE */
@@ -534,8 +624,6 @@ extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
 }
 
 #ifdef	TEST_FILE
-//static       WCHAR empty[]   = {'\0'};
-
 int main(int argc, char** argv)
 {
 	char* path = NULL;

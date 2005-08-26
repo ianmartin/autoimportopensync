@@ -28,7 +28,7 @@
 #include "synce_plugin.h"
 
 /*Load the state from a xml file and return it in the conn struct*/
-osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, OSyncError **error)
+osync_bool synce_parse_settings(synce_plugin_environment *env, char *data, int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, env, data, size);
 	xmlDocPtr doc;
@@ -107,7 +107,7 @@ osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, O
 		env->config_todos = FALSE;
 	if (!osync_member_objtype_enabled(env->member, "calendar"))
 		env->config_calendar = FALSE;
-	
+
 	if (env->config_contacts == 0 && env->config_calendar == 0
 			&& env->config_todos == 0 && env->config_file == NULL) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Nothing was configured");

@@ -1,8 +1,29 @@
-//Specify any structs etc here.
+/*
+ * OpenSync SynCE plugin
+ *
+ * Copyright © 2005 by MirKuZ
+ * Copyright © 2005 Danny Backx <dannybackx@users.sourceforge.net>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ */
+
+#ifndef	_OPENSYNC_SYNCE_PLUGIN_H_
+#define	_OPENSYNC_SYNCE_PLUGIN_H_
+
 #include <rra/syncmgr.h>
 #include <rra/timezone.h>
-
-
 
 typedef struct ids_list {
 	uint32_t changed_count;
@@ -14,23 +35,23 @@ typedef struct ids_list {
 	RRA_SyncMgrType *type;
 } ids_list;
 
+typedef struct synce_plugin_environment {
+	OSyncMember	*member;
+	OSyncHashTable	*hashtable;	/* Need a hash for the file sync part. */
 
-typedef struct plugin_environment {
-	OSyncMember *member;
-	//If you need a hashtable:
-	OSyncHashTable *hashtable;
-
-	RRA_SyncMgr* syncmgr; //connessione a synce
-	RRA_Timezone timezone;
-	int last_change_counter;
-	int change_counter;
-	ids_list* contact_ids;
-	ids_list* todo_ids;
-	ids_list* cal_ids;
+	RRA_SyncMgr*	syncmgr;	/* This is the connection to SynCE */
+	RRA_Timezone	timezone;
+	int		last_change_counter;
+	int		change_counter;
+	ids_list*	contact_ids;
+	ids_list*	todo_ids;
+	ids_list*	cal_ids;
 
 	/* Configuration */
 	osync_bool	config_contacts, config_todos, config_calendar;
 	char		*config_file;
-} plugin_environment;
+} synce_plugin_environment;
 
-extern osync_bool synce_parse_settings(plugin_environment *env, char *data, int size, OSyncError **error);
+extern osync_bool synce_parse_settings(synce_plugin_environment *env, char *data, int size, OSyncError **error);
+
+#endif
