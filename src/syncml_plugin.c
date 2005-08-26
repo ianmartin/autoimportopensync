@@ -284,7 +284,6 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 		goto error;
 	}
 
-	xmlFreeDoc(doc);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
@@ -341,6 +340,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
+	
 error_free_contactserver:
 	smlDsServerFree(env->contactserver);
 error_free_loc:
@@ -363,12 +363,12 @@ static void connect(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
 	SmlError *error = NULL;
-	SmlNotification *san = NULL;
+	//SmlNotification *san = NULL;
 	OSyncError *oserror = NULL;
 	
 	/* Check if we need to alert the other side (SAN)
 	 * or if we already received an alert */
-	if (!smlDsServerReceivedAlert(env->contactserver)) {
+	/*if (!smlDsServerReceivedAlert(env->contactserver)) {
 		san = smlNotificationNew(&error);
 		if (!san)
 			goto error;
@@ -378,7 +378,7 @@ static void connect(OSyncContext *ctx)
 		
 		if (!smlNotificationSend(san, env->tsp, &error))
 			goto error_free_san;
-	}
+	}*/
 	
 	/* Tell the DsServer to notify us as soon as we receive the alert */
 	if (!smlDsServerRequestAlert(env->contactserver, _recv_alert, ctx, &error))
@@ -387,12 +387,12 @@ static void connect(OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
-error_free_san:
-	smlNotificationFree(san);
+//error_free_san:
+//	smlNotificationFree(san);
 error:
-	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	//osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorFree(&error);
-	osync_context_report_osyncerror(ctx, &oserror);
+	osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "You cannot start the syncml server directly. plaese use msynctool --sync name --wait");
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
