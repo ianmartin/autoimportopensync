@@ -4,8 +4,6 @@ AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(irmc_sync, 0.82)
 AM_CONFIG_HEADER(config.h)
 
-pkg_modules="libgnomeui-2.0 glib-2.0"
-PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
@@ -73,10 +71,6 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 src/bfb/Makefile
-intl/Makefile
-po/Makefile.in
-${MULTISYNC_TOP}/specs/multisync-irmc.spec
-${MULTISYNC_TOP}/specs/multisync-irmc-bluetooth.spec
 ])
 
 echo
