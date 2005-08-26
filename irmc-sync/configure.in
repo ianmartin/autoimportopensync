@@ -1,9 +1,14 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(irmc_sync, 0.82)
-AM_CONFIG_HEADER(config.h)
+AC_PREREQ(2.58)
+AC_INIT([OpenSync IrMC Plugin], 0.01, [], irmcplugin)
+AM_INIT_AUTOMAKE(foreign)
+AC_CONFIG_SRCDIR(src/irmc_sync.c)
+AC_CONFIG_HEADER(config.h)
 
+export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
+pkg_modules="opensync-1.0 glib-2.0 libxml-2.0"
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
@@ -11,14 +16,19 @@ AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
 
+OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
+OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
+OPENSYNC_FORMATSDIR=$(pkg-config --variable=formatsdir opensync-1.0)
+OPENSYNC_HEADERDIR=$(pkg-config --variable=headerdir opensync-1.0)
 
-dnl Add the languages which your application supports here.
-dnl ALL_LINGUAS=""
-dnl AM_GNU_GETTEXT
+AC_SUBST(OPENSYNC_CONFIGDIR) ## This is the place where you can install the default configuration files of your plugin
+AC_SUBST(OPENSYNC_PLUGINDIR) ## This is the dir where you plugin will be installed
+AC_SUBST(OPENSYNC_FORMATSDIR) ## Here are format plugins installed (if any)
+AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may need (if any)
 
-
-CPPFLAGS="${PACKAGE_CFLAGS}"
 SDP=0
 AC_CHECK_HEADER(bluetooth/bluetooth.h, BLUETOOTH=1, BLUETOOTH=0)
 AC_CHECK_LIB(bluetooth, hci_open_dev,,BLUETOOTH=0)
@@ -30,42 +40,36 @@ if test "x${BLUETOOTH}" = "x0"; then
   echo "Bluetooth is DISABLED. You must have the bluez-libs installed."
 fi
 AC_DEFINE_UNQUOTED(HAVE_BLUETOOTH, ${BLUETOOTH},Defined if Bluetooth is enabled.)
-LIBS="$LIBS -lglib-2.0"
 
-AC_CHECK_LIB(openobex,OBEX_Init,,AC_MSG_ERROR(You must have openobex installed.))
-AC_MSG_CHECKING(for working openobex)
-AC_TRY_COMPILE([
-#include <openobex/obex.h>],[obex_ctrans_t t; t.customdata = NULL;],CUSTOMDATA=1,CUSTOMDATA=0)
-AC_TRY_COMPILE([
-#include <openobex/obex.h>],[obex_ctrans_t t; t.userdata = NULL;],USERDATA=1,USERDATA=0)
-AC_DEFINE_UNQUOTED(OBEX_CUSTOMDATA, ${CUSTOMDATA},Defined if obex_ctrans_t contains the field customdata.)
-AC_DEFINE_UNQUOTED(OBEX_USERDATA, ${USERDATA},Defined if obex_ctrans_t contains the field userdata.)
-if !(( ${CUSTOMDATA} || ${USERDATA} )); then
-  AC_MSG_ERROR(You must have openobex 0.9.8 or openobex >= 1.0.0 installed.)
+#### Check for openobex ####
+AC_ARG_ENABLE(obex,
+  AS_HELP_STRING([--enable-obex], [enable obex transports]),
+  WANT_OBEX=$enableval)
+AM_PATH_OPENOBEX
+if test "x${HAVE_OPENOBEX}" = "xyes"; then
+	if test "x${WANT_OBEX}" = "xno"; then
+		ENABLE_OBEX=no
+	else
+		dnl AC_CHECK_LIB(openobex,BtOBEX_TransportConnect,BT_OBEX=1,BT_OBEX=0)
+		ENABLE_OBEX=yes
+		AC_SUBST(ENABLE_OBEX)
+		AC_DEFINE(ENABLE_OBEX,1,[Obex Transport])
+	fi
+else
+	if test "x${WANT_OBEX}" = "xyes"; then
+		AC_MSG_ERROR(You must have openobex 0.9.8 or openobex >= 1.0.0 installed.)
+	else
+		ENABLE_OBEX=no
+	fi
 fi
-AC_MSG_RESULT(yes)
-dnl AC_CHECK_LIB(openobex,BtOBEX_TransportConnect,BT_OBEX=1,BT_OBEX=0)
-dnl Some OpenObex-1.0.0 seem to have BT disabled
-BT_OBEX=0
-AC_DEFINE_UNQUOTED(HAVE_BT_OBEX, (${BT_OBEX} && ${BLUETOOTH}),Defined if OpenOBEX can be used to access Bluetooth.)
-AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(You must have libpthread installed.))
+
+#### Check for irda ####
 AC_MSG_CHECKING(for IrDA support)
 AC_TRY_COMPILE([
 #include <sys/socket.h>
 #include <linux/types.h>
 #include <linux/irda.h>],[],IRDA=1; AC_MSG_RESULT(yes), IRDA=0;AC_MSG_RESULT(no) )
 AC_DEFINE_UNQUOTED(HAVE_IRDA, ${IRDA},Defined if IrDA is enabled.)
-
-
-AC_PROG_LIBTOOL
-
-dnl Info for the RPM
-MULTISYNC_TOP="../.."
-AC_SUBST(VERSION)
-AC_SUBST(prefix)
-MULTISYNC_VERSION=`grep "#define VERSION" ${MULTISYNC_TOP}/config.h | sed -e 's/#define VERSION //g' | sed -e 's/\"//g'`
-AC_SUBST(MULTISYNC_VERSION)
-
 
 AC_OUTPUT([
 Makefile
@@ -90,5 +94,3 @@ if test "x${SDP}" = "x1"; then
 	echo Bluetooth uses SDP lib
 fi
 echo ======================
-
-  
