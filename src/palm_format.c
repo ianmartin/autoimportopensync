@@ -555,20 +555,26 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *root = osxml_node_add_root(doc, "todo");
+	xmlNode *root = osxml_node_add_root(doc, "vcal");
+	root = xmlNewChild(root, NULL, (xmlChar*)"Todo", NULL);
 
-	//Summary
-	if (entry->todo.description)
-		xmlNewChild(root, NULL, (xmlChar*)"Summary", entry->todo.description);
+	//Description
+	if (entry->todo.description) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", entry->todo.description);
+	}
 	
 	//Note
-	if (entry->todo.note)
-		xmlNewChild(root, NULL, (xmlChar*)"Note", entry->todo.note);
+	if (entry->todo.note) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", entry->todo.note);
+	}
 	
 	//priority
 	if (entry->todo.priority) {
 		tmp = g_strdup_printf("%i", entry->todo.priority + 2);
-		xmlNewChild(root, NULL, (xmlChar*)"Note", tmp);
+		current = xmlNewChild(root, NULL, (xmlChar*)"Priority", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
 		g_free(tmp);
 	}
 
@@ -576,7 +582,8 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	if (entry->todo.indefinite == 0) {
 		time_t ttm = mktime(&(entry->todo.due));
 		tmp = g_strdup_printf("%i", (int)ttm);
-		xmlNewChild(root, NULL, (xmlChar*)"Due", tmp);
+		current = xmlNewChild(root, NULL, (xmlChar*)"DateDue", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
 		g_free(tmp);
 	}
 
@@ -584,7 +591,8 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	if (entry->todo.complete) {
 		time_t now = time(NULL);
 		tmp = g_strdup_printf("%i", (int)now);
-		xmlNewChild(root, NULL, (xmlChar*)"Completed", tmp);
+		current = xmlNewChild(root, NULL, (xmlChar*)"Completed", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
 		g_free(tmp);
 	}
 
@@ -773,7 +781,12 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	for (i = 3; i <= 7; i++) {
 		tmp = return_next_entry(entry, i);
 		if (tmp) {
-			current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", tmp);
+			if (entry->address.phoneLabel[i - 3] == 4) {
+				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+			} else
+				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+		
+			xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
 			g_free(tmp);
 			
 			switch (entry->address.phoneLabel[i - 3]) {
@@ -790,9 +803,6 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 					break;
 				case 3:
 					osxml_node_add(current, "Voice", NULL);
-					break;
-				case 4:
-					osxml_node_add(current, "EMail", NULL);
 					break;
 				case 5:
 					osxml_node_add(current, "Pref", NULL);
@@ -835,7 +845,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		//Code
 		tmp = return_next_entry(entry, 11);
 		if (tmp) {
-			osxml_node_add(current, "Code", tmp);
+			osxml_node_add(current, "PostalCode", tmp);
 			g_free(tmp);
 		}
 		
@@ -847,12 +857,14 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		}
 	}
 	
+	//Title
 	tmp = return_next_entry(entry, 13);
 	if (tmp) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Title", tmp);
+		current = xmlNewChild(root, NULL, (xmlChar*)"Title", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
 		g_free(tmp);
 	}
-	
+		
 	//Note
 	tmp = return_next_entry(entry, 18);
 	if (tmp) {

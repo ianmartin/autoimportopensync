@@ -109,7 +109,9 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **
 	//entry->buffer = pi_buffer_new(65536);
 	
 	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth, entry->buffer, &entry->id, &entry->size, &entry->attr, &entry->category);
-	if (ret < 0) {
+	if (ret == -5) {
+		goto error_free_entry;
+	} else if (ret < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
 		goto error_free_entry;
 	}
@@ -249,6 +251,11 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 	int listen_sd = 0;
 	char *rate_buf = NULL;
 	int ret = 0;
+
+	if (env->socket) {
+		osync_trace(TRACE_EXIT, "%s: Already connected", __func__);
+		return TRUE;
+	}
 
 	if (env->conntype != PILOT_DEVICE_NETWORK) {
 		rate_buf = g_strdup_printf("PILOTRATE=%i", env->speed);
@@ -577,8 +584,7 @@ static OSyncChange *_psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 	} else if (entry->attr & dlpRecAttrDirty) {
 		osync_change_set_changetype(change, CHANGE_MODIFIED);
 	} else {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown change types");
-		goto error_free_change;
+		osync_change_set_changetype(change, CHANGE_UNKNOWN);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
@@ -783,8 +789,7 @@ static OSyncChange *_psyncContactChangeCreate(PSyncEntry *entry, OSyncError **er
 	} else if (entry->attr & dlpRecAttrDirty) {
 		osync_change_set_changetype(change, CHANGE_MODIFIED);
 	} else {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown change types");
-		goto error_free_change;
+		osync_change_set_changetype(change, CHANGE_UNKNOWN);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
@@ -1002,8 +1007,7 @@ static OSyncChange *_psyncEventCreate(PSyncEntry *entry, OSyncError **error)
 	} else if (entry->attr & dlpRecAttrDirty) {
 		osync_change_set_changetype(change, CHANGE_MODIFIED);
 	} else {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unknown change types");
-		goto error_free_change;
+		osync_change_set_changetype(change, CHANGE_UNKNOWN);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
