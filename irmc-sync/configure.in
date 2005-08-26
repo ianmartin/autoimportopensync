@@ -1,0 +1,100 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(configure.in)
+AM_INIT_AUTOMAKE(irmc_sync, 0.82)
+AM_CONFIG_HEADER(config.h)
+
+pkg_modules="libgnomeui-2.0 glib-2.0"
+PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
+AC_ISC_POSIX
+AC_PROG_CC
+AM_PROG_CC_STDC
+AC_HEADER_STDC
+
+
+dnl Add the languages which your application supports here.
+dnl ALL_LINGUAS=""
+dnl AM_GNU_GETTEXT
+
+
+CPPFLAGS="${PACKAGE_CFLAGS}"
+SDP=0
+AC_CHECK_HEADER(bluetooth/bluetooth.h, BLUETOOTH=1, BLUETOOTH=0)
+AC_CHECK_LIB(bluetooth, hci_open_dev,,BLUETOOTH=0)
+AC_CHECK_LIB(sdp, sdp_connect, SDP=1)
+AC_MSG_CHECKING(for correct SDP lib version)
+AM_CONDITIONAL(SDP,test "${SDP}" = "1")
+AM_CONDITIONAL(BLUETOOTH,test "${BLUETOOTH}" = "1")
+if test "x${BLUETOOTH}" = "x0"; then
+  echo "Bluetooth is DISABLED. You must have the bluez-libs installed."
+fi
+AC_DEFINE_UNQUOTED(HAVE_BLUETOOTH, ${BLUETOOTH},Defined if Bluetooth is enabled.)
+LIBS="$LIBS -lglib-2.0"
+
+AC_CHECK_LIB(openobex,OBEX_Init,,AC_MSG_ERROR(You must have openobex installed.))
+AC_MSG_CHECKING(for working openobex)
+AC_TRY_COMPILE([
+#include <openobex/obex.h>],[obex_ctrans_t t; t.customdata = NULL;],CUSTOMDATA=1,CUSTOMDATA=0)
+AC_TRY_COMPILE([
+#include <openobex/obex.h>],[obex_ctrans_t t; t.userdata = NULL;],USERDATA=1,USERDATA=0)
+AC_DEFINE_UNQUOTED(OBEX_CUSTOMDATA, ${CUSTOMDATA},Defined if obex_ctrans_t contains the field customdata.)
+AC_DEFINE_UNQUOTED(OBEX_USERDATA, ${USERDATA},Defined if obex_ctrans_t contains the field userdata.)
+if !(( ${CUSTOMDATA} || ${USERDATA} )); then
+  AC_MSG_ERROR(You must have openobex 0.9.8 or openobex >= 1.0.0 installed.)
+fi
+AC_MSG_RESULT(yes)
+dnl AC_CHECK_LIB(openobex,BtOBEX_TransportConnect,BT_OBEX=1,BT_OBEX=0)
+dnl Some OpenObex-1.0.0 seem to have BT disabled
+BT_OBEX=0
+AC_DEFINE_UNQUOTED(HAVE_BT_OBEX, (${BT_OBEX} && ${BLUETOOTH}),Defined if OpenOBEX can be used to access Bluetooth.)
+AC_CHECK_LIB(pthread,pthread_create,,AC_MSG_ERROR(You must have libpthread installed.))
+AC_MSG_CHECKING(for IrDA support)
+AC_TRY_COMPILE([
+#include <sys/socket.h>
+#include <linux/types.h>
+#include <linux/irda.h>],[],IRDA=1; AC_MSG_RESULT(yes), IRDA=0;AC_MSG_RESULT(no) )
+AC_DEFINE_UNQUOTED(HAVE_IRDA, ${IRDA},Defined if IrDA is enabled.)
+
+
+AC_PROG_LIBTOOL
+
+dnl Info for the RPM
+MULTISYNC_TOP="../.."
+AC_SUBST(VERSION)
+AC_SUBST(prefix)
+MULTISYNC_VERSION=`grep "#define VERSION" ${MULTISYNC_TOP}/config.h | sed -e 's/#define VERSION //g' | sed -e 's/\"//g'`
+AC_SUBST(MULTISYNC_VERSION)
+
+
+AC_OUTPUT([
+Makefile
+src/Makefile
+src/bfb/Makefile
+intl/Makefile
+po/Makefile.in
+${MULTISYNC_TOP}/specs/multisync-irmc.spec
+${MULTISYNC_TOP}/specs/multisync-irmc-bluetooth.spec
+])
+
+echo
+echo ======================
+echo IRMC-Sync detected features:
+if test "x${IRDA}" = "x1"; then
+    echo IrDA is ENABLED.
+else
+    echo IrDA is DISABLED.
+fi
+if test "x${BLUETOOTH}" = "x1"; then
+    echo Bluetooth is ENABLED.
+else
+    echo Bluetooth is DISABLED.
+fi
+if test "x${SDP}" = "x1"; then
+	echo Bluetooth uses SDP lib
+fi
+echo ======================
+
+  
