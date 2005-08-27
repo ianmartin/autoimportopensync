@@ -214,11 +214,11 @@ static void my_wstrcpy(WCHAR *dst, WCHAR *src, int ml)
 osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
 {
 	synce_plugin_environment	*env;
-	OSyncChange		*change;
-	char			path[MAX_PATH];
-	struct MyCeFileInfo	mi;
-	WCHAR			*wfn;
-	HANDLE			h;
+	OSyncChange			*change;
+	char				path[MAX_PATH], *hash;
+	struct MyCeFileInfo		mi;
+	WCHAR				*wfn;
+	HANDLE				h;
 
 	fprintf(stderr, "FilesReportFileChange(%s/%s)\n", dir, wstr_to_current(entry->cFileName));
 
@@ -246,7 +246,10 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		CeCloseHandle(h);
 
 		/* Set the hash */
+		hash = FileHash(&mi);
 		osync_change_set_hash(change, FileHash(&mi));
+		osync_change_set_data(change, (char *)&mi, sizeof(mi), FALSE);
+
 		if (osync_hashtable_detect_change(env->hashtable, change)) {
 #if 0
 			osync_change_set_changetype(change, CHANGE_ADDED);	/* ?? */
@@ -254,6 +257,7 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 			osync_context_report_change(ctx, change);
 			osync_hashtable_update_hash(env->hashtable, change);
 		}
+		g_free(hash);
 
 		/*
 		 * Pass the structure to OpenSync
@@ -469,7 +473,11 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 
 extern void file_connect(OSyncContext *ctx)
 {
-	RRA_Matchmaker	*matchmaker = NULL;
+	/*
+	 * Don't repeat the SynCE connection making - the synce_plugin.c connect() already
+	 * handles all that.
+	 */
+	synce_plugin_environment *env;
 	OSyncError	*error = NULL;
 
 	osync_debug("SynCE-File", 4, "start: %s", __func__);
@@ -478,75 +486,13 @@ extern void file_connect(OSyncContext *ctx)
 	 * Each time you get passed a context (which is used to track calls to your plugin)
 	 * you can get the data your returned in initialize via this call :
 	 */
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 
 	/* Load the hash table */
 	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
 		osync_context_report_osyncerror(ctx, &error);
 		return;
 	}
-
-	/*
-	 * Now connect to your devices and report
-	 * 
-	 * an error via:
-	 * osync_context_report_error(ctx, ERROR_CODE, "Some message");
-	 * 
-	 * or success via:
-	 * osync_context_report_success(ctx);
-	 * 
-	 * You have to use one of these 2 somewhere to answer the context.
-	 * 
-	 */
-	 
-	//1 - creating matchmaker
-	matchmaker = rra_matchmaker_new();
-	if (!matchmaker){
-		osync_context_report_error(ctx, 1, "building matchmaker");
-		return;
-	}
-	osync_debug("SynCE-File", 4, "matchmaker built");
-
-	//2 - setting partnership 
-	if (!rra_matchmaker_set_current_partner(matchmaker, 1)){
-		osync_context_report_error(ctx, 1, "set current partner");
-		return;
-	}
-	osync_debug("SynCE-File", 4, "partner set");
-
-        //3 -setting timezone
-        if (!rra_timezone_get(&(env->timezone))){
-		osync_context_report_error(ctx, 1, "getting timezone");
-		return;
-    	}
-       	osync_debug("SynCE-File", 4, "timezone set");
-	
-	
-	//4- creating syncmgr
-	env->syncmgr = rra_syncmgr_new();
-
-	if (!rra_syncmgr_connect(env->syncmgr))
-	{
-		osync_context_report_error(ctx, 1, "can't connect");
-		return;
-	}
-    	osync_debug("SynCE-File", 4, "syncmgr created");
-    	
-    	/*//5- subscribe changes
-	if (!synce_subscribe(env-syncmgr)){
-		osync_context_report_error(ctx, 1, "can't subscribe");
-		return;
-  	}
-  	osync_debug("SynCE-File", 4, "5- subscribed");*/
-
-	osync_context_report_success(ctx);
-	
-	//you can also use the anchor system to detect a device reset
-	//or some parameter change here. Check the docs to see how it works
-	//char *lanchor = NULL;
-	//Now you get the last stored anchor from the device
-	//if (!osync_anchor_compare(env->member, "lanchor", lanchor))
-	//	osync_member_set_slow_sync(env->member, "<object type to request a slow-sync>", TRUE);
 }
 
 extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count, uint32_t* ids, void* cookie)

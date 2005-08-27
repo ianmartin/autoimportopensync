@@ -101,12 +101,14 @@ osync_bool synce_parse_settings(synce_plugin_environment *env, char *data, int s
 		cur = cur->next;
 	}
 
-	if (!osync_member_objtype_enabled(env->member, "contact"))
-		env->config_contacts = FALSE;
-	if (!osync_member_objtype_enabled(env->member, "todos"))
-		env->config_todos = FALSE;
-	if (!osync_member_objtype_enabled(env->member, "calendar"))
-		env->config_calendar = FALSE;
+	/* This belongs in XXX_connect()
+	 * if (!osync_member_objtype_enabled(env->member, "contact"))
+	 * 	env->config_contacts = FALSE;
+	 * if (!osync_member_objtype_enabled(env->member, "todos"))
+	 * 	env->config_todos = FALSE;
+	 * if (!osync_member_objtype_enabled(env->member, "calendar"))
+	 * 	env->config_calendar = FALSE;
+	 */
 
 	if (env->config_contacts == 0 && env->config_calendar == 0
 			&& env->config_todos == 0 && env->config_file == NULL) {

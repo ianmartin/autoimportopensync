@@ -122,6 +122,17 @@ static void connect(OSyncContext *ctx)
 	}
     	osync_debug("SYNCE-SYNC", 4, "syncmgr created");
     	
+	/*
+	 * if (!osync_member_objtype_enabled(env->member, "contact"))
+	 * 	env->config_contacts = FALSE;
+	 * if (!osync_member_objtype_enabled(env->member, "todos"))
+	 * 	env->config_todos = FALSE;
+	 * if (!osync_member_objtype_enabled(env->member, "calendar"))
+	 * 	env->config_calendar = FALSE;
+	 */
+	if (env->config_file)
+		file_connect(ctx);
+
 	osync_context_report_success(ctx);
 	
 }
