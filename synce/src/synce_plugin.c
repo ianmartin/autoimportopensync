@@ -991,6 +991,8 @@ void get_info(OSyncPluginInfo *env)
 	osync_plugin_accept_objtype(info, "data");
 	osync_plugin_accept_objformat(info, "data", "file", NULL);
 	osync_plugin_set_commit_objformat(info, "data", "file", file_commit);
+#if 0
 	osync_plugin_set_access_objformat(info, "data", "file", file_access);
 	osync_plugin_set_read_objformat(info, "data", "file", file_read);
+#endif
 }

@@ -45,9 +45,16 @@
 #include <synce.h>
 #include "synce_plugin.h"
 
-
+/*
+ * Working with the "file" format requires use of the first couple of fields
+ * in the structure below.
+ */
 typedef struct	MyCeFileInfo {
+	/* Start of piece copied from fs_fileinfo - don't change */
+	struct stat	filestats;
+	char		*data;		/* Must contain the actual content of the file */
 	int		size;
+	/* End of piece copied from fs_fileinfo - don't change */
 	DWORD		attrib;
 	FILETIME	time_create, time_write;
 	WCHAR		wfn[MAX_PATH];
@@ -107,6 +114,42 @@ static void my_wstrcpy(WCHAR *dst, WCHAR *src, int ml)
 		dst[i] = 0;
 }
 
+/* Read the file through SynCE */
+static osync_bool FileReadFileIntoStruct(HANDLE h, MyCeFileInfo *mip)
+{
+	char	*buffer;
+	size_t	sz, rsz;
+
+	sz = mip->size;
+	buffer = malloc(sz);
+
+	fprintf(stderr, "Yow %s %d\n", wstr_to_current(mip->wfn), mip->size);
+	if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
+		/* Error */
+		fprintf(stderr, "CeReadFile failed\n");
+		return FALSE;
+	}
+	fprintf(stderr, "  ->   %d\n", rsz);
+	mip->data = buffer;
+	return TRUE;
+
+#if 0
+	/* A test - write all the files you find locally */
+	{
+		int	fd;
+		static int	cnt = 0;
+		char	p[MAX_PATH];
+
+		sprintf(p, "log/file.%03d", cnt++);
+		fd = open(p, O_CREAT|O_TRUNC|O_WRONLY, 0666);
+		if (fd) {
+			write(fd, buffer, rsz);
+			close(fd);
+		}
+	}
+#endif
+}
+
 osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
 {
 	synce_plugin_environment	*env;
@@ -139,6 +182,13 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		mi.time_write = entry->ftLastWriteTime;
 		mi.size = CeGetFileSize(h, NULL);
 		my_wstrcpy(mi.wfn, wfn, MAX_PATH);
+
+		if (! FileReadFileIntoStruct(h, &mi)) {
+			osync_context_report_error(ctx, 1,
+					"Problem reading the file [%s]\n",
+					path);
+			return FALSE;
+		}
 		CeCloseHandle(h);
 
 		/* Set the hash */
@@ -162,56 +212,6 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		 */
 		osync_change_set_data(change, (char *)&mi, sizeof(struct MyCeFileInfo), FALSE);
 	}
-
-#if 0
-	/* Read the file through SynCE */
-	if (1) {
-		HANDLE	h;
-		char	*buffer;
-		size_t	sz, rsz;
-
-		sz = 4096;
-		buffer = malloc(sz);
-
-		h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
-				OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-		/*
-		 * Should do this in a loop, as CeReadFile() will return success
-		 * with 0 bytes read when we're done.
-		 */
-		rsz = 1;
-		while (rsz) {
-			if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
-				/* Error */
-				fprintf(stderr, "CeReadFile failed\n");
-			}
-			/* Send its contents */
-			if (ctx)
-				osync_change_set_data(change,
-					buffer, rsz,
-					(rsz == 0) ? TRUE : FALSE);	/* TRUE if complete */
-		}
-		fprintf(stderr, "CeReadFile ok\n");
-		CeCloseHandle(h);
-		wstr_free_string(wfn);
-
-#if 0
-		/* A test - write all the files you find locally */
-		{
-			int	fd;
-			static int	cnt = 0;
-			char	p[MAX_PATH];
-
-			sprintf(p, "log/file.%03d", cnt++);
-			fd = open(p, O_CREAT|O_TRUNC|O_WRONLY, 0666);
-			if (fd) {
-				write(fd, buffer, rsz);
-				close(fd);
-			}
-		}
-#endif
-	}
-#endif
 
 	wstr_free_string(wfn);
 	return TRUE;
