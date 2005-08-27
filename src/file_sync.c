@@ -19,6 +19,7 @@
  */
  
 #include "file_sync.h"
+#include <opensync/file.h>
 #include <stdlib.h>
 
 #ifdef HAVE_FAM
@@ -131,9 +132,9 @@ static void fs_connect(OSyncContext *ctx)
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
-static char *fs_generate_hash(fs_fileinfo *info)
+static char *fs_generate_hash(struct stat *filestats)
 {
-	char *hash = g_strdup_printf("%i-%i", (int)info->filestats.st_mtime, (int)info->filestats.st_ctime);
+	char *hash = g_strdup_printf("%i-%i", (int)filestats->st_mtime, (int)filestats->st_ctime);
 	return hash;
 }
 
@@ -190,13 +191,18 @@ static void fs_report_dir(filesyncinfo *fsinfo, const char *subdir, OSyncContext
 
 			osync_change_set_objformat_string(change, "file");
 			
-			fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
-			stat(filename, &info->filestats);
+			fileFormat *info = g_malloc0(sizeof(fileFormat));
+			struct stat filestats;
+			stat(filename, &filestats);
+			info->userid = filestats.st_uid;
+			info->groupid = filestats.st_gid;
+			info->mode = filestats.st_mode;
+			info->last_mod = filestats.st_mtime;
 			
-			char *hash = fs_generate_hash(info);
+			char *hash = fs_generate_hash(&filestats);
 			osync_change_set_hash(change, hash);
 			
-			osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), FALSE);			
+			osync_change_set_data(change, (char *)info, sizeof(fileFormat), FALSE);			
 
 			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
 				osync_context_report_change(ctx, change);
@@ -237,7 +243,7 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
+	fileFormat *file_info = (fileFormat *)osync_change_get_data(change);
 	
 	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
 	OSyncError *error = NULL;
@@ -247,7 +253,7 @@ static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
 		return;
 	}
 	
-	osync_change_set_data(change, (char *)file_info, sizeof(fs_fileinfo), TRUE);
+	osync_change_set_data(change, (char *)file_info, sizeof(fileFormat), TRUE);
 	g_free(filename);
 	
 	osync_context_report_success(ctx);
@@ -261,8 +267,13 @@ static void fs_read(OSyncContext *ctx, OSyncChange *change)
 	
 	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
 
-	fs_fileinfo *info = g_malloc0(sizeof(fs_fileinfo));
-	stat(filename, &info->filestats);
+	fileFormat *info = g_malloc0(sizeof(fileFormat));
+	struct stat filestats;
+	stat(filename, &filestats);
+	info->userid = filestats.st_uid;
+	info->groupid = filestats.st_gid;
+	info->mode = filestats.st_mode;
+	info->last_mod = filestats.st_mtime;
 	
 	OSyncError *error = NULL;
 	if (!osync_file_read(filename, &info->data, &info->size, &error)) {
@@ -271,7 +282,7 @@ static void fs_read(OSyncContext *ctx, OSyncChange *change)
 		return;
 	}
 		
-	osync_change_set_data(change, (char *)info, sizeof(fs_fileinfo), TRUE);
+	osync_change_set_data(change, (char *)info, sizeof(fileFormat), TRUE);
 
 	g_free(filename);
 	
@@ -284,11 +295,13 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 	/*TODO: Create directory for file, if it doesn't exist */
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	fs_fileinfo *file_info = (fs_fileinfo *)osync_change_get_data(change);
+	fileFormat *file_info = (fileFormat *)osync_change_get_data(change);
 
+	char *hash = NULL;
 	char *filename = NULL;
 	OSyncError *error = NULL;
 	filename = g_strdup_printf ("%s/%s", fsinfo->path, osync_change_get_uid(change));
+	struct stat filestats;
 	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
@@ -306,18 +319,33 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 				g_free(filename);
 				return FALSE;
 			}
-			/* No break. Continue below */
-		case CHANGE_MODIFIED:
-			//FIXME add permission and ownership for file-sync
-			if (!osync_file_write(filename, file_info->data, file_info->size, 0700, &error)) {
+			
+			if (!osync_file_write(filename, file_info->data, file_info->size, file_info->mode, &error)) {
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
 				osync_context_report_osyncerror(ctx, &error);
 				g_free(filename);
 				return FALSE;
 			}
 			
-			stat(filename, &file_info->filestats);
-			osync_change_set_hash(change, fs_generate_hash(file_info));
+			stat(filename, &filestats);
+			
+			hash = fs_generate_hash(&filestats);
+			osync_change_set_hash(change, hash);
+			break;
+		case CHANGE_MODIFIED:
+			/* Dont touch the permissions */
+			if (stat(filename, &filestats) == -1)
+				filestats.st_mode = 0700;
+				
+			if (!osync_file_write(filename, file_info->data, file_info->size, filestats.st_mode, &error)) {
+				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
+				osync_context_report_osyncerror(ctx, &error);
+				g_free(filename);
+				return FALSE;
+			}
+			
+			hash = fs_generate_hash(&filestats);
+			osync_change_set_hash(change, hash);
 			break;
 		default:
 			osync_debug("FILE-SYNC", 0, "Unknown change type");
