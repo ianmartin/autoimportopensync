@@ -28,13 +28,6 @@ typedef struct filesyncinfo {
 #endif
 } filesyncinfo;
 
-typedef struct fs_fileinfo {
-	//char *basepath;
-	struct stat filestats;
-	char *data;
-	int size;
-} fs_fileinfo;
-
 osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError **error);
 
 #endif
