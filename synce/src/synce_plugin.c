@@ -527,7 +527,11 @@ static void get_changeinfo(OSyncContext *ctx)
 	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
-	
+	osync_debug("SYNCE-SYNC", 4,
+			"Get_ChangeInfo(todos %d contacts %d calendar %d files(%s)\n",
+			env->config_todos, env->config_contacts, env->config_calendar,
+			env->config_file);
+
 	//test RRA connection
 	osync_debug("SYNCE-SYNC", 4, "Testing connection");
 	if (!env->syncmgr || !rra_syncmgr_is_connected(env->syncmgr)){
@@ -986,5 +990,7 @@ void get_info(OSyncPluginInfo *env)
 	
 	osync_plugin_accept_objtype(info, "data");
 	osync_plugin_accept_objformat(info, "data", "file", NULL);
-	osync_plugin_set_commit_objformat(info, "data", "file", commit_file_change);
+	osync_plugin_set_commit_objformat(info, "data", "file", file_commit);
+	osync_plugin_set_access_objformat(info, "data", "file", file_access);
+	osync_plugin_set_read_objformat(info, "data", "file", file_read);
 }

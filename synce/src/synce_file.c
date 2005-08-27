@@ -19,7 +19,6 @@
  * 
  */
 #define	NEW_TIME
-/* $Id: pls.c,v 1.11 2005/01/13 21:37:03 twogood Exp $ */
 
 #include <rapi.h>
 #include <synce_log.h>
@@ -47,115 +46,12 @@
 #include "synce_plugin.h"
 
 
-#if 0
-static bool print_entry(CE_FIND_DATA* entry)
-{
-#ifndef	NEW_TIME
-	time_t seconds;
-	char time_string[50] = {0};
-	struct tm* time_struct = NULL;
-#else
-	TIME_FIELDS	time_fields;
-#endif
-	char* filename = NULL;
-	
-	/*
-	 * Print file attributes
-	 */
-	if (numeric_file_attributes)
-		printf("%08x  ", entry->dwFileAttributes);
-	else
-		switch (entry->dwFileAttributes)
-		{
-#if 0
-		/* This only prints one attribute at a time */
-			case FILE_ATTRIBUTE_ARCHIVE:
-				printf("Archive   ");
-				break;
-
-			case FILE_ATTRIBUTE_NORMAL:
-				printf("Normal    ");
-				break;
-
-			case FILE_ATTRIBUTE_DIRECTORY:
-				printf("Directory ");
-				break;
-#endif
-			default:
-				print_attribute(entry, FILE_ATTRIBUTE_ARCHIVE,       'A');
-				print_attribute(entry, FILE_ATTRIBUTE_COMPRESSED,    'C');
-				print_attribute(entry, FILE_ATTRIBUTE_DIRECTORY,     'D');
-				print_attribute(entry, FILE_ATTRIBUTE_HIDDEN,        'H');
-				print_attribute(entry, FILE_ATTRIBUTE_INROM,         'I');
-				print_attribute(entry, FILE_ATTRIBUTE_ROMMODULE,     'M');
-				print_attribute(entry, FILE_ATTRIBUTE_NORMAL,        'N');
-				print_attribute(entry, FILE_ATTRIBUTE_READONLY,      'R');
-				print_attribute(entry, FILE_ATTRIBUTE_SYSTEM,        'S');
-				print_attribute(entry, FILE_ATTRIBUTE_TEMPORARY,     'T');
-				break;
-		}
-
-	printf("  ");
-
-	/*
-	 * Size 
-	 *
-	 * XXX: cheating by ignoring nFileSizeHigh
-	 */
-
-	if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		printf("          ");
-	else
-		printf("%10u", entry->nFileSizeLow);
-
-	printf("  ");
-
-	/*
-	 * Modification time
-	 */
-
-#ifndef	NEW_TIME
-	seconds = filetime_to_unix_time(&entry->ftLastWriteTime);
-	time_struct = localtime(&seconds);
-	strftime(time_string, sizeof(time_string), "%c", time_struct);
-	printf("%s", time_string);
-#else
-	time_fields_from_filetime(&entry->ftLastWriteTime, &time_fields);
-	printf("%04i-%02i-%02i %02i:%02i:%02i",
-			time_fields.Year, time_fields.Month, time_fields.Day,
-			time_fields.Hour, time_fields.Minute, time_fields.Second); 
-#endif
-	printf("  ");
-
-	/*
-	 * OID
-	 */
-
-//	printf("%08x", entry->dwOID);
-	
-//	printf("  ");
-
-	/*
-	 * Filename
-	 */
-
-	filename = wstr_to_current(entry->cFileName);
-        printf(filename);
-	wstr_free_string(filename);
-	if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		printf("/");
-
-	printf("\n");
-	return true;
-}
-#endif
-
-struct	MyCeFileInfo {
-	DWORD	attrib;
-	DWORD	size;
+typedef struct	MyCeFileInfo {
+	int		size;
+	DWORD		attrib;
 	FILETIME	time_create, time_write;
-	WCHAR	wfn[MAX_PATH];
-};
+	WCHAR		wfn[MAX_PATH];
+} MyCeFileInfo;
 
 /*
  * A hash appears to be a string.
@@ -181,10 +77,10 @@ static char *FileHash(struct MyCeFileInfo *p)
 	free(x);
 
 #ifndef	NEW_TIME
-	seconds = filetime_to_unix_time(p->time_create);
+	seconds = filetime_to_unix_time(&p->time_create);
 	time_struct = localtime(&seconds);
 	strftime(create_time_string, sizeof(create_time_string), "%c", time_struct);
-	seconds = filetime_to_unix_time(p->time_write);
+	seconds = filetime_to_unix_time(&p->time_write);
 	time_struct = localtime(&seconds);
 	strftime(write_time_string, sizeof(write_time_string), "%c", time_struct);
 #else
@@ -220,7 +116,7 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 	WCHAR				*wfn;
 	HANDLE				h;
 
-	fprintf(stderr, "FilesReportFileChange(%s/%s)\n", dir, wstr_to_current(entry->cFileName));
+	fprintf(stderr, "FilesReportFileChange(%s\\%s)\n", dir, wstr_to_current(entry->cFileName));
 
 
 	sprintf(path, "%s\\%s", dir, wstr_to_current(entry->cFileName));
@@ -369,7 +265,7 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir)
  *	osync_context_report_success(ctx);
  *
  */
-extern osync_bool commit_file_change(OSyncContext *ctx, OSyncChange *change)
+extern osync_bool file_commit(OSyncContext *ctx, OSyncChange *change)
 {
 	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	uint32_t id=0;
@@ -442,8 +338,8 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 
 	/* Detect whether we need to do a slow sync - this is supported by the hash table */
-	if (osync_member_get_slow_sync(env->member, "file"))
-		osync_hashtable_set_slow_sync(env->hashtable, "file");
+	if (osync_member_get_slow_sync(env->member, "data"))
+		osync_hashtable_set_slow_sync(env->hashtable, "data");
 
 	/* SynCE : check if RRA is connected */
 	if (!env->syncmgr || !rra_syncmgr_is_connected(env->syncmgr)){
@@ -462,7 +358,7 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 		return FALSE;
 	}
 
-	osync_hashtable_report_deleted(env->hashtable, ctx, "file");
+	osync_hashtable_report_deleted(env->hashtable, ctx, "data");
 
 	/* Don't report via
 	 *	osync_context_report_success(ctx)
@@ -598,3 +494,25 @@ exit:
 }
 #endif
 
+extern void file_read(OSyncContext *ctx, OSyncChange *change)
+{
+	MyCeFileInfo	*mip;
+
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
+	mip = (MyCeFileInfo *)osync_context_get_plugin_data(ctx);
+
+	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
+}
+
+extern osync_bool file_access(OSyncContext *ctx, OSyncChange *change)
+{
+	MyCeFileInfo	*mip;
+
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
+	mip = (MyCeFileInfo *)osync_context_get_plugin_data(ctx);
+
+	osync_debug("SynCE File", 4, "file_access(%s)\n", mip->wfn);
+	osync_context_report_success(ctx);
+	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
+	return TRUE;
+}
