@@ -276,7 +276,9 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_change(engine, entry->change, CHANGE_WRITE_ERROR, &error);
-		osync_status_update_mapping(engine, entry->mapping, MAPPING_WRITE_ERROR, &error);
+		OSyncError *maperror = NULL;
+		osync_error_duplicate(&maperror, &error);
+		osync_status_update_mapping(engine, entry->mapping, MAPPING_WRITE_ERROR, &maperror);
 		osync_error_update(&engine->error, "Unable to write one or more objects");
 		
 		//FIXME Do we need to do anything here?

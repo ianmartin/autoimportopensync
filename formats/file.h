@@ -21,12 +21,22 @@
 #ifndef _FILE_H
 #define _FILE_H
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 typedef struct fileFormat {
+	/** The mode of this file. See man fstat for explanation */
 	mode_t mode;
+	/** The id of the user (owner) of this file */
 	uid_t userid;
+	/** The id of the owning group of this file */
 	gid_t groupid;
+	/** Time of the last modification */
 	time_t last_mod;
+	/** The file contents */
 	char *data;
+	/** The size of the file contents (without trailing /0) */
 	int size;
 } fileFormat;
 
