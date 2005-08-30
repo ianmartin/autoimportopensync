@@ -661,10 +661,8 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	osengine_mappingtable_reset(engine->maptable);
 	
 	if (engine->error) {
-		OSyncError *error = NULL;
-		osync_error_duplicate(&error, &engine->error);
-		osync_status_update_engine(engine, ENG_ERROR, &error);
-		osync_error_free(&error);
+		osync_status_update_engine(engine, ENG_ERROR, &engine->error);
+		engine->error = NULL;
 		osync_group_set_slow_sync(engine->group, "data", TRUE);
 	} else {
 		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);
