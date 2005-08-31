@@ -22,3 +22,6 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
 
 * Rename the structure in synce_plugin.h so it has "synce" in its name. Make
   the include file safe against multiple inclusion, add a copyright.
+* Add a function (synce_list_directories) that needs to be linked into the
+  configuration GUI.
+* Clean up the code to use the new fileFormat structure in <opensync/file.h>.
