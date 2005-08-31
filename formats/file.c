@@ -88,7 +88,7 @@ static void create_file(OSyncChange *change)
 static osync_bool conv_file_to_plain(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	g_assert(inpsize != sizeof(fileFormat));
+	g_assert(inpsize == sizeof(fileFormat));
 	fileFormat *file = (fileFormat *)input;
 	
 	*free_input = FALSE;
