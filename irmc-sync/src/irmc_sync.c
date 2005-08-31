@@ -1,1023 +1,380 @@
-/* 
-   MultiSync IrMC Plugin - Synchronize IrMC (mobile) devices
-   Copyright (C) 2002-2003 Bo Lincoln <lincoln@lysator.liu.se>
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License version 2 as
-   published by the Free Software Foundation;
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
-   IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) AND AUTHOR(S) BE LIABLE FOR ANY
-   CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES 
-   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
-   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF 
-   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-   ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS, 
-   COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS 
-   SOFTWARE IS DISCLAIMED.
-*/
-
-/*
- *  $Id: irmc_sync.c,v 1.57 2004/04/06 09:47:31 lincoln Exp $
- */
-#include <stdio.h>
+#include <opensync/opensync.h>
+#include "plugin.h"
 #include <stdlib.h>
-#include "irmc_sync.h"
-#include <glib.h>
-#include <gmodule.h>
-#include <multisync.h>
-#include <iconv.h>
-#include <time.h>
-#include <unistd.h>
 #include <string.h>
-#include <dirent.h>
-#include "gui.h"
+#include <assert.h>
+
+osync_bool parse_settings(irmc_config *config, const char *config, unsigned int size, OSyncError **error)
+{
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
+  xmlDoc *doc = NULL;
+  xmlNode *cur = NULL;
+
+  // set defaults
+  config->connectmedium = MEDIUM_BLUETOOTH;
+  memset(config->btunit.address, 0, sizeof(config->btunit.address));
+  config->btunit.channel = 0;
+  memset(config->btunit.name, 0, sizeof(config->btunit.name));
+  config->btchannel = 0;
+
+  memset(config->cabledev, 0, sizeof(config->cabledev));
+  config->cabletype = UNKNOWN;
+
+  memset(config->irunit.name, 0, sizeof(config->irunit.name));
+  memset(config->irunit.serial, 0, sizeof(config->irunit.serial));
+
+  config->fixdst = FALSE;
+  config->donttellsync = FALSE;
+  config->onlyphonenumbers = TRUE;
+  config->dontacceptold = TRUE;
+  config->maximumage = 7;
+  config->translatecharset = FALSE;
+  config->charset = g_strdup("ISO8859-1");
+  config->alarmtoirmc = TRUE;
+  config->alarmfromirmc = TRUE;
+  config->convertade = FALSE;
 
 
-#define IRMCFILE "irmc"
+  doc = xmlParseMemory(config, size);
 
-extern GModule *bluetoothplugin;
-gpointer (*plugin_function)();
-#define CALL_PLUGIN(mod, name, args) (g_module_symbol(mod,name,(gpointer*)&plugin_function)?(*plugin_function)args:NULL)
-
-extern long timezone;
-
-extern gboolean multisync_debug;
-
-void safe_strcat(char *s1, const char *s2, int len) {
-  s1[len-1] = 0;
-  memcpy(s1+strlen(s1), s2, 
-	 (strlen(s2)+1+strlen(s1)>len)?(len-strlen(s1)-1):strlen(s2)+1);
-}
-
-void str_replace(char *in, char *out, int outbuflen, char *replfrom, char *replto){
-  char *pos=in, *oldpos = in;
-  out[0] = 0;
-  while((pos=strstr(pos, replfrom))) {
-    strncat(out, oldpos, pos-oldpos);
-    safe_strcat(out, replto, outbuflen);
-    pos+=strlen(replfrom);
-    oldpos = pos;
+  if (!doc) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+    goto error;
   }
-  safe_strcat(out, oldpos, outbuflen);
-}
 
-void load_state(irmc_connection *conn) {
-  char *filename;
-  FILE *f;
-  char line[256];
+  cur = xmlDocGetRootElement(doc);
 
-  conn->onlyphonenumbers = TRUE;
-  conn->dontacceptold = TRUE;
-  conn->maximumage = 7;
-  conn->charset = g_strdup("ISO8859-1");
-  conn->translatecharset = FALSE;
-  conn->alarmfromirmc = TRUE;
-  conn->alarmtoirmc = TRUE;
-  filename = g_strdup_printf("%s/%s%s", sync_get_datapath(conn->sync_pair),
-			     (conn->conntype==CONNECTION_TYPE_LOCAL?"local":"remote"), IRMCFILE);
-  if ((f = fopen(filename, "r"))) {
-    while (fgets(line, 256, f)) {
-      char prop[128], data[256];
-      if (sscanf(line, "%128s = %256[^\n]", prop, data) == 2) {
-	if (!strcmp(prop, "calchangecounter")) {
-	  sscanf(data, "%d", &conn->calchangecounter);
-	  dd(printf("Loaded change counter %d\n", conn->calchangecounter));
-	}
-	if (!strcmp(prop, "pbchangecounter")) {
-	  sscanf(data, "%d", &conn->pbchangecounter);
-	  dd(printf("Loaded change counter %d\n", conn->pbchangecounter));
-	}
-	if (!strcmp(prop, "calDID")) {
-	  conn->calDID = g_strdup(data);
-	}
-	if (!strcmp(prop, "pbDID")) {
-	  conn->pbDID = g_strdup(data);
-	}
-	if (!strcmp(prop, "connectmedium")) {
-	  if (!strcmp(data, "bluetooth"))
-	    conn->connectmedium = MEDIUM_BLUETOOTH;
-	  else if (!strcmp(data, "ir"))
-	    conn->connectmedium = MEDIUM_IR;
-	  else if (!strcmp(data, "cable"))
-	    conn->connectmedium = MEDIUM_CABLE;
-	}	  
-	if (!strcmp(prop, "btunit")) {
-	  if (bluetoothplugin) {
-	    CALL_PLUGIN(bluetoothplugin, "irmc_strtoba", 
-			(&conn->btunit.bdaddr, data));
-	  }
-	}
-	if (!strcmp(prop, "btchannel")) {
-	  sscanf(data, "%d", &conn->btchannel);
-	}
-	if (!strcmp(prop, "irname")) {
-	  strncpy(conn->irunit.name, data, 31);
-	}
-	if (!strcmp(prop, "irserial")) {
-	  strncpy(conn->irunit.serial, data, 127);
-	}
-	if (!strcmp(prop, "cabledev")) {
-	  strncpy(conn->cabledev, data, 19);
-	}
-	if (!strcmp(prop, "cabletype")) {
-	  sscanf(data, "%d", &conn->cabletype);
-	}
-	if (!strcmp(prop, "managedbsize")) {
-	  if (!strcmp(data, "yes"))
-	    conn->commondata.managedbsize = TRUE;
-	  else
-	    conn->commondata.managedbsize = FALSE;
-	}
-	if (!strcmp(prop, "fakerecur")) {
-	  if (!strcmp(data, "yes"))
-	    conn->commondata.fake_recurring = TRUE;
-	  else
-	    conn->commondata.fake_recurring = FALSE;
-	}
-	if (!strcmp(prop, "fixdst")) {
-	  if (!strcmp(data, "yes"))
-	    conn->fixdst = TRUE;
-	  else
-	    conn->fixdst = FALSE;
-	}
-	if (!strcmp(prop, "donttellsync")) {
-	  if (!strcmp(data, "yes"))
-	    conn->donttellsync = TRUE;
-	  else
-	    conn->donttellsync = FALSE;
-	}
-	if (!strcmp(prop, "onlyphonenumbers")) {
-	  if (!strcmp(data, "yes"))
-	    conn->onlyphonenumbers = TRUE;
-	  else
-	    conn->onlyphonenumbers = FALSE;
-	}
-	if (!strcmp(prop, "dontacceptold")) {
-	  if (!strcmp(data, "yes"))
-	    conn->dontacceptold = TRUE;
-	  else
-	    conn->dontacceptold = FALSE;
-	}
-	if (!strcmp(prop, "maximumage")) {
-	  sscanf(data, "%d", &conn->maximumage);
-	}
-	if (!strcmp(prop, "translatecharset")) {
-	  if (!strcmp(data, "yes"))
-	    conn->translatecharset = TRUE;
-	  else
-	    conn->translatecharset = FALSE;
-	}
-	if (!strcmp(prop, "charset")) {
-	  if (conn->charset)
-	    g_free(conn->charset);
-	  conn->charset = g_strdup(data);
-	}
-	if (!strcmp(prop, "alarmfromirmc")) {
-	  if (!strcmp(data, "yes"))
-	    conn->alarmfromirmc = TRUE;
-	  else
-	    conn->alarmfromirmc = FALSE;
-	}
-	if (!strcmp(prop, "alarmtoirmc")) {
-	  if (!strcmp(data, "yes"))
-	    conn->alarmtoirmc = TRUE;
-	  else
-	    conn->alarmtoirmc = FALSE;
-	}
-	if (!strcmp(prop, "convertade")) {
-	  if (!strcmp(data, "yes"))
-	    conn->convertade = TRUE;
-	  else
-	    conn->convertade = FALSE;
-	}
+  if (!cur) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
+    goto error_free_doc;
+  }
+
+  if (xmlStrcmp(cur->name, "config")) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
+    goto error_free_doc;
+  }
+
+  cur = cur->xmlChildrenNode;
+
+  while (cur != NULL) {
+    char *str = xmlNodeGetContent(cur);
+    if (str) {
+      if (!xmlStrcmp(cur->name, (const xmlChar *)"connectmedium")) {
+        if (!strcmp(str, "bluetooth"))
+          config->connectmedium = MEDIUM_BLUETOOTH;
+        else if (!strcmp(str, "ir"))
+          config->connectmedium = MEDIUM_IR;
+        else if (!strcmp(str, "cable"))
+          config->connectmedium = MEDIUM_CABLE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {
+        config->btchannel = atoi(str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"irname")) {
+        strncpy(config->irunit.name, str, 31);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"irserial")) {
+        strncpy(config->irunit.serial, str, 127);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"cabledev")) {
+        strncpy(config->cabledev, str, 19);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"cabletype")) {
+        config->cabletype = atoi(str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"managedbsize")) {
+        if (!strcmp(str, "true"))
+          config->managedbsize = TRUE;
+        else
+          config->managedbsize = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"fakerecur")) {
+        if (!strcmp(str, "true"))
+          config->fake_recurring = TRUE;
+        else
+          config->fake_recurring = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"fixedst")) {
+        if (!strcmp(str, "true"))
+          config->fixdst = TRUE;
+        else
+          config->fixdst = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"donttellsync")) {
+        if (!strcmp(str, "true"))
+          config->donttellsync = TRUE;
+        else
+          config->donttellsync = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyphonenumbers")) {
+        if (!strcmp(str, "true"))
+          config->onlyphonenumbers = TRUE;
+        else
+          config->onlyphonenumbers = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"dontacceptold")) {
+        if (!strcmp(str, "true"))
+          config->dontacceptold = TRUE;
+        else
+          config->dontacceptold = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"maximumage")) {
+        config->maximumage = atoi(str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"translatecharset")) {
+        if (!strcmp(str, "true"))
+          config->translatecharset = TRUE;
+        else
+          config->translatecharset = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"charset")) {
+        if (config->charset)
+          g_free(config->charset);
+        config->charset = g_strdup(str);
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"alarmfromirmc")) {
+        if (!strcmp(str, "true"))
+          config->alarmfromirmc = TRUE;
+        else
+          config->alarmfromirmc = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"alarmtoirmc")) {
+        if (!strcmp(str, "true"))
+          config->alarmtoirmc = TRUE;
+        else
+          config->alarmtoirmc = FALSE;
+      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"convertade")) {
+        if (!strcmp(str, "true"))
+          config->convertade = TRUE;
+        else
+          config->convertade = FALSE;
       }
+      xmlFree(str);
     }
-    fclose(f);
+    cur = cur->next;
   }
-  g_free(filename);
+
+  xmlFreeDoc(doc);
+  osync_trace(TRACE_EXIT, "%s", __func__);
+  return TRUE;
+
+error_free_doc:
+    xmlFreeDoc(doc);
+error:
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return FALSE;
 }
 
-void save_state(irmc_connection *conn) {
-  FILE *f;
-  char *filename;
-  
-  filename = g_strdup_printf("%s/%s%s", sync_get_datapath(conn->sync_pair), 
-			     (conn->conntype==CONNECTION_TYPE_LOCAL?"local":"remote"), IRMCFILE);
-  if ((f = fopen(filename, "w"))) {
+static void *initialize(OSyncMember *member, OSyncError **error)
+{
+  char *configdata;
+  int configsize;
 
-    fprintf(f, "calchangecounter = %d\n", conn->calchangecounter);
-    fprintf(f, "pbchangecounter = %d\n", conn->pbchangecounter);
-    fprintf(f, "connectmedium = %s\n", conn->connectmedium==MEDIUM_BLUETOOTH?"bluetooth":(conn->connectmedium==MEDIUM_IR?"ir":"cable"));
-    if (bluetoothplugin)
-      fprintf(f, "btunit = %s\n", CALL_PLUGIN(bluetoothplugin, "irmc_batostr",
-					      (&conn->btunit.bdaddr)));
-    fprintf(f, "btchannel = %d\n", conn->btchannel);
-    fprintf(f, "irname = %s\n", conn->irunit.name);
-    fprintf(f, "irserial = %s\n", conn->irunit.serial);
-    fprintf(f, "cabledev = %s\n", conn->cabledev);
-    fprintf(f, "cabletype = %d\n", conn->cabletype);
-    if (conn->calDID)
-      fprintf(f, "calDID = %s\n", conn->calDID);
-    if (conn->pbDID)
-      fprintf(f, "pbDID = %s\n", conn->pbDID);
-    fprintf(f, "managedbsize = %s\n", conn->commondata.managedbsize?"yes":"no");
-    fprintf(f, "fakerecur = %s\n", conn->commondata.fake_recurring?"yes":"no");
-    fprintf(f, "fixdst = %s\n", conn->fixdst?"yes":"no");
-    fprintf(f, "donttellsync = %s\n", conn->donttellsync?"yes":"no");
-    fprintf(f, "onlyphonenumbers = %s\n", conn->onlyphonenumbers?"yes":"no");
-    fprintf(f, "dontacceptold = %s\n", conn->dontacceptold?"yes":"no");
-    fprintf(f, "maximumage = %d\n", conn->maximumage);
-    fprintf(f, "translatecharset = %s\n", conn->translatecharset?"yes":"no");
-    fprintf(f, "charset = %s\n", conn->charset);
-    fprintf(f, "alarmfromirmc = %s\n", conn->alarmfromirmc?"yes":"no");
-    fprintf(f, "alarmtoirmc = %s\n", conn->alarmtoirmc?"yes":"no");
-    fprintf(f, "convertade = %s\n", conn->convertade?"yes":"no");
-    fclose(f);
+  //You need to specify the <some name>_environment somewhere with
+  //all the members you need
+  irmc_environment *env = malloc(sizeof(irmc_environment));
+  assert(env != NULL);
+  memset(env, 0, sizeof(irmc_environment));
+
+  //now you can get the config file for this plugin
+  if (!osync_member_get_config(member, &configdata, &configsize, error)) {
+    osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
+    free(env);
+    return NULL;
   }
-  g_free(filename);
+
+  if (!parse_settings( &(env->config), configdata, configsize, error)) {
+    osync_error_update(error, "Unable to parse config data: %s", osync_error_print(error));
+    free(env);
+    return NULL;
+  }
+
+  //Process the configdata here and set the options on your environment
+  free(configdata);
+  env->member = member;
+
+  //If you need a hashtable you make it here
+  env->hashtable = osync_hashtable_new();
+
+  //Now your return your struct.
+  return (void *)env;
 }
 
-void free_state(irmc_connection *conn) {
-  if (conn->calDID)
-    g_free(conn->calDID);
-  if (conn->charset)
-    g_free(conn->charset);
-  g_free(conn);
-}
+static void connect(OSyncContext *ctx)
+{
+  //Each time you get passed a context (which is used to track
+  //calls to your plugin) you can get the data your returned in
+  //initialize via this call:
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
+  /*
+   * Now connect to your devices and report
+   *
+   * an error via:
+   * osync_context_report_error(ctx, ERROR_CODE, "Some message");
+   *
+   * or success via:
+   * osync_context_report_success(ctx);
+   *
+   * You have to use one of these 2 somewhere to answer the context.
+   *
+   */
 
-
-
-
-irmc_connection* sync_connect(sync_pair *handle, connection_type type,
-			      sync_object_type object_types) {
-  irmc_connection* conn;
-  int ret;
-
-  conn = g_malloc0(sizeof(irmc_connection));
-  g_assert(conn);
-  conn->sync_pair = handle;
-  conn->conntype = type;
-  conn->commondata.object_types = object_types;
-  load_state(conn);
-
-
-  conn->obexhandle = irmc_obex_client(conn);
-  
-  if ((ret = irmc_obex_connect(conn->obexhandle, conn->donttellsync?NULL:"IRMC-SYNC"))<0) {
-    irmc_disconnect(conn);
-    sync_set_requestmsg(ret, handle);
-    return(NULL);
-  }
-  sync_set_requestdone(conn->sync_pair);
-  return(conn);
-}
-
-gboolean sync_test_connection(irmc_connection *conn) {
-  char data[10240];
-  int len = 10240;
-  conn->obexhandle = irmc_obex_client(conn);
-  
-  if (irmc_obex_connect(conn->obexhandle, 
-			conn->donttellsync?NULL:"IRMC-SYNC")) {
-    irmc_obex_disconnect(conn->obexhandle);
-    irmc_obex_cleanup(conn->obexhandle);
-    conn->obexhandle = NULL;
-    return(FALSE);
-  }
-  len = 10240;
-  if (irmc_obex_get(conn->obexhandle, "telecom/devinfo.txt", data, &len)) {
-    irmc_obex_disconnect(conn->obexhandle);
-    irmc_obex_cleanup(conn->obexhandle);
-    conn->obexhandle = NULL;
-    return(FALSE);
-  }
-  // Succeeded to connect and fetch data.
-  irmc_obex_disconnect(conn->obexhandle);
-  irmc_obex_cleanup(conn->obexhandle);
-  conn->obexhandle = NULL;
-  return(TRUE);
-}
-
-
-// Return the serial number of an unconnected device
-// The string must be freed with g_free()
-char* sync_connect_get_serial(irmc_connection *conn) {
-  char *sn = NULL;
-  conn->obexhandle = irmc_obex_client(conn);
-  
-  if (irmc_obex_connect(conn->obexhandle, 
-			conn->donttellsync?NULL:"IRMC-SYNC") >= 0) {
-    sn = irmc_obex_get_serial(conn->obexhandle);
-  }
-  irmc_obex_disconnect(conn->obexhandle);
-  irmc_obex_cleanup(conn->obexhandle);
-  conn->obexhandle = NULL;
-  return(sn);
-}
-
-#define DATABUFSIZE (65536*2)
-
-void free_changes(GList *changes) {
-  while (changes) {
-    GList *change;
-    changed_object *obj;
-
-    change = g_list_first(changes);
-    if (change->data) {
-      obj = change->data;
-      if (obj->comp) {
-	g_free(obj->comp);
-      }
-      if (obj->removepriority)
-	g_free(obj->removepriority);
-      if (obj->uid)
-	g_free(obj->uid);
-    }
-    changes = g_list_remove_link(changes, change);
-  }
-}
-
-
-void get_changes(irmc_connection *conn, sync_object_type newdbs) {
-  GList *changes = NULL;
-  int ret;
-  sync_object_type retnewdbs = 0;
-  change_info *chinfo;
-
-  if (conn->commondata.object_types & (SYNC_OBJECT_TYPE_CALENDAR |
-				       SYNC_OBJECT_TYPE_TODO)) {
-    ret = cal_get_changes(conn, newdbs&(SYNC_OBJECT_TYPE_CALENDAR |
-					SYNC_OBJECT_TYPE_TODO), &changes);
-    if (ret == SYNC_MSG_SLOWSYNC)
-      retnewdbs |= (SYNC_OBJECT_TYPE_CALENDAR|SYNC_OBJECT_TYPE_TODO);
-    if (ret < 0)
-      goto err;
-  }
-  if (conn->commondata.object_types & SYNC_OBJECT_TYPE_PHONEBOOK) {
-    ret = pb_get_changes(conn, newdbs&SYNC_OBJECT_TYPE_PHONEBOOK, &changes);
-    if (ret == SYNC_MSG_SLOWSYNC)
-      retnewdbs |= SYNC_OBJECT_TYPE_PHONEBOOK;
-    if (ret < 0)
-      goto err;
-  }
-  
-  chinfo = g_malloc0(sizeof(change_info));
-  chinfo->changes = changes;
-  chinfo->newdbs = retnewdbs;
-  sync_set_requestdata(chinfo, conn->sync_pair);
-  return;
-  
-err:
-  if (changes)
-    free_changes(changes);     
-  sync_set_requestmsg(ret, conn->sync_pair);
-}
-
-int cal_get_changes(irmc_connection *conn, int slowsync, GList **sync_changes) {
-  char *data;
-  char *datap;
-  int len = DATABUFSIZE;
-  char serial[256];
-  char did[256] = "";
-  char *filename;
-  int ret;
-  int newdb = 0;
-  
-  data = g_malloc(DATABUFSIZE);
-  datap = data;
-
-  len = DATABUFSIZE;
-  filename = g_strdup_printf("telecom/cal/luid/%d.log", conn->calchangecounter);
-
-  if ((ret = irmc_obex_get(conn->obexhandle, filename, data, &len)) < 0) {
-    dd(printf("Get log failed.\n"));
-    g_free(filename);
-    g_free(data);
-    return(ret);
-  }
-  g_free(filename);
-  data[len] = 0;
-  dd(printf("Change log: \n%s\n", data));
-  sscanf(datap, "SN:%256s\r\n", serial);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return(0);
-  }
-  datap+=2;
-  sscanf(datap, "DID:%256s\r\n", did);
-  if (!conn->calDID || strcmp(conn->calDID, did)) {
-    // This is a new database
-    if (conn->calDID)
-      g_free(conn->calDID);
-    conn->calDID = g_strdup(did);
-    slowsync = 1;
-    newdb = 1;
-  }
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return(0);
-  }
-  datap+=2;
-  sscanf(datap, "Total-Records:%d\r\n", &conn->commondata.calendarrecords);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return(0);
-  }
-  datap+=2;
-  sscanf(datap, "Maximum-Records:%d\r\n", &conn->commondata.maxcalendarrecords);
-  datap = strstr(datap, "\r\n");
-  while(datap) {
-    char type;
-    int cc;
-    char luid[256];
-    datap+=2;
-    if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
-      changed_object* change;
-      char *event_end = NULL;
-      char *event_start = NULL;
-      char event[10240];
-      char objdata[10240];
-      int objlen = 10240;
-      sync_object_type objtype;      
-
-      filename = g_strdup_printf("telecom/cal/luid/%s.vcs", luid);
-      objlen = 10240;
-      if ((ret=irmc_obex_get(conn->obexhandle, filename, objdata, &objlen))<0){
-	objdata[0] = 0;
-	objlen = 0;
-	//printf("Get object %s failed.\n", luid);
-      }
-      g_free(filename);
-      
-      objtype = SYNC_OBJECT_TYPE_CALENDAR;
-      if (objlen > 0) {
-	if (!strstr(objdata, "BEGIN:VEVENT"))
-	  if (strstr(objdata, "BEGIN:VTODO"))
-	    objtype = SYNC_OBJECT_TYPE_TODO;
-      }
-      
-      // Add only if we handle this type of data
-      if (conn->commondata.object_types & objtype) {
-	change = g_malloc0(sizeof(changed_object));
-	g_assert(change);
-	change->uid = g_strdup(luid);
-	if (objlen > 0) {
-	  dd(printf("Original data:\n%s\n", objdata));
-	  change->comp = sync_vtype_convert(objdata, 0|(conn->fixdst?VOPTION_FIXDSTFROMCLIENT:0)|(conn->translatecharset?VOPTION_FIXCHARSET:0)|VOPTION_CALENDAR1TO2|(conn->alarmfromirmc?0:VOPTION_REMOVEALARM)|VOPTION_CONVERTUTC, conn->charset);
-	  change->removepriority = sync_get_key_data(change->comp, "DTEND");
-	}
-	
-	if (type == 'D')
-	  change->change_type = SYNC_OBJ_SOFTDELETED;
-	if (type == 'H')
-	  change->change_type = SYNC_OBJ_HARDDELETED;
-	if (type == 'M' || objlen == 0)
-	  change->change_type = SYNC_OBJ_MODIFIED;
-	change->object_type = objtype;
-	*sync_changes = g_list_append(*sync_changes, change);
-      }
-    } else {
-      if (datap[0] == '*')
-	slowsync = 1;
-    }
-    datap = strstr(datap, "\r\n");
-  }
-  
-  len = DATABUFSIZE;
-  if ((ret = irmc_obex_get(conn->obexhandle, "telecom/cal/luid/cc.log", data, &len))<0) {
-    dd(printf("Get cc failed.\n"));
-  } else {
-    data[len] = 0;
-    sscanf(data, "%d", &conn->calchangecounter);
-    dd(printf("Changecounter: %d\n", conn->calchangecounter));
-  }
-
-  if (slowsync) {
-    len = DATABUFSIZE;
-    if (conn->donttellsync) {
-      // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
-      irmc_obex_disconnect(conn->obexhandle);
-      sleep(1);
-      if (irmc_obex_connect(conn->obexhandle, "IRMC-SYNC")) {
-	sleep(2);
-	if ((ret = irmc_obex_connect(conn->obexhandle, "IRMC-SYNC")) < 0) {
-	  g_free(data);
-	  return(ret);
-	}
-      }
-    }
-    irmc_async_slowsync_msg(SYNC_OBJECT_TYPE_CALENDAR);
-    if ((ret = irmc_obex_get(conn->obexhandle, "telecom/cal.vcs", data, &len))<0) 
-      len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
-    { 
-      char *event_end = NULL;
-      char *event_start = data, *todo_start;
-      char *event = NULL;
-      changed_object* change;
-      sync_object_type objtype;      
-      
-      irmc_async_close_infodialog();
-      data[len]=0;
-      do {
-	char *start = event_start;
-	objtype = SYNC_OBJECT_TYPE_CALENDAR;
-	event_start = strstr(start, "BEGIN:VEVENT");
-	todo_start = strstr(start, "BEGIN:VTODO");
-	if (!event_start || (todo_start && (todo_start < event_start))) {
-	  event_start = todo_start;
-	  objtype = SYNC_OBJECT_TYPE_TODO;
-	}
-	if (objtype == SYNC_OBJECT_TYPE_CALENDAR)
- 	  if ((event_end = strstr(start, "END:VEVENT")))
-	    event_end += strlen("END:VEVENT");
-	if (objtype == SYNC_OBJECT_TYPE_TODO)
- 	  if ((event_end = strstr(start, "END:VTODO")))
-	    event_end += strlen("END:VTODO");
-	if (event_start && event_end) {
-	  int pos = 0;
-	  event = g_malloc(event_end - event_start + 256);
-	  sprintf(event, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
-	  pos = strlen(event);
-	  memcpy(event+pos,event_start,event_end-event_start);
-	  sprintf(event+(pos+event_end-event_start), "\r\nEND:VCALENDAR\r\n");
-	  change = g_malloc0(sizeof(changed_object));
-	  g_assert(change);
-	  change->comp = sync_vtype_convert(event, 0|(conn->fixdst?VOPTION_FIXDSTFROMCLIENT:0)|(conn->translatecharset?VOPTION_FIXCHARSET:0)|VOPTION_CALENDAR1TO2|(conn->alarmfromirmc?0:VOPTION_REMOVEALARM)|VOPTION_CONVERTUTC, conn->charset);
-	  change->removepriority = sync_get_key_data(change->comp, "DTEND");
-	  
-	  event_start = strstr(event, "X-IRMC-LUID:");
-	  if (event_start) {
-	    char luid[256];
-	    if (sscanf(event_start, "X-IRMC-LUID:%256s", luid)) {
-	      change->uid = g_strdup(luid);
-	    }
-	  }
-	  change->change_type = SYNC_OBJ_MODIFIED;
-	  change->object_type = objtype;
-	  *sync_changes = g_list_append(*sync_changes, change);
-	  g_free(event);
-	}
-	event_start = event_end;
-      } while(event_start);
-    }
-  }
-  g_free(data);
-  return(newdb?SYNC_MSG_SLOWSYNC:0);
-}
-
-int pb_get_changes(irmc_connection *conn, int slowsync, GList **sync_changes) {
-  char *data;
-  char *datap;
-  int len = DATABUFSIZE;
-  char serial[256];
-  char did[256] = "";
-  char *filename;
-  int ret;
-  int newdb = 0;
-
-  data = g_malloc(DATABUFSIZE);
-  datap = data;
-
-  filename = g_strdup_printf("telecom/pb/luid/%d.log", conn->pbchangecounter);
-
-  if ((ret=irmc_obex_get(conn->obexhandle, filename, data, &len))<0) {
-    dd(printf("Get log failed.\n"));
-    g_free(filename);
-    g_free(data);
-    return(ret);
-  }
-  g_free(filename);
-  data[len] = 0;
-  dd(printf("Change log: \n%s\n", data));
-  sscanf(datap, "SN:%256s\r\n", serial);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return(0);
-  }
-  datap+=2;
-  sscanf(datap, "DID:%256s\r\n", did);
-  if (!conn->pbDID || strcmp(conn->pbDID, did)) {
-    // This is a new database
-    if (conn->pbDID)
-      g_free(conn->pbDID);
-    conn->pbDID = g_strdup(did);
-    slowsync = 1;
-    newdb = 1;
-  }
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return(0);
-  }
-  datap+=2;
-  sscanf(datap, "Total-Records:%d\r\n", &conn->commondata.phonebookrecords);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return(0);
-  }
-  datap+=2;
-  sscanf(datap, "Maximum-Records:%d\r\n", &conn->commondata.maxphonebookrecords);
-  datap = strstr(datap, "\r\n");
-  while(datap) {
-    char type;
-    int cc;
-    char luid[256];
-    datap+=2;
-    if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
-      changed_object* change;
-      char objdata[65536];
-      int objlen = 65536;
-      sync_object_type objtype;      
-
-      filename = g_strdup_printf("telecom/pb/luid/%s.vcf", luid);
-      objlen = 10240;
-      if ((ret=irmc_obex_get(conn->obexhandle, filename, objdata, &objlen))<0) {
-	objdata[0] = 0;
-	objlen = 0;
-	//printf("Get object %s failed.\n", luid);
-      }
-      g_free(filename);
-      objdata[objlen]=0;
-      
-      objtype = SYNC_OBJECT_TYPE_PHONEBOOK;
-
-      // Add only if we handle this type of data
-      if (conn->commondata.object_types & objtype) {
-	change = g_malloc0(sizeof(changed_object));
-	g_assert(change);
-	change->uid = g_strdup(luid);
-	if (objlen > 0)
-	  change->comp = sync_vtype_convert(objdata, 0|(conn->translatecharset?VOPTION_FIXCHARSET:0)|VOPTION_FIXTELOTHER, conn->charset);
-	if (type == 'D')
-	  change->change_type = SYNC_OBJ_SOFTDELETED;
-	if (type == 'H')
-	  change->change_type = SYNC_OBJ_HARDDELETED;
-	if (type == 'M' || objlen == 0)
-	  change->change_type = SYNC_OBJ_MODIFIED;
-	change->object_type = objtype;
-	*sync_changes = g_list_append(*sync_changes, change);
-      }
-    } else {
-      if (datap[0] == '*')
-	slowsync = 1;
-    }
-    datap = strstr(datap, "\r\n");
-  }
-    
-  len = DATABUFSIZE;
-  if ((ret=irmc_obex_get(conn->obexhandle, "telecom/pb/luid/cc.log", data, &len))<0) {
-    dd(printf("Get cc failed.\n"));
-  } else {
-    data[len] = 0;
-    sscanf(data, "%d", &conn->pbchangecounter);
-    dd(printf("Phonebook changecounter: %d\n", conn->pbchangecounter));
-  }
-
-  if (slowsync) {
-    len = DATABUFSIZE;
-    if (conn->donttellsync) {
-      // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
-      irmc_obex_disconnect(conn->obexhandle);
-      sleep(1);
-      if (irmc_obex_connect(conn->obexhandle, "IRMC-SYNC")) {
-	sleep(2);
-	if ((ret=irmc_obex_connect(conn->obexhandle, "IRMC-SYNC"))<0) {
-	  g_free(data);
-	  return(ret);
-	}
-      }
-    }
-    irmc_async_slowsync_msg(SYNC_OBJECT_TYPE_PHONEBOOK);
-    if ((ret=irmc_obex_get(conn->obexhandle, "telecom/pb.vcf", data, &len))<0)
-      len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
-    {
-      char *event_end = NULL;
-      char *event_start = data, *todo_start;
-      char *event = NULL;
-      changed_object* change;
-      sync_object_type objtype;      
-      
-      irmc_async_close_infodialog();
-      data[len]=0;
-      do {
-	char *start = event_start;
-	objtype = SYNC_OBJECT_TYPE_PHONEBOOK;
-	event_start = strstr(start, "BEGIN:VCARD");
-	if ((event_end = strstr(start, "END:VCARD")))
-	  event_end += strlen("END:VCARD");
-	
-	if (event_start && event_end) {
-	  event = g_malloc(event_end-event_start+1);
-	  memcpy(event, event_start, event_end-event_start);
-	  event[event_end-event_start] = 0;
-	  change = g_malloc0(sizeof(changed_object));
-	  g_assert(change);
-	  change->comp = sync_vtype_convert(event,0|(conn->translatecharset?VOPTION_FIXCHARSET:0)|VOPTION_FIXTELOTHER, conn->charset);
-	  event_start = strstr(event, "X-IRMC-LUID:");
-	  if (event_start) {
-	    char luid[256];
-	    if (sscanf(event_start, "X-IRMC-LUID:%256s", luid)) {
-	      change->uid = g_strdup(luid);
-	    }
-	  }
-	  g_free(event);
-	  change->change_type = SYNC_OBJ_MODIFIED;
-	  change->object_type = objtype;
-	  *sync_changes = g_list_append(*sync_changes, change);
-	}
-	event_start = event_end;
-      } while(event_start);
-    }
-  }
-  g_free(data);
-  return(newdb?SYNC_MSG_SLOWSYNC:0);
-}
-
-
-// Unique function name so not other plugin is called accidentally.
-void irmc_disconnect(irmc_connection *conn) {
-  if (!conn)
-    return;
-  if (conn->obexhandle) {
-    irmc_obex_disconnect(conn->obexhandle);
-    irmc_obex_cleanup(conn->obexhandle);
-  }
-  conn->obexhandle = 0;
-  free_state(conn);
-}
-
-
-void sync_disconnect(irmc_connection *conn) {
-  sync_pair *sync_pair = conn->sync_pair;
-  irmc_disconnect(conn);
-  sync_set_requestdone(sync_pair);
-}
-
-
-
-
-// Add, modify, or delete events in mobile calendar
-void cal_modify_or_delete(irmc_connection *conn, 
-			  char *event, char *inluid, 
-			  char *outluid, int *outluidlen, int softdelete,
-			  sync_object_type objtype) {
-  int res = 0;
-  char name[256];
-  char *body = NULL;
-  int bodylen=0;
-  char rspbuf[256];
-  int rspbuflen=256;
-  char apparambuf[256];
-  char *apparam = apparambuf;
-  
-  strcpy(name, "telecom/cal/luid/");
-  if (inluid) {
-    safe_strcat(name, inluid, 256);
-  }
-  safe_strcat(name, ".vcs", 256);
-  if (event) {
-    char *tmp;
-    char *dtend = NULL;
-
-    dtend = sync_get_key_data(event, "DTEND");
-    if (conn->dontacceptold && dtend) {
-      time_t tend, now;
-      tend = sync_dt_to_timet(dtend);
-      now = time(NULL);
-      if (now-tend > conn->maximumage*3600*24) {
-	g_free(dtend);
-	sync_set_requestmsg(SYNC_MSG_USERDEFERRED, conn->sync_pair);
-	return;
-      }
-    }
-    if (dtend)
-      g_free(dtend);
-    
-    body = sync_vtype_convert(event, VOPTION_ADDUTF8CHARSET|0|(conn->fixdst?VOPTION_FIXDSTTOCLIENT:0)|VOPTION_CALENDAR2TO1|(conn->alarmtoirmc?0:VOPTION_REMOVEALARM)|(conn->convertade?VOPTION_CONVERTALLDAYEVENT:0),NULL);
-    bodylen = strlen(body);
-    dd(printf("Converted body:\n%s\n", body));
-  } else {
-    bodylen = 0;
-  }
-  conn->calchangecounter++;
-  sprintf(apparam+2, "%d", conn->calchangecounter);
-  apparam[0] = IRSYNC_APP_MAXEXPCOUNT;
-  apparam[1] = strlen(apparam+2);
-  apparam += strlen(apparam+2)+2;
-  if (!event && !softdelete) {
-    // Delete object => Mark as hard delete
-    apparam[0] = IRSYNC_APP_HARDDELETE;
-    apparam[1] = 0;
-    apparam+=2;
-  }
-  res = irmc_obex_put(conn->obexhandle, name, 0, bodylen?body:NULL, bodylen,
-  		    rspbuf, &rspbuflen, apparambuf, apparam-apparambuf);
-  g_free(body);
-  if (res < 0) {
-    sync_set_requestmsg(res,conn->sync_pair);
+  //If you are using a hashtable you have to load it here
+  OSyncError *error = NULL;
+  if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
+    osync_context_report_osyncerror(ctx, &error);
     return;
   }
 
-  if (bodylen > 0) {
-    if (!inluid)
-      conn->commondata.calendarrecords++;
-  } else {
-    conn->commondata.calendarrecords--;
-  }
+  //you can also use the anchor system to detect a device reset
+  //or some parameter change here. Check the docs to see how it works
+  char *lanchor = NULL;
+  //Now you get the last stored anchor from the device
+  if (!osync_anchor_compare(env->member, "lanchor", lanchor))
+    osync_member_set_slow_sync(env->member, "<object type to request a slow-sync>", TRUE);
+}
 
-  if (outluidlen)
-    *outluidlen = 0;
-  apparam = rspbuf;
-  while (apparam < rspbuf+rspbuflen) {
-    switch(apparam[0]) {
-    case IRSYNC_APP_LUID:
-      if (outluid && outluidlen) {
-	memcpy(outluid, apparam+2, apparam[1]);
-	*outluidlen = apparam[1];
-	outluid[*outluidlen] = 0; // End string
-      }
+static void get_changeinfo(OSyncContext *ctx)
+{
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+
+  //If you use opensync hashtables you can detect if you need
+  //to do a slow-sync and set this on the hastable directly
+  //otherwise you have to make 2 function like "get_changes" and
+  //"get_all" and decide which to use using
+  //osync_member_get_slow_sync
+  if (osync_member_get_slow_sync(env->member, "<object type>"))
+    osync_hashtable_set_slow_sync(env->hashtable, "<object type>");
+
+  /*
+   * Now you can get the changes.
+   * Loop over all changes you get and do the following:
+   */
+    char *data = NULL;
+    //Now get the data of this change
+
+    //Make the new change to report
+    OSyncChange *change = osync_change_new();
+    //Set the member
+    osync_change_set_member(change, env->member);
+    //Now set the uid of the object
+    osync_change_set_uid(change, "<some uid>");
+    //Set the object format
+    osync_change_set_objformat_string(change, "<the format of the object>");
+    //Set the hash of the object (optional, only required if you use hashtabled)
+    osync_change_set_hash(change, "the calculated hash of the object");
+    //Now you can set the data for the object
+    //Set the last argument to FALSE if the real data
+    //should be queried later in a "get_data" function
+
+    osync_change_set_data(change, data, sizeof(data), TRUE);
+
+    //If you use hashtables use these functions:
+    if (osync_hashtable_detect_change(env->hashtable, change)) {
+      osync_context_report_change(ctx, change);
+      osync_hashtable_update_hash(env->hashtable, change);
+    }
+    //otherwise just report the change via
+    //osync_context_report_change(ctx, change);
+
+  //When you are done looping and if you are using hashtables
+  osync_hashtable_report_deleted(env->hashtable, ctx, "data");
+
+  //Now we need to answer the call
+  osync_context_report_success(ctx);
+}
+
+static osync_bool commit_change(OSyncContext *ctx, OSyncChange *change)
+{
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+
+  /*
+   * Here you have to add, modify or delete a object
+   *
+   */
+  switch (osync_change_get_changetype(change)) {
+    case CHANGE_DELETED:
+      //Delete the change
+      //Dont forget to answer the call on error
       break;
-    case IRSYNC_APP_CHANGECOUNT: {
-      char tmpbuf[16];
-      memcpy(tmpbuf, apparam+2, apparam[1]>15?15:apparam[1]);
-      tmpbuf[(int) apparam[1]] = 0;
-      sscanf(tmpbuf, "%d", &conn->calchangecounter);
-      dd(printf("New change counter: %d\n", conn->calchangecounter));
-    }
+    case CHANGE_ADDED:
+      //Add the change
+      //Dont forget to answer the call on error
+      //If you are using hashtables you have to calculate the hash here:
+      osync_change_set_hash(change, "new hash");
+      break;
+    case CHANGE_MODIFIED:
+      //Modify the change
+      //Dont forget to answer the call on error
+      //If you are using hashtables you have to calculate the new hash here:
+      osync_change_set_hash(change, "new hash");
       break;
     default:
-      dd(printf("irmc_cal_modify: Received unknown APPARAM\n"));
-    }
-    apparam+=apparam[1]+2;
+      osync_debug("FILE-SYNC", 0, "Unknown change type");
   }
-  // save_state(conn);
-  sync_set_requestdone(conn->sync_pair);
-
+  //Answer the call
+  osync_context_report_success(ctx);
+  //if you use hashtable, update the hash now.
+  osync_hashtable_update_hash(env->hashtable, change);
+  return TRUE;
 }
 
-// Add, modify, or delete events in mobile phonebook
-void pb_modify_or_delete(irmc_connection *conn, 
-			 char* event, char *inluid, 
-			 char *outluid, int *outluidlen, int softdelete,
-			 sync_object_type objtype) {
-  int res = 0;
-  char name[256];
-  int bodylen=0;
-  char rspbuf[256];
-  int rspbuflen=256;
-  char apparambuf[256];
-  char *apparam = apparambuf;
-  char *body = NULL;
+static void sync_done(OSyncContext *ctx)
+{
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
-  strcpy(name, "telecom/pb/luid/");
-  if (inluid) {
-    safe_strcat(name, inluid, 256);
-  }
-  safe_strcat(name, ".vcf", 256);
-  if (event) {
-    char *tel = NULL;
-    tel = sync_get_key_data(event, "TEL");
-    if (conn->onlyphonenumbers && !tel) {
-      // If no phone number and user want only contacts with phone numbers
-      sync_set_requestmsg(SYNC_MSG_USERDEFERRED, conn->sync_pair);
-      return;
-    }
-    g_free(tel);
-    body = sync_vtype_convert(event, VOPTION_ADDUTF8CHARSET,NULL);
-    bodylen = strlen(body);
-    dd(printf("Body: %s\n", body));
-  } else {
-    bodylen = 0;
-  }
-  conn->pbchangecounter++;
-  sprintf(apparam+2, "%d", conn->pbchangecounter);
-  apparam[0] = IRSYNC_APP_MAXEXPCOUNT;
-  apparam[1] = strlen(apparam+2);
-  apparam += strlen(apparam+2)+2;
-  if (!event && !softdelete) {
-    // Delete object => Mark as hard delete
-    apparam[0] = IRSYNC_APP_HARDDELETE;
-    apparam[1] = 0;
-    apparam+=2;
-  }
-  res = irmc_obex_put(conn->obexhandle, name, 0, body, bodylen,
-		      rspbuf, &rspbuflen, apparambuf, apparam-apparambuf);
-  if (body)
-    g_free(body);
-  if (res) {
-    sync_set_requestmsg(res, conn->sync_pair);
-    return;
-  }
+  /*
+   * This function will only be called if the sync was successfull
+   */
 
-  if (bodylen > 0) {
-    if (!inluid)
-      conn->commondata.phonebookrecords++;
-  } else
-    conn->commondata.phonebookrecords--;
+  //If we have a hashtable we can now forget the already reported changes
+  osync_hashtable_forget(env->hashtable);
 
-  if (outluidlen)
-    *outluidlen = 0;
-  apparam = rspbuf;
-  while (apparam < rspbuf+rspbuflen) {
-    switch(apparam[0]) {
-    case IRSYNC_APP_LUID:
-      if (outluid && outluidlen) {
-	memcpy(outluid, apparam+2, apparam[1]);
-	*outluidlen = apparam[1];
-	outluid[*outluidlen] = 0; // End string
-      }
-      break;
-    case IRSYNC_APP_CHANGECOUNT: {
-      char tmpbuf[16];
-      memcpy(tmpbuf, apparam+2, apparam[1]>15?15:apparam[1]);
-      tmpbuf[(int) apparam[1]] = 0;
-      sscanf(tmpbuf, "%d", &conn->pbchangecounter);
-      dd(printf("New change counter: %d\n", conn->pbchangecounter));
-    }
-      break;
-    default:
-      dd(printf("irmc_pb_modify: Received unknown APPARAM\n"));
-    }
-    apparam+=apparam[1]+2;
-  }
-  // Not a problem to remove?
-  //save_state(conn);
-  sync_set_requestdone(conn->sync_pair);
+  //If we use anchors we have to update it now.
+  char *lanchor = NULL;
+  //Now you get/calculate the current anchor of the device
+  osync_anchor_update(env->member, "lanchor", lanchor);
+
+  //Answer the call
+  osync_context_report_success(ctx);
 }
 
-void syncobj_modify(irmc_connection *conn, 
-		    char* event, char *inluid,
-		    sync_object_type objtype,
-		    char *outluid, int *outluidlen) {
-  if (objtype == SYNC_OBJECT_TYPE_CALENDAR || 
-      objtype == SYNC_OBJECT_TYPE_TODO)
-    cal_modify_or_delete(conn, event, inluid, outluid, outluidlen, 0, objtype);
-  else if (objtype == SYNC_OBJECT_TYPE_PHONEBOOK)
-    pb_modify_or_delete(conn, event, inluid, outluid, outluidlen, 0, objtype);
-  else
-    sync_set_requestfailed(conn->sync_pair);
+static void disconnect(OSyncContext *ctx)
+{
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+
+  //Close all stuff you need to close
+
+  //Close the hashtable
+  osync_hashtable_close(env->hashtable);
+  //Answer the call
+  osync_context_report_success(ctx);
 }
 
-void syncobj_delete(irmc_connection *conn, char *inluid,
-		    sync_object_type objtype, int softdelete) {
-  if (objtype == SYNC_OBJECT_TYPE_CALENDAR || 
-      objtype == SYNC_OBJECT_TYPE_TODO)
-    cal_modify_or_delete(conn, NULL, inluid, NULL, NULL, softdelete, objtype);
-  else if (objtype == SYNC_OBJECT_TYPE_PHONEBOOK)
-    pb_modify_or_delete(conn, NULL, inluid, NULL, NULL, softdelete, objtype);
-  else
-    sync_set_requestfailed(conn->sync_pair);
+static void finalize(void *data)
+{
+  irmc_environment *env = (irmc_environment *)data;
+  //Free all stuff that you have allocated here.
+  osync_hashtable_free(env->hashtable);
 }
 
-// Called by the syncengine after synchronization 
-// (if success, we can discard our internal change list)
-void sync_done(irmc_connection *conn, gboolean success) {
-  if (success) {
-    // No need to do it asyncronously
-    save_state(conn);
-  }
-  sync_set_requestdone(conn->sync_pair);
-}
+void get_info(OSyncEnv *env)
+{
+  OSyncPluginInfo *info = osync_plugin_new_info(env);
 
+  info->name = "irmc_sync";
+  info->longname = "IrMC Mobile Device";
+  info->description = "Connects to IrMC compliant mobile devices,\nsuch as the SonyEricsson T39/T68/T610 or Siemens S55";
+  info->version = 1;
+  info->is_threadsafe = TRUE;
 
-// Return TRUE if this client does not have to be polled 
-// (i.e. can be constantly connected)
-gboolean always_connected() {
-  return(FALSE);
-}
+  info->functions.initialize = initialize;
+  info->functions.connect = connect;
+  info->functions.sync_done = sync_done;
+  info->functions.disconnect = disconnect;
+  info->functions.finalize = finalize;
+  info->functions.get_changeinfo = get_changeinfo;
 
-char* short_name() {
-  return("irmc-sync");
-}
+  info->timeouts.connect_timeout = 5;
 
-char* long_name() {
-  return("IrMC Mobile Device");
-}
+  osync_plugin_accept_objtype(info, "contact");
+  osync_plugin_accept_objformat(info, "contact", "vcard21", NULL);
+  osync_plugin_set_commit_objformat(info, "contact", "vcard21", contact_commit_change);
+  osync_plugin_set_access_objformat(info, "contact", "vcard21", contact_access);
 
-// Return the types of objects that this client handle
-sync_object_type object_types() {
-  return(SYNC_OBJECT_TYPE_CALENDAR | SYNC_OBJECT_TYPE_TODO | 
-	 SYNC_OBJECT_TYPE_PHONEBOOK);
-}
+  osync_plugin_accept_objtype(info, "event");
+  osync_plugin_accept_objformat(info, "event", "vevent20", NULL);
+  osync_plugin_set_commit_objformat(info, "event", "vevent20", event_commit_change);
+  osync_plugin_set_access_objformat(info, "event", "vevent20", event_access);
 
-void plugin_init(void) {
-  irmc_obex_init();
-}
-
-char* plugin_info(void) {
-  return("Connects to IrMC compliant mobile devices,\nsuch as the SonyEricsson T39/T68/T610 or Siemens S55.");
-}
-
-int plugin_API_version(void) {
-  return(3);
+  osync_plugin_accept_objtype(info, "todo");
+  osync_plugin_accept_objformat(info, "todo", "vtodo20", NULL);
+  osync_plugin_set_commit_objformat(info, "todo", "vtodo20", todo_commit_change);
+  osync_plugin_set_access_objformat(info, "todo", "vtodo20", todo_access);
 }
