@@ -124,7 +124,7 @@ error:
 static void destroy_file(char *input, size_t inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
-	g_assert(inpsize != sizeof(fileFormat));
+	g_assert(inpsize == sizeof(fileFormat));
 	fileFormat *file = (fileFormat *)input;
 	
 	g_free(file->data);
@@ -146,7 +146,7 @@ static void duplicate_file(OSyncChange *change)
 
 static osync_bool copy_file(const char *input, int inpsize, char **output, int *outpsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, input, inpsize, output, outpsize);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, input, inpsize, output, outpsize);
 	
 	fileFormat *oldfile = (fileFormat *)input;
 	fileFormat *newfile = g_malloc0(sizeof(fileFormat));
