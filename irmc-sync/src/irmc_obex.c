@@ -53,7 +53,6 @@
 #endif
 
 #include <openobex/obex.h>
-#include <multisync.h>
 
 gpointer (*plugin_function)();
 #define CALL_PLUGIN(mod, name, args) (g_module_symbol(mod,name,(gpointer*)&plugin_function)?(*plugin_function)args:NULL)
@@ -481,7 +480,7 @@ gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout) {
   return(0);
 }
 
-obex_t* irmc_obex_client(irmc_connection *conn) {
+obex_t* irmc_obex_client(irmc_config *config) {
   obex_ctrans_t bttrans;
   obex_ctrans_t cabletrans = { obex_cable_connect, cobex_disconnect,
 			       NULL, cobex_write, 
@@ -519,15 +518,15 @@ obex_t* irmc_obex_client(irmc_connection *conn) {
 #endif
   cabletrans.userdata = userdata;
 #endif
-  memcpy(&userdata->btu, &conn->btunit, sizeof(struct bt_unit));
-  userdata->channel = conn->btchannel;
-  strncpy(userdata->cabledev, conn->cabledev, 19);
-  userdata->cabletype = conn->cabletype;
-  memcpy(&userdata->irunit, &conn->irunit, sizeof(irmc_ir_unit));
+  memcpy(&userdata->btu, &config->btunit, sizeof(struct bt_unit));
+  userdata->channel = config->btchannel;
+  strncpy(userdata->cabledev, config->cabledev, 19);
+  userdata->cabletype = config->cabletype;
+  memcpy(&userdata->irunit, &config->irunit, sizeof(irmc_ir_unit));
 #if HAVE_IRDA
-  userdata->ir_addr = conn->ir_addr; // Temp absolute IR address
+  userdata->ir_addr = config->ir_addr; // Temp absolute IR address
 #endif
-  userdata->connectmedium = conn->connectmedium;
+  userdata->connectmedium = config->connectmedium;
   userdata->state = IRMC_OBEX_OFFLINE;
   userdata->connected = 0;
 

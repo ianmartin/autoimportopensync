@@ -64,9 +64,10 @@ typedef struct  {
 
 typedef struct irmc_environment {
 	OSyncMember *member;
-	OSyncHashTable *hashtable;
 
   irmc_config config;
 } irmc_environment;
+
+obex_t* irmc_obex_client(irmc_config *config);
 
 #endif

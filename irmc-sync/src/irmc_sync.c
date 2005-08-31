@@ -1,8 +1,76 @@
+/* 
+   MultiSync IrMC Plugin - Synchronize IrMC (mobile) devices
+   Copyright (C) 2002-2003 Bo Lincoln <lincoln@lysator.liu.se>
+                      2005 Tobias Koenig <tokoe@kde.org>
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License version 2 as
+   published by the Free Software Foundation;
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
+   IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) AND AUTHOR(S) BE LIABLE FOR ANY
+   CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES 
+   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
+   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF 
+   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+   ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS, 
+   COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS 
+   SOFTWARE IS DISCLAIMED.
+*/
+
 #include <opensync/opensync.h>
 #include "plugin.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+void safe_strcat(char *s1, const char *s2, int len) {
+  s1[len-1] = 0;
+  memcpy(s1+strlen(s1), s2, 
+	 (strlen(s2)+1+strlen(s1)>len)?(len-strlen(s1)-1):strlen(s2)+1);
+}
+
+void str_replace(char *in, char *out, int outbuflen, char *replfrom, char *replto) {
+  char *pos=in, *oldpos = in;
+  out[0] = 0;
+  while((pos=strstr(pos, replfrom))) {
+    strncat(out, oldpos, pos-oldpos);
+    safe_strcat(out, replto, outbuflen);
+    pos+=strlen(replfrom);
+    oldpos = pos;
+  }
+  safe_strcat(out, oldpos, outbuflen);
+}
+
+// Unique function name so not other plugin is called accidentally.
+void irmc_disconnect(irmc_config *config) {
+  if (config->obexhandle) {
+    irmc_obex_disconnect(config->obexhandle);
+    irmc_obex_cleanup(config->obexhandle);
+  }
+
+  config->obexhandle = 0;
+}
+
+// Return the serial number of an unconnected device
+// The string must be freed with g_free()
+char* sync_connect_get_serial(irmc_config *config) {
+  char *sn = NULL;
+  config->obexhandle = irmc_obex_client(config);
+  
+  if (irmc_obex_connect(config->obexhandle, 
+			config->donttellsync ? NULL : "IRMC-SYNC") >= 0) {
+    sn = irmc_obex_get_serial(config->obexhandle);
+  }
+  irmc_obex_disconnect(config->obexhandle);
+  irmc_obex_cleanup(config->obexhandle);
+  config->obexhandle = NULL;
+  return(sn);
+}
+
 
 osync_bool parse_settings(irmc_config *config, const char *config, unsigned int size, OSyncError **error)
 {
@@ -178,39 +246,22 @@ static void *initialize(OSyncMember *member, OSyncError **error)
   free(configdata);
   env->member = member;
 
-  //If you need a hashtable you make it here
-  env->hashtable = osync_hashtable_new();
-
   //Now your return your struct.
   return (void *)env;
 }
 
 static void connect(OSyncContext *ctx)
 {
-  //Each time you get passed a context (which is used to track
-  //calls to your plugin) you can get the data your returned in
-  //initialize via this call:
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
-  /*
-   * Now connect to your devices and report
-   *
-   * an error via:
-   * osync_context_report_error(ctx, ERROR_CODE, "Some message");
-   *
-   * or success via:
-   * osync_context_report_success(ctx);
-   *
-   * You have to use one of these 2 somewhere to answer the context.
-   *
-   */
+  env->config->obexhandle = irmc_obex_client(env->config);
 
-  //If you are using a hashtable you have to load it here
-  OSyncError *error = NULL;
-  if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
-    osync_context_report_osyncerror(ctx, &error);
-    return;
-  }
+  int ret;
+  if ((ret = irmc_obex_connect(env->config->obexhandle, env->config->donttellsync ? NULL : "IRMC-SYNC")) < 0) {
+    irmc_disconnect(env->config);
+    osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to connect to mobile device");
+  } else
+    osync_context_report_success(ctx);
 
   //you can also use the anchor system to detect a device reset
   //or some parameter change here. Check the docs to see how it works
@@ -313,9 +364,6 @@ static void sync_done(OSyncContext *ctx)
    * This function will only be called if the sync was successfull
    */
 
-  //If we have a hashtable we can now forget the already reported changes
-  osync_hashtable_forget(env->hashtable);
-
   //If we use anchors we have to update it now.
   char *lanchor = NULL;
   //Now you get/calculate the current anchor of the device
@@ -327,21 +375,24 @@ static void sync_done(OSyncContext *ctx)
 
 static void disconnect(OSyncContext *ctx)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+  irmc_disconnect(env->config);
 
-  //Close all stuff you need to close
-
-  //Close the hashtable
-  osync_hashtable_close(env->hashtable);
-  //Answer the call
   osync_context_report_success(ctx);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void finalize(void *data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+
   irmc_environment *env = (irmc_environment *)data;
-  //Free all stuff that you have allocated here.
-  osync_hashtable_free(env->hashtable);
+	g_free(env);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void get_info(OSyncEnv *env)
