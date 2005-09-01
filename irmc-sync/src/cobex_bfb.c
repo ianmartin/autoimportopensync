@@ -41,7 +41,6 @@
 #include "bfb/bfb.h"
 #include "bfb/bfb_io.h"
 #include "bfb/common.h"
-#include <multisync.h>
 
 static void cobex_cleanup(obexdata_t *c, int force)
 {
@@ -66,7 +65,7 @@ int cobex_connect(obex_t *self, void *data)
   c->cobex.type = CT_SIEMENS;
   
   if(c->fd == -1)
-    return (SYNC_MSG_CONNECTIONERROR);
+    return -1;
 
   return 1;
 }
@@ -160,7 +159,7 @@ int cobex_handleinput(obex_t *self, void *data, int timeout) {
     /* Check if this is a timeout (0) or error (-1) */
     if(actual <= 0) {
       c->state = IRMC_OBEX_REQFAILED;
-      c->error = SYNC_MSG_CONNECTIONERROR;
+//      c->error = SYNC_MSG_CONNECTIONERROR;
       return actual;
     }
 	  
@@ -173,7 +172,7 @@ int cobex_handleinput(obex_t *self, void *data, int timeout) {
 	return 1;
       }
       c->state = IRMC_OBEX_REQFAILED;
-      c->error = SYNC_MSG_CONNECTIONERROR;
+//      c->error = SYNC_MSG_CONNECTIONERROR;
       return actual;
     }
 	  

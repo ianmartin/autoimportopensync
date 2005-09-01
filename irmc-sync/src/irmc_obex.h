@@ -57,7 +57,7 @@ typedef struct  {
 #endif
   int channel;
   int state;
-  int error; // One of SYNC_MSG_*
+  OSyncError **error;
   char *databuf;
   int *databuflen;
   int connected;
@@ -67,18 +67,17 @@ typedef struct  {
 
 
 int rfcomm_connect(struct bt_unit *btu, int channel);
-gint irmc_obex_connect(obex_t* handle, char* target);
-gint irmc_obex_disconnect(obex_t* handle);
-gint irmc_obex_put(obex_t* handle, char* name, char *type,
+gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error);
+gboolean irmc_obex_disconnect(obex_t* handle, OSyncError **error);
+gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
 		 char *body, gint body_size, char *rspbuf, int *rspbuflen,
-		 char *apparam, int apparamlen);
-int irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen);
+		 char *apparam, int apparamlen, OSyncError **error);
+gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OSyncError **error);
 gint obex_cable_disconnect(obex_t *handle, gpointer ud);
 gint obex_cable_write(obex_t *handle, gpointer ud,
 		 guint8 *buf, gint buflen);
 gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout);
 gint irmc_obex_handleinput(obex_t* handle, int timeout);
-int obex_error_to_sync_msg(int obexerr);
 void server_done(obex_t *handle, obex_object_t *object, 
 		 gint obex_cmd, gint obex_rsp);
 void client_done(obex_t *handle, obex_object_t *object, 

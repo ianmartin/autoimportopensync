@@ -22,10 +22,16 @@
 */
 
 #include <opensync/opensync.h>
-#include "plugin.h"
+#include "irmc_sync.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+
+#define SYNC_OBJECT_TYPE_CALENDAR 0
+#define SYNC_OBJECT_TYPE_TODO 1
 
 void safe_strcat(char *s1, const char *s2, int len) {
   s1[len-1] = 0;
@@ -48,7 +54,11 @@ void str_replace(char *in, char *out, int outbuflen, char *replfrom, char *replt
 // Unique function name so not other plugin is called accidentally.
 void irmc_disconnect(irmc_config *config) {
   if (config->obexhandle) {
-    irmc_obex_disconnect(config->obexhandle);
+    OSyncError *error = NULL;
+    irmc_obex_disconnect(config->obexhandle, &error);
+    if (error)
+      osync_error_free(&error);
+
     irmc_obex_cleanup(config->obexhandle);
   }
 
@@ -60,37 +70,33 @@ void irmc_disconnect(irmc_config *config) {
 char* sync_connect_get_serial(irmc_config *config) {
   char *sn = NULL;
   config->obexhandle = irmc_obex_client(config);
+  OSyncError *error = NULL;
   
   if (irmc_obex_connect(config->obexhandle, 
-			config->donttellsync ? NULL : "IRMC-SYNC") >= 0) {
+			config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
     sn = irmc_obex_get_serial(config->obexhandle);
+  } else {
+    osync_error_free(&error);
+    error = NULL;
   }
-  irmc_obex_disconnect(config->obexhandle);
+
+  irmc_obex_disconnect(config->obexhandle, &error);
+  if (error)
+    osync_error_free(&error);
+
   irmc_obex_cleanup(config->obexhandle);
   config->obexhandle = NULL;
   return(sn);
 }
 
 
-osync_bool parse_settings(irmc_config *config, const char *config, unsigned int size, OSyncError **error)
+osync_bool parse_settings(irmc_config *config, const char *data, unsigned int size, OSyncError **error)
 {
-  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, config, data, error);
   xmlDoc *doc = NULL;
   xmlNode *cur = NULL;
 
   // set defaults
-  config->connectmedium = MEDIUM_BLUETOOTH;
-  memset(config->btunit.address, 0, sizeof(config->btunit.address));
-  config->btunit.channel = 0;
-  memset(config->btunit.name, 0, sizeof(config->btunit.name));
-  config->btchannel = 0;
-
-  memset(config->cabledev, 0, sizeof(config->cabledev));
-  config->cabletype = UNKNOWN;
-
-  memset(config->irunit.name, 0, sizeof(config->irunit.name));
-  memset(config->irunit.serial, 0, sizeof(config->irunit.serial));
-
   config->fixdst = FALSE;
   config->donttellsync = FALSE;
   config->onlyphonenumbers = TRUE;
@@ -103,7 +109,7 @@ osync_bool parse_settings(irmc_config *config, const char *config, unsigned int 
   config->convertade = FALSE;
 
 
-  doc = xmlParseMemory(config, size);
+  doc = xmlParseMemory(data, size);
 
   if (!doc) {
     osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
@@ -218,7 +224,7 @@ error:
   return FALSE;
 }
 
-static void *initialize(OSyncMember *member, OSyncError **error)
+static void *irmcInitialize(OSyncMember *member, OSyncError **error)
 {
   char *configdata;
   int configsize;
@@ -250,16 +256,16 @@ static void *initialize(OSyncMember *member, OSyncError **error)
   return (void *)env;
 }
 
-static void connect(OSyncContext *ctx)
+static void irmcConnect(OSyncContext *ctx)
 {
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
-  env->config->obexhandle = irmc_obex_client(env->config);
+  env->config.obexhandle = irmc_obex_client(&(env->config));
 
-  int ret;
-  if ((ret = irmc_obex_connect(env->config->obexhandle, env->config->donttellsync ? NULL : "IRMC-SYNC")) < 0) {
-    irmc_disconnect(env->config);
-    osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to connect to mobile device");
+  OSyncError *error = NULL;
+  if (!irmc_obex_connect(env->config.obexhandle, env->config.donttellsync ? NULL : "IRMC-SYNC", &error)) {
+    irmc_disconnect(&(env->config));
+    osync_context_report_osyncerror(ctx, &error);
   } else
     osync_context_report_success(ctx);
 
@@ -271,57 +277,394 @@ static void connect(OSyncContext *ctx)
     osync_member_set_slow_sync(env->member, "<object type to request a slow-sync>", TRUE);
 }
 
-static void get_changeinfo(OSyncContext *ctx)
+static void irmcGetChangeinfo(OSyncContext *ctx)
 {
-  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	OSyncError *error = 0;
 
-  //If you use opensync hashtables you can detect if you need
-  //to do a slow-sync and set this on the hastable directly
-  //otherwise you have to make 2 function like "get_changes" and
-  //"get_all" and decide which to use using
-  //osync_member_get_slow_sync
-  if (osync_member_get_slow_sync(env->member, "<object type>"))
-    osync_hashtable_set_slow_sync(env->hashtable, "<object type>");
+	if (!get_calendar_changeinfo(ctx, &error))
+		goto error;
 
-  /*
-   * Now you can get the changes.
-   * Loop over all changes you get and do the following:
-   */
-    char *data = NULL;
-    //Now get the data of this change
+	if (!get_addressbook_changeinfo(ctx, &error))
+		goto error;
 
-    //Make the new change to report
-    OSyncChange *change = osync_change_new();
-    //Set the member
-    osync_change_set_member(change, env->member);
-    //Now set the uid of the object
-    osync_change_set_uid(change, "<some uid>");
-    //Set the object format
-    osync_change_set_objformat_string(change, "<the format of the object>");
-    //Set the hash of the object (optional, only required if you use hashtabled)
-    osync_change_set_hash(change, "the calculated hash of the object");
-    //Now you can set the data for the object
-    //Set the last argument to FALSE if the real data
-    //should be queried later in a "get_data" function
-
-    osync_change_set_data(change, data, sizeof(data), TRUE);
-
-    //If you use hashtables use these functions:
-    if (osync_hashtable_detect_change(env->hashtable, change)) {
-      osync_context_report_change(ctx, change);
-      osync_hashtable_update_hash(env->hashtable, change);
-    }
-    //otherwise just report the change via
-    //osync_context_report_change(ctx, change);
-
-  //When you are done looping and if you are using hashtables
-  osync_hashtable_report_deleted(env->hashtable, ctx, "data");
-
-  //Now we need to answer the call
   osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+  return;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-static osync_bool commit_change(OSyncContext *ctx, OSyncChange *change)
+#define DATABUFSIZE (65536*2)
+
+gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
+
+  char *data;
+  char *datap;
+  int len = DATABUFSIZE;
+  char serial[256];
+  char did[256] = "";
+  char *filename;
+  int foo;
+  int slowsync = 0;
+
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+  irmc_config *config = &(env->config);
+
+  data = g_malloc(DATABUFSIZE);
+  datap = data;
+
+  len = DATABUFSIZE;
+  filename = g_strdup_printf("telecom/cal/luid/%d.log", config->calchangecounter);
+
+  if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
+    g_free(filename);
+    g_free(data);
+    goto error;
+  }
+
+  g_free(filename);
+  data[len] = 0;
+  sscanf(datap, "SN:%256s\r\n", serial);
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return 1;
+  }
+
+  datap+=2;
+  sscanf(datap, "DID:%256s\r\n", did);
+  if (!config->calDID || strcmp(config->calDID, did)) {
+    // This is a new database
+    if (config->calDID)
+      g_free(config->calDID);
+    config->calDID = g_strdup(did);
+    slowsync = 1;
+  }
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "Total-Records:%d\r\n", &foo);
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "Maximum-Records:%d\r\n", &foo);
+  datap = strstr(datap, "\r\n");
+  while(datap) {
+    char type;
+    int cc;
+    char luid[256];
+    datap+=2;
+    if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
+      char *objdata = g_malloc(10240);
+      int objlen = 10240;
+
+      filename = g_strdup_printf("telecom/cal/luid/%s.vcs", luid);
+      if (!irmc_obex_get(config->obexhandle, filename, objdata, &objlen, error)){
+        g_free(data);
+        g_free(filename);
+        g_free(objdata);
+        goto error;
+      }
+      g_free(filename);
+      
+      // Add only if we handle this type of data
+      OSyncChange *change = osync_change_new();
+      osync_change_set_member(change, env->member);
+      g_assert(change);
+
+      if (objlen > 0) {
+        if (!strstr(objdata, "BEGIN:VEVENT")) {
+          if (strstr(objdata, "BEGIN:VTODO"))
+            osync_change_set_objformat_string(change, "vtodo20");
+        } else {
+          osync_change_set_objformat_string(change, "vevent20");
+        }
+      }
+
+      // TODO: really use g_strdup here?
+      osync_change_set_uid(change, g_strdup(luid));
+      osync_change_set_data(change, objdata, sizeof(objlen), TRUE);
+
+      osync_context_report_change(ctx, change);
+    } else {
+      if (datap[0] == '*')
+        slowsync = 1;
+    }
+    datap = strstr(datap, "\r\n");
+  }
+  
+  len = DATABUFSIZE;
+  if (!irmc_obex_get(config->obexhandle, "telecom/cal/luid/cc.log", data, &len, error)) {
+    g_free(data);
+    goto error;
+  } else {
+    data[len] = 0;
+    sscanf(data, "%d", &config->calchangecounter);
+  }
+
+  if (slowsync) {
+    len = DATABUFSIZE;
+    if (config->donttellsync) {
+      // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
+      irmc_obex_disconnect(config->obexhandle, error);
+      sleep(1);
+      if (irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
+        sleep(2);
+        if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
+          g_free(data);
+          goto error;
+        }
+      }
+    }
+    if (!irmc_obex_get(config->obexhandle, "telecom/cal.vcs", data, &len, error)) 
+      len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
+
+    { 
+      char *event_end = NULL;
+      char *event_start = data, *todo_start;
+      char *event = NULL;
+      int objtype;      
+      
+      data[len]=0;
+      do {
+        char *start = event_start;
+        objtype = SYNC_OBJECT_TYPE_CALENDAR;
+        event_start = strstr(start, "BEGIN:VEVENT");
+        todo_start = strstr(start, "BEGIN:VTODO");
+        if (!event_start || (todo_start && (todo_start < event_start))) {
+          event_start = todo_start;
+          objtype = SYNC_OBJECT_TYPE_TODO;
+        }
+        if (objtype == SYNC_OBJECT_TYPE_CALENDAR)
+          if ((event_end = strstr(start, "END:VEVENT")))
+            event_end += strlen("END:VEVENT");
+
+        if (objtype == SYNC_OBJECT_TYPE_TODO)
+          if ((event_end = strstr(start, "END:VTODO")))
+            event_end += strlen("END:VTODO");
+
+        if (event_start && event_end) {
+          int pos = 0;
+          int event_size = event_end - event_start + 256;
+          event = g_malloc(event_size);
+          sprintf(event, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
+          pos = strlen(event);
+          memcpy(event+pos,event_start,event_end-event_start);
+          sprintf(event+(pos+event_end-event_start), "\r\nEND:VCALENDAR\r\n");
+
+          OSyncChange *change = osync_change_new();
+          osync_change_set_member(change, env->member);
+          g_assert(change);
+
+          if (objtype == SYNC_OBJECT_TYPE_CALENDAR)
+            osync_change_set_objformat_string(change, "vevent20");
+          else if (objtype == SYNC_OBJECT_TYPE_TODO)
+            osync_change_set_objformat_string(change, "vtodo20");
+
+          event_start = strstr(event, "X-IRMC-LUID:");
+          if (event_start) {
+            char luid[256];
+            if (sscanf(event_start, "X-IRMC-LUID:%256s", luid)) {
+              osync_change_set_uid(change, g_strdup(luid));
+            }
+          }
+
+          osync_change_set_data(change, event, event_size, TRUE);
+          osync_context_report_change(ctx, change);
+        }
+
+        event_start = event_end;
+      } while(event_start);
+    }
+  }
+  g_free(data);
+  return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
+
+  char *data;
+  char *datap;
+  int len = DATABUFSIZE;
+  char serial[256];
+  char did[256] = "";
+  char *filename;
+  int foo;
+  int slowsync = 0;
+
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+  irmc_config *config = &(env->config);
+
+  data = g_malloc(DATABUFSIZE);
+  datap = data;
+
+  filename = g_strdup_printf("telecom/pb/luid/%d.log", config->pbchangecounter);
+
+  if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
+    g_free(filename);
+    g_free(data);
+    goto error;
+  }
+
+  g_free(filename);
+  data[len] = 0;
+  sscanf(datap, "SN:%256s\r\n", serial);
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "DID:%256s\r\n", did);
+  if (!config->pbDID || strcmp(config->pbDID, did)) {
+    // This is a new database
+    if (config->pbDID)
+      g_free(config->pbDID);
+    config->pbDID = g_strdup(did);
+    slowsync = 1;
+  }
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "Total-Records:%d\r\n", &foo);
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "Maximum-Records:%d\r\n", &foo);
+  datap = strstr(datap, "\r\n");
+  while(datap) {
+    char type;
+    int cc;
+    char luid[256];
+    datap+=2;
+    if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
+      char *objdata = g_malloc(65536);
+      int objlen = 65536;
+      memset(objdata, 0, objlen);
+
+      filename = g_strdup_printf("telecom/pb/luid/%s.vcf", luid);
+      objlen = 10240;
+      if (!irmc_obex_get(config->obexhandle, filename, objdata, &objlen, error)) {
+        g_free(data);
+        g_free(filename);
+        g_free(objdata);
+        goto error;
+      }
+      g_free(filename);
+      
+      OSyncChange *change = osync_change_new();
+      osync_change_set_member(change, env->member);
+      g_assert(change);
+
+      osync_change_set_objformat_string(change, "vcard20");
+      osync_change_set_uid(change, g_strdup(luid));
+      osync_change_set_data(change, objdata, objlen, TRUE);
+      osync_context_report_change(ctx, change);
+
+    } else {
+      if (datap[0] == '*')
+        slowsync = 1;
+    }
+    datap = strstr(datap, "\r\n");
+  }
+
+  len = DATABUFSIZE;
+  if (!irmc_obex_get(config->obexhandle, "telecom/pb/luid/cc.log", data, &len, error)) {
+    goto error;
+  } else {
+    data[len] = 0;
+    sscanf(data, "%d", &config->pbchangecounter);
+  }
+
+  if (slowsync) {
+    len = DATABUFSIZE;
+    if (config->donttellsync) {
+      // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
+      irmc_obex_disconnect(config->obexhandle, error);
+      sleep(1);
+      if (irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
+        sleep(2);
+        if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
+          g_free(data);
+          goto error;
+        }
+      }
+    }
+    if (!irmc_obex_get(config->obexhandle, "telecom/pb.vcf", data, &len, error))
+      len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
+
+    {
+      char *event_end = NULL;
+      char *event_start = data;
+      char *event = NULL;
+      
+      data[len]=0;
+      do {
+        char *start = event_start;
+        event_start = strstr(start, "BEGIN:VCARD");
+        if ((event_end = strstr(start, "END:VCARD")))
+          event_end += strlen("END:VCARD");
+
+        if (event_start && event_end) {
+          int event_size = event_end-event_start+1;
+          event = g_malloc(event_size);
+          memcpy(event, event_start, event_end-event_start);
+          event[event_end-event_start] = 0;
+
+          OSyncChange *change = osync_change_new();
+          osync_change_set_member(change, env->member);
+          g_assert(change);
+
+          osync_change_set_objformat_string(change, "vcard20");
+
+          event_start = strstr(event, "X-IRMC-LUID:");
+          if (event_start) {
+            char luid[256];
+            if (sscanf(event_start, "X-IRMC-LUID:%256s", luid)) {
+              osync_change_set_uid(change, g_strdup(luid));
+            }
+          }
+
+          osync_change_set_data(change, event, event_size, TRUE);
+          osync_context_report_change(ctx, change);
+        }
+
+        event_start = event_end;
+      } while(event_start);
+    }
+  }
+  g_free(data);
+  return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
@@ -337,26 +680,49 @@ static osync_bool commit_change(OSyncContext *ctx, OSyncChange *change)
     case CHANGE_ADDED:
       //Add the change
       //Dont forget to answer the call on error
-      //If you are using hashtables you have to calculate the hash here:
-      osync_change_set_hash(change, "new hash");
       break;
     case CHANGE_MODIFIED:
       //Modify the change
       //Dont forget to answer the call on error
-      //If you are using hashtables you have to calculate the new hash here:
-      osync_change_set_hash(change, "new hash");
       break;
     default:
       osync_debug("FILE-SYNC", 0, "Unknown change type");
   }
   //Answer the call
   osync_context_report_success(ctx);
-  //if you use hashtable, update the hash now.
-  osync_hashtable_update_hash(env->hashtable, change);
   return TRUE;
 }
 
-static void sync_done(OSyncContext *ctx)
+static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *change)
+{
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+
+  /*
+   * Here you have to add, modify or delete a object
+   *
+   */
+  switch (osync_change_get_changetype(change)) {
+    case CHANGE_DELETED:
+      //Delete the change
+      //Dont forget to answer the call on error
+      break;
+    case CHANGE_ADDED:
+      //Add the change
+      //Dont forget to answer the call on error
+      break;
+    case CHANGE_MODIFIED:
+      //Modify the change
+      //Dont forget to answer the call on error
+      break;
+    default:
+      osync_debug("FILE-SYNC", 0, "Unknown change type");
+  }
+  //Answer the call
+  osync_context_report_success(ctx);
+  return TRUE;
+}
+
+static void irmcSyncDone(OSyncContext *ctx)
 {
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
@@ -373,19 +739,19 @@ static void sync_done(OSyncContext *ctx)
   osync_context_report_success(ctx);
 }
 
-static void disconnect(OSyncContext *ctx)
+static void irmcDisconnect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_disconnect(env->config);
+  irmc_disconnect(&(env->config));
 
   osync_context_report_success(ctx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void finalize(void *data)
+static void irmcFinalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 
@@ -403,29 +769,23 @@ void get_info(OSyncEnv *env)
   info->longname = "IrMC Mobile Device";
   info->description = "Connects to IrMC compliant mobile devices,\nsuch as the SonyEricsson T39/T68/T610 or Siemens S55";
   info->version = 1;
-  info->is_threadsafe = TRUE;
 
-  info->functions.initialize = initialize;
-  info->functions.connect = connect;
-  info->functions.sync_done = sync_done;
-  info->functions.disconnect = disconnect;
-  info->functions.finalize = finalize;
-  info->functions.get_changeinfo = get_changeinfo;
-
-  info->timeouts.connect_timeout = 5;
+  info->functions.initialize = irmcInitialize;
+  info->functions.connect = irmcConnect;
+  info->functions.sync_done = irmcSyncDone;
+  info->functions.disconnect = irmcDisconnect;
+  info->functions.finalize = irmcFinalize;
+  info->functions.get_changeinfo = irmcGetChangeinfo;
 
   osync_plugin_accept_objtype(info, "contact");
   osync_plugin_accept_objformat(info, "contact", "vcard21", NULL);
-  osync_plugin_set_commit_objformat(info, "contact", "vcard21", contact_commit_change);
-  osync_plugin_set_access_objformat(info, "contact", "vcard21", contact_access);
+  osync_plugin_set_commit_objformat(info, "contact", "vcard21", irmcContactCommitChange);
 
   osync_plugin_accept_objtype(info, "event");
   osync_plugin_accept_objformat(info, "event", "vevent20", NULL);
-  osync_plugin_set_commit_objformat(info, "event", "vevent20", event_commit_change);
-  osync_plugin_set_access_objformat(info, "event", "vevent20", event_access);
+  osync_plugin_set_commit_objformat(info, "event", "vevent20", irmcCalendarCommitChange);
 
   osync_plugin_accept_objtype(info, "todo");
   osync_plugin_accept_objformat(info, "todo", "vtodo20", NULL);
-  osync_plugin_set_commit_objformat(info, "todo", "vtodo20", todo_commit_change);
-  osync_plugin_set_access_objformat(info, "todo", "vtodo20", todo_access);
+  osync_plugin_set_commit_objformat(info, "todo", "vtodo20", irmcCalendarCommitChange);
 }

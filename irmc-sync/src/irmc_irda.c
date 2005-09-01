@@ -59,8 +59,6 @@ gint obex_irda_connect(obex_t *handle, gpointer ud) {
 #if HAVE_IRDA
   struct irda_device_list *list;
   unsigned char buf[DISC_BUF_LEN];
-  int ret = -1;
-  int err;
   int len;
   int i;
   unsigned char hints[4];	/* Hint be we filter on */
@@ -70,7 +68,7 @@ gint obex_irda_connect(obex_t *handle, gpointer ud) {
 
   userdata->fd = socket(AF_IRDA, SOCK_STREAM, 0);
   if(userdata->fd == -1) {
-    dd(printf("Can't create socket. %s(%d)\n", strerror(errno), errno));
+    osync_trace(TRACE_INTERNAL, "Can't create socket. %s(%d)\n", strerror(errno), errno);
     return(-1);
   }
   
@@ -105,12 +103,12 @@ gint obex_irda_connect(obex_t *handle, gpointer ud) {
 
   /* Perform a discovery and get device list */
   if (getsockopt(userdata->fd, SOL_IRLMP, IRLMP_ENUMDEVICES, buf, &len)) {
-    dd(printf("Found no IR devices.\n"));
+    osync_trace(TRACE_INTERNAL, "Found no IR devices.\n");
     return(-1);
   }
 	
   if (list->len <= 0) {
-    dd(printf("Found no IR devices.\n"));
+    osync_trace(TRACE_INTERNAL, "Found no IR devices.\n");
     return(-1);
   }
 
@@ -142,7 +140,7 @@ gint obex_irda_disconnect(obex_t *handle, gpointer ud) {
   return(0);
 }
 
-GList* find_irda_units(irmc_connection *conn) {
+GList* find_irda_units(irmc_config *config) {
 #if HAVE_IRDA
   struct irda_device_list *list;
   unsigned char buf[DISC_BUF_LEN];
@@ -156,7 +154,7 @@ GList* find_irda_units(irmc_connection *conn) {
 
   fd = socket(AF_IRDA, SOCK_STREAM, 0);
   if(fd == -1) {
-    dd(printf("Can't create socket. %s(%d)\n", strerror(errno), errno));
+    osync_trace(TRACE_INTERNAL, "Can't create socket. %s(%d)\n", strerror(errno), errno);
     return(NULL);
   }
   if (fd < 0)
@@ -177,12 +175,12 @@ GList* find_irda_units(irmc_connection *conn) {
 
   /* Perform a discovery and get device list */
   if (getsockopt(fd, SOL_IRLMP, IRLMP_ENUMDEVICES, buf, &len)) {
-    dd(printf("Found no IR devices.\n"));
+    osync_trace(TRACE_INTERNAL, "Found no IR devices.\n");
     return(NULL);
   }
 	
   if (list->len <= 0) {
-    dd(printf("Found no IR devices.\n"));
+    osync_trace(TRACE_INTERNAL, "Found no IR devices.\n");
     return(NULL);
   }
 
@@ -193,9 +191,9 @@ GList* find_irda_units(irmc_connection *conn) {
     iru = g_malloc0(sizeof(irmc_ir_unit));
     g_assert(iru);
     strncpy(iru->name, list->dev[i].info, 32);
-    conn->ir_addr = list->dev[i].daddr; // Tell IrOBEX to use this abs address
-    sn = sync_connect_get_serial(conn);
-    conn->ir_addr = 0;
+    config->ir_addr = list->dev[i].daddr; // Tell IrOBEX to use this abs address
+    sn = sync_connect_get_serial(config);
+    config->ir_addr = 0;
     if (sn) {
       strncpy(iru->serial, sn, 127);
       g_free(sn);

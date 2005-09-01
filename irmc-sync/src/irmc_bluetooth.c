@@ -66,17 +66,17 @@ int rfcomm_connect(struct bt_unit *btu, int channel) {
   bacpy(&my_addr.rc_bdaddr, BDADDR_ANY);
   
   baswap(&tmp, &btu->bdaddr);
-  dd(printf("Trying to connect on to %s... ", batostr(&tmp)));
+  osync_trace(TRACE_INTERNAL, "Trying to connect on to %s... ", batostr(&tmp));
   fflush(stdout);
   if( (s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM))==-1 ) {
-    dd(printf("Can't create socket. %s(%d)\n", strerror(errno), errno));
+    osync_trace(TRACE_INTERNAL, "Can't create socket. %s(%d)\n", strerror(errno), errno);
     return(-1);
   }
 
   if( !connect(s, (struct sockaddr *) &svr_addr, sizeof(svr_addr)) ){
-    dd(printf("OK.\n"));
+    osync_trace(TRACE_INTERNAL, "OK");
   } else {
-    dd(printf("Connect failed. %s(%d)\n", strerror(errno), errno));
+    osync_trace(TRACE_INTERNAL, "Connect failed. %s(%d)\n", strerror(errno), errno);
     close(s);
     return(-1);
   }
@@ -145,7 +145,6 @@ GList *find_bt_units() {
 	}
 	sdp_close(sess);
       } else {
-	dd(printf("Could not connect to device to fetch synchronization information.\nMake sure that the computer and device are 'paired', and try again."));
       }
       unitlist = g_list_append(unitlist, irbt);
     }
@@ -218,14 +217,14 @@ gint obex_handleinput(obex_t *handle, gpointer ud, gint timeout) {
       OBEX_CustomDataFeed(handle, buf, tot);
     } else { 
       userdata->state = IRMC_OBEX_REQFAILED;
-      userdata->error = SYNC_MSG_CONNECTIONERROR;
+//      userdata->error = SYNC_MSG_CONNECTIONERROR;
     }
     to.tv_sec = timeout;
     to.tv_usec = 0;
   }
   if (userdata->state >= 0 && ret == 0) {
     userdata->state = IRMC_OBEX_REQFAILED;
-    userdata->error = SYNC_MSG_CONNECTIONERROR;
+//    userdata->error = SYNC_MSG_CONNECTIONERROR;
   }
   return(0);
 }

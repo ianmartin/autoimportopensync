@@ -96,7 +96,7 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
   case OBEX_EV_PARSEERR:
   case OBEX_EV_ABORT:
     userdata->state = IRMC_OBEX_REQFAILED;
-    userdata->error = SYNC_MSG_CONNECTIONERROR;
+    osync_error_set(userdata->error, OSYNC_ERROR_NO_CONNECTION, NULL);
     break;
   default:
     g_print("Unknown event!\n");
@@ -137,35 +137,6 @@ void client_done(obex_t *handle, obex_object_t *object,
   }
 }
 
-int obex_error_to_sync_msg(int obexerr) {
-  switch(obexerr) {
-  case OBEX_RSP_NO_CONTENT:
-    return(SYNC_MSG_DONTEXISTERROR);
-    break;
-  case OBEX_RSP_BAD_REQUEST:
-  case OBEX_RSP_NOT_IMPLEMENTED:
-    return(SYNC_MSG_PROTOCOLERROR);
-    break;
-  case OBEX_RSP_UNAUTHORIZED:
-  case OBEX_RSP_PAYMENT_REQUIRED:
-  case OBEX_RSP_FORBIDDEN:
-  case OBEX_RSP_METHOD_NOT_ALLOWED:
-    return(SYNC_MSG_NORIGHTSERROR);
-    break;
-  case OBEX_RSP_INTERNAL_SERVER_ERROR:
-  case OBEX_RSP_CONFLICT:
-  case OBEX_RSP_DATABASE_LOCKED:
-    return(SYNC_MSG_CONNECTIONERROR); // Means: Try again later
-    break;
-  case OBEX_RSP_DATABASE_FULL:
-    return(SYNC_MSG_DATABASEFULLERROR);
-    break;
-  default:
-    return(SYNC_MSG_REQFAILED);
-  }
-  return(SYNC_MSG_REQFAILED);
-}
-
 void put_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
   obexdata_t *ud;
   obex_headerdata_t hv;
@@ -177,7 +148,6 @@ void put_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
   ud = OBEX_GetUserData(handle);
   if(obex_rsp != OBEX_RSP_SUCCESS) {
     ud->state = IRMC_OBEX_REQFAILED;
-    ud->error = obex_error_to_sync_msg(obex_rsp);
     return;
   }
 
@@ -209,7 +179,6 @@ void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
 
   if(obex_rsp != OBEX_RSP_SUCCESS) {
     ud->state = IRMC_OBEX_REQFAILED;
-    ud->error = obex_error_to_sync_msg(obex_rsp);
     return;
   }
   
@@ -223,7 +192,7 @@ void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
   
   if(!body) {
     ud->state = IRMC_OBEX_REQFAILED;
-    ud->error = SYNC_MSG_PROTOCOLERROR;
+    osync_error_set(ud->error, OSYNC_ERROR_GENERIC, "Obex protocol error");
     return;
   }	
   if (ud->databuf && ud->databuflen && *(ud->databuflen) >= body_len) {
@@ -232,7 +201,6 @@ void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
     *(ud->databuflen) = body_len;
   } else
     ud->state = IRMC_OBEX_REQFAILED;
-
 }
 
 //
@@ -331,7 +299,8 @@ gint obex_cable_connect(obex_t *handle, gpointer ud) {
   userdata = (obexdata_t*) ud;
   userdata->fd = open(userdata->cabledev, O_RDWR|O_NONBLOCK|O_NOCTTY);
   if (userdata->fd < 0) {
-    return(SYNC_MSG_CONNECTIONERROR);
+//    return(SYNC_MSG_CONNECTIONERROR);
+    return -1;
   }
 
   tcgetattr(userdata->fd, &userdata->oldtio);
@@ -384,20 +353,20 @@ gint obex_cable_connect(obex_t *handle, gpointer ud) {
 
   // Set up Ericsson phone in OBEX mode.
   if(obex_cable_at(userdata, "ATZ\r", rspbuf, sizeof(rspbuf), 1) < 0)	{
-    dd(printf("Comm-error sending ATZ\n"));
+    osync_trace(TRACE_INTERNAL, "Comm-error sending ATZ\n");
   }
   
   if(strcasecmp("OK", rspbuf) != 0)	{
-    dd(printf("Error doing ATZ (%s)\n", rspbuf));
+    osync_trace(TRACE_INTERNAL, "Error doing ATZ (%s)\n", rspbuf);
     goto err;
   }
   if(obex_cable_at(userdata, 
 		   "AT*EOBEX\r", rspbuf, sizeof(rspbuf), 1) < 0)	{
-    dd(printf("Comm-error sending AT*EOBEX\n"));
+    osync_trace(TRACE_INTERNAL, "Comm-error sending AT*EOBEX\n");
     goto err;
   }
   if(strcasecmp("CONNECT", rspbuf) != 0)	{
-    dd(printf("Error doing AT*EOBEX (%s)\n", rspbuf));
+    osync_trace(TRACE_INTERNAL, "Error doing AT*EOBEX (%s)\n", rspbuf);
     goto err;
   }
   fcntl(userdata->fd, F_SETFL, O_NONBLOCK);
@@ -405,7 +374,8 @@ gint obex_cable_connect(obex_t *handle, gpointer ud) {
   
  err:
   obex_cable_disconnect(handle, ud);
-  return (SYNC_MSG_CONNECTIONERROR);
+//  return (SYNC_MSG_CONNECTIONERROR);
+  return -1;
 }
 
 
@@ -416,7 +386,7 @@ gint obex_cable_disconnect(obex_t *handle, gpointer ud) {
   if (userdata->fd >= 0) {
     // Send a break to get out of OBEX-mode
     if(ioctl(userdata->fd, TCSBRKP, 0) < 0) {
-      dd(printf("Unable to send break!\n"));
+      osync_trace(TRACE_INTERNAL, "Unable to send break!\n");
     }
     tcsetattr(userdata->fd, TCSANOW, &userdata->oldtio);
     close(userdata->fd);
@@ -468,14 +438,14 @@ gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout) {
       OBEX_CustomDataFeed(handle, buf, tot);
     } else { 
       userdata->state = IRMC_OBEX_REQFAILED;
-      userdata->error = SYNC_MSG_CONNECTIONERROR;
+      osync_error_set(userdata->error, OSYNC_ERROR_NO_CONNECTION, NULL);
     }
     to.tv_sec = timeout;
     to.tv_usec = 0;
   }
   if (userdata->state >= 0 && ret == 0) {
     userdata->state = IRMC_OBEX_REQFAILED;
-    userdata->error = SYNC_MSG_CONNECTIONERROR;
+    osync_error_set(userdata->error, OSYNC_ERROR_NO_CONNECTION, NULL);
   }
   return(0);
 }
@@ -559,7 +529,7 @@ obex_t* irmc_obex_client(irmc_config *config) {
   return(handle);
 }
 
-gint irmc_obex_connect(obex_t* handle, char* target) {
+gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
   int ret = -1;
   obex_object_t *object; 
   obex_headerdata_t hd; 
@@ -586,8 +556,10 @@ gint irmc_obex_connect(obex_t* handle, char* target) {
     ret=OBEX_TransportConnect (handle, (struct sockaddr*) &addr, 0);
     break;
   }
-  if (ret < 0)
-    return(SYNC_MSG_CONNECTIONERROR);
+  if (ret < 0) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot connect via OBEX.");
+    return FALSE;
+  }
   userdata->connected = 1;
   if ((object = OBEX_ObjectNew(handle, OBEX_CMD_CONNECT))) {
     if (target) {
@@ -596,8 +568,10 @@ gint irmc_obex_connect(obex_t* handle, char* target) {
 			   strlen(target), 0); 
     }
     ret = OBEX_Request(handle, object);
-    if (ret < 0)
-      return(SYNC_MSG_CONNECTIONERROR);
+    if (ret < 0) {
+      osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot connect via OBEX.");
+      return FALSE;
+    }
   }
   userdata->state = IRMC_OBEX_CONNECTING;
   irmc_obex_handleinput(handle, 10);
@@ -608,11 +582,12 @@ gint irmc_obex_connect(obex_t* handle, char* target) {
 #endif
 	char *serial = irmc_obex_get_serial(handle);
 	if (!serial || strcmp(serial, userdata->irunit.serial)) {
-	  dd(printf("Device serial number is not correct.\n"));
+    osync_trace(TRACE_INTERNAL, "Device serial number is not correct.\n");
 	  if (serial)
 	    g_free(serial);
-	  irmc_obex_disconnect(handle);
-	  return(SYNC_MSG_CONNECTIONERROR);
+	  irmc_obex_disconnect(handle, error);
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot connect via OBEX.");
+    return FALSE;
 	}
 	g_free(serial);
 #if HAVE_IRDA
@@ -620,27 +595,30 @@ gint irmc_obex_connect(obex_t* handle, char* target) {
 #endif
     }
     // Connected and serial number is OK!
-    return(0);
+    return TRUE;
   }
-  return(SYNC_MSG_CONNECTIONERROR);
+  osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot connect via OBEX.");
+  return FALSE;
 }
 
-gint irmc_obex_disconnect(obex_t* handle) {
+gboolean irmc_obex_disconnect(obex_t* handle, OSyncError **error) {
   obex_object_t *object; 
   obexdata_t *userdata;
 
   userdata = (obexdata_t*) OBEX_GetUserData(handle);  
   if (userdata->connected) {
     if ((object = OBEX_ObjectNew(handle, OBEX_CMD_DISCONNECT))) {
-      if(OBEX_Request(handle, object) < 0) 
-	return(SYNC_MSG_CONNECTIONERROR);
+      if(OBEX_Request(handle, object) < 0)  {
+        osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot disconnect from OBEX.");
+        return FALSE;
+      }
     }
     userdata->state = IRMC_OBEX_DISCONNECTING;
     irmc_obex_handleinput(handle, 10);
     OBEX_TransportDisconnect(handle);
     userdata->connected = 0;
   }
-  return(0);
+  return TRUE;
 }
 
 void irmc_obex_cleanup(obex_t* handle) {
@@ -661,7 +639,8 @@ char* irmc_obex_get_serial(obex_t* handle) {
   char *sn;
   sn = g_malloc(128);
   len = 10240;
-  if (irmc_obex_get(handle, "telecom/devinfo.txt", data, &len)>=0){
+  OSyncError *error = NULL;
+  if (irmc_obex_get(handle, "telecom/devinfo.txt", data, &len, &error)>=0){
     char *p = data;
     while (p && p < data+len) {
       if (sscanf(p, "SN:%127s", sn) >= 1) {
@@ -676,13 +655,15 @@ char* irmc_obex_get_serial(obex_t* handle) {
 	}
       }
     } 
+  } else {
+    osync_error_free(&error);
   }
   return(NULL);
 }
 
-gint irmc_obex_put(obex_t* handle, char* name, char *type,
+gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
 		 char *body, gint body_size, char *rspbuf, int *rspbuflen,
-		 char *apparam, int apparamlen) {
+		 char *apparam, int apparamlen, OSyncError **error) {
   obex_object_t *object; 
   obex_headerdata_t hd; 
   char unicodename[1024];
@@ -713,19 +694,29 @@ gint irmc_obex_put(obex_t* handle, char* name, char *type,
       hd.bs = body; 
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_BODY, hd, body_size, 0); 
     }
-    if(OBEX_Request(handle, object) < 0) { return(SYNC_MSG_CONNECTIONERROR); }
+    if(OBEX_Request(handle, object) < 0) {
+      osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot put a item on mobile device");
+      return FALSE;
+    }
     userdata->state = IRMC_OBEX_PUTTING;
     userdata->databuf = rspbuf;
     userdata->databuflen = rspbuflen;
     irmc_obex_handleinput(handle, 30);
     if (userdata->state == IRMC_OBEX_REQDONE)
-      return(0);
-    return(userdata->error);
+      return TRUE;
+
+    if ( userdata->error ) {
+      error = userdata->error;
+      return FALSE;
+    } else
+      return TRUE;
   }
-  return(SYNC_MSG_REQFAILED);
+
+  osync_error_set(error, OSYNC_ERROR_GENERIC, "Request failed");
+  return FALSE;
 }
 
-int irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen)
+gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OSyncError **error)
 {
   obex_object_t *object;
   obex_headerdata_t hd;
@@ -746,11 +737,18 @@ int irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen)
     userdata->state = IRMC_OBEX_GETTING;
     irmc_obex_handleinput(handle, 30);
     if (userdata->state == IRMC_OBEX_REQDONE) {
-      return(0);
+      return TRUE;
     }
-    return(userdata->error);
+
+    if (userdata->error) {
+      error = userdata->error;
+      return FALSE;
+    } else
+      return TRUE;
   }
-  return(SYNC_MSG_REQFAILED);
+
+  osync_error_set(error, OSYNC_ERROR_GENERIC, "Request failed");
+  return FALSE;
 }
 
 gint irmc_obex_handleinput(obex_t* handle, int timeout) {
@@ -758,12 +756,5 @@ gint irmc_obex_handleinput(obex_t* handle, int timeout) {
 }
 
 void irmc_obex_init() {
-  char *path;
-
-  path = g_module_build_path(PLUGINDIR, "irmc_bluetooth");
-  bluetoothplugin = g_module_open(path,0);
-  if (bluetoothplugin)
-    CALL_PLUGIN(bluetoothplugin, "plugin_init", ());
-  g_free(path);
 }
 
