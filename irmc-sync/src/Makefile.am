@@ -7,7 +7,7 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@
 
-AM_CFLAGS = -Wall @PACKAGE_CFLAGS@
+AM_CFLAGS = -Wall @PACKAGE_CFLAGS@ -DHAVE_BT_OBEX
 
 EXTRA_DIST = irmc-sync irmc_sync.h
 

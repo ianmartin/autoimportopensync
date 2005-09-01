@@ -147,6 +147,7 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
         else if (!strcmp(str, "cable"))
           config->connectmedium = MEDIUM_CABLE;
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
+        baswap(&(config->btunit.bdaddr), strtoba(str));
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {
         config->btchannel = atoi(str);
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"irname")) {
@@ -274,13 +275,14 @@ static void irmcConnect(OSyncContext *ctx)
     osync_context_report_osyncerror(ctx, &error);
   } else
     osync_context_report_success(ctx);
-
+/*
   //you can also use the anchor system to detect a device reset
   //or some parameter change here. Check the docs to see how it works
   char *lanchor = NULL;
   //Now you get the last stored anchor from the device
   if (!osync_anchor_compare(env->member, "lanchor", lanchor))
     osync_member_set_slow_sync(env->member, "<object type to request a slow-sync>", TRUE);
+*/
 }
 
 static void irmcGetChangeinfo(OSyncContext *ctx)
@@ -400,12 +402,13 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
 
       // TODO: really use g_strdup here?
       osync_change_set_uid(change, g_strdup(luid));
-      osync_change_set_data(change, objdata, sizeof(objlen), TRUE);
 
     	if (type == 'H')
 				osync_change_set_changetype(change, CHANGE_DELETED);
-    	if (type == 'M' || objlen == 0)
+    	if (type == 'M' || objlen == 0) {
+        osync_change_set_data(change, objdata, sizeof(objlen), TRUE);
 				osync_change_set_changetype(change, CHANGE_MODIFIED);
+      }
 
       osync_context_report_change(ctx, change);
     } else {
@@ -593,12 +596,13 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
 
       osync_change_set_objformat_string(change, "vcard21");
       osync_change_set_uid(change, g_strdup(luid));
-      osync_change_set_data(change, objdata, objlen, TRUE);
 
     	if (type == 'H')
 				osync_change_set_changetype(change, CHANGE_DELETED);
-    	if (type == 'M' || objlen == 0)
+    	if (type == 'M' || objlen == 0) {
 				osync_change_set_changetype(change, CHANGE_MODIFIED);
+        osync_change_set_data(change, objdata, objlen, TRUE);
+      }
 
       osync_context_report_change(ctx, change);
     } else {
