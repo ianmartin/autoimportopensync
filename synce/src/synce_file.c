@@ -81,10 +81,10 @@ static char *FileHash(fileFormat *p)
 #ifndef	NEW_TIME
 	seconds = filetime_to_unix_time(&p->last_mod);
 	time_struct = localtime(&seconds);
-	strftime(ts, sizeof(ts), "%c", time_struct);
+	strftime(ts, sizeof(ts), "%F", time_struct);
 #else
 	tmp = localtime(&p->last_mod);
-	strftime(ts, sizeof(ts), "%c", tmp);
+	strftime(ts, sizeof(ts), "%F", tmp);
 	sprintf(ts, "%04i-%02i-%02i %02i:%02i:%02i",
 		write_time_fields.Year, write_time_fields.Month, write_time_fields.Day,
 		write_time_fields.Hour, write_time_fields.Minute, write_time_fields.Second); 
