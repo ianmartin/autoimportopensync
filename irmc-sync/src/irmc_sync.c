@@ -765,7 +765,7 @@ void get_info(OSyncEnv *env)
 {
   OSyncPluginInfo *info = osync_plugin_new_info(env);
 
-  info->name = "irmc_sync";
+  info->name = "irmc-sync";
   info->longname = "IrMC Mobile Device";
   info->description = "Connects to IrMC compliant mobile devices,\nsuch as the SonyEricsson T39/T68/T610 or Siemens S55";
   info->version = 1;
