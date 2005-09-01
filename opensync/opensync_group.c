@@ -424,6 +424,10 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 
 	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
+	char *tmstr = g_strdup_printf("%i", (int)group->last_sync);
+	xmlNewChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
+	g_free(tmstr);
+
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);
@@ -509,6 +513,9 @@ OSyncGroup *osync_group_load(OSyncEnv *env, const char *path, OSyncError **error
 	while (cur != NULL) {
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
 			group->name = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
+			group->last_sync = (time_t)atoi((char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1));
 
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 			filternode = cur->xmlChildrenNode;
@@ -893,6 +900,36 @@ osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OS
 osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
 {
 	return osync_db_remove_changelog(group, change, error);
+}
+
+/*! @brief Sets the last synchronization date of this group
+ * 
+ * The information will be stored on disc after osync_group_save()
+ * 
+ * @param group The group in which to save
+ * @param tm The time info to set
+ */
+void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, not shown)", __func__, last_sync);
+	osync_assert(group, "Group missing");
+	
+	group->last_sync = last_sync;
+               
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+/*! @brief Gets the last synchronization date from this group
+ * 
+ * The information will available on the group after osync_group_load()
+ * 
+ * @param group The group
+ * @return The synchronization info
+ */
+time_t osync_group_get_last_synchronization(OSyncGroup *group)
+{
+	osync_assert(group, "Group missing");
+	return group->last_sync;
 }
 
 /*@}*/

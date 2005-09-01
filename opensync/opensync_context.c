@@ -101,7 +101,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	
 	change->initial_format = osync_change_get_objformat(change);
 	
-	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, format %s and objtype %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
+	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, objtype %s and format %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
 	
 	osync_assert(member->memberfunctions->rf_change, "The engine must set a callback to receive changes");
 	member->memberfunctions->rf_change(member, change, context->calldata);

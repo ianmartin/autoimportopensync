@@ -88,6 +88,9 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncChange *change, 
 	g_assert(filter);
 	g_assert(change);
 	osync_debug("OSFLT", 3, "Starting to invoke filter for change %s", change->uid);
+	osync_trace(TRACE_INTERNAL, "filter: sm: %s, dm: %s, st: %s, dt: %s, dett: %s",
+			filter->sourcememberid, filter->destmemberid, filter->sourceobjtype,
+			filter->destobjtype, filter->detectobjtype);
 	if (filter->sourcememberid && change->sourcemember && filter->sourcememberid != change->sourcemember->id)
 		return OSYNC_FILTER_IGNORE;
 	if (filter->destmemberid && filter->destmemberid != destmember->id)
@@ -126,6 +129,7 @@ osync_bool osync_filter_change_allowed(OSyncMember *destmember, OSyncChange *cha
 	for (f = filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
 		OSyncFilterAction action = osync_filter_invoke(filter, change, destmember);
+		osync_debug("OSFLT", 3, "Filter result: %d", action);
 		if (action == OSYNC_FILTER_ALLOW)
 			ret = TRUE;
 		if (action == OSYNC_FILTER_DENY)

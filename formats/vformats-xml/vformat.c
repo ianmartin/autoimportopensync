@@ -690,7 +690,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			/* 5.8.2:
 			 * param        = param-name "=" param-value *("," param-value)
 			 */
-			if (!g_ascii_strcasecmp (param->name, "CHARSET") && type == VFORMAT_CARD_30)
+			if (!g_ascii_strcasecmp (param->name, "CHARSET") && (type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20))
 				continue;
 			attr_str = g_string_append_c (attr_str, ';');
 			if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)

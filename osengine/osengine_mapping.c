@@ -537,8 +537,21 @@ void osengine_mappingentry_free(OSyncMappingEntry *entry)
 
 void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 {
-	osync_trace(TRACE_INTERNAL, "osengine_mappingentry_update(%p, %p)", entry, change);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, change);
+	
+	OSyncObjFormat *format = osync_change_get_objformat(entry->change);
+	OSyncObjType *type = osync_change_get_objtype(entry->change);
+
 	osync_change_update(change, entry->change);
+	
+	if (osync_change_get_changetype(change) == CHANGE_DELETED) {
+		osync_change_set_objformat(entry->change, format);
+		osync_change_set_objtype(entry->change, type);
+		
+		osync_trace(TRACE_INTERNAL, "Change was deleted. Old objtype %s and format %s", osync_change_get_objtype(entry->change) ? osync_objtype_get_name(osync_change_get_objtype(entry->change)) : "None", osync_change_get_objformat(entry->change) ? osync_objformat_get_name(osync_change_get_objformat(entry->change)) : "None");
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry)

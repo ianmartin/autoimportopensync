@@ -15,6 +15,7 @@ struct OSyncGroup {
 	GList *filters;
 	char *changes_path;
 	OSyncDB *changes_db;
+	time_t last_sync;
 #endif
 };
 

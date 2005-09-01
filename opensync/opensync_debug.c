@@ -45,8 +45,8 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 #if defined ENABLE_TRACE
 
 	va_list arglist;
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
+	char *buffer = NULL;
+	
 	const char *trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
 		return;
@@ -68,7 +68,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
 	
 	va_start(arglist, message);
-	g_vsnprintf(buffer, 1024, message, arglist);
+	buffer = g_strdup_vprintf(message, arglist);
 		
 	GString *tabstr = g_string_new("");
 	int i = 0;

@@ -3,6 +3,11 @@
 
 #include <opensync/opensync.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**************************************************************
  * Structs
  *************************************************************/
@@ -18,5 +23,9 @@ typedef struct OSyncMapping OSyncMapping;
 #include "osengine_engine.h"
 #include "osengine_mapping.h"
 #include "osengine_debug.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

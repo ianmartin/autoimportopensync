@@ -165,7 +165,7 @@ void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEn
 void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "_new_change_receiver(%p, %p, %p)", engine, client, change);
-	osync_debug("ENG", 2, "Handling new change with uid %s, changetype %i, data %p, format %s and objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
+	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_datasize(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
 	
 	OSyncError *error = NULL;
 	osync_change_set_member(change, client->member);
@@ -276,7 +276,9 @@ void _commit_change_reply_receiver(OSyncClient *sender, ITMessage *message, OSyn
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_change(engine, entry->change, CHANGE_WRITE_ERROR, &error);
-		osync_status_update_mapping(engine, entry->mapping, MAPPING_WRITE_ERROR, &error);
+		OSyncError *maperror = NULL;
+		osync_error_duplicate(&maperror, &error);
+		osync_status_update_mapping(engine, entry->mapping, MAPPING_WRITE_ERROR, &maperror);
 		osync_error_update(&engine->error, "Unable to write one or more objects");
 		
 		//FIXME Do we need to do anything here?
@@ -350,6 +352,9 @@ void send_connect(OSyncClient *target, OSyncEngine *sender)
 
 void send_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sender, entry);
+	osync_trace(TRACE_INTERNAL, "Committing change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(entry->change), osync_change_get_changetype(entry->change), osync_change_get_data(entry->change), osync_change_get_datasize(entry->change), osync_change_get_objtype(entry->change) ? osync_objtype_get_name(osync_change_get_objtype(entry->change)) : "None", osync_change_get_objformat(entry->change) ? osync_objformat_get_name(osync_change_get_objformat(entry->change)) : "None", osync_member_get_id(entry->client->member));
+	
 	osync_flag_changing(entry->fl_dirty);
 	ITMessage *message = itm_message_new_methodcall(sender, "COMMIT_CHANGE");
 	itm_message_set_data(message, "change", entry->change);
@@ -361,6 +366,8 @@ void send_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 	
 	g_assert(osync_flag_is_attached(entry->fl_committed) == TRUE);
 	osync_flag_detach(entry->fl_committed);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void send_sync_done(OSyncClient *target, OSyncEngine *sender)
@@ -659,10 +666,8 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	osengine_mappingtable_reset(engine->maptable);
 	
 	if (engine->error) {
-		OSyncError *error = NULL;
-		osync_error_duplicate(&error, &engine->error);
-		osync_status_update_engine(engine, ENG_ERROR, &error);
-		osync_error_free(&error);
+		osync_status_update_engine(engine, ENG_ERROR, &engine->error);
+		engine->error = NULL;
 		osync_group_set_slow_sync(engine->group, "data", TRUE);
 	} else {
 		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);

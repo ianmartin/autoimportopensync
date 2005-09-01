@@ -39,8 +39,10 @@ osync_bool convert_bin(const char *input, unsigned int inpsize, char **output, u
 			g_string_append_c(string, character);
 			i+=3;
 		} else {
-			printf("Appending norma %i\n", input[i]);
-			g_string_append_c(string, input[i]);
+			if (input[i] != 0) {
+				printf("Appending normal char %i\n", input[i]);
+				g_string_append_c(string, input[i]);
+			}
 		}
 	}
 	

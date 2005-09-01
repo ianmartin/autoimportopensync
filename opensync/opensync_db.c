@@ -214,6 +214,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 		long long int memberid = sqlite3_column_int64(ppStmt, 4);
 		change->changes_db = group->changes_db;
     	osync_change_set_member(change, osync_member_from_id(group, memberid));
+    		osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_datasize(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", memberid);
 		(*changes)[i] = change;
 		i++;
 	}
