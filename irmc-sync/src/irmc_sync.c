@@ -380,6 +380,8 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
       char *converted_vcal = NULL;
       int vcal_size = 10240;
 
+      memset(vcal, 0, vcal_size);
+
       filename = g_strdup_printf("telecom/cal/luid/%s.vcs", luid);
       if (!irmc_obex_get(config->obexhandle, filename, vcal, &vcal_size, error)){
         g_free(data);
@@ -389,32 +391,33 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
       }
       g_free(filename);
 
+      vcal_size = strlen(vcal);
+
       // Add only if we handle this type of data
       OSyncChange *change = osync_change_new();
       osync_change_set_member(change, env->member);
       g_assert(change);
 
-      if (vcal_size > 0) {
-        if (!strstr(vcal, "BEGIN:VEVENT")) {
-          if (strstr(vcal, "BEGIN:VTODO"))
-            osync_change_set_objformat_string(change, "vtodo20");
-        } else {
-          osync_change_set_objformat_string(change, "vevent20");
-        }
-      }
-
+      osync_change_set_objformat_string(change, "plain");
       osync_change_set_uid(change, g_strdup(luid));
 
-      converted_vcal = sync_vtype_convert(vcal, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
-                                                    (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                                    VOPTION_CALENDAR1TO2 |
-                                                    (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
-                                                    VOPTION_CONVERTUTC, config->charset );
-      vcal_size = strlen(converted_vcal);
+      if (vcal_size > 0) {
+        converted_vcal = sync_vtype_convert(vcal, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
+                                            (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
+                                            VOPTION_CALENDAR1TO2 |
+                                            (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
+                                            VOPTION_CONVERTUTC, config->charset );
+        vcal_size = strlen(converted_vcal);
+      } else {
+        converted_vcal = NULL;
+        vcal_size = 0;
+      }
+
+      printf( "vcal_type=%c\n", type );
 
       if (type == 'H')
         osync_change_set_changetype(change, CHANGE_DELETED);
-      if (type == 'M' || vcal_size == 0) {
+      else if (type == 'M' || vcal_size == 0) {
         osync_change_set_data(change, converted_vcal, vcal_size, TRUE);
         osync_change_set_changetype(change, CHANGE_MODIFIED);
       }
@@ -482,6 +485,8 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
           int pos = 0;
           int event_size = event_end - event_start + 256;
           event = g_malloc(event_size);
+          memset(event, 0, event_size);
+
           sprintf(event, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
           pos = strlen(event);
           memcpy(event+pos,event_start,event_end-event_start);
@@ -510,6 +515,7 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
                                                           (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
                                                           VOPTION_CONVERTUTC, config->charset);
           event_size = strlen(converted_event);
+          printf( "set_change_cal2_(data=%p, size=%d)\n", converted_event, event_size );
           osync_change_set_data(change, converted_event, event_size, TRUE);
           osync_change_set_changetype(change, CHANGE_ADDED);
           osync_context_report_change(ctx, change);
@@ -608,6 +614,8 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
       }
       g_free(filename);
 
+      vcard_size = strlen(vcard);
+
       OSyncChange *change = osync_change_new();
       osync_change_set_member(change, env->member);
       g_assert(change);
@@ -615,13 +623,22 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
       osync_change_set_objformat_string(change, "vcard21");
       osync_change_set_uid(change, g_strdup(luid));
 
-      if (type == 'H')
-        osync_change_set_changetype(change, CHANGE_DELETED);
-      if (type == 'M' || vcard_size == 0) {
-        osync_change_set_changetype(change, CHANGE_MODIFIED);
+      if (vcard_size > 0) {
         converted_vcard = sync_vtype_convert(vcard, 0 | (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
                                              VOPTION_FIXTELOTHER, config->charset);
         vcard_size = strlen(converted_vcard);
+      } else {
+        converted_vcard = NULL;
+        vcard_size = 0;
+      }
+
+      printf( "vcal_type=%c\n", type );
+
+      if (type == 'H')
+        osync_change_set_changetype(change, CHANGE_DELETED);
+      else if (type == 'M' || vcard_size == 0) {
+        osync_change_set_changetype(change, CHANGE_MODIFIED);
+        printf( "set_change_vcard1_(data=%p, size=%d)\n", converted_vcard, vcard_size );
         osync_change_set_data(change, converted_vcard, vcard_size, TRUE);
       }
 
@@ -694,6 +711,7 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
           converted_vcard = sync_vtype_convert(vcard, 0 | (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
                                                VOPTION_FIXTELOTHER, config->charset);
           vcard_size = strlen(converted_vcard);
+          printf( "set_change_vcard2_(data=%p, size=%d)\n", converted_vcard, vcard_size );
           osync_change_set_data(change, converted_vcard, vcard_size, TRUE);
           osync_change_set_changetype(change, CHANGE_ADDED);
           osync_context_report_change(ctx, change);
