@@ -209,10 +209,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
         virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg)
         {
 			if (kaddrbook)
-				if (kaddrbook->vcard_access(ctx, chg))
-            		osync_hashtable_update_hash(hashtable, chg);
-            	else
-            		return FALSE;
+				return kaddrbook->vcard_commit_change(ctx, chg);
 			else {
 				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
 				return false;

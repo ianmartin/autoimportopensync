@@ -161,7 +161,14 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
     osync_context_report_success(ctx);
 }*/
 
-bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
+/** vcard access method
+ *
+ * This method is used by both access() and commit_change() method,
+ * so it shouldn't call osync_context_report_success(). On success,
+ * it should just return true and let the caller report success() to
+ * OpenSync
+ */
+bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
 	KABC::VCardConverter converter;
@@ -227,7 +234,25 @@ bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			return FALSE;
 	}
 	
-	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+}
+
+bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
+{
+	if (!__vcard_access(ctx, chg))
+		return false;
+
+	osync_context_report_success(ctx);
+	return true;
+}
+
+bool KContactDataSource::vcard_commit_change(OSyncContext *ctx, OSyncChange *chg)
+{
+    if ( !__vcard_access(ctx, chg) )
+        return false;
+
+    osync_hashtable_update_hash(hashtable, chg);
+    osync_context_report_success(ctx);
+    return true;
 }
