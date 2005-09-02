@@ -233,6 +233,46 @@ error:
   return FALSE;
 }
 
+void load_sync_anchors( OSyncMember *member, irmc_config *config )
+{
+  char *anchor = osync_anchor_retrieve(member, "event");
+  if (!anchor) {
+    config->calendar_changecounter = 0;
+    config->calendar_dbid = NULL;
+  } else {
+    char data[ 256 ];
+    memset( data, 0, sizeof( data ) );
+
+    sscanf( anchor, "%d:%256s", &config->calendar_changecounter, data );
+    config->calendar_dbid = g_strdup( data );
+  }
+  g_free( anchor );
+
+  anchor = osync_anchor_retrieve(member, "contact");
+  if (!anchor) {
+    config->addressbook_changecounter = 0;
+    config->addressbook_dbid = NULL;
+  } else {
+    char data[ 256 ];
+    memset( data, 0, sizeof( data ) );
+
+    sscanf( anchor, "%d:%256s", &config->addressbook_changecounter, data );
+    config->addressbook_dbid = g_strdup( data );
+  }
+  g_free( anchor );
+}
+
+void save_sync_anchors( OSyncMember *member, const irmc_config *config )
+{
+  char anchor[ 1024 ];
+
+  snprintf( anchor, sizeof( anchor ), "%d:%s", config->calendar_changecounter, config->calendar_dbid );
+  osync_anchor_update( member, "event", anchor );
+
+  snprintf( anchor, sizeof( anchor ), "%d:%s", config->addressbook_changecounter, config->addressbook_dbid );
+  osync_anchor_update( member, "contact", anchor );
+}
+
 static void *irmcInitialize(OSyncMember *member, OSyncError **error)
 {
   char *configdata;
@@ -268,23 +308,41 @@ static void *irmcInitialize(OSyncMember *member, OSyncError **error)
 static void irmcConnect(OSyncContext *ctx)
 {
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+  irmc_config *config = &(env->config);
 
-  env->config.obexhandle = irmc_obex_client(&(env->config));
+  config->obexhandle = irmc_obex_client(config);
 
   OSyncError *error = NULL;
-  if (!irmc_obex_connect(env->config.obexhandle, env->config.donttellsync ? NULL : "IRMC-SYNC", &error)) {
-    irmc_disconnect(&(env->config));
+  if (!irmc_obex_connect(config->obexhandle, config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
+    irmc_disconnect(config);
     osync_context_report_osyncerror(ctx, &error);
   } else
     osync_context_report_success(ctx);
-/*
-  //you can also use the anchor system to detect a device reset
-  //or some parameter change here. Check the docs to see how it works
-  char *lanchor = NULL;
-  //Now you get the last stored anchor from the device
-  if (!osync_anchor_compare(env->member, "lanchor", lanchor))
-    osync_member_set_slow_sync(env->member, "<object type to request a slow-sync>", TRUE);
-*/
+
+  load_sync_anchors(env->member, config);
+
+  // check for necessary slowsyncs
+  gboolean slowsync = FALSE;
+  if ( !detect_slowsync( config->calendar_changecounter, "cal", &(config->calendar_dbid),
+                         &slowsync, config->obexhandle, &error ) )
+  {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, &error);
+  } else {
+    osync_member_set_slow_sync(env->member, "event", slowsync);
+  }
+  printf( "cal: slowsync=%d cc=%d dbid=%s\n", slowsync, config->calendar_changecounter, config->calendar_dbid );
+
+  slowsync = FALSE;
+  if ( !detect_slowsync( config->addressbook_changecounter, "pb", &(config->addressbook_dbid),
+                         &slowsync, config->obexhandle, &error ) )
+  {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, &error);
+  } else {
+    osync_member_set_slow_sync(env->member, "contact", slowsync);
+  }
+  printf( "ab: slowsync=%d cc=%d dbid=%s\n", slowsync, config->addressbook_changecounter, config->addressbook_dbid );
 }
 
 static void irmcGetChangeinfo(OSyncContext *ctx)
@@ -309,6 +367,77 @@ error:
 
 #define DATABUFSIZE (65536*2)
 
+gboolean detect_slowsync(int changecounter, char *object, char **dbid,
+                         gboolean *slowsync, obex_t obexhandle, OSyncError **error)
+{
+  osync_trace(TRACE_ENTRY, "%s(%d, %s, %p, %p)", __func__, changecounter, object, obexhandle, error);
+
+  char *data;
+  char *datap;
+  int len = DATABUFSIZE;
+  char serial[256];
+  char did[256] = "";
+  char *filename;
+  int foo;
+
+  data = g_malloc(DATABUFSIZE);
+  datap = data;
+
+  len = DATABUFSIZE;
+  filename = g_strdup_printf("telecom/%s/luid/%d.log", object, changecounter);
+
+  if (!irmc_obex_get(obexhandle, filename, data, &len, error)) {
+    g_free(filename);
+    g_free(data);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+    return FALSE;
+  }
+
+  g_free(filename);
+  data[len] = 0;
+
+  printf( "\n\n%s\n\n", data );
+
+  sscanf(datap, "SN:%256s\r\n", serial);
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+
+  datap+=2;
+  sscanf(datap, "DID:%256s\r\n", did);
+  if (!*dbid || strcmp(*dbid, did)) {
+    // This is a new database
+    if (*dbid)
+      g_free(*dbid);
+    *dbid = g_strdup(did);
+    *slowsync = TRUE;
+  }
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "Total-Records:%d\r\n", &foo);
+  datap = strstr(datap, "\r\n");
+  if (!datap) {
+    g_free(data);
+    return TRUE;
+  }
+  datap+=2;
+  sscanf(datap, "Maximum-Records:%d\r\n", &foo);
+  datap = strstr(datap, "\r\n");
+  datap+=2;
+  if (datap[0] == '*')
+    *slowsync = TRUE;
+
+  g_free(data);
+
+  return TRUE;
+}
+
 gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
@@ -328,118 +457,7 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
   data = g_malloc(DATABUFSIZE);
   datap = data;
 
-  len = DATABUFSIZE;
-  filename = g_strdup_printf("telecom/cal/luid/%d.log", config->calchangecounter);
-
-  if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
-    g_free(filename);
-    g_free(data);
-    goto error;
-  }
-
-  g_free(filename);
-  data[len] = 0;
-  sscanf(datap, "SN:%256s\r\n", serial);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return 1;
-  }
-
-  datap+=2;
-  sscanf(datap, "DID:%256s\r\n", did);
-  if (!config->calDID || strcmp(config->calDID, did)) {
-    // This is a new database
-    if (config->calDID)
-      g_free(config->calDID);
-    config->calDID = g_strdup(did);
-    slowsync = 1;
-  }
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return TRUE;
-  }
-  datap+=2;
-  sscanf(datap, "Total-Records:%d\r\n", &foo);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return TRUE;
-  }
-  datap+=2;
-  sscanf(datap, "Maximum-Records:%d\r\n", &foo);
-  datap = strstr(datap, "\r\n");
-  while(datap) {
-    char type;
-    int cc;
-    char luid[256];
-    datap+=2;
-    if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
-      char *vcal = g_malloc(10240);
-      char *converted_vcal = NULL;
-      int vcal_size = 10240;
-
-      memset(vcal, 0, vcal_size);
-
-      filename = g_strdup_printf("telecom/cal/luid/%s.vcs", luid);
-      if (!irmc_obex_get(config->obexhandle, filename, vcal, &vcal_size, error)){
-        g_free(data);
-        g_free(filename);
-        g_free(vcal);
-        goto error;
-      }
-      g_free(filename);
-
-      vcal_size = strlen(vcal);
-
-      // Add only if we handle this type of data
-      OSyncChange *change = osync_change_new();
-      osync_change_set_member(change, env->member);
-      g_assert(change);
-
-      osync_change_set_objformat_string(change, "plain");
-      osync_change_set_uid(change, g_strdup(luid));
-
-      if (vcal_size > 0) {
-        converted_vcal = sync_vtype_convert(vcal, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
-                                            (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                            VOPTION_CALENDAR1TO2 |
-                                            (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
-                                            VOPTION_CONVERTUTC, config->charset );
-        vcal_size = strlen(converted_vcal);
-      } else {
-        converted_vcal = NULL;
-        vcal_size = 0;
-      }
-
-      printf( "vcal_type=%c\n", type );
-
-      if (type == 'H')
-        osync_change_set_changetype(change, CHANGE_DELETED);
-      else if (type == 'M' || vcal_size == 0) {
-        osync_change_set_data(change, converted_vcal, vcal_size, TRUE);
-        osync_change_set_changetype(change, CHANGE_MODIFIED);
-      }
-
-      osync_context_report_change(ctx, change);
-    } else {
-      if (datap[0] == '*')
-        slowsync = 1;
-    }
-    datap = strstr(datap, "\r\n");
-  }
-
-  len = DATABUFSIZE;
-  if (!irmc_obex_get(config->obexhandle, "telecom/cal/luid/cc.log", data, &len, error)) {
-    g_free(data);
-    goto error;
-  } else {
-    data[len] = 0;
-    sscanf(data, "%d", &config->calchangecounter);
-  }
-
-  if (slowsync) {
+  if (osync_member_get_slow_sync(env->member, "event") == TRUE) {
     len = DATABUFSIZE;
     if (config->donttellsync) {
       // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
@@ -524,7 +542,110 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
         event_start = event_end;
       } while(event_start);
     }
+  } else {
+    len = DATABUFSIZE;
+    printf("cal changeounter=%d\n", config->calendar_changecounter);
+    filename = g_strdup_printf("telecom/cal/luid/%d.log", config->calendar_changecounter);
+
+    if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
+      g_free(filename);
+      g_free(data);
+      goto error;
+    }
+
+    g_free(filename);
+    data[len] = 0;
+    sscanf(datap, "SN:%256s\r\n", serial);
+    datap = strstr(datap, "\r\n");
+    if (!datap) {
+      g_free(data);
+      return 1;
+    }
+
+    datap+=2;
+    sscanf(datap, "DID:%256s\r\n", did);
+    datap = strstr(datap, "\r\n");
+    if (!datap) {
+      g_free(data);
+      return TRUE;
+    }
+    datap+=2;
+    sscanf(datap, "Total-Records:%d\r\n", &foo);
+    datap = strstr(datap, "\r\n");
+    if (!datap) {
+      g_free(data);
+      return TRUE;
+    }
+    datap+=2;
+    sscanf(datap, "Maximum-Records:%d\r\n", &foo);
+    datap = strstr(datap, "\r\n");
+    while(datap) {
+      char type;
+      int cc;
+      char luid[256];
+      datap+=2;
+      if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
+        char *vcal = g_malloc(10240);
+        char *converted_vcal = NULL;
+        int vcal_size = 10240;
+
+        memset(vcal, 0, vcal_size);
+
+        filename = g_strdup_printf("telecom/cal/luid/%s.vcs", luid);
+        if (!irmc_obex_get(config->obexhandle, filename, vcal, &vcal_size, error)){
+          g_free(data);
+          g_free(filename);
+          g_free(vcal);
+          goto error;
+        }
+        g_free(filename);
+
+        vcal_size = strlen(vcal);
+
+        // Add only if we handle this type of data
+        OSyncChange *change = osync_change_new();
+        osync_change_set_member(change, env->member);
+        g_assert(change);
+
+        osync_change_set_objformat_string(change, "plain");
+        osync_change_set_uid(change, g_strdup(luid));
+
+        if (vcal_size > 0) {
+          converted_vcal = sync_vtype_convert(vcal, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
+                                              (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
+                                              VOPTION_CALENDAR1TO2 |
+                                              (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
+                                              VOPTION_CONVERTUTC, config->charset );
+          vcal_size = strlen(converted_vcal);
+        } else {
+          converted_vcal = NULL;
+          vcal_size = 0;
+        }
+
+        printf( "vcal_type=%c\n", type );
+
+        if (type == 'H')
+          osync_change_set_changetype(change, CHANGE_DELETED);
+        else if (type == 'M' || vcal_size == 0) {
+          osync_change_set_data(change, converted_vcal, vcal_size, TRUE);
+          osync_change_set_changetype(change, CHANGE_MODIFIED);
+        }
+
+        osync_context_report_change(ctx, change);
+      }
+      datap = strstr(datap, "\r\n");
+    }
+
+    len = DATABUFSIZE;
+    if (!irmc_obex_get(config->obexhandle, "telecom/cal/luid/cc.log", data, &len, error)) {
+      g_free(data);
+      goto error;
+    } else {
+      data[len] = 0;
+      sscanf(data, "%d", &config->calendar_changecounter);
+    }
   }
+
   g_free(data);
   return TRUE;
 
@@ -544,7 +665,6 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
   char did[256] = "";
   char *filename;
   int foo;
-  int slowsync = 0;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
@@ -552,113 +672,7 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
   data = g_malloc(DATABUFSIZE);
   datap = data;
 
-  filename = g_strdup_printf("telecom/pb/luid/%d.log", config->pbchangecounter);
-
-  if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
-    g_free(filename);
-    g_free(data);
-    goto error;
-  }
-
-  g_free(filename);
-  data[len] = 0;
-  sscanf(datap, "SN:%256s\r\n", serial);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return TRUE;
-  }
-  datap+=2;
-  sscanf(datap, "DID:%256s\r\n", did);
-  if (!config->pbDID || strcmp(config->pbDID, did)) {
-    // This is a new database
-    if (config->pbDID)
-      g_free(config->pbDID);
-    config->pbDID = g_strdup(did);
-    slowsync = 1;
-  }
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return TRUE;
-  }
-  datap+=2;
-  sscanf(datap, "Total-Records:%d\r\n", &foo);
-  datap = strstr(datap, "\r\n");
-  if (!datap) {
-    g_free(data);
-    return TRUE;
-  }
-  datap+=2;
-  sscanf(datap, "Maximum-Records:%d\r\n", &foo);
-  datap = strstr(datap, "\r\n");
-  while(datap) {
-    char type;
-    int cc;
-    char luid[256];
-    datap+=2;
-    if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
-      char *vcard = g_malloc(65536);
-      int vcard_size = 65536;
-      char *converted_vcard = NULL;
-
-      memset(vcard, 0, vcard_size);
-
-      filename = g_strdup_printf("telecom/pb/luid/%s.vcf", luid);
-      vcard_size = 10240;
-      if (!irmc_obex_get(config->obexhandle, filename, vcard, &vcard_size, error)) {
-        g_free(data);
-        g_free(filename);
-        g_free(vcard);
-        goto error;
-      }
-      g_free(filename);
-
-      vcard_size = strlen(vcard);
-
-      OSyncChange *change = osync_change_new();
-      osync_change_set_member(change, env->member);
-      g_assert(change);
-
-      osync_change_set_objformat_string(change, "vcard21");
-      osync_change_set_uid(change, g_strdup(luid));
-
-      if (vcard_size > 0) {
-        converted_vcard = sync_vtype_convert(vcard, 0 | (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                             VOPTION_FIXTELOTHER, config->charset);
-        vcard_size = strlen(converted_vcard);
-      } else {
-        converted_vcard = NULL;
-        vcard_size = 0;
-      }
-
-      printf( "vcal_type=%c\n", type );
-
-      if (type == 'H')
-        osync_change_set_changetype(change, CHANGE_DELETED);
-      else if (type == 'M' || vcard_size == 0) {
-        osync_change_set_changetype(change, CHANGE_MODIFIED);
-        printf( "set_change_vcard1_(data=%p, size=%d)\n", converted_vcard, vcard_size );
-        osync_change_set_data(change, converted_vcard, vcard_size, TRUE);
-      }
-
-      osync_context_report_change(ctx, change);
-    } else {
-      if (datap[0] == '*')
-        slowsync = 1;
-    }
-    datap = strstr(datap, "\r\n");
-  }
-
-  len = DATABUFSIZE;
-  if (!irmc_obex_get(config->obexhandle, "telecom/pb/luid/cc.log", data, &len, error)) {
-    goto error;
-  } else {
-    data[len] = 0;
-    sscanf(data, "%d", &config->pbchangecounter);
-  }
-
-  if (slowsync) {
+  if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
     len = DATABUFSIZE;
     if (config->donttellsync) {
       // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
@@ -720,6 +734,102 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
         vcard_start = vcard_end;
       } while(vcard_start);
     }
+  } else {
+    filename = g_strdup_printf("telecom/pb/luid/%d.log", config->addressbook_changecounter);
+
+    if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
+      g_free(filename);
+      g_free(data);
+      goto error;
+    }
+
+    g_free(filename);
+    data[len] = 0;
+    sscanf(datap, "SN:%256s\r\n", serial);
+    datap = strstr(datap, "\r\n");
+    if (!datap) {
+      g_free(data);
+      return TRUE;
+    }
+    datap+=2;
+    sscanf(datap, "DID:%256s\r\n", did);
+    datap = strstr(datap, "\r\n");
+    if (!datap) {
+      g_free(data);
+      return TRUE;
+    }
+    datap+=2;
+    sscanf(datap, "Total-Records:%d\r\n", &foo);
+    datap = strstr(datap, "\r\n");
+    if (!datap) {
+      g_free(data);
+      return TRUE;
+    }
+    datap+=2;
+    sscanf(datap, "Maximum-Records:%d\r\n", &foo);
+    datap = strstr(datap, "\r\n");
+    while(datap) {
+      char type;
+      int cc;
+      char luid[256];
+      datap+=2;
+      if (sscanf(datap, "%c:%d::%256[^\r\n]", &type, &cc, luid) >= 3) {
+        char *vcard = g_malloc(65536);
+        int vcard_size = 65536;
+        char *converted_vcard = NULL;
+
+        memset(vcard, 0, vcard_size);
+
+        filename = g_strdup_printf("telecom/pb/luid/%s.vcf", luid);
+        vcard_size = 10240;
+        if (!irmc_obex_get(config->obexhandle, filename, vcard, &vcard_size, error)) {
+          g_free(data);
+          g_free(filename);
+          g_free(vcard);
+          goto error;
+        }
+        g_free(filename);
+
+        vcard_size = strlen(vcard);
+
+        OSyncChange *change = osync_change_new();
+        osync_change_set_member(change, env->member);
+        g_assert(change);
+
+        osync_change_set_objformat_string(change, "vcard21");
+        osync_change_set_uid(change, g_strdup(luid));
+
+        if (vcard_size > 0) {
+          converted_vcard = sync_vtype_convert(vcard, 0 | (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
+                                               VOPTION_FIXTELOTHER, config->charset);
+          vcard_size = strlen(converted_vcard);
+        } else {
+          converted_vcard = NULL;
+          vcard_size = 0;
+        }
+
+        printf( "vcal_type=%c\n", type );
+
+        if (type == 'H')
+          osync_change_set_changetype(change, CHANGE_DELETED);
+        else if (type == 'M' || vcard_size == 0) {
+          osync_change_set_changetype(change, CHANGE_MODIFIED);
+          printf( "set_change_vcard1_(data=%p, size=%d)\n", converted_vcard, vcard_size );
+          osync_change_set_data(change, converted_vcard, vcard_size, TRUE);
+        }
+
+        osync_context_report_change(ctx, change);
+      }
+      datap = strstr(datap, "\r\n");
+    }
+
+    len = DATABUFSIZE;
+    if (!irmc_obex_get(config->obexhandle, "telecom/pb/luid/cc.log", data, &len, error)) {
+      goto error;
+    } else {
+      data[len] = 0;
+      sscanf(data, "%d", &config->addressbook_changecounter);
+    }
   }
   g_free(data);
   return TRUE;
@@ -764,8 +874,8 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
     vcal_size = 0;
   }
 
-  config->calchangecounter++;
-  sprintf(apparam+2, "%d", config->calchangecounter);
+  config->calendar_changecounter++;
+  sprintf(apparam+2, "%d", config->calendar_changecounter);
   apparam[0] = IRSYNC_APP_MAXEXPCOUNT;
   apparam[1] = strlen(apparam+2);
   apparam += strlen(apparam+2)+2;
@@ -780,6 +890,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
                          rspbuf, &rspbuflen, apparambuf, apparam - apparambuf, &error)) {
         g_free(converted_vcal);
         osync_context_report_osyncerror(ctx, &error);
+        printf("can't deleted\n");
         return FALSE;
       }
       g_free(converted_vcal);
@@ -810,6 +921,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
                          rspbuf, &rspbuflen, apparambuf, apparam - apparambuf, &error)) {
         g_free(converted_vcal);
         osync_context_report_osyncerror(ctx, &error);
+        printf("can't add\n");
         return FALSE;
       }
       g_free(converted_vcal);
@@ -819,6 +931,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
                          rspbuf, &rspbuflen, apparambuf, apparam - apparambuf, &error)) {
         g_free(converted_vcal);
         osync_context_report_osyncerror(ctx, &error);
+        printf("can't modify\n");
         return FALSE;
       }
       g_free(converted_vcal);
@@ -829,7 +942,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
             char tmpbuf[16];
             memcpy(tmpbuf, apparam+2, apparam[1] > 15 ? 15 : apparam[1]);
             tmpbuf[(int) apparam[1]] = 0;
-            sscanf(tmpbuf, "%d", &config->calchangecounter);
+            sscanf(tmpbuf, "%d", &config->calendar_changecounter);
         }
 
         apparam+=apparam[1]+2;
@@ -875,8 +988,8 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
   } else
     vcard_size = 0;
 
-  config->pbchangecounter++;
-  sprintf(apparam+2, "%d", config->pbchangecounter);
+  config->addressbook_changecounter++;
+  sprintf(apparam+2, "%d", config->addressbook_changecounter);
   apparam[0] = IRSYNC_APP_MAXEXPCOUNT;
   apparam[1] = strlen(apparam+2);
   apparam += strlen(apparam+2)+2;
@@ -930,7 +1043,7 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
           char tmpbuf[16];
           memcpy(tmpbuf, apparam+2, apparam[1] > 15 ? 15 : apparam[1]);
           tmpbuf[(int) apparam[1]] = 0;
-          sscanf(tmpbuf, "%d", &config->pbchangecounter);
+          sscanf(tmpbuf, "%d", &config->addressbook_changecounter);
         }
 
         apparam+=apparam[1]+2;
@@ -968,6 +1081,7 @@ static void irmcDisconnect(OSyncContext *ctx)
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_disconnect(&(env->config));
 
+  save_sync_anchors( env->member, &( env->config ) );
   osync_context_report_success(ctx);
 
   osync_trace(TRACE_EXIT, "%s", __func__);

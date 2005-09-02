@@ -32,11 +32,13 @@ typedef enum {
 #include "irmc_irda.h"
 
 typedef struct  {
-  unsigned int calchangecounter;
-  unsigned int pbchangecounter;
+  char *serial_number;
+  unsigned int calendar_changecounter;
+  char *calendar_dbid;
+  unsigned int addressbook_changecounter;
+  char *addressbook_dbid;
+
   obex_t obexhandle;
-  char *calDID;
-  char *pbDID;
 
   // Options
   connect_medium connectmedium;
