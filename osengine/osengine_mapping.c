@@ -544,7 +544,7 @@ void osengine_mappingentry_update(OSyncMappingEntry *entry, OSyncChange *change)
 
 	osync_change_update(change, entry->change);
 	
-	if (osync_change_get_changetype(change) == CHANGE_DELETED) {
+	if (osync_change_get_changetype(change) == CHANGE_DELETED && format && type) {
 		osync_change_set_objformat(entry->change, format);
 		osync_change_set_objtype(entry->change, type);
 		
