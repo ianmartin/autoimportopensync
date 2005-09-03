@@ -709,7 +709,7 @@ void osync_group_set_configdir(OSyncGroup *group, const char *directory)
 /*! @brief Sets if the group requires slow-sync for the given object type
  * 
  * Sets if the group requires slow-sync for the given object type. This will be
- * reset once the group performs a successfull slow-sync
+ * reset once the group performs a successfull slow-sync.
  * 
  * @param group The group
  * @param objtypestr The name of the object type
@@ -721,16 +721,22 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 	g_assert(group);
 	OSyncFormatEnv *conv_env = group->conv_env;
 
-	if (osync_conv_objtype_is_any(objtypestr)) {
-		GList *element;
-		for (element = conv_env->objtypes; element; element = element->next) {
-			OSyncObjType *objtype = element->data;
+	//FIXME Remove the slow_sync bool since you are not allowed to reset
+	//the slow-sync manually anyways.
+	
+	//FIXME Race Condition!!!
+	if (!osync_group_get_slow_sync(group, objtypestr)) {
+		if (osync_conv_objtype_is_any(objtypestr)) {
+			GList *element;
+			for (element = conv_env->objtypes; element; element = element->next) {
+				OSyncObjType *objtype = element->data;
+				objtype->needs_slow_sync = slow_sync;
+			}
+		} else {
+			OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
+			g_assert(objtype);
 			objtype->needs_slow_sync = slow_sync;
 		}
-	} else {
-		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
-		g_assert(objtype);
-		objtype->needs_slow_sync = slow_sync;
 	}
 }
 
