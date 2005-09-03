@@ -31,6 +31,7 @@
 
 #include "sync_vtype.h"
 #include "irmc_sync.h"
+#include "irmc_bluetooth.h"
 
 #define SYNC_OBJECT_TYPE_CALENDAR 0
 #define SYNC_OBJECT_TYPE_TODO 1
@@ -271,6 +272,33 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
 
   snprintf( anchor, sizeof( anchor ), "%d:%s", config->addressbook_changecounter, config->addressbook_dbid );
   osync_anchor_update( member, "contact", anchor );
+}
+
+void *scan_devices( const char *query )
+{
+  xmlDoc *doc;
+  xmlNode *node, *devices;
+  xmlChar *data;
+  int size;
+
+  doc = xmlNewDoc("1.0");
+  devices = xmlNewDocNode(doc, NULL, (const xmlChar*)"devices", NULL);
+  xmlDocSetRootElement(doc, devices);
+
+  GList *unit_list = find_bt_units();
+  for (; unit_list; unit_list = unit_list->next) {
+    irmc_bt_unit *unit = unit_list->data;
+    node = xmlNewTextChild(devices, NULL, (const xmlChar*)"device", NULL);
+    xmlNewProp(node, "address", unit->address);
+    char *number = g_strdup_printf("%d", unit->channel);
+    xmlNewProp(node, "channel", number);
+    g_free(number);
+    xmlNewProp(node, "name", unit->name);
+  }
+
+  xmlDocDumpFormatMemory( doc, &data, &size, 0 );
+
+  return data;
 }
 
 static void *irmcInitialize(OSyncMember *member, OSyncError **error)
