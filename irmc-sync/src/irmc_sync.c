@@ -274,7 +274,7 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
   osync_anchor_update( member, "contact", anchor );
 }
 
-void *scan_devices( const char *query )
+void *scan_devices( void *foo, const char *query, void *bar )
 {
   xmlDoc *doc;
   xmlNode *node, *devices;
@@ -299,6 +299,50 @@ void *scan_devices( const char *query )
   xmlDocDumpFormatMemory( doc, &data, &size, 0 );
 
   return data;
+}
+
+int *test_connection( void *foo, const char *configuration, void *bar )
+{
+  char data[10240];
+  int size = 10240;
+  OSyncError *error = NULL;
+  irmc_config config;
+  int *result = (int*)malloc(sizeof(int));
+
+  if (!parse_settings(&config, configuration, strlen(configuration), &error)) {
+    osync_error_free(&error);
+    *result = 0;
+    return result;
+  }
+
+  config.obexhandle = irmc_obex_client(&config);
+
+  if (!irmc_obex_connect(config.obexhandle, config.donttellsync ? NULL : "IRMC-SYNC", &error)) {
+    osync_error_free(&error);
+    if (!irmc_obex_disconnect(config.obexhandle, &error))
+      osync_error_free(&error);
+
+    *result = 0;
+    return result;
+  }
+
+  if (!irmc_obex_get(config.obexhandle, "telecom/devinfo.txt", data, &size, &error)) {
+    osync_error_free(&error);
+    if (!irmc_obex_disconnect(config.obexhandle, &error))
+      osync_error_free(&error);
+    irmc_obex_cleanup(config.obexhandle);
+
+    *result = 0;
+    return result;
+  }
+
+  // Succeeded to connect and fetch data.
+  if (!irmc_obex_disconnect(config.obexhandle, &error))
+    osync_error_free(&error);
+  irmc_obex_cleanup(config.obexhandle);
+
+  *result = 1;
+  return result;
 }
 
 static void *irmcInitialize(OSyncMember *member, OSyncError **error)
@@ -491,7 +535,7 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
       // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
       irmc_obex_disconnect(config->obexhandle, error);
       sleep(1);
-      if (irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
+      if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
         sleep(2);
         if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
           g_free(data);
@@ -702,7 +746,7 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
       // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
       irmc_obex_disconnect(config->obexhandle, error);
       sleep(1);
-      if (irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
+      if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
         sleep(2);
         if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
           g_free(data);
