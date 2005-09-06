@@ -290,7 +290,16 @@ static void fs_read(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
-static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
+/** Write a change, but doesn't report success
+ *
+ * This function writes a change, but doesn't report success on
+ * the OSyncContext object on error. This function is used by
+ * fs_access() and fs_commit_change(), and allow the caller to
+ * do more tasks before reporting success to opensync.
+ *
+ * On success, TRUE will be returned but 
+ */
+static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
 {
 	/*TODO: Create directory for file, if it doesn't exist */
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
@@ -350,7 +359,6 @@ static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
 		default:
 			osync_debug("FILE-SYNC", 0, "Unknown change type");
 	}
-	osync_context_report_success(ctx);
 	g_free(filename);
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 	return TRUE;
@@ -362,11 +370,21 @@ static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
 	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
 	
-	if (!fs_access(ctx, change))
+	if (!__fs_access(ctx, change))
 		return FALSE;
 
 	osync_hashtable_update_hash(fsinfo->hashtable, change);
+	osync_context_report_success(ctx);
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+	return TRUE;
+}
+
+static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
+{
+	if (!__fs_access(ctx, change))
+		return FALSE;
+
+	osync_context_report_success(ctx);
 	return TRUE;
 }
 
