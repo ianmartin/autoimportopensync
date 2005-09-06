@@ -297,7 +297,8 @@ static void fs_read(OSyncContext *ctx, OSyncChange *change)
  * fs_access() and fs_commit_change(), and allow the caller to
  * do more tasks before reporting success to opensync.
  *
- * On success, TRUE will be returned but 
+ * On success, TRUE will be returned but osync_context_report_success() won't be called
+ * On failure, FALSE will be returned, and osync_context_report_error() will be called
  */
 static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
 {
