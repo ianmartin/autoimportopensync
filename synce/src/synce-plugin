@@ -1,8 +1,6 @@
 <config>
-	<contacts></contacts>
+	<contact></contact>
 	<todos></todos>
 	<calendar></calendar>
-	<files>
-		<dir></dir>
-	</files>
+	<files></files>
 </config>
