@@ -1,7 +1,7 @@
 <config>
 	<contacts></contacts>
 	<todos></todos>
-	<cal></cal>
+	<calendar></calendar>
 	<files>
 		<dir></dir>
 	</files>
