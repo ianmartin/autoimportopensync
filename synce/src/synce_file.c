@@ -241,10 +241,11 @@ osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
 	}
 
-	/* Answer the call */
-	osync_context_report_success(ctx);
 	osync_hashtable_update_hash(env->hashtable, change);
 
+	/* Answer the call */
+	osync_context_report_success(ctx);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
