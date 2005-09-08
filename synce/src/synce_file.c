@@ -67,17 +67,17 @@ static time_t CeTimeToUnixTime(FILETIME t)
  * The file-sync plugin allocates new memory in this occasion so I guess that's the right
  * thing to do.
  */
-static char *FileHash(fileFormat *p)
+static char *FileHash(CE_FIND_DATA *entry)
 {
-	char		ts[50] = {0};
-	struct tm	*time_struct = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, entry);
+	
+	time_t t1 = CeTimeToUnixTime(entry->ftLastWriteTime);
+	time_t t2 = CeTimeToUnixTime(entry->ftCreationTime);
+	
+	char *hash = g_strdup_printf("%i-%i", (int)t1, (int)t2);
 
-	if (!p)
-		return "";
-
-	time_struct = localtime(&p->last_mod);
-	strftime(ts, sizeof(ts), "%F", time_struct);
-	return g_strdup_printf("%ld %s", (long int)p->size, ts);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, hash);
+	return hash;
 }
 
 /*
@@ -85,115 +85,133 @@ static char *FileHash(fileFormat *p)
  * to the opensync engine in the fileFormat structure's data field.
  * See also the comments for file_get_data().
  */
-osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
+static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry, OSyncError **error)
 {
-	synce_plugin_environment	*env;
-	OSyncChange			*change;
-	char				path[MAX_PATH], *hash, *lpath;
-	WCHAR				*wfn;
-	HANDLE				h;
-	fileFormat			ff;
-	time_t				t1, t2;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, ctx, dir, entry, error);
+	g_assert(ctx);
+	
+	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	OSyncChange	*change = NULL;
+	char path[MAX_PATH], *hash = NULL, *lpath = NULL;
+	WCHAR *wfn = NULL;
+	HANDLE h = 0;
+	time_t	t1, t2;
+
+	fileFormat *ff = osync_try_malloc0(sizeof(fileFormat), error);
+	if (!ff)
+		goto error;
+	ff->userid = 0;
+	ff->groupid = 0;
 
 	lpath = wstr_to_current(entry->cFileName);
-	sprintf(path, "%s\\%s", dir, lpath);
+	snprintf(path, MAX_PATH, "%s\\%s", dir, lpath);
 	wfn = wstr_from_current(path);
 
-	fprintf(stderr, "FilesReportFileChange(%s)\n", path);
+	osync_trace(TRACE_INTERNAL, "Path: %s", path);
 
 	/* Start moved up piece of code */
 	/* Assemble a structure with data about this file */
-	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
-			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-	ff.userid = 0;
-	ff.groupid = 0;
-
+	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	if (!h) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to call CeCreateFile");
+		goto error_free_format;
+	}
+		
 	/* Select the latest time */
 	t1 = CeTimeToUnixTime(entry->ftLastWriteTime);
 	t2 = CeTimeToUnixTime(entry->ftCreationTime);
-	ff.last_mod = (t1 < t2) ? t2 : t1;
+	ff->last_mod = (t1 < t2) ? t2 : t1;
 
-	ff.size = CeGetFileSize(h, NULL);
-	ff.mode = 0777;			/* Fake */
+	ff->size = CeGetFileSize(h, NULL);
+	ff->mode = 0644; /* Fake */
 
 	CeCloseHandle(h);
 
 	/* Set the hash */
-	hash = FileHash(&ff);
+	hash = FileHash(entry);
 
-	ff.data = strdup(path);
-	/* End moved up piece of code */
+	change = osync_change_new();
 
-	if (ctx) {
-		env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-		change = osync_change_new();
+	osync_change_set_member(change, env->member);
+	osync_change_set_uid(change, path);	/* Pass the full file name as UID */
+	osync_change_set_objformat_string(change, "file");	/* Copied from file-sync */
 
-		osync_change_set_member(change, env->member);
-		osync_change_set_uid(change, path);	/* Pass the full file name as UID */
-		osync_change_set_objformat_string(change, "file");	/* Copied from file-sync */
+	/* Should do the file handling here, but it was moved up for debugging */
 
-		/* Should do the file handling here, but it was moved up for debugging */
+	osync_change_set_hash(change, hash);
+	/*
+	 * Pass the structure to OpenSync
+	 * The final parameter is FALSE to indicate a get_data() call will fetch
+	 * the file contents if necessary later on.
+	 */
+	osync_change_set_data(change, (char *)ff, sizeof(fileFormat), FALSE);
 
-		osync_change_set_hash(change, hash);
-		/*
-		 * Pass the structure to OpenSync
-		 * The final parameter is FALSE to indicate a get_data() call will fetch
-		 * the file contents if necessary later on.
-		 */
-		osync_change_set_data(change, (char *)&ff, sizeof(ff), FALSE);
-
-		if (osync_hashtable_detect_change(env->hashtable, change)) {
-#if 0
-			osync_change_set_changetype(change, CHANGE_ADDED);	/* ?? */
-#endif
-			osync_context_report_change(ctx, change);
-			osync_hashtable_update_hash(env->hashtable, change);
-		}
-		g_free(hash);
+	if (osync_hashtable_detect_change(env->hashtable, change)) {
+		osync_context_report_change(ctx, change);
+		osync_hashtable_update_hash(env->hashtable, change);
 	}
+	g_free(hash);
 
 	wstr_free_string(wfn);
 	free(lpath);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_free_format:
+	g_free(ff);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir)
+static osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncError **error)
 {
-	WCHAR		*wd;
-	CE_FIND_DATA	*find_data = NULL;
-	int		i;
-	DWORD		file_count;
-	char		path[MAX_PATH];
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, ctx, dir, error);
+	
+	WCHAR *wd = NULL;
+	CE_FIND_DATA *find_data = NULL;
+	int	i = 0;
+	DWORD file_count = 0;
+	char path[MAX_PATH];
 
-	if (! dir)
+	if (!dir) {
+		osync_trace(TRACE_EXIT, "%s: Done", __func__);
 		return TRUE;
-	sprintf(path, "%s\\*", dir);
+	}
+	
+	snprintf(path, MAX_PATH, "%s\\*", dir);
 
 	wd = wstr_from_current(path);
 	if (CeFindAllFiles(wd,
 			FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW|FAF_OID,
 			&file_count, &find_data)) {
-		for (i=0; i<file_count; i++) {
-			CE_FIND_DATA	*entry = &find_data[i];
-
-			/* Report this file to the OpenSync */
-			if (! FilesReportFileChange(ctx, dir, entry)) {
-				/* Failure */
-				return FALSE;
-			}
-
+		for (i = 0; i < file_count; i++) {
+			CE_FIND_DATA *entry = &find_data[i];
 
 			/* Recursive call for directories */
 			if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-				sprintf(path, "%s\\%s", dir, wstr_to_current(entry->cFileName));
-				(void) /* FIX ME */ FilesFindAllFromDirectory(ctx, path);
+				snprintf(path, MAX_PATH, "%s\\%s", dir, wstr_to_current(entry->cFileName));
+				if (!FilesFindAllFromDirectory(ctx, path, error))
+					goto error;
+			} else {
+				/* Report this file to the OpenSync */
+				if (!FilesReportFileChange(ctx, dir, entry, error))
+					goto error;
 			}
 		}
 	}
 
 	CeRapiFreeBuffer(find_data);
 	wstr_free_string(wd);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	CeRapiFreeBuffer(find_data);
+	wstr_free_string(wd);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*
@@ -203,58 +221,22 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir)
  *	osync_context_report_success(ctx);
  *
  */
-extern osync_bool file_commit(OSyncContext *ctx, OSyncChange *change)
+osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	
 	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-	uint32_t id=0;
-
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 		
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
-			id=strtol(osync_change_get_uid(change),NULL,16);
-			osync_debug("SYNCE-SYNC", 4, "deleting contact id: %08x",id);
-		
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_trace(TRACE_INTERNAL, "deleting file %s", osync_change_get_uid(change));
 			break;
 		case CHANGE_ADDED:
-		{
-			char *object=NULL;
-#if 0
-			size_t data_size;
-			uint8_t *data;
-			uint32_t dummy_id,id;
-#endif
-			
-			object=osync_change_get_data(change);
-			id=strtol(osync_change_get_uid(change),NULL,16);			
-
-			osync_debug("SYNCE-SYNC", 4, "adding contact id %08x",id);
-
-			osync_change_set_hash(change, FileHash(NULL));
-
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_trace(TRACE_INTERNAL, "adding file %s", osync_change_get_uid(change));
 			break;
-		}
 		case CHANGE_MODIFIED:
-		{
-			char *object=NULL;
-#if 0
-			size_t data_size;
-			uint8_t *data;
-			uint32_t dummy_id,id;
-#endif
-
-			object=osync_change_get_data(change);
-			id=strtol(osync_change_get_uid(change),NULL,16);			
-
-			osync_debug("SYNCE-SYNC", 4, "updating contact id %08x",id);
-
-			osync_change_set_hash(change, FileHash(NULL));
-
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_trace(TRACE_INTERNAL, "modify file %s", osync_change_get_uid(change));
 			break;
-		}
 		default:
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
 	}
@@ -263,17 +245,17 @@ extern osync_bool file_commit(OSyncContext *ctx, OSyncChange *change)
 	osync_context_report_success(ctx);
 	osync_hashtable_update_hash(env->hashtable, change);
 
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
 /*
  * File get_changeinfo : report the changes to the OpenSync engine.
  */
-extern osync_bool file_get_changeinfo(OSyncContext *ctx)
+osync_bool synceFileGetChangeinfo(OSyncContext *ctx, OSyncError **error)
 {
-	synce_plugin_environment	*env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 
 	/* Detect whether we need to do a slow sync - this is supported by the hash table */
 	if (osync_member_get_slow_sync(env->member, "data"))
@@ -282,161 +264,77 @@ extern osync_bool file_get_changeinfo(OSyncContext *ctx)
 	/* SynCE : check if RRA is connected */
 	if (!env->syncmgr || !rra_syncmgr_is_connected(env->syncmgr)){
 		/* not connected, exit */
-		osync_context_report_error(ctx, 1, "not connected to device, exit.");
-		return FALSE;
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "not connected to device, exit.");
+		goto error;
 	}
 
-	osync_debug("SynCE-file", 4, "checking files");
+	osync_trace(TRACE_INTERNAL, "checking files");
 
 	/*
 	 * We're supporting sync of exactly one directory.
 	 */
-	if (env->config_file && ! FilesFindAllFromDirectory(ctx, env->config_file)) {
-		osync_context_report_error(ctx, 1, "Error while checking for files");
-		return FALSE;
-	}
+	if (!FilesFindAllFromDirectory(ctx, env->config_file, error))
+		goto error;
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "data");
 
-	/* Don't report via
-	 *	osync_context_report_success(ctx)
-	 * here, our caller will already be doing that.
-	 */
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-extern void file_connect(OSyncContext *ctx)
+void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 {
-	/*
-	 * Don't repeat the SynCE connection making - the synce_plugin.c connect() already
-	 * handles all that.
-	 */
-	synce_plugin_environment *env;
-	OSyncError	*error = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	
+	OSyncError *error = NULL;
+	synce_plugin_environment *env = NULL;
+	fileFormat *ff = NULL;
+	HANDLE h = 0;
+	size_t rsz = 0;
+	WCHAR *wfn = NULL;
+	int	r = 0;
 
-	osync_debug("SynCE-File", 4, "start: %s", __func__);
-
-	/*
-	 * Each time you get passed a context (which is used to track calls to your plugin)
-	 * you can get the data your returned in initialize via this call :
-	 */
-	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-
-	/* Load the hash table */
-	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
-		osync_context_report_osyncerror(ctx, &error);
-		return;
-	}
-}
-
-extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count, uint32_t* ids, void* cookie)
-{
-	fprintf(stderr, "file_callback\n");
-	return TRUE;
-}
-
-extern void file_sync_done(OSyncContext *ctx)
-{
-	synce_plugin_environment	*env;
-
-	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-	osync_hashtable_forget(env->hashtable);
-
-	fprintf(stderr, "file_sync_done\n");
-}
-
-extern void file_disconnect(OSyncContext *ctx)
-{
-	synce_plugin_environment	*env;
-
-	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-	osync_hashtable_close(env->hashtable);
-}
-
-extern void file_finalize(void *data)
-{
-	synce_plugin_environment	*env = (synce_plugin_environment *)data;
-	osync_hashtable_free(env->hashtable);
-}
-
-extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
-{
-	synce_plugin_environment	*env;
-	fileFormat			*ff;
-	HANDLE				h;
-	size_t				rsz;
-	WCHAR				*wfn;
-	int				r;
-
-	osync_debug("SynCE-File", 4, "start : %s", __func__);
 	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	ff = (fileFormat *)osync_change_get_data(change);
 
-#if 0
-	if (ff == NULL || ff->data == NULL || ff->size == 0) {
-		osync_debug("SynCE-File", 4, "file_get_data: NULL values encountered, returning\n");
-		osync_context_report_error(ctx, 1, "get_data got NULLs");
-		return;
-	}
-#endif
-	/*
-	 * There appears to be a trick being used here.
-	 *
-	 * First report some stuff, use the data field to pass random data (e.g. the file
-	 * name) to ourselves.
-	 * Then, in the get_data() call, read that data and replace it with the file content.
-	 */
-	wfn = wstr_from_current(ff->data);
+
+	wfn = wstr_from_current(osync_change_get_uid(change));
 
 	/* Read the file through SynCE */
 	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
-	free(ff->data);
-	ff->data = malloc(ff->size);
+	size_t filesize = 0;
+	CeGetFileSize(h, &filesize);
 
-	r = CeReadFile(h, ff->data, ff->size, &rsz, NULL);
-	if (r == 0) {
+	ff->data = osync_try_malloc0(filesize, &error);
+	if (!ff->data) {
+		osync_context_report_osyncerror(ctx, &error);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		return;
+	}
+	ff->size = filesize;
+	
+	r = CeReadFile(h, ff->data, filesize, &rsz, NULL);
+	if (r == 0 || filesize != rsz) {
 		/* Error */
-		DWORD	e = CeGetLastError();
-		char	*s = synce_strerror(e);
+		DWORD e = CeGetLastError();
+		char *s = synce_strerror(e);
 		osync_context_report_error(ctx, 1, "Error from CeReadFile (%s)", s);
 		CeCloseHandle(h);
+		osync_trace(TRACE_EXIT_ERROR, "%s: Error from CeReadFile (%s)", __func__, s);
 		return;
 	}
 
-	/* Send its contents */
-	osync_change_set_data(change, (char *)ff, sizeof(ff), TRUE);
 	CeCloseHandle(h);
 
 	wstr_free_string(wfn);
 	osync_context_report_success(ctx);
-	osync_debug("SynCE-File", 4, "end : %s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
-
-#if 0
-extern void file_read(OSyncContext *ctx, OSyncChange *change)
-{
-	fileFormat	*mip;
-
-	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
-	mip = (fileFormat *)osync_context_get_plugin_data(ctx);
-
-	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
-}
-
-extern osync_bool file_access(OSyncContext *ctx, OSyncChange *change)
-{
-	fileFormat	*ff;
-
-	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
-	ff = (fileFormat *)osync_context_get_plugin_data(ctx);
-
-	osync_debug("SynCE File", 4, "file_access(%s)\n", ff->data);
-	osync_context_report_success(ctx);
-	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
-	return TRUE;
-}
-#endif
 
 /*
  * This function is called by the configuration GUI,

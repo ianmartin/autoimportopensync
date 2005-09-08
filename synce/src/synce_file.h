@@ -17,14 +17,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-extern osync_bool file_commit(OSyncContext *ctx, OSyncChange *change);
-extern osync_bool file_get_changeinfo(OSyncContext *ctx);
-extern void file_connect(OSyncContext *ctx);
-extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count, uint32_t* ids, void* cookie);
-extern void file_sync_done(OSyncContext *ctx);
 
-extern void file_get_data(OSyncContext *ctx, OSyncChange *change);
-extern void file_finalize(void *data);
-extern void file_disconnect(OSyncContext *ctx);
-extern void file_read(OSyncContext *ctx, OSyncChange *change);
-extern osync_bool file_access(OSyncContext *ctx, OSyncChange *change);
+osync_bool synceFileGetChangeinfo(OSyncContext *ctx, OSyncError **error);
+osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change);
+void synceFileGetData(OSyncContext *ctx, OSyncChange *change);
