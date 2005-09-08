@@ -46,17 +46,20 @@
 #include <synce.h>
 #include "synce_plugin.h"
 
+static time_t DOSFS_FileTimeToUnixTime(const FILETIME *filetime, DWORD *remainder);
+
+/*
+ * Do this by ourselves.
+ * The FILETIME structure is a 64-bit value representing the number of 100-nanosecond intervals
+ * since January 1, 1601, 0:00. 'remainder' is the nonnegative number of 100-ns intervals
+ * corresponding to the time fraction smaller than 1 second that couldn't be stored in the
+ * time_t value.
+ */
 static time_t CeTimeToUnixTime(FILETIME t)
 {
-#ifdef	NEW_TIME
-	TIME_FIELDS	tf;
-	time_fields_from_filetime(&t, &tf);
-	return 0;
-#else
-	time_t seconds;
-	seconds = filetime_to_unix_time(&p->time_create);
-	return seconds;
-#endif
+	DWORD	r;
+
+	return DOSFS_FileTimeToUnixTime(&t, &r);
 }
 
 /*
@@ -67,79 +70,59 @@ static time_t CeTimeToUnixTime(FILETIME t)
 static char *FileHash(fileFormat *p)
 {
 	char		ts[50] = {0};
-	struct tm	*tmp;
-#ifndef	NEW_TIME
-	time_t seconds;
 	struct tm	*time_struct = NULL;
-#else
-	TIME_FIELDS	write_time_fields;
-#endif
 
 	if (!p)
 		return "";
 
-#ifndef	NEW_TIME
-	seconds = filetime_to_unix_time(&p->last_mod);
-	time_struct = localtime(&seconds);
+	time_struct = localtime(&p->last_mod);
 	strftime(ts, sizeof(ts), "%F", time_struct);
-#else
-	tmp = localtime(&p->last_mod);
-	strftime(ts, sizeof(ts), "%F", tmp);
-	sprintf(ts, "%04i-%02i-%02i %02i:%02i:%02i",
-		write_time_fields.Year, write_time_fields.Month, write_time_fields.Day,
-		write_time_fields.Hour, write_time_fields.Minute, write_time_fields.Second); 
-#endif
 	return g_strdup_printf("%ld %s", (long int)p->size, ts);
 }
-
-#if 0
-static void my_wstrcpy(WCHAR *dst, WCHAR *src, int ml)
-{
-	int	i;
-
-	for (i=0; i<ml && src[i]; i++)
-		dst[i] = src[i];
-	if (i != ml)
-		dst[i] = 0;
-}
-#endif
-
-#if 0
-/* Read the file through SynCE */
-static osync_bool FileReadFileIntoStruct(HANDLE h, fileFormat *mip)
-{
-	char	*buffer;
-	size_t	sz, rsz;
-
-	sz = mip->size;
-	buffer = malloc(sz);
-
-	if (!CeReadFile(h, buffer, sz, &rsz, NULL)) {
-		/* Error */
-		fprintf(stderr, "CeReadFile failed\n");
-		return FALSE;
-	}
-	mip->data = buffer;
-	return TRUE;
-}
-#endif
 
 /*
  * In this pass of set_data(), do not pass real file contents, but only pass the file name
  * to the opensync engine in the fileFormat structure's data field.
+ * See also the comments for file_get_data().
  */
 osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DATA *entry)
 {
 	synce_plugin_environment	*env;
 	OSyncChange			*change;
-	char				path[MAX_PATH], *hash;
+	char				path[MAX_PATH], *hash, *lpath;
 	WCHAR				*wfn;
 	HANDLE				h;
 	fileFormat			ff;
 	time_t				t1, t2;
 
-	sprintf(path, "%s\\%s", dir, wstr_to_current(entry->cFileName));
+	lpath = wstr_to_current(entry->cFileName);
+	sprintf(path, "%s\\%s", dir, lpath);
 	wfn = wstr_from_current(path);
+
+	fprintf(stderr, "FilesReportFileChange(%s)\n", path);
+
+	/* Start moved up piece of code */
+	/* Assemble a structure with data about this file */
+	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
+			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	ff.userid = 0;
+	ff.groupid = 0;
+
+	/* Select the latest time */
+	t1 = CeTimeToUnixTime(entry->ftLastWriteTime);
+	t2 = CeTimeToUnixTime(entry->ftCreationTime);
+	ff.last_mod = (t1 < t2) ? t2 : t1;
+
+	ff.size = CeGetFileSize(h, NULL);
+	ff.mode = 0777;			/* Fake */
+
+	CeCloseHandle(h);
+
+	/* Set the hash */
+	hash = FileHash(&ff);
+
+	ff.data = strdup(path);
+	/* End moved up piece of code */
 
 	if (ctx) {
 		env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
@@ -149,36 +132,14 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 		osync_change_set_uid(change, path);	/* Pass the full file name as UID */
 		osync_change_set_objformat_string(change, "file");	/* Copied from file-sync */
 
-		/* Assemble a structure with data about this file */
-		h = CeCreateFile(wfn, GENERIC_READ, 0, NULL,
-				OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-		ff.userid = 0;
-		ff.groupid = 0;
-
-		/* Select the latest time */
-		t1 = CeTimeToUnixTime(entry->ftLastWriteTime);
-		t2 = CeTimeToUnixTime(entry->ftCreationTime);
-		ff.last_mod = (t1 < t2) ? t2 : t1;
-
-		ff.size = CeGetFileSize(h, NULL);
-		ff.mode = 0777;			/* Fake */
-
-#if 0
-		if (! FileReadFileIntoStruct(h, &ff)) {
-			osync_context_report_error(ctx, 1,
-					"Problem reading the file [%s]\n",
-					path);
-			return FALSE;
-		}
-#endif
-		CeCloseHandle(h);
-
-		/* Set the hash */
-		hash = FileHash(&ff);
-
-		ff.data = strdup(path);
+		/* Should do the file handling here, but it was moved up for debugging */
 
 		osync_change_set_hash(change, hash);
+		/*
+		 * Pass the structure to OpenSync
+		 * The final parameter is FALSE to indicate a get_data() call will fetch
+		 * the file contents if necessary later on.
+		 */
 		osync_change_set_data(change, (char *)&ff, sizeof(ff), FALSE);
 
 		if (osync_hashtable_detect_change(env->hashtable, change)) {
@@ -189,17 +150,10 @@ osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir, CE_FIND_DAT
 			osync_hashtable_update_hash(env->hashtable, change);
 		}
 		g_free(hash);
-#if 0
-		/*
-		 * Pass the structure to OpenSync
-		 * The final parameter is FALSE to indicate a get_data() call will fetch
-		 * the file contents if necessary later on.
-		 */
-		osync_change_set_data(change, (char *)&ff, sizeof(fileFormat), FALSE);
-#endif
 	}
 
 	wstr_free_string(wfn);
+	free(lpath);
 	return TRUE;
 }
 
@@ -418,9 +372,18 @@ extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
 	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	ff = (fileFormat *)osync_change_get_data(change);
 
-	/* There appears to be a trick being used here.
+#if 0
+	if (ff == NULL || ff->data == NULL || ff->size == 0) {
+		osync_debug("SynCE-File", 4, "file_get_data: NULL values encountered, returning\n");
+		osync_context_report_error(ctx, 1, "get_data got NULLs");
+		return;
+	}
+#endif
+	/*
+	 * There appears to be a trick being used here.
+	 *
 	 * First report some stuff, use the data field to pass random data (e.g. the file
-	 * name) to ourselved.
+	 * name) to ourselves.
 	 * Then, in the get_data() call, read that data and replace it with the file content.
 	 */
 	wfn = wstr_from_current(ff->data);
@@ -440,9 +403,9 @@ extern void file_get_data(OSyncContext *ctx, OSyncChange *change)
 		CeCloseHandle(h);
 		return;
 	}
+
 	/* Send its contents */
-	if (ctx)
-		osync_change_set_data(change, (char *)ff, sizeof(ff), TRUE);
+	osync_change_set_data(change, (char *)ff, sizeof(ff), TRUE);
 	CeCloseHandle(h);
 
 	wstr_free_string(wfn);
@@ -463,12 +426,12 @@ extern void file_read(OSyncContext *ctx, OSyncChange *change)
 
 extern osync_bool file_access(OSyncContext *ctx, OSyncChange *change)
 {
-	fileFormat	*mip;
+	fileFormat	*ff;
 
 	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
-	mip = (fileFormat *)osync_context_get_plugin_data(ctx);
+	ff = (fileFormat *)osync_context_get_plugin_data(ctx);
 
-	osync_debug("SynCE File", 4, "file_access(%s)\n", mip->wfn);
+	osync_debug("SynCE File", 4, "file_access(%s)\n", ff->data);
 	osync_context_report_success(ctx);
 	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
 	return TRUE;
@@ -524,7 +487,7 @@ int main(int argc, char** argv)
 		goto exit;
 	}
 
-	FilesFindAllFromDirectory(NULL, "\\Storage Card");
+//	FilesFindAllFromDirectory(NULL, "\\Storage Card");
 	FilesFindAllFromDirectory(NULL, "\\My Documents\\foto");
 
 	(void) synce_list_directories(NULL, NULL, NULL);
@@ -539,3 +502,237 @@ exit:
 	return 0;
 }
 #endif
+
+/*
+ * Copyright (c) 1993-2002 the Wine project authors
+ *
+ * These functions come from wine/files/dos_fs.c in release 20020228 of the
+ * WINE project. See http://www.winehq.org/ for more information. 
+ *
+ * Licensing information for the code below:
+ *
+ *   http://source.winehq.org/source/LICENSE?v=wine20020228
+ *
+ */
+
+
+/***********************************************************************
+ *           DOSFS_UnixTimeToFileTime
+ *
+ * Convert a Unix time to FILETIME format.
+ * The FILETIME structure is a 64-bit value representing the number of
+ * 100-nanosecond intervals since January 1, 1601, 0:00.
+ * 'remainder' is the nonnegative number of 100-ns intervals
+ * corresponding to the time fraction smaller than 1 second that
+ * couldn't be stored in the time_t value.
+ */
+#if 0
+static void DOSFS_UnixTimeToFileTime( time_t unix_time, FILETIME *filetime,
+                               DWORD remainder )
+{
+    /* NOTES:
+
+       CONSTANTS:
+       The time difference between 1 January 1601, 00:00:00 and
+       1 January 1970, 00:00:00 is 369 years, plus the leap years
+       from 1604 to 1968, excluding 1700, 1800, 1900.
+       This makes (1968 - 1600) / 4 - 3 = 89 leap days, and a total
+       of 134774 days.
+
+       Any day in that period had 24 * 60 * 60 = 86400 seconds.
+
+       The time difference is 134774 * 86400 * 10000000, which can be written
+       116444736000000000
+       27111902 * 2^32 + 3577643008
+       413 * 2^48 + 45534 * 2^32 + 54590 * 2^16 + 32768
+
+       If you find that these constants are buggy, please change them in all
+       instances in both conversion functions.
+
+       VERSIONS:
+       There are two versions, one of them uses long long variables and
+       is presumably faster but not ISO C. The other one uses standard C
+       data types and operations but relies on the assumption that negative
+       numbers are stored as 2's complement (-1 is 0xffff....). If this
+       assumption is violated, dates before 1970 will not convert correctly.
+       This should however work on any reasonable architecture where WINE
+       will run.
+
+       DETAILS:
+
+       Take care not to remove the casts. I have tested these functions
+       (in both versions) for a lot of numbers. I would be interested in
+       results on other compilers than GCC.
+
+       The operations have been designed to account for the possibility
+       of 64-bit time_t in future UNICES. Even the versions without
+       internal long long numbers will work if time_t only is 64 bit.
+       A 32-bit shift, which was necessary for that operation, turned out
+       not to work correctly in GCC, besides giving the warning. So I
+       used a double 16-bit shift instead. Numbers are in the ISO version
+       represented by three limbs, the most significant with 32 bit, the
+       other two with 16 bit each.
+
+       As the modulo-operator % is not well-defined for negative numbers,
+       negative divisors have been avoided in DOSFS_FileTimeToUnixTime.
+
+       There might be quicker ways to do this in C. Certainly so in
+       assembler.
+
+       Claus Fischer, fischer@iue.tuwien.ac.at
+       */
+
+#if SIZEOF_LONG_LONG >= 8
+#  define USE_LONG_LONG 1
+#else
+#  define USE_LONG_LONG 0
+#endif
+
+#if USE_LONG_LONG		/* gcc supports long long type */
+
+    long long int t = unix_time;
+    t *= 10000000;
+    t += 116444736000000000LL;
+    t += remainder;
+    filetime->dwLowDateTime  = (UINT)t;
+    filetime->dwHighDateTime = (UINT)(t >> 32);
+
+#else  /* ISO version */
+
+    UINT a0;			/* 16 bit, low    bits */
+    UINT a1;			/* 16 bit, medium bits */
+    UINT a2;			/* 32 bit, high   bits */
+
+    /* Copy the unix time to a2/a1/a0 */
+    a0 =  unix_time & 0xffff;
+    a1 = (unix_time >> 16) & 0xffff;
+    /* This is obsolete if unix_time is only 32 bits, but it does not hurt.
+       Do not replace this by >> 32, it gives a compiler warning and it does
+       not work. */
+    a2 = (unix_time >= 0 ? (unix_time >> 16) >> 16 :
+	  ~((~unix_time >> 16) >> 16));
+
+    /* Multiply a by 10000000 (a = a2/a1/a0)
+       Split the factor into 10000 * 1000 which are both less than 0xffff. */
+    a0 *= 10000;
+    a1 = a1 * 10000 + (a0 >> 16);
+    a2 = a2 * 10000 + (a1 >> 16);
+    a0 &= 0xffff;
+    a1 &= 0xffff;
+
+    a0 *= 1000;
+    a1 = a1 * 1000 + (a0 >> 16);
+    a2 = a2 * 1000 + (a1 >> 16);
+    a0 &= 0xffff;
+    a1 &= 0xffff;
+
+    /* Add the time difference and the remainder */
+    a0 += 32768 + (remainder & 0xffff);
+    a1 += 54590 + (remainder >> 16   ) + (a0 >> 16);
+    a2 += 27111902                     + (a1 >> 16);
+    a0 &= 0xffff;
+    a1 &= 0xffff;
+
+    /* Set filetime */
+    filetime->dwLowDateTime  = (a1 << 16) + a0;
+    filetime->dwHighDateTime = a2;
+#endif
+}
+#endif
+
+
+/***********************************************************************
+ *           DOSFS_FileTimeToUnixTime
+ *
+ * Convert a FILETIME format to Unix time.
+ * If not NULL, 'remainder' contains the fractional part of the filetime,
+ * in the range of [0..9999999] (even if time_t is negative).
+ */
+static time_t DOSFS_FileTimeToUnixTime( const FILETIME *filetime, DWORD *remainder )
+{
+    /* Read the comment in the function DOSFS_UnixTimeToFileTime. */
+#if USE_LONG_LONG
+
+    long long int t = filetime->dwHighDateTime;
+    t <<= 32;
+    t += (UINT)filetime->dwLowDateTime;
+    t -= 116444736000000000LL;
+    if (t < 0)
+    {
+	if (remainder) *remainder = 9999999 - (-t - 1) % 10000000;
+	return -1 - ((-t - 1) / 10000000);
+    }
+    else
+    {
+	if (remainder) *remainder = t % 10000000;
+	return t / 10000000;
+    }
+
+#else  /* ISO version */
+
+    UINT a0;			/* 16 bit, low    bits */
+    UINT a1;			/* 16 bit, medium bits */
+    UINT a2;			/* 32 bit, high   bits */
+    UINT r;			/* remainder of division */
+    unsigned int carry;		/* carry bit for subtraction */
+    int negative;		/* whether a represents a negative value */
+
+    /* Copy the time values to a2/a1/a0 */
+    a2 =  (UINT)filetime->dwHighDateTime;
+    a1 = ((UINT)filetime->dwLowDateTime ) >> 16;
+    a0 = ((UINT)filetime->dwLowDateTime ) & 0xffff;
+
+    /* Subtract the time difference */
+    if (a0 >= 32768           ) a0 -=             32768        , carry = 0;
+    else                        a0 += (1 << 16) - 32768        , carry = 1;
+
+    if (a1 >= 54590    + carry) a1 -=             54590 + carry, carry = 0;
+    else                        a1 += (1 << 16) - 54590 - carry, carry = 1;
+
+    a2 -= 27111902 + carry;
+
+    /* If a is negative, replace a by (-1-a) */
+    negative = (a2 >= ((UINT)1) << 31);
+    if (negative)
+    {
+	/* Set a to -a - 1 (a is a2/a1/a0) */
+	a0 = 0xffff - a0;
+	a1 = 0xffff - a1;
+	a2 = ~a2;
+    }
+
+    /* Divide a by 10000000 (a = a2/a1/a0), put the rest into r.
+       Split the divisor into 10000 * 1000 which are both less than 0xffff. */
+    a1 += (a2 % 10000) << 16;
+    a2 /=       10000;
+    a0 += (a1 % 10000) << 16;
+    a1 /=       10000;
+    r   =  a0 % 10000;
+    a0 /=       10000;
+
+    a1 += (a2 % 1000) << 16;
+    a2 /=       1000;
+    a0 += (a1 % 1000) << 16;
+    a1 /=       1000;
+    r  += (a0 % 1000) * 10000;
+    a0 /=       1000;
+
+    /* If a was negative, replace a by (-1-a) and r by (9999999 - r) */
+    if (negative)
+    {
+	/* Set a to -a - 1 (a is a2/a1/a0) */
+	a0 = 0xffff - a0;
+	a1 = 0xffff - a1;
+	a2 = ~a2;
+
+        r  = 9999999 - r;
+    }
+
+    if (remainder) *remainder = r;
+
+    /* Do not replace this by << 32, it gives a compiler warning and it does
+       not work. */
+    return ((((time_t)a2) << 16) << 16) + (a1 << 16) + a0;
+#endif
+}
+
