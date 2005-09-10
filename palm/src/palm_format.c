@@ -65,13 +65,13 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	//Description
 	if (entry->appointment.description) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", entry->appointment.description);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.description);
 	}
 	
 	//Note
 	if (entry->appointment.note) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", entry->appointment.note);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
 	}
 	
 	//Start and end time
@@ -79,25 +79,25 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		ttm = mktime(&(entry->appointment.begin));
 		tmp = g_strdup_printf("%i", (int)ttm);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 		
 		time_t ttm = mktime(&(entry->appointment.end));
 		tmp = g_strdup_printf("%i", (int)ttm);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	} else {
 		ttm = mktime(&(entry->appointment.begin));
 		tmp = g_strdup_printf("%i", (int)ttm);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 		
 		time_t ttm = mktime(&(entry->appointment.end));
 		tmp = g_strdup_printf("%i", (int)ttm);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 		
@@ -543,20 +543,20 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	//Description
 	if (entry->todo.description) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", entry->todo.description);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
 	}
 	
 	//Note
 	if (entry->todo.note) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", entry->todo.note);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
 	}
 	
 	//priority
 	if (entry->todo.priority) {
 		tmp = g_strdup_printf("%i", entry->todo.priority + 2);
 		current = xmlNewChild(root, NULL, (xmlChar*)"Priority", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -565,7 +565,7 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 		time_t ttm = mktime(&(entry->todo.due));
 		tmp = g_strdup_printf("%i", (int)ttm);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateDue", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -574,7 +574,7 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 		time_t now = time(NULL);
 		tmp = g_strdup_printf("%i", (int)now);
 		current = xmlNewChild(root, NULL, (xmlChar*)"Completed", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -772,7 +772,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 			} else
 				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
 		
-			xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+			xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 			g_free(tmp);
 			
 			switch (entry->address.phoneLabel[i - 3]) {
@@ -847,14 +847,14 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	tmp = return_next_entry(entry, 13);
 	if (tmp) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Title", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 		
 	//Note
 	tmp = return_next_entry(entry, 18);
 	if (tmp) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Note", tmp);
+		current = xmlNewChild(root, NULL, (xmlChar*)"Note", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 

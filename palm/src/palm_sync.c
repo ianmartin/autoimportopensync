@@ -188,7 +188,7 @@ error:
 	return FALSE;
 }
 
-static osync_bool _psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, long *id, OSyncError **error)
+static osync_bool _psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned long *id, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p %p)", __func__, db, entry, id, error);
 	
@@ -392,7 +392,7 @@ static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned
 		goto error_free_doc;
 	}
 
-	if (xmlStrcmp(cur->name, "config")) {
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
 		goto error_free_doc;
 	}
@@ -400,7 +400,7 @@ static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned
 	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		char *str = xmlNodeGetContent(cur);
+		char *str = (char *)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"sockaddr")) {
 				g_free(env->sockaddr);
@@ -455,7 +455,7 @@ static void *psyncInitialize(OSyncMember *member, OSyncError **error)
 		goto error;
 		
 	char *configdata = NULL;
-	unsigned int configsize = 0;
+	int configsize = 0;
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
 		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
 		goto error_free_env;
@@ -654,7 +654,7 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 	PSyncEntry *entry = NULL;
 	PSyncTodoEntry *todo = NULL;
 	OSyncError *error = NULL;
-	long id = 0;
+	unsigned long id = 0;
 
 	//open the DB
 	if (!(db = _psyncDBOpen(env, "ToDoDB", &error)))
@@ -702,7 +702,6 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
 	
-			
 			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
 			
@@ -875,7 +874,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 	PSyncEntry *entry = NULL;
 	PSyncContactEntry *contact = NULL;
 	OSyncError *error = NULL;
-	long id = 0;
+	unsigned long id = 0;
 
 	//open the DB
 	if (!(db = _psyncDBOpen(env, "AddressDB", &error)))
@@ -1077,7 +1076,7 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 	PSyncEntry *entry = NULL;
 	PSyncEventEntry *event = NULL;
 	OSyncError *error = NULL;
-	long id = 0;
+	unsigned long id = 0;
 
 	//open the DB
 	if (!(db = _psyncDBOpen(env, "DatebookDB", &error)))
