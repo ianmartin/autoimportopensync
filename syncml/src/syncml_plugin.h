@@ -27,7 +27,7 @@
 
 #include <libsyncml/syncml.h>
 #include <libsyncml/http_server.h>
-#include <libsyncml/http_client.h>
+#include <libsyncml/obex_client.h>
 
 #include <libsyncml/sml_auth.h>
 #include <libsyncml/sml_ds_server.h>
@@ -45,9 +45,16 @@ typedef struct SmlPluginEnv {
 	char *username;
 	char *password;
 	SmlBool useStringtable;
+	SmlBool onlyReplace;
 	
 	SmlDsServer *contactserver;
 	char *contact_url;
+	
+	SmlDsServer *calendarserver;
+	char *calendar_url;
+	
+	SmlDsServer *taskserver;
+	char *task_url;
 } SmlPluginEnv;
 
 #include <stdlib.h>

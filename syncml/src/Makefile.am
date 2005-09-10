@@ -11,7 +11,7 @@ EXTRA_DIST = \
 	syncml-http-server \
 	syncml_plugin.h
 
-config_DATA = syncml-http-server
+config_DATA = syncml-http-server syncml-obex-client
 
 opensyncheader_HEADER = syncml_plugin.h
 
