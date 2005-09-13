@@ -29,3 +29,4 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
   format on some systems.
 
 * Use Armin's suggestions about what was wrong. Blush.
+* Add basic function to add a file to the CE device, probably not completely foolproof yet.

@@ -223,46 +223,68 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
  */
 extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-	uint32_t id=0;
+	synce_plugin_environment	*env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	HANDLE				h;
+	fileFormat			*ff;
+	WCHAR				*wfn;
+	DWORD				wr;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 		
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
+#if 0
+			uint32_t id=0;
 			id=strtol(osync_change_get_uid(change),NULL,16);
 			osync_debug("SYNCE-SYNC", 4, "deleting contact id: %08x",id);
 			fprintf(stderr, "%s: DELETED %s\n", __func__, osync_change_get_uid(change));
 			osync_debug("SYNCE-SYNC", 4, "done");
+#endif
 			break;
 		case CHANGE_ADDED:
-		{
-			char *object=NULL;
-#if 0
-			size_t data_size;
-			uint8_t *data;
-			uint32_t dummy_id,id;
-#endif
-			
-			object=osync_change_get_data(change);
-			id=strtol(osync_change_get_uid(change),NULL,16);			
-
-			osync_debug("SYNCE-SYNC", 4, "adding contact id %08x",id);
 			fprintf(stderr, "%s: ADDED %s\n", __func__, osync_change_get_uid(change));
+			ff = (fileFormat *)osync_change_get_data(change);
+			/*
+			 * We need to add a new file.
+			 * Check whether it already exists by using CREATE_NEW.
+			 * Fail if it already existed.
+			 */
+			wfn = wstr_from_current(osync_change_get_uid(change));
+			h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
+					CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+			if (h == 0) {
+				DWORD	e = CeGetLastError();
+				char	*s = synce_strerror(e);
+				osync_context_report_error(ctx, 1, "CeCreateFile : %s", s);
+				wstr_free_string(wfn);
+				return FALSE;
+			}
 
-			osync_change_set_hash(change, FileHash(NULL));
+			/*
+			 * Succeeded in creating the file -> now write the contents.
+			 */
+			if (CeWriteFile(h, ff->data, ff->size, &wr, NULL) == 0) {
+				DWORD	e = CeGetLastError();
+				char	*s = synce_strerror(e);
+				osync_context_report_error(ctx, 1, "CeWriteFile : %s", s);
+				wstr_free_string(wfn);
+				return FALSE;
+			}
+			fprintf(stderr, "Wrote %d bytes\n", wr);
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			/*
+			 * All done
+			 */
+			wstr_free_string(wfn);
+			CeCloseHandle(h);
+
 			break;
-		}
 		case CHANGE_MODIFIED:
-		{
-			char *object=NULL;
 #if 0
+			char *object=NULL;
 			size_t data_size;
 			uint8_t *data;
 			uint32_t dummy_id,id;
-#endif
 
 			object=osync_change_get_data(change);
 			id=strtol(osync_change_get_uid(change),NULL,16);			
@@ -273,8 +295,8 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			osync_change_set_hash(change, FileHash(NULL));
 
 			osync_debug("SYNCE-SYNC", 4, "done");
+#endif
 			break;
-		}
 		default:
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
 			fprintf(stderr, "%s: ?? %s\n", __func__, osync_change_get_uid(change));
@@ -361,6 +383,11 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 	 * name) to ourselves.
 	 * Then, in the get_data() call, read that data and replace it with the file content.
 	 */
+	if (ff->data == NULL) {
+		osync_context_report_error(ctx, 4, "%s: NULL values", __func__);
+		return;
+	}
+	
 	wfn = wstr_from_current(ff->data);
 
 	/* Read the file through SynCE */
