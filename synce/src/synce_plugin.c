@@ -131,15 +131,16 @@ static void connect(OSyncContext *ctx)
 	 * 	env->config_calendar = FALSE;
 	 */
 	if (env->config_file) {
+		/* Load the hash table */
 		OSyncError *error = NULL;
+
 		if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
 			osync_context_report_osyncerror(ctx, &error);
 			return;
 		}
 	}
-	
+
 	osync_context_report_success(ctx);
-	
 }
 
 static bool callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count, uint32_t* ids, void* cookie)
@@ -604,9 +605,8 @@ static void get_changeinfo(OSyncContext *ctx)
 	if (env->config_file) {
 		osync_debug("SYNCE-SYNC", 4, "checking files to synchronize");
 
-		OSyncError *error = NULL;
-		if (!synceFileGetChangeinfo(ctx, &error)) {
-			osync_context_report_osyncerror(ctx, &error);
+		if (! synceFileGetChangeInfo(ctx)) {
+			osync_context_report_error(ctx, 1, "Error while checking files");
 			return;
 		}
 		
@@ -919,15 +919,15 @@ static void sync_done(OSyncContext *ctx)
 }
 
 /*
-Disconnect function: Called at the end of the process, should close the RRA connection.
-*/
+ * Disconnect function: Called at the end of the process, should close the RRA connection.
+ */
 static void disconnect(OSyncContext *ctx)
 {
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 	
 	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
 	
-	if (env->syncmgr == NULL) {
+	if (env->syncmgr==NULL) {
 		osync_context_report_error(ctx, 1, "ERRROR: no connection established");
 		return;
 	}
@@ -944,15 +944,17 @@ static void disconnect(OSyncContext *ctx)
 }
 
 /*
-Finalize function: Called to unalloc all the structs and libraries used.
-*/
+ * Finalize function: Called to unalloc all the structs and libraries used.
+ */
 static void finalize(void *data)
 {
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 	
 	synce_plugin_environment *env = (synce_plugin_environment *)data;
 
-	osync_hashtable_free(env->hashtable);
+	if (env->config_file) {
+		osync_hashtable_free(env->hashtable);
+	}
 
 	rra_syncmgr_destroy(env->syncmgr);
         env->syncmgr = NULL;
@@ -962,15 +964,17 @@ static void finalize(void *data)
 	free(env);
 }
 
-void get_info(OSyncEnv *env)
+void get_info(OSyncPluginInfo *env)
 {
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	OSyncPluginInfo *info = osync_plugin_new_info((void*)env);
 
 	info->name = "synce-plugin";
 	info->longname = "Plugin to synchronize Windows CE devices";
-	info->description = "by mirkuz";
+	info->description = "by MirkuZ and Danny Backx";
 	
 	info->version = 1;
+	
+	info->is_threadsafe = FALSE;
 	
 	info->functions.initialize = initialize;
 	info->functions.connect = connect;
@@ -979,6 +983,8 @@ void get_info(OSyncEnv *env)
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
 	info->functions.get_data = synceFileGetData;
+
+	info->timeouts.connect_timeout = 5;
 	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "vcard30", NULL);
@@ -989,10 +995,15 @@ void get_info(OSyncEnv *env)
 	osync_plugin_set_commit_objformat(info, "event", "vevent10", commit_cal_change);
 
 	osync_plugin_accept_objtype(info, "todo");
-	osync_plugin_accept_objformat(info, "todo", "vtodo10", NULL);
-	osync_plugin_set_commit_objformat(info, "todo", "vtodo10", commit_todo_change);
+    	osync_plugin_accept_objformat(info, "todo", "vtodo10", NULL);
+    	osync_plugin_set_commit_objformat(info, "todo", "vtodo10", commit_todo_change);
 	
 	osync_plugin_accept_objtype(info, "data");
 	osync_plugin_accept_objformat(info, "data", "file", NULL);
 	osync_plugin_set_commit_objformat(info, "data", "file", synceFileCommit);
+#if 0
+	/* Don't know whether we need these. */
+	osync_plugin_set_access_objformat(info, "data", "file", file_access);
+	osync_plugin_set_read_objformat(info, "data", "file", file_read);
+#endif
 }

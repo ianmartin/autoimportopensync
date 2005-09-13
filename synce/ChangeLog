@@ -27,3 +27,5 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
 * Clean up the code to use the new fileFormat structure in <opensync/file.h>.
 * Don't use %c format in strftime, it causes warnings about two digit year
   format on some systems.
+
+* Use Armin's suggestions about what was wrong. Blush.
