@@ -18,8 +18,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
-#define	NEW_TIME
-
 #include <rapi.h>
 #include <synce_log.h>
 
@@ -69,25 +67,9 @@ static time_t CeTimeToUnixTime(FILETIME t)
  */
 static char *FileHash(fileFormat *p)
 {
-#if 1
 	if (p)
 		return g_strdup_printf("%ld-%d", p->last_mod, p->size);
 	return NULL;
-#else
-	/*
-	 * This is a slow method, but it'll produce human-readable results.
-	 * Not very useful.
-	 */
-	char		ts[50] = {0};
-	struct tm	*time_struct = NULL;
-
-	if (!p)
-		return "";
-
-	time_struct = localtime(&p->last_mod);
-	strftime(ts, sizeof(ts), "%F", time_struct);
-	return g_strdup_printf("%ld %s", (long int)p->size, ts);
-#endif
 }
 
 /*
@@ -354,14 +336,6 @@ extern osync_bool synceFileGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 	return TRUE;
 }
 
-#if 0
-extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count, uint32_t* ids, void* cookie)
-{
-	fprintf(stderr, "file_callback\n");
-	return TRUE;
-}
-#endif
-
 /*
  * FIX ME
  * This function is known to sometimes fail, it sometimes gets called with all zeroes in the
@@ -425,31 +399,6 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 	osync_context_report_success(ctx);
 	osync_debug("SynCE-File", 4, "end : %s", __func__);
 }
-
-#if 0
-extern void file_read(OSyncContext *ctx, OSyncChange *change)
-{
-	fileFormat	*mip;
-
-	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
-	mip = (fileFormat *)osync_context_get_plugin_data(ctx);
-
-	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
-}
-
-extern osync_bool file_access(OSyncContext *ctx, OSyncChange *change)
-{
-	fileFormat	*ff;
-
-	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
-	ff = (fileFormat *)osync_context_get_plugin_data(ctx);
-
-	osync_debug("SynCE File", 4, "file_access(%s)\n", ff->data);
-	osync_context_report_success(ctx);
-	osync_debug("SynCE-SYNC", 4, "end: %s", __func__);
-	return TRUE;
-}
-#endif
 
 /*
  * This function is called by the configuration GUI,
