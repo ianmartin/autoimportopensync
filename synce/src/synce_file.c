@@ -227,35 +227,59 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 	HANDLE				h;
 	fileFormat			*ff;
 	WCHAR				*wfn;
-	DWORD				wr;
+	DWORD				wr, e, opt;
+	char				*s, *fn, *str;
+	OSyncChangeType			ct;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 		
-	switch (osync_change_get_changetype(change)) {
+	ff = (fileFormat *)osync_change_get_data(change);
+	fn = (char *)osync_change_get_uid(change);
+	wfn = wstr_from_current(fn);
+	ct = osync_change_get_changetype(change);
+
+	switch (ct) {
 		case CHANGE_DELETED:
-#if 0
-			uint32_t id=0;
-			id=strtol(osync_change_get_uid(change),NULL,16);
-			osync_debug("SYNCE-SYNC", 4, "deleting contact id: %08x",id);
 			fprintf(stderr, "%s: DELETED %s\n", __func__, osync_change_get_uid(change));
-			osync_debug("SYNCE-SYNC", 4, "done");
-#endif
+			if (CeDeleteFile(wfn) == 0) {
+				e = CeGetLastError();
+				s = synce_strerror(e);
+				osync_context_report_error(ctx, 1,
+						"CeDeleteFile(%s) : %s", fn, s);
+				wstr_free_string(wfn);
+				return FALSE;
+			}
+			wstr_free_string(wfn);
 			break;
 		case CHANGE_ADDED:
-			fprintf(stderr, "%s: ADDED %s\n", __func__, osync_change_get_uid(change));
-			ff = (fileFormat *)osync_change_get_data(change);
-			/*
-			 * We need to add a new file.
-			 * Check whether it already exists by using CREATE_NEW.
-			 * Fail if it already existed.
-			 */
-			wfn = wstr_from_current(osync_change_get_uid(change));
+		case CHANGE_MODIFIED:
+			if (ct == CHANGE_ADDED) {
+				str = "ADDED";
+				/*
+				 * We need to add a new file.
+				 * Check whether it already exists by using CREATE_NEW.
+				 * Fail if it already existed.
+				 */
+				opt = CREATE_NEW;
+			} else {
+				str = "MODIFIED";
+				/*
+				 * Modify an existing file.
+				 * The CeCreateFile() call fails by using this option if the
+				 * file doesn't exist. The call will truncate the existing file
+				 * so it becomes empty.
+				 */
+				opt = TRUNCATE_EXISTING;
+			}
+			fprintf(stderr, "%s: %s %s\n", __func__, str, osync_change_get_uid(change));
+
 			h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
-					CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+					opt, FILE_ATTRIBUTE_NORMAL, 0);
 			if (h == 0) {
-				DWORD	e = CeGetLastError();
-				char	*s = synce_strerror(e);
-				osync_context_report_error(ctx, 1, "CeCreateFile : %s", s);
+				e = CeGetLastError();
+				s = synce_strerror(e);
+				osync_context_report_error(ctx, 1,
+						"CeCreateFile(%s) : %s", fn, s);
 				wstr_free_string(wfn);
 				return FALSE;
 			}
@@ -264,42 +288,24 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			 * Succeeded in creating the file -> now write the contents.
 			 */
 			if (CeWriteFile(h, ff->data, ff->size, &wr, NULL) == 0) {
-				DWORD	e = CeGetLastError();
-				char	*s = synce_strerror(e);
-				osync_context_report_error(ctx, 1, "CeWriteFile : %s", s);
+				e = CeGetLastError();
+				s = synce_strerror(e);
+				osync_context_report_error(ctx, 1,
+						"CeWriteFile(%s) : %s", fn, s);
 				wstr_free_string(wfn);
 				return FALSE;
 			}
-			fprintf(stderr, "Wrote %d bytes\n", wr);
 
 			/*
 			 * All done
 			 */
 			wstr_free_string(wfn);
 			CeCloseHandle(h);
-
-			break;
-		case CHANGE_MODIFIED:
-#if 0
-			char *object=NULL;
-			size_t data_size;
-			uint8_t *data;
-			uint32_t dummy_id,id;
-
-			object=osync_change_get_data(change);
-			id=strtol(osync_change_get_uid(change),NULL,16);			
-
-			osync_debug("SYNCE-SYNC", 4, "updating contact id %08x",id);
-			fprintf(stderr, "%s: MODIFIED %s\n", __func__, osync_change_get_uid(change));
-
-			osync_change_set_hash(change, FileHash(NULL));
-
-			osync_debug("SYNCE-SYNC", 4, "done");
-#endif
 			break;
 		default:
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
 			fprintf(stderr, "%s: ?? %s\n", __func__, osync_change_get_uid(change));
+			wstr_free_string(wfn);
 	}
 
 	/* Answer the call */
@@ -356,6 +362,11 @@ extern  bool file_callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t 
 }
 #endif
 
+/*
+ * FIX ME
+ * This function is known to sometimes fail, it sometimes gets called with all zeroes in the
+ * structure pointed to by ff.
+ */
 extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 {
 	synce_plugin_environment	*env;
@@ -737,4 +748,3 @@ static time_t DOSFS_FileTimeToUnixTime( const FILETIME *filetime, DWORD *remaind
     return ((((time_t)a2) << 16) << 16) + (a1 << 16) + a0;
 #endif
 }
-
