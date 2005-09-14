@@ -35,3 +35,48 @@ TODO for the file sync :
 - remove the initial part of the path (the directory in which the whole sync
   is rooted) to remove confusion caused by that
 - handle creation, deletion of directories
+
+
+
+
+
+
+This is one example of the CeReadFile failure :
+dell: {47} msynctool --sync f
+Synchronizing group "f" 
+Member 1 of type file-sync just connected
+Member 2 of type synce-plugin just connected
+All clients connected or error
+Member 1 of type file-sync just sent all changes
+FilesReportFileChange(\My Documents\foto\txt)
+Received a entry \My Documents\foto\txt without data from member 2. Changetype ADDED
+FilesReportFileChange(\My Documents\foto\txt\Voetbal 14.psw)
+FilesReportFileChange(\My Documents\foto\passwd.txt)
+Received a entry \My Documents\foto\txt\Voetbal 14.psw without data from member 2. Changetype ADDED
+FilesReportFileChange(\My Documents\foto\kristof.gif)
+Received a entry \My Documents\foto\passwd.txt without data from member 2.  Changetype MODIFIED
+FilesReportFileChange(\My Documents\foto\inge.gif)
+FilesReportFileChange(\My Documents\foto\tux068d.gif)
+Received a entry \My Documents\foto\Voetbal 14.psw with data of size 0 from member 2. Changetype DELETED
+Member 2 of type synce-plugin just sent all changes
+All clients sent changes or error
+Error reading entry \My Documents\foto\txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+

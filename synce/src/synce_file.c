@@ -94,10 +94,6 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 
 	fprintf(stderr, "FilesReportFileChange(%s)\n", path);
 
-	/* Start moved up piece of code */
-	/* Assemble a structure with data about this file */
-	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-
 	ff = osync_try_malloc0(sizeof(fileFormat), error);
 	if (!ff) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -106,22 +102,30 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 
 	ff->userid = 0;
 	ff->groupid = 0;
+	ff->mode = 0777;			/* Fake */
+
+	if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+		ff->mode |= S_IFDIR;	/* Convert Windows knowledge into Unix */
+	} else {
+	}
 
 	/* Select the latest time */
 	t1 = CeTimeToUnixTime(entry->ftLastWriteTime);
 	t2 = CeTimeToUnixTime(entry->ftCreationTime);
 	ff->last_mod = (t1 < t2) ? t2 : t1;
 
+	/* Assemble a structure with data about this file */
+	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	if (h == 0) {
+		/* ?? FIX ME */
+	}
 	ff->size = CeGetFileSize(h, NULL);
-	ff->mode = 0777;			/* Fake */
-
 	CeCloseHandle(h);
 
 	/* Set the hash */
 	hash = FileHash(ff);
 
 	ff->data = strdup(path);
-	/* End moved up piece of code */
 
 	if (ctx) {
 		env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
@@ -175,7 +179,10 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 		for (i=0; i<file_count; i++) {
 			CE_FIND_DATA	*entry = &find_data[i];
 
-			/* Report this file to the OpenSync */
+			/*
+			 * Report this file to the OpenSync.
+			 * Note that we're reporting regular files as well as directories.
+			 */
 			if (! FilesReportFileChange(ctx, dir, entry, error)) {
 				/* Failure */
 				return FALSE;
@@ -186,7 +193,10 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 			if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 				snprintf(path, MAX_PATH, "%s\\%s",
 						dir, wstr_to_current(entry->cFileName));
-				(void) /* FIX ME */ FilesFindAllFromDirectory(ctx, path, error);
+				if (! FilesFindAllFromDirectory(ctx, path, error)) {
+					/* Failure, pass on the word */
+					return FALSE;
+				}
 			}
 		}
 	}
@@ -223,13 +233,17 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 	switch (ct) {
 		case CHANGE_DELETED:
 			fprintf(stderr, "%s: DELETED %s\n", __func__, osync_change_get_uid(change));
-			if (CeDeleteFile(wfn) == 0) {
-				e = CeGetLastError();
-				s = synce_strerror(e);
-				osync_context_report_error(ctx, 1,
-						"CeDeleteFile(%s) : %s", fn, s);
-				wstr_free_string(wfn);
-				return FALSE;
+			if (S_ISREG(ff->mode)) {	/* Regular file */
+				if (CeDeleteFile(wfn) == 0) {
+					e = CeGetLastError();
+					s = synce_strerror(e);
+					osync_context_report_error(ctx, 1,
+							"CeDeleteFile(%s) : %s", fn, s);
+					wstr_free_string(wfn);
+					return FALSE;
+				}
+			} else if (S_ISDIR(ff->mode)) {	/* Directory */
+				/* Removing directories... should we do this ? */
 			}
 			wstr_free_string(wfn);
 			break;
@@ -255,27 +269,31 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			}
 			fprintf(stderr, "%s: %s %s\n", __func__, str, osync_change_get_uid(change));
 
-			h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
-					opt, FILE_ATTRIBUTE_NORMAL, 0);
-			if (h == 0) {
-				e = CeGetLastError();
-				s = synce_strerror(e);
-				osync_context_report_error(ctx, 1,
-						"CeCreateFile(%s) : %s", fn, s);
-				wstr_free_string(wfn);
-				return FALSE;
-			}
+			if (S_ISREG(ff->mode)) {	/* Directory */
+				/* FIX ME */
+			} else if (S_ISREG(ff->mode)) {	/* Regular file */
+				h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
+						opt, FILE_ATTRIBUTE_NORMAL, 0);
+				if (h == 0) {
+					e = CeGetLastError();
+					s = synce_strerror(e);
+					osync_context_report_error(ctx, 1,
+							"CeCreateFile(%s) : %s", fn, s);
+					wstr_free_string(wfn);
+					return FALSE;
+				}
 
-			/*
-			 * Succeeded in creating the file -> now write the contents.
-			 */
-			if (CeWriteFile(h, ff->data, ff->size, &wr, NULL) == 0) {
-				e = CeGetLastError();
-				s = synce_strerror(e);
-				osync_context_report_error(ctx, 1,
-						"CeWriteFile(%s) : %s", fn, s);
-				wstr_free_string(wfn);
-				return FALSE;
+				/*
+				 * Succeeded in creating the file -> now write the contents.
+				 */
+				if (CeWriteFile(h, ff->data, ff->size, &wr, NULL) == 0) {
+					e = CeGetLastError();
+					s = synce_strerror(e);
+					osync_context_report_error(ctx, 1,
+							"CeWriteFile(%s) : %s", fn, s);
+					wstr_free_string(wfn);
+					return FALSE;
+				}
 			}
 
 			/*
