@@ -194,7 +194,14 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
     return true;
 }
 
-bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
+/** basic access method
+ *
+ * This method is used by both access() and commit_change() method,
+ * so it shouldn't call osync_context_report_success(). On success,
+ * it should just return true and let the caller report success() to
+ * OpenSync
+ */
+bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
     OSyncChangeType type = osync_change_get_changetype(chg);
@@ -276,7 +283,6 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 		}*/
     }
 
-    osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
     return true;
 }
@@ -284,11 +290,24 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 bool KNotesDataSource::commit_change(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
-    if (!access(ctx, chg)) {
+    if (!__access(ctx, chg)) {
         osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
 		return false;
     }
     osync_hashtable_update_hash(hashtable, chg);
+	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
     return true;
+}
+
+bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
+	if (!__access(ctx, chg)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
+		return false;
+    }
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return true;
 }
