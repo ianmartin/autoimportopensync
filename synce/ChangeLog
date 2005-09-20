@@ -34,7 +34,7 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
 TODO for the file sync :
 - remove the initial part of the path (the directory in which the whole sync
   is rooted) to remove confusion caused by that
-- handle creation, deletion of directories
+- prepare for : handling creation, deletion of directories (doesn't work yet !!)
 
 
 

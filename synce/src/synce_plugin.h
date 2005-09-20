@@ -35,7 +35,7 @@ typedef struct ids_list {
 	RRA_SyncMgrType *type;
 } ids_list;
 
-typedef struct synce_plugin_environment {
+typedef struct SyncePluginPtr {
 	OSyncMember	*member;
 	OSyncHashTable	*hashtable;	/* Need a hash for the file sync part. */
 
@@ -50,8 +50,8 @@ typedef struct synce_plugin_environment {
 	/* Configuration */
 	osync_bool	config_contacts, config_todos, config_calendar;
 	char		*config_file;
-} synce_plugin_environment;
+} SyncePluginPtr;
 
-extern osync_bool synce_parse_settings(synce_plugin_environment *env, char *data, int size, OSyncError **error);
+extern osync_bool synce_parse_settings(SyncePluginPtr *env, char *data, int size, OSyncError **error);
 
 #endif

@@ -28,7 +28,7 @@
 #include "synce_plugin.h"
 
 /*Load the state from a xml file and return it in the conn struct*/
-osync_bool synce_parse_settings(synce_plugin_environment *env, char *data, int size, OSyncError **error)
+osync_bool synce_parse_settings(SyncePluginPtr *env, char *data, int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, env, data, size);
 	xmlDocPtr doc;

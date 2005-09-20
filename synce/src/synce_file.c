@@ -80,7 +80,7 @@ static char *FileHash(fileFormat *p)
 static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 		CE_FIND_DATA *entry, OSyncError **error)
 {
-	synce_plugin_environment	*env;
+	SyncePluginPtr	*env;
 	OSyncChange			*change;
 	char				path[MAX_PATH], *hash, *lpath;
 	WCHAR				*wfn;
@@ -118,6 +118,8 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	if (h == 0) {
 		/* ?? FIX ME */
+		free((void *)ff);
+		return FALSE;
 	}
 	ff->size = CeGetFileSize(h, NULL);
 	CeCloseHandle(h);
@@ -128,7 +130,7 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 	ff->data = strdup(path);
 
 	if (ctx) {
-		env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+		env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 		change = osync_change_new();
 
 		osync_change_set_member(change, env->member);
@@ -179,6 +181,8 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 		for (i=0; i<file_count; i++) {
 			CE_FIND_DATA	*entry = &find_data[i];
 
+			/* Do NOT report directories */
+			if ((entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
 			/*
 			 * Report this file to the OpenSync.
 			 * Note that we're reporting regular files as well as directories.
@@ -186,6 +190,7 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 			if (! FilesReportFileChange(ctx, dir, entry, error)) {
 				/* Failure */
 				return FALSE;
+			}
 			}
 
 
@@ -215,13 +220,13 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
  */
 extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 {
-	synce_plugin_environment	*env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
-	HANDLE				h;
-	fileFormat			*ff;
-	WCHAR				*wfn;
-	DWORD				wr, e, opt;
-	char				*s, *fn, *str;
-	OSyncChangeType			ct;
+	SyncePluginPtr	*env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
+	HANDLE		h;
+	fileFormat	*ff;
+	WCHAR		*wfn;
+	DWORD		wr, e, opt;
+	char		*s, *fn, *str;
+	OSyncChangeType	ct;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 		
@@ -269,8 +274,16 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			}
 			fprintf(stderr, "%s: %s %s\n", __func__, str, osync_change_get_uid(change));
 
-			if (S_ISREG(ff->mode)) {	/* Directory */
+			if (S_ISDIR(ff->mode)) {	/* Directory */
 				/* FIX ME */
+				if (CeCreateDirectory(wfn, NULL) == 0) {
+					e = CeGetLastError();
+					s = synce_strerror(e);
+					osync_context_report_error(ctx, 1,
+							"CeCreateDirectory(%s) : %s", fn, s);
+					wstr_free_string(wfn);
+					return FALSE;
+				}
 			} else if (S_ISREG(ff->mode)) {	/* Regular file */
 				h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
 						opt, FILE_ATTRIBUTE_NORMAL, 0);
@@ -294,13 +307,13 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					wstr_free_string(wfn);
 					return FALSE;
 				}
+				CeCloseHandle(h);
 			}
 
 			/*
 			 * All done
 			 */
 			wstr_free_string(wfn);
-			CeCloseHandle(h);
 			break;
 		default:
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
@@ -320,7 +333,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
  */
 extern osync_bool synceFileGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 {
-	synce_plugin_environment	*env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr	*env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 
@@ -361,7 +374,7 @@ extern osync_bool synceFileGetChangeInfo(OSyncContext *ctx, OSyncError **error)
  */
 extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 {
-	synce_plugin_environment	*env;
+	SyncePluginPtr	*env;
 	fileFormat			*ff;
 	HANDLE				h;
 	size_t				rsz;
@@ -369,7 +382,7 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 	int				r;
 
 	osync_debug("SynCE-File", 4, "start : %s", __func__);
-	env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	ff = (fileFormat *)osync_change_get_data(change);
 
 #if 0
@@ -379,6 +392,14 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 		return;
 	}
 #endif
+	/*
+	 * Directory ?
+	 */
+	if (S_ISDIR(ff->mode)) {
+		fprintf(stderr, "YOW -> directory %s\n", ff->data);
+		osync_context_report_success(ctx);
+		return;
+	}
 	/*
 	 * There appears to be a trick being used here.
 	 *
@@ -390,7 +411,7 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 		osync_context_report_error(ctx, 4, "%s: NULL values", __func__);
 		return;
 	}
-	
+
 	wfn = wstr_from_current(ff->data);
 
 	/* Read the file through SynCE */
@@ -427,7 +448,7 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
  * it using dlsym(); also don't change its name or signature without making the
  * corresponding change in the configuration program.
  */
-GList * synce_list_directories(synce_plugin_environment *env, const char *basedir, OSyncError **error)
+GList * synce_list_directories(SyncePluginPtr *env, const char *basedir, OSyncError **error)
 {
 	GList	*ret = NULL;
 	WCHAR	path[MAX_PATH];

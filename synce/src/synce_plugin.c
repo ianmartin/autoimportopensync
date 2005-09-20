@@ -48,7 +48,7 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 	
 	//You need to specify the <some name>_environment somewhere with
 	//all the members you need
-	synce_plugin_environment *env = g_malloc0(sizeof(synce_plugin_environment));
+	SyncePluginPtr *env = g_malloc0(sizeof(SyncePluginPtr));
 
 	/* File sync needs a hash table */
 	env->hashtable = osync_hashtable_new();
@@ -88,7 +88,7 @@ static void connect(OSyncContext *ctx)
 	
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 	
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	 
 	//1 - creating matchmaker
 	matchmaker = rra_matchmaker_new();
@@ -184,7 +184,7 @@ m_report_contact_changes: get datas for the ids changed, and report them to open
 */
 bool m_report_contact_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,uint32_t count, OSyncChangeType change_type)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 	
@@ -227,7 +227,7 @@ m_report_todo_changes: get datas for the ids changed, and report them to opensyn
 */
 bool m_report_todo_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,uint32_t count, OSyncChangeType change_type)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 	
@@ -274,7 +274,7 @@ m_report_cal_changes: get datas for the ids changed, and report them to opensync
 */
 bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,uint32_t count, OSyncChangeType change_type)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 	
@@ -322,7 +322,7 @@ bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,
 */
 bool m_report_contact(OSyncContext *ctx)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	bool got_event = false;
 	char *strType="Contact";
 	RRA_SyncMgrType *type = NULL;		
@@ -390,7 +390,7 @@ bool m_report_contact(OSyncContext *ctx)
 */
 bool m_report_todo(OSyncContext *ctx)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	bool got_event = false;
 	char *strType="Task";
 	RRA_SyncMgrType *type = NULL;		
@@ -460,7 +460,7 @@ bool m_report_todo(OSyncContext *ctx)
 */
 bool m_report_cal(OSyncContext *ctx)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	bool got_event = false;
 	char *strType="appointment";
 	RRA_SyncMgrType *type = NULL;		
@@ -530,7 +530,7 @@ bool m_report_cal(OSyncContext *ctx)
 */
 static void get_changeinfo(OSyncContext *ctx)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 	osync_debug("SYNCE-SYNC", 4,
@@ -629,7 +629,7 @@ commit_change: called when it's time to update device once a time for every upda
 */
 static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
 
@@ -707,7 +707,7 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 
 static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
 
@@ -785,7 +785,7 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 
 static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
 
@@ -866,7 +866,7 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 */
 static void sync_done(OSyncContext *ctx)
 {
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 	
@@ -925,7 +925,7 @@ static void disconnect(OSyncContext *ctx)
 {
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 	
-	synce_plugin_environment *env = (synce_plugin_environment *)osync_context_get_plugin_data(ctx);
+	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	
 	if (env->syncmgr==NULL) {
 		osync_context_report_error(ctx, 1, "ERRROR: no connection established");
@@ -950,7 +950,7 @@ static void finalize(void *data)
 {
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 	
-	synce_plugin_environment *env = (synce_plugin_environment *)data;
+	SyncePluginPtr *env = (SyncePluginPtr *)data;
 
 	if (env->config_file) {
 		osync_hashtable_free(env->hashtable);
