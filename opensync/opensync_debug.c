@@ -60,7 +60,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	int tabs = 0;
 	
 	if (!current_tabs)
-		current_tabs = g_private_new (g_free);
+		current_tabs = g_private_new (NULL);
 	else
 		tabs = (int)g_private_get(current_tabs);
 	
