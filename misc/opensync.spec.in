@@ -62,11 +62,16 @@ rm -rf %{buildroot}
 
 %files tools
 %defattr(-,root,root)
+%{_bindir}/osyncbinary
 %{_bindir}/osyncdump
 %{_bindir}/osyncplugin
 %{_bindir}/osyncstress
+%{_bindir}/osynctest
 
 %changelog
+* Mon Sep 26 2005 Pierre Ossman <drzeus@drzeus.cx> 0.18-1
+- Added new tools.
+
 * Fri May 13 2005 Pierre Ossman <drzeus@drzeus.cx> 0.17-1
 - Enable debug and tracing flags to ease debugging.
 
