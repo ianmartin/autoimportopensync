@@ -22,14 +22,14 @@
 #include <string.h>
 #include <time.h>
 
-static void _verify_user(SmlAuthenticator *auth, const char *username, const char *password, void *userdata, SmlSessionAuthType *reply)
+static void _verify_user(SmlAuthenticator *auth, const char *username, const char *password, void *userdata, SmlErrorType *reply)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p)", __func__, auth, username, password, userdata, reply);
 	SmlPluginEnv *env = userdata;
 	
 	osync_trace(TRACE_INTERNAL, "configured is %s, %s", env->username, env->password);
 	if (env->username && (!env->password || !username || !password || strcmp(env->username, username) || strcmp(env->password, password))) {
-		*reply = SML_AUTH_REJECTED;
+		*reply = SML_ERROR_AUTH_REJECTED;
 	} else {
 		*reply = SML_AUTH_ACCEPTED;
 	}
