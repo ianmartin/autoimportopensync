@@ -17,7 +17,7 @@ GList *changes;
 GList *tests;
 osync_bool alwaysempty;
 osync_bool noaccess = FALSE;
-	
+
 typedef struct OSyncPluginTest {
 	char *name;
 	double (*test)(OSyncEngine *engine, OSyncMember *file, int num, const char *);
@@ -46,13 +46,13 @@ static void sync_now(OSyncEngine *engine)
 	OSyncError *error = NULL;
 	printf(".");
 	fflush(stdout);
-	
+
 	if (!osengine_sync_and_block(engine, &error)) {
 		printf("Error while starting synchronization: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
 		exit(1);
 	}
-	
+
 	printf(".");
 	fflush(stdout);
 }
@@ -111,6 +111,7 @@ void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_da
 
 double check_sync(OSyncEngine *engine, const char *name, int num)
 {
+	int ret;
 	printf(".");
 	fflush(stdout);
 	starttime = _second();
@@ -123,40 +124,48 @@ double check_sync(OSyncEngine *engine, const char *name, int num)
 	osengine_get_wasted(engine, &alldeciders, &wasted);
 	osync_trace(TRACE_INTERNAL, "++++++++++++++++ Test \"%s %i\" ended (%i / %i (%i%%)) ++++++++++++++", name, num, wasted, alldeciders, (int)(((float)wasted / (float)alldeciders) * 100));
 	double thistime = _second() - starttime;
-	
+
 	printf(".");
 	fflush(stdout);
-	
+
 	char *tempdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
 	if (!mkdtemp(tempdir))
 	{
+		g_free(tempdir);
 		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", strerror(errno));
 		abort();
 	}
 	char *command = g_strdup_printf("mv %s/* %s &> /dev/null", localdir, tempdir);
-	system(command);
-	g_free(command);	
+	ret = system(command);
+	if (ret)
+	{
+		g_free(tempdir);
+		g_free(command);
+		osync_trace(TRACE_INTERNAL, "Unable to move files to temporary dir: %d", ret);
+		abort();
+	}
+	g_free(command);
 	printf(".");
 	fflush(stdout);
-		
+
 	check_empty();
-	
+
 	printf(".");
 	fflush(stdout);
-	
+
 	osync_group_set_slow_sync(engine->group, "data", TRUE);
-	
+
 	sync_now(engine);
 	printf(".");
 	fflush(stdout);
 	command = g_strdup_printf("test \"x$(diff -x \".*\" %s %s)\" = \"x\"", localdir, tempdir);
 	int result = system(command);
-	g_free(command);	
-	
+	g_free(command);
+
 	g_free(tempdir);
 	if (result)
 		abort();
-	
+
 	printf(" success\n");
 	return thistime;
 }
@@ -168,7 +177,7 @@ void add_data(OSyncMember *member, const char *objtype)
 		printf("Unable to create random data\n");
 		abort();
 	}
-	
+
 	char *filename = NULL;
 	while (1) {
 		char *randstr = osync_rand_str(8);
@@ -181,7 +190,7 @@ void add_data(OSyncMember *member, const char *objtype)
 			break;
 		g_free(filename);
 	}
-	
+
 	OSyncError *error = NULL;
 	if (!osync_file_write(filename, osync_change_get_data(change), osync_change_get_datasize(change), 0700, &error)) {
 		printf("Unable to write to file %s\n", osync_error_print(&error));
@@ -202,19 +211,19 @@ void modify_data(OSyncMember *member, const char *objtype)
 	const char *de = NULL;
 	while ((de = g_dir_read_name(dir))) {
 		char *filename = g_build_filename(localdir, de, NULL);
-		
+
 		OSyncChange *change = osync_change_new();
 		if (!osync_member_make_random_data(member, change, objtype)) {
 			printf("Unable to create random data\n");
 			abort();
 		}
-		
+
 		OSyncError *error = NULL;
 		if (!osync_file_write(filename, osync_change_get_data(change), osync_change_get_datasize(change), 0700, &error)) {
 			printf("Unable to write to file %s\n", osync_error_print(&error));
 			abort();
 		}
-	
+
 		g_free(filename);
 	}
 	g_dir_close(dir);
@@ -224,7 +233,12 @@ void modify_data(OSyncMember *member, const char *objtype)
 void delete_data(OSyncMember *member, const char *objtype)
 {
 	char *command = g_strdup_printf("rm -f %s/*", localdir);
-	system(command);
+	int ret = system(command);
+	if (ret)
+	{
+		osync_trace(TRACE_INTERNAL, "Unable to delete data: %d", ret);
+		abort();
+	}
 	g_free(command);
 }
 
@@ -232,29 +246,34 @@ static void empty_all(OSyncEngine *engine)
 {
 	printf(".");
 	fflush(stdout);
-	
+
 	osync_group_set_slow_sync(engine->group, "data", TRUE);
 	sync_now(engine);
 
 	char *command = g_strdup_printf("rm -f %s/*", localdir);
-	system(command);
+	int ret = system(command);
+	if (ret)
+	{
+		osync_trace(TRACE_INTERNAL, "Unable to delete data: %d", ret);
+		abort();
+	}
 	g_free(command);
 	sync_now(engine);
-	
+
 	printf(".");
 	fflush(stdout);
-	
+
 	check_empty();
-	
+
 }
 
 double add_test(OSyncEngine *engine, OSyncMember *member, int num, const char *objtype)
 {
 	printf("Test \"Add %i\" starting", num);
 	fflush(stdout);
-	
+
 	empty_all(engine);
-	
+
 	printf(".");
 	fflush(stdout);
 	int i = 0;
@@ -270,9 +289,9 @@ double modify_test(OSyncEngine *engine, OSyncMember *member, int num, const char
 {
 	printf("Test \"Modify %i\" starting", num);
 	fflush(stdout);
-	
+
 	empty_all(engine);
-	
+
 	printf(".");
 	fflush(stdout);
 	int i = 0;
@@ -282,7 +301,7 @@ double modify_test(OSyncEngine *engine, OSyncMember *member, int num, const char
 	fflush(stdout);
 
 	check_sync(engine, "None", num);
-	
+
 	printf(".");
 	fflush(stdout);
 	modify_data(member, objtype);
@@ -296,9 +315,9 @@ double delete_test(OSyncEngine *engine, OSyncMember *member, int num, const char
 {
 	printf("Test \"Delete %i\" starting", num);
 	fflush(stdout);
-	
+
 	empty_all(engine);
-	
+
 	printf(".");
 	fflush(stdout);
 	int i = 0;
@@ -308,19 +327,19 @@ double delete_test(OSyncEngine *engine, OSyncMember *member, int num, const char
 	fflush(stdout);
 
 	check_sync(engine, "None", num);
-	
+
 	printf(".");
 	fflush(stdout);
 	delete_data(member, objtype);
 	printf(".");
 	fflush(stdout);
-	
+
 	return check_sync(engine, "Delete", num);
 }
 
 static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *target, const char *objtype)
 {
-	
+
 	GList *t;
 	for (t = tests; t; t = t->next) {
 		OSyncPluginTest *test = t->data;
@@ -330,9 +349,9 @@ static void run_all_tests(OSyncEngine *engine, OSyncMember *file, OSyncMember *t
 		test->writetime = writetime;
 		test->othertime  = test->alltime - test->connecttime - test->readtime - test->writetime;
 	}
-	
+
 	printf("\nOutcome:\n");
-	
+
 	for (t = tests; t; t = t->next) {
 		OSyncPluginTest *test = t->data;
 		printf("Test \"%s\": All: %f Connect: %f(%i%%) Read: %f(%i%%) Write: %f(%i%%) Other: %f(%i%%)\n", test->name, test->alltime, test->connecttime, (int)((test->connecttime / test->alltime)* 100), test->readtime, (int)((test->readtime / test->alltime)* 100), test->writetime, (int)((test->writetime / test->alltime)* 100), test->othertime, (int)((test->othertime / test->alltime)* 100));
@@ -358,7 +377,7 @@ static void register_tests(void)
 	/*register_test("add_test50", add_test, 50);
 	register_test("add_test100", add_test, 100);
 	register_test("add_test200", add_test, 200);*/
-	
+
 	/*register_test("modify_test1", modify_test, 1);
 	register_test("modify_test5", modify_test, 5);
 	register_test("modify_test10", modify_test, 10);
@@ -366,7 +385,7 @@ static void register_tests(void)
 	register_test("modify_test50", modify_test, 50);*/
 	register_test("modify_test100", modify_test, 100);
 	//register_test("modify_test200", modify_test, 200);
-	
+
 	/*register_test("delete_test1", delete_test, 1);
 	register_test("delete_test5", delete_test, 5);
 	register_test("delete_test10", delete_test, 10);
@@ -389,7 +408,7 @@ int main (int argc, char *argv[])
 	char *configfile = NULL;
 	char *objtype = NULL;
 	OSyncError *error = NULL;
-	
+
 	if (argc < 2)
 		usage (argv[0], 1);
 
@@ -420,33 +439,33 @@ int main (int argc, char *argv[])
 			usage (argv[0], 1);
 		}
 	}
-	
+
 	OSyncEnv *env = osync_env_new();
 	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
-	
+
 	if (plugindir)
 		osync_env_set_option(env, "PLUGINS_DIRECTORY", plugindir);
-	
+
 	if (!osync_env_initialize(env, &error)) {
 		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
 		return 1;
 	}
-	
+
 	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
 	char *result = mkdtemp(testdir);
-	
+
 	if (result == NULL)
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", strerror(errno));
 		return 1;
 	}
-	
+
 	OSyncGroup *group = osync_group_new(env);
 	osync_group_set_name(group, osync_rand_str(8));
 	osync_group_set_configdir(group, testdir);
 	OSyncMember *member = osync_member_new(group);
-	
+
 	char *config = NULL;
 	int size = 0;
 	if (configfile) {
@@ -457,53 +476,53 @@ int main (int argc, char *argv[])
 		}
 		osync_member_set_config(member, config, size);
 	}
-	
+
 	osync_member_set_pluginname(member, pluginname);
-	
+
 	OSyncMember *file = osync_member_new(group);
-	
+
 	localdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
 	result = mkdtemp(localdir);
-	
+
 	if (result == NULL)
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
 			strerror(errno));
 		return 1;
 	}
-	
+
 	config = g_strdup_printf("<config><path>%s</path><recursive>0</recursive></config>", localdir);
 	osync_member_set_config(file, config, strlen(config) + 1);
 	osync_member_set_pluginname(file, "file-sync");
-	
+
 	if (!osync_group_save(group, &error)) {
 		printf("Error while creating syncengine: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
 		goto error_free_env;
 	}
-	
+
 	if (!g_thread_supported ()) g_thread_init (NULL);
-	
+
 	OSyncEngine *engine = osengine_new(group, &error);
 	if (!engine) {
 		printf("Error while creating syncengine: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
 		goto error_free_env;
 	}
-	
+
 	if (!osengine_init(engine, &error)) {
 		printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
 		osync_error_free(&error);
 		goto error_free_engine;
 	}
-	
+
 	int count = 0;
 	if (only_random) {
 		do {
 			count++;
 			printf("++++++++++++++++++++++++++++++\n");
 			printf("Initializing new round #%i!\n", count);
-			
+
 			if (g_random_int_range(0, 5) == 0) {
 				int i;
 				OSyncFormatEnv *env = osync_group_get_format_env(group);
@@ -516,23 +535,23 @@ int main (int argc, char *argv[])
 				}
 				osync_conv_env_free(env);
 			}
-			
+
 			change_content();
-			
+
 			check_sync(engine, "Random", 1);
 		} while (g_random_int_range(0, 3) != 0);
-		
+
 		printf("Finalizing engine\n");
 		osengine_finalize(engine);
 		osengine_free(engine);
-		
+
 		engine = osengine_new(group, &error);
 		if (!engine) {
 			printf("Error while creating syncengine: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
 			goto error_free_env;
 		}
-		
+
 		if (!osengine_init(engine, &error)) {
 			printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
 			osync_error_free(&error);
@@ -542,7 +561,7 @@ int main (int argc, char *argv[])
 		register_tests();
 		run_all_tests(engine, file, member, objtype);
 	}
-	
+
 	printf("\nCompleted successfully\n");
 	return 0;
 
