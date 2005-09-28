@@ -234,7 +234,7 @@ static int _psyncDBCategoryToId(PSyncDatabase *db, const char *name, OSyncError 
 		if (db->cai.name[i][0] != '\0') {
 			osync_trace(TRACE_INTERNAL, "remote: cat %d [%s] ID %d renamed %d", i, db->cai.name[i], db->cai.ID[i], db->cai.renamed[i]);
 			if (!strcmp(db->cai.name[i], name)) {
-				osync_trace(TRACE_EXIT, "%s: %i", i);
+				osync_trace(TRACE_EXIT, "%s: %i", __func__, i);
 				return i;
 			}
 		}
