@@ -253,7 +253,7 @@ bool m_report_todo_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids
 		char *newvtodo = g_strdup_printf("BEGIN:VCALENDAR\r\nVERSION:1.0\r\n%sEND:VCALENDAR\r\n", vtodo);
 		g_free(vtodo);
 		vtodo = newvtodo;
-		osync_trace(TRACE_INTERNAL, "Generated vtodo: %s", osync_print_binary(vtodo, strlen(vtodo)));
+		osync_trace(TRACE_INTERNAL, "Generated vtodo: %s", osync_print_binary((unsigned char *)vtodo, strlen(vtodo)));
 		
 		OSyncChange *change = osync_change_new();
 		osync_change_set_member(change, env->member);
@@ -301,7 +301,7 @@ bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,
 		char *newvevent = g_strdup_printf("BEGIN:VCALENDAR\r\nVERSION:1.0\r\n%sEND:VCALENDAR\r\n", vevent);
 		g_free(vevent);
 		vevent = newvevent;
-		osync_trace(TRACE_INTERNAL, "Generated vevent: %s", osync_print_binary(vevent, strlen(vevent)));
+		osync_trace(TRACE_INTERNAL, "Generated vevent: %s", osync_print_binary((unsigned char *)vevent, strlen(vevent)));
 		
 		OSyncChange *change = osync_change_new();
 		osync_change_set_member(change, env->member);
