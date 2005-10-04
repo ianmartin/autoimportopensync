@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync IrMC Plugin], 0.01, [], irmcplugin)
+AC_INIT([OpenSync IrMC Plugin], 0.01, [], libopensync-plugin-irmc)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/irmc_sync.c)
 AC_CONFIG_HEADER(config.h)
@@ -46,6 +46,9 @@ AC_ARG_ENABLE(obex,
   AS_HELP_STRING([--enable-obex], [enable obex transports]),
   WANT_OBEX=$enableval)
 AM_PATH_OPENOBEX
+if test -n "${OPENOBEX_LIBS}"; then
+	HAVE_OPENOBEX=yes
+fi
 if test "x${HAVE_OPENOBEX}" = "xyes"; then
 	if test "x${WANT_OBEX}" = "xno"; then
 		ENABLE_OBEX=no
@@ -75,6 +78,7 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 src/bfb/Makefile
+misc/irmc-sync.spec
 ])
 
 echo
