@@ -33,7 +33,7 @@ KCalDataSource::KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable)
 
 bool KCalDataSource::connect(OSyncContext *ctx)
 {
-    calendar = new KCal::CalendarResources();
+    calendar = new KCal::CalendarResources(QString::fromLatin1( "UTC" ));
     if (!calendar) {
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Can't open KDE calendar");
         return false;
@@ -195,7 +195,7 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
              */
              
         	printf("Adding1\n");
-            KCal::CalendarLocal cal;
+            KCal::CalendarLocal cal(QString::fromLatin1( "UTC" ));
             QString data = QString::fromUtf8(osync_change_get_data(chg), osync_change_get_datasize(chg));
             if (!format.fromString(&cal, data)) {
                 osync_context_report_error(ctx, OSYNC_ERROR_CONVERT, "Couldn't import calendar data");
