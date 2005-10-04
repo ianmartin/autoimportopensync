@@ -1,7 +1,7 @@
 Summary:		Python engine for OpenSync
 Name:			@PACKAGE@
 Version:		@VERSION@
-Release:		1
+Release:		2
 License:		GPL
 Group:			Development/Libraries
 Source:			%{name}-%{version}.tar.gz
@@ -31,8 +31,11 @@ rm -rf %{buildroot}
 %defattr(-,root,root)
 %{_libdir}/opensync/plugins/python_module.so
 %dir %{_libdir}/opensync/python-plugins
-%{_libdir}/opensync/python-plugins/sample.py
+%{_libdir}/opensync/python-plugins/sample.py*
 
 %changelog
+* Tue May 27 2005 Pierre Ossman <drzeus@drzeus.cx> 0.17-2
+- Include python bytecode.
+
 * Fri May 13 2005 Pierre Ossman <drzeus@drzeus.cx> 0.17-1
 - Initial package
