@@ -439,6 +439,64 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("SynCE-File", 4, "end : %s", __func__);
 }
 
+/* See if we can pass a list of directories found on the device.
+ * Handle directory name concatenation with care.
+ */
+GList *ListAllDirectories(GList *list, char *dir, int recurse)
+{
+	WCHAR		*wd;
+	CE_FIND_DATA	*find_data = NULL;
+	int		i;
+	DWORD		file_count;
+	char		path[MAX_PATH];
+	osync_bool	isroot;
+
+	/* Detect root directory as special case, the only one with tailing backslash */
+	isroot = (dir[0] == '\\' && dir[1] == '\0');
+	if (isroot)
+		strcpy(path, "\\*");
+	else {
+		/* Remove trailing backslash in other cases */
+		for (i=0; dir[i]; i++) ;
+		if (dir[i-1] == '\\')
+			dir[i-1] = '\0';
+
+		/* Append wildcard */
+		snprintf(path, MAX_PATH, "%s\\*", dir);
+	}
+	wd = wstr_from_current(path);
+	if (CeFindAllFiles(wd, FAF_FOLDERS_ONLY | FAF_NAME | FAF_ATTRIBUTES,
+			&file_count, &find_data)) {
+		for (i=0; i<file_count; i++) {
+			CE_FIND_DATA	*entry = &find_data[i];
+
+			/* Recursive call for directories */
+			if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				char	*r, *fn = wstr_to_current(entry->cFileName);
+
+				if (isroot)
+					r = g_strdup_printf("\\%s", fn);
+				else
+					r = g_strdup_printf("%s\\%s", dir, fn);
+				wstr_free_string(fn);
+
+#if 0
+				fprintf(stderr, "%s -> %s\n", __func__, r);
+#endif
+				list = g_list_append(list, r);
+				if (recurse)
+					list = ListAllDirectories(list, r, recurse);
+			}
+		}
+	} else {
+		fprintf(stderr, "%s: CeFindAllFiles(%s) failure\n", __func__, dir);
+	}
+
+	CeRapiFreeBuffer(find_data);
+	wstr_free_string(wd);
+	return list;
+}
+
 /*
  * This function is called by the configuration GUI,
  * it gives it a list of interesting directories on the PDA,
@@ -450,14 +508,16 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
  */
 GList * synce_list_directories(SyncePluginPtr *env, const char *basedir, OSyncError **error)
 {
+	HRESULT hr;
 	GList	*ret = NULL;
+#if 0
 	WCHAR	path[MAX_PATH];
 	char	*s = NULL;
-	HRESULT hr;
 	int	r;
+#endif
 
 	hr = CeRapiInit();
-
+#if 0
 	int	i;
 
 	for (i=0; i<255; i++) {
@@ -468,6 +528,13 @@ GList * synce_list_directories(SyncePluginPtr *env, const char *basedir, OSyncEr
 			free(s);
 		}
 	}
+#endif
+	/*
+	 * List all the directories starting with root, this appears to be a much better solution
+	 * The final parameter is whether to recurse (0 only lists the top level dirs on the
+	 * device, 1 will list all directories).
+	 */
+	ret = ListAllDirectories(ret, "\\", 1);
 
 	CeRapiUninit();
 	return ret;
