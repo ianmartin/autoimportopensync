@@ -44,7 +44,7 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 	int configsize;
 	HRESULT hr;
 
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 	
 	//You need to specify the <some name>_environment somewhere with
 	//all the members you need
@@ -86,7 +86,7 @@ static void connect(OSyncContext *ctx)
 {
 	RRA_Matchmaker* matchmaker = NULL;
 	
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
 	
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	 
@@ -96,21 +96,21 @@ static void connect(OSyncContext *ctx)
 		osync_context_report_error(ctx, 1, "building matchmaker");
 		return;
 	}
-	osync_debug("SYNCE-SYNC", 4, "matchmaker built");
+	osync_debug("SynCE-SYNC", 4, "matchmaker built");
 
 	//2 - setting partnership 
 	if (!rra_matchmaker_set_current_partner(matchmaker, 1)){
 		osync_context_report_error(ctx, 1, "set current partner");
 		return;
 	}
-	osync_debug("SYNCE-SYNC", 4, "partner set");
+	osync_debug("SynCE-SYNC", 4, "partner set");
 
         //3 -setting timezone
         if (!rra_timezone_get(&(env->timezone))){
 		osync_context_report_error(ctx, 1, "getting timezone");
 		return;
     	}
-       	osync_debug("SYNCE-SYNC", 4, "timezone set");
+       	osync_debug("SynCE-SYNC", 4, "timezone set");
 	
 	//4- creating syncmgr
 	env->syncmgr = rra_syncmgr_new();
@@ -120,7 +120,7 @@ static void connect(OSyncContext *ctx)
 		osync_context_report_error(ctx, 1, "can't connect");
 		return;
 	}
-    	osync_debug("SYNCE-SYNC", 4, "syncmgr created");
+    	osync_debug("SynCE-SYNC", 4, "syncmgr created");
     	
 	/*
 	 * if (!osync_member_objtype_enabled(env->member, "contact"))
@@ -148,7 +148,7 @@ static bool callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count,
 	const char* event_str;
 	ids_list* listids=(ids_list*)cookie;
 	 
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
   
   	switch (event)
   	{
@@ -175,7 +175,7 @@ static bool callback (RRA_SyncMgrTypeEvent event, uint32_t type, uint32_t count,
 		break;
 	}
 
-	osync_debug("SYNCE-SYNC", 4, event_str, count);
+	osync_debug("SynCE-SYNC", 4, event_str, count);
 	return true;
 }
 
@@ -186,7 +186,7 @@ bool m_report_contact_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *
 {
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
 	
 	
 	for (i=0;i<count;i++) {
@@ -203,7 +203,7 @@ bool m_report_contact_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *
 		
 		sprintf(strid,"%08x",ids[i]);
 	
-		osync_debug("SYNCE-SYNC", 4, "got object type: contact ids: %08x data_size: %i",ids[i],data_size);
+		osync_debug("SynCE-SYNC", 4, "got object type: contact ids: %08x data_size: %i",ids[i],data_size);
 	
 		rra_contact_to_vcard(RRA_CONTACT_ID_UNKNOWN,data,data_size,&vcard,RRA_CONTACT_VERSION_3_0);
 		
@@ -229,7 +229,7 @@ bool m_report_todo_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids
 {
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
 	
 	
 	for (i=0;i<count;i++) {
@@ -246,7 +246,7 @@ bool m_report_todo_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids
 		
 		sprintf(strid,"%08x",ids[i]);
 	
-		osync_debug("SYNCE-SYNC", 4, "got object type: todo ids: %08x data_size: %i",ids[i],data_size);
+		osync_debug("SynCE-SYNC", 4, "got object type: todo ids: %08x data_size: %i",ids[i],data_size);
 	
 		rra_task_to_vtodo(RRA_TASK_ID_UNKNOWN,data,data_size,&vtodo,0,&env->timezone);
 		/* Workaround since a single vevent component would be broken */
@@ -276,7 +276,7 @@ bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,
 {
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
 	
 	
 	for (i=0;i<count;i++) {
@@ -293,7 +293,7 @@ bool m_report_cal_changes(OSyncContext *ctx,RRA_SyncMgrType *type,uint32_t *ids,
 		
 		sprintf(strid,"%08x",ids[i]);
 	
-		osync_debug("SYNCE-SYNC", 4, "got object type: cal ids: %08x data_size: %i",ids[i],data_size);
+		osync_debug("SynCE-SYNC", 4, "got object type: cal ids: %08x data_size: %i",ids[i],data_size);
 	
 		rra_appointment_to_vevent(RRA_APPOINTMENT_ID_UNKNOWN,data,data_size,&vevent,0,&env->timezone);
 
@@ -326,7 +326,7 @@ bool m_report_contact(OSyncContext *ctx)
 	bool got_event = false;
 	char *strType="Contact";
 	RRA_SyncMgrType *type = NULL;		
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 
 	//initialize list
 	env->contact_ids=malloc(sizeof(ids_list));
@@ -344,24 +344,24 @@ bool m_report_contact(OSyncContext *ctx)
 	}
 	rra_syncmgr_handle_all_pending_events(env->syncmgr);
 	
-	osync_debug("SYNCE-SYNC", 4, "event started");
+	osync_debug("SynCE-SYNC", 4, "event started");
 
 	//waiting for events
 	while (rra_syncmgr_event_wait(env->syncmgr, 3, &got_event) && got_event) {
-		osync_debug("SYNCE-SYNC", 4, "*event received, processing");
+		osync_debug("SynCE-SYNC", 4, "*event received, processing");
 		rra_syncmgr_handle_event(env->syncmgr);
 	}
-	osync_debug("SYNCE-SYNC", 4, "finished receiving events");
+	osync_debug("SynCE-SYNC", 4, "finished receiving events");
 	
 	rra_syncmgr_unsubscribe(env->syncmgr,type->id);
 	
 	//getting results in ids
-	osync_debug("SYNCE-SYNC", 4, "%i changed",(env->contact_ids)->changed_count);
-	osync_debug("SYNCE-SYNC", 4, "%i unchanged",(env->contact_ids)->unchanged_count);
-	osync_debug("SYNCE-SYNC", 4, "%i deleted",(env->contact_ids)->deleted_count);
+	osync_debug("SynCE-SYNC", 4, "%i changed",(env->contact_ids)->changed_count);
+	osync_debug("SynCE-SYNC", 4, "%i unchanged",(env->contact_ids)->unchanged_count);
+	osync_debug("SynCE-SYNC", 4, "%i deleted",(env->contact_ids)->deleted_count);
 
 	//report changes
-	osync_debug("SYNCE-SYNC", 4, "report changes");
+	osync_debug("SynCE-SYNC", 4, "report changes");
 	
 	if(!m_report_contact_changes(ctx,type,(env->contact_ids)->changed_ids,(env->contact_ids)->changed_count,CHANGE_MODIFIED)){
 		osync_context_report_error(ctx, 1, "error reporting changes");
@@ -380,7 +380,7 @@ bool m_report_contact(OSyncContext *ctx)
 		}
 	}
 
-	osync_debug("SYNCE-SYNC", 4, "done reporting changes");
+	osync_debug("SynCE-SYNC", 4, "done reporting changes");
 	
 	return true;
 }
@@ -394,7 +394,7 @@ bool m_report_todo(OSyncContext *ctx)
 	bool got_event = false;
 	char *strType="Task";
 	RRA_SyncMgrType *type = NULL;		
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 
 	//initialize list
 	env->todo_ids=malloc(sizeof(ids_list));
@@ -411,27 +411,27 @@ bool m_report_todo(OSyncContext *ctx)
 		return FALSE;
 	}
 
-	osync_debug("SYNCE-SYNC", 4, "event started");
+	osync_debug("SynCE-SYNC", 4, "event started");
 
 	//waiting for events
 	while (rra_syncmgr_event_wait(env->syncmgr, 3, &got_event) && got_event) {
-		osync_debug("SYNCE-SYNC", 4, "*event received, processing");
+		osync_debug("SynCE-SYNC", 4, "*event received, processing");
 		rra_syncmgr_handle_event(env->syncmgr);
 	}
 	
 	rra_syncmgr_handle_all_pending_events(env->syncmgr);
 
-	osync_debug("SYNCE-SYNC", 4, "finished receiving events");
+	osync_debug("SynCE-SYNC", 4, "finished receiving events");
 	
 	rra_syncmgr_unsubscribe(env->syncmgr,type->id);
 	
 	//getting results in ids
-	osync_debug("SYNCE-SYNC", 4, "%i changed",(env->todo_ids)->changed_count);
-	osync_debug("SYNCE-SYNC", 4, "%i unchanged",(env->todo_ids)->unchanged_count);
-	osync_debug("SYNCE-SYNC", 4, "%i deleted",(env->todo_ids)->deleted_count);
+	osync_debug("SynCE-SYNC", 4, "%i changed",(env->todo_ids)->changed_count);
+	osync_debug("SynCE-SYNC", 4, "%i unchanged",(env->todo_ids)->unchanged_count);
+	osync_debug("SynCE-SYNC", 4, "%i deleted",(env->todo_ids)->deleted_count);
 
 	//report changes
-	osync_debug("SYNCE-SYNC", 4, "report changes");
+	osync_debug("SynCE-SYNC", 4, "report changes");
 	
 	if(!m_report_todo_changes(ctx,type,(env->todo_ids)->changed_ids,(env->todo_ids)->changed_count,CHANGE_MODIFIED)){
 		osync_context_report_error(ctx, 1, "error reporting changes");
@@ -450,7 +450,7 @@ bool m_report_todo(OSyncContext *ctx)
 		}
 	}
 
-	osync_debug("SYNCE-SYNC", 4, "done reporting changes");
+	osync_debug("SynCE-SYNC", 4, "done reporting changes");
 	
 	return true;
 }
@@ -464,7 +464,7 @@ bool m_report_cal(OSyncContext *ctx)
 	bool got_event = false;
 	char *strType="appointment";
 	RRA_SyncMgrType *type = NULL;		
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 
 	//initialize list
 	env->cal_ids=malloc(sizeof(ids_list));
@@ -481,27 +481,27 @@ bool m_report_cal(OSyncContext *ctx)
 		return FALSE;
 	}
 
-	osync_debug("SYNCE-SYNC", 4, "event started");
+	osync_debug("SynCE-SYNC", 4, "event started");
 
 	//waiting for events
 	while (rra_syncmgr_event_wait(env->syncmgr, 3, &got_event) && got_event) {
-		osync_debug("SYNCE-SYNC", 4, "*event received, processing");
+		osync_debug("SynCE-SYNC", 4, "*event received, processing");
 		rra_syncmgr_handle_event(env->syncmgr);
 	}
 	
 	rra_syncmgr_handle_all_pending_events(env->syncmgr);
 
-	osync_debug("SYNCE-SYNC", 4, "finished receiving events");
+	osync_debug("SynCE-SYNC", 4, "finished receiving events");
 	
 	rra_syncmgr_unsubscribe(env->syncmgr,type->id);
 	
 	//getting results in ids
-	osync_debug("SYNCE-SYNC", 4, "%i changed",(env->cal_ids)->changed_count);
-	osync_debug("SYNCE-SYNC", 4, "%i unchanged",(env->cal_ids)->unchanged_count);
-	osync_debug("SYNCE-SYNC", 4, "%i deleted",(env->cal_ids)->deleted_count);
+	osync_debug("SynCE-SYNC", 4, "%i changed",(env->cal_ids)->changed_count);
+	osync_debug("SynCE-SYNC", 4, "%i unchanged",(env->cal_ids)->unchanged_count);
+	osync_debug("SynCE-SYNC", 4, "%i deleted",(env->cal_ids)->deleted_count);
 
 	//report changes
-	osync_debug("SYNCE-SYNC", 4, "report changes");
+	osync_debug("SynCE-SYNC", 4, "report changes");
 	
 	if(!m_report_cal_changes(ctx,type,(env->cal_ids)->changed_ids,(env->cal_ids)->changed_count,CHANGE_MODIFIED)){
 		osync_context_report_error(ctx, 1, "error reporting changes");
@@ -520,7 +520,7 @@ bool m_report_cal(OSyncContext *ctx)
 		}
 	}
 	
-	osync_debug("SYNCE-SYNC", 4, "done reporting changes");
+	osync_debug("SynCE-SYNC", 4, "done reporting changes");
 	
 	return true;
 }
@@ -532,23 +532,23 @@ static void get_changeinfo(OSyncContext *ctx)
 {
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
-	osync_debug("SYNCE-SYNC", 4,
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);
+	osync_debug("SynCE-SYNC", 4,
 			"Get_ChangeInfo(todos %d contacts %d calendar %d files(%s)\n",
 			env->config_todos, env->config_contacts, env->config_calendar,
 			env->config_file);
 
 	//test RRA connection
-	osync_debug("SYNCE-SYNC", 4, "Testing connection");
+	osync_debug("SynCE-SYNC", 4, "Testing connection");
 	if (!env->syncmgr || !rra_syncmgr_is_connected(env->syncmgr)){
 		//not connected, exit
 		osync_context_report_error(ctx, 1, "not connected to device, exit.");
 		return;
 	}
-	osync_debug("SYNCE-SYNC", 4, "Testing connection -> ok");
+	osync_debug("SynCE-SYNC", 4, "Testing connection -> ok");
 
 	if (env->config_todos) {
-		osync_debug("SYNCE-SYNC", 4, "checking todos");
+		osync_debug("SynCE-SYNC", 4, "checking todos");
 	
 		if (!m_report_todo(ctx)){
 			osync_context_report_error(ctx, 1, "Error while checking todos");
@@ -567,7 +567,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	}
 	
 	if (env->config_contacts) {
-		osync_debug("SYNCE-SYNC", 4, "checking contacts");
+		osync_debug("SynCE-SYNC", 4, "checking contacts");
 		
 		if (!m_report_contact(ctx)){
 			osync_context_report_error(ctx, 1, "Error while checking contact");
@@ -585,7 +585,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	}
 
 	if (env->config_calendar) {
-		osync_debug("SYNCE-SYNC", 4, "checking calendar");
+		osync_debug("SynCE-SYNC", 4, "checking calendar");
 		
 		if (!m_report_cal(ctx)){
 			osync_context_report_error(ctx, 1, "Error while checking calendar");
@@ -603,7 +603,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	}
 
 	if (env->config_file) {
-		osync_debug("SYNCE-SYNC", 4, "checking files to synchronize");
+		osync_debug("SynCE-SYNC", 4, "checking files to synchronize");
 
 		if (! synceFileGetChangeInfo(ctx)) {
 			osync_context_report_error(ctx, 1, "Error while checking files");
@@ -633,7 +633,7 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
 
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 		
 	type = rra_syncmgr_type_from_name(env->syncmgr, "contact");
 	
@@ -642,14 +642,14 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 			
 			id=strtol(osync_change_get_uid(change),NULL,16);
 
-			osync_debug("SYNCE-SYNC", 4, "deleting contact id: %08x",id);
+			osync_debug("SynCE-SYNC", 4, "deleting contact id: %08x",id);
 		
 			if (!rra_syncmgr_delete_object(env->syncmgr, type->id , id))  {
 				osync_context_report_error(ctx, 1, "Can't delete contact id: %08x",id);
     				return FALSE;
   			}	
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		case CHANGE_ADDED:
 		{
@@ -661,7 +661,7 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 			object=osync_change_get_data(change);
 			id=strtol(osync_change_get_uid(change),NULL,16);			
 
-			osync_debug("SYNCE-SYNC", 4, "adding contact id %08x",id);
+			osync_debug("SynCE-SYNC", 4, "adding contact id %08x",id);
 
 			rra_contact_from_vcard(object,&dummy_id,&data,&data_size,RRA_CONTACT_UTF8 | RRA_CONTACT_VERSION_3_0);
 
@@ -670,7 +670,7 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		}
 		case CHANGE_MODIFIED:
@@ -684,7 +684,7 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 			object=osync_change_get_data(change);
 			id=strtol(osync_change_get_uid(change),NULL,16);			
 
-			osync_debug("SYNCE-SYNC", 4, "updating contact id %08x",id);
+			osync_debug("SynCE-SYNC", 4, "updating contact id %08x",id);
 
 			rra_contact_from_vcard(object,&dummy_id,&data,&data_size,RRA_CONTACT_UTF8 | RRA_CONTACT_VERSION_3_0);
 
@@ -693,11 +693,11 @@ static osync_bool commit_contacts_change(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		}
 		default:
-			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
+			osync_debug("SynCE-SYNC", 4, "Unknown change type");
 	}
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -711,7 +711,7 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
 
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 		
 	type = rra_syncmgr_type_from_name(env->syncmgr, "task");
 	
@@ -719,14 +719,14 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 		case CHANGE_DELETED:
 			id=strtol(osync_change_get_uid(change),NULL,16);
 
-			osync_debug("SYNCE-SYNC", 4, "deleting task id: %08x",id);
+			osync_debug("SynCE-SYNC", 4, "deleting task id: %08x",id);
 		
 			if (!rra_syncmgr_delete_object(env->syncmgr, type->id , id))  {
 				osync_context_report_error(ctx, 1, "Can't delete task id: %08x",id);
     				return FALSE;
   			}	
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		case CHANGE_ADDED:
 		{
@@ -739,7 +739,7 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 			
 			id=strtol(osync_change_get_uid(change),NULL,16);			
 
-			osync_debug("SYNCE-SYNC", 4, "adding task id %08x",id);
+			osync_debug("SynCE-SYNC", 4, "adding task id %08x",id);
 
 			rra_task_from_vtodo(object,&dummy_id,&data,&data_size,0,&env->timezone);
 
@@ -748,7 +748,7 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		}
 		case CHANGE_MODIFIED:
@@ -762,7 +762,7 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 			
 			id=strtol(osync_change_get_uid(change),NULL,16);
 			
-			osync_debug("SYNCE-SYNC", 4, "updating task id %08x",id);
+			osync_debug("SynCE-SYNC", 4, "updating task id %08x",id);
 
 			rra_task_from_vtodo(object,&dummy_id,&data,&data_size,0,&env->timezone);
 
@@ -771,11 +771,11 @@ static osync_bool commit_todo_change(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 		
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		}
 		default:
-			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
+			osync_debug("SynCE-SYNC", 4, "Unknown change type");
 	}
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -789,7 +789,7 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 	RRA_SyncMgrType *type = NULL;	
 	uint32_t id=0;
 
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 		
 	type = rra_syncmgr_type_from_name(env->syncmgr, "appointment");
 	
@@ -797,14 +797,14 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 		case CHANGE_DELETED:
 			id=strtol(osync_change_get_uid(change),NULL,16);
 
-			osync_debug("SYNCE-SYNC", 4, "deleting cal id: %08x",id);
+			osync_debug("SynCE-SYNC", 4, "deleting cal id: %08x",id);
 		
 			if (!rra_syncmgr_delete_object(env->syncmgr, type->id , id))  {
 				osync_context_report_error(ctx, 1, "Can't delete cal id: %08x",id);
     				return FALSE;
   			}	
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		case CHANGE_ADDED:
 		{
@@ -817,7 +817,7 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 			
 			id=strtol(osync_change_get_uid(change),NULL,16);			
 
-			osync_debug("SYNCE-SYNC", 4, "adding cal id %08x",id);
+			osync_debug("SynCE-SYNC", 4, "adding cal id %08x",id);
 
 			rra_appointment_from_vevent(object,&dummy_id,&data,&data_size,0,&env->timezone);
 
@@ -826,7 +826,7 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		}
 		case CHANGE_MODIFIED:
@@ -840,7 +840,7 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 			
 			id=strtol(osync_change_get_uid(change),NULL,16);
 
-			osync_debug("SYNCE-SYNC", 4, "updating cal id %08x",id);
+			osync_debug("SynCE-SYNC", 4, "updating cal id %08x",id);
 
 			rra_appointment_from_vevent(object,&dummy_id,&data,&data_size,0,&env->timezone);
 
@@ -849,11 +849,11 @@ static osync_bool commit_cal_change(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 		
-			osync_debug("SYNCE-SYNC", 4, "done");
+			osync_debug("SynCE-SYNC", 4, "done");
 			break;
 		}
 		default:
-			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
+			osync_debug("SynCE-SYNC", 4, "Unknown change type");
 	}
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -868,18 +868,18 @@ static void sync_done(OSyncContext *ctx)
 {
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	int i;
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 	
 	if (env->config_contacts) {
 		//commit any change done to forget contact changes
 		for(i=0;i<(env->contact_ids)->changed_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->contact_ids)->type)->id,(env->contact_ids)->changed_ids[i]);
-			osync_debug("SYNCE-SYNC", 4, "commit changed contact id %08x",(env->contact_ids)->changed_ids[i]);
+			osync_debug("SynCE-SYNC", 4, "commit changed contact id %08x",(env->contact_ids)->changed_ids[i]);
 		}
 
 		for(i=0;i<(env->contact_ids)->deleted_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->contact_ids)->type)->id,(env->contact_ids)->deleted_ids[i]);
-			osync_debug("SYNCE-SYNC", 4, "commit deleted contact id %08x",(env->contact_ids)->deleted_ids[i]);
+			osync_debug("SynCE-SYNC", 4, "commit deleted contact id %08x",(env->contact_ids)->deleted_ids[i]);
 		}
 	}
 	
@@ -887,12 +887,12 @@ static void sync_done(OSyncContext *ctx)
 		//commit any change done to forget task changes
 		for(i=0;i<(env->todo_ids)->changed_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->todo_ids)->type)->id,(env->todo_ids)->changed_ids[i]);
-			osync_debug("SYNCE-SYNC", 4, "commit changed cal id %08x",(env->todo_ids)->changed_ids[i]);
+			osync_debug("SynCE-SYNC", 4, "commit changed cal id %08x",(env->todo_ids)->changed_ids[i]);
 		}
 
 		for(i=0;i<(env->todo_ids)->deleted_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->todo_ids)->type)->id,(env->todo_ids)->deleted_ids[i]);
-			osync_debug("SYNCE-SYNC", 4, "commit deleted todo id %08x",(env->todo_ids)->deleted_ids[i]);
+			osync_debug("SynCE-SYNC", 4, "commit deleted todo id %08x",(env->todo_ids)->deleted_ids[i]);
 		}
 	}
 	
@@ -900,12 +900,12 @@ static void sync_done(OSyncContext *ctx)
 		//commit any change done to forget calendar changes
 		for(i=0;i<(env->cal_ids)->changed_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->changed_ids[i]);
-			osync_debug("SYNCE-SYNC", 4, "commit changed cal id %08x",(env->cal_ids)->changed_ids[i]);
+			osync_debug("SynCE-SYNC", 4, "commit changed cal id %08x",(env->cal_ids)->changed_ids[i]);
 		}
 
 		for(i=0;i<(env->cal_ids)->deleted_count;i++){
 			rra_syncmgr_mark_object_unchanged(env->syncmgr,((env->cal_ids)->type)->id,(env->cal_ids)->deleted_ids[i]);
-			osync_debug("SYNCE-SYNC", 4, "commit deleted cal id %08x",(env->cal_ids)->deleted_ids[i]);
+			osync_debug("SynCE-SYNC", 4, "commit deleted cal id %08x",(env->cal_ids)->deleted_ids[i]);
 		}
 	}
 	
@@ -913,7 +913,7 @@ static void sync_done(OSyncContext *ctx)
 		osync_hashtable_forget(env->hashtable);
 	}
 
-	osync_debug("SYNCE-SYNC", 4, "Sync done.");	
+	osync_debug("SynCE-SYNC", 4, "Sync done.");	
 	
 	osync_context_report_success(ctx);
 }
@@ -923,7 +923,7 @@ static void sync_done(OSyncContext *ctx)
  */
 static void disconnect(OSyncContext *ctx)
 {
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 	
 	SyncePluginPtr *env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	
@@ -938,7 +938,7 @@ static void disconnect(OSyncContext *ctx)
 	
 	rra_syncmgr_disconnect(env->syncmgr);
 	
-	osync_debug("SYNCE-SYNC", 4, "Connection closed.");	
+	osync_debug("SynCE-SYNC", 4, "Connection closed.");	
 		
 	osync_context_report_success(ctx);
 }
@@ -948,7 +948,7 @@ static void disconnect(OSyncContext *ctx)
  */
 static void finalize(void *data)
 {
-	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
 	
 	SyncePluginPtr *env = (SyncePluginPtr *)data;
 
@@ -1001,9 +1001,4 @@ void get_info(OSyncPluginInfo *env)
 	osync_plugin_accept_objtype(info, "data");
 	osync_plugin_accept_objformat(info, "data", "file", NULL);
 	osync_plugin_set_commit_objformat(info, "data", "file", synceFileCommit);
-#if 0
-	/* Don't know whether we need these. */
-	osync_plugin_set_access_objformat(info, "data", "file", file_access);
-	osync_plugin_set_read_objformat(info, "data", "file", file_read);
-#endif
 }

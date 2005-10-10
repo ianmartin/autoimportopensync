@@ -130,11 +130,19 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 	ff->data = strdup(path);
 
 	if (ctx) {
+		int	l;
+
 		env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 		change = osync_change_new();
 
+		l = strlen(env->config_file) + 1;	/* One is the backslash */
+
 		osync_change_set_member(change, env->member);
-		osync_change_set_uid(change, path);	/* Pass the full file name as UID */
+		/*
+		 * Pass the full file name as UID, but leave off the directory in which
+		 * the sync is rooted (and the backslash, see above).
+		 */
+		osync_change_set_uid(change, path + l);
 		osync_change_set_objformat_string(change, "file");	/* Copied from file-sync */
 
 		/* Should do the file handling here, but it was moved up for debugging */
@@ -175,22 +183,20 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 	snprintf(path, MAX_PATH, "%s\\*", dir);
 
 	wd = wstr_from_current(path);
-	if (CeFindAllFiles(wd,
-			FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW|FAF_OID,
+	if (CeFindAllFiles(wd, FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW,
 			&file_count, &find_data)) {
 		for (i=0; i<file_count; i++) {
 			CE_FIND_DATA	*entry = &find_data[i];
 
 			/* Do NOT report directories */
 			if ((entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
-			/*
-			 * Report this file to the OpenSync.
-			 * Note that we're reporting regular files as well as directories.
-			 */
-			if (! FilesReportFileChange(ctx, dir, entry, error)) {
-				/* Failure */
-				return FALSE;
-			}
+				/*
+				 * Report this file to the OpenSync.
+				 */
+				if (! FilesReportFileChange(ctx, dir, entry, error)) {
+					/* Failure */
+					return FALSE;
+				}
 			}
 
 
@@ -285,6 +291,13 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					return FALSE;
 				}
 			} else if (S_ISREG(ff->mode)) {	/* Regular file */
+				int	l = strlen(env->config_file);
+				fprintf(stderr, "YOW %s %s %s -> %s\n",
+						__func__,
+						fn,
+						env->config_file,
+						fn + l);
+
 				h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
 						opt, FILE_ATTRIBUTE_NORMAL, 0);
 				if (h == 0) {

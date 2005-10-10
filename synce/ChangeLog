@@ -30,10 +30,10 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
 
 * Use Armin's suggestions about what was wrong. Blush.
 * Add basic function to add a file to the CE device, probably not completely foolproof yet.
+* remove the initial part of the path (the directory in which the whole sync
+  is rooted) to remove confusion caused by that
 
 TODO for the file sync :
-- remove the initial part of the path (the directory in which the whole sync
-  is rooted) to remove confusion caused by that
 - prepare for : handling creation, deletion of directories (doesn't work yet !!)
 
 
