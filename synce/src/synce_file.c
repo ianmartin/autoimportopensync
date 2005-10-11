@@ -231,15 +231,26 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 	fileFormat	*ff;
 	WCHAR		*wfn;
 	DWORD		wr, e, opt;
-	char		*s, *fn, *str;
+	char		*p, *s, *fn, *str, *lfn;
 	OSyncChangeType	ct;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
 		
 	ff = (fileFormat *)osync_change_get_data(change);
 	fn = (char *)osync_change_get_uid(change);
-	wfn = wstr_from_current(fn);
 	ct = osync_change_get_changetype(change);
+
+	/* Concatenate our root and the local file name */
+	lfn = g_strdup_printf("%s\\%s", env->config_file, fn);
+
+	/* Translate slashes into backslashes */
+	for (s=lfn; *s; s++)
+		if (*s == '/')
+			*s = '\\';
+
+	/* Convert file name into WIDE format for WinCE - this must be the complete file name */
+	fprintf(stderr, "Wide fn(%s)\n", lfn);
+	wfn = wstr_from_current(lfn);
 
 	switch (ct) {
 		case CHANGE_DELETED:
@@ -251,6 +262,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeDeleteFile(%s) : %s", fn, s);
 					wstr_free_string(wfn);
+					free(lfn);
 					return FALSE;
 				}
 			} else if (S_ISDIR(ff->mode)) {	/* Directory */
@@ -260,6 +272,55 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			break;
 		case CHANGE_ADDED:
 		case CHANGE_MODIFIED:
+			/* First check whether the directory tree exists. */
+			for (s=p=lfn+1; *p; p++) {
+				if (*p == '\\') {
+					WCHAR	*w;
+					DWORD	cnt;
+					CE_FIND_DATA	*find_data = NULL;
+
+					/* Make a dir name */
+					*p = '\0';
+					w = wstr_from_current(lfn);
+
+					/* Check whether this dir exists */
+					if (CeFindAllFiles(w, FAF_FOLDERS_ONLY|FAF_ATTRIBUTES,
+							&cnt, &find_data) == 0) {
+						/* FIX ME what does failure mean here ? */
+						e = CeGetLastError();
+						s = synce_strerror(e);
+						osync_context_report_error(ctx, 1,
+							"CeFindAllFiles(%s) : %s",
+							lfn, s);
+						wstr_free_string(w);
+						wstr_free_string(wfn);
+						free(lfn);
+						return FALSE;
+					}
+					if (cnt == 0) {
+						/* Create it */
+						fprintf(stderr, "Yow create(%s)\n", lfn);
+						if (CeCreateDirectory(w, NULL) == 0) {
+							e = CeGetLastError();
+							s = synce_strerror(e);
+							osync_context_report_error(ctx, 1,
+								"CeCreateDirectory(%s) : %s",
+								lfn, s);
+							wstr_free_string(w);
+							wstr_free_string(wfn);
+							free(lfn);
+							return FALSE;
+						}
+					}
+					/* Restore string, forward loop */
+					*p = '\\';
+					s = p+1;
+					wstr_free_string(w);
+					CeRapiFreeBuffer(find_data);
+				}
+			}
+
+			/* Go on treating the file */
 			if (ct == CHANGE_ADDED) {
 				str = "ADDED";
 				/*
@@ -288,16 +349,10 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeCreateDirectory(%s) : %s", fn, s);
 					wstr_free_string(wfn);
+					free(lfn);
 					return FALSE;
 				}
 			} else if (S_ISREG(ff->mode)) {	/* Regular file */
-				int	l = strlen(env->config_file);
-				fprintf(stderr, "YOW %s %s %s -> %s\n",
-						__func__,
-						fn,
-						env->config_file,
-						fn + l);
-
 				h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
 						opt, FILE_ATTRIBUTE_NORMAL, 0);
 				if (h == 0) {
@@ -306,6 +361,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeCreateFile(%s) : %s", fn, s);
 					wstr_free_string(wfn);
+					free(lfn);
 					return FALSE;
 				}
 
@@ -318,6 +374,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeWriteFile(%s) : %s", fn, s);
 					wstr_free_string(wfn);
+					free(lfn);
 					return FALSE;
 				}
 				CeCloseHandle(h);
@@ -338,6 +395,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 	osync_context_report_success(ctx);
 	osync_hashtable_update_hash(env->hashtable, change);
 
+	free(lfn);
 	return TRUE;
 }
 
