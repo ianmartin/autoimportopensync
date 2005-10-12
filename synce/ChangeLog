@@ -32,9 +32,17 @@ version 0.03: bugfixes: connection hangup after commit // calendar report wrong 
 * Add basic function to add a file to the CE device, probably not completely foolproof yet.
 * remove the initial part of the path (the directory in which the whole sync
   is rooted) to remove confusion caused by that
+* Handle creation of subdirectories, and files in them.
 
-TODO for the file sync :
-- prepare for : handling creation, deletion of directories (doesn't work yet !!)
+TODO
+- debug situation with a professionally used agenda (hundreds of meetings) ->
+  crashes at present when synchronizing
+- debug situation with e.g. both files "cc" and "cc.txt" present on the
+  device -> OpenSync appears to tell file-sync to delete "cc", I guess
+  it gets mixed up somehow. Is SynCE confusing OpenSync ?
+- Debug situation in which a file has been synchronized, but is then deleted
+  at both ends (but is still in the OpenSync database).
+- Debug the GUI.
 
 
 

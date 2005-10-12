@@ -255,6 +255,13 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 	switch (ct) {
 		case CHANGE_DELETED:
 			fprintf(stderr, "%s: DELETED %s\n", __func__, osync_change_get_uid(change));
+			if (ff == NULL) {
+				/* Something went wrong, e.g. the file isn't there. */
+				wstr_free_string(wfn);
+				free(lfn);
+				/* FIX ME is this a valid return value for this case ? */
+				return TRUE;
+			}
 			if (S_ISREG(ff->mode)) {	/* Regular file */
 				if (CeDeleteFile(wfn) == 0) {
 					e = CeGetLastError();
@@ -372,7 +379,9 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					e = CeGetLastError();
 					s = synce_strerror(e);
 					osync_context_report_error(ctx, 1,
-							"CeWriteFile(%s) : %s", fn, s);
+							"CeWriteFile(%s, sz %d) : %s",
+							lfn, ff->size, s);
+					CeCloseHandle(h);
 					wstr_free_string(wfn);
 					free(lfn);
 					return FALSE;
@@ -626,11 +635,98 @@ int main(int argc, char** argv)
 		goto exit;
 	}
 
-//	FilesFindAllFromDirectory(NULL, "\\Storage Card");
+/*
 	FilesFindAllFromDirectory(NULL, "\\My Documents\\foto", NULL);
-
 	(void) synce_list_directories(NULL, NULL, NULL);
+*/
 
+{
+	char	*lfn = strdup("/My documents/foto/aa/bb/yy.txt");
+	char	*s, *p;
+	WCHAR	*wfn;
+	DWORD	e;
+	HANDLE	h;
+
+	/* Translate slashes into backslashes */
+	for (s=lfn; *s; s++)
+		if (*s == '/')
+			*s = '\\';
+
+	/* Convert file name into WIDE format for WinCE - this must be the complete file name */
+	fprintf(stderr, "Wide fn(%s)\n", lfn);
+	wfn = wstr_from_current(lfn);
+
+			/* First check whether the directory tree exists. */
+	for (s=p=lfn+1; *p; p++) {
+		if (*p == '\\') {
+			WCHAR	*w;
+			DWORD	cnt;
+			CE_FIND_DATA	*find_data = NULL;
+
+			/* Make a dir name */
+			*p = '\0';
+			w = wstr_from_current(lfn);
+
+			/* Check whether this dir exists */
+			if (CeFindAllFiles(w, FAF_FOLDERS_ONLY|FAF_ATTRIBUTES,
+					&cnt, &find_data) == 0) {
+				/* FIX ME what does failure mean here ? */
+				e = CeGetLastError();
+				s = synce_strerror(e);
+				fprintf(stderr,
+					"CeFindAllFiles(%s) : %s",
+					lfn, s);
+				wstr_free_string(w);
+				wstr_free_string(wfn);
+				free(lfn);
+				return FALSE;
+			}
+			if (cnt == 0) {
+				/* Create it */
+				fprintf(stderr, "Yow create(%s)\n", lfn);
+				if (CeCreateDirectory(w, NULL) == 0) {
+					e = CeGetLastError();
+					s = synce_strerror(e);
+					fprintf(stderr,
+						"CeCreateDirectory(%s) : %s",
+						lfn, s);
+					wstr_free_string(w);
+					wstr_free_string(wfn);
+					free(lfn);
+					return FALSE;
+				}
+			}
+			/* Restore string, forward loop */
+			*p = '\\';
+			s = p+1;
+			wstr_free_string(w);
+			CeRapiFreeBuffer(find_data);
+		}
+	}
+	h = CeCreateFile(wfn, GENERIC_WRITE, 0 /* Don't share */, NULL,
+			CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+	if (h == 0) {
+		e = CeGetLastError();
+		s = synce_strerror(e);
+		fprintf(stderr, "CeCreateFile(%s) : %s", lfn, s);
+		free(lfn);
+		return FALSE;
+	}
+
+	/*
+	 * Succeeded in creating the file -> now write the contents.
+	 */
+	DWORD wr;
+	if (CeWriteFile(h, "Yow", 3, &wr, NULL) == 0) {
+		e = CeGetLastError();
+		s = synce_strerror(e);
+		fprintf(stderr, "CeWriteFile(%s) : %s", lfn, s);
+		free(lfn);
+		return FALSE;
+	}
+	CeCloseHandle(h);
+	wstr_free_string(wfn);
+}
 exit:
 	if (path)
 		free(path);
