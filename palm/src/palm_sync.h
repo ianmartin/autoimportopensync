@@ -24,6 +24,7 @@
 #include <opensync/opensync.h>
 #include <stdio.h>
 
+#include <pi-version.h>
 #include <pi-socket.h>
 #include <pi-dlp.h>
 #include <pi-file.h>
@@ -31,6 +32,10 @@
 #include <pi-address.h>
 #include <pi-datebook.h>
 #include <pi-todo.h>
+
+#if ((PILOT_LINK_VERSION == 0) && (PILOT_LINK_MAJOR < 12))
+#define OLD_PILOT_LINK
+#endif
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
@@ -54,8 +59,11 @@ typedef struct PSyncTodoEntry PSyncTodoEntry;
 typedef struct PSyncEnv PSyncEnv;
 
 typedef struct PSyncDatabase {
+#ifdef OLD_PILOT_LINK
 	unsigned char buffer[65536];
-	//pi_buffer_t *buffer;
+#else
+	pi_buffer_t *buffer;
+#endif
 	int size;
 	int handle;
 	PSyncEnv *env;
@@ -65,8 +73,11 @@ typedef struct PSyncDatabase {
 
 typedef struct PSyncEntry {
 	PSyncDatabase *db;
+#ifdef OLD_PILOT_LINK
 	unsigned char buffer[65536];
-	//pi_buffer_t *buffer;
+#else
+	pi_buffer_t *buffer;
+#endif
 	recordid_t id;
 	int attr;
 	int size;

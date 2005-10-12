@@ -23,6 +23,12 @@
 
 #define CATCOUNT 16
 
+#ifdef OLD_PILOT_LINK
+#define pi_buffer(b) b
+#else
+#define pi_buffer(b) b->data
+#endif
+
 static void _psyncDBClose(PSyncDatabase *db)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
@@ -30,6 +36,9 @@ static void _psyncDBClose(PSyncDatabase *db)
 	dlp_CloseDB(db->env->socket, db->handle);
 	db->env->currentDB = NULL;
 	g_free(db->name);
+#ifndef OLD_PILOT_LINK
+	pi_buffer_free(db->buffer);
+#endif
 	g_free(db);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -64,7 +73,9 @@ static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error
 	if (!db)
 		goto error;
 	db->env = env;
-	//db->buffer = pi_buffer_new(65536);
+#ifndef OLD_PILOT_LINK
+	db->buffer = pi_buffer_new(65536);
+#endif
 	
 	//open it
 	if (dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &(db->handle)) < 0) {
@@ -72,14 +83,17 @@ static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error
 		goto error_free_db;
 	}
 
-	//db->size = dlp_ReadAppBlock(env->socket, db->handle, 0, 0xffff, db->buffer);
+#ifdef OLD_PILOT_LINK
 	db->size = dlp_ReadAppBlock(env->socket, db->handle, 0, db->buffer, 0xffff);
+#else
+	db->size = dlp_ReadAppBlock(env->socket, db->handle, 0, 0xffff, db->buffer);
+#endif
 	if (db->size < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read %s", name);
 		goto error_free_db;
 	}
 	
-	if (unpack_CategoryAppInfo(&(db->cai), db->buffer, db->size) <= 0) {
+	if (unpack_CategoryAppInfo(&(db->cai), pi_buffer(db->buffer), db->size) <= 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "unpack_AddressAppInfo failed");
 		goto error;
 	}
@@ -91,6 +105,9 @@ static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error
 	return db;
 
 error_free_db:
+#ifndef OLD_PILOT_LINK
+	pi_buffer_free(db->buffer);
+#endif
 	g_free(db);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -106,9 +123,18 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **
 		goto error;
 	entry->index = nth;
 	entry->db = db;
-	//entry->buffer = pi_buffer_new(65536);
+#ifndef OLD_PILOT_LINK
+	entry->buffer = pi_buffer_new(65536);
+#endif
 	
-	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth, entry->buffer, &entry->id, &entry->size, &entry->attr, &entry->category);
+#ifdef OLD_PILOT_LINK
+	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth,
+		entry->buffer, &entry->id, &entry->size, &entry->attr,
+		&entry->category);
+#else
+	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth,
+		entry->buffer, &entry->id, &entry->attr, &entry->category);
+#endif
 	if (ret == -5) {
 		goto error_free_entry;
 	} else if (ret < 0) {
@@ -120,6 +146,9 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **
 	return entry;
 
 error_free_entry:
+#ifndef OLD_PILOT_LINK
+	pi_buffer_free(entry->buffer);
+#endif
 	g_free(entry);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -134,9 +163,19 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error
 	if (!entry)
 		goto error;
 	entry->db = db;
-	//entry->buffer = pi_buffer_new(65536);
-	
-	int ret = dlp_ReadNextModifiedRec(db->env->socket, db->handle, entry->buffer, &entry->id, &entry->index, &entry->size, &entry->attr, &entry->category);
+#ifndef OLD_PILOT_LINK
+	entry->buffer = pi_buffer_new(65536);
+#endif
+
+#ifdef OLD_PILOT_LINK	
+	int ret = dlp_ReadNextModifiedRec(db->env->socket, db->handle,
+		entry->buffer, &entry->id, &entry->index, &entry->size,
+		&entry->attr, &entry->category);
+#else
+	int ret = dlp_ReadNextModifiedRec(db->env->socket, db->handle,
+		entry->buffer, &entry->id, &entry->index, &entry->attr,
+		&entry->category);
+#endif
 	if (ret < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
 		goto error_free_entry;
@@ -146,6 +185,9 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error
 	return entry;
 
 error_free_entry:
+#ifndef OLD_PILOT_LINK
+	pi_buffer_free(entry->buffer);
+#endif
 	g_free(entry);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -247,10 +289,13 @@ static int _psyncDBCategoryToId(PSyncDatabase *db, const char *name, OSyncError 
 static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, timeout, error);
-	struct pi_sockaddr addr;
 	int listen_sd = 0;
 	char *rate_buf = NULL;
 	int ret = 0;
+
+#ifdef OLD_PILOT_LINK
+	struct pi_sockaddr addr;
+#endif
 
 	if (env->socket) {
 		osync_trace(TRACE_EXIT, "%s: Already connected", __func__);
@@ -270,13 +315,21 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 		goto error;
 	}
 
+#ifdef OLD_PILOT_LINK
 	addr.pi_family = PI_AF_PILOT;
 
 	strcpy(addr.pi_device, env->sockaddr);
 
 	struct pi_sockaddr *tmpaddr = &addr;
+#endif
+	
 	osync_trace(TRACE_INTERNAL, "Binding socket");
+
+#ifdef OLD_PILOT_LINK
 	if ((ret = pi_bind(listen_sd, (struct sockaddr*)tmpaddr, sizeof (addr))) < 0) {
+#else
+	if ((ret = pi_bind(listen_sd, env->sockaddr)) < 0) {
+#endif
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to bind to pilot: %i", ret);
 		goto error_free_listen;
 	}
