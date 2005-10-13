@@ -6,12 +6,11 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall -Werror
 
 EXTRA_DIST = \
-	palm-sync \
-	palm_config.h
+	palm-sync
 
 config_DATA = palm-sync
 
-opensyncheader_HEADER = palm_sync.h palm_format.h
+opensyncheader_HEADERS = palm_sync.h palm_format.h
 
 formats_LTLIBRARIES = palm.la
 
