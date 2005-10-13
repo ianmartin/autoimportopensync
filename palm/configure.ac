@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Palm Plugin], 0.0.1, [], libopensync-plugin-palm])
+AC_INIT([OpenSync Palm Plugin], 0.0.1, [], [libopensync-plugin-palm])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/palm_sync.c)
 AC_CONFIG_HEADER(config.h)
