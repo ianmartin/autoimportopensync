@@ -35,6 +35,7 @@ AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may n
 AC_OUTPUT([
 Makefile
 src/Makefile
+misc/palm.spec
 ])
 
 echo "================================"

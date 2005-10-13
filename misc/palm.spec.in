@@ -1,0 +1,55 @@
+Summary:		Palm plugin for OpenSync
+Name:			@PACKAGE@
+Version:		@VERSION@
+Release:		1
+License:		GPL
+Group:			Development/Libraries
+Source:			%{name}-%{version}.tar.gz
+BuildRoot:		%{_tmppath}/%{name}-%{version}
+Requires:		glib2 libopensync libxml2 pilot-link
+BuildRequires:	glib2-devel libopensync-devel libxml2 pilot-link-devel
+
+%description
+This plugin allows applications using OpenSync to synchronise to and from
+PalmOS based devices using its HotSync system.
+
+%package devel
+Summary:                Header files, libraries and development documentation for %{name}
+Group:                  Development/Libraries
+Requires:               %{name} = %{version}
+
+%description devel
+This package contains the header files, static libraries and development
+documentation for %{name}. If you like to develop programs using %{name},
+you will need to install %{name}-devel.
+
+%prep
+%setup -q
+
+%build
+%configure
+make
+
+%install
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot}
+rm -f %{buildroot}%{_libdir}/opensync/formats/*.la
+rm -f %{buildroot}%{_libdir}/opensync/plugins/*.la
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(-,root,root)
+%{_libdir}/opensync/formats/palm.so
+%{_libdir}/opensync/plugins/palm_sync.so
+%{_datadir}/opensync/defaults/palm-sync
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/opensync-1.0/opensync/palm_sync.h
+%{_includedir}/opensync-1.0/opensync/palm_format.h
+
+%changelog
+* Thu Oct 13 2005 Pierre Ossman <drzeus@drzeus.cx> 0.0.1-1
+- Initial package
