@@ -41,7 +41,7 @@ START_TEST(plugin_call_custom)
 	OSyncMember *member = osync_group_nth_member(group, 0);
 	
 	OSyncError *error = NULL;
-	int ret = (int)osync_member_call_plugin(member, "mock_custom_function", (void *)1, &error);
+	int ret = GPOINTER_TO_INT(osync_member_call_plugin(member, "mock_custom_function", GINT_TO_POINTER(1), &error));
 	fail_unless(ret == 2, NULL);
 	
 	osync_env_finalize(osync, &error);

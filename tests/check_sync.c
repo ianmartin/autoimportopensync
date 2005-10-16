@@ -151,7 +151,7 @@ START_TEST (sync_easy_conflict)
 	
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(2));
 	mark_point();
 	fail_unless(engine != NULL, NULL);
 	osengine_init(engine, &error);
@@ -217,7 +217,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(2));
 	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
@@ -279,7 +279,7 @@ START_TEST (sync_conflict_duplicate)
 
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(2));
 	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
@@ -341,7 +341,7 @@ START_TEST (sync_conflict_duplicate2)
 	
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(2));
 	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
@@ -428,7 +428,7 @@ START_TEST (sync_moddel)
 	
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_conflict_callback(engine, conflict_handler_random, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_random, GINT_TO_POINTER(2));
 	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);
@@ -478,7 +478,7 @@ START_TEST (sync_conflict_moddel)
 	
 	OSyncError *error = NULL;
 	OSyncEngine *engine = osengine_new(group, &error);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, GINT_TO_POINTER(2));
 	osengine_init(engine, &error);
 
 	synchronize_once(engine, NULL);

@@ -14,7 +14,7 @@ START_TEST (single_init_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	
 	fail_unless(!osengine_init(engine, &error), NULL);
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -44,7 +44,7 @@ START_TEST (dual_connect_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -79,7 +79,7 @@ START_TEST (one_of_two_connect_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -115,7 +115,7 @@ START_TEST (two_of_three_connect_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -151,7 +151,7 @@ START_TEST (two_of_three_connect_error2)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -187,7 +187,7 @@ START_TEST (three_of_three_connect_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -223,7 +223,7 @@ START_TEST (one_of_three_connect_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -259,7 +259,7 @@ START_TEST (no_connect_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -296,7 +296,7 @@ START_TEST (single_connect_timeout)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -333,7 +333,7 @@ START_TEST (dual_connect_timeout)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -370,7 +370,7 @@ START_TEST (one_of_three_timeout)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -408,7 +408,7 @@ START_TEST (timeout_and_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -445,7 +445,7 @@ START_TEST (single_get_changes_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -484,7 +484,7 @@ START_TEST (dual_get_changes_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -524,7 +524,7 @@ START_TEST (two_of_three_get_changes_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -563,7 +563,7 @@ START_TEST (one_of_three_get_changes_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -603,7 +603,7 @@ START_TEST (one_of_three_get_changes_timeout)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -645,7 +645,7 @@ START_TEST (get_changes_timeout_and_error)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -686,7 +686,7 @@ START_TEST (get_changes_timeout_sleep)
 	osengine_set_memberstatus_callback(engine, member_status, NULL);
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -730,7 +730,7 @@ START_TEST (single_commit_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -777,7 +777,7 @@ START_TEST (dual_commit_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -824,7 +824,7 @@ START_TEST (single_commit_timeout)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -871,7 +871,7 @@ START_TEST (dual_commit_timeout)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -919,7 +919,7 @@ START_TEST (commit_timeout_and_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -967,7 +967,7 @@ START_TEST (commit_timeout_and_error2)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1012,7 +1012,7 @@ START_TEST (commit_error_modify)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1068,7 +1068,7 @@ START_TEST (commit_error_delete)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1126,7 +1126,7 @@ START_TEST (committed_all_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1174,7 +1174,7 @@ START_TEST (committed_all_batch_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1221,7 +1221,7 @@ START_TEST (single_sync_done_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1269,7 +1269,7 @@ START_TEST (dual_sync_done_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1317,7 +1317,7 @@ START_TEST (triple_sync_done_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1365,7 +1365,7 @@ START_TEST (single_sync_done_timeout)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1413,7 +1413,7 @@ START_TEST (dual_sync_done_timeout)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1462,7 +1462,7 @@ START_TEST (sync_done_timeout_and_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);
@@ -1510,7 +1510,7 @@ START_TEST (single_disconnect_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1559,7 +1559,7 @@ START_TEST (dual_disconnect_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1608,7 +1608,7 @@ START_TEST (triple_disconnect_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1657,7 +1657,7 @@ START_TEST (single_disconnect_timeout)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1706,7 +1706,7 @@ START_TEST (dual_disconnect_timeout)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1756,7 +1756,7 @@ START_TEST (disconnect_timeout_and_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(synchronize_once(engine, &error), NULL);
@@ -1808,7 +1808,7 @@ START_TEST (get_changes_disconnect_error)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	osengine_set_changestatus_callback(engine, entry_status, NULL);
 	osengine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	osengine_init(engine, &error);
 	
 	fail_unless(!synchronize_once(engine, &error), NULL);

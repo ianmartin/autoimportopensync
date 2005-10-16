@@ -243,7 +243,7 @@ void osync_hashtable_report(OSyncHashTable *table, const char *uid)
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
 	osync_hashtable_assert_loaded(table);
 	
-	g_hash_table_insert(table->used_entries, g_strdup(uid), (void *)1);
+	g_hash_table_insert(table->used_entries, g_strdup(uid), GINT_TO_POINTER(1));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -346,7 +346,7 @@ osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *cha
 	if (change->changetype != CHANGE_UNMODIFIED)
 		retval = TRUE;
 	
-	g_hash_table_insert(table->used_entries, g_strdup(change->uid), (void *)1);
+	g_hash_table_insert(table->used_entries, g_strdup(change->uid), GINT_TO_POINTER(1));
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval ? "TRUE" : "FALSE");
 	return retval;
 }

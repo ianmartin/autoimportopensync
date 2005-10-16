@@ -307,7 +307,7 @@ void send_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data)
 	osync_flag_changing(target->fl_sent_changes);
 	ITMessage *message = itm_message_new_methodcall(sender, "GET_CHANGES");
 	itm_message_set_handler(message, sender->incoming, (ITMessageHandler)_get_changes_reply_receiver, sender);
-	itm_message_set_data(message, "data", (void *)data);
+	itm_message_set_data(message, "data", GINT_TO_POINTER(data));
 	osync_debug("ENG", 3, "Sending get_changes message %p to client %p", message, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);

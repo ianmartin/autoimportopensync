@@ -16,7 +16,6 @@ DISTCLEANFILES = \
 	osengine-1.0-uninstalled.pc
 
 EXTRA_DIST = \
-	autogen.sh \
 	opensync-1.0.pc.in \
 	osengine-1.0.pc.in \
 	misc/opensync.spec.in \

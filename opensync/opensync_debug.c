@@ -62,7 +62,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	if (!current_tabs)
 		current_tabs = g_private_new (NULL);
 	else
-		tabs = (int)g_private_get(current_tabs);
+		tabs = GPOINTER_TO_INT(g_private_get(current_tabs));
 	
 	unsigned long int id = (unsigned long int)pthread_self();
 	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
@@ -100,7 +100,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 				tabs = 0;
 			break;
 	}
-	g_private_set(current_tabs, (void *)tabs);
+	g_private_set(current_tabs, GINT_TO_POINTER(tabs));
 	va_end(arglist);
 	
 	g_string_free(tabstr, TRUE);

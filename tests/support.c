@@ -72,7 +72,7 @@ void destroy_testbed(char *path)
 void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
 	OSyncChange *change = osengine_mapping_nth_change(mapping, 0);
@@ -82,7 +82,7 @@ void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, v
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
 	int i;
@@ -99,7 +99,7 @@ void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping
 void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 
 	int i;
@@ -116,7 +116,7 @@ void conflict_handler_choose_deleted(OSyncEngine *engine, OSyncMapping *mapping,
 void conflict_handler_duplication(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
 	osengine_mapping_duplicate(engine, mapping);
@@ -126,7 +126,7 @@ void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *u
 {
 	num_conflicts++;
 	if (user_data)
-		fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+		fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
 	osengine_mapping_ignore_conflict(engine, mapping);
@@ -136,7 +136,7 @@ void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *u
 void conflict_handler_random(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 
 	int num = osengine_mapping_num_changes(mapping);
@@ -164,7 +164,7 @@ static void solve_conflict(OSyncMapping *mapping)
 void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
-	fail_unless(osengine_mapping_num_changes(mapping) == (int)(user_data), NULL);
+	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
 	g_thread_create ((GThreadFunc)solve_conflict, mapping, TRUE, NULL);

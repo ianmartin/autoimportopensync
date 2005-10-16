@@ -202,9 +202,21 @@ void client_message_handler(OSyncEngine *sender, ITMessage *message, OSyncClient
 		char *function = itm_message_get_data(message, "function");
 		void *data = itm_message_get_data(message, "data");
 		OSyncError *error = NULL;
-		osync_member_call_plugin(client->member, function, data, &error);
-		if (osync_error_is_set(&error))
-			message_callback(client->member, message, &error);
+		void *replydata = osync_member_call_plugin(client->member, function, data, &error);
+
+
+		if (itm_message_get_data(message, "want_reply")) {
+			ITMessage *reply = NULL;
+			if (!osync_error_is_set(&error)) {
+				reply = itm_message_new_methodreply(client, message);
+				itm_message_set_data(message, "reply", replydata);
+			} else {
+				reply = itm_message_new_errorreply(client, message);
+				itm_message_set_error(reply, error);
+			}
+		
+			itm_message_send_reply(reply);
+		}
 		osync_trace(TRACE_EXIT, "client_message_handler");
 		return;
 	}
@@ -230,14 +242,44 @@ static gboolean startupfunc(gpointer data)
 	return FALSE;
 }
 
-void osync_client_call_plugin(OSyncClient *client, char *function, void *data)
+static void _recv_plugin_answer(OSyncEngine *engine, ITMessage *message, void *userdata)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, message, userdata);
+	OSyncPluginCallContext *ctx = userdata;
+	
+	if (itm_message_is_error(message)) {
+		OSyncError *error = itm_message_get_error(message);
+		ctx->handler(NULL, ctx->userdata, error);
+	} else {
+		void *replydata = itm_message_get_data(message, "reply");
+		ctx->handler(replydata, ctx->userdata, NULL);
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_client_call_plugin(OSyncClient *client, char *function, void *data, OSyncPluginReplyHandler replyhandler, void *userdata)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, client, function, data, replyhandler, userdata);
+	
 	OSyncEngine *engine = client->engine;
-	ITMessage *message = itm_message_new_signal(engine, "CALL_PLUGIN");
-	osync_debug("CLI", 3, "Sending message %p CALL_PLUGIN for function %s", message, function);
+	ITMessage *message = itm_message_new_methodcall(engine, "CALL_PLUGIN");
 	itm_message_set_data(message, "data", data);
 	itm_message_set_data(message, "function", g_strdup(function));
+	
+	if (replyhandler) {
+		OSyncPluginCallContext *ctx = g_malloc0(sizeof(OSyncPluginCallContext));
+		ctx->handler = replyhandler;
+		ctx->userdata = userdata;
+		itm_message_set_handler(message, engine->incoming, (ITMessageHandler)_recv_plugin_answer, ctx);
+
+		itm_message_set_data(message, "want_reply", GINT_TO_POINTER(1));
+	} else
+		itm_message_set_data(message, "want_reply", GINT_TO_POINTER(0));
+	
 	itm_queue_send(client->incoming, message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*

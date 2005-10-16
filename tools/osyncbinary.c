@@ -23,16 +23,25 @@ osync_bool convert_bin(const char *input, unsigned int inpsize, char **output, u
 	GString *string = g_string_new("");
 	
 	for (i = 0; i < inpsize; i++) {
-		printf("Current char is %i (%c)\n", input[i], input[i]);
+		printf("\nCurrent char is %i (%c)\n", input[i], input[i]);
 		if (input[i] == '\r' || input[i] == '\n') {
 			printf("Invalid input\n");
 			return FALSE;
 		}
 		
-		if (g_pattern_match_simple(" ?? *", input + i)) { //0-9][0-9]
+		//char string1[2] = "";
+		//char string2[3] = "";
+		unsigned int character = 0;
+		//int ret = ;
+		printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
+		printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
+		if (g_pattern_match_simple(" ?? *", input + i) && sscanf(input + i, " %x %*s", &character) == 1) { 
+			printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
+		
+		//if () { //0-9][0-9]
 			
-			unsigned int character = 0;
-			printf("escaped chars are %.4s\n", input + i);
+			printf("escaped chars are %.4s %i\n", input + i, sscanf(input + i, " %x %*s", &character)); 
+			printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
 			if (sscanf(input + i, " %x %*s", &character) != 1)
 				return FALSE;
 			printf("Found a escaped char %i\n", character);

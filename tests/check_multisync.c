@@ -521,7 +521,7 @@ START_TEST (multisync_conflict_data_choose)
 	mark_point();
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(2));
 
 	synchronize_once(engine, NULL);
 
@@ -592,7 +592,7 @@ START_TEST (multisync_conflict_data_choose2)
 	mark_point();
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(3));
 
 	synchronize_once(engine, NULL);
 
@@ -659,7 +659,7 @@ START_TEST (multisync_conflict_changetype_choose)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -740,7 +740,7 @@ START_TEST (multisync_conflict_changetype_choose2)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -790,7 +790,7 @@ START_TEST (multisync_conflict_hybrid_choose)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -868,7 +868,7 @@ START_TEST (multisync_conflict_hybrid_choose2)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_deleted, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -921,7 +921,7 @@ START_TEST (multisync_conflict_data_duplicate)
 	mark_point();
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)2);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(2));
 
 	synchronize_once(engine, NULL);
 
@@ -1019,7 +1019,7 @@ START_TEST (multisync_conflict_data_duplicate2)
 	mark_point();
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(3));
 
 	synchronize_once(engine, NULL);
 
@@ -1120,7 +1120,7 @@ START_TEST (multisync_conflict_changetype_duplicate)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -1197,7 +1197,7 @@ START_TEST (multisync_conflict_changetype_duplicate2)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -1275,7 +1275,7 @@ START_TEST (multisync_conflict_hybrid_duplicate)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
@@ -1360,7 +1360,7 @@ START_TEST (multisync_multi_conflict)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(3));
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data2/testdata2");
@@ -1530,7 +1530,7 @@ START_TEST (multisync_delayed_conflict_handler)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_delay, GINT_TO_POINTER(3));
 	
 	system("cp newdata data3/testdata1");
 	system("cp newdata1 data2/testdata2");
@@ -1666,7 +1666,7 @@ START_TEST (multisync_delayed_slow)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_delay, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_delay, GINT_TO_POINTER(3));
 	
 	system("cp newdata data3/testdata1");
 	setenv("SLOW_REPORT", "2", TRUE);
@@ -1787,7 +1787,7 @@ START_TEST (multisync_conflict_ignore)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_ignore, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_ignore, GINT_TO_POINTER(3));
 	
 	system("cp newdata data3/testdata1");
 	
@@ -1912,7 +1912,7 @@ START_TEST (multisync_conflict_ignore)
 	osync_hashtable_close(table);
 	
 	
-	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_modified, GINT_TO_POINTER(3));
 	synchronize_once(engine, NULL);
 
 	fail_unless(num_engine_connected == 1, NULL);
@@ -2027,7 +2027,7 @@ START_TEST (multisync_conflict_ignore2)
 	
 	system("cp newdata2 data2/testdata");
 	
-	osengine_set_conflict_callback(engine, conflict_handler_choose_first, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(3));
 	synchronize_once(engine, NULL);
 	
 	fail_unless(num_engine_connected == 1, NULL);
@@ -2174,7 +2174,7 @@ START_TEST(multisync_zero_changes_b)
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	
 	OSyncEngine *engine = init_engine(group);
-	osengine_set_conflict_callback(engine, conflict_handler_duplication, (void *)3);
+	osengine_set_conflict_callback(engine, conflict_handler_duplication, GINT_TO_POINTER(3));
 	
 	synchronize_once(engine, NULL);
 
