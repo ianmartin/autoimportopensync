@@ -610,23 +610,13 @@ static OSyncChange *_psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 	if (!change)
 		goto error;
 	
+	/* Set the uid */
 	char *uid = g_strdup_printf("uid-ToDoDB-%ld", entry->id);
 	osync_change_set_uid(change, uid);
 	g_free(uid);
 	
+	/* Set the format */
 	osync_change_set_objformat_string(change, "palm-todo");
-	
-	PSyncTodoEntry *todo = osync_try_malloc0(sizeof(PSyncTodoEntry), error);
-	if (!todo)
-		goto error_free_change;
-	todo->codepage = g_strdup(db->env->codepage);
-	osync_change_set_data(change, (void *)todo, sizeof(PSyncTodoEntry), TRUE);
-	
-	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
-	unpack_ToDo(&(todo->todo), entry->buffer, db->size);
-    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
-    if (catname)
-		todo->categories = g_list_append(todo->categories, g_strdup(catname));
 	
 	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
 		if ((entry->attr & dlpRecAttrArchived)) {
@@ -634,10 +624,26 @@ static OSyncChange *_psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 		}
 		//we have a deleted record
 		osync_change_set_changetype(change, CHANGE_DELETED);
-	} else if (entry->attr & dlpRecAttrDirty) {
-		osync_change_set_changetype(change, CHANGE_MODIFIED);
 	} else {
-		osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		/* Create the object data */
+		PSyncTodoEntry *todo = osync_try_malloc0(sizeof(PSyncTodoEntry), error);
+		if (!todo)
+			goto error_free_change;
+		todo->codepage = g_strdup(db->env->codepage);
+		
+		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+		unpack_ToDo(&(todo->todo), entry->buffer, db->size);
+	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+	    if (catname)
+			todo->categories = g_list_append(todo->categories, g_strdup(catname));
+			
+		osync_change_set_data(change, (void *)todo, sizeof(PSyncTodoEntry), TRUE);
+		
+		if (entry->attr & dlpRecAttrDirty) {
+			osync_change_set_changetype(change, CHANGE_MODIFIED);
+		} else {
+			osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
@@ -786,35 +792,10 @@ error:
 	return FALSE;
 }
 
-PSyncContactEntry *_psyncContactCreate(PSyncEntry *entry, OSyncError **error)
+static OSyncChange *_psyncContactCreate(PSyncEntry *entry, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
 	PSyncDatabase *db = entry->db;
-
-	PSyncContactEntry *contact = osync_try_malloc0(sizeof(PSyncContactEntry), error);
-	if (!contact)
-		goto error;
-	contact->codepage = g_strdup(db->env->codepage);
-	
-	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
-	unpack_Address(&(contact->address), entry->buffer, db->size);
-    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
-    if (catname)
-		contact->categories = g_list_append(contact->categories, g_strdup(catname));
-
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, contact);
-	return contact;
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
-}
-
-
-
-static OSyncChange *_psyncContactChangeCreate(PSyncEntry *entry, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
 
 	OSyncChange *change = osync_change_new();
 	if (!change)
@@ -826,22 +807,32 @@ static OSyncChange *_psyncContactChangeCreate(PSyncEntry *entry, OSyncError **er
 	
 	osync_change_set_objformat_string(change, "palm-contact");
 	
-	PSyncContactEntry *contact = _psyncContactCreate(entry, error);
-	if (!contact)
-		goto error_free_change;
-	
-	osync_change_set_data(change, (void *)contact, sizeof(PSyncContactEntry), TRUE);
-	
 	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
 		if ((entry->attr & dlpRecAttrArchived)) {
 			osync_trace(TRACE_INTERNAL, "Archieved");
 		}
 		//we have a deleted record
 		osync_change_set_changetype(change, CHANGE_DELETED);
-	} else if (entry->attr & dlpRecAttrDirty) {
-		osync_change_set_changetype(change, CHANGE_MODIFIED);
 	} else {
-		osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		/* Create the object data */
+		PSyncContactEntry *contact = osync_try_malloc0(sizeof(PSyncContactEntry), error);
+		if (!contact)
+			goto error_free_change;
+		contact->codepage = g_strdup(db->env->codepage);
+		
+		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+		unpack_Address(&(contact->address), entry->buffer, db->size);
+	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+	    if (catname)
+			contact->categories = g_list_append(contact->categories, g_strdup(catname));
+		
+		osync_change_set_data(change, (void *)contact, sizeof(PSyncContactEntry), TRUE);
+		
+		if (entry->attr & dlpRecAttrDirty) {
+			osync_change_set_changetype(change, CHANGE_MODIFIED);
+		} else {
+			osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
@@ -871,7 +862,7 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
-			OSyncChange *change = _psyncContactChangeCreate(entry, error);
+			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
 				goto error;
 			
@@ -880,7 +871,7 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 		}
 	} else {
 		while ((entry = _psyncDBGetNextModified(db, error))) {
-			OSyncChange *change = _psyncContactChangeCreate(entry, error);
+			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
 				goto error;
 			
@@ -945,9 +936,11 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			if (!orig_entry)
 				goto error;
 			
-			PSyncContactEntry *orig_contact = _psyncContactCreate(orig_entry, &error);
+			PSyncContactEntry *orig_contact = osync_try_malloc0(sizeof(PSyncContactEntry), &error);
 			if (!orig_contact)
 				goto error;
+		
+			unpack_Address(&(orig_contact->address), orig_entry->buffer, db->size);
 				
 			if ((orig_contact->address.showPhone) > 4)
 				orig_contact->address.showPhone = 0;
@@ -1037,29 +1030,32 @@ static OSyncChange *_psyncEventCreate(PSyncEntry *entry, OSyncError **error)
 	
 	osync_change_set_objformat_string(change, "palm-event");
 	
-	PSyncEventEntry *event = osync_try_malloc0(sizeof(PSyncEventEntry), error);
-	if (!event)
-		goto error_free_change;
-	event->codepage = g_strdup(db->env->codepage);
-	
-	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
-	unpack_Appointment(&(event->appointment), entry->buffer, db->size);
-    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
-    if (catname)
-		event->categories = g_list_append(event->categories, g_strdup(catname));
-	
-	osync_change_set_data(change, (void *)event, sizeof(PSyncEventEntry), TRUE);
-	
 	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
 		if ((entry->attr & dlpRecAttrArchived)) {
 			osync_trace(TRACE_INTERNAL, "Archieved");
 		}
 		//we have a deleted record
 		osync_change_set_changetype(change, CHANGE_DELETED);
-	} else if (entry->attr & dlpRecAttrDirty) {
-		osync_change_set_changetype(change, CHANGE_MODIFIED);
 	} else {
-		osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		
+		PSyncEventEntry *event = osync_try_malloc0(sizeof(PSyncEventEntry), error);
+		if (!event)
+			goto error_free_change;
+		event->codepage = g_strdup(db->env->codepage);
+		
+		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+		unpack_Appointment(&(event->appointment), entry->buffer, db->size);
+	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+	    if (catname)
+			event->categories = g_list_append(event->categories, g_strdup(catname));
+		
+		osync_change_set_data(change, (void *)event, sizeof(PSyncEventEntry), TRUE);
+	
+		if (entry->attr & dlpRecAttrDirty) {
+			osync_change_set_changetype(change, CHANGE_MODIFIED);
+		} else {
+			osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
