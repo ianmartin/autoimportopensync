@@ -4,7 +4,7 @@ AC_PREREQ(2.58)
 AC_INIT([OpenSync Palm Plugin], 0.0.1, [], [libopensync-plugin-palm])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/palm_sync.c)
-AC_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(config.h)
 
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
 pkg_modules="opensync-1.0 glib-2.0 libxml-2.0"
