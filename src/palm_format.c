@@ -768,7 +768,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		tmp = return_next_entry(entry, i);
 		if (tmp) {
 			if (entry->address.phoneLabel[i - 3] == 4) {
-				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+				current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
 			} else
 				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
 		
