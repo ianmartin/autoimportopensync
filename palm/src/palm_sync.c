@@ -177,7 +177,9 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error
 		&entry->category);
 #endif
 	if (ret < 0) {
+#ifndef OLD_PILOT_LINK
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
+#endif
 		goto error_free_entry;
 	}
 	
@@ -216,7 +218,11 @@ static osync_bool _psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, db, entry, error);
 	
-	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, entry->buffer, sizeof(entry->buffer), 0);
+	/* Do not use sizeof (entry->buffer) as this will give 
+	   the size of the allocated buffer instead of size of
+	   the *packed* buffer 
+	*/
+	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, entry->buffer, entry->size, 0);
 	if (ret < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to write file: %i", ret);
 		goto error;
@@ -234,9 +240,13 @@ static osync_bool _psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned lon
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p %p)", __func__, db, entry, id, error);
 	
-	int ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, entry->buffer, sizeof(entry->buffer), id);
+	/* Do not use sizeof (entry->buffer) as this will give 
+	   the size of the allocated buffer instead of size of
+	   the *packed* buffer 
+	*/
+	int ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, entry->buffer, entry->size, id);
 	if (ret < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to write file: %i", ret);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to add file: %i", ret);
 		goto error;
 	}
 	
@@ -732,7 +742,7 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
+			entry->size = pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
 	
 			if (!_psyncDBWrite(db, entry, &error))
 				goto error;
@@ -759,7 +769,7 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
+			entry->size = pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
 	
 			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
@@ -828,7 +838,7 @@ static OSyncChange *_psyncContactCreate(PSyncEntry *entry, OSyncError **error)
 		
 		osync_change_set_data(change, (void *)contact, sizeof(PSyncContactEntry), TRUE);
 		
-		if (entry->attr & dlpRecAttrDirty) {
+		if (entry->attr & dlpRecAttrDirty)  {
 			osync_change_set_changetype(change, CHANGE_MODIFIED);
 		} else {
 			osync_change_set_changetype(change, CHANGE_UNKNOWN);
@@ -954,7 +964,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
+			entry->size = pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
 	
 			if (!_psyncDBWrite(db, entry, &error))
 				goto error;
@@ -981,7 +991,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
+			entry->size = pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
 	
 			
 			if (!_psyncDBAdd(db, entry, &id, &error))
@@ -1144,7 +1154,7 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
+			entry->size = pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
 	
 			if (!_psyncDBWrite(db, entry, &error))
 				goto error;
@@ -1171,7 +1181,7 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
+			entry->size = pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
 	
 			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
