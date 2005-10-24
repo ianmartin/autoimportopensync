@@ -4,7 +4,7 @@ AC_PREREQ(2.58)
 AC_INIT(OpenSync, 0.18, [], libopensync)
 AC_CONFIG_SRCDIR([opensync/opensync.h])
 AM_INIT_AUTOMAKE(foreign)
-AC_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(config.h)
 
 #### Defaults #####
 WITH_DEBUG=yes
