@@ -298,6 +298,13 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		goto error;
 	}
 
+	/* Get the first child which should be Event */
+	root = osxml_get_node(root, "Event");
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No Event child element");
+		goto error;
+	}
+
 	/* Start the new entry */
 	PSyncEventEntry *entry = osync_try_malloc0(sizeof(PSyncEventEntry), error);
 	if (!entry)
@@ -613,8 +620,15 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 		goto error;
 	}
 	
-	if (xmlStrcmp(root->name, (const xmlChar *)"contact")) {
+	if (xmlStrcmp(root->name, (const xmlChar *)"vcal")) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
+		goto error;
+	}
+
+	/* Get the first child which should be Todo */
+	root = osxml_get_node(root, "Todo");
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No Todo child element");
 		goto error;
 	}
 
