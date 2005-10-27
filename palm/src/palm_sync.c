@@ -114,13 +114,16 @@ error:
 	return NULL;
 }
 
-static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error)
+static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, nth, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, db, nth);
 	
-	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
-	if (!entry)
-		goto error;
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), NULL);
+	if (!entry) {
+		osync_trace(TRACE_EXIT_ERROR, "No more memory");
+		return NULL;
+	}
+	
 	entry->index = nth;
 	entry->db = db;
 #ifndef OLD_PILOT_LINK
@@ -135,33 +138,30 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **
 	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth,
 		entry->buffer, &entry->id, &entry->attr, &entry->category);
 #endif
-	if (ret == -5) {
-		goto error_free_entry;
-	} else if (ret < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
-		goto error_free_entry;
+
+	if (ret < 0) {
+#ifndef OLD_PILOT_LINK
+		pi_buffer_free(entry->buffer);
+#endif
+		g_free(entry);
+		osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+		return NULL;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 	return entry;
-
-error_free_entry:
-#ifndef OLD_PILOT_LINK
-	pi_buffer_free(entry->buffer);
-#endif
-	g_free(entry);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
 }
 
-static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error)
+static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
 	
-	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
-	if (!entry)
-		goto error;
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), NULL);
+	if (!entry) {
+		osync_trace(TRACE_EXIT_ERROR, "No more memory");
+		return NULL;
+	}
+	
 	entry->db = db;
 #ifndef OLD_PILOT_LINK
 	entry->buffer = pi_buffer_new(65536);
@@ -176,24 +176,18 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error
 		entry->buffer, &entry->id, &entry->index, &entry->attr,
 		&entry->category);
 #endif
+
 	if (ret < 0) {
 #ifndef OLD_PILOT_LINK
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read file: %i", ret);
+		pi_buffer_free(entry->buffer);
 #endif
-		goto error_free_entry;
+		g_free(entry);
+		osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+		return NULL;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 	return entry;
-
-error_free_entry:
-#ifndef OLD_PILOT_LINK
-	pi_buffer_free(entry->buffer);
-#endif
-	g_free(entry);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
 }
 
 static osync_bool _psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
@@ -680,7 +674,7 @@ static osync_bool _psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncTodoCreate(entry, error);
@@ -691,7 +685,7 @@ static osync_bool _psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = _psyncDBGetNextModified(db, error))) {
+		while ((entry = _psyncDBGetNextModified(db))) {
 			OSyncChange *change = _psyncTodoCreate(entry, error);
 			if (!change)
 				goto error;
@@ -869,7 +863,7 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncContactCreate(entry, error);
@@ -880,7 +874,7 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = _psyncDBGetNextModified(db, error))) {
+		while ((entry = _psyncDBGetNextModified(db))) {
 			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
 				goto error;
@@ -942,7 +936,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
 			osync_trace(TRACE_INTERNAL, "id %ld", id);
 			
-			PSyncEntry *orig_entry = _psyncDBGetNthEntry(db, id, &error);
+			PSyncEntry *orig_entry = _psyncDBGetNthEntry(db, id);
 			if (!orig_entry)
 				goto error;
 			
@@ -1092,7 +1086,7 @@ static osync_bool _psyncEventGetChangeInfo(OSyncContext *ctx, OSyncError **error
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncEventCreate(entry, error);
@@ -1103,7 +1097,7 @@ static osync_bool _psyncEventGetChangeInfo(OSyncContext *ctx, OSyncError **error
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = _psyncDBGetNextModified(db, error))) {
+		while ((entry = _psyncDBGetNextModified(db))) {
 			OSyncChange *change = _psyncEventCreate(entry, error);
 			if (!change)
 				goto error;
