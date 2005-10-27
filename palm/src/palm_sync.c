@@ -352,7 +352,8 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 	}
 
 	osync_trace(TRACE_INTERNAL, "Done");
-	pi_close(listen_sd);
+	if (env->conntype != PILOT_DEVICE_NETWORK && env->conntype != PILOT_DEVICE_IRDA)
+		pi_close(listen_sd);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
