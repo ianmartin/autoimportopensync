@@ -29,6 +29,25 @@
 #define pi_buffer(b) b->data
 #endif
 
+static osync_bool _psyncCheckReturn(int sd, int ret, OSyncError **error)
+{
+#ifdef OLD_PILOT_LINK
+	if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%i", ret);
+		return FALSE;
+	}
+#else
+	if (ret == PI_ERR_DLP_PALMOS) {
+		smlTrace(TRACE_INTERNAL, "Encountered a palm os error %i. Ignored", pi_palmos_err(sd));
+		return TRUE;
+	} else if (ret < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%i", ret);
+		return FALSE;
+	}
+#endif
+	return TRUE;
+}
+
 static void _psyncDBClose(PSyncDatabase *db)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
@@ -64,10 +83,11 @@ static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error
 	}
 
  	//Search it
-	if (dlp_FindDBInfo(env->socket, 0, 0, name, 0, 0, &dbInfo) < 0) {
-		osync_error_set(error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to locate %s. Assuming it has been reset", name);
+	/*r = dlp_FindDBInfo(env->socket, 0, 0, name, 0, 0, &dbInfo);
+	if (r < 0) {
+		osync_error_set(error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to locate %s. Assuming it has been reset (%i)", name, r);
 		goto error;
-	}
+	}*/
 
 	PSyncDatabase *db = osync_try_malloc0(sizeof(PSyncDatabase), error);
 	if (!db)
@@ -78,8 +98,9 @@ static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error
 #endif
 	
 	//open it
-	if (dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &(db->handle)) < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open %s", name);
+	int ret = dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &(db->handle));
+	if (!_psyncCheckReturn(env->socket, ret, error)) {
+		osync_error_update(error, "Unable to open %s: %s", name, osync_error_print(error));
 		goto error_free_db;
 	}
 
@@ -114,15 +135,13 @@ error:
 	return NULL;
 }
 
-static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth)
+static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, db, nth);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, nth, error);
 	
-	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), NULL);
-	if (!entry) {
-		osync_trace(TRACE_EXIT_ERROR, "No more memory");
-		return NULL;
-	}
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
+	if (!entry)
+		goto error;
 	
 	entry->index = nth;
 	entry->db = db;
@@ -138,29 +157,30 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth)
 	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth,
 		entry->buffer, &entry->id, &entry->attr, &entry->category);
 #endif
-
-	if (ret < 0) {
+	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
 #ifndef OLD_PILOT_LINK
 		pi_buffer_free(entry->buffer);
 #endif
 		g_free(entry);
-		osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-		return NULL;
+		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
+		goto error;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 	return entry;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
-static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db)
+static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
 	
-	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), NULL);
-	if (!entry) {
-		osync_trace(TRACE_EXIT_ERROR, "No more memory");
-		return NULL;
-	}
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
+	if (!entry)
+		goto error;
 	
 	entry->db = db;
 #ifndef OLD_PILOT_LINK
@@ -177,17 +197,21 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db)
 		&entry->category);
 #endif
 
-	if (ret < 0) {
+	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
 #ifndef OLD_PILOT_LINK
 		pi_buffer_free(entry->buffer);
 #endif
 		g_free(entry);
-		osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-		return NULL;
+		osync_error_update(error, "Unable to get next modified: %s", osync_error_print(error));
+		goto error;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 	return entry;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 static osync_bool _psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
@@ -195,8 +219,8 @@ static osync_bool _psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, id, error);
 	
 	int ret = dlp_DeleteRecord(db->env->socket, db->handle, 0,  id);
-	if (ret < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to delete file: %i", ret);
+	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
+		osync_error_update(error, "Unable to delete file: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -216,9 +240,13 @@ static osync_bool _psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError
 	   the size of the allocated buffer instead of size of
 	   the *packed* buffer 
 	*/
+#ifndef OLD_PILOT_LINK
+	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, ((pi_buffer_t *)entry->buffer)->data, ((pi_buffer_t *)entry->buffer)->used, 0);
+#else
 	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, entry->buffer, entry->size, 0);
-	if (ret < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to write file: %i", ret);
+#endif
+	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
+		osync_error_update(error, "Unable to write file: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -238,9 +266,20 @@ static osync_bool _psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned lon
 	   the size of the allocated buffer instead of size of
 	   the *packed* buffer 
 	*/
-	int ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, entry->buffer, entry->size, id);
-	if (ret < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to add file: %i", ret);
+	int ret;
+	
+	if ((entry == NULL) || (entry->buffer == NULL)) {
+		osync_trace(TRACE_EXIT, "%s: Skipping null entry!", __func__);
+		return TRUE;
+	}
+
+#ifdef OLD_PILOT_LINK
+	ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, entry->buffer, entry->size, id);
+#else
+	ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, ((pi_buffer_t*)entry->buffer)->data, ((pi_buffer_t*)entry->buffer)->used, id);
+#endif
+	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
+		osync_error_update(error, "Unable to add file: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -352,6 +391,7 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 	}
 
 	osync_trace(TRACE_INTERNAL, "Done");
+
 	if (env->conntype != PILOT_DEVICE_NETWORK && env->conntype != PILOT_DEVICE_IRDA)
 		pi_close(listen_sd);
 
@@ -544,14 +584,16 @@ static void psyncConnect(OSyncContext *ctx)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
+	int ret;
 
 	//now connect with the palm
 	if (!_connectDevice(env, env->timeout, &error))
 		goto error;
 
 	//check the user
-	if (dlp_ReadUserInfo(env->socket, &env->user) < 0) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to read UserInfo");
+	ret = dlp_ReadUserInfo(env->socket, &env->user);
+	if (ret < 0) {
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to read UserInfo: %i", ret);
 		goto error;
 	}
 	
@@ -675,18 +717,33 @@ static osync_bool _psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = _psyncDBGetNthEntry(db, n)); n++) {
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
+
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncTodoCreate(entry, error);
 			if (!change)
 				goto error;
 			
+			if (osync_change_get_data(change) == NULL)
+				continue;
+			
 			osync_change_set_changetype(change, CHANGE_ADDED);
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = _psyncDBGetNextModified(db))) {
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			if (osync_error_is_set(error))
+				goto error;
+			
+			if (entry == NULL)
+				continue;
+
 			OSyncChange *change = _psyncTodoCreate(entry, error);
 			if (!change)
 				goto error;
@@ -737,8 +794,17 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			entry->size = pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_ToDo(&(todo->todo), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_ToDo(&(todo->todo), entry->buffer, todo_v1);
+#endif
 	
+			if (entry->size < 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error packing todo");
+				goto error;
+			}
 			if (!_psyncDBWrite(db, entry, &error))
 				goto error;
 				
@@ -764,8 +830,18 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			entry->size = pack_ToDo(&(todo->todo), entry->buffer, sizeof(entry->buffer));
+
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_ToDo(&(todo->todo), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_ToDo(&(todo->todo), entry->buffer, todo_v1);
+#endif
 	
+			if (entry->size < 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error packing todo");
+				goto error;
+			}
 			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
 			
@@ -864,18 +940,32 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = _psyncDBGetNthEntry(db, n)); n++) {
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
 				goto error;
 			
+			if (osync_change_get_data(change) == NULL)
+				continue;
+
 			osync_change_set_changetype(change, CHANGE_ADDED);
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = _psyncDBGetNextModified(db))) {
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
+
 			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
 				goto error;
@@ -937,7 +1027,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
 			osync_trace(TRACE_INTERNAL, "id %ld", id);
 			
-			PSyncEntry *orig_entry = _psyncDBGetNthEntry(db, id);
+			PSyncEntry *orig_entry = _psyncDBGetNthEntry(db, id, &error);
 			if (!orig_entry)
 				goto error;
 			
@@ -959,8 +1049,12 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			entry->size = pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
-	
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_Address(&(contact->address), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_Address(&(contact->address), entry->buffer, address_v1);
+#endif
 			if (!_psyncDBWrite(db, entry, &error))
 				goto error;
 				
@@ -986,8 +1080,12 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			entry->size = pack_Address(&(contact->address), entry->buffer, sizeof(entry->buffer));
-	
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_Address(&(contact->address), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_Address(&(contact->address), entry->buffer, address_v1);
+#endif
 			
 			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
@@ -1087,18 +1185,33 @@ static osync_bool _psyncEventGetChangeInfo(OSyncContext *ctx, OSyncError **error
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = _psyncDBGetNthEntry(db, n)); n++) {
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
+
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncEventCreate(entry, error);
 			if (!change)
 				goto error;
 			
+			if (osync_change_get_data(change) == NULL)
+				continue;
+
 			osync_change_set_changetype(change, CHANGE_ADDED);
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = _psyncDBGetNextModified(db))) {
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
+
 			OSyncChange *change = _psyncEventCreate(entry, error);
 			if (!change)
 				goto error;
@@ -1149,8 +1262,18 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			entry->size = pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_Appointment(&(event->appointment), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_Appointment(&(event->appointment), entry->buffer, datebook_v1);
+#endif
 	
+			if (entry->size < 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error packing event");
+				goto error;
+			}
+
 			if (!_psyncDBWrite(db, entry, &error))
 				goto error;
 				
@@ -1176,8 +1299,18 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			osync_trace(TRACE_INTERNAL, "Adding new entry");
 			
-			entry->size = pack_Appointment(&(event->appointment), entry->buffer, sizeof(entry->buffer));
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_Appointment(&(event->appointment), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_Appointment(&(event->appointment), entry->buffer, datebook_v1);
+#endif
 	
+			if (entry->size < 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error packing event");
+				goto error;
+			}
+
 			if (!_psyncDBAdd(db, entry, &id, &error))
 				goto error;
 			
