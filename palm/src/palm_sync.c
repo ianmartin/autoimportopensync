@@ -592,8 +592,8 @@ static void psyncConnect(OSyncContext *ctx)
 
 	//check the user
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
-	if (ret < 0) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to read UserInfo: %i", ret);
+	if (!_psyncCheckReturn(env->socket, ret, error)) {
+		osync_error_update(error, "Unable to read UserInfo: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -1406,6 +1406,7 @@ static void psyncDone(OSyncContext *ctx)
 	env->user.lastSyncPC = 1;
 	env->user.lastSyncDate = time(NULL);
 	env->user.successfulSyncDate = time(NULL);
+	
 	if (dlp_WriteUserInfo(env->socket, &env->user) < 0) {
 		osync_trace(TRACE_INTERNAL, "Unable to write UserInfo");
 	}
