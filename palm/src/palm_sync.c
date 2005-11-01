@@ -592,8 +592,8 @@ static void psyncConnect(OSyncContext *ctx)
 
 	//check the user
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
-	if (!_psyncCheckReturn(env->socket, ret, error)) {
-		osync_error_update(error, "Unable to read UserInfo: %s", osync_error_print(error));
+	if (!_psyncCheckReturn(env->socket, ret, &error)) {
+		osync_error_update(&error, "Unable to read UserInfo: %s", osync_error_print(&error));
 		goto error;
 	}
 	
