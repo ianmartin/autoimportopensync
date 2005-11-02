@@ -38,7 +38,7 @@ static osync_bool _psyncCheckReturn(int sd, int ret, OSyncError **error)
 	}
 #else
 	if (ret == PI_ERR_DLP_PALMOS) {
-		smlTrace(TRACE_INTERNAL, "Encountered a palm os error %i. Ignored", pi_palmos_err(sd));
+		osync_trace(TRACE_INTERNAL, "Encountered a palm os error %i. Ignored", pi_palmos_error(sd));
 		return TRUE;
 	} else if (ret < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%i", ret);
