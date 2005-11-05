@@ -212,16 +212,9 @@ static void evo2_connect(OSyncContext *ctx)
 
 void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, const char *uid, OSyncChangeType type)
 {
-	OSyncMember *member = osync_context_get_member(ctx);
-
-	OSyncFormatEnv *env = osync_member_get_format_env(member);
-	OSyncObjType *objtype = osync_conv_find_objtype(env, objtypestr);
-	OSyncObjFormat *objformat = osync_conv_find_objformat(env, objformatstr);
-	
 	OSyncChange *change = osync_change_new();
 	osync_change_set_uid(change, uid);
-	osync_change_set_objtype(change, objtype);
-	osync_change_set_objformat(change, objformat);
+	osync_change_set_objformat_string(change, objformatstr);
 	osync_change_set_changetype(change, type);
 	osync_change_set_data(change, data, datasize, TRUE);
 	osync_context_report_change(ctx, change);
