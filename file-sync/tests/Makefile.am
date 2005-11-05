@@ -2,4 +2,4 @@
 
 EXTRA_DIST = check_data
 
-TESTS = check_data
+## TESTS = check_data
