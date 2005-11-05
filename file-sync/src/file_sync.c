@@ -315,7 +315,7 @@ static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
 	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_DELETED:
-			if (!remove(filename) == 0) {
+			if (remove(filename) != 0) {
 				osync_debug("FILE-SYNC", 0, "Unable to remove file %s", filename);
 				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
 				g_free(filename);
