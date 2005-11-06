@@ -769,7 +769,14 @@ static OSyncChange *_psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 		todo->codepage = g_strdup(db->env->codepage);
 		
 		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+		
+#ifdef OLD_PILOT_LINK
 		unpack_ToDo(&(todo->todo), entry->buffer, db->size);
+#else
+		unpack_ToDo(&(todo->todo), entry->buffer, todo_v1);
+#endif
+
+		
 	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
 	    if (catname)
 			todo->categories = g_list_append(todo->categories, g_strdup(catname));
@@ -992,7 +999,11 @@ static OSyncChange *_psyncContactCreate(PSyncEntry *entry, OSyncError **error)
 		contact->codepage = g_strdup(db->env->codepage);
 		
 		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+#ifdef OLD_PILOT_LINK
 		unpack_Address(&(contact->address), entry->buffer, db->size);
+#else
+		unpack_Address(&(contact->address), entry->buffer, address_v1);
+#endif
 	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
 	    if (catname)
 			contact->categories = g_list_append(contact->categories, g_strdup(catname));
@@ -1114,8 +1125,12 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			if (!orig_contact)
 				goto error;
 		
+#ifdef OLD_PILOT_LINK
 			unpack_Address(&(orig_contact->address), orig_entry->buffer, db->size);
-				
+#else
+			unpack_Address(&(orig_contact->address), orig_entry->buffer, address_v1);
+#endif
+	
 			if ((orig_contact->address.showPhone) > 4)
 				orig_contact->address.showPhone = 0;
 			contact->address.showPhone = orig_contact->address.showPhone;
@@ -1226,7 +1241,13 @@ static OSyncChange *_psyncEventCreate(PSyncEntry *entry, OSyncError **error)
 		event->codepage = g_strdup(db->env->codepage);
 		
 		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+		
+#ifdef OLD_PILOT_LINK
 		unpack_Appointment(&(event->appointment), entry->buffer, db->size);
+#else
+		unpack_Appointment(&(event->appointment), entry->buffer, datebook_v1);
+#endif
+
 	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
 	    if (catname)
 			event->categories = g_list_append(event->categories, g_strdup(catname));
