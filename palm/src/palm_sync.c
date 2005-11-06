@@ -38,7 +38,7 @@ typedef enum PSyncError {
 static PSyncError _psyncCheckReturn(int sd, int ret, OSyncError **error)
 {
 #ifdef OLD_PILOT_LINK
-	if (ret == -5) {
+	if (ret == dlpErrNotFound) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "File not found");
 		return PSYNC_ERROR_NOT_FOUND;
 	} else if (ret < 0) {
@@ -48,10 +48,11 @@ static PSyncError _psyncCheckReturn(int sd, int ret, OSyncError **error)
 #else
 	if (ret == PI_ERR_DLP_PALMOS) {
 		int pierr = pi_palmos_error(sd);
-		/*if (pierr == ?) {
-			osync_trace(TRACE_INTERNAL, "File not found");
+		if (pierr == dlpErrNotFound) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "File not found");
 			return PSYNC_ERROR_NOT_FOUND;
-		}*/
+		}
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "%i", ret);
 		osync_trace(TRACE_INTERNAL, "Encountered a palm os error %i", pierr);
 		return PSYNC_ERROR_OTHER;
 	} else if (ret < 0) {
@@ -170,7 +171,7 @@ static PSyncEntry *_psyncDBGetEntryByID(PSyncDatabase *db, unsigned long id, OSy
 		entry->buffer, &entry->index, &entry->size, &entry->attr,
 		&entry->category);
 #else
-	int ret = dlp_ReadRecordById(db->env->socket, db->handle, nth,
+	int ret = dlp_ReadRecordById(db->env->socket, db->handle, id,
 		entry->buffer, &entry->index, &entry->attr, &entry->category);
 #endif
 	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
