@@ -19,8 +19,7 @@ AC_HEADER_STDC
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-AC_CHECK_LIB(pisock,pi_socket,,AC_MSG_ERROR(You must have libpisock libraries installed.))
-AC_CHECK_HEADER(pi-socket.h,, AC_MSG_ERROR(You must have the libpisock-dev package installed.))
+AM_PATH_PILOT_LINK
 
 OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
 OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)
