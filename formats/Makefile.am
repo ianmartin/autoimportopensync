@@ -7,7 +7,7 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 opensyncheader_HEADERS = file.h
 
-INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)/src
+INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)
 
 formats_LTLIBRARIES = data.la event.la todo.la contact.la note.la file.la
 

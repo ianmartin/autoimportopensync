@@ -1,4 +1,4 @@
-INCLUDES = @PACKAGE_CFLAGS@
+INCLUDES = @PACKAGE_CFLAGS@ -I$(top_srcdir)
 
 AM_CFLAGS = -Wall -Werror @XML_CFLAGS@ @GCOV_CFLAGS@
 AM_LDFLAGS = -rpath @libdir@

@@ -388,7 +388,10 @@ int osengine_mapping_num_changes(OSyncMapping *mapping)
 
 OSyncChange *osengine_mapping_nth_change(OSyncMapping *mapping, int nth)
 {
-	return ((OSyncMappingEntry *)g_list_nth_data(mapping->entries, nth))->change;
+	OSyncMappingEntry *entry = g_list_nth_data(mapping->entries, nth);
+	if (!entry)
+		return NULL;
+	return entry->change;
 }
 
 long long osengine_mapping_get_id(OSyncMapping *mapping)

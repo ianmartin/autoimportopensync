@@ -2,7 +2,7 @@
 
 SUBDIRS = mock-plugin
 
-AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@
+AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@ -DOPENSYNC_TESTDATA=\"$(srcdir)/\"
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ -I$(top_srcdir)/osengine
 

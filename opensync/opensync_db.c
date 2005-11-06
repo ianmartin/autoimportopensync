@@ -23,28 +23,43 @@
 
 void osync_db_trace(void *data, const char *query)
 {
-	osync_debug("OSDB", 4, "query executed: %s", query);
+	osync_trace(TRACE_INTERNAL, "query executed: %s", query);
 }
 
 OSyncDB *osync_db_open(char *filename, OSyncError **error)
 {
-	OSyncDB *db = g_malloc0(sizeof(OSyncDB));
-	int rc;
-	rc = sqlite3_open(filename, &(db->db));
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
+	
+	OSyncDB *db = osync_try_malloc0(sizeof(OSyncDB), error);
+	if (!db)
+		goto error;
+		
+	int rc = sqlite3_open(filename, &(db->db));
 	if (rc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(db->db));
-		sqlite3_close(db->db);
-		return NULL;
+		goto error_free;
 	}
 	sqlite3_trace(db->db, osync_db_trace, NULL);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
 	return db;
+
+error_free:
+	g_free(db);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 void osync_db_close(OSyncDB *db)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
+	
 	int ret = sqlite3_close(db->db);
 	if (ret)
-		osync_debug("OSDB", 1, "Can't close database: %s", sqlite3_errmsg(db->db));
+		osync_trace(TRACE_INTERNAL, "Can't close database: %s", sqlite3_errmsg(db->db));
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 int osync_db_count(OSyncDB *db, char *query)

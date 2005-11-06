@@ -3,8 +3,8 @@ AM_CFLAGS = -Werror
 
 INCLUDES= @PACKAGE_CFLAGS@ $(PYTHON_INCLUDES) -I$(top_srcdir) -I$(top_srcdir)/opensync
 
-opensync_wrap.c: opensync.i
-	$(SWIG) -Werror -python -modern -I$(top_srcdir)/opensync $(PYTHON_INCLUDES) opensync.i
+opensync_wrap.c: $(srcdir)/opensync.i
+	$(SWIG) -Werror -python -modern -I$(top_srcdir)/opensync $(PYTHON_INCLUDES) -o opensync_wrap.c $(srcdir)/opensync.i
 
 EXTRA_DIST = opensync.i
 

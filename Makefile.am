@@ -13,7 +13,8 @@ DISTCLEANFILES = \
 	opensync-1.0.pc  \
 	opensync-1.0-uninstalled.pc \
 	osengine-1.0.pc  \
-	osengine-1.0-uninstalled.pc
+	osengine-1.0-uninstalled.pc \
+	py-compile
 
 EXTRA_DIST = \
 	opensync-1.0.pc.in \

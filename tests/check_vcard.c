@@ -3,7 +3,7 @@
 
 static void conv_vcard(const char *filename, const char *extension)
 {
-	char *command = g_strdup_printf("cp %s/%s .", g_get_current_dir(), filename);
+	char *command = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s .", g_get_current_dir(), filename);
 	char *testbed = setup_testbed(NULL);
 	system(command);
 	g_free(command);
@@ -75,8 +75,8 @@ static void conv_vcard(const char *filename, const char *extension)
 
 static void compare_vcard(const char *lfilename, const char *rfilename, OSyncConvCmpResult result)
 {
-	char *command1 = g_strdup_printf("cp %s/%s lfile", g_get_current_dir(), lfilename);
-	char *command2 = g_strdup_printf("cp %s/%s rfile", g_get_current_dir(), rfilename);
+	char *command1 = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s lfile", g_get_current_dir(), lfilename);
+	char *command2 = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s rfile", g_get_current_dir(), rfilename);
 	char *testbed = setup_testbed(NULL);
 	system(command1);
 	g_free(command1);
@@ -128,7 +128,7 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 
 static time_t vcard_get_revision(const char *filename)
 {
-	char *command = g_strdup_printf("cp %s/%s .", g_get_current_dir(), filename);
+	char *command = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s .", g_get_current_dir(), filename);
 	char *testbed = setup_testbed(NULL);
 	system(command);
 	g_free(command);

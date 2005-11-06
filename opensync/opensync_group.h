@@ -33,6 +33,7 @@ void osync_group_set_data(OSyncGroup *group, void *data);
 long long int osync_group_create_member_id(OSyncGroup *group);
 void osync_group_set_slow_sync(OSyncGroup *group, const char *objtype, osync_bool slow_sync);
 osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype);
+void osync_group_reset_slow_sync(OSyncGroup *group, const char *objtypestr);
 osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype);
 void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled);
 OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group);
