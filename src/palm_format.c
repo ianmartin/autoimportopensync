@@ -743,6 +743,21 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		goto error;
 	}
 	
+	int i = 0;
+	for (i = 0; i < 19; i++) {
+	  /*if (entry->address.entry[i]) {
+	    char *tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), conn->codepage ,"utf8", NULL, NULL, NULL);
+	    free(entry->address.entry[i]);
+	    entry->address.entry[i] = tmp;
+	  }
+	  if (entry->address.entry[i] && !strlen(entry->address.entry[i])) {
+	    free(entry->address.entry[i]);
+	    entry->address.entry[i] = NULL;
+	    palm_debug(conn, 3, "Address %i: %s", i, entry->address.entry[i]);
+	  }*/
+	  osync_trace(TRACE_INTERNAL, "entry %i: %s", i, entry->address.entry[i]);
+	}
+	
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "contact");
@@ -774,7 +789,6 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	}
 
 	//Telephones and email
-	int i;
 	for (i = 3; i <= 7; i++) {
 		tmp = return_next_entry(entry, i);
 		if (tmp) {
