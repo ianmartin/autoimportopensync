@@ -29,23 +29,37 @@
 #define pi_buffer(b) b->data
 #endif
 
-static osync_bool _psyncCheckReturn(int sd, int ret, OSyncError **error)
+typedef enum PSyncError {
+	PSYNC_NO_ERROR = 0,
+	PSYNC_ERROR_NOT_FOUND = 1,
+	PSYNC_ERROR_OTHER = 2,
+} PSyncError;
+
+static PSyncError _psyncCheckReturn(int sd, int ret, OSyncError **error)
 {
 #ifdef OLD_PILOT_LINK
-	if (ret < 0) {
+	if (ret == -5) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "File not found");
+		return PSYNC_ERROR_NOT_FOUND;
+	} else if (ret < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%i", ret);
-		return FALSE;
+		return PSYNC_ERROR_OTHER;
 	}
 #else
 	if (ret == PI_ERR_DLP_PALMOS) {
-		osync_trace(TRACE_INTERNAL, "Encountered a palm os error %i. Ignored", pi_palmos_error(sd));
-		return TRUE;
+		int pierr = pi_palmos_error(sd);
+		/*if (pierr == ?) {
+			osync_trace(TRACE_INTERNAL, "File not found");
+			return PSYNC_ERROR_NOT_FOUND;
+		}*/
+		osync_trace(TRACE_INTERNAL, "Encountered a palm os error %i", pierr);
+		return PSYNC_ERROR_OTHER;
 	} else if (ret < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%i", ret);
-		return FALSE;
+		return PSYNC_ERROR_OTHER;
 	}
 #endif
-	return TRUE;
+	return PSYNC_NO_ERROR;
 }
 
 static void _psyncDBClose(PSyncDatabase *db)
@@ -99,7 +113,7 @@ static PSyncDatabase *_psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error
 	
 	//open it
 	int ret = dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &(db->handle));
-	if (!_psyncCheckReturn(env->socket, ret, error)) {
+	if (_psyncCheckReturn(env->socket, ret, error) != PSYNC_NO_ERROR) {
 		osync_error_update(error, "Unable to open %s: %s", name, osync_error_print(error));
 		goto error_free_db;
 	}
@@ -135,6 +149,56 @@ error:
 	return NULL;
 }
 
+static PSyncEntry *_psyncDBGetEntryByID(PSyncDatabase *db, unsigned long id, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %ld, %p)", __func__, db, id, error);
+	
+	PSyncEntry *entry = osync_try_malloc0(sizeof(PSyncEntry), error);
+	if (!entry)
+		goto error;
+	
+	entry->id = id;
+	entry->db = db;
+#ifndef OLD_PILOT_LINK
+	entry->buffer = pi_buffer_new(65536);
+	if (!entry->buffer)
+		goto error_free_entry;
+#endif
+	
+#ifdef OLD_PILOT_LINK
+	int ret = dlp_ReadRecordById(db->env->socket, db->handle, id,
+		entry->buffer, &entry->index, &entry->size, &entry->attr,
+		&entry->category);
+#else
+	int ret = dlp_ReadRecordById(db->env->socket, db->handle, nth,
+		entry->buffer, &entry->index, &entry->attr, &entry->category);
+#endif
+	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
+	if (err == PSYNC_ERROR_OTHER) {
+		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
+		goto error_free_buffer;
+	} else if (err == PSYNC_ERROR_NOT_FOUND) {
+		osync_error_free(error);
+		goto error_free_buffer;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
+	return entry;
+
+error_free_buffer:;
+#ifndef OLD_PILOT_LINK
+		pi_buffer_free(entry->buffer);
+error_free_entry:
+#endif
+	g_free(entry);
+error:
+	if (osync_error_is_set(error))
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	else
+		osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
+	return NULL;
+}
+
 static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, nth, error);
@@ -147,6 +211,8 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **
 	entry->db = db;
 #ifndef OLD_PILOT_LINK
 	entry->buffer = pi_buffer_new(65536);
+	if (!entry->buffer)
+		goto error_free_entry;
 #endif
 	
 #ifdef OLD_PILOT_LINK
@@ -157,20 +223,29 @@ static PSyncEntry *_psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **
 	int ret = dlp_ReadRecordByIndex(db->env->socket, db->handle, nth,
 		entry->buffer, &entry->id, &entry->attr, &entry->category);
 #endif
-	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
-#ifndef OLD_PILOT_LINK
-		pi_buffer_free(entry->buffer);
-#endif
-		g_free(entry);
+	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
+	if (err == PSYNC_ERROR_OTHER) {
 		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
-		goto error;
+		goto error_free_buffer;
+	} else if (err == PSYNC_ERROR_NOT_FOUND) {
+		osync_error_free(error);
+		goto error_free_buffer;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 	return entry;
-	
+
+error_free_buffer:;
+#ifndef OLD_PILOT_LINK
+		pi_buffer_free(entry->buffer);
+error_free_entry:
+#endif
+	g_free(entry);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	if (osync_error_is_set(error))
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	else
+		osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
 	return NULL;
 }
 
@@ -185,6 +260,8 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error
 	entry->db = db;
 #ifndef OLD_PILOT_LINK
 	entry->buffer = pi_buffer_new(65536);
+	if (!entry->buffer)
+		goto error_free_entry;
 #endif
 
 #ifdef OLD_PILOT_LINK	
@@ -197,20 +274,29 @@ static PSyncEntry *_psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error
 		&entry->category);
 #endif
 
-	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
-#ifndef OLD_PILOT_LINK
-		pi_buffer_free(entry->buffer);
-#endif
-		g_free(entry);
-		osync_error_update(error, "Unable to get next modified: %s", osync_error_print(error));
-		goto error;
+	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
+	if (err == PSYNC_ERROR_OTHER) {
+		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
+		goto error_free_buffer;
+	} else if (err == PSYNC_ERROR_NOT_FOUND) {
+		osync_error_free(error);
+		goto error_free_buffer;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 	return entry;
-	
+
+error_free_buffer:;
+#ifndef OLD_PILOT_LINK
+		pi_buffer_free(entry->buffer);
+error_free_entry:
+#endif
+	g_free(entry);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	if (osync_error_is_set(error))
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	else
+		osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
 	return NULL;
 }
 
@@ -219,7 +305,7 @@ static osync_bool _psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, db, id, error);
 	
 	int ret = dlp_DeleteRecord(db->env->socket, db->handle, 0,  id);
-	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
+	if (_psyncCheckReturn(db->env->socket, ret, error) != PSYNC_NO_ERROR) {
 		osync_error_update(error, "Unable to delete file: %s", osync_error_print(error));
 		goto error;
 	}
@@ -245,7 +331,7 @@ static osync_bool _psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError
 #else
 	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, entry->buffer, entry->size, 0);
 #endif
-	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
+	if (_psyncCheckReturn(db->env->socket, ret, error) != PSYNC_NO_ERROR) {
 		osync_error_update(error, "Unable to write file: %s", osync_error_print(error));
 		goto error;
 	}
@@ -278,7 +364,7 @@ static osync_bool _psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned lon
 #else
 	ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, ((pi_buffer_t*)entry->buffer)->data, ((pi_buffer_t*)entry->buffer)->used, id);
 #endif
-	if (!_psyncCheckReturn(db->env->socket, ret, error)) {
+	if (_psyncCheckReturn(db->env->socket, ret, error) != PSYNC_NO_ERROR) {
 		osync_error_update(error, "Unable to add file: %s", osync_error_print(error));
 		goto error;
 	}
@@ -592,7 +678,7 @@ static void psyncConnect(OSyncContext *ctx)
 
 	//check the user
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
-	if (!_psyncCheckReturn(env->socket, ret, &error)) {
+	if (_psyncCheckReturn(env->socket, ret, &error) != PSYNC_NO_ERROR) {
 		osync_error_update(&error, "Unable to read UserInfo: %s", osync_error_print(&error));
 		goto error;
 	}
@@ -941,12 +1027,7 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 		
 		int n;
 		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
-			if (osync_error_is_set(error))
-				goto error;
-				
-			if (entry == NULL)
-				continue;
-			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
+			osync_trace(TRACE_INTERNAL, "Got record with id %ld", entry->id);
 			
 			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
@@ -960,12 +1041,6 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 		}
 	} else {
 		while ((entry = _psyncDBGetNextModified(db, error))) {
-			if (osync_error_is_set(error))
-				goto error;
-				
-			if (entry == NULL)
-				continue;
-
 			OSyncChange *change = _psyncContactCreate(entry, error);
 			if (!change)
 				goto error;
@@ -973,7 +1048,7 @@ static osync_bool _psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **err
 			osync_context_report_change(ctx, change);
 		}
 	}
-	
+				
 	if (osync_error_is_set(error))
 		goto error_close_db;
 	
@@ -1027,7 +1102,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
 			osync_trace(TRACE_INTERNAL, "id %ld", id);
 			
-			PSyncEntry *orig_entry = _psyncDBGetNthEntry(db, id, &error);
+			PSyncEntry *orig_entry = _psyncDBGetEntryByID(db, id, &error);
 			if (!orig_entry)
 				goto error;
 			
@@ -1043,7 +1118,7 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 
 			g_free(orig_entry);
 			g_free(orig_contact);
-
+			
 			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
 			if (!entry)
 				goto error;

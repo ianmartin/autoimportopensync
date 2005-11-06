@@ -868,7 +868,8 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	//Note
 	tmp = return_next_entry(entry, 18);
 	if (tmp) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Note", (xmlChar*)tmp);
+		current = xmlNewChild(root, NULL, (xmlChar*)"Note", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -939,12 +940,16 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 
 	//Telephone
 	int i = 0;
-	xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)input, "/Telephone");
+	xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Telephone");
 	xmlNodeSet *nodes = xobj->nodesetval;
 	int numnodes = (nodes) ? nodes->nodeNr : 0;
-	for (i = 0; i < 4 && i < numnodes; i++) {
+	osync_trace(TRACE_INTERNAL, "Found %i telephones", numnodes);
+	
+	for (i = 0; i < 5 && i < numnodes; i++) {
 		cur = nodes->nodeTab[i];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
+
+		osync_trace(TRACE_INTERNAL, "handling telephone. has work %i, home %i, voice %i", osxml_has_property(cur, "Work"), osxml_has_property(cur, "Home"), osxml_has_property(cur, "Voice"));
 
 		if (osxml_has_property(cur, "Work") && osxml_has_property(cur, "Voice")) {
 			entry->address.phoneLabel[i] = 0;
@@ -965,11 +970,12 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 	xmlXPathFreeObject(xobj);
 	
 	//EMail
-	xobj = osxml_get_nodeset((xmlDoc *)input, "/EMail");
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/EMail");
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
+	osync_trace(TRACE_INTERNAL, "Found %i emails", numnodes);
 	int n;
-	for (n = 0; i < 4 && n < numnodes; n++) {
+	for (n = 0; i < 5 && n < numnodes; n++) {
 		cur = nodes->nodeTab[n];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
 		entry->address.phoneLabel[i] = 4;
