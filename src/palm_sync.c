@@ -479,8 +479,10 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 
 	osync_trace(TRACE_INTERNAL, "Done");
 
+#ifdef OLD_PILOT_LINK
 	if (env->conntype != PILOT_DEVICE_NETWORK && env->conntype != PILOT_DEVICE_IRDA)
 		pi_close(listen_sd);
+#endif
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -679,6 +681,7 @@ static void psyncConnect(OSyncContext *ctx)
 
 	//check the user
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
+	osync_trace(TRACE_INTERNAL, "test %i", ret);
 	if (_psyncCheckReturn(env->socket, ret, &error) != PSYNC_NO_ERROR) {
 		osync_error_update(&error, "Unable to read UserInfo: %s", osync_error_print(&error));
 		goto error;
