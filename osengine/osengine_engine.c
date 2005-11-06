@@ -684,13 +684,17 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	osengine_mappingtable_reset(engine->maptable);
 	
 	if (engine->error) {
-		osync_status_update_engine(engine, ENG_ERROR, &engine->error);
-		engine->error = NULL;
+		//FIXME We might be leaking memory here
+		OSyncError *newerror = NULL;
+		osync_error_duplicate(&newerror, &engine->error);
+		osync_status_update_engine(engine, ENG_ERROR, &newerror);
 		osync_group_set_slow_sync(engine->group, "data", TRUE);
 	} else {
 		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);
 		osync_group_reset_slow_sync(engine->group, "data");
 	}
+	
+	osync_trace(TRACE_INTERNAL, "engine error is %p", engine->error);
 	
 	g_mutex_lock(engine->syncing_mutex);
 	g_cond_signal(engine->syncing);
@@ -1070,11 +1074,13 @@ void osengine_finalize(OSyncEngine *engine)
  */
 osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osengine_synchronize(%p)", engine);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	g_assert(engine);
+	
 	if (!engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "osengine_synchronize: Not initialized");
-		osync_trace(TRACE_EXIT_ERROR, "osengine_synchronize: %s", osync_error_print(error));
+		
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -1082,7 +1088,7 @@ osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 	engine->alldeciders = 0;
 	
 	osync_flag_set(engine->fl_running);
-	osync_trace(TRACE_EXIT, "osengine_synchronize");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
@@ -1170,11 +1176,13 @@ void osengine_deny_sync_alert(OSyncEngine *engine)
  */
 osync_bool osengine_sync_and_block(OSyncEngine *engine, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	
 	g_mutex_lock(engine->syncing_mutex);
 	
 	if (!osengine_synchronize(engine, error)) {
 		g_mutex_unlock(engine->syncing_mutex);
-		return FALSE;
+		goto error;
 	}
 	
 	g_cond_wait(engine->syncing, engine->syncing_mutex);
@@ -1182,10 +1190,15 @@ osync_bool osengine_sync_and_block(OSyncEngine *engine, OSyncError **error)
 	
 	if (engine->error) {
 		osync_error_duplicate(error, &(engine->error));
-		return FALSE;
+		goto error;
 	}
 	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*! @brief This function will block until a synchronization has ended

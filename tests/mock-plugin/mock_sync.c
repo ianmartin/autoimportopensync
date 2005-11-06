@@ -494,6 +494,7 @@ static void mock_committed_all(OSyncContext *context)
 	
 	if (mock_get_error(env->member, "COMMITTED_ALL_ERROR")) {
 		osync_context_report_error(context, OSYNC_ERROR_EXPECTED, "Triggering COMMITTED_ALL_ERROR error");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Reporting error", __func__);
 		return;
 	}
 	

@@ -436,6 +436,7 @@ START_TEST (single_get_changes_error)
 	char *testbed = setup_testbed("sync_easy_conflict");
 	
 	setenv("GET_CHANGES_ERROR", "2", TRUE);
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -515,6 +516,7 @@ START_TEST (two_of_three_get_changes_error)
 	char *testbed = setup_testbed("multisync_conflict_data_choose2");
 	
 	setenv("GET_CHANGES_ERROR", "5", TRUE);
+	setenv("NO_COMMITTED_ALL_CHECK", "1", TRUE);
 	
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
@@ -1144,15 +1146,15 @@ START_TEST (committed_all_error)
 	fail_unless(num_disconnected == 3, NULL);
 	fail_unless(num_member_sent_changes == 3, NULL);
 	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_written == 2, NULL);
+	fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	destroy_testbed(testbed);
 }
@@ -1192,15 +1194,15 @@ START_TEST (committed_all_batch_error)
 	fail_unless(num_disconnected == 3, NULL);
 	fail_unless(num_member_sent_changes == 3, NULL);
 	fail_unless(num_read == 1, NULL);
-	fail_unless(num_written == 0, NULL);
-	fail_unless(num_written_errors == 2, NULL);
+	fail_unless(num_written == 2, NULL);
+	fail_unless(num_written_errors == 0, NULL);
 	fail_unless(num_mapping_errors == 0, NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" != \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" != \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data3)\" = \"x\""), NULL);
 	
 	destroy_testbed(testbed);
 }
