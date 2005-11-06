@@ -345,10 +345,17 @@ static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
 		case CHANGE_MODIFIED:
 			/* Dont touch the permissions */
 			if (stat(filename, &filestats) == -1)
-				filestats.st_mode = 0700;
+				filestats.st_mode = 0700; //An error occured. Choose a save default value
 				
 			if (!osync_file_write(filename, file_info->data, file_info->size, filestats.st_mode, &error)) {
 				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
+				osync_context_report_osyncerror(ctx, &error);
+				g_free(filename);
+				return FALSE;
+			}
+			
+			if (stat(filename, &filestats) != 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to stat file");
 				osync_context_report_osyncerror(ctx, &error);
 				g_free(filename);
 				return FALSE;
