@@ -118,6 +118,9 @@ START_TEST (sync_easy_new_del)
 	synchronize_once(engine, NULL);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
+	OSyncMappingTable *maptable = mappingtable_load(group, 1, 0);
+    mappingtable_close(maptable);
+	
 	system("rm data1/testdata");
 	
 	synchronize_once(engine, NULL);
@@ -126,7 +129,7 @@ START_TEST (sync_easy_new_del)
 	mark_point();
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
-	OSyncMappingTable *maptable = mappingtable_load(group, 0, 0);
+	maptable = mappingtable_load(group, 0, 0);
     mappingtable_close(maptable);
     
     OSyncHashTable *table = hashtable_load(group, 1, 0);

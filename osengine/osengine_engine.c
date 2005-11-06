@@ -164,7 +164,7 @@ void _disconnect_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEn
 
 void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
 {
-	osync_trace(TRACE_ENTRY, "_new_change_receiver(%p, %p, %p)", engine, client, change);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, client, change);
 	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_datasize(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
 	
 	OSyncError *error = NULL;
@@ -172,9 +172,11 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	OSyncMappingEntry *entry = osengine_mappingtable_store_change(engine->maptable, change);
 	change = entry->change;
 	if (!osync_change_save(change, TRUE, &error)) {
-		//FIXME Notify user
-		osync_trace(TRACE_EXIT_ERROR, "_new_change_receiver");
-		return;
+		osync_error_duplicate(&engine->error, &error);
+		osync_status_update_change(engine, change, CHANGE_RECV_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to receive one or more objects");
+		osync_flag_unset(entry->fl_has_data);
+		goto error;
 	}
 	
 	osync_group_remove_changelog(engine->group, change, &error);
@@ -212,7 +214,13 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 
 	osengine_mappingentry_decider(engine, entry);
 	
-	osync_trace(TRACE_EXIT, "_new_change_receiver");
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
+	return;
 }
 
 void _get_change_data_reply_receiver(OSyncClient *sender, ITMessage *message, OSyncEngine *engine)
@@ -608,6 +616,16 @@ static gboolean startupfunc(gpointer data)
 {
 	OSyncEngine *engine = data;
 	osync_trace(TRACE_INTERNAL, "+++++++++ This is the engine of group \"%s\" +++++++++", osync_group_get_name(engine->group));
+	
+	OSyncError *error = NULL;
+	if (!osengine_mappingtable_load(engine->maptable, &error)) {
+		osync_error_duplicate(&engine->error, &error);
+		osync_status_update_engine(engine, ENG_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to connect one of the members");
+		osync_flag_set(engine->fl_stop);
+	}
+	itm_queue_flush(engine->incoming);
+	
 	g_mutex_lock(engine->started_mutex);
 	g_cond_signal(engine->started);
 	g_mutex_unlock(engine->started_mutex);
@@ -671,7 +689,7 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 		osync_group_set_slow_sync(engine->group, "data", TRUE);
 	} else {
 		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);
-		osync_group_set_slow_sync(engine->group, "data", FALSE);
+		osync_group_reset_slow_sync(engine->group, "data");
 	}
 	
 	g_mutex_lock(engine->syncing_mutex);
@@ -977,12 +995,6 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		}
 	}
 	
-	if (!osengine_mappingtable_load(engine->maptable, error)) {
-		osengine_finalize(engine);
-		osync_group_unlock(engine->group, TRUE);
-		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
-		return FALSE;
-	}
 	itm_queue_flush(engine->incoming);
 	
 	osync_debug("ENG", 3, "Running the main loop");

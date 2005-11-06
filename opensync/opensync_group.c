@@ -718,6 +718,8 @@ void osync_group_set_configdir(OSyncGroup *group, const char *directory)
  */
 void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, group, objtypestr, slow_sync);
+	
 	g_assert(group);
 	OSyncFormatEnv *conv_env = group->conv_env;
 
@@ -738,6 +740,37 @@ void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_
 			objtype->needs_slow_sync = slow_sync;
 		}
 	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+/** @brief Reset slow-sync for this group
+ * 
+ * You can use this function to reset the slow-sync status for the given group. This is normally
+ * done if a synchronization succeeds.
+ *
+ * @param group The group to reset slow-sync on
+ * @param objtypestr The name of the object type
+ */
+void osync_group_reset_slow_sync(OSyncGroup *group, const char *objtypestr)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, group, objtypestr);
+	g_assert(group);
+	OSyncFormatEnv *conv_env = group->conv_env;
+
+	if (osync_conv_objtype_is_any(objtypestr)) {
+		GList *element;
+		for (element = conv_env->objtypes; element; element = element->next) {
+			OSyncObjType *objtype = element->data;
+			objtype->needs_slow_sync = FALSE;
+		}
+	} else {
+		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
+		g_assert(objtype);
+		objtype->needs_slow_sync = FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Returns if the group will perform a slow-sync for the object type
