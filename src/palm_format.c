@@ -342,7 +342,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		time_t ttm = atoi(content);
 		struct tm *tm = gmtime(&ttm);
 		entry->appointment.begin = *tm;
-		g_free(tm);
 		/*if (strlen(attrValue) == 8) {
 			entry->appointment.event = 1;
 		}*/
@@ -355,7 +354,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		time_t ttm = atoi(content);
 		struct tm *tm = gmtime(&ttm);
 		entry->appointment.end = *tm;
-		g_free(tm);
 	}
 	
 	//Alarm
@@ -685,7 +683,6 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 		time_t ttm = atoi(content);
 		struct tm *tm = gmtime(&ttm);
 		entry->todo.due = *tm;
-		g_free(tm);
 		entry->todo.indefinite = 0;
 	}
 
