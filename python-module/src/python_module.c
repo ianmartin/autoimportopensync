@@ -23,7 +23,7 @@ static PyObject *pm_load_opensync(OSyncError **error)
 	PyObject *osync_module = PyImport_ImportModule("opensync");
 	if (!osync_module) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't load OpenSync module");
-		PyErr_Print();
+		//PyErr_Print();
 		return NULL;
 	}
 	return osync_module;
