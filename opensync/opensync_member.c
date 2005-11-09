@@ -120,8 +120,9 @@ osync_bool osync_member_get_objtype_sinks(OSyncMember *member, GList **list_ptr,
 osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "osync_member_read_config(%p, %p, %p, %p)", member, data, size, error);
+	
 	if (!osync_member_instance_default_plugin(member, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %i", osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -465,8 +466,7 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 	g_assert(member);
 	osync_bool ret = TRUE;
 
-	if (!member->plugin) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Member has not instanced a plugin yet");
+	if (!osync_member_instance_default_plugin(member, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
