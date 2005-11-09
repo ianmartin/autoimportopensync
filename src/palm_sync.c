@@ -864,6 +864,20 @@ error:
 	return FALSE;
 }
 
+unsigned long _psyncUidGetID(const char *uid, OSyncError **error)
+{
+	unsigned long id = 0;
+	if (sscanf(uid, "uid-%*[^-]-%ld", &id) != 1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse uid %s", uid);
+		return 0;
+	}
+	osync_trace(TRACE_INTERNAL, "Got id %ld", id);
+	if (!id)
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Found 0 ID");
+	
+	return id;
+}
+
 static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
@@ -883,8 +897,9 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			//Get the id
-			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %ld", id);
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
 
 			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
 			if (!entry)
@@ -948,8 +963,9 @@ static osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 			g_free(uid);
 			break;
 		case CHANGE_DELETED:
-			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %ld", id);
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
 		
 			if (!_psyncDBDelete(db, id, &error))
 				goto error;
@@ -1114,8 +1130,9 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			//Get the id
-			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %ld", id);
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
 			
 			PSyncEntry *orig_entry = _psyncDBGetEntryByID(db, id, &error);
 			if (!orig_entry)
@@ -1190,8 +1207,9 @@ static osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			g_free(uid);
 			break;
 		case CHANGE_DELETED:
-			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %ld", id);
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
 		
 			if (!_psyncDBDelete(db, id, &error))
 				goto error;
@@ -1354,8 +1372,9 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			//Get the id
-			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %ld", id);
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
 
 			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
 			if (!entry)
@@ -1420,8 +1439,9 @@ static osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 			g_free(uid);
 			break;
 		case CHANGE_DELETED:
-			sscanf(osync_change_get_uid(change), "uid-%*[^-]-%ld", &id);
-			osync_trace(TRACE_INTERNAL, "id %ld", id);
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
 		
 			if (!_psyncDBDelete(db, id, &error))
 				goto error;
