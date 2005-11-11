@@ -397,6 +397,26 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
 	member->configdir = g_strdup(configdir);
 }
 
+osync_bool osync_member_need_config(OSyncMember *member, OSyncConfigurationTypes *type, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, type, error);
+	g_assert(member);
+	g_assert(type);
+	*type = NO_CONFIGURATION;
+	
+	if (!osync_member_instance_default_plugin(member, error))
+		goto error;
+	
+	*type = member->plugin->info.config_type;
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, *type);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
 /** @brief Gets the configuration data of this member
  * 
  * The config file is read in this order:

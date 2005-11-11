@@ -291,9 +291,11 @@ osync_bool osync_module_load(OSyncEnv *env, const char *path, OSyncError **error
 	void (* fct_info)(OSyncEnv *env) = NULL;
 	void (** fct_infop)(OSyncEnv *env) = &fct_info;
 	if (!g_module_symbol(module, "get_info", (void **)fct_infop)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get symbol from module %s: %s", path, g_module_error());
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		/* If there is no get_info symbol, the file must be a implementation library
+		 * for one of the other modules. So dont throw an error error since it has been
+		 * confusing users */
+		osync_trace(TRACE_EXIT, "%s: Not loading implementation library", __func__);
+		return TRUE;
 	}
 	env->modules = g_list_append(env->modules, module);
 	
