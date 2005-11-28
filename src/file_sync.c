@@ -67,17 +67,16 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
 
-	char *configdata;
-	int configsize;
 	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
+	xmlDocPtr doc;
 	
-	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
+	if (!(doc = osync_member_get_config (member, error))) {
 		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
 		g_free(fsinfo);
 		return NULL;
 	}
 	
-	if (!fs_parse_settings(fsinfo, configdata, configsize, error)) {
+	if (!fs_parse_settings(fsinfo, doc, error)) {
 		g_free(fsinfo);
 		return NULL;
 	}
@@ -441,6 +440,8 @@ void get_info(OSyncEnv *env)
 	info->version = 1;
 	info->is_threadsafe = TRUE;
 	
+	info->functions.get_config = fs_get_config;
+	info->functions.set_config = fs_set_config;
 	info->functions.initialize = fs_initialize;
 	info->functions.connect = fs_connect;
 	info->functions.sync_done = fs_sync_done;
