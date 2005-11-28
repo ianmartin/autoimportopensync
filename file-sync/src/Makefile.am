@@ -4,7 +4,7 @@ formatsdir=@OPENSYNC_FORMATSDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@
 
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = -Wall
 
 EXTRA_DIST = \
 	file-sync \
