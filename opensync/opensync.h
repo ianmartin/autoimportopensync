@@ -5,6 +5,9 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
+
 #ifdef __cplusplus
 extern "C"
 {

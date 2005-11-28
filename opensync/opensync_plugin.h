@@ -3,10 +3,10 @@
  * @ingroup OSyncPluginAPI 
  **/
 typedef struct OSyncPluginFunctions {
-	/** The function that gets a configuration file for this plugin (optional) */
-	osync_bool (* get_config) (char *, char **, int *);
-	/** The function that stores the configuration file for this plugin (optional) */
-	osync_bool (* store_config) (char *, const char *, int);
+	/** The function that gets a configuration file for this plugin */
+	xmlDocPtr  (* get_config) (const char *path);
+	/** The function that stores the configuration file for this plugin */
+	osync_bool (* set_config) (const char *path, xmlDocPtr doc);
 	/** A function to check if the backend is available. (optional) */
 	osync_bool (* is_available) (OSyncError **);
 	/** The function to initialize the plugin. */
