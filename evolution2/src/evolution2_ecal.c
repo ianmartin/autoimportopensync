@@ -196,12 +196,16 @@ static osync_bool evo2_calendar_modify(OSyncContext *ctx, OSyncChange *change)
 				return FALSE;
 			}
 			
-			icalcomponent_set_uid (icomp, uid);
 			if (!e_cal_modify_object(env->calendar, icomp, CALOBJ_MOD_ALL, &gerror)) {
-				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify event: %s", gerror ? gerror->message : "None");
-				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify event: %s", __func__, gerror ? gerror->message : "None");
+				/* try to add */
+				osync_trace(TRACE_INTERNAL, "unable to mod event: %s", gerror ? gerror->message : "None");
 				g_clear_error(&gerror);
-				return FALSE;
+				if (!e_cal_create_object(env->calendar, icomp, &returnuid, &gerror)) {
+					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to create or modify event: %s", gerror ? gerror->message : "None");
+					osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create event: %s", __func__, gerror ? gerror->message : "None");
+					g_clear_error(&gerror);
+					return FALSE;
+				}
 			}
 			break;
 		default:

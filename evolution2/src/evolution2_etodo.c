@@ -198,10 +198,14 @@ static osync_bool evo2_todo_modify(OSyncContext *ctx, OSyncChange *change)
 			
 			icalcomponent_set_uid (icomp, uid);
 			if (!e_cal_modify_object(env->tasks, icomp, CALOBJ_MOD_ALL, &gerror)) {
-				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify todo: %s", gerror ? gerror->message : "None");
-				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to modify todo: %s", __func__, gerror ? gerror->message : "None");
+				osync_trace(TRACE_INTERNAL, "unable to mod todo: %s", gerror ? gerror->message : "None");
 				g_clear_error(&gerror);
-				return FALSE;
+				if (!e_cal_create_object(env->tasks, icomp, &returnuid, &gerror)) {
+					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to create todo: %s", gerror ? gerror->message : "None");
+					osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create todo: %s", __func__, gerror ? gerror->message : "None");
+					g_clear_error(&gerror);
+					return FALSE;
+				}
 			}
 			break;
 		default:

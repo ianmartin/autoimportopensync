@@ -183,9 +183,18 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 				if (uid)
 					osync_change_set_uid(change, uid);
 			} else {
-				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify contact");
-				osync_trace(TRACE_EXIT_ERROR, "%s: unable to mod contact: %s", __func__, gerror ? gerror->message : "None");
-				return FALSE;
+				/* try to add */
+				osync_trace(TRACE_INTERNAL, "unable to mod contact: %s", gerror ? gerror->message : "None");
+				
+				g_clear_error(&gerror);
+				if (e_book_add_contact(env->addressbook, contact, &gerror)) {
+					uid = e_contact_get_const(contact, E_CONTACT_UID);
+					osync_change_set_uid(change, uid);
+				} else {
+					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify or add contact");
+					osync_trace(TRACE_EXIT_ERROR, "%s: unable to add contact: %s", __func__, gerror ? gerror->message : "None");
+					return FALSE;
+				}
 			}
 			break;
 		default:
