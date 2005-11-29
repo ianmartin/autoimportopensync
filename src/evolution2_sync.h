@@ -36,5 +36,6 @@ void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr,
 #include "evolution2_ebook.h"
 #include "evolution2_ecal.h"
 #include "evolution2_etodo.h"
+#include "evolution2_xml.h"
 
 #endif
