@@ -4,7 +4,8 @@ struct OSyncMember {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 	long long int id;
 	char *configdir;
-
+	char *configdata;
+	int configsize;
 	OSyncPlugin *plugin;
 	OSyncMemberFunctions *memberfunctions;
 	OSyncGroup *group;

@@ -514,6 +514,17 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	
+	char *config = NULL;
+	int size = 0;
+	if (configfile) {
+		if (!osync_file_read(configfile, &config, &size, &error)) {
+			fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
+			osync_error_free(&error);
+			return 1;
+		}
+		osync_member_set_config(member, config, size);
+	}
+	
 	osync_member_set_pluginname(member, pluginname);
 	osync_member_set_configdir(member, testdir);
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);

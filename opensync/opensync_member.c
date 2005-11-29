@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
-
+ 
 #include "opensync.h"
 #include "opensync_internals.h"
 
@@ -98,6 +98,57 @@ osync_bool osync_member_get_objtype_sinks(OSyncMember *member, GList **list_ptr,
 	return TRUE;
 }
 
+/** @brief Reads the configuration data of this member
+ * 
+ * The config file is read in this order:
+ * - If there is a configuration in memory that is not yet saved
+ * this is returned
+ * - If there is a config file in the member directory this is read
+ * and returned
+ * 
+ * The difference to get_config is that this function will never try to read
+ * the default config file and return an error instead. So this function is supposed
+ * to be used by the plugins.
+ * 
+ * @param member The member
+ * @param data Return location for the data
+ * @param size Return location for the size of the data
+ * @param error Pointer to a error
+ * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_read_config(OSyncMember *member, char **data, int *size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "osync_member_read_config(%p, %p, %p, %p)", member, data, size, error);
+	
+	if (!osync_member_instance_default_plugin(member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	OSyncPluginFunctions functions = member->plugin->info.functions;
+	osync_bool ret = FALSE;
+	if (!member->configdir) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Member has no config directory set");
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %i", osync_error_print(error));
+		return FALSE;
+	}
+	
+	if (functions.get_config) {
+		ret = functions.get_config(member->configdir, data, size);
+	} else {
+		char *filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
+		ret = osync_file_read(filename, data, size, error);
+		g_free(filename);
+	}
+	
+	if (ret)
+		osync_trace(TRACE_EXIT, "osync_member_read_config: TRUE");
+	else
+		osync_trace(TRACE_EXIT_ERROR, "osync_member_read_config: %s", osync_error_print(error));
+	return ret;
+}
+
 #endif
 
 /*@}*/
@@ -147,7 +198,8 @@ void osync_member_free(OSyncMember *member)
 		osync_plugin_free(member->plugin);
 	}*/
 	
-	g_free(member->pluginname);
+	if (member->pluginname)
+		g_free(member->pluginname);
 	
 	g_free(member->memberfunctions);
 	g_free(member);
@@ -340,7 +392,8 @@ const char *osync_member_get_configdir(OSyncMember *member)
 void osync_member_set_configdir(OSyncMember *member, const char *configdir)
 {
 	g_assert(member);
-	g_free(member->configdir);
+	if (member->configdir)
+		g_free(member->configdir);
 	member->configdir = g_strdup(configdir);
 }
 
@@ -364,16 +417,113 @@ error:
 	return FALSE;
 }
 
-
-xmlDocPtr
-osync_member_get_config (OSyncMember *member, OSyncError **error)
+/** @brief Gets the configuration data of this member
+ * 
+ * The config file is read in this order:
+ * - If there is a configuration in memory that is not yet saved
+ * this is returned
+ * - If there is a config file in the member directory this is read
+ * and returned
+ * - Otherwise the default config file is loaded from one the opensync
+ * directories
+ * 
+ * @param member The member
+ * @param data Return location for the data
+ * @param size Return location for the size of the data
+ * @param error Pointer to a error
+ * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
-	OSyncPluginFunctions functions = member->plugin->info.functions;
-  	
-	if (!member->configdir)
-		return NULL;
-  	
-	return functions.get_config (member->configdir);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
+	g_assert(member);
+	osync_bool ret = TRUE;
+
+	if (member->configdata) {
+		*data = member->configdata;
+		*size = member->configsize;
+		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
+		return TRUE;
+	}
+
+	if (!osync_member_read_config(member, data, size, error)) {
+		if (osync_error_is_set(error)) {
+			osync_trace(TRACE_INTERNAL, "Read config not successfull: %s", osync_error_print(error));
+			osync_error_free(error);
+		}
+		
+		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
+		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
+		ret = osync_file_read(filename, data, size, error);
+		g_free(filename);
+	}
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+/** @brief Gets the configuration data of this member
+ * 
+ * The config file is read in this order:
+ * - If there is a configuration in memory that is not yet saved
+ * this is returned
+ * - If there is a config file in the member directory this is read
+ * and returned
+ * - Otherwise the default config file is loaded from one the opensync
+ * directories (but only if the plugin specified that it can use the default
+ * configuration)
+ * 
+ * @param member The member
+ * @param data Return location for the data
+ * @param size Return location for the size of the data
+ * @param error Pointer to a error
+ * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
+	g_assert(member);
+	osync_bool ret = TRUE;
+
+	if (!osync_member_instance_default_plugin(member, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	if (member->plugin->info.config_type == NO_CONFIGURATION) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "This member has no configuration options");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	if (member->configdata) {
+		*data = member->configdata;
+		*size = member->configsize;
+		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
+		return TRUE;
+	}
+
+	if (!osync_member_read_config(member, data, size, error)) {
+		if (osync_error_is_set(error)) {
+			osync_trace(TRACE_INTERNAL, "Read config not successfull: %s", osync_error_print(error));
+			osync_error_free(error);
+		}
+		
+		if (member->plugin->info.config_type == NEEDS_CONFIGURATION) {
+			//We dont load the default config for these
+			osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Member has not been configured");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
+		
+		char *filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
+		osync_debug("OSMEM", 3, "Reading default2 config file for member %lli from %s", member->id, filename);
+		ret = osync_file_read(filename, data, size, error);
+		g_free(filename);
+	}
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
 }
 
 /** @brief Sets the config data for a member
@@ -385,9 +535,15 @@ osync_member_get_config (OSyncMember *member, OSyncError **error)
  * @param size The size of the data
  * 
  */
-void osync_member_set_config(OSyncMember *member, xmlDocPtr doc)
+void osync_member_set_config(OSyncMember *member, const char *data, int size)
 {
-	member->plugin->info.functions.set_config (member->configdir, doc);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, member, data, size);
+	g_assert(member);
+	//FIXME free old data
+	member->configdata = g_strdup(data);
+	member->configsize = size;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /** @brief Gets the loop in which the member is dispatched
@@ -522,8 +678,27 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	xmlFreeDoc(doc);
 	g_free(filename);
 	
+	//Saving the config if it exists
+	osync_bool ret = TRUE;
+	if (member->configdata) {
+		OSyncPluginFunctions functions = member->plugin->info.functions;
+		
+		if (functions.store_config) {
+			ret = functions.store_config(member->configdir, member->configdata, member->configsize);
+		} else {
+			filename = g_strdup_printf("%s/%s.conf", member->configdir, osync_plugin_get_name(member->plugin));
+			if (!osync_file_write(filename, member->configdata, member->configsize, 0600, error)) {
+				ret = FALSE;
+			}
+			g_free(filename);
+		}
+		g_free(member->configdata);
+		member->configdata = NULL;
+		member->configsize = 0;
+	}
+	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(error));
-	return TRUE;
+	return ret;
 }
 
 /** @brief Gets the unique id of a member

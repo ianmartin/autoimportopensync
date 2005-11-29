@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Werror -Wall @GCOV_CFLAGS@ @XML_CFLAGS@
+AM_CFLAGS = -Werror -Wall @GCOV_CFLAGS@
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ 
 

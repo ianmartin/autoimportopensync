@@ -20,11 +20,11 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginn
 OSyncPlugin *osync_member_get_plugin(OSyncMember *member);
 
 const char *osync_member_get_configdir(OSyncMember *member);
+osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
+osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error);
 osync_bool osync_member_need_config(OSyncMember *member, OSyncConfigurationTypes *type, OSyncError **error);
 
-xmlDocPtr osync_member_get_config (OSyncMember *member, OSyncError **error);
-void osync_member_set_config (OSyncMember *member, xmlDocPtr doc);
-
+void osync_member_set_config(OSyncMember *member, const char *data, int size);
 osync_bool osync_member_has_configuration(OSyncMember *member);
 const char *osync_member_get_pluginname(OSyncMember *member);
 osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error);

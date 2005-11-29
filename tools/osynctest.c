@@ -466,6 +466,17 @@ int main (int argc, char *argv[])
 	osync_group_set_configdir(group, testdir);
 	OSyncMember *member = osync_member_new(group);
 
+	char *config = NULL;
+	int size = 0;
+	if (configfile) {
+		if (!osync_file_read(configfile, &config, &size, &error)) {
+			fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
+			osync_error_free(&error);
+			return 1;
+		}
+		osync_member_set_config(member, config, size);
+	}
+
 	osync_member_set_pluginname(member, pluginname);
 
 	OSyncMember *file = osync_member_new(group);
@@ -480,6 +491,8 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
+	config = g_strdup_printf("<config><path>%s</path><recursive>0</recursive></config>", localdir);
+	osync_member_set_config(file, config, strlen(config) + 1);
 	osync_member_set_pluginname(file, "file-sync");
 
 	if (!osync_group_save(group, &error)) {
