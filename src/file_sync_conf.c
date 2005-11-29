@@ -21,47 +21,52 @@
 #include "file_sync.h"
 
 /*Load the state from a xml file and return it in the conn struct*/
-osync_bool fs_parse_settings(filesyncinfo *env, xmlDocPtr doc, OSyncError **error)
+osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, doc);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, env, data, size);
+	xmlDocPtr doc;
 	xmlNodePtr cur;
 
 	//set defaults
 	env->path = NULL;
 	env->recursive = TRUE;
 
+	doc = xmlParseMemory(data, size);
+
+	if (!doc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
 	cur = xmlDocGetRootElement(doc);
 
 	if (!cur) {
+		xmlFreeDoc(doc);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 
-	if (strcmp (cur->name, "opensync-plugin-config") != 0) {
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
+		xmlFreeDoc(doc);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 
-	cur = cur->children;
+	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		if (!strcmp (cur->name, "option")) {
-			char *name, *value;
-			
-			if ((name = xmlGetProp (cur, "name"))) {
-				if (!strcmp (name, "recursive")) {
-					if ((value = xmlGetProp (cur, "value")) && !strcmp (value, "true"))
-						env->recursive = TRUE;
-					else
-						env->recursive = FALSE;
-					xmlFree (value);
-				} else if (!strcmp (name, "path")) {
-					env->path = xmlNodeGetContent (cur);
-				}
-				xmlFree (name);
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
+				env->path = g_strdup(str);
 			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"recursive")) {
+				env->recursive = (g_ascii_strcasecmp(str, "TRUE") == 0);
+			}
+			xmlFree(str);
 		}
 		cur = cur->next;
 	}
@@ -72,61 +77,7 @@ osync_bool fs_parse_settings(filesyncinfo *env, xmlDocPtr doc, OSyncError **erro
 		return FALSE;
 	}
 
+	xmlFreeDoc(doc);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
-
-
-static xmlDocPtr
-fs_get_default_config (void)
-{
-	xmlNodePtr root, node;
-	xmlDocPtr doc;
-	
-	doc = xmlNewDoc ("1.0");
-	
-	root = xmlNewDocNode (doc, NULL, "opensync-plugin-config", NULL);
-	xmlSetProp (root, "plugin", "file");
-	xmlSetProp (root, "version", "1.0");
-	xmlDocSetRootElement (doc, root);
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "path");
-	xmlSetProp (node, "mode", "directory");
-	xmlSetProp (node, "name", "path");
-	xmlSetProp (node, "label", "Directory");
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "bool");
-	xmlSetProp (node, "name", "recursive");
-	xmlSetProp (node, "label", "Recursive");
-	xmlSetProp (node, "value", "true");
-	
-	return doc;
-}
-
-xmlDocPtr
-fs_get_config (const char *configdir)
-{
-	xmlDocPtr doc;
-	char *path;
-	
-	path = g_strdup_printf ("%s/file.xml", configdir);
-	if (!(doc = xmlParseFile (path)))
-		doc = fs_get_default_config ();
-	g_free (path);
-	
-	return doc;
-}
-
-osync_bool
-fs_set_config (const char *configdir, xmlDocPtr doc)
-{
-	char *path;
-	
-	path = g_strdup_printf ("%s/file.xml", configdir);
-	xmlSaveFile (path, doc);
-	g_free (path);
-	
 	return TRUE;
 }

@@ -48,9 +48,6 @@ typedef struct filesyncinfo {
 #endif
 } filesyncinfo;
 
-osync_bool fs_parse_settings(filesyncinfo *env, xmlDocPtr, OSyncError **error);
-
-xmlDocPtr fs_get_config (const char *path);
-osync_bool fs_set_config (const char *path, xmlDocPtr doc);
+osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError **error);
 
 #endif //_FILE_PLUGIN_H
