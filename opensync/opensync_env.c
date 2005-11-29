@@ -666,6 +666,7 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;
+	gsize sz = 0;
 	
 	if (!filename) {
 		osync_debug("OSYNC", 3, "No file open specified");
@@ -679,11 +680,12 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 		return FALSE;
 	}
 	g_io_channel_set_encoding(chan, NULL, NULL);
-	if (g_io_channel_read_to_end(chan, data, (gsize*)size, &error) != G_IO_STATUS_NORMAL) {
+	if (g_io_channel_read_to_end(chan, data, &sz, &error) != G_IO_STATUS_NORMAL) {
 		osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {
 		ret = TRUE;
+		*size = (int)sz;
 	}
 	g_io_channel_shutdown(chan, FALSE, NULL);
 	g_io_channel_unref(chan);
