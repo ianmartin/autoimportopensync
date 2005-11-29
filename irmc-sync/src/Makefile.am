@@ -7,7 +7,12 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 INCLUDES = @PACKAGE_CFLAGS@
 
+if BLUETOOTH
 AM_CFLAGS = -Wall @PACKAGE_CFLAGS@ -DHAVE_BT_OBEX
+else
+AM_CFLAGS = -Wall @PACKAGE_CFLAGS@
+endif
+
 
 EXTRA_DIST = irmc-sync irmc_sync.h
 
@@ -21,9 +26,11 @@ if SDP
 sdp_lib = -lsdp
 endif
 
+if BLUETOOTH
 noinst_LTLIBRARIES = libirmc_bluetooth.la
 libirmc_bluetooth_la_SOURCES = irmc_bluetooth.c irmc_bluetooth.h
 libirmc_bluetooth_la_LIBADD = -lbluetooth -lpthread $(sdp_lib)
+endif
 
 opensyncheader_HEADER = irmc_sync.h
 

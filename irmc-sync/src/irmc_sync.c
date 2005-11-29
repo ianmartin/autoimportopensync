@@ -149,10 +149,12 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
           config->connectmedium = MEDIUM_IR;
         else if (!strcmp(str, "cable"))
           config->connectmedium = MEDIUM_CABLE;
+#if BLUETOOTH
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
         baswap(&(config->btunit.bdaddr), strtoba(str));
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {
         config->btchannel = atoi(str);
+#endif
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"irname")) {
         strncpy(config->irunit.name, str, 31);
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"irserial")) {
@@ -274,6 +276,7 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
   osync_anchor_update( member, "contact", anchor );
 }
 
+#if BLUETOOTH
 void *scan_devices( void *foo, const char *query, void *bar )
 {
   xmlDoc *doc;
@@ -300,6 +303,7 @@ void *scan_devices( void *foo, const char *query, void *bar )
 
   return data;
 }
+#endif
 
 int *test_connection( void *foo, const char *configuration, void *bar )
 {
