@@ -1,0 +1,72 @@
+2005-11-29  Martin Felis <martin@silef.de>
+
+	Moved the repository from gpe cvs to opensync svn.
+
+2005-09-22  Martin Felis <martin@silef.de>
+
+	* gpesync_client.c: Removed some errors when compiling with "-Werror"
+	- (thanks koen).
+	
+2005-09-18  Martin Felis <martin@silef.de>
+
+	* gpesync_client.c, gpesync_client.h: Using now a GString instead
+	of a buffer with fixed length for receiving answers from gpesyncd.
+	* contacts.c, todo.c, calendar.c: Small change in reading answers
+	from gpesyncd.
+	
+2005-09-16  Martin Felis <martin@silef.de>
+
+	* contacts.c, todo.c, calendar.c, utils.c, utils.h: Changed the
+	reporting of the uids. They will be now reported as
+	gpe-<type>-<uid>, so that file-sync can sort them out.
+
+2005-09-16  Martin Felis <martin@silef.de>
+
+	* contacts.c, todo.c, calendar.c: Fixed a bug that wouldn't let us
+	duplicate an item.
+
+2005-08-31  Martin Felis <martin@silef.de>
+
+	* contacts.c, contacts.h: Changed the way items are committed.
+	* utils.c, utils.h: Removed functions, that are no more needed.
+	* gpe_sync.c, gpe_sync.h: Removed older code which was from the time
+	before the gpesyncd.
+	* calendar.c, calendar.h, todo.c, todo.h: New way items are committed.
+	* Makefile.am: Added calendar.* and todo.* to be compiled too.
+	
+2005-08-31  Martin Felis <martin@silef.de>
+	
+	* gpesync_client.c, gpesync_client.h: Added. It's the communication
+	backend for this plugin. It is the client for the gpesyncd.
+	* utils.c, utils.h: Added. They contain general function that can
+	be used by calendar, contact, todo items.
+	* calendar.c, calendar.h, todo.c, todo.h: Added but no functionality,
+	yet.
+	* contacts.c: Ported to use the gpesyncd.
+	* gpe_db.h gpe_db.c: No more needed. All conversion is made by the
+	gpesyncd on the pda.
+
+2005-08-13  Martin Felis <martin@silef.de>
+	
+	* gpe_db.h gpe_db.c: Implemented the tags_replace_category function,
+	which replaces the numbers of the cateogories to their names.
+	* gpe_sync.h gpe_sync.c: Added categories list, for
+	tags_replace_category.
+	* contacts.c: Reading and writing now implemented.
+
+2005-08-02  Martin Felis <martin@silef.de>
+
+	* gpe_db.h gpe_db.c: Files added for easier querying/handling of the
+	results from nsqlc_exec().
+	* contacts.h contacts.c: Moved from gpe_adresses.c/h. I thought this
+	name fits better.
+	Added support for reading the entries.
+	Contacts get converted to a vcard and sent to opensync (works!)
+	* gpe_sync.h gpe_sync.c: Some clean-up.
+	Added support for contact.c.
+	* configure.in : Added support for libgpevtype.
+	* README : Put in a few words.
+
+2005-07-27  Martin Felis <martin@silef.de>
+
+	* Changelog: started to use it!
