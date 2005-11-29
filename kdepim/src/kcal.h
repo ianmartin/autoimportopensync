@@ -49,7 +49,7 @@ class KCalDataSource
          * operations
          */
         bool __access(OSyncContext *ctx, OSyncChange *chg);
-        bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e,
+        bool report_incidence(OSyncContext *ctx, KCal::Incidence *e,
                 const char *objtype, const char *objformat);
     public:
         KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable);
