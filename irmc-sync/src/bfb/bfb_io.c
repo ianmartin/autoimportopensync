@@ -201,11 +201,11 @@ int do_at_cmd(fd_t fd, char *cmd, char *rspbuf, int rspbuflen)
 	DEBUG(3, "%s() Sending %d: %s\n", __func__, cmdlen, cmd);
 
 	/* Write command */
-	if(bfb_io_write(fd, cmd, cmdlen) < cmdlen)
+	if(bfb_io_write(fd, (uint8_t *) cmd, cmdlen) < cmdlen)
 		return -1;
 
 	while(!done)	{
-		actual = bfb_io_read(fd, &tmpbuf[total], sizeof(tmpbuf) - total, 2);
+		actual = bfb_io_read(fd, (uint8_t *) &tmpbuf[total], sizeof(tmpbuf) - total, 2);
 		/* error checking */
        		if(actual < 0)
        			return actual;
@@ -371,20 +371,20 @@ fd_t bfb_io_open(const char *ttyname)
 
 
 
-	if(do_at_cmd(ttyfd, "AT^SIFS\r\n", rspbuf, sizeof(rspbuf)) < 0)	{
+	if(do_at_cmd(ttyfd, "AT^SIFS\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0)	{
 		DEBUG(1, "Comm-error\n");
 		goto err;
 	}
-	if(strcasecmp("^SIFS: WIRE", rspbuf) != 0)	{ /* expect "OK" also! */
+	if(strcasecmp("^SIFS: WIRE", (char *) rspbuf) != 0)	{ /* expect "OK" also! */
 		DEBUG(1, "Error doing AT^SIFS (%s)\n", rspbuf);
 		goto err;
 	}
 
-	if(do_at_cmd(ttyfd, "AT^SBFB=1\r\n", rspbuf, sizeof(rspbuf)) < 0)	{
+	if(do_at_cmd(ttyfd, "AT^SBFB=1\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0)	{
 		DEBUG(1, "Comm-error\n");
 		goto err;
 	}
-	if(strcasecmp("OK", rspbuf) != 0)	{
+	if(strcasecmp("OK", (char *) rspbuf) != 0)	{
 		DEBUG(1, "Error doing AT^SBFB=1 (%s)\n", rspbuf);
 		goto err;
 	}

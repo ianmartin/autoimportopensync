@@ -151,7 +151,7 @@ void put_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
     return;
   }
 
-  while(OBEX_ObjectGetNextHeader(handle, object, &hi, &hv, &hlen))	{
+  while(OBEX_ObjectGetNextHeader(handle, object, &hi, &hv, (uint32_t *) &hlen))	{
     if (hi == OBEX_HDR_APPARAM) {
       body = (char*) hv.bs;
       body_len = (int) hlen;
@@ -182,7 +182,7 @@ void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
     return;
   }
   
-  while(OBEX_ObjectGetNextHeader(handle, object, &hi, &hv, &hlen))	{
+  while(OBEX_ObjectGetNextHeader(handle, object, &hi, &hv, (uint32_t *) &hlen))	{
     if(hi == OBEX_HDR_BODY)	{
       body = (char*) hv.bs;
       body_len = (int) hlen;
@@ -435,7 +435,7 @@ gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout) {
   while (userdata->state >= 0 &&
 	 (ret=select(n, &readfds, NULL, NULL, &to)) > 0) {
     if((tot = read(userdata->fd, buf, 2048)) > 0) {
-      OBEX_CustomDataFeed(handle, buf, tot);
+      OBEX_CustomDataFeed(handle, (uint8_t *) buf, tot);
     } else { 
       userdata->state = IRMC_OBEX_REQFAILED;
       osync_error_set(userdata->error, OSYNC_ERROR_NO_CONNECTION, NULL);
@@ -563,7 +563,7 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
   userdata->connected = 1;
   if ((object = OBEX_ObjectNew(handle, OBEX_CMD_CONNECT))) {
     if (target) {
-      hd.bs = target; 
+      hd.bs = (const uint8_t *) target; 
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_TARGET, hd, 
 			   strlen(target), 0); 
     }
@@ -675,23 +675,23 @@ gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
     hd.bq4 = body_size; 
     OBEX_ObjectAddHeader(handle, object, OBEX_HDR_LENGTH, hd, 4, 0); 
     /* Add unicode name header*/ 
-    namesize = OBEX_CharToUnicode(unicodename, name, 1024);
-    hd.bs = unicodename; 
+    namesize = OBEX_CharToUnicode((uint8_t *) unicodename, (const uint8_t *) name, 1024);
+    hd.bs = (const uint8_t *) unicodename; 
     OBEX_ObjectAddHeader(handle, object, OBEX_HDR_NAME, hd, 
 			 namesize, 0); 
     if (type) {
-      hd.bs = type;
+      hd.bs = (const uint8_t *) type;
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_TYPE, hd, 
 			 strlen(type), 0); 
     }
     if (apparam) {
-      hd.bs = apparam;
+      hd.bs = (const uint8_t *) apparam;
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_APPARAM, hd, 
 			   apparamlen, 0); 
     }
     if (body) {
       /* Add body header*/ 
-      hd.bs = body; 
+      hd.bs = (const uint8_t *) body; 
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_BODY, hd, body_size, 0); 
     }
     if(OBEX_Request(handle, object) < 0) {
@@ -727,8 +727,8 @@ gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OS
   userdata = (obexdata_t*) OBEX_GetUserData(handle);  
   if((object = OBEX_ObjectNew(handle, OBEX_CMD_GET))) {
     /* Add unicode name header*/ 
-    namesize = OBEX_CharToUnicode(unicodename, name, 1024);
-    hd.bs = unicodename; 
+    namesize = OBEX_CharToUnicode((uint8_t *) unicodename, (const uint8_t *) name, 1024);
+    hd.bs = (const uint8_t *) unicodename; 
     OBEX_ObjectAddHeader(handle, object, OBEX_HDR_NAME, hd, 
 			 namesize, 0); 
     userdata->databuf = buffer;

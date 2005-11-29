@@ -125,14 +125,14 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
     goto error;
   }
 
-  cur = xmlDocGetRootElement(doc);
+  cur = (xmlNode *) xmlDocGetRootElement(doc);
 
   if (!cur) {
     osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
     goto error_free_doc;
   }
 
-  if (xmlStrcmp(cur->name, "config")) {
+  if (xmlStrcmp(cur->name, (const xmlChar*) "config")) {
     osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
     goto error_free_doc;
   }
@@ -140,7 +140,7 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
   cur = cur->xmlChildrenNode;
 
   while (cur != NULL) {
-    char *str = xmlNodeGetContent(cur);
+    char *str = (char *) xmlNodeGetContent(cur);
     if (str) {
       if (!xmlStrcmp(cur->name, (const xmlChar *)"connectmedium")) {
         if (!strcmp(str, "bluetooth"))
@@ -284,7 +284,7 @@ void *scan_devices( void *foo, const char *query, void *bar )
   xmlChar *data;
   int size;
 
-  doc = xmlNewDoc("1.0");
+  doc = xmlNewDoc((const xmlChar*)"1.0");
   devices = xmlNewDocNode(doc, NULL, (const xmlChar*)"devices", NULL);
   xmlDocSetRootElement(doc, devices);
 
@@ -292,11 +292,11 @@ void *scan_devices( void *foo, const char *query, void *bar )
   for (; unit_list; unit_list = unit_list->next) {
     irmc_bt_unit *unit = unit_list->data;
     node = xmlNewTextChild(devices, NULL, (const xmlChar*)"device", NULL);
-    xmlNewProp(node, "address", unit->address);
+    xmlNewProp(node, (const xmlChar*)"address", (const xmlChar*)(unit->address));
     char *number = g_strdup_printf("%d", unit->channel);
-    xmlNewProp(node, "channel", number);
+    xmlNewProp(node, (const xmlChar*)"channel", (const xmlChar*)number);
     g_free(number);
-    xmlNewProp(node, "name", unit->name);
+    xmlNewProp(node, (const xmlChar*)"name", (const xmlChar*)(unit->name));
   }
 
   xmlDocDumpFormatMemory( doc, &data, &size, 0 );
@@ -525,7 +525,7 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
   char did[256] = "";
   char *filename;
   int foo;
-  int slowsync = 0;
+//int slowsync = 0; // unused
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
@@ -910,7 +910,7 @@ error:
 static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
 
-  int res = 0;
+//int res = 0; // unused!
   char name[256];
   char *vcal = NULL;
   char *converted_vcal = NULL;
@@ -919,13 +919,14 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
   int rspbuflen=256;
   char apparambuf[256];
   char *apparam = apparambuf;
+  char *uid = NULL;
   OSyncError *error = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
 
   strcpy(name, "telecom/cal/luid/");
-  char *uid = osync_change_get_uid(change);
+  uid = (char *) osync_change_get_uid(change);
   if (uid) {
     safe_strcat(name, uid, 256);
   }
@@ -1023,7 +1024,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
 
 static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
-  int res = 0;
+//int res = 0; // unused!
   char name[256];
   int vcard_size=0;
   char rspbuf[256];
@@ -1032,12 +1033,13 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
   char *apparam = apparambuf;
   char *vcard = NULL;
   char *converted_vcard = NULL;
-  OSyncError *error = NULL;
+  char *uid = NULL;
+  OSyncError **error = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
 
-  char *uid = osync_change_get_uid(change);
+  uid = (char *) osync_change_get_uid(change);
   vcard = osync_change_get_data(change);
 
   strcpy(name, "telecom/pb/luid/");
@@ -1067,7 +1069,7 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
       if (!irmc_obex_put(config->obexhandle, name, 0, converted_vcard, vcard_size,
                          rspbuf, &rspbuflen, apparambuf, apparam - apparambuf, error)) {
         g_free(converted_vcard);
-        osync_context_report_osyncerror(ctx, &error);
+        osync_context_report_osyncerror(ctx, error);
         return FALSE;
       }
       g_free(converted_vcard);
@@ -1087,7 +1089,7 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
       if (!irmc_obex_put(config->obexhandle, name, 0, converted_vcard, vcard_size,
                          rspbuf, &rspbuflen, apparambuf, apparam - apparambuf, error)) {
         g_free(converted_vcard);
-        osync_context_report_osyncerror(ctx, &error);
+        osync_context_report_osyncerror(ctx, error);
         return FALSE;
       }
       g_free(converted_vcard);
@@ -1096,7 +1098,7 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
       if (!irmc_obex_put(config->obexhandle, name, 0, converted_vcard, vcard_size,
                          rspbuf, &rspbuflen, apparambuf, apparam - apparambuf, error)) {
         g_free(converted_vcard);
-        osync_context_report_osyncerror(ctx, &error);
+        osync_context_report_osyncerror(ctx, error);
         return FALSE;
       }
       g_free(converted_vcard);

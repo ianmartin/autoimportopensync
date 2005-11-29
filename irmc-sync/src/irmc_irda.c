@@ -102,7 +102,7 @@ gint obex_irda_connect(obex_t *handle, gpointer ud) {
   len = DISC_BUF_LEN;
 
   /* Perform a discovery and get device list */
-  if (getsockopt(userdata->fd, SOL_IRLMP, IRLMP_ENUMDEVICES, buf, &len)) {
+  if (getsockopt(userdata->fd, SOL_IRLMP, IRLMP_ENUMDEVICES, buf, (socklen_t *) len)) {
     osync_trace(TRACE_INTERNAL, "Found no IR devices.\n");
     return(-1);
   }
@@ -144,8 +144,8 @@ GList* find_irda_units(irmc_config *config) {
 #if HAVE_IRDA
   struct irda_device_list *list;
   unsigned char buf[DISC_BUF_LEN];
-  int ret = -1;
-  int err;
+//int ret = -1; // unused!
+//int err;  // unused!
   int len;
   int i;
   unsigned char hints[4];	/* Hint be we filter on */
@@ -174,7 +174,7 @@ GList* find_irda_units(irmc_config *config) {
   len = DISC_BUF_LEN;
 
   /* Perform a discovery and get device list */
-  if (getsockopt(fd, SOL_IRLMP, IRLMP_ENUMDEVICES, buf, &len)) {
+  if (getsockopt(fd, SOL_IRLMP, IRLMP_ENUMDEVICES, buf, (socklen_t *) len)) {
     osync_trace(TRACE_INTERNAL, "Found no IR devices.\n");
     return(NULL);
   }

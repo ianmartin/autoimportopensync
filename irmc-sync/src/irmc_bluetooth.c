@@ -101,10 +101,10 @@ GList *find_bt_units() {
       sdp_list_t *services = NULL;
       sdp_list_t *attributes = NULL;
       sdp_list_t *reclist = NULL;
-      uint16_t len = 0;
+//    uint16_t len = 0;  // unused!
       uuid_t serviceuuid;
       uint32_t attributeid = 0x0000ffff;
-      sdp_list_t *protodescs = NULL;
+//    sdp_list_t *protodescs = NULL;  // unused!
       sdp_session_t *sess = NULL;
 
       g_assert(irbt);
@@ -214,7 +214,7 @@ gint obex_handleinput(obex_t *handle, gpointer ud, gint timeout) {
   while (userdata->state >= 0 &&
 	 (ret = select(n, &readfds, NULL, NULL, &to)) > 0) {
     if((tot = read(userdata->fd, buf, 2048)) > 0) {
-      OBEX_CustomDataFeed(handle, buf, tot);
+      OBEX_CustomDataFeed(handle, (uint8_t *) buf, tot);
     } else { 
       userdata->state = IRMC_OBEX_REQFAILED;
 //      userdata->error = SYNC_MSG_CONNECTIONERROR;

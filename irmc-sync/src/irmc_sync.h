@@ -71,5 +71,10 @@ typedef struct irmc_environment {
 } irmc_environment;
 
 obex_t* irmc_obex_client(irmc_config *config);
+char* sync_connect_get_serial(irmc_config *config);
+gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error);
+gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error);
+gboolean detect_slowsync(int changecounter, char *object, char **dbid,
+                         gboolean *slowsync, obex_t obexhandle, OSyncError **error);
 
 #endif

@@ -109,9 +109,9 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       unsigned char *value = NULL;
 
       if (data)
-	value = g_strdup(data+1);
+	value = (unsigned char *) g_strdup(data+1);
       else
-	value = g_strdup("");
+	value = (unsigned char *) g_strdup("");
       
       output = TRUE;
       endent = strstr(line, ";");
@@ -119,7 +119,7 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       // Sloppy detection of QP data, means that =\n is followed by more
 	qp = TRUE; 
       while (endln && (endln[1] == ' ' || 
-		       (qp && value[strlen(value)-1] == '='))) {
+		       (qp && value[strlen((const char *) value)-1] == '='))) {
 	// Extend line-broken data
 	char *tmp;
 	incard = endln+1;
@@ -133,26 +133,26 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 	else
 	  tmp = g_strdup_printf("%s%s", value, incard+1);
 	g_free(value);
-	value = tmp;
+	value = (unsigned char *) tmp;
       }
       qp = FALSE; // Do a proper QP detection
       if (endent)
 	endent[0] = 0;
       strncpy(name, line, 255);
       if (!g_strcasecmp(name, "BEGIN")) {
-	if (!g_strcasecmp(value, "VCALENDAR"))
+	if (!g_strcasecmp((const gchar *) value, "VCALENDAR"))
 	  datatype = VTYPE_VCALENDAR;
-	if (!g_strcasecmp(value, "VCARD"))
+	if (!g_strcasecmp((const gchar *) value, "VCARD"))
 	  datatype = VTYPE_VCARD;
       }
       if (!g_strcasecmp(name, "VERSION")) {
-	if (!g_strcasecmp(value, "1.0") && (datatype&VTYPE_VCALENDAR))
+	if (!g_strcasecmp((const gchar *) value,"1.0") && (datatype&VTYPE_VCALENDAR))
 	  datatype = VTYPE_VCALENDAR10;
-	if (!g_strcasecmp(value, "2.0") && (datatype&VTYPE_VCALENDAR))
+	if (!g_strcasecmp((const gchar *) value,"2.0") && (datatype&VTYPE_VCALENDAR))
 	  datatype = VTYPE_VCALENDAR20;
-	if (!g_strcasecmp(value, "2.1") && (datatype&VTYPE_VCARD))
+	if (!g_strcasecmp((const gchar *) value,"2.1") && (datatype&VTYPE_VCARD))
 	  datatype = VTYPE_VCARD21;
-	if (!g_strcasecmp(value, "3.0") && (datatype&VTYPE_VCARD))
+	if (!g_strcasecmp((const gchar *) value,"3.0") && (datatype&VTYPE_VCARD))
 	  datatype = VTYPE_VCARD30;
       }
 
@@ -190,7 +190,7 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       }
       if ((opts & VOPTION_FIXTELOTHER) && !g_strcasecmp(name, "TEL"))
 	nocategorytel = TRUE;
-      if (!g_strcasecmp(name, "BEGIN") && !g_strcasecmp(value, "VALARM")) {
+      if (!g_strcasecmp(name, "BEGIN") && !g_strcasecmp((const gchar *) value,"VALARM")) {
 	if (opts & VOPTION_CALENDAR2TO1 || (opts & VOPTION_REMOVEALARM)) {
 	  alarmmode = TRUE;
 	  alarmrepeat = 0;
@@ -209,7 +209,7 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       if (alarmmode)
 	output = FALSE;
       if (alarmmode &&
-	  !g_strcasecmp(name, "END") && !g_strcasecmp(value, "VALARM")) {
+	  !g_strcasecmp(name, "END") && !g_strcasecmp((const gchar *) value,"VALARM")) {
 	// The end of a vCAL 2.0 alarm clause
 	char *dtalarm = sync_timet_to_dt(alarmtime);
 	char *dur = NULL;
@@ -236,12 +236,12 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 	alarmdescription = NULL;
       }
       if ((opts & VOPTION_CALENDAR1TO2) && 
-	  !g_strcasecmp(name, "VERSION") && !g_strcasecmp(value, "1.0")) {
+	  !g_strcasecmp(name, "VERSION") && !g_strcasecmp((const gchar *) value,"1.0")) {
 	output = FALSE;
 	g_string_append(outcard, "VERSION:2.0\r\n");
       }
       if ((opts & VOPTION_CALENDAR2TO1) && 
-	  !g_strcasecmp(name, "VERSION") && !g_strcasecmp(value, "2.0")) {
+	  !g_strcasecmp(name, "VERSION") && !g_strcasecmp((const gchar *) value,"2.0")) {
 	output = FALSE;
 	g_string_append(outcard, "VERSION:1.0\r\n");
       }
@@ -258,7 +258,7 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 	  dur[0] = 0;
 	  dtalarm[0] = 0;
 	  descr[0] = 0;
-	  sscanf(value, "%255[^;];%255[^;];%d;%255s", dtalarm, dur, &repeat,
+	  sscanf((const char *) value, "%255[^;];%255[^;];%d;%255s", dtalarm, dur, &repeat,
 		 descr);
 	  g_string_append(outcard, "BEGIN:VALARM\r\n");
 	  dtstart = sync_get_key_data(card, "DTSTART");
@@ -358,27 +358,27 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       }
       if (qp) { // Temporarily decode QP
 	char *tmp;
-	tmp = value;
-	value = sync_vtype_decode_qp(value);
+	tmp = (char *) value;
+	value = (unsigned char*) sync_vtype_decode_qp((char *) value);
 	g_free(tmp);
       }
       if ((opts & VOPTION_FIXCHARSET) && value && charset) {
 	iconv_t ic;
 	int t;
 	gboolean highchar = FALSE;
-	for (t = 0; t < strlen(value); t++)
+	for (t = 0; t < strlen((const char *) value); t++)
 	  if (value[t] > 127)
 	    highchar = TRUE;
 	if (highchar) {
 	  ic = iconv_open("UTF-8", charset);
 	  if (ic >= 0) {
 	    char *utfvalue = g_malloc0(65536);
-	    size_t inbytes = strlen(value);
+	    size_t inbytes = strlen((const char *) value);
 	    size_t outbytes = 65536;
-	    char *inbuf = value, *outbuf = utfvalue;
+	    char *inbuf = (char *) value, *outbuf = utfvalue;
 	    iconv(ic, &inbuf, &inbytes, &outbuf, &outbytes);
 	    g_free(value);
-	    value = utfvalue;
+	    value = (unsigned char *) utfvalue;
 	    iconv_close(ic);
 	  }
 	}
@@ -390,7 +390,7 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 	  strlen(linecharset) == 0) {
 	int t;
 	gboolean highchar = FALSE;
-	for (t = 0; t < strlen(value); t++)
+	for (t = 0; t < strlen((const char *) value); t++)
 	  if (value[t] > 127)
 	    highchar = TRUE;
 	if (highchar)
@@ -399,60 +399,60 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       if (value && alldayevent) {
 	int y, m, d, h, min, s, res;
 	char utc = ' ';
-	res = sscanf(value, 
+	res = sscanf((const char *) value, 
 		     "%4d%2d%2dT%2d%2d%2d%c", &y, &m, &d, &h, &min, &s, &utc);
 	if (res >= 3) {
 	  if ((opts & VOPTION_CONVERTALLDAYEVENT)) {
 	    // Date only, convert to 00:00
 	    if (!dtend) { // DTSTART
 	      g_free(value);
-	      value = g_strdup_printf("%04d%02d%02dT000000Z", y, m, d);
+	      value = (unsigned char *) g_strdup_printf("%04d%02d%02dT000000Z", y, m, d);
 	    } else { // DTEND
-	      time_t t = sync_dt_to_timet(value);
+	      time_t t = sync_dt_to_timet((char *) value);
 	      char *tpos;
 	      t -= 24*3600; // Move one day backwards
 	      g_free(value);
-	      value = sync_timet_to_dt(t);
-	      tpos = strstr(value, "T");
+	      value = (unsigned char *) sync_timet_to_dt(t);
+	      tpos = strstr((const char *) value, "T");
 	      if (tpos) {
 		char *tmp;
 		tpos[0] = 0;
 		tmp = g_strdup_printf("%sT240000Z", value);
 		g_free(value);
-		value = tmp;
+		value = (unsigned char *) tmp;
 	      }
 	    }
 	  } else {
 	    g_free(value);
-	    value = g_strdup_printf("%04d%02d%02dT000000", y, m, d);
+	    value = (unsigned char *) g_strdup_printf("%04d%02d%02dT000000", y, m, d);
 	  }
 	}
       }
       if (value && dt1to2) {
 	int y, m, d, h, min, s, res;
 	char utc = ' ';
-	res = sscanf(value, 
+	res = sscanf((const char *) value, 
 		     "%4d%2d%2dT%2d%2d%2d%c", &y, &m, &d, &h, &min, &s, &utc);
 	if (res == 7 && (h == 0|| h == 24) && min == 0 && s == 0) {
 	  // All day event?
 	  g_free(value);
 	  
 	  g_string_append(outcard, ";VALUE=DATE");
-	  value = g_strdup_printf("%04d%02d%02d", y, m, d);
+	  value = (unsigned char *) g_strdup_printf("%04d%02d%02d", y, m, d);
 	  if (h == 24) {
-	    time_t t = sync_dt_to_timet(value);
+	    time_t t = sync_dt_to_timet((char *) value);
 	    char *tpos;
 	    t += 24*3600; // Move one day forwards
 	    g_free(value);
-	    value = sync_timet_to_dt(t);
-	    tpos = strstr(value, "T");
+	    value = (unsigned char *) sync_timet_to_dt(t);
+	    tpos = strstr((const char *) value, "T");
 	    if (tpos)
 	      tpos[0] = 0; // End string after date
 	  }	    
 	}
       }
-      if (fixdst && value && strlen(value) > 0 && 
-	  value[strlen(value)-1] == 'Z') {
+      if (fixdst && value && strlen((const char *) value) > 0 && 
+	  value[strlen((const char *) value)-1] == 'Z') {
 	// Fix broken DST handling on Ericsson phones by modifying
 	// times of an event by the DST at present.
 	time_t now, dt;
@@ -462,29 +462,29 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 	time(&now);
 	nowinfo = localtime(&now); 
 	nowdst = nowinfo->tm_isdst;
-	dt = sync_dt_to_timet(value);
+	dt = sync_dt_to_timet((char *) value);
 	dtinfo = localtime(&dt); 
 	dtdst = dtinfo->tm_isdst;
 	if (nowdst && !dtdst) {
 	  g_free(value);
-	  value = sync_timet_to_dt((opts&VOPTION_FIXDSTFROMCLIENT)?dt+3600:dt-3600);
+	  value = (unsigned char*) sync_timet_to_dt((opts&VOPTION_FIXDSTFROMCLIENT)?dt+3600:dt-3600);
 	}
 	if (!nowdst && dtdst) {
 	  g_free(value);
-	  value = sync_timet_to_dt((opts&VOPTION_FIXDSTFROMCLIENT)?dt-3600:dt+3600);
+	  value = (unsigned char*) sync_timet_to_dt((opts&VOPTION_FIXDSTFROMCLIENT)?dt-3600:dt+3600);
 	}	  
       }
-      if (fixlocaltime && value && strlen(value) > 0 &&
-	  value[strlen(value)-1] == 'Z') {
+      if (fixlocaltime && value && strlen((const char *) value) > 0 &&
+	  value[strlen((const char *) value)-1] == 'Z') {
 	time_t dt;
-	dt = sync_dt_to_timet(value);
+	dt = sync_dt_to_timet((char *) value);
 	g_free(value);
-	value = sync_timet_to_dt(dt);
+	value = (unsigned char*) sync_timet_to_dt(dt);
       }
-      if (fixutc && value && strlen(value) > 0 &&
-	  value[strlen(value)-1] == 'Z') {
+      if (fixutc && value && strlen((const char *) value) > 0 &&
+	  value[strlen((const char *) value)-1] == 'Z') {
 	// Interpret UTC as localtime instead
-	value[strlen(value)-1] = 0;
+	value[strlen((const char *) value)-1] = 0;
       }
       if (nocategorytel) {
 	// Add VOICE as category if the phone number has no category
@@ -493,52 +493,52 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
       }
       if (ver1rrule && value) {
 	// Convert a vCAL 1.0 RRULE to 2.0
-	char* rrule = sync_vtype_vcal1_to_vcal2(value);
+	char* rrule = sync_vtype_vcal1_to_vcal2((char *) value);
 	g_free(value);
-	value = rrule;
+	value = (unsigned char*) rrule;
       }
       if (ver2rrule && value) {
 	// Convert a vCAL 2.0 RRULE to 1.0
-	char* rrule = sync_vtype_vcal2_to_vcal1(value);
+	char* rrule = sync_vtype_vcal2_to_vcal1((char *) value);
 	g_free(value);
-	value = rrule;
+	value = (unsigned char*) rrule;
       }
       if (trigger) {
 	// A trigger in an alarm clause
-	time_t dur = sync_dur_to_timet(value);
+	time_t dur = sync_dur_to_timet((char *)value);
 	char *dtstart = sync_get_key_data(card, "DTSTART");
 	alarmtime = sync_dt_to_timet(dtstart)+dur;
 	if (dtstart)
 	  g_free(dtstart);
       }
       if (alarmmode && !g_strcasecmp(name, "ACTION")) {
-	if (!g_strcasecmp(value, "AUDIO"))
+	if (!g_strcasecmp((const gchar *) value,"AUDIO"))
 	  alarmaction = ALARM_ACTION_AUDIO;
-	if (!g_strcasecmp(value, "DISPLAY"))
+	if (!g_strcasecmp((const gchar *) value,"DISPLAY"))
 	  alarmaction = ALARM_ACTION_DISPLAY;
-	if (!g_strcasecmp(value, "EMAIL"))
+	if (!g_strcasecmp((const gchar *) value,"EMAIL"))
 	  alarmaction = ALARM_ACTION_EMAIL;
-	if (!g_strcasecmp(value, "PROCEDURE"))
+	if (!g_strcasecmp((const gchar *) value,"PROCEDURE"))
 	  alarmaction = ALARM_ACTION_PROCEDURE;
       }
       if (alarmmode && !g_strcasecmp(name, "REPEAT"))
-	sscanf(value, "%d", &alarmrepeat);
+	sscanf((const char *) value, "%d", &alarmrepeat);
       if (alarmmode && !g_strcasecmp(name, "DURATION"))
-	alarmduration = sync_dur_to_timet(value);
+	alarmduration = sync_dur_to_timet((char *) value);
       if (alarmmode && !g_strcasecmp(name, "DESCRIPTION"))
-	alarmdescription = g_strdup(value);
+	alarmdescription = g_strdup((const gchar *) value);
       if (value && (opts & VOPTION_CALENDAR1TO2)) {
 	// Convert "," to "\,"
-	char **tmp = g_strsplit(value, ",", 255);
+	char **tmp = g_strsplit((const gchar *) value, ",", 255);
 	g_free(value);
-	value = g_strjoinv("\\,", tmp);
+	value = (unsigned char*) g_strjoinv("\\,", tmp);
 	g_strfreev(tmp);
       }
       if (value && (opts & VOPTION_CALENDAR2TO1)) {
 	// Convert "\," to ","
-	char **tmp = g_strsplit(value, "\\,", 255);
+	char **tmp = g_strsplit((const gchar *) value, "\\,", 255);
 	g_free(value);
-	value = g_strjoinv(",", tmp);
+	value = (unsigned char*) g_strjoinv(",", tmp);
 	g_strfreev(tmp);
       }
       if (adr && strlen(adrtype) == 0) {
@@ -548,23 +548,23 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 
       if (output) {
 	// Write the value
-	if (qp && value && strstr(value, "\r") || strstr(value,"\n")) {
+	if ((qp && value && strstr((const char *) value, "\r")) || strstr((const char *) value,"\n")) {
 	  // Re-encode if necessary
-	  char *tmp = sync_vtype_encode_qp(value);
+	  char *tmp = sync_vtype_encode_qp((char *) value);
 	  g_string_append(outcard, ";ENCODING=QUOTED-PRINTABLE:");
 	  g_string_append(outcard, tmp);
 	  g_free(tmp);
 	} else {
 	  g_string_append(outcard, ":");
-	  g_string_append(outcard, value);
+	  g_string_append(outcard, (const gchar *) value);
 	}
 	g_string_append(outcard, "\r\n");
       }
 
       if (addfn && value) {
 	char last[256]="", first[256]="";
-	if (sscanf(value, "%255[^;];%255[^;]", last, first) > 0 ||
-	    sscanf(value, ";%255[^;]", first) > 0) {
+	if (sscanf((const char *) value, "%255[^;];%255[^;]", last, first) > 0 ||
+	    sscanf((const char *) value, ";%255[^;]", first) > 0) {
 	  g_string_append(outcard, "FN:");
 	  if (strlen(first) > 0)
 	    g_string_append(outcard, first);
@@ -576,9 +576,10 @@ char* sync_vtype_convert(char *card, sync_voption opts, char* charset) {
 	}
       }
       if (addlabel && value) {
-	char *label, *tmp, *pos = value, *oldpos = value;
-	int t;
-	gchar** data = g_strsplit(value, ";", 256);
+	char *label, *tmp; 
+//	char *pos = (char *) value, *oldpos = (char *) value; // unused!
+//	int t;  // unused!
+	gchar** data = g_strsplit((const gchar *) value, ";", 256);
 	if (data[0] && data[1] && data[2] && data[3] && data[4] &&
 	    data[5] && data[6]) {
 	  tmp = g_strdup_printf("%s%s%s\n%s\n%s, %s%s%s\n%s",
@@ -797,7 +798,7 @@ char* sync_vtype_vcal1_to_vcal2(char* in) {
 // Convert vCAL 2.0 RRULEto vCAL 1.0
 char* sync_vtype_vcal2_to_vcal1(char* value) {
   char freq[256], *pos;
-  if (sscanf(value, "FREQ=%255[^;]", freq) >= 1) {
+  if (sscanf((const char *) value, "FREQ=%255[^;]", freq) >= 1) {
     time_t untiltime = 0;
     int count = 0, interval = 1;
     char bywdaylist[256] = "";
@@ -806,7 +807,7 @@ char* sync_vtype_vcal2_to_vcal1(char* value) {
     char bymolist[256] = "";
     gboolean converted = FALSE;
     GString *newvalue = g_string_new("");
-    pos = strstr(value, ";");
+    pos = strstr((const char *) value, ";");
     if (pos)
       pos++;
     while(pos) {
@@ -1094,7 +1095,7 @@ char* sync_timet_to_dur(time_t dur) {
       g_string_sprintfa(ret, "%dM", m);
     }
     if (dur > 0) {
-      g_string_sprintfa(ret, "%dS", dur);
+      g_string_sprintfa(ret, "%dS", (int) dur);
       dur = 0;
     }
   }
