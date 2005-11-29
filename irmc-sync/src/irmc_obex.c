@@ -474,7 +474,7 @@ obex_t* irmc_obex_client(irmc_config *config) {
 		    (gpointer*) &bttrans.handleinput);
   }
   userdata = (obexdata_t*) g_malloc0(sizeof(obexdata_t));
-#if OBEX_CUSTOMDATA
+#if 1 //OBEX_CUSTOMDATA
   bttrans.customdata = userdata;
 #if HAVE_IRDA
   irdatrans.customdata = userdata;

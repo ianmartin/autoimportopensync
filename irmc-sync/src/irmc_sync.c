@@ -1172,6 +1172,11 @@ void get_info(OSyncEnv *env)
   info->description = "Connects to IrMC compliant mobile devices,\nsuch as the SonyEricsson T39/T68/T610 or Siemens S55";
   info->version = 1;
 
+  info->timeouts.disconnect_timeout = 600;
+  info->timeouts.get_changeinfo_timeout = 600;
+  info->timeouts.get_data_timeout = 600;
+  info->timeouts.read_change_timeout = 600;
+
   info->functions.initialize = irmcInitialize;
   info->functions.connect = irmcConnect;
   info->functions.sync_done = irmcSyncDone;
