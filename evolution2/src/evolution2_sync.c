@@ -20,10 +20,6 @@
  
 #include "evolution2_sync.h"
 
-
-static osync_bool evo2_parse_settings(evo_environment *env, xmlDocPtr doc, OSyncError **error);
-
-
 GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
@@ -122,20 +118,21 @@ GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **err
 static void *evo2_initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "EVO2-SYNC %s(%p, %p)", __func__, member, error);
-	xmlDocPtr doc;
+	char *configdata = NULL;
+	int configsize = 0;
 	
 	g_type_init();
 	
 	evo_environment *env = g_malloc0(sizeof(evo_environment));
 
-	if (!(doc = osync_member_get_config (member, error)))
+	if (!osync_member_get_config_or_default(member, &configdata, &configsize, error))
 		goto error_free;
-	if (!evo2_parse_settings(env, doc, error)) {
+	if (!evo2_parse_settings(env, configdata, configsize)) {
+		g_free(configdata);
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to parse plugin configuration for evo2 plugin");
 		goto error_free;
 	}
-	
-	xmlFreeDoc (doc);
+	g_free(configdata);
 	env->member = member;
 	OSyncGroup *group = osync_member_get_group(member);
 	env->change_id = g_strdup(osync_group_get_name(group));
@@ -297,115 +294,6 @@ static void evo2_finalize(void *data)
 	g_free(env);
 }
 
-static osync_bool
-evo2_parse_settings(evo_environment *env, xmlDocPtr doc, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, doc);
-	xmlNodePtr cur;
-
-	//set defaults
-	env->addressbook_path = NULL;
-	env->calendar_path = NULL;
-	env->tasks_path = NULL;
-
-	cur = xmlDocGetRootElement(doc);
-
-	if (!cur) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-
-	if (strcmp (cur->name, "opensync-plugin-config") != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-
-	cur = cur->children;
-
-	while (cur != NULL) {
-		if (!strcmp (cur->name, "option")) {
-			char *name;
-			
-			if ((name = xmlGetProp (cur, "name"))) {
-				if (!strcmp (name, "addressbook")) {
-					env->addressbook_path = xmlNodeGetContent (cur);
-				} else if (!strcmp (name, "calendar")) {
-					env->calendar_path = xmlNodeGetContent (cur);
-				} else if (!strcmp (name, "tasks")) {
-					env->tasks_path = xmlNodeGetContent (cur);
-				}
-				xmlFree (name);
-			}
-		}
-		cur = cur->next;
-	}
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
-
-static xmlDocPtr
-evo2_get_default_config (void)
-{
-	xmlNodePtr root, node;
-	xmlDocPtr doc;
-	
-	doc = xmlNewDoc ("1.0");
-	
-	root = xmlNewDocNode (doc, NULL, "opensync-plugin-config", NULL);
-	xmlSetProp (root, "plugin", "evo2");
-	xmlSetProp (root, "version", "1.0");
-	xmlDocSetRootElement (doc, root);
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "path");
-	xmlSetProp (node, "mode", "directory");
-	xmlSetProp (node, "name", "addressbook");
-	xmlSetProp (node, "label", "Addressbook");
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "path");
-	xmlSetProp (node, "mode", "directory");
-	xmlSetProp (node, "name", "calendar");
-	xmlSetProp (node, "label", "Calendar");
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "path");
-	xmlSetProp (node, "mode", "directory");
-	xmlSetProp (node, "name", "tasks");
-	xmlSetProp (node, "label", "Tasks");
-	
-	return doc;
-}
-
-static xmlDocPtr
-evo2_get_config (const char *configdir)
-{
-	xmlDocPtr doc;
-	char *path;
-	
-	path = g_strdup_printf ("%s/evo2.xml", configdir);
-	if (!(doc = xmlParseFile (path)))
-		doc = evo2_get_default_config ();
-	g_free (path);
-	
-	return doc;
-}
-
-static osync_bool
-evo2_set_config (const char *configdir, xmlDocPtr doc)
-{
-	char *path;
-	
-	path = g_strdup_printf ("%s/evo2.xml", configdir);
-	xmlSaveFile (path, doc);
-	g_free (path);
-	
-	return TRUE;
-}
-
 void get_info(OSyncEnv *env)
 {
 	OSyncPluginInfo *info = osync_plugin_new_info(env);
@@ -413,9 +301,7 @@ void get_info(OSyncEnv *env)
 	info->version = 1;
 	info->is_threadsafe = TRUE;
     info->config_type = OPTIONAL_CONFIGURATION;
-    
-    info->functions.get_config = evo2_get_config;
-    info->functions.set_config = evo2_set_config;
+	
 	info->functions.initialize = evo2_initialize;
 	info->functions.connect = evo2_connect;
 	info->functions.get_changeinfo = evo2_get_changeinfo;

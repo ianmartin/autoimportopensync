@@ -40,7 +40,8 @@
 
 static void *initialize(OSyncMember *member, OSyncError **error)
 {
-	xmlDocPtr doc;
+	char *configdata;
+	int configsize;
 	HRESULT hr;
 
 	osync_debug("SynCE-SYNC", 4, "start: %s", __func__);	
@@ -53,20 +54,19 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 	env->hashtable = osync_hashtable_new();
 
 	//now you can get the config file for this plugin
-	if (!(doc = osync_member_get_config (member, error))) {
+	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
 		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-		g_free(env);
+		free(env);
 		return NULL;
 	}
 	
-	if (!synce_parse_settings(env, doc, error)) {
-		xmlFreeDoc (doc);
+	if (!synce_parse_settings(env, configdata, configsize, error)) {
 		g_free(env);
 		return NULL;
 	}
 
 	//Process the configdata here and set the options on your environment
-	xmlDocFree (doc);
+	free(configdata);
 	env->member = member;
 	
 	//Initializing RAPI
@@ -964,70 +964,6 @@ static void finalize(void *data)
 	free(env);
 }
 
-
-static xmlDocPtr
-synce_get_default_config (void)
-{
-	xmlNodePtr root, node;
-	xmlDocPtr doc;
-	
-	doc = xmlNewDoc ("1.0");
-	
-	root = xmlNewDocNode (doc, NULL, "opensync-plugin-config", NULL);
-	xmlSetProp (root, "plugin", "synce");
-	xmlSetProp (root, "version", "1.0");
-	xmlDocSetRootElement (doc, root);
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "path");
-	xmlSetProp (node, "mode", "directory");
-	xmlSetProp (node, "name", "file");
-	xmlSetProp (node, "label", "File");
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "bool");
-	xmlSetProp (node, "name", "addressbook");
-	xmlSetProp (node, "label", "Addressbook");
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "bool");
-	xmlSetProp (node, "name", "calendar");
-	xmlSetProp (node, "label", "Calendar");
-	
-	node = xmlNewChild (root, NULL, "option", NULL);
-	xmlSetProp (node, "type", "bool");
-	xmlSetProp (node, "name", "tasks");
-	xmlSetProp (node, "label", "Tasks");
-	
-	return doc;
-}
-
-static xmlDocPtr
-synce_get_config (const char *configdir)
-{
-	xmlDocPtr doc;
-	char *path;
-	
-	path = g_strdup_printf ("%s/synce.xml", configdir);
-	if (!(doc = xmlParseFile (path)))
-		doc = synce_get_default_config ();
-	g_free (path);
-	
-	return doc;
-}
-
-static osync_bool
-synce_set_config (const char *configdir, xmlDocPtr doc)
-{
-	char *path;
-	
-	path = g_strdup_printf ("%s/synce.xml", configdir);
-	xmlSaveFile (path, doc);
-	g_free (path);
-	
-	return TRUE;
-}
-
 void get_info(OSyncPluginInfo *env)
 {
 	OSyncPluginInfo *info = osync_plugin_new_info((void*)env);
@@ -1039,9 +975,7 @@ void get_info(OSyncPluginInfo *env)
 	info->version = 1;
 	
 	info->is_threadsafe = FALSE;
-
-	info->functions.get_config = synce_get_config;
-	info->functions.set_config = synce_set_config;
+	
 	info->functions.initialize = initialize;
 	info->functions.connect = connect;
 	info->functions.sync_done = sync_done;

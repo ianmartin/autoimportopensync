@@ -22,9 +22,6 @@
 #ifndef	_OPENSYNC_SYNCE_PLUGIN_H_
 #define	_OPENSYNC_SYNCE_PLUGIN_H_
 
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
-
 #include <rra/syncmgr.h>
 #include <rra/timezone.h>
 
@@ -55,6 +52,6 @@ typedef struct SyncePluginPtr {
 	char		*config_file;
 } SyncePluginPtr;
 
-extern osync_bool synce_parse_settings(SyncePluginPtr *env, xmlDocPtr doc, OSyncError **error);
+extern osync_bool synce_parse_settings(SyncePluginPtr *env, char *data, int size, OSyncError **error);
 
 #endif
