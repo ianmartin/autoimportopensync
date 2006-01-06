@@ -2,9 +2,9 @@ dnl AM_PATH_CHECK([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]]])
 dnl Test for check, and define CHECK_CFLAGS and CHECK_LIBS
 dnl
 
-AC_DEFUN(AM_PATH_CHECK,
+AC_DEFUN([AM_PATH_CHECK],
 [
-  AC_ARG_WITH(check,
+  AC_ARG_WITH([check],
   [  --with-check=PATH       prefix where check is installed [default=auto]])
  
   min_check_version=ifelse([$1], ,0.8.2,$1)
@@ -35,6 +35,10 @@ AC_DEFUN(AM_PATH_CHECK,
 #include <stdlib.h>
 
 #include <check.h>
+
+#if HAVE_STRING_H
+#include <string.h>
+#endif
 
 int main ()
 {
