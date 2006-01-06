@@ -33,7 +33,7 @@ int get_type_uid (const char *string)
 	
 	gchar *p;
 	p = strrchr (string, '-');
-	*p++;
+	p++;
 	return atoi(p);
 }
 

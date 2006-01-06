@@ -65,9 +65,10 @@ write_command (gpesync_client * ctx, const char *cmd, ...)
   va_end (va);
 
   if (verbose)
-    fprintf (stderr, "[gpsyncclient write_command]: %s\n", buf);
+    fprintf (stderr, "[gpsyncclient %s]: %s\n", __func__, buf);
 
-  write (ctx->outfd, buf, strlen (buf));
+  if (write (ctx->outfd, buf, strlen (buf)) == -1 && verbose)
+    fprintf (stderr, "[gpsyncclient %s]: failed\n", __func__);
 
   free (buf);
 }
@@ -245,8 +246,11 @@ gpesync_client_open (const char *addr, char **errmsg)
 
   ctx = g_malloc0 (sizeof (struct gpesync_client));
 
-  pipe (in_fds);
-  pipe (out_fds);
+  if (pipe (in_fds) && verbose)
+     fprintf(stderr, "[gpsyncclient %s]: pipe failed.\n", __func__);
+
+  if (pipe (out_fds) && verbose)
+     fprintf(stderr, "[gpsyncclinet %s]: pipe fialed.\n", __func__);
 
   pid = fork ();
   if (pid == 0)
@@ -293,7 +297,7 @@ gpesync_client_exec (gpesync_client * ctx, const char *command,
 {
   struct gpesync_client_query_context query;
   GString *cmd = g_string_new ("");
-  g_string_append_printf (cmd, "%d:%s", strlen (command), command);
+  g_string_append_printf (cmd, "%d:%s", (unsigned int) strlen (command), command);
 
   memset (&query, 0, sizeof (query));
   query.ctx = ctx;
