@@ -14,13 +14,13 @@ CLEANFILES = \
 	opensync_wrap.c
 
 if HAVE_PYTHON
-osdir = $(pythondir)
+osdir = $(pyexecdir)
 nodist_os_PYTHON = opensync.py
 
-osbindingsdir = $(pythondir)
+osbindingsdir = $(pyexecdir)
 osbindings_LTLIBRARIES = _opensync.la
 endif
 
 nodist__opensync_la_SOURCES = opensync_wrap.c
-_opensync_la_LDFLAGS = @PACKAGE_LIBS@ @XML_LIBS@ $(PYTHON_LDFLAGS) -R $(libdir) -module
+_opensync_la_LDFLAGS = @PACKAGE_LIBS@ @XML_LIBS@ $(PYTHON_LDFLAGS) -R $(libdir) -module -avoid-version
 _opensync_la_LIBADD = $(top_builddir)/opensync/libopensync.la
