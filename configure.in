@@ -103,14 +103,20 @@ AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
 #### Check for Python and Swig ####
 #(need python, python headers, and pyrex)
 AC_ARG_ENABLE(python,           
-  AS_HELP_STRING([--enable-python], [build python bindings]),
+  AS_HELP_STRING([--enable-python@<:@=minimum_version@:>@], [build python bindings]),
   [enable_python=$enableval], [enable_python=auto])
 if test x$enable_python = xno; then
     have_python=no
 else
     AC_MSG_NOTICE([Checking to see if we can build Python bindings])
     have_python=no
-    AM_PATH_PYTHON(2.2)
+    if test x$enable_python != xyes; then
+        minimum_version=$enable_python
+	enable_python=yes
+    else
+        minimum_version=2.2
+    fi
+    AM_PATH_PYTHON($minimum_version)
 	AM_CHECK_PYTHON_HEADERS([have_python_header=yes], [have_python_header=no])
 	
 	if test x$have_python_header = xno ; then
