@@ -465,13 +465,13 @@ obex_t* irmc_obex_client(irmc_config *config) {
 
   if (bluetoothplugin) {
     g_module_symbol(bluetoothplugin,"obex_connect",
-		    (gpointer*) &bttrans.connect);
+		    (gpointer) &bttrans.connect);
     g_module_symbol(bluetoothplugin,"obex_disconnect",
-		    (gpointer*) &bttrans.disconnect);
-    g_module_symbol(bluetoothplugin,"obex_write",(gpointer*) &bttrans.write);
-    g_module_symbol(bluetoothplugin,"obex_listen",(gpointer*) &bttrans.listen);
+		    (gpointer) &bttrans.disconnect);
+    g_module_symbol(bluetoothplugin,"obex_write",(gpointer) &bttrans.write);
+    g_module_symbol(bluetoothplugin,"obex_listen",(gpointer) &bttrans.listen);
     g_module_symbol(bluetoothplugin,"obex_handleinput",
-		    (gpointer*) &bttrans.handleinput);
+		    (gpointer) &bttrans.handleinput);
   }
   userdata = (obexdata_t*) g_malloc0(sizeof(obexdata_t));
 #if 1 //OBEX_CUSTOMDATA

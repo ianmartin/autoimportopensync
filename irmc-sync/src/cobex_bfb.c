@@ -84,7 +84,8 @@ int cobex_disconnect(obex_t *self, void *data)
     // Exit BFB mode
     char quitbfb[256];
     sprintf(quitbfb, "%c%c%cat^sqwe=2\r\n", 0x06, 0x0a, 0x0c);
-    write(c->fd, quitbfb, strlen(quitbfb));
+    if (write(c->fd, quitbfb, strlen(quitbfb)))
+      DEBUG(3, "%s() failed write.", __func__);
   }
 
   DEBUG(3, "%s() \n", __func__);
