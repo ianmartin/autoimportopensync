@@ -41,7 +41,7 @@ struct gpesync_client
 
 struct gpesync_client_query_context
 {
-  struct gpesync_client *ctx;
+  gpesync_client *ctx;
 
   int type;
 
@@ -169,42 +169,59 @@ read_response (struct gpesync_client_query_context *query_ctx)
 
   ctx = query_ctx->ctx;
   buf = g_string_new ("");
+  if (!ctx->socket)
+  {
+    for (;;)
+      {
+        int rc;
+        char c;
 
-  for (;;)
+        rc = read (ctx->infd, &c, 1);
+        if (rc < 0)
+          {
+            perror ("read");
+	    ctx->busy = 0;
+            break;
+          }
+
+        if (have_len == FALSE)
+	  {
+	    if (c == ':')
+	      {
+	        len = atoi (buf->str);
+	        have_len = TRUE;
+	        g_string_assign (buf, "");
+	        continue;
+	      }
+          }
+        else
+	  {
+	    if (buf->len == len - 1)
+	      {
+	        g_string_append_c (buf, c);
+	        break;
+	      }
+	  }
+
+        g_string_append_c (buf, c);
+
+      }
+  } else {
+    int bytesread=BUFFER_LEN-1;
+    char buffer [BUFFER_LEN];
+    
+    while (bytesread == BUFFER_LEN -1)
     {
-      int rc;
-      char c;
-
-      rc = read (ctx->infd, &c, 1);
-      if (rc < 0)
-	{
-	  perror ("read");
-	  ctx->busy = 0;
-	  break;
-	}
-
-      if (have_len == FALSE)
-	{
-	  if (c == ':')
-	    {
-	      len = atoi (buf->str);
-	      have_len = TRUE;
-	      g_string_assign (buf, "");
-	      continue;
-	    }
-	}
-      else
-	{
-	  if (buf->len == len - 1)
-	    {
-	      g_string_append_c (buf, c);
-	      break;
-	    }
-	}
-
-      g_string_append_c (buf, c);
-
+      bzero (buffer, BUFFER_LEN);
+      bytesread = recv (ctx->socket, buffer, BUFFER_LEN-1, 0);
+      if (bytesread < 0)
+      {
+	perror ("Reading");
+	exit (1);
+      }
+      g_string_append_len (buf, buffer, bytesread);
     }
+  }   
 
   if (ctx->busy)
     {
@@ -215,7 +232,7 @@ read_response (struct gpesync_client_query_context *query_ctx)
 }
 
 gpesync_client *
-gpesync_client_open (const char *addr, char **errmsg)
+gpesync_client_open_ssh (const char *addr, char **errmsg)
 {
   gpesync_client *ctx;
   gchar *hostname = NULL;
@@ -280,12 +297,66 @@ gpesync_client_open (const char *addr, char **errmsg)
   return ctx;
 }
 
+gpesync_client *
+gpesync_client_open (const char *addr, int port, char **errmsg)
+{
+  gpesync_client *ctx;
+  ctx = g_malloc0 (sizeof (gpesync_client));
+
+  struct hostent *he;
+  struct sockaddr_in server_addr;
+
+  if ((he = gethostbyname (addr)) == NULL)
+  {
+    herror ("gethostbyname");
+    exit (1);
+  }
+
+  if ((ctx->socket = socket (PF_INET, SOCK_STREAM, 0)) == -1)
+  {
+    perror ("socket");
+    exit (1);
+  }
+
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons (port);
+  server_addr.sin_addr = *((struct in_addr *)he->h_addr);
+  memset (&(server_addr.sin_zero), '\0', 8);
+
+  if (connect (ctx->socket, (struct sockaddr *) &server_addr,
+	sizeof (struct sockaddr)) == -1)
+  {
+    perror ("connect");
+    exit (1);
+  }
+
+  char buffer[BUFFER_LEN];
+  bzero (buffer, BUFFER_LEN);
+
+  read (ctx->socket, buffer, 255);
+  if (strcasecmp (buffer, "OK\n"))
+  {
+    if (errmsg)
+    {
+      *errmsg = strdup (buffer);
+    }
+    gpesync_client_close (ctx);
+    return NULL;
+  }
+ 
+  return ctx;
+}
+
 void
 gpesync_client_close (gpesync_client * ctx)
 {
   close (ctx->infd);
   if (ctx->infd != ctx->outfd)
     close (ctx->outfd);
+
+  if (ctx->socket)
+    shutdown (ctx->socket, SHUT_RDWR);
+  ctx->socket = 0;
 
   g_free (ctx);
 //  ctx = NULL;
@@ -307,9 +378,28 @@ gpesync_client_exec (gpesync_client * ctx, const char *command,
   query.result = 0;
   query.error = NULL;
 
-  ctx->busy = 1;
+  if (!ctx->socket)
+  {
+    g_string_append_printf (cmd, "%d:%s", strlen (command), command);
 
-  write_command (ctx, cmd->str);
+    write_command (ctx, cmd->str);
+
+  } else {
+    int bytes_sent=0, n=0;
+    
+    while (bytes_sent < strlen (command))
+    {
+      n = send (ctx->socket, command + bytes_sent, strlen (command) - bytes_sent, 0);
+      if (n < 0)
+      {
+	perror ("sending");
+        exit (1);
+      }
+      bytes_sent += n;
+    }
+  }
+
+  ctx->busy = 1;
 
   while (ctx->busy)
     read_response (&query);

@@ -67,7 +67,7 @@ static void *initialize(OSyncMember *member, OSyncError **error)
  *
  * \param ctx		The context of the plugin
  */
-static void connect(OSyncContext *ctx)
+static void gpe_connect(OSyncContext *ctx)
 {
 	osync_debug("GPE_SYNC", 4, "start: %s", __func__);
 
@@ -76,10 +76,15 @@ static void connect(OSyncContext *ctx)
 	
 	OSyncError *error = NULL;
 
-	gchar *path = g_strdup_printf ("%s@%s", env->username, env->device_addr);
-
 	char *client_err;
-	env->client = gpesync_client_open (path, &client_err);
+	if (env->use_ssh)
+	{
+		gchar *path = g_strdup_printf ("%s@%s", env->username, env->device_addr);
+		env->client = gpesync_client_open_ssh (path, &client_err);
+	}
+	else
+		env->client = gpesync_client_open (env->device_addr, env->device_port, &client_err);
+
 	if (env->client == NULL) {
 		osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, client_err);
 		env->client = NULL;
@@ -144,7 +149,7 @@ static void sync_done(OSyncContext *ctx)
  *
  * \brief ctx		The context of the plugin
  */
-static void disconnect(OSyncContext *ctx)
+static void gpe_disconnect(OSyncContext *ctx)
 {
 	osync_debug("GPE_SYNC", 4, "start: %s", __func__);
 	gpe_environment *env = (gpe_environment *)osync_context_get_plugin_data(ctx);
@@ -202,9 +207,9 @@ void get_info(OSyncEnv *env)
 	
 	//Now set the function we made earlier
 	info->functions.initialize = initialize;
-	info->functions.connect = connect;
+	info->functions.connect = gpe_connect;
 	info->functions.sync_done = sync_done;
-	info->functions.disconnect = disconnect;
+	info->functions.disconnect = gpe_disconnect;
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
 	

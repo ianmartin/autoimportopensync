@@ -14,8 +14,31 @@
 #ifndef _GPE__CLIENT_H_
 #define _GPE__CLIENT_H_
 #include <stdarg.h>     /* Needed for the definition of va_list */
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
-typedef struct gpesync_client gpesync_client;
+#define BUFFER_LEN 25
+
+typedef struct
+{
+  int infd;
+  int outfd;
+  int seq;
+
+  int busy;
+  int socket;
+
+  char *hostname;
+  const char *username;
+} gpesync_client;
+
 
 /*! \brief This opens a connection to the gpesyncd
  *
@@ -23,7 +46,9 @@ typedef struct gpesync_client gpesync_client;
  * \param errmsg	If an error occurs, the message will be written there.
  *
  */
-gpesync_client *gpesync_client_open(const char *addr, char **errmsg);
+gpesync_client *gpesync_client_open_ssh(const char *addr, char **errmsg);
+
+gpesync_client *gpesync_client_open(const char *addr, int port,  char **errmsg);
 
 /*! \brief Closes an exisiting connection and frees the memory.
  *

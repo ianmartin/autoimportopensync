@@ -43,6 +43,8 @@ typedef struct {
 	// configuration
 	char *device_addr; // the ip of the handheld;
 	char *username; // The user on the handheld
+	int device_port;
+	int use_ssh;
 	
 	int debuglevel;
 } gpe_environment;

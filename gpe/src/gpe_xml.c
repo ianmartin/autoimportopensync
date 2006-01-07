@@ -31,9 +31,11 @@ osync_bool gpe_parse_settings(gpe_environment *env, char *data, int size)
 	// Set the defaults
 	env->device_addr = (char*)malloc(sizeof(char)*10);
 	strcpy(env->device_addr, "127.0.0.1");
+	env->device_port = 6446;
 	env->username = (char*)malloc(sizeof(char)*9);
 	strcpy(env->username, "gpeuser");
-	
+	env->use_ssh = 1;
+
 	doc = xmlParseMemory(data, size);
 	
 	if(!doc) {
@@ -62,6 +64,12 @@ osync_bool gpe_parse_settings(gpe_environment *env, char *data, int size)
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_ip")) {
 				// convert the string to an ip
 				env->device_addr = g_strdup(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_port")) {
+				env->device_port = atoi(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"use_ssh")) {
+				env->use_ssh = atoi(str);
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_user")) {
 				env->username = g_strdup(str);
