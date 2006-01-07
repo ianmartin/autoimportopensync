@@ -1,3 +1,9 @@
+2006-01-07  Martin Felis <martin@silef.de>
+
+	* gpesync_client.c, gpesync_client.h, gpe_sync.c, gpe_sync.h,
+	gpe_xml.c: Added syncing over tcp/ip.
+	* README: Improved the documentation.
+
 2005-11-29  Martin Felis <martin@silef.de>
 
 	Moved the repository from gpe cvs to opensync svn.

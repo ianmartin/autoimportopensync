@@ -5,18 +5,61 @@ WARNING: This plugin is not yet finished. A lot of functions are still not yet
 written. Although there should be no damage to your files, it is not
 guaranteed that it works, so make backups!
 
-This plugin needs the gpesyncd installed on the gpe side. Syncing is done
-by using ssh, so this too has to be installed. The easiest way is to use
-key authentication. At the end of this document is a small howto to use
-it.
+General information
+-------------------
+You need to install the gpesyncd on the gpe side. This will read out the
+sqlite databases and convert the data into vcards, vevents and vtodos.
 
-Some notes on how all works:
-All the conversion of the vcards, vevents and vtodo's is done on the gpe
-device by using the gpesyncd. This plugin makes a normal ssh-connection
-to the pda, runs there the gpesyncd and makes all queries to it. gpesyncd
-converts all the data in the sqlite databases to vcards, vevents and vtodos,
-that are sent back to opensync.
+Syncing can be done by using tcp/ip or over ssh. Both have their advantages
+and disadvantages. But anyway I would recommend anyone to do syncing over
+ssh.
 
+Syncing over ssh
+----------------
+By using ssh, you need to additionally install the sshd on the gpe side. If
+you want to use it, just set in the configuration xml file "use_ssh" to 1
+(which is default). 
+
+To have it as comfortable as with the syncing over tcp/ip, you should use
+key authentication. To do so, you need to generate a new ssh-key pair with
+
+$ ssh-keygen -t dsa
+
+I recommend you to choose a passphrase although you don't need one. After it
+you have two keys: id_dsa and id_dsa.pub. The id_dsa is you private
+key, never loose it, never give it away.
+Now you need to append the contents of id_dsa.pub to ~/.ssh/authorized_keys
+on the gpe device. If the file does not exist, create one.
+Now on your desktop run
+
+$ ssh-add ~/.ssh/id_dsa
+
+And enter the passphrase for you private key. This will add your key to the
+ssh-agent, which manages all the authentication of the ssh-connections.
+Now you won't anymore need to re-enter you passphrase while your X-session
+is running and you can connect to the gpe device without typing in any
+passwords.
+
+If this didn't work or you want more information, go to
+http://sial.org/howto/openssh/publickey-auth/
+
+Syncing over tcp/ip
+-------------------
+For this you need to run the gpesyncd on the gpe device as the user with
+whom you want to sync. You also need to run it with the -D parameter so
+that it will be in the "daemon mode". Optionaly you can specify a port after
+the -D parameter. If you provide none, the default port 6446 will be used.
+
+Additionally you need to list the ip(s) from the computer(s) you want to
+allow to sync the file $HOME/.gpe/gpesyncd.allow . If you don't have
+this file, or it is empty, the gpesyncd will block all incoming connections.
+Whenever a connection is blocked and you try to sync, you should get an
+error like "Your're not allowed to connect!" from opensync.
+
+In the configuration xml file you need to set "use_ssh" to 0.
+
+Troubleshooting
+---------------
 Should there be any problems with the conversion, the problems are probably
 adressed to gpesyncd. Please look at its BUGS file before reporting a
 conversion problem.
@@ -33,27 +76,3 @@ A BIG THANKS to google, for making the "Summer of Code"
 and a BIG THANK AS LEAST AS BIG AS TO GOOGLE, to handhelds.org for doing all
 this great stuff and letting me code this while the summer of code for you.
 I REALLY enjoyed it (and hopefully still enjoy it).
-
-Using key authentication:
-At first, you need to generate a new ssh-key pair with
-
-$ ssh-keygen -t dsa
-
-I recommend you to choose a passphrase althought you don't need one. After it
-you have two keys: id_dsa and id_dsa.pub. The id_dsa is you private
-key, never loose it, never give it away.
-Now you need to append the contents of id_dsa.pub to ~/.ssh/authorized_keys
-on the gpe device. If the file does not exist, create one.
-Now on your desktop run
-
-$ ssh-add ~/.ssh/id_dsa
-
-And enter the passphrase for you private key. This will add your key to the
-ssh-agent, which manages all the authentication of the ssh-connections.
-Now you won't anymore need to re-enter you passphrase while your X-session
-is running and you can connect to the gpe device without typing in any
-passwords.
-
-Otherwise see:
-http://sial.org/howto/openssh/publickey-auth/
-
