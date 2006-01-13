@@ -67,7 +67,9 @@ libopensync_la_SOURCES = \
 	opensync_anchor.c \
 	opensync_filter.c \
 	opensync_queue.c \
-	opensync_message.c
+	opensync_message.c \
+	opensync_serializer.c \
+	easyipc.c
 
 CLEANFILES = \
 	*.bb \
