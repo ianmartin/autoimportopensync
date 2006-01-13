@@ -18,8 +18,8 @@
  * 
  */
  
-#include "engine.h"
-#include "engine_internals.h"
+#include "opensync.h"
+#include "opensync_internals.h"
 
 /**
  * @ingroup OSEngineQueue

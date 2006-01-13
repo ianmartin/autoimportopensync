@@ -24,6 +24,16 @@ typedef enum {
  */
 typedef void (*OSyncMessageHandler)(OSyncMessage *message, void *user_data);
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+typedef struct timeout_info {
+        OSyncQueue *sendingqueue;
+        OSyncMessage *message;
+        void *replysender;
+        int timeout;
+        gboolean (*timeoutfunc)(gpointer);
+} timeout_info;
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
+
 /*! @brief A OSyncMessage
  * 
  */

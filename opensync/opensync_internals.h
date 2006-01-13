@@ -41,3 +41,6 @@ typedef struct OSyncDB OSyncDB;
 #include "opensync_filter_internals.h"
 #include "opensync_context_internals.h"
 #include "opensync_hashtable_internals.h"
+#include "opensync_message_internals.h"
+#include "opensync_queue_internals.h"
+

@@ -22,16 +22,6 @@ struct OSyncQueue {
 	GMainContext *context;
 };
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-struct timeout_info {
-	OSyncQueue *sendingqueue;
-	OSyncMessage *message;
-	void *replysender;
-	int timeout;
-	gboolean (*timeoutfunc)(gpointer);
-};
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 /*@}*/
 
 OSyncQueue *osync_queue_new(const char *name);

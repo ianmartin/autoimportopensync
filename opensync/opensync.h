@@ -56,6 +56,8 @@ typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
 typedef struct OSyncFilter OSyncFilter;
 typedef struct OSyncCustomFilter OSyncCustomFilter;
+typedef struct OSyncMessage OSyncMessage;
+typedef struct OSyncQueue OSyncQueue;
 typedef int osync_bool;
 
 #include "opensync_debug.h"
