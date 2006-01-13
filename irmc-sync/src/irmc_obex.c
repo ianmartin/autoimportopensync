@@ -69,6 +69,7 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
   case OBEX_EV_PROGRESS:
     break;
   case OBEX_EV_REQDONE:
+    userdata->busy = 0;
     if(mode == OBEX_CLIENT) {
       client_done(handle, object, obex_cmd, obex_rsp);
     } else  {
@@ -499,6 +500,7 @@ obex_t* irmc_obex_client(irmc_config *config) {
   userdata->connectmedium = config->connectmedium;
   userdata->state = IRMC_OBEX_OFFLINE;
   userdata->connected = 0;
+  userdata->busy = 0;
 
   switch(userdata->connectmedium) {
   case MEDIUM_BLUETOOTH:
@@ -567,6 +569,7 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_TARGET, hd, 
 			   strlen(target), 0); 
     }
+    userdata->busy = 1;
     ret = OBEX_Request(handle, object);
     if (ret < 0) {
       osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot connect via OBEX.");
@@ -574,7 +577,9 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
     }
   }
   userdata->state = IRMC_OBEX_CONNECTING;
-  irmc_obex_handleinput(handle, 10);
+  while ( userdata->busy ) {
+    irmc_obex_handleinput(handle, 10);
+  }
   if (userdata->state == IRMC_OBEX_REQDONE) {
     if (strlen(userdata->irunit.serial) > 0) {
 #if HAVE_IRDA
@@ -608,13 +613,16 @@ gboolean irmc_obex_disconnect(obex_t* handle, OSyncError **error) {
   userdata = (obexdata_t*) OBEX_GetUserData(handle);  
   if (userdata->connected) {
     if ((object = OBEX_ObjectNew(handle, OBEX_CMD_DISCONNECT))) {
+      userdata->busy = 1;
       if(OBEX_Request(handle, object) < 0)  {
         osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot disconnect from OBEX.");
         return FALSE;
       }
     }
     userdata->state = IRMC_OBEX_DISCONNECTING;
-    irmc_obex_handleinput(handle, 10);
+    while ( userdata->busy ) {
+      irmc_obex_handleinput(handle, 10);
+    }
     OBEX_TransportDisconnect(handle);
     userdata->connected = 0;
   }
@@ -694,6 +702,7 @@ gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
       hd.bs = (const uint8_t *) body; 
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_BODY, hd, body_size, 0); 
     }
+    userdata->busy = 1;
     if(OBEX_Request(handle, object) < 0) {
       osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot put a item on mobile device");
       return FALSE;
@@ -701,7 +710,9 @@ gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
     userdata->state = IRMC_OBEX_PUTTING;
     userdata->databuf = rspbuf;
     userdata->databuflen = rspbuflen;
-    irmc_obex_handleinput(handle, 30);
+    while ( userdata->busy ) {
+      irmc_obex_handleinput(handle, 30);
+    }
     if (userdata->state == IRMC_OBEX_REQDONE)
       return TRUE;
 
@@ -733,9 +744,12 @@ gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OS
 			 namesize, 0); 
     userdata->databuf = buffer;
     userdata->databuflen = buflen;
+    userdata->busy = 1;
     OBEX_Request(handle, object);
     userdata->state = IRMC_OBEX_GETTING;
-    irmc_obex_handleinput(handle, 30);
+    while ( userdata->busy ) {
+      irmc_obex_handleinput(handle, 30);
+    }
     if (userdata->state == IRMC_OBEX_REQDONE) {
       return TRUE;
     }

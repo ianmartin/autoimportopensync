@@ -149,7 +149,7 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
           config->connectmedium = MEDIUM_IR;
         else if (!strcmp(str, "cable"))
           config->connectmedium = MEDIUM_CABLE;
-#if BLUETOOTH
+#if HAVE_BLUETOOTH
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btunit")) {
         baswap(&(config->btunit.bdaddr), strtoba(str));
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"btchannel")) {
@@ -276,7 +276,7 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
   osync_anchor_update( member, "contact", anchor );
 }
 
-#if BLUETOOTH
+#if HAVE_BLUETOOTH
 void *scan_devices( void *foo, const char *query, void *bar )
 {
   xmlDoc *doc;
@@ -525,7 +525,6 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
   char did[256] = "";
   char *filename;
   int foo;
-//int slowsync = 0; // unused
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
@@ -533,6 +532,7 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
   data = g_malloc(DATABUFSIZE);
   datap = data;
 
+  memset(data, 0, DATABUFSIZE);
   if (osync_member_get_slow_sync(env->member, "event") == TRUE) {
     len = DATABUFSIZE;
     if (config->donttellsync) {
@@ -547,17 +547,24 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
         }
       }
     }
-    if (!irmc_obex_get(config->obexhandle, "telecom/cal.vcs", data, &len, error))
-      len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
+
+    if (!irmc_obex_get(config->obexhandle, "telecom/cal.vcs", data, &len, error)) {
+      // Continue anyway; Siemens models will fail this get if calendar is empty
+      osync_error_free(error);
+      *error = 0;
+      len = 0;
+    }
 
     {
+      data[len]=0;
+
       char *event_end = NULL;
       char *event_start = data, *todo_start;
       char *event = NULL;
       char *converted_event = NULL;
       int objtype;
 
-      data[len]=0;
+
       do {
         char *start = event_start;
         objtype = SYNC_OBJECT_TYPE_CALENDAR;
@@ -909,8 +916,6 @@ error:
 
 static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
-
-//int res = 0; // unused!
   char name[256];
   char *vcal = NULL;
   char *converted_vcal = NULL;
@@ -926,9 +931,12 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
   irmc_config *config = &(env->config);
 
   strcpy(name, "telecom/cal/luid/");
-  uid = (char *) osync_change_get_uid(change);
-  if (uid) {
-    safe_strcat(name, uid, 256);
+
+  if (osync_change_get_changetype(change) != CHANGE_ADDED) {
+    uid = (char *) osync_change_get_uid(change);
+    if (uid) {
+      safe_strcat(name, uid, 256);
+    }
   }
   safe_strcat(name, ".vcs", 256);
 
@@ -1039,12 +1047,15 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
 
-  uid = (char *) osync_change_get_uid(change);
+
   vcard = osync_change_get_data(change);
 
   strcpy(name, "telecom/pb/luid/");
-  if (uid) {
-    safe_strcat(name, uid, 256);
+  if (osync_change_get_changetype(change) != CHANGE_ADDED) {
+    uid = (char *) osync_change_get_uid(change);
+    if (uid) {
+      safe_strcat(name, uid, 256);
+    }
   }
   safe_strcat(name, ".vcf", 256);
 
@@ -1189,8 +1200,8 @@ void get_info(OSyncEnv *env)
   osync_plugin_set_commit_objformat(info, "contact", "vcard21", irmcContactCommitChange);
 
   osync_plugin_accept_objtype(info, "event");
-  osync_plugin_accept_objformat(info, "event", "vevent20", NULL);
-  osync_plugin_set_commit_objformat(info, "event", "vevent20", irmcCalendarCommitChange);
+  osync_plugin_accept_objformat(info, "event", "vevent10", NULL);
+  osync_plugin_set_commit_objformat(info, "event", "vevent10", irmcCalendarCommitChange);
 
   osync_plugin_accept_objtype(info, "todo");
   osync_plugin_accept_objformat(info, "todo", "vtodo20", NULL);

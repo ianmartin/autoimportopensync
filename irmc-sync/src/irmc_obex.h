@@ -63,6 +63,7 @@ typedef struct  {
   int connected;
   struct termios oldtio;
   cobex_t cobex; // Data for OBEX over cable
+  int busy;
 } obexdata_t;
 
 
