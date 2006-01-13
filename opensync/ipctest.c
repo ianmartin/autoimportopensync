@@ -1,4 +1,5 @@
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +85,7 @@ int main()
   if ( osync_error_is_set( &error ) )
     osync_error_free( &error );
 
-  while ( !osync_queue_connect( queue, 0 ) ) {
+  while ( !osync_queue_connect( queue, O_NONBLOCK | O_RDWR, 0 ) ) {
     printf( "i'm sleeping (%x)\n", cpid );
     usleep( 10000 );
   }

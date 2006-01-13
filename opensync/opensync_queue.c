@@ -74,9 +74,9 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 
 gboolean source_callback(gpointer);
 
-osync_bool osync_queue_connect(OSyncQueue *queue, OSyncError **error)
+osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
 {
-	int fd = open(queue->name, O_RDWR | O_NONBLOCK);
+	int fd = open(queue->name, flags);
 	if (fd == -1) {
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
                 return FALSE;
