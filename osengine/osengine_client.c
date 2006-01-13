@@ -396,7 +396,7 @@ void osync_client_call_plugin(OSyncClient *client, char *function, void *data, O
 }
 
 
-void osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data, OSyncError **error)
+osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", target, sender, data, error);
 	
@@ -409,23 +409,20 @@ void osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bo
 	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, sender);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	if (!osync_message_send_with_timeout(message, queue, timeouts.get_changeinfo_timeout, error))
-		goto error_free_message;
-	
-	if (!osync_queue_send_int(target->incoming, (int)data, error))
+	if (!osync_message_send_with_timeout(message, target->incoming, sender->incoming, timeouts.get_changeinfo_timeout, error))
 		goto error_free_message;
 	
 	osync_trace(TRACE_EXIT, "%s");
-    return;
+    return TRUE;
 
 error_free_message:
 	g_free(message);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
-	return NULL;
+	return FALSE;
 }
 
-void osync_client_get_change_data(OSyncEngine *sender, OSyncMappingEntry *entry)
+/*void osync_client_get_change_data(OSyncEngine *sender, OSyncMappingEntry *entry)
 {
 	osync_flag_changing(entry->fl_has_data);
 	OSyncMessage *message = osync_message_new_methodcall(sender, "GET_DATA");
@@ -509,7 +506,7 @@ void osync_client_disconnect(OSyncClient *target, OSyncEngine *sender)
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
 	osync_queue_send_with_timeout(target->incoming, message, timeouts.disconnect_timeout, target);
-}
+}*/
 
 
 /*
@@ -523,3 +520,29 @@ void osync_client_call_plugin_with_reply(OSyncClient *client, char *function, vo
 	itm_queue_send_with_reply(client->incoming, message);
 }*/
 
+
+osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, error);
+	if (!message)
+		goto error;
+	
+	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, engine);
+	
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(client);
+	if (!osync_message_send_with_timeout(message, client->incoming, engine->incoming, timeouts.get_changeinfo_timeout, error))
+		goto error_free_message;
+	
+	
+	
+	osync_trace(TRACE_EXIT, "%s");
+    return TRUE;
+
+error_free_message:
+	g_free(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
+	return FALSE;
+}

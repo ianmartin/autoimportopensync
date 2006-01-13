@@ -37,9 +37,11 @@
  * @returns A pointer to a newly allocated OSyncUserInfo
  * 
  */
-OSyncUserInfo *_osync_user_new(void)
+OSyncUserInfo *osync_user_new(OSyncError **error)
 {
-	OSyncUserInfo *user = g_malloc0(sizeof(OSyncUserInfo));
+	OSyncUserInfo *user = osync_try_malloc0(sizeof(OSyncUserInfo), error);
+	if (!user)
+		return NULL;
 	
 	user->uid = getuid();
 	user->gid = getgid();
@@ -49,9 +51,17 @@ OSyncUserInfo *_osync_user_new(void)
 	
 	user->confdir = g_strdup_printf("%s/.opensync", user->homedir);
 	
-	osync_debug("OSUSR", 3, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
+	osync_trace(TRACE_ENTRY, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
 	
 	return user;
+}
+
+
+void osync_user_free(OSyncUserInfo *info)
+{
+	g_free(info->confdir);
+	
+	g_free(info);
 }
 
 /*! @brief This will set the configdir for the given user
@@ -62,7 +72,7 @@ OSyncUserInfo *_osync_user_new(void)
  * @param path The new configdir path
  * 
  */
-void _osync_user_set_confdir(OSyncUserInfo *user, const char *path)
+void osync_user_set_confdir(OSyncUserInfo *user, const char *path)
 {
 	g_assert(user);
 	
@@ -80,7 +90,7 @@ void _osync_user_set_confdir(OSyncUserInfo *user, const char *path)
  * @returns The configdir path
  * 
  */
-const char *_osync_user_get_confdir(OSyncUserInfo *user)
+const char *osync_user_get_confdir(OSyncUserInfo *user)
 {
 	g_assert(user);
 	return user->confdir;

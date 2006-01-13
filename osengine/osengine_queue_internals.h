@@ -1,3 +1,6 @@
+#ifndef _OSENGINE_QUEUE_INTERNALS_H
+#define _OSENGINE_QUEUE_INTERNALS_H
+
 /**
  * @defgroup OSEngineQueue OpenSync Message Queues Internals
  * @ingroup OSEnginePrivate
@@ -42,3 +45,5 @@ void itm_queue_setup_with_gmainloop(ITMQueue *queue, GMainContext *context);
 void itm_queue_flush(ITMQueue *queue);
 void itm_queue_free(ITMQueue *queue);
 void itm_queue_dispatch(ITMQueue *queue);
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef _OPENSYNC_QUEUE_INTERNALS_H
+#define _OPENSYNC_QUEUE_INTERNALS_H
+
 /**
  * @defgroup OSEngineQueue OpenSync Message Queues Internals
  * @ingroup OSEnginePrivate
@@ -47,3 +50,5 @@ osync_bool osync_queue_read_long_long_int(OSyncQueue *queue, long long int *data
 
 void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context);
 osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error);
+
+#endif

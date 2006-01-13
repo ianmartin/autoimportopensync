@@ -1,3 +1,6 @@
+#ifndef _OPENSYNC_MESSAGES_INTERNALS_H
+#define _OPENSYNC_MESSAGES_INTERNALS_H
+
 /**
  * @defgroup OSEngineMessage OpenSync Message Internals
  * @ingroup OSEnginePrivate
@@ -15,7 +18,8 @@ typedef enum {
 	OSYNC_MESSAGE_DISCONNECT,
 	OSYNC_MESSAGE_GET_CHANGES,
 	OSYNC_MESSAGE_REPLY,
-	OSYNC_MESSAGE_ERRORREPLY
+	OSYNC_MESSAGE_ERRORREPLY,
+	OSYNC_MESSAGE_INITIALIZE
 } OSyncMessageCommand;
 
 /*! @brief Function which can receive messages
@@ -76,3 +80,5 @@ long long osync_message_get_id(OSyncMessage *message);
 void osync_message_reset_timeout(OSyncMessage *message);
 osync_bool osync_message_is_answered(OSyncMessage *message);
 void osync_message_set_answered(OSyncMessage *message);
+
+#endif

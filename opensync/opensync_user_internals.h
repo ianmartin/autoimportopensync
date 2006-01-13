@@ -15,9 +15,9 @@ struct OSyncUserInfo
 #endif
 };
 
-OSyncUserInfo *_osync_user_new(void);
-void _osync_user_set_confdir(OSyncUserInfo *user, const char *path);
-const char *_osync_user_get_confdir(OSyncUserInfo *user);
-OSyncUserInfo *_osync_get_user(void);
+OSyncUserInfo *osync_user_new(OSyncError **error);
+void osync_user_free(OSyncUserInfo *info);
+void osync_user_set_confdir(OSyncUserInfo *user, const char *path);
+const char *osync_user_get_confdir(OSyncUserInfo *user);
 
 #endif //_OPENSYNC_USER_INTERNALS_H_

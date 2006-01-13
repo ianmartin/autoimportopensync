@@ -20,7 +20,7 @@
  
 #include "engine.h"
 #include "engine_internals.h"
-
+#include <opensync/opensync_user_internals.h>
 /**
  * @defgroup OSEnginePrivate OpenSync Engine Private API
  * @ingroup PrivateAPI
@@ -40,36 +40,6 @@
  */
 /*@{*/
 
-void send_engine_changed(OSyncEngine *engine)
-{
-	OSyncMessage *message = osync_message_new_signal(NULL, "ENGINE_CHANGED");
-	osync_debug("ENG", 4, "Sending message %p:\"ENGINE_CHANGED\"", message);
-	osync_queue_send(engine->incoming, message);
-}
-
-void send_client_changed(OSyncEngine *engine, OSyncClient *client)
-{
-	OSyncMessage *message = osync_message_new_signal(NULL, "CLIENT_CHANGED");
-	osync_debug("ENG", 4, "Sending message %p:\"CLIENT_CHANGED\" for client %p", message, client);
-	osync_message_set_data(message, "client", client);
-	osync_queue_send(engine->incoming, message);
-}
-
-void send_mappingentry_changed(OSyncEngine *engine, OSyncMappingEntry *entry)
-{
-	OSyncMessage *message = osync_message_new_signal(NULL, "ENTRY_CHANGED");
-	osync_debug("ENG", 4, "Sending message %p:\"ENTRY_CHANGED\" for entry %p", message, entry);
-	osync_message_set_data(message, "entry", entry);
-	osync_queue_send(engine->incoming, message);
-}
-
-void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
-{
-	OSyncMessage *message = osync_message_new_signal(NULL, "MAPPING_CHANGED");
-	osync_message_set_data(message, "mapping", mapping);
-	osync_queue_send(engine->incoming, message);
-}
-#endif
 
 /*! @brief The queue message handler of the engine
  * 
@@ -80,9 +50,9 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
  */
 static void engine_message_handler(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
 {
-	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p:%s, %p)", sender, message, message->msgname, engine);
+	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p:%lli, %p)", sender, message, message->id, engine);
 	
-	if (osync_message_is_signal (message, "ENTRY_CHANGED")) {
+	/*if (osync_message_is_signal (message, "ENTRY_CHANGED")) {
 		OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
 		
 		if (!g_list_find(engine->maptable->entries, entry) && !g_list_find(engine->maptable->unmapped, entry)) {
@@ -159,7 +129,7 @@ static void engine_message_handler(OSyncClient *sender, OSyncMessage *message, O
 	
 	osync_debug("ENG", 0, "Unknown message \"%s\"", osync_message_get_msgname(message));
 	osync_trace(TRACE_EXIT_ERROR, "engine_message_handler: Unknown message");
-	g_assert_not_reached();
+	g_assert_not_reached();*/
 }
 
 static void trigger_clients_sent_changes(OSyncEngine *engine)
@@ -174,7 +144,7 @@ static void trigger_clients_sent_changes(OSyncEngine *engine)
 	//Load the old mappings
 	osengine_mappingtable_inject_changes(engine->maptable);
 	
-	send_engine_changed(engine);
+	//send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -182,7 +152,7 @@ static void trigger_clients_read_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
-	send_engine_changed(engine);
+	//send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -256,7 +226,6 @@ static gboolean startupfunc(gpointer data)
 		osync_error_update(&engine->error, "Unable to connect one of the members");
 		osync_flag_set(engine->fl_stop);
 	}
-	osync_queue_flush(engine->incoming);
 	
 	g_mutex_lock(engine->started_mutex);
 	g_cond_signal(engine->started);
@@ -307,7 +276,6 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	osync_flag_set_state(engine->cmb_read_all, TRUE);
 	osync_flag_set_state(engine->cmb_committed_all, TRUE);
 	osync_flag_set_state(engine->cmb_committed_all_sent, FALSE);
-	osync_queue_flush(engine->incoming);
 	
 	osync_status_update_engine(engine, ENG_ENDPHASE_DISCON, NULL);
 	
@@ -360,7 +328,13 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->syncloop = g_main_loop_new(engine->context, FALSE);
 	engine->group = group;
 
-	engine->incoming = osync_queue_new();
+	OSyncUserInfo *user = osync_user_new(error);
+	if (!user)
+		return NULL;
+	char *path = g_strdup_printf("%s/engines", osync_user_get_confdir(user));
+	engine->incoming = osync_queue_new(path, error);
+	if (!engine->incoming)
+		return NULL;
 	
 	engine->syncing_mutex = g_mutex_new();
 	engine->info_received_mutex = g_mutex_new();
@@ -384,10 +358,10 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	osync_flag_set_pos_trigger(engine->cmb_read_all, (OSyncFlagTriggerFunc)trigger_clients_read_all, engine, NULL);
 	
 	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE, FALSE);
-	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	//osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	engine->cmb_synced = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	//osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 	
 	engine->cmb_finished = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_finished, (OSyncFlagTriggerFunc)osengine_reset, engine, NULL);
@@ -401,7 +375,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_multiplied = osync_comb_flag_new(FALSE, TRUE);
 	
 	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
-	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	//osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 
 	engine->cmb_committed_all_sent = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_committed_all_sent, (OSyncFlagTriggerFunc)trigger_clients_comitted_all, engine, NULL);
@@ -411,7 +385,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	int i;
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		OSyncMember *member = osync_group_nth_member(group, i);
-		osync_client_new(engine, member);
+		if (!osync_client_new(engine, member, error))
+			return NULL;
 	}
 	
 	engine->maptable = osengine_mappingtable_new(engine);
@@ -454,7 +429,6 @@ void osengine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_committed_all);
 	osync_flag_free(engine->cmb_committed_all_sent);
 	
-	osync_queue_flush(engine->incoming);
 	osync_queue_free(engine->incoming);
 	engine->incoming = NULL;
 
@@ -623,15 +597,13 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
-		if (!osync_client_init(client, error)) {
+		if (!osync_client_init(client, engine, error)) {
 			osengine_finalize(engine);
 			osync_group_unlock(engine->group, TRUE);
 			osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 			return FALSE;
 		}
 	}
-	
-	osync_queue_flush(engine->incoming);
 	
 	osync_debug("ENG", 3, "Running the main loop");
 
@@ -677,13 +649,11 @@ void osengine_finalize(OSyncEngine *engine)
 	
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
-		OSyncClient *client = c->data;
-		osync_client_finalize(client);
+		//OSyncClient *client = c->data;
+		//osync_client_finalize(client);
 	}
 	
 	osengine_mappingtable_close(engine->maptable);
-	
-	osync_queue_flush(engine->incoming);
 	
 	if (engine->error)
 		osync_group_unlock(engine->group, FALSE);
@@ -875,7 +845,7 @@ void osengine_wait_info_end(OSyncEngine *engine)
  */
 void osengine_one_iteration(OSyncEngine *engine)
 {
-	osync_queue_dispatch(engine->incoming);
+	//osync_queue_dispatch(engine->incoming);
 }
 
 /*! @brief Searches for a mapping by its id

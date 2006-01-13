@@ -414,16 +414,26 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	char *real_path = NULL;
 
 	if (!path) {
-		OSyncUserInfo *user = _osync_user_new();
-		path = _osync_user_get_confdir(user);
-		//FIXME Free user info
+		OSyncUserInfo *user = osync_user_new(error);
+		if (!user)
+			return FALSE;
+		path = osync_user_get_confdir(user);
+		
 		if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
 			if (mkdir(path, 0700) == -1) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, strerror(errno));
 				return FALSE;
 			}
+			char *enginepath = g_strdup_printf("%s/engines", path);
+			if (mkdir(enginepath, 0700) == -1) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create engine group directory at %s: %s", enginepath, strerror(errno));
+				g_free(enginepath);
+				return FALSE;
+			}
+			g_free(enginepath);
 			osync_debug("OSGRP", 3, "Created groups configdir %s\n", path);
 		}
+		osync_user_free(user);
 	}
 	
 	if (!g_path_is_absolute(path)) {
@@ -452,7 +462,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", real_path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple(de, "group*")) {
 			g_free(filename);
 			continue;
 		}

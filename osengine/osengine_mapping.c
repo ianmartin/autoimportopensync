@@ -215,7 +215,7 @@ long long int osengine_mappingtable_get_next_id(OSyncMappingTable *table)
 void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
-	OSyncEngine *engine = table->engine;
+	//OSyncEngine *engine = table->engine;
 
 	char **uids = NULL;
 	long long int *memberids = NULL;
@@ -245,7 +245,7 @@ void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 		if (entry->mapping)
 			osync_flag_set(entry->fl_mapped);
 
-		send_read_change(engine, entry);
+		//send_read_change(engine, entry);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -291,7 +291,7 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		osync_flag_set(mapping->fl_multiplied);
 		
 		mapping->cmb_has_data = osync_comb_flag_new(FALSE, FALSE);
-		osync_flag_set_pos_trigger(mapping->cmb_has_data, (OSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
+		//osync_flag_set_pos_trigger(mapping->cmb_has_data, (OSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
 		
 		mapping->cmb_has_info = osync_comb_flag_new(FALSE, FALSE);
 		
@@ -343,7 +343,7 @@ void osengine_mapping_add_entry(OSyncMapping *mapping, OSyncMappingEntry *entry)
 		osync_flag_attach(entry->fl_has_info, mapping->cmb_has_info);
 		osync_flag_attach(entry->fl_synced, mapping->cmb_synced);
 		osync_flag_attach(entry->fl_deleted, mapping->cmb_deleted);
-		osync_flag_set_pos_trigger(entry->fl_dirty, (OSyncFlagTriggerFunc)send_mappingentry_changed, mapping->table->engine, entry);
+		//osync_flag_set_pos_trigger(entry->fl_dirty, (OSyncFlagTriggerFunc)send_mappingentry_changed, mapping->table->engine, entry);
 	}
 	osync_change_set_mappingid(entry->change, mapping->id);
 	
