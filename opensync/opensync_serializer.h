@@ -24,11 +24,17 @@
 #define TYPE_OSYNC_CHANGE 1
 #define TYPE_OSYNC_MEMBER 2
 
-int osync_marshal_change( int fd, OSyncChange *change );
-int osync_demarshal_change( int fd, OSyncChange **change );
+osync_bool osync_marshal_changetype( OSyncQueue *queue, OSyncChangeType changetype, OSyncError **error )
+osync_bool osync_demarshal_changetype( OSyncQueue *queue, OSyncChangeType *changetype, OSyncError **error )
+
+osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncError **error );
+osync_bool osync_demarshal_change( OSyncQueue *queue, OSyncChange **change, OSyncError **error );
+
+osync_bool osync_marshal_member( OSyncQueue *queue, OSyncMember *member, OSyncError **error );
+osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyncError **error );
+
+osync_bool osync_marshal_error( OSyncQueue *queue, OSyncError *error_object, OSyncError **error );
+osync_bool osync_demarshal_error( OSyncQueue *queue, OSyncError **error_object, OSyncError **error );
+
 void osync_print_change( OSyncChange *change );
-
-int osync_marshal_member( int fd, OSyncMember *member );
-int osync_demarshal_member( int fd, OSyncMember **member );
-
 #endif

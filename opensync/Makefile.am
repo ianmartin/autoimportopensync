@@ -65,7 +65,8 @@ libopensync_la_SOURCES = \
 	opensync_changecmds.c \
 	opensync_convreg.c \
 	opensync_anchor.c \
-	opensync_filter.c
+	opensync_filter.c \
+	opensync_queue.c
 
 CLEANFILES = \
 	*.bb \

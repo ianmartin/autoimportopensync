@@ -117,8 +117,8 @@ void eipc_write_int_or_die(const int sock, const int data);
 int eipc_read_int(const int sock, int *data);
 void eipc_read_int_or_die(const int sock, int *data);
 
-int eipc_write_longlongint(const int sock, const long long int data);
-int eipc_read_longlongint(const int sock, long long int *data);
+int eipc_write_long_long_int(const int sock, const long long int data);
+int eipc_read_long_long_int(const int sock, long long int *data);
 
 
 /****************************************************************************

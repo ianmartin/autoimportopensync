@@ -13,17 +13,25 @@
 #include "opensync_serializer.h"
 #include "easyipc.h"
 
-void handle_read( int fd )
+void handle_read( OSyncQueue *queue )
 {
   int request_type;
   OSyncChange *change;
+  OSyncError *error;
 
   while ( 1 ) {
-    eipc_read_int( fd, &request_type );
+    if ( osync_queue_read_int( queue, &request_type, &error ) == FALSE ) {
+      osync_error_free( &error );
+      return;
+    }
+
     switch ( request_type ) {
       case TYPE_OSYNC_CHANGE:
 
-        osync_demarshal_change( fd, &change );
+        if ( osync_demarshal_change( queue, &change, &error ) == FALSE ) {
+          osync_error_free( &error );
+          return;
+        }
         osync_print_change( change );
         break;
     }
@@ -31,7 +39,7 @@ void handle_read( int fd )
   }
 }
 
-void handle_write( int fd )
+void handle_write( OSyncQueue *queue )
 {
   OSyncChange *change = osync_change_new();
   change->uid = g_strdup( "myuid" );
@@ -49,8 +57,11 @@ void handle_write( int fd )
 
   osync_print_change( change );
 
-  eipc_write_int( fd, TYPE_OSYNC_CHANGE );
-  osync_marshal_change( fd, change );
+  if ( osync_queue_send_int( queue, TYPE_OSYNC_CHANGE, &error ) == FALSE )
+    return;
+
+  if ( osync_marshal_change( queue, change, &error ) == FALSE )
+    return;
 }
 
 int main()
@@ -72,13 +83,17 @@ int main()
 
   if ( cpid == 0 ) { // child
     close( pfd[ 1 ] );
-    handle_read( pfd[ 0 ] );
+    OSyncQueue queue;
+    queue.fd = pfd[ 0 ];
+    handle_read( &queue );
     close( pfd[ 0 ] );
 
     exit( 0 );
   } else {
     close( pfd[ 0 ] );
-    handle_write( pfd[ 1 ] );
+    OSyncQueue queue;
+    queue.fd = pfd[ 1 ];
+    handle_write( &queue );
     close( pfd[ 1 ] );
 
     wait( NULL );

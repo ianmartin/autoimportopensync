@@ -230,7 +230,7 @@ void eipc_read_int_or_die(const int sock, int *data)
     (*_exit_func) (-1);
 }
 
-int eipc_write_longlongint(const int sock, const long long int message)
+int eipc_write_long_long_int(const int sock, const long long int message)
 {
   if (eipc_writen(sock, &message, sizeof(long long int)) < 0) {
     if (_err_func)
@@ -241,7 +241,7 @@ int eipc_write_longlongint(const int sock, const long long int message)
   return 0;
 }
 
-int eipc_read_longlongint(const int sock, long long int *message)
+int eipc_read_long_long_int(const int sock, long long int *message)
 {
   long long int data, status;
 
