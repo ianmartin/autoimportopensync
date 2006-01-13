@@ -115,9 +115,12 @@ void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handle
  * @returns Pointer to a newly allocated message
  * 
  */
-OSyncMessage *osync_message_new_reply(OSyncMessage *message)
+OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
 {
-	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_REPLY);
+	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_REPLY, error);
+  if ( !reply )
+    return NULL;
+
 	reply->id = message->id;
 	return reply;
 }
@@ -128,9 +131,12 @@ OSyncMessage *osync_message_new_reply(OSyncMessage *message)
  * @param message The message to which you wish to reply
  * @returns Pointer to a newly allocated message
  */
-OSyncMessage *osync_message_new_errorreply(OSyncMessage *message)
+OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error)
 {
-	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_ERRORREPLY);
+	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_ERRORREPLY, error);
+  if ( !reply )
+    return NULL;
+
 	reply->id = message->id;
 	return reply;
 }
@@ -168,14 +174,16 @@ gboolean osync_message_is_error(OSyncMessage *message)
  */
 void osync_message_reset_timeout(OSyncMessage *message)
 {
-	if (!message->source)
+	if (!message->to_info)
 		return;
 
-	GMainContext *context = g_source_get_context(message->source);
-	g_source_destroy(message->source);
-	message->source = g_timeout_source_new(message->to_info->timeout * 1000);
-	g_source_set_callback(message->source, message->to_info->timeoutfunc, message->to_info, NULL);
-	g_source_attach(message->source, context);
+  GSource *source = message->to_info->source;
+
+	GMainContext *context = g_source_get_context(source);
+	g_source_destroy(source);
+	message->to_info->source = g_timeout_source_new(message->to_info->timeout * 1000);
+	g_source_set_callback(message->to_info->source, message->to_info->timeoutfunc, message->to_info, NULL);
+	g_source_attach(message->to_info->source, context);
 }
 
 /*! @brief Sends a reply to a message
@@ -188,8 +196,7 @@ void osync_message_reset_timeout(OSyncMessage *message)
  */
 void osync_message_send(OSyncMessage *message, OSyncQueue *queue, OSyncError **error)
 {
-	osync_queue_write_int(queue, message->cmd);
-	osync_queue_write_int(queue, message->int);
+  osync_marshal_message( queue, message, error );
 }
 
 osync_bool osync_message_is_answered(OSyncMessage *message)
@@ -222,7 +229,7 @@ OSyncMessageCommand osync_message_get_command(OSyncMessage *message)
  * @param message The message
  * @returns the command
  */
-unsigned long long osync_message_get_id(OSyncMessage *message)
+long long osync_message_get_id(OSyncMessage *message)
 {
 	g_assert(message);
 	return message->id;

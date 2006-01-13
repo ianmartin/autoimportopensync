@@ -24,8 +24,8 @@
 #define TYPE_OSYNC_CHANGE 1
 #define TYPE_OSYNC_MEMBER 2
 
-osync_bool osync_marshal_changetype( OSyncQueue *queue, OSyncChangeType changetype, OSyncError **error )
-osync_bool osync_demarshal_changetype( OSyncQueue *queue, OSyncChangeType *changetype, OSyncError **error )
+osync_bool osync_marshal_changetype( OSyncQueue *queue, OSyncChangeType changetype, OSyncError **error );
+osync_bool osync_demarshal_changetype( OSyncQueue *queue, OSyncChangeType *changetype, OSyncError **error );
 
 osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncError **error );
 osync_bool osync_demarshal_change( OSyncQueue *queue, OSyncChange **change, OSyncError **error );
@@ -35,6 +35,9 @@ osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyn
 
 osync_bool osync_marshal_error( OSyncQueue *queue, OSyncError *error_object, OSyncError **error );
 osync_bool osync_demarshal_error( OSyncQueue *queue, OSyncError **error_object, OSyncError **error );
+
+osync_bool osync_marshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error );
+osync_bool osync_demarshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error );
 
 void osync_print_change( OSyncChange *change );
 #endif

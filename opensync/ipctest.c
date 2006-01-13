@@ -17,10 +17,11 @@ void handle_read( OSyncQueue *queue )
 {
   int request_type;
   OSyncChange *change;
-  OSyncError *error;
+  OSyncError *error = 0;
 
   while ( 1 ) {
-    if ( osync_queue_read_int( queue, &request_type, &error ) == FALSE ) {
+    if ( !osync_queue_read_int( queue, &request_type, &error ) ) {
+      printf( "can't read request type\n" );
       osync_error_free( &error );
       return;
     }
@@ -28,7 +29,8 @@ void handle_read( OSyncQueue *queue )
     switch ( request_type ) {
       case TYPE_OSYNC_CHANGE:
 
-        if ( osync_demarshal_change( queue, &change, &error ) == FALSE ) {
+        if ( !osync_demarshal_change( queue, &change, &error ) ) {
+          printf( "can't read request\n" );
           osync_error_free( &error );
           return;
         }
@@ -41,6 +43,8 @@ void handle_read( OSyncQueue *queue )
 
 void handle_write( OSyncQueue *queue )
 {
+  OSyncError *error = 0;
+
   OSyncChange *change = osync_change_new();
   change->uid = g_strdup( "myuid" );
   change->hash = g_strdup( "jshdfkahsdkfh" );

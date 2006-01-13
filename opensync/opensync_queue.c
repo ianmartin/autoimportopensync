@@ -135,7 +135,7 @@ osync_bool osync_queue_send_string(OSyncQueue *queue, const char *string, OSyncE
 
 osync_bool osync_queue_send_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error)
 {
-	if (eipc_writen(queue->fd, data, (int)size) != 0) {
+	if (eipc_writen(queue->fd, data, (int)size) != size) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while sending");
 		return FALSE;
 	}
@@ -171,7 +171,7 @@ osync_bool osync_queue_read_string(OSyncQueue *queue, char **string, OSyncError 
 
 osync_bool osync_queue_read_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error)
 {
-	if (eipc_readn(queue->fd, data, (int)size) != 0) {
+	if (eipc_readn(queue->fd, data, (int)size) != size) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
 		return FALSE;
 	}
@@ -284,9 +284,12 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 	queue->context = context;
 }
 
-void osync_queue_dispatch(OSyncQueue *queue)
+osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error)
 {
-	source_callback(queue);
-}
+  if ( !source_callback(queue) ) {
+    osync_error_set( error, OSYNC_ERROR_GENERIC, "Recieved invalid message in source callback." );
+    return FALSE;
+  }
 
-/*@}*/
+  return TRUE;
+}

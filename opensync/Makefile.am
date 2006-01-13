@@ -30,9 +30,7 @@ opensyncinclude_HEADERS = \
 	opensync_anchor.h \
 	opensync_filter.h \
 	opensync_debug.h \
-	opensync_changecmds.h \
-	opensync_queue.h \
-	opensync_message.h
+	opensync_changecmds.h
 
 EXTRA_DIST = \
 	opensync_internals.h \

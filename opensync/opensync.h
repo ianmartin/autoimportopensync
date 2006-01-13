@@ -74,6 +74,7 @@ typedef int osync_bool;
 #include "opensync_changecmds.h"
 #include "opensync_convreg.h"
 #include "opensync_anchor.h"
+#include "opensync_serializer.h"
 
 #ifdef __cplusplus
 }

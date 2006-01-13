@@ -5,157 +5,125 @@
 
 osync_bool osync_marshal_changetype( OSyncQueue *queue, OSyncChangeType changetype, OSyncError **error )
 {
-  int change_type = 0;
-
-  switch ( changetype ) {
-    case CHANGE_UNKNOWN:
-      change_type = 0;
-      break;
-    case CHANGE_ADDED:
-      change_type = 1;
-      break;
-    case CHANGE_UNMODIFIED:
-      change_type = 2;
-      break;
-    case CHANGE_DELETED:
-      change_type = 3;
-      break;
-    case CHANGE_MODIFIED:
-      change_type = 4;
-      break;
-  }
-
-  if ( osync_queue_send_int( queue, change_type, error ) == FALSE )
+  if ( !osync_queue_send_int( queue, (int)changetype, error ) )
     return FALSE;
-  else
-    return TRUE;
+
+  return TRUE;
 }
 
 osync_bool osync_demarshal_changetype( OSyncQueue *queue, OSyncChangeType *changetype, OSyncError **error )
 {
-  int change_type;
+  int change_type = 0;
 
-  if ( osync_queue_read_int( queue, &change_type, error ) == FALSE )
+  if ( !osync_queue_read_int( queue, &change_type, error ) )
     return FALSE;
 
-  switch ( change_type ) {
-    case 0:
-      *changetype = CHANGE_UNKNOWN;
-      break;
-    case 1:
-      *changetype = CHANGE_ADDED;
-      break;
-    case 2:
-      *changetype = CHANGE_UNMODIFIED;
-      break;
-    case 3:
-      *changetype = CHANGE_DELETED;
-      break;
-    case 4:
-      *changetype = CHANGE_MODIFIED;
-      break;
-  }
+  *changetype =(OSyncChangeType)change_type;
 
   return TRUE;
 }
 
-osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncError **error );
+osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncError **error )
 {
-  if ( osync_queue_send_string( queue, change->uid, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->uid, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, change->hash, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->hash, error ) )
     return FALSE;
 
-  if ( osync_queue_send_int( queue, change->size, error ) == FALSE )
+  if ( !osync_queue_send_int( queue, change->size, error ) )
     return FALSE;
+
 
   // TODO: check for plain/struct
 
-  if ( eipc_writen( queue, change->data, change->size, error ) == FALSE )
+  printf( "alive1\n" );
+  if ( !osync_queue_send_data( queue, change->data, change->size, error ) )
     return FALSE;
 
-  if ( osync_queue_send_int( queue, change->has_data, error ) == FALSE )
+  printf( "alive\n" );
+  if ( !osync_queue_send_int( queue, change->has_data, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, change->objtype_name, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->objtype_name, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, change->format_name, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->format_name, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, change->initial_format_name, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->initial_format_name, error ) )
     return FALSE;
 
-  if ( osync_marshal_changetype( queue, change->changetype, error ) == FALSE )
+
+
+  if ( !osync_marshal_changetype( queue, change->changetype, error ) )
     return FALSE;
 
-  if ( osync_queue_send_longlongint( queue, change->id, error ) == FALSE )
+  if ( !osync_queue_send_long_long_int( queue, change->id, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, change->destobjtype, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->destobjtype, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, change->sourceobjtype, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, change->sourceobjtype, error ) )
     return FALSE;
 
-  if ( osync_marshal_member( queue, change->sourcemember, error ) == FALSE )
+  if ( !osync_marshal_member( queue, change->sourcemember, error ) )
     return FALSE;
 
   return TRUE;
 }
 
-osync_bool osync_demarshal_change( OSyncQueue *queue, OSyncChange **change, OSyncError **error );
+osync_bool osync_demarshal_change( OSyncQueue *queue, OSyncChange **change, OSyncError **error )
 {
   OSyncChange *new_change = osync_change_new();
-  int result = 0;
 
-  if ( osync_queue_read_string( queue, &( new_change->uid ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->uid ), error ) )
     return FALSE;
 
-  if ( osync_queue_read_string( queue, &( new_change->hash ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->hash ), error ) )
     return FALSE;
 
-  if ( osync_queue_read_int( queue, &( new_change->size ), error ) == FALSE )
+  if ( !osync_queue_read_int( queue, &( new_change->size ), error ) )
     return FALSE;
 
   new_change->data = (void*)malloc( new_change->size );
-  if ( osync_queue_read_data( queue, new_change->data, new_change->size, error ) == FALSE )
+  if ( !osync_queue_read_data( queue, new_change->data, new_change->size, error ) )
     return FALSE;
 
-  if ( osync_queue_read_int( queue, &( new_change->has_data ), error ) == FALSE )
+  if ( !osync_queue_read_int( queue, &( new_change->has_data ), error ) )
     return FALSE;
 
-  if ( osync_queue_read_string( queue, &( new_change->objtype_name ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->objtype_name ), error ) )
     return FALSE;
 
   // TODO: find objtype in pool
 
-  if ( osync_queue_read_string( queue, &( new_change->format_name ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->format_name ), error ) )
     return FALSE;
 
   // TODO: find format in pool
 
-  if ( osync_queue_read_string( queue, &( new_change->initial_format_name ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->initial_format_name ), error ) )
     return FALSE;
 
   // TODO: find initial_format in pool
 
   // TODO: set new_change->conv_env
 
-  if ( osync_demarshal_changetype( queue, &( new_change->changetype ), error ) == FALSE )
+  if ( !osync_demarshal_changetype( queue, &( new_change->changetype ), error ) )
     return FALSE;
 
-  if ( osync_queue_read_longlongint( queue, &( new_change->id ), error ) == FALSE )
+  if ( !osync_queue_read_long_long_int( queue, &( new_change->id ), error ) )
     return FALSE;
 
-  if ( osync_queue_read_string( queue, &( new_change->destobjtype ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->destobjtype ), error ) )
     return FALSE;
 
-  if ( osync_queue_read_string( queue, &( new_change->sourceobjtype ), error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &( new_change->sourceobjtype ), error ) )
     return FALSE;
 
-  if ( osync_demarshal_member( queue, &( new_change->sourcemember ), error ) == FALSE )
+  if ( !osync_demarshal_member( queue, &( new_change->sourcemember ), error ) )
     return FALSE;
 
   new_change->member = 0;
@@ -165,7 +133,7 @@ osync_bool osync_demarshal_change( OSyncQueue *queue, OSyncChange **change, OSyn
 
   *change = new_change;
 
-  return result;
+  return TRUE;
 }
 
 void osync_print_change( OSyncChange *change )
@@ -187,26 +155,24 @@ void osync_print_change( OSyncChange *change )
   printf( "\tsobjtype: %s\n", change->sourceobjtype );
 }
 
-
-
-osync_bool osync_marshal_member( OSyncQueue *queue, OSyncMember *member, OSyncError **error );
+osync_bool osync_marshal_member( OSyncQueue *queue, OSyncMember *member, OSyncError **error )
 {
   if ( member ) {
-    if ( osync_queue_send_int( queue, member->id, error ) == FALSE )
+    if ( !osync_queue_send_int( queue, member->id, error ) )
       return FALSE;
   } else {
-    if ( osync_queue_send_int( queue, -1, error ) == FALSE )
+    if ( !osync_queue_send_int( queue, -1, error ) )
       return FALSE;
   }
 
   return TRUE;
 }
 
-osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyncError **error );
+osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyncError **error )
 {
   int id;
 
-  if ( osync_queue_read_int( queue, &id, error ) == FALSE )
+  if ( !osync_queue_read_int( queue, &id, error ) )
     return FALSE;
 
   if ( id == -1 )
@@ -220,137 +186,58 @@ osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyn
 
 osync_bool osync_marshal_error( OSyncQueue *queue, OSyncError *error_object, OSyncError **error )
 {
-  int error_type;
-
-  switch ( error_object->type ) {
-    case OSYNC_NO_ERROR:
-      error_type = 0;
-      break;
-    case OSYNC_ERROR_GENERIC:
-      error_type = 1;
-      break;
-    case OSYNC_ERROR_IO_ERROR:
-      error_type = 2;
-      break;
-    case OSYNC_ERROR_NOT_SUPPORTED:
-      error_type = 3;
-      break;
-    case OSYNC_ERROR_TIMEOUT:
-      error_type = 4;
-      break;
-    case OSYNC_ERROR_DISCONNECTED:
-      error_type = 5;
-      break;
-    case OSYNC_ERROR_FILE_NOT_FOUND:
-      error_type = 6;
-      break;
-    case OSYNC_ERROR_EXISTS:
-      error_type = 7;
-      break;
-    case OSYNC_ERROR_CONVERT:
-      error_type = 8;
-      break;
-    case OSYNC_ERROR_MISCONFIGURATION:
-      error_type = 9;
-      break;
-    case OSYNC_ERROR_INITIALIZATION:
-      error_type = 10;
-      break;
-    case OSYNC_ERROR_PARAMETER:
-      error_type = 11;
-      break;
-    case OSYNC_ERROR_EXPECTED:
-      error_type = 12;
-      break;
-    case OSYNC_ERROR_NO_CONNECTION:
-      error_type = 13;
-      break;
-    case OSYNC_ERROR_TEMPORARY:
-      error_type = 14;
-      break;
-    case OSYNC_ERROR_LOCKED:
-      error_type = 15;
-      break;
-    case OSYNC_ERROR_PLUGIN_NOT_FOUND:
-      error_type = 16;
-      break;
-  }
-
-  if ( osync_queue_send_int( queue, error_type, error ) == FALSE )
+  if ( !osync_queue_send_int( queue, (int)error_object->type, error ) )
     return FALSE;
 
-  if ( osync_queue_send_string( queue, error_object->message, error ) == FALSE )
+  if ( !osync_queue_send_string( queue, error_object->message, error ) )
     return FALSE;
+
+  return TRUE;
 }
 
 osync_bool osync_demarshal_error( OSyncQueue *queue, OSyncError **error_object, OSyncError **error )
 {
-  OSyncErrorType error_type;
   char *message;
+  int error_type;
 
-  int value;
-
-  if ( osync_queue_read_int( queue, &value, error ) == FALSE )
+  if ( !osync_queue_read_int( queue, &error_type, error ) )
     return FALSE;
 
-  if ( osync_queue_read_string( queue, &message, error ) == FALSE )
+  if ( !osync_queue_read_string( queue, &message, error ) )
     return FALSE;
 
-  switch ( value ) {
-    case 0:
-      error_type = OSYNC_NO_ERROR;
-      break;
-    case 1:
-      error_type = OSYNC_ERROR_GENERIC;
-      break;
-    case 2:
-      error_type = OSYNC_ERROR_IO_ERROR;
-      break;
-    case 3:
-      error_type = OSYNC_ERROR_NOT_SUPPORTED;
-      break;
-    case 4:
-      error_type = OSYNC_ERROR_TIMEOUT;
-      break;
-    case 5:
-      error_type = OSYNC_ERROR_DISCONNECTED;
-      break;
-    case 6:
-      error_type = OSYNC_ERROR_FILE_NOT_FOUND;
-      break;
-    case 7:
-      error_type = OSYNC_ERROR_EXISTS;
-      break;
-    case 8:
-      error_type = OSYNC_ERROR_CONVERT;
-      break;
-    case 9:
-      error_type = OSYNC_ERROR_MISCONFIGURATION;
-      break;
-    case 10:
-      error_type = OSYNC_ERROR_INITIALIZATION;
-      break;
-    case 11:
-      error_type = OSYNC_ERROR_PARAMETER;
-      break;
-    case 12:
-      error_type = OSYNC_ERROR_EXPECTED;
-      break;
-    case 13:
-      error_type = OSYNC_ERROR_NO_CONNECTION;
-      break;
-    case 14:
-      error_type = OSYNC_ERROR_TEMPORARY;
-      break;
-    case 15:
-      error_type = OSYNC_ERROR_LOCKED;
-      break;
-    case 16:
-      error_type = OSYNC_ERROR_PLUGIN_NOT_FOUND;
-      break;
-  }
+  osync_error_set( error_object, (OSyncErrorType)error_type, message );
 
-  osync_error_set( error_object, error_type, message );
+  return TRUE;
+}
+
+osync_bool osync_marshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error )
+{
+  if ( !osync_queue_send_int( queue, (int)message->cmd, error ) )
+    return FALSE;
+
+  if ( !osync_queue_send_long_long_int( queue, (int)message->id, error ) )
+    return FALSE;
+
+  if ( !osync_marshal_error( queue, message->error, error ) )
+    return FALSE;
+
+  return TRUE;
+}
+
+osync_bool osync_demarshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error )
+{
+  int message_command = 0;
+  if ( !osync_queue_read_int( queue, &message_command, error ) )
+    return FALSE;
+
+  message->cmd = (OSyncMessageCommand)message_command;
+
+  if ( !osync_queue_read_long_long_int( queue, &(message->id), error ) )
+    return FALSE;
+
+  if ( !osync_demarshal_error( queue, &(message->error), error ) )
+    return FALSE;
 
   return TRUE;
 }

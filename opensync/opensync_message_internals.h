@@ -29,6 +29,7 @@ typedef void (*OSyncMessageHandler)(OSyncMessage *message, void *user_data);
 typedef struct timeout_info {
         OSyncQueue *sendingqueue;
         OSyncMessage *message;
+        GSource *source;
         void *replysender;
         int timeout;
         gboolean (*timeoutfunc)(gpointer);
@@ -60,8 +61,8 @@ struct OSyncMessage {
 
 OSyncMessage *osync_message_new(OSyncMessageCommand cmd, OSyncError **error);
 void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data);
-OSyncMessage *osync_message_new_reply(OSyncMessage *message);
-OSyncMessage *osync_message_new_errorreply(OSyncMessage *message);
+OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
+OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error);
 void osync_message_set_error(OSyncMessage *message, OSyncError *error);
 OSyncError *osync_message_get_error(OSyncMessage *message);
 gboolean osync_message_is_error(OSyncMessage *message);
