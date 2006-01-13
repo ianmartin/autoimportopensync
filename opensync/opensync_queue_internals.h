@@ -12,6 +12,8 @@
 struct OSyncQueue {
 	/** The real asynchronous queue from glib **/
 	int fd;
+  /** The path name of this queue **/
+  char *name;
 	/** The message handler for this queue **/
 	OSyncMessageHandler message_handler;
 	/** The user_data associated with this queue **/
@@ -20,11 +22,13 @@ struct OSyncQueue {
 	GSource *source;
 	/** The context in which this queue is dispatched */
 	GMainContext *context;
+  /** The channel **/
+  GIOChannel *channel;
 };
 
 /*@}*/
 
-OSyncQueue *osync_queue_new(const char *name);
+OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
 void osync_queue_free(OSyncQueue *queue);
 osync_bool osync_queue_exists(OSyncQueue *queue);
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncError **error);

@@ -12,6 +12,7 @@
  */
 typedef enum {
 	/** Message is a error reply to a method call */
+  OSYNC_MESSAGE_REPLY,
 	OSYNC_MESSAGE_ERRORREPLY
 } OSyncMessageCommand;
 

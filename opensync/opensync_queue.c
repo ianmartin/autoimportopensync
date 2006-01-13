@@ -17,7 +17,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
- 
+
+#include <fcntl.h>
+
+#include "easyipc.h"
+
 #include "opensync.h"
 #include "opensync_internals.h"
 
@@ -34,7 +38,7 @@
  * This function return the pointer to a newly created OSyncQueue
  * 
  */
-OSyncQueue *osync_queue_new(const char *path, OSyncError **error)
+OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 {
 	OSyncQueue *queue = osync_try_malloc0(sizeof(OSyncQueue), error);
 	if (!queue)
@@ -56,10 +60,10 @@ void osync_queue_free(OSyncQueue *queue)
 
 osync_bool osync_queue_exists(OSyncQueue *queue)
 {
-	g_file_test(queue->name, GFILE_TEST_EXISTS) ? TRUE : FALSE;
+	return g_file_test(queue->name, G_FILE_TEST_EXISTS) ? TRUE : FALSE;
 }
 
-osync_bool osync_queue_create(OSyncQueue *queue, OSyncErrror **error)
+osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 {
 	if (mkfifo(queue->name, 0600) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create fifo");
@@ -67,6 +71,8 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncErrror **error)
 	}
 	return TRUE;
 }
+
+gboolean source_callback(gpointer);
 
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncError **error)
 {
@@ -78,11 +84,11 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncError **error)
 	queue->fd = fd;
 
 	if (queue->context) {
-		GIOChannel *channel = g_io_channel_unix_new(queue->fd);
-		GSource *source = q_io_create_watch(channel, G_IO_IN | G_IO_OUT | G_IO_PRI | G_IO_ERR | G_IO_HUP | G_IO_NVAL);
+		queue->channel = g_io_channel_unix_new(queue->fd);
+		GSource *source = g_io_create_watch(queue->channel, G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP | G_IO_NVAL);
 		g_source_set_callback(source, source_callback, queue, NULL);
 		queue->source = source;
-		g_source_attach(source, context);
+		g_source_attach(source, queue->context);
 	}
 
 	return TRUE;
@@ -147,41 +153,41 @@ osync_bool osync_queue_send_long_long_int(OSyncQueue *queue, long long int data,
 
 osync_bool osync_queue_read_int(OSyncQueue *queue, int *data, OSyncError **error)
 {
-	if (epic_read_int(queue->fd, data) != 0) {
+	if (eipc_read_int(queue->fd, data) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
 		return FALSE;
 	}
 	return TRUE;
 }
 
-osync_bool osync_queue_read_string(OSyncQueue *queue, char **string, OSyncError **error);
+osync_bool osync_queue_read_string(OSyncQueue *queue, char **string, OSyncError **error)
 {
-	if (epic_read_string(queue->fd, string) != 0) {
+	if (eipc_read_string_alloc(queue->fd, string) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
 		return FALSE;
 	}
 	return TRUE;
 }
 
-osync_bool osync_queue_read_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error);
+osync_bool osync_queue_read_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error)
 {
-	if (epic_readn(queue->fd, data, (int)size) != 0) {
+	if (eipc_readn(queue->fd, data, (int)size) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
 		return FALSE;
 	}
 	return TRUE;
 }
 
-osync_bool osync_queue_read_long_long_int(OSyncQueue*queue, long long int *data, OSyncError **error);
+osync_bool osync_queue_read_long_long_int(OSyncQueue*queue, long long int *data, OSyncError **error)
 {
-	if (epic_read_long_long_int(queue->fd, data) != 0) {
+	if (eipc_read_long_long_int(queue->fd, data) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
 		return FALSE;
 	}
 	return TRUE;
 }
 
-
+/*
 gboolean timeoutfunc(gpointer data)
 {
 	timeout_info *to_info = data;
@@ -189,7 +195,7 @@ gboolean timeoutfunc(gpointer data)
 	if (osync_message_is_answered(to_info->message))
 		return FALSE;
 	
-	OSyncMessage *reply = osync_message_new_errorreply(to_info->replysender, to_info->message);
+	OSyncMessage *reply = osync_message_new_errorreply(to_info->message);
 	osync_debug("ENG", 0, "Timeout while waiting for a reply to message %p:\"%s\". Sending error %p", to_info->message, to_info->message->msgname, reply);
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message->msgname);
@@ -199,7 +205,7 @@ gboolean timeoutfunc(gpointer data)
 	osync_message_set_answered(to_info->message);
 	return FALSE;
 }
-
+*/
 /*gboolean _queue_prepare(GSource *source, gint *timeout_)
 {
 	*timeout_ = 1;
@@ -214,26 +220,40 @@ gboolean _queue_check(GSource *source)
 	return FALSE;
 }*/
 
-gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+gboolean source_callback(gpointer user_data)
 {
+  OSyncError *error = NULL;
 	OSyncQueue *queue = user_data;
 
-	OSyncMessage *message = g_async_queue_try_pop(queue->queue);
-	if (message) {
-		if (osync_message_is_type(message, OSyncMessage_METHODREPLY) || osync_message_is_type(message, OSyncMessage_ERRORREPLY)) {
-			message->callback(message->parent, message, message->user_data);
+  if ( g_io_channel_get_buffer_condition( queue->channel ) && G_IO_IN ) {
+    OSyncMessage *message = osync_message_new( 0, &error );
+    if ( !message ) {
+      osync_error_free( &error );
+      return FALSE;
+    }
+    if ( !osync_demarshal_message( queue, message, &error ) ) {
+      osync_error_free( &error );
+      return FALSE;
+    }
+
+		if (osync_message_get_command(message) == OSYNC_MESSAGE_REPLY ||
+        osync_message_get_command(message) == OSYNC_MESSAGE_ERRORREPLY) {
+
 		} else {
 			if (!queue->message_handler) {
 				printf("no messagehandler for queue %p\n", queue);
 				printf("ERROR! You need to set a queue message handler before receiving messages\n");
 			} else {
-				queue->message_handler(message->parent, message, queue->user_data);
+				queue->message_handler( message, queue->user_data);
 			}
 		}
-	}
+    
+  } else {
+    printf( "maybe an error ;)" );
+  }
+
 	return TRUE;
 }
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /*! @brief Sets the queue to use the gmainloop with the given context
  * 
@@ -266,7 +286,7 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 
 void osync_queue_dispatch(OSyncQueue *queue)
 {
-	_queue_dispatch(NULL, NULL, queue);
+	source_callback(queue);
 }
 
 /*@}*/
