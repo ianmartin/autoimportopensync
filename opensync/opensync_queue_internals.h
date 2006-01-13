@@ -29,6 +29,7 @@ struct OSyncQueue {
 /*@}*/
 
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
+osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error);
 void osync_queue_free(OSyncQueue *queue);
 osync_bool osync_queue_exists(OSyncQueue *queue);
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncError **error);

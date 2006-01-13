@@ -70,36 +70,33 @@ void handle_write( OSyncQueue *queue )
 
 int main()
 {
-  int pfd[ 2 ];
-  pid_t cpid;
+  OSyncError *error = 0;
+  OSyncQueue *queue;
 
-
-  if ( pipe( pfd ) == -1 ) {
-    perror( "pipe" );
-    return 1;
-  }
-
-  cpid = fork();
+  pid_t cpid = fork();
   if ( cpid == -1 ) {
     perror( "fork" );
     return 1;
   }
 
-  if ( cpid == 0 ) { // child
-    close( pfd[ 1 ] );
-    OSyncQueue queue;
-    queue.fd = pfd[ 0 ];
-    handle_read( &queue );
-    close( pfd[ 0 ] );
+  queue = osync_queue_new( "/tmp/testpipe", &error );
+  osync_queue_create( queue, &error );
+  if ( osync_error_is_set( &error ) )
+    osync_error_free( &error );
 
+  while ( !osync_queue_connect( queue, 0 ) ) {
+    printf( "i'm sleeping (%x)\n", cpid );
+    usleep( 10000 );
+  }
+
+  if ( cpid == 0 ) { // child
+    sleep( 1 );
+    handle_read( queue );
+    printf( "done read\n" );
     exit( 0 );
   } else {
-    close( pfd[ 0 ] );
-    OSyncQueue queue;
-    queue.fd = pfd[ 1 ];
-    handle_write( &queue );
-    close( pfd[ 1 ] );
-
+    handle_write( queue );
+    printf( "done write\n" );
     wait( NULL );
     exit( 0 );
   }
