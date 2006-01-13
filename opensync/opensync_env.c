@@ -406,27 +406,30 @@ osync_bool osync_env_plugin_is_usable(OSyncEnv *env, const char *pluginname, OSy
  * @returns TRUE on success, FALSE otherwise
  * 
  */
-osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **error)
+osync_bool osync_env_load_groups(OSyncEnv *env, const char *p, OSyncError **error)
 {
 	GDir *dir;
 	GError *gerror = NULL;
 	char *filename = NULL;
 	char *real_path = NULL;
-
+	char *path = g_strdup(p);
+	
 	if (!path) {
 		OSyncUserInfo *user = osync_user_new(error);
 		if (!user)
 			return FALSE;
-		path = osync_user_get_confdir(user);
+		path = g_strdup(osync_user_get_confdir(user));
 		
 		if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
 			if (mkdir(path, 0700) == -1) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, strerror(errno));
+				g_free(path);
 				return FALSE;
 			}
 			char *enginepath = g_strdup_printf("%s/engines", path);
 			if (mkdir(enginepath, 0700) == -1) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create engine group directory at %s: %s", enginepath, strerror(errno));
+				g_free(path);
 				g_free(enginepath);
 				return FALSE;
 			}
@@ -446,6 +449,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 		osync_debug("OSGRP", 0, "%s exists, but is no dir", real_path);
 		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "%s exists, but is no dir", real_path);
 		g_free(real_path);
+		g_free(path);
 		return FALSE;
 	}
 	
@@ -455,6 +459,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open main configdir %s: %s", real_path, gerror->message);
 		g_error_free (gerror);
 		g_free(real_path);
+		g_free(path);
 		return FALSE;
 	}
   
@@ -462,7 +467,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", real_path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple(de, "group*")) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("group*", de)) {
 			g_free(filename);
 			continue;
 		}
@@ -479,7 +484,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	g_free(real_path);
 	g_dir_close(dir);
 	
-	env->groupsdir = g_strdup(path);
+	env->groupsdir = path;
 	return TRUE;
 }
 
