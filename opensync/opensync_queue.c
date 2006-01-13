@@ -187,39 +187,6 @@ osync_bool osync_queue_read_long_long_int(OSyncQueue*queue, long long int *data,
 	return TRUE;
 }
 
-/*
-gboolean timeoutfunc(gpointer data)
-{
-	timeout_info *to_info = data;
-	//FIXME Protect this with a mutex and free stuff!
-	if (osync_message_is_answered(to_info->message))
-		return FALSE;
-	
-	OSyncMessage *reply = osync_message_new_errorreply(to_info->message);
-	osync_debug("ENG", 0, "Timeout while waiting for a reply to message %p:\"%s\". Sending error %p", to_info->message, to_info->message->msgname, reply);
-	OSyncError *error = NULL;
-	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%s\"", to_info->message->msgname);
-	osync_message_set_error(reply, error);
-	osync_message_move_data(to_info->message, reply);
-	osync_message_send_reply(reply);
-	osync_message_set_answered(to_info->message);
-	return FALSE;
-}
-*/
-/*gboolean _queue_prepare(GSource *source, gint *timeout_)
-{
-	*timeout_ = 1;
-	return FALSE;
-}
-
-gboolean _queue_check(GSource *source)
-{
-	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
-	if (g_async_queue_length(queue->queue) > 0)
-		return TRUE;
-	return FALSE;
-}*/
-
 gboolean source_callback(gpointer user_data)
 {
   OSyncError *error = NULL;

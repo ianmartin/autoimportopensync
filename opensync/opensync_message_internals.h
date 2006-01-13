@@ -11,8 +11,10 @@
  * 
  */
 typedef enum {
-	/** Message is a error reply to a method call */
-  OSYNC_MESSAGE_REPLY,
+	OSYNC_MESSAGE_CONNECT,
+	OSYNC_MESSAGE_DISCONNECT,
+	OSYNC_MESSAGE_GET_CHANGES,
+	OSYNC_MESSAGE_REPLY,
 	OSYNC_MESSAGE_ERRORREPLY
 } OSyncMessageCommand;
 
@@ -31,6 +33,7 @@ typedef struct timeout_info {
         OSyncMessage *message;
         GSource *source;
         void *replysender;
+        OSyncQueue *replyqueue;
         int timeout;
         gboolean (*timeoutfunc)(gpointer);
 } timeout_info;
@@ -66,7 +69,8 @@ OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **e
 void osync_message_set_error(OSyncMessage *message, OSyncError *error);
 OSyncError *osync_message_get_error(OSyncMessage *message);
 gboolean osync_message_is_error(OSyncMessage *message);
-void osync_message_send_message(OSyncMessage *message);
+osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
+osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
 OSyncMessageCommand osync_message_get_command(OSyncMessage *message);
 long long osync_message_get_id(OSyncMessage *message);
 void osync_message_reset_timeout(OSyncMessage *message);

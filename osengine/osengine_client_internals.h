@@ -2,8 +2,7 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncClient {
 	OSyncMember *member;
-	ITMQueue *incoming;
-	GMainLoop *memberloop;
+	OSyncQueue *incoming;
 	OSyncEngine *engine;
 
 	OSyncFlag *fl_connected;
@@ -11,15 +10,8 @@ struct OSyncClient {
 	OSyncFlag *fl_done;
 	OSyncFlag *fl_finished;
 	OSyncFlag *fl_committed_all;
-	GThread *thread;
-	GMainContext *context;
 	
-	GCond* started;
-	GMutex* started_mutex;
-	
-	osync_bool is_initialized;
-	
-	GList *changes;
+	//GList *changes;
 };
 #endif
 
@@ -30,7 +22,7 @@ typedef struct OSyncPluginCallContext {
 	void *userdata;
 } OSyncPluginCallContext;
 
-OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member);
+OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
 OSyncEngine *osync_client_get_engine(OSyncClient *client);
 void osync_client_call_plugin(OSyncClient *client, char *function, void *data, OSyncPluginReplyHandler replyhandler, void *userdata);
 void osync_client_free(OSyncClient *client);

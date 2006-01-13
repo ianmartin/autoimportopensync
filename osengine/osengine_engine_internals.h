@@ -21,7 +21,7 @@ struct OSyncEngine {
 	GMainLoop *syncloop;
 	GMainContext *context;
 	/** The incoming queue of this engine **/
-	ITMQueue *incoming;
+	OSyncQueue *incoming;
 	
 	GCond* syncing;
 	GMutex* syncing_mutex;

@@ -98,6 +98,8 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
+		case TRACE_ERROR:
+			logmessage = g_strdup_printf("[%li.%li]%sERROR: %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
 			break;
 	}
 	g_private_set(current_tabs, GINT_TO_POINTER(tabs));

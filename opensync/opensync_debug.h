@@ -11,7 +11,8 @@ typedef enum {
 	/** Used for traces inside a function. Does not indent. */
 	TRACE_INTERNAL,
 	/** Used when exiting a function with a error. This will unindent the callgraph */
-	TRACE_EXIT_ERROR
+	TRACE_EXIT_ERROR,
+	TRACE_ERROR
 } OSyncTraceType;
 
 char *osync_rand_str(int maxlength);

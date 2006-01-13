@@ -19,8 +19,6 @@ osengineinclude_HEADERS = \
 endif
 
 libosengine_la_SOURCES = \
-	osengine_message.c \
-	osengine_queue.c \
 	osengine_client.c \
 	osengine_engine.c \
 	osengine_status.c \
@@ -37,9 +35,7 @@ EXTRA_DIST = \
 	osengine_flags_internals.h \
 	osengine_mapping_internals.h \
 	osengine_mapcmds_internals.h \
-	osengine_message_internals.h \
 	osengine_deciders_internals.h \
-	osengine_queue_internals.h \
 	osengine_debug_internals.h
 
 CLEANFILES = \

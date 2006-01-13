@@ -33,23 +33,6 @@
  * @param replysender The object that is sending the reply
  *
  */
-/*void osync_queue_send_with_timeout(OSyncQueue *queue, OSyncMessage *message, int timeout, void *replysender)
-{
-        if (timeout) {
-                timeout_info *to_info = g_malloc0(sizeof(timeout_info));
-                to_info->message = message;
-                to_info->sendingqueue = queue;
-                to_info->replysender = replysender;
-                to_info->timeout = timeout;
-                to_info->timeoutfunc = timeoutfunc;
-                message->source = g_timeout_source_new(timeout * 1000);
-                message->to_info = to_info;
-                g_source_set_callback(message->source, timeoutfunc, to_info, NULL);
-                g_source_attach(message->source, message->replyqueue->context);
-        }
-        osync_queue_send(queue, message);
-}*/
-
 
 /**
  * @ingroup OSEngineMessage
@@ -177,7 +160,7 @@ void osync_message_reset_timeout(OSyncMessage *message)
 	if (!message->to_info)
 		return;
 
-  GSource *source = message->to_info->source;
+	GSource *source = message->to_info->source;
 
 	GMainContext *context = g_source_get_context(source);
 	g_source_destroy(source);
@@ -194,9 +177,47 @@ void osync_message_reset_timeout(OSyncMessage *message)
  * @param reply The reply to send
  * 
  */
-void osync_message_send(OSyncMessage *message, OSyncQueue *queue, OSyncError **error)
+osync_bool osync_message_send(OSyncMessage *message, OSyncQueue *queue, OSyncError **error)
 {
-  osync_marshal_message( queue, message, error );
+	return osync_marshal_message( queue, message, error );
+}
+
+gboolean timeoutfunc(gpointer data)
+{
+	timeout_info *to_info = data;
+	
+	if (osync_message_is_answered(to_info->message))
+		return FALSE;
+	
+	OSyncMessage *reply = osync_message_new_errorreply(to_info->message, NULL);
+	osync_trace(TRACE_ERROR, "Timeout while waiting for a reply to message %p:\"%lli\". Sending error %p", to_info->message, to_info->message->id, reply);
+	OSyncError *error = NULL;
+	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%lli\"", to_info->message->id);
+	osync_message_set_error(reply, error);
+	osync_message_send(reply, to_info->replyqueue, NULL);
+	osync_message_set_answered(to_info->message);
+	return FALSE;
+}
+
+osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error)
+{
+    if (timeout) {
+		timeout_info *to_info = osync_try_malloc0(sizeof(timeout_info), error);
+		if (!to_info)
+			return FALSE;
+		to_info->message = message;
+		to_info->sendingqueue = queue;
+		to_info->timeout = timeout;
+		to_info->timeoutfunc = timeoutfunc;
+		to_info->source = g_timeout_source_new(timeout * 1000);
+		message->to_info = to_info;
+		g_source_set_callback(to_info->source, timeoutfunc, to_info, NULL);
+		g_source_attach(to_info->source, replyQueue->context);
+    }
+	if (!osync_marshal_message( queue, message, error ))
+		return FALSE;
+		
+	return TRUE;
 }
 
 osync_bool osync_message_is_answered(OSyncMessage *message)
