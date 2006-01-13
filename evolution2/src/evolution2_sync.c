@@ -298,9 +298,11 @@ void get_info(OSyncEnv *env)
 {
 	OSyncPluginInfo *info = osync_plugin_new_info(env);
 	info->name = "evo2-sync";
+	info->longname = "Evolution 2.x";
+	info->description = "Address book, calendar and task list of Evolution 2.x";
 	info->version = 1;
 	info->is_threadsafe = TRUE;
-    info->config_type = OPTIONAL_CONFIGURATION;
+	info->config_type = OPTIONAL_CONFIGURATION;
 	
 	info->functions.initialize = evo2_initialize;
 	info->functions.connect = evo2_connect;
