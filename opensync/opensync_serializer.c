@@ -3,6 +3,11 @@
 
 #include "opensync_serializer.h"
 
+int osync_marshal_get_size_changetype( OSyncChangeType changetype )
+{
+  return sizeof( int );
+}
+
 osync_bool osync_marshal_changetype( OSyncQueue *queue, OSyncChangeType changetype, OSyncError **error )
 {
   if ( !osync_queue_send_int( queue, (int)changetype, error ) )
@@ -23,6 +28,30 @@ osync_bool osync_demarshal_changetype( OSyncQueue *queue, OSyncChangeType *chang
   return TRUE;
 }
 
+int osync_marshal_get_size_change( OSyncChange *change )
+{
+  int size = 0;
+
+  if ( !change )
+    return size;
+
+  size += strlen( change->uid );
+  size += strlen( change->hash );
+  size += sizeof( int ); // change->size
+  size += change->size;  // change->data
+  size += sizeof( int ); // change->has_data
+  size += strlen( change->objtype_name );
+  size += strlen( change->format_name );
+  size += strlen( change->initial_format_name );
+  size += osync_marshal_get_size_changetype( change->changetype );
+  size += sizeof( long long int ); // change->id
+  size += strlen( change->destobjtype );
+  size += strlen( change->sourceobjtype );
+  size += osync_marshal_get_size_member( change->sourcemember );
+
+  return size;
+}
+
 osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncError **error )
 {
   if ( !osync_queue_send_string( queue, change->uid, error ) )
@@ -37,11 +66,9 @@ osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncEr
 
   // TODO: check for plain/struct
 
-  printf( "alive1\n" );
   if ( !osync_queue_send_data( queue, change->data, change->size, error ) )
     return FALSE;
 
-  printf( "alive\n" );
   if ( !osync_queue_send_int( queue, change->has_data, error ) )
     return FALSE;
 
@@ -155,6 +182,11 @@ void osync_print_change( OSyncChange *change )
   printf( "\tsobjtype: %s\n", change->sourceobjtype );
 }
 
+int osync_marshal_get_size_member( OSyncMember *member )
+{
+  return sizeof( int );
+}
+
 osync_bool osync_marshal_member( OSyncQueue *queue, OSyncMember *member, OSyncError **error )
 {
   if ( member ) {
@@ -184,6 +216,19 @@ osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyn
   return TRUE;
 }
 
+int osync_marshal_get_size_error( OSyncError *error )
+{
+  int size = 0;
+
+  if ( !error )
+    return size;
+
+  size += sizeof( int );
+  size += strlen( error->message );
+
+  return size;
+}
+
 osync_bool osync_marshal_error( OSyncQueue *queue, OSyncError *error_object, OSyncError **error )
 {
   if ( !osync_queue_send_int( queue, (int)error_object->type, error ) )
@@ -211,6 +256,21 @@ osync_bool osync_demarshal_error( OSyncQueue *queue, OSyncError **error_object, 
   return TRUE;
 }
 
+int osync_marshal_get_size_message( OSyncMessage *message )
+{
+  int size = 0;
+
+  if ( !message )
+    return size;
+
+  size += sizeof( int ); // message->cmd
+  size += sizeof( long long int ); // message->id
+  size += sizeof( int ); // has error
+  size += osync_marshal_get_size_error( message->error );
+
+  return 0;
+}
+
 osync_bool osync_marshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error )
 {
   if ( !osync_queue_send_int( queue, (int)message->cmd, error ) )
@@ -218,6 +278,14 @@ osync_bool osync_marshal_message( OSyncQueue *queue, OSyncMessage *message, OSyn
 
   if ( !osync_queue_send_long_long_int( queue, (int)message->id, error ) )
     return FALSE;
+
+  if ( message->error ) {
+    if ( !osync_queue_send_int( queue, 1, error ) )
+      return FALSE;
+  } else {
+    if ( !osync_queue_send_int( queue, 0, error ) )
+      return FALSE;
+  }
 
   if ( !osync_marshal_error( queue, message->error, error ) )
     return FALSE;
@@ -236,8 +304,15 @@ osync_bool osync_demarshal_message( OSyncQueue *queue, OSyncMessage *message, OS
   if ( !osync_queue_read_long_long_int( queue, &(message->id), error ) )
     return FALSE;
 
-  if ( !osync_demarshal_error( queue, &(message->error), error ) )
+  int has_error = 0;
+  if ( !osync_queue_read_int( queue, &has_error, error ) )
     return FALSE;
+
+  if ( has_error ) {
+    if ( !osync_demarshal_error( queue, &(message->error), error ) )
+      return FALSE;
+  } else
+    message->error = 0;
 
   return TRUE;
 }
