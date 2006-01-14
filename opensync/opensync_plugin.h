@@ -131,8 +131,6 @@ OSyncPluginTimeouts osync_plugin_get_timeouts(OSyncPlugin *plugin);
 void *osync_plugin_get_plugin_data(OSyncPlugin *plugin);
 
 void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncError **error);
-void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr);
-void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension);
 void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatCommitFn commit_change);
 void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatAccessFn access_fn);
 void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatReadFn read_fn);

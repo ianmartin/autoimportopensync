@@ -556,42 +556,4 @@ void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char 
 	format_template->committed_all = committed_all;
 }
 
-/*! @brief Tells opensync that the plugin can accepts this object
- * 
- * Tells opensync that the plugin can accepts this object. Used by the plugin
- * in the get_info() function
- * 
- * @param info The plugin info on which to operate
- * @param objtypestr The name of the object which to accept
- * 
- */
-void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
-{
-	OSyncObjTypeTemplate *template = g_malloc0(sizeof(OSyncObjTypeTemplate));
-	template->name = g_strdup(objtypestr);
-	info->plugin->accepted_objtypes = g_list_append(info->plugin->accepted_objtypes, template);
-}
-
-/*! @brief Tells opensync that the plugin can accepts this format for the given object
- * 
- * Tells opensync that the plugin can accepts this format. Used by the plugin
- * in the get_info() function
- * 
- * @param info The plugin info on which to operate
- * @param objtypestr The name of the objecttype
- * @param formatstr The name of the format to accept
- * @param extension The name of the extension that the plugin wants. NULL if none
- * 
- */
-void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension)
-{
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
-	OSyncObjFormatTemplate *format_template = g_malloc0(sizeof(OSyncObjFormatTemplate));
-	format_template->name = g_strdup(formatstr);
-	if (extension)
-		format_template->extension_name = g_strdup(extension);
-	template->formats = g_list_append(template->formats, format_template);
-}
-
 /*@}*/
