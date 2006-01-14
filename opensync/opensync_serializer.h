@@ -25,24 +25,19 @@
 #define TYPE_OSYNC_MEMBER 2
 
 int osync_marshal_get_size_changetype( OSyncChangeType changetype );
-osync_bool osync_marshal_changetype( OSyncQueue *queue, OSyncChangeType changetype, OSyncError **error );
-osync_bool osync_demarshal_changetype( OSyncQueue *queue, OSyncChangeType *changetype, OSyncError **error );
+void osync_marshal_changetype( OSyncMessage *message, OSyncChangeType changetype );
+void osync_demarshal_changetype( OSyncMessage *message, OSyncChangeType *changetype );
 
 int osync_marshal_get_size_change( OSyncChange *change );
-osync_bool osync_marshal_change( OSyncQueue *queue, OSyncChange *change, OSyncError **error );
-osync_bool osync_demarshal_change( OSyncQueue *queue, OSyncChange **change, OSyncError **error );
+void osync_marshal_change( OSyncMessage *message, OSyncChange *change );
+void osync_demarshal_change( OSyncMessage *message, OSyncChange **change );
 
 int osync_marshal_get_size_member( OSyncMember *member );
-osync_bool osync_marshal_member( OSyncQueue *queue, OSyncMember *member, OSyncError **error );
-osync_bool osync_demarshal_member( OSyncQueue *queue, OSyncMember **member, OSyncError **error );
+void osync_marshal_member( OSyncMessage *message, OSyncMember *member );
+void osync_demarshal_member( OSyncMessage *message, OSyncMember **member );
 
 int osync_marshal_get_size_error( OSyncError *error );
-osync_bool osync_marshal_error( OSyncQueue *queue, OSyncError *error_object, OSyncError **error );
-osync_bool osync_demarshal_error( OSyncQueue *queue, OSyncError **error_object, OSyncError **error );
+void osync_marshal_error( OSyncMessage *message, OSyncError *error );
+void osync_demarshal_error( OSyncMessage *message, OSyncError **error );
 
-int osync_marshal_get_size_message( OSyncMessage *message );
-osync_bool osync_marshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error );
-osync_bool osync_demarshal_message( OSyncQueue *queue, OSyncMessage *message, OSyncError **error );
-
-void osync_print_change( OSyncChange *change );
 #endif

@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 lib_LTLIBRARIES = libopensync.la
 
-noinst_PROGRAMS = ipctest
+#noinst_PROGRAMS = ipctest
 
 ipctest_INCLUDES = @PACKAGE_CFLAGS@
 ipctest_SOURCES = easyipc.c ipctest.c opensync_serializer.c

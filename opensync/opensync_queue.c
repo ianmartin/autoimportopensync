@@ -193,15 +193,19 @@ gboolean source_callback(gpointer user_data)
 	OSyncQueue *queue = user_data;
 
   if ( g_io_channel_get_buffer_condition( queue->channel ) && G_IO_IN ) {
-    OSyncMessage *message = osync_message_new( 0, &error );
+    OSyncMessage *message = osync_message_new( 0, 0, &error );
     if ( !message ) {
       osync_error_free( &error );
       return FALSE;
     }
+
+    // marshal message manualy here! TODO: for armin ;)
+    /*
     if ( !osync_demarshal_message( queue, message, &error ) ) {
       osync_error_free( &error );
       return FALSE;
     }
+    */
 
 		if (osync_message_get_command(message) == OSYNC_MESSAGE_REPLY ||
         osync_message_get_command(message) == OSYNC_MESSAGE_ERRORREPLY) {

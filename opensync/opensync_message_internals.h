@@ -62,11 +62,15 @@ struct OSyncMessage {
 	timeout_info *to_info;
 	/** If this message has already been answered */
 	osync_bool is_answered;
+  /** The pointer to the internal **/
+  GByteArray *buffer;
+  /** The current read position **/
+  int buffer_read_pos;
 };
 
 /*@}*/
 
-OSyncMessage *osync_message_new(OSyncMessageCommand cmd, OSyncError **error);
+OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
 void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data);
 OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
 OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error);
@@ -80,5 +84,15 @@ long long osync_message_get_id(OSyncMessage *message);
 void osync_message_reset_timeout(OSyncMessage *message);
 osync_bool osync_message_is_answered(OSyncMessage *message);
 void osync_message_set_answered(OSyncMessage *message);
+
+void osync_message_write_int(OSyncMessage *message, int value);
+void osync_message_write_long_long_int(OSyncMessage *message, long long int value);
+void osync_message_write_string(OSyncMessage *message, const char *value);
+void osync_message_write_data(OSyncMessage *message, const void *value, int size);
+
+void osync_message_read_int(OSyncMessage *message, int *value);
+void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
+void osync_message_read_string(OSyncMessage *message, char **value);
+void osync_message_read_data(OSyncMessage *message, void **value, int size);
 
 #endif

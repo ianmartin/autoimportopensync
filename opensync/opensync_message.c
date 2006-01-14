@@ -53,7 +53,7 @@
  * @returns Pointer to a newly allocated message
  * 
  */
-OSyncMessage *osync_message_new(OSyncMessageCommand cmd, OSyncError **error)
+OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error)
 {
 	OSyncMessage *message = osync_try_malloc0(sizeof(OSyncMessage), error);
 	if (!message)
@@ -61,6 +61,11 @@ OSyncMessage *osync_message_new(OSyncMessageCommand cmd, OSyncError **error)
 
 	message->cmd = cmd;
 	message->refCount = 1;
+  if (size > 0)
+		message->buffer = g_byte_array_sized_new( size );
+  else
+    message->buffer = g_byte_array_new();
+  message->buffer_read_pos = 0;
 	return message;
 }
 
@@ -100,7 +105,7 @@ void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handle
  */
 OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
 {
-	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_REPLY, error);
+	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_REPLY, 0, error);
   if ( !reply )
     return NULL;
 
@@ -116,7 +121,7 @@ OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
  */
 OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error)
 {
-	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_ERRORREPLY, error);
+	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_ERRORREPLY, 0, error);
   if ( !reply )
     return NULL;
 
@@ -179,7 +184,11 @@ void osync_message_reset_timeout(OSyncMessage *message)
  */
 osync_bool osync_message_send(OSyncMessage *message, OSyncQueue *queue, OSyncError **error)
 {
+  // FIXME: for armin
+  /**
 	return osync_marshal_message( queue, message, error );
+  */
+  return FALSE;
 }
 
 gboolean timeoutfunc(gpointer data)
@@ -214,8 +223,11 @@ osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *qu
 		g_source_set_callback(to_info->source, timeoutfunc, to_info, NULL);
 		g_source_attach(to_info->source, replyQueue->context);
     }
+    // FIXME: for armin
+    /**
 	if (!osync_marshal_message( queue, message, error ))
 		return FALSE;
+    */
 		
 	return TRUE;
 }
@@ -257,3 +269,55 @@ long long osync_message_get_id(OSyncMessage *message)
 }
 
 /*@}*/
+
+void osync_message_write_int(OSyncMessage *message, int value)
+{
+  g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( int ) );
+}
+
+void osync_message_write_long_long_int(OSyncMessage *message, long long int value)
+{
+  g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( long long int ) );
+}
+
+void osync_message_write_string(OSyncMessage *message, const char *value)
+{
+  int length = strlen( value );
+  g_byte_array_append( message->buffer, (unsigned char*)&length, sizeof( int ) );
+  g_byte_array_append( message->buffer, (unsigned char*)value, strlen( value ) );
+}
+
+void osync_message_write_data(OSyncMessage *message, const void *value, int size)
+{
+  g_byte_array_append( message->buffer, value, size );
+}
+
+void osync_message_read_int(OSyncMessage *message, int *value)
+{
+  memcpy(value, &(message->buffer[ message->buffer_read_pos ]), sizeof(int));
+  message->buffer_read_pos += sizeof(int);
+}
+
+void osync_message_read_long_long_int(OSyncMessage *message, long long int *value)
+{
+  memcpy(value, &(message->buffer[ message->buffer_read_pos ]), sizeof(long long int));
+  message->buffer_read_pos += sizeof(long long int);
+}
+
+void osync_message_read_string(OSyncMessage *message, char **value)
+{
+  int length = 0;
+  memcpy(&length, &(message->buffer[ message->buffer_read_pos ]), sizeof(int));
+  message->buffer_read_pos += sizeof(int);
+
+  *value = (char*)malloc(length);
+  memcpy(*value, &(message->buffer[ message->buffer_read_pos ]), length );
+  message->buffer_read_pos += length;
+}
+
+void osync_message_read_data(OSyncMessage *message, void **value, int size)
+{
+  memcpy(*value, &(message->buffer[ message->buffer_read_pos ]), size );
+  message->buffer_read_pos += size;
+}
+
