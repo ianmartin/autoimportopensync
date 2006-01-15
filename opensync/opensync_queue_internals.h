@@ -25,30 +25,36 @@ struct OSyncQueue {
 	GSource *source;
 	/** The context in which this queue is dispatched */
 	GMainContext *context;
-	/** The channel **/
-	GIOChannel *channel;
+	GMainContext *incomingContext;
+	
+	OSyncThread *thread;
+	
+	GAsyncQueue *incoming;
+	GAsyncQueue *outgoing;
+	
+	OSyncError *error;
 };
 
 /*@}*/
 
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error);
+
 void osync_queue_free(OSyncQueue *queue);
+osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error);
 osync_bool osync_queue_exists(OSyncQueue *queue);
+
 osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error);
+osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error);
+
 void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler handler, gpointer user_data);
-
-osync_bool osync_queue_send_int(OSyncQueue *queue, int data, OSyncError **error);
-osync_bool osync_queue_send_string(OSyncQueue *queue, const char *string, OSyncError **error);
-osync_bool osync_queue_send_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error);
-osync_bool osync_queue_send_long_long_int(OSyncQueue *queue, long long int data, OSyncError **error);
-
-osync_bool osync_queue_read_int(OSyncQueue *queue, int *data, OSyncError **error);
-osync_bool osync_queue_read_string(OSyncQueue *queue, char **string, OSyncError **error);
-osync_bool osync_queue_read_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error);
-osync_bool osync_queue_read_long_long_int(OSyncQueue *queue, long long int *data, OSyncError **error);
+osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncMessage *message, OSyncError **error);
 
 void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context);
 osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error);
+
+osync_bool osync_queue_data_available(OSyncQueue *queue);
+
+OSyncMessage *osync_queue_get_message(OSyncQueue *queue);
 
 #endif

@@ -742,3 +742,84 @@ void *osync_try_malloc0(unsigned int size, OSyncError **error)
 }
 
 /*@}*/
+
+
+OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, context, error);
+	
+	OSyncThread *thread = osync_try_malloc0(sizeof(OSyncThread), error);
+	if (!thread)
+		goto error;
+
+	printf("test\n");
+	thread->started_mutex = g_mutex_new();
+	thread->started = g_cond_new();
+	thread->context = context;
+	g_main_context_ref(thread->context);
+	thread->loop = g_main_loop_new(thread->context, FALSE);
+	printf("test2\n");
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, thread);
+	return thread;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+void osync_thread_free(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	
+	if (thread->started_mutex)
+		g_mutex_free(thread->started_mutex);
+
+	if (thread->started)
+		g_cond_free(thread->started);
+	
+	if (thread->loop)
+		g_main_loop_unref(thread->loop);
+	
+	if (thread->context)
+		g_main_context_unref(thread->context);
+		
+	g_free(thread);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static gboolean osyncThreadStartCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+
+	g_mutex_lock(thread->started_mutex);
+	g_cond_signal(thread->started);
+	g_mutex_unlock(thread->started_mutex);
+	return FALSE;
+}
+
+void osync_thread_start(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	
+	//Start the thread
+	g_mutex_lock(thread->started_mutex);
+	GSource *idle = g_idle_source_new();
+	g_source_set_callback(idle, osyncThreadStartCallback, thread, NULL);
+    g_source_attach(idle, thread->context);
+	thread->thread = g_thread_create ((GThreadFunc)g_main_loop_run, thread->loop, TRUE, NULL);
+	g_cond_wait(thread->started, thread->started_mutex);
+	g_mutex_unlock(thread->started_mutex);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_thread_stop(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	
+	g_main_loop_quit(thread->loop);
+	g_thread_join(thread->thread);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}

@@ -29,6 +29,7 @@ extern int errno;
 
 typedef struct OSyncDB OSyncDB;
 
+#include "opensync_support.h"
 #include "opensync_user_internals.h"
 #include "opensync_change_internals.h"
 #include "opensync_env_internals.h"

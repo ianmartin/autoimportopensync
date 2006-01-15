@@ -19,8 +19,7 @@
  */
 
 #include <fcntl.h>
-
-#include "easyipc.h"
+#include <sys/poll.h>
 
 #include "opensync.h"
 #include "opensync_internals.h"
@@ -32,6 +31,199 @@
  */
 
 /*@{*/
+
+gboolean _incoming_prepare(GSource *source, gint *timeout_)
+{
+	*timeout_ = 1;
+	return FALSE;
+}
+
+gboolean _incoming_check(GSource *source)
+{
+	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
+	
+	if (g_async_queue_length(queue->incoming) > 0)
+		return TRUE;
+	return FALSE;
+}
+
+gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+{
+	OSyncQueue *queue = user_data;
+
+	OSyncMessage *message = osync_queue_get_message(queue);
+	if (message) {
+		if (!queue->message_handler) {
+			printf("you have to setup a message handler for the queue!\n");
+			return FALSE;
+		}
+		queue->message_handler(message, queue->user_data);
+	}
+	return TRUE;
+}
+
+gboolean _queue_prepare(GSource *source, gint *timeout_)
+{
+	*timeout_ = 1;
+	return FALSE;
+}
+
+gboolean _queue_check(GSource *source)
+{
+	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
+	if (g_async_queue_length(queue->outgoing) > 0)
+		return TRUE;
+	return FALSE;
+}
+
+int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n)
+{
+
+  size_t nleft;
+  ssize_t nwritten;
+  const char *ptr;
+
+  ptr = vptr;
+  nleft = n;
+  while (nleft > 0) {
+    if ((nwritten = write(queue->fd, ptr, nleft)) <= 0) {
+      if (errno == EINTR)
+        nwritten = 0;  /* and call write() again */
+      else
+        return (-1);  /* error */
+    }
+
+    nleft -= nwritten;
+    ptr += nwritten;
+  }
+  return (n);
+}
+
+osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message)
+{
+	if (_osync_queue_write_data(queue, &message, sizeof(int)) < 0)
+		return FALSE;
+
+	return TRUE;
+}
+
+gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+{
+	OSyncQueue *queue = user_data;
+
+	OSyncMessage *message = g_async_queue_try_pop(queue->outgoing);
+	if (message) {
+		if (!_osync_queue_write_int(queue, message->buffer->len + osync_marshal_get_size_message(message)))
+			return FALSE;
+		
+		if (!_osync_queue_write_int(queue, message->cmd))
+			return FALSE;
+			
+		int sent = 0;
+		do {
+			sent += _osync_queue_write_data(queue, message->buffer->data + sent, message->buffer->len - sent);
+		} while (sent < message->buffer->len);
+		
+		osync_message_unref(message);
+	}
+	return TRUE;
+}
+
+gboolean _source_prepare(GSource *source, gint *timeout_)
+{
+	*timeout_ = 1;
+	return FALSE;
+}
+
+/* Read "n" bytes from a descriptor. */
+int _osync_queue_read_data(OSyncQueue *queue, void *vptr, size_t n)
+{
+
+  size_t nleft;
+  ssize_t nread;
+  char *ptr;
+
+  ptr = vptr;
+  nleft = n;
+  while (nleft > 0) {
+    if ((nread = read(queue->fd, ptr, nleft)) < 0) {
+      if (errno == EINTR)
+        nread = 0;  /* and call read() again */
+      else
+        return (-1);
+    } else if (nread == 0)
+      break;  /* EOF */
+
+    nleft -= nread;
+    ptr += nread;
+  }
+  return (n - nleft);  /* return >= 0 */
+}
+
+osync_bool _osync_queue_read_int(OSyncQueue *queue, int *message)
+{
+  int status;
+
+  if ( (status = _osync_queue_read_data(queue, message, sizeof(int))) < 0) {
+    return FALSE;
+  }
+
+  if (status < sizeof(int)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+gboolean _source_check(GSource *source)
+{
+	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
+	if (osync_queue_data_available(queue))
+		return TRUE;
+	return FALSE;
+}
+
+gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
+{
+	OSyncQueue *queue = user_data;
+	OSyncMessage *message = NULL;
+	OSyncError *error = NULL;
+	
+	if (osync_queue_data_available(queue)) {
+		printf("data available\n");
+		int size = 0;
+		int cmd = 0;
+		if (!_osync_queue_read_int(queue, &size))
+			return FALSE;
+			
+		printf("read %i\n", size);
+		if (!_osync_queue_read_int(queue, &cmd))
+			return FALSE;
+		printf("cmd %i\n", cmd);
+		
+		printf("data %i, %i\n", size, cmd);
+		
+		message = osync_message_new(cmd, size, &error);
+		if (!message) {
+			osync_error_free(&error);
+			return FALSE;
+		}
+		
+		printf("reading bytebuffer now\n");
+		int read = 0;
+		do {
+			printf("read before %i\n", read);
+			read += _osync_queue_read_data(queue, message->buffer->data + read, size - read);
+			printf("read after %i\n", read);
+		} while (read < size);
+		
+		printf("done reading bytebuffer: %p\n", message);
+		g_async_queue_push(queue->incoming, message);
+		printf("%p %i new length %i\n", queue, getpid(), g_async_queue_length(queue->incoming));
+	}
+	
+	return TRUE;
+}
 
 /*! @brief Creates a new asynchronous queue
  * 
@@ -45,6 +237,36 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 		return NULL;
 
 	queue->name = g_strdup(name);
+	queue->fd = -1;
+	
+	if (!g_thread_supported ())
+		g_thread_init (NULL);
+	
+	queue->context = g_main_context_new();
+	
+	queue->incoming = g_async_queue_new();
+	g_async_queue_ref(queue->incoming);
+	queue->outgoing = g_async_queue_new();
+	g_async_queue_ref(queue->outgoing);
+	
+	queue->thread = osync_thread_new(queue->context, error);
+	if (!queue->thread)
+		return NULL;
+	
+	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+	functions->prepare = _queue_prepare;
+	functions->check = _queue_check;
+	functions->dispatch = _queue_dispatch;
+	functions->finalize = NULL;
+
+	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
+	OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
+	*queueptr = queue;
+	g_source_set_callback(source, NULL, queue, NULL);
+	g_source_attach(source, queue->context);
+	
+	osync_thread_start(queue->thread);
+	
 	return queue;
 }
 
@@ -72,8 +294,6 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 	return TRUE;
 }
 
-gboolean source_callback(gpointer);
-
 osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
 {
 	int fd = open(queue->name, flags);
@@ -84,10 +304,16 @@ osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
 	queue->fd = fd;
 
 	if (queue->context) {
-		queue->channel = g_io_channel_unix_new(queue->fd);
-		GSource *source = g_io_create_watch(queue->channel, G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP | G_IO_NVAL);
-		g_source_set_callback(source, source_callback, queue, NULL);
-		queue->source = source;
+		GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+		functions->prepare = _source_prepare;
+		functions->check = _source_check;
+		functions->dispatch = _source_dispatch;
+		functions->finalize = NULL;
+	
+		GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
+		OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
+		*queueptr = queue;
+		g_source_set_callback(source, NULL, queue, NULL);
 		g_source_attach(source, queue->context);
 	}
 
@@ -109,123 +335,6 @@ void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler hand
 	queue->user_data = user_data;
 }
 
-/*! @brief Sends a message down a queue
- * 
- * @param queue The queue to send the message to
- * @param message The message to send
- * 
- */
-osync_bool osync_queue_send_int(OSyncQueue *queue, int data, OSyncError **error)
-{
-	if (eipc_write_int(queue->fd, data) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while sending");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_send_string(OSyncQueue *queue, const char *string, OSyncError **error)
-{
-	if (eipc_write_string(queue->fd, string) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while sending");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_send_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error)
-{
-	if (eipc_writen(queue->fd, data, (int)size) != size) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while sending");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_send_long_long_int(OSyncQueue *queue, long long int data, OSyncError **error)
-{
-	if (eipc_write_long_long_int(queue->fd, data) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while sending");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_read_int(OSyncQueue *queue, int *data, OSyncError **error)
-{
-	if (eipc_read_int(queue->fd, data) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_read_string(OSyncQueue *queue, char **string, OSyncError **error)
-{
-	if (eipc_read_string_alloc(queue->fd, string) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_read_data(OSyncQueue *queue, void *data, unsigned int size, OSyncError **error)
-{
-	if (eipc_readn(queue->fd, data, (int)size) != size) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-osync_bool osync_queue_read_long_long_int(OSyncQueue*queue, long long int *data, OSyncError **error)
-{
-	if (eipc_read_long_long_int(queue->fd, data) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error occured while reading");
-		return FALSE;
-	}
-	return TRUE;
-}
-
-gboolean source_callback(gpointer user_data)
-{
-  OSyncError *error = NULL;
-	OSyncQueue *queue = user_data;
-
-  if ( g_io_channel_get_buffer_condition( queue->channel ) && G_IO_IN ) {
-    OSyncMessage *message = osync_message_new( 0, 0, &error );
-    if ( !message ) {
-      osync_error_free( &error );
-      return FALSE;
-    }
-
-    // marshal message manualy here! TODO: for armin ;)
-    /*
-    if ( !osync_demarshal_message( queue, message, &error ) ) {
-      osync_error_free( &error );
-      return FALSE;
-    }
-    */
-
-		if (osync_message_get_command(message) == OSYNC_MESSAGE_REPLY ||
-        osync_message_get_command(message) == OSYNC_MESSAGE_ERRORREPLY) {
-
-		} else {
-			if (!queue->message_handler) {
-				printf("no messagehandler for queue %p\n", queue);
-				printf("ERROR! You need to set a queue message handler before receiving messages\n");
-			} else {
-				queue->message_handler( message, queue->user_data);
-			}
-		}
-    
-  } else {
-    printf( "maybe an error ;)" );
-  }
-
-	return TRUE;
-}
-
 /*! @brief Sets the queue to use the gmainloop with the given context
  * 
  * This function will attach the OSyncQueue as a source to the given context.
@@ -238,10 +347,10 @@ gboolean source_callback(gpointer user_data)
  */
 void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 {
-/*	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
-	functions->prepare = _queue_prepare;
-	functions->check = _queue_check;
-	functions->dispatch = _queue_dispatch;
+	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+	functions->prepare = _incoming_prepare;
+	functions->check = _incoming_check;
+	functions->dispatch = _incoming_dispatch;
 	functions->finalize = NULL;
 
 	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
@@ -250,17 +359,58 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 	g_source_set_callback(source, NULL, queue, NULL);
 	queue->source = source;
 	g_source_attach(source, context);
-	queue->context = context;*/
-
-	queue->context = context;
+	queue->incomingContext = context;
 }
 
 osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error)
 {
-  if ( !source_callback(queue) ) {
-    osync_error_set( error, OSYNC_ERROR_GENERIC, "Recieved invalid message in source callback." );
-    return FALSE;
-  }
+	_incoming_dispatch(NULL, NULL, queue);
+	return TRUE;
+}
 
-  return TRUE;
+osync_bool osync_queue_data_available(OSyncQueue *queue)
+{
+	struct pollfd pfd;
+	pfd.fd = queue->fd;
+	pfd.events = POLLIN;
+	
+	if (poll(&pfd, 1, 0) != 1)
+		return FALSE;
+	return TRUE;
+}
+
+OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
+{
+	return g_async_queue_try_pop(queue->incoming);
+}
+
+osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
+{
+	if (unlink(queue->name) != 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to remove queue");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
+{
+	if (close(queue->fd) != 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to close queue");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
+osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncMessage *message, OSyncError **error)
+{
+	if (queue->error) {
+		osync_error_duplicate(error, &(queue->error));
+		return FALSE;
+	}
+	
+	osync_message_ref(message);
+	g_async_queue_push(queue->outgoing, message);
+	return TRUE;
 }

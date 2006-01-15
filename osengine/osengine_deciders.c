@@ -245,8 +245,8 @@ void osengine_client_all_deciders(OSyncEngine *engine)
 	GList *c;
 	osync_debug("ENG", 3, "Calling all client deciders (%i)", g_list_length(engine->clients));
 	for (c = engine->clients; c; c = c->next) {
-		//OSyncClient *client = c->data;
-		//send_client_changed(engine, client);
+		OSyncClient *client = c->data;
+		osengine_client_decider(engine, client);
 	}
 }
 #endif

@@ -23,9 +23,12 @@ typedef struct OSyncPluginCallContext {
 } OSyncPluginCallContext;
 
 OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
+void osync_client_free(OSyncClient *client);
+
+osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncError **error);
 OSyncEngine *osync_client_get_engine(OSyncClient *client);
 void osync_client_call_plugin(OSyncClient *client, char *function, void *data, OSyncPluginReplyHandler replyhandler, void *userdata);
-void osync_client_free(OSyncClient *client);
+
 osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncError **error);
 void osync_client_finalize(OSyncClient *client);
 OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client);

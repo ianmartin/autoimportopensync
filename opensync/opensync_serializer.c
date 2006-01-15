@@ -1,8 +1,6 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync_serializer.h"
-
 int osync_marshal_get_size_changetype( OSyncChangeType changetype )
 {
   return sizeof( int );
@@ -127,34 +125,46 @@ void osync_demarshal_member( OSyncMessage *message, OSyncMember **member )
   }
 }
 
-int osync_marshal_get_size_error( OSyncError *error )
+int osync_marshal_get_size_error( OSyncError **error )
 {
   int size = 0;
 
-  if ( !error )
+  if ( !osync_error_is_set(error) )
     return size;
 
   size += sizeof( int );
-  size += strlen( error->message );
+  size += strlen( (*error)->message );
 
   return size;
 }
 
 void osync_marshal_error( OSyncMessage *message, OSyncError *error )
 {
-  osync_message_write_int( message, (int)error->type );
-  osync_message_write_string( message, error->message );
+	if (error) {
+		osync_message_write_int( message, 1 );
+		osync_message_write_int( message, (int)error->type );
+		osync_message_write_string( message, error->message );
+	} else {
+		osync_message_write_int( message, 0 );
+	}
 }
 
 void osync_demarshal_error( OSyncMessage *message, OSyncError **error )
 {
-  char *msg;
-  int error_type;
+	int hasError = 0;
 
-  osync_message_read_int( message, &error_type );
-  osync_message_read_string( message, &msg );
-
-  osync_error_set( error, (OSyncErrorType)error_type, msg );
+	osync_message_read_int( message, &hasError );
+	
+	if (hasError) {
+		char *msg;
+		int error_type;
+		
+		osync_message_read_int( message, &error_type );
+		osync_message_read_string( message, &msg );
+		
+		osync_error_set( error, (OSyncErrorType)error_type, msg );
+	} else
+		osync_error_free(error);
 }
 
 int osync_marshal_get_size_message( OSyncMessage *message )
@@ -167,7 +177,7 @@ int osync_marshal_get_size_message( OSyncMessage *message )
   size += sizeof( int ); // message->cmd
   size += sizeof( long long int ); // message->id
   size += sizeof( int ); // has error
-  size += osync_marshal_get_size_error( message->error );
+  size += osync_marshal_get_size_error( &(message->error) );
 
   return 0;
 }

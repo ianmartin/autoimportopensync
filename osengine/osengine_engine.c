@@ -19,6 +19,11 @@
  */
  
 #include "engine.h"
+#include <glib.h>
+#include <opensync/opensync_support.h>
+#include "opensync/opensync_message_internals.h"
+#include "opensync/opensync_queue_internals.h"
+
 #include "engine_internals.h"
 #include <opensync/opensync_user_internals.h>
 /**
@@ -51,6 +56,8 @@
 static void engine_message_handler(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p:%lli, %p)", sender, message, message->id, engine);
+	
+	printf("engine received command %i\n", osync_message_get_command(message));
 	
 	/*if (osync_message_is_signal (message, "ENTRY_CHANGED")) {
 		OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
@@ -315,7 +322,7 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
  */
 OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osengine_new(%p, %p)", group, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	
 	g_assert(group);
 	OSyncEngine *engine = g_malloc0(sizeof(OSyncEngine));
@@ -331,9 +338,10 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	OSyncUserInfo *user = osync_user_new(error);
 	if (!user)
 		return NULL;
-	char *path = g_strdup_printf("%s/engines", osync_user_get_confdir(user));
+	char *path = g_strdup_printf("%s/engines/enginepipe", osync_user_get_confdir(user));
 	engine->incoming = osync_queue_new(path, error);
-	if (!engine->incoming)
+	engine->commandQueue = osync_queue_new(path, error);
+	if (!engine->incoming || !engine->commandQueue)
 		return NULL;
 	
 	engine->syncing_mutex = g_mutex_new();
@@ -432,6 +440,9 @@ void osengine_free(OSyncEngine *engine)
 	osync_queue_free(engine->incoming);
 	engine->incoming = NULL;
 
+	osync_queue_free(engine->commandQueue);
+	engine->commandQueue = NULL;
+	
 	g_list_free(engine->clients);
 	g_main_loop_unref(engine->syncloop);
 	
@@ -594,7 +605,33 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	
 	engine->is_initialized = TRUE;
 	
+	osync_queue_create(engine->incoming, NULL);
+	
+	printf("Spawning clients\n");
 	GList *c = NULL;
+	for (c = engine->clients; c; c = c->next) {
+		OSyncClient *client = c->data;
+		if (!osync_client_spawn(client, engine, error)) {
+			osync_group_unlock(engine->group, TRUE);
+			osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
+			return FALSE;
+		}
+	}
+	
+	printf("opening engine queue\n");
+	if (!osync_queue_connect(engine->incoming, O_RDONLY, 0 )) {
+		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
+		return FALSE;
+	}
+	
+	if (!osync_queue_connect(engine->commandQueue, O_WRONLY, 0 )) {
+		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
+		return FALSE;
+	}
+	
+	printf("initializing clients\n");
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_client_init(client, engine, error)) {
@@ -676,22 +713,37 @@ void osengine_finalize(OSyncEngine *engine)
  */
 osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
+	printf("synchronize now\n");
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	g_assert(engine);
 	
 	if (!engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "osengine_synchronize: Not initialized");
-		
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	
 	engine->wasted = 0;
 	engine->alldeciders = 0;
 	
 	osync_flag_set(engine->fl_running);
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_SYNCHRONIZE, 0, error);
+	if (!message)
+		goto error;
+	
+	if (!osync_queue_send_message(engine->commandQueue, message, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*! @brief Sets a flag on the engine that the engine should only request the info about sync objects

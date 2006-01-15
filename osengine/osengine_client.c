@@ -17,10 +17,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
- 
-#include "engine.h"
-#include "engine_internals.h"
 
+#include "engine.h"
+#include <glib.h>
+#include <opensync/opensync_support.h>
+#include "opensync/opensync_message_internals.h"
+#include "opensync/opensync_queue_internals.h"
+
+#include "engine_internals.h"
+#include <unistd.h>
+ 
 /*! @brief This function can be used to receive GET_ENTRY command replies
  * 
  * See OSyncMessageHandler
@@ -28,7 +34,7 @@
  */
 void _get_changes_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
 {
-	osync_trace(TRACE_ENTRY, "_get_changes_reply_receiver(%p, %p, %p)", sender, message, engine);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sender, message, engine);
 	
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
@@ -292,7 +298,7 @@ void _commit_change_reply_receiver(OSyncClient *sender, OSyncMessage *message, O
 
 OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", engine, member, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 	OSyncClient *client = osync_try_malloc0(sizeof(OSyncClient), error);
 	if (!client)
 		goto error;
@@ -314,13 +320,13 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncErr
 	client->fl_committed_all = osync_flag_new(engine->cmb_committed_all_sent);
 	client->fl_finished = osync_flag_new(engine->cmb_finished);
 	
-	osync_trace(TRACE_EXIT, "%s: %p", client);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, client);
     return client;
 
 error_free_client:
 	g_free(client);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -337,7 +343,7 @@ void osync_client_reset(OSyncClient *client)
 
 void osync_client_free(OSyncClient *client)
 {
-	osync_trace(TRACE_ENTRY, "osync_client_free(%p)", client);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
 	osync_queue_free(client->incoming);
 	
 	osync_flag_free(client->fl_connected);
@@ -347,7 +353,7 @@ void osync_client_free(OSyncClient *client)
 	osync_flag_free(client->fl_committed_all);
 
 	g_free(client);
-	osync_trace(TRACE_EXIT, "osync_client_free");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void *osync_client_message_sink(OSyncMember *member, const char *name, void *data, osync_bool synchronous)
@@ -398,11 +404,11 @@ void osync_client_call_plugin(OSyncClient *client, char *function, void *data, O
 
 osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", target, sender, data, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, target, sender, data, error);
 	
 	osync_flag_changing(target->fl_sent_changes);
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_GET_CHANGES, error);
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_GET_CHANGES, 0, error);
 	if (!message)
 		goto error;
 		
@@ -412,13 +418,13 @@ osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, os
 	if (!osync_message_send_with_timeout(message, target->incoming, sender->incoming, timeouts.get_changeinfo_timeout, error))
 		goto error_free_message;
 	
-	osync_trace(TRACE_EXIT, "%s");
+	osync_trace(TRACE_EXIT, "%s", __func__);
     return TRUE;
 
 error_free_message:
 	g_free(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -520,29 +526,74 @@ void osync_client_call_plugin_with_reply(OSyncClient *client, char *function, vo
 	itm_queue_send_with_reply(client->incoming, message);
 }*/
 
+osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
+	
+	pid_t cpid = fork();
+	if (cpid == 0) {
+		printf("About to exec osplugin\n");
+		char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
+		execlp("./osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
+		
+		printf("unable to exec\n");
+		exit(1);
+	}
+	
+	while (!osync_queue_exists(client->incoming)) {
+		osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
+		usleep(500000);
+	}
+	osync_trace(TRACE_INTERNAL, "Queue was created");
+		
+	if (!osync_queue_connect(client->incoming, O_WRONLY, error))
+		goto error;
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, error);
+	if (!message)
+		goto error_disconnect;
+	
+	osync_message_write_string(message, engine->incoming->name);
+	
+	if (!osync_queue_send_message(client->incoming, message, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error_free_message:
+	osync_message_unref(message);
+error_disconnect:
+	osync_queue_disconnect(client->incoming, NULL);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
 
 osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
 	
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, error);
-	if (!message)
-		goto error;
+	OSyncMessage *reply = NULL;
+	while (!(reply = osync_queue_get_message(engine->incoming)))
+		usleep(10000);
 	
-	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, engine);
+	osync_trace(TRACE_INTERNAL, "Reply received");
+		printf("reply received\n");
+	if (reply->cmd != OSYNC_MESSAGE_REPLY) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong answer");
+		goto error_free_reply;
+	}
 	
-	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(client);
-	if (!osync_message_send_with_timeout(message, client->incoming, engine->incoming, timeouts.get_changeinfo_timeout, error))
-		goto error_free_message;
+	osync_message_unref(reply);
 	
-	
-	
-	osync_trace(TRACE_EXIT, "%s");
+	osync_trace(TRACE_EXIT, "%s", __func__);
     return TRUE;
 
-error_free_message:
-	g_free(message);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
+error_free_reply:
+	osync_message_unref(reply);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }

@@ -17,9 +17,13 @@ typedef enum {
 	OSYNC_MESSAGE_CONNECT,
 	OSYNC_MESSAGE_DISCONNECT,
 	OSYNC_MESSAGE_GET_CHANGES,
+	OSYNC_MESSAGE_COMMIT_CHANGE,
+	OSYNC_MESSAGE_SYNC_DONE,
+	OSYNC_MESSAGE_CALL_PLUGIN,
 	OSYNC_MESSAGE_REPLY,
 	OSYNC_MESSAGE_ERRORREPLY,
-	OSYNC_MESSAGE_INITIALIZE
+	OSYNC_MESSAGE_INITIALIZE,
+	OSYNC_MESSAGE_SYNCHRONIZE
 } OSyncMessageCommand;
 
 /*! @brief Function which can receive messages
@@ -71,10 +75,13 @@ struct OSyncMessage {
 /*@}*/
 
 OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
-void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data);
 OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
 OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error);
-void osync_message_set_error(OSyncMessage *message, OSyncError *error);
+void osync_message_ref(OSyncMessage *message);
+void osync_message_unref(OSyncMessage *message);
+
+void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data);
+void osync_message_set_error(OSyncMessage *message, OSyncError **error);
 OSyncError *osync_message_get_error(OSyncMessage *message);
 gboolean osync_message_is_error(OSyncMessage *message);
 osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
@@ -93,6 +100,6 @@ void osync_message_write_data(OSyncMessage *message, const void *value, int size
 void osync_message_read_int(OSyncMessage *message, int *value);
 void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
 void osync_message_read_string(OSyncMessage *message, char **value);
-void osync_message_read_data(OSyncMessage *message, void **value, int size);
+void osync_message_read_data(OSyncMessage *message, void *value, int size);
 
 #endif

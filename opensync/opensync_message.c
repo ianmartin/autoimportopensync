@@ -71,15 +71,13 @@ OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **
 
 void osync_message_ref(OSyncMessage *message)
 {
-	message->refCount++;
+	g_atomic_int_inc(&(message->refCount));
 }
 
 void osync_message_unref(OSyncMessage *message)
 {
-	message->refCount--;
-	if (message->refCount <= 0) {
+	if (g_atomic_int_dec_and_test(&(message->refCount)))
 		g_free(message);
-	}
 }
 
 /*! @brief Sets the handler that will receive the reply
@@ -106,8 +104,8 @@ void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handle
 OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
 {
 	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_REPLY, 0, error);
-  if ( !reply )
-    return NULL;
+ 	if (!reply)
+		return NULL;
 
 	reply->id = message->id;
 	return reply;
@@ -129,9 +127,9 @@ OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **e
 	return reply;
 }
 
-void osync_message_set_error(OSyncMessage *message, OSyncError *error)
+void osync_message_set_error(OSyncMessage *message, OSyncError **error)
 {
-	message->error = error;
+	osync_error_duplicate(&message->error, error);
 }
 
 OSyncError *osync_message_get_error(OSyncMessage *message)
@@ -202,7 +200,8 @@ gboolean timeoutfunc(gpointer data)
 	osync_trace(TRACE_ERROR, "Timeout while waiting for a reply to message %p:\"%lli\". Sending error %p", to_info->message, to_info->message->id, reply);
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%lli\"", to_info->message->id);
-	osync_message_set_error(reply, error);
+	osync_message_set_error(reply, &error);
+	osync_error_free(&error);
 	osync_message_send(reply, to_info->replyqueue, NULL);
 	osync_message_set_answered(to_info->message);
 	return FALSE;
@@ -268,6 +267,11 @@ long long osync_message_get_id(OSyncMessage *message)
 	return message->id;
 }
 
+void osync_message_add_int(OSyncMessage *message, int data)
+{
+	
+}
+
 /*@}*/
 
 void osync_message_write_int(OSyncMessage *message, int value)
@@ -282,9 +286,9 @@ void osync_message_write_long_long_int(OSyncMessage *message, long long int valu
 
 void osync_message_write_string(OSyncMessage *message, const char *value)
 {
-  int length = strlen( value );
+  int length = strlen( value ) + 1;
   g_byte_array_append( message->buffer, (unsigned char*)&length, sizeof( int ) );
-  g_byte_array_append( message->buffer, (unsigned char*)value, strlen( value ) );
+  g_byte_array_append( message->buffer, (unsigned char*)value, length );
 }
 
 void osync_message_write_data(OSyncMessage *message, const void *value, int size)
@@ -294,30 +298,32 @@ void osync_message_write_data(OSyncMessage *message, const void *value, int size
 
 void osync_message_read_int(OSyncMessage *message, int *value)
 {
-  memcpy(value, &(message->buffer[ message->buffer_read_pos ]), sizeof(int));
+  memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
   message->buffer_read_pos += sizeof(int);
 }
 
 void osync_message_read_long_long_int(OSyncMessage *message, long long int *value)
 {
-  memcpy(value, &(message->buffer[ message->buffer_read_pos ]), sizeof(long long int));
+  memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(long long int));
   message->buffer_read_pos += sizeof(long long int);
 }
 
 void osync_message_read_string(OSyncMessage *message, char **value)
 {
   int length = 0;
-  memcpy(&length, &(message->buffer[ message->buffer_read_pos ]), sizeof(int));
+  memcpy(&length, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
   message->buffer_read_pos += sizeof(int);
 
   *value = (char*)malloc(length);
-  memcpy(*value, &(message->buffer[ message->buffer_read_pos ]), length );
+  memcpy(*value, &(message->buffer->data[ message->buffer_read_pos ]), length );
   message->buffer_read_pos += length;
 }
 
-void osync_message_read_data(OSyncMessage *message, void **value, int size)
+void osync_message_read_data(OSyncMessage *message, void *value, int size)
 {
-  memcpy(*value, &(message->buffer[ message->buffer_read_pos ]), size );
+	printf("memcpy now\n");
+  memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), size );
+	printf("memcpy done\n");
   message->buffer_read_pos += size;
 }
 

@@ -13,7 +13,6 @@ typedef struct OSyncMappingView OSyncMappingView;
 typedef struct OSyncMappingEntry OSyncMappingEntry;
 
 #include "opensync/opensync_message_internals.h"
-#include "opensync/opensync_queue_internals.h"
 
 #include "osengine_deciders_internals.h"
 #include "osengine_debug.h"

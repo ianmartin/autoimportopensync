@@ -24,4 +24,3 @@ struct OSyncEnv {
 
 osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *path, const char *topentry, OSyncError **error);
 long long int _osync_env_create_group_id(OSyncEnv *env);
-

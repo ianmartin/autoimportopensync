@@ -36,8 +36,10 @@ int osync_marshal_get_size_member( OSyncMember *member );
 void osync_marshal_member( OSyncMessage *message, OSyncMember *member );
 void osync_demarshal_member( OSyncMessage *message, OSyncMember **member );
 
-int osync_marshal_get_size_error( OSyncError *error );
+int osync_marshal_get_size_error( OSyncError **error );
 void osync_marshal_error( OSyncMessage *message, OSyncError *error );
 void osync_demarshal_error( OSyncMessage *message, OSyncError **error );
+
+int osync_marshal_get_size_message( OSyncMessage *message );
 
 #endif

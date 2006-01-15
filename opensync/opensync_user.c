@@ -51,7 +51,7 @@ OSyncUserInfo *osync_user_new(OSyncError **error)
 	
 	user->confdir = g_strdup_printf("%s/.opensync", user->homedir);
 	
-	osync_trace(TRACE_ENTRY, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
+	osync_trace(TRACE_INTERNAL, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
 	
 	return user;
 }

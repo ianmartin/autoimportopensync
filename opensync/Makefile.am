@@ -6,13 +6,6 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 lib_LTLIBRARIES = libopensync.la
 
-#noinst_PROGRAMS = ipctest
-
-ipctest_INCLUDES = @PACKAGE_CFLAGS@
-ipctest_SOURCES = easyipc.c ipctest.c opensync_serializer.c
-ipctest_LIBS = @CHECK_LIBS@
-ipctest_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -R $(libdir) @GCOV_LDFLAGS@ @XML_LIBS@
-
 opensyncincludedir = @OPENSYNC_HEADERDIR@
 
 opensyncinclude_HEADERS = \
@@ -69,8 +62,7 @@ libopensync_la_SOURCES = \
 	opensync_filter.c \
 	opensync_queue.c \
 	opensync_message.c \
-	opensync_serializer.c \
-	easyipc.c
+	opensync_serializer.c
 
 CLEANFILES = \
 	*.bb \

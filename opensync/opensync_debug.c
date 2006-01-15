@@ -65,7 +65,8 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 		tabs = GPOINTER_TO_INT(g_private_get(current_tabs));
 	
 	unsigned long int id = (unsigned long int)pthread_self();
-	char *logfile = g_strdup_printf("%s/Thread%lu.log", trace, id);
+	pid_t pid = getpid();
+	char *logfile = g_strdup_printf("%s/Thread%lu-%i.log", trace, id, pid);
 	
 	va_start(arglist, message);
 	buffer = g_strdup_vprintf(message, arglist);
