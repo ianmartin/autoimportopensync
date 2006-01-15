@@ -32,6 +32,7 @@ struct OSyncMember {
 
 
 	char *pluginname;
+	char *name;
 	
 	//For the filters
 	GList *accepted_objtypes;

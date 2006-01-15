@@ -48,6 +48,8 @@ void osync_member_disconnect(OSyncMember *member, OSyncEngCallback function, voi
 void osync_member_get_changeinfo(OSyncMember *member, OSyncEngCallback function, void *user_data);
 void osync_member_read_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);
 void osync_member_committed_all(OSyncMember *member, OSyncEngCallback function, void *user_data);
+void osync_member_set_name(OSyncMember *member, const char *name);
+const char *osync_member_get_name(OSyncMember *member);
 
 void *osync_member_call_plugin(OSyncMember *member, const char *function, void *data, OSyncError **error);
 void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncEngCallback function, void *user_data);

@@ -176,6 +176,7 @@ OSyncMember *osync_member_new(OSyncGroup *group)
 	}
 	
 	member->memberfunctions = osync_memberfunctions_new();
+	member->name = NULL;
 
 	return member;
 }
@@ -624,6 +625,8 @@ OSyncMember *osync_member_load(OSyncGroup *group, const char *path, OSyncError *
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname"))
 				member->pluginname = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"name"))
+				member->name = g_strdup(str);
 			xmlFree(str);
 		}
 		cur = cur->next;
@@ -674,6 +677,8 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 	//The plugin name
 	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
+  //The name
+	xmlNewChild(doc->children, NULL, (xmlChar*)"name", (xmlChar*)member->name);
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);
@@ -1365,6 +1370,18 @@ void osync_member_committed_all(OSyncMember *member, OSyncEngCallback function, 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+void osync_member_set_name(OSyncMember *member, const char *name)
+{
+	g_assert(member);
+	if (member->name)
+		g_free(member->name);
+	member->name = g_strdup(name);
+}
+
+const char *osync_member_get_name(OSyncMember *member)
+{
+	return member->name;
+}
 
 /** @brief Adds random data to a member
  * 
