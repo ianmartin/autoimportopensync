@@ -37,6 +37,8 @@ typedef struct  {
   char *calendar_dbid;
   unsigned int addressbook_changecounter;
   char *addressbook_dbid;
+  unsigned int notebook_changecounter;
+  char *notebook_dbid;
 
   obex_t obexhandle;
 
@@ -74,7 +76,8 @@ obex_t* irmc_obex_client(irmc_config *config);
 char* sync_connect_get_serial(irmc_config *config);
 gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error);
 gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error);
-gboolean detect_slowsync(int changecounter, char *object, char **dbid,
+gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error);
+gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **serial_number,
                          gboolean *slowsync, obex_t obexhandle, OSyncError **error);
 
 #endif
