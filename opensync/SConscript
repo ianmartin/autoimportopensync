@@ -1,0 +1,46 @@
+Import('env', 'install_lib', 'install_inc', 'install_prefix')
+
+env.Append( CPPPATH = '.' )
+
+sources = """
+opensync_debug.c
+opensync_env.c
+opensync_db.c
+opensync_plugin.c
+opensync_group.c
+opensync_user.c
+opensync_member.c
+opensync_change.c
+opensync_hashtable.c
+opensync_error.c
+opensync_context.c
+opensync_convert.c
+opensync_changecmds.c
+opensync_convreg.c
+opensync_anchor.c
+opensync_filter.c
+"""
+
+headers = """
+opensync.h
+opensync_env.h
+opensync_plugin.h
+opensync_group.h
+opensync_member.h
+opensync_change.h
+opensync_error.h
+opensync_hashtable.h
+opensync_context.h
+opensync_convert.h
+opensync_convreg.h
+opensync_anchor.h
+opensync_filter.h
+opensync_debug.h
+opensync_changecmds.h
+"""
+
+libopensync = env.SharedLibrary('opensync', Split(sources))
+
+env.Install(install_lib, libopensync)
+env.Install(install_inc + '/opensync-1.0/opensync/', Split(headers))
+env.Alias('install', install_prefix)

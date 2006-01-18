@@ -1,0 +1,19 @@
+Import('env', 'install_lib', 'install_inc', 'install_prefix')
+
+env.Append( CPPPATH = '.' )
+env.Append( CPPPATH = '#' )
+
+local_env = env
+
+local_env.Append( LDFLAGS = '-avoid-version -export-dynamic -module' )
+
+libdata = local_env.SharedLibrary('data', ['data.c'])
+libevent = local_env.SharedLibrary('event', ['event.c'])
+libnote = local_env.SharedLibrary('note', ['note.c'])
+libtodo = local_env.SharedLibrary('todo', ['todo.c'])
+libcontact = local_env.SharedLibrary('contact', ['contact.c'])
+libfile = local_env.SharedLibrary('file', ['file.c'])
+
+env.Install(install_lib, [libdata, libevent, libnote, libtodo, libcontact, libfile])
+env.Install(install_inc + '/opensync-1.0/opensync/', ['file.h'])
+env.Alias('install', install_prefix)
