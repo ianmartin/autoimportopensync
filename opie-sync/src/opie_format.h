@@ -1,6 +1,6 @@
 /*
 
-   Copyright 2005 Holger Hans Peter Freyther
+   Copyright 2005 Paul Eggleton & Holger Hans Peter Freyther
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,49 +21,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
-#ifndef OPIE_SYNC_H
-#define OPIE_SYNC_H
 
-#include <opensync/opensync.h>
-#include <glib.h>
-
-#include <libxml/xmlmemory.h>
-#include <libxml/parser.h>
-
-#include <string.h>
-
-#include "opie_qcop.h"
-
-typedef struct OpieSyncEnv OpieSyncEnv;
-
-typedef enum {
-    OPIE_SYNC_QTOPIA_2,
-    OPIE_SYNC_OPIE
-} OPIE_DEVICE_TYPE;
-
-typedef enum {
-    OPIE_CONN_FTP,
-    OPIE_CONN_SCP
-} OPIE_CONN_TYPE;
-
-struct OpieSyncEnv {
-    OSyncMember*      member;
-    gchar*            username;
-    gchar*            password;
-    gchar*            url;
-    unsigned int      device_port;
-    OPIE_CONN_TYPE    conn_type;
-    OPIE_DEVICE_TYPE  device_type;
-
-    qcop_conn*        qcopconn;
-
-    GList*            calendar;
-    GList*            contacts;
-    GList*            todos;
-    GList*            categories;
-
-    OSyncHashTable*   hashtable;
-};
+#ifndef _OPIE_FORMAT_H
+#define _OPIE_FORMAT_H
 
 
-#endif
+#endif /* _OPIE_FORMAT_H */
+
+
+
+
