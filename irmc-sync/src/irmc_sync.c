@@ -363,6 +363,8 @@ int *test_connection( void *foo, const char *configuration, void *bar )
     return result;
   }
 
+  memset( data, 0, sizeof( data ) );
+  size = sizeof( data );
   if (!irmc_obex_get(config.obexhandle, "telecom/devinfo.txt", data, &size, &error)) {
     osync_error_free(&error);
     if (!irmc_obex_disconnect(config.obexhandle, &error))
@@ -372,6 +374,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
     *result = 0;
     return result;
   }
+  data[ size ] = '\0';
 
   printf( "devinfo.txt\n%s", data );
 
@@ -513,6 +516,8 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   len = DATABUFSIZE;
   filename = g_strdup_printf("telecom/%s/luid/%d.log", object, changecounter);
 
+  memset(data, 0, DATABUFSIZE);
+  len = DATABUFSIZE;
   if (!irmc_obex_get(obexhandle, filename, data, &len, error)) {
     g_free(filename);
     g_free(data);
@@ -521,7 +526,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   }
 
   g_free(filename);
-  data[len] = 0;
+  data[len] = '\0';
 
   sscanf(datap, "SN:%256s\r\n", serial);
   if (!*serial_number || strcmp(*serial_number, serial)) {
@@ -592,6 +597,7 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
   if (osync_member_get_slow_sync(env->member, "event") == TRUE) {
     printf( "irmc_sync: slowsync calendar\n" );
     len = DATABUFSIZE;
+    printf( "irmc_sync: donttellsync=%d\n", config->donttellsync );
     if (config->donttellsync) {
       // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
       irmc_obex_disconnect(config->obexhandle, error);
@@ -606,30 +612,30 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
     }
 
     // update change counter
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/cal/luid/cc.log", data, &len, error)) {
       g_free(data);
       goto error;
     } else {
-      data[len] = 0;
+      data[len] = '\0';
       sscanf(data, "%d", &config->calendar_changecounter);
     }
 
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/cal.vcs", data, &len, error)) {
       // Continue anyway; Siemens models will fail this get if calendar is empty
+      printf( "Siemens error...\n" );
       osync_error_free(error);
       *error = 0;
       len = 0;
     }
+    data[len] = '\0';
 
-    printf( "irmc_sync: retrieved data:\n%s|\n", data );
-    if ( strlen( data ) == 0 ) {
-      config->calendar_changecounter = 0;
-      goto fast_sync_hack;
-    }
+    printf( "irmc_sync: retrieved data (%d byte):\n%s|\n", len, data );
 
     {
-      data[len]=0;
-
       char *event_end = NULL;
       char *event_start = data, *todo_start;
       char *event = NULL;
@@ -697,22 +703,24 @@ gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error)
       } while(event_start);
     }
   } else {
-fast_sync_hack:
     printf( "irmc_sync: fastsync calendar\n" );
     len = DATABUFSIZE;
     printf( "irmc_sync: retrieve 'telecom/cal/luid/%d.log'\n", config->calendar_changecounter );
     filename = g_strdup_printf("telecom/cal/luid/%d.log", config->calendar_changecounter);
 
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
       g_free(filename);
       g_free(data);
       goto error;
     }
+    data[len] = '\0';
 
     printf( "irmc_sync: data returned\n%s", data );
 
     g_free(filename);
-    data[len] = 0;
+
     sscanf(datap, "SN:%256s\r\n", serial);
     datap = strstr(datap, "\r\n");
     if (!datap) {
@@ -758,6 +766,7 @@ fast_sync_hack:
           goto error;
         }
         g_free(filename);
+        vcal[vcal_size] = '\0';
 
         vcal_size = strlen(vcal);
 
@@ -793,6 +802,7 @@ fast_sync_hack:
       datap = strstr(datap, "\r\n");
     }
 
+    memset(data, 0, DATABUFSIZE);
     len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/cal/luid/cc.log", data, &len, error)) {
       g_free(data);
@@ -848,6 +858,8 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
     }
 
     // update change counter
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/pb/luid/cc.log", data, &len, error)) {
       g_free(data);
       goto error;
@@ -856,6 +868,8 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
       sscanf(data, "%d", &config->addressbook_changecounter);
     }
 
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/pb.vcf", data, &len, error))
       len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
 
@@ -909,16 +923,19 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
     printf( "irmc_sync: fastsync addressbook with 'telecom/pb/luid/%d.log'\n", config->addressbook_changecounter );
     filename = g_strdup_printf("telecom/pb/luid/%d.log", config->addressbook_changecounter);
 
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
       g_free(filename);
       g_free(data);
       goto error;
+    } else {
+      data[len] = '\0';
+      g_free(filename);
     }
 
     printf( "irmc_sync: data returned\n%s", data );
 
-    g_free(filename);
-    data[len] = 0;
     sscanf(datap, "SN:%256s\r\n", serial);
     datap = strstr(datap, "\r\n");
     if (!datap) {
@@ -962,8 +979,10 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
           g_free(filename);
           g_free(vcard);
           goto error;
+        } else {
+          g_free(filename);
+          vcard[vcard_size] = '\0';
         }
-        g_free(filename);
 
         vcard_size = strlen(vcard);
 
@@ -995,11 +1014,12 @@ gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error)
       datap = strstr(datap, "\r\n");
     }
 
+    memset(data, 0, DATABUFSIZE);
     len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/pb/luid/cc.log", data, &len, error)) {
       goto error;
     } else {
-      data[len] = 0;
+      data[len] = '\0';
       sscanf(data, "%d", &config->addressbook_changecounter);
     }
   }
@@ -1048,16 +1068,22 @@ gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error)
     }
 
     // update change counter
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/nt/luid/cc.log", data, &len, error)) {
       g_free(data);
       goto error;
     } else {
-      data[len] = 0;
+      data[len] = '\0';
       sscanf(data, "%d", &config->addressbook_changecounter);
     }
 
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/nt.vnt", data, &len, error))
       len = 0; // Continue anyway; Siemens models will fail this get if calendar is empty
+    else
+      data[len] = '\0';
 
     printf( "irmc_sync: retrieved data:\n%s", data );
 
@@ -1067,7 +1093,6 @@ gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error)
       char *vnote = NULL;
       char *converted_vnote = NULL;
 
-      data[len]=0;
       do {
         char *start = vnote_start;
         vnote_start = strstr(start, "BEGIN:VNOTE");
@@ -1109,16 +1134,19 @@ gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error)
     printf( "irmc_sync: fastsync notebook with 'telecom/nt/luid/%d.log'\n", config->notebook_changecounter );
     filename = g_strdup_printf("telecom/nt/luid/%d.log", config->notebook_changecounter);
 
+    memset(data, 0, DATABUFSIZE);
+    len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, filename, data, &len, error)) {
       g_free(filename);
       g_free(data);
       goto error;
+    } else {
+      data[len] = '\0';
+      g_free(filename);
     }
 
     printf( "irmc_sync: data returned\n%s", data );
 
-    g_free(filename);
-    data[len] = 0;
     sscanf(datap, "SN:%256s\r\n", serial);
     datap = strstr(datap, "\r\n");
     if (!datap) {
@@ -1162,8 +1190,10 @@ gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error)
           g_free(filename);
           g_free(vnote);
           goto error;
+        } else {
+          g_free(filename);
+          vnote[vnote_size] = '\0';
         }
-        g_free(filename);
 
         printf( "irmc_sync: retrieved data:\n%s\n", vnote );
 
@@ -1197,11 +1227,12 @@ gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error)
       datap = strstr(datap, "\r\n");
     }
 
+    memset(data, 0, DATABUFSIZE);
     len = DATABUFSIZE;
     if (!irmc_obex_get(config->obexhandle, "telecom/nt/luid/cc.log", data, &len, error)) {
       goto error;
     } else {
-      data[len] = 0;
+      data[len] = '\0';
       sscanf(data, "%d", &config->notebook_changecounter);
     }
   }
