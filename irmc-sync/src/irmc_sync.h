@@ -40,43 +40,49 @@ typedef struct  {
   unsigned int notebook_changecounter;
   char *notebook_dbid;
 
-  obex_t obexhandle;
+  obex_t obexhandle;             // Handle to the obex connection
 
-  // Options
-  connect_medium connectmedium;
-  struct bt_unit btunit; // Bluetooth address
-  int btchannel; // Bluetooth channel
-  char cabledev[20]; // Cable device
-  cable_type cabletype; // Type of device connected via cable
-  gboolean managedbsize;
-  gboolean fake_recurring;
-  irmc_ir_unit irunit; // IR device name and serial
+  // connection options
+  connect_medium connectmedium;  // The connection type
+
+  // bluetooth specific
+  struct bt_unit btunit;         // Bluetooth address
+  int btchannel;                 // Bluetooth channel
+
+  // cable specific
+  char cabledev[20];             // Cable device
+  cable_type cabletype;          // Type of device connected via cable
+
+  // irda specific
+  irmc_ir_unit irunit;           // IR device name and serial
 #if HAVE_IRDA
-  __u32 ir_addr; // Absolute address to IR device (used temporary)   
+  __u32 ir_addr;                 // Absolute address to IR device (used temporary)
 #endif
-  gboolean fixdst;    // Fix T68i DST bug
-  gboolean donttellsync; // Don't send IRMC-SYNC target to OBEX
-                         // unless needed.
-  gboolean onlyphonenumbers; // Accept only contacts with phone numbers
-  gboolean dontacceptold; // Dont accept old contacts
-  int maximumage; // old = this many days
-  gboolean translatecharset;
-  char *charset;
-  gboolean alarmtoirmc, alarmfromirmc;
-  gboolean convertade;
+
+  // further options
+  gboolean managedbsize;
+
+  // filter options (should be moved to filter objects)
+  gboolean fake_recurring;
+  gboolean fixdst;               // Fix T68i DST bug
+  gboolean donttellsync;         // Don't send IRMC-SYNC target to OBEX unless needed
+  gboolean onlyphonenumbers;     // Accept only contacts with phone numbers
+  gboolean dontacceptold;        // Dont accept old contacts
+  int maximumage;                // Old = this many days
+  gboolean translatecharset;     // Use custom charset
+  char *charset;                 // The custom charset
+  gboolean alarmtoirmc;          // Transfer alarms to device
+  gboolean alarmfromirmc;        // Transfer alarms from device
+  gboolean convertade;           // ?
 } irmc_config;
 
 typedef struct irmc_environment {
-	OSyncMember *member;
-
-  irmc_config config;
+  OSyncMember *member;           // The member of this environment
+  irmc_config config;            // The configuration
 } irmc_environment;
 
 obex_t* irmc_obex_client(irmc_config *config);
 char* sync_connect_get_serial(irmc_config *config);
-gboolean get_addressbook_changeinfo(OSyncContext *ctx, OSyncError **error);
-gboolean get_calendar_changeinfo(OSyncContext *ctx, OSyncError **error);
-gboolean get_notebook_changeinfo(OSyncContext *ctx, OSyncError **error);
 gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **serial_number,
                          gboolean *slowsync, obex_t obexhandle, OSyncError **error);
 

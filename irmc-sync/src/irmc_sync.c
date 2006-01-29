@@ -145,7 +145,9 @@ void irmc_disconnect(irmc_config *config)
   config->obexhandle = 0;
 }
 
-// Parses the settings for the plugin
+/**
+ * Parses the configuration of this plugin from a string in xml format.
+ */
 osync_bool parse_settings(irmc_config *config, const char *data, unsigned int size, OSyncError **error)
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, config, data, error);
@@ -284,6 +286,9 @@ error:
   return FALSE;
 }
 
+/**
+ * Load the synchronization anchors.
+ */
 void load_sync_anchors( OSyncMember *member, irmc_config *config )
 {
   char *anchor = osync_anchor_retrieve(member, "event");
@@ -338,6 +343,9 @@ void load_sync_anchors( OSyncMember *member, irmc_config *config )
   g_free( anchor );
 }
 
+/**
+ * Save synchronization anchors.
+ */
 void save_sync_anchors( OSyncMember *member, const irmc_config *config )
 {
   char anchor[ 1024 ];
@@ -356,6 +364,10 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
 }
 
 #if HAVE_BLUETOOTH
+/**
+ * Scan for available bluetooth devices and return a list of
+ * found devices in xml structure.
+ */
 void *scan_devices( void *foo, const char *query, void *bar )
 {
   xmlDoc *doc;
@@ -384,6 +396,10 @@ void *scan_devices( void *foo, const char *query, void *bar )
 }
 #endif
 
+/**
+ * Tests whether a connection to a device with the given configuration can
+ * be established.
+ */
 int *test_connection( void *foo, const char *configuration, void *bar )
 {
   char data[10240];
@@ -392,6 +408,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
   irmc_config config;
   int *result = (int*)malloc(sizeof(int));
 
+  // parse the configuration
   if (!parse_settings(&config, configuration, strlen(configuration), &error)) {
     osync_error_free(&error);
     *result = 0;
@@ -400,6 +417,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
 
   config.obexhandle = irmc_obex_client(&config);
 
+  // connect to the device
   if (!irmc_obex_connect(config.obexhandle, config.donttellsync ? NULL : "IRMC-SYNC", &error)) {
     osync_error_free(&error);
     if (!irmc_obex_disconnect(config.obexhandle, &error))
@@ -411,6 +429,8 @@ int *test_connection( void *foo, const char *configuration, void *bar )
 
   memset( data, 0, sizeof( data ) );
   size = sizeof( data );
+
+  // retrieve the 'telecom/devinfo.txt' file, which is available on all IrMC capable devices
   if (!irmc_obex_get(config.obexhandle, "telecom/devinfo.txt", data, &size, &error)) {
     osync_error_free(&error);
     if (!irmc_obex_disconnect(config.obexhandle, &error))
@@ -422,7 +442,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
   }
   data[ size ] = '\0';
 
-  // Succeeded to connect and fetch data.
+  // succeeded to connect and fetch data
   if (!irmc_obex_disconnect(config.obexhandle, &error))
     osync_error_free(&error);
   irmc_obex_cleanup(config.obexhandle);
@@ -431,94 +451,14 @@ int *test_connection( void *foo, const char *configuration, void *bar )
   return result;
 }
 
-static void *irmcInitialize(OSyncMember *member, OSyncError **error)
-{
-  char *configdata;
-  int configsize;
-
-  //You need to specify the <some name>_environment somewhere with
-  //all the members you need
-  irmc_environment *env = malloc(sizeof(irmc_environment));
-  assert(env != NULL);
-  memset(env, 0, sizeof(irmc_environment));
-
-  //now you can get the config file for this plugin
-  if (!osync_member_get_config(member, &configdata, &configsize, error)) {
-    osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-    free(env);
-    return NULL;
-  }
-
-  if (!parse_settings( &(env->config), configdata, configsize, error)) {
-    osync_error_update(error, "Unable to parse config data: %s", osync_error_print(error));
-    free(env);
-    return NULL;
-  }
-
-  //Process the configdata here and set the options on your environment
-  free(configdata);
-  env->member = member;
-
-  //Now your return your struct.
-  return (void *)env;
-}
-
-static void irmcConnect(OSyncContext *ctx)
-{
-  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_config *config = &(env->config);
-
-  config->obexhandle = irmc_obex_client(config);
-
-  OSyncError *error = NULL;
-  if (!irmc_obex_connect(config->obexhandle, config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    return;
-  }
-
-  load_sync_anchors(env->member, config);
-
-  // check for necessary slowsyncs
-  gboolean slowsync = FALSE;
-  if ( !detect_slowsync( config->calendar_changecounter, "cal", &(config->calendar_dbid),
-                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-  {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    return;
-  } else {
-    osync_member_set_slow_sync(env->member, "event", slowsync);
-  }
-
-  slowsync = FALSE;
-  if ( !detect_slowsync( config->addressbook_changecounter, "pb", &(config->addressbook_dbid),
-                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-  {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    return;
-  } else {
-    osync_member_set_slow_sync(env->member, "contact", slowsync);
-  }
-
-  slowsync = FALSE;
-  if ( !detect_slowsync( config->notebook_changecounter, "nt", &(config->notebook_dbid),
-                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-  {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    return;
-  } else {
-    osync_member_set_slow_sync(env->member, "note", slowsync);
-  }
-
-  osync_context_report_success(ctx);
-}
-
-
-
-
+/**
+ * Checks whether a slowsync is necessary.
+ *
+ * That's the case if one of the following conditions matches:
+ *   - the device has an unknown serial number
+ *   - the database id differs from our saved one
+ *   - the changelog contains a '*' in the last line
+ */
 gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **serial_number,
                          gboolean *slowsync, obex_t obexhandle, OSyncError **error)
 {
@@ -596,6 +536,106 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   return TRUE;
 }
 
+
+/**
+ * Initialize the connection.
+ */
+static void *irmcInitialize(OSyncMember *member, OSyncError **error)
+{
+  char *configdata;
+  int configsize;
+
+  // create new environment, where all connection information are stored in
+  irmc_environment *env = malloc(sizeof(irmc_environment));
+  assert(env != NULL);
+  memset(env, 0, sizeof(irmc_environment));
+
+  // retrieve the config data for this member
+  if (!osync_member_get_config(member, &configdata, &configsize, error)) {
+    osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
+    free(env);
+    return NULL;
+  }
+
+  // parse the config data of this member
+  if (!parse_settings( &(env->config), configdata, configsize, error)) {
+    osync_error_update(error, "Unable to parse config data: %s", osync_error_print(error));
+    free(env);
+    return NULL;
+  }
+
+  free(configdata);
+  env->member = member;
+
+  // return the environment
+  return (void *)env;
+}
+
+/**
+ * Establishes connection to the device.
+ */
+static void irmcConnect(OSyncContext *ctx)
+{
+  irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+  irmc_config *config = &(env->config);
+
+  config->obexhandle = irmc_obex_client(config);
+
+  // connect to the device
+  OSyncError *error = NULL;
+  if (!irmc_obex_connect(config->obexhandle, config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, &error);
+    return;
+  }
+
+  // load the synchronization anchors
+  load_sync_anchors(env->member, config);
+
+  // check whether a slowsync is necessary
+  gboolean slowsync = FALSE;
+  if ( !detect_slowsync( config->calendar_changecounter, "cal", &(config->calendar_dbid),
+                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
+  {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, &error);
+    return;
+  } else {
+    osync_member_set_slow_sync(env->member, "event", slowsync);
+  }
+
+  slowsync = FALSE;
+  if ( !detect_slowsync( config->addressbook_changecounter, "pb", &(config->addressbook_dbid),
+                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
+  {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, &error);
+    return;
+  } else {
+    osync_member_set_slow_sync(env->member, "contact", slowsync);
+  }
+
+  slowsync = FALSE;
+  if ( !detect_slowsync( config->notebook_changecounter, "nt", &(config->notebook_dbid),
+                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
+  {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, &error);
+    return;
+  } else {
+    osync_member_set_slow_sync(env->member, "note", slowsync);
+  }
+
+  osync_context_report_success(ctx);
+}
+
+/**
+ * Requests all changeinfo from the device.
+ *
+ * This method calls get_generic_changeinfo() with
+ * a different info structure for every object type
+ * (calendar, addressbook, notebook).
+ */
 static void irmcGetChangeinfo(OSyncContext *ctx)
 {
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
@@ -645,6 +685,14 @@ error:
   osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
+/**
+ * Generic method for retrieving object independend change information.
+ *
+ * The object specific parts are handled by the following methods:
+ *   - create_calendar_changeinfo()
+ *   - create_addressbook_changeinfo()
+ *   - create_notebook_changeinfo()
+ */
 gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, OSyncError **error)
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
@@ -665,11 +713,13 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
 
   printf( "irmc_sync: syncing %s\n", info->name );
   memset(buffer, 0, DATABUFSIZE);
+
+  // check whether we have to do a slowsync
   if (osync_member_get_slow_sync(env->member, info->identifier) == TRUE) {
     printf( "irmc_sync: slowsync %s\n", info->name );
     buffer_length = DATABUFSIZE;
     if (config->donttellsync) {
-      // Reconnect with "IRMC-SYNC" to get X-IRMC-LUID
+      // reconnect with "IRMC-SYNC" to get X-IRMC-LUID
       irmc_obex_disconnect(config->obexhandle, error);
       sleep(1);
       if (!irmc_obex_connect(config->obexhandle, "IRMC-SYNC", error)) {
@@ -681,7 +731,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       }
     }
 
-    // update change counter
+    // read change counter from device
     memset(buffer, 0, DATABUFSIZE);
     buffer_length = DATABUFSIZE;
 
@@ -699,9 +749,10 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     memset(buffer, 0, DATABUFSIZE);
     buffer_length = DATABUFSIZE;
 
+    // read complete data from device
     filename = g_strdup_printf("telecom/%s.%s", info->path_identifier, info->path_extension);
     if (!irmc_obex_get(config->obexhandle, filename, buffer, &buffer_length, error)) {
-      // Continue anyway; Siemens models will fail this get if document is empty
+      // continue anyway; Siemens models will fail this get if document is empty
       g_free(filename);
       osync_error_free(error);
       *error = 0;
@@ -711,6 +762,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       buffer[buffer_length] = '\0';
     }
 
+    // handle object specific part
     if ( strcmp( info->identifier, "event" ) == 0 )
       create_calendar_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
     else if ( strcmp( info->identifier, "contact" ) == 0 )
@@ -725,6 +777,8 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     buffer_length = DATABUFSIZE;
 
     printf( "retrieving 'telecom/%s/luid/%d.log'\n", info->path_identifier, *( info->change_counter ) );
+
+    // retrieve change log for current change counter
     filename = g_strdup_printf("telecom/%s/luid/%d.log", info->path_identifier, *(info->change_counter));
     if (!irmc_obex_get(config->obexhandle, filename, buffer, &buffer_length, error)) {
       g_free(filename);
@@ -738,6 +792,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     // initialize buffer_pos with the begin of buffer
     buffer_pos = buffer;
 
+    // skip the change log header
     sscanf(buffer_pos, "SN:%256s\r\n", serial_number);
     buffer_pos = strstr(buffer_pos, "\r\n");
     if (!buffer_pos) {
@@ -762,6 +817,8 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     buffer_pos += 2;
     sscanf(buffer_pos, "Maximum-Records:%d\r\n", &dummy);
     buffer_pos = strstr(buffer_pos, "\r\n");
+
+    // parse all change log entries
     while (buffer_pos) {
       char type;
       int cc;
@@ -774,6 +831,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
 
         memset(data, 0, data_size);
 
+        // retrieve data for the specific change log entry
         filename = g_strdup_printf("telecom/%s/luid/%s.%s", info->path_identifier, luid, info->path_extension);
         if (!irmc_obex_get(config->obexhandle, filename, data, &data_size, error)){
           g_free(buffer);
@@ -785,6 +843,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
           data[data_size] = '\0';
         }
 
+        // handle object specific part
         if ( strcmp( info->identifier, "event" ) == 0 )
           create_calendar_changeinfo(FAST_SYNC, ctx, data, luid, type);
         else if ( strcmp( info->identifier, "contact" ) == 0 )
@@ -799,6 +858,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     memset(buffer, 0, DATABUFSIZE);
     buffer_length = DATABUFSIZE;
 
+    // update change counter
     filename = g_strdup_printf("telecom/%s/luid/cc.log", info->path_identifier);
     if (!irmc_obex_get(config->obexhandle, filename, buffer, &buffer_length, error)) {
       g_free(filename);
@@ -819,6 +879,9 @@ error:
   return FALSE;
 }
 
+/**
+ * Creates the calendar specific changeinfo for slow- and fastsync
+ */
 void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   char *converted_event = NULL;
@@ -924,6 +987,9 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
   }
 }
 
+/**
+ * Creates the addressbook specific changeinfo for slow- and fastsync
+ */
 void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   char *converted_vcard = NULL;
@@ -1001,6 +1067,9 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
   }
 }
 
+/**
+ * Creates the notebook specific changeinfo for slow- and fastsync
+ */
 void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   char *converted_vnote = NULL;
@@ -1078,6 +1147,9 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
   }
 }
 
+/**
+ * Generic method to write back changeinfo to the device.
+ */
 osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *info, OSyncChange *change)
 {
   char name[256];
@@ -1089,12 +1161,22 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   char param_buffer[256];
   char *param_buffer_pos = param_buffer;
   char new_luid[256];
-  unsigned int dummy;
   OSyncError *error = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
 
+  /**
+   * If we add a new object the passed path name looks like the following
+   *
+   *  telecom/<type>/luid/.<extension>
+   *
+   * but when we change or delete an existing object, the luid must be appended
+   *
+   *  telecom/<type>/luid/<luid>.<extension>
+   */
+
+  // synthesize path name of the changed object
   snprintf(name, sizeof(name), "telecom/%s/luid/", info->path_identifier);
 
   if (osync_change_get_changetype(change) != CHANGE_ADDED) {
@@ -1107,6 +1189,8 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   safe_strcat(name, info->path_extension, 256);
 
   data = osync_change_get_data(change);
+
+  // convert the data depending on the object type.
   if (data) {
     if (strcmp(info->identifier, "event") == 0) {
       converted_data = sync_vtype_convert(data, VOPTION_ADDUTF8CHARSET | 0 |
@@ -1127,9 +1211,9 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   // increase change counter
   (*(info->change_counter))++;
 
-  // prepare
   memset(param_buffer, 0, sizeof(param_buffer));
 
+  // synthesize obex header
   sprintf(param_buffer_pos + 2, "%d", *(info->change_counter));
   param_buffer_pos[0] = IRSYNC_APP_MAXEXPCOUNT;
   param_buffer_pos[1] = strlen(param_buffer_pos + 2);
@@ -1140,10 +1224,12 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   printf( "change on object %s\n", name );
   switch (osync_change_get_changetype(change)) {
     case CHANGE_DELETED:
+      // modify obex header for hard delete request
       param_buffer_pos[0] = IRSYNC_APP_HARDDELETE;
       param_buffer_pos[1] = 0;
       param_buffer_pos += 2;
 
+      // send the delete request
       if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
         g_free(converted_data);
@@ -1152,13 +1238,16 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       }
 
       rsp_buffer[rsp_buffer_size] = '\0';
-      parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), &dummy);
+
+      // extract the luid and new change counter from the reply header
+      parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), info->change_counter);
 
       printf( "%s delete request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
       g_free(converted_data);
       break;
     case CHANGE_ADDED:
+      // send the add request
       if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
         g_free(converted_data);
@@ -1167,14 +1256,19 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       }
 
       rsp_buffer[rsp_buffer_size] = '\0';
-      parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), &dummy);
+
+      // extract the new luid and new change counter from the reply header
+      parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), info->change_counter);
 
       printf( "%s added request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
+
+      // set the returned luid for this change
       osync_change_set_uid(change, new_luid);
 
       g_free(converted_data);
       break;
     case CHANGE_MODIFIED:
+      // send the modify request
       if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
         g_free(converted_data);
@@ -1183,7 +1277,9 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       }
 
       rsp_buffer[rsp_buffer_size] = '\0';
-      parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), &dummy);
+
+      // extract the luid and new change counter from the reply header
+      parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), info->change_counter);
 
       printf( "%s modified request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
@@ -1197,6 +1293,9 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   return TRUE;
 }
 
+/**
+ * Commits the calendar specific changeinfo to the device.
+ */
 static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
   data_type_information info;
@@ -1214,6 +1313,9 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
   return irmcGenericCommitChange(ctx, &info, change);
 }
 
+/**
+ * Commits the addressbook specific changeinfo to the device.
+ */
 static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
   data_type_information info;
@@ -1231,6 +1333,9 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
   return irmcGenericCommitChange(ctx, &info, change);
 }
 
+/**
+ * Commits the notebook specific changeinfo to the device.
+ */
 static osync_bool irmcNoteCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
   data_type_information info;
@@ -1248,36 +1353,39 @@ static osync_bool irmcNoteCommitChange(OSyncContext *ctx, OSyncChange *change)
   return irmcGenericCommitChange(ctx, &info, change);
 }
 
+/**
+ * This method is called when the sync was successfull.
+ */
 static void irmcSyncDone(OSyncContext *ctx)
 {
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
-  /*
-   * This function will only be called if the sync was successfull
-   */
+  // save synchronization anchors
+  save_sync_anchors( env->member, &( env->config ) );
 
-  //If we use anchors we have to update it now.
-  char *lanchor = NULL;
-  //Now you get/calculate the current anchor of the device
-  osync_anchor_update(env->member, "lanchor", lanchor);
-
-  //Answer the call
   osync_context_report_success(ctx);
 }
 
+/**
+ * This method is called to disconnect from the device.
+ */
 static void irmcDisconnect(OSyncContext *ctx)
 {
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
+
+  // disconnect from the device
   irmc_disconnect(&(env->config));
 
-  save_sync_anchors( env->member, &( env->config ) );
   osync_context_report_success(ctx);
 
   osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/**
+ * This method frees the member specific environment.
+ */
 static void irmcFinalize(void *data)
 {
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
@@ -1288,6 +1396,9 @@ static void irmcFinalize(void *data)
   osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/**
+ * Returns all information about this plugin.
+ */
 void get_info(OSyncEnv *env)
 {
   OSyncPluginInfo *info = osync_plugin_new_info(env);
