@@ -124,7 +124,7 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 		QString hash = calc_hash(*it);
 			
 		// Convert the VCARD data into a string
-		QString tmp = converter.createVCard(*it);
+		QString tmp = converter.createVCard(*it, KABC::VCardConverter::v2_1);
 		char *data = strdup((const char *)tmp.utf8());
 		
 		osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
@@ -148,18 +148,6 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
     osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
 }
-
-/*void kabc_get_data(OSyncContext *ctx, OSyncChange *chg)
-{
-    QString uid = osync_change_get_uid(chg);
-    KABC::Addressee a = addressbookptr->findByUid(uid);
-    KABC::VCardConverter converter;
-    QCString card = converter.createVCard(a).utf8();
-    const char *data = card;
-    //FIXME: deallocate data somewhere
-    osync_change_set_data(chg, strdup(data), strlen(data), 1);
-    osync_context_report_success(ctx);
-}*/
 
 /** vcard access method
  *
