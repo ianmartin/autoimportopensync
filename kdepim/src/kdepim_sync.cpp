@@ -177,11 +177,12 @@ static osync_bool kde_note_access(OSyncContext *ctx, OSyncChange *change)
 extern "C" {
 void get_info(OSyncEnv *env)
 {
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
+    OSyncPluginInfo *info = osync_plugin_new_info(env);
     info->version = 1;
-    info->name = "kdepim";
+    info->name = "kdepim-sync";
     /*FIXME: i18n */
-    info->description = "Plugin for the KDEPIM on KDE 3.x";
+    info->longname = "KDE Desktop";
+    info->description = "Plugin for the KDE 3.5 Desktop";
     info->config_type = NO_CONFIGURATION;
 
     info->functions.initialize = kde_initialize;
@@ -194,7 +195,7 @@ void get_info(OSyncEnv *env)
     osync_plugin_accept_objformat(info, "contact", "vcard30", "kde");
     osync_plugin_set_commit_objformat(info, "contact", "vcard30", kde_vcard_commit_change);
     osync_plugin_set_access_objformat(info, "contact", "vcard30", kde_vcard_access);
-	osync_plugin_accept_objformat(info, "contact", "vcard21", "kde");
+    osync_plugin_accept_objformat(info, "contact", "vcard21", "kde");
     osync_plugin_set_commit_objformat(info, "contact", "vcard21", kde_vcard_commit_change);
     osync_plugin_set_access_objformat(info, "contact", "vcard21", kde_vcard_access);
 

@@ -2,6 +2,7 @@
 SUBDIRS = tests
 
 plugindir=@OPENSYNC_PLUGINDIR@
+configdir=@OPENSYNC_CONFIGDIR@
 
 INCLUDES = $(OSYNC_CFLAGS) $(XML_CFLAGS) $(GLIB_CFLAGS) $(KDE_INCLUDES) $(QT_INCLUDES) -I$(top_srcdir)
 # KDE has broken classes so -Werror cannot be used (lots of non-virtual
@@ -10,6 +11,8 @@ AM_CXXFLAGS = -Wall
 
 #FIXME: Is there a KDE macro to set this?
 LIB_KCAL = -lkcal
+
+config_DATA = src/kdepim-sync
 
 plugin_LTLIBRARIES = kdepim_sync.la kdepim_lib.la
 
