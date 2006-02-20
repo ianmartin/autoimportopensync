@@ -719,8 +719,14 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	
 	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
 	
+	/* The input is not null-terminated, but vformat_new_from_string() expects a null-terminated string */
+	char *input_str = g_malloc(inpsize + 1);
+	memcpy(input_str, input, inpsize);
+	input_str[inpsize] = '\0';
+
 	//Parse the vcard
-	VFormat *vcal = vformat_new_from_string(input);
+	VFormat *vcal = vformat_new_from_string(input_str);
+	g_free(input_str);
 	
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
