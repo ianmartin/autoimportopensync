@@ -841,6 +841,7 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	{0, "/contact/FileAs"},
 	{0, "/contact/Uid"},
 	{0, "/contact/Revision"},
+	{0, "/contact/UnknownNode[NodeName=\"X-IRMC-LUID\"]"},
 	{0, NULL}
 	};
 	
