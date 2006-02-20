@@ -740,7 +740,9 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	GList *attributes = vformat_get_attributes(vcal);
 	vcal_parse_attributes(hooks, hooks->table, hooks->table, &attributes, root);
 	
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string(doc));
+	xmlChar *str = osxml_write_to_string(doc);
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
+	xmlFree(str);
 	
 	*free_input = TRUE;
 	*output = (char *)doc;
@@ -1139,7 +1141,9 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	xmlChar *str = osxml_write_to_string((xmlDoc *)input);
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", str);
+	xmlFree(str);
 	
 	//Get the root node of the input document
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "vcal", error);

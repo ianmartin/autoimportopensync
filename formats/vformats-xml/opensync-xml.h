@@ -57,7 +57,7 @@ void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLE
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression);
 xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc);
 OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores, int default_score, int treshold);
-char *osxml_write_to_string(xmlDoc *doc);
+xmlChar *osxml_write_to_string(xmlDoc *doc);
 osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize);
 
 #ifdef __cplusplus

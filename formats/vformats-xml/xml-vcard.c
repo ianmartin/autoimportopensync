@@ -373,7 +373,9 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 		vcard_handle_attribute(hooks, root, attr);
 	}
 	
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string(doc));
+	xmlChar *str = osxml_write_to_string(doc);
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
+	xmlFree(str);
 	
 	*free_input = TRUE;
 	*output = (char *)doc;
@@ -767,7 +769,9 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	xmlChar *str = osxml_write_to_string((xmlDoc *)input);
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", str);
+	xmlFree(str);
 	
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);

@@ -375,7 +375,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	return CONV_DATA_MISMATCH;
 }
 
-char *osxml_write_to_string(xmlDoc *doc)
+xmlChar *osxml_write_to_string(xmlDoc *doc)
 {
 	xmlKeepBlanksDefault(0);
 	xmlChar *temp = NULL;
