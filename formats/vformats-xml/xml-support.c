@@ -359,6 +359,9 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	xmlXPathFreeObject(leftxobj);
 	xmlXPathFreeObject(rightxobj);
 
+	xmlFreeDoc(leftdoc);
+	xmlFreeDoc(rightdoc);
+
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
 	if (same) {
 		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
