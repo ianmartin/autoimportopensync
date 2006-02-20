@@ -534,7 +534,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 	if (cpid == 0) {
 		printf("About to exec osplugin\n");
 		char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
-		execlp("./osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
+		execlp("osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
 		
 		printf("unable to exec\n");
 		exit(1);
