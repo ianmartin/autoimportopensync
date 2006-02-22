@@ -170,7 +170,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_not_set(client->fl_connected) \
 	&& osync_flag_is_not_set(client->fl_finished)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Connecting (Client %p) ++++", client);
-		//send_connect(client, engine);
+		osync_client_connect(client, engine, NULL);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}
@@ -182,13 +182,8 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_set(client->fl_connected) \
 	&& osync_flag_is_not_set(client->fl_sent_changes) \
 	&& osync_flag_is_set(engine->cmb_connected)) {
-		if (osync_flag_is_set(engine->fl_sync)) {
-			osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Get changes with data (Client %p) ++++", client);
-			//send_get_changes(client, engine, TRUE);
-		} else {
-			osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Get changes without data (Client %p) ++++", client);
-			//send_get_changes(client, engine, FALSE);
-		}
+		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Get changes (Client %p) ++++", client);
+		osync_client_get_changes(client, engine, NULL);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}

@@ -32,9 +32,10 @@
  * See OSyncMessageHandler
  * 
  */
-void _get_changes_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _get_changes_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sender, message, engine);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, sender);
+	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
@@ -66,9 +67,12 @@ void _get_changes_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSy
  * See OSyncMessageHandler
  * 
  */
-void _connect_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _connect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 {
-	osync_trace(TRACE_ENTRY, "_connect_reply_receiver(%p, %p, %p)", sender, message, engine);
+	osync_trace(TRACE_ENTRY, "_connect_reply_receiver(%p, %p)", message, sender);
+	
+	printf("connect reply %i\n", osync_message_is_error(message));
+	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
@@ -146,67 +150,6 @@ void _disconnect_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyn
 	osync_flag_set(sender->fl_finished);
 	osengine_client_decider(engine, sender);
 	osync_trace(TRACE_EXIT, "_disconnect_reply_receiver");
-}
-
-void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, client, change);
-	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_datasize(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
-	
-	OSyncError *error = NULL;
-	osync_change_set_member(change, client->member);
-	OSyncMappingEntry *entry = osengine_mappingtable_store_change(engine->maptable, change);
-	change = entry->change;
-	if (!osync_change_save(change, TRUE, &error)) {
-		osync_error_duplicate(&engine->error, &error);
-		osync_status_update_change(engine, change, CHANGE_RECV_ERROR, &error);
-		osync_error_update(&engine->error, "Unable to receive one or more objects");
-		osync_flag_unset(entry->fl_has_data);
-		goto error;
-	}
-	
-	osync_group_remove_changelog(engine->group, change, &error);
-	
-	//We convert to the common format here to make sure we always pass it
-	osync_change_convert_to_common(change, NULL);
-	
-	if (!entry->mapping) {
-		osync_flag_attach(entry->fl_mapped, engine->cmb_entries_mapped);
-		osync_flag_unset(entry->fl_mapped);
-		osync_debug("ENG", 3, "+It has no mapping");
-	} else {
-		osync_debug("ENG", 3, "+It has mapping");
-		osync_flag_set(entry->fl_mapped);
-		osync_flag_unset(entry->mapping->fl_solved);
-		osync_flag_unset(entry->mapping->fl_chkconflict);
-		osync_flag_unset(entry->mapping->fl_multiplied);
-	}
-	
-	if (osync_change_has_data(change)) {
-		osync_debug("ENG", 3, "+It has data");
-		osync_flag_set(entry->fl_has_data);
-		osync_status_update_change(engine, change, CHANGE_RECEIVED, NULL);
-	} else {
-		osync_debug("ENG", 3, "+It has no data");
-		osync_flag_unset(entry->fl_has_data);
-		osync_status_update_change(engine, change, CHANGE_RECEIVED_INFO, NULL);
-	}
-	
-	if (osync_change_get_changetype(change) == CHANGE_DELETED)
-		osync_flag_set(entry->fl_deleted);
-	
-	osync_flag_set(entry->fl_has_info);
-	osync_flag_unset(entry->fl_synced);
-
-	osengine_mappingentry_decider(engine, entry);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-	
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	osync_error_free(&error);
-	return;
 }
 
 void _get_change_data_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
@@ -401,10 +344,9 @@ void osync_client_call_plugin(OSyncClient *client, char *function, void *data, O
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-
-osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, osync_bool data, OSyncError **error)
+osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, target, sender, data, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, target, sender, error);
 	
 	osync_flag_changing(target->fl_sent_changes);
 	
@@ -412,17 +354,19 @@ osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, os
 	if (!message)
 		goto error;
 		
-	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, sender);
+	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	if (!osync_message_send_with_timeout(message, target->incoming, sender->incoming, timeouts.get_changeinfo_timeout, error))
+	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.get_changeinfo_timeout, error))
 		goto error_free_message;
 	
+	osync_message_unref(message);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return TRUE;
+	return TRUE;
 
 error_free_message:
-	g_free(message);
+	osync_message_unref(message);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -452,19 +396,37 @@ void osync_client_read_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
 	osync_queue_send_with_timeout(entry->client->incoming, message, timeouts.read_change_timeout, sender);
-}
+}*/
 
-void osync_client_connect(OSyncClient *target, OSyncEngine *sender)
+osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, target, sender, error);
+	
 	osync_flag_changing(target->fl_connected);
-	OSyncMessage *message = osync_message_new_methodcall(sender, "CONNECT");
-	osync_message_set_handler(message, sender->incoming, (OSyncMessageHandler)_connect_reply_receiver, sender);
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_CONNECT, 0, error);
+	if (!message)
+		goto error;
+		
+	osync_message_set_handler(message, (OSyncMessageHandler)_connect_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	osync_queue_send_with_timeout(target->incoming, message, timeouts.connect_timeout, target);
+	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.connect_timeout, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-void osync_client_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
+/*void osync_client_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sender, entry);
 	osync_trace(TRACE_INTERNAL, "Committing change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(entry->change), osync_change_get_changetype(entry->change), osync_change_get_data(entry->change), osync_change_get_datasize(entry->change), osync_change_get_objtype(entry->change) ? osync_objtype_get_name(osync_change_get_objtype(entry->change)) : "None", osync_change_get_objformat(entry->change) ? osync_objformat_get_name(osync_change_get_objformat(entry->change)) : "None", osync_member_get_id(entry->client->member));
@@ -530,21 +492,24 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
 	
-	pid_t cpid = fork();
-	if (cpid == 0) {
-		printf("About to exec osplugin\n");
-		char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
-		execlp("osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
+	if (!osync_queue_exists(client->incoming) || !osync_queue_is_alive(client->incoming)) {
+		pid_t cpid = fork();
+		if (cpid == 0) {
+			printf("About to exec osplugin\n");
+			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
+			execlp("./osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
+			
+			printf("unable to exec\n");
+			exit(1);
+		}
 		
-		printf("unable to exec\n");
-		exit(1);
+		while (!osync_queue_exists(client->incoming)) {
+			osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
+			usleep(500000);
+		}
+		
+		osync_trace(TRACE_INTERNAL, "Queue was created");
 	}
-	
-	while (!osync_queue_exists(client->incoming)) {
-		osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
-		usleep(500000);
-	}
-	osync_trace(TRACE_INTERNAL, "Queue was created");
 		
 	if (!osync_queue_connect(client->incoming, O_WRONLY, error))
 		goto error;
@@ -555,7 +520,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 	
 	osync_message_write_string(message, engine->incoming->name);
 	
-	if (!osync_queue_send_message(client->incoming, message, error))
+	if (!osync_queue_send_message(client->incoming, NULL, message, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -581,7 +546,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 		usleep(10000);
 	
 	osync_trace(TRACE_INTERNAL, "Reply received");
-		printf("reply received\n");
+		printf("reply received %i\n", reply->cmd);
 	if (reply->cmd != OSYNC_MESSAGE_REPLY) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong answer");
 		goto error_free_reply;

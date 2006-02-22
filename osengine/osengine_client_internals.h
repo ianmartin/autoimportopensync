@@ -33,3 +33,6 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 void osync_client_finalize(OSyncClient *client);
 OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client);
 void osync_client_reset(OSyncClient *client);
+
+osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OSyncError **error);

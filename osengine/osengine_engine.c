@@ -45,6 +45,77 @@
  */
 /*@{*/
 
+void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, client, change);
+	osync_change_set_member(change, client->member);
+	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_datasize(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
+	
+	OSyncError *error = NULL;
+	OSyncMappingEntry *entry = osengine_mappingtable_store_change(engine->maptable, change);
+	change = entry->change;
+	if (!osync_change_save(change, TRUE, &error)) {
+		osync_error_duplicate(&engine->error, &error);
+		osync_status_update_change(engine, change, CHANGE_RECV_ERROR, &error);
+		osync_error_update(&engine->error, "Unable to receive one or more objects");
+		osync_flag_unset(entry->fl_has_data);
+		goto error;
+	}
+	
+	osync_group_remove_changelog(engine->group, change, &error);
+	
+	//We convert to the common format here to make sure we always pass it
+	osync_change_convert_to_common(change, NULL);
+	
+	if (!entry->mapping) {
+		osync_flag_attach(entry->fl_mapped, engine->cmb_entries_mapped);
+		osync_flag_unset(entry->fl_mapped);
+		osync_debug("ENG", 3, "+It has no mapping");
+	} else {
+		osync_debug("ENG", 3, "+It has mapping");
+		osync_flag_set(entry->fl_mapped);
+		osync_flag_unset(entry->mapping->fl_solved);
+		osync_flag_unset(entry->mapping->fl_chkconflict);
+		osync_flag_unset(entry->mapping->fl_multiplied);
+	}
+	
+	if (osync_change_has_data(change)) {
+		osync_debug("ENG", 3, "+It has data");
+		osync_flag_set(entry->fl_has_data);
+		osync_status_update_change(engine, change, CHANGE_RECEIVED, NULL);
+	} else {
+		osync_debug("ENG", 3, "+It has no data");
+		osync_flag_unset(entry->fl_has_data);
+		osync_status_update_change(engine, change, CHANGE_RECEIVED_INFO, NULL);
+	}
+	
+	if (osync_change_get_changetype(change) == CHANGE_DELETED)
+		osync_flag_set(entry->fl_deleted);
+	
+	osync_flag_set(entry->fl_has_info);
+	osync_flag_unset(entry->fl_synced);
+
+	osengine_mappingentry_decider(engine, entry);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
+	return;
+}
+
+OSyncClient *osengine_get_client(OSyncEngine *engine, long long int memberId)
+{
+	GList *c = NULL;
+	for (c = engine->clients; c; c = c->next) {
+		OSyncClient *client = c->data;
+		if (osync_member_get_id(client->member) == memberId)
+			return client;
+	}
+	return NULL;
+}
 
 /*! @brief The queue message handler of the engine
  * 
@@ -53,11 +124,31 @@
  * @param engine The engine
  * 
  */
-static void engine_message_handler(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 {
-	osync_trace(TRACE_ENTRY, "engine_message_handler(%p, %p:%lli, %p)", sender, message, message->id, engine);
+	osync_trace(TRACE_ENTRY, "engine_message_handler(%p:%lli-%i, %p)", message, message->id1, message->id2, engine);
 	
+	OSyncChange *change = NULL;
+			
 	printf("engine received command %i\n", osync_message_get_command(message));
+	
+	switch (osync_message_get_command(message)) {
+		case OSYNC_MESSAGE_SYNCHRONIZE:
+			printf("all deciders\n");
+			osengine_client_all_deciders(engine);
+			break;
+		case OSYNC_MESSAGE_NEW_CHANGE:
+			osync_demarshal_change(message, &change);
+			
+			long long int member_id = 0;
+			osync_message_read_long_long_int(message, &member_id);
+			OSyncClient *sender = osengine_get_client(engine, member_id);
+			
+			_new_change_receiver(engine, sender, change);
+			break;
+		default:
+			break;
+	}
 	
 	/*if (osync_message_is_signal (message, "ENTRY_CHANGED")) {
 		OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
@@ -118,13 +209,6 @@ static void engine_message_handler(OSyncClient *sender, OSyncMessage *message, O
 		return;
 	}
 	
-	if (osync_message_is_signal (message, "NEW_CHANGE")) {
-		OSyncChange *change = osync_message_get_data(message, "change");
-		_new_change_receiver(engine, sender, change);
-		osync_trace(TRACE_EXIT, "engine_message_handler");
-		return;
-	}
-	
 	if (osync_message_is_signal (message, "SYNC_ALERT")) {
 		if (engine->allow_sync_alert)
 			osync_flag_set(engine->fl_running);
@@ -137,6 +221,7 @@ static void engine_message_handler(OSyncClient *sender, OSyncMessage *message, O
 	osync_debug("ENG", 0, "Unknown message \"%s\"", osync_message_get_msgname(message));
 	osync_trace(TRACE_EXIT_ERROR, "engine_message_handler: Unknown message");
 	g_assert_not_reached();*/
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void trigger_clients_sent_changes(OSyncEngine *engine)
@@ -353,7 +438,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 		
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
-	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
+	//osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
 	engine->fl_sync = osync_flag_new(NULL);
 	engine->fl_stop = osync_flag_new(NULL);
 	osync_flag_set_pos_trigger(engine->fl_stop, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
@@ -731,7 +816,7 @@ osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 	if (!message)
 		goto error;
 	
-	if (!osync_queue_send_message(engine->commandQueue, message, error))
+	if (!osync_queue_send_message(engine->commandQueue, NULL, message, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);

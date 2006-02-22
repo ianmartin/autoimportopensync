@@ -65,7 +65,7 @@ START_TEST (ipc_connect)
 		
 		printf("replying\n");
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
-		osync_queue_send_message(queue, reply, &error);
+		osync_queue_send_message(queue, NULL, reply, &error);
 		
 		sleep(1);
 		printf( "done write\n" );
@@ -77,7 +77,7 @@ START_TEST (ipc_connect)
 		fail_unless(message != NULL, NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		printf("sending message\n");
-		fail_unless(osync_queue_send_message(queue, message, &error), NULL);
+		fail_unless(osync_queue_send_message(queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
 		while (!(message = osync_queue_get_message(queue))) {
@@ -156,7 +156,7 @@ START_TEST (ipc_payload)
 		
 		printf("replying\n");
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
-		osync_queue_send_message(server_queue, reply, &error);
+		osync_queue_send_message(server_queue, NULL, reply, &error);
 		
 		sleep(1);
 		printf( "done write\n" );
@@ -183,7 +183,7 @@ START_TEST (ipc_payload)
 		
 			printf("data %i %i %i %i\n", message->buffer->data[0], message->buffer->data[1], message->buffer->data[2], message->buffer->data[3]);
 		printf("sending message\n");
-		fail_unless(osync_queue_send_message(client_queue, message, &error), NULL);
+		fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
 		while (!(message = osync_queue_get_message(server_queue))) {
@@ -276,7 +276,7 @@ START_TEST (ipc_large_payload)
 		
 		printf("replying\n");
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
-		osync_queue_send_message(server_queue, reply, &error);
+		osync_queue_send_message(server_queue, NULL, reply, &error);
 		
 		sleep(1);
 		printf( "done write\n" );
@@ -299,7 +299,7 @@ START_TEST (ipc_large_payload)
 		osync_message_write_data(message, data, bytes);
 		
 		printf("sending message\n");
-		fail_unless(osync_queue_send_message(client_queue, message, &error), NULL);
+		fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
 		while (!(message = osync_queue_get_message(server_queue))) {

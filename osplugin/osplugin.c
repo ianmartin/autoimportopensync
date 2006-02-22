@@ -7,6 +7,7 @@
 #include "opensync/opensync_internals.h"
 
 typedef struct PluginProcess {
+	OSyncEnv *env;
 	OSyncMember *member;
 	OSyncQueue *incoming;
 	OSyncQueue *outgoing;
@@ -20,8 +21,81 @@ typedef struct context {
 void message_handler(OSyncMessage*, void*);
 void message_callback(OSyncMember*, context*, OSyncError**);
 
+void process_free(PluginProcess *pp)
+{
+	if (pp->incoming) {
+		osync_queue_disconnect(pp->incoming, NULL);
+		osync_queue_remove(pp->incoming, NULL);
+		osync_queue_free(pp->incoming);
+	}
+
+	if (pp->outgoing) {
+		osync_queue_disconnect(pp->incoming, NULL);
+		osync_queue_free(pp->outgoing);
+	}
+	
+	if (pp->env)
+		osync_env_free(pp->env);
+	
+	g_free(pp);
+}
+
+void process_error_shutdown(PluginProcess *pp, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, pp, error);
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_ERROR, 0, NULL);
+	if (!message)
+		goto error;
+	
+	osync_message_set_error(message, error);
+	
+	if (!osync_queue_send_message(pp->outgoing, NULL, message, NULL))
+		goto error_free_message;
+	
+	sleep(1);
+	
+	process_free(pp);
+	exit(1);
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	exit(2);
+}
+
+void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *user_data)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, change, user_data);
+	context *ctx = (context *)user_data;
+	PluginProcess *pp = ctx->pp;
+	OSyncMessage *orig = ctx->message;
+	
+	OSyncError *error = NULL;
+	
+	if (osync_message_is_answered(orig)) {
+		osync_change_free(change);
+		return;
+	}
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NEW_CHANGE, 0, &error);
+	if (!message)
+		process_error_shutdown(pp, &error);
+	
+	osync_marshal_change(message, change);
+	
+	osync_message_write_long_long_int(message, osync_member_get_id(member));
+	
+	if (!osync_queue_send_message(pp->outgoing, NULL, message, &error))
+		process_error_shutdown(pp, &error);
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 int main( int argc, char **argv )
 {
+	printf("start osplugin\n");
 	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
 	GMainLoop *syncloop;
 	GMainContext *context;
@@ -75,12 +149,13 @@ int main( int argc, char **argv )
     osync_error_free( &error );
 
   /** Idle until the syncengine connects to (and reads from) our pipe **/
-  if (!osync_queue_connect( pp.incoming, O_RDONLY, 0 ))
+  if (!osync_queue_connect( pp.incoming, O_RDONLY, 0 )) {
+  	printf("Unable to connect\n");
   	exit(1);
-
+  }
 	/** Set callback functions **/
-	//OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);
-	//functions->rf_change = osync_client_changes_sink;
+	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(pp.member);
+	functions->rf_change = osync_client_changes_sink;
 	//functions->rf_message = osync_client_message_sink;
 	//functions->rf_sync_alert = osync_client_sync_alert_sink;
 
@@ -111,18 +186,23 @@ void message_handler(OSyncMessage *message, void *user_data)
 	printf("plugin received command %i\n", osync_message_get_command( message ));
 
 	switch ( osync_message_get_command( message ) ) {
+		case OSYNC_MESSAGE_NOOP:
+			break;
 		case OSYNC_MESSAGE_INITIALIZE:
 			printf("init.\n");
 			osync_message_read_string(message, &enginepipe);
 			
 			printf("enginepipe %s\n", enginepipe);
 			pp->outgoing = osync_queue_new(enginepipe, NULL);
-			if (!pp->outgoing)
+			if (!pp->outgoing) {
+				printf("Unable to make new queue\n");
 				exit(1);
-			
+			}
 			printf("connecting to engine\n");
-			if (!osync_queue_connect(pp->outgoing, O_WRONLY, 0 ))
+			if (!osync_queue_connect(pp->outgoing, O_WRONLY, 0 )) {
+				printf("Unable to make new queue\n");
 				exit(1);
+			}
 			
 			printf("done connecting to engine\n");
 			/** Instanciate plugin **/
@@ -135,11 +215,15 @@ void message_handler(OSyncMessage *message, void *user_data)
 			
 			printf("sending reply to engine\n");
   			reply = osync_message_new_reply(message, NULL);
-  			if (!reply)
+  			if (!reply) {
+				printf("Unable to make new reply\n");
   				exit(1);
+  			}
   				
-			if (!osync_queue_send_message(pp->outgoing, reply, NULL))
+			if (!osync_queue_send_message(pp->outgoing, NULL, reply, NULL)) {
+				printf("Unable to make send reply\n");
 				exit(1);
+			}
 			
 			printf("done sending to engine\n");
 			break;
@@ -147,11 +231,15 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx = malloc(sizeof(context));
     	ctx->pp = pp;
     	ctx->message = message;
-  		osync_member_connect(member, (OSyncEngCallback)message_callback, ctx);
-	  	osync_trace(TRACE_EXIT, "message_handler");
-      break;
+    	osync_message_ref(message);
+		osync_member_connect(member, (OSyncEngCallback)message_callback, ctx);
+		break;
     case OSYNC_MESSAGE_GET_CHANGES:
-  		osync_member_get_changeinfo(member, (OSyncEngCallback)message_callback, message);
+    	ctx = malloc(sizeof(context));
+    	ctx->pp = pp;
+    	ctx->message = message;
+    	osync_message_ref(message);
+  		osync_member_get_changeinfo(member, (OSyncEngCallback)message_callback, ctx);
 	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_COMMIT_CHANGE:
@@ -214,8 +302,6 @@ void message_handler(OSyncMessage *message, void *user_data)
       break;
   }
 
-
-	osync_message_unref(message);
 	if (reply)
 		osync_message_unref(reply);
 
@@ -224,15 +310,18 @@ void message_handler(OSyncMessage *message, void *user_data)
 	
 error:;
 	OSyncMessage *errorreply = osync_message_new_errorreply(message, NULL);
-	if (!errorreply)
+	if (!errorreply) {
+		printf("Unable to make new reply\n");
 		exit(1);
-	
+	}
+		
 	osync_message_set_error(errorreply, &error);	
 	
-	if (!osync_queue_send_message(pp->outgoing, errorreply, NULL))
+	if (!osync_queue_send_message(pp->outgoing, NULL, errorreply, NULL)) {
+		printf("Unable to send error\n");
 		exit(1);
+	}
 	
-	osync_message_unref(message);
 	osync_message_unref(errorreply);
 	
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
@@ -241,26 +330,35 @@ error:;
 
 void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, ctx, error);
+	
 	OSyncMessage *message = ctx->message;
 	PluginProcess *pp = ctx->pp;
 	g_free(ctx);
 	
 	OSyncMessage *reply = NULL;
 
-	if (osync_message_is_answered(message) == TRUE)
+	if (osync_message_is_answered(message) == TRUE) {
+    	osync_message_unref(message);
 		return;
-
+	}
+	
 	if (!osync_error_is_set(error)) {
 		reply = osync_message_new_reply(message, error);
-		osync_debug("CLI", 4, "Member is replying with message %p to message %p:\"%i\" with no error", reply, message, message->id);
+		osync_debug("CLI", 4, "Member is replying with message %p to message %p:\"%lli-%i\" with no error", reply, message, message->id1, message->id2);
 	} else {
 		reply = osync_message_new_errorreply(message, error);
 		osync_message_set_error(reply, error);
-		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%i\" with error %i: %s", reply, message, message->id, osync_error_get_type(error), osync_error_print(error));
+		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%lli-%i\" with error %i: %s", reply, message, message->id1, message->id2, osync_error_get_type(error), osync_error_print(error));
 	}
 	
-	osync_queue_send_message(pp->outgoing, reply, NULL);
+	osync_queue_send_message(pp->outgoing, NULL, reply, NULL);
 	osync_message_set_answered(message);
+	
+	osync_message_unref(message);
+	osync_message_unref(reply);
+    	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void *osync_client_message_sink(OSyncMember *member, const char *name, void *data, osync_bool synchronous)
@@ -282,23 +380,6 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 	}	
 */
   return NULL;
-}
-
-void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *user_data)
-{
-/*
-	ITMessage *orig = (ITMessage *)user_data;
-	
-	if (itm_message_is_answered(orig))
-		return; //FIXME How do we free the change here?
-	
-	OSyncClient *client = osync_member_get_data(member);
-	OSyncEngine *engine = client->engine;
-	ITMessage *message = itm_message_new_signal(client, "NEW_CHANGE");
-	itm_message_set_data(message, "change", change);
-	itm_message_reset_timeout(orig);
-	itm_queue_send(engine->incoming, message);
-*/
 }
 
 void osync_client_sync_alert_sink(OSyncMember *member)

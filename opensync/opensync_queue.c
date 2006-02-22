@@ -24,6 +24,9 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include <sys/time.h>
+#include <signal.h>
+
 /**
  * @ingroup OSEngineQueue
  * @brief A Queue used for asynchronous communication between thread
@@ -41,7 +44,6 @@ gboolean _incoming_prepare(GSource *source, gint *timeout_)
 gboolean _incoming_check(GSource *source)
 {
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
-	
 	if (g_async_queue_length(queue->incoming) > 0)
 		return TRUE;
 	return FALSE;
@@ -49,16 +51,55 @@ gboolean _incoming_check(GSource *source)
 
 gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
 	OSyncQueue *queue = user_data;
 
 	OSyncMessage *message = osync_queue_get_message(queue);
+	osync_trace(TRACE_INTERNAL, "message %p refcount is %i", message, message->refCount);
 	if (message) {
-		if (!queue->message_handler) {
-			printf("you have to setup a message handler for the queue!\n");
-			return FALSE;
+		osync_trace(TRACE_INTERNAL, "message cmd %i id %lli %i", message->cmd, message->id1, message->id2);
+		if (message->cmd == OSYNC_MESSAGE_REPLY || message->cmd == OSYNC_MESSAGE_ERRORREPLY) {
+			GList *p = NULL;
+			for (p = queue->pendingReplies; p; p = p->next) {
+				OSyncMessage *pending = p->data;
+				osync_trace(TRACE_INTERNAL, "Still pending is %lli %i", message->id1, message->id2);
+				if (pending->id1 == message->id1 && pending->id2 == message->id2) {
+					/* Found the pending reply */
+					if (!pending->callback) {
+						printf("Pending message does not have a callback\n");
+						osync_message_unref(message);
+						osync_message_unref(pending);
+						osync_trace(TRACE_EXIT_ERROR, "%s: Pending message does not have a callback", __func__);
+						return TRUE;
+					}
+					
+					printf("%p handler to2 %p\n", pending, pending->user_data);
+					osync_trace(TRACE_INTERNAL, "calling reply callback %p %p", message, pending->user_data);
+					pending->callback(message, pending->user_data);
+					osync_trace(TRACE_INTERNAL, "done calling reply callback");
+					
+					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+					osync_message_unref(message);
+					osync_message_unref(pending);
+					osync_trace(TRACE_EXIT, "%s: Done dispatching reply", __func__);
+					return TRUE;
+				}
+			}
+			printf("Unable to find pending message for id %lli %i\n", message->id1, message->id2);
+		} else {
+			if (!queue->message_handler) {
+				printf("you have to setup a message handler for the queue!\n");
+				osync_message_unref(message);
+				osync_trace(TRACE_EXIT_ERROR, "%s: you have to setup a message handler for the queue", __func__);
+				return FALSE;
+			}
+			queue->message_handler(message, queue->user_data);
+			osync_trace(TRACE_INTERNAL, "message %p refcount2 is %i", message, message->refCount);
+			osync_message_unref(message);
 		}
-		queue->message_handler(message, queue->user_data);
 	}
+	
+	osync_trace(TRACE_EXIT, "%s: Done dispatching", __func__);
 	return TRUE;
 }
 
@@ -99,6 +140,14 @@ int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n)
   return (n);
 }
 
+osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message)
+{
+	if (_osync_queue_write_data(queue, &message, sizeof(long long int)) < 0)
+		return FALSE;
+
+	return TRUE;
+}
+
 osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(int)) < 0)
@@ -117,6 +166,12 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 			return FALSE;
 		
 		if (!_osync_queue_write_int(queue, message->cmd))
+			return FALSE;
+		
+		if (!_osync_queue_write_long_long_int(queue, message->id1))
+			return FALSE;
+			
+		if (!_osync_queue_write_int(queue, message->id2))
 			return FALSE;
 			
 		int sent = 0;
@@ -175,6 +230,21 @@ osync_bool _osync_queue_read_int(OSyncQueue *queue, int *message)
   return TRUE;
 }
 
+osync_bool _osync_queue_read_long_long_int(OSyncQueue *queue, long long int *message)
+{
+  int status;
+
+  if ( (status = _osync_queue_read_data(queue, message, sizeof(long long int))) < 0) {
+    return FALSE;
+  }
+
+  if (status < sizeof(long long int)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 gboolean _source_check(GSource *source)
 {
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
@@ -190,36 +260,35 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 	OSyncError *error = NULL;
 	
 	if (osync_queue_data_available(queue)) {
-		printf("data available\n");
 		int size = 0;
 		int cmd = 0;
+		long long int id1 = 0;
+		int id2 = 0;
 		if (!_osync_queue_read_int(queue, &size))
 			return FALSE;
-			
-		printf("read %i\n", size);
+		
 		if (!_osync_queue_read_int(queue, &cmd))
 			return FALSE;
-		printf("cmd %i\n", cmd);
 		
-		printf("data %i, %i\n", size, cmd);
+		if (!_osync_queue_read_long_long_int(queue, &id1))
+			return FALSE;
+		if (!_osync_queue_read_int(queue, &id2))
+			return FALSE;
 		
 		message = osync_message_new(cmd, size, &error);
 		if (!message) {
 			osync_error_free(&error);
 			return FALSE;
 		}
+		message->id1 = id1;
+		message->id2 = id2;
 		
-		printf("reading bytebuffer now\n");
 		int read = 0;
 		do {
-			printf("read before %i\n", read);
 			read += _osync_queue_read_data(queue, message->buffer->data + read, size - read);
-			printf("read after %i\n", read);
 		} while (read < size);
 		
-		printf("done reading bytebuffer: %p\n", message);
 		g_async_queue_push(queue->incoming, message);
-		printf("%p %i new length %i\n", queue, getpid(), g_async_queue_length(queue->incoming));
 	}
 	
 	return TRUE;
@@ -232,10 +301,12 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
  */
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, name, error);
+	
 	OSyncQueue *queue = osync_try_malloc0(sizeof(OSyncQueue), error);
 	if (!queue)
-		return NULL;
-
+		goto error;
+	
 	queue->name = g_strdup(name);
 	queue->fd = -1;
 	
@@ -244,6 +315,8 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	
 	queue->context = g_main_context_new();
 	
+	signal(SIGPIPE, SIG_IGN);
+	
 	queue->incoming = g_async_queue_new();
 	g_async_queue_ref(queue->incoming);
 	queue->outgoing = g_async_queue_new();
@@ -251,7 +324,7 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	
 	queue->thread = osync_thread_new(queue->context, error);
 	if (!queue->thread)
-		return NULL;
+		goto error_free_queue;
 	
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
 	functions->prepare = _queue_prepare;
@@ -267,56 +340,83 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	
 	osync_thread_start(queue->thread);
 	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, queue);
 	return queue;
+
+error_free_queue:
+	osync_queue_free(queue);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 void osync_queue_free(OSyncQueue *queue)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
+	
 	if (queue->source)
 		g_source_destroy(queue->source);
 
 	if (queue->name)
 		g_free(queue->name);
+		
+	osync_thread_stop(queue->thread);
+	osync_thread_free(queue->thread);
+	
 	g_free(queue);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 osync_bool osync_queue_exists(OSyncQueue *queue)
 {
-	return g_file_test(queue->name, G_FILE_TEST_EXISTS) ? TRUE : FALSE;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
+	
+	osync_bool ret = g_file_test(queue->name, G_FILE_TEST_EXISTS) ? TRUE : FALSE;
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
 }
 
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
+	
 	if (mkfifo(queue->name, 0600) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create fifo");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
 osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
+	
 	int fd = open(queue->name, flags);
 	if (fd == -1) {
-                osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
-                return FALSE;
-        }
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 	queue->fd = fd;
 
-	if (queue->context) {
-		GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
-		functions->prepare = _source_prepare;
-		functions->check = _source_check;
-		functions->dispatch = _source_dispatch;
-		functions->finalize = NULL;
-	
-		GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
-		OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
-		*queueptr = queue;
-		g_source_set_callback(source, NULL, queue, NULL);
-		g_source_attach(source, queue->context);
-	}
+	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+	functions->prepare = _source_prepare;
+	functions->check = _source_check;
+	functions->dispatch = _source_dispatch;
+	functions->finalize = NULL;
 
+	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
+	OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
+	*queueptr = queue;
+	g_source_set_callback(source, NULL, queue, NULL);
+	g_source_attach(source, queue->context);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
@@ -331,8 +431,12 @@ osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
  */
 void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler handler, gpointer user_data)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, handler, user_data);
+	
 	queue->message_handler = handler;
 	queue->user_data = user_data;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Sets the queue to use the gmainloop with the given context
@@ -347,6 +451,8 @@ void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler hand
  */
 void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, context);
+	
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
 	functions->prepare = _incoming_prepare;
 	functions->check = _incoming_check;
@@ -360,6 +466,8 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 	queue->source = source;
 	g_source_attach(source, context);
 	queue->incomingContext = context;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error)
@@ -386,31 +494,109 @@ OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
 
 osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
+	
 	if (unlink(queue->name) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to remove queue");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
 osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
+	
 	if (close(queue->fd) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to close queue");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
-
-osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncMessage *message, OSyncError **error)
+void gen_id(long long int *part1, int *part2)
 {
+	struct timeval tv;
+    struct timezone tz;
+
+    gettimeofday(&tv, &tz);
+
+    long long int now = tv.tv_sec * 1000000 + tv.tv_usec;
+    
+    int rnd = (int)random();
+    rnd = rnd << 16 | getpid();
+    
+    *part1 = now;
+    *part2 = rnd;
+}
+
+osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, queue, replyqueue, message, error);
+	
 	if (queue->error) {
 		osync_error_duplicate(error, &(queue->error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
+	}
+	
+	if (message->callback) {
+		gen_id(&(message->id1), &(message->id2));
+		
+		osync_message_ref(message);
+		replyqueue->pendingReplies = g_list_append(replyqueue->pendingReplies, message);
 	}
 	
 	osync_message_ref(message);
 	g_async_queue_push(queue->outgoing, message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, int timeout, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, message, error);
+	
+	if (queue->error) {
+		osync_error_duplicate(error, &(queue->error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	osync_bool ret = osync_queue_send_message(queue, replyqueue, message, error);
+	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return ret;
+}
+
+osync_bool osync_queue_is_alive(OSyncQueue *queue)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
+	
+	if (!osync_queue_connect(queue, O_WRONLY | O_NONBLOCK, NULL)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
+		return FALSE;
+	}
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NOOP, 0, NULL);
+	if (!message) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create new message", __func__);
+		return FALSE;
+	}
+	
+	if (!osync_queue_send_message(queue, NULL, message, NULL)) {
+		osync_trace(TRACE_EXIT, "%s: Not alive", __func__);
+		return FALSE;
+	}
+	
+	osync_queue_disconnect(queue, NULL);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }

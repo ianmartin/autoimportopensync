@@ -90,6 +90,7 @@ void osync_message_unref(OSyncMessage *message)
  */
 void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data)
 {
+	printf("%p handler to %p\n", message, user_data);
 	message->user_data = user_data;
 	message->callback = handler;
 }
@@ -107,7 +108,8 @@ OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
  	if (!reply)
 		return NULL;
 
-	reply->id = message->id;
+	reply->id1 = message->id1;
+	reply->id2 = message->id2;
 	return reply;
 }
 
@@ -120,10 +122,11 @@ OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error)
 OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error)
 {
 	OSyncMessage *reply = osync_message_new(OSYNC_MESSAGE_ERRORREPLY, 0, error);
-  if ( !reply )
-    return NULL;
+	if (!reply)
+		return NULL;
 
-	reply->id = message->id;
+	reply->id1 = message->id1;
+	reply->id2 = message->id2;
 	return reply;
 }
 
@@ -197,9 +200,9 @@ gboolean timeoutfunc(gpointer data)
 		return FALSE;
 	
 	OSyncMessage *reply = osync_message_new_errorreply(to_info->message, NULL);
-	osync_trace(TRACE_ERROR, "Timeout while waiting for a reply to message %p:\"%lli\". Sending error %p", to_info->message, to_info->message->id, reply);
+	osync_trace(TRACE_ERROR, "Timeout while waiting for a reply to message %p:\"%lli-%i\". Sending error %p", to_info->message, to_info->message->id1, to_info->message->id2, reply);
 	OSyncError *error = NULL;
-	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%lli\"", to_info->message->id);
+	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%lli-%i\"", to_info->message->id1, to_info->message->id2);
 	osync_message_set_error(reply, &error);
 	osync_error_free(&error);
 	osync_message_send(reply, to_info->replyqueue, NULL);
@@ -254,24 +257,6 @@ OSyncMessageCommand osync_message_get_command(OSyncMessage *message)
 	return message->cmd;
 }
 
-/*! @brief Gets the msgname from a message
- * 
- * This function will return the name of a message
- * 
- * @param message The message
- * @returns the command
- */
-long long osync_message_get_id(OSyncMessage *message)
-{
-	g_assert(message);
-	return message->id;
-}
-
-void osync_message_add_int(OSyncMessage *message, int data)
-{
-	
-}
-
 /*@}*/
 
 void osync_message_write_int(OSyncMessage *message, int value)
@@ -286,9 +271,15 @@ void osync_message_write_long_long_int(OSyncMessage *message, long long int valu
 
 void osync_message_write_string(OSyncMessage *message, const char *value)
 {
-  int length = strlen( value ) + 1;
-  g_byte_array_append( message->buffer, (unsigned char*)&length, sizeof( int ) );
-  g_byte_array_append( message->buffer, (unsigned char*)value, length );
+	int length = 0;
+	if (value == NULL) {
+		length = -1;
+		g_byte_array_append( message->buffer, (unsigned char*)&length, sizeof( int ) );
+	} else {
+		int length = strlen( value ) + 1;
+		g_byte_array_append( message->buffer, (unsigned char*)&length, sizeof( int ) );
+		g_byte_array_append( message->buffer, (unsigned char*)value, length );
+	}
 }
 
 void osync_message_write_data(OSyncMessage *message, const void *value, int size)
@@ -310,13 +301,17 @@ void osync_message_read_long_long_int(OSyncMessage *message, long long int *valu
 
 void osync_message_read_string(OSyncMessage *message, char **value)
 {
-  int length = 0;
-  memcpy(&length, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
-  message->buffer_read_pos += sizeof(int);
+	int length = 0;
+	memcpy(&length, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
+	message->buffer_read_pos += sizeof(int);
 
-  *value = (char*)malloc(length);
-  memcpy(*value, &(message->buffer->data[ message->buffer_read_pos ]), length );
-  message->buffer_read_pos += length;
+	if (length == -1) {
+		*value = NULL;
+		return;
+	}
+	*value = (char*)malloc(length);
+	memcpy(*value, &(message->buffer->data[ message->buffer_read_pos ]), length );
+	message->buffer_read_pos += length;
 }
 
 void osync_message_read_data(OSyncMessage *message, void *value, int size)

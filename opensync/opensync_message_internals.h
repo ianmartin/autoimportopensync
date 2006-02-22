@@ -14,16 +14,19 @@
  * 
  */
 typedef enum {
+	OSYNC_MESSAGE_NOOP,
 	OSYNC_MESSAGE_CONNECT,
 	OSYNC_MESSAGE_DISCONNECT,
 	OSYNC_MESSAGE_GET_CHANGES,
 	OSYNC_MESSAGE_COMMIT_CHANGE,
 	OSYNC_MESSAGE_SYNC_DONE,
 	OSYNC_MESSAGE_CALL_PLUGIN,
+	OSYNC_MESSAGE_NEW_CHANGE,
 	OSYNC_MESSAGE_REPLY,
 	OSYNC_MESSAGE_ERRORREPLY,
 	OSYNC_MESSAGE_INITIALIZE,
-	OSYNC_MESSAGE_SYNCHRONIZE
+	OSYNC_MESSAGE_SYNCHRONIZE,
+	OSYNC_MESSAGE_ERROR
 } OSyncMessageCommand;
 
 /*! @brief Function which can receive messages
@@ -55,7 +58,8 @@ struct OSyncMessage {
 	/** The type of this message */
 	OSyncMessageCommand cmd;
 	/** The name of the message*/
-	long long id;
+	long long int id1;
+	int id2;
 	/** Where should the reply be received? */
 	OSyncMessageHandler callback;
 	/** The user data */
@@ -66,10 +70,10 @@ struct OSyncMessage {
 	timeout_info *to_info;
 	/** If this message has already been answered */
 	osync_bool is_answered;
-  /** The pointer to the internal **/
-  GByteArray *buffer;
-  /** The current read position **/
-  int buffer_read_pos;
+	/** The pointer to the internal **/
+	GByteArray *buffer;
+	/** The current read position **/
+	int buffer_read_pos;
 };
 
 /*@}*/
@@ -87,7 +91,6 @@ gboolean osync_message_is_error(OSyncMessage *message);
 osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
 osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);
 OSyncMessageCommand osync_message_get_command(OSyncMessage *message);
-long long osync_message_get_id(OSyncMessage *message);
 void osync_message_reset_timeout(OSyncMessage *message);
 osync_bool osync_message_is_answered(OSyncMessage *message);
 void osync_message_set_answered(OSyncMessage *message);
