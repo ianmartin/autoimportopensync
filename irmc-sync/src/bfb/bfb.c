@@ -26,8 +26,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#ifndef S_SPLINT_S
 #include <unistd.h>
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
 #endif
 
 /* htons */
@@ -113,6 +115,7 @@ int bfb_stuff_data(uint8_t *buffer, uint8_t type, uint8_t *data, int len, int se
 
 	/* error */
 	if (type != 2 && type != 3) {
+		buffer[0] = 0x00; /* just terminate the buffer */
 		return 0;
 	}
 
@@ -263,11 +266,16 @@ int bfb_write_subcmd_lw(fd_t fd, uint8_t type, uint8_t subtype, uint32_t p1, uin
 
 
 /* send actual packets */
+/* patch from Jorge Ventura to handle EAGAIN from write */
 int bfb_write_packets(fd_t fd, uint8_t type, uint8_t *buffer, int length)
 {
 	bfb_frame_t *frame;
 	int i;
 	int l;
+
+	struct timeval timeout;
+	fd_set fds;
+	int rc;
 #ifdef _WIN32
 	DWORD actual;
 #else
@@ -279,6 +287,9 @@ int bfb_write_packets(fd_t fd, uint8_t type, uint8_t *buffer, int length)
 #else
         return_val_if_fail (fd > 0, FALSE);
 #endif
+	/* select setup */
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
 	
 	/* alloc frame buffer */
 	frame = malloc((length > MAX_PACKET_DATA ? MAX_PACKET_DATA : length) + sizeof (bfb_frame_t));
@@ -297,7 +308,13 @@ int bfb_write_packets(fd_t fd, uint8_t type, uint8_t *buffer, int length)
 
 		memcpy(frame->payload, &buffer[i], l);
 
+		/* Set time limit. */
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
 		/* actual = bfb_io_write(fd, frame, l + sizeof (bfb_frame_t)); */
+		rc = select(fd+1, NULL, &fds, NULL, &timeout);
+		if ( rc > 0) {
 #ifdef _WIN32
 		if(!WriteFile(fd, frame, l + sizeof (bfb_frame_t), &actual, NULL))
 			DEBUG(2, "%s() Write error: %ld\n", __func__, actual);
@@ -308,8 +325,13 @@ int bfb_write_packets(fd_t fd, uint8_t type, uint8_t *buffer, int length)
 #endif
 
 
-		if (actual < 0 || actual < l + sizeof (bfb_frame_t)) {
+		if (actual < 0 || actual < l + (int) sizeof (bfb_frame_t)) {
 			DEBUG(1, "%s() Write failed\n", __func__);
+			free(frame);
+			return -1;
+		}
+		} else { /* ! rc > 0*/
+			DEBUG(1, "%s() Select failed\n", __func__);
 			free(frame);
 			return -1;
 		}
@@ -359,7 +381,7 @@ bfb_frame_t *bfb_read_packets(uint8_t *buffer, int *length)
 		return NULL;
 	}
 
-	if (*length < sizeof(bfb_frame_t)) {
+	if (*length < (int) sizeof(bfb_frame_t)) {
 		DEBUG(1, "%s() Short packet?\n", __func__);
 		return NULL;
 	}
@@ -374,7 +396,7 @@ bfb_frame_t *bfb_read_packets(uint8_t *buffer, int *length)
 		return NULL;
 	}
 
-	if (*length < frame->len + sizeof(bfb_frame_t)) {
+	if (*length < frame->len + (int) sizeof(bfb_frame_t)) {
 		DEBUG(2, "%s() Need more data?\n", __func__);
 		return NULL;
 	}
@@ -394,8 +416,7 @@ bfb_frame_t *bfb_read_packets(uint8_t *buffer, int *length)
 	return frame;
 }
 
-/*@null@*/
-bfb_data_t *bfb_assemble_data(bfb_data_t **data, int *size, int *len, bfb_frame_t *frame)
+int	bfb_assemble_data(bfb_data_t **data, int *size, int *len, bfb_frame_t *frame)
 {
 	bfb_data_t *tmp;
 	int l;
@@ -404,14 +425,14 @@ bfb_data_t *bfb_assemble_data(bfb_data_t **data, int *size, int *len, bfb_frame_
 
 	if (frame->type != BFB_FRAME_DATA) {
 		DEBUG(1, "%s() Wrong frame type (0x%02x)?\n", __func__, frame->type);
-		return *data;
+		return -1;
 	}
 
 	/* temp data */
 	tmp = (bfb_data_t *)frame->payload;
 	if ((*len == 0) && (tmp->cmd == BFB_DATA_ACK)) {
 		DEBUG(3, "%s() Skipping ack\n", __func__);
-		return *data;
+		return 0;
 	}
 
 	/* copy frame from buffer */
@@ -428,7 +449,7 @@ bfb_data_t *bfb_assemble_data(bfb_data_t **data, int *size, int *len, bfb_frame_
 
 	/* free(*data); */
 	*len = l;
-	return *data;
+	return 1;
 }
 
 int bfb_check_data(bfb_data_t *data, int len)
@@ -444,7 +465,7 @@ int bfb_check_data(bfb_data_t *data, int len)
 	if (data == NULL)
 		return -1;
 
-	if (len < sizeof(bfb_data_t))
+	if (len < (int) sizeof(bfb_data_t))
 		return 0;
 
 	if (data->cmd != (uint8_t)~data->chk) {

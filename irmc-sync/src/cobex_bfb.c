@@ -27,13 +27,24 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 #include <fcntl.h>
 #include <errno.h>
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+#include <stdlib.h>
+#else
 #include <sys/ioctl.h>
 #include <termios.h>
+#endif
 
 #include "irmc_obex.h"
 #include <openobex/obex.h>
@@ -45,26 +56,46 @@
 static void cobex_cleanup(obexdata_t *c, int force)
 {
   return_if_fail (c != NULL);
-  return_if_fail (c->fd >= 0);
+#ifdef _WIN32
+  return_if_fail (c->fd != INVALID_HANDLE_VALUE);
+#else
+  return_if_fail (c->fd > 0);
+#endif
 
   bfb_io_close(c->fd, force);
 
+#ifdef _WIN32
+	c->fd = INVALID_HANDLE_VALUE;
+#else
   c->fd = -1;
+#endif
 }
 
 int cobex_connect(obex_t *self, void *data)
 {
-  obexdata_t *c;
+	obexdata_t *c;
+	int typeinfo;
   return_val_if_fail (self != NULL, -1);
   return_val_if_fail (data != NULL, -1);
-  c = (obexdata_t *) data;
+	c = (obexdata_t *) data;
 
   DEBUG(3, "%s() \n", __func__);
 
-  c->fd = bfb_io_open(c->cabledev);
-  c->cobex.type = CT_SIEMENS;
-  
+	c->fd = bfb_io_open(c->cabledev, &typeinfo);
+	DEBUG(3, "%s() bfb_io_open returned %d, %d\n", __func__, c->fd, typeinfo);
+	if(typeinfo == 2) {
+		c->cobex.type = CT_ERICSSON;
+    c->cabletype = IRMC_CABLE_ERICSSON;
+	} else {
+		c->cobex.type = CT_SIEMENS;
+    c->cabletype = IRMC_CABLE_SIEMENS;
+  }
+
+#ifdef _WIN32
+	if(c->fd == INVALID_HANDLE_VALUE)
+#else
   if(c->fd == -1)
+#endif
     return -1;
 
   return 1;
@@ -72,21 +103,11 @@ int cobex_connect(obex_t *self, void *data)
 
 int cobex_disconnect(obex_t *self, void *data)
 {
-  obexdata_t *c;
+	obexdata_t *c;
   return_val_if_fail (self != NULL, -1);
   return_val_if_fail (data != NULL, -1);
-  c = (obexdata_t *) data;
 
-  if (c->cabletype == IRMC_CABLE_ERICSSON)
-    obex_cable_disconnect(self, data);
-    
-  if (c->fd >= 0) {
-    // Exit BFB mode
-    char quitbfb[256];
-    sprintf(quitbfb, "%c%c%cat^sqwe=2\r\n", 0x06, 0x0a, 0x0c);
-    if (write(c->fd, quitbfb, strlen(quitbfb)))
-      DEBUG(3, "%s() failed write.", __func__);
-  }
+	c = (obexdata_t *) data;
 
   DEBUG(3, "%s() \n", __func__);
   cobex_cleanup(c, FALSE);
@@ -101,17 +122,23 @@ int cobex_disconnect(obex_t *self, void *data)
 int cobex_write(obex_t *self, void *data, uint8_t *buffer, int length)
 {
   int actual;
-  obexdata_t *c;
+	obexdata_t *c;
   return_val_if_fail (self != NULL, -1);
   return_val_if_fail (data != NULL, -1);
-  c = (obexdata_t *) data;
+	c = (obexdata_t *) data;
 	
   DEBUG(3, "%s() \n", __func__);
 
   DEBUG(3, "%s() Data %d bytes\n", __func__, length);
 
-  if (c->cabletype == IRMC_CABLE_ERICSSON)
-    return(obex_cable_write(self, data, buffer, length));
+	if (c->cobex.type == CT_ERICSSON) {
+		actual = write(c->fd, buffer, length);
+		if (actual < length)	{
+			DEBUG(1, "Error writing to port (%d expected %d)\n", actual, length);
+			return actual; /* or -1? */
+		}
+		return actual;
+	}
 
   if (c->cobex.seq == 0){
     actual = bfb_send_first(c->fd, buffer, length);
@@ -126,10 +153,15 @@ int cobex_write(obex_t *self, void *data, uint8_t *buffer, int length)
 }
 
 /* Called when input data is needed */
-int cobex_handleinput(obex_t *self, void *data, int timeout) {
+int cobex_handleinput(obex_t *self, void *data, int timeout)
+{
+#ifdef _WIN32
+	DWORD actual;
+#else
   struct timeval time;
   fd_set fdset;
   int actual = 0;
+#endif
   bfb_frame_t *frame;
 
   obexdata_t *c;
@@ -138,12 +170,13 @@ int cobex_handleinput(obex_t *self, void *data, int timeout) {
   return_val_if_fail (data != NULL, -1);
   c = (obexdata_t *) data;
   
-  if (c->cabletype == IRMC_CABLE_ERICSSON)
-    return(obex_cable_handleinput(self, data, timeout));
+#ifdef _WIN32
+	if (!ReadFile(c->fd, &(c->recv[c->cobex.recv_len]), sizeof(c->cobex.recv) - c->cobex.recv_len, &actual, NULL))
+		DEBUG(2, "%s() Read error: %ld\n", __func__, actual);
 
-  if (c->state < 0)
-    return 0;
-
+	DEBUG(2, "%s() Read %ld bytes (%d bytes already buffered)\n", __func__, actual, c->cobex.recv_len);
+	/* FIXME ... */
+#else
   time.tv_sec = timeout;
   time.tv_usec = 0;
 
@@ -153,65 +186,63 @@ int cobex_handleinput(obex_t *self, void *data, int timeout) {
 
   /* Wait for input */
   DEBUG(2, "%s() Waiting for data.\n", __func__);
-  while (c->state >= 0 &&
-	 (actual = select(c->fd + 1, &fdset, NULL, NULL, &time)) > 0) {
-    DEBUG(2, "%s() There is something (%d)\n", __func__, actual);
+	actual = select(c->fd + 1, &fdset, NULL, NULL, &time);
+
+  DEBUG(2, "%s() There is something (%d)\n", __func__, actual);
 	  
-    /* Check if this is a timeout (0) or error (-1) */
-    if(actual <= 0) {
-      c->state = IRMC_OBEX_REQFAILED;
-//      c->error = SYNC_MSG_CONNECTIONERROR;
-      return actual;
-    }
+  /* Check if this is a timeout (0) or error (-1) */
+  if(actual <= 0) {
+    c->state = IRMC_OBEX_REQFAILED;
+    return actual;
+  }
 	  
-    actual = read(c->fd, &(c->cobex.recv[c->cobex.recv_len]), sizeof(c->cobex.recv) - c->cobex.recv_len);
-    DEBUG(2, "%s() Read %d bytes (%d bytes already buffered)\n", __func__, actual, c->cobex.recv_len);
+  actual = read(c->fd, &(c->cobex.recv[c->cobex.recv_len]), sizeof(c->cobex.recv) - c->cobex.recv_len);
+  DEBUG(2, "%s() Read %d bytes (%d bytes already buffered)\n", __func__, actual, c->cobex.recv_len);
+#endif
 	  
-    if (c->cabletype == IRMC_CABLE_ERICSSON) {
-      if (actual > 0) {
-	OBEX_CustomDataFeed(self, c->cobex.recv, actual);
-	return 1;
-      }
-      c->state = IRMC_OBEX_REQFAILED;
-//      c->error = SYNC_MSG_CONNECTIONERROR;
-      return actual;
-    }
-	  
-    if ((c->cobex.data_buf == NULL) || (c->cobex.data_size == 0)) {
-      c->cobex.data_size = 1024;
-      c->cobex.data_buf = malloc(c->cobex.data_size);
-    }
-	  
+  if (c->cobex.type == CT_ERICSSON) {
     if (actual > 0) {
-      c->cobex.recv_len += actual;
-      DEBUGBUFFER(c->cobex.recv, c->cobex.recv_len);
+      OBEX_CustomDataFeed(self, c->cobex.recv, actual);
+      return 1;
+    }
+    c->state = IRMC_OBEX_REQFAILED;
+    return actual;
+  }
+	  
+  if ((c->cobex.data_buf == NULL) || (c->cobex.data_size == 0)) {
+    c->cobex.data_size = 1024;
+    c->cobex.data_buf = malloc(c->cobex.data_size);
+  }
+	  
+  if (actual > 0) {
+    c->cobex.recv_len += actual;
+    DEBUGBUFFER(c->cobex.recv, c->cobex.recv_len);
 	    
-      while ((frame = bfb_read_packets(c->cobex.recv, &(c->cobex.recv_len)))) {
-	DEBUG(2, "%s() Parsed %x (%d bytes remaining)\n", __func__, frame->type, c->cobex.recv_len);
+    while ((frame = bfb_read_packets(c->cobex.recv, &(c->cobex.recv_len)))) {
+      DEBUG(2, "%s() Parsed %x (%d bytes remaining)\n", __func__, frame->type, c->cobex.recv_len);
 	      
-	c->cobex.data_buf = bfb_assemble_data(&c->cobex.data_buf, &c->cobex.data_size, &c->cobex.data_len, frame);
+      bfb_assemble_data(&c->cobex.data_buf, &c->cobex.data_size, &c->cobex.data_len, frame);
 	      
-	if (bfb_check_data(c->cobex.data_buf, c->cobex.data_len) == 1) {
-	  actual = bfb_send_ack(c->fd);
-	  DEBUG(2, "%s() Wrote ack packet (%d)\n", __func__, actual);
+      if (bfb_check_data(c->cobex.data_buf, c->cobex.data_len) == 1) {
+        actual = bfb_send_ack(c->fd);
+        DEBUG(2, "%s() Wrote ack packet (%d)\n", __func__, actual);
 		
-	  OBEX_CustomDataFeed(self, c->cobex.data_buf->data, c->cobex.data_len-7);
-	  /*
-	    free(c->cobex.data);
-	    c->cobex.data = NULL;
-	  */
-	  c->cobex.data_len = 0;
+        OBEX_CustomDataFeed(self, c->cobex.data_buf->data, c->cobex.data_len-7);
+    	  /*
+	        free(c->cobex.data);
+    	    c->cobex.data = NULL;
+	       */
+        c->cobex.data_len = 0;
 		
-	  if (c->cobex.recv_len > 0) {
-	    DEBUG(2, "%s() Data remaining after feed, this can't be good.\n", __func__);
-	    DEBUGBUFFER(c->cobex.recv, c->cobex.recv_len);
-	  }
-	}
+    	  if (c->cobex.recv_len > 0) {
+	        DEBUG(2, "%s() Data remaining after feed, this can't be good.\n", __func__);
+  	      DEBUGBUFFER(c->cobex.recv, c->cobex.recv_len);
+    	  }
+
+        return 1;
       }
     }
   }
+
   return actual;
 }
-
-
-

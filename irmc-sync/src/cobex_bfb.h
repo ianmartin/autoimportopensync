@@ -46,8 +46,11 @@ typedef struct {
 	int data_len;		/* filled buffer length */
 } cobex_t;
 
-#define	COBEX_BFB_LOG_DOMAIN	"cobex-bfb"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#define	COBEX_BFB_LOG_DOMAIN	"cobex-bfb"
 
 /* callbacks */
 
@@ -56,5 +59,8 @@ int	cobex_disconnect (obex_t *self, void *data);
 int	cobex_write (obex_t *self, void *data, uint8_t *buffer, int length);
 int	cobex_handleinput (obex_t *self, void *data, int timeout);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COBEXBFB_H */

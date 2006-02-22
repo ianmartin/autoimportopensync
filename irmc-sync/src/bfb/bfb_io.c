@@ -25,11 +25,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#ifndef S_SPLINT_S
 #include <unistd.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
 #endif
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #define sleep(n)	_sleep(n*1000)
@@ -176,6 +181,7 @@ int bfb_io_init(fd_t fd)
 }
 
 /* Send an AT-command an expect 1 line back as answer */
+/* Ericsson may choose to answer one line, blank one line and then send OK */
 int do_at_cmd(fd_t fd, char *cmd, char *rspbuf, int rspbuflen)
 {
 #ifdef _WIN32
@@ -223,6 +229,8 @@ int do_at_cmd(fd_t fd, char *cmd, char *rspbuf, int rspbuflen)
        			return -1;
 
        		if( (answer = strchr(tmpbuf, '\n')) )	{
+			      while((*answer == '\r') || (*answer == '\n'))
+      				answer++;
        			/* Remove first line (echo) */
        			if( (answer_end = strchr(answer+1, '\n')) )	{
        				/* Found end of answer */
@@ -237,14 +245,8 @@ int do_at_cmd(fd_t fd, char *cmd, char *rspbuf, int rspbuflen)
 	DEBUG(3, "%s() Answer: %s\n", __func__, answer);
 
 	/* Remove heading and trailing \r */
-	if((*answer_end == '\r') || (*answer_end == '\n'))
+	while((*answer_end == '\r') || (*answer_end == '\n'))
 		answer_end--;
-	if((*answer_end == '\r') || (*answer_end == '\n'))
-		answer_end--;
-	if((*answer == '\r') || (*answer == '\n'))
-		answer++;
-	if((*answer == '\r') || (*answer == '\n'))
-		answer++;
 	DEBUG(3, "%s() Answer: %s\n", __func__, answer);
 
 	answer_size = (answer_end) - answer +1;
@@ -273,7 +275,7 @@ void bfb_io_close(fd_t fd, int force)
 #ifdef _WIN32
 		if(SetCommBreak(fd) != TRUE)	{
 #else
-		if(ioctl(fd, TCSBRKP, 0) < 0)	{
+		if(ioctl(fd, TIOCSBRK, 0) < 0)	{
 #endif
 			DEBUG(1, "Unable to send break!\n");
 		}
@@ -288,7 +290,7 @@ void bfb_io_close(fd_t fd, int force)
 
 /* Init the phone and set it in BFB-mode */
 /* Returns fd or -1 on failure */
-fd_t bfb_io_open(const char *ttyname)
+fd_t bfb_io_open(const char *ttyname, int *typeinfo)
 {
 	uint8_t rspbuf[200];
 #ifdef _WIN32
@@ -362,22 +364,52 @@ fd_t bfb_io_open(const char *ttyname)
 #endif
 
 
- trybfb:
-	/* do we need to handle an error? */
-	if (bfb_io_init (ttyfd)) {
-		DEBUG(1, "Already in BFB mode.\n");
+	if(do_at_cmd(ttyfd, "ATZ\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0) {
+		DEBUG(1, "Comm-error or already in BFB mode\n");
+#ifdef _WIN32
 		goto bfbmode;
+#else
+		newtio.c_cflag = B19200 | CS8 | CREAD;
+		(void) tcflush(ttyfd, TCIFLUSH);
+		(void) tcsetattr(ttyfd, TCSANOW, &newtio);
+		if(do_at_cmd(ttyfd, "ATZ\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0) {
+			DEBUG(1, "Comm-error or already in BFB mode\n");
+			goto bfbmode;
+		}
+#endif
+	}
+	if(strcasecmp("OK", (char *) rspbuf) != 0)	{
+		DEBUG(1, "Error doing ATZ (%s)\n", rspbuf);
+		goto err;
 	}
 
+	if(do_at_cmd(ttyfd, "AT+GMI\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0)	{
+		DEBUG(1, "Comm-error\n");
+		goto err;
+	}
+	DEBUG(1, "AT+GMI: %s\n", rspbuf);
+	if(strncasecmp("ERICSSON", (char *) rspbuf, 8) == 0 ||
+	   strncasecmp("SONY ERICSSON", (char *) rspbuf, 13) == 0) {
+ 
+		DEBUG(1, "Ericsson detected\n");
+		goto ericsson;
+	}
+	if(strncasecmp("SIEMENS", (char *) rspbuf, 7) != 0) {
+		DEBUG(1, "No Siemens detected\n");
+		goto err;
+	}
 
 
 	if(do_at_cmd(ttyfd, "AT^SIFS\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0)	{
 		DEBUG(1, "Comm-error\n");
 		goto err;
 	}
-	if(strcasecmp("^SIFS: WIRE", (char *) rspbuf) != 0)	{ /* expect "OK" also! */
-		DEBUG(1, "Error doing AT^SIFS (%s)\n", rspbuf);
-		goto err;
+	if(strcasecmp("^SIFS: WIRE", (char *) rspbuf) != 0)	{ /* expect "OK" too! */
+		if(strcasecmp("^SIFS: BLUE", (char *) rspbuf) != 0)	{
+			if(strcasecmp("^SIFS: IRDA", (char *) rspbuf) != 0)      {
+				DEBUG(1, "Unknown connection doing AT^SIFS (%s), continuing anyway ...\n", rspbuf);
+			}
+		}
 	}
 
 	if(do_at_cmd(ttyfd, "AT^SBFB=1\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0)	{
@@ -391,11 +423,13 @@ fd_t bfb_io_open(const char *ttyname)
 
 	sleep(1); /* synch a bit */
 
+ bfbmode:
+#ifndef _WIN32
 	newtio.c_cflag = B57600 | CS8 | CREAD;
 	(void) tcflush(ttyfd, TCIFLUSH);
 	(void) tcsetattr(ttyfd, TCSANOW, &newtio);
+#endif
 
- bfbmode:
 	if (! bfb_io_init (ttyfd)) {
 		/* well there may be some garbage -- just try again */
 		if (! bfb_io_init (ttyfd)) {
@@ -404,24 +438,30 @@ fd_t bfb_io_open(const char *ttyname)
 		}
 	}
 
+	*typeinfo = 1; // SIEMENS
 	return ttyfd;
 
  ericsson:
-	close(ttyfd);
-	/*
-	if(do_at_cmd(ttyfd, "AT*EOBEX\r\n", rspbuf, sizeof(rspbuf)) < 0) {
+	if(do_at_cmd(ttyfd, "", (char *) rspbuf, sizeof(rspbuf)) < 0)	{
 		DEBUG(1, "Comm-error\n");
 		goto err;
 	}
-	if(strcasecmp("CONNECT", rspbuf) != 0)	{
+	if(strcasecmp("OK", (char *) rspbuf) != 0)	{
+		DEBUG(1, "Error completing AT+GMI (%s)\n", rspbuf);
+		goto err;
+	}
+
+	if(do_at_cmd(ttyfd, "AT*EOBEX\r\n", (char *) rspbuf, sizeof(rspbuf)) < 0) {
+		DEBUG(1, "Comm-error\n");
+		goto err;
+	}
+	if(strcasecmp("CONNECT", (char *) rspbuf) != 0)	{
 		DEBUG(1, "Error doing AT*EOBEX (%s)\n", rspbuf);
 		goto err;
-		}*/
-#ifdef _WIN32
-	return -2; /* works? */
-#else
-	return -2;
-#endif
+  }
+	
+	*typeinfo = 2; // ERICSSON
+	return ttyfd;
 
  err:
 	bfb_io_close(ttyfd, TRUE);
