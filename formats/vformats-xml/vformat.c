@@ -508,7 +508,7 @@ static void _parse(VFormat *evc, const char *str)
 
 	attr = _read_attribute (&p);
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "begin")) {
-		g_warning ("vcard began without a BEGIN:VCARD\n");
+		g_warning ("vformat began without a BEGIN\n");
 	}
 	if (attr && !g_ascii_strcasecmp (attr->name, "begin"))
 		vformat_attribute_free (attr);
@@ -526,7 +526,7 @@ static void _parse(VFormat *evc, const char *str)
 	}
 
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "end")) {
-		g_warning ("vcard ended without END:VCARD\n");
+		g_warning ("vformat ended without END");
 	}
 
 	g_free (buf);

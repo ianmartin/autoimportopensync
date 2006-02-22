@@ -855,7 +855,7 @@ static char *print_contact(OSyncChange *change)
 {
 	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
 	
-	return osxml_write_to_string(doc);
+	return (char *)osxml_write_to_string(doc);
 }
 
 static void destroy_xml(char *data, size_t size)

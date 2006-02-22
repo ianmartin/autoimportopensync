@@ -381,7 +381,7 @@ xmlChar *osxml_write_to_string(xmlDoc *doc)
 	xmlChar *temp = NULL;
 	int size = 0;
 	xmlDocDumpFormatMemoryEnc(doc, &temp, &size, NULL, 1);
-	return (char *)temp;
+	return temp;
 }
 
 osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize)
