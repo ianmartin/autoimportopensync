@@ -1,0 +1,99 @@
+
+OpenSync plugin gnokii-sync
+===========================
+
+This a _experimental_ OpenSync plugin for Nokia cellphones. Don't use it 
+without a whole backup of your phonebook, todo list and calendar! This 
+plugin is based on gnokii which can be found on http://gnokii.org
+It is recommended to use the latest version of gnokii.
+
+	And don't forget to BACKUP everything - BEFORE syncing!
+
+A introduction how to build, install and configure gnokii-sync can be found
+in the INSTALL file. Troubleshooting guide is also included in INSTALL.
+
+
+FEATURES:
+^^^^^^^^^
+	* syncing events (calendar)
+	
+
+Tested with:
+^^^^^^^^^^^^
+Phones:
+	Nokia: 6230, 
+	
+Plugins: file-sync, kdepim-sync	
+
+Let me know if this works for your cellphone. 
+(And what doesn't work :))
+<dgollub@suse.de>
+
+
+BUGS/KNOWN PROBLEMS:
+^^^^^^^^^^^^^^^^^^^^
+
+* gnokii (at the moment!) can read but NOT write:
+	Info:
+	^^^^^
+	This bugs will lead to wrong hash calculation after further syncs => MODIFICATIONS.
+	Possible workaround is to ignore this information on hash calculation.
+
+	EVENT (Calendar):
+	^^^^^^^^^^^^^^^^^
+	- Location of Meeting Notes (calnote->mlocation)
+	
+	- Reminder/Alarm cannot be written for Meeting notes
+
+	- Notes with type Reminder, they will appear as Memos. Older Nokia 
+	  phones only support 4 calendar types , no reminder - only memo. 
+	  (calnote->type)
+	
+	- End Time of a Meeting. End Time on the phone will be equal to Start 
+	  Time. (calnote->end_time)
+
+	- Phone Numbers of Calling Notes cannot be written (gnokii version 0.6.11)
+
+	- ... 
+
+* alarm (reminder) of all day events will no be synced. cellphone can set
+  specific time and not only minutes before/after begin of event. no idea
+  how to handle this :( kdepim will remind on 00:00:00.
+
+* conflict handling doesn't work well. gnokii-event doesn't have any priority and other nodes
+  which are missing while comparing xml-events with compare_vevent(). Mabye a own compare_func
+  without comparing the priority and other missing fields will help(?).
+
+* the gnokii-sync plugin doesn't support all object types (notes, todo, contact) so it is
+  recommended to filter out this object types. This can be done with the latest revision 
+  (subversion) of msynctool-cli with --filter-objtype:
+  	msynctool --sync gnokii-kdepim "--filter-objtype note "--filter-objtype contact --filter-objtype todo
+
+TODO:
+^^^^^
+* event format:
+
+	# How to handle Birthday notes for PIMs?
+		- filtering to contacts?
+		- event with yearly recurrence?
+		- both?
+		
+	# check for a fit calendar type:
+		A note from another plugin with a unknown calendar category will set 		
+		by default to reminder type. A better solution is to check the
+		detailed information and decide for a calendar category which fits.
+		This will lead to a modification on further syncs. Possible solutions:
+			- filtering content
+			- add additional calendar category to source entry
+
+	# write destroy function
+	# print function (written, but never tested)
+		
+* contact format
+* todo format
+* notes format:
+	# writing into calendar as memo entry?
+	
+* testing with other connection then bluetooth
+* suggest default gnokii-sync configuration when ~/.gnokiirc is present
+

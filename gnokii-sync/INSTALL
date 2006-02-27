@@ -1,0 +1,141 @@
+
+INSTALL of gnokii-sync
+=======================
+
+REQUIREMENTS
+^^^^^^^^^^^^
+	OpenSync	>= 0.18		http://www.opensync.org
+	gnokii		>= 0.6.11	http://www.gnokii.org
+
+	If you use packages of your distribution don't forget
+	to install the -devel packages of above requirements.
+
+INSTALL 
+^^^^^^^
+	
+	autoreconf -sfi			# only CVS
+	./configure 			# your options
+	make
+	su -c 'make install' 		# as root
+
+CONFIGURATION
+^^^^^^^^^^^^^
+
+	Example of a sync pair with kdepim:
+
+	msynctool --addgroup gnokii-kdepim
+	msynctool --addmember gnokii-kdepim gnokii-sync
+	msynctool --addmember gnokii-kdepim kdepim-sync
+	msynctool --configure gnokii-kdepim 1		# first plugin configuration (gnokii-sync)
+
+
+	(Hint:
+
+	 Instead of FF:FF:FF:FF:FF:FF insert your MAC of your cellphone.
+	 You can get your bluetooth MAC of your phone with:
+
+	 	hcitool scan
+
+	 hcitool is part of the bluez-utils)	
+
+	Example config file for a Nokia 6230 via Bluetooth:
+
+	<config>
+	  <connection>bluetooth</connection>
+	  <port>FF:FF:FF:FF:FF:FF</port>
+	  <model>6230</model>
+	</config>
+
+
+TROUBLESHOOTING
+^^^^^^^^^^^^^^^
+
+	Synchronization problems:
+	========================
+
+		* Read the KNOWN PROBLEMS section
+
+		* Read the TODO section
+		
+		* set $OSYNC_TRACE to get more detailed information:
+
+			export OSYNC_TRACE=/tmp/gnokii_trace/
+			mkdir $OSYNC_TRACE
+			# SYNC YOUR DEVICE
+
+	Connection problems:
+	====================
+		
+	General:
+	########
+
+		* try to setup a connection with the command line tool gnokii
+		  to check if it is a configuration problem or a plugin problem
+	          Example:
+
+			gnokii --identify
+
+		  Should this work the configuration of the gnokii-sync plugin is
+		  wrong. Compare model, port, connection of the plugin config and your gnokiirc.
+
+		* otherwise check if your phone is on :P
+
+	Bluetooth:
+	##########
+
+		* check if your bluetooth services working and if your 
+		  cellphone is in range:
+		
+			hcitool scan
+		  
+		  hcitool is part of the bluez-utils package.			
+
+
+
+
+
+
+
+
+
+
+HAVE FUN
+^^^^^^^^
+
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+:)-\-<
+:)->-<
+:)-/-<
+

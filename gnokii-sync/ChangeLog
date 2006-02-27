@@ -1,0 +1,39 @@
+2006-02-27  Daniel Gollub  <dgollub@suse.de>
+
+	* Initial version of gnokii-sync 
+
+	* gnokii_calendar.c  
+	  gnokii_calendar.h
+	  	- write event notes
+		- delete event notes
+		- modify event notes
+		- hash event notes
+		- ...
+	  
+	* gnokii_calendar_utils.c  
+	  gnokii_calendar_utils.h
+	  	- helper functions for object type event
+		- time converting
+		- ...
+
+	* gnokii_calendar_format.c
+		- format gnokii-event  
+		- converts xml to gnokii-event
+		- converts gnokii-event to xml
+	  
+	* gnokii_comm.c  
+	  gnokii_comm.h
+	  	- handles connection to the cell phone
+		- connect/disconnect
+	  
+	* gnokii_config.c  
+	  gnokii_config.h
+	  	- config parser
+	  
+	* gnokii_sync.c
+	  gnokii_sync.h
+	  	- main code of gnokii-sync plugin
+
+	* gnokii-sync
+		- config file template for gnokii-sync plugin
+		
