@@ -34,8 +34,8 @@ static xmlNode *handle_x_aim_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_file_as_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling FileAs attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"FileAs", NULL);
+	osync_trace(TRACE_INTERNAL, "Handling file_as attribute");
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -478,7 +478,7 @@ static osync_bool init_xml_to_x_evo(void *input)
 	
 	OSyncHookTables *hooks = (OSyncHookTables *)input;
 	
-	g_hash_table_insert(hooks->attributes, "FileAs", handle_xml_file_as_attribute);
+	g_hash_table_insert(hooks->attributes, "FormattedName", handle_xml_file_as_attribute);
 	g_hash_table_insert(hooks->attributes, "Manager", handle_xml_manager_attribute);
 	g_hash_table_insert(hooks->attributes, "Assistant", handle_xml_assistant_attribute);
 	g_hash_table_insert(hooks->attributes, "Anniversary", handle_xml_anniversary_attribute);

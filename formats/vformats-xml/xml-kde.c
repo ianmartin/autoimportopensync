@@ -64,6 +64,14 @@ static xmlNode *handle_spouse_attribute(xmlNode *root, VFormatAttribute *attr)
 	return current;
 }
 
+static xmlNode *handle_blog_url_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Blog Url attribute");
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"BlogUrl", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	return current;
+}
+
 static xmlNode *handle_yahoo_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-Yahoo attribute");
@@ -204,6 +212,7 @@ static osync_bool init_kde_to_xml(void *input)
 	g_hash_table_insert(table, "X-KADDRESSBOOK-X-Office", handle_office_attribute);
 	g_hash_table_insert(table, "X-KADDRESSBOOK-X-Profession", handle_profession_attribute);
 	g_hash_table_insert(table, "X-KADDRESSBOOK-X-SpousesName", handle_spouse_attribute);
+	g_hash_table_insert(table, "X-KADDRESSBOOK-BlogFeed", handle_blog_url_attribute);
 	g_hash_table_insert(table, "X-messaging/yahoo-All", handle_yahoo_attribute);
 	g_hash_table_insert(table, "X-messaging/icq-All", handle_icq_attribute);
 	g_hash_table_insert(table, "X-messaging/aim-All", handle_aim_attribute);
@@ -296,6 +305,15 @@ static VFormatAttribute *handle_xml_spouse_attribute(VFormat *vcard, xmlNode *ro
 {
 	osync_trace(TRACE_INTERNAL, "Handling spouse xml attribute");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-KADDRESSBOOK-X-SpousesName");
+	add_value(attr, root, "Content", encoding);
+	vformat_add_attribute(vcard, attr);
+	return attr;
+}
+
+static VFormatAttribute *handle_xml_blog_url_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling blog_url xml attribute");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-KADDRESSBOOK-BlogFeed");
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
@@ -445,6 +463,7 @@ static osync_bool init_xml_to_kde(void *input)
 	g_hash_table_insert(hooks->attributes, "Organization", handle_xml_organization_attribute);
 	g_hash_table_insert(hooks->attributes, "Profession", handle_xml_profession_attribute);
 	g_hash_table_insert(hooks->attributes, "Spouse", handle_xml_spouse_attribute);
+	g_hash_table_insert(hooks->attributes, "BlogUrl", handle_xml_blog_url_attribute);
 	g_hash_table_insert(hooks->attributes, "IM-Yahoo", handle_xml_yahoo_attribute);
 	g_hash_table_insert(hooks->attributes, "IM-ICQ", handle_xml_icq_attribute);
 	g_hash_table_insert(hooks->attributes, "IM-AIM", handle_xml_aim_attribute);

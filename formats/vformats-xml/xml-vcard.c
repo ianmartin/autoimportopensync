@@ -42,10 +42,10 @@ static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 	
 }
 
-static xmlNode *handle_fullname_attribute(xmlNode *root, VFormatAttribute *attr)
+static xmlNode *handle_formatted_name_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling fullname attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"FullName", NULL);
+	osync_trace(TRACE_INTERNAL, "Handling formatted name attribute");
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -504,9 +504,9 @@ static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vcard, xmlNode *r
 	return attr;
 }
 
-static VFormatAttribute *handle_xml_fullname_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
+static VFormatAttribute *handle_xml_formatted_name_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
-	osync_trace(TRACE_INTERNAL, "Handling fullname xml attribute");
+	osync_trace(TRACE_INTERNAL, "Handling formatted name xml attribute");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "FN");
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
@@ -515,7 +515,7 @@ static VFormatAttribute *handle_xml_fullname_attribute(VFormat *vcard, xmlNode *
 
 static VFormatAttribute *handle_xml_name_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
-	osync_trace(TRACE_INTERNAL, "Handling fullname xml attribute");
+	osync_trace(TRACE_INTERNAL, "Handling name xml attribute");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "N");
 	add_value(attr, root, "LastName", encoding);
 	add_value(attr, root, "FirstName", encoding);
@@ -868,7 +868,7 @@ static void *init_vcard_to_xml(void)
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
 	
-	g_hash_table_insert(table, "FN", handle_fullname_attribute);
+	g_hash_table_insert(table, "FN", handle_formatted_name_attribute);
 	g_hash_table_insert(table, "N", handle_name_attribute);
 	g_hash_table_insert(table, "PHOTO", handle_photo_attribute);
 	g_hash_table_insert(table, "BDAY", handle_birthday_attribute);
@@ -920,7 +920,7 @@ static void *init_xml_to_vcard(void)
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 	
-	g_hash_table_insert(hooks->attributes, "FullName", handle_xml_fullname_attribute);
+	g_hash_table_insert(hooks->attributes, "FormattedName", handle_xml_formatted_name_attribute);
 	g_hash_table_insert(hooks->attributes, "Name", handle_xml_name_attribute);
 	g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_attribute);
 	g_hash_table_insert(hooks->attributes, "Birthday", handle_xml_birthday_attribute);
