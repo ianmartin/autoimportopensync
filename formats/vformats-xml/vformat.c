@@ -507,6 +507,9 @@ static void _parse(VFormat *evc, const char *str)
 	p = buf;
 
 	attr = _read_attribute (&p);
+	if (!attr)
+		attr = _read_attribute (&p);
+	
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "begin")) {
 		g_warning ("vformat began without a BEGIN\n");
 	}
