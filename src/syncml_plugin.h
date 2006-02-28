@@ -24,28 +24,54 @@
 #include <opensync/opensync.h>
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <stdio.h>
+#include <errno.h>
+
+#include <glib.h>
 
 #include <libsyncml/syncml.h>
-#include <libsyncml/http_server.h>
+
 #include <libsyncml/obex_client.h>
 
 #include <libsyncml/sml_auth.h>
+#include <libsyncml/sml_devinf_obj.h>
 #include <libsyncml/sml_ds_server.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
+struct commitContext {
+	OSyncContext *context;
+	OSyncChange *change;
+};
+
 typedef struct SmlPluginEnv {
-	OSyncMember *member;
-	GMainContext *context;
-	GMainLoop *loop;
-	SmlTransport *tsp;
-	SmlAuthenticator *auth;
-	SmlSession *session;
+	char *path;
+	unsigned int interface;
+	char *identifier;
+	SmlNotificationVersion version;
+	osync_bool useWbxml;
 	char *username;
 	char *password;
 	SmlBool useStringtable;
 	SmlBool onlyReplace;
+	SmlTransportObexClientType type;
+	
+	OSyncMember *member;
+	GMainContext *context;
+	GMainLoop *loop;
+	
+	SmlTransport *tsp;
+	SmlAuthenticator *auth;
+	SmlDevInfAgent *agent;
+	SmlManager *manager;
+	
+	SmlDsSession *contactSession;
+	SmlDsSession *calendarSession;
+	SmlSession *session;
 	
 	SmlDsServer *contactserver;
 	char *contact_url;
@@ -55,8 +81,11 @@ typedef struct SmlPluginEnv {
 	
 	SmlDsServer *taskserver;
 	char *task_url;
+	
+	OSyncContext *connectCtx;
+	OSyncContext *getChangesCtx;
+	OSyncContext *commitCtx;
+	OSyncContext *disconnectCtx;
 } SmlPluginEnv;
-
-#include <stdlib.h>
 
 #endif //_SYNCML_PLUGIN_H
