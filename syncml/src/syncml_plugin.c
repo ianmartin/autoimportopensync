@@ -169,7 +169,7 @@ static void _recv_alert_reply(SmlSession *session, SmlStatus *status, void *user
 static SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char *last, const char *next, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %s, %p)", __func__, dsession, type, last, next, userdata);
-	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data((OSyncContext *)userdata);
+	SmlPluginEnv *env = userdata;
 	SmlBool ret = TRUE;
 	
 	char *key = g_strdup_printf("remoteanchor%s", smlDsSessionGetLocation(dsession));
@@ -220,12 +220,26 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 	SmlPluginEnv *env = userdata;
 
 	switch (type) {
+		case SML_MANAGER_CONNECT_DONE:
+			break;
+		case SML_MANAGER_DISCONNECT_DONE:
+			printf("connection with device has ended\n");
+			if (env->disconnectCtx) {
+				osync_context_report_success(env->disconnectCtx);
+				env->disconnectCtx = NULL;
+			}
+			break;
+		case SML_MANAGER_TRANSPORT_ERROR:
+			goto error;
+			break;
 		case SML_MANAGER_SESSION_NEW:
 			osync_trace(TRACE_INTERNAL, "Just received a new session with ID %s\n", smlSessionGetSessionID(session));
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);
 			smlSessionSetAllowLateStatus(session, TRUE);
-					
+			if (env->recvLimit)
+				smlSessionSetReceivingLimit(session, env->recvLimit);
+			
 			env->session = session;
 			break;
 		case SML_MANAGER_SESSION_FINAL:
@@ -245,21 +259,45 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 				osync_context_report_success(env->commitCtx);
 				env->commitCtx = NULL;
 			}
-			
-			if (env->disconnectCtx) {
-				osync_context_report_success(env->commitCtx);
-				env->commitCtx = NULL;
-			}
 			break;
 		case SML_MANAGER_SESSION_END:
 			osync_trace(TRACE_INTERNAL, "Session %s has ended\n", smlSessionGetSessionID(session));
+			if (!smlTransportDisconnect(env->tsp, NULL, &error))
+				goto error;
+			
 			break;
 		case SML_MANAGER_SESSION_ERROR:
 			osync_trace(TRACE_INTERNAL, "There was an error in the session %s: %s", smlSessionGetSessionID(session), smlErrorPrint(&error));
+			goto error;
 			break;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:;
+	OSyncError *oserror = NULL;
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
+	
+	if (env->connectCtx) {
+		osync_context_report_osyncerror(env->connectCtx, &oserror);
+		env->connectCtx = NULL;
+	}
+	
+	if (env->getChangesCtx) {
+		osync_context_report_osyncerror(env->getChangesCtx, &oserror);
+		env->getChangesCtx = NULL;
+	}
+	
+	if (env->commitCtx) {
+		osync_context_report_osyncerror(env->commitCtx, &oserror);
+		env->commitCtx = NULL;
+	}
+	if (env->disconnectCtx) {
+		osync_context_report_osyncerror(env->disconnectCtx, &oserror);
+		env->disconnectCtx = NULL;
+	}
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
 static gboolean _sessions_prepare(GSource *source, gint *timeout_)
@@ -307,49 +345,15 @@ static void _verify_user(SmlAuthenticator *auth, const char *username, const cha
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, *reply);
 }
 
-#if 0
-static SmlBool _new_san_session(SmlTransport *tsp, SmlSession *session, void *userdata, SmlError **error)
+static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, tsp, session, userdata, error);
-	OSyncContext *ctx = userdata;
-	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
-	
-	if (!smlDsServerRegister(env->contactserver, session, error))
-		goto error;
-	
-	smlSessionRegisterFinalHandler(session, _recv_final, userdata);
-	smlDsServerSetConnectCallback(env->contactserver, _recv_init_alert, env);
-	
-	if (!smlAuthRegister(env->auth, session, error))
-		goto error;
-	
-	env->session = session;
-	smlSessionUseStringTable(session, env->useStringtable);
-	smlSessionUseOnlyReplace(session, env->onlyReplace);
-	smlSessionSetAllowLateStatus(session, TRUE);
-	
-	/* Tell the DsServer to notify us as soon as we receive the alert */
-	if (!smlDsServerRequestAlert(env->contactserver, _recv_alert, ctx, error))
-		goto error;
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, smlErrorPrint(error));
-	return FALSE;
-}
-
-static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTransportHttpServerConfig *env, const char *config, unsigned int size, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, plugin, env, config, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, env, config, size, error);
 	xmlDocPtr doc = NULL;
 	xmlNodePtr cur = NULL;
 
 	env->port = 8080;
-	env->interface = NULL;
 	env->url = NULL;
-	plugin->contact_url = NULL;
+	env->contact_url = NULL;
 	
 	if (!(doc = xmlParseMemory(config, size))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -370,7 +374,7 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
+		if (str && strlen(str)) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
 				env->port = atoi(str);
 			}
@@ -379,36 +383,36 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 				env->url = g_strdup(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
-				env->interface = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
+				env->username = g_strdup(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
-				plugin->username = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit")) {
+				env->recvLimit = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
-				plugin->password = g_strdup(str);
+				env->password = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
-				plugin->useStringtable = atoi(str);
+				env->useStringtable = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyreplace")) {
-				plugin->onlyReplace = atoi(str);
+				env->onlyReplace = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
-				plugin->contact_url = g_strdup(str);
+				env->contact_url = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_db")) {
-				plugin->calendar_url = g_strdup(str);
+				env->calendar_url = g_strdup(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"task_db")) {
-				plugin->task_url = g_strdup(str);
+				env->task_url = g_strdup(str);
 			}
 			xmlFree(str);
 		}
@@ -416,11 +420,6 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *plugin, SmlTrans
 	}
 	
 	xmlFreeDoc(doc);
-
-	if (!plugin->contact_url) {
-		osync_error_set(error, SML_ERROR_GENERIC, "Missing database name");
-		goto error;
-	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -438,7 +437,6 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	char *configdata = NULL;
 	int configsize = 0;
 	SmlError *serror = NULL;
-	SmlTransportHttpServerConfig serverConfig;
 	
 	SmlPluginEnv *env = osync_try_malloc0(sizeof(SmlPluginEnv), error);
 	if (!env)
@@ -447,46 +445,104 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	if (!osync_member_get_config(member, &configdata, &configsize, error))
 		goto error_free_env;
 	
-	env->tsp = smlTransportNew(SML_TRANSPORT_HTTP_SERVER, &serror);
-	if (!env->tsp)
-		goto error_free_config;
-		
-	smlTransportSetNewSessionCallback(env->tsp, _new_session, env);
-	
-	if (!syncml_http_server_parse_config(env, &serverConfig, configdata, configsize, error))
+	if (!syncml_http_server_parse_config(env, configdata, configsize, error))
 		goto error_free_transport;
 	
 	env->context = osync_member_get_loop(member);
 	env->member = member;
 	
-	if (!smlTransportInitialize(env->tsp, &serverConfig, env->context, &serror))
-		goto error_free_transport;
+	/* The transport needed to transport the data */
+	env->tsp = smlTransportNew(SML_TRANSPORT_HTTP_SERVER, &serror);
+	if (!env->tsp)
+		goto error;
 	
+	/* The manager responsible for handling the other objects */
+	env->manager = smlManagerNew(env->tsp, &serror);
+	if (!env->manager)
+		goto error;
+	smlManagerSetEventCallback(env->manager, _manager_event, env);
+	
+	/* The authenticator */
+	env->auth = smlAuthNew(&serror);
+	if (!env->auth)
+		goto error;
+	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
+	
+	if (!env->username)
+		smlAuthSetEnable(env->auth, FALSE);
+	
+	if (!smlAuthRegister(env->auth, env->manager, &serror))
+		goto error_free_auth;
+	
+	
+	/* Now create the devinf handler */
+	SmlDevInf *devinf = smlDevInfNew(&serror);
+	if (!devinf)
+		goto error_free_manager;
+	
+	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
+	if (!env->agent)
+		goto error_free_manager;
+	
+	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
+		goto error_free_manager;
+	
+	
+	/* We now create the ds server hat the given location */
 	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
+	if (!loc)
+		goto error;
 	
 	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
 	if (!env->contactserver)
-		goto error_free_loc;
+		goto error_free_manager;
+		
+	if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
+		goto error_free_auth;
 	
-	env->auth = smlAuthNew(&serror);
-	if (!env->auth)
-		goto error_free_contactserver;
+	smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		
+	/* And we also add the devinfo to the devinf agent */
+	SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(loc, SML_DEVINF_VERSION_11, &serror);
+	if (!datastore)
+		goto error;
+	
+	smlDevInfAddDataStore(devinf, datastore);
+	
+	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+	functions->prepare = _sessions_prepare;
+	functions->check = _sessions_check;
+	functions->dispatch = _sessions_dispatch;
+	functions->finalize = NULL;
 
-	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
-	//smlAuthSetEnable(env->auth, FALSE);
-	g_free(configdata);
+	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(SmlPluginEnv *));
+	SmlPluginEnv **envptr = (SmlPluginEnv **)(source + 1);
+	*envptr = env;
+	g_source_set_callback(source, NULL, env, NULL);
+	g_source_attach(source, env->context);
+
+
+	SmlTransportHttpServerConfig config;
+	config.port = env->port;
+	config.url = env->url;
+	
+	/* Run the manager */
+	if (!smlManagerStart(env->manager, &serror))
+		goto error;
+	
+	/* Initialize the Transport */
+	if (!smlTransportInitialize(env->tsp, &config, &serror))
+		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
-	
-error_free_contactserver:
-	smlDsServerFree(env->contactserver);
-error_free_loc:
-	smlLocationFree(loc);
+
+error_free_auth:
+	smlAuthFree(env->auth);
+error_free_manager:
+	smlManagerFree(env->manager);
 error_free_transport:
 	smlTransportFree(env->tsp);
-error_free_config:
-	g_free(configdata);
 error_free_env:
 	g_free(env);
 error:
@@ -495,8 +551,6 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
-
-#endif
 
 static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, unsigned int size, OSyncError **error)
 {
@@ -534,6 +588,10 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"type")) {
 				env->type = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"recvLimit")) {
+				env->recvLimit = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"version")) {
@@ -622,9 +680,100 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	env->context = osync_member_get_loop(member);
 	env->member = member;
 	
+	/* The transport needed to transport the data */
+	env->tsp = smlTransportNew(SML_TRANSPORT_OBEX_CLIENT, &serror);
+	if (!env->tsp)
+		goto error;
+	
+	/* The manager responsible for handling the other objects */
+	env->manager = smlManagerNew(env->tsp, &serror);
+	if (!env->manager)
+		goto error;
+	smlManagerSetEventCallback(env->manager, _manager_event, env);
+	
+	/* The authenticator */
+	env->auth = smlAuthNew(&serror);
+	if (!env->auth)
+		goto error;
+	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
+	
+	if (!env->username)
+		smlAuthSetEnable(env->auth, FALSE);
+	
+	if (!smlAuthRegister(env->auth, env->manager, &serror))
+		goto error_free_auth;
+	
+	
+	/* Now create the devinf handler */
+	SmlDevInf *devinf = smlDevInfNew(&serror);
+	if (!devinf)
+		goto error_free_manager;
+	
+	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
+	if (!env->agent)
+		goto error_free_manager;
+	
+	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
+		goto error_free_manager;
+	
+	
+	/* We now create the ds server hat the given location */
+	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
+	if (!loc)
+		goto error;
+	
+	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
+	if (!env->contactserver)
+		goto error_free_manager;
+		
+	if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
+		goto error_free_auth;
+	
+	smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		
+	/* And we also add the devinfo to the devinf agent */
+	SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(loc, SML_DEVINF_VERSION_11, &serror);
+	if (!datastore)
+		goto error;
+	
+	smlDevInfAddDataStore(devinf, datastore);
+	
+	/* Create the alert for the remote device */
+	if (!env->identifier)
+		env->identifier = g_strdup("LibSyncML Test Suite");
+	
+	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+	functions->prepare = _sessions_prepare;
+	functions->check = _sessions_check;
+	functions->dispatch = _sessions_dispatch;
+	functions->finalize = NULL;
+
+	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(SmlPluginEnv *));
+	SmlPluginEnv **envptr = (SmlPluginEnv **)(source + 1);
+	*envptr = env;
+	g_source_set_callback(source, NULL, env, NULL);
+	g_source_attach(source, env->context);
+
+
+	SmlTransportObexClientConfig config;
+	config.type = SML_OBEX_TYPE_USB;
+	config.port = env->interface;
+
+	/* Run the manager */
+	if (!smlManagerStart(env->manager, &serror))
+		goto error;
+	
+	/* Initialize the Transport */
+	if (!smlTransportInitialize(env->tsp, &config, &serror))
+		goto error;
+	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 
+error_free_auth:
+	smlAuthFree(env->auth);
+error_free_manager:
+	smlManagerFree(env->manager);
 error_free_transport:
 	smlTransportFree(env->tsp);
 error_free_env:
@@ -642,149 +791,50 @@ static void client_connect(OSyncContext *ctx)
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
+	SmlNotification *san = NULL;
 	
-	env->connectCtx = ctx;
-	
-	/* The transport needed to transport the data */
-	env->tsp = smlTransportNew(SML_TRANSPORT_OBEX_CLIENT, &error);
-	if (!env->tsp)
-		goto error;
-	
-	/* The manager responsible for handling the other objects */
-	env->manager = smlManagerNew(env->tsp, &error);
-	if (!env->manager)
-		goto error;
-	smlManagerSetEventCallback(env->manager, _manager_event, env);
-	
-	/* The authenticator */
-	env->auth = smlAuthNew(&error);
-	if (!env->auth)
-		goto error;
-	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
-	
-	if (!env->username)
-		smlAuthSetEnable(env->auth, FALSE);
-	
-	if (!smlAuthRegister(env->auth, env->manager, &error))
-		goto error_free_auth;
-	
-	
-	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(&error);
-	if (!devinf)
-		goto error_free_manager;
-	
-	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &error);
-	if (!env->agent)
-		goto error_free_manager;
-	
-	if (!smlDevInfAgentRegister(env->agent, env->manager, &error))
-		goto error_free_manager;
-	
-	
-	/* We now create the ds server hat the given location */
-	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &error);
-	if (!loc)
-		goto error;
-	
-	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &error);
-	if (!env->contactserver)
-		goto error_free_manager;
+	if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
+		/* For the obex client, we will store the context at this point since
+		 * we can only answer it as soon as the device returned an answer to our san */
+		env->connectCtx = ctx;
 		
-	if (!smlDsServerRegister(env->contactserver, env->manager, &error))
-		goto error_free_auth;
-	
-	smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		/* Create the SAN */
+		san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
+		if (!san)
+			goto error;
 		
-	/* And we also add the devinfo to the devinf agent */
-	SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(loc, SML_DEVINF_VERSION_11, &error);
-	if (!datastore)
-		goto error;
-	
-	smlDevInfAddDataStore(devinf, datastore);
-	
-	/* Create the alert for the remote device */
-	if (!env->identifier)
-		env->identifier = g_strdup("LibSyncML Test Suite");
+		/* Then we add the alert to the SAN */
+		if (!smlDsServerAddSan(env->contactserver, san, &error))
+			goto error_free_san;
 		
-	SmlNotification *san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
-	if (!san)
-		goto error;
-	
-	/* Then we add the alert to the SAN */
-	if (!smlDsServerAddSan(env->contactserver, san, &error))
-		goto error_free_san;
-	
-	GMainContext *context = osync_member_get_loop(env->member);
-	
-	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
-	functions->prepare = _sessions_prepare;
-	functions->check = _sessions_check;
-	functions->dispatch = _sessions_dispatch;
-	functions->finalize = NULL;
-
-	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(SmlPluginEnv *));
-	SmlPluginEnv **envptr = (SmlPluginEnv **)(source + 1);
-	*envptr = env;
-	g_source_set_callback(source, NULL, env, NULL);
-	g_source_attach(source, context);
-
-
-	SmlTransportObexClientConfig config;
-	config.type = SML_OBEX_TYPE_USB;
-	config.port = env->interface;
-
-	/* Run the manager */
-	if (!smlManagerStart(env->manager, &error))
-		goto error;
-	
-	/* Initialize the Transport */
-	if (!smlTransportInitialize(env->tsp, &config, &error))
-		goto error;
-	
-	if (!smlTransportConnect(env->tsp, &error))
-		goto error;
-	
-	if (!smlNotificationSend(san, env->tsp, &error))
-		goto error_free_san;
-	
-	smlNotificationFree(san);
+		if (!smlTransportConnect(env->tsp, &error))
+			goto error;
+		
+		if (!smlNotificationSend(san, env->tsp, &error))
+			goto error_free_san;
+		
+		smlNotificationFree(san);
+	} else if (smlTransportGetType(env->tsp) == SML_TRANSPORT_HTTP_SERVER) {
+		/* For the http server we can report success right away since we know
+		 * that we already received an alert (otherwise we could not have triggered
+		 * the synchronization) */
+		if (env->contactSession)
+			smlDsSessionGetAlert(env->contactSession, _recv_alert, env);
+		
+		osync_context_report_success(ctx);
+	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
 error_free_san:
 	smlNotificationFree(san);
-error_free_auth:
-	smlAuthFree(env->auth);
-error_free_manager:
-	smlManagerFree(env->manager);
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
 	osync_context_report_osyncerror(ctx, &oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
-
-/*static void connect(OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
-	SmlError *error = NULL;
-	OSyncError *oserror = NULL;
-	
-	if (!smlDsServerRequestAlert(env->contactserver, _recv_alert, ctx, &error))
-		goto error;
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-	
-error:
-	//osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
-	smlErrorFree(&error);
-	osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "You cannot start the syncml server directly. plaese use msynctool --sync name --wait");
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-}*/
 
 static void get_changeinfo(OSyncContext *ctx)
 {
@@ -794,8 +844,12 @@ static void get_changeinfo(OSyncContext *ctx)
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 	
+	if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
+		if (env->contactSession)
+			smlDsSessionGetAlert(env->contactSession, _recv_alert, env);
+	}
+	
 	if (env->contactSession) {
-		smlDsSessionGetAlert(env->contactSession, _recv_alert, ctx);
 		smlDsSessionGetSync(env->contactSession, _recv_sync, ctx);
 		smlDsSessionGetChanges(env->contactSession, _recv_change, ctx);
 	}
@@ -873,13 +927,10 @@ static void disconnect(OSyncContext *ctx)
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
 	
+	env->disconnectCtx = ctx;
+	
 	if (!smlSessionEnd(env->session, &error))
 		goto error;
-	
-	if (!smlTransportDisconnect(env->tsp, NULL, &error))
-		goto error;
-	
-	osync_context_report_success(ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -912,11 +963,11 @@ void get_info(OSyncEnv *env)
 {
 	OSyncPluginInfo *info = osync_plugin_new_info(env);
 	
-	/*info->name = "syncml-http-server";
+	info->name = "syncml-http-server";
 	info->longname = "SyncML over HTTP Server";
 	
 	info->functions.initialize = syncml_http_server_init;
-	info->functions.connect = connect;
+	info->functions.connect = client_connect;
 	info->functions.sync_done = sync_done;
 	info->functions.disconnect = disconnect;
 	info->functions.finalize = finalize;
@@ -924,9 +975,9 @@ void get_info(OSyncEnv *env)
 	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "vcard21", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit);
+	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit_vcard);
 	
-	info = osync_plugin_new_info(env);*/
+	info = osync_plugin_new_info(env);
 	
 	info->name = "syncml-obex-client";
 	info->longname = "SyncML over OBEX Client";

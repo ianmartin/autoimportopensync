@@ -35,6 +35,7 @@
 #include <libsyncml/syncml.h>
 
 #include <libsyncml/obex_client.h>
+#include <libsyncml/http_server.h>
 
 #include <libsyncml/sml_auth.h>
 #include <libsyncml/sml_devinf_obj.h>
@@ -59,6 +60,9 @@ typedef struct SmlPluginEnv {
 	SmlBool useStringtable;
 	SmlBool onlyReplace;
 	SmlTransportObexClientType type;
+	unsigned int port;
+	char *url;
+	unsigned int recvLimit;
 	
 	OSyncMember *member;
 	GMainContext *context;
