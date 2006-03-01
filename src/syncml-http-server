@@ -1,1 +1,1 @@
-<config><username></username><password></password><url></url><port>8080</port><usestringtable>1</usestringtable><onlyreplace>0</onlyreplace><contact_db>addressbook</contact_db><calendar_db>calendar</calendar_db><task_db>tasks</task_db></config>
+<config><username></username><password></password><url></url><port>8080</port><usestringtable>1</usestringtable><onlyreplace>0</onlyreplace><recvLimit>0</recvLimit><contact_db>addressbook</contact_db><calendar_db>calendar</calendar_db><task_db>tasks</task_db></config>
