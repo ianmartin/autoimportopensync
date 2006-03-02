@@ -71,8 +71,8 @@ void osync_demarshal_change( OSyncMessage *message, OSyncChange **change )
   osync_message_read_string( message, &( new_change->hash ) );
   osync_message_read_int( message, &( new_change->size ) );
 
-  new_change->data = (void*)malloc( new_change->size );
-  osync_message_read_data( message, ( void* )&(new_change->data), new_change->size );
+  new_change->data = malloc( new_change->size );
+  osync_message_read_data( message, new_change->data, new_change->size );
   osync_message_read_int( message, &( new_change->has_data ) );
   osync_message_read_string( message, &( new_change->objtype_name ) );
   // TODO: find objtype in pool
