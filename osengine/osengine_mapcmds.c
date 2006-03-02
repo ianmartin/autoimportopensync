@@ -560,7 +560,7 @@ void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, 
 	
 	osync_flag_set(entry->fl_dirty);
 	osync_flag_unset(entry->fl_synced);
-	//send_mappingentry_changed(engine, entry);
+	send_mappingentry_changed(engine, entry);
 	
 	osync_flag_set(mapping->fl_solved);
 	send_mapping_changed(engine, mapping);

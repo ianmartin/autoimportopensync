@@ -343,7 +343,7 @@ void osengine_mapping_add_entry(OSyncMapping *mapping, OSyncMappingEntry *entry)
 		osync_flag_attach(entry->fl_has_info, mapping->cmb_has_info);
 		osync_flag_attach(entry->fl_synced, mapping->cmb_synced);
 		osync_flag_attach(entry->fl_deleted, mapping->cmb_deleted);
-		//osync_flag_set_pos_trigger(entry->fl_dirty, (OSyncFlagTriggerFunc)send_mappingentry_changed, mapping->table->engine, entry);
+		osync_flag_set_pos_trigger(entry->fl_dirty, (OSyncFlagTriggerFunc)send_mappingentry_changed, mapping->table->engine, entry);
 	}
 	osync_change_set_mappingid(entry->change, mapping->id);
 	

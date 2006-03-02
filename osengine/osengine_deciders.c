@@ -80,8 +80,8 @@ void osengine_mappingentry_all_deciders(OSyncEngine *engine, OSyncMapping *mappi
 	osync_debug("ENG", 3, "Calling all mappingentry deciders (%i) for mapping %p", g_list_length(mapping->entries), mapping);
 	GList *e;
 	for (e = mapping->entries; e ; e = e->next) {
-		//OSyncMappingEntry *entry = e->data;
-		abort();//send_mappingentry_changed(engine, entry);
+		OSyncMappingEntry *entry = e->data;
+		send_mappingentry_changed(engine, entry);
 	}
 }
 

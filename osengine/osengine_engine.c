@@ -137,6 +137,19 @@ void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
 	/*FIXME: Handle errors here, too */
 }
 
+void send_mappingentry_changed(OSyncEngine *engine, OSyncMappingEntry *entry)
+{
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_MAPPINGENTRY_CHANGED, sizeof(long long)*2, NULL);
+
+	/*FIXME: don't pass a pointer through the messaging system */
+	long long ptr = (long long)(long)entry;
+	osync_message_write_long_long_int(message, ptr);
+	/*FIXME: Handle errors here */
+
+	osync_queue_send_message(engine->commandQueue, NULL, message, NULL);
+	/*FIXME: Handle errors here, too */
+}
+
 /*! @brief The queue message handler of the engine
  * 
  * @param sender The Client who sent this message
@@ -171,8 +184,8 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 			osengine_mapping_all_deciders(engine);
 			GList *u;
 			for (u = engine->maptable->unmapped; u; u = u->next) {
-				//OSyncMappingEntry *unmapped = u->data;
-				abort();//send_mappingentry_changed(engine, unmapped);
+				OSyncMappingEntry *unmapped = u->data;
+				send_mappingentry_changed(engine, unmapped);
 			}
 			break;
 		case OSYNC_MESSAGE_MAPPING_CHANGED:
@@ -188,6 +201,20 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 			}
 			
 			osengine_mapping_decider(engine, mapping);
+		}
+		break;
+		case OSYNC_MESSAGE_MAPPINGENTRY_CHANGED:
+		{
+			long long ptr;
+			osync_message_read_long_long_int(message, &ptr);
+			OSyncMappingEntry *entry = (OSyncMappingEntry*)(long)ptr;
+			
+			if (!g_list_find(engine->maptable->entries, entry) && !g_list_find(engine->maptable->unmapped, entry)) {
+				osync_trace(TRACE_EXIT, "%s: Entry %p is dead", __func__, entry);
+				return;
+			}
+			
+			osengine_mappingentry_decider(engine, entry);
 		}
 		break;
 		default:
