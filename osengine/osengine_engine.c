@@ -457,8 +457,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 		
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
-	//osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
-	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)abort, engine, NULL);
+	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
 
 	engine->fl_sync = osync_flag_new(NULL);
 	engine->fl_stop = osync_flag_new(NULL);
