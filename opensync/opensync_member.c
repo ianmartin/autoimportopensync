@@ -1211,7 +1211,7 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	context->calldata = user_data;
 	
 	
-	OSyncObjType *type = change->objtype;
+	OSyncObjType *type = osync_change_get_objtype(change);
 	
 	/* This is just an optmization:
 	 *
