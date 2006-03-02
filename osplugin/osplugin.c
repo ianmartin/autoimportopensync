@@ -247,8 +247,10 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx->pp = pp;
     	ctx->message = message;
     	osync_message_ref(message);
-  		//OSyncChange *change = itm_message_get_data(message, "change");
-	  	osync_member_commit_change(member, NULL, (OSyncEngCallback)message_callback, ctx);
+		OSyncChange *change;
+  		osync_demarshal_change(message, &change);
+		osync_change_set_member(change, member);
+	  	osync_member_commit_change(member, change, (OSyncEngCallback)message_callback, ctx);
 		  osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_SYNC_DONE:
