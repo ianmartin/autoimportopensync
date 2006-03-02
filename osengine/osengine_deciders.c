@@ -226,7 +226,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	|| osync_flag_is_set(engine->fl_stop)) \
 	&& osync_flag_is_set(client->fl_connected)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Disconnecting (Client %p) ++++", client);
-		abort();//send_disconnect(client, engine);
+		osync_client_disconnect(client, engine, NULL);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}

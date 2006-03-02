@@ -139,10 +139,12 @@ void _committed_all_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void _disconnect_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _disconnect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 {
-	osync_trace(TRACE_ENTRY, "_disconnect_reply_receiver(%p, %p, %p)", sender, message, engine);
+	osync_trace(TRACE_ENTRY, "_disconnect_reply_receiver(%p, %p)", message, sender);
 	
+	OSyncEngine *engine = sender->engine;
+
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
 		osync_debug("ENG", 1, "Sync done command reply was a error: %s", osync_error_print(&error));
@@ -507,16 +509,33 @@ error:
 	return FALSE;
 }
 
-/*
-void osync_client_disconnect(OSyncClient *target, OSyncEngine *sender)
+osync_bool osync_client_disconnect(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, target, sender);
+
 	osync_flag_changing(target->fl_connected);
-	OSyncMessage *message = osync_message_new_methodcall(sender, "DISCONNECT");
-	osync_message_set_handler(message, sender->incoming, (OSyncMessageHandler)_disconnect_reply_receiver, sender);
+
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_DISCONNECT, 0, error);
+	if (!message)
+		goto error;
+		
+	osync_message_set_handler(message, (OSyncMessageHandler)_disconnect_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	osync_queue_send_with_timeout(target->incoming, message, timeouts.disconnect_timeout, target);
-}*/
+	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.disconnect_timeout, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
 
 
 /*
