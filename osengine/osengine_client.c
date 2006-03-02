@@ -212,7 +212,7 @@ void _read_change_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSy
 void _commit_change_reply_receiver(OSyncMessage *message, OSyncMappingEntry *entry)
 {
 	osync_trace(TRACE_ENTRY, "_commit_change_reply_receiver(%p, %p)", message, entry);
-	OSyncEngine *engine = entry->mapping->engine;
+	OSyncEngine *engine = entry->client->engine;
 
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
