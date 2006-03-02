@@ -151,8 +151,8 @@ void osengine_mapping_all_deciders(OSyncEngine *engine)
 	GList *m;
 	osync_trace(TRACE_INTERNAL, "Calling all mapping deciders (%i)", g_list_length(engine->maptable->mappings));
 	for (m = engine->maptable->mappings; m; m = m->next) {
-		//OSyncMapping *mapping = m->data;
-		abort();//send_mapping_changed(engine, mapping);
+		OSyncMapping *mapping = m->data;
+		send_mapping_changed(engine, mapping);
 	}
 }
 

@@ -231,7 +231,7 @@ void osengine_mapping_check_conflict(OSyncEngine *engine, OSyncMapping *mapping)
 		osync_flag_set(mapping->fl_multiplied);
 	}
 
-	//send_mapping_changed(engine, mapping);
+	send_mapping_changed(engine, mapping);
 	osync_trace(TRACE_EXIT, "%s: No conflict", __func__);
 }
 
@@ -339,7 +339,7 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		osync_flag_set(new_mapping->fl_chkconflict);
 		osync_flag_unset(new_mapping->fl_multiplied);
 		osync_flag_set(new_mapping->fl_solved);
-		//send_mapping_changed(engine, new_mapping);
+		send_mapping_changed(engine, new_mapping);
 		osync_debug("MAP", 3, "Created new mapping for duplication %p with mappingid %lli", new_mapping, new_mapping->id);
 		
 		/* Now we copy the change that differs, and set it as the master of the new
@@ -380,12 +380,12 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		osync_change_set_changetype(first_diff_entry->change, CHANGE_UNKNOWN);
 
 		//We can now add the new mapping into the queue so it get processed
-		//send_mapping_changed(engine, new_mapping);
+		send_mapping_changed(engine, new_mapping);
 	}
 
 	//Multiply our original mapping
 	osync_flag_set(dupe_mapping->fl_solved);
-	//send_mapping_changed(engine, dupe_mapping);
+	send_mapping_changed(engine, dupe_mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_duplicate");
 }
 
@@ -404,7 +404,7 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
 	OSyncMappingEntry *entry = osengine_mapping_find_entry(mapping, change, NULL);
 	mapping->master = entry;
 	osync_flag_set(mapping->fl_solved);
-	//send_mapping_changed(engine, mapping);
+	send_mapping_changed(engine, mapping);
 	osync_trace(TRACE_EXIT, "osengine_mapping_solve");
 }
 
@@ -487,7 +487,7 @@ osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapp
 	}
 	
 	osync_flag_set(mapping->fl_solved);
-	//send_mapping_changed(engine, mapping);
+	send_mapping_changed(engine, mapping);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, mapping->master);
 	return TRUE;
@@ -563,7 +563,7 @@ void osengine_mapping_solve_updated(OSyncEngine *engine, OSyncMapping *mapping, 
 	//send_mappingentry_changed(engine, entry);
 	
 	osync_flag_set(mapping->fl_solved);
-	//send_mapping_changed(engine, mapping);
+	send_mapping_changed(engine, mapping);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

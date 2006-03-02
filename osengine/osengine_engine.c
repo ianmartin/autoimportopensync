@@ -127,6 +127,16 @@ void send_engine_changed(OSyncEngine *engine)
 	osync_queue_send_message(engine->commandQueue, NULL, message, NULL);
 }
 
+void send_mapping_changed(OSyncEngine *engine, OSyncMapping *mapping)
+{
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_MAPPING_CHANGED, sizeof(long long), NULL);
+	osync_message_write_long_long_int(message, mapping->id);
+	/*FIXME: Handle errors here */
+
+	osync_queue_send_message(engine->commandQueue, NULL, message, NULL);
+	/*FIXME: Handle errors here, too */
+}
+
 /*! @brief The queue message handler of the engine
  * 
  * @param sender The Client who sent this message

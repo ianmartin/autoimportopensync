@@ -291,7 +291,7 @@ OSyncMapping *osengine_mapping_new(OSyncMappingTable *table)
 		osync_flag_set(mapping->fl_multiplied);
 		
 		mapping->cmb_has_data = osync_comb_flag_new(FALSE, FALSE);
-		//osync_flag_set_pos_trigger(mapping->cmb_has_data, (OSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
+		osync_flag_set_pos_trigger(mapping->cmb_has_data, (OSyncFlagTriggerFunc)send_mapping_changed, table->engine, mapping);
 		
 		mapping->cmb_has_info = osync_comb_flag_new(FALSE, FALSE);
 		
