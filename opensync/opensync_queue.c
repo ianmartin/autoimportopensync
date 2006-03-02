@@ -62,7 +62,7 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 			GList *p = NULL;
 			for (p = queue->pendingReplies; p; p = p->next) {
 				OSyncMessage *pending = p->data;
-				osync_trace(TRACE_INTERNAL, "Still pending is %lli %i", message->id1, message->id2);
+				osync_trace(TRACE_INTERNAL, "Still pending is %lli %i", pending->id1, pending->id2);
 				if (pending->id1 == message->id1 && pending->id2 == message->id2) {
 					/* Found the pending reply */
 					if (!pending->callback) {
