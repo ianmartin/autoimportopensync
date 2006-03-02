@@ -209,11 +209,11 @@ void _read_change_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSy
 	osync_trace(TRACE_EXIT, "_read_change_reply_receiver");
 }
 
-void _commit_change_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _commit_change_reply_receiver(OSyncMessage *message, OSyncMappingEntry *entry)
 {
-	osync_trace(TRACE_ENTRY, "_commit_change_reply_receiver(%p, %p, %p)", sender, message, engine);
-	/*OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
-	
+	osync_trace(TRACE_ENTRY, "_commit_change_reply_receiver(%p, %p)", message, entry);
+	OSyncEngine *engine = entry->mapping->engine;
+
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
 		osync_error_duplicate(&engine->error, &error);
@@ -241,7 +241,7 @@ void _commit_change_reply_receiver(OSyncClient *sender, OSyncMessage *message, O
 	OSyncError *error = NULL;
 	osync_change_save(entry->change, TRUE, &error);
 	
-	osengine_mappingentry_decider(engine, entry);*/
+	osengine_mappingentry_decider(engine, entry);
 	osync_trace(TRACE_EXIT, "_commit_change_reply_receiver");
 }
 
@@ -432,26 +432,36 @@ error:
 	return FALSE;
 }
 
-/*void osync_client_commit_change(OSyncEngine *sender, OSyncMappingEntry *entry)
+osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, OSyncMappingEntry *entry, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sender, entry);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, target, sender, entry);
 	osync_trace(TRACE_INTERNAL, "Committing change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(entry->change), osync_change_get_changetype(entry->change), osync_change_get_data(entry->change), osync_change_get_datasize(entry->change), osync_change_get_objtype(entry->change) ? osync_objtype_get_name(osync_change_get_objtype(entry->change)) : "None", osync_change_get_objformat(entry->change) ? osync_objformat_get_name(osync_change_get_objformat(entry->change)) : "None", osync_member_get_id(entry->client->member));
 	
 	osync_flag_changing(entry->fl_dirty);
-	OSyncMessage *message = osync_message_new_methodcall(sender, "COMMIT_CHANGE");
-	osync_message_set_data(message, "change", entry->change);
-	osync_message_set_data(message, "entry", entry);
-	osync_message_set_handler(message, sender->incoming, (OSyncMessageHandler)_commit_change_reply_receiver, sender);
-	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMIT_CHANGE, 0, error);
+	if (!message)
+		goto error;
+
+	osync_marshal_change(message, entry->change);
+
+	osync_message_set_handler(message, (OSyncMessageHandler)_commit_change_reply_receiver, entry);
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
-	osync_queue_send_with_timeout(entry->client->incoming, message, timeouts.commit_timeout, sender);
 	
+	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.commit_timeout, error))
+		goto error_free_message;
+
+	osync_message_unref(message);
+
 	g_assert(osync_flag_is_attached(entry->fl_committed) == TRUE);
 	osync_flag_detach(entry->fl_committed);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
-*/
 
 osync_bool osync_client_sync_done(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {

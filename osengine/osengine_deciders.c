@@ -65,7 +65,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 		}
 		if (osync_flag_is_set(entry->fl_dirty)) {
 			osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Commiting (Entry %p) ++++", entry);
-			abort();//send_commit_change(engine, entry);
+			osync_client_commit_change(entry->client, engine, entry, NULL);
 			osync_trace(TRACE_EXIT, "osengine_mappingentry_decider");
 			return;
 		}
