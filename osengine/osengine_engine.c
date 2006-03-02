@@ -156,6 +156,15 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 			
 			_new_change_receiver(engine, sender, change);
 			break;
+		case OSYNC_MESSAGE_ENGINE_CHANGED:
+			osengine_client_all_deciders(engine);
+			osengine_mapping_all_deciders(engine);
+			GList *u;
+			for (u = engine->maptable->unmapped; u; u = u->next) {
+				//OSyncMappingEntry *unmapped = u->data;
+				abort();//send_mappingentry_changed(engine, unmapped);
+			}
+			break;
 		default:
 			break;
 	}
