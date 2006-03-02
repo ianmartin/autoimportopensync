@@ -165,6 +165,21 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 				abort();//send_mappingentry_changed(engine, unmapped);
 			}
 			break;
+		case OSYNC_MESSAGE_MAPPING_CHANGED:
+		{
+			long long id;
+			osync_message_read_long_long_int(message, &id);
+			/*FIXME: check errors by read_long_long_int */
+			OSyncMapping *mapping = osengine_mappingtable_mapping_from_id(engine->maptable, id);
+			
+			if (!g_list_find(engine->maptable->mappings, mapping)) {
+				osync_trace(TRACE_EXIT, "%s: Mapping %p is dead", __func__, mapping);
+				return;
+			}
+			
+			osengine_mapping_decider(engine, mapping);
+		}
+		break;
 		default:
 			break;
 	}
