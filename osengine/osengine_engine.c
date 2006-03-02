@@ -236,7 +236,7 @@ static void trigger_clients_sent_changes(OSyncEngine *engine)
 	//Load the old mappings
 	osengine_mappingtable_inject_changes(engine->maptable);
 	
-	//send_engine_changed(engine);
+	abort();//send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -244,7 +244,7 @@ static void trigger_clients_read_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
-	//send_engine_changed(engine);
+	abort();//send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -439,6 +439,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	//Set the default start flags
 	engine->fl_running = osync_flag_new(NULL);
 	//osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
+	osync_flag_set_pos_trigger(engine->fl_running, (OSyncFlagTriggerFunc)abort, engine, NULL);
+
 	engine->fl_sync = osync_flag_new(NULL);
 	engine->fl_stop = osync_flag_new(NULL);
 	osync_flag_set_pos_trigger(engine->fl_stop, (OSyncFlagTriggerFunc)osengine_client_all_deciders, engine, NULL);
@@ -452,9 +454,13 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	
 	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE, FALSE);
 	//osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)abort, engine, NULL);
+
 	
 	engine->cmb_synced = osync_comb_flag_new(FALSE, TRUE);
 	//osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)abort, engine, NULL);
+
 	
 	engine->cmb_finished = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_finished, (OSyncFlagTriggerFunc)osengine_reset, engine, NULL);
@@ -469,6 +475,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	
 	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
 	//osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)abort, engine, NULL);
+
 
 	engine->cmb_committed_all_sent = osync_comb_flag_new(FALSE, TRUE);
 	osync_flag_set_pos_trigger(engine->cmb_committed_all_sent, (OSyncFlagTriggerFunc)trigger_clients_comitted_all, engine, NULL);
@@ -772,7 +780,7 @@ void osengine_finalize(OSyncEngine *engine)
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		//OSyncClient *client = c->data;
-		//osync_client_finalize(client);
+		abort();//osync_client_finalize(client);
 	}
 	
 	osengine_mappingtable_close(engine->maptable);
@@ -982,7 +990,7 @@ void osengine_wait_info_end(OSyncEngine *engine)
  */
 void osengine_one_iteration(OSyncEngine *engine)
 {
-	//osync_queue_dispatch(engine->incoming);
+	abort();//osync_queue_dispatch(engine->incoming);
 }
 
 /*! @brief Searches for a mapping by its id
