@@ -46,7 +46,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 	&& osync_flag_is_set(entry->fl_has_info) \
 	&& osync_flag_is_not_set(entry->fl_has_data)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Get data (Entry %p) ++++", entry);
-		//send_get_change_data(engine, entry);
+		abort();//send_get_change_data(engine, entry);
 		osync_trace(TRACE_EXIT, "osengine_mappingentry_decider");
 		return;
 	}
@@ -65,7 +65,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 		}
 		if (osync_flag_is_set(entry->fl_dirty)) {
 			osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Commiting (Entry %p) ++++", entry);
-			//send_commit_change(engine, entry);
+			abort();//send_commit_change(engine, entry);
 			osync_trace(TRACE_EXIT, "osengine_mappingentry_decider");
 			return;
 		}
@@ -81,7 +81,7 @@ void osengine_mappingentry_all_deciders(OSyncEngine *engine, OSyncMapping *mappi
 	GList *e;
 	for (e = mapping->entries; e ; e = e->next) {
 		//OSyncMappingEntry *entry = e->data;
-		//send_mappingentry_changed(engine, entry);
+		abort();//send_mappingentry_changed(engine, entry);
 	}
 }
 
@@ -152,7 +152,7 @@ void osengine_mapping_all_deciders(OSyncEngine *engine)
 	osync_trace(TRACE_INTERNAL, "Calling all mapping deciders (%i)", g_list_length(engine->maptable->mappings));
 	for (m = engine->maptable->mappings; m; m = m->next) {
 		//OSyncMapping *mapping = m->data;
-		//send_mapping_changed(engine, mapping);
+		abort();//send_mapping_changed(engine, mapping);
 	}
 }
 
@@ -200,7 +200,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_set(engine->cmb_entries_mapped) \
 	&& osync_flag_is_set(engine->cmb_committed_all)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Committed all (Client %p) ++++", client);
-		//send_committed_all(client, engine);
+		abort();//send_committed_all(client, engine);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}
@@ -216,7 +216,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_set(engine->cmb_synced) \
 	&& osync_flag_is_set(engine->cmb_entries_mapped)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Sync done (Client %p) ++++", client);
-		//send_sync_done(client, engine);
+		abort();//send_sync_done(client, engine);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}
@@ -226,7 +226,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	|| osync_flag_is_set(engine->fl_stop)) \
 	&& osync_flag_is_set(client->fl_connected)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Disconnecting (Client %p) ++++", client);
-		//send_disconnect(client, engine);
+		abort();//send_disconnect(client, engine);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}
