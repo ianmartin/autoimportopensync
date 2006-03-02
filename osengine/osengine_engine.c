@@ -117,6 +117,16 @@ OSyncClient *osengine_get_client(OSyncEngine *engine, long long int memberId)
 	return NULL;
 }
 
+
+void send_engine_changed(OSyncEngine *engine)
+{
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_ENGINE_CHANGED, 0, NULL);
+	/*FIXME: Handle errors here */
+
+	osync_debug("ENG", 4, "Sending message %p:\"ENGINE_CHANGED\"", message);
+	osync_queue_send_message(engine->commandQueue, NULL, message, NULL);
+}
+
 /*! @brief The queue message handler of the engine
  * 
  * @param sender The Client who sent this message
@@ -236,7 +246,7 @@ static void trigger_clients_sent_changes(OSyncEngine *engine)
 	//Load the old mappings
 	osengine_mappingtable_inject_changes(engine->maptable);
 	
-	abort();//send_engine_changed(engine);
+	send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -244,7 +254,7 @@ static void trigger_clients_read_all(OSyncEngine *engine)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 
-	abort();//send_engine_changed(engine);
+	send_engine_changed(engine);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -453,13 +463,11 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	osync_flag_set_pos_trigger(engine->cmb_read_all, (OSyncFlagTriggerFunc)trigger_clients_read_all, engine, NULL);
 	
 	engine->cmb_entries_mapped = osync_comb_flag_new(FALSE, FALSE);
-	//osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
-	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)abort, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_entries_mapped, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 
 	
 	engine->cmb_synced = osync_comb_flag_new(FALSE, TRUE);
-	//osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
-	osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)abort, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_synced, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 
 	
 	engine->cmb_finished = osync_comb_flag_new(FALSE, TRUE);
@@ -474,8 +482,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	engine->cmb_multiplied = osync_comb_flag_new(FALSE, TRUE);
 	
 	engine->cmb_committed_all = osync_comb_flag_new(FALSE, TRUE);
-	//osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
-	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)abort, engine, NULL);
+	osync_flag_set_pos_trigger(engine->cmb_committed_all, (OSyncFlagTriggerFunc)send_engine_changed, engine, NULL);
 
 
 	engine->cmb_committed_all_sent = osync_comb_flag_new(FALSE, TRUE);
