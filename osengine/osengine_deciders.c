@@ -216,7 +216,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_set(engine->cmb_synced) \
 	&& osync_flag_is_set(engine->cmb_entries_mapped)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Sync done (Client %p) ++++", client);
-		abort();//send_sync_done(client, engine);
+		osync_client_sync_done(client, engine, NULL);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}

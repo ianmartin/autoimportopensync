@@ -100,9 +100,11 @@ void _connect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	osync_trace(TRACE_EXIT, "_connect_reply_receiver");
 }
 
-void _sync_done_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _sync_done_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 {
-	osync_trace(TRACE_ENTRY, "_sync_done_reply_receiver(%p, %p, %p)", sender, message, engine);
+	osync_trace(TRACE_ENTRY, "_sync_done_reply_receiver(%p, %p)", message, sender);
+
+	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
@@ -447,17 +449,34 @@ error:
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+*/
 
-void osync_client_sync_done(OSyncClient *target, OSyncEngine *sender)
+osync_bool osync_client_sync_done(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, target, sender, error);
+
 	osync_flag_changing(target->fl_done);
-	OSyncMessage *message = osync_message_new_methodcall(sender, "SYNC_DONE");
-	osync_message_set_handler(message, sender->incoming, (OSyncMessageHandler)_sync_done_reply_receiver, sender);
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_SYNC_DONE, 0, error);
+	if (!message)
+		goto error;
+
+	osync_message_set_handler(message, (OSyncMessageHandler)_sync_done_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	osync_queue_send_with_timeout(target->incoming, message, timeouts.sync_done_timeout, target);
+	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.sync_done_timeout, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
-*/
 
 osync_bool osync_client_committed_all(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {
