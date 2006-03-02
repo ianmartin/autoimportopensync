@@ -85,7 +85,7 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 					return TRUE;
 				}
 			}
-			printf("Unable to find pending message for id %lli %i\n", message->id1, message->id2);
+			osync_trace(TRACE_INTERNAL, "Unable to find pending message for id %lli %i\n", message->id1, message->id2);
 		} else {
 			if (!queue->message_handler) {
 				printf("you have to setup a message handler for the queue!\n");
