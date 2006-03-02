@@ -264,11 +264,11 @@ void message_handler(OSyncMessage *message, void *user_data)
 	  	osync_member_get_change_data(member, change, (OSyncEngCallback)message_callback, message);
 		  osync_trace(TRACE_EXIT, "message_handler");
       break;*/
-  	/*case OSYNC_MESSAGE_COMMITTED_ALL:
+  	case OSYNC_MESSAGE_COMMITTED_ALL:
   		osync_member_committed_all(member, (OSyncEngCallback)message_callback, message);
 	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
-  	case OSYNC_MESSAGE_READ_CHANGE:
+  	/*case OSYNC_MESSAGE_READ_CHANGE:
       osync_demarshal_change( queue, &change, &error );
 	  	osync_member_read_change(client->member, change, (OSyncEngCallback)message_callback, message);
 		  osync_trace(TRACE_EXIT, "message_handler");
