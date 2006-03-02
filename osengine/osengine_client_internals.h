@@ -36,3 +36,5 @@ void osync_client_reset(OSyncClient *client);
 
 osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
 osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_committed_all(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+

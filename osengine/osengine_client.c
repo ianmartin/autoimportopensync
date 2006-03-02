@@ -117,9 +117,11 @@ void _sync_done_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSync
 	osync_trace(TRACE_EXIT, "_sync_done_reply_receiver");
 }
 
-void _committed_all_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _committed_all_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sender, message, engine);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, sender);
+
+	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
 		OSyncError *error = osync_message_get_error(message);
@@ -455,17 +457,38 @@ void osync_client_sync_done(OSyncClient *target, OSyncEngine *sender)
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
 	osync_queue_send_with_timeout(target->incoming, message, timeouts.sync_done_timeout, target);
 }
+*/
 
-void osync_client_committed_all(OSyncClient *target, OSyncEngine *sender)
+osync_bool osync_client_committed_all(OSyncClient *target, OSyncEngine *sender, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "%s(%p, %p)", __func__, target, sender);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, target, sender);
+
 	osync_flag_changing(target->fl_committed_all);
-	OSyncMessage *message = osync_message_new_methodcall(sender, "COMMITTED_ALL");
-	osync_message_set_handler(message, sender->incoming, (OSyncMessageHandler)_committed_all_reply_receiver, sender);
+
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMITTED_ALL, 0, error);
+	if (!message)
+		goto error;
+		
+	osync_message_set_handler(message, (OSyncMessageHandler)_committed_all_reply_receiver, target);
 	
-	osync_queue_send(target->incoming, message);
+	//OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	/*FIXME: Add timeout to committed_all message */
+	if (!osync_queue_send_message(target->incoming, sender->incoming, message, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
+/*
 void osync_client_disconnect(OSyncClient *target, OSyncEngine *sender)
 {
 	osync_flag_changing(target->fl_connected);

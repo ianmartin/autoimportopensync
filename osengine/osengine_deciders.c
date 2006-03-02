@@ -200,7 +200,7 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 	&& osync_flag_is_set(engine->cmb_entries_mapped) \
 	&& osync_flag_is_set(engine->cmb_committed_all)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Committed all (Client %p) ++++", client);
-		abort();//send_committed_all(client, engine);
+		osync_client_committed_all(client, engine, NULL);
 		osync_trace(TRACE_EXIT, "osengine_client_decider");
 		return;
 	}
