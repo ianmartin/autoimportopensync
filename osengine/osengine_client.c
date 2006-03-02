@@ -456,6 +456,8 @@ osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, 
 	osync_flag_detach(entry->fl_committed);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
 error_free_message:
 	osync_message_unref(message);
 error:
