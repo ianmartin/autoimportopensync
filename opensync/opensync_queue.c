@@ -163,16 +163,16 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 	OSyncMessage *message = g_async_queue_try_pop(queue->outgoing);
 	if (message) {
 		if (!_osync_queue_write_int(queue, message->buffer->len + osync_marshal_get_size_message(message)))
-			return FALSE;
+			goto error;
 		
 		if (!_osync_queue_write_int(queue, message->cmd))
-			return FALSE;
+			goto error;
 		
 		if (!_osync_queue_write_long_long_int(queue, message->id1))
-			return FALSE;
+			goto error;
 			
 		if (!_osync_queue_write_int(queue, message->id2))
-			return FALSE;
+			goto error;
 			
 		int sent = 0;
 		do {
@@ -181,6 +181,10 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 		
 		osync_message_unref(message);
 	}
+	return TRUE;
+error:
+	/*FIXME: how to handle errors here? */
+	osync_trace(TRACE_INTERNAL, "%s: error sending message", __func__);
 	return TRUE;
 }
 
