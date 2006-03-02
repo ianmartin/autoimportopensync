@@ -51,11 +51,14 @@ void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
 
   // TODO: check for plain/struct
 
+  char *format_name = change->format ? change->format->name : change->format_name;
+  char *objtype_name = change->objtype ? change->objtype->name : change->objtype_name;
+  char *initial_format_name = change->initial_format ? change->initial_format->name : change->initial_format_name;
   osync_message_write_data( message, change->data, change->size );
   osync_message_write_int( message, change->has_data );
-  osync_message_write_string( message, change->objtype_name );
-  osync_message_write_string( message, change->format_name );
-  osync_message_write_string( message, change->initial_format_name );
+  osync_message_write_string( message, objtype_name );
+  osync_message_write_string( message, format_name );
+  osync_message_write_string( message, initial_format_name );
   osync_marshal_changetype( message, change->changetype );
   osync_message_write_long_long_int( message, change->id );
   osync_message_write_string( message, change->destobjtype );
