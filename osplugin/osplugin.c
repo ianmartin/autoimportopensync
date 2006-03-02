@@ -243,16 +243,28 @@ void message_handler(OSyncMessage *message, void *user_data)
 	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_COMMIT_CHANGE:
+    	ctx = malloc(sizeof(context));
+    	ctx->pp = pp;
+    	ctx->message = message;
+    	osync_message_ref(message);
   		//OSyncChange *change = itm_message_get_data(message, "change");
-	  	osync_member_commit_change(member, NULL, (OSyncEngCallback)message_callback, message);
+	  	osync_member_commit_change(member, NULL, (OSyncEngCallback)message_callback, ctx);
 		  osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_SYNC_DONE:
-  		osync_member_sync_done(member, (OSyncEngCallback)message_callback, message);
+    	ctx = malloc(sizeof(context));
+    	ctx->pp = pp;
+    	ctx->message = message;
+    	osync_message_ref(message);
+  		osync_member_sync_done(member, (OSyncEngCallback)message_callback, ctx);
 	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_DISCONNECT:
-  		osync_member_disconnect(member, (OSyncEngCallback)message_callback, message);
+    	ctx = malloc(sizeof(context));
+    	ctx->pp = pp;
+    	ctx->message = message;
+    	osync_message_ref(message);
+  		osync_member_disconnect(member, (OSyncEngCallback)message_callback, ctx);
 	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_REPLY:
@@ -265,7 +277,11 @@ void message_handler(OSyncMessage *message, void *user_data)
 		  osync_trace(TRACE_EXIT, "message_handler");
       break;*/
   	case OSYNC_MESSAGE_COMMITTED_ALL:
-  		osync_member_committed_all(member, (OSyncEngCallback)message_callback, message);
+    	ctx = malloc(sizeof(context));
+    	ctx->pp = pp;
+    	ctx->message = message;
+    	osync_message_ref(message);
+  		osync_member_committed_all(member, (OSyncEngCallback)message_callback, ctx);
 	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
   	/*case OSYNC_MESSAGE_READ_CHANGE:
