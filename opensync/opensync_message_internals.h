@@ -54,7 +54,7 @@ typedef struct timeout_info {
  * 
  */
 struct OSyncMessage {
-	unsigned int refCount;
+	gint refCount;
 	/** The type of this message */
 	OSyncMessageCommand cmd;
 	/** The name of the message*/
