@@ -53,6 +53,8 @@ void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler hand
 osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, OSyncError **error);
 osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, int timeout, OSyncError **error);
 
+osync_bool osync_queue_start_thread(OSyncQueue *queue, OSyncError **error);
+
 void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context);
 osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error);
 
