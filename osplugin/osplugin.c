@@ -227,6 +227,23 @@ void message_handler(OSyncMessage *message, void *user_data)
 			
 			printf("done sending to engine\n");
 			break;
+	case OSYNC_MESSAGE_FINALIZE:
+		/** Initialize plugin **/
+		osync_member_finalize(pp->member);
+		
+		reply = osync_message_new_reply(message, NULL);
+		if (!reply) {
+			printf("Unable to make new reply\n");
+			exit(1);
+		}
+			
+		if (!osync_queue_send_message(pp->outgoing, NULL, reply, NULL)) {
+			printf("Unable to make send reply\n");
+			exit(1);
+		}
+		
+		printf("done sending to engine\n");
+	break;
     case OSYNC_MESSAGE_CONNECT:
     	ctx = malloc(sizeof(context));
     	ctx->pp = pp;
