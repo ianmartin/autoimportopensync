@@ -18,11 +18,11 @@ PKG_CHECK_MODULES(PACKAGE, [$pkg_modules], , AC_MSG_ERROR(GLib >= 2.0 and opensy
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
-PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_10], EDSFOUND=1, [EDSFOUND=0])
+PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_12], EDSFOUND=1, [EDSFOUND=0])
 if test "x${EDSFOUND}" = "x0"; then
 	PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_11], EDSFOUND=1, [EDSFOUND=0])
 	if test "x${EDSFOUND}" = "x0"; then
-		PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_12],,AC_MSG_ERROR(No compatible evolution-data-server was found))
+		PKG_CHECK_MODULES(EPACKAGE, [$pkg_emodules_10],,AC_MSG_ERROR(No compatible evolution-data-server was found))
 	fi
 fi
 
