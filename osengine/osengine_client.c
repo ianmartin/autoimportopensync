@@ -26,6 +26,10 @@
 
 #include "engine_internals.h"
 #include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
  
 /*! @brief This function can be used to receive GET_ENTRY command replies
  * 
@@ -632,6 +636,38 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 
 error_free_reply:
 	osync_message_unref(reply);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+osync_bool osync_client_finalize(OSyncClient *client, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, client, error);
+
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_FINALIZE, 0, error);
+	if (!message)
+		goto error;
+
+	if (!osync_queue_send_message(client->incoming, NULL, message, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+
+	int status;
+	if (waitpid(client->child_pid, &status, 0) == -1)
+		goto error;
+
+	if (!WIFEXITED(status))
+		osync_trace(TRACE_INTERNAL, "Child has exited abnormally");
+	else if (WEXITSTATUS(status) != 0)
+		osync_trace(TRACE_INTERNAL, "Child has returned non-zero exit status (%d)", WEXITSTATUS(status));
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+    return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }

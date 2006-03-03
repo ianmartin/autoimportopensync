@@ -30,7 +30,7 @@ OSyncEngine *osync_client_get_engine(OSyncClient *client);
 void osync_client_call_plugin(OSyncClient *client, char *function, void *data, OSyncPluginReplyHandler replyhandler, void *userdata);
 
 osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncError **error);
-void osync_client_finalize(OSyncClient *client);
+osync_bool osync_client_finalize(OSyncClient *client, OSyncError **error);
 OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client);
 void osync_client_reset(OSyncClient *client);
 

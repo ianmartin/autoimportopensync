@@ -846,9 +846,8 @@ void osengine_finalize(OSyncEngine *engine)
 	
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
-		//OSyncClient *client = c->data;
-		//TODO: implement osync_client_finalize()
-		//abort();//osync_client_finalize(client);
+		OSyncClient *client = c->data;
+		osync_client_finalize(client, NULL);
 	}
 	
 	osengine_mappingtable_close(engine->maptable);
