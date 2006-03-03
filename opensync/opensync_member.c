@@ -1492,49 +1492,4 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 	return TRUE;
 }
 
-void osync_member_accept_objtype(OSyncMember *member, const char *objtypestr)
-{
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(member->plugin, objtypestr);
-  OSyncObjTypeSink *sink = osync_objtype_sink_from_template(member->group, template);
-
-  member->objtype_sinks = g_list_append(member->objtype_sinks, sink);
-}
-
-void osync_member_accept_objformat(OSyncMember *member, const char *objtypestr, const char *formatstr, const char *extension)
-{
-	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(member->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
-
-  OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-	OSyncObjFormatSink *sink = osync_objformat_sink_from_template(member->group, format_template);
-
-  member->format_sinks = g_list_append(member->format_sinks, sink);
-}
-
-void osync_member_clear_accepted_types(OSyncMember *member)
-{
-  int i;
-
-  for (i = 0; i < g_list_length(member->objtype_sinks); ++i)
-    osync_objtypesink_free(g_list_nth_data(member->objtype_sinks, i));
-  g_list_free(member->objtype_sinks);
-
-  for (i = 0; i < g_list_length(member->format_sinks); ++i)
-    osync_objtypesink_free(g_list_nth_data(member->format_sinks, i));
-  g_list_free(member->format_sinks);
-}
-
-void osync_objtypesink_free(OSyncObjTypeSink *sink)
-{
-  g_list_free(sink->formatsinks);
-  g_list_free(sink->properties);
-}
-
-void osync_objformatsink_free(OSyncObjFormatSink *sink)
-{
-  g_free(sink->extension_name);
-  g_list_free(sink->commit_changes);
-  g_list_free(sink->commit_contexts);
-}
-
 /*@}*/
