@@ -495,8 +495,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	if (!user)
 		return NULL;
 	char *path = g_strdup_printf("%s/engines/enginepipe", osync_user_get_confdir(user));
-	engine->incoming = osync_queue_new(path, TRUE, error);
-	engine->commandQueue = osync_queue_new(path, TRUE, error);
+	engine->incoming = osync_queue_new(path, FALSE, error);
+	engine->commandQueue = osync_queue_new(path, FALSE, error);
 	if (!engine->incoming || !engine->commandQueue)
 		return NULL;
 	
@@ -744,10 +744,6 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 			break;
 	}
 	
-	if (!(engine->man_dispatch))
-		osync_queue_setup_with_gmainloop(engine->incoming, engine->context);
-	osync_queue_set_message_handler(engine->incoming, (OSyncMessageHandler)engine_message_handler, engine);
-	
 	osync_flag_set(engine->cmb_entries_mapped);
 	osync_flag_set(engine->cmb_synced);
 	engine->allow_sync_alert = TRUE;
@@ -776,6 +772,22 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 			osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 			return FALSE;
 		}
+	}
+	
+	osync_queue_set_message_handler(engine->incoming, (OSyncMessageHandler)engine_message_handler, engine);
+	if (!(engine->man_dispatch))
+		osync_queue_setup_with_gmainloop(engine->incoming, engine->context);
+
+	if (!osync_queue_start_thread(engine->incoming, error)) {
+		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
+		return FALSE;
+	}
+
+	if (!osync_queue_start_thread(engine->commandQueue, error)) {
+		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
+		return FALSE;
 	}
 	
 	printf("opening engine queue\n");
