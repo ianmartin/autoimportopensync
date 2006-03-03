@@ -228,7 +228,6 @@ void message_handler(OSyncMessage *message, void *user_data)
 			printf("done sending to engine\n");
 			break;
 	case OSYNC_MESSAGE_FINALIZE:
-		/** Initialize plugin **/
 		osync_member_finalize(pp->member);
 		
 		reply = osync_message_new_reply(message, NULL);
@@ -241,8 +240,10 @@ void message_handler(OSyncMessage *message, void *user_data)
 			printf("Unable to make send reply\n");
 			exit(1);
 		}
-		
-		printf("done sending to engine\n");
+
+		/*FIXME: how to wait for a message to be sent? */
+
+		exit(0);
 	break;
     case OSYNC_MESSAGE_CONNECT:
     	ctx = malloc(sizeof(context));
