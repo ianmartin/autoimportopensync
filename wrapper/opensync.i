@@ -1,4 +1,5 @@
 %module opensync
+%include "cdata.i"
 
 %{
 #include "opensync.h"
@@ -12,6 +13,7 @@ typedef struct {} OSyncPluginInfo;
 typedef struct {} OSyncContext;
 typedef struct {} OSyncChange;
 typedef struct {} OSyncMember;
+typedef struct {} OSyncHashTable;
 
 %extend OSyncMember {
 	OSyncMember(PyObject *obj) {
@@ -43,28 +45,34 @@ typedef struct {} OSyncMember;
 		osync_trace(TRACE_INTERNAL, "Deleting change %p", self);
 	}
 	
-	void set_data(char *data, int datasize, osync_bool has_data) {
-		osync_change_set_data(self, data, datasize, has_data);
+	void data_set(char *data, int datasize, osync_bool has_data) {
+		/* take a copy of the data, so python does not try to reclaim it
+		 * this memory should be freed by opensync after the change is written
+		 * FIXME: if the change is not handed over to opensync, this will leak
+		 */
+		char *copy = memcpy(malloc(datasize), data, datasize);
+		osync_change_set_data(self, copy, datasize, has_data);
 	}
 	
-	const char *data_get() {
+	void *data_get() {
 		return osync_change_get_data(self);
 	}
-	
-	%pythoncode %{
-	def get_data(self):
-		return self.data_get()
-	data = property(get_data)
-	%}
 	
 	int datasize_get() {
 		return osync_change_get_datasize(self);
 	}
 	
 	%pythoncode %{
-	def get_datasize(self):
-		return self.datasize_get()
-	datasize = property(get_datasize)
+	def get_data(self):
+		data = cdata(self.data_get(), self.datasize_get())
+		# FIXME: despite passing the size around, sometimes the data
+		# seems also to be null-terminated; remove this.
+		if data[-1] == '\0':
+			data = data[:-1]
+		return data
+	def set_data(self, data, has_data=True):
+		return self.data_set(data, len(data), has_data)
+	data = property(get_data,set_data)
 	%}
 	
 	void report(OSyncContext *ctx)
@@ -140,6 +148,22 @@ typedef struct {} OSyncMember;
 	def set_changetype(self, changetype):
 		self.changetype_set(changetype)
 	changetype = property(get_changetype, set_changetype)
+	%}
+	
+	void hash_set(const char *hash) {
+		osync_change_set_hash(self, hash);
+	}
+	
+	const char *hash_get() {
+		return osync_change_get_hash(self);
+	}
+	
+	%pythoncode %{
+	def get_hash(self):
+		return self.hash_get()
+	def set_hash(self, hash):
+		self.hash_set(hash)
+	hash = property(get_hash, set_hash)
 	%}
 };
 
@@ -243,3 +267,70 @@ typedef struct {} OSyncMember;
 		return plugin;
 	}
 };
+
+%extend OSyncHashTable {
+	OSyncHashTable() {
+		return osync_hashtable_new();
+	}
+
+	~OSyncHashTable() {
+		osync_hashtable_free(self);
+	}
+
+	void forget() {
+		osync_hashtable_forget(self);
+	}
+
+	osync_bool load(OSyncMember *member) {
+		OSyncError *error;
+		/* FIXME: do something with the error! */
+		return osync_hashtable_load(self, member, &error);
+	}
+
+	void close() {
+		osync_hashtable_close(self);
+	}
+
+	void update_hash(OSyncChange *change) {
+		osync_hashtable_update_hash(self, change);
+	}
+
+	void report(const char *uid) {
+		osync_hashtable_report(self, uid);
+	}
+
+	void report_deleted(OSyncContext *context, const char *objtype) {
+		osync_hashtable_report_deleted(self, context, objtype);
+	}
+
+	OSyncChangeType get_changetype(const char *uid, const char *hash) {
+		return osync_hashtable_get_changetype(self, uid, hash);
+	}
+
+	osync_bool detect_change(OSyncChange *change) {
+		return osync_hashtable_detect_change(self, change);
+	}
+
+	void set_slow_sync(const char *objtype) {
+		osync_hashtable_set_slow_sync(self, objtype);
+	}
+};
+
+/* pull in constants from opensync_error.h without all the functions */
+%constant int NO_ERROR = OSYNC_NO_ERROR;
+%constant int ERROR_GENERIC = OSYNC_ERROR_GENERIC;
+%constant int ERROR_IO_ERROR = OSYNC_ERROR_IO_ERROR;
+%constant int ERROR_NOT_SUPPORTED = OSYNC_ERROR_NOT_SUPPORTED;
+%constant int ERROR_TIMEOUT = OSYNC_ERROR_TIMEOUT;
+%constant int ERROR_DISCONNECTED = OSYNC_ERROR_DISCONNECTED;
+%constant int ERROR_FILE_NOT_FOUND = OSYNC_ERROR_FILE_NOT_FOUND;
+%constant int ERROR_EXISTS = OSYNC_ERROR_EXISTS;
+%constant int ERROR_CONVERT = OSYNC_ERROR_CONVERT;
+%constant int ERROR_MISCONFIGURATION = OSYNC_ERROR_MISCONFIGURATION;
+%constant int ERROR_INITIALIZATION = OSYNC_ERROR_INITIALIZATION;
+%constant int ERROR_PARAMETER = OSYNC_ERROR_PARAMETER;
+%constant int ERROR_EXPECTED = OSYNC_ERROR_EXPECTED;
+%constant int ERROR_NO_CONNECTION = OSYNC_ERROR_NO_CONNECTION;
+%constant int ERROR_TEMPORARY = OSYNC_ERROR_TEMPORARY;
+%constant int ERROR_LOCKED = OSYNC_ERROR_LOCKED;
+%constant int ERROR_PLUGIN_NOT_FOUND = OSYNC_ERROR_PLUGIN_NOT_FOUND;
