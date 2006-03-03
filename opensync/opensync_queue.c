@@ -298,6 +298,38 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 	return TRUE;
 }
 
+osync_bool osync_queue_start_thread(OSyncQueue *queue, OSyncError **error)
+{
+	queue->context = g_main_context_new();
+	
+	signal(SIGPIPE, SIG_IGN);
+	
+	queue->thread = osync_thread_new(queue->context, error);
+
+	if (!queue->thread)
+		goto error;
+	
+	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
+	functions->prepare = _queue_prepare;
+	functions->check = _queue_check;
+	functions->dispatch = _queue_dispatch;
+	functions->finalize = NULL;
+
+	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
+	OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
+	*queueptr = queue;
+	g_source_set_callback(source, NULL, queue, NULL);
+	g_source_attach(source, queue->context);
+	
+	osync_thread_start(queue->thread);
+	
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
 /*! @brief Creates a new asynchronous queue
  * 
  * This function return the pointer to a newly created OSyncQueue
@@ -317,33 +349,14 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 	
-	queue->context = g_main_context_new();
-	
-	signal(SIGPIPE, SIG_IGN);
-	
 	queue->incoming = g_async_queue_new();
 	g_async_queue_ref(queue->incoming);
 	queue->outgoing = g_async_queue_new();
 	g_async_queue_ref(queue->outgoing);
 	
-	queue->thread = osync_thread_new(queue->context, error);
-	if (!queue->thread)
+	if (!osync_queue_start_thread(queue, error))
 		goto error_free_queue;
-	
-	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
-	functions->prepare = _queue_prepare;
-	functions->check = _queue_check;
-	functions->dispatch = _queue_dispatch;
-	functions->finalize = NULL;
 
-	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
-	OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
-	*queueptr = queue;
-	g_source_set_callback(source, NULL, queue, NULL);
-	g_source_attach(source, queue->context);
-	
-	osync_thread_start(queue->thread);
-	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, queue);
 	return queue;
 
