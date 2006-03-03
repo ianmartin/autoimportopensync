@@ -495,8 +495,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	if (!user)
 		return NULL;
 	char *path = g_strdup_printf("%s/engines/enginepipe", osync_user_get_confdir(user));
-	engine->incoming = osync_queue_new(path, error);
-	engine->commandQueue = osync_queue_new(path, error);
+	engine->incoming = osync_queue_new(path, TRUE, error);
+	engine->commandQueue = osync_queue_new(path, TRUE, error);
 	if (!engine->incoming || !engine->commandQueue)
 		return NULL;
 	

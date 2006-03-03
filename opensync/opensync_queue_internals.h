@@ -39,7 +39,7 @@ struct OSyncQueue {
 
 /*@}*/
 
-OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
+OSyncQueue *osync_queue_new(const char *name, osync_bool run, OSyncError **error);
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error);
 
 void osync_queue_free(OSyncQueue *queue);

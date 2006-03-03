@@ -262,7 +262,7 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncErr
 	engine->clients = g_list_append(engine->clients, client);
 	
 	char *name = g_strdup_printf("%s/pluginpipe", osync_member_get_configdir(member));
-	client->incoming = osync_queue_new(name, error);
+	client->incoming = osync_queue_new(name, TRUE, error);
 	g_free(name);
 	if (!client->incoming)
 		goto error_free_client;

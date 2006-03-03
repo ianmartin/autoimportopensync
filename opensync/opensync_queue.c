@@ -335,7 +335,7 @@ error:
  * This function return the pointer to a newly created OSyncQueue
  * 
  */
-OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
+OSyncQueue *osync_queue_new(const char *name, osync_bool run, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, name, error);
 	
@@ -354,8 +354,10 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	queue->outgoing = g_async_queue_new();
 	g_async_queue_ref(queue->outgoing);
 	
-	if (!osync_queue_start_thread(queue, error))
-		goto error_free_queue;
+	if (run) {
+		if (!osync_queue_start_thread(queue, error))
+			goto error_free_queue;
+	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, queue);
 	return queue;

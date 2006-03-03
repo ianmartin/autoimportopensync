@@ -5,7 +5,7 @@
 START_TEST (ipc_new)
 {
 	OSyncError *error = NULL;
-	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
+	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", TRUE, &error);
 	fail_unless(queue1 != NULL, NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
@@ -16,7 +16,7 @@ END_TEST
 START_TEST (ipc_create)
 {
 	OSyncError *error = NULL;
-	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
+	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", TRUE, &error);
 	fail_unless(queue1 != NULL, NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
@@ -40,7 +40,7 @@ START_TEST (ipc_connect)
 	pid_t cpid = fork();
 	
 	OSyncError *error = NULL;
-	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", &error);
+	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", TRUE, &error);
 	OSyncMessage *message = NULL;
 	
 	printf("fork child start %x\n", cpid);
@@ -107,8 +107,8 @@ START_TEST (ipc_payload)
 	pid_t cpid = fork();
 	
 	OSyncError *error = NULL;
-	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
-	OSyncQueue *client_queue = osync_queue_new("/tmp/testpipe-client", &error);
+	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", TRUE, &error);
+	OSyncQueue *client_queue = osync_queue_new("/tmp/testpipe-client", TRUE, &error);
 	OSyncMessage *message = NULL;
 	
 	printf("fork child start %x\n", cpid);
@@ -227,8 +227,8 @@ START_TEST (ipc_large_payload)
 	pid_t cpid = fork();
 	
 	OSyncError *error = NULL;
-	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
-	OSyncQueue *client_queue = osync_queue_new("/tmp/testpipe-client", &error);
+	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", TRUE, &error);
+	OSyncQueue *client_queue = osync_queue_new("/tmp/testpipe-client", TRUE, &error);
 	OSyncMessage *message = NULL;
 	
 	printf("fork child start %x\n", cpid);

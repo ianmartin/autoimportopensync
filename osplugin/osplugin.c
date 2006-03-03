@@ -140,7 +140,7 @@ int main( int argc, char **argv )
 
   /** Create connection pipes **/
   char *pipe_path = g_strdup_printf( "%s/pluginpipe", osync_member_get_configdir( pp.member ) );
-  pp.incoming = osync_queue_new( pipe_path, &error );
+  pp.incoming = osync_queue_new( pipe_path, TRUE, &error );
   pp.outgoing = NULL;
   g_free( pipe_path );
 
@@ -193,7 +193,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 			osync_message_read_string(message, &enginepipe);
 			
 			printf("enginepipe %s\n", enginepipe);
-			pp->outgoing = osync_queue_new(enginepipe, NULL);
+			pp->outgoing = osync_queue_new(enginepipe, TRUE, NULL);
 			if (!pp->outgoing) {
 				printf("Unable to make new queue\n");
 				exit(1);
