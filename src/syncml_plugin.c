@@ -40,6 +40,18 @@ SmlContentType _format_to_contenttype(OSyncChange *change)
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "contact")) {
 		return SML_CONTENT_TYPE_VCARD;
 	}
+	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "event")) {
+		return SML_CONTENT_TYPE_VCAL;
+	}
+	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "todo")) {
+		return SML_CONTENT_TYPE_VCAL;
+	}
+	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "note")) {
+		return SML_CONTENT_TYPE_PLAIN;
+	}
+	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data")) {
+		return SML_CONTENT_TYPE_PLAIN;
+	}
 	return SML_CONTENT_TYPE_UNKNOWN;
 }
 
@@ -50,7 +62,10 @@ static const char *_contenttype_to_format(SmlContentType type)
 			return "contact";
 			break;
 		case SML_CONTENT_TYPE_VCAL:
-			return "event";
+			return "data";
+			break;
+		case SML_CONTENT_TYPE_PLAIN:
+			return "note";
 			break;
 		default:
 			;
@@ -100,7 +115,7 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 				osync_change_set_objformat_string(change, "plain");
 				break;
 			case SML_CONTENT_TYPE_PLAIN:
-				osync_change_set_objformat_string(change, "note");
+				osync_change_set_objformat_string(change, "plain");
 				break;
 			default:
 				;
@@ -209,6 +224,12 @@ static void _ds_alert(SmlDsSession *dsession, void *userdata)
 	if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCARD) {
 		printf("received contact dsession\n");
 		env->contactSession = dsession;
+	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCAL) {
+		printf("received event dsession\n");
+		env->calendarSession = dsession;
+	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_PLAIN) {
+		printf("received note dsession\n");
+		env->noteSession = dsession;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -259,6 +280,26 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 				osync_context_report_success(env->commitCtx);
 				env->commitCtx = NULL;
 			}
+			
+			/*if (env->commitContactCtx) {
+				osync_context_report_success(env->commitContactCtx);
+				env->commitContactCtx = NULL;
+			}
+			
+			if (env->commitCalendarCtx) {
+				osync_context_report_success(env->commitCalendarCtx);
+				env->commitCalendarCtx = NULL;
+			}
+			
+			if (env->commitTodoCtx) {
+				osync_context_report_success(env->commitTodoCtx);
+				env->commitTodoCtx = NULL;
+			}
+			
+			if (env->commitNoteCtx) {
+				osync_context_report_success(env->commitNoteCtx);
+				env->commitNoteCtx = NULL;
+			}*/
 			break;
 		case SML_MANAGER_SESSION_END:
 			osync_trace(TRACE_INTERNAL, "Session %s has ended\n", smlSessionGetSessionID(session));
@@ -289,10 +330,6 @@ error:;
 		env->getChangesCtx = NULL;
 	}
 	
-	if (env->commitCtx) {
-		osync_context_report_osyncerror(env->commitCtx, &oserror);
-		env->commitCtx = NULL;
-	}
 	if (env->disconnectCtx) {
 		osync_context_report_osyncerror(env->disconnectCtx, &oserror);
 		env->disconnectCtx = NULL;
@@ -312,6 +349,12 @@ static gboolean _sessions_check(GSource *source)
 	
 	if (env->contactSession && smlDsSessionCheck(env->contactSession))
 		return TRUE;
+		
+	if (env->calendarSession && smlDsSessionCheck(env->calendarSession))
+		return TRUE;
+		
+	if (env->noteSession && smlDsSessionCheck(env->noteSession))
+		return TRUE;
 	
 	if (smlManagerCheck(env->manager))
 		return TRUE;
@@ -325,6 +368,10 @@ static gboolean _sessions_dispatch(GSource *source, GSourceFunc callback, gpoint
 	
 	if (env->contactSession && smlDsSessionCheck(env->contactSession))
 		smlDsSessionDispatch(env->contactSession);
+	else if (env->calendarSession && smlDsSessionCheck(env->calendarSession))
+		smlDsSessionDispatch(env->calendarSession);
+	else if (env->noteSession && smlDsSessionCheck(env->noteSession))
+		smlDsSessionDispatch(env->noteSession);
 	else
 		smlManagerDispatch(env->manager);
 	
@@ -411,8 +458,8 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 				env->calendar_url = g_strdup(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"task_db")) {
-				env->task_url = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"note_db")) {
+				env->note_url = g_strdup(str);
 			}
 			xmlFree(str);
 		}
@@ -476,9 +523,11 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	
 	
 	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(&serror);
+	SmlDevInf *devinf = smlDevInfNew(SML_DEVINF_VERSION_11, "libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
+	
+	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
 	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
 	if (!env->agent)
@@ -487,27 +536,96 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
 		goto error_free_manager;
 	
-	
-	/* We now create the ds server hat the given location */
-	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
-	if (!loc)
-		goto error;
-	
-	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
-	if (!env->contactserver)
-		goto error_free_manager;
+	if (env->contact_url) {
+		/* We now create the ds server hat the given location */
+		SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
+		if (!loc)
+			goto error;
 		
-	if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
-		goto error_free_auth;
-	
-	smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
+		if (!env->contactserver)
+			goto error_free_manager;
+			
+		if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
+			goto error_free_auth;
 		
-	/* And we also add the devinfo to the devinf agent */
-	SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(loc, SML_DEVINF_VERSION_11, &serror);
-	if (!datastore)
-		goto error;
+		smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		
+		/* And we also add the devinfo to the devinf agent */
+		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
+		if (!datastore)
+			goto error;
+		
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+		
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
+		
+		smlDevInfAddDataStore(devinf, datastore);
+	}
 	
-	smlDevInfAddDataStore(devinf, datastore);
+	if (env->calendar_url) {
+		/* We now create the ds server hat the given location */
+		SmlLocation *loc = smlLocationNew(env->calendar_url, NULL, &serror);
+		if (!loc)
+			goto error;
+		
+		env->calendarserver = smlDsServerNew(SML_CONTENT_TYPE_VCAL, loc, &serror);
+		if (!env->calendarserver)
+			goto error_free_manager;
+			
+		if (!smlDsServerRegister(env->calendarserver, env->manager, &serror))
+			goto error_free_auth;
+		
+		smlDsServerSetConnectCallback(env->calendarserver, _ds_alert, env);
+		
+		/* And we also add the devinfo to the devinf agent */
+		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
+		if (!datastore)
+			goto error;
+		
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
+		
+		smlDevInfAddDataStore(devinf, datastore);
+	}
+	
+	if (env->note_url) {
+		/* We now create the ds server hat the given location */
+		SmlLocation *loc = smlLocationNew(env->note_url, NULL, &serror);
+		if (!loc)
+			goto error;
+		
+		env->noteserver = smlDsServerNew(SML_CONTENT_TYPE_PLAIN, loc, &serror);
+		if (!env->noteserver)
+			goto error_free_manager;
+			
+		if (!smlDsServerRegister(env->noteserver, env->manager, &serror))
+			goto error_free_auth;
+		
+		smlDsServerSetConnectCallback(env->noteserver, _ds_alert, env);
+		
+		/* And we also add the devinfo to the devinf agent */
+		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
+		if (!datastore)
+			goto error;
+		
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
+		
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
+		
+		smlDevInfAddDataStore(devinf, datastore);
+	}
+	
 	
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
 	functions->prepare = _sessions_prepare;
@@ -640,8 +758,8 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 				env->calendar_url = g_strdup(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"task_db")) {
-				env->task_url = g_strdup(str);
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"note_db")) {
+				env->note_url = g_strdup(str);
 			}
 			xmlFree(str);
 		}
@@ -705,9 +823,11 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	
 	
 	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(&serror);
+	SmlDevInf *devinf = smlDevInfNew(SML_DEVINF_VERSION_11, "libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
+	
+	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
 	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
 	if (!env->agent)
@@ -717,26 +837,95 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		goto error_free_manager;
 	
 	
-	/* We now create the ds server hat the given location */
-	SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
-	if (!loc)
-		goto error;
-	
-	env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
-	if (!env->contactserver)
-		goto error_free_manager;
+	if (env->contact_url) {
+		/* We now create the ds server hat the given location */
+		SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
+		if (!loc)
+			goto error;
 		
-	if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
-		goto error_free_auth;
-	
-	smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
+		if (!env->contactserver)
+			goto error_free_manager;
+			
+		if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
+			goto error_free_auth;
 		
-	/* And we also add the devinfo to the devinf agent */
-	SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(loc, SML_DEVINF_VERSION_11, &serror);
-	if (!datastore)
-		goto error;
+		smlDsServerSetConnectCallback(env->contactserver, _ds_alert, env);
+		
+		/* And we also add the devinfo to the devinf agent */
+		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
+		if (!datastore)
+			goto error;
+		
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+		
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
+		
+		smlDevInfAddDataStore(devinf, datastore);
+	}
 	
-	smlDevInfAddDataStore(devinf, datastore);
+	if (env->calendar_url) {
+		/* We now create the ds server hat the given location */
+		SmlLocation *loc = smlLocationNew(env->calendar_url, NULL, &serror);
+		if (!loc)
+			goto error;
+		
+		env->calendarserver = smlDsServerNew(SML_CONTENT_TYPE_VCAL, loc, &serror);
+		if (!env->calendarserver)
+			goto error_free_manager;
+			
+		if (!smlDsServerRegister(env->calendarserver, env->manager, &serror))
+			goto error_free_auth;
+		
+		smlDsServerSetConnectCallback(env->calendarserver, _ds_alert, env);
+		
+		/* And we also add the devinfo to the devinf agent */
+		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
+		if (!datastore)
+			goto error;
+		
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
+		
+		smlDevInfAddDataStore(devinf, datastore);
+	}
+	
+	if (env->note_url) {
+		/* We now create the ds server hat the given location */
+		SmlLocation *loc = smlLocationNew(env->note_url, NULL, &serror);
+		if (!loc)
+			goto error;
+		
+		env->noteserver = smlDsServerNew(SML_CONTENT_TYPE_PLAIN, loc, &serror);
+		if (!env->noteserver)
+			goto error_free_manager;
+			
+		if (!smlDsServerRegister(env->noteserver, env->manager, &serror))
+			goto error_free_auth;
+		
+		smlDsServerSetConnectCallback(env->noteserver, _ds_alert, env);
+		
+		/* And we also add the devinfo to the devinf agent */
+		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
+		if (!datastore)
+			goto error;
+		
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
+		
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
+		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
+		
+		smlDevInfAddDataStore(devinf, datastore);
+	}
 	
 	/* Create the alert for the remote device */
 	if (!env->identifier)
@@ -803,9 +992,24 @@ static void client_connect(OSyncContext *ctx)
 		if (!san)
 			goto error;
 		
-		/* Then we add the alert to the SAN */
-		if (!smlDsServerAddSan(env->contactserver, san, &error))
-			goto error_free_san;
+		if (osync_member_objtype_enabled(env->member, "contact") && env->contactserver) {
+			/* Then we add the alert to the SAN */
+			if (!smlDsServerAddSan(env->contactserver, san, &error))
+				goto error_free_san;
+		}
+		
+		if ((osync_member_objtype_enabled(env->member, "event") || osync_member_objtype_enabled(env->member, "todo")) && env->calendarserver) {
+			/* Then we add the alert to the SAN */
+			if (!smlDsServerAddSan(env->calendarserver, san, &error))
+				goto error_free_san;
+		}
+		
+		if (osync_member_objtype_enabled(env->member, "note") && env->noteserver) {
+			/* Then we add the alert to the SAN */
+			if (!smlDsServerAddSan(env->noteserver, san, &error))
+				goto error_free_san;
+		}
+		
 		
 		if (!smlTransportConnect(env->tsp, &error))
 			goto error;
@@ -820,6 +1024,12 @@ static void client_connect(OSyncContext *ctx)
 		 * the synchronization) */
 		if (env->contactSession)
 			smlDsSessionGetAlert(env->contactSession, _recv_alert, env);
+			
+		if (env->calendarSession)
+			smlDsSessionGetAlert(env->calendarSession, _recv_alert, env);
+			
+		if (env->noteSession)
+			smlDsSessionGetAlert(env->noteSession, _recv_alert, env);
 		
 		osync_context_report_success(ctx);
 	}
@@ -847,11 +1057,27 @@ static void get_changeinfo(OSyncContext *ctx)
 	if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
 		if (env->contactSession)
 			smlDsSessionGetAlert(env->contactSession, _recv_alert, env);
+			
+		if (env->calendarSession)
+			smlDsSessionGetAlert(env->calendarSession, _recv_alert, env);
+			
+		if (env->noteSession)
+			smlDsSessionGetAlert(env->noteSession, _recv_alert, env);
 	}
 	
 	if (env->contactSession) {
 		smlDsSessionGetSync(env->contactSession, _recv_sync, ctx);
 		smlDsSessionGetChanges(env->contactSession, _recv_change, ctx);
+	}
+	
+	if (env->calendarSession) {
+		smlDsSessionGetSync(env->calendarSession, _recv_sync, ctx);
+		smlDsSessionGetChanges(env->calendarSession, _recv_change, ctx);
+	}
+	
+	if (env->noteSession) {
+		smlDsSessionGetSync(env->noteSession, _recv_sync, ctx);
+		smlDsSessionGetChanges(env->noteSession, _recv_change, ctx);
 	}
 	
 	if (!smlSessionFlush(env->session, TRUE, &error))
@@ -867,6 +1093,160 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
+static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	SmlError *error = NULL;
+	OSyncError *oserror = NULL;
+	int i = 0;
+	int num = 0;
+	
+	env->commitCtx = ctx;
+	
+	int numContact = 0;
+	int numCalendar = 0;
+	int numNote = 0;
+	
+	for (i = 0; changes[i]; i++) {
+		switch (_format_to_contenttype(changes[i])) {
+			case SML_CONTENT_TYPE_VCARD:
+				numContact++;
+				break;
+			case SML_CONTENT_TYPE_VCAL:
+				numCalendar++;
+				break;
+			case SML_CONTENT_TYPE_PLAIN:
+				numNote++;
+				break;
+			default:
+				break;
+		}
+		num++;
+	}
+	
+	if (env->contactSession) {
+		if (!smlDsSessionSendSync(env->contactSession, numContact, _recv_sync_reply, NULL, &error))
+			goto error;
+
+		for (i = 0; changes[i]; i++) {
+			OSyncChange *change = changes[i];
+			OSyncContext *context = contexts[i];
+			
+			if (_format_to_contenttype(changes[i]) == SML_CONTENT_TYPE_VCARD) {
+				osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+				
+				struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+				if (!tracer)
+					goto oserror;
+				
+				tracer->change = change;
+				tracer->context = context;
+	
+			
+				if (!smlDsSessionQueueChange(env->contactSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+					goto error;
+				contexts[i] = NULL;
+			}
+		}
+		
+		if (!smlDsSessionCloseSync(env->contactSession, &error))
+			goto error;
+	}
+	
+	if (env->calendarSession) {
+		if (!smlDsSessionSendSync(env->calendarSession, numCalendar, _recv_sync_reply, NULL, &error))
+			goto error;
+
+		for (i = 0; changes[i]; i++) {
+			OSyncChange *change = changes[i];
+			OSyncContext *context = contexts[i];
+			
+			if (_format_to_contenttype(changes[i]) == SML_CONTENT_TYPE_VCAL) {
+				osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+				
+				struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+				if (!tracer)
+					goto oserror;
+				
+				tracer->change = change;
+				tracer->context = context;
+	
+			
+				if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+					goto error;
+				contexts[i] = NULL;
+			}
+		}
+		
+		if (!smlDsSessionCloseSync(env->calendarSession, &error))
+			goto error;
+	}
+	
+	if (env->noteSession) {
+		if (!smlDsSessionSendSync(env->noteSession, numNote, _recv_sync_reply, NULL, &error))
+			goto error;
+
+		for (i = 0; changes[i]; i++) {
+			OSyncChange *change = changes[i];
+			OSyncContext *context = contexts[i];
+			
+			if (_format_to_contenttype(changes[i]) == SML_CONTENT_TYPE_PLAIN) {
+				osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+				
+				struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+				if (!tracer)
+					goto oserror;
+				
+				tracer->change = change;
+				tracer->context = context;
+	
+			
+				if (!smlDsSessionQueueChange(env->noteSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+					goto error;
+				contexts[i] = NULL;
+			}
+		}
+		
+		if (!smlDsSessionCloseSync(env->noteSession, &error))
+			goto error;
+	}
+
+	for (i = 0; i < num; i++) {
+		if (contexts[i]) {
+			osync_context_report_error(contexts[i], SML_ERROR_GENERIC, "content type was not configured");
+		}
+	}
+	
+	if (!smlSessionFlush(env->session, TRUE, &error))
+		goto error;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+oserror:
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+}
+
+/*static osync_bool _flush_batch(SmlPluginEnv *env, SmlError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
+	
+	if ((!osync_member_objtype_enabled(env->member, "contact") || env->commitContactCtx) && \
+		(!osync_member_objtype_enabled(env->member, "event") || env->commitCalendarCtx) && \
+		(!osync_member_objtype_enabled(env->member, "todo") || env->commitTodoCtx) && \
+		(!osync_member_objtype_enabled(env->member, "note") || env->commitNoteCtx)) {
+			osync_trace(TRACE_EXIT, "%s: Flushing", __func__);
+			return smlSessionFlush(env->session, TRUE, error);
+	}
+	osync_trace(TRACE_EXIT, "%s: Not flushing yet", __func__);
+	return TRUE;
+}
+
 static void batch_commit_vcard(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
@@ -874,7 +1254,7 @@ static void batch_commit_vcard(OSyncContext *ctx, OSyncContext **contexts, OSync
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
 	
-	env->commitCtx = ctx;
+	env->commitContactCtx = ctx;
 	
 	int i = 0;
 	for (i = 0; changes[i]; i++);
@@ -901,7 +1281,171 @@ static void batch_commit_vcard(OSyncContext *ctx, OSyncContext **contexts, OSync
 	if (!smlDsSessionCloseSync(env->contactSession, &error))
 		goto error;
 
-	if (!smlSessionFlush(env->session, TRUE, &error))
+	if (!_flush_batch(env, &error))
+		goto error;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+oserror:
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+}
+
+static void batch_commit_event(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	SmlError *error = NULL;
+	OSyncError *oserror = NULL;
+	int i = 0;
+	
+	env->commitCalendarCtx = ctx;
+	
+	for (i = 0; changes[i] && contexts[i]; i++) {
+		OSyncChange *change = changes[i];
+		OSyncContext *context = contexts[i];
+		osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+		
+		struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+		if (!tracer)
+			goto oserror;
+		
+		tracer->change = change;
+		tracer->context = context;
+		
+		env->eventEntries = g_list_append(env->eventEntries, tracer);
+		env->numEventEntries++;
+	}
+	
+	
+	if (env->commitTodoCtx || !osync_member_objtype_enabled(env->member, "todo")) {
+		if (!smlDsSessionSendSync(env->calendarSession, env->numEventEntries, _recv_sync_reply, NULL, &error))
+		goto error;
+	
+		while (env->eventEntries) {
+			struct commitContext *tracer = env->eventEntries->data;
+			
+			if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(tracer->change), osync_change_get_uid(tracer->change), osync_change_get_data(tracer->change), osync_change_get_datasize(tracer->change), _format_to_contenttype(tracer->change), _recv_change_reply, tracer, &error))
+				goto error;
+			
+			env->eventEntries = g_list_delete_link(env->eventEntries, env->eventEntries);
+		}
+		
+		if (!smlDsSessionCloseSync(env->calendarSession, &error))
+			goto error;
+	}
+	
+	if (!_flush_batch(env, &error))
+		goto error;
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+oserror:
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+}
+
+static void batch_commit_todo(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	SmlError *error = NULL;
+	OSyncError *oserror = NULL;
+	int i = 0;
+	
+	env->commitTodoCtx = ctx;
+	
+	for (i = 0; changes[i] && contexts[i]; i++) {
+		OSyncChange *change = changes[i];
+		OSyncContext *context = contexts[i];
+		osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+		
+		struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+		if (!tracer)
+			goto oserror;
+		
+		tracer->change = change;
+		tracer->context = context;
+		
+		env->eventEntries = g_list_append(env->eventEntries, tracer);
+		env->numEventEntries++;
+	}
+	
+	
+	if (env->commitCalendarCtx || !osync_member_objtype_enabled(env->member, "event")) {
+		if (!smlDsSessionSendSync(env->calendarSession, env->numEventEntries, _recv_sync_reply, NULL, &error))
+		goto error;
+	
+		while (env->eventEntries) {
+			struct commitContext *tracer = env->eventEntries->data;
+			
+			if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(tracer->change), osync_change_get_uid(tracer->change), osync_change_get_data(tracer->change), osync_change_get_datasize(tracer->change), _format_to_contenttype(tracer->change), _recv_change_reply, tracer, &error))
+				goto error;
+			
+			env->eventEntries = g_list_delete_link(env->eventEntries, env->eventEntries);
+		}
+		
+		if (!smlDsSessionCloseSync(env->calendarSession, &error))
+			goto error;
+	}
+
+	if (!_flush_batch(env, &error))
+		goto error;
+		
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
+	smlErrorDeref(&error);
+oserror:
+	osync_context_report_osyncerror(ctx, &oserror);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
+}
+
+static void batch_commit_note(OSyncContext *ctx, OSyncContext **contexts, OSyncChange **changes)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, contexts, changes);
+	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data(ctx);
+	SmlError *error = NULL;
+	OSyncError *oserror = NULL;
+	
+	env->commitNoteCtx = ctx;
+	
+	int i = 0;
+	for (i = 0; changes[i]; i++);
+		
+	if (!smlDsSessionSendSync(env->noteSession, i, _recv_sync_reply, NULL, &error))
+		goto error;
+	
+	for (i = 0; changes[i] && contexts[i]; i++) {
+		OSyncChange *change = changes[i];
+		OSyncContext *context = contexts[i];
+		osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
+		
+		struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+		if (!tracer)
+			goto oserror;
+		
+		tracer->change = change;
+		tracer->context = context;
+
+		if (!smlDsSessionQueueChange(env->noteSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+			goto error;
+	}
+	
+	if (!smlDsSessionCloseSync(env->noteSession, &error))
+		goto error;
+
+	if (!_flush_batch(env, &error))
 		goto error;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -913,7 +1457,7 @@ error:
 oserror:
 	osync_context_report_osyncerror(ctx, &oserror);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
-}
+}*/
 
 static void sync_done(OSyncContext *ctx)
 {
@@ -975,7 +1519,19 @@ void get_info(OSyncEnv *env)
 	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "vcard21", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit_vcard);
+	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit);
+	
+	osync_plugin_accept_objtype(info, "event");
+	osync_plugin_accept_objformat(info, "event", "vevent20", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "event", "vevent20", batch_commit);
+	
+	osync_plugin_accept_objtype(info, "todo");
+	osync_plugin_accept_objformat(info, "todo", "vtodo20", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo20", batch_commit);
+	
+	osync_plugin_accept_objtype(info, "note");
+	osync_plugin_accept_objformat(info, "note", "plain", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "note", "plain", batch_commit);
 	
 	info = osync_plugin_new_info(env);
 	
@@ -991,5 +1547,17 @@ void get_info(OSyncEnv *env)
 	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "vcard21", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit_vcard);
+	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit);
+	
+	osync_plugin_accept_objtype(info, "event");
+	osync_plugin_accept_objformat(info, "event", "vevent20", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "event", "vevent20", batch_commit);
+	
+	osync_plugin_accept_objtype(info, "todo");
+	osync_plugin_accept_objformat(info, "todo", "vtodo20", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo20", batch_commit);
+	
+	osync_plugin_accept_objtype(info, "note");
+	osync_plugin_accept_objformat(info, "note", "plain", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "note", "plain", batch_commit);
 }
