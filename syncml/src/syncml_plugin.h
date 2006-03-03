@@ -75,6 +75,7 @@ typedef struct SmlPluginEnv {
 	
 	SmlDsSession *contactSession;
 	SmlDsSession *calendarSession;
+	SmlDsSession *noteSession;
 	SmlSession *session;
 	
 	SmlDsServer *contactserver;
@@ -83,13 +84,20 @@ typedef struct SmlPluginEnv {
 	SmlDsServer *calendarserver;
 	char *calendar_url;
 	
-	SmlDsServer *taskserver;
-	char *task_url;
+	SmlDsServer *noteserver;
+	char *note_url;
 	
 	OSyncContext *connectCtx;
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
+	/*OSyncContext *commitContactCtx;
+	OSyncContext *commitCalendarCtx;
+	OSyncContext *commitTodoCtx;
+	OSyncContext *commitNoteCtx;*/
 	OSyncContext *disconnectCtx;
+	
+	GList *eventEntries;
+	unsigned int numEventEntries;
 } SmlPluginEnv;
 
 #endif //_SYNCML_PLUGIN_H
