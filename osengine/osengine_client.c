@@ -579,6 +579,8 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 			printf("unable to exec\n");
 			exit(1);
 		}
+
+		client->child_pid = cpid;
 		
 		while (!osync_queue_exists(client->incoming)) {
 			osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");

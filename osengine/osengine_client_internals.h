@@ -11,6 +11,7 @@ struct OSyncClient {
 	OSyncFlag *fl_finished;
 	OSyncFlag *fl_committed_all;
 	
+	pid_t child_pid;
 	//GList *changes;
 };
 #endif
