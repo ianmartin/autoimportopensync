@@ -520,8 +520,8 @@ void get_info(OSyncEnv *env)
 	info->functions.get_changeinfo = mock_get_changeinfo;
 	info->functions.get_data = mock_get_data;
 
-	//osync_plugin_accept_objtype(info, "data");
-	//osync_plugin_accept_objformat(info, "data", "mockformat", NULL);
+	osync_plugin_accept_objtype(info, "data");
+	osync_plugin_accept_objformat(info, "data", "mockformat", NULL);
 	
 	osync_plugin_set_access_objformat(info, "data", "mockformat", mock_access);
 	osync_plugin_set_read_objformat(info, "data", "mockformat", mock_read);
