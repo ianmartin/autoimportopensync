@@ -367,19 +367,27 @@ error:
 	return NULL;
 }
 
+void osync_queue_stop_thread(OSyncQueue *queue)
+{
+	if (queue->thread) {
+		osync_thread_stop(queue->thread);
+		osync_thread_free(queue->thread);
+		queue->thread = NULL;
+	}
+}
+
 void osync_queue_free(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
+	osync_queue_stop_thread(queue);
+
 	if (queue->source)
 		g_source_destroy(queue->source);
 
 	if (queue->name)
 		g_free(queue->name);
 		
-	osync_thread_stop(queue->thread);
-	osync_thread_free(queue->thread);
-	
 	g_free(queue);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
