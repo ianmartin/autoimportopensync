@@ -523,13 +523,13 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	
 	
 	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(SML_DEVINF_VERSION_11, "libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
+	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
-	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
+	env->agent = smlDevInfAgentNew(devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 	
@@ -823,13 +823,13 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	
 	
 	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(SML_DEVINF_VERSION_11, "libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
+	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
-	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
+	env->agent = smlDevInfAgentNew(devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 	
