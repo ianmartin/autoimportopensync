@@ -121,6 +121,77 @@ error:
 	return FALSE;
 }
 
+static osync_bool marshall_file(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	/* The marshall block will be a fileFormat struct, followed by the file data
+	 *
+	 * the 'data' field on fileFormat will be set to NULL
+	 */
+
+	/* Get our input file struct */
+	g_assert(inpsize == sizeof(fileFormat));
+	fileFormat *file = (fileFormat*)input;
+
+	/* Allocate our block */
+	int osize = sizeof(fileFormat) + file->size;
+	char *out = osync_try_malloc0(osize, error);
+	if (!out)
+		goto error;
+
+
+	/* Get the pointers to the output data: */
+	/* fileFormat struct in the beginning */
+	fileFormat *outfile = (fileFormat*)out;
+	/* file data immediately after outfile */
+	char *outdata = ((char*)outfile) + sizeof(fileFormat);
+
+	/* Copy the data: */
+	/* file struct */
+	memcpy(&outfile, &file, sizeof(fileFormat));
+	outfile->data = NULL;
+	/* file data */
+	memcpy(outdata, file->data, file->size);
+
+	*output = outdata;
+	*outpsize = osize;
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+static osync_bool demarshall_file(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	/* Get file struct */
+	g_assert(inpsize >= sizeof(fileFormat));
+	fileFormat *file = (fileFormat*)input;
+
+	/* get file data */
+	g_assert(inpsize == sizeof(fileFormat) + file->size);
+	const char *filedata = input + sizeof(fileFormat);
+
+	fileFormat *newfile = osync_try_malloc0(sizeof(fileFormat), error);
+	if (!newfile)
+		goto error;
+
+	memcpy(newfile, file, sizeof(fileFormat));
+
+	newfile->data = osync_try_malloc0(file->size, error);
+	if (!newfile->data)
+		goto error_free_file;
+
+	memcpy(newfile->data, filedata, file->size);
+
+	*output = (char*)newfile;
+	*outpsize = sizeof(fileFormat);
+	return TRUE;
+
+error_free_file:
+	g_free(newfile);
+error:
+	return FALSE;
+}
+
 static void destroy_file(char *input, size_t inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
@@ -215,6 +286,9 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_copy_func(env, "file", copy_file);
 	osync_env_format_set_create_func(env, "file", create_file);
 	osync_env_format_set_revision_func(env, "file", revision_file);
+
+	osync_env_format_set_marshall_func(env, "file", marshall_file);
+	osync_env_format_set_demarshall_func(env, "file", demarshall_file);
 
 #ifdef STRESS_TEST
 	osync_env_format_set_create_func(env, "file", create_file);
