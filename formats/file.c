@@ -152,7 +152,7 @@ static osync_bool marshall_file(const char *input, int inpsize, char **output, i
 	/* file data */
 	memcpy(outdata, file->data, file->size);
 
-	*output = outdata;
+	*output = out;
 	*outpsize = osize;
 	return TRUE;
 
