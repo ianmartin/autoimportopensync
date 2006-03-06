@@ -43,18 +43,23 @@ int osync_marshal_get_size_change( OSyncChange *change )
   return size;
 }
 
+static void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
+{
+  // TODO: check for plain/struct
+  osync_message_write_int( message, change->size );
+  osync_message_write_data( message, change->data, change->size );
+}
+
 void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
 {
   osync_message_write_string( message, change->uid );
   osync_message_write_string( message, change->hash );
-  osync_message_write_int( message, change->size );
 
-  // TODO: check for plain/struct
+  osync_marshal_changedata(message, change);
 
   char *format_name = change->format ? change->format->name : change->format_name;
   char *objtype_name = change->objtype ? change->objtype->name : change->objtype_name;
   char *initial_format_name = change->initial_format ? change->initial_format->name : change->initial_format_name;
-  osync_message_write_data( message, change->data, change->size );
   osync_message_write_int( message, change->has_data );
   osync_message_write_string( message, objtype_name );
   osync_message_write_string( message, format_name );
