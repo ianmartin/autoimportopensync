@@ -45,9 +45,26 @@ int osync_marshal_get_size_change( OSyncChange *change )
 
 static void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
 {
-  // TODO: check for plain/struct
-  osync_message_write_int( message, change->size );
-  osync_message_write_data( message, change->data, change->size );
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	char *data;
+	int datasize;
+	int free_data = 0;
+
+	g_assert(format);
+
+	if (format->marshall_func) {
+		format->marshall_func(change->data, change->size, &data, &datasize, NULL);
+		/*FIXME: Handle errors on marshall_func */
+		free_data = 1;
+	} else {
+		data = change->data;
+		datasize = change->size;
+	}
+	osync_message_write_int(message, datasize);
+	osync_message_write_data(message, data, datasize);
+
+	if (free_data)
+		g_free(data);
 }
 
 void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
@@ -74,11 +91,28 @@ void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
 
 static void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *change)
 {
-  // TOOD: check for plain/struct
-  osync_message_read_int( message, &( change->size ) );
+	OSyncObjFormat *format = osync_change_get_objformat(change);
+	char *data;
+	int datasize;
 
-  change->data = malloc( change->size );
-  osync_message_read_data( message, change->data, change->size );
+	g_assert(format);
+
+	osync_message_read_int(message, &datasize);
+	data = malloc(datasize);
+	osync_message_read_data( message, data, datasize );
+
+	if (format->demarshall_func) {
+		char *newdata;
+		int newsize;
+		format->demarshall_func(data, datasize, &newdata, &newsize, NULL);
+		/*FIXME: Handle errors on demarshall_func */
+		free(data);
+		data = newdata;
+		datasize = newsize;
+	}
+
+	change->data = data;
+	change->size = datasize;
 }
 
 void osync_demarshal_change( OSyncMessage *message, OSyncFormatEnv *conv_env, OSyncChange **change )
