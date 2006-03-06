@@ -55,15 +55,16 @@ void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
   osync_message_write_string( message, change->uid );
   osync_message_write_string( message, change->hash );
 
-  osync_marshal_changedata(message, change);
-
   char *format_name = change->format ? change->format->name : change->format_name;
   char *objtype_name = change->objtype ? change->objtype->name : change->objtype_name;
   char *initial_format_name = change->initial_format ? change->initial_format->name : change->initial_format_name;
-  osync_message_write_int( message, change->has_data );
   osync_message_write_string( message, objtype_name );
   osync_message_write_string( message, format_name );
   osync_message_write_string( message, initial_format_name );
+
+  osync_marshal_changedata(message, change);
+
+  osync_message_write_int( message, change->has_data );
   osync_marshal_changetype( message, change->changetype );
   osync_message_write_long_long_int( message, change->id );
   osync_message_write_string( message, change->destobjtype );
@@ -87,9 +88,6 @@ void osync_demarshal_change( OSyncMessage *message, OSyncChange **change )
   osync_message_read_string( message, &( new_change->uid ) );
   osync_message_read_string( message, &( new_change->hash ) );
 
-  osync_demarshal_changedata(message, new_change);
-
-  osync_message_read_int( message, &( new_change->has_data ) );
   osync_message_read_string( message, &( new_change->objtype_name ) );
   // TODO: find objtype in pool
 
@@ -98,6 +96,9 @@ void osync_demarshal_change( OSyncMessage *message, OSyncChange **change )
 
   osync_message_read_string( message, &( new_change->initial_format_name ) );
   // TODO: find initial_format in pool
+  osync_demarshal_changedata(message, new_change);
+
+  osync_message_read_int( message, &( new_change->has_data ) );
 
   // TODO: set new_change->conv_env
   osync_demarshal_changetype( message, &( new_change->changetype ) );
