@@ -81,26 +81,23 @@ static void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *chang
   osync_message_read_data( message, change->data, change->size );
 }
 
-void osync_demarshal_change( OSyncMessage *message, OSyncChange **change )
+void osync_demarshal_change( OSyncMessage *message, OSyncFormatEnv *conv_env, OSyncChange **change )
 {
   OSyncChange *new_change = osync_change_new();
+
+  osync_change_set_conv_env(new_change, conv_env);
 
   osync_message_read_string( message, &( new_change->uid ) );
   osync_message_read_string( message, &( new_change->hash ) );
 
   osync_message_read_string( message, &( new_change->objtype_name ) );
-  // TODO: find objtype in pool
-
   osync_message_read_string( message, &( new_change->format_name ) );
-  // TODO: find format in pool
-
   osync_message_read_string( message, &( new_change->initial_format_name ) );
-  // TODO: find initial_format in pool
+
   osync_demarshal_changedata(message, new_change);
 
   osync_message_read_int( message, &( new_change->has_data ) );
 
-  // TODO: set new_change->conv_env
   osync_demarshal_changetype( message, &( new_change->changetype ) );
   osync_message_read_long_long_int( message, &( new_change->id ) );
   osync_message_read_string( message, &( new_change->destobjtype ) );

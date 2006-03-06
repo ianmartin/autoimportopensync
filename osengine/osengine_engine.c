@@ -171,7 +171,7 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 			osengine_client_all_deciders(engine);
 			break;
 		case OSYNC_MESSAGE_NEW_CHANGE:
-			osync_demarshal_change(message, &change);
+			osync_demarshal_change(message, osync_group_get_format_env(engine->group), &change);
 			
 			long long int member_id = 0;
 			osync_message_read_long_long_int(message, &member_id);

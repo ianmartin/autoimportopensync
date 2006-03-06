@@ -30,7 +30,7 @@ void osync_demarshal_changetype( OSyncMessage *message, OSyncChangeType *changet
 
 int osync_marshal_get_size_change( OSyncChange *change );
 void osync_marshal_change( OSyncMessage *message, OSyncChange *change );
-void osync_demarshal_change( OSyncMessage *message, OSyncChange **change );
+void osync_demarshal_change( OSyncMessage *message, OSyncFormatEnv *conv_env, OSyncChange **change );
 
 int osync_marshal_get_size_member( OSyncMember *member );
 void osync_marshal_member( OSyncMessage *message, OSyncMember *member );

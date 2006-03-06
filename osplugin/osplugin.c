@@ -266,7 +266,7 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx->message = message;
     	osync_message_ref(message);
 		OSyncChange *change;
-  		osync_demarshal_change(message, &change);
+  		osync_demarshal_change(message, member->group->conv_env, &change);
 		osync_change_set_member(change, member);
 	  	osync_member_commit_change(member, change, (OSyncEngCallback)message_callback, ctx);
 		  osync_trace(TRACE_EXIT, "message_handler");
