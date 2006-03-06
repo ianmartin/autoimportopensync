@@ -300,8 +300,6 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 
 osync_bool osync_queue_start_thread(OSyncQueue *queue, OSyncError **error)
 {
-	queue->context = g_main_context_new();
-	
 	signal(SIGPIPE, SIG_IGN);
 	
 	queue->thread = osync_thread_new(queue->context, error);
@@ -348,6 +346,8 @@ OSyncQueue *osync_queue_new(const char *name, osync_bool run, OSyncError **error
 	
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
+	
+	queue->context = g_main_context_new();
 	
 	queue->incoming = g_async_queue_new();
 	g_async_queue_ref(queue->incoming);
