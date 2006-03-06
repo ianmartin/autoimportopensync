@@ -149,8 +149,10 @@ static osync_bool marshall_file(const char *input, int inpsize, char **output, i
 	/* file struct */
 	memcpy(outfile, file, sizeof(fileFormat));
 	outfile->data = NULL;
+
 	/* file data */
-	memcpy(outdata, file->data, file->size);
+	if (file->size > 0)
+		memcpy(outdata, file->data, file->size);
 
 	*output = out;
 	*outpsize = osize;
@@ -176,11 +178,14 @@ static osync_bool demarshall_file(const char *input, int inpsize, char **output,
 
 	memcpy(newfile, file, sizeof(fileFormat));
 
-	newfile->data = osync_try_malloc0(file->size, error);
-	if (!newfile->data)
-		goto error_free_file;
+	if (file->size > 0) {
+		newfile->data = osync_try_malloc0(file->size, error);
+		if (!newfile->data)
+			goto error_free_file;
 
-	memcpy(newfile->data, filedata, file->size);
+		memcpy(newfile->data, filedata, file->size);
+	} else
+		newfile->data = NULL;
 
 	*output = (char*)newfile;
 	*outpsize = sizeof(fileFormat);
