@@ -419,7 +419,7 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 		 * This is necessary because some fields (N and ADR, for example) need
 		 * a specific order of the values
 		 */
-		tmp = "";
+		tmp = g_strdup("");
 	}
 	
 	if (needs_charset((unsigned char*)tmp))
