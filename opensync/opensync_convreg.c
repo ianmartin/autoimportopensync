@@ -161,6 +161,24 @@ void osync_env_register_extension(OSyncEnv *env, const char *from_format, const 
 	env->extension_templates = g_list_append(env->extension_templates, ext);
 }
 
+void osync_env_format_set_demarshall_func(OSyncEnv *env, const char *formatname, OSyncFormatDemarshallFunc demarshall_func)
+{
+	osync_trace(TRACE_INTERNAL, "osync_env_format_set_demarshall_func(%p, %s, %p)", env, formatname, demarshall_func);
+	g_assert(env);
+	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
+	osync_assert(format, "You need to register the formattype first");
+	format->demarshall_func = demarshall_func;
+}
+
+void osync_env_format_set_marshall_func(OSyncEnv *env, const char *formatname, OSyncFormatMarshallFunc marshall_func)
+{
+	osync_trace(TRACE_INTERNAL, "osync_env_format_set_marshall_func(%p, %s, %p)", env, formatname, marshall_func);
+	g_assert(env);
+	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
+	osync_assert(format, "You need to register the formattype first");
+	format->marshall_func = marshall_func;
+}
+
 void osync_env_format_set_compare_func(OSyncEnv *env, const char *formatname, OSyncFormatCompareFunc cmp_func)
 {
 	osync_trace(TRACE_INTERNAL, "osync_env_format_set_compare_func(%p, %s, %p)", env, formatname, cmp_func);

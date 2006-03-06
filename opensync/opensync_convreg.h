@@ -15,5 +15,7 @@ void osync_env_format_set_duplicate_func(OSyncEnv *env, const char *formatname, 
 void osync_env_format_set_create_func(OSyncEnv *env, const char *formatname, OSyncFormatCreateFunc create_func);
 void osync_env_format_set_print_func(OSyncEnv *env, const char *formatname, OSyncFormatPrintFunc print_func);
 void osync_env_format_set_revision_func(OSyncEnv *env, const char *formatname, OSyncFormatRevisionFunc revision_func);
+void osync_env_format_set_marshall_Func(OSyncEnv *env, const char *formatname, OSyncFormatMarshallFunc marshall_func);
+void osync_env_format_set_demarshall_Func(OSyncEnv *env, const char *formatname, OSyncFormatDemarshallFunc marshall_func);
 
 #endif //_OPENSYNC_CONVREG_H_

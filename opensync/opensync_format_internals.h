@@ -52,6 +52,8 @@ struct OSyncObjFormat {
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
 	OSyncFormatRevisionFunc revision_func;
+	OSyncFormatMarshallFunc marshall_func;
+	OSyncFormatDemarshallFunc demarshall_func;
 #endif
 };
 
@@ -135,6 +137,8 @@ typedef struct OSyncObjFormatTemplate {
 	OSyncFormatDestroyFunc destroy_func;
 	OSyncFormatPrintFunc print_func;
 	OSyncFormatRevisionFunc revision_func;
+	OSyncFormatMarshallFunc marshall_func;
+	OSyncFormatDemarshallFunc demarshall_func;
 } OSyncObjFormatTemplate;
 
 typedef struct OSyncConverterTemplate {
