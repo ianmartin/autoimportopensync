@@ -90,7 +90,7 @@ void osync_message_unref(OSyncMessage *message)
  */
 void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data)
 {
-	printf("%p handler to %p\n", message, user_data);
+	osync_trace(TRACE_INTERNAL, "%p handler to %p", message, user_data);
 	message->user_data = user_data;
 	message->callback = handler;
 }
@@ -316,9 +316,9 @@ void osync_message_read_string(OSyncMessage *message, char **value)
 
 void osync_message_read_data(OSyncMessage *message, void *value, int size)
 {
-	printf("memcpy now\n");
+	osync_trace(TRACE_INTERNAL, "memcpy now");
   memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), size );
-	printf("memcpy done\n");
+	osync_trace(TRACE_INTERNAL, "memcpy done");
   message->buffer_read_pos += size;
 }
 

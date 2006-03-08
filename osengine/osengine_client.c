@@ -75,7 +75,7 @@ void _connect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 {
 	osync_trace(TRACE_ENTRY, "_connect_reply_receiver(%p, %p)", message, sender);
 	
-	printf("connect reply %i\n", osync_message_is_error(message));
+	osync_trace(TRACE_INTERNAL, "connect reply %i", osync_message_is_error(message));
 	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
@@ -572,11 +572,11 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 	if (!osync_queue_exists(client->incoming) || !osync_queue_is_alive(client->incoming)) {
 		pid_t cpid = fork();
 		if (cpid == 0) {
-			printf("About to exec osplugin\n");
+			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
 			execlp("osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
 			
-			printf("unable to exec\n");
+			osync_trace(TRACE_INTERNAL, "unable to exec");
 			exit(1);
 		}
 
@@ -624,8 +624,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 	while (!(reply = osync_queue_get_message(engine->incoming)))
 		usleep(10000);
 	
-	osync_trace(TRACE_INTERNAL, "Reply received");
-		printf("reply received %i\n", reply->cmd);
+	osync_trace(TRACE_INTERNAL, "reply received %i", reply->cmd);
 	if (reply->cmd != OSYNC_MESSAGE_REPLY) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong answer");
 		goto error_free_reply;

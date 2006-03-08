@@ -66,14 +66,13 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 				if (pending->id1 == message->id1 && pending->id2 == message->id2) {
 					/* Found the pending reply */
 					if (!pending->callback) {
-						printf("Pending message does not have a callback\n");
 						osync_message_unref(message);
 						osync_message_unref(pending);
 						osync_trace(TRACE_EXIT_ERROR, "%s: Pending message does not have a callback", __func__);
 						return TRUE;
 					}
 					
-					printf("%p handler to2 %p\n", pending, pending->user_data);
+					osync_trace(TRACE_INTERNAL, "%p handler to2 %p", pending, pending->user_data);
 					osync_trace(TRACE_INTERNAL, "calling reply callback %p %p", message, pending->user_data);
 					pending->callback(message, pending->user_data);
 					osync_trace(TRACE_INTERNAL, "done calling reply callback");
@@ -88,7 +87,7 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 			osync_trace(TRACE_INTERNAL, "Unable to find pending message for id %lli %i\n", message->id1, message->id2);
 		} else {
 			if (!queue->message_handler) {
-				printf("you have to setup a message handler for the queue!\n");
+				osync_trace(TRACE_INTERNAL, "you have to setup a message handler for the queue!");
 				osync_message_unref(message);
 				osync_trace(TRACE_EXIT_ERROR, "%s: you have to setup a message handler for the queue", __func__);
 				return FALSE;

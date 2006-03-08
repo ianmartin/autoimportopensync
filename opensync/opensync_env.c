@@ -752,13 +752,11 @@ OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
 	if (!thread)
 		goto error;
 
-	printf("test\n");
 	thread->started_mutex = g_mutex_new();
 	thread->started = g_cond_new();
 	thread->context = context;
 	g_main_context_ref(thread->context);
 	thread->loop = g_main_loop_new(thread->context, FALSE);
-	printf("test2\n");
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, thread);
 	return thread;

@@ -95,7 +95,6 @@ void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *u
 
 int main( int argc, char **argv )
 {
-	printf("start osplugin\n");
 	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
 	GMainLoop *syncloop;
 	GMainContext *context;
@@ -112,7 +111,7 @@ int main( int argc, char **argv )
   /** Create environment **/
   OSyncEnv *env = osync_env_new();
   if (!osync_env_initialize(env, &error)) {
-    printf("Unable to initialize environment: %s\n", osync_error_print(&error));
+    fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
     osync_error_free(&error);
     return 1;
   }
@@ -120,7 +119,7 @@ int main( int argc, char **argv )
   /** Find group **/
   OSyncGroup *group = osync_env_find_group(env, groupname);
   if (!group) {
-    printf("Unable to find group with name %s\n", groupname);
+    fprintf(stderr, "Unable to find group with name %s\n", groupname);
     return 2;
   }
 
@@ -134,7 +133,7 @@ int main( int argc, char **argv )
       pp.member = NULL;
   }
   if ( !pp.member ) {
-    printf("Unable to find member with id %d\n", member_id);
+    fprintf(stderr, "Unable to find member with id %d\n", member_id);
     return 3;
   }
 
@@ -150,7 +149,7 @@ int main( int argc, char **argv )
 
   /** Idle until the syncengine connects to (and reads from) our pipe **/
   if (!osync_queue_connect( pp.incoming, O_RDONLY, 0 )) {
-  	printf("Unable to connect\n");
+  	fprintf(stderr, "Unable to connect\n");
   	exit(1);
   }
 	/** Set callback functions **/
@@ -160,12 +159,12 @@ int main( int argc, char **argv )
 	//functions->rf_sync_alert = osync_client_sync_alert_sink;
 
 	/** Start loop **/
-	printf("plugin setuping up mainloop\n");
+	osync_trace(TRACE_INTERNAL, "plugin setuping up mainloop");
   osync_queue_set_message_handler(pp.incoming, message_handler, &pp);
   osync_queue_setup_with_gmainloop(pp.incoming, context);
 	osync_member_set_loop(pp.member, context);
 
-	printf("running loop\n");
+	osync_trace(TRACE_INTERNAL, "running loop");
   g_main_loop_run(syncloop);
 
   return 0;
@@ -183,28 +182,28 @@ void message_handler(OSyncMessage *message, void *user_data)
 	char *enginepipe = NULL;
    	context *ctx = NULL;
 
-	printf("plugin received command %i\n", osync_message_get_command( message ));
+	osync_trace(TRACE_INTERNAL, "plugin received command %i", osync_message_get_command( message ));
 
 	switch ( osync_message_get_command( message ) ) {
 		case OSYNC_MESSAGE_NOOP:
 			break;
 		case OSYNC_MESSAGE_INITIALIZE:
-			printf("init.\n");
+			osync_trace(TRACE_INTERNAL, "init.");
 			osync_message_read_string(message, &enginepipe);
 			
-			printf("enginepipe %s\n", enginepipe);
+			osync_trace(TRACE_INTERNAL, "enginepipe %s", enginepipe);
 			pp->outgoing = osync_queue_new(enginepipe, TRUE, NULL);
 			if (!pp->outgoing) {
-				printf("Unable to make new queue\n");
+				fprintf(stderr, "Unable to make new queue\n");
 				exit(1);
 			}
-			printf("connecting to engine\n");
+			osync_trace(TRACE_INTERNAL, "connecting to engine");
 			if (!osync_queue_connect(pp->outgoing, O_WRONLY, 0 )) {
-				printf("Unable to make new queue\n");
+				fprintf(stderr, "Unable to make new queue\n");
 				exit(1);
 			}
 			
-			printf("done connecting to engine\n");
+			osync_trace(TRACE_INTERNAL, "done connecting to engine");
 			/** Instanciate plugin **/
 			if (!osync_member_instance_default_plugin(pp->member, &error))
 				goto error;
@@ -213,31 +212,31 @@ void message_handler(OSyncMessage *message, void *user_data)
 			if (!osync_member_initialize(pp->member, &error))
 				goto error;
 			
-			printf("sending reply to engine\n");
+			osync_trace(TRACE_INTERNAL, "sending reply to engine");
   			reply = osync_message_new_reply(message, NULL);
   			if (!reply) {
-				printf("Unable to make new reply\n");
+				fprintf(stderr, "Unable to make new reply\n");
   				exit(1);
   			}
   				
 			if (!osync_queue_send_message(pp->outgoing, NULL, reply, NULL)) {
-				printf("Unable to make send reply\n");
+				fprintf(stderr, "Unable to make send reply\n");
 				exit(1);
 			}
 			
-			printf("done sending to engine\n");
+			osync_trace(TRACE_INTERNAL, "done sending to engine");
 			break;
 	case OSYNC_MESSAGE_FINALIZE:
 		osync_member_finalize(pp->member);
 		
 		reply = osync_message_new_reply(message, NULL);
 		if (!reply) {
-			printf("Unable to make new reply\n");
+			fprintf(stderr, "Unable to make new reply\n");
 			exit(1);
 		}
 			
 		if (!osync_queue_send_message(pp->outgoing, NULL, reply, NULL)) {
-			printf("Unable to make send reply\n");
+			fprintf(stderr, "Unable to make send reply\n");
 			exit(1);
 		}
 
@@ -347,14 +346,14 @@ void message_handler(OSyncMessage *message, void *user_data)
 error:;
 	OSyncMessage *errorreply = osync_message_new_errorreply(message, NULL);
 	if (!errorreply) {
-		printf("Unable to make new reply\n");
+		fprintf(stderr, "Unable to make new reply\n");
 		exit(1);
 	}
 		
 	osync_message_set_error(errorreply, &error);	
 	
 	if (!osync_queue_send_message(pp->outgoing, NULL, errorreply, NULL)) {
-		printf("Unable to send error\n");
+		fprintf(stderr, "Unable to send error\n");
 		exit(1);
 	}
 	

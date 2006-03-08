@@ -163,11 +163,11 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 	
 	OSyncChange *change = NULL;
 			
-	printf("engine received command %i\n", osync_message_get_command(message));
+	osync_trace(TRACE_INTERNAL, "engine received command %i", osync_message_get_command(message));
 	
 	switch (osync_message_get_command(message)) {
 		case OSYNC_MESSAGE_SYNCHRONIZE:
-			printf("all deciders\n");
+			osync_trace(TRACE_INTERNAL, "all deciders");
 			osengine_client_all_deciders(engine);
 			break;
 		case OSYNC_MESSAGE_NEW_CHANGE:
@@ -763,7 +763,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	
 	osync_queue_create(engine->incoming, NULL);
 	
-	printf("Spawning clients\n");
+	osync_trace(TRACE_INTERNAL, "Spawning clients");
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
@@ -790,7 +790,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		return FALSE;
 	}
 	
-	printf("opening engine queue\n");
+	osync_trace(TRACE_INTERNAL, "opening engine queue");
 	if (!osync_queue_connect(engine->incoming, O_RDONLY, 0 )) {
 		osync_group_unlock(engine->group, TRUE);
 		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
@@ -803,7 +803,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		return FALSE;
 	}
 	
-	printf("initializing clients\n");
+	osync_trace(TRACE_INTERNAL, "initializing clients");
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
 		if (!osync_client_init(client, engine, error)) {
@@ -885,7 +885,7 @@ void osengine_finalize(OSyncEngine *engine)
  */
 osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
-	printf("synchronize now\n");
+	osync_trace(TRACE_INTERNAL, "synchronize now");
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	g_assert(engine);
 	

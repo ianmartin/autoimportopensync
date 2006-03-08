@@ -63,7 +63,7 @@ void osync_filter_update_hook(OSyncFilter *filter, OSyncGroup *group, const char
 			hook = custom->hook;
 	}
 	if (!hook) {
-		printf("Unable to add custom filter, hook not found!\n");
+		osync_trace(TRACE_ERROR, "Unable to add custom filter, hook not found!");
 		return;
 	}
 	filter->hook = hook;
