@@ -314,6 +314,7 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 
 osync_bool osync_queue_start_thread(OSyncQueue *queue, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
 	signal(SIGPIPE, SIG_IGN);
 	
 	queue->thread = osync_thread_new(queue->context, error);
@@ -335,6 +336,7 @@ osync_bool osync_queue_start_thread(OSyncQueue *queue, OSyncError **error)
 	
 	osync_thread_start(queue->thread);
 	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
