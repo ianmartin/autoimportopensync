@@ -48,11 +48,11 @@ OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **
 
 	message->cmd = cmd;
 	message->refCount = 1;
-  if (size > 0)
+	if (size > 0)
 		message->buffer = g_byte_array_sized_new( size );
-  else
-    message->buffer = g_byte_array_new();
-  message->buffer_read_pos = 0;
+	else
+		message->buffer = g_byte_array_new();
+	message->buffer_read_pos = 0;
 	return message;
 }
 
@@ -199,7 +199,7 @@ gboolean timeoutfunc(gpointer data)
 
 osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error)
 {
-    if (timeout) {
+	if (timeout) {
 		timeout_info *to_info = osync_try_malloc0(sizeof(timeout_info), error);
 		if (!to_info)
 			return FALSE;
@@ -211,13 +211,13 @@ osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *qu
 		message->to_info = to_info;
 		g_source_set_callback(to_info->source, timeoutfunc, to_info, NULL);
 		g_source_attach(to_info->source, replyQueue->context);
-    }
-    // FIXME: for armin
-    /**
+	}
+	// FIXME: for armin
+	/**
 	if (!osync_marshal_message( queue, message, error ))
-		return FALSE;
-    */
-		
+	return FALSE;
+	*/
+
 	return TRUE;
 }
 
@@ -248,12 +248,12 @@ OSyncMessageCommand osync_message_get_command(OSyncMessage *message)
 
 void osync_message_write_int(OSyncMessage *message, int value)
 {
-  g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( int ) );
+	g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( int ) );
 }
 
 void osync_message_write_long_long_int(OSyncMessage *message, long long int value)
 {
-  g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( long long int ) );
+	g_byte_array_append( message->buffer, (unsigned char*)&value, sizeof( long long int ) );
 }
 
 void osync_message_write_string(OSyncMessage *message, const char *value)
@@ -271,19 +271,19 @@ void osync_message_write_string(OSyncMessage *message, const char *value)
 
 void osync_message_write_data(OSyncMessage *message, const void *value, int size)
 {
-  g_byte_array_append( message->buffer, value, size );
+	g_byte_array_append( message->buffer, value, size );
 }
 
 void osync_message_read_int(OSyncMessage *message, int *value)
 {
-  memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
-  message->buffer_read_pos += sizeof(int);
+	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
+	message->buffer_read_pos += sizeof(int);
 }
 
 void osync_message_read_long_long_int(OSyncMessage *message, long long int *value)
 {
-  memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(long long int));
-  message->buffer_read_pos += sizeof(long long int);
+	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(long long int));
+	message->buffer_read_pos += sizeof(long long int);
 }
 
 void osync_message_read_string(OSyncMessage *message, char **value)
@@ -304,8 +304,8 @@ void osync_message_read_string(OSyncMessage *message, char **value)
 void osync_message_read_data(OSyncMessage *message, void *value, int size)
 {
 	osync_trace(TRACE_INTERNAL, "memcpy now");
-  memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), size );
+	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), size );
 	osync_trace(TRACE_INTERNAL, "memcpy done");
-  message->buffer_read_pos += size;
+	message->buffer_read_pos += size;
 }
 
