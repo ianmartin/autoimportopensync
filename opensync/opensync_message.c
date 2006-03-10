@@ -21,19 +21,6 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-/*! @brief Sends a message down a queue and returns a timeout if necessary
- *
- * This send an method call to a queue. If no answer is received until timeout,
- * the message callback will receive a timeout error. If the other side still answers
- * , the answer is send to the queue, too
- *
- * @param queue The queue to send the message to
- * @param message The message to send
- * @param timeout How long to wait for an answer
- * @param replysender The object that is sending the reply
- *
- */
-
 /**
  * @ingroup OSEngineMessage
  * @brief A Message used by the inter thread messaging library
@@ -244,9 +231,9 @@ void osync_message_set_answered(OSyncMessage *message)
 	message->is_answered = TRUE;
 }
 
-/*! @brief Gets the msgname from a message
+/*! @brief Gets the command from a message
  * 
- * This function will return the name of a message
+ * This function will return the command of a message
  * 
  * @param message The message
  * @returns the command
