@@ -202,11 +202,13 @@ void message_handler(OSyncMessage *message, void *user_data)
 			pp->outgoing = osync_queue_new(enginepipe, TRUE, NULL);
 			if (!pp->outgoing) {
 				fprintf(stderr, "Unable to make new queue\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make new queue", __func__);
 				exit(1);
 			}
 			osync_trace(TRACE_INTERNAL, "connecting to engine");
 			if (!osync_queue_connect(pp->outgoing, O_WRONLY, 0 )) {
-				fprintf(stderr, "Unable to make new queue\n");
+				fprintf(stderr, "Unable to connect queue\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect queue", __func__);
 				exit(1);
 			}
 			
@@ -223,11 +225,13 @@ void message_handler(OSyncMessage *message, void *user_data)
   			reply = osync_message_new_reply(message, NULL);
   			if (!reply) {
 				fprintf(stderr, "Unable to make new reply\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make new reply", __func__);
   				exit(1);
   			}
   				
 			if (!osync_queue_send_message(pp->outgoing, NULL, reply, NULL)) {
-				fprintf(stderr, "Unable to make send reply\n");
+				fprintf(stderr, "Unable to send reply\n");
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to send reply", __func__);
 				exit(1);
 			}
 			
@@ -239,16 +243,19 @@ void message_handler(OSyncMessage *message, void *user_data)
 		reply = osync_message_new_reply(message, NULL);
 		if (!reply) {
 			fprintf(stderr, "Unable to make new reply\n");
+			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make new reply", __func__);
 			exit(1);
 		}
 			
 		if (!osync_queue_send_message(pp->outgoing, NULL, reply, NULL)) {
-			fprintf(stderr, "Unable to make send reply\n");
+			fprintf(stderr, "Unable to send reply\n");
+			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to send reply", __func__);
 			exit(1);
 		}
 
 		/*FIXME: how to wait for a message to be sent? */
 
+		osync_trace(TRACE_EXIT, "%s", __func__);
 		exit(0);
 	break;
     case OSYNC_MESSAGE_CONNECT:
