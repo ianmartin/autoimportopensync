@@ -35,12 +35,14 @@
 
 /*@{*/
 
+static
 gboolean _incoming_prepare(GSource *source, gint *timeout_)
 {
 	*timeout_ = 1;
 	return FALSE;
 }
 
+static
 gboolean _incoming_check(GSource *source)
 {
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
@@ -49,6 +51,7 @@ gboolean _incoming_check(GSource *source)
 	return FALSE;
 }
 
+static
 gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
@@ -102,12 +105,14 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 	return TRUE;
 }
 
+static
 gboolean _queue_prepare(GSource *source, gint *timeout_)
 {
 	*timeout_ = 1;
 	return FALSE;
 }
 
+static
 gboolean _queue_check(GSource *source)
 {
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
@@ -116,6 +121,7 @@ gboolean _queue_check(GSource *source)
 	return FALSE;
 }
 
+static
 int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n)
 {
 
@@ -139,6 +145,7 @@ int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n)
   return (n);
 }
 
+static
 osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(long long int)) < 0)
@@ -147,6 +154,7 @@ osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long i
 	return TRUE;
 }
 
+static
 osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(int)) < 0)
@@ -155,6 +163,7 @@ osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message)
 	return TRUE;
 }
 
+static
 gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	OSyncQueue *queue = user_data;
@@ -187,6 +196,7 @@ error:
 	return TRUE;
 }
 
+static
 gboolean _source_prepare(GSource *source, gint *timeout_)
 {
 	*timeout_ = 1;
@@ -194,6 +204,7 @@ gboolean _source_prepare(GSource *source, gint *timeout_)
 }
 
 /* Read "n" bytes from a descriptor. */
+static
 int _osync_queue_read_data(OSyncQueue *queue, void *vptr, size_t n)
 {
 
@@ -218,6 +229,7 @@ int _osync_queue_read_data(OSyncQueue *queue, void *vptr, size_t n)
   return (n - nleft);  /* return >= 0 */
 }
 
+static
 osync_bool _osync_queue_read_int(OSyncQueue *queue, int *message)
 {
   int status;
@@ -233,6 +245,7 @@ osync_bool _osync_queue_read_int(OSyncQueue *queue, int *message)
   return TRUE;
 }
 
+static
 osync_bool _osync_queue_read_long_long_int(OSyncQueue *queue, long long int *message)
 {
   int status;
@@ -248,6 +261,7 @@ osync_bool _osync_queue_read_long_long_int(OSyncQueue *queue, long long int *mes
   return TRUE;
 }
 
+static
 gboolean _source_check(GSource *source)
 {
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
@@ -256,6 +270,7 @@ gboolean _source_check(GSource *source)
 	return FALSE;
 }
 
+static
 gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	OSyncQueue *queue = user_data;
