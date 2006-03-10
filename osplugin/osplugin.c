@@ -114,6 +114,7 @@ int main( int argc, char **argv )
   OSyncEnv *env = osync_env_new();
   if (!osync_env_initialize(env, &error)) {
     fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
     osync_error_free(&error);
     return 1;
   }
@@ -122,6 +123,7 @@ int main( int argc, char **argv )
   OSyncGroup *group = osync_env_find_group(env, groupname);
   if (!group) {
     fprintf(stderr, "Unable to find group with name %s\n", groupname);
+    osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find group with name %s", __func__, groupname);
     return 2;
   }
 
@@ -136,6 +138,7 @@ int main( int argc, char **argv )
   }
   if ( !pp.member ) {
     fprintf(stderr, "Unable to find member with id %d\n", member_id);
+    osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find member with id %d", __func__, member_id);
     return 3;
   }
 
@@ -152,6 +155,7 @@ int main( int argc, char **argv )
   /** Idle until the syncengine connects to (and reads from) our pipe **/
   if (!osync_queue_connect( pp.incoming, O_RDONLY, 0 )) {
   	fprintf(stderr, "Unable to connect\n");
+	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
   	exit(1);
   }
 	/** Set callback functions **/
@@ -169,6 +173,7 @@ int main( int argc, char **argv )
 	osync_trace(TRACE_INTERNAL, "running loop");
   g_main_loop_run(syncloop);
 
+  osync_trace(TRACE_EXIT, "%s", __func__);
   return 0;
 }
 
