@@ -401,7 +401,7 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 	OSyncMessage *reply = NULL;
 
 	if (osync_message_is_answered(message) == TRUE) {
-    	osync_message_unref(message);
+		osync_message_unref(message);
 		osync_trace(TRACE_EXIT, "%s", __func__);
 		return;
 	}
