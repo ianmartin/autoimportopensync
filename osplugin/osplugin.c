@@ -56,6 +56,7 @@ void process_error_shutdown(PluginProcess *pp, OSyncError **error)
 	sleep(1);
 	
 	process_free(pp);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	exit(1);
 
 error_free_message:
@@ -76,6 +77,7 @@ void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *u
 	
 	if (osync_message_is_answered(orig)) {
 		osync_change_free(change);
+		osync_trace(TRACE_EXIT, "%s", __func__);
 		return;
 	}
 	
@@ -257,7 +259,6 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx->message = message;
     	osync_message_ref(message);
   		osync_member_get_changeinfo(member, (OSyncEngCallback)message_callback, ctx);
-	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_COMMIT_CHANGE:
     	ctx = malloc(sizeof(context));
@@ -268,7 +269,6 @@ void message_handler(OSyncMessage *message, void *user_data)
   		osync_demarshal_change(message, member->group->conv_env, &change);
 		osync_change_set_member(change, member);
 	  	osync_member_commit_change(member, change, (OSyncEngCallback)message_callback, ctx);
-		  osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_SYNC_DONE:
     	ctx = malloc(sizeof(context));
@@ -276,7 +276,6 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx->message = message;
     	osync_message_ref(message);
   		osync_member_sync_done(member, (OSyncEngCallback)message_callback, ctx);
-	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_DISCONNECT:
     	ctx = malloc(sizeof(context));
@@ -284,7 +283,6 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx->message = message;
     	osync_message_ref(message);
   		osync_member_disconnect(member, (OSyncEngCallback)message_callback, ctx);
-	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     case OSYNC_MESSAGE_REPLY:
       break;
@@ -301,7 +299,6 @@ void message_handler(OSyncMessage *message, void *user_data)
     	ctx->message = message;
     	osync_message_ref(message);
   		osync_member_committed_all(member, (OSyncEngCallback)message_callback, ctx);
-	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
   	/*case OSYNC_MESSAGE_READ_CHANGE:
       osync_demarshal_change( queue, &change, &error );
@@ -329,10 +326,9 @@ void message_handler(OSyncMessage *message, void *user_data)
 	  		itm_message_send_reply(reply);
   		}
 */
-	  	osync_trace(TRACE_EXIT, "message_handler");
       break;
     default:
-    	osync_trace(TRACE_EXIT_ERROR, "message_handler: Unknown message");
+    	osync_trace(TRACE_INTERNAL, "%s: ERROR: Unknown message", __func__);
     	g_assert_not_reached();
       break;
   }
@@ -347,6 +343,7 @@ error:;
 	OSyncMessage *errorreply = osync_message_new_errorreply(message, NULL);
 	if (!errorreply) {
 		fprintf(stderr, "Unable to make new reply\n");
+		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
 		exit(1);
 	}
 		
@@ -354,6 +351,7 @@ error:;
 	
 	if (!osync_queue_send_message(pp->outgoing, NULL, errorreply, NULL)) {
 		fprintf(stderr, "Unable to send error\n");
+		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
 		exit(1);
 	}
 	
@@ -375,6 +373,7 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 
 	if (osync_message_is_answered(message) == TRUE) {
     	osync_message_unref(message);
+		osync_trace(TRACE_EXIT, "%s", __func__);
 		return;
 	}
 	
