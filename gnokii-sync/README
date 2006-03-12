@@ -33,17 +33,21 @@ Let me know if this works for your cellphone.
 BUGS/KNOWN PROBLEMS:
 ^^^^^^^^^^^^^^^^^^^^
 
-* gnokii (at the moment!) can read but NOT write:
+* nokia cellphones can't store alarm after event. Entry without reminder will be stored on
+  the phone. (If your cellphone support alarm after event contact me! :)
+
+* gnokii (<= 0.6.12) can read but NOT write:
 	Info:
 	^^^^^
 	This bugs will lead to wrong hash calculation after further syncs => MODIFICATIONS.
 	Possible workaround is to ignore this information on hash calculation.
+	[Update]: workaround used for end time of calendar notes. 
 
 	EVENT (Calendar):
 	^^^^^^^^^^^^^^^^^
 	- Location of Meeting Notes (calnote->mlocation)
 	
-	- Reminder/Alarm cannot be written for Meeting notes
+	- Alarm of Memo, Reminder Notes
 
 	- Notes with type Reminder, they will appear as Memos. Older Nokia 
 	  phones only support 4 calendar types , no reminder - only memo. 
@@ -52,30 +56,24 @@ BUGS/KNOWN PROBLEMS:
 	- End Time of a Meeting. End Time on the phone will be equal to Start 
 	  Time. (calnote->end_time)
 
-	- Phone Numbers of Calling Notes cannot be written (gnokii version 0.6.11)
-
 	- ... 
-
-* alarm (reminder) of all day events will no be synced. cellphone can set
-  specific time and not only minutes before/after begin of event. no idea
-  how to handle this :( kdepim will remind on 00:00:00.
 
 * conflict handling doesn't work well. gnokii-event doesn't have any priority and other nodes
   which are missing while comparing xml-events with compare_vevent(). Mabye a own compare_func
   without comparing the priority and other missing fields will help(?).
+  [Update]: This should/will be fixed in the engine of opensync.
 
 * the gnokii-sync plugin doesn't support all object types (notes, todo, contact) so it is
   recommended to filter out this object types. This can be done with the latest revision 
   (subversion) of msynctool-cli with --filter-objtype:
-  	msynctool --sync gnokii-kdepim "--filter-objtype note "--filter-objtype contact --filter-objtype todo
+  	msynctool --sync gnokii-kdepim --filter-objtype note --filter-objtype contact --filter-objtype todo
 
 TODO:
 ^^^^^
 * event format:
-
 	# How to handle Birthday notes for PIMs?
 		- filtering to contacts?
-		- event with yearly recurrence?
+		- event with yearly recurrence? [done] 
 		- both?
 		
 	# check for a fit calendar type:
@@ -86,7 +84,6 @@ TODO:
 			- filtering content
 			- add additional calendar category to source entry
 
-	# write destroy function
 	# print function (written, but never tested)
 		
 * contact format

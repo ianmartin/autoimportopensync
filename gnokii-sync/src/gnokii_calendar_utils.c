@@ -35,12 +35,14 @@ int gnokii_util_alarmevent2secs(char *alarm) {
 
         int i, secs, digits;
         int is_digit = 0;
+	int sign = -1;	// when ical stamp doesn't start with '-' => seconds after event
         int days = 0, weeks = 0, hours = 0, minutes = 0, seconds = 0;
 
 	        for (i=0; i < (int) strlen(alarm); i++) {
 
                 switch (alarm[i]) {
                         case '-':
+				sign = 1; // seconds before event - so we haven't to change the sign
                         case 'P':
                         case 'T':
                                 is_digit = 0;
@@ -86,6 +88,8 @@ int gnokii_util_alarmevent2secs(char *alarm) {
 
         secs = (weeks * 7 * 24 * 3600) + (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds;
 
+	secs = secs * sign;	// change sign if the alarm is in seconds after event (no leading '-')
+
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, secs);
         return secs;
 }
@@ -102,31 +106,52 @@ char *gnokii_util_secs2alarmevent(int secs_before_event) {
 	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, secs_before_event);
 
         char *tmp = NULL;
+	char *prefix = NULL;
 
-	if (!secs_before_event)
-		return g_strdup("PT0S");
+	if (!secs_before_event) { 
+		tmp = g_strdup("PT0S");
+		goto end;
+	}
 
-        if (!(secs_before_event % (3600 * 24))) 
-               return g_strdup_printf("-P%iD", secs_before_event / (3600 * 24));
+	if (secs_before_event > 0) { 
+		prefix = g_strdup("-P");
+	} else {
+		prefix = g_strdup("P");
+		secs_before_event *= -1;
+	}
 
-        if (!(secs_before_event % 3600))
-                return g_strdup_printf("-PT%iH", secs_before_event / 3600);
+	// Days 
+        if (!(secs_before_event % (3600 * 24))) {
+               tmp = g_strdup_printf("%s%iD", prefix, secs_before_event / (3600 * 24));
+	       goto end;
+	}
 
-        if (!(secs_before_event % 60) && secs_before_event < 3600)
-                return g_strdup_printf("-PT%iM", secs_before_event / 60);
+	// Hours
+        if (!(secs_before_event % 3600)) {
+                tmp = g_strdup_printf("%sT%iH", prefix, secs_before_event / 3600);
+		goto end;
+	}
 
+	// Minutes
+        if (!(secs_before_event % 60) && secs_before_event < 3600) {
+                tmp = g_strdup_printf("%sT%iM", prefix, secs_before_event / 60);
+		goto end;
+	}
 
         if (secs_before_event > 60)
-                tmp = g_strdup_printf("-PT%iM", secs_before_event / 60);
+                tmp = g_strdup_printf("%sT%iM", prefix, secs_before_event / 60);
 
         if (secs_before_event > 3600)
-                tmp = g_strdup_printf("-PT%iH%iM", secs_before_event / 3600,
+                tmp = g_strdup_printf("%sT%iH%iM", prefix, secs_before_event / 3600,
                                 (secs_before_event % 3600) / 60);
 
         if (secs_before_event > (3600 * 24))
-               tmp = g_strdup_printf("-P%iDT%iH%iM", secs_before_event / (3600 * 24),
+               tmp = g_strdup_printf("%s%iDT%iH%iM", prefix, secs_before_event / (3600 * 24),
                                secs_before_event % (3600 * 24) / 3600,
                                ((secs_before_event % (3600 * 24) % 3600)) / 60);
+
+end:
+	g_free(prefix);
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
         return tmp;
@@ -168,6 +193,11 @@ time_t gnokii_util_timestamp2ttm(gn_timestamp timestamp) {
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, timestamp);
 	struct tm *date = (struct tm *) malloc(sizeof(struct tm));
+
+	osync_trace(TRACE_INTERNAL, "%04i %02i %02i - %02i:%02i:%02i",
+			timestamp.year, timestamp.month, timestamp.day,
+			timestamp.hour, timestamp.minute, timestamp.second);
+			
 
 	tzset();
 	date->tm_sec = timestamp.second;
@@ -224,6 +254,8 @@ char *gnokii_util_caltype2string(gn_calnote_type type) {
  */
 char *gnokii_util_ttm2wday(const time_t *date) {
 
+	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, (int) date);
+
 	struct tm *tmp_date = localtime(date);
 	char *day_string = NULL;
 
@@ -251,7 +283,7 @@ char *gnokii_util_ttm2wday(const time_t *date) {
 			break;
 	}
 
-
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return day_string;
 }
 

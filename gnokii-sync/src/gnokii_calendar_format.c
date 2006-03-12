@@ -33,6 +33,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 	time_t ttm;
 	time_t start_ttm = 0;
 	char *tmp = NULL;
+	int secs_before_event = 0;
 
 	gn_calnote *cal = (gn_calnote *) input;
 
@@ -47,6 +48,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 	root = xmlNewChild(root, NULL, (xmlChar*) "Event", NULL);
 
 	// Type
+	osync_trace(TRACE_INTERNAL, "Category: %i", cal->type);
 	current = xmlNewChild(root, NULL, (xmlChar *) "Categories", NULL);
 	switch (cal->type) {
 		case GN_CALNOTE_MEETING:
@@ -69,18 +71,20 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 	// Time
 	if (cal->time.year) {
 
-		// Also used for alarm timestamp calculation
-		start_ttm = gnokii_util_timestamp2ttm(cal->time); 
-
 		// Day Events have no Time only Date:
 		if (cal->type == GN_CALNOTE_REMINDER
 				|| cal->type == GN_CALNOTE_MEMO
 				|| cal->type == GN_CALNOTE_BIRTHDAY) {
+
 			tmp = g_strdup_printf("%04u%02u%02u",
 					cal->time.year,
 					cal->time.month,
 					cal->time.day);
 
+			cal->time.hour = 0;
+			cal->time.minute = 0;
+			cal->time.second = 0;
+		
 		// Date/Time Events:
 		} else {
 			tmp = g_strdup_printf("%04u%02u%02uT%02u%02u%02uZ", 
@@ -92,23 +96,26 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 					cal->time.second);
 		}
 
+		osync_trace(TRACE_INTERNAL, "start time: %s (ical)\n", tmp);
 		current = xmlNewChild(root, NULL, (xmlChar *) "DateStarted", NULL);
 		xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
-		
+
 		g_free(tmp);
-	}
+
+		// Also used for alarm timestamp calculation
+		start_ttm = gnokii_util_timestamp2ttm(cal->time); 	
+}
 
 	// EndTime
 	if (cal->end_time.year) {
 
 		// Day Events have no Time only Date:
-		if (cal->type == GN_CALNOTE_REMINDER
-				|| cal->type == GN_CALNOTE_MEMO
-				|| cal->type == GN_CALNOTE_BIRTHDAY) {
+		if (cal->type == GN_CALNOTE_MEMO) {
 			tmp = g_strdup_printf("%04u%02u%02u",
 					cal->end_time.year,
 					cal->end_time.month,
-					cal->end_time.day);
+					cal->end_time.day + 1);	// PIMs need this.
+				// Phones counts started days. PIMs counts full days.
 
 		// Date/Time Events:
 		} else {
@@ -134,7 +141,38 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 
 		ttm = gnokii_util_timestamp2ttm(cal->alarm.timestamp); 
 
-		int secs_before_event = start_ttm - ttm;
+		// Set start time on calnote type Reminder to 00:00:00
+		if (cal->type == GN_CALNOTE_REMINDER
+		//		|| cal->type == GN_CALNOTE_MEMO) {
+		) {
+			gn_timestamp daystamp;
+			
+			daystamp.year = cal->alarm.timestamp.year;
+			daystamp.month  = cal->alarm.timestamp.month;
+			daystamp.day = cal->alarm.timestamp.day;
+			daystamp.hour = 0; 
+			daystamp.minute = 0; 
+			daystamp.second = 0; 
+
+			start_ttm = gnokii_util_timestamp2ttm(daystamp);
+		}
+		/*
+		} else if (cal->type == GN_CALNOTE_BIRTHDAY) {
+			gn_timestamp daystamp;
+
+			daystamp.year = cal->alarm.timestamp.year;
+			daystamp.month = cal->alarm.timestamp.month;
+			daystamp.day = cal->alarm.timestamp.day;
+			daystamp.hour = cal->alarm.timestamp.hour;
+			daystamp.minute = cal->alarm.timestamp.minute;
+			daystamp.second = cal->alarm.timestamp.second;
+		}
+		*/
+
+		secs_before_event = start_ttm - ttm;
+
+		osync_trace(TRACE_INTERNAL, "start_ttm(%i) - ttm(%i) = %i",
+				(int) start_ttm, (int) ttm, secs_before_event);
 		
 		// convert seconds into ical duration string - example: -P1DT22H30M 
 		tmp = gnokii_util_secs2alarmevent(secs_before_event);	
@@ -212,13 +250,17 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 			default:
 				break;	
 		}
+
+		g_free(tmp);
 	}
 	
 	*free_input = TRUE;
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
+#ifndef HIDE_SENSITIVE
 	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+#endif	
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 	return TRUE;
@@ -231,8 +273,9 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, 
 			output, outpsize, free_input, error);
-
+#ifndef HIDE_SENSITIVE
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+#endif	
 
 	char *tmp;
 	xmlNode *cur = NULL;
@@ -304,7 +347,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		
 
 	// DateEnd
-	/* XXX: Not supported by gnokii at the moment (version 0.6.11)... will be fixed!
+	/* XXX: Not supported by gnokii at the moment (version 0.6.11)... will be fixed! */
 	cur = osxml_get_node(root, "DateEnd");
 	if (cur) {
 
@@ -321,7 +364,6 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		// Nokia cellphones cannot handle seconds in calendar so set it to ZERO
 		calnote->end_time.second = 0;
 	}
-	*/
 
 	/* Alarm - TODO: is not fully supported
 	 * 		Not supported:
@@ -424,11 +466,17 @@ error:
 
 static void destroy_gnokii_event(char *input, size_t inpsize)
 {
-	// TODO
-	/*
-	 * Here you have to free the data allocated by your format
-	 *
-	 */
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
+	gn_calnote *calnote = (gn_calnote *) input;
+	
+	if (inpsize != sizeof(gn_calnote)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Wrong size!", __func__);
+		return;
+	}
+
+	g_free(calnote);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*

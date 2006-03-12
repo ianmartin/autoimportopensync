@@ -29,6 +29,14 @@ AC_SUBST(OPENSYNC_PLUGINDIR) ## This is the dir where you plugin will be install
 AC_SUBST(OPENSYNC_FORMATSDIR) ## Here are format plugins installed (if any)
 AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may need (if any)
 
+AC_ARG_ENABLE(privacy,
+  AS_HELP_STRING([--enable-privacy], [hide sensitive information in trace logs (debugging only)]),
+  enable_privacy=$enableval)
+if test "x$enable_privacy" = "xyes"; then
+        AC_DEFINE(HIDE_SENSITIVE,1,[Disable writing of sensitive information in  trace logs (debugging only)])
+        AC_SUBST(HIDE_SENSTIVIE)
+fi
+
 AC_OUTPUT([
 Makefile
 src/Makefile

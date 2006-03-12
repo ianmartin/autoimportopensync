@@ -1,3 +1,21 @@
+2006-03-12  Daniel Gollub  <dgollub@suse.de>
+
+	* fixed several memory leaks
+
+	* fixed alarm/reminder of all day events
+
+	* src/gnokii_calendar_format.c
+		- fixed alarm time of all day events in gnokii event format
+
+	* configure.in
+		- added --enable-privacy which let disappear the sensitive data
+		  in the trace log files
+
+	* src/Makefile.am 
+		- avoid linking problems with -lopensync-xml for gnokii-format
+	
+	* added destroy function for event format (calendar)
+
 2006-02-27  Daniel Gollub  <dgollub@suse.de>
 
 	* Initial version of gnokii-sync 

@@ -25,6 +25,8 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
+#include "config.h"
+
 #include "gnokii_config.h"
 #include "gnokii_comm.h"
 #include "gnokii_calendar.h"
