@@ -426,6 +426,7 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 
 void *osync_client_message_sink(OSyncMember *member, const char *name, void *data, osync_bool synchronous)
 {
+	/*TODO: Implement support for PLUGIN_MESSAGE */
 /*
 	OSyncClient *client = osync_member_get_data(member);
 	OSyncEngine *engine = client->engine;
@@ -447,6 +448,7 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 
 void osync_client_sync_alert_sink(OSyncMember *member)
 {
+	/*TODO: Implement support for sync alerts */
 /*
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
 	OSyncClient *client = osync_member_get_data(member);
