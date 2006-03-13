@@ -46,6 +46,7 @@ void osengine_mappingentry_decider(OSyncEngine *engine, OSyncMappingEntry *entry
 	&& osync_flag_is_set(entry->fl_has_info) \
 	&& osync_flag_is_not_set(entry->fl_has_data)) {
 		osync_trace(TRACE_INTERNAL, "++++ ENGINE COMMAND: Get data (Entry %p) ++++", entry);
+		/*TODO: implement get_change_data() */
 		abort();//send_get_change_data(engine, entry);
 		osync_trace(TRACE_EXIT, "osengine_mappingentry_decider");
 		return;
