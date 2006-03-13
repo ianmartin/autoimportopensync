@@ -221,32 +221,9 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 			break;
 	}
 	
-	/*if (osync_message_is_signal (message, "ENTRY_CHANGED")) {
-		OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
-		
-		if (!g_list_find(engine->maptable->entries, entry) && !g_list_find(engine->maptable->unmapped, entry)) {
-			osync_trace(TRACE_EXIT, "%s: Entry %p is dead", __func__, entry);
-			return;
-		}
-		
-		osengine_mappingentry_decider(engine, entry);
-		osync_trace(TRACE_EXIT, "engine_message_handler");
-		return;
-	}
-	
-	if (osync_message_is_signal (message, "MAPPING_CHANGED")) {
-		OSyncMapping *mapping = osync_message_get_data(message, "mapping");
-		
-		if (!g_list_find(engine->maptable->mappings, mapping)) {
-			osync_trace(TRACE_EXIT, "%s: Mapping %p is dead", __func__, mapping);
-			return;
-		}
-		
-		osengine_mapping_decider(engine, mapping);
-		osync_trace(TRACE_EXIT, "engine_message_handler");
-		return;
-	}
-	
+	/*TODO: Implement handling of the messages listed below, on commented code */
+
+	/*	
 	if (osync_message_is_signal (message, "CLIENT_CHANGED")) {
 		OSyncClient *client = osync_message_get_data(message, "client");
 		
@@ -256,18 +233,6 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 		}
 		
 		osengine_client_decider(engine, client);
-		osync_trace(TRACE_EXIT, "engine_message_handler");
-		return;
-	}
-	
-	if (osync_message_is_signal (message, "ENGINE_CHANGED")) {
-		osengine_client_all_deciders(engine);
-		osengine_mapping_all_deciders(engine);
-		GList *u;
-		for (u = engine->maptable->unmapped; u; u = u->next) {
-			OSyncMappingEntry *unmapped = u->data;
-			send_mappingentry_changed(engine, unmapped);
-		}
 		osync_trace(TRACE_EXIT, "engine_message_handler");
 		return;
 	}
