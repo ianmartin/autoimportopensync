@@ -1034,6 +1034,7 @@ void osengine_wait_info_end(OSyncEngine *engine)
  */
 void osengine_one_iteration(OSyncEngine *engine)
 {
+	/*TODO: Reimplement support to stepping mode on engine */
 	abort();//osync_queue_dispatch(engine->incoming);
 }
 
