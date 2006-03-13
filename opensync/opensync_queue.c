@@ -607,6 +607,8 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, message, error);
 	
+	/*TODO: add timeout handling */
+
 	if (queue->error) {
 		osync_error_duplicate(error, &(queue->error));
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
