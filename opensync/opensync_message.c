@@ -162,65 +162,6 @@ void osync_message_reset_timeout(OSyncMessage *message)
 	g_source_attach(message->to_info->source, context);
 }
 
-/*! @brief Sends a reply to a message
- * 
- * This function will send a reply to a message to the sender of the
- * original message. It also removes any timeout for the original message.
- * 
- * @param reply The reply to send
- * 
- */
-osync_bool osync_message_send(OSyncMessage *message, OSyncQueue *queue, OSyncError **error)
-{
-  // FIXME: for armin
-  /**
-	return osync_marshal_message( queue, message, error );
-  */
-  return FALSE;
-}
-
-gboolean timeoutfunc(gpointer data)
-{
-	timeout_info *to_info = data;
-	
-	if (osync_message_is_answered(to_info->message))
-		return FALSE;
-	
-	OSyncMessage *reply = osync_message_new_errorreply(to_info->message, NULL);
-	osync_trace(TRACE_ERROR, "Timeout while waiting for a reply to message %p:\"%lli-%i\". Sending error %p", to_info->message, to_info->message->id1, to_info->message->id2, reply);
-	OSyncError *error = NULL;
-	osync_error_set(&error, OSYNC_ERROR_TIMEOUT, "Timeout while waiting for a reply to message \"%lli-%i\"", to_info->message->id1, to_info->message->id2);
-	osync_message_set_error(reply, &error);
-	osync_error_free(&error);
-	osync_message_send(reply, to_info->replyqueue, NULL);
-	osync_message_set_answered(to_info->message);
-	return FALSE;
-}
-
-osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error)
-{
-	if (timeout) {
-		timeout_info *to_info = osync_try_malloc0(sizeof(timeout_info), error);
-		if (!to_info)
-			return FALSE;
-		to_info->message = message;
-		to_info->sendingqueue = queue;
-		to_info->timeout = timeout;
-		to_info->timeoutfunc = timeoutfunc;
-		to_info->source = g_timeout_source_new(timeout * 1000);
-		message->to_info = to_info;
-		g_source_set_callback(to_info->source, timeoutfunc, to_info, NULL);
-		g_source_attach(to_info->source, replyQueue->context);
-	}
-	// FIXME: for armin
-	/**
-	if (!osync_marshal_message( queue, message, error ))
-	return FALSE;
-	*/
-
-	return TRUE;
-}
-
 osync_bool osync_message_is_answered(OSyncMessage *message)
 {
 	return message->is_answered;
