@@ -170,6 +170,7 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 
 	OSyncMessage *message = g_async_queue_try_pop(queue->outgoing);
 	if (message) {
+		/*FIXME: review usage of osync_marshal_get_size_message() */
 		if (!_osync_queue_write_int(queue, message->buffer->len + osync_marshal_get_size_message(message)))
 			goto error;
 		

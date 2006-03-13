@@ -169,7 +169,7 @@ void osync_demarshal_member( OSyncMessage *message, OSyncMember **member )
   if ( id == -1 )
     *member = 0;
   else {
-    // search in pool
+    //TODO: search in pool
   }
 }
 
@@ -215,6 +215,12 @@ void osync_demarshal_error( OSyncMessage *message, OSyncError **error )
 		osync_error_free(error);
 }
 
+/*FIXME: review these get_size_*() functions
+ *
+ * - check if the data is being marhsalled as specified in the functions
+ * - check (proabably invalid) usage of strlen() without considering the
+ *   string length bytes and the nul terminator
+ */
 int osync_marshal_get_size_message( OSyncMessage *message )
 {
   int size = 0;
