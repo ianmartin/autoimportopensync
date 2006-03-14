@@ -97,6 +97,13 @@ osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncErr
 				parse_connection_type(str, config);
 			}
 
+			// check for debug option of libgnokii
+			if (!xmlStrcmp(cur->name, (const xmlChar *) "debug")) {
+				if (!strcasecmp(str, "on"))
+					gn_log_debug_mask = GN_LOG_T_STDERR;	// debug output to stderr
+			}
+
+
 			xmlFree(str);
 		}
 		cur = cur->next;

@@ -46,6 +46,21 @@ CONFIGURATION
 	  <model>6230</model>
 	</config>
 
+	Example config file for a Nokia 6020 via irda:
+
+	[Quick instruction to setup irda connection:]
+	 1. modprobe *your irda module*
+	 2. modprobe irda-ircomm
+	 3. irattach -s /dev/ircomm0
+	[End of irda setup. Thanks for this Asuhra !] 
+	
+	<config>
+	  <connection>irda</connection>
+	  <port>/dev/ircomm0</port>
+	  <model>6510</model>
+	</config>
+
+
 
 TROUBLESHOOTING
 ^^^^^^^^^^^^^^^
@@ -79,6 +94,14 @@ TROUBLESHOOTING
 		  wrong. Compare model, port, connection of the plugin config and your gnokiirc.
 
 		* otherwise check if your phone is on :P
+
+		* get additional debugging output from libgnokii add <debug> 
+		  to your gnokii-sync configuration:
+			<config>
+				...
+				<debug>on</debug>
+				...
+			</config>	
 
 	Bluetooth:
 	##########
