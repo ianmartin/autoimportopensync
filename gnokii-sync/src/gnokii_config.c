@@ -97,6 +97,11 @@ osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncErr
 				parse_connection_type(str, config);
 			}
 
+			// rfcomm channel
+			if (!xmlStrcmp(cur->name, (const xmlChar *) "rfcomm_channel")) {
+				config->rfcomm_cn = atoi(str);
+			}
+
 			// check for debug option of libgnokii
 			if (!xmlStrcmp(cur->name, (const xmlChar *) "debug")) {
 				if (!strcasecmp(str, "on"))
@@ -148,6 +153,9 @@ void gnokii_config_state(struct gn_statemachine *state, gn_config *config) {
 
 	/* connection type - gn_connection_type */
         state->config.connection_type = config->connection_type; 
+
+	/* rfcomm channel */
+	state->config.rfcomm_cn = config->rfcomm_cn;
 	
 }
 
