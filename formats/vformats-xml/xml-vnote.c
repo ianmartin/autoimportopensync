@@ -555,6 +555,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_print_func(env, "xml-note", print_note);
 	osync_env_format_set_copy_func(env, "xml-note", osxml_copy);
 	osync_env_format_set_revision_func(env, "xml-note", get_revision);
+	osync_env_format_set_marshall_func(env, "xml-note", osxml_marshall);
+	osync_env_format_set_demarshall_func(env, "xml-note", osxml_demarshall);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vnote11", "xml-note", conv_vnote_to_xml);
 	osync_env_converter_set_init(env, "vnote11", "xml-note", init_vnote_to_xml, fin_vnote_to_xml);

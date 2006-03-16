@@ -389,3 +389,32 @@ osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsi
 	*outpsize = sizeof(newdoc);
 	return TRUE;
 }
+
+osync_bool osxml_marshall(char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	xmlDoc *doc = (xmlDoc*)input;
+	xmlChar *result;
+	int size;
+	xmlDocDumpMemory(doc, &result, &size);
+	*output = (char*)result;
+	*outpsize = size;
+	return TRUE;
+}
+
+osync_bool osxml_demarshall(char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	xmlDoc *doc = xmlParseMemory(input, inpsize);
+	if (!doc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid XML data received");
+		goto error;
+	}
+
+	*output = (char*)doc;
+	*outpsize = sizeof(*doc);
+	return TRUE;
+
+error:
+	return FALSE;
+}
+
+
