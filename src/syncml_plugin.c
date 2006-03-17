@@ -224,12 +224,15 @@ static void _ds_alert(SmlDsSession *dsession, void *userdata)
 	if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCARD) {
 		printf("received contact dsession\n");
 		env->contactSession = dsession;
+		smlDsSessionRef(dsession);
 	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCAL) {
 		printf("received event dsession\n");
 		env->calendarSession = dsession;
+		smlDsSessionRef(dsession);
 	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_PLAIN) {
 		printf("received note dsession\n");
 		env->noteSession = dsession;
+		smlDsSessionRef(dsession);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -241,6 +244,7 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 	SmlPluginEnv *env = userdata;
 
 	switch (type) {
+		case SML_MANAGER_SESSION_FLUSH:
 		case SML_MANAGER_CONNECT_DONE:
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
@@ -262,6 +266,7 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 				smlSessionSetReceivingLimit(session, env->recvLimit);
 			
 			env->session = session;
+			smlSessionRef(session);
 			break;
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final\n", smlSessionGetSessionID(session));
@@ -400,7 +405,14 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 
 	env->port = 8080;
 	env->url = NULL;
+	env->username = NULL;
+	env->recvLimit = 0;
+	env->password = NULL;
+	env->useStringtable = TRUE;
+	env->onlyReplace = FALSE;
 	env->contact_url = NULL;
+	env->calendar_url = NULL;
+	env->note_url = NULL;
 	
 	if (!(doc = xmlParseMemory(config, size))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -643,6 +655,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	SmlTransportHttpServerConfig config;
 	config.port = env->port;
 	config.url = env->url;
+	config.interface = NULL;
 	
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
