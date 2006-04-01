@@ -1,0 +1,11 @@
+This is the SyncML client plugin for opensync, based on a port of the
+SyncML C++ API from http://www.funambol.org.
+
+The thing consists ot two packages: the SyncML API package under 'api'
+and the plugin code under 'plugin'. Install the API package first.
+
+The API package is built in the directory development/src.
+
+Enjoy,
+
+--michael
