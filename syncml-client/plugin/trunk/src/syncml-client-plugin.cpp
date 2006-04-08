@@ -119,7 +119,7 @@ extern "C" static void* smc_initialize(OSyncMember *member, OSyncError **error)
     catch( ConfigException& cfe ){
         osync_error_update(error, "Unable to parse config data: %s", cfe.why );
         free( env );
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, cfe.why );
+        osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, cfe.why );
         return NULL;
     }
 }
@@ -135,33 +135,33 @@ extern "C"  void smc_os_connect(OSyncContext *ctx)
     try{
         osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env );
 
-	    env->syncSource = createSyncSource( env->config->getSyncSourceName() );
-	    env->syncManager = createSyncManager( ctx, env->config->getUri() );
+        env->syncSource = createSyncSource( env->config->getSyncSourceName() );
+        env->syncManager = createSyncManager( ctx, env->config->getUri() );
 
-	    retval = env->syncManager->prepareSync( *(env->syncSource) );
-	    check_sync_code( retval, "Connecting" );
+        retval = env->syncManager->prepareSync( *(env->syncSource) );
+        check_sync_code( retval, "Sync server->client, mods, alert" );
 
-	    env->overallSyncMode = env->syncSource->getPreferredSyncMode(); 
-	    if( env->overallSyncMode == SYNC_SLOW ){
-	        // The two-way, slow sync is done as two separate sync's, one
-	        // now and one in batch_commit().
-	        env->syncSource->setSyncMode( SYNC_ONE_WAY_FROM_SERVER );
-	        osync_member_set_slow_sync(env->member, 
-                                       env->config->getObjType(), 
-                                       TRUE);
-	    }
-	    osync_context_report_success( ctx );
-	    osync_trace(TRACE_EXIT, "%s", __func__);
+        env->overallSyncMode = env->syncSource->getPreferredSyncMode(); 
+        if( env->overallSyncMode == SYNC_SLOW ){
+            // The two-way, slow sync is done as two separate sync's, one
+            // now and one in batch_commit().
+            env->syncSource->setSyncMode( SYNC_ONE_WAY_FROM_SERVER );
+            osync_member_set_slow_sync(env->member, 
+                                    env->config->getObjType(), 
+                                    TRUE);
+        }
+        osync_context_report_success( ctx );
+        osync_trace(TRACE_EXIT, "%s", __func__);
     }
     catch( ConfigException cfe ){
         osync_context_report_error(ctx,
                                    OSYNC_ERROR_MISCONFIGURATION,
                                    cfe.why );
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, cfe.why );
-    }
+        osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, cfe.why );
+}
     catch( SyncManagerException sme ) {
         osync_context_report_error( ctx, OSYNC_ERROR_GENERIC, sme.getMsg());
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg()  );
+        osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg()  );
         free( env );
     }
 }
@@ -179,30 +179,30 @@ extern "C" void smc_get_changeinfo( OSyncContext *ctx )
     try{
         syncml_env* env = (syncml_env*) osync_context_get_plugin_data( ctx );
         osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
- 	    retval = env->syncManager->sync( *(env->syncSource) );
-	    check_sync_code( retval, "Performing first sync" );
-	 
-	    env->lastAnchor = env->syncSource->getLastAnchor( );
-	    LOG.setMessage( L"getChanges, lastAnchor: %s",  env->lastAnchor );
-	    LOG.debug();
+        retval = env->syncManager->sync( *(env->syncSource) );
+        check_sync_code( retval, "Sync server->client, mods" );
+        
+        env->lastAnchor = env->syncSource->getLastAnchor( );
+        LOG.setMessage( L"getChanges, lastAnchor: %s",  env->lastAnchor );
+        LOG.debug();
 
-	    SmcChangeFactory* changeFactory = new SmcChangeFactory( env->member );
+        SmcChangeFactory* changeFactory = new SmcChangeFactory( env->member );
 
-	    env->syncSource->reportChanges( ctx, changeFactory );
+        env->syncSource->reportChanges( ctx, changeFactory );
 
-	    retval = env->syncManager->endSync( *(env->syncSource) );
-	    check_sync_code( retval, "End for sync #1" );
+        retval = env->syncManager->endSync( *(env->syncSource) );
+        check_sync_code( retval, "Sync server->client, mapping" );
 
-	    // Update anchors for next sync, but dont store them now. We
-	    // will not commit the complete transaction until disconnect().
-	    env->syncSource->updateAnchors();
+        // Update anchors for next sync, but dont store them now. We
+        // will not commit the complete transaction until disconnect().
+        env->syncSource->updateAnchors();
 
-	    osync_context_report_success(ctx);
-	    osync_trace(TRACE_EXIT, "%s", __func__);
+        osync_context_report_success(ctx);
+        osync_trace(TRACE_EXIT, "%s", __func__);
     }
     catch( SyncManagerException sme ){
         osync_context_report_error( ctx, OSYNC_ERROR_GENERIC, sme.getMsg() );
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg() );
+        osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg() );
     }
          
 }
@@ -215,18 +215,18 @@ extern "C" osync_bool smc_commit_change( OSyncContext* ctx, OSyncChange* change)
     try{
         osync_trace(TRACE_ENTRY, "%s", __func__);
         syncml_env* env = (syncml_env*) osync_context_get_plugin_data( ctx );
-	    ItemFactory itemFactory( env->config->getMimeType() );
+        ItemFactory itemFactory( env->config->getMimeType() );
 
-	    env->syncSource->commitChange( &itemFactory, change );
-	    osync_context_report_success(ctx);
-	    osync_trace(TRACE_EXIT, "%s", __func__);
+        env->syncSource->commitChange( &itemFactory, change );
+        osync_context_report_success(ctx);
+        osync_trace(TRACE_EXIT, "%s", __func__);
         return TRUE;
     }
- 	catch( SyncSourceException sse ){
-		osync_context_report_error( ctx, OSYNC_ERROR_GENERIC, sse.getMsg() );
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sse.getMsg() );
+    catch( SyncSourceException sse ){
+        osync_context_report_error( ctx, OSYNC_ERROR_GENERIC, sse.getMsg() );
+        osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sse.getMsg() );
         return FALSE;
-	}        
+    }        
 }
 
 /**
@@ -237,29 +237,29 @@ extern "C" void smc_committed_all( OSyncContext* ctx)
 {
     int retval; 
     try{ 
-	    osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	    syncml_env* env = (syncml_env*) osync_context_get_plugin_data( ctx );
+        osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+        syncml_env* env = (syncml_env*) osync_context_get_plugin_data( ctx );
 
-	    retval = env->syncManager->prepareSync( *(env->syncSource) );
-	    check_sync_code( retval, "Sync client->server, alert" );
+        retval = env->syncManager->prepareSync( *(env->syncSource) );
+        check_sync_code( retval, "Sync client->server, alert" );
 
-	    env->syncSource->prepareForSync();
+        env->syncSource->prepareForSync();
 
-	    if( env->overallSyncMode == SYNC_SLOW )
-	        env->syncSource->setSyncMode( SYNC_ONE_WAY_FROM_CLIENT );
+        if( env->overallSyncMode == SYNC_SLOW )
+            env->syncSource->setSyncMode( SYNC_ONE_WAY_FROM_CLIENT );
 
-	    retval = env->syncManager->sync( *(env->syncSource) );
-	    check_sync_code( retval, "Sync client ->server, mods" );
+        retval = env->syncManager->sync( *(env->syncSource) );
+        check_sync_code( retval, "Sync client ->server, mods" );
 
-	    retval = env->syncManager->endSync( *(env->syncSource) );
-	    check_sync_code( retval, "Sync client ->server, mapping" );
+        retval = env->syncManager->endSync( *(env->syncSource) );
+        check_sync_code( retval, "Sync client ->server, mapping" );
 
-	    osync_context_report_success( ctx );
-	    osync_trace(TRACE_EXIT, "%s", __func__);
+        osync_context_report_success( ctx );
+        osync_trace(TRACE_EXIT, "%s", __func__);
     }
     catch( SyncManagerException sme ){
         osync_context_report_error( ctx, OSYNC_ERROR_GENERIC, sme.getMsg() );
-	    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg() );
+        osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg() );
     }
 }
 
