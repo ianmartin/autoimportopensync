@@ -46,7 +46,7 @@
          * @param pos (OUTPUT) the position where the tag is found (ignored if NULL)
          *
          */
-        wchar_t* SyncMLProcessor::getElementContent(wchar_t* xml, wchar_t* tag, unsigned int* pos);
+        wchar_t* getElementContent(wchar_t* xml, wchar_t* tag, unsigned int* pos);
         
         /*
          * It's like getElementContent function but it doesn't allocate new memory.
@@ -57,7 +57,7 @@
          * @param startPos (OUTPUT) the start position of the tag content (ignored if NULL)
          * @param pos (OUTPUT) the end position of the tag content (ignored if NULL)
          */
-        wchar_t* SyncMLProcessor::getElementContentSaveMem(wchar_t* xml, wchar_t* tag, unsigned int* pos, unsigned int* startPos, unsigned int* endPos);
+        wchar_t* getElementContentSaveMem(wchar_t* xml, wchar_t* tag, unsigned int* pos, unsigned int* startPos, unsigned int* endPos);
         
         /*
          * It return the content of the buffer specified by startPos (initial position)
@@ -71,7 +71,7 @@
          * 
          */
         
-        wchar_t* SyncMLProcessor::getContent(wchar_t* xml, unsigned int startPos, unsigned int endPos);
+        wchar_t* getContent(wchar_t* xml, unsigned int startPos, unsigned int endPos);
         
         /*
          * Returns the status code for the SyncHeader command included
@@ -79,7 +79,7 @@
          *
          * @param syncBody - the SyncBody content
          */
-        int SyncMLProcessor::getSyncHeaderStatusCode(wchar_t* syncBody);
+        int getSyncHeaderStatusCode(wchar_t* syncBody);
 
         /*
          * Trnslates a PTypes object list into an array of SyncItem*.
@@ -160,7 +160,7 @@
          *
          * @param msg - the message - NOT NULL
          */
-        BOOL SyncMLProcessor::checkTagFinal(wchar_t* msg);
+        BOOL checkTagFinal(wchar_t* msg);
 
     };
 

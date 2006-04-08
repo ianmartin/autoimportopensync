@@ -36,7 +36,7 @@
         Proxy(wchar_t* host, int port, wchar_t* user, wchar_t* password);
 
         void setProxy(Proxy& proxy);
-        void Proxy::setProxy(wchar_t* proxyHost, int proxyPort, wchar_t* proxyUser, wchar_t* proxyPassword);
+        void setProxy(wchar_t* proxyHost, int proxyPort, wchar_t* proxyUser, wchar_t* proxyPassword);
 
         Proxy& operator= (Proxy& proxy) { setProxy(proxy); return *this;}
     };

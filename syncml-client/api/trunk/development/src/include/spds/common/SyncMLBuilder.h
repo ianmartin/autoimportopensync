@@ -66,7 +66,7 @@
          * @param source - The SyncSource - NOT NULL
          *
          */
-        wchar_t* SyncMLBuilder::prepareInitMsg(SyncSource& source);
+        wchar_t* prepareInitMsg(SyncSource& source);
 
         /*
          * Creates and returns the synchronization message for the given source.
@@ -75,7 +75,7 @@
          *
          * @param source the SyncSource to synchronize
          */
-        wchar_t* SyncMLBuilder::prepareSyncMsg(SyncSource& source);
+        wchar_t* prepareSyncMsg(SyncSource& source);
 
         /*
          * Creates and returns the mapping message for a given source.
@@ -85,15 +85,13 @@
          * @param source - The SyncSource - NOT NULL
          *
          */
-        wchar_t* SyncMLBuilder::prepareMapMsg(SyncSource& source);
+        wchar_t* prepareMapMsg(SyncSource& source);
 		
-        wchar_t* SyncMLBuilder::prepareAlertMessage(SyncSource& source);
+        wchar_t* prepareAlertMessage(SyncSource& source);
         
-        void SyncMLBuilder::concat(wchar_t* buf, wchar_t* map);
+        void concat(wchar_t* buf, wchar_t* map);
 
 
     };
 #endif
-
-
 

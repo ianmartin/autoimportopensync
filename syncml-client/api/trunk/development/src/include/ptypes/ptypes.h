@@ -565,7 +565,7 @@ public:
 
     friend inline void ins(tobjlist& s, int i, T* obj)
         { unknown* t = obj; PTYPES_NAMESPACE::ins(s, i, t); }
-
+/***
     friend inline int add(tobjlist& s, T* obj)
         { unknown* t = obj; return PTYPES_NAMESPACE::add(s, t); }
 
@@ -581,6 +581,7 @@ public:
     friend inline T* pop(tobjlist& s)
         { return (T*)PTYPES_NAMESPACE::pop((objlist&)s); }
 
+***/
     friend inline T* top(const tobjlist& s)
         { return (T*)PTYPES_NAMESPACE::get(s, length(s) - 1); }
 

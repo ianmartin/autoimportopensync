@@ -288,7 +288,7 @@
         /*
          * Returns the number of items in allItems
          */
-        unsigned int SyncSource::getAllSyncItemsCount();
+        unsigned int getAllSyncItemsCount();
 
         /*
          * Returns the 'new' items buffer.
@@ -298,7 +298,7 @@
         /*
          * Returns the number of items in NewItems
          */
-        unsigned int SyncSource::getNewSyncItemsCount();
+        unsigned int getNewSyncItemsCount();
 
         /*
          * Returns the 'updated' items buffer.
@@ -308,7 +308,7 @@
         /*
          * Returns the number of items in updatedItems
          */
-        unsigned int SyncSource::getUpdatedSyncItemsCount();
+        unsigned int getUpdatedSyncItemsCount();
 
         /*
          * Returns the 'deleted' items buffer.
@@ -318,7 +318,7 @@
         /*
          * Returns the number of items in deletedItems
          */
-        unsigned int SyncSource::getDeletedSyncItemsCount();
+        unsigned int getDeletedSyncItemsCount();
         
         /*
          * Returns the SyncItemStatus buffer.
@@ -328,7 +328,7 @@
         /*
          * Returns the number of itemsStatus in itemsStatus
          */
-        unsigned int SyncSource::getSyncItemStatusCount();
+        unsigned int getSyncItemStatusCount();
 
         /*
          * Returns the number of magging stored in the LUID-GUID mapping
