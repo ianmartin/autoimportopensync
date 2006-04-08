@@ -20,7 +20,7 @@
 
 SyncSourceException::SyncSourceException( char* why )
 {
-	strncpy( msg, why, sizeof( msg ) );
+        strncpy( msg, why, sizeof( msg ) );
 }
 char*  SyncSourceException::getMsg()
 {

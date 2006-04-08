@@ -25,3 +25,36 @@ someting like:
 $msynctool  --sync syncml-file --filter-objtype event --filter-objtype todo
 
 
+Syncing contacts
+================
+ - Create a syncgroup just to handle contacts.
+ - Configure the syncml-client: object-type should be 'contact', and 
+   sync-source-name should point the proper entry under spds/sources
+   in the gconf tree. Using the default sources it is 'card'.
+ - configure the other side of the plugin.
+ - Check that server URL, name and password is configured in gconf,
+   under apps/syncml-client/spds/syncml
+ - Check that the source (default) used is properly configured. Specifically,
+   the uri attribute should be checked against server documentation.
+ - run it with something like
+   $msynctool  --sync evo2-syncml-sw \
+     --filter-objtype event --filter-objtype todo
+
+Syncing calendars
+================
+ - Create a syncgroup just to handle the calendars.
+ - Configure the syncml-client: object-type should be 'event', and
+   sync-source-name should point the proper entry under spds/sources
+   in the gconf tree. Using the default sources it is 'cal'.
+ - configure the other side of the plugin.
+ - Check that server URL, name and password is configured in gconf,
+   under apps/syncml-client/spds/syncml
+ - Check that the source (default) used is properly configured. Specifically,
+   the uri attribute should be checked against server documentation.
+ - run it with something like
+   $msynctool  --sync evo2-syncml-sw \      
+        --filter-objtype contact --filter-objtype todo
+
+
+
+

@@ -71,10 +71,10 @@ class ObjectTypeConfig {
 class SmcConfig {
 
     protected:
-       char*         uri;         	/* Gconf URI, base of gconf settings. */
+       char*         uri;               /* Gconf URI, base of gconf settings. */
        char*         syncSourceName;    /* The name of the SyncML database*/
-					/* to sync ( "cal", "card" ... ). */
-       char*         objType;		/* The type of objects we are    */
+                                        /* to sync ( "cal", "card" ... ). */
+       char*         objType;           /* The type of objects we are    */
                                         /* syncing ("contact", "cal",... */
        char*         objFormat;         /* Format of objType ("vcard21",  */
                                         /*  "vevent". */
@@ -85,7 +85,7 @@ class SmcConfig {
             throw( ConfigException  );
 
     public:
-       char*	getUri();
+       char*    getUri();
        char*    getObjFormat();
        char*    getObjType();
        char*    getSyncSourceName();
