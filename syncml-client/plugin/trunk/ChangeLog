@@ -1,0 +1,11 @@
+release
+
+1.0	Initial release. I have tested vcard syncing, both ways, 
+        "seem to work"
+
+
+1.1     added some docs and testing on calendar data. Calendar
+        works "a little", new events are created on the server as
+        required. Delete does not work. Modifications creates a new
+        item, the old is till thre.
+

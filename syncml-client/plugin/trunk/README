@@ -6,7 +6,7 @@ http://www.funambol.org. The plugin can synchronize contacts (vcards)
 and calendar (ical) data.  
 
 The configuration is kept in two places. The SyncML stuff is housed in gconf.
-This is documented in the funambol docs. At least the server URL,
+This is documented in the Funambol docs. At least the server URL,
 name and password must be set.
 
 The rest is kept in the syncML xml configuration file:
@@ -31,12 +31,13 @@ Syncing contacts
  - Configure the syncml-client: object-type should be 'contact', and 
    sync-source-name should point the proper entry under spds/sources
    in the gconf tree. Using the default sources it is 'card'.
- - configure the other side of the plugin.
+ - Configure the other side of the syncgroup.
  - Check that server URL, name and password is configured in gconf,
    under apps/syncml-client/spds/syncml
- - Check that the source (default) used is properly configured. Specifically,
-   the uri attribute should be checked against server documentation.
- - run it with something like
+ - Check that the source (default 'card') used is properly configured. 
+   Specifically, the uri attribute should be checked against server 
+   documentation.
+ - Run it with something like
    $msynctool  --sync evo2-syncml-sw \
      --filter-objtype event --filter-objtype todo
 
@@ -46,15 +47,19 @@ Syncing calendars
  - Configure the syncml-client: object-type should be 'event', and
    sync-source-name should point the proper entry under spds/sources
    in the gconf tree. Using the default sources it is 'cal'.
- - configure the other side of the plugin.
+ - Configure the other side of the syncgroup.
  - Check that server URL, name and password is configured in gconf,
    under apps/syncml-client/spds/syncml
- - Check that the source (default) used is properly configured. Specifically,
-   the uri attribute should be checked against server documentation.
- - run it with something like
+ - Check that the source (default 'cal') used is properly configured. 
+   Specifically, the uri attribute should be checked against server 
+   documentation.
+ - Run it with something like
    $msynctool  --sync evo2-syncml-sw \      
         --filter-objtype contact --filter-objtype todo
 
 
 
+Syncing other things
+====================
 
+Not tested, but might work - the code is there for notes and tasks.
