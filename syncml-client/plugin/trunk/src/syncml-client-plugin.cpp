@@ -158,7 +158,7 @@ extern "C"  void smc_os_connect(OSyncContext *ctx)
                                    OSYNC_ERROR_MISCONFIGURATION,
                                    cfe.why );
         osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, cfe.why );
-}
+    }
     catch( SyncManagerException sme ) {
         osync_context_report_error( ctx, OSYNC_ERROR_GENERIC, sme.getMsg());
         osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sme.getMsg()  );
