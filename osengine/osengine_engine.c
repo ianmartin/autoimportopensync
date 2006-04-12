@@ -19,6 +19,8 @@
  */
  
 #include "engine.h"
+
+#include <errno.h>
 #include <glib.h>
 #include <opensync/opensync_support.h>
 #include "opensync/opensync_message_internals.h"
@@ -458,12 +460,20 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 
 	OSyncUserInfo *user = osync_user_new(error);
 	if (!user)
-		return NULL;
-	char *path = g_strdup_printf("%s/engines/enginepipe", osync_user_get_confdir(user));
+		goto error;
+
+	char *enginesdir = g_strdup_printf("%s/engines", osync_user_get_confdir(user));
+	char *path = g_strdup_printf("%s/enginepipe", enginesdir);
+
+	if (g_mkdir_with_parents(enginesdir, 0755) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create engines directory: %s", strerror(errno));
+		goto error_free_paths;
+	}
+
 	engine->incoming = osync_queue_new(path, FALSE, error);
 	engine->commandQueue = osync_queue_new(path, FALSE, error);
 	if (!engine->incoming || !engine->commandQueue)
-		return NULL;
+		goto error_free_paths;
 	
 	engine->syncing_mutex = g_mutex_new();
 	engine->info_received_mutex = g_mutex_new();
@@ -519,13 +529,20 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		OSyncMember *member = osync_group_nth_member(group, i);
 		if (!osync_client_new(engine, member, error))
-			return NULL;
+			goto error_free_paths;
 	}
 	
 	engine->maptable = osengine_mappingtable_new(engine);
 	
 	osync_trace(TRACE_EXIT, "osengine_new: %p", engine);
 	return engine;
+
+error_free_paths:
+	g_free(path);
+	g_free(enginesdir);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 /*! @brief This will free a engine and all resources associated
