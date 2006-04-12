@@ -572,6 +572,9 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 	if (!osync_queue_exists(client->incoming) || !osync_queue_is_alive(client->incoming)) {
 		pid_t cpid = fork();
 		if (cpid == 0) {
+			/* Export all options to osplugin through environment variables */
+			osync_env_export_all_options(osync_group_get_env(engine->group));
+
 			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
 			execlp("osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);

@@ -57,7 +57,7 @@ static const char *osync_env_query_option(OSyncEnv *env, const char *name)
 	if (value)
 		return value;
 
-	gchar *env_name = g_strdup_printf("OSYNC_%s");
+	gchar *env_name = g_strdup_printf("OSYNC_%s", name);
 	value = getenv(env_name);
 	g_free(env_name);
 
@@ -70,11 +70,28 @@ static const char *osync_env_query_option(OSyncEnv *env, const char *name)
 static osync_bool osync_env_query_option_bool(OSyncEnv *env, const char *name)
 {
 	const char *get_value;
-	if (!(get_value = g_hash_table_lookup(env->options, name)))
+	if (!(get_value = osync_env_query_option(env, name)))
 		return FALSE;
 	if (!strcmp(get_value, "TRUE"))
 		return TRUE;
 	return FALSE;
+}
+
+static void export_option_to_env(gpointer key, gpointer data, gpointer user_data)
+{
+	const char *name = (const char*)key;
+	const char *value = (const char*)data;
+	gchar *env_name = g_strdup_printf("OSYNC_%s", name);
+	setenv(env_name, value, 1);
+	g_free(env_name);
+}
+
+/** Export all options set through osync_env_set_option() to environment variables
+ *
+ */
+void osync_env_export_all_options(OSyncEnv *env)
+{
+	g_hash_table_foreach(env->options, export_option_to_env, NULL);
 }
 
 static void free_hash(char *key, char *value, void *data)

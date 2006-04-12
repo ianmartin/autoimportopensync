@@ -24,3 +24,6 @@ osync_bool osync_file_write(const char *filename, const char *data, int size, in
 osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncError **error);
 const char *osync_get_version(void);
 void *osync_try_malloc0(unsigned int size, OSyncError **error);
+
+void osync_env_export_all_options(OSyncEnv *env);
+
