@@ -21,7 +21,11 @@
 #include "engine.h"
 
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <glib.h>
+
 #include <opensync/opensync_support.h>
 #include "opensync/opensync_message_internals.h"
 #include "opensync/opensync_queue_internals.h"
@@ -434,6 +438,48 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 	return TRUE;
 }
 
+/* Implementation of g_mkdir_with_parents()
+ *
+ * This function overwrite the contents of the 'dir' parameter
+ */
+static int __mkdir_with_parents(char *dir, int mode)
+{
+	if (g_file_test(dir, G_FILE_TEST_IS_DIR))
+		return 0;
+
+	char *slash = strrchr(dir, '/');
+	if (slash && slash != dir) {
+		/* Create parent directory if needed */
+
+		/* This is a trick: I don't want to allocate a new string
+		 * for the parent directory. So, just put a NUL char
+		 * in the last slash, and restore it after creating the
+		 * parent directory
+		 */
+		*slash = '\0';
+		if (__mkdir_with_parents(dir, mode) < 0)
+			return -1;
+		*slash = '/';
+	}
+
+	if (mkdir(dir, mode) < 0)
+		return -1;
+
+	return 0;
+}
+
+static int mkdir_with_parents(const char *dir, int mode)
+{
+	int r;
+	char *mydir = strdup(dir);
+	if (!mydir)
+		return -1;
+
+	r = __mkdir_with_parents(mydir, mode);
+	free(mydir);
+	return r;
+}
+
 /*! @brief This will create a new engine for the given group
  * 
  * This will create a new engine for the given group
@@ -465,7 +511,7 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 	char *enginesdir = g_strdup_printf("%s/engines", osync_user_get_confdir(user));
 	char *path = g_strdup_printf("%s/enginepipe", enginesdir);
 
-	if (g_mkdir_with_parents(enginesdir, 0755) < 0) {
+	if (mkdir_with_parents(enginesdir, 0755) < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create engines directory: %s", strerror(errno));
 		goto error_free_paths;
 	}
