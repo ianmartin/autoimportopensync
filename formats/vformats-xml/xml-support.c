@@ -390,7 +390,7 @@ osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsi
 	return TRUE;
 }
 
-osync_bool osxml_marshall(char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+osync_bool osxml_marshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	xmlDoc *doc = (xmlDoc*)input;
 	xmlChar *result;
@@ -401,7 +401,7 @@ osync_bool osxml_marshall(char *input, int inpsize, char **output, int *outpsize
 	return TRUE;
 }
 
-osync_bool osxml_demarshall(char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+osync_bool osxml_demarshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
 {
 	xmlDoc *doc = xmlParseMemory(input, inpsize);
 	if (!doc) {
