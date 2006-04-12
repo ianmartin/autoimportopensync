@@ -43,32 +43,25 @@ START_TEST (ipc_connect)
 	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", TRUE, &error);
 	OSyncMessage *message = NULL;
 	
-	printf("fork child start %x\n", cpid);
 	osync_queue_create(queue, NULL);
-	printf("fork child start2 %x\n", cpid);
 	
 	if ( cpid == 0 ) { //Child
 		while (!osync_queue_connect( queue, O_RDWR, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
-		printf("done connecting\n");
 		//sleep(1);
 		while (!(message = osync_queue_get_message(queue)))
 			usleep(10000);
 			
-		printf("child got message\n");
 		//handle_write( queue );
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE)
 			exit (1);
 		
-		printf("replying\n");
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
 		osync_queue_send_message(queue, NULL, reply, &error);
 		
 		sleep(1);
-		printf( "done write\n" );
 		exit( 0 );
 	} else {
 		fail_unless(osync_queue_connect( queue, O_RDWR, NULL ), NULL);
@@ -76,12 +69,10 @@ START_TEST (ipc_connect)
 		message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
 		fail_unless(message != NULL, NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
-		printf("sending message\n");
 		fail_unless(osync_queue_send_message(queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
 		while (!(message = osync_queue_get_message(queue))) {
-			printf("parent sleeping\n");
 			usleep(100000);
 		}
 		
@@ -111,37 +102,28 @@ START_TEST (ipc_payload)
 	OSyncQueue *client_queue = osync_queue_new("/tmp/testpipe-client", TRUE, &error);
 	OSyncMessage *message = NULL;
 	
-	printf("fork child start %x\n", cpid);
 	osync_queue_create(server_queue, NULL);
 	osync_queue_create(client_queue, NULL);
-	printf("fork child start2 %x\n", cpid);
 	char *data = "this is another test string";
 	
 	if ( cpid == 0 ) { //Child
 		while (!osync_queue_connect( server_queue, O_WRONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
 		while (!osync_queue_connect( client_queue, O_RDONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
-		printf("done connecting\n");
 		//sleep(1);
 		while (!(message = osync_queue_get_message(client_queue))) {
-			printf("%i child waiting for message\n", getpid());
 			usleep(10000);
 		}	
-		printf("child got message\n");
 		//handle_write( queue );
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
-			printf("wrong message type\n");
 			exit (1);
 		}
 		
-		printf("reading data\n");
 		int int1;
 		long long int longint1;
 		char *string;
@@ -152,23 +134,18 @@ START_TEST (ipc_payload)
 		osync_message_read_long_long_int(message, &longint1);
 		osync_message_read_data(message, databuf, strlen(data) + 1);
 		
-		printf("data %i, %lli, %s, %s\n", int1, longint1, string, databuf);
 		
-		printf("replying\n");
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
 		osync_queue_send_message(server_queue, NULL, reply, &error);
 		
 		sleep(1);
-		printf( "done write\n" );
 		exit( 0 );
 	} else {
 		while (!osync_queue_connect( server_queue, O_RDONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
 		while (!osync_queue_connect( client_queue, O_WRONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
@@ -181,16 +158,12 @@ START_TEST (ipc_payload)
 		osync_message_write_long_long_int(message, 400000000);
 		osync_message_write_data(message, data, strlen(data) + 1);
 		
-			printf("data %i %i %i %i\n", message->buffer->data[0], message->buffer->data[1], message->buffer->data[2], message->buffer->data[3]);
-		printf("sending message\n");
 		fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
 		while (!(message = osync_queue_get_message(server_queue))) {
-			printf("parent sleeping\n");
 			usleep(100000);
 		}
-		printf("parent done\n");
 		
 		//handle_read( queue );
 		wait( NULL );
@@ -218,12 +191,9 @@ START_TEST (ipc_large_payload)
 	
 	char *data = malloc(bytes);
 	memset(data, 42, sizeof(data));
-		printf("done2 \n");
 	char *databuf2 = malloc(bytes);
-		printf("done3 \n");
 	memset(databuf2, 0, sizeof(databuf2));
 	
-	printf("done %i\n", bytes);
 	pid_t cpid = fork();
 	
 	OSyncError *error = NULL;
@@ -231,64 +201,48 @@ START_TEST (ipc_large_payload)
 	OSyncQueue *client_queue = osync_queue_new("/tmp/testpipe-client", TRUE, &error);
 	OSyncMessage *message = NULL;
 	
-	printf("fork child start %x\n", cpid);
 	osync_queue_create(server_queue, NULL);
 	osync_queue_create(client_queue, NULL);
-	printf("fork child start2 %x\n", cpid);
 	
 	if ( cpid == 0 ) { //Child
 		while (!osync_queue_connect( server_queue, O_WRONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
 		while (!osync_queue_connect( client_queue, O_RDONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
-		printf("done connecting\n");
 		//sleep(1);
 		while (!(message = osync_queue_get_message(client_queue))) {
-			printf("%i child waiting for message\n", getpid());
 			usleep(10000);
 		}	
-		printf("child got message\n");
 		//handle_write( queue );
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
-			printf("wrong message type\n");
 			exit (1);
 		}
 		
-		printf("reading data\n");
 		
-	printf("memcpy now 2 %p %p %i\n", message, databuf2, bytes);
 		osync_message_read_data(message, databuf2, bytes);
 		
-		printf("done reading data\n");
 		long long int i = 0;
 		for (i = 0; i < bytes; i++) {
 			if (databuf2[i] != data[i]) {
-				printf("damn. %i %lli\n", databuf2[i], i);
 				exit(1);
 			}
 		}
 		
-		printf("replying\n");
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
 		osync_queue_send_message(server_queue, NULL, reply, &error);
 		
 		sleep(1);
-		printf( "done write\n" );
 		exit( 0 );
 	} else {
 		while (!osync_queue_connect( server_queue, O_RDONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
 		while (!osync_queue_connect( client_queue, O_WRONLY, 0 )) {
-			printf("child sleeping (%x)\n", cpid );
 			usleep( 10000 );
 		}
 		
@@ -298,15 +252,12 @@ START_TEST (ipc_large_payload)
 		
 		osync_message_write_data(message, data, bytes);
 		
-		printf("sending message\n");
 		fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
 		while (!(message = osync_queue_get_message(server_queue))) {
-			printf("parent sleeping\n");
 			usleep(100000);
 		}
-		printf("parent done\n");
 		
 		//handle_read( queue );
 		wait( NULL );
