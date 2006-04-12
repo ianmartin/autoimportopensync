@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 
  
 /*! @brief This function can be used to receive GET_ENTRY command replies
@@ -626,10 +627,104 @@ void osync_client_call_plugin_with_reply(OSyncClient *client, char *function, vo
 	itm_queue_send_with_reply(client->incoming, message);
 }*/
 
+char *osync_client_pid_filename(OSyncClient *client)
+{
+	return g_strdup_printf("%s/osplugin.pid", client->member->configdir);
+}
+
+osync_bool osync_client_remove_pidfile(OSyncClient *client, OSyncError **error)
+{
+	osync_bool ret = FALSE;
+	char *pidpath = osync_client_pid_filename(client);
+
+	if (unlink(pidpath) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't remove pid file: %s", strerror(errno));
+		goto out_free_path;
+	}
+
+	/* Success */
+	ret = TRUE;
+
+out_free_path:
+	g_free(pidpath);
+//out:
+	return ret;
+}
+
+osync_bool osync_client_create_pidfile(OSyncClient *client, OSyncError **error)
+{
+	osync_bool ret = FALSE;
+	char *pidpath = osync_client_pid_filename(client);
+	char *pidstr = g_strdup_printf("%ld", (long)client->child_pid);
+
+	if (!osync_file_write(pidpath, pidstr, strlen(pidstr), 0644, error))
+		goto out_free_pidstr;
+
+	/* Success */
+	ret = TRUE;
+
+out_free_pidstr:
+	g_free(pidstr);
+//out_free_path:
+	g_free(pidpath);
+//out:
+	return ret;
+}
+
+osync_bool osync_client_kill_old_osplugin(OSyncClient *client, OSyncError **error)
+{
+	osync_bool ret = FALSE;
+
+	char *pidstr;
+	int pidlen;
+	pid_t pid;
+
+	char *pidpath = osync_client_pid_filename(client);
+
+	/* Simply returns if there is no PID file */
+	if (!g_file_test(pidpath, G_FILE_TEST_EXISTS)) {
+		ret = TRUE;
+		goto out_free_path;
+	}
+
+	if (!osync_file_read(pidpath, &pidstr, &pidlen, error))
+		goto out_free_path;
+
+	pid = atol(pidstr);
+	if (!pid)
+		goto out_free_str;
+
+	osync_trace(TRACE_INTERNAL, "Killing old osplugin process. PID: %ld", (long)pid);
+
+	if (kill(pid, SIGTERM) < 0) {
+		osync_trace(TRACE_INTERNAL, "Error killing old osplugin: %s. Stale pid file?", strerror(errno));
+		/* Don't return failure if kill() failed, because it may be a stale pid file */
+	}
+
+	if (unlink(pidpath) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't erase PID file: %s", strerror(errno));
+		goto out_free_str;
+	}
+
+	/* Success */
+	ret = TRUE;
+
+out_free_str:
+	g_free(pidstr);
+out_free_path:
+	g_free(pidpath);
+//out:
+	return ret;
+}
+
+
 osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
 	
+	if (!osync_client_kill_old_osplugin(client, error))
+		goto error;
+
 	if (!osync_queue_exists(client->commands_to_osplugin) || !osync_queue_is_alive(client->commands_to_osplugin)) {
 		pid_t cpid = fork();
 		if (cpid == 0) {
@@ -653,6 +748,11 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 		}
 		
 		osync_trace(TRACE_INTERNAL, "Queue was created");
+	}
+
+	if (client->child_pid) {
+		if (!osync_client_create_pidfile(client, error))
+			goto error;
 	}
 		
 	if (!osync_queue_connect(client->commands_to_osplugin, O_WRONLY, error))
@@ -719,14 +819,21 @@ osync_bool osync_client_finalize(OSyncClient *client, OSyncError **error)
 	
 	osync_message_unref(message);
 
-	int status;
-	if (waitpid(client->child_pid, &status, 0) == -1)
-		goto error;
+	if (client->child_pid) {
+		int status;
+		if (waitpid(client->child_pid, &status, 0) == -1) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error waiting for osplugin process: %s", strerror(errno));
+			goto error;
+		}
 
-	if (!WIFEXITED(status))
-		osync_trace(TRACE_INTERNAL, "Child has exited abnormally");
-	else if (WEXITSTATUS(status) != 0)
-		osync_trace(TRACE_INTERNAL, "Child has returned non-zero exit status (%d)", WEXITSTATUS(status));
+		if (!WIFEXITED(status))
+			osync_trace(TRACE_INTERNAL, "Child has exited abnormally");
+		else if (WEXITSTATUS(status) != 0)
+			osync_trace(TRACE_INTERNAL, "Child has returned non-zero exit status (%d)", WEXITSTATUS(status));
+
+		if (!osync_client_remove_pidfile(client, error))
+			goto error;
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
     return TRUE;
