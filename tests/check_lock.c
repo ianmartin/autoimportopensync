@@ -185,6 +185,18 @@ START_TEST (dual_sync_engine_unclean)
 	osengine_set_enginestatus_callback(engine, engine_status, NULL);
 	
 	fail_unless(osengine_init(engine, &error), NULL);
+
+	/* Quit the engine thread, before free()ing it
+	 *
+	 * We want to simulate a unclean engine exit (so we can't use
+	 * osengine_finalize() here), but we don't want the old engine thread to
+	 * be running and stealing the messages going to the second engine.
+	 */
+	if (engine->thread) {
+		g_main_loop_quit(engine->syncloop);
+		g_thread_join(engine->thread);
+	}
+
 	osengine_free(engine);
 	osync_group_free(group);
 
