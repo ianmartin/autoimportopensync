@@ -283,7 +283,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 
 		/* connect() needs to tell the engine if it must perform a
 		 * slow-sync, use add_reply_data() method for this
-		 * */
+		 */
 		ctx->add_reply_data = add_connect_reply_data;
 		
 		osync_member_connect(member, (OSyncEngCallback)message_callback, ctx);
