@@ -448,17 +448,17 @@ osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
 	}
 	queue->fd = fd;
 
-        int oldflags = fcntl(fd, F_GETFD);
-        if (oldflags == -1) {
+	int oldflags = fcntl(fd, F_GETFD);
+	if (oldflags == -1) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get fifo flags");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-                return FALSE;
-        }
-        if (fcntl(fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
+		return FALSE;
+	}
+	if (fcntl(fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set fifo flags");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-                return FALSE;
-        }
+		return FALSE;
+	}
 
 
 	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
