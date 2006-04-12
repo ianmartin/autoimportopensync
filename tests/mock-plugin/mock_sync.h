@@ -5,7 +5,6 @@
 #include <glib.h>
 #include <string.h>
 #include <config.h>
-#include <check.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
