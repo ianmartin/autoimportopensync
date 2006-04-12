@@ -889,6 +889,8 @@ void osengine_finalize(OSyncEngine *engine)
 		OSyncClient *client = c->data;
 		osync_client_finalize(client, NULL);
 	}
+	osync_queue_stop_thread(engine->incoming);
+	osync_queue_stop_thread(engine->commandQueue);
 	
 	osengine_mappingtable_close(engine->maptable);
 	
