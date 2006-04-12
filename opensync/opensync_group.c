@@ -254,6 +254,21 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 		osync_trace(TRACE_EXIT_ERROR, "osync_group_lock: %s", strerror(errno));
 		return OSYNC_LOCK_STALE;
 	} else {
+
+		/* Set FD_CLOEXEC flags for the lock file descriptor. We don't want the
+		 * subprocesses created by plugins or the engine to keep holding the lock
+		 */
+		int oldflags = fcntl(group->lock_fd, F_GETFD);
+		if (oldflags == -1) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to get fd flags");
+			return OSYNC_LOCK_STALE;
+		}
+
+		if (fcntl(group->lock_fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to set fd flags");
+			return OSYNC_LOCK_STALE;
+		}
+
 		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
 			if (errno == EWOULDBLOCK) {
 				osync_debug("GRP", 4, "locking group: is locked2");
