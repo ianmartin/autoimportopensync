@@ -606,7 +606,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 
 			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
-			execlp("osplugin", "osplugin", osync_group_get_name(engine->group), memberstring, NULL);
+			execlp("osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
 			
 			osync_trace(TRACE_INTERNAL, "unable to exec");
 			exit(1);

@@ -116,7 +116,7 @@ int main( int argc, char **argv )
 	PluginProcess pp;
 	assert(argc == 3);
 
-	char *groupname = argv[ 1 ];
+	char *group_path = argv[ 1 ];
 	int member_id = atoi( argv[ 2 ] );
 
 	context = g_main_context_new();
@@ -124,6 +124,8 @@ int main( int argc, char **argv )
 
 	/** Create environment **/
 	OSyncEnv *env = osync_env_new();
+	/* Don't load groups. We will load the group manually using osync_group_load() */
+	osync_env_set_option(env, "LOAD_GROUPS", "no");
 	if (!osync_env_initialize(env, &error)) {
 		fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
@@ -132,10 +134,10 @@ int main( int argc, char **argv )
 	}
 
 	/** Find group **/
-	OSyncGroup *group = osync_env_find_group(env, groupname);
+	OSyncGroup *group = osync_group_load(env, group_path, &error);
 	if (!group) {
-		fprintf(stderr, "Unable to find group with name %s\n", groupname);
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find group with name %s", __func__, groupname);
+		fprintf(stderr, "Unable to load group from path: %s\n", group_path);
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to load group from path: %s", __func__, group_path);
 		return 2;
 	}
 
@@ -153,7 +155,7 @@ int main( int argc, char **argv )
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find member with id %d", __func__, member_id);
 		return 3;
 	}
-	osync_trace(TRACE_INTERNAL, "+++++++++ This is the client #%d (%s plugin) of group %s", member_id, pp.member->pluginname, groupname);
+	osync_trace(TRACE_INTERNAL, "+++++++++ This is the client #%d (%s plugin) of group %s", member_id, pp.member->pluginname, osync_group_get_name(group));
 
 	/** Create connection pipes **/
 	char *pipe_path = g_strdup_printf( "%s/pluginpipe", osync_member_get_configdir( pp.member ) );
