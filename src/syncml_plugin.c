@@ -261,7 +261,7 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			osync_trace(TRACE_INTERNAL, "Just received a new session with ID %s\n", smlSessionGetSessionID(session));
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);
-			smlSessionSetAllowLateStatus(session, TRUE);
+			
 			if (env->recvLimit)
 				smlSessionSetReceivingLimit(session, env->recvLimit);
 				
