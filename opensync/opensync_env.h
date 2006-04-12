@@ -26,4 +26,5 @@ const char *osync_get_version(void);
 void *osync_try_malloc0(unsigned int size, OSyncError **error);
 
 void osync_env_export_all_options(OSyncEnv *env);
+void osync_env_export_loaded_modules(OSyncEnv *env);
 

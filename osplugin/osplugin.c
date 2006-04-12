@@ -132,6 +132,30 @@ int main( int argc, char **argv )
 	OSyncEnv *env = osync_env_new();
 	/* Don't load groups. We will load the group manually using osync_group_load() */
 	osync_env_set_option(env, "LOAD_GROUPS", "no");
+
+	/* Don't load plugins automatically if OSYNC_MODULE_LIST is set */
+	char *module_list = getenv("OSYNC_MODULE_LIST");
+	if (module_list) {
+		osync_env_set_option(env, "LOAD_PLUGINS", "no");
+		osync_env_set_option(env, "LOAD_FORMATS", "no");
+
+		osync_trace(TRACE_INTERNAL, "OSYNC_MODULE_LIST variable: %s", module_list);
+
+		char *str, *saveptr;
+		for (str = module_list; ; str = NULL) {
+			char *path = strtok_r(str, ":", &saveptr);
+			if (!path)
+				break;
+
+			osync_trace(TRACE_INTERNAL, "Module to be loaded: %s", path);
+			if (!osync_module_load(env, path, &error)) {
+				fprintf(stderr, "Unable to load plugin %s: %s\n", path, osync_error_print(&error));
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+				return 1;
+			}
+		}
+	}
+
 	if (!osync_env_initialize(env, &error)) {
 		fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));

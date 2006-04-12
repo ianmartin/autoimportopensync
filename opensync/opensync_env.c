@@ -77,6 +77,40 @@ static osync_bool osync_env_query_option_bool(OSyncEnv *env, const char *name)
 	return FALSE;
 }
 
+/** Export the list of loaded plugins through the OSYNC_LOADED_PLUGINS environment variable
+ *
+ */
+void osync_env_export_loaded_modules(OSyncEnv *env)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+
+	int num_modules = g_list_length(env->modules);
+
+	/* build an array for g_strjoinv() */
+	gchar **path_array = g_malloc0(sizeof(gchar*)*num_modules + 1);
+	int i;
+	for (i = 0; i < num_modules; i++) {
+		GModule *module = g_list_nth_data(env->modules, i);
+		const gchar *path = g_module_name(module);
+		osync_trace(TRACE_INTERNAL, "Path being exported: %s", path);
+		/*XXX: casting to non-const, here. Ugly.
+		 *
+		 * We know the elements pointed by path_array won't
+		 * be touched. But isn't g_strjoinv() supposed to get a
+		 * 'const gchar **' instead of a 'gchar **'?
+		 */
+		path_array[i] = (gchar*)path;
+	}
+
+	/* Build a ':'-separated list */
+	gchar *list_str = g_strjoinv(":", path_array);
+	osync_trace(TRACE_INTERNAL, "MODULE_LIST: %s", list_str);
+	setenv("OSYNC_MODULE_LIST", list_str, 1);
+	g_free(list_str);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 static void export_option_to_env(gpointer key, gpointer data, gpointer user_data)
 {
 	const char *name = (const char*)key;

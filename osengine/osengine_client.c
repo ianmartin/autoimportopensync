@@ -648,6 +648,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 		if (cpid == 0) {
 			/* Export all options to osplugin through environment variables */
 			osync_env_export_all_options(osync_group_get_env(engine->group));
+			osync_env_export_loaded_modules(osync_group_get_env(engine->group));
 
 			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
