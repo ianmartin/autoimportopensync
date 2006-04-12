@@ -29,6 +29,7 @@ typedef struct context {
 
 static osync_bool add_commit_change_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error);
 static osync_bool add_connect_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error);
+static osync_bool add_get_changedata_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error);
 
 void message_handler(OSyncMessage*, void*);
 void message_callback(OSyncMember*, context*, OSyncError**);
@@ -344,12 +345,22 @@ void message_handler(OSyncMessage *message, void *user_data)
   	case OSYNC_MESSAGE_ERRORREPLY:
 		break;
 
-	/*case OSYNC_MESSAGE_GET_DATA:
-		osync_demarshal_change( queue, &change, &error );
-		osync_member_get_change_data(member, change, (OSyncEngCallback)message_callback, message);
+	case OSYNC_MESSAGE_GET_CHANGEDATA:
+		ctx = g_malloc0(sizeof(context));
+		ctx->pp = pp;
+		ctx->message = message;
+		osync_message_ref(message);
+
+  		osync_demarshal_change(message, member->group->conv_env, &change);
+		osync_change_set_member(change, member);
+
+		/* get_changedata needs to return the data from the change object back */
+		ctx->change = change;
+		ctx->add_reply_data = add_get_changedata_reply_data;
+
+		osync_member_get_change_data(member, change, (OSyncEngCallback)message_callback, ctx);
 		osync_trace(TRACE_EXIT, "message_handler");
 		break;
-	*/
 
   	case OSYNC_MESSAGE_COMMITTED_ALL:
 		ctx = g_malloc0(sizeof(context));
@@ -421,6 +432,21 @@ error:;
 
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 	osync_error_free(&error);
+}
+
+/** add get_changedat-specific data to the get_changedata reply */
+static osync_bool add_get_changedata_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error)
+{
+	OSyncChange *change = ctx->change;
+
+	assert(change);
+
+	int size = osync_change_get_datasize(change);
+	osync_message_write_int(reply, osync_change_has_data(change));
+	osync_message_write_int(reply, size);
+	osync_message_write_data(reply, osync_change_get_data(change), size);
+
+	return TRUE;
 }
 
 /** Add commit_change-specific data to the commit_change reply */

@@ -180,29 +180,44 @@ void _disconnect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	osync_trace(TRACE_EXIT, "_disconnect_reply_receiver");
 }
 
-void _get_change_data_reply_receiver(OSyncClient *sender, OSyncMessage *message, OSyncEngine *engine)
+void _get_change_data_reply_receiver(OSyncMessage *message, OSyncMappingEntry *entry)
 {
-	osync_trace(TRACE_ENTRY, "_get_change_data_reply_receiver(%p, %p, %p)", sender, message, engine);
-	
-	//OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
+	osync_trace(TRACE_ENTRY, "_get_change_data_reply_receiver(%p, %p, %p)", message, entry);
+	OSyncEngine *engine = entry->client->engine;
 	
 	if (osync_message_is_error(message)) {
 		OSyncError *error = NULL;
 		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
-		//osync_status_update_change(engine, entry->change, CHANGE_RECV_ERROR, &error);
+		osync_status_update_change(engine, entry->change, CHANGE_RECV_ERROR, &error);
 		osync_error_update(&engine->error, "Unable to read one or more objects");
 		
 		//FIXME Do we need to do anything here?
 		//osync_flag_unset(entry->fl_has_data);
 	} else {
-		//osync_flag_set(entry->fl_has_data);
-		//osync_status_update_change(engine, entry->change, CHANGE_RECEIVED, NULL);
+
+		int has_data, size;
+		char *data;
+		osync_message_read_int(message, &has_data);
+		osync_message_read_int(message, &size);
+
+		data = osync_try_malloc0(size, NULL);
+		if (!data) {
+			//FIXME: we need to handle errors properly here
+			osync_trace(TRACE_INTERNAL, "Couldn't allocate change data");
+			return;
+		}
+
+		osync_message_read_data(message, data, size);
+		osync_change_set_data(entry->change, data, size, has_data);
+
+		osync_flag_set(entry->fl_has_data);
+		osync_status_update_change(engine, entry->change, CHANGE_RECEIVED, NULL);
 	}
 	
-	//osync_change_save(entry->change, TRUE, NULL);
-	//osengine_mappingentry_decider(engine, entry);
+	osync_change_save(entry->change, TRUE, NULL);
+	osengine_mappingentry_decider(engine, entry);
 	osync_trace(TRACE_EXIT, "_get_change_data_reply_receiver");
 }
 
@@ -424,20 +439,37 @@ error:
 	return FALSE;
 }
 
-/*void osync_client_get_change_data(OSyncEngine *sender, OSyncMappingEntry *entry)
+osync_bool osync_client_get_change_data(OSyncClient *target, OSyncEngine *sender, OSyncMappingEntry *entry, OSyncError **error)
 {
 	osync_flag_changing(entry->fl_has_data);
-	OSyncMessage *message = osync_message_new_methodcall(sender, "GET_DATA");
-	osync_message_set_handler(message, sender->incoming, (OSyncMessageHandler)_get_change_data_reply_receiver, sender);
-	osync_message_set_data(message, "change", entry->change);
-	osync_message_set_data(message, "entry", entry);
-	osync_debug("ENG", 3, "Sending get_entry message %p to client %p", message, entry->client);
+
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_GET_CHANGEDATA, 0, error);
+	if (!message)
+		goto error;
+		
+	osync_message_set_handler(message, (OSyncMessageHandler)_get_change_data_reply_receiver, entry);
+
+	osync_marshal_change(message, entry->change);
+
+	osync_debug("ENG", 3, "Sending get_changedata message %p to client %p", message, entry->client);
 	
-	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
-	osync_queue_send_with_timeout(entry->client->incoming, message, timeouts.get_data_timeout, sender);
+	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
+	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.get_data_timeout, error))
+		goto error_free_message;
+	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-void osync_client_read_change(OSyncEngine *sender, OSyncMappingEntry *entry)
+/*void osync_client_read_change(OSyncEngine *sender, OSyncMappingEntry *entry)
 {
 	//osync_flag_changing(entry->fl_has_data);
 	OSyncMessage *message = osync_message_new_methodcall(sender, "READ_CHANGE");

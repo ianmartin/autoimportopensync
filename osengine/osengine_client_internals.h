@@ -42,3 +42,4 @@ osync_bool osync_client_committed_all(OSyncClient *target, OSyncEngine *sender, 
 osync_bool osync_client_sync_done(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
 osync_bool osync_client_disconnect(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
 osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, OSyncMappingEntry *entry, OSyncError **error);
+osync_bool osync_client_get_change_data(OSyncClient *target, OSyncEngine *sender, OSyncMappingEntry *entry, OSyncError **error);
