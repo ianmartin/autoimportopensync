@@ -232,7 +232,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 	OSyncError *error = NULL;
 	//OSyncChange *change = 0;
 	OSyncMember *member = pp->member;
-	char *enginepipe = NULL, *objtypestr;
+	char *enginepipe = NULL;
    	context *ctx = NULL;
 
 	osync_trace(TRACE_INTERNAL, "plugin received command %i", osync_message_get_command( message ));
@@ -327,10 +327,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_GET_CHANGES:
-		for (osync_message_read_string(message, &objtypestr); objtypestr;) {
-			osync_member_set_slow_sync(member, objtypestr, TRUE);
-			osync_message_read_string(message, &objtypestr);
-		}
+		osync_member_read_slow_sync_full_list(member, message);
 
 		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
@@ -499,16 +496,10 @@ static osync_bool add_commit_change_reply_data(OSyncMessage *reply, context *ctx
 static osync_bool add_connect_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error)
 {
 	OSyncMember *member = ctx->pp->member;
-        GList *obj = NULL;
 
 	assert(member);
 
-	for (osync_member_get_objtype_sinks(member, &obj, error); obj; obj = obj->next) {
-		OSyncObjTypeSink *sink = obj->data;
-		if (osync_member_get_slow_sync(member, sink->objtype->name) == TRUE) 
-			osync_message_write_string(reply, sink->objtype->name);
-	}
-	osync_message_write_string(reply, NULL);
+	osync_member_write_slow_sync_list(member, reply);
 	
 	return TRUE;
 }

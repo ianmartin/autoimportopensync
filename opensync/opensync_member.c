@@ -1493,3 +1493,82 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 }
 
 /*@}*/
+
+
+/** Write the list of objtypes that had slow-sync set to a message */
+void osync_member_write_slow_sync_list(OSyncMember *member, OSyncMessage *message)
+{
+	GList *obj = NULL;
+	for (osync_member_get_objtype_sinks(member, &obj, NULL); obj; obj = obj->next) {
+		OSyncObjTypeSink *sink = obj->data;
+		if (osync_member_get_slow_sync(member, sink->objtype->name) == TRUE) 
+			osync_message_write_string(message, sink->objtype->name);
+	}
+	osync_message_write_string(message, NULL);
+}
+
+/** Read a list of objtypes that had slow-sync set, replacing old settings
+ *
+ * Please notice that this function will reset any old
+ * slow-sync setting that was set before. So, this should
+ * be used only for messages that is known to contain the
+ * complete slow-sync settings, not only for a member.
+ *
+ * i.e. this function may be used to read the slow-sync settings
+ * from the engine to osplugin, but not to read the slow-sync
+ * settings from osplugin to the engine, because osplugin doesn't
+ * know about the slow-sync settings of other members in the sync
+ * group.
+ */
+void osync_member_read_slow_sync_full_list(OSyncMember *member, OSyncMessage *message)
+{
+	char *objtypestr;
+	osync_group_reset_slow_sync(member->group, "data");
+	for (;;) {
+		osync_message_read_string(message, &objtypestr);
+		if (!objtypestr)
+			break;
+
+		osync_member_set_slow_sync(member, objtypestr, TRUE);
+		free(objtypestr);
+	}
+}
+
+/** Read a list of objtypes that had slow-sync set, keeping old settings
+ *
+ * Please notice that this function won't reset
+ * the list of slow-sync settings, like
+ * osync_message_read_slow_sync_full_list(), but instead
+ * it will just set slow-sync for the objtypes received
+ * in the list.
+ *
+ * This function is supposed to be used when handling messages
+ * from osplugin to the engine, but NOT for messages from the engine
+ * to osplugin.
+ */
+void osync_member_read_slow_sync_list(OSyncMember *member, OSyncMessage *message)
+{
+	char *objtypestr;
+	osync_bool set_for_any = FALSE;
+
+	for (;;) {
+		osync_message_read_string(message, &objtypestr);
+		if (!objtypestr)
+			break;
+
+		set_for_any = TRUE;
+		osync_member_set_slow_sync(member, objtypestr, TRUE);
+		free(objtypestr);
+
+	}
+
+	if (set_for_any) {
+		/* FIXME: We must force slow-sync in "data" when some
+		 * objtype is marked to slow-sync
+		 *
+		 * (See ticket #1011)
+		 */
+		osync_member_set_slow_sync(member, "data", TRUE);
+	}
+}
+
