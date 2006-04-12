@@ -21,6 +21,8 @@
 #include "engine.h"
 #include <glib.h>
 #include <opensync/opensync_support.h>
+#include "opensync/opensync_format_internals.h"
+#include "opensync/opensync_member_internals.h"
 #include "opensync/opensync_message_internals.h"
 #include "opensync/opensync_queue_internals.h"
 
@@ -96,6 +98,17 @@ void _connect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 		osync_flag_set(engine->fl_stop);
 		
 	} else {
+		char *objtypestr;
+		for (osync_message_read_string(message, &objtypestr); objtypestr;) {
+			osync_member_set_slow_sync(sender->member, objtypestr, TRUE);
+			osync_message_read_string(message, &objtypestr);
+			/* FIXME: We must force slow-sync in "data" when some
+			 * objtype is marked to slow-sync
+			 */
+			if (objtypestr == NULL)
+				osync_member_set_slow_sync(sender->member, "data", TRUE);
+		}
+			
 		osync_status_update_member(engine, sender, MEMBER_CONNECTED, NULL);
 		osync_flag_set(sender->fl_connected);	
 	}
@@ -373,6 +386,14 @@ osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OS
 		goto error;
 		
 	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, target);
+
+	GList *obj = NULL;
+	for (osync_member_get_objtype_sinks(target->member, &obj, error); obj; obj = obj->next) {
+		OSyncObjTypeSink *sink = obj->data;
+		if (osync_member_get_slow_sync(target->member, sink->objtype->name) == TRUE) 
+			osync_message_write_string(message, sink->objtype->name);
+	}
+	osync_message_write_string(message, NULL);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
 	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.get_changeinfo_timeout, error))

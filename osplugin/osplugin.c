@@ -28,6 +28,7 @@ typedef struct context {
 
 
 static osync_bool add_commit_change_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error);
+static osync_bool add_connect_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error);
 
 void message_handler(OSyncMessage*, void*);
 void message_callback(OSyncMember*, context*, OSyncError**);
@@ -199,7 +200,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 	OSyncError *error = NULL;
 	//OSyncChange *change = 0;
 	OSyncMember *member = pp->member;
-	char *enginepipe = NULL;
+	char *enginepipe = NULL, *objtypestr;
    	context *ctx = NULL;
 
 	osync_trace(TRACE_INTERNAL, "plugin received command %i", osync_message_get_command( message ));
@@ -279,10 +280,21 @@ void message_handler(OSyncMessage *message, void *user_data)
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
+
+		/* connect() needs to tell the engine if it must perform a
+		 * slow-sync, use add_reply_data() method for this
+		 * */
+		ctx->add_reply_data = add_connect_reply_data;
+		
 		osync_member_connect(member, (OSyncEngCallback)message_callback, ctx);
 		break;
 
 	case OSYNC_MESSAGE_GET_CHANGES:
+		for (osync_message_read_string(message, &objtypestr); objtypestr;) {
+			osync_member_set_slow_sync(member, objtypestr, TRUE);
+			osync_message_read_string(message, &objtypestr);
+		}
+
 		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
@@ -418,6 +430,24 @@ static osync_bool add_commit_change_reply_data(OSyncMessage *reply, context *ctx
 
 	osync_message_write_string(reply, osync_change_get_uid(change));
 
+	return TRUE;
+}
+
+/** Add connect-specific data to the connect reply */
+static osync_bool add_connect_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error)
+{
+	OSyncMember *member = ctx->pp->member;
+        GList *obj = NULL;
+
+	assert(member);
+
+	for (osync_member_get_objtype_sinks(member, &obj, error); obj; obj = obj->next) {
+		OSyncObjTypeSink *sink = obj->data;
+		if (osync_member_get_slow_sync(member, sink->objtype->name) == TRUE) 
+			osync_message_write_string(reply, sink->objtype->name);
+	}
+	osync_message_write_string(reply, NULL);
+	
 	return TRUE;
 }
 

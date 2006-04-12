@@ -47,4 +47,5 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
 void osync_member_select_format(OSyncMember *member, OSyncObjTypeSink *objsink);
 osync_bool osync_member_instance_default_plugin(OSyncMember *member, OSyncError **error);
 OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChange *change, const char *objtypename);
+osync_bool osync_member_get_objtype_sinks(OSyncMember *member, GList **list_ptr, OSyncError **error);
 osync_bool osync_member_require_sink_info(OSyncMember *member, OSyncError **error);
