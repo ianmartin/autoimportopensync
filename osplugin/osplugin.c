@@ -11,6 +11,9 @@ typedef struct PluginProcess {
 	OSyncMember *member;
 	OSyncQueue *incoming;
 	OSyncQueue *outgoing;
+
+	/** Does osync_member_initialized() run successfully? */
+	osync_bool is_initialized;
 } PluginProcess;
 
 typedef struct context {
@@ -116,6 +119,8 @@ int main( int argc, char **argv )
 	OSyncError *error = NULL;
 	PluginProcess pp;
 	assert(argc == 3);
+
+	memset(&pp, 0, sizeof(pp));
 
 	char *group_path = argv[ 1 ];
 	int member_id = atoi( argv[ 2 ] );
@@ -239,6 +244,8 @@ void message_handler(OSyncMessage *message, void *user_data)
 		if (!osync_member_initialize(pp->member, &error))
 			goto error;
 
+		pp->is_initialized = TRUE;
+
 		osync_trace(TRACE_INTERNAL, "sending reply to engine");
 		reply = osync_message_new_reply(message, NULL);
 		if (!reply) {
@@ -257,7 +264,8 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_FINALIZE:
-		osync_member_finalize(pp->member);
+		if (pp->is_initialized)
+			osync_member_finalize(pp->member);
 
 		reply = osync_message_new_reply(message, NULL);
 		if (!reply) {
@@ -272,7 +280,9 @@ void message_handler(OSyncMessage *message, void *user_data)
 			exit(1);
 		}
 
-		/*FIXME: how to wait for a message to be sent? */
+		/*FIXME: how to wait for a message to be sent?
+		 * We need to wait for the reply to be sent before exiting
+		 */
 
 		osync_trace(TRACE_EXIT, "%s", __func__);
 		exit(0);
