@@ -313,6 +313,8 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_CONNECT:
+		osync_member_read_slow_sync_full_list(member, message);
+
 		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;

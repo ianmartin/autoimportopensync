@@ -477,6 +477,8 @@ osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncE
 	if (!message)
 		goto error;
 		
+	osync_member_write_slow_sync_list(target->member, message);
+
 	osync_message_set_handler(message, (OSyncMessageHandler)_connect_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
