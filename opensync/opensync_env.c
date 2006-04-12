@@ -44,9 +44,27 @@
  */
 /*@{*/
 
+/* Get the value of a an OSyncEnv option
+ *
+ * Search order:
+ * - options set using osync_env_set_option()
+ * - OSYNC_* environment variables
+ */
 static const char *osync_env_query_option(OSyncEnv *env, const char *name)
 {
-	return g_hash_table_lookup(env->options, name);
+	const char *value;
+	value = g_hash_table_lookup(env->options, name);
+	if (value)
+		return value;
+
+	gchar *env_name = g_strdup_printf("OSYNC_%s");
+	value = getenv(env_name);
+	g_free(env_name);
+
+	if (value)
+		return value;
+
+	return NULL;
 }
 
 static osync_bool osync_env_query_option_bool(OSyncEnv *env, const char *name)
