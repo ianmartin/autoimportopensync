@@ -69,8 +69,6 @@ struct OSyncMessage {
 	OSyncMessageHandler callback;
 	/** The user data */
 	gpointer user_data;
-	/** The error if this is a error message */
-	OSyncError *error;
 	/** The timeout associated with this message */
 	timeout_info *to_info;
 	/** If this message has already been answered */
@@ -90,8 +88,6 @@ void osync_message_ref(OSyncMessage *message);
 void osync_message_unref(OSyncMessage *message);
 
 void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, gpointer user_data);
-void osync_message_set_error(OSyncMessage *message, OSyncError **error);
-OSyncError *osync_message_get_error(OSyncMessage *message);
 gboolean osync_message_is_error(OSyncMessage *message);
 osync_bool osync_message_send_message(OSyncMessage *message, OSyncError **error);
 osync_bool osync_message_send_with_timeout(OSyncMessage *message, OSyncQueue *queue, OSyncQueue *replyQueue, int timeout, OSyncError **error);

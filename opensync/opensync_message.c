@@ -117,16 +117,6 @@ OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **e
 	return reply;
 }
 
-void osync_message_set_error(OSyncMessage *message, OSyncError **error)
-{
-	osync_error_duplicate(&message->error, error);
-}
-
-OSyncError *osync_message_get_error(OSyncMessage *message)
-{
-	return message->error;
-}
-
 /*! @brief Checks if the message is a error
  * 
  * @param message The message to check

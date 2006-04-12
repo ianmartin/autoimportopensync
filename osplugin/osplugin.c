@@ -60,7 +60,7 @@ void process_error_shutdown(PluginProcess *pp, OSyncError **error)
 	if (!message)
 		goto error;
 
-	osync_message_set_error(message, error);
+	osync_marshal_error(message, *error);
 
 	if (!osync_queue_send_message(pp->outgoing, NULL, message, NULL))
 		goto error_free_message;
@@ -409,7 +409,7 @@ error:;
 		exit(1);
 	}
 
-	osync_message_set_error(errorreply, &error);
+	osync_marshal_error(errorreply, error);
 
 	if (!osync_queue_send_message(pp->outgoing, NULL, errorreply, NULL)) {
 		fprintf(stderr, "Unable to send error\n");
@@ -457,6 +457,7 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 {
 	/*FIXME: handle errors in this function */
 
+	OSyncError *myerror = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, ctx, error);
 
 	OSyncMessage *message = ctx->message;
@@ -477,8 +478,8 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 		if (ctx->add_reply_data)
 			ctx->add_reply_data(reply, ctx, error);
 	} else {
-		reply = osync_message_new_errorreply(message, error);
-		osync_message_set_error(reply, error);
+		reply = osync_message_new_errorreply(message, &myerror);
+		osync_marshal_error(reply, *error);
 		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%lli-%i\" with error %i: %s", reply, message, message->id1, message->id2, osync_error_get_type(error), osync_error_print(error));
 	}
 

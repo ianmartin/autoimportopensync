@@ -170,13 +170,16 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 
 	OSyncMessage *message = g_async_queue_try_pop(queue->outgoing);
 	if (message) {
+		osync_trace(TRACE_INTERNAL, "Queue %p. Sending message %p: cmd: %d, len: %d", 
+				queue, message, message->cmd, message->buffer->len);
+
 		/*FIXME: review usage of osync_marshal_get_size_message() */
 		if (!_osync_queue_write_int(queue, message->buffer->len + osync_marshal_get_size_message(message)))
 			goto error;
 		
 		if (!_osync_queue_write_int(queue, message->cmd))
 			goto error;
-		
+
 		if (!_osync_queue_write_long_long_int(queue, message->id1))
 			goto error;
 			
@@ -299,6 +302,8 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 			osync_error_free(&error);
 			return FALSE;
 		}
+
+		osync_trace(TRACE_INTERNAL, "Read message: %p. cmd: %d, size: %d", message, cmd, size);
 		message->id1 = id1;
 		message->id2 = id2;
 		
@@ -612,7 +617,7 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 	
 	osync_message_ref(message);
 	g_async_queue_push(queue->outgoing, message);
-	
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }

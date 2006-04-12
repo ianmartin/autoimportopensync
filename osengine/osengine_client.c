@@ -44,7 +44,8 @@ void _get_changes_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("ENG", 1, "Get changes command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_GET_CHANGES_ERROR, &error);
@@ -81,7 +82,8 @@ void _connect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("ENG", 1, "Connect command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_CONNECT_ERROR, &error);
@@ -124,7 +126,8 @@ void _sync_done_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("ENG", 1, "Sync done command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_SYNC_DONE_ERROR, &error);
@@ -143,7 +146,8 @@ void _committed_all_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	OSyncEngine *engine = sender->engine;
 	
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("ENG", 1, "Committed all command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_COMMITTED_ALL_ERROR, &error);
@@ -163,7 +167,8 @@ void _disconnect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 	OSyncEngine *engine = sender->engine;
 
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_debug("ENG", 1, "Sync done command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_member(engine, sender, MEMBER_DISCONNECT_ERROR, &error);
 	} else
@@ -182,7 +187,8 @@ void _get_change_data_reply_receiver(OSyncClient *sender, OSyncMessage *message,
 	//OSyncMappingEntry *entry = osync_message_get_data(message, "entry");
 	
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
 		//osync_status_update_change(engine, entry->change, CHANGE_RECV_ERROR, &error);
@@ -232,7 +238,8 @@ void _commit_change_reply_receiver(OSyncMessage *message, OSyncMappingEntry *ent
 	OSyncEngine *engine = entry->client->engine;
 
 	if (osync_message_is_error(message)) {
-		OSyncError *error = osync_message_get_error(message);
+		OSyncError *error = NULL;
+		osync_demarshal_error(message, &error);
 		osync_error_duplicate(&engine->error, &error);
 		osync_debug("MAP", 1, "Commit change command reply was a error: %s", osync_error_print(&error));
 		osync_status_update_change(engine, entry->change, CHANGE_WRITE_ERROR, &error);
