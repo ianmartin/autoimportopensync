@@ -2,7 +2,8 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncClient {
 	OSyncMember *member;
-	OSyncQueue *incoming;
+	OSyncQueue *commands_to_osplugin;
+	OSyncQueue *commands_from_osplugin;
 	OSyncEngine *engine;
 
 	OSyncFlag *fl_connected;

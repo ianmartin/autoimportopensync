@@ -290,9 +290,14 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncErr
 	engine->clients = g_list_append(engine->clients, client);
 	
 	char *name = g_strdup_printf("%s/pluginpipe", osync_member_get_configdir(member));
-	client->incoming = osync_queue_new(name, TRUE, error);
+	client->commands_to_osplugin = osync_queue_new(name, TRUE, error);
 	g_free(name);
-	if (!client->incoming)
+
+	name = g_strdup_printf("%s/enginepipe", osync_member_get_configdir(member));
+	client->commands_from_osplugin = osync_queue_new(name, TRUE, error);
+	g_free(name);
+
+	if (!client->commands_to_osplugin || !client->commands_from_osplugin)
 		goto error_free_client;
 		
 	client->fl_connected = osync_flag_new(engine->cmb_connected);
@@ -325,7 +330,8 @@ void osync_client_reset(OSyncClient *client)
 void osync_client_free(OSyncClient *client)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
-	osync_queue_free(client->incoming);
+	osync_queue_free(client->commands_to_osplugin);
+	osync_queue_free(client->commands_from_osplugin);
 	
 	osync_flag_free(client->fl_connected);
 	osync_flag_free(client->fl_sent_changes);
@@ -403,7 +409,7 @@ osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OS
 	osync_message_write_string(message, NULL);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.get_changeinfo_timeout, error))
+	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.get_changeinfo_timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -457,7 +463,7 @@ osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncE
 	osync_message_set_handler(message, (OSyncMessageHandler)_connect_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.connect_timeout, error))
+	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.connect_timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -487,7 +493,7 @@ osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, 
 	osync_message_set_handler(message, (OSyncMessageHandler)_commit_change_reply_receiver, entry);
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(entry->client);
 	
-	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.commit_timeout, error))
+	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.commit_timeout, error))
 		goto error_free_message;
 
 	osync_message_unref(message);
@@ -517,7 +523,7 @@ osync_bool osync_client_sync_done(OSyncClient *target, OSyncEngine *sender, OSyn
 	osync_message_set_handler(message, (OSyncMessageHandler)_sync_done_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.sync_done_timeout, error))
+	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.sync_done_timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -546,7 +552,7 @@ osync_bool osync_client_committed_all(OSyncClient *target, OSyncEngine *sender, 
 	
 	//OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
 	/*FIXME: Add timeout to committed_all message */
-	if (!osync_queue_send_message(target->incoming, sender->incoming, message, error))
+	if (!osync_queue_send_message(target->commands_to_osplugin, target->commands_from_osplugin, message, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -574,7 +580,7 @@ osync_bool osync_client_disconnect(OSyncClient *target, OSyncEngine *sender, OSy
 	osync_message_set_handler(message, (OSyncMessageHandler)_disconnect_reply_receiver, target);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
-	if (!osync_queue_send_message_with_timeout(target->incoming, sender->incoming, message, timeouts.disconnect_timeout, error))
+	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.disconnect_timeout, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -605,7 +611,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
 	
-	if (!osync_queue_exists(client->incoming) || !osync_queue_is_alive(client->incoming)) {
+	if (!osync_queue_exists(client->commands_to_osplugin) || !osync_queue_is_alive(client->commands_to_osplugin)) {
 		pid_t cpid = fork();
 		if (cpid == 0) {
 			/* Export all options to osplugin through environment variables */
@@ -621,7 +627,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 
 		client->child_pid = cpid;
 		
-		while (!osync_queue_exists(client->incoming)) {
+		while (!osync_queue_exists(client->commands_to_osplugin)) {
 			osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
 			usleep(500000);
 		}
@@ -629,16 +635,16 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 		osync_trace(TRACE_INTERNAL, "Queue was created");
 	}
 		
-	if (!osync_queue_connect(client->incoming, O_WRONLY, error))
+	if (!osync_queue_connect(client->commands_to_osplugin, O_WRONLY, error))
 		goto error;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, error);
 	if (!message)
 		goto error_disconnect;
 	
-	osync_message_write_string(message, engine->incoming->name);
+	osync_message_write_string(message, client->commands_from_osplugin->name);
 	
-	if (!osync_queue_send_message(client->incoming, NULL, message, error))
+	if (!osync_queue_send_message(client->commands_to_osplugin, NULL, message, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
@@ -649,7 +655,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 error_free_message:
 	osync_message_unref(message);
 error_disconnect:
-	osync_queue_disconnect(client->incoming, NULL);
+	osync_queue_disconnect(client->commands_to_osplugin, NULL);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -660,7 +666,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
 	
 	OSyncMessage *reply = NULL;
-	while (!(reply = osync_queue_get_message(engine->incoming)))
+	while (!(reply = osync_queue_get_message(client->commands_from_osplugin)))
 		usleep(10000);
 	
 	osync_trace(TRACE_INTERNAL, "reply received %i", reply->cmd);
@@ -688,7 +694,7 @@ osync_bool osync_client_finalize(OSyncClient *client, OSyncError **error)
 	if (!message)
 		goto error;
 
-	if (!osync_queue_send_message(client->incoming, NULL, message, error))
+	if (!osync_queue_send_message(client->commands_to_osplugin, NULL, message, error))
 		goto error_free_message;
 	
 	osync_message_unref(message);
