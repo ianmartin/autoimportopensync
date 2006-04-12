@@ -264,6 +264,15 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			smlSessionSetAllowLateStatus(session, TRUE);
 			if (env->recvLimit)
 				smlSessionSetReceivingLimit(session, env->recvLimit);
+				
+			if (env->maxObjSize)
+				smlSessionSetReceivingMaxObjSize(session, env->maxObjSize);
+			
+			if (env->allowLateStatus)
+				smlSessionSetAllowLateStatus(session, env->allowLateStatus);
+			
+			if (env->noPendingReplies)
+				smlSessionSetNoPendingReplies(session, env->noPendingReplies);
 			
 			env->session = session;
 			smlSessionRef(session);
@@ -462,6 +471,22 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 				env->onlyReplace = atoi(str);
 			}
 			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"allowLateStatus")) {
+				env->allowLateStatus = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
+				env->maxObjSize = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"addUTC")) {
+				env->addUTC = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
+				env->noPendingReplies = atoi(str);
+			}
+			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
 				env->contact_url = g_strdup(str);
 			}
@@ -538,6 +563,8 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
+	
+	smlDevInfSetSupportsUTC(devinf, env->addUTC);
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
@@ -763,6 +790,22 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 				env->onlyReplace = atoi(str);
 			}
 			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"allowLateStatus")) {
+				env->allowLateStatus = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
+				env->maxObjSize = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"addUTC")) {
+				env->addUTC = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
+				env->noPendingReplies = atoi(str);
+			}
+			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
 				env->contact_url = g_strdup(str);
 			}
@@ -839,6 +882,8 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
+	
+	smlDevInfSetSupportsUTC(devinf, env->addUTC);
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
