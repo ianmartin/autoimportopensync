@@ -50,9 +50,7 @@ static void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
 	int datasize;
 	int free_data = 0;
 
-	g_assert(format);
-
-	if (format->marshall_func) {
+	if (format && format->marshall_func) {
 		format->marshall_func(change->data, change->size, &data, &datasize, NULL);
 		/*FIXME: Handle errors on marshall_func */
 		free_data = 1;
@@ -60,8 +58,13 @@ static void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
 		data = change->data;
 		datasize = change->size;
 	}
+
+	if (!data)
+		datasize = 0;
+
 	osync_message_write_int(message, datasize);
-	osync_message_write_data(message, data, datasize);
+	if (datasize > 0)
+		osync_message_write_data(message, data, datasize);
 
 	if (free_data)
 		g_free(data);
@@ -95,20 +98,22 @@ static void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *chang
 	char *data;
 	int datasize;
 
-	g_assert(format);
-
 	osync_message_read_int(message, &datasize);
-	data = malloc(datasize);
-	osync_message_read_data( message, data, datasize );
+	if (datasize > 0) {
+		data = malloc(datasize);
+		osync_message_read_data( message, data, datasize );
 
-	if (format->demarshall_func) {
-		char *newdata;
-		int newsize;
-		format->demarshall_func(data, datasize, &newdata, &newsize, NULL);
-		/*FIXME: Handle errors on demarshall_func */
-		free(data);
-		data = newdata;
-		datasize = newsize;
+		if (format && format->demarshall_func) {
+			char *newdata;
+			int newsize;
+			format->demarshall_func(data, datasize, &newdata, &newsize, NULL);
+			/*FIXME: Handle errors on demarshall_func */
+			free(data);
+			data = newdata;
+			datasize = newsize;
+		}
+	} else {
+		data = NULL;
 	}
 
 	change->data = data;
