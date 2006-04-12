@@ -16,7 +16,18 @@ typedef struct PluginProcess {
 typedef struct context {
 	PluginProcess *pp;
 	OSyncMessage *message;
+
+	/** The change being commited, for commit_change() */
+	OSyncChange *change;
+
+	/** A function that may be used to set method-specific data in the reply,
+	 *  such as the UID in the in the commit_change reply
+	 */
+	osync_bool (*add_reply_data)(OSyncMessage*, struct context*, OSyncError**);
 } context;
+
+
+static osync_bool add_commit_change_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error);
 
 void message_handler(OSyncMessage*, void*);
 void message_callback(OSyncMember*, context*, OSyncError**);
@@ -286,6 +297,13 @@ void message_handler(OSyncMessage *message, void *user_data)
 		OSyncChange *change;
   		osync_demarshal_change(message, member->group->conv_env, &change);
 		osync_change_set_member(change, member);
+
+		/* commit_change() needs to return some data back to the engine,
+		 * use the add_reply_data() method for this
+		 */
+		ctx->change = change;
+		ctx->add_reply_data = add_commit_change_reply_data;
+
 	  	osync_member_commit_change(member, change, (OSyncEngCallback)message_callback, ctx);
 		break;
 
@@ -390,8 +408,22 @@ error:;
 	osync_error_free(&error);
 }
 
+/** Add commit_change-specific data to the commit_change reply */
+static osync_bool add_commit_change_reply_data(OSyncMessage *reply, context *ctx, OSyncError **error)
+{
+	OSyncChange *change = ctx->change;
+
+	assert(change);
+
+	osync_message_write_string(reply, osync_change_get_uid(change));
+
+	return TRUE;
+}
+
 void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 {
+	/*FIXME: handle errors in this function */
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, ctx, error);
 
 	OSyncMessage *message = ctx->message;
@@ -409,6 +441,9 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 	if (!osync_error_is_set(error)) {
 		reply = osync_message_new_reply(message, error);
 		osync_debug("CLI", 4, "Member is replying with message %p to message %p:\"%lli-%i\" with no error", reply, message, message->id1, message->id2);
+		/* Set method-specific data, if needed */
+		if (ctx->add_reply_data)
+			ctx->add_reply_data(reply, ctx, error);
 	} else {
 		reply = osync_message_new_errorreply(message, error);
 		osync_message_set_error(reply, error);

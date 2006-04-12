@@ -232,6 +232,14 @@ void _commit_change_reply_receiver(OSyncMessage *message, OSyncMappingEntry *ent
 		osync_flag_unset(entry->fl_dirty);
 		osync_flag_set(entry->fl_synced);
 	} else {
+		/* The plugin may have generated a new UID after committing the change. The commit
+		 * change reply will return the new UID of the change
+		 */
+
+		char *newuid;
+		osync_message_read_string(message, &newuid);
+		osync_change_set_uid(entry->change, newuid);
+
 		osync_status_update_change(engine, entry->change, CHANGE_SENT, NULL);
 		osync_flag_unset(entry->fl_dirty);
 		osync_flag_set(entry->fl_synced);
