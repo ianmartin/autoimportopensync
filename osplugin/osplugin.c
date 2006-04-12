@@ -429,7 +429,6 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 
 	OSyncMessage *message = ctx->message;
 	PluginProcess *pp = ctx->pp;
-	g_free(ctx);
 
 	OSyncMessage *reply = NULL;
 
@@ -450,6 +449,8 @@ void message_callback(OSyncMember *member, context *ctx, OSyncError **error)
 		osync_message_set_error(reply, error);
 		osync_debug("CLI", 1, "Member is replying with message %p to message %p:\"%lli-%i\" with error %i: %s", reply, message, message->id1, message->id2, osync_error_get_type(error), osync_error_print(error));
 	}
+
+	g_free(ctx);
 
 	osync_queue_send_message(pp->outgoing, NULL, reply, NULL);
 	osync_message_set_answered(message);
