@@ -152,6 +152,7 @@ int main( int argc, char **argv )
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find member with id %d", __func__, member_id);
 		return 3;
 	}
+	osync_trace(TRACE_INTERNAL, "+++++++++ This is the client #%d (%s plugin) of group %s", member_id, pp.member->pluginname, groupname);
 
 	/** Create connection pipes **/
 	char *pipe_path = g_strdup_printf( "%s/pluginpipe", osync_member_get_configdir( pp.member ) );
@@ -177,7 +178,7 @@ int main( int argc, char **argv )
 	//functions->rf_sync_alert = osync_client_sync_alert_sink;
 
 	/** Start loop **/
-	osync_trace(TRACE_INTERNAL, "plugin setuping up mainloop");
+	osync_trace(TRACE_INTERNAL, "plugin setting up mainloop");
 	osync_queue_set_message_handler(pp.incoming, message_handler, &pp);
 	osync_queue_setup_with_gmainloop(pp.incoming, context);
 	osync_member_set_loop(pp.member, context);
