@@ -274,7 +274,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_CONNECT:
-		ctx = malloc(sizeof(context));
+		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
@@ -282,7 +282,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_GET_CHANGES:
-		ctx = malloc(sizeof(context));
+		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
@@ -290,7 +290,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_COMMIT_CHANGE:
-		ctx = malloc(sizeof(context));
+		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
@@ -308,7 +308,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_SYNC_DONE:
-		ctx = malloc(sizeof(context));
+		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
@@ -316,7 +316,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_DISCONNECT:
-		ctx = malloc(sizeof(context));
+		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
@@ -337,7 +337,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 	*/
 
   	case OSYNC_MESSAGE_COMMITTED_ALL:
-		ctx = malloc(sizeof(context));
+		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
 		ctx->message = message;
 		osync_message_ref(message);
