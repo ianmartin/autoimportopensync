@@ -701,6 +701,18 @@ osync_bool osync_client_kill_old_osplugin(OSyncClient *client, OSyncError **erro
 		/* Don't return failure if kill() failed, because it may be a stale pid file */
 	}
 
+	int count = 0;
+	while (osync_queue_is_alive(client->commands_to_osplugin)) {
+		if (count++ > 10) {
+			osync_trace(TRACE_INTERNAL, "Killing old osplugin process with SIGKILL");
+			kill(pid, SIGKILL);
+			break;
+		}
+		osync_trace(TRACE_INTERNAL, "Waiting for other side to terminate");
+		/*FIXME: Magic numbers are evil */
+		usleep(500000);
+	}
+
 	if (unlink(pidpath) < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't erase PID file: %s", strerror(errno));
 		goto out_free_str;
@@ -744,6 +756,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 		
 		while (!osync_queue_exists(client->commands_to_osplugin)) {
 			osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
+			/*FIXME: Magic numbers are evil */
 			usleep(500000);
 		}
 		
