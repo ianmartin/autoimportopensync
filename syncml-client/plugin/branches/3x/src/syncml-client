@@ -1,0 +1,5 @@
+<config>
+    <gconf-uri>/apps/syncml-client</gconf-uri>
+    <object-type>contact</object-type>
+    <sync-source-name>card</sync-source-name>
+</config>
