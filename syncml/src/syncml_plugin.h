@@ -62,7 +62,12 @@ typedef struct SmlPluginEnv {
 	SmlTransportObexClientType type;
 	unsigned int port;
 	char *url;
+	
 	unsigned int recvLimit;
+	SmlBool allowLateStatus;
+	SmlBool addUTC;
+	SmlBool noPendingReplies;
+	unsigned int maxObjSize;
 	
 	OSyncMember *member;
 	GMainContext *context;

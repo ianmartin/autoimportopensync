@@ -224,12 +224,15 @@ static void _ds_alert(SmlDsSession *dsession, void *userdata)
 	if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCARD) {
 		printf("received contact dsession\n");
 		env->contactSession = dsession;
+		smlDsSessionRef(dsession);
 	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCAL) {
 		printf("received event dsession\n");
 		env->calendarSession = dsession;
+		smlDsSessionRef(dsession);
 	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_PLAIN) {
 		printf("received note dsession\n");
 		env->noteSession = dsession;
+		smlDsSessionRef(dsession);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -241,6 +244,7 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 	SmlPluginEnv *env = userdata;
 
 	switch (type) {
+		case SML_MANAGER_SESSION_FLUSH:
 		case SML_MANAGER_CONNECT_DONE:
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
@@ -257,11 +261,21 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			osync_trace(TRACE_INTERNAL, "Just received a new session with ID %s\n", smlSessionGetSessionID(session));
 			smlSessionUseStringTable(session, env->useStringtable);
 			smlSessionUseOnlyReplace(session, env->onlyReplace);
-			smlSessionSetAllowLateStatus(session, TRUE);
+			
 			if (env->recvLimit)
 				smlSessionSetReceivingLimit(session, env->recvLimit);
+				
+			if (env->maxObjSize)
+				smlSessionSetReceivingMaxObjSize(session, env->maxObjSize);
+			
+			if (env->allowLateStatus)
+				smlSessionSetAllowLateStatus(session, env->allowLateStatus);
+			
+			if (env->noPendingReplies)
+				smlSessionSetNoPendingReplies(session, env->noPendingReplies);
 			
 			env->session = session;
+			smlSessionRef(session);
 			break;
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final\n", smlSessionGetSessionID(session));
@@ -400,7 +414,14 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 
 	env->port = 8080;
 	env->url = NULL;
+	env->username = NULL;
+	env->recvLimit = 0;
+	env->password = NULL;
+	env->useStringtable = TRUE;
+	env->onlyReplace = FALSE;
 	env->contact_url = NULL;
+	env->calendar_url = NULL;
+	env->note_url = NULL;
 	
 	if (!(doc = xmlParseMemory(config, size))) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse config");
@@ -448,6 +469,22 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyreplace")) {
 				env->onlyReplace = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"allowLateStatus")) {
+				env->allowLateStatus = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
+				env->maxObjSize = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"addUTC")) {
+				env->addUTC = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
+				env->noPendingReplies = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
@@ -523,13 +560,15 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	
 	
 	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(SML_DEVINF_VERSION_11, "libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
+	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
 	
+	smlDevInfSetSupportsUTC(devinf, env->addUTC);
+	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
-	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
+	env->agent = smlDevInfAgentNew(devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 	
@@ -643,6 +682,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	SmlTransportHttpServerConfig config;
 	config.port = env->port;
 	config.url = env->url;
+	config.interface = NULL;
 	
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
@@ -750,6 +790,22 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 				env->onlyReplace = atoi(str);
 			}
 			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"allowLateStatus")) {
+				env->allowLateStatus = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
+				env->maxObjSize = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"addUTC")) {
+				env->addUTC = atoi(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
+				env->noPendingReplies = atoi(str);
+			}
+			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
 				env->contact_url = g_strdup(str);
 			}
@@ -823,13 +879,15 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	
 	
 	/* Now create the devinf handler */
-	SmlDevInf *devinf = smlDevInfNew(SML_DEVINF_VERSION_11, "libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
+	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
 	
+	smlDevInfSetSupportsUTC(devinf, env->addUTC);
+	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
-	env->agent = smlDevInfAgentNew(devinf, SML_DEVINF_VERSION_11, &serror);
+	env->agent = smlDevInfAgentNew(devinf, &serror);
 	if (!env->agent)
 		goto error_free_manager;
 	
