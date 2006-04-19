@@ -1,0 +1,40 @@
+OpenSync Plugin: palm-sync
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+This is a development version of palm-sync. Only for testing and developing!
+!Don't use it without a full backup of your palm!
+Have fun! :)
+
+New Features (which should be tested!)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* recurrence of events
+* excluding recurrence events
+* change time format from unixtimestamp to "vtype" format (2006-03-09T13:13:00Z)
+
+Tested Devices
+^^^^^^^^^^^^^^
+[USB] Handspring Treo 270 
+[TTY] 3Com Palm V
+
+Tested Plugins
+^^^^^^^^^^^^^^
+kdepim-sync
+file-sync
+
+Bugs/Known Problems
+^^^^^^^^^^^^^^^^^^^
+* Sync with kdepim will be always unclean because palm-sync cannot sync Object Type "note".
+  Possible workaround is filtering the Object Type "note":
+  > msynctool --sync palm --filter-objtype note
+* is this code really pilot-link 0.12 proof?
+
+TODO
+^^^^
+* Test categories of event/contact/todo/...
+* Public/Private option
+* Object Type note
+* Timezone
+* Test with other plugins: evolution, ...
+* Find limit of excluding recurrences
+* Clean up & split palm_format code in smart functions
+* Check in the code!
+* testing with pilot-link 0.12.x
