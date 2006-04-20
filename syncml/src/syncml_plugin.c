@@ -279,6 +279,7 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			break;
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final\n", smlSessionGetSessionID(session));
+			env->gotFinal = TRUE;
 			
 			if (env->connectCtx) {
 				osync_context_report_success(env->connectCtx);
@@ -1077,6 +1078,7 @@ static void client_connect(OSyncContext *ctx)
 		
 		smlNotificationFree(san);
 	} else if (smlTransportGetType(env->tsp) == SML_TRANSPORT_HTTP_SERVER) {
+		
 		/* For the http server we can report success right away since we know
 		 * that we already received an alert (otherwise we could not have triggered
 		 * the synchronization) */
@@ -1089,7 +1091,12 @@ static void client_connect(OSyncContext *ctx)
 		if (env->noteSession)
 			smlDsSessionGetAlert(env->noteSession, _recv_alert, env);
 		
-		osync_context_report_success(ctx);
+		/* If we already received the final, we just report success. otherwise
+		 * we let the final report success */
+		if (env->gotFinal)
+			osync_context_report_success(ctx);
+		else
+			env->connectCtx = ctx;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1530,6 +1537,7 @@ static void disconnect(OSyncContext *ctx)
 	SmlError *error = NULL;
 	
 	env->disconnectCtx = ctx;
+	env->gotFinal = FALSE;
 	
 	if (!smlSessionEnd(env->session, &error))
 		goto error;

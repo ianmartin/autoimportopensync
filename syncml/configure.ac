@@ -1,13 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync SyncML Plugin], 0.02, [], syncmlplugin)
+AC_INIT([OpenSync SyncML Plugin], 0.3, [], syncmlplugin)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/syncml_plugin.c)
 AC_CONFIG_HEADER(config.h)
 
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
-pkg_modules="opensync-1.0 glib-2.0 libsyncml-1.0 >= 0.2.0 libxml-2.0"
+pkg_modules="opensync-1.0 glib-2.0 libsyncml-1.0 >= 0.3.0 libxml-2.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)

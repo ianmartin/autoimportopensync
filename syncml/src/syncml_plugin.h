@@ -62,6 +62,7 @@ typedef struct SmlPluginEnv {
 	SmlTransportObexClientType type;
 	unsigned int port;
 	char *url;
+	SmlBool gotFinal;
 	
 	unsigned int recvLimit;
 	SmlBool allowLateStatus;
