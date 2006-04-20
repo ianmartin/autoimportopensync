@@ -1332,7 +1332,7 @@ static void batch_commit_vcard(OSyncContext *ctx, OSyncContext **contexts, OSync
 		tracer->change = change;
 		tracer->context = context;
 
-		if (!smlDsSessionQueueChange(env->contactSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+		if (!smlDsSessionQueueChange(env->contactSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change) - 1, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
 			goto error;
 	}
 	
@@ -1387,7 +1387,7 @@ static void batch_commit_event(OSyncContext *ctx, OSyncContext **contexts, OSync
 		while (env->eventEntries) {
 			struct commitContext *tracer = env->eventEntries->data;
 			
-			if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(tracer->change), osync_change_get_uid(tracer->change), osync_change_get_data(tracer->change), osync_change_get_datasize(tracer->change), _format_to_contenttype(tracer->change), _recv_change_reply, tracer, &error))
+			if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(tracer->change), osync_change_get_uid(tracer->change), osync_change_get_data(tracer->change), osync_change_get_datasize(tracer->change) - 1, _format_to_contenttype(tracer->change), _recv_change_reply, tracer, &error))
 				goto error;
 			
 			env->eventEntries = g_list_delete_link(env->eventEntries, env->eventEntries);
@@ -1445,7 +1445,7 @@ static void batch_commit_todo(OSyncContext *ctx, OSyncContext **contexts, OSyncC
 		while (env->eventEntries) {
 			struct commitContext *tracer = env->eventEntries->data;
 			
-			if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(tracer->change), osync_change_get_uid(tracer->change), osync_change_get_data(tracer->change), osync_change_get_datasize(tracer->change), _format_to_contenttype(tracer->change), _recv_change_reply, tracer, &error))
+			if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(tracer->change), osync_change_get_uid(tracer->change), osync_change_get_data(tracer->change), osync_change_get_datasize(tracer->change) - 1, _format_to_contenttype(tracer->change), _recv_change_reply, tracer, &error))
 				goto error;
 			
 			env->eventEntries = g_list_delete_link(env->eventEntries, env->eventEntries);
@@ -1496,7 +1496,7 @@ static void batch_commit_note(OSyncContext *ctx, OSyncContext **contexts, OSyncC
 		tracer->change = change;
 		tracer->context = context;
 
-		if (!smlDsSessionQueueChange(env->noteSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+		if (!smlDsSessionQueueChange(env->noteSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change) - 1, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
 			goto error;
 	}
 	
