@@ -546,6 +546,8 @@ static void psyncThreadStart(PSyncEnv *env)
 	source = g_timeout_source_new(1000);
 	g_source_set_callback(source, _psyncPoll, env, NULL);
 	g_source_attach(source, context);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
@@ -1466,6 +1468,293 @@ error:
 	return FALSE;
 }
 
+static OSyncChange *_psyncNoteCreate(PSyncEntry *entry, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+	PSyncDatabase *db = entry->db;
+	
+	OSyncChange *change = osync_change_new();
+	if (!change)
+		goto error;
+	
+	char *uid = g_strdup_printf("uid-MemoDB-%ld", entry->id);
+	osync_change_set_uid(change, uid);
+	g_free(uid);
+	
+	osync_change_set_objformat_string(change, "palm-note");
+	
+	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
+		if ((entry->attr & dlpRecAttrArchived)) {
+			osync_trace(TRACE_INTERNAL, "Archieved");
+		}
+		//we have a deleted record
+		osync_change_set_changetype(change, CHANGE_DELETED);
+	} else {
+		
+		PSyncNoteEntry *note = osync_try_malloc0(sizeof(PSyncNoteEntry), error);
+		if (!note)
+			goto error_free_change;
+		note->codepage = g_strdup(db->env->codepage);
+		
+		osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+		
+#ifdef OLD_PILOT_LINK
+		unpack_Memo(&(note->memo), entry->buffer, db->size);
+#else
+		unpack_Memo(&(note->memo), entry->buffer, memo_v1); // FIXME memo_v1?
+#endif
+
+	    const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+	    if (catname) {
+		    osync_trace(TRACE_INTERNAL, "CATNAME: %s", catname);
+			note->categories = g_list_append(note->categories, g_strdup(catname));
+	    } else {
+		    osync_trace(TRACE_INTERNAL, "no category name...");
+	    }
+		
+		osync_change_set_data(change, (void *)note, sizeof(PSyncNoteEntry), TRUE);
+	
+		if (entry->attr & dlpRecAttrDirty) {
+			osync_change_set_changetype(change, CHANGE_MODIFIED);
+		} else {
+			osync_change_set_changetype(change, CHANGE_UNKNOWN);
+		}
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
+	return change;
+
+error_free_change:
+	osync_change_free(change);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static osync_bool _psyncNoteGetChangeInfo(OSyncContext *ctx, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	
+	if (!(db = _psyncDBOpen(env, "MemoDB", error)))
+		goto error;
+	
+	if (osync_member_get_slow_sync(env->member, "note") == TRUE) {
+		osync_trace(TRACE_INTERNAL, "slow sync");
+		
+		int n;
+		for (n = 0; (entry = _psyncDBGetNthEntry(db, n, error)); n++) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
+
+			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
+			
+			OSyncChange *change = _psyncNoteCreate(entry, error);
+			if (!change)
+				goto error;
+			
+			if (osync_change_get_data(change) == NULL)
+				continue;
+
+			osync_change_set_changetype(change, CHANGE_ADDED);
+			osync_context_report_change(ctx, change);
+		}
+	} else {
+		while ((entry = _psyncDBGetNextModified(db, error))) {
+			if (osync_error_is_set(error))
+				goto error;
+				
+			if (entry == NULL)
+				continue;
+
+			OSyncChange *change = _psyncNoteCreate(entry, error);
+			if (!change)
+				goto error;
+			
+			osync_context_report_change(ctx, change);
+		}
+	}
+	
+	if (osync_error_is_set(error))
+		goto error_close_db;
+	
+	_psyncDBClose(db);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_close_db:
+	_psyncDBClose(db);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool psyncNoteCommit(OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	PSyncNoteEntry *note = NULL;
+	OSyncError *error = NULL;
+	unsigned long id = 0;
+
+	//open the DB
+	if (!(db = _psyncDBOpen(env, "MemoDB", &error)))
+		goto error;
+	
+	note = (PSyncNoteEntry *)osync_change_get_data(change);
+			
+	switch (osync_change_get_changetype(change)) {
+		case CHANGE_MODIFIED:
+			//Get the id
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
+
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_Memo(&(note->memo), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_Memo(&(note->memo), entry->buffer, memo_v1); // FIXME memo_v1? 
+#endif
+	
+			if (entry->size < 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error packing note");
+				goto error;
+			}
+
+			if (!_psyncDBWrite(db, entry, &error))
+				goto error;
+				
+			break;
+		case CHANGE_ADDED:
+			//Add a new entry
+			osync_trace(TRACE_INTERNAL, "Find category");
+			
+			entry = osync_try_malloc0(sizeof(PSyncEntry), &error);
+			if (!entry)
+				goto error;
+			entry->id = id;
+			
+			GList *c = NULL;
+			for (c = note->categories; c; c = c->next) {
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				entry->category = _psyncDBCategoryToId(db, c->data, NULL);
+				if (entry->category != 0) {
+					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
+					break;
+				}
+			}
+			
+			osync_trace(TRACE_INTERNAL, "Adding new entry");
+			
+#ifdef OLD_PILOT_LINK
+			entry->size = pack_Memo(&(note->memo), entry->buffer, 0xffff);
+#else
+			entry->buffer = pi_buffer_new(65536);
+			entry->size = pack_Memo(&(note->memo), entry->buffer, memo_v1);
+#endif
+	
+			if (entry->size < 0) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error packing note");
+				goto error;
+			}
+
+			if (!_psyncDBAdd(db, entry, &id, &error))
+				goto error;
+			
+			//Make the new uid
+			char *uid = g_strdup_printf("uid-MemoDB-%ld", id);
+			osync_change_set_uid(change, uid);
+			g_free(uid);
+			break;
+		case CHANGE_DELETED:
+			id = _psyncUidGetID(osync_change_get_uid(change), &error);
+			if (!id)
+				goto error;
+		
+			if (!_psyncDBDelete(db, id, &error))
+				goto error;
+				
+			break;
+		default:
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
+			goto error;
+	}
+	
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	return FALSE;
+}
+
+static void psyncNoteRead(OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	PSyncDatabase *db = NULL;
+	PSyncEntry *entry = NULL;
+	OSyncError **error = NULL;
+	long int id = 0;
+
+	const char *uid = osync_change_get_uid(change);
+	sscanf(uid, "uid-MemoDB-%ld", &id);
+	
+	if (!(db = _psyncDBOpen(env, "MemoDB", error)))
+		goto error;
+
+	entry = _psyncDBGetNthEntry(db, id, error);
+
+	PSyncNoteEntry *note = g_malloc0(sizeof(PSyncNoteEntry));
+	if (!note)
+		goto error_free_change;
+	note->codepage = g_strdup(db->env->codepage);
+	
+	osync_trace(TRACE_INTERNAL, "Starting to unpack entry %i", db->size);
+	
+#ifdef OLD_PILOT_LINK
+	unpack_Memo(&(note->memo), entry->buffer, db->size);
+#else
+	unpack_Memo(&(note->memo), entry->buffer, memo_v1);
+#endif
+
+	const char *catname = _psyncDBCategoryFromId(entry->db, entry->category, NULL);
+	if (catname) {
+		osync_trace(TRACE_INTERNAL, "CATNAME: %s", catname);
+		note->categories = g_list_append(note->categories, g_strdup(catname));
+	}
+		
+	osync_trace(TRACE_INTERNAL, "read memo: %s", note->memo.text);
+	osync_change_set_data(change, (void *)note, sizeof(PSyncNoteEntry), TRUE);
+
+	_psyncDBClose(db);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_context_report_success(ctx);
+	return;
+
+error:	
+error_free_change:
+	osync_context_report_osyncerror(ctx, error);
+	osync_change_free(change);
+}
+
 static void psyncGetChangeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
@@ -1482,6 +1771,9 @@ static void psyncGetChangeinfo(OSyncContext *ctx)
 		goto error;
 		
 	if (!_psyncEventGetChangeInfo(ctx, &error))
+		goto error;
+
+	if (!_psyncNoteGetChangeInfo(ctx, &error))
 		goto error;
 
 	osync_context_report_success(ctx);
@@ -1517,6 +1809,13 @@ static void psyncDone(OSyncContext *ctx)
 	
 	if ((db = _psyncDBOpen(env, "DatebookDB", &error))) {
 		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for DatebookDB");
+		dlp_ResetSyncFlags(env->socket, db->handle);
+		dlp_CleanUpDatabase(env->socket, db->handle);
+		_psyncDBClose(db);
+	}
+
+	if ((db = _psyncDBOpen(env, "MemoDB", &error))) {
+		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for MemoDB");
 		dlp_ResetSyncFlags(env->socket, db->handle);
 		dlp_CleanUpDatabase(env->socket, db->handle);
 		_psyncDBClose(db);
@@ -1597,4 +1896,10 @@ void get_info(OSyncEnv *env)
 	osync_plugin_accept_objtype(info, "event");
 	osync_plugin_accept_objformat(info, "event", "palm-event", NULL);
 	osync_plugin_set_commit_objformat(info, "event", "palm-event", psyncEventCommit);
+	
+	osync_plugin_accept_objtype(info, "note");
+	osync_plugin_accept_objformat(info, "note", "palm-note", NULL);
+	osync_plugin_set_commit_objformat(info, "note", "palm-note", psyncNoteCommit);
+	osync_plugin_set_read_objformat(info, "note", "palm-note", psyncNoteRead);
 }
+

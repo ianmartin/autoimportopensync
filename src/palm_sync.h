@@ -32,6 +32,7 @@
 #include <pi-address.h>
 #include <pi-datebook.h>
 #include <pi-todo.h>
+#include <pi-memo.h>
 
 #if ((PILOT_LINK_VERSION == 0) && (PILOT_LINK_MAJOR < 12))
 #define OLD_PILOT_LINK
@@ -55,6 +56,7 @@
 typedef struct PSyncContactEntry PSyncContactEntry;
 typedef struct PSyncEventEntry PSyncEventEntry;
 typedef struct PSyncTodoEntry PSyncTodoEntry;
+typedef struct PSyncNoteEntry PSyncNoteEntry;
 
 typedef struct PSyncEnv PSyncEnv;
 

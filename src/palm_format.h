@@ -42,4 +42,11 @@ struct PSyncTodoEntry {
 	GList *categories;
 };
 
+struct PSyncNoteEntry {
+	struct Memo memo;
+	char *codepage;
+	char *uid;
+	GList *categories;
+};
+
 #endif /* _PALM_FORMAT_H */

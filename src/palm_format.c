@@ -288,7 +288,6 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	}
 	// end of reccurence
 
-
 	// Categories
 	GList *c = NULL;
 	current = NULL;
@@ -1271,6 +1270,136 @@ static void destroy_palm_contact(char *input, size_t inpsize)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
+	xmlNode *current = NULL;
+	
+	if (inpsize != sizeof(PSyncNoteEntry)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong size");
+		goto error;
+	}
+	
+	//Create a new xml document
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *root = osxml_node_add_root(doc, "Note");
+
+	// Summary & Body
+	if (entry->memo.text) {
+		gchar **splitMemo = g_strsplit(entry->memo.text, "\n", 2);
+		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
+
+		current = xmlNewChild(root, NULL, (xmlChar*)"Body", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
+	}
+
+	GList *c = NULL;
+	current = NULL;
+	for (c = entry->categories; c; c = c->next) {
+		if (!current)
+			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+		osxml_node_add(current, "Category", (char *)c->data);
+	}
+
+	*free_input = TRUE;
+	*output = (char *)doc;
+	*outpsize = sizeof(doc);
+
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+
+	xmlNode *cur = NULL;
+
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+
+	//Get the root node of the input document
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
+	}
+	
+	if (xmlStrcmp(root->name, (const xmlChar *)"Note")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
+		goto error;
+	}
+
+	/* Start the new entry */
+	PSyncNoteEntry *entry = osync_try_malloc0(sizeof(PSyncNoteEntry), error);
+	if (!entry)
+		goto error;
+
+	entry->memo.text = "";
+
+	// Summary 
+	cur = osxml_get_node(root, "Summary");
+	if (cur) {
+		entry->memo.text = (char *)xmlNodeGetContent(cur);
+	}
+	
+	// Body
+	cur = osxml_get_node(root, "Body"); 
+	if (cur) {
+		entry->memo.text = g_strdup_printf("%s\n%s", entry->memo.text, (char *)xmlNodeGetContent(cur));
+	}
+	
+	//Categories
+	cur = osxml_get_node(root, "Categories");
+	if (cur) {
+		for (cur = cur->children; cur; cur = cur->next) {
+			entry->categories = g_list_append(entry->categories, (char*)xmlNodeGetContent(cur));
+		}
+	}
+	
+	*free_input = TRUE;
+	*output = (void *)entry;
+	*outpsize = sizeof(PSyncNoteEntry);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static void destroy_palm_note(char *input, size_t inpsize)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
+	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
+	g_assert(inpsize == sizeof(PSyncNoteEntry));
+	
+	g_free(entry->uid);
+	g_free(entry->codepage);
+	
+	g_free(entry->memo.text);
+	
+	GList *c = NULL;
+	for (c = entry->categories; c; c = c->next) {
+		g_free(c->data);
+	}
+	
+	if (entry->categories)
+		g_list_free(entry->categories);
+	
+	g_free(entry);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
@@ -1293,4 +1422,12 @@ void get_info(OSyncEnv *env)
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-event", "xml-event", conv_palm_event_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "palm-event", conv_xml_to_palm_event);
+	
+	osync_env_register_objtype(env, "note");
+	osync_env_register_objformat(env, "note", "palm-note");
+	osync_env_format_set_destroy_func(env, "palm-note", destroy_palm_note);
+	
+	osync_env_register_converter(env, CONVERTER_CONV, "palm-note", "xml-note", conv_palm_note_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "palm-note", conv_xml_to_palm_note);
+
 }
