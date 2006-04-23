@@ -1,0 +1,3 @@
+usr/share/opensync/defaults/syncml-http-server /usr/share/opensync
+usr/share/opensync/defaults/syncml-obex-client /usr/share/opensync
+usr/lib/opensync/plugins/syncml_plugin.so /usr/lib/opensync/plugins
