@@ -246,9 +246,11 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 	switch (type) {
 		case SML_MANAGER_SESSION_FLUSH:
 		case SML_MANAGER_CONNECT_DONE:
+			env->gotDisconnect = FALSE;
 			break;
 		case SML_MANAGER_DISCONNECT_DONE:
-			printf("connection with device has ended\n");
+			osync_trace(TRACE_INTERNAL, "connection with device has ended");
+			env->gotDisconnect = TRUE;
 			if (env->disconnectCtx) {
 				osync_context_report_success(env->disconnectCtx);
 				env->disconnectCtx = NULL;
@@ -295,26 +297,6 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 				osync_context_report_success(env->commitCtx);
 				env->commitCtx = NULL;
 			}
-			
-			/*if (env->commitContactCtx) {
-				osync_context_report_success(env->commitContactCtx);
-				env->commitContactCtx = NULL;
-			}
-			
-			if (env->commitCalendarCtx) {
-				osync_context_report_success(env->commitCalendarCtx);
-				env->commitCalendarCtx = NULL;
-			}
-			
-			if (env->commitTodoCtx) {
-				osync_context_report_success(env->commitTodoCtx);
-				env->commitTodoCtx = NULL;
-			}
-			
-			if (env->commitNoteCtx) {
-				osync_context_report_success(env->commitNoteCtx);
-				env->commitNoteCtx = NULL;
-			}*/
 			break;
 		case SML_MANAGER_SESSION_END:
 			osync_trace(TRACE_INTERNAL, "Session %s has ended\n", smlSessionGetSessionID(session));
@@ -1536,12 +1518,16 @@ static void disconnect(OSyncContext *ctx)
 	OSyncError *oserror = NULL;
 	SmlError *error = NULL;
 	
-	env->disconnectCtx = ctx;
 	env->gotFinal = FALSE;
 	
 	if (!smlSessionEnd(env->session, &error))
 		goto error;
 	
+	if (env->gotDisconnect)
+		osync_context_report_success(env->disconnectCtx);
+	else
+		env->disconnectCtx = ctx;
+		
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
