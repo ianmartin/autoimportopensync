@@ -1512,7 +1512,7 @@ static void disconnect(OSyncContext *ctx)
 		goto error;
 	
 	if (env->gotDisconnect)
-		osync_context_report_success(env->disconnectCtx);
+		osync_context_report_success(ctx);
 	else
 		env->disconnectCtx = ctx;
 		
