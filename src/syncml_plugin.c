@@ -462,10 +462,6 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 				env->maxObjSize = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"addUTC")) {
-				env->addUTC = atoi(str);
-			}
-			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
 				env->noPendingReplies = atoi(str);
 			}
@@ -546,8 +542,6 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
-	
-	smlDevInfSetSupportsUTC(devinf, env->addUTC);
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
@@ -781,10 +775,6 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 				env->maxObjSize = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"addUTC")) {
-				env->addUTC = atoi(str);
-			}
-			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
 				env->noPendingReplies = atoi(str);
 			}
@@ -865,8 +855,6 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
 		goto error_free_manager;
-	
-	smlDevInfSetSupportsUTC(devinf, env->addUTC);
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	

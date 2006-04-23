@@ -68,7 +68,6 @@ typedef struct SmlPluginEnv {
 	
 	unsigned int recvLimit;
 	SmlBool allowLateStatus;
-	SmlBool addUTC;
 	SmlBool noPendingReplies;
 	unsigned int maxObjSize;
 	
