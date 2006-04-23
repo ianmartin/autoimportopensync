@@ -7,7 +7,7 @@ Standards-Version: 3.6.2
 
 Package: opensync-plugin-syncml
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsyncml
 Description: SyncML plugin for opensync
  An SyncML plugin for opensync. This allow to synchronize against
  devices which support the SyncML standard. Supported transports are

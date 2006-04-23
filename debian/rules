@@ -54,7 +54,7 @@ install: build
 	dh_installdirs
 
 	$(MAKE) -C $(BUILD) install DESTDIR=$(TARGET)
-	dh_install --sourcedir=$(TARGET) --fail-missing -Xsyncml_plugin.h
+	dh_install --sourcedir=$(TARGET) --fail-missing -Xsyncml_plugin.h -Xsyncml_plugin.la
 
 binary-arch: build install
 	dh_testdir
