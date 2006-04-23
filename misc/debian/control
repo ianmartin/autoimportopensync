@@ -2,12 +2,12 @@ Source: libopensync-plugin-syncml
 Section: libs
 Priority: optional
 Maintainer: Armin Bauer <armin.bauer@desscon.com>
-Build-Depends: debhelper (>= 4.0.0), libopensync-dev, libsyncml-dev
+Build-Depends: debhelper (>= 4.0.0), libopensync0-dev, libsyncml-dev
 Standards-Version: 3.6.2
 
 Package: opensync-plugin-syncml
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libsyncml
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsyncml0
 Description: SyncML plugin for opensync
  An SyncML plugin for opensync. This allow to synchronize against
  devices which support the SyncML standard. Supported transports are
