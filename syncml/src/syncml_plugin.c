@@ -713,6 +713,15 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str && strlen(str)) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_address")) {
+				env->bluetoothAddress = strtol(str, (char **)NULL, 10);
+				if (errno) {
+					xmlFree(str);
+					osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong bluetooth address");
+					goto error_free_doc;
+				}
+			}
+			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
 				env->interface = atoi(str);
 			}
@@ -822,7 +831,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		goto error_free_env;
 	
 	if (!syncml_obex_client_parse_config(env, configdata, configsize, error))
-		goto error_free_transport;
+		goto error_free_env;
 	
 	env->context = osync_member_get_loop(member);
 	env->member = member;
@@ -830,18 +839,18 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	/* The transport needed to transport the data */
 	env->tsp = smlTransportNew(SML_TRANSPORT_OBEX_CLIENT, &serror);
 	if (!env->tsp)
-		goto error;
+		goto error_free_env;
 	
 	/* The manager responsible for handling the other objects */
 	env->manager = smlManagerNew(env->tsp, &serror);
 	if (!env->manager)
-		goto error;
+		goto error_free_transport;
 	smlManagerSetEventCallback(env->manager, _manager_event, env);
 	
 	/* The authenticator */
 	env->auth = smlAuthNew(&serror);
 	if (!env->auth)
-		goto error;
+		goto error_free_manager;
 	smlAuthSetVerifyCallback(env->auth, _verify_user, env);
 	
 	if (!env->username)
@@ -854,27 +863,27 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	/* Now create the devinf handler */
 	SmlDevInf *devinf = smlDevInfNew("libsyncml", SML_DEVINF_DEVTYPE_SERVER, &serror);
 	if (!devinf)
-		goto error_free_manager;
+		goto error_free_auth;
 	
 	smlDevInfSetSupportsNumberOfChanges(devinf, TRUE);
 	
 	env->agent = smlDevInfAgentNew(devinf, &serror);
 	if (!env->agent)
-		goto error_free_manager;
+		goto error_free_auth;
 	
 	if (!smlDevInfAgentRegister(env->agent, env->manager, &serror))
-		goto error_free_manager;
+		goto error_free_auth;
 	
 	
 	if (env->contact_url) {
 		/* We now create the ds server hat the given location */
 		SmlLocation *loc = smlLocationNew(env->contact_url, NULL, &serror);
 		if (!loc)
-			goto error;
+			goto error_free_auth;
 		
 		env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
 		if (!env->contactserver)
-			goto error_free_manager;
+			goto error_free_auth;
 			
 		if (!smlDsServerRegister(env->contactserver, env->manager, &serror))
 			goto error_free_auth;
@@ -884,7 +893,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		/* And we also add the devinfo to the devinf agent */
 		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
 		if (!datastore)
-			goto error;
+			goto error_free_auth;
 		
 		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
 		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
@@ -900,11 +909,11 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		/* We now create the ds server hat the given location */
 		SmlLocation *loc = smlLocationNew(env->calendar_url, NULL, &serror);
 		if (!loc)
-			goto error;
+			goto error_free_auth;
 		
 		env->calendarserver = smlDsServerNew(SML_CONTENT_TYPE_VCAL, loc, &serror);
 		if (!env->calendarserver)
-			goto error_free_manager;
+			goto error_free_auth;
 			
 		if (!smlDsServerRegister(env->calendarserver, env->manager, &serror))
 			goto error_free_auth;
@@ -914,7 +923,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		/* And we also add the devinfo to the devinf agent */
 		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
 		if (!datastore)
-			goto error;
+			goto error_free_auth;
 		
 		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
 		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
@@ -930,11 +939,11 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		/* We now create the ds server hat the given location */
 		SmlLocation *loc = smlLocationNew(env->note_url, NULL, &serror);
 		if (!loc)
-			goto error;
+			goto error_free_auth;
 		
 		env->noteserver = smlDsServerNew(SML_CONTENT_TYPE_PLAIN, loc, &serror);
 		if (!env->noteserver)
-			goto error_free_manager;
+			goto error_free_auth;
 			
 		if (!smlDsServerRegister(env->noteserver, env->manager, &serror))
 			goto error_free_auth;
@@ -944,7 +953,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		/* And we also add the devinfo to the devinf agent */
 		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
 		if (!datastore)
-			goto error;
+			goto error_free_auth;
 		
 		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
 		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
@@ -974,16 +983,23 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 
 
 	SmlTransportObexClientConfig config;
-	config.type = SML_OBEX_TYPE_USB;
-	config.port = env->interface;
-
+	config.type = env->type;
+	if (config.type == SML_OBEX_TYPE_BLUETOOTH)
+		config.port = env->bluetoothAddress;
+	else if (config.type == SML_OBEX_TYPE_USB)
+		config.port = env->interface;
+	else {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
+		goto error_free_auth;
+	}
+	
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
-		goto error;
+		goto error_free_auth;
 	
 	/* Initialize the Transport */
 	if (!smlTransportInitialize(env->tsp, &config, &serror))
-		goto error;
+		goto error_free_auth;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;

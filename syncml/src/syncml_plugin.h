@@ -52,6 +52,7 @@ struct commitContext {
 typedef struct SmlPluginEnv {
 	char *path;
 	unsigned int interface;
+	long int bluetoothAddress;
 	char *identifier;
 	SmlNotificationVersion version;
 	osync_bool useWbxml;
