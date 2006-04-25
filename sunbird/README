@@ -90,7 +90,7 @@ Update 21.04.2006: Neon might be available in your distribution as
 
 <config>
    <file path="/path/to/calendar1.ics" />
-   <file default=1 path="/path/to/calendar2.ics" />
+   <file default="1" path="/path/to/calendar2.ics" />
    <webdav username="user" password="password" url="http://server.com/path/to/webdav1.ics" />
    <weddav username="user" password="password" url="http://server.com/path/to/webdav2.ics" />
    ...
