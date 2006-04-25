@@ -718,12 +718,7 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_channel")) {
-				env->bluetoothChannel = strtol(str, (char **)NULL, 10);
-				if (errno) {
-					xmlFree(str);
-					osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong bluetooth channel");
-					goto error_free_doc;
-				}
+				env->bluetoothChannel = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"interface")) {
