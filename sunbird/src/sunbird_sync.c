@@ -877,8 +877,15 @@ static void sync_done(OSyncContext *ctx)
 
         free_events_list(cached_entries);
 
-        /* FIXME: Error handling for webdav transfer */
-        do_webdav(env, 1);
+        if (!do_webdav(env, 1))
+        {
+            osync_context_report_error(ctx, OSYNC_ERROR_GENERIC,
+                "Could not upload all calendars to server. They are still stored in the configuration "
+                "directory inside .opensync. You must upload them yourself or your calendars will not "
+                "be up-to-date!");
+            osync_trace(TRACE_EXIT, "sync_done");
+            return;
+        }
     } else
     {
         osync_trace(TRACE_INTERNAL, "Sync done, no changes");
