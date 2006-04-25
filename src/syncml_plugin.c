@@ -714,10 +714,14 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str && strlen(str)) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_address")) {
-				env->bluetoothAddress = strtol(str, (char **)NULL, 10);
+				env->bluetoothAddress = g_strdup(str);
+			}
+			
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"bluetooth_channel")) {
+				env->bluetoothChannel = strtol(str, (char **)NULL, 10);
 				if (errno) {
 					xmlFree(str);
-					osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong bluetooth address");
+					osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong bluetooth channel");
 					goto error_free_doc;
 				}
 			}
@@ -984,9 +988,10 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 
 	SmlTransportObexClientConfig config;
 	config.type = env->type;
-	if (config.type == SML_OBEX_TYPE_BLUETOOTH)
-		config.port = env->bluetoothAddress;
-	else if (config.type == SML_OBEX_TYPE_USB)
+	if (config.type == SML_OBEX_TYPE_BLUETOOTH) {
+		config.url = g_strdup(env->bluetoothAddress);
+		config.port = env->bluetoothChannel;
+	} else if (config.type == SML_OBEX_TYPE_USB)
 		config.port = env->interface;
 	else {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
