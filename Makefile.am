@@ -2,3 +2,7 @@
 
 SUBDIRS = src
 
+EXTRA_DIST = \
+	misc/libopensync-plugin-syncml.spec.in \
+	misc/libopensync-plugin-syncml.spec
+
