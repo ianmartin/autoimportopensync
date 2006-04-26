@@ -1,0 +1,20 @@
+Building a rpm
+===
+
+the opensync syncml plugin already contains a ready to use spec file so building an RPM is a
+piece of cake. All you need to do is:
+
+        rpmbuild -ta <tarball>
+
+where <tarball> is the current plugin tar ball. You can create this tarball by specifing
+
+	make dist
+
+
+As long as you have the necessary prerequisites the package should build just
+fine.
+
+The packages needed for building the rpm are:
+
+        * libsyncml-devel
+        * libopensync-devel
