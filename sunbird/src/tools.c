@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static unsigned int uidcounter = 1;
 
@@ -287,6 +288,76 @@ int read_icalendar_file(char* filename, GList **entries_ptr)
     free(basename_ptr);
     fclose(f);
     return 1;
+}
+
+void delete_old_entries(GList **entries_ptr, int days)
+{
+    time_t border_time;
+    struct tm dtstart;
+    GList* cur;
+    char year[5], month[3], day[3];
+    
+    osync_trace(TRACE_ENTRY, "delete_old_entries(days=%i)", days);
+
+    year[4] = 0;
+    month[2] = 0;
+    day[2] = 0;
+
+    memset(&dtstart, 0, sizeof(struct tm));
+
+    border_time = time(NULL) - days*60*60*24;
+    
+    cur = g_list_first(*entries_ptr);
+    while(cur)
+    {
+        calendar_entry* entry = (calendar_entry*)cur->data;
+        cur = cur->next;
+        
+        char* dtstart_str = get_key_data(entry->data->str, "DTSTART");
+        
+        osync_trace(TRACE_INTERNAL, "Entry: UID=%s DTSTART=%s",
+                    entry->id->str, dtstart_str);
+
+        if (dtstart_str && strlen(dtstart_str) >= 6)
+        {
+            time_t entry_time;
+            
+            memcpy(year, dtstart_str + 0, 4 * sizeof(char));
+            memcpy(month, dtstart_str + 4, 2 * sizeof(char));
+            memcpy(day, dtstart_str + 6, 2 * sizeof(char));
+            dtstart.tm_year = atoi(year) - 1900;
+            dtstart.tm_mon = atoi(month) - 1;
+            dtstart.tm_mday = atoi(day);
+            
+            osync_trace(TRACE_INTERNAL,
+                        "       tm_year=%i tm_mon=%i tm_mday=%i",
+                        dtstart.tm_year, dtstart.tm_mon, dtstart.tm_mday);
+            
+            entry_time = mktime(&dtstart);
+            
+            if (entry_time < border_time)
+            {
+                /* Entry is too old, delete it */
+                osync_trace(TRACE_INTERNAL,
+                            "       ENTRY IS TOO OLD, DELETING IT");
+                *entries_ptr = g_list_remove(*entries_ptr, entry);
+                free_calendar_entry(entry);
+            } else
+            {
+                /* Entry is not too old, keep it */
+                osync_trace(TRACE_INTERNAL,
+                            "       Entry is young enough");
+            }
+            
+            g_free(dtstart_str);
+        } else
+        {
+            osync_trace(TRACE_INTERNAL,
+                        "Warning: Entry contains no DTSTART info");
+        }
+    }
+
+    osync_trace(TRACE_EXIT, "delete_old_entries");
 }
 
 char* copy_from_g_string(GString* str)

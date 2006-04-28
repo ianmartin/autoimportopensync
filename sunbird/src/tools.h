@@ -52,6 +52,12 @@ GString* extract_first_vevent(char* data);
 int read_icalendar_file(char* filename, GList **entries_ptr);
 
 /*
+   Given a list of calendar entries, removes all entries from the list that
+   are more than 'days' days old.
+ */
+void delete_old_entries(GList **entries_ptr, int days);
+ 
+/*
    Write a file which remembers all the keys which have already been
    synced and their last modification date. This is essentially a
    "pseudo-vcalendar-file" and only used internally by the plugin.

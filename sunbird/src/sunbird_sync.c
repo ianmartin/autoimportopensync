@@ -24,6 +24,8 @@
 
 #include <opensync/opensync.h>
 
+#include <errno.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -357,7 +359,16 @@ int get_calendar_changes(GList** changes_ptr, /* OUT: List of changes */
     
     if (*slow_sync)
     {
-        osync_trace(TRACE_INTERNAL, "Remote requested slow sync, ignoring keyfile!");
+        osync_trace(TRACE_INTERNAL, "Remote requested slow sync, removing old keyfile, if any");
+        if (unlink(keyfile) == -1 && errno != ENOENT)
+        {
+            /*
+             * This will only be called if the file really cannot be
+             * deleted. If it is just not there, errno contains ENOENT.
+             */
+            osync_trace(TRACE_INTERNAL, "Could not remove old keyfile");
+            goto err;
+        }
     } else
     {
         osync_trace(TRACE_INTERNAL, "Reading keyfile '%s'...", keyfile);
@@ -371,9 +382,11 @@ int get_calendar_changes(GList** changes_ptr, /* OUT: List of changes */
     
     osync_trace(TRACE_INTERNAL, "Reading calendar files...");
     
+    cur2 = g_list_first(env->config_calendars);
     for (cur = g_list_first(files); cur; cur = cur->next)
     {
         char* filename = (char*)cur->data;
+        plugin_calendar_config* cfg = (plugin_calendar_config*)cur2->data;
         
         osync_trace(TRACE_INTERNAL, "Reading calendar file '%s'...", filename);
         if (!read_icalendar_file(filename, &entries))
@@ -381,6 +394,16 @@ int get_calendar_changes(GList** changes_ptr, /* OUT: List of changes */
             osync_trace(TRACE_INTERNAL, "Error reading calendar file!");
             goto err;
         }
+        
+        if (cfg->deletedaysold != 0)
+        {
+            osync_trace(TRACE_INTERNAL,
+                "Removing in-memory items that are older than %i days...",
+                cfg->deletedaysold);
+            delete_old_entries(&entries, cfg->deletedaysold);
+        }
+        
+        cur2 = cur2->next;
     }
     
     osync_trace(TRACE_INTERNAL, "Syncing entries...");
@@ -528,8 +551,9 @@ void read_config_from_xml_doc(xmlDocPtr doc, plugin_environment* env)
               strcmp((char*)cur->name, "file")== 0 || strcmp((char*)cur->name, "webdav") == 0))
         {
             plugin_calendar_config *cfg;
-            xmlChar *attr_default, *attr_username, *attr_password, *attr_filename;
-            
+            xmlChar *attr_default, *attr_username, *attr_password;
+            xmlChar *attr_filename, *attr_deletedaysold;
+
             osync_trace(TRACE_INTERNAL, "reading node of type '%s'", cur->name);
 
             cfg  = (plugin_calendar_config*)g_malloc0(sizeof(plugin_calendar_config));
@@ -537,15 +561,18 @@ void read_config_from_xml_doc(xmlDocPtr doc, plugin_environment* env)
             cfg->filename = NULL;
             cfg->username = NULL;
             cfg->password = NULL;
+            cfg->deletedaysold = 0;
             if (strcmp((char*)cur->name, "file") == 0)
                 cfg->typ = TYP_FILE;
             else
                 cfg->typ = TYP_WEBDAV;
                 
-            /* Parse attributes of this noed */
+            /* Parse attributes of this node */
             attr_default = xmlGetProp(cur, (const xmlChar*)"default");
             attr_username = xmlGetProp(cur, (const xmlChar*)"username");
             attr_password = xmlGetProp(cur, (const xmlChar*)"password");
+            attr_deletedaysold = xmlGetProp(cur, (const xmlChar*)"deletedaysold");
+
             if (cfg->typ == TYP_FILE)
                 attr_filename = xmlGetProp(cur, (const xmlChar*)"path");
             else
@@ -577,6 +604,13 @@ void read_config_from_xml_doc(xmlDocPtr doc, plugin_environment* env)
                 cfg->filename = g_string_new((char*)attr_filename);
                 xmlFree(attr_filename);
                 osync_trace(TRACE_INTERNAL, "set filename to %s", cfg->filename->str);
+            }
+            
+            if (attr_deletedaysold)
+            {
+                cfg->deletedaysold = atoi((char*)attr_deletedaysold);
+                xmlFree(attr_deletedaysold);
+                osync_trace(TRACE_INTERNAL, "set deletedaysold to %i", cfg->deletedaysold);
             }
             
             /* Add node to list, if complete */
@@ -785,7 +819,7 @@ static void sync_done(OSyncContext *ctx)
 	plugin_environment *env = get_plugin_environment(ctx);
 
     osync_trace(TRACE_ENTRY, "sync_done");
-
+    
     if (env->pending_changes)
     {
         char keyfile[256];
@@ -810,6 +844,7 @@ static void sync_done(OSyncContext *ctx)
         
         strcpy(keyfile, get_datapath(env));
         strcat(keyfile, "/mozilla_keyfile.ics");
+        
         osync_trace(TRACE_INTERNAL, "Reading keyfile '%s'...", keyfile);
         if (!read_icalendar_file(keyfile, &cached_entries))
             osync_trace(TRACE_INTERNAL, "Keyfile not found, creating new one");
@@ -824,9 +859,12 @@ static void sync_done(OSyncContext *ctx)
             if (e->deleted || e->remote_change_type == CHANGE_DELETED)
             {
                 /* Delete entry from cached entries list */
-                for (cur2 = g_list_first(cached_entries); cur2; cur2 = cur2->next)
+                cur2 = g_list_first(cached_entries);
+                while(cur2)
                 {
                     calendar_entry *e2 = (calendar_entry*)cur2->data;
+                    cur2 = cur2->next;
+                    
                     if (strcmp(e2->id->str, e->id->str) == 0)
                     {
                         /* This is the entry, delete it */
@@ -841,9 +879,12 @@ static void sync_done(OSyncContext *ctx)
                 /* Modify/Add entry to cached list */
                 
                 /* Check if entry is already in cached list. */
-                for (cur2 = g_list_first(cached_entries); cur2; cur2 = cur2->next)
+                cur2 = g_list_first(cached_entries);
+                while (cur2)
                 {
                     calendar_entry *e2 = (calendar_entry*)cur2->data;
+                    cur2 = cur2->next;
+                    
                     if (strcmp(e2->id->str, e->id->str) == 0)
                     {
                         /* Entry already in cached entries list, delete it */

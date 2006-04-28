@@ -1,13 +1,14 @@
 Plugin for syncing with Mozilla Calendar / Sunbird
 --------------------------------------------------
 
-Document last changed: 23.04.2006
+Document last changed: 28.04.2006
 
 (C) 2005-2006 by Markus Meyer
 Licensed under the GNU LGPL (see file COPYING for details)
 
 
 1. Does it work?
+----------------
 
 Yes, it does. You can sync one or more calendars, both local and on WebDAV
 servers. I have used it for about a year to sync my S55 phone to Mozilla
@@ -18,12 +19,14 @@ data.
 
 
 2. Will it also sync my contacts and todo items?
+------------------------------------------------
 
 No. It currently only syncs calendar appointments. But if you are a
 programmer, you're of course welcome to extend it.
 
 
 3. What are the known limitations?
+----------------------------------
 
 - In every Mozilla Calendar file that you want to use with the plugin,
   you should always have at least one item. If the calendar is empty,
@@ -63,7 +66,8 @@ programmer, you're of course welcome to extend it.
   support for XML, support for hash tables etc.)
 
 
-4. Help! It complains about some "Neon" library.
+4. Help! It complains about some "Neon" library!?
+-------------------------------------------------
 
 You need to have Neon installed. Neon is a library which is used for
 WebDAV support. It is planned to make the installation of Neon optional,
@@ -87,20 +91,51 @@ Update 21.04.2006: Neon might be available in your distribution as
 
 
 5. Format of the XML settings file
+----------------------------------
 
+Example:
+
+---------------------------------------------------------------------------
 <config>
-   <file path="/path/to/calendar1.ics" />
+   <file path="/path/to/calendar1.ics" deletedaysold="30" />
    <file default="1" path="/path/to/calendar2.ics" />
-   <webdav username="user" password="password" url="http://server.com/path/to/webdav1.ics" />
-   <weddav username="user" password="password" url="http://server.com/path/to/webdav2.ics" />
+   <webdav username="user" password="password" 
+           url="http://server.com/path/to/webdav1.ics" />
+   <weddav username="user" password="password"
+           url="http://server.com/path/to/webdav2.ics" />
    ...
 </config>
+---------------------------------------------------------------------------
 
 Don't forget the '/>' at the end of the nodes!
 
+Description of the fields:
 
+* You can have both local files and WebDAV-served calendars in one file.
+  Specifiy a <file> node if you have a local file, and <webdav> if you have
+  a calendar served by WebDAV
+
+* The "path" and "url" files give the local file path or the web url of the
+  calendar file which should be synchronized
+
+* default="1" is used to specify the default calendar if you have multiple
+  calendars (also see below for an explanation)
+
+* "username" and "password" are used to specify the login credentials to the
+  WebDAV server
+
+* If "deletedaysold" is given, only events will be synchronized which are
+  younger than the given number of days. Older events will not appear in the
+  remote end. If they already are in the remote end, they are deleted. This
+  is useful if e.g. you have a phone which can only store a limited number
+  of events. Note that the events just don't appear in the phone then. The
+  Sunbird calendar file will not be changed and still contain all the old
+  entries, so this option should be safe to use.
+
+  
 6. What's the point of having multiple calendars? My mobile phone only
    supports one single calendar!
+----------------------------------------------------------------------
    
 If you configure multiple calendars for use with this plugin, the
 software will automagically merge these calendars into one single
