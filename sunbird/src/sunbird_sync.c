@@ -143,6 +143,14 @@ plugin_environment* get_plugin_environment(OSyncContext* ctx)
     return (plugin_environment*)osync_context_get_plugin_data(ctx);
 }
 
+GString* get_basename(char* filename)
+{
+    char *basename = filename + strlen(filename) - 1;
+    while (basename > filename && *(basename-1) != '/')
+        basename--;
+    return g_string_new(basename);
+}
+
 GString* get_default_calendar(plugin_environment* env)
 {
     GList* cur;
@@ -152,7 +160,7 @@ GString* get_default_calendar(plugin_environment* env)
         plugin_calendar_config* cfg = (plugin_calendar_config*)cur->data;
         
         if (cfg->isdefault)
-            return g_string_new(cfg->filename->str);
+            return get_basename(cfg->filename->str);
     }
     
     return NULL; /* no default calendar */
@@ -174,12 +182,7 @@ void write_changes_to_calendars(GList* entries, plugin_environment* env)
 
     if (!(default_calendar && strlen(default_calendar->str) > 0))
     {
-        char *basename_ptr = (char*)strdup((char*)g_list_first(files)->data);
-        char *basename = basename_ptr + strlen(basename_ptr) - 1;
-        while (basename > basename_ptr && *(basename-1) != '/')
-            basename--;
-        default_calendar = g_string_new(basename);
-        free(basename_ptr);
+        default_calendar = get_basename((char*)g_list_first(files)->data);
         
         osync_trace(TRACE_INTERNAL, "WARNING: No default calendar set, using first calendar: %s", default_calendar->str);
     }
