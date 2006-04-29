@@ -87,7 +87,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		
 		// Date/Time Events:
 		} else {
-			tmp = g_strdup_printf("%04u%02u%02uT%02u%02u%02uZ", 
+			tmp = g_strdup_printf("%04u%02u%02uT%02u%02u%02u", 
 					cal->time.year,
 					cal->time.month,
 					cal->time.day,
@@ -120,7 +120,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		// Date/Time Events:
 		} else {
 
-			tmp = g_strdup_printf("%04u%02u%02uT%02u%02u%02uZ", 
+			tmp = g_strdup_printf("%04u%02u%02uT%02u%02u%02u", 
 					cal->end_time.year,
 					cal->end_time.month,
 					cal->end_time.day,
@@ -333,7 +333,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 		tmp = (char*) xmlNodeGetContent(cur);
 
-		sscanf(tmp, "%04u%02u%02uT%02u%02u%02uZ",
+		sscanf(tmp, "%04u%02u%02uT%02u%02u%02u",
 				&(calnote->time.year),
 				&(calnote->time.month),
 				&(calnote->time.day),
@@ -353,7 +353,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 		tmp = (char*) xmlNodeGetContent(cur);
 
-		sscanf(tmp, "%04u%02u%02uT%02u%02u%02uZ",
+		sscanf(tmp, "%04u%02u%02uT%02u%02u%02u",
 				&(calnote->end_time.year),
 				&(calnote->end_time.month),
 				&(calnote->end_time.day),
@@ -381,7 +381,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		calnote->alarm.enabled = 1;
 		
 		tmp = osxml_find_node(cur, "AlarmAction");
-		if (!strcasecmp(tmp, "DISPLAY"))
+		if (tmp && !strcasecmp(tmp, "DISPLAY"))
 			calnote->alarm.tone = 1;
 		
 		// get AlarmTrigger root
@@ -449,7 +449,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 	// TODO: check for type which fits for given data if no type was set
 	if (!calnote->type)
-		calnote->type = GN_CALNOTE_REMINDER;
+		calnote->type = GN_CALNOTE_MEETING;
 
 	*free_input = TRUE;
 	*output = (void *)calnote;

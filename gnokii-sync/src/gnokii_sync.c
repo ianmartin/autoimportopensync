@@ -205,6 +205,17 @@ void get_info(OSyncEnv *env)
 	//you should wait for the normal timeout and return a error.
 	info->timeouts.connect_timeout = 10;
 	
+	//Communicating via Gnokii can take lots of time, especially for
+	//big calendars, so give it some time to complete. The rationale is
+	//here that once we're connected we know that the communication is
+	//working and therefore timeouts shouldn't be necessary in many cases.
+	info->timeouts.sync_done_timeout = 10000;
+	info->timeouts.disconnect_timeout = 10000;
+	info->timeouts.get_changeinfo_timeout = 10000;
+	info->timeouts.get_data_timeout = 10000;
+    info->timeouts.commit_timeout = 10000;
+    info->timeouts.read_change_timeout = 10000;
+
 //	osync_plugin_accept_objtype(info, "contact");
 //	osync_plugin_accept_objformat(info, "contact", "vcard21", NULL);
 //	osync_plugin_set_commit_objformat(info, "contact", "vcard21", commit_change);
