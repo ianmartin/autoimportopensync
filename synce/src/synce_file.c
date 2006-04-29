@@ -1,5 +1,5 @@
 /*
- * file-sync - A plugin for the opensync framework
+ * @file file-sync - A plugin for the opensync framework
  *
  * Copyright © 2005 Danny Backx <dannybackx@users.sourceforge.net>
  * 
@@ -44,14 +44,15 @@
 #include <synce.h>
 #include "synce_plugin.h"
 
-static time_t DOSFS_FileTimeToUnixTime(const FILETIME *filetime, DWORD *remainder);
+static time_t DOSFS_FileTimeToUnixTime(const FILETIME *filetime,
+                                       DWORD *remainder);
 
 /*
- * Do this by ourselves.
- * The FILETIME structure is a 64-bit value representing the number of 100-nanosecond intervals
- * since January 1, 1601, 0:00. 'remainder' is the nonnegative number of 100-ns intervals
- * corresponding to the time fraction smaller than 1 second that couldn't be stored in the
- * time_t value.
+ * Do this by ourselves.  The FILETIME structure is a 64-bit value
+ * representing the number of 100-nanosecond intervals since January
+ * 1, 1601, 0:00. 'remainder' is the nonnegative number of 100-ns
+ * intervals corresponding to the time fraction smaller than 1 second
+ * that couldn't be stored in the time_t value.
  */
 static time_t CeTimeToUnixTime(FILETIME t)
 {
@@ -60,31 +61,19 @@ static time_t CeTimeToUnixTime(FILETIME t)
 	return DOSFS_FileTimeToUnixTime(&t, &r);
 }
 
-/*
- * A hash appears to be a string.
- * The file-sync plugin allocates new memory in this occasion so I guess that's the right
- * thing to do.
+/** Report to opensync library information about given file: its uid
+    (path with the root directory stripped), format (file) and hash
+    (currently modification date and size). For performance reasons,
+    no file content is passed at this stage. opensync library will
+    fetch it later if needed.
  */
-static char *FileHash(fileFormat *p)
-{
-	if (p)
-		return g_strdup_printf("%ld-%d", p->last_mod, p->size);
-	return NULL;
-}
-
-/*
- * In this pass of set_data(), do not pass real file contents, but only pass the file name
- * to the opensync engine in the fileFormat structure's data field.
- * See also the comments for synceFileGetData().
- */
-static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
+static osync_bool
+report_file_change(OSyncContext *ctx, const char *dir,
 		CE_FIND_DATA *entry, OSyncError **error)
 {
 	SyncePluginPtr	*env;
-	OSyncChange			*change;
 	char				path[MAX_PATH], *hash, *lpath;
 	WCHAR				*wfn;
-	HANDLE				h;
 	fileFormat			*ff;
 	time_t				t1, t2;
 
@@ -92,14 +81,7 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 	snprintf(path, MAX_PATH, "%s\\%s", dir, lpath);
 	wfn = wstr_from_current(path);
 
-	fprintf(stderr, "FilesReportFileChange(%s)\n", path);
-
-	ff = osync_try_malloc0(sizeof(fileFormat), error);
-	if (!ff) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-
+        ff = g_malloc0(sizeof(fileFormat));
 	ff->userid = 0;
 	ff->groupid = 0;
 	ff->mode = 0777;			/* Fake */
@@ -114,40 +96,28 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 	t2 = CeTimeToUnixTime(entry->ftCreationTime);
 	ff->last_mod = (t1 < t2) ? t2 : t1;
 
-	/* Assemble a structure with data about this file */
-	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-	if (h == 0) {
-		/* ?? FIX ME */
-		free((void *)ff);
-		return FALSE;
-	}
-	ff->size = CeGetFileSize(h, NULL);
-	CeCloseHandle(h);
-
-	/* Set the hash */
-	hash = FileHash(ff);
-
-	ff->data = strdup(path);
-
 	if (ctx) {
 		int	l;
-
+                HANDLE h;
+                unsigned size;
 		env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
-		change = osync_change_new();
-
-		l = strlen(env->config_file) + 1;	/* One is the backslash */
-
+                OSyncChange	*change = osync_change_new();
 		osync_change_set_member(change, env->member);
-		/*
-		 * Pass the full file name as UID, but leave off the directory in which
-		 * the sync is rooted (and the backslash, see above).
-		 */
+                /* One is the separating backslash as appended above with snprintf() */
+                l = strlen(env->config_file) + 1;
 		osync_change_set_uid(change, path + l);
-		osync_change_set_objformat_string(change, "file");	/* Copied from file-sync */
-
-		/* Should do the file handling here, but it was moved up for debugging */
-
+                osync_change_set_objformat_string(change, "file");
+                /* Get file size needed for hash */
+                h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+                                 FILE_ATTRIBUTE_NORMAL, 0);
+                if (h) {
+                  size = CeGetFileSize(h, NULL);
+                  CeCloseHandle(h);
+                } else size = 0;
+                hash = g_strdup_printf("%ld-%u", ff->last_mod, size);
 		osync_change_set_hash(change, hash);
+                fprintf(stderr, "%s(%s) hash %s\n", __func__, path, hash);
+                g_free(hash);
 		/*
 		 * Pass the structure to OpenSync
 		 * The final parameter is FALSE to indicate a get_data() call will fetch
@@ -156,13 +126,9 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 		osync_change_set_data(change, (char *)ff, sizeof(fileFormat), FALSE);
 
 		if (osync_hashtable_detect_change(env->hashtable, change)) {
-#if 0
-			osync_change_set_changetype(change, CHANGE_ADDED);	/* ?? */
-#endif
 			osync_context_report_change(ctx, change);
 			osync_hashtable_update_hash(env->hashtable, change);
 		}
-		g_free(hash);
 	}
 
 	wstr_free_string(wfn);
@@ -170,7 +136,9 @@ static osync_bool FilesReportFileChange(OSyncContext *ctx, const char *dir,
 	return TRUE;
 }
 
-osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncError **error)
+static osync_bool
+FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir,
+                          OSyncError **error)
 {
 	WCHAR		*wd;
 	CE_FIND_DATA	*find_data = NULL;
@@ -180,12 +148,14 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 
 	if (! dir)
 		return TRUE;
+        fprintf(stderr, "%s(%s)\n", __func__, dir);
 	snprintf(path, MAX_PATH, "%s\\*", dir);
 
 	wd = wstr_from_current(path);
-	if (CeFindAllFiles(wd, FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW,
-			&file_count, &find_data)) {
-		for (i=0; i<file_count; i++) {
+        if (CeFindAllFiles(wd,
+                           FAF_ATTRIBUTES|FAF_LASTWRITE_TIME|FAF_NAME|FAF_SIZE_LOW,
+                           &file_count, &find_data)) {
+                for (i=0; i<file_count; i++) {
 			CE_FIND_DATA	*entry = &find_data[i];
 
 			/* Do NOT report directories */
@@ -193,12 +163,12 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 				/*
 				 * Report this file to the OpenSync.
 				 */
-				if (! FilesReportFileChange(ctx, dir, entry, error)) {
+                          if (! report_file_change(ctx, dir, entry, error)) {
 					/* Failure */
+                                        wstr_free_string(wd);
 					return FALSE;
 				}
 			}
-
 
 			/* Recursive call for directories */
 			if (entry->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -206,6 +176,7 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 						dir, wstr_to_current(entry->cFileName));
 				if (! FilesFindAllFromDirectory(ctx, path, error)) {
 					/* Failure, pass on the word */
+                                        wstr_free_string(wd);
 					return FALSE;
 				}
 			}
@@ -217,48 +188,62 @@ osync_bool FilesFindAllFromDirectory(OSyncContext *ctx, const char *dir, OSyncEr
 	return TRUE;
 }
 
-/*
- * This function gets the command for the SynCE plugin to add, modify or delete a file.
+static gchar*
+get_complete_file_name(const char *config_prefix, const char *rest)
+{
+        char *s, *lfn;
+
+        /* Concatenate our root and the local file name */
+        lfn = g_strdup_printf("%s\\%s", config_prefix, rest);
+
+        /* Translate slashes into backslashes */
+        for (s=lfn; *s; s++)
+                if (*s == '/')
+                        *s = '\\';
+
+        /* fprintf(stderr, "Full fn(%s)\n", lfn); */
+        return lfn;
+}
+/**
+ * This function gets the command for the SynCE plugin to add, modify
+ * or delete a file.
  *
  * Reply to the OpenSync framework with
  *	osync_context_report_success(ctx);
  *
  */
-extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
+osync_bool
+synce_file_commit(OSyncContext *ctx, OSyncChange *change)
 {
 	SyncePluginPtr	*env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 	HANDLE		h;
 	fileFormat	*ff;
 	WCHAR		*wfn;
 	DWORD		wr, e, opt;
-	char		*p, *s, *fn, *str, *lfn;
+        char		*p, *s, *fn, *lfn, *str;
 	OSyncChangeType	ct;
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);	
+        if(!env->config_file) {
+                osync_context_report_error(ctx, 1,
+                                           "<file> parameter not set");
+                return FALSE;
+        }
 		
 	ff = (fileFormat *)osync_change_get_data(change);
 	fn = (char *)osync_change_get_uid(change);
 	ct = osync_change_get_changetype(change);
-
-	/* Concatenate our root and the local file name */
-	lfn = g_strdup_printf("%s\\%s", env->config_file, fn);
-
-	/* Translate slashes into backslashes */
-	for (s=lfn; *s; s++)
-		if (*s == '/')
-			*s = '\\';
-
-	/* Convert file name into WIDE format for WinCE - this must be the complete file name */
-	fprintf(stderr, "Wide fn(%s)\n", lfn);
+        lfn = get_complete_file_name(env->config_file, fn);
 	wfn = wstr_from_current(lfn);
 
 	switch (ct) {
 		case CHANGE_DELETED:
-			fprintf(stderr, "%s: DELETED %s\n", __func__, osync_change_get_uid(change));
+                        fprintf(stderr, "%s: DELETED %s\n", __func__,
+                                osync_change_get_uid(change));
 			if (ff == NULL) {
 				/* Something went wrong, e.g. the file isn't there. */
 				wstr_free_string(wfn);
-				free(lfn);
+                                g_free(lfn);
 				/* FIX ME is this a valid return value for this case ? */
 				return TRUE;
 			}
@@ -269,13 +254,12 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeDeleteFile(%s) : %s", fn, s);
 					wstr_free_string(wfn);
-					free(lfn);
+                                        g_free(lfn);
 					return FALSE;
 				}
 			} else if (S_ISDIR(ff->mode)) {	/* Directory */
 				/* Removing directories... should we do this ? */
 			}
-			wstr_free_string(wfn);
 			break;
 		case CHANGE_ADDED:
 		case CHANGE_MODIFIED:
@@ -301,7 +285,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 							lfn, s);
 						wstr_free_string(w);
 						wstr_free_string(wfn);
-						free(lfn);
+                                                g_free(lfn);
 						return FALSE;
 					}
 					if (cnt == 0) {
@@ -346,7 +330,8 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 				 */
 				opt = TRUNCATE_EXISTING;
 			}
-			fprintf(stderr, "%s: %s %s\n", __func__, str, osync_change_get_uid(change));
+                        fprintf(stderr, "%s: %s %s\n", __func__, str,
+                                osync_change_get_uid(change));
 
 			if (S_ISDIR(ff->mode)) {	/* Directory */
 				/* FIX ME */
@@ -356,7 +341,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeCreateDirectory(%s) : %s", fn, s);
 					wstr_free_string(wfn);
-					free(lfn);
+                                        g_free(lfn);
 					return FALSE;
 				}
 			} else if (S_ISREG(ff->mode)) {	/* Regular file */
@@ -368,7 +353,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 					osync_context_report_error(ctx, 1,
 							"CeCreateFile(%s) : %s", fn, s);
 					wstr_free_string(wfn);
-					free(lfn);
+                                        g_free(lfn);
 					return FALSE;
 				}
 
@@ -383,7 +368,7 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 							lfn, ff->size, s);
 					CeCloseHandle(h);
 					wstr_free_string(wfn);
-					free(lfn);
+                                        g_free(lfn);
 					return FALSE;
 				}
 				CeCloseHandle(h);
@@ -392,32 +377,33 @@ extern osync_bool synceFileCommit(OSyncContext *ctx, OSyncChange *change)
 			/*
 			 * All done
 			 */
-			wstr_free_string(wfn);
 			break;
 		default:
 			osync_debug("SYNCE-SYNC", 4, "Unknown change type");
 			fprintf(stderr, "%s: ?? %s\n", __func__, osync_change_get_uid(change));
-			wstr_free_string(wfn);
 	}
 
 	/* Answer the call */
 	osync_context_report_success(ctx);
 	osync_hashtable_update_hash(env->hashtable, change);
 
-	free(lfn);
+        wstr_free_string(wfn);
+        g_free(lfn);
 	return TRUE;
 }
 
 /*
  * File get_changeinfo : report the changes to the OpenSync engine.
  */
-extern osync_bool synceFileGetChangeInfo(OSyncContext *ctx, OSyncError **error)
+osync_bool
+synce_file_get_changeinfo(OSyncContext *ctx, OSyncError **error)
 {
 	SyncePluginPtr	*env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
 
 	osync_debug("SYNCE-SYNC", 4, "start: %s", __func__);
 
-	/* Detect whether we need to do a slow sync - this is supported by the hash table */
+        /* Detect whether we need to do a slow sync - this is supported by
+           the hash table */
 	if (osync_member_get_slow_sync(env->member, "data"))
 		osync_hashtable_set_slow_sync(env->hashtable, "data");
 
@@ -433,26 +419,27 @@ extern osync_bool synceFileGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 	/*
 	 * We're supporting sync of exactly one directory.
 	 */
-	if (env->config_file && ! FilesFindAllFromDirectory(ctx, env->config_file, error)) {
+        if (env->config_file && 
+            ! FilesFindAllFromDirectory(ctx, env->config_file, error)) {
 		osync_context_report_error(ctx, 1, "Error while checking for files");
 		return FALSE;
 	}
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "data");
 
-	/* Don't report via
-	 *	osync_context_report_success(ctx)
-	 * here, our caller will already be doing that.
+        /* Don't report via osync_context_report_success(ctx) here, our
+         * caller will already be doing that.
 	 */
 	return TRUE;
 }
 
 /*
- * FIX ME
- * This function is known to sometimes fail, it sometimes gets called with all zeroes in the
- * structure pointed to by ff.
+ * FIX ME. This function is known to sometimes fail, it sometimes gets
+ * called with all zeroes in the structure pointed to by ff.
+ * NOTE: pawsa never saw this problem.
  */
-extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
+void
+synce_file_getdata(OSyncContext *ctx, OSyncChange *change)
 {
 	SyncePluginPtr	*env;
 	fileFormat			*ff;
@@ -460,6 +447,8 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 	size_t				rsz;
 	WCHAR				*wfn;
 	int				r;
+        char       *lfn;
+        const char *fname;
 
 	osync_debug("SynCE-File", 4, "start : %s", __func__);
 	env = (SyncePluginPtr *)osync_context_get_plugin_data(ctx);
@@ -467,7 +456,8 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 
 #if 0
 	if (ff == NULL || ff->data == NULL || ff->size == 0) {
-		osync_debug("SynCE-File", 4, "%s: NULL values encountered, returning\n", __func__);
+                osync_debug("SynCE-File", 4,
+                            "%s: NULL values encountered, returning\n", __func__);
 		osync_context_report_error(ctx, 1, "get_data got NULLs");
 		return;
 	}
@@ -480,35 +470,38 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 		osync_context_report_success(ctx);
 		return;
 	}
-	/*
-	 * There appears to be a trick being used here.
-	 *
-	 * First report some stuff, use the data field to pass random data (e.g. the file
-	 * name) to ourselves.
-	 * Then, in the get_data() call, read that data and replace it with the file content.
-	 */
-	if (ff->data == NULL) {
-		osync_context_report_error(ctx, 4, "%s: NULL values", __func__);
-		return;
-	}
-
-	wfn = wstr_from_current(ff->data);
-
+        fname = osync_change_get_uid(change);
+        lfn = get_complete_file_name(env->config_file, fname);
+        wfn = wstr_from_current(lfn);
 	/* Read the file through SynCE */
-	h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        h = CeCreateFile(wfn, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+                         FILE_ATTRIBUTE_NORMAL, 0);
 
-	free(ff->data);
-	ff->data = malloc(ff->size);
-
-	r = CeReadFile(h, ff->data, ff->size, &rsz, NULL);
-	if (r == 0) {
-		/* Error */
-		DWORD	e = CeGetLastError();
-		char	*s = synce_strerror(e);
-		osync_context_report_error(ctx, 1, "Error from CeReadFile (%s)", s);
-		CeCloseHandle(h);
-		return;
-	}
+        ff->size = CeGetFileSize(h, NULL);
+        if(ff->size == 0xFFFFFFFF) {
+                DWORD e = CeGetLastError();
+                const char *s = synce_strerror(e);
+                osync_context_report_error(ctx, 4,
+                                           "\n%s: could not find out file size (%u): %s\n",
+                                           __func__, (unsigned)e, s);
+                CeCloseHandle(h);
+                g_free(lfn);
+                wstr_free_string(wfn);
+                return;
+        }
+        ff->data = g_malloc(ff->size);
+        if(ff->size>0) {
+                r = CeReadFile(h, ff->data, ff->size, &rsz, NULL);
+                if (r == 0) {
+                        /* Error */
+                        DWORD	e = CeGetLastError();
+                        char	*s = synce_strerror(e);
+                        osync_context_report_error(ctx, 1, "Error from CeReadFile (%d:%s)",
+                                                   e, s);
+                        CeCloseHandle(h);
+                        return;
+                }
+        }
 
 	/* Send its contents */
 	osync_change_set_data(change, (char *)ff, sizeof(ff), TRUE);
@@ -522,7 +515,8 @@ extern void synceFileGetData(OSyncContext *ctx, OSyncChange *change)
 /* See if we can pass a list of directories found on the device.
  * Handle directory name concatenation with care.
  */
-GList *ListAllDirectories(GList *list, char *dir, int recurse)
+GList*
+ListAllDirectories(GList *list, char *dir, int recurse)
 {
 	WCHAR		*wd;
 	CE_FIND_DATA	*find_data = NULL;
@@ -531,7 +525,8 @@ GList *ListAllDirectories(GList *list, char *dir, int recurse)
 	char		path[MAX_PATH];
 	osync_bool	isroot;
 
-	/* Detect root directory as special case, the only one with tailing backslash */
+        /* Detect root directory as special case, the only one with tailing
+           backslash */
 	isroot = (dir[0] == '\\' && dir[1] == '\0');
 	if (isroot)
 		strcpy(path, "\\*");
@@ -582,11 +577,14 @@ GList *ListAllDirectories(GList *list, char *dir, int recurse)
  * it gives it a list of interesting directories on the PDA,
  * which the user might like to choose from to synchronize.
  *
- * Do not make this function static, as the confuration GUI needs to be able to locate
- * it using dlsym(); also don't change its name or signature without making the
- * corresponding change in the configuration program.
+ * Do not make this function static, as the confuration GUI needs to
+ * be able to locate it using dlsym(); also don't change its name or
+ * signature without making the corresponding change in the
+ * configuration program.
  */
-GList * synce_list_directories(SyncePluginPtr *env, const char *basedir, OSyncError **error)
+GList*
+synce_list_directories(SyncePluginPtr *env, const char *basedir,
+                       OSyncError **error)
 {
 	HRESULT hr;
 	GList	*ret = NULL;
@@ -610,9 +608,10 @@ GList * synce_list_directories(SyncePluginPtr *env, const char *basedir, OSyncEr
 	}
 #endif
 	/*
-	 * List all the directories starting with root, this appears to be a much better solution
-	 * The final parameter is whether to recurse (0 only lists the top level dirs on the
-	 * device, 1 will list all directories).
+         * List all the directories starting with root, this appears
+         * to be a much better solution The final parameter is whether
+         * to recurse (0 only lists the top level dirs on the device,
+         * 1 will list all directories).
 	 */
 	ret = ListAllDirectories(ret, "\\", 1);
 
@@ -652,7 +651,8 @@ int main(int argc, char** argv)
 		if (*s == '/')
 			*s = '\\';
 
-	/* Convert file name into WIDE format for WinCE - this must be the complete file name */
+    /* Convert file name into WIDE format for WinCE - this must be the
+       complete file name */
 	fprintf(stderr, "Wide fn(%s)\n", lfn);
 	wfn = wstr_from_current(lfn);
 

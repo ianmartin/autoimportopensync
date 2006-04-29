@@ -605,7 +605,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	if (env->config_file) {
 		osync_debug("SynCE-SYNC", 4, "checking files to synchronize");
 
-		if (! synceFileGetChangeInfo(ctx)) {
+		if (! synce_file_get_changeinfo(ctx)) {
 			osync_context_report_error(ctx, 1, "Error while checking files");
 			return;
 		}
@@ -982,7 +982,7 @@ void get_info(OSyncPluginInfo *env)
 	info->functions.disconnect = disconnect;
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
-	info->functions.get_data = synceFileGetData;
+	info->functions.get_data = synce_file_getdata;
 
 	info->timeouts.connect_timeout = 5;
 	
@@ -1000,5 +1000,6 @@ void get_info(OSyncPluginInfo *env)
 	
 	osync_plugin_accept_objtype(info, "data");
 	osync_plugin_accept_objformat(info, "data", "file", NULL);
-	osync_plugin_set_commit_objformat(info, "data", "file", synceFileCommit);
+	osync_plugin_set_commit_objformat(info, "data", "file",
+                                          synce_file_commit);
 }

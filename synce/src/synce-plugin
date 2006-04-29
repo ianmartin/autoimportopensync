@@ -2,5 +2,5 @@
 	<contact></contact>
 	<todos></todos>
 	<calendar></calendar>
-	<files></files>
+	<file>/My Documents/</file>
 </config>
