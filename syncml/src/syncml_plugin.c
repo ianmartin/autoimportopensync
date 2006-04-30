@@ -20,7 +20,7 @@
 
 #include "syncml_plugin.h"
 
-SmlChangeType _get_changetype(OSyncChange *change)
+static SmlChangeType _get_changetype(OSyncChange *change)
 {
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_ADDED:
@@ -35,7 +35,7 @@ SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-SmlContentType _format_to_contenttype(OSyncChange *change)
+static SmlContentType _format_to_contenttype(OSyncChange *change)
 {
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "contact")) {
 		return SML_CONTENT_TYPE_VCARD;
@@ -984,6 +984,10 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 	SmlTransportObexClientConfig config;
 	config.type = env->type;
 	if (config.type == SML_OBEX_TYPE_BLUETOOTH) {
+		if (!env->bluetoothAddress) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
+			goto error_free_auth;
+		}
 		config.url = g_strdup(env->bluetoothAddress);
 		config.port = env->bluetoothChannel;
 	} else if (config.type == SML_OBEX_TYPE_USB)
