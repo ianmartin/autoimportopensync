@@ -1,3 +1,21 @@
+2006-05-01  Daniel Gollub  <dgollub@suse.de>
+	
+	* gnokii_format.c
+		- stores gnokii-format information
+	
+	* gnokii_contact.c
+	  gnokii_contact.h
+	  	- write/modify/delete/hash contact notes
+		- commit contact changes
+		- get contact changes
+
+  	* gnokii_contact_format.c
+	  gnokii_contact_format.h
+	  	- format gnokii-contact
+
+	* extended sync/disconnect/get_changeinfo/get_data/commit/read
+	  timeout to 10000. (Thanks to mmeyer!)	
+
 2006-03-12  Daniel Gollub  <dgollub@suse.de>
 
 	* fixed several memory leaks

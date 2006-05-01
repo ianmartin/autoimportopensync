@@ -60,6 +60,25 @@ CONFIGURATION
 	  <model>6510</model>
 	</config>
 
+	Example config file for a Nokia 6230 via DKU2 Cable (libusb driver):
+
+	<config>
+	  <connection>dku2libusb</connection>
+  	  <model>6230</model>
+	</config>	  
+
+	Example config file for a Nokia Series 60 (6670, ...) via Bluetooth:
+
+	[sdptool browse <MAC> should list the rfcomm channel number] 
+
+	<config>
+	  <connection>bluetooth</connection>
+	  <port>FF:FF:FF:FF:FF:FF</port>
+	  <model>series60</model>
+	  <rfcomm_channel>14</rfcomm_channel>
+	  <debug>on</debug>
+	</config>
+
 
 
 TROUBLESHOOTING
@@ -77,6 +96,16 @@ TROUBLESHOOTING
 			export OSYNC_TRACE=/tmp/gnokii_trace/
 			mkdir $OSYNC_TRACE
 			# SYNC YOUR DEVICE
+
+		* Add debug config node for gnokii-sync plugin to get 
+	          libgnokii debug information:
+	  		
+			<config>
+	      		  ...
+			  <debug>on</debug>
+  			</config>			  
+
+		
 
 	Connection problems:
 	====================
@@ -112,6 +141,26 @@ TROUBLESHOOTING
 			hcitool scan
 		  
 		  hcitool is part of the bluez-utils package.			
+
+	DKU2 Cable (libusb):
+	####################	
+		
+		* check for permisson for your user. If `gnokii --identify` works as root user
+		  then it seems to be a permission problem. Could be solved with additional udev-rules:
+
+		  SUBSYSTEM=="usb_device", SYSFS{idVendor}=="0421", SYSFS{idProduct}=="040f", MODE="660", GROUP="users"
+		  					^^^^^^^^^^^^^                ^^^^^^^^^                 ^^^^^^^^^
+							USB Vendor ID		USB Product ID		Group of your user
+			
+		  (lsusb lists USB Vendor/Product ID - Example: Bus 002 Device 018: ID 0421:040f Nokia Mobile Phones 6230 GSM Phone)
+		 					
+
+		  
+		  
+		
+		
+		
+			
 
 
 
