@@ -42,6 +42,8 @@ void parse_connection_type(char *str, gn_config *config) {
 		config->connection_type = GN_CT_TCP;
 	else if (!strcasecmp(str, "m2bus"))
 		config->connection_type = GN_CT_M2BUS;
+	else if (!strcasecmp(str, "dku2libusb"))
+		config->connection_type = GN_CT_DKU2LIBUSB;
 }
 
 /* Parse config file of gnokii plugin 

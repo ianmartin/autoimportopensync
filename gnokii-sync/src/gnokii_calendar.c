@@ -112,13 +112,6 @@ char *gnokii_calendar_hash(gn_calnote *calnote) {
 					calnote->time.minute,
 					calnote->time.second);
 
-	
-/* 
- * TODO: gnokii can not write (at the moment (gnokii version 0.6.12) the end_time on cellphones.
- * See README for BUGS/KNOWN PROBLEMS.
- * We ignore this hash .. otherwise entries will disappear in PIMs :(
- 
-   
 	if (calnote->end_time.year)
 		tmp = g_strdup_printf("%s-%i%i%i.%i%i%i",
 					tmp,
@@ -129,7 +122,6 @@ char *gnokii_calendar_hash(gn_calnote *calnote) {
 					calnote->end_time.minute,
 					calnote->end_time.second);
 
-*/
 
 	if (calnote->alarm.enabled)
 		tmp = g_strdup_printf("%s-%i%i.%i%i%i.%i%i%i",
@@ -149,10 +141,6 @@ char *gnokii_calendar_hash(gn_calnote *calnote) {
 	if (calnote->type == GN_CALNOTE_CALL)
 		tmp = g_strdup_printf("%s-%s", tmp, calnote->phone_number);
 
-/* 
- * TODO: gnokii can not write (at the moment (gnokii version 0.6.12) the meeting location (mlocation) on cellphones.
- * See README for BUGS/KNOWN PROBLEMS.   
- */
 	if (calnote->mlocation)
 		tmp = g_strdup_printf("%s-%s", tmp, calnote->mlocation);
 
@@ -220,7 +208,7 @@ gn_calnote *gnokii_calendar_get_calnote(int pos, gn_data *caldata, struct gn_sta
  */
 osync_bool gnokii_calendar_write_calnote(gn_calnote *calnote, struct gn_statemachine *state) {
 
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, calnote);
+	osync_trace(TRACE_ENTRY, "%s", __func__);
 
         gn_error error = GN_ERR_NONE;
         gn_data* data = (gn_data *) malloc(sizeof(gn_data));

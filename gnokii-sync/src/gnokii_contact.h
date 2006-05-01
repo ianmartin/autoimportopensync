@@ -18,48 +18,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
-#include <gnokii.h>
-#include <opensync/opensync.h>
+#include "gnokii.h"
 
-/* Connects the cellphone with libgnokii functions
- * 
- * Returns: bool
- * ReturnVal: true	on success
- * ReturnVal: false	on error
- */
-osync_bool gnokii_comm_connect(struct gn_statemachine *state)
-{
-	gn_error gsm_error;
+osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx);
+osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change);
 
-	osync_trace(TRACE_ENTRY, "%s()", __func__);
-
-	if ((gsm_error = gn_lib_phone_open(state)) != GN_ERR_NONE) {
-		osync_trace(TRACE_EXIT_ERROR, "%s (libgnokii): %s", __func__, gn_error_print(gsm_error)); 
-		return FALSE;
-	}
-
-	osync_trace(TRACE_EXIT, "%s()", __func__);
-	return TRUE;
-} 
-
-/* Disconnects the cellphone with libgnokii functions
- * 
- * Returns: bool
- * ReturnVal: true	on success
- * ReturnVal: false	on error
- */
-osync_bool gnokii_comm_disconnect(struct gn_statemachine *state) 
-{
-	gn_error gsm_error;
-
-	osync_trace(TRACE_ENTRY, "%s()", __func__);
-	
-	if ((gsm_error = gn_sm_functions(GN_OP_Terminate, NULL, state)) != GN_ERR_NONE) {
-		osync_trace(TRACE_EXIT_ERROR, "%s (libgnokii): %s", __func__, gn_error_print(gsm_error));
-		return FALSE;
-	}
-
-	osync_trace(TRACE_EXIT, "%s()", __func__);
-	
-	return TRUE;
-}

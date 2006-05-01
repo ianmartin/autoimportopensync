@@ -29,7 +29,9 @@
 
 #include "gnokii_config.h"
 #include "gnokii_comm.h"
+
 #include "gnokii_calendar.h"
+#include "gnokii_contact.h"
 
 typedef struct gnokii_environment {
 	OSyncMember		*member;

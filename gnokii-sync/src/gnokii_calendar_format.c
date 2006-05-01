@@ -20,6 +20,7 @@
 
 #include "gnokii_sync.h"
 #include "gnokii_calendar_utils.h"
+#include "gnokii_calendar_format.h"
 #include <opensync/opensync-xml.h>
 
 /*
@@ -237,7 +238,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 			case GN_CALNOTE_DAILY:
 				break;
 			case GN_CALNOTE_2WEEKLY:
-				tmp = g_strdup("INTERVAL=2");
+				tmp = g_strdup("INTERVAL=4");
 				xmlNewChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
 			case GN_CALNOTE_WEEKLY:
 				tmp = g_strdup_printf("BYDAY=%s", gnokii_util_ttm2wday(&start_ttm));
@@ -315,11 +316,8 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 			calnote->type = GN_CALNOTE_BIRTHDAY;
 		else if (!strcasecmp(tmp, "Reminder"))
 			calnote->type = GN_CALNOTE_REMINDER;
-/*
-   gnokii can not write this type of entry at the moment (version 0.6.11).
 		else if (!strcasecmp(tmp, "Memo"))
 			calnote->type = GN_CALNOTE_MEMO;
-*/
 
 		else
 			// When no known type was found it will check later
@@ -347,7 +345,6 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		
 
 	// DateEnd
-	/* XXX: Not supported by gnokii at the moment (version 0.6.11)... will be fixed! */
 	cur = osxml_get_node(root, "DateEnd");
 	if (cur) {
 
@@ -548,7 +545,8 @@ static char *print_gnokii_event(OSyncChange *change)
 }
 
 
-void get_info(OSyncEnv *env)
+
+void gnokii_calendar_format_get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "event");
 	
