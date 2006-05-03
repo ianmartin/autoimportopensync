@@ -114,11 +114,11 @@ static void get_changeinfo(OSyncContext *ctx)
 	// get changes of events (calendar)
 	calendar_changes = gnokii_calendar_get_changeinfo(ctx);
 	// get changes of contacts
-	contact_changes = gnokii_contact_get_changeinfo(ctx);
+//	contact_changes = gnokii_contact_get_changeinfo(ctx);
 	
 //	TODO: contact & todo
 //	if (calendar_changes && todo_changes && contact_changes)
-	if (calendar_changes && contact_changes)
+	if (calendar_changes)
 		osync_context_report_success(ctx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

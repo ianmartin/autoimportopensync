@@ -60,7 +60,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 	// Record Date / Revision
 	if (contact->date.year) {
 		// TODO timezone
-		tmp = g_strdup_pr/ntf("%04d-%02d-%02dT%02d:%02d:%02d",
+		tmp = g_strdup_printf("%04d-%02d-%02dT%02d:%02d:%02d",
 				contact->date.year + 1900,
 				contact->date.month + 1,
 				contact->date.day,
