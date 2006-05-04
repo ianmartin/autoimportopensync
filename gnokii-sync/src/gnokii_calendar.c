@@ -180,7 +180,7 @@ gn_calnote *gnokii_calendar_get_calnote(int pos, gn_data *caldata, struct gn_sta
 
 	// get the nth (pos) entry of the cellphone. 
 	error = gn_sm_functions(GN_OP_GetCalendarNote, caldata, state);
-
+	
 	// check if the location is empty and return NULL
 	if (error == GN_ERR_EMPTYLOCATION) {
 		osync_trace(TRACE_EXIT, "%s: no calendar note left.", __func__);

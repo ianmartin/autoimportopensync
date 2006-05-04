@@ -32,6 +32,8 @@ osync_bool gnokii_comm_connect(struct gn_statemachine *state)
 	gn_error gsm_error;
 
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
+	
+	gn_char_set_encoding("UTF-8");
 
 	if ((gsm_error = gn_lib_phone_open(state)) != GN_ERR_NONE) {
 		osync_trace(TRACE_EXIT_ERROR, "%s (libgnokii): %s", __func__, gn_error_print(gsm_error)); 
