@@ -89,6 +89,15 @@ static char *_fold_lines (char *buf)
 	   \n<WS>... We also turn single \r's and \n's not followed by
 	   WS into \r\n's. */
 	while (*p) {
+		/* RFC 2045 - Section 6.7 - #5 - Softbreaks
+		   Quoted Printable needs an hyphen before a line break.
+		*/   
+		if (*p == '=') {
+			next = g_utf8_next_char (p);
+			if (*next == '\n' || *next == '\r')
+				p = g_utf8_next_char (p);
+		}
+
 		if (*p == '\r' || *p == '\n') {
 			next = g_utf8_next_char (p);
 			if (*next == '\n' || *next == '\r') {
