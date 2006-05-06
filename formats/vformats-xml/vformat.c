@@ -704,19 +704,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 				for (v = param->values; v; v = v->next) {
 					char *value = v->data;
 					char *p = value;
-					gboolean quotes = FALSE;
-					while (*p) {
-						if (!g_unichar_isalnum (g_utf8_get_char (p))) {
-							quotes = TRUE;
-							break;
-						}
-						p = g_utf8_next_char (p);
-					}
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
 					attr_str = g_string_append (attr_str, value);
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
 					if (v->next)
 						attr_str = g_string_append_c (attr_str, ',');
 				}
