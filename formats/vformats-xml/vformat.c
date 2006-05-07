@@ -389,7 +389,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 				break;
 		}
 		else {
-			g_warning ("invalid character found in parameter spec: \"%c\" String so far: %s", lp[0], str->str);
+			g_warning ("invalid character found in parameter spec: \"%i\" String so far: %s", lp[0], str->str);
 			g_string_assign (str, "");
 			_skip_until (&lp, ":;");
 		}
@@ -452,7 +452,7 @@ static VFormatAttribute *_read_attribute (char **p)
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 		}
 		else {
-			g_warning ("invalid character found in attribute group/name: %c", lp[0]);
+			g_warning ("invalid character found in attribute group/name: \"%i\" String so far: %s", lp[0], str->str);
 			g_string_free (str, TRUE);
 			*p = lp;
 			_skip_to_next_line(p);
@@ -711,9 +711,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 				if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
 					attr_str = g_string_append_c (attr_str, '=');
 				for (v = param->values; v; v = v->next) {
-					char *value = v->data;
-					char *p = value;
-					attr_str = g_string_append (attr_str, value);
+					attr_str = g_string_append (attr_str, v->data);
 					if (v->next)
 						attr_str = g_string_append_c (attr_str, ',');
 				}
