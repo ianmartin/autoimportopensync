@@ -291,6 +291,7 @@ error:
  */
 void load_sync_anchors( OSyncMember *member, irmc_config *config )
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, config);			
   char *anchor = osync_anchor_retrieve(member, "event");
   if (!anchor) {
     config->calendar_changecounter = 0;
@@ -341,6 +342,7 @@ void load_sync_anchors( OSyncMember *member, irmc_config *config )
     config->serial_number = g_strdup( data );
   }
   g_free( anchor );
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
@@ -348,6 +350,7 @@ void load_sync_anchors( OSyncMember *member, irmc_config *config )
  */
 void save_sync_anchors( OSyncMember *member, const irmc_config *config )
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, config);			
   char anchor[ 1024 ];
 
   snprintf( anchor, sizeof( anchor ), "%d:%s", config->calendar_changecounter, config->calendar_dbid );
@@ -361,6 +364,7 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
 
   snprintf( anchor, sizeof( anchor ), "%s", config->serial_number );
   osync_anchor_update( member, "general", anchor );
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 #if HAVE_BLUETOOTH
@@ -370,6 +374,7 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
  */
 void *scan_devices( void *foo, const char *query, void *bar )
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, foo, query, bar);			
   xmlDoc *doc;
   xmlNode *node, *devices;
   xmlChar *data;
@@ -392,6 +397,7 @@ void *scan_devices( void *foo, const char *query, void *bar )
 
   xmlDocDumpFormatMemory( doc, &data, &size, 0 );
 
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, data);
   return data;
 }
 #endif
@@ -402,6 +408,7 @@ void *scan_devices( void *foo, const char *query, void *bar )
  */
 int *test_connection( void *foo, const char *configuration, void *bar )
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, foo, configuration, bar);			
   char data[10240];
   int size = 10240;
   OSyncError *error = NULL;
@@ -412,6 +419,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
   if (!parse_settings(&config, configuration, strlen(configuration), &error)) {
     osync_error_free(&error);
     *result = 0;
+    osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
     return result;
   }
 
@@ -424,6 +432,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
       osync_error_free(&error);
 
     *result = 0;
+    osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
     return result;
   }
 
@@ -438,6 +447,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
     irmc_obex_cleanup(config.obexhandle);
 
     *result = 0;
+    osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
     return result;
   }
   data[ size ] = '\0';
@@ -448,6 +458,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
   irmc_obex_cleanup(config.obexhandle);
 
   *result = 1;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
   return result;
 }
 
@@ -500,6 +511,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   datap = strstr(datap, "\r\n");
   if (!datap) {
     g_free(data);
+    osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
     return TRUE;
   }
 
@@ -515,6 +527,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   datap = strstr(datap, "\r\n");
   if (!datap) {
     g_free(data);
+    osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
     return TRUE;
   }
   datap+=2;
@@ -522,6 +535,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   datap = strstr(datap, "\r\n");
   if (!datap) {
     g_free(data);
+    osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
     return TRUE;
   }
   datap+=2;
@@ -533,6 +547,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
 
   g_free(data);
 
+  osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
   return TRUE;
 }
 
@@ -542,6 +557,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
  */
 static void *irmcInitialize(OSyncMember *member, OSyncError **error)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);			
   char *configdata;
   int configsize;
 
@@ -554,6 +570,7 @@ static void *irmcInitialize(OSyncMember *member, OSyncError **error)
   if (!osync_member_get_config(member, &configdata, &configsize, error)) {
     osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
     free(env);
+    osync_trace(TRACE_EXIT, "%s: NULL", __func__);
     return NULL;
   }
 
@@ -561,6 +578,7 @@ static void *irmcInitialize(OSyncMember *member, OSyncError **error)
   if (!parse_settings( &(env->config), configdata, configsize, error)) {
     osync_error_update(error, "Unable to parse config data: %s", osync_error_print(error));
     free(env);
+    osync_trace(TRACE_EXIT, "%s: NULL", __func__);
     return NULL;
   }
 
@@ -568,6 +586,7 @@ static void *irmcInitialize(OSyncMember *member, OSyncError **error)
   env->member = member;
 
   // return the environment
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
   return (void *)env;
 }
 
@@ -576,6 +595,7 @@ static void *irmcInitialize(OSyncMember *member, OSyncError **error)
  */
 static void irmcConnect(OSyncContext *ctx)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);			
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
 
@@ -586,6 +606,7 @@ static void irmcConnect(OSyncContext *ctx)
   if (!irmc_obex_connect(config->obexhandle, config->donttellsync ? NULL : "IRMC-SYNC", &error)) {
     irmc_disconnect(config);
     osync_context_report_osyncerror(ctx, &error);
+    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
     return;
   }
 
@@ -599,6 +620,7 @@ static void irmcConnect(OSyncContext *ctx)
   {
     irmc_disconnect(config);
     osync_context_report_osyncerror(ctx, &error);
+    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
     return;
   } else {
     osync_member_set_slow_sync(env->member, "event", slowsync);
@@ -610,6 +632,7 @@ static void irmcConnect(OSyncContext *ctx)
   {
     irmc_disconnect(config);
     osync_context_report_osyncerror(ctx, &error);
+    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
     return;
   } else {
     osync_member_set_slow_sync(env->member, "contact", slowsync);
@@ -621,6 +644,7 @@ static void irmcConnect(OSyncContext *ctx)
   {
     irmc_disconnect(config);
     osync_context_report_osyncerror(ctx, &error);
+    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
     return;
   } else {
     osync_member_set_slow_sync(env->member, "note", slowsync);
@@ -711,12 +735,12 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
 
   buffer = g_malloc(DATABUFSIZE);
 
-  printf( "irmc_sync: syncing %s\n", info->name );
+  osync_trace(TRACE_INTERNAL, "syncing %s\n", info->name );
   memset(buffer, 0, DATABUFSIZE);
 
   // check whether we have to do a slowsync
   if (osync_member_get_slow_sync(env->member, info->identifier) == TRUE) {
-    printf( "irmc_sync: slowsync %s\n", info->name );
+    osync_trace(TRACE_INTERNAL, "slowsync %s\n", info->name );
     buffer_length = DATABUFSIZE;
     if (config->donttellsync) {
       // reconnect with "IRMC-SYNC" to get X-IRMC-LUID
@@ -762,6 +786,8 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       buffer[buffer_length] = '\0';
     }
 
+    osync_trace(TRACE_INTERNAL, "obex get data: %s", buffer);
+
     // handle object specific part
     if ( strcmp( info->identifier, "event" ) == 0 )
       create_calendar_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
@@ -771,12 +797,12 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       create_notebook_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
 
   } else {
-    printf( "irmc_sync: fastsync %s\n", info->name );
+    osync_trace(TRACE_INTERNAL, "fastsync %s\n", info->name );
 
     memset(buffer, 0, DATABUFSIZE);
     buffer_length = DATABUFSIZE;
 
-    printf( "retrieving 'telecom/%s/luid/%d.log'\n", info->path_identifier, *( info->change_counter ) );
+    osync_trace(TRACE_INTERNAL, "retrieving 'telecom/%s/luid/%d.log'\n", info->path_identifier, *( info->change_counter ) );
 
     // retrieve change log for current change counter
     filename = g_strdup_printf("telecom/%s/luid/%d.log", info->path_identifier, *(info->change_counter));
@@ -797,6 +823,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     buffer_pos = strstr(buffer_pos, "\r\n");
     if (!buffer_pos) {
       g_free(buffer);
+      osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
       return TRUE;
     }
 
@@ -805,6 +832,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     buffer_pos = strstr(buffer_pos, "\r\n");
     if (!buffer_pos) {
       g_free(buffer);
+      osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
       return TRUE;
     }
     buffer_pos += 2;
@@ -812,6 +840,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     buffer_pos = strstr(buffer_pos, "\r\n");
     if (!buffer_pos) {
       g_free(buffer);
+      osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
       return TRUE;
     }
     buffer_pos += 2;
@@ -872,6 +901,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
   }
 
   g_free(buffer);
+  osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
   return TRUE;
 
 error:
@@ -884,6 +914,7 @@ error:
  */
 void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
+  osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);
   char *converted_event = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
@@ -940,7 +971,6 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
             osync_change_set_uid(change, g_strdup(luid));
           }
         }
-
         converted_event = sync_vtype_convert(event, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
                                                         (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
                                                         VOPTION_CALENDAR1TO2 |
@@ -985,6 +1015,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
 
     osync_context_report_change(ctx, change);
   }
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
@@ -992,6 +1023,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
  */
 void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
+  osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
   char *converted_vcard = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
@@ -1065,6 +1097,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
 
     osync_context_report_change(ctx, change);
   }
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
@@ -1072,6 +1105,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
  */
 void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
+  osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
   char *converted_vnote = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
@@ -1145,6 +1179,7 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
 
     osync_context_report_change(ctx, change);
   }
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
@@ -1152,6 +1187,7 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
  */
 osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *info, OSyncChange *change)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, info, change);			
   char name[256];
   char *data = NULL;
   char *converted_data = NULL;
@@ -1221,8 +1257,9 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
 
   memset(rsp_buffer, 0, sizeof(rsp_buffer));
 
-  printf( "change on object %s\n", name );
+  osync_trace(TRACE_INTERNAL, "change on object %s\n", name );
   switch (osync_change_get_changetype(change)) {
+
     case CHANGE_DELETED:
       // modify obex header for hard delete request
       param_buffer_pos[0] = IRSYNC_APP_HARDDELETE;
@@ -1234,6 +1271,7 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
         g_free(converted_data);
         osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s FALSE: %s", __func__, osync_error_print(&error));
         return FALSE;
       }
 
@@ -1242,17 +1280,19 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       // extract the luid and new change counter from the reply header
       parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), info->change_counter);
 
-      printf( "%s delete request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
+      osync_trace(TRACE_INTERNAL, "%s delete request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
       g_free(converted_data);
       break;
+
     case CHANGE_ADDED:
       // send the add request
       if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
         g_free(converted_data);
         osync_context_report_osyncerror(ctx, &error);
-        return FALSE;
+	osync_trace(TRACE_EXIT_ERROR, "%s FALSE: %s", __func__, osync_error_print(&error));
+	return FALSE;
       }
 
       rsp_buffer[rsp_buffer_size] = '\0';
@@ -1260,19 +1300,21 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       // extract the new luid and new change counter from the reply header
       parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), info->change_counter);
 
-      printf( "%s added request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
+      osync_trace(TRACE_INTERNAL, "%s added request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
       // set the returned luid for this change
       osync_change_set_uid(change, new_luid);
 
       g_free(converted_data);
       break;
+
     case CHANGE_MODIFIED:
       // send the modify request
       if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
         g_free(converted_data);
         osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: FALSE: %s", __func__, osync_error_print(&error));
         return FALSE;
       }
 
@@ -1281,15 +1323,17 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       // extract the luid and new change counter from the reply header
       parse_header_params(rsp_buffer, rsp_buffer_size, new_luid, sizeof(new_luid), info->change_counter);
 
-      printf( "%s modified request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
+      osync_trace(TRACE_INTERNAL, "%s modified request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
       g_free(converted_data);
       break;
+
     default:
       osync_debug("IRMC-SYNC", 0, "Unknown change type");
   }
 
   osync_context_report_success(ctx);
+  osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
   return TRUE;
 }
 
@@ -1298,6 +1342,7 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
  */
 static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
   data_type_information info;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
@@ -1310,6 +1355,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
   strcpy(info.path_extension, "vcs");
   info.change_counter = &(config->calendar_changecounter);
 
+  osync_trace(TRACE_EXIT, "%s", __func__);
   return irmcGenericCommitChange(ctx, &info, change);
 }
 
@@ -1318,6 +1364,7 @@ static osync_bool irmcCalendarCommitChange(OSyncContext *ctx, OSyncChange *chang
  */
 static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);			
   data_type_information info;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
@@ -1330,6 +1377,7 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
   strcpy(info.path_extension, "vcf");
   info.change_counter = &(config->addressbook_changecounter);
 
+  osync_trace(TRACE_EXIT, "%s", __func__);
   return irmcGenericCommitChange(ctx, &info, change);
 }
 
@@ -1338,6 +1386,7 @@ static osync_bool irmcContactCommitChange(OSyncContext *ctx, OSyncChange *change
  */
 static osync_bool irmcNoteCommitChange(OSyncContext *ctx, OSyncChange *change)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);			
   data_type_information info;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
@@ -1350,6 +1399,7 @@ static osync_bool irmcNoteCommitChange(OSyncContext *ctx, OSyncChange *change)
   strcpy(info.path_extension, "vnt");
   info.change_counter = &(config->notebook_changecounter);
 
+  osync_trace(TRACE_EXIT, "%s", __func__);
   return irmcGenericCommitChange(ctx, &info, change);
 }
 
@@ -1358,12 +1408,14 @@ static osync_bool irmcNoteCommitChange(OSyncContext *ctx, OSyncChange *change)
  */
 static void irmcSyncDone(OSyncContext *ctx)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);			
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
   // save synchronization anchors
   save_sync_anchors( env->member, &( env->config ) );
 
   osync_context_report_success(ctx);
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**
