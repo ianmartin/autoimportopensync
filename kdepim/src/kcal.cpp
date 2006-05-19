@@ -187,14 +187,12 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
         case CHANGE_ADDED:
         case CHANGE_MODIFIED:
         {
-        	printf("Adding\n");
             KCal::ICalFormat format;
 
             /* First, parse to a temporary calendar, because
              * we should set the uid on the events
              */
              
-        	printf("Adding1\n");
             KCal::CalendarLocal cal(QString::fromLatin1( "UTC" ));
             QString data = QString::fromUtf8(osync_change_get_data(chg), osync_change_get_datasize(chg));
             if (!format.fromString(&cal, data)) {
@@ -202,7 +200,6 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
                 return false;
             }
 
-        	printf("Adding2 %p\n", calendar);
             /*FIXME: The event/to-do will be overwritten. But I can't differentiate
              * between a field being removed and a missing field because
              * the other device don't support them, because OpenSync currently
@@ -218,7 +215,6 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
              *
              * We iterate over the list, but it should have only one event.
              */
-        	printf("Adding3\n");
             KCal::Incidence::List evts = cal.incidences();
             for (KCal::Incidence::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
                 KCal::Incidence *e = (*i)->clone();

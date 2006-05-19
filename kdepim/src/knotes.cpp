@@ -104,7 +104,7 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 
 static QString strip_html(QString input)
 {
-	printf("input is %s\n", (const char*)input.local8Bit());
+	osync_trace(TRACE_INTERNAL, "input is %s\n", (const char*)input.local8Bit());
 	QString output = NULL;
 	unsigned int i = 0;
 	int inbraces = 0;
@@ -119,7 +119,7 @@ static QString strip_html(QString input)
 		if (!inbraces)
 			output += input[i];
 	}
-	printf("output is %s\n", (const char*)output.stripWhiteSpace().local8Bit());
+	osync_trace(TRACE_INTERNAL, "output is %s\n", (const char*)output.stripWhiteSpace().local8Bit());
 	return output.stripWhiteSpace();
 }
 
@@ -144,7 +144,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 	for (i = fNotes.begin(); i != fNotes.end(); i++) {
 		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
         osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
-		printf("reporting notes %s\n", (const char*)i.key().local8Bit());
+		osync_trace(TRACE_INTERNAL, "reporting notes %s\n", (const char*)i.key().local8Bit());
 		
         QString uid = i.key();
 		QString hash = NULL;
@@ -226,14 +226,14 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 			return false;
         }
 
-        printf("Getting note %s and %s\n", osync_change_get_printable(chg), osxml_find_node(root, "Summary"));
+        osync_trace(TRACE_INTERNAL, "Getting note %s and %s\n", osync_change_get_printable(chg), osxml_find_node(root, "Summary"));
         QString summary = QString(osxml_find_node(root, "Summary"));
         QString body = osxml_find_node(root, "Body");
 
         QString hash;
         switch (type) {
             case CHANGE_ADDED:
-            	printf("addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
+            	osync_trace(TRACE_INTERNAL, "addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
             	uid = kn_iface->newNote(summary, body);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
 					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to add new note");
