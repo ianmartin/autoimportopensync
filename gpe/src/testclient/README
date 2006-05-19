@@ -1,0 +1,2 @@
+This is a small client, that is able to connect and send commands to the
+gpesyncd over ssh or tcp/ip.

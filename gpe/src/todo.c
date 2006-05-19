@@ -80,6 +80,9 @@ osync_bool gpe_todo_commit_change (OSyncContext *ctx, OSyncChange *change)
 			osync_context_report_success(ctx);
 		}
 		else {
+			/* result was split up into result (the part before the
+			 * ':') and modified (the part after ':'); */
+			error = modified;
 			osync_debug ("GPE_SYNC", 0, "Couldn't commit todo: %s", error);
 			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Couldn't commit todo: %s", error);
 			g_free (error);
@@ -117,6 +120,7 @@ osync_bool gpe_todo_get_changes(OSyncContext *ctx)
 
 	gchar *errmsg = NULL;
 	GSList *uid_list = NULL, *iter;
+	osync_debug ("GPE_SYNC", 3, "Getting uidlists for vevents:");
 	gpesync_client_exec (env->client, "uidlist vtodo", client_callback_list, &uid_list, &errmsg);
 
 	if (uid_list)
@@ -125,7 +129,7 @@ osync_bool gpe_todo_get_changes(OSyncContext *ctx)
 	
 	if (errmsg)
 	{
-		if (strcasecmp (errmsg, "Error: No item found\n"))
+		if (strncasecmp (errmsg, "Error: No item found", 20))
 		{	osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Error getting todo uidlist: %s\n", errmsg);
 		} else {
 		  	/* We haven't found any items, so go on. */
@@ -148,6 +152,8 @@ osync_bool gpe_todo_get_changes(OSyncContext *ctx)
 	{
 		/* The list we got has the format:
 		 * uid:modified */
+		osync_debug ("GPE_SYNC", 3, "Read: \"%s\"", (gchar *) iter->data);
+
 	  	gchar *modified = NULL;
 		gchar *uid = NULL;
 
@@ -160,8 +166,9 @@ osync_bool gpe_todo_get_changes(OSyncContext *ctx)
 		}
 
 		g_string_assign (vtodo_data, "");
+		osync_debug ("GPE_SYNC", 3, "Getting vcard %s", uid);	
 		gpesync_client_exec_printf (env->client, "get vtodo %s", client_callback_gstring, &vtodo_data, &errmsg, uid);
-		osync_debug("GPE_SYNC", 2, "vtodo output:\n%s", vtodo_data->str);
+		osync_debug("GPE_SYNC", 3, "vtodo output:\n%s", vtodo_data->str);
 
 		report_change (ctx, "todo", uid, modified, vtodo_data->str);
 		

@@ -24,19 +24,19 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#define BUFFER_LEN 25
+#define BUFFER_LEN 1024
 
 typedef struct
 {
-  int infd;
-  int outfd;
-  int seq;
+  gint infd;
+  gint outfd;
+  gint seq;
 
-  int busy;
-  int socket;
+  gint busy;
+  gint socket;
 
-  char *hostname;
-  const char *username;
+  gchar *hostname;
+  gchar *username;
 } gpesync_client;
 
 

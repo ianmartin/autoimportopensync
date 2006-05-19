@@ -1,37 +1,52 @@
-2006-01-07  Martin Felis <martin@silef.de>
+2006-05-19  Martin Felis <martin@_0nospam0_silef.de>
+	
+	* ChangeLog: Changed the emailadress, hoping receiving less span
+	in the future.
+	* testclient/test_client.c, testclient/Makefile, testclient/README:
+	Added a small client to test the connections to the gpesyncd.
+	* contacts.c, calendar.c, todo.c: - Remeoved a bug that prevents from
+	errors being displayed. Instead of (null) will now the actual message
+	displayed.
+	- Made the traces look a bit more consistent. All data will be now
+	reported on level 3, means debug.
+	* gpe_sync.c: Set is_threadsafe to FALSE
+	* gpesync_client.c: Fixed some memory leaks.
+	* gpesync_client.h: Using now the variable types of glib.
+
+2006-01-07  Martin Felis <martin@_0nospam0_silef.de>
 
 	* gpesync_client.c, gpesync_client.h, gpe_sync.c, gpe_sync.h,
 	gpe_xml.c: Added syncing over tcp/ip.
 	* README: Improved the documentation.
 
-2005-11-29  Martin Felis <martin@silef.de>
+2005-11-29  Martin Felis <martin@_0nospam0_silef.de>
 
 	Moved the repository from gpe cvs to opensync svn.
 
-2005-09-22  Martin Felis <martin@silef.de>
+2005-09-22  Martin Felis <martin@_0nospam0_silef.de>
 
 	* gpesync_client.c: Removed some errors when compiling with "-Werror"
 	- (thanks koen).
 	
-2005-09-18  Martin Felis <martin@silef.de>
+2005-09-18  Martin Felis <martin@_0nospam0_silef.de>
 
 	* gpesync_client.c, gpesync_client.h: Using now a GString instead
 	of a buffer with fixed length for receiving answers from gpesyncd.
 	* contacts.c, todo.c, calendar.c: Small change in reading answers
 	from gpesyncd.
 	
-2005-09-16  Martin Felis <martin@silef.de>
+2005-09-16  Martin Felis <martin@_0nospam0_silef.de>
 
 	* contacts.c, todo.c, calendar.c, utils.c, utils.h: Changed the
 	reporting of the uids. They will be now reported as
 	gpe-<type>-<uid>, so that file-sync can sort them out.
 
-2005-09-16  Martin Felis <martin@silef.de>
+2005-09-16  Martin Felis <martin@_0nospam0_silef.de>
 
 	* contacts.c, todo.c, calendar.c: Fixed a bug that wouldn't let us
 	duplicate an item.
 
-2005-08-31  Martin Felis <martin@silef.de>
+2005-08-31  Martin Felis <martin@_0nospam0_silef.de>
 
 	* contacts.c, contacts.h: Changed the way items are committed.
 	* utils.c, utils.h: Removed functions, that are no more needed.
@@ -40,7 +55,7 @@
 	* calendar.c, calendar.h, todo.c, todo.h: New way items are committed.
 	* Makefile.am: Added calendar.* and todo.* to be compiled too.
 	
-2005-08-31  Martin Felis <martin@silef.de>
+2005-08-31  Martin Felis <martin@_0nospam0_silef.de>
 	
 	* gpesync_client.c, gpesync_client.h: Added. It's the communication
 	backend for this plugin. It is the client for the gpesyncd.
@@ -52,7 +67,7 @@
 	* gpe_db.h gpe_db.c: No more needed. All conversion is made by the
 	gpesyncd on the pda.
 
-2005-08-13  Martin Felis <martin@silef.de>
+2005-08-13  Martin Felis <martin@_0nospam0_silef.de>
 	
 	* gpe_db.h gpe_db.c: Implemented the tags_replace_category function,
 	which replaces the numbers of the cateogories to their names.
@@ -60,7 +75,7 @@
 	tags_replace_category.
 	* contacts.c: Reading and writing now implemented.
 
-2005-08-02  Martin Felis <martin@silef.de>
+2005-08-02  Martin Felis <martin@_0nospam0_silef.de>
 
 	* gpe_db.h gpe_db.c: Files added for easier querying/handling of the
 	results from nsqlc_exec().
@@ -73,6 +88,6 @@
 	* configure.in : Added support for libgpevtype.
 	* README : Put in a few words.
 
-2005-07-27  Martin Felis <martin@silef.de>
+2005-07-27  Martin Felis <martin@_0nospam0_silef.de>
 
 	* Changelog: started to use it!

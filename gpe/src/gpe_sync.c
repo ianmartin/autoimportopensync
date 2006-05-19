@@ -110,9 +110,9 @@ static void get_changeinfo(OSyncContext *ctx)
 {
 	osync_debug("GPE_SYNC", 4, "start: %s", __func__);
 
-	osync_bool get_contacts = FALSE,
-		   get_calendar = FALSE,
-		   get_todo     = FALSE;
+	osync_bool get_contacts = FALSE;
+	osync_bool get_calendar = FALSE;
+	osync_bool get_todo     = FALSE;
 		   
 	get_contacts = gpe_contacts_get_changes(ctx);
 	get_calendar = gpe_calendar_get_changes(ctx);
@@ -203,7 +203,7 @@ void get_info(OSyncEnv *env)
 	info->longname = "Provides synchronisation with handhelds using GPE.";
 	info->description = "See http://gpe.handhelds.org for more information";
 	info->version = 1;
-	info->is_threadsafe = TRUE;
+	info->is_threadsafe = FALSE;
 	
 	//Now set the function we made earlier
 	info->functions.initialize = initialize;

@@ -92,13 +92,13 @@ get_next_line (const char *data, gsize *len)
   
   while ((data[*len] != '\n') && (data[*len] != '\0'))
   {
-    g_string_append_c (string, data[*len]);
+    string = g_string_append_c (string, data[*len]);
     *len += 1;
   }
 
   if (data[*len] == '\n')
     {
-      g_string_append_c (string, data[*len]);
+      string = g_string_append_c (string, data[*len]);
       *len += 1;
     }
   
@@ -154,7 +154,15 @@ read_lines (struct gpesync_client_query_context *query_ctx, char *data)
 	  query_ctx->aborting = TRUE;
 	}
 
+      memset (argv, 0, sizeof (char *) *argc);
       g_free (argv);
+
+      iter = lines;
+      while (iter)
+      {
+	g_free (iter->data);
+	iter = iter->next;
+      }
       g_slist_free (lines);
     }
 }
@@ -171,6 +179,7 @@ read_response (struct gpesync_client_query_context *query_ctx)
   buf = g_string_new ("");
   if (!ctx->socket)
   {
+    /* Reading from the ssh session. */
     for (;;)
       {
         int rc;
@@ -202,11 +211,10 @@ read_response (struct gpesync_client_query_context *query_ctx)
 	        break;
 	      }
 	  }
-
         g_string_append_c (buf, c);
-
       }
   } else {
+    /* Reading from the tcp/ip socket. */
     int bytesread=BUFFER_LEN-1;
     char buffer [BUFFER_LEN];
     
@@ -227,6 +235,7 @@ read_response (struct gpesync_client_query_context *query_ctx)
     {
       read_lines (query_ctx, buf->str);
       g_string_free (buf, TRUE);
+      buf = NULL;
       ctx->busy = 0;
     }
 }
@@ -236,7 +245,7 @@ gpesync_client_open_ssh (const char *addr, char **errmsg)
 {
   gpesync_client *ctx;
   gchar *hostname = NULL;
-  const gchar *username = NULL;
+  gchar *username = NULL;
   gchar *str;
   gchar *p;
 
@@ -259,9 +268,9 @@ gpesync_client_open_ssh (const char *addr, char **errmsg)
     hostname = "localhost";
 
   if (username == NULL)
-    username = g_get_user_name ();
+    username = (gchar *) g_get_user_name ();
 
-  ctx = g_malloc0 (sizeof (struct gpesync_client));
+  ctx = g_malloc0 (sizeof (gpesync_client));
 
   if (pipe (in_fds) && verbose)
      fprintf(stderr, "[gpsyncclient %s]: pipe failed.\n", __func__);
@@ -289,8 +298,8 @@ gpesync_client_open_ssh (const char *addr, char **errmsg)
   ctx->outfd = out_fds[1];
   ctx->infd = in_fds[0];
 
-  ctx->hostname = (hostname);
-  ctx->username = (username);
+  ctx->hostname = g_strdup(hostname);
+  ctx->username = g_strdup(username);
  
   g_free (str);
   
@@ -350,6 +359,9 @@ gpesync_client_open (const char *addr, int port, char **errmsg)
 void
 gpesync_client_close (gpesync_client * ctx)
 {
+  g_free (ctx->hostname);
+  g_free (ctx->username);
+  
   close (ctx->infd);
   if (ctx->infd != ctx->outfd)
     close (ctx->outfd);
@@ -368,7 +380,6 @@ gpesync_client_exec (gpesync_client * ctx, const char *command,
 {
   struct gpesync_client_query_context query;
   GString *cmd = g_string_new ("");
-  g_string_append_printf (cmd, "%d:%s", (unsigned int) strlen (command), command);
 
   memset (&query, 0, sizeof (query));
   query.ctx = ctx;
@@ -380,7 +391,7 @@ gpesync_client_exec (gpesync_client * ctx, const char *command,
 
   if (!ctx->socket)
   {
-    g_string_append_printf (cmd, "%d:%s", strlen (command), command);
+    g_string_append_printf (cmd, "%d:%s", (unsigned int) strlen (command), command);
 
     write_command (ctx, cmd->str);
 
@@ -431,7 +442,6 @@ int client_callback_list (void *arg, int argc, char **argv)
   for (i = 0; i < argc; i++)
   {
     *data_list = g_slist_append (*data_list, g_strdup (argv[i]));
-    g_free (argv[i]);
   }	
   return 0;
 }

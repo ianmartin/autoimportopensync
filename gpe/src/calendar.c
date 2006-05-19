@@ -80,8 +80,11 @@ osync_bool gpe_calendar_commit_change (OSyncContext *ctx, OSyncChange *change)
 			osync_context_report_success(ctx);
 		}
 		else {
-			osync_debug ("GPE_SYNC", 0, "Couldn't commit event: %s", error);
-			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Couldn't commit event: %s", error);
+			/* result was split up into result (the part before the
+			 * ':') and modified (the part after ':'); */
+		        error = modified;
+			osync_debug ("GPE_SYNC", 0, "Couldn't commit event: %s ", error);
+			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Couldn't commit event %s", error);
 			g_free (error);
 		}
 	} else {
@@ -116,6 +119,7 @@ osync_bool gpe_calendar_get_changes(OSyncContext *ctx)
 
 	gchar *errmsg = NULL;
 	GSList *uid_list = NULL, *iter;
+	osync_debug ("GPE_SYNC", 3, "Getting uidlists for vevens:");
 	gpesync_client_exec (env->client, "uidlist vevent", client_callback_list, &uid_list, &errmsg);
 
 
@@ -126,7 +130,7 @@ osync_bool gpe_calendar_get_changes(OSyncContext *ctx)
 	
 	if (errmsg)
 	{
-		if (strcasecmp (errmsg, "Error: No item found\n"))
+		if (strncasecmp (errmsg, "Error: No item found", 20))
 		{
 			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Error getting event uidlist: %s\n", errmsg);
 		} else {
@@ -150,6 +154,8 @@ osync_bool gpe_calendar_get_changes(OSyncContext *ctx)
 	{
 		/* The list we got has the format:
 		 * uid:modified */
+		osync_debug ("GPE_SYNC", 3, "Read: \"%s\"", (gchar *) iter->data);
+
 	  	gchar *modified = NULL;
 		gchar *uid = NULL;
 
@@ -162,8 +168,9 @@ osync_bool gpe_calendar_get_changes(OSyncContext *ctx)
 		}
 
 		g_string_assign (vevent_data, "");
+		osync_debug ("GPE_SYNC", 3, "Getting vcard %s\n", uid);
 		gpesync_client_exec_printf (env->client, "get vevent %s", client_callback_gstring, &vevent_data, &errmsg, uid);
-		osync_debug("GPE_SYNC", 2, "vevent output:\n%s", vevent_data->str);
+		osync_debug("GPE_SYNC", 3, "vevent output:\n%s", vevent_data->str);
 
 		report_change (ctx, "event", uid, modified, vevent_data->str);
 		

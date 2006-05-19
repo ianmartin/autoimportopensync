@@ -80,6 +80,9 @@ osync_bool gpe_contacts_commit_change (OSyncContext *ctx, OSyncChange *change)
 			osync_context_report_success(ctx);
 		}
 		else {
+			/* result was split up into result and modified, whereas
+			 * modified is the string after ":" */
+			error = modified;
 			osync_debug ("GPE_SYNC", 0, "Couldn't commit contact: %s", error);
 			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Couldn't commit contact: %s", error);
 			g_free (error);
@@ -116,16 +119,17 @@ osync_bool gpe_contacts_get_changes(OSyncContext *ctx)
 
 	gchar *errmsg = NULL;
 	GSList *uid_list = NULL, *iter;
-	gpesync_client_exec (env->client, "uidlist vcard", client_callback_list, &uid_list, &errmsg);
+	osync_debug("GPE_SYNC", 3, "Getting uidlists for vcards:");
+	gpesync_client_exec (env->client, "uidlist vcard\n", client_callback_list, &uid_list, &errmsg);
 
 	if ((uid_list) && (!strncasecmp ((gchar *)uid_list->data, "ERROR", 5)))
 	{
 	  errmsg = (gchar *) uid_list->data;
 	}
-	
+
 	if (errmsg)
 	{
-		if (strcasecmp (errmsg, "Error: No item found\n"))
+		if (strncasecmp (errmsg, "Error: No item found",20))
 		{
 			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Error getting contact uidlist: %s\n", errmsg);
 		} else {
@@ -149,20 +153,23 @@ osync_bool gpe_contacts_get_changes(OSyncContext *ctx)
 	{
 		/* The list we got has the format:
 		 * uid:modified */
-	  	gchar *modified = NULL;
+	  	osync_debug ("GPE_SYNC", 3, "Read: \"%s\"", (gchar *) iter->data);
+
+		gchar *modified = NULL;
 		gchar *uid = NULL;
 
 		if (parse_value_modified ((gchar *)iter->data, &uid, &modified) == FALSE)
 		{
-			osync_context_report_error (ctx, OSYNC_ERROR_CONVERT, "Wrong uidlist item: %s\n");
+			osync_context_report_error (ctx, OSYNC_ERROR_CONVERT, "Wrong uidlist item: %s\n", uid);
 			g_slist_free (uid_list);
 
 			return FALSE;
 		}
 
 		g_string_assign (vcard_data, "");
+		osync_debug("GPE_SYNC", 3, "Getting vcard %s", uid);
 		gpesync_client_exec_printf (env->client, "get vcard %s", client_callback_gstring, &vcard_data, &errmsg, uid);
-		osync_debug("GPE_SYNC", 2, "vcard output:\n%s", vcard_data->str);
+		osync_debug("GPE_SYNC", 3, "vcard output:\n%s", vcard_data->str);
 
 		report_change (ctx, "contact", uid, modified, vcard_data->str);
 		
