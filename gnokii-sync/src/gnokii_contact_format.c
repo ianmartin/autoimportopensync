@@ -50,13 +50,33 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) contact->name);
 	}
 
-	// Number
-	if (contact->number) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) contact->number);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) "HOME");
+	// Group
+	if (contact->caller_group != GN_PHONEBOOK_GROUP_None) {
+		current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+
+		switch (contact->caller_group) {
+			case GN_PHONEBOOK_GROUP_Family:
+				tmp = g_strdup("FAMILY");
+				break;
+			case GN_PHONEBOOK_GROUP_Vips:
+				tmp = g_strdup("VIPS");
+				break;
+			case GN_PHONEBOOK_GROUP_Friends:
+				tmp = g_strdup("FRIENDS");
+				break;
+			case GN_PHONEBOOK_GROUP_Work:
+				tmp = g_strdup("WORK");
+				break;
+			case GN_PHONEBOOK_GROUP_Others:
+				tmp = g_strdup("OTHERS");
+				break;
+			case GN_PHONEBOOK_GROUP_None:
+			default:
+				break;
+		}
 	}
 
+	
 	// Record Date / Revision
 	if (contact->date.year) {
 		// TODO timezone
@@ -72,7 +92,8 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) tmp);
 	}
 
-	for (i=1; i <= contact->subentries_count; i++) {
+	// subentries
+	for (i=0; i <= contact->subentries_count; i++) {
 
 		switch (contact->subentries[i].entry_type) {
 			case GN_PHONEBOOK_ENTRY_Name:
@@ -82,9 +103,8 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_Postal:
-				current = xmlNewChild(root, NULL, (xmlChar*)"Address", NULL);
-				// FIXME: cellphone doesn't store addresses in a detailed structure...
-				xmlNewChild(current, NULL, (xmlChar*)"Street", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewChild(root, NULL, (xmlChar*)"AddressLabel", NULL);
+				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_Number:
 				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
@@ -112,8 +132,6 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_ENTRY_RingtoneAdv:	
 				break;
 		}
-
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 
 		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number)
 			continue;
@@ -162,9 +180,16 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 #endif	
 
-//	char *tmp;
-//	xmlNode *cur = NULL;
+	char *tmp = NULL;
+	xmlNode *cur = NULL;
+	xmlNode *sub = NULL;
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+	xmlXPathObject *xobj = NULL; 
+	xmlNodeSet *nodes = NULL; 
+	int numnodes = 0;
+	int subcount = 0;
+	int i;
+
 
 	if (!root) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
@@ -182,8 +207,139 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 
 	memset(contact, 0, sizeof(gn_phonebook_entry));
 
-	// TODO  xml -> gn_phonebook_entry
+	// FormattedName - XXX Also Node "Name"?
+	 cur = osxml_get_node(root, "FormattedName");
+	 if (cur)
+		 strncpy(contact->name, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+	
+	// Telephone
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Telephone");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
 
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Number;
+		
+		sub = osxml_get_node(cur, "Content");
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
+
+		// FIXME - is there any other cool osync_xml function?!
+		sub = osxml_get_node(cur, "Type");
+		if (sub) {
+			tmp = (char *) xmlNodeGetContent(sub);
+			if (!strcasecmp(tmp, "WORK"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Work; 
+			else if (!strcasecmp(tmp, "HOME"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Home; 
+			else if (!strcasecmp(tmp, "FAX"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Fax; 
+			else if (!strcasecmp(tmp, "CELL"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Mobile; 
+			else
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_General;
+		}
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// URL 
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Url");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_URL;
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// EMail
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/EMail");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Email;
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// Note 
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Note");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Note;
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// Category / Callergroup
+	// TODO - fix category - group 
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Categories");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	contact->caller_group = GN_PHONEBOOK_GROUP_None; 
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		
+		tmp = (char *) xmlNodeGetContent(cur);
+		if (!strcasecmp(tmp, "FAMILY")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Family; 
+		} else if (!strcasecmp(tmp, "VIPS")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Vips;
+		} else if (!strcasecmp(tmp, "FRIENDS")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Friends;
+		} else if (!strcasecmp(tmp, "WORK")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Work;
+		} else if (!strcasecmp(tmp, "OTHERS")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Others;
+		}
+		
+	}
+	xmlXPathFreeObject(xobj);
+
+	// TODO: Addresss, Organization?, Group 
+
+	// Adress
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Adress");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		
+		/*
+		sub = osxml_get_node(cur, "PostalBox");
+		sub = osxml_get_node(cur, "Street");
+		sub = osxml_get_node(cur, "City");
+		sub = osxml_get_node(cur, "Region");
+		sub = osxml_get_node(cur, "PostalCode");
+		sub = osxml_get_node(cur, "Country");
+		*/
+
+		// XXX type more then 1 note
+	}
+	xmlXPathFreeObject(xobj);
+
+	contact->subentries_count = subcount;
+
+	osync_trace(TRACE_INTERNAL, "TEST: name: %s\n", contact->name);
+	 
 	*free_input = TRUE;
 	*output = (void *)contact;
 	*outpsize = sizeof(gn_phonebook_entry);

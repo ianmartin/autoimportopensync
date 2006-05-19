@@ -44,6 +44,21 @@ char *gnokii_contact_uid(gn_phonebook_entry *contact) {
 	return uid;
 }
 
+/* The function extract the memory location. (not the memory type!)
+ * 
+ * Returns: location 
+ */ 
+void gnokii_contact_memlocation(const char *uid, gn_phonebook_entry *contact) {
+	
+	int location = 0;
+	char memtype[3];	    
+
+	sscanf(uid, "gnokii-contact-%2s-%i", memtype, &location); 
+
+	contact->location = location;
+	contact->memory_type = gn_str2memory_type(memtype); 
+}
+
 /* The function generates a simple hash of the given contact entry.
  * 
  * Returns: Hash of the contact.
@@ -53,22 +68,27 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, contact);
 	
 	int i;
-	char *tmp = g_strup(""); 
+	char *tmp = g_strdup(""); 
+
+	osync_trace(TRACE_INTERNAL, "HASH: name %s", contact->name);
 
 	if (contact->name)
 		tmp = g_strdup_printf("%s-%s", tmp, contact->name);
 
-	if (contact->number)
-		tmp = g_strdup_printf("%s-%s", tmp, contact->number);
 
-	tmp = g_strdup_printf("%s-%i", tmp, contact->memory_type);
+// no necassary!	
+//	tmp = g_strdup_printf("%s-%i", tmp, contact->memory_type);
+
+	osync_trace(TRACE_INTERNAL, "HASH: caller_group: %i", contact->caller_group);
 
 	if (contact->caller_group)
 		tmp = g_strdup_printf("%s-%i", tmp, contact->caller_group);
 
-	if (contact->location)
-		tmp = g_strdup_printf("%s-%i", tmp, contact->location);
+// not necassary!	
+//	if (contact->location)
+//		tmp = g_strdup_printf("%s-%i", tmp, contact->location);
 
+	osync_trace(TRACE_INTERNAL, "HASH: date: %i", contact->date.year);
 	if (contact->date.year)
 		tmp = g_strdup_printf("%s-%i%i%i.%i%i%i.%i",
 				tmp,
@@ -80,18 +100,25 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 				contact->date.second,
 				contact->date.timezone);
 
-	for (i=1; i <= contact->subentries_count; i++) {
+	osync_trace(TRACE_INTERNAL, "HASH: subentires_count: %i", contact->subentries_count);
+	for (i=0; i < contact->subentries_count; i++) {
+		tmp = g_strdup_printf("%s-sub%i", tmp, i);
+
+		osync_trace(TRACE_INTERNAL, "HASH: entry_type");
 		if (contact->subentries[i].entry_type)
 			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].entry_type);
 
+		osync_trace(TRACE_INTERNAL, "HASH: number_type");
 		if (contact->subentries[i].number_type)
 			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].number_type);
 
+		osync_trace(TRACE_INTERNAL, "HASH: data.number");
 		if (contact->subentries[i].data.number)
 			tmp = g_strdup_printf("%s-%s", tmp, contact->subentries[i].data.number);
 
+		/* only filled when the entry is already written? XXX
 		if (contact->subentries[i].data.date.year)
-			tmp = g_strdup_printf("%s-%i%i%i.%i%i%i.%i", tmp, 
+			tmp = g_strdup_printf("%s-%04i%02i%02i.%02i%02i%02i.%i", tmp, 
 					contact->subentries[i].data.date.year,
 					contact->subentries[i].data.date.month,
 					contact->subentries[i].data.date.day,
@@ -99,9 +126,12 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 					contact->subentries[i].data.date.minute,
 					contact->subentries[i].data.date.second,
 					contact->subentries[i].data.date.timezone);
+		*/			
 
+		/* this is only filled when the entry is already written. hash after reading the written stuff?
 		if (contact->subentries[i].id)
 			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].id);
+		*/
 	}
 	
 #ifndef HIDE_SENSITIVE	
@@ -136,7 +166,7 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 			error = gn_sm_functions(GN_OP_ReadPhonebook, data, state);
 
 			if (error == GN_ERR_EMPTYLOCATION || contact->empty) {
-				osync_trace(TRACE_EXIT, "%s(): memorty_type: %i location: %i", contact->memory_type, contact->location);
+				osync_trace(TRACE_EXIT, "%s(): memorty_type: %i location: %i", __func__, contact->memory_type, contact->location);
 				return contact;
 			}
 
@@ -145,6 +175,7 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 		}
 	}
 
+	// TODO set error and leave
 	osync_trace(TRACE_EXIT, "%s(): NO FREE LOCATION!", __func__);
 	return NULL;
 }
@@ -155,9 +186,9 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
  * ReturnVal: gn_phonebook_entry*
  * ReturnVal: NULL on error or when no entries are left on cellphone.
  */
-gn_phonebook_entry *gnokii_contact_read(int pos, gn_data *data, int memory_type, struct gn_statemachine *state, gn_error error) {
+gn_phonebook_entry *gnokii_contact_read(int memory_type, int pos, gn_data *data, struct gn_statemachine *state, gn_error error) {
 
-	osync_trace(TRACE_ENTRY, "%s(%i, %p, %i, %p, %i)", __func__, pos, data, memory_type, state, error);
+	osync_trace(TRACE_ENTRY, "%s(%i, %i, %p, %p, %i)", __func__, memory_type, pos, data, state, error);
 	
 	// will be destroyed by destroy_gnokii_contact() of gnokii-format 
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) malloc(sizeof(gn_phonebook_entry));
@@ -173,6 +204,7 @@ gn_phonebook_entry *gnokii_contact_read(int pos, gn_data *data, int memory_type,
 
 	data->phonebook_entry = contact;
 
+	osync_trace(TRACE_INTERNAL, "get the stuff...");
 	// get the nth (pos) entry of the cellphone. 
 	error = gn_sm_functions(GN_OP_ReadPhonebook, data, state);
 
@@ -205,6 +237,7 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, contact, state);
 
+	int i;
         gn_error error = GN_ERR_NONE;
         gn_data* data = (gn_data *) malloc(sizeof(gn_data));
 
@@ -212,6 +245,8 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 
 	if (!contact->location) {
 		gn_phonebook_entry *free_entry = gnokii_contact_freelocation(state);
+		osync_trace(TRACE_INTERNAL, "Free location is %i at memtype: %i",
+				free_entry->location, free_entry->memory_type);
 		contact->location = free_entry->location;
 		contact->memory_type = free_entry->memory_type;
 		g_free(free_entry);
@@ -223,15 +258,14 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 #ifndef HIDE_SENSITIVE	
 	osync_trace(TRACE_INTERNAL, "contact->location: %i\n"
 				    "contact->empty: %i\n"
-				    "contact->name: %i\n"
-				    "contact->number: %s\n"
+				    "contact->name: %s\n"
 				    "contact->memory_type: %i"
 				    "contact->caller_group: %i"
 				    "contact->date: %04i-%02i-%02i %02i:%02i:%02i tz:%i"
 				    "contact->subentries_count: %i",
 			contact->location,
 			contact->empty, contact->name,
-			contact->number, contact->memory_type,
+			contact->memory_type,
 			contact->caller_group, 
 			
 			contact->date.year, contact->date.month, contact->date.day,
@@ -239,6 +273,16 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 			contact->date.timezone,
 			
 			contact->subentries_count);
+
+	for (i=0; i < contact->subentries_count; i++) { 
+
+		osync_trace(TRACE_INTERNAL, "subentry #%i Number: %s [Number TYpe: %i] [Entry Type: %i]",
+				i,
+				contact->subentries[i].data.number,
+				contact->subentries[i].number_type,
+				contact->subentries[i].entry_type);
+
+	}
 
 #endif	
 
@@ -271,32 +315,42 @@ osync_bool gnokii_contact_delete(const char *uid, struct gn_statemachine *state)
 
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, uid, state);
 
-	int location = 0;
-	char memory_type_string[3];
+//	int location = 0;
+//	char memory_type_string[3];
 	gn_error error = GN_ERR_NONE;
 
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) malloc(sizeof(gn_phonebook_entry));
 	gn_data *data = (gn_data *) malloc(sizeof(gn_data));
 
-	sscanf(uid, "gnokii-contact-%2s-%u", memory_type_string, &location);
-	contact->memory_type = gn_str2memory_type(memory_type_string);
-	contact->location = location;
+
+	memset(contact, 0, sizeof(gn_phonebook_entry));
+
+//	sscanf(uid, "gnokii-contact-%2s-%u", memory_type_string, &location);
+
+	gnokii_contact_memlocation(uid, contact);
+//	contact->memory_type = gn_str2memory_type(memory_type_string);
+//	contact->location = location;
+	contact->empty = 1;
 
 	gn_data_clear(data);
 
-	// set position (not memory location! )to delete
 	data->phonebook_entry = contact; 
 
+	osync_trace(TRACE_INTERNAL, "Try to delete entry with Memory Type: %i at Location: %i\n", 
+			contact->memory_type, contact->location);
+
 	error = gn_sm_functions(GN_OP_DeletePhonebook, data, state);
+	/* FIXME - don't check return code - return code is wrong - bug in libgnokii?
 	if (error != GN_ERR_NONE) {
 		osync_trace(TRACE_EXIT_ERROR, "%s(): Couldn't delete contact: %s\n", __func__, gn_error_print(error));
 		return FALSE;
 	}
+	*/
 
 	g_free(contact);
 	g_free(data);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s()", __func__);
 	return TRUE;
 }
 
@@ -311,7 +365,7 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
-	int i = 0, memtype, num_entries;
+	int location = 0, memtype, num_entries;
 	char *hash = NULL;
 	char *uid = NULL;
 	gn_error gnokii_error = GN_ERR_NONE; 	// gnokii error messages
@@ -332,17 +386,19 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 	// get all notes 
 	for (memtype=0; memtype <= GN_MT_SM; memtype++) {
 
+		location = 0;
+
 		data->memory_status = &memstat;
 		memstat.memory_type = memtype; 
 		gnokii_error = gn_sm_functions(GN_OP_GetMemoryStatus, data, env->state);
 		num_entries = memstat.used;
 
-		osync_trace(TRACE_INTERNAL, "Memory Usage: Number of entries in MEM[%i]: %i\n", memtype, num_entries);
+		osync_trace(TRACE_INTERNAL, "Memory Usage: Number of entries in MEM[%i]: %i", memtype, num_entries);
 
 		while (num_entries > 0) {
-			i++;
+			location++;
 
-			contact = gnokii_contact_read(i, data, memtype, env->state, gnokii_error);
+			contact = gnokii_contact_read(memtype, location, data, env->state, gnokii_error);
 
 			if (gnokii_error == GN_ERR_NONE)
 				num_entries--;
@@ -375,14 +431,14 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 		}
 	}
 
-	osync_debug("GNOKII", 2, "number of contact notes: %i", i - 1);
+	osync_debug("GNOKII", 2, "number of contact notes: %i", location - 1);
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "contact");
 
 	g_free(hash);
 	g_free(uid);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s()", __func__);
 	return TRUE;
 }
 
@@ -411,10 +467,12 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 		case CHANGE_DELETED:
 			// Delete the change
 
+			// memory leak? XXX XXX
 			if (!gnokii_contact_delete(osync_change_get_uid(change), env->state)) {
 				osync_error_update(&error, "Unable to delete contact.");
 				goto error;
 			}
+	
 			
 			break;
 		case CHANGE_ADDED:
@@ -434,6 +492,9 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			break;
 		case CHANGE_MODIFIED:
+			// set the memory location of the contact entry
+			gnokii_contact_memlocation(osync_change_get_uid(change), contact);
+
 			// overwrite the changed contact with the write function 
 			if (!gnokii_contact_write(contact, env->state)) {
 				osync_error_update(&error, "Unable to modify (write) contact.");

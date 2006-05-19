@@ -5,7 +5,7 @@ INSTALL of gnokii-sync
 REQUIREMENTS
 ^^^^^^^^^^^^
 	OpenSync	>= 0.18		http://www.opensync.org
-	gnokii		>= 0.6.12	http://www.gnokii.org
+	gnokii		> 0.6.12 (CVS!)	http://www.gnokii.org
 
 	If you use packages of your distribution don't forget
 	to install the -devel packages of above requirements.
@@ -65,6 +65,7 @@ CONFIGURATION
 	<config>
 	  <connection>dku2libusb</connection>
   	  <model>6230</model>
+	  <port>dontkillme</port>
 	</config>	  
 
 	Example config file for a Nokia Series 60 (6670, ...) via Bluetooth:
@@ -148,13 +149,9 @@ TROUBLESHOOTING
 		* check for permisson for your user. If `gnokii --identify` works as root user
 		  then it seems to be a permission problem. Could be solved with additional udev-rules:
 
-		  SUBSYSTEM=="usb_device", SYSFS{idVendor}=="0421", SYSFS{idProduct}=="040f", MODE="660", GROUP="users"
-		  					^^^^^^^^^^^^^                ^^^^^^^^^                 ^^^^^^^^^
-							USB Vendor ID		USB Product ID		Group of your user
-			
-		  (lsusb lists USB Vendor/Product ID - Example: Bus 002 Device 018: ID 0421:040f Nokia Mobile Phones 6230 GSM Phone)
-		 					
-
+		  SUBSYSTEM=="usb_device",  SYSFS{manufacturer}=="Nokia", SYSFS{product}=="Nokia [0-9]*", MODE="660", GROUP="users"
+		  				                                                                         ^^^^^^^^^
+														Group of your user(s)
 		  
 		  
 		

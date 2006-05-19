@@ -114,11 +114,11 @@ static void get_changeinfo(OSyncContext *ctx)
 	// get changes of events (calendar)
 	calendar_changes = gnokii_calendar_get_changeinfo(ctx);
 	// get changes of contacts
-//	contact_changes = gnokii_contact_get_changeinfo(ctx);
+	contact_changes = gnokii_contact_get_changeinfo(ctx);
 	
 //	TODO: contact & todo
 //	if (calendar_changes && todo_changes && contact_changes)
-	if (calendar_changes)
+	if (calendar_changes && contact_changes)
 		osync_context_report_success(ctx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -218,11 +218,9 @@ void get_info(OSyncEnv *env)
 	info->timeouts.commit_timeout = 10000;
 	info->timeouts.read_change_timeout = 10000;
 
-/*	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "gnokii-contact", NULL);
 	osync_plugin_set_commit_objformat(info, "contact", "gnokii-contact", gnokii_contact_commit);
-*/	
 
 	osync_plugin_accept_objtype(info, "event");
 	osync_plugin_accept_objformat(info, "event", "gnokii-event", NULL);

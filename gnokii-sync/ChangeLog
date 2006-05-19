@@ -1,3 +1,10 @@
+2006-05-19  Daniel Gollub  <dgollub@suse.de>
+
+	* updated README / INSTALL
+
+	* gnokii-sync contact support is actived by default!!!
+		- EXPERIMENTAL. Don't forget your backup!
+
 2006-05-01  Daniel Gollub  <dgollub@suse.de>
 	
 	* gnokii_format.c

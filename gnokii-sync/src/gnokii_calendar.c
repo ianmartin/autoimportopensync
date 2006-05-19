@@ -465,9 +465,12 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			hash = gnokii_calendar_hash(calnote);
 			osync_change_set_hash(change, hash);
 
-			osync_trace(TRACE_INTERNAL, "New UID: %s (%s) changetype: %i", 
+			/*
+			osync_trace(TRACE_INTERNAL, "New CHANGE: %p UID: %s (%s) changetype: %i", 
+					change,
 					osync_change_get_uid(change), hash,
 					osync_change_get_changetype(change));
+			*/		
 
 			////////// END OF WORKAROUND ////////////////
 
@@ -480,6 +483,13 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 	// answer the call
 	osync_context_report_success(ctx);
 
+	// blubb
+	/*
+	osync_trace(TRACE_INTERNAL, "change->hash: %s change->changetype: %i", osync_change_get_hash(change),
+		       osync_change_get_changetype(change));
+	*/
+		       
+	
 	// update hashtable
 	osync_hashtable_update_hash(env->hashtable, change);
 

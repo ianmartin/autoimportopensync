@@ -7,6 +7,6 @@ void get_info(OSyncEnv *env)
 {
 
 	gnokii_calendar_format_get_info(env);
-//	gnokii_contact_format_get_info(env);	// EXPERIMENTEL!
+	gnokii_contact_format_get_info(env);	// EXPERIMENTEL!
 
 }

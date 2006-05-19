@@ -37,7 +37,26 @@ if test "x$enable_privacy" = "xyes"; then
         AC_SUBST(HIDE_SENSTIVIE)
 fi
 
+
 AC_OUTPUT([
 Makefile
 src/Makefile
 ])
+
+echo ""
+echo "================================================================"
+echo "!!!!!!!!!!!!!!!!!!Warning of the day!!!!!!!!!!!!!2006-05-19!!!!!"
+echo "!                                                              !"
+echo "! * contact/addressbook sync is active!                        !" 
+echo "! * PLEASE make a whole BACKUP of all your contacts            !"
+echo "!                                                              !"
+echo "! BACKUP of your cellphone contacts with gnokii:               !"
+echo "!                                                              !"
+echo "!       gnokii --getphonebook ME 1 end -v > backup-me.vcard    !"
+echo "!       gnokii --getphonebook SM 1 end -v > backup-sm.vcard    !"
+echo "!                                                              !"
+echo "! Have fun! :)                                                 !"
+echo "================================================================"
+echo ""
+
+
