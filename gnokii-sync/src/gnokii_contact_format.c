@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include "gnokii_sync.h"
+#include "gnokii_contact_utils.h"
 #include "gnokii_contact_format.h"
 #include <opensync/opensync-xml.h>
 
@@ -48,6 +49,11 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 	if (contact->name) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) contact->name);
+
+		// FIXME: evo2 workaround - evo2 requires a Name / N filed :(
+		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
+		xmlNewChild(current, NULL, (xmlChar*)"FirstName", (xmlChar*) contact->name);
+
 	}
 
 	// Group
@@ -56,24 +62,28 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 
 		switch (contact->caller_group) {
 			case GN_PHONEBOOK_GROUP_Family:
-				tmp = g_strdup("FAMILY");
+				tmp = g_strdup("Family");
 				break;
 			case GN_PHONEBOOK_GROUP_Vips:
-				tmp = g_strdup("VIPS");
+				tmp = g_strdup("VIP");	// evo2 needs VIP not VIPs
 				break;
 			case GN_PHONEBOOK_GROUP_Friends:
-				tmp = g_strdup("FRIENDS");
+				tmp = g_strdup("Friends");
 				break;
 			case GN_PHONEBOOK_GROUP_Work:
-				tmp = g_strdup("WORK");
+				tmp = g_strdup("Work");
 				break;
 			case GN_PHONEBOOK_GROUP_Others:
-				tmp = g_strdup("OTHERS");
+				tmp = g_strdup("Others");
 				break;
 			case GN_PHONEBOOK_GROUP_None:
 			default:
 				break;
 		}
+
+		xmlNewChild(current, NULL, (xmlChar*)"Category", (xmlChar*) tmp);
+
+		g_free(tmp);
 	}
 
 	
@@ -90,6 +100,8 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 		
 		current = xmlNewChild(root, NULL, (xmlChar*)"Revision", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) tmp);
+
+		g_free(tmp);
 	}
 
 	// subentries
@@ -222,7 +234,8 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Number;
 		
 		sub = osxml_get_node(cur, "Content");
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
+		tmp = gnokii_contact_util_cleannumber((char *) xmlNodeGetContent(sub));
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
 
 		// FIXME - is there any other cool osync_xml function?!
 		sub = osxml_get_node(cur, "Type");
@@ -240,6 +253,7 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_General;
 		}
 		subcount++;
+		g_free(tmp);
 	}
 	xmlXPathFreeObject(xobj);
 
@@ -252,7 +266,10 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		cur = nodes->nodeTab[i];
 
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_URL;
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+
+		sub = osxml_get_node(cur, "Content");
+
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
 
 		subcount++;
 	}
@@ -267,7 +284,8 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		cur = nodes->nodeTab[i];
 
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Email;
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+		sub = osxml_get_node(cur, "Content");
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
 
 		subcount++;
 	}
@@ -282,7 +300,8 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		cur = nodes->nodeTab[i];
 
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Note;
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+		sub = osxml_get_node(cur, "Content");
+		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
 
 		subcount++;
 	}
@@ -294,6 +313,8 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
 
+	osync_trace(TRACE_INTERNAL, "categories: %i", numnodes);
+
 	contact->caller_group = GN_PHONEBOOK_GROUP_None; 
 	for (i=0; i < numnodes; i++) {
 		cur = nodes->nodeTab[i];
@@ -301,7 +322,7 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		tmp = (char *) xmlNodeGetContent(cur);
 		if (!strcasecmp(tmp, "FAMILY")) {
 			contact->caller_group = GN_PHONEBOOK_GROUP_Family; 
-		} else if (!strcasecmp(tmp, "VIPS")) {
+		} else if (!strcasecmp(tmp, "VIPS") || !strcasecmp(tmp, "VIP")) {	// we handle VIP and VIPs as VIP type needed for evo2 
 			contact->caller_group = GN_PHONEBOOK_GROUP_Vips;
 		} else if (!strcasecmp(tmp, "FRIENDS")) {
 			contact->caller_group = GN_PHONEBOOK_GROUP_Friends;
@@ -317,22 +338,20 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 	// TODO: Addresss, Organization?, Group 
 
 	// Adress
-	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Adress");
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/AddressLabel");
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
 	for (i=0; i < numnodes; i++) {
 		cur = nodes->nodeTab[i];
 		
-		/*
-		sub = osxml_get_node(cur, "PostalBox");
-		sub = osxml_get_node(cur, "Street");
-		sub = osxml_get_node(cur, "City");
-		sub = osxml_get_node(cur, "Region");
-		sub = osxml_get_node(cur, "PostalCode");
-		sub = osxml_get_node(cur, "Country");
-		*/
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Postal;
 
-		// XXX type more then 1 note
+		sub = osxml_get_node(cur, "Content");
+
+		if (sub)
+			strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH); 
+
+		subcount++;
 	}
 	xmlXPathFreeObject(xobj);
 

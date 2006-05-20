@@ -69,10 +69,8 @@ TODO:
 	# print function (written, but never tested)
 		
 * contact format
-	# fix group / category
-  	# testing with other plugins
+  	# testing with other plugins [done: kdepim-sync, evo2-sync, file-sync, ...]
   	# find limits for subentries
-	# fix address entry (make use of address label) 
   	# run freelocation() only once
   	
 	

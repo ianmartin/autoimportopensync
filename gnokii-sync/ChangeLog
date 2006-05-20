@@ -1,3 +1,14 @@
+2006-05-20  Daniel Gollub  <dgollub@suse.de>
+
+	* gnokii_contact_utils.c
+	  gnokii_contact_utils.h
+	  	- helper funcitons for gnokii-format contact 
+		
+	* contact fixes
+		- categories in gnokii-format contact
+		- clean telephone numbers (only +*#pw[0-9] allowed) 
+		- evo2-sync workaround for name
+
 2006-05-19  Daniel Gollub  <dgollub@suse.de>
 
 	* updated README / INSTALL
