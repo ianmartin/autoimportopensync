@@ -35,40 +35,36 @@ static SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-static SmlContentType _format_to_contenttype(OSyncChange *change)
+static const char *_format_to_contenttype(OSyncChange *change)
 {
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "contact")) {
-		return SML_CONTENT_TYPE_VCARD;
+		return SML_ELEMENT_TEXT_VCARD;
 	}
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "event")) {
-		return SML_CONTENT_TYPE_VCAL;
+		return SML_ELEMENT_TEXT_VCAL;
 	}
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "todo")) {
-		return SML_CONTENT_TYPE_VCAL;
+		return SML_ELEMENT_TEXT_VCAL;
 	}
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "note")) {
-		return SML_CONTENT_TYPE_PLAIN;
+		return SML_ELEMENT_TEXT_PLAIN;
 	}
 	if (!strcmp(osync_objtype_get_name(osync_change_get_objtype(change)), "data")) {
-		return SML_CONTENT_TYPE_PLAIN;
+		return SML_ELEMENT_TEXT_PLAIN;
 	}
-	return SML_CONTENT_TYPE_UNKNOWN;
+	return NULL;
 }
 
-static const char *_contenttype_to_format(SmlContentType type)
+static const char *_contenttype_to_format(const char *contenttype)
 {
-	switch (type) {
-		case SML_CONTENT_TYPE_VCARD:
-			return "contact";
-			break;
-		case SML_CONTENT_TYPE_VCAL:
-			return "data";
-			break;
-		case SML_CONTENT_TYPE_PLAIN:
-			return "note";
-			break;
-		default:
-			;
+	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD)) {
+		return "contact";
+	}
+	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL)) {
+		return "data";
+	}
+	if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN)) {
+		return "note";
 	}
 	return NULL;
 }
@@ -89,9 +85,9 @@ static OSyncChangeType _to_osync_changetype(SmlChangeType type)
 	return CHANGE_UNKNOWN;
 }
 
-static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, SmlContentType contenttype, void *userdata, SmlError **error)
+static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const char *uid, char *data, unsigned int size, const char *contenttype, void *userdata, SmlError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %i, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, error);
 	SmlPluginEnv *env = (SmlPluginEnv *)osync_context_get_plugin_data((OSyncContext *)userdata);
 
 	if (type) {
@@ -104,22 +100,12 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 		osync_change_set_member(change, env->member);
 		osync_change_set_uid(change, uid);
 		
-		switch (contenttype) {
-			case SML_CONTENT_TYPE_VCARD:
-				osync_change_set_objformat_string(change, "vcard21");
-				break;
-			case SML_CONTENT_TYPE_VCAL:
-			case SML_CONTENT_TYPE_VTODO:
-				/* Most devices cannot separate events and todos. so we
-				 * set the format to plain and let opensync decide */
-				osync_change_set_objformat_string(change, "plain");
-				break;
-			case SML_CONTENT_TYPE_PLAIN:
-				osync_change_set_objformat_string(change, "plain");
-				break;
-			default:
-				;
-		}
+		if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD))
+			osync_change_set_objformat_string(change, "vcard21");
+		else if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL))
+			osync_change_set_objformat_string(change, "plain");
+		else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
+			osync_change_set_objformat_string(change, "plain");
 		
 		osync_change_set_data(change, data, size, TRUE);
 		osync_change_set_changetype(change, _to_osync_changetype(type));
@@ -208,7 +194,7 @@ static SmlBool _recv_alert(SmlDsSession *dsession, SmlAlertType type, const char
 		smlDsSessionSendAlert(dsession, SML_ALERT_TWO_WAY, last, next, _recv_alert_reply, NULL, NULL);
 	}
 	
-	smlDevInfAgentGetDevInf(env->agent, NULL);
+	smlDevInfAgentGetDevInf(env->agent);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
@@ -221,15 +207,15 @@ static void _ds_alert(SmlDsSession *dsession, void *userdata)
 	SmlPluginEnv *env = (SmlPluginEnv *)userdata;
 	osync_member_request_synchronization(env->member);
 	
-	if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCARD) {
+	if (!strcmp(smlDsSessionGetContentType(dsession), SML_ELEMENT_TEXT_VCARD)) {
 		printf("received contact dsession\n");
 		env->contactSession = dsession;
 		smlDsSessionRef(dsession);
-	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_VCAL) {
+	} else if (!strcmp(smlDsSessionGetContentType(dsession), SML_ELEMENT_TEXT_VCAL)) {
 		printf("received event dsession\n");
 		env->calendarSession = dsession;
 		smlDsSessionRef(dsession);
-	} else if (smlDsSessionGetContentType(dsession) == SML_CONTENT_TYPE_PLAIN) {
+	} else if (!strcmp(smlDsSessionGetContentType(dsession), SML_ELEMENT_TEXT_PLAIN)) {
 		printf("received note dsession\n");
 		env->noteSession = dsession;
 		smlDsSessionRef(dsession);
@@ -307,6 +293,9 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 		case SML_MANAGER_SESSION_ERROR:
 			osync_trace(TRACE_INTERNAL, "There was an error in the session %s: %s", smlSessionGetSessionID(session), smlErrorPrint(&error));
 			goto error;
+			break;
+		case SML_MANAGER_SESSION_WARNING:
+			printf("WARNING: %s\n", smlErrorPrint(&error));
 			break;
 	}
 	
@@ -558,7 +547,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 		if (!loc)
 			goto error;
 		
-		env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
+		env->contactserver = smlDsServerNew(SML_ELEMENT_TEXT_VCARD, loc, &serror);
 		if (!env->contactserver)
 			goto error_free_manager;
 			
@@ -588,7 +577,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 		if (!loc)
 			goto error;
 		
-		env->calendarserver = smlDsServerNew(SML_CONTENT_TYPE_VCAL, loc, &serror);
+		env->calendarserver = smlDsServerNew(SML_ELEMENT_TEXT_VCAL, loc, &serror);
 		if (!env->calendarserver)
 			goto error_free_manager;
 			
@@ -618,7 +607,7 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 		if (!loc)
 			goto error;
 		
-		env->noteserver = smlDsServerNew(SML_CONTENT_TYPE_PLAIN, loc, &serror);
+		env->noteserver = smlDsServerNew(SML_ELEMENT_TEXT_PLAIN, loc, &serror);
 		if (!env->noteserver)
 			goto error_free_manager;
 			
@@ -880,7 +869,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		if (!loc)
 			goto error_free_auth;
 		
-		env->contactserver = smlDsServerNew(SML_CONTENT_TYPE_VCARD, loc, &serror);
+		env->contactserver = smlDsServerNew(SML_ELEMENT_TEXT_VCARD, loc, &serror);
 		if (!env->contactserver)
 			goto error_free_auth;
 			
@@ -910,7 +899,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		if (!loc)
 			goto error_free_auth;
 		
-		env->calendarserver = smlDsServerNew(SML_CONTENT_TYPE_VCAL, loc, &serror);
+		env->calendarserver = smlDsServerNew(SML_ELEMENT_TEXT_VCAL, loc, &serror);
 		if (!env->calendarserver)
 			goto error_free_auth;
 			
@@ -940,7 +929,7 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		if (!loc)
 			goto error_free_auth;
 		
-		env->noteserver = smlDsServerNew(SML_CONTENT_TYPE_PLAIN, loc, &serror);
+		env->noteserver = smlDsServerNew(SML_ELEMENT_TEXT_PLAIN, loc, &serror);
 		if (!env->noteserver)
 			goto error_free_auth;
 			
@@ -1164,19 +1153,12 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 	int numNote = 0;
 	
 	for (i = 0; changes[i]; i++) {
-		switch (_format_to_contenttype(changes[i])) {
-			case SML_CONTENT_TYPE_VCARD:
-				numContact++;
-				break;
-			case SML_CONTENT_TYPE_VCAL:
-				numCalendar++;
-				break;
-			case SML_CONTENT_TYPE_PLAIN:
-				numNote++;
-				break;
-			default:
-				break;
-		}
+		if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_VCARD))
+			numContact++;
+		else if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_VCAL))
+			numCalendar++;
+		else if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_PLAIN))
+			numNote++;
 		num++;
 	}
 	
@@ -1188,7 +1170,7 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 			OSyncChange *change = changes[i];
 			OSyncContext *context = contexts[i];
 			
-			if (_format_to_contenttype(changes[i]) == SML_CONTENT_TYPE_VCARD) {
+			if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_VCARD)) {
 				osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
 				
 				struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
@@ -1217,7 +1199,7 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 			OSyncChange *change = changes[i];
 			OSyncContext *context = contexts[i];
 			
-			if (_format_to_contenttype(changes[i]) == SML_CONTENT_TYPE_VCAL) {
+			if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_VCAL)) {
 				osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
 				
 				struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
@@ -1246,7 +1228,7 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 			OSyncChange *change = changes[i];
 			OSyncContext *context = contexts[i];
 			
-			if (_format_to_contenttype(changes[i]) == SML_CONTENT_TYPE_PLAIN) {
+			if (!strcmp(_format_to_contenttype(changes[i]), SML_ELEMENT_TEXT_PLAIN)) {
 				osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_objtype_get_name(osync_change_get_objtype(change)), osync_change_get_changetype(change));
 				
 				struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
