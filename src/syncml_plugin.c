@@ -256,12 +256,6 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			if (env->maxObjSize)
 				smlSessionSetReceivingMaxObjSize(session, env->maxObjSize);
 			
-			if (env->allowLateStatus)
-				smlSessionSetAllowLateStatus(session, env->allowLateStatus);
-			
-			if (env->noPendingReplies)
-				smlSessionSetNoPendingReplies(session, env->noPendingReplies);
-			
 			env->session = session;
 			smlSessionRef(session);
 			break;
@@ -443,16 +437,8 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 				env->onlyReplace = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"allowLateStatus")) {
-				env->allowLateStatus = atoi(str);
-			}
-			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
 				env->maxObjSize = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
-				env->noPendingReplies = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
@@ -764,16 +750,8 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 				env->onlyReplace = atoi(str);
 			}
 			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"allowLateStatus")) {
-				env->allowLateStatus = atoi(str);
-			}
-			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
 				env->maxObjSize = atoi(str);
-			}
-			
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"noPendingReplies")) {
-				env->noPendingReplies = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
