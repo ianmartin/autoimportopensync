@@ -647,7 +647,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 
 	//Exceptions
 	//There is a limit of execptions which may differ from palm to palm...
-	//Treo270: 5 Exceptions?
+	//XXX Treo270: 5 Exceptions?
 	xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)input, "/vcal/Event/ExclusionDate");
 	xmlNodeSet *nodes = xobj->nodesetval;
 	for (i = 0; i < 5 && i < nodes->nodeNr; i++) {
@@ -954,25 +954,34 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	xmlNode *root = osxml_node_add_root(doc, "contact");
 
 	//Names
-	if (has_entry(entry, 0) || has_entry(entry, 1)) {
+	if (has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)) {
+		char *formatted_name = g_strdup(""); 
+
 		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
 		//Last Name
-		tmp = return_next_entry(entry, 0);
+		tmp = return_next_entry(entry, entryLastname);
 		if (tmp) {
 			osxml_node_add(current, "LastName", tmp);
+			formatted_name = g_strdup_printf("%s", tmp);
 			g_free(tmp);
 		}
 	
 		//First Name
-		tmp = return_next_entry(entry, 1);
+		tmp = return_next_entry(entry, entryFirstname);
 		if (tmp) {
 			osxml_node_add(current, "FirstName", tmp);
+			formatted_name = g_strdup_printf("%s %s", formatted_name, tmp);
 			g_free(tmp);
 		}
+
+		//Formatted
+		current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+		osxml_node_add(current, "Content", formatted_name);
+		g_free(formatted_name);
 	}
 	
 	//Company
-	tmp = return_next_entry(entry, 2);
+	tmp = return_next_entry(entry, entryCompany);
 	if (tmp) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
 		osxml_node_add(current, "Name", tmp);
@@ -980,9 +989,10 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	}
 
 	//Telephones and email
-	for (i = 3; i <= 7; i++) {
+	for (i = entryPhone1; i <= entryPhone5; i++) {
 		tmp = return_next_entry(entry, i);
 		if (tmp) {
+			osync_trace(TRACE_INTERNAL, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
 			if (entry->address.phoneLabel[i - 3] == 4) {
 				current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
 			} else
@@ -993,27 +1003,35 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 			
 			switch (entry->address.phoneLabel[i - 3]) {
 				case 0:
-					osxml_node_add(current, "Work", NULL);
-					osxml_node_add(current, "Voice", NULL);
+					// Work
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Work");
 					break;
 				case 1:
-					osxml_node_add(current, "Home", NULL);
+					// Home
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Home");
 					break;
 				case 2:
-					osxml_node_add(current, "Work", NULL);
-					osxml_node_add(current, "Fax", NULL);
+					// Fax
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Fax");
 					break;
 				case 3:
-					osxml_node_add(current, "Voice", NULL);
+					// Other
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Voice");
 					break;
+				case 4:
+					// E Mail
+					break;	
 				case 5:
-					osxml_node_add(current, "Pref", NULL);
+					// Main
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pref");
 					break;
 				case 6:
-					osxml_node_add(current, "Pager", NULL);
+					// Pager
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pager");
 					break;
 				case 7:
-					osxml_node_add(current, "Cellular", NULL);
+					// Mobile / Cellular
+					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Cell");
 					break;
 			}
 		}
@@ -1021,38 +1039,38 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	}
 
 	//Address
-	if (has_entry(entry, 8) || has_entry(entry, 9) || has_entry(entry, 10) || has_entry(entry, 11) || has_entry(entry, 12)) {
+	if (has_entry(entry, entryAddress) || has_entry(entry, entryCity) || has_entry(entry, entryState) || has_entry(entry, entryZip) || has_entry(entry, entryCountry)) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Address", NULL);
 		//Street
-		tmp = return_next_entry(entry, 8);
+		tmp = return_next_entry(entry, entryAddress);
 		if (tmp) {
 			osxml_node_add(current, "Street", tmp);
 			g_free(tmp);
 		}
 	
 		//City
-		tmp = return_next_entry(entry, 9);
+		tmp = return_next_entry(entry, entryCity);
 		if (tmp) {
 			osxml_node_add(current, "City", tmp);
 			g_free(tmp);
 		}
 		
 		//Region
-		tmp = return_next_entry(entry, 10);
+		tmp = return_next_entry(entry, entryState);
 		if (tmp) {
 			osxml_node_add(current, "Region", tmp);
 			g_free(tmp);
 		}
 		
 		//Code
-		tmp = return_next_entry(entry, 11);
+		tmp = return_next_entry(entry, entryZip);
 		if (tmp) {
 			osxml_node_add(current, "PostalCode", tmp);
 			g_free(tmp);
 		}
 		
 		//Country
-		tmp = return_next_entry(entry, 12);
+		tmp = return_next_entry(entry, entryCountry);
 		if (tmp) {
 			osxml_node_add(current, "Country", tmp);
 			g_free(tmp);
@@ -1060,7 +1078,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	}
 	
 	//Title
-	tmp = return_next_entry(entry, 13);
+	tmp = return_next_entry(entry, entryTitle);
 	if (tmp) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Title", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
@@ -1068,7 +1086,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	}
 		
 	//Note
-	tmp = return_next_entry(entry, 18);
+	tmp = return_next_entry(entry, entryNote);
 	if (tmp) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Note", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
@@ -1149,21 +1167,22 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 	int numnodes = (nodes) ? nodes->nodeNr : 0;
 	osync_trace(TRACE_INTERNAL, "Found %i telephones", numnodes);
 	
+	// Palm supports 5 Numbers
 	for (i = 0; i < 5 && i < numnodes; i++) {
 		cur = nodes->nodeTab[i];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
 
-		osync_trace(TRACE_INTERNAL, "handling telephone. has work %i, home %i, voice %i", osxml_has_property(cur, "Work"), osxml_has_property(cur, "Home"), osxml_has_property(cur, "Voice"));
+		osync_trace(TRACE_INTERNAL, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "Work"), osxml_has_property(cur, "Home"), osxml_has_property(cur, "Voice"));
 
-		if (osxml_has_property(cur, "Work") && osxml_has_property(cur, "Voice")) {
+		if (osxml_has_property(cur, "Work")) {
 			entry->address.phoneLabel[i] = 0;
-		} else if (osxml_has_property(cur, "HOME") && !(osxml_has_property(cur, "FAX"))) {
+		} else if (osxml_has_property(cur, "HOME")) {
 			entry->address.phoneLabel[i] = 1;
 		} else if (osxml_has_property(cur, "FAX")) {
 			entry->address.phoneLabel[i] = 2;
 		} else if (!(osxml_has_property(cur, "WORK")) && !(osxml_has_property(cur, "HOME")) && osxml_has_property(cur, "VOICE")) {
 			entry->address.phoneLabel[i] = 3;
-		} else if (osxml_has_property(cur, "PREF") && !(osxml_has_property(cur, "FAX"))) {
+		} else if (osxml_has_property(cur, "PREF")) {
 			entry->address.phoneLabel[i] = 5;
 		} else if (osxml_has_property(cur, "PAGER")) {
 			entry->address.phoneLabel[i] = 6;

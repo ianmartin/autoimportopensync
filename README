@@ -10,6 +10,7 @@ New Features (which should be tested!)
 * excluding recurrence events
 * change time format from unixtimestamp to "vtype" format (2006-03-09T13:13:00Z)
 * notes/memos
+* formattedname -> hack
 
 Tested Devices
 ^^^^^^^^^^^^^^
@@ -19,19 +20,27 @@ Tested Devices
 Tested Plugins
 ^^^^^^^^^^^^^^
 kdepim-sync
+evo2-sync
 file-sync
 
 Bugs/Known Problems
 ^^^^^^^^^^^^^^^^^^^
-* is this code really pilot-link 0.12 proof?
+* is this code really pilot-link 0.12 proof? [later]
 * changetype of new entries are modified instead of added?
 
 TODO
 ^^^^
+	contact
+	^^^^^^^
+* phonelabel - tele type	
+* fix tele type "spelling" (Home / HOME / home ...)
+
+	general
+	^^^^^^^
 * Test categories of event/contact/todo/..
 * Public/Private option
 * Timezone
-* Test with other plugins: evolution, ...
+* Test with other plugins: evolution, sunbird-sync, ... 
 * Find limit of excluding recurrences
 * Clean up & split palm_format code in smart functions
-* Testing with pilot-link 0.12.x
+* Testing with pilot-link 0.12.x [later]
