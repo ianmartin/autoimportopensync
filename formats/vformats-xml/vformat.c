@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <iconv.h>
 
 static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save);
 static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
@@ -89,15 +90,6 @@ static char *_fold_lines (char *buf)
 	   \n<WS>... We also turn single \r's and \n's not followed by
 	   WS into \r\n's. */
 	while (*p) {
-		/* RFC 2045 - Section 6.7 - #5 - Softbreaks
-		   Quoted Printable needs an hyphen before a line break.
-		*/   
-		if (*p == '=') {
-			next = g_utf8_next_char (p);
-			if (*next == '\n' || *next == '\r')
-				p = g_utf8_next_char (p);
-		}
-
 		if (*p == '\r' || *p == '\n') {
 			next = g_utf8_next_char (p);
 			if (*next == '\n' || *next == '\r') {
@@ -172,16 +164,46 @@ static void _skip_until (char **p, char *s)
 	*p = lp;
 }
 
-static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable)
+static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, iconv_t cd)
+{
+	if (cd != (iconv_t)(-1)) {
+		char *inbuf, *outbuf, *p;
+		size_t inbytesleft, outbytesleft;
+
+		inbuf = str->str;
+		p = outbuf = malloc(str->len*2);
+		inbytesleft = str->len;
+		outbytesleft = str->len*2;
+		if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+			*p = 0;
+			vformat_attribute_add_value(attr, outbuf);
+		} else {
+			/* hmm, should not happen */
+			vformat_attribute_add_value(attr, str->str);
+		}
+
+		free(outbuf);
+	} else {
+		/* character set not converted. leave it untouched... */
+		vformat_attribute_add_value (attr, str->str);
+	}
+}
+
+static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable, GString *charset)
 {
 	char *lp = *p;
 	GString *str;
+	iconv_t cd;
+
+	if (charset) cd = iconv_open("UTF-8", charset->str); else cd = (iconv_t)-1;
 
 	/* read in the value */
 	str = g_string_new ("");
 	while (*lp != '\r' && *lp != '\0') {
 		if (*lp == '=' && quoted_printable) {
-			char a, b;
+			char a, b, x1, x2;
+			gboolean convert = FALSE;
+			
 			if ((a = *(++lp)) == '\0') break;
 			if ((b = *(++lp)) == '\0') break;
 			if (a == '\r' && b == '\n') {
@@ -191,20 +213,74 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 				 * 2 kinds of line folding
 				 */
 			}
-			else if (isalnum(a) && isalnum (b)) {
+			else if (isalnum(a)) {
+				if (isalnum(b)) {
+					/* e.g. ...N=C3=BCrnberg\r\n
+					 *          ^^^
+			       		 */
+					x1=a;
+					x2=b;
+					convert = TRUE;
+				}
+				else if (b == '=') {
+					/* e.g. ...N=C=\r\n
+					 *          ^^^
+					 * 3=BCrnberg...
+					 * ^
+					 */
+					char *tmplp = lp;
+					if (*(++tmplp) == '\r' && *(++tmplp) == '\n' && isalnum(*(++tmplp))) {
+						x1 = a;
+						x2 = *tmplp;
+						convert = TRUE;
+						lp = tmplp;	
+					}	
+				}
+				else {
+					/* append malformed input, and
+				   	   continue parsing */
+					str = g_string_append_c(str, a);
+					str = g_string_append_c(str, b);
+				}	
+			}	
+			else if (a == '=') {
+				char *tmplp = lp;
+				char c, d, e;
+				c = *(++tmplp);
+				d = *(++tmplp);
+				e = *(++tmplp);
+				if (b == '\r' && c == '\n' && isalnum(d) && isalnum(e)) {
+					x1 = d;
+					x2 = e;
+					convert = TRUE;
+					lp = tmplp;
+				}
+				else {
+					/* append malformed input, and
+				   	   continue parsing */
+					str = g_string_append_c(str, a);
+					str = g_string_append_c(str, b);
+				}	
+			}
+			else {
+				/* append malformed input, and
+				   continue parsing */
+				str = g_string_append_c(str, a);
+				str = g_string_append_c(str, b);
+			}
+			if (convert) {
 				char c;
 
-				a = tolower (a);
-				b = tolower (b);
+				a = tolower (x1);
+				b = tolower (x2);
 
 				c = (((a>='a'?a-'a'+10:a-'0')&0x0f) << 4)
 					| ((b>='a'?b-'a'+10:b-'0')&0x0f);
-
+				
 				str = g_string_append_c (str, c);
-			}
-			/* silently consume malformed input, and
-			   continue parsing */
+			}	
 			lp++;
+			convert = FALSE;
 		}
 		else if (*lp == '\\') {
 			/* convert back to the non-escaped version of
@@ -222,7 +298,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 					if (!strcmp (attr->name, "CATEGORIES")) {
 						//We need to handle categories here to work
 						//aroung a bug in evo2
-						vformat_attribute_add_value (attr, str->str);
+						_read_attribute_value_add (attr, str, cd);
 						g_string_assign (str, "");
 					} else
 						str = g_string_append_c (str, ',');
@@ -239,7 +315,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 		}
 		else if ((*lp == ';') ||
 			 (*lp == ',' && !strcmp (attr->name, "CATEGORIES"))) {
-			vformat_attribute_add_value (attr, str->str);
+			_read_attribute_value_add (attr, str, cd);
 			g_string_assign (str, "");
 			lp = g_utf8_next_char(lp);
 		}
@@ -249,9 +325,10 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 		}
 	}
 	if (str) {
-		vformat_attribute_add_value (attr, str->str);
+		_read_attribute_value_add (attr, str, cd);
 		g_string_free (str, TRUE);
 	}
+	if (cd != (iconv_t) - 1) iconv_close(cd);
 
 	if (*lp == '\r') {
 		lp = g_utf8_next_char (lp); /* \n */
@@ -261,7 +338,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	*p = lp;
 }
 
-static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable)
+static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable, GString **charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -336,6 +413,10 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 					vformat_attribute_param_free (param);
 					param = NULL;
 				}
+			} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
+				*charset = g_string_new(param->values->data);
+				vformat_attribute_param_free (param);	
+				param = NULL;
 			}
 			else {
 				if (str->len > 0) {
@@ -408,7 +489,7 @@ static VFormatAttribute *_read_attribute (char **p)
 	char *attr_group = NULL;
 	char *attr_name = NULL;
 	VFormatAttribute *attr = NULL;
-	GString *str;
+	GString *str, *charset = NULL;
 	char *lp = *p;
 	
 	gboolean is_qp = FALSE;
@@ -474,14 +555,15 @@ static VFormatAttribute *_read_attribute (char **p)
 	if (*lp == ';') {
 		/* skip past the ';' */
 		lp = g_utf8_next_char(lp);
-		_read_attribute_params (attr, &lp, &is_qp);
+		_read_attribute_params (attr, &lp, &is_qp, &charset);
 	}
 	if (*lp == ':') {
 		/* skip past the ':' */
 		lp = g_utf8_next_char(lp);
-		_read_attribute_value (attr, &lp, is_qp);
+		_read_attribute_value (attr, &lp, is_qp, charset);
 	}
 
+	if (charset) g_string_free(charset, TRUE);
 	*p = lp;
 
 	if (!attr->values)
@@ -682,6 +764,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		VFormatAttribute *attr = l->data;
 		GString *attr_str;
 		int l;
+		gboolean quoted_printable = FALSE;
 
 		attr_str = g_string_new ("");
 
@@ -714,6 +797,10 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 					attr_str = g_string_append (attr_str, v->data);
 					if (v->next)
 						attr_str = g_string_append_c (attr_str, ',');
+						// check for quoted-printable encoding
+						if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE")) {
+							quoted_printable = TRUE;
+						}
 				}
 			}
 		}
@@ -740,16 +827,24 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			g_free (escaped_value);
 		}
 
-		/* 5.8.2:
-		 * When generating a content line, lines longer than 75
-		 * characters SHOULD be folded. The quoted-printable specs says
-		 * that softbreaks should be generated by inserting a =\r\n<WS>
-		 */
+
+		/* When generating a content line, lines longer that 75 characters should be folded.
+		 * rfc 2425, 5.8.2:
+		 * A logical line MAY be continued on the next physical line anywhere
+		 * between two characters by inserting a CRLF immediately followed by a
+		 * single white space character.
+		 * rfc 2045, 6.7
+		 * The quoted-printable specs says that softbreaks should be generated by inserting a =\r\n
+		*/
+		
 		l = 0;
 		do {
 			if (attr_str->len - l > 75) {
 				l += 75;
-				attr_str = g_string_insert_len (attr_str, l, "=" CRLF " ", sizeof ("=" CRLF " ") - 1);
+				if (quoted_printable)
+					attr_str = g_string_insert_len (attr_str, l, "=" CRLF "", sizeof ("=" CRLF "") - 1);
+				else
+					attr_str = g_string_insert_len (attr_str, l, CRLF " ", sizeof (CRLF " ") - 1);
 			}
 			else
 				break;
