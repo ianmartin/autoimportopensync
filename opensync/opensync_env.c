@@ -726,4 +726,17 @@ void *osync_try_malloc0(unsigned int size, OSyncError **error)
 	return result;
 }
 
+char *osync_strreplace(const char *input, const char *delimiter, const char *replacement)
+{
+	osync_return_val_if_fail(input != NULL, NULL);
+	osync_return_val_if_fail(delimiter != NULL, NULL);
+	osync_return_val_if_fail(replacement != NULL, NULL);
+
+	gchar **array = g_strsplit(input, delimiter, 0);
+	gchar *ret = g_strjoinv(replacement, array);
+	g_strfreev(array);
+
+	return ret;
+}
+
 /*@}*/
