@@ -412,11 +412,11 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 					*quoted_printable = TRUE;
 					vformat_attribute_param_free (param);
 					param = NULL;
-				}
-			} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
-				*charset = g_string_new(param->values->data);
-				vformat_attribute_param_free (param);	
-				param = NULL;
+				} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
+					*charset = g_string_new(param->values->data);
+					vformat_attribute_param_free (param);	
+					param = NULL;
+				}	
 			}
 			else {
 				if (str->len > 0) {
