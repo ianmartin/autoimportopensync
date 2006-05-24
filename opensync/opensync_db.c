@@ -153,7 +153,10 @@ osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSync
 	}
 	sqlite3 *sdb = log_db->db;
 	
-	char *query = g_strdup_printf("INSERT INTO tbl_log (uid, memberid, changetype) VALUES('%s', '%lli', '%i')", change->uid, change->member->id, change->changetype);
+	char *escaped_uid = osync_db_sql_escape(change->uid);
+	char *query = g_strdup_printf("INSERT INTO tbl_log (uid, memberid, changetype) VALUES('%s', '%lli', '%i')", escaped_uid, change->member->id, change->changetype);
+	g_free(escaped_uid);
+	
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert log! %s", sqlite3_errmsg(sdb));
 		g_free(query);
@@ -178,7 +181,10 @@ osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSy
 	}
 	sqlite3 *sdb = log_db->db;
 	
-	char *query = g_strdup_printf("DELETE FROM tbl_log WHERE uid='%s' AND memberid='%lli'", change->uid, change->member->id);
+	char *escaped_uid = osync_db_sql_escape(change->uid);
+	char *query = g_strdup_printf("DELETE FROM tbl_log WHERE uid='%s' AND memberid='%lli'", escaped_uid, change->member->id);
+	g_free(escaped_uid);
+	
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to remove log! %s", sqlite3_errmsg(sdb));
 		g_free(query);
@@ -256,7 +262,10 @@ osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSy
 	
 	char *query = NULL;
 	if (!change->id) {
-		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, format, memberid, mappingid) VALUES('%s', '%s', '%s', '%lli', '%lli')", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid);
+		char *escaped_uid = osync_db_sql_escape(change->uid);
+		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, format, memberid, mappingid) VALUES('%s', '%s', '%s', '%lli', '%lli')", escaped_uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid);
+		g_free(escaped_uid);
+		
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert change! %s", sqlite3_errmsg(sdb));
 			g_free(query);
@@ -265,10 +274,13 @@ osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSy
 		}
 		change->id = sqlite3_last_insert_rowid(sdb);
 	} else {
+		char *escaped_uid = osync_db_sql_escape(change->uid);
 		if (save_format)
-			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->id);
+			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', format='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", escaped_uid, osync_change_get_objtype(change)->name, osync_change_get_objformat(change)->name, change->member->id, change->mappingid, change->id);
 		else
-			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", change->uid, change->member->id, change->mappingid, change->id);
+			query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", escaped_uid, change->member->id, change->mappingid, change->id);
+		g_free(escaped_uid);
+		
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to update change! %s", sqlite3_errmsg(sdb));
 			g_free(query);
@@ -459,7 +471,10 @@ void osync_db_get_anchor(OSyncDB *sdb, const char *objtype, char **retanchor)
 
 void osync_db_put_anchor(OSyncDB *sdb, const char *objtype, const char *anchor)
 {
-	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", objtype, anchor);
+	char *escaped_anchor = osync_db_sql_escape(anchor);
+	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", objtype, escaped_anchor);
+	g_free(escaped_anchor);
+	
 	if (sqlite3_exec(sdb->db, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable put anchor! %s", sqlite3_errmsg(sdb->db));
 
@@ -495,9 +510,15 @@ void osync_db_save_hash(OSyncHashTable *table, const char *uid, const char *hash
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
 	
-	char *query = g_strdup_printf("REPLACE INTO tbl_hash ('uid', 'hash', 'objtype') VALUES('%s', '%s', '%s')", uid, hash, objtype);
+	char *escaped_uid = osync_db_sql_escape(uid);
+	char *escaped_hash = osync_db_sql_escape(hash);
+	char *query = g_strdup_printf("REPLACE INTO tbl_hash ('uid', 'hash', 'objtype') VALUES('%s', '%s', '%s')", escaped_uid, escaped_hash, objtype);
+	
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_debug("OSDB", 1, "Unable to insert hash! %s", sqlite3_errmsg(sdb));
+		osync_debug("OSDB", 1, "Unable to insert hash! uid = %s, hash = %s, error = %s", escaped_uid, escaped_hash, sqlite3_errmsg(sdb));
+		
+	g_free(escaped_uid);
+	g_free(escaped_hash);
 	g_free(query);
 }
 
@@ -507,7 +528,10 @@ void osync_db_delete_hash(OSyncHashTable *table, const char *uid)
 	g_assert(table->dbhandle);
 	sqlite3 *sdb = table->dbhandle->db;
 	
-	char *query = g_strdup_printf("DELETE FROM tbl_hash WHERE uid='%s'", uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
+	char *query = g_strdup_printf("DELETE FROM tbl_hash WHERE uid='%s'", escaped_uid);
+	g_free(escaped_uid);
+
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable to delete hash! %s", sqlite3_errmsg(sdb));
 	g_free(query);
@@ -552,7 +576,10 @@ void osync_db_get_hash(OSyncHashTable *table, const char *uid, char **rethash)
 {
 	sqlite3 *sdb = table->dbhandle->db;
 	sqlite3_stmt *ppStmt = NULL;
-	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid='%s'", uid);
+	char *escaped_uid = osync_db_sql_escape(uid);
+	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid='%s'", escaped_uid);
+	g_free(escaped_uid);
+	
 	if (sqlite3_prepare(sdb, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
 	if (sqlite3_step(ppStmt) != SQLITE_OK)
@@ -575,3 +602,9 @@ void osync_db_reset_hash(OSyncHashTable *table, const char *objtype)
 		osync_debug("OSDB", 1, "Unable to reset hash! %s", sqlite3_errmsg(sdb));
 	g_free(query);
 }
+
+char *osync_db_sql_escape(const char *s)
+{
+	return osync_strreplace(s, "'", "''");
+}
+
