@@ -1409,7 +1409,7 @@ char* contact_data_to_xml(OpieSyncEnv* env, GList* contacts)
   
   for(li = contacts; li != NULL; li = g_list_next(li))
   {
-    contact = (contact_data*)li->data;      
+    contact = (contact_data*)li->data;
     
     g_string_append(bodystr, "<Contact");
     

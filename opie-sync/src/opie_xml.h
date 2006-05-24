@@ -59,7 +59,6 @@ char* cal_data_to_xml(OpieSyncEnv* env, GList* calendar);
 /* convert contact GList to xml string - caller must free */
 char* contact_data_to_xml(OpieSyncEnv* env, GList* contacts);
 
-
 /* convert todo GList to xml string - caller must free */
 char* todo_data_to_xml(OpieSyncEnv* env, GList* todos);
 

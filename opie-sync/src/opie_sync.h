@@ -42,6 +42,7 @@ typedef enum {
 } OPIE_DEVICE_TYPE;
 
 typedef enum {
+    OPIE_CONN_NONE,                          /* for debugging */
     OPIE_CONN_FTP,
     OPIE_CONN_SCP
 } OPIE_CONN_TYPE;
@@ -55,6 +56,7 @@ struct OpieSyncEnv {
     OPIE_CONN_TYPE    conn_type;
     OPIE_DEVICE_TYPE  device_type;
 
+    gboolean          use_qcop;
     qcop_conn*        qcopconn;
 
     GList*            calendar;

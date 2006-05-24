@@ -50,6 +50,11 @@ typedef struct {
   char* local_filename;
 } fetch_pair;
 
+static fetch_pair addr_file = { "Applications/addressbook/addressbook.xml", "/tmp/addressbook.xml" };
+static fetch_pair todo_file = { "Applications/todolist/todolist.xml", "/tmp/todolist.xml" };
+static fetch_pair cal_file = { "Applications/datebook/datebook.xml", "/tmp/datebook.xml" };
+static fetch_pair cat_file = { "Settings/Categories.xml", "/tmp/Categories.xml" };
+
 int opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
 gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch);
 gboolean scp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch);
@@ -57,7 +62,7 @@ gboolean ftp_put_file(OpieSyncEnv* env, char* filename,
                       opie_object_type obj_type);
 gboolean scp_put_file(OpieSyncEnv* env, char* filename,
                       opie_object_type obj_type);
-
+gboolean write_contact_data( OpieSyncEnv* env, GList* contacts, char *fname );
 
 
 /*
@@ -161,8 +166,6 @@ const char* opie_add_category(const char* name, GList** categories)
   return retval;
 }
 
-
-
 /*
  * opie_connect_and_fetch
  */
@@ -177,10 +180,6 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env,
   
   /* files to fetch */
   GList* files_to_fetch = NULL;
-  fetch_pair addr_file = { "Applications/addressbook/addressbook.xml", "/tmp/addressbook.xml" };
-  fetch_pair todo_file = { "Applications/todolist/todolist.xml", "/tmp/todolist.xml" };
-  fetch_pair cal_file = { "Applications/datebook/datebook.xml", "/tmp/datebook.xml" };
-  fetch_pair cat_file = { "Settings/Categories.xml", "/tmp/Categories.xml" };
             
   if(!env)
     return FALSE;
@@ -197,11 +196,15 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env,
   /* always fetch the categories file */
   files_to_fetch = g_list_append(files_to_fetch, &cat_file);   
 
-    
-    
   /* check which connection method was requested */
+  osync_trace( TRACE_INTERNAL, "conn_type = %d", env->conn_type );
   switch (env->conn_type)
   {
+    case OPIE_CONN_NONE:
+      /* attempt an FTP connection */
+      OPIE_DEBUG("Skipping Connection.\n");
+      break;
+      
     case OPIE_CONN_FTP:
       /* attempt an FTP connection */
       OPIE_DEBUG("Attempting FTP Connection.\n");
@@ -256,17 +259,25 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
   guint t;
   FILE* fd;
     
-  if(env->url &&
-     env->username &&
-     env->password)
-  { 
-    qcop_conn *qc_conn   = qcop_connect(env->url, env->username, env->password);
-    char* root_path      = qcop_get_root(qc_conn);
-    char* seperator_path = g_strdup_printf("%s/", root_path);
+  if (env->url &&
+      env->username &&
+      env->password )
+  {  
+      char* separator_path;
+      if ( env->use_qcop ) 
+      {
+          qcop_conn *qc_conn   = qcop_connect(env->url, env->username, env->password);
+          char* root_path      = qcop_get_root(qc_conn);
+          osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
+          separator_path = g_strdup_printf("%s/", root_path);
 
-/*    if(!seperator_path)
+/*    if(!separator_path)
      g_strdup("/");*/
-    qcop_disconnect(qc_conn);
+          qcop_disconnect(qc_conn);
+          if ( root_path ) g_free(root_path);
+      } else {
+          separator_path = g_strdup( "/" );
+      }
 
     /* fetch each of the requested files */
     for(t = 0; t < len; ++t)
@@ -278,7 +289,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
                                env->password,
                                env->url,
                                env->device_port,
-                               seperator_path,
+                               separator_path,
                                pair->remote_filename);
               
       fd = fopen(pair->local_filename, "w"); 
@@ -326,9 +337,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
       g_free(ftpurl);     
       curl_easy_cleanup(curl);
     }                        
-    g_free(seperator_path);
-    if(root_path)
-      g_free(root_path);
+    g_free(separator_path);
   }
   else
   {
@@ -344,25 +353,57 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 /*
  * opie_connect_and_put
  */
-gboolean opie_connect_and_put(OpieSyncEnv* env,
-                              char* contacts_file,
-                              opie_object_type obj_type)
+gboolean opie_connect_and_put( OpieSyncEnv* env,
+                               opie_object_type object_types,
+                               GList* calendar,
+                               GList* contacts,
+                               GList* todos,
+                               GList* categories )
 { 
-  gboolean rc = FALSE;
+    osync_trace(TRACE_ENTRY, "%s", __func__ );
+
+  gboolean rc = TRUE;
   
+  /* files to fetch */
+  GList* files_to_put = NULL;
+            
+  if ( !env ) return FALSE;
+
+  if ( object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
+      rc = write_contact_data( env, contacts, addr_file.local_filename );
+      files_to_put = g_list_append(files_to_put, &addr_file);
+  }
+
+  if(object_types & OPIE_OBJECT_TYPE_TODO)
+    files_to_put = g_list_append(files_to_put, &todo_file);
+  
+  if(object_types & OPIE_OBJECT_TYPE_CALENDAR)
+    files_to_put = g_list_append(files_to_put, &cal_file);
+
+  /* always fetch the categories file */
+  files_to_put = g_list_append(files_to_put, &cat_file);   
+
+  if ( ! rc ) goto ERROR;
+   
+  if ( env->conn_type == OPIE_CONN_NONE ) {
+    g_list_free(files_to_put);
+    osync_trace(TRACE_EXIT, "Skipping Put\n%s(%d)", __func__, rc );
+    return TRUE;
+  }
+
   /* check which connection method was requested */
   switch (env->conn_type)
   {
     case OPIE_CONN_FTP:
       /* attempt an FTP connection */
       OPIE_DEBUG("Attempting FTP Put File.\n");
-      rc = ftp_put_file(env, contacts_file, obj_type); 
+//      rc = ftp_put_file(env, contacts_file, obj_type); 
       break;
       
     case OPIE_CONN_SCP:
       /* attempt and scp connection */
       OPIE_DEBUG("Attempting scp Put File.\n");
-      rc = scp_put_file(env, contacts_file, obj_type);
+//      rc = scp_put_file(env, contacts_file, obj_type);
       break;
       
     default:
@@ -371,6 +412,9 @@ gboolean opie_connect_and_put(OpieSyncEnv* env,
       break;     
   }
 
+ERROR:
+  g_list_free(files_to_put);
+  osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
   return rc;
 }
 
@@ -390,7 +434,7 @@ gboolean ftp_put_file(OpieSyncEnv* env, char* filename,
   FILE *hd_src;
   char* ftpurl;
   char* root_path;
-  char* seperator_path;
+  char* separator_path;
   qcop_conn* qc_conn = qcop_connect(env->url, env->username, env->password);
   
   /* figure out the dest filename */
@@ -413,8 +457,8 @@ gboolean ftp_put_file(OpieSyncEnv* env, char* filename,
 
 
   root_path      = qcop_get_root(qc_conn);
-  seperator_path = g_strdup_printf("%s/", root_path);
-/*  if(!seperator_path)
+  separator_path = g_strdup_printf("%s/", root_path);
+/*  if(!separator_path)
     g_strdup("/");*/
   qcop_disconnect(qc_conn);
 
@@ -423,10 +467,11 @@ gboolean ftp_put_file(OpieSyncEnv* env, char* filename,
                            env->password,
                            env->url,
                            env->device_port,
-                           seperator_path,
+                           separator_path,
                            dest_filename);
 
-  g_free(seperator_path);
+  if ( separator_path ) 
+      g_free(separator_path);
   if(root_path)
     g_free(root_path);
 
@@ -664,6 +709,37 @@ char* serialize_contact_data(OpieSyncEnv* env, GList* contacts)
   return contact_data_to_xml(env, contacts);
 }
 
+/* write the contact data to a file
+ * is this right? shouldn't we just have contact_data_to_xml() write directly
+ *  to a file (like parse_contact_data)?
+ */
+gboolean write_contact_data( OpieSyncEnv* env, GList* contacts, char *fname )
+{
+    osync_trace(TRACE_ENTRY, "%s", __func__ );
+    gboolean rc = FALSE;
+    char *buf = NULL;
+    FILE *fOut = fopen( fname, "w" );
+    if ( ! fOut ) {
+        osync_trace( TRACE_INTERNAL, "Opening contact file for write failed" );
+        goto ERROR;
+    }
+
+    buf = contact_data_to_xml(env, contacts);
+    int n = strlen( buf );
+    size_t written = fwrite( buf, sizeof(char), n, fOut );
+    if ( written != n * sizeof(char) ) {
+        osync_trace( TRACE_INTERNAL, "write failed" );
+        goto ERROR;
+    }
+
+    rc = TRUE;
+
+ERROR:
+    if ( fOut ) fclose( fOut );
+    if ( buf ) g_free( buf );
+    osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
+    return rc;
+}
 
 /*
  * free_contact_data

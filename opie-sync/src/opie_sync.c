@@ -50,6 +50,7 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	env->device_type = OPIE_SYNC_OPIE;
 	env->conn_type = OPIE_CONN_FTP;
 	env->device_port = 4242;
+    env->use_qcop = TRUE;
 
 	doc = xmlParseMemory(config, size);
 
@@ -93,9 +94,16 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 					env->device_type = OPIE_SYNC_OPIE;
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"conntype")) {
 			  if (!strcasecmp(str, "scp"))
-					env->device_type = OPIE_CONN_SCP;
+					env->conn_type = OPIE_CONN_SCP;
+			  else if ( strcasecmp(str, "none") == 0 )
+					env->conn_type = OPIE_CONN_NONE;
 			  else
-					env->device_type = OPIE_CONN_FTP;
+					env->conn_type = OPIE_CONN_FTP;
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"use_qcop")) {
+			  if ( strcasecmp(str, "false") == 0 )
+					env->use_qcop = FALSE;
+			  else 
+					env->use_qcop = TRUE;
 			}
 			xmlFree(str);
 		}
@@ -118,7 +126,7 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	char* errmsg = NULL;
 	opie_object_type object_types = OPIE_OBJECT_TYPE_PHONEBOOK; // FIXME
-  GList* li;
+        GList* li;
 	contact_data* contact = NULL;
 
 	if (env->qcopconn)
@@ -132,41 +140,44 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 	}
 	
 	/* Connect to QCopBridgeServer to lock GUI and get root path */
-	osync_trace(TRACE_INTERNAL, "qcop_connect");
-	env->qcopconn = qcop_connect(env->url,
-													env->username,
-													env->password);
-	if (env->qcopconn->result)
+	if ( env->use_qcop ) 
 	{
-		qcop_start_sync(env->qcopconn, &sync_cancelled);
-		if (!env->qcopconn->result)
-		{
-			osync_trace(TRACE_INTERNAL, "qcop_start_sync_failed");
-			errmsg = g_strdup(env->qcopconn->resultmsg);
-			qcop_stop_sync(env->qcopconn);
-			qcop_freeqconn(env->qcopconn);
-			env->qcopconn = NULL;
-			osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
-			goto error;
-		}
-	}
-	else
-	{
-		osync_trace(TRACE_INTERNAL, "QCop connection failed");
-		errmsg = g_strdup(env->qcopconn->resultmsg);
-		qcop_freeqconn(env->qcopconn);
-		env->qcopconn = NULL;
-		osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
-		goto error;
+        osync_trace(TRACE_INTERNAL, "qcop_connect");
+        env->qcopconn = qcop_connect(env->url,
+                                     env->username,
+                                     env->password);
+        if (env->qcopconn->result)
+        {
+            qcop_start_sync(env->qcopconn, &sync_cancelled);
+            if (!env->qcopconn->result)
+            {
+                osync_trace(TRACE_INTERNAL, "qcop_start_sync_failed");
+                errmsg = g_strdup(env->qcopconn->resultmsg);
+                qcop_stop_sync(env->qcopconn);
+                qcop_freeqconn(env->qcopconn);
+                env->qcopconn = NULL;
+                osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+                goto error;
+            }
+        }
+        else
+        {
+            osync_trace(TRACE_INTERNAL, "QCop connection failed");
+            errmsg = g_strdup(env->qcopconn->resultmsg);
+            qcop_freeqconn(env->qcopconn);
+            env->qcopconn = NULL;
+            osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+            goto error;
+        }
 	}
 
 	/* connect to the device and pull the required data back */
 	if(!opie_connect_and_fetch(env, 
-															object_types, 
-															&env->calendar, 
-															&env->contacts, 
-															&env->todos,
-															&env->categories))
+                               object_types, 
+                               &env->calendar, 
+                               &env->contacts, 
+                               &env->todos,
+                               &env->categories))
 	{
 		/* failed */
 		if(env->qcopconn)
@@ -189,7 +200,7 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 		goto error;
 	}
 
-	for(li = env->contacts; li != NULL; li = g_list_next(li))
+	for (li = env->contacts; li != NULL; li = g_list_next(li))
 	{
 		contact = (contact_data*)li->data;
 		errmsg = g_strdup_printf("Contact %s %s", contact->first_name, contact->last_name);
@@ -266,7 +277,7 @@ static void opie_sync_finalize( void* data )
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void opie_sync_connect( OSyncContext* ctx)
+static void opie_sync_connect( OSyncContext* ctx )
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
@@ -277,7 +288,6 @@ static void opie_sync_connect( OSyncContext* ctx)
 		goto error;
 
 	osync_context_report_success(ctx);
-	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 
@@ -286,28 +296,52 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-static void opie_sync_sync_done( OSyncContext* ctx)
+static void opie_sync_sync_done( OSyncContext* ctx )
 {
+	osync_trace(TRACE_ENTRY, "%s", __func__ );
+	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
+	OSyncError *error = NULL;
+	opie_object_type object_types = OPIE_OBJECT_TYPE_PHONEBOOK; // FIXME
+        
+	osync_trace( TRACE_INTERNAL, "number of contacts = %d", 
+		     g_list_length( env->contacts ) );
+
+	if ( !opie_connect_and_put(env, 
+                                   object_types, 
+                                   env->calendar, 
+                                   env->contacts, 
+                                   env->todos,
+                                   env->categories ) )
+        { 
+            osync_trace( TRACE_INTERNAL, "opie_connect_and_put failed" );
+            char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->url );
+            osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
+            goto error;
+        }
+
 	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+
+error:
+	osync_context_report_osyncerror(ctx, &error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
-
-
 
 static osync_bool opie_sync_contact_commit(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
-	//OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
+	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
 	//unsigned char *uid = osync_change_get_uid(change);
 
-	//todo = (PSyncTodoEntry *)osync_change_get_data(change);
-			
+	contact_data *contact = (contact_data *)osync_change_get_data(change);
+	osync_trace( TRACE_INTERNAL, "contact name=%s", contact->last_name );
+
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			break;
 		case CHANGE_ADDED:
-			//printf("!!! added: %s\n", )
-			//*contacts = g_list_append(*contacts, contact);  
+		    env->contacts = g_list_append( env->contacts, contact );
 			break;
 		case CHANGE_DELETED:
 			break;
@@ -316,6 +350,9 @@ static osync_bool opie_sync_contact_commit(OSyncContext *ctx, OSyncChange *chang
 			goto error;
 	}
 	
+	osync_trace( TRACE_INTERNAL, "number of contacts now = %d", 
+		     g_list_length( env->contacts ) );
+
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -359,7 +396,8 @@ static OSyncChange *opie_sync_contact_change_create(contact_data *entry, OSyncEr
 	if (!change)
 		goto error;
 	
-	char *uid = g_strdup_printf("uid-contact-%s-%s", entry->first_name, entry->last_name);
+//	char *uid = g_strdup_printf("uid-contact-%s-%s", entry->first_name, entry->last_name);
+	char *uid = g_strdup_printf("uid-contact-%s", entry->uid );
 	osync_change_set_uid(change, uid);
 	g_free(uid);
 	
@@ -388,7 +426,7 @@ static osync_bool opie_sync_contact_get_changeinfo(OSyncContext *ctx, OSyncError
 	if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		osync_hashtable_set_slow_sync(env->hashtable, "contact");
-		printf("!!! slow sync\n");
+		printf("OPIE: slow sync\n");
 	}
 
 	for(li = env->contacts; li != NULL; li = g_list_next(li))
@@ -399,13 +437,13 @@ static osync_bool opie_sync_contact_get_changeinfo(OSyncContext *ctx, OSyncError
 			goto error;
 			
 		hash = hash_contact(contact);
-		printf("!!! change hash = %s\n", hash);
+		//printf("OPIE: change hash = %s\n", hash);
 		
 		/* Use the hash table to check if the object
 		needs to be reported */
 		osync_change_set_hash(change, hash);
 		if (osync_hashtable_detect_change(env->hashtable, change)) {
-			printf("!!! reporting\n");
+			printf("OPIE: reporting\n");
 			osync_context_report_change(ctx, change);
 			osync_hashtable_update_hash(env->hashtable, change);
 		}
@@ -482,7 +520,7 @@ void get_info(OSyncEnv* env )
     /*
      * Object types
      */
-		osync_plugin_accept_objtype(info, "contact");
-		osync_plugin_accept_objformat(info, "contact", "opie-contact", NULL);
-		osync_plugin_set_commit_objformat(info, "contact", "opie-contact", opie_sync_contact_commit);
+    osync_plugin_accept_objtype(info, "contact");
+    osync_plugin_accept_objformat(info, "contact", "opie-contact", NULL);
+    osync_plugin_set_commit_objformat(info, "contact", "opie-contact", opie_sync_contact_commit);
 }

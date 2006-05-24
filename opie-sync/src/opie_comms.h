@@ -235,11 +235,13 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env,
                                 GList** categories);
 
 
-/* connect to the device and push the file back */
-gboolean opie_connect_and_put(OpieSyncEnv* env,
-                              char* contacts_file,
-                              opie_object_type obj_type); 
-
+/* connect to the device and push the files back */
+gboolean opie_connect_and_put( OpieSyncEnv* env,
+                               opie_object_type object_types,
+                               GList* calendar,
+                               GList* contacts,
+                               GList* todos,
+                               GList* categories );
 
 /* convert a cal_data linked list into a string representation */
 char* serialize_cal_data(OpieSyncEnv* env, GList* calendar);
