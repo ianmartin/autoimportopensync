@@ -1,0 +1,8 @@
+Opie Plugin for OpenSync README
+===============================
+
+This OpenSync plugin is intended to allow synchronisation with the Opie handheld environment. Please see http://opie.handhelds.org for more information on Opie.
+
+This plugin is still a work in progress and is not really useful for anything yet. At the moment it can only read and write contact data and won't sync correctly.
+
+If you'd like to help, please send any questions, patches or corrections to the opensync developers list (opensync-devel@lists.sourceforge.net). Thanks!
