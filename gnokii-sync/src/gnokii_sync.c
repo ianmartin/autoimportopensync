@@ -18,7 +18,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
-#include "config.h"
 #include "gnokii_sync.h"
 
 #include <opensync/opensync.h>
@@ -108,14 +107,19 @@ static void get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
-	osync_bool calendar_changes = FALSE;
-//	osync_bool todo_changes = FALSE;
-	osync_bool contact_changes = FALSE;
+	osync_bool calendar_changes = TRUE; 
+//	osync_bool todo_changes = TRUE;
+	osync_bool contact_changes = TRUE;
 	
+#ifdef HAVE_EVENT	
 	// get changes of events (calendar)
 	calendar_changes = gnokii_calendar_get_changeinfo(ctx);
+#endif	
+
+#ifdef HAVE_CONTACT	
 	// get changes of contacts
 	contact_changes = gnokii_contact_get_changeinfo(ctx);
+#endif	
 	
 //	TODO: contact & todo
 //	if (calendar_changes && todo_changes && contact_changes)

@@ -1,3 +1,8 @@
+2006-05-26  Daniel Gollub  <dgollub@suse.de>
+	* added configure parameters 
+       		--disable-event
+		--disable-contact
+
 2006-05-20  Daniel Gollub  <dgollub@suse.de>
 
 	* gnokii_contact_utils.c
