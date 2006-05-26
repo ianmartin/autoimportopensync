@@ -218,13 +218,17 @@ void get_info(OSyncEnv *env)
 	info->timeouts.commit_timeout = 10000;
 	info->timeouts.read_change_timeout = 10000;
 
+#ifdef HAVE_CONTACT	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "gnokii-contact", NULL);
 	osync_plugin_set_commit_objformat(info, "contact", "gnokii-contact", gnokii_contact_commit);
+#endif	
 
+#ifdef HAVE_EVENT	
 	osync_plugin_accept_objtype(info, "event");
 	osync_plugin_accept_objformat(info, "event", "gnokii-event", NULL);
 	osync_plugin_set_commit_objformat(info, "event", "gnokii-event", gnokii_calendar_commit);
+#endif	
 
 //	osync_plugin_accept_objtype(info, "todo");
 //	osync_plugin_accept_objformat(info, "todo", "gnokii-todo", NULL);

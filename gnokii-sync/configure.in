@@ -37,26 +37,46 @@ if test "x$enable_privacy" = "xyes"; then
         AC_SUBST(HIDE_SENSTIVIE)
 fi
 
+AC_ARG_ENABLE(contact,
+  AS_HELP_STRING([--disable-contact], [Disable contact support]),
+  disable_contact=$enableval)
+if test "x$disable_contact" != "xno"; then
+	AC_DEFINE(HAVE_CONTACT,1,[Enabled contact support])
+        AC_SUBST(HAVE_CONTACT)
+
+	echo ""
+	echo "================================================================"
+	echo "!!!!!!!!!!!!!!!!!!Warning of the day!!!!!!!!!!!!!2006-05-26!!!!!"
+	echo "!                                                              !"
+	echo "! * contact/addressbook sync is active!                        !" 
+	echo "! * PLEASE make a whole BACKUP of all your contacts            !"
+	echo "! * Don't like contact sync?                                   !"
+        echo "!	        run configure with --disable-contact                 !"
+	echo "!                                                              !"
+	echo "! BACKUP of your cellphone contacts with gnokii:               !"
+	echo "!                                                              !"
+	echo "!       gnokii --getphonebook ME 1 end -v > backup-me.vcard    !"
+	echo "!       gnokii --getphonebook SM 1 end -v > backup-sm.vcard    !"
+	echo "!                                                              !"
+	echo "! Have fun! :)                                                 !"
+	echo "================================================================"
+	echo ""
+
+fi
+
+
+AC_ARG_ENABLE(event,
+  AS_HELP_STRING([--disable-event], [Disable event/calendar support]),
+  disable_event=$enableval)
+if test "x$disable_event" != "xno"; then
+	AC_DEFINE(HAVE_EVENT,1,[Enabled event/calendar support])
+        AC_SUBST(HAVE_EVENT)
+fi
+
 
 AC_OUTPUT([
 Makefile
 src/Makefile
 ])
-
-echo ""
-echo "================================================================"
-echo "!!!!!!!!!!!!!!!!!!Warning of the day!!!!!!!!!!!!!2006-05-19!!!!!"
-echo "!                                                              !"
-echo "! * contact/addressbook sync is active!                        !" 
-echo "! * PLEASE make a whole BACKUP of all your contacts            !"
-echo "!                                                              !"
-echo "! BACKUP of your cellphone contacts with gnokii:               !"
-echo "!                                                              !"
-echo "!       gnokii --getphonebook ME 1 end -v > backup-me.vcard    !"
-echo "!       gnokii --getphonebook SM 1 end -v > backup-sm.vcard    !"
-echo "!                                                              !"
-echo "! Have fun! :)                                                 !"
-echo "================================================================"
-echo ""
 
 

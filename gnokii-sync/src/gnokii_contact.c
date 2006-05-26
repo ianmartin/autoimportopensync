@@ -146,6 +146,8 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 
 /* The function return a free location for a contact entry.
  *  
+ * TODO: run only once! (performance...)
+ *
  * Returns: filled contact note with memory_type and location
  */
 gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
