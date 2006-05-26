@@ -32,6 +32,11 @@ char *setup_testbed(char *fkt_name)
 		g_free(command);
 	}
 	
+	command = g_strdup_printf("cp -R ../osplugin/osplugin %s", testbed);
+	if (system(command))
+		abort();
+	g_free(command);
+	
 	command = g_strdup_printf("cp -R mock-plugin/.libs/*.so %s", testbed);
 	if (system(command))
 		abort();

@@ -2,22 +2,20 @@
 
 START_TEST (env_create)
 {
-  OSyncEnv *os_env = osync_env_new();
-  fail_unless(os_env != NULL, NULL);
-}
-END_TEST
-
-START_TEST (env_free)
-{
-  OSyncEnv *os_env = osync_env_new();
-  fail_unless(os_env != NULL, NULL);
-  osync_env_free(os_env);
+	char *testbed = setup_testbed(NULL);
+	
+	OSyncEnv *os_env = osync_env_new();
+	fail_unless(os_env != NULL, NULL);
+	osync_env_free(os_env);
+	
+	destroy_testbed(testbed);
 }
 END_TEST
 
 START_TEST (env_init)
 {
   char *testbed = setup_testbed("env_init");
+  
   OSyncEnv *env = osync_env_new();
   fail_unless(env != NULL, NULL);
   
@@ -28,6 +26,7 @@ START_TEST (env_init)
   
   fail_unless(osync_env_finalize(env, NULL), NULL);
   osync_env_free(env);
+  
   destroy_testbed(testbed);
 }
 END_TEST
@@ -175,21 +174,20 @@ END_TEST
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Env");
-	//Suite *s2 = suite_create("Env");
+	Suite *s2 = suite_create("Env");
 	create_case(s, "env_create", env_create);
-	create_case(s, "env_free", env_free);
 	create_case(s, "env_init", env_init);
 	create_case(s, "env_double_init", env_double_init);
 	create_case(s, "env_pre_fin", env_pre_fin);
 	create_case(s, "env_init_false", env_init_false);
 	create_case(s, "env_init_false2", env_init_false2);
-	create_case(s, "env_sync_false", env_sync_false);
+	create_case(s2, "env_sync_false", env_sync_false);
 	create_case(s, "env_check_plugin_true1", env_check_plugin_true1);
 	create_case(s, "env_check_plugin_true2", env_check_plugin_true2);
 	create_case(s, "env_check_plugin_false", env_check_plugin_false);
 	create_case(s, "env_check_plugin_false2", env_check_plugin_false2);
 
-	return s;
+	return s2;
 }
 
 int main(void)
