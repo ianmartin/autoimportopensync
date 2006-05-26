@@ -297,11 +297,11 @@ OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncErr
 	engine->clients = g_list_append(engine->clients, client);
 	
 	char *name = g_strdup_printf("%s/pluginpipe", osync_member_get_configdir(member));
-	client->commands_to_osplugin = osync_queue_new(name, TRUE, error);
+	client->commands_to_osplugin = osync_queue_new(name, error);
 	g_free(name);
 
 	name = g_strdup_printf("%s/enginepipe", osync_member_get_configdir(member));
-	client->commands_from_osplugin = osync_queue_new(name, TRUE, error);
+	client->commands_from_osplugin = osync_queue_new(name, error);
 	g_free(name);
 
 	if (!client->commands_to_osplugin || !client->commands_from_osplugin)
@@ -740,6 +740,8 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 	if (!osync_queue_exists(client->commands_to_osplugin) || !osync_queue_is_alive(client->commands_to_osplugin)) {
 		pid_t cpid = fork();
 		if (cpid == 0) {
+			osync_trace_reset_indent();
+			
 			/* Export all options to osplugin through environment variables */
 			osync_env_export_all_options(osync_group_get_env(engine->group));
 			osync_env_export_loaded_modules(osync_group_get_env(engine->group));
@@ -747,6 +749,11 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
 			execlp("osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
+			
+			if (errno == ENOENT) {
+				osync_trace(TRACE_INTERNAL, "Unable to find osplugin. Trying local path.");
+				execlp("./osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
+			}
 			
 			osync_trace(TRACE_INTERNAL, "unable to exec");
 			exit(1);

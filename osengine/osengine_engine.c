@@ -516,8 +516,8 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 		goto error_free_paths;
 	}
 
-	engine->commands_from_self = osync_queue_new(path, FALSE, error);
-	engine->commands_to_self = osync_queue_new(path, FALSE, error);
+	engine->commands_from_self = osync_queue_new(path, error);
+	engine->commands_to_self = osync_queue_new(path, error);
 	if (!engine->commands_from_self || !engine->commands_to_self)
 		goto error_free_paths;
 	
@@ -817,18 +817,6 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	osync_queue_set_message_handler(engine->commands_from_self, (OSyncMessageHandler)engine_message_handler, engine);
 	if (!(engine->man_dispatch))
 		osync_queue_setup_with_gmainloop(engine->commands_from_self, engine->context);
-
-	if (!osync_queue_start_thread(engine->commands_from_self, error)) {
-		osync_group_unlock(engine->group, TRUE);
-		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
-		return FALSE;
-	}
-
-	if (!osync_queue_start_thread(engine->commands_to_self, error)) {
-		osync_group_unlock(engine->group, TRUE);
-		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
-		return FALSE;
-	}
 	
 	osync_trace(TRACE_INTERNAL, "opening engine queue");
 	if (!osync_queue_connect(engine->commands_from_self, O_RDONLY|O_NONBLOCK, 0 )) {
@@ -902,8 +890,6 @@ void osengine_finalize(OSyncEngine *engine)
 //		osync_queue_stop_thread(client->commands_from_osplugin);
 		osync_client_finalize(client, NULL);
 	}
-	osync_queue_stop_thread(engine->commands_from_self);
-	osync_queue_stop_thread(engine->commands_to_self);
 	
 	osengine_mappingtable_close(engine->maptable);
 	
