@@ -10,3 +10,4 @@ int osync_hashtable_num_entries(OSyncHashTable *table);
 osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash);
 void osync_hashtable_set_slow_sync(OSyncHashTable *table, const char *objtype);
 void osync_hashtable_report(OSyncHashTable *table, const char *uid);
+OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *hash);
