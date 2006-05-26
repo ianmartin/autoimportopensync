@@ -117,6 +117,17 @@ OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **e
 	return reply;
 }
 
+OSyncMessage *osync_message_new_error(OSyncError *error, OSyncError **loc_error)
+{
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_ERROR, 0, loc_error);
+	if (!message)
+		return NULL;
+
+	osync_marshal_error(message, error);
+	
+	return message;
+}
+
 /*! @brief Checks if the message is a error
  * 
  * @param message The message to check
@@ -217,6 +228,20 @@ void osync_message_read_long_long_int(OSyncMessage *message, long long int *valu
 	message->buffer_read_pos += sizeof(long long int);
 }
 
+void osync_message_read_const_string(OSyncMessage *message, char **value)
+{
+	int length = 0;
+	memcpy(&length, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
+	message->buffer_read_pos += sizeof(int);
+
+	if (length == -1) {
+		*value = NULL;
+		return;
+	}
+	*value = (char *)&(message->buffer->data[message->buffer_read_pos]);
+	message->buffer_read_pos += length;
+}
+
 void osync_message_read_string(OSyncMessage *message, char **value)
 {
 	int length = 0;
@@ -232,11 +257,15 @@ void osync_message_read_string(OSyncMessage *message, char **value)
 	message->buffer_read_pos += length;
 }
 
+void osync_message_read_const_data(OSyncMessage *message, void **value, int size)
+{
+	*value = &(message->buffer->data[message->buffer_read_pos]);
+	message->buffer_read_pos += size;
+}
+
 void osync_message_read_data(OSyncMessage *message, void *value, int size)
 {
-	osync_trace(TRACE_INTERNAL, "memcpy now");
 	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), size );
-	osync_trace(TRACE_INTERNAL, "memcpy done");
 	message->buffer_read_pos += size;
 }
 

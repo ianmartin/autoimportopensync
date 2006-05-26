@@ -32,7 +32,9 @@ typedef enum {
 	OSYNC_MESSAGE_ENGINE_CHANGED,
 	OSYNC_MESSAGE_MAPPING_CHANGED,
 	OSYNC_MESSAGE_MAPPINGENTRY_CHANGED,
-	OSYNC_MESSAGE_ERROR
+	OSYNC_MESSAGE_ERROR,
+	OSYNC_MESSAGE_QUEUE_ERROR,
+	OSYNC_MESSAGE_QUEUE_HUP
 } OSyncMessageCommand;
 
 /*! @brief Function which can receive messages
@@ -85,6 +87,7 @@ struct OSyncMessage {
 OSyncMessage *osync_message_new(OSyncMessageCommand cmd, int size, OSyncError **error);
 OSyncMessage *osync_message_new_reply(OSyncMessage *message, OSyncError **error);
 OSyncMessage *osync_message_new_errorreply(OSyncMessage *message, OSyncError **error);
+OSyncMessage *osync_message_new_error(OSyncError *error, OSyncError **loc_error);
 void osync_message_ref(OSyncMessage *message);
 void osync_message_unref(OSyncMessage *message);
 
@@ -106,5 +109,7 @@ void osync_message_read_int(OSyncMessage *message, int *value);
 void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
 void osync_message_read_string(OSyncMessage *message, char **value);
 void osync_message_read_data(OSyncMessage *message, void *value, int size);
+void osync_message_read_const_data(OSyncMessage *message, void **value, int size);
+void osync_message_read_const_string(OSyncMessage *message, char **value);
 
 #endif
