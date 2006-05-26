@@ -26,7 +26,7 @@ START_TEST (ipc_start)
 	fail_unless(queue1 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_queue_connect(queue1, O_RDONLY, &error), NULL);
+	fail_unless(osync_queue_connect(queue1, OSYNC_QUEUE_RECEIVER, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
 	fail_unless(osync_queue_disconnect(queue1, &error), NULL);
@@ -76,7 +76,7 @@ START_TEST (ipc_connect)
 		
 	pid_t cpid = fork();
 	if (cpid == 0) { //Child
-		fail_unless(osync_queue_connect(queue, O_RDONLY, &error), NULL);
+		fail_unless(osync_queue_connect(queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		if (osync_queue_disconnect(queue, &error) != TRUE || error != NULL)
@@ -87,7 +87,7 @@ START_TEST (ipc_connect)
 		g_free(testbed);
 		exit(0);
 	} else {
-		fail_unless(osync_queue_connect(queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		osync_queue_disconnect(queue, &error);
@@ -130,15 +130,13 @@ START_TEST (ipc_payload)
 	
 	pid_t cpid = fork();
 	if (cpid == 0) { //Child
-		fail_unless(osync_queue_connect(client_queue, O_RDONLY, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(server_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10000);
-		}
+		message = osync_queue_get_message(client_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
 			exit (1);
@@ -170,9 +168,7 @@ START_TEST (ipc_payload)
 		osync_queue_send_message(server_queue, NULL, reply, &error);
 		osync_message_unref(reply);
 		
-		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(10000);
-		}
+		message = osync_queue_get_message(server_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
@@ -188,10 +184,10 @@ START_TEST (ipc_payload)
 		
 		exit(0);
 	} else {
-		fail_unless(osync_queue_connect(client_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(server_queue, O_RDONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
@@ -271,10 +267,10 @@ START_TEST (ipc_payload_wait)
 	pid_t cpid = fork();
 	if (cpid == 0) { //Child
 		sleep(1);
-		fail_unless(osync_queue_connect(client_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(server_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		while (!(message = osync_queue_get_message(client_queue))) {
@@ -303,7 +299,12 @@ START_TEST (ipc_payload_wait)
 		sleep(1);
 		
 		OSyncMessage *reply = osync_message_new_reply(message, &error);
+		
+		osync_message_unref(message);
+		
 		osync_queue_send_message(server_queue, NULL, reply, &error);
+		
+		osync_message_unref(reply);
 		
 		sleep(1);
 		
@@ -319,6 +320,7 @@ START_TEST (ipc_payload_wait)
 			exit (1);
 		}
 	
+		osync_message_unref(message);
 		sleep(1);
 		
 		if (osync_queue_disconnect(server_queue, &error) != TRUE || error != NULL)
@@ -329,10 +331,10 @@ START_TEST (ipc_payload_wait)
 		
 		exit(0);
 	} else {
-		fail_unless(osync_queue_connect(server_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(client_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
@@ -347,11 +349,15 @@ START_TEST (ipc_payload_wait)
 		fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 		fail_unless(!osync_error_is_set(&error), NULL);
 		
+		osync_message_unref(message);
+		
 		while (!(message = osync_queue_get_message(server_queue))) {
 			usleep(100000);
 		}
 		
 		fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
+		
+		osync_message_unref(message);
 		
 		osync_queue_disconnect(server_queue, &error);
 		fail_unless(error == NULL, NULL);
@@ -363,6 +369,7 @@ START_TEST (ipc_payload_wait)
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
+		osync_message_unref(message);
 		
 		osync_queue_disconnect(client_queue, &error);
 		fail_unless(error == NULL, NULL);
@@ -395,7 +402,7 @@ START_TEST (ipc_payload_stress)
 	int size = 100;
 	
 	char *data = malloc(size);
-	memset(data, 42, sizeof(data));
+	memset(data, 42, size);
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -410,34 +417,36 @@ START_TEST (ipc_payload_stress)
 	
 	pid_t cpid = fork();
 	if (cpid == 0) { //Child
-		fail_unless(osync_queue_connect(client_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(server_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		while (num_mess > 0) {
 			osync_trace(TRACE_INTERNAL, "Waiting for message");
-			while (!(message = osync_queue_get_message(client_queue))) {
-				usleep(10);
-			}
+			message = osync_queue_get_message(client_queue);
 			
 			if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
 				exit (1);
 			}
 			
 			osync_trace(TRACE_INTERNAL, "Parsing message");
-			char databuf[strlen(data) + 1];
+			char databuf[size];
 				
-			osync_message_read_data(message, databuf, strlen(data) + 1);
+			osync_message_read_data(message, databuf, size);
 			
-			fail_unless(!strcmp(databuf, data), NULL);
+			fail_unless(!memcmp(databuf, data, size), NULL);
 			
 			osync_trace(TRACE_INTERNAL, "Creating new reply");
 			OSyncMessage *reply = osync_message_new_reply(message, &error);
 			
+			osync_message_unref(message);
+			
 			osync_trace(TRACE_INTERNAL, "Sending reply");
 			osync_queue_send_message(server_queue, NULL, reply, &error);
+			
+			osync_message_unref(reply);
 			
 			num_mess--;
 		}
@@ -446,28 +455,28 @@ START_TEST (ipc_payload_stress)
 			exit(1);
 		osync_queue_free(client_queue);
 	
-		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(10);
-		}
+		message = osync_queue_get_message(server_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
 	
+		osync_message_unref(message);
+			
 		if (osync_queue_disconnect(server_queue, &error) != TRUE || error != NULL)
 			exit(1);
 		osync_queue_free(server_queue);
 		
+		g_free(data);
 		g_free(testbed);
 		
 		exit(0);
 	} else {
-		fail_unless(osync_queue_connect(server_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(client_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
-		
 		
 		while (num_mess > 0) {
 			osync_trace(TRACE_INTERNAL, "Creating new message");
@@ -475,18 +484,20 @@ START_TEST (ipc_payload_stress)
 			fail_unless(message != NULL, NULL);
 			fail_unless(!osync_error_is_set(&error), NULL);
 			
-			osync_message_write_data(message, data, strlen(data) + 1);
+			osync_message_write_data(message, data, size);
 			
 			osync_trace(TRACE_INTERNAL, "Sending message");
 			fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 			fail_unless(!osync_error_is_set(&error), NULL);
 			
+			osync_message_unref(message);
+			
 			osync_trace(TRACE_INTERNAL, "Waiting for message");
-			while (!(message = osync_queue_get_message(server_queue))) {
-				usleep(10);
-			}
+			message = osync_queue_get_message(server_queue);
 			
 			fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
+			
+			osync_message_unref(message);
 			
 			num_mess--;
 		}
@@ -494,14 +505,14 @@ START_TEST (ipc_payload_stress)
 		osync_queue_disconnect(server_queue, &error);
 		fail_unless(error == NULL, NULL);
 		
-		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10);
-		}
+		message = osync_queue_get_message(client_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
 		
+		osync_message_unref(message);
+			
 		osync_queue_disconnect(client_queue, &error);
 		fail_unless(error == NULL, NULL);
 		
@@ -521,6 +532,7 @@ START_TEST (ipc_payload_stress)
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
 	
+	g_free(data);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -534,7 +546,7 @@ START_TEST (ipc_payload_stress2)
 	int size = 100;
 	
 	char *data = malloc(size);
-	memset(data, 42, sizeof(data));
+	memset(data, 42, size);
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -549,96 +561,98 @@ START_TEST (ipc_payload_stress2)
 	
 	pid_t cpid = fork();
 	if (cpid == 0) { //Child
-		fail_unless(osync_queue_connect(client_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(server_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Waiting for message");
-			while (!(message = osync_queue_get_message(client_queue))) {
-				usleep(10);
-			}
+			message = osync_queue_get_message(client_queue);
 			
 			if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
 				exit (1);
 			}
 			
-			osync_trace(TRACE_INTERNAL, "Parsing message");
-			char databuf[strlen(data) + 1];
+			char databuf[size];
 				
-			osync_message_read_data(message, databuf, strlen(data) + 1);
+			osync_message_read_data(message, databuf, size);
 			
-			fail_unless(!strcmp(databuf, data), NULL);
+			fail_unless(!memcmp(databuf, data, size), NULL);
+			
+			osync_message_unref(message);
 		}
 		
+		message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
+			
 		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Creating new reply");
 			OSyncMessage *reply = osync_message_new_reply(message, &error);
 			
-			osync_trace(TRACE_INTERNAL, "Sending reply");
 			osync_queue_send_message(server_queue, NULL, reply, &error);
+			
+			osync_message_unref(reply);
 		}
+		
+		osync_message_unref(message);
 		
 		if (osync_queue_disconnect(client_queue, &error) != TRUE || error != NULL)
 			exit(1);
 		osync_queue_free(client_queue);
 	
-		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(10);
-		}
+		message = osync_queue_get_message(server_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
 	
+		osync_message_unref(message);
+			
 		if (osync_queue_disconnect(server_queue, &error) != TRUE || error != NULL)
 			exit(1);
 		osync_queue_free(server_queue);
 		
+		g_free(data);
 		g_free(testbed);
 		
 		exit(0);
 	} else {
-		fail_unless(osync_queue_connect(server_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(client_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Creating new message");
 			message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
 			fail_unless(message != NULL, NULL);
 			fail_unless(!osync_error_is_set(&error), NULL);
 			
-			osync_message_write_data(message, data, strlen(data) + 1);
+			osync_message_write_data(message, data, size);
 			
-			osync_trace(TRACE_INTERNAL, "Sending message");
 			fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 			fail_unless(!osync_error_is_set(&error), NULL);
+			
+			osync_message_unref(message);
 		}
 		
 		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Waiting for message");
-			while (!(message = osync_queue_get_message(server_queue))) {
-				usleep(10);
-			}
+			message = osync_queue_get_message(server_queue);
 			
 			fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
+			
+			osync_message_unref(message);
 		}
 		
 		osync_queue_disconnect(server_queue, &error);
 		fail_unless(error == NULL, NULL);
 		
-		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10);
-		}
+		message = osync_queue_get_message(client_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
+		
+		osync_message_unref(message);
 		
 		osync_queue_disconnect(client_queue, &error);
 		fail_unless(error == NULL, NULL);
@@ -659,6 +673,7 @@ START_TEST (ipc_payload_stress2)
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
 	
+	g_free(data);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -673,13 +688,6 @@ START_TEST (ipc_large_payload)
 	
 	char *data = malloc(size);
 	memset(data, 42, size);
-	printf("blubb %i\n", size);
-	char *databuf2 = malloc(size);
-	memset(databuf2, 0, size);
-			int n = 0;
-			for (n = 0; n < 50; n++) {
-				printf("%i %i\n", ((char *)databuf2)[n], data[n]);
-			}
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -694,106 +702,92 @@ START_TEST (ipc_large_payload)
 	
 	pid_t cpid = fork();
 	if (cpid == 0) { //Child
-		fail_unless(osync_queue_connect(client_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(server_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Waiting for message");
-			while (!(message = osync_queue_get_message(client_queue))) {
-				usleep(10);
-			}
+			message = osync_queue_get_message(client_queue);
 			
 			if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
 				exit (1);
 			}
 			
-			osync_trace(TRACE_INTERNAL, "Parsing message");
-			
 			void *databuf = NULL;
 			osync_message_read_const_data(message, &databuf, size);
 		
-			for (n = 0; n < 50; n++) {
-				printf("%i %i\n", ((char *)databuf)[n], data[n]);
-			}
-		
-			osync_trace(TRACE_INTERNAL, "comparing message");
-			if (memcmp(databuf, data, size)) {
-				osync_trace(TRACE_INTERNAL, "ERROR");
+			if (memcmp(databuf, data, size))
 				exit(1);
-			}
-			osync_trace(TRACE_INTERNAL, "Parsing message done");
-		}
-		
-		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Creating new reply");
+			
 			OSyncMessage *reply = osync_message_new_reply(message, &error);
 			
-			osync_trace(TRACE_INTERNAL, "Sending reply");
+			osync_message_unref(message);
+			
 			osync_queue_send_message(server_queue, NULL, reply, &error);
+			
+			osync_message_unref(reply);
 		}
 		
 		if (osync_queue_disconnect(client_queue, &error) != TRUE || error != NULL)
 			exit(1);
 		osync_queue_free(client_queue);
 	
-		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(10);
-		}
+		message = osync_queue_get_message(server_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
-	
+		
+		osync_message_unref(message);
+			
 		if (osync_queue_disconnect(server_queue, &error) != TRUE || error != NULL)
 			exit(1);
 		osync_queue_free(server_queue);
+		
+		g_free(data);
 		
 		g_free(testbed);
 		
 		exit(0);
 	} else {
-		fail_unless(osync_queue_connect(server_queue, O_RDONLY | O_NONBLOCK, &error), NULL);
+		fail_unless(osync_queue_connect(client_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		fail_unless(osync_queue_connect(client_queue, O_WRONLY, &error), NULL);
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
 		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Creating new message");
 			message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, &error);
 			fail_unless(message != NULL, NULL);
 			fail_unless(!osync_error_is_set(&error), NULL);
 			
-			osync_message_write_data(message, data, strlen(data) + 1);
+			osync_message_write_data(message, data, size);
 			
-			osync_trace(TRACE_INTERNAL, "Sending message");
 			fail_unless(osync_queue_send_message(client_queue, NULL, message, &error), NULL);
 			fail_unless(!osync_error_is_set(&error), NULL);
-		}
-		
-		for (i = 0; i < num_mess; i++) {
-			osync_trace(TRACE_INTERNAL, "Waiting for message");
-			while (!(message = osync_queue_get_message(server_queue))) {
-				usleep(10);
-			}
+
+			osync_message_unref(message);
+
+			message = osync_queue_get_message(server_queue);
 			
 			fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
+			
+			osync_message_unref(message);
 		}
 		
 		osync_queue_disconnect(server_queue, &error);
 		fail_unless(error == NULL, NULL);
 		
-		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10);
-		}
+		message = osync_queue_get_message(client_queue);
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
 			exit (1);
 		}
 		
+		osync_message_unref(message);
+			
 		osync_queue_disconnect(client_queue, &error);
 		fail_unless(error == NULL, NULL);
 		
@@ -813,6 +807,7 @@ START_TEST (ipc_large_payload)
 	osync_queue_free(client_queue);
 	osync_queue_free(server_queue);
 	
+	g_free(data);
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -820,19 +815,19 @@ END_TEST
 Suite *ipc_suite(void)
 {
 	Suite *s = suite_create("IPC");
-	Suite *s2 = suite_create("IPC");
+	//Suite *s2 = suite_create("IPC");
 	
 	create_case(s, "ipc_new", ipc_new);
 	create_case(s, "ipc_start", ipc_start);
 	create_case(s, "ipc_create", ipc_create);
 	create_case(s, "ipc_connect", ipc_connect);
-	create_case(s2, "ipc_payload", ipc_payload);
+	create_case(s, "ipc_payload", ipc_payload);
 	create_case(s, "ipc_payload_wait", ipc_payload_wait);
 	create_case(s, "ipc_payload_stress", ipc_payload_stress);
 	create_case(s, "ipc_payload_stress2", ipc_payload_stress2);
 	create_case(s, "ipc_large_payload", ipc_large_payload);
 	
-	return s2;
+	return s;
 }
 
 int main(void)

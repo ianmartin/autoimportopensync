@@ -198,7 +198,7 @@ int main( int argc, char **argv )
 		osync_error_free( &error );
 
 	/** Idle until the syncengine connects to (and reads from) our pipe **/
-	if (!osync_queue_connect( pp.incoming, O_RDONLY, 0 )) {
+	if (!osync_queue_connect( pp.incoming, OSYNC_QUEUE_RECEIVER, 0 )) {
 		fprintf(stderr, "Unable to connect\n");
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
 		exit(1);
@@ -253,7 +253,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 			exit(1);
 		}
 		osync_trace(TRACE_INTERNAL, "connecting to engine");
-		if (!osync_queue_connect(pp->outgoing, O_WRONLY, 0 )) {
+		if (!osync_queue_connect(pp->outgoing, OSYNC_QUEUE_SENDER, 0 )) {
 			fprintf(stderr, "Unable to connect queue\n");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect queue", __func__);
 			exit(1);
