@@ -807,7 +807,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		if (!(engine->man_dispatch))
 			osync_queue_setup_with_gmainloop(client->commands_from_osplugin, engine->context);
 		osync_trace(TRACE_INTERNAL, "opening client queue");
-		if (!osync_queue_connect(client->commands_from_osplugin, O_RDONLY, 0 )) {
+		if (!osync_queue_connect(client->commands_from_osplugin, OSYNC_QUEUE_RECEIVER, 0 )) {
 			osync_group_unlock(engine->group, TRUE);
 			osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 			return FALSE;
@@ -819,13 +819,13 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		osync_queue_setup_with_gmainloop(engine->commands_from_self, engine->context);
 	
 	osync_trace(TRACE_INTERNAL, "opening engine queue");
-	if (!osync_queue_connect(engine->commands_from_self, O_RDONLY|O_NONBLOCK, 0 )) {
+	if (!osync_queue_connect(engine->commands_from_self, OSYNC_QUEUE_RECEIVER, 0 )) {
 		osync_group_unlock(engine->group, TRUE);
 		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
 	
-	if (!osync_queue_connect(engine->commands_to_self, O_WRONLY, 0 )) {
+	if (!osync_queue_connect(engine->commands_to_self, OSYNC_QUEUE_SENDER, 0 )) {
 		osync_group_unlock(engine->group, TRUE);
 		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;

@@ -17,9 +17,15 @@ typedef enum {
 	OSYNC_QUEUE_EVENT_HUP
 } OSyncQueueEvent;
 
+typedef enum {
+	OSYNC_QUEUE_SENDER,
+	OSYNC_QUEUE_RECEIVER
+} OSyncQueueType;
+
 /*! @brief Represents a Queue which can be used to receive messages
  */
 struct OSyncQueue {
+	OSyncQueueType type;
 	/** The real asynchronous queue from glib **/
 	int fd;
 	/** The path name of this queue **/
@@ -30,7 +36,7 @@ struct OSyncQueue {
 	gpointer user_data;
 	/** The source associated with this queue */
 	GSource *source;
-	/** The context in which this queue is dispatched */
+	/** The context in which the IO of the queue is dispatched */
 	GMainContext *context;
 	GMainContext *incomingContext;
 	
@@ -61,7 +67,7 @@ void osync_queue_free(OSyncQueue *queue);
 osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error);
 osync_bool osync_queue_exists(OSyncQueue *queue);
 
-osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error);
+osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error);
 osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error);
 
 void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler handler, gpointer user_data);

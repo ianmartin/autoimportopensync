@@ -59,7 +59,7 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
 	OSyncQueue *queue = user_data;
 
-	OSyncMessage *message = osync_queue_get_message(queue);
+	OSyncMessage *message = g_async_queue_try_pop(queue->incoming);
 	osync_trace(TRACE_INTERNAL, "message %p refcount is %i", message, message->refCount);
 	if (message) {
 		osync_trace(TRACE_INTERNAL, "message cmd %i id %lli %i", message->cmd, message->id1, message->id2);
@@ -463,15 +463,17 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 	return TRUE;
 }
 
-osync_bool osync_queue_connect(OSyncQueue *queue, int flags, OSyncError **error)
+osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, queue, flags, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, queue, type, error);
 	osync_assert(queue);
 	osync_assert(queue->connected == FALSE);
 	OSyncQueue **queueptr = NULL;
 	
+	queue->type = type;
+	
 	/* First, open the queue with the flags provided by the user */
-	int fd = open(queue->name, flags);
+	int fd = open(queue->name, type == OSYNC_QUEUE_SENDER ? O_WRONLY : O_RDONLY);
 	if (fd == -1) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
 		goto error;
@@ -628,7 +630,12 @@ OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 	pfd.fd = queue->fd;
 	pfd.events = POLLIN;
 	
-	int ret = poll(&pfd, 1, 0);
+	/* Here we poll on the queue. If we read on the queue, we either receive a 
+	 * POLLIN or POLLHUP. Since we cannot write to the queue, we can block pretty long here.
+	 * 
+	 * If we are sending, we can only receive a POLLERR which means that the remote side has
+	 * disconnected. Since we mainly dispatch the write IO, we dont want to block here. */
+	int ret = poll(&pfd, 1, queue->type == OSYNC_QUEUE_SENDER ? 0 : 100);
 	
 	if (ret == 0)
 		return OSYNC_QUEUE_EVENT_NONE;	
@@ -643,9 +650,10 @@ OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 	return OSYNC_QUEUE_EVENT_ERROR;
 }
 
+/** note that this function is blocking */
 OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
 {
-	return g_async_queue_try_pop(queue->incoming);
+	return g_async_queue_pop(queue->incoming);
 }
 
 void gen_id(long long int *part1, int *part2)
@@ -684,6 +692,8 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 	osync_message_ref(message);
 	g_async_queue_push(queue->outgoing, message);
 
+	g_main_context_wakeup(queue->context);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
@@ -701,6 +711,9 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 	}
 	
 	osync_bool ret = osync_queue_send_message(queue, replyqueue, message, error);
+	
+	g_main_context_wakeup(queue->context);
+	
 	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return ret;
 }
@@ -709,10 +722,11 @@ osync_bool osync_queue_is_alive(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
-	if (!osync_queue_connect(queue, O_WRONLY | O_NONBLOCK, NULL)) {
+	// FIXME
+	/*if (!osync_queue_connect(queue, O_WRONLY | O_NONBLOCK, NULL)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
 		return FALSE;
-	}
+	}*/
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NOOP, 0, NULL);
 	if (!message) {

@@ -63,8 +63,12 @@ void osync_message_ref(OSyncMessage *message)
 
 void osync_message_unref(OSyncMessage *message)
 {
-	if (g_atomic_int_dec_and_test(&(message->refCount)))
+	if (g_atomic_int_dec_and_test(&(message->refCount))) {
+		
+		g_byte_array_free(message->buffer, TRUE);
+		
 		g_free(message);
+	}
 }
 
 /*! @brief Sets the handler that will receive the reply

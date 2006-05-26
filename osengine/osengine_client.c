@@ -775,7 +775,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 			goto error;
 	}
 		
-	if (!osync_queue_connect(client->commands_to_osplugin, O_WRONLY, error))
+	if (!osync_queue_connect(client->commands_to_osplugin, OSYNC_QUEUE_SENDER, error))
 		goto error;
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_INITIALIZE, 0, error);
@@ -805,9 +805,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
 	
-	OSyncMessage *reply = NULL;
-	while (!(reply = osync_queue_get_message(client->commands_from_osplugin)))
-		usleep(10000);
+	OSyncMessage *reply = osync_queue_get_message(client->commands_from_osplugin);
 	
 	osync_trace(TRACE_INTERNAL, "reply received %i", reply->cmd);
 	if (reply->cmd != OSYNC_MESSAGE_REPLY) {
