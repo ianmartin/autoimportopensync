@@ -1,5 +1,6 @@
 #include <opensync/opensync.h>
 
+#include "config.h"
 #include "gnokii_calendar_format.h"
 #include "gnokii_contact_format.h"
 
