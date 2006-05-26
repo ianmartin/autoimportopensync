@@ -102,7 +102,7 @@ void _osync_format_set_commit(OSyncObjTypeTemplate *template, const char *format
 	OSyncObjFormatTemplate *format_template = NULL;
 	if (formatstr) {
 		OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+		osync_assert_msg(format_template, "Unable to set commit function. Did you forget to add the objformat?");
 		format_template->commit_change = commit_change;
 	} else {
 		GList *f = NULL;
@@ -118,7 +118,7 @@ void _osync_format_set_access(OSyncObjTypeTemplate *template, const char *format
 	OSyncObjFormatTemplate *format_template = NULL;
 	if (formatstr) {
 		format_template = osync_plugin_find_objformat_template(template, formatstr);
-		osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+		osync_assert_msg(format_template, "Unable to set commit function. Did you forget to add the objformat?");
 		format_template->access = access;
 	} else {
 		GList *f = NULL;
@@ -134,7 +134,7 @@ void _osync_format_set_batch(OSyncObjTypeTemplate *template, const char *formats
 	OSyncObjFormatTemplate *format_template = NULL;
 	if (formatstr) {
 		format_template = osync_plugin_find_objformat_template(template, formatstr);
-		osync_assert(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
+		osync_assert_msg(format_template, "Unable to set batch commit function. Did you forget to add the objformat?");
 		format_template->batch_commit = batch;
 	} else {
 		GList *f = NULL;
@@ -461,7 +461,7 @@ void osync_plugin_set_commit_objformat(OSyncPluginInfo *info, const char *objtyp
 	
 	if (objtypestr) {
 		OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-		osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+		osync_assert_msg(template, "Unable to accept objformat. Did you forget to add the objtype?");
 		_osync_format_set_commit(template, formatstr, commit_change);
 	} else {
 		GList *o = NULL;
@@ -486,7 +486,7 @@ void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtyp
 	
 	if (objtypestr) {
 		//template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-		//osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+		//osync_assert_msg(template, "Unable to accept objformat. Did you forget to add the objtype?");
 		//_osync_format_set_access(template, formatstr, access);
 	} else {
 		GList *o = NULL;
@@ -508,9 +508,9 @@ void osync_plugin_set_access_objformat(OSyncPluginInfo *info, const char *objtyp
 void osync_plugin_set_read_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatReadFn read)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	osync_assert_msg(template, "Unable to accept objformat. Did you forget to add the objtype?");
 	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-	osync_assert(format_template, "Unable to set commit function. Did you forget to add the objformat?");
+	osync_assert_msg(format_template, "Unable to set commit function. Did you forget to add the objformat?");
 	format_template->read = read;
 }
 
@@ -528,7 +528,7 @@ void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *
 	
 	if (objtypestr) {
 		template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-		osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+		osync_assert_msg(template, "Unable to accept objformat. Did you forget to add the objtype?");
 		_osync_format_set_batch(template, formatstr, batch);
 	} else {
 		GList *o = NULL;
@@ -550,9 +550,9 @@ void osync_plugin_set_batch_commit_objformat(OSyncPluginInfo *info, const char *
 void osync_plugin_set_committed_all_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, OSyncFormatCommittedAllFn committed_all)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	osync_assert_msg(template, "Unable to accept objformat. Did you forget to add the objtype?");
 	OSyncObjFormatTemplate *format_template = osync_plugin_find_objformat_template(template, formatstr);
-	osync_assert(format_template, "Unable to set committed_all function. Did you forget to add the objformat?");
+	osync_assert_msg(format_template, "Unable to set committed_all function. Did you forget to add the objformat?");
 	format_template->committed_all = committed_all;
 }
 
@@ -586,7 +586,7 @@ void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr)
 void osync_plugin_accept_objformat(OSyncPluginInfo *info, const char *objtypestr, const char *formatstr, const char *extension)
 {
 	OSyncObjTypeTemplate *template = osync_plugin_find_objtype_template(info->plugin, objtypestr);
-	osync_assert(template, "Unable to accept objformat. Did you forget to add the objtype?");
+	osync_assert_msg(template, "Unable to accept objformat. Did you forget to add the objtype?");
 	OSyncObjFormatTemplate *format_template = g_malloc0(sizeof(OSyncObjFormatTemplate));
 	format_template->name = g_strdup(formatstr);
 	if (extension)

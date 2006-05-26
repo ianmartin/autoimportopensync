@@ -30,6 +30,14 @@ GPrivate* current_tabs = NULL;
  */
 /*@{*/
 
+/** This function will reset the indentation of the trace function. use this
+ * after you forked your process. the new process should call this function */
+void osync_trace_reset_indent(void)
+{
+	g_private_set(current_tabs, GINT_TO_POINTER(0));
+}
+
+
 /*! @brief Used for tracing the application
  * 
  * use this function to trace calls. The call graph will be saved into
@@ -103,6 +111,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			logmessage = g_strdup_printf("[%li.%li]%sERROR: %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
 			break;
 	}
+	g_free(buffer);
 	g_private_set(current_tabs, GINT_TO_POINTER(tabs));
 	va_end(arglist);
 	
@@ -142,7 +151,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 void osync_debug(const char *subpart, int level, const char *message, ...)
 {
 #if defined ENABLE_DEBUG
-		osync_assert(level <= 4 && level >= 0, "The debug level must be between 0 and 4.");
+		osync_assert_msg(level <= 4 && level >= 0, "The debug level must be between 0 and 4.");
 		va_list arglist;
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));

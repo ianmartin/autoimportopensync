@@ -33,8 +33,8 @@
 
 static void osync_hashtable_assert_loaded(OSyncHashTable *table)
 {
-	osync_assert(table, "You have to pass a valid hashtable to the call!");
-	osync_assert(table->dbhandle, "Hashtable not loaded yet. You have to load the hashtable first using osync_hashtable_load!");
+	osync_assert_msg(table, "You have to pass a valid hashtable to the call!");
+	osync_assert_msg(table->dbhandle, "Hashtable not loaded yet. You have to load the hashtable first using osync_hashtable_load!");
 }
 
 /*@}*/
@@ -209,8 +209,8 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, change);
 	osync_hashtable_assert_loaded(table);
-	osync_assert(change, "Change was NULL. Bug in a plugin");
-	osync_assert(change->uid, "No uid was set on change. Bug in a plugin");
+	osync_assert_msg(change, "Change was NULL. Bug in a plugin");
+	osync_assert_msg(change->uid, "No uid was set on change. Bug in a plugin");
 
 	osync_trace(TRACE_INTERNAL, "Updating hashtable with hash \"%s\" and changetype %i", change->hash, osync_change_get_changetype(change));
 	switch (osync_change_get_changetype(change)) {

@@ -193,8 +193,6 @@ int osync_marshal_get_size_error( OSyncError **error )
 
 void osync_marshal_error( OSyncMessage *message, OSyncError *error )
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, error);
-
 	if (error) {
 		osync_message_write_int( message, 1 );
 		osync_message_write_int( message, (int)error->type );
@@ -202,8 +200,6 @@ void osync_marshal_error( OSyncMessage *message, OSyncError *error )
 	} else {
 		osync_message_write_int( message, 0 );
 	}
-
-	osync_trace(TRACE_EXIT, "%s: msg len: %d", __func__, message->buffer->len);
 }
 
 void osync_demarshal_error( OSyncMessage *message, OSyncError **error )
