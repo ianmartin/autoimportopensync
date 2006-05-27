@@ -27,6 +27,15 @@
 #include <sys/time.h>
 #include <signal.h>
 
+typedef struct OSyncPendingMessage {
+	long long int id1;
+	int id2;
+	/** Where should the reply be received? */
+	OSyncMessageHandler callback;
+	/** The user data */
+	gpointer user_data;
+} OSyncPendingMessage;
+
 /**
  * @ingroup OSEngineQueue
  * @brief A Queue used for asynchronous communication between thread
@@ -59,48 +68,37 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
 	OSyncQueue *queue = user_data;
 
-	OSyncMessage *message = g_async_queue_try_pop(queue->incoming);
-	osync_trace(TRACE_INTERNAL, "message %p refcount is %i", message, message->refCount);
-	if (message) {
-		osync_trace(TRACE_INTERNAL, "message cmd %i id %lli %i", message->cmd, message->id1, message->id2);
+	OSyncMessage *message = NULL;
+	while ((message = g_async_queue_try_pop(queue->incoming))) {
+		
+		/* We check of the message is a reply to something */
 		if (message->cmd == OSYNC_MESSAGE_REPLY || message->cmd == OSYNC_MESSAGE_ERRORREPLY) {
+			
+			/* Search for the pending reply. We have to lock the
+			 * list since another thread might be duing the updates */
+			g_mutex_lock(queue->pendingLock);
+			
 			GList *p = NULL;
 			for (p = queue->pendingReplies; p; p = p->next) {
-				OSyncMessage *pending = p->data;
-				osync_trace(TRACE_INTERNAL, "Still pending is %lli %i", pending->id1, pending->id2);
+				OSyncPendingMessage *pending = p->data;
+				
 				if (pending->id1 == message->id1 && pending->id2 == message->id2) {
-					/* Found the pending reply */
-					if (!pending->callback) {
-						osync_message_unref(message);
-						osync_message_unref(pending);
-						osync_trace(TRACE_EXIT_ERROR, "%s: Pending message does not have a callback", __func__);
-						return TRUE;
-					}
 					
-					osync_trace(TRACE_INTERNAL, "%p handler to2 %p", pending, pending->user_data);
-					osync_trace(TRACE_INTERNAL, "calling reply callback %p %p", message, pending->user_data);
+					/* Call the callback of the pending message */
 					pending->callback(message, pending->user_data);
-					osync_trace(TRACE_INTERNAL, "done calling reply callback");
 					
+					/* Then remove the pending message and free it */
 					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
-					osync_message_unref(message);
-					osync_message_unref(pending);
-					osync_trace(TRACE_EXIT, "%s: Done dispatching reply", __func__);
-					return TRUE;
+					g_free(pending);
+					break;
 				}
 			}
-			osync_trace(TRACE_INTERNAL, "Unable to find pending message for id %lli %i\n", message->id1, message->id2);
-		} else {
-			if (!queue->message_handler) {
-				osync_trace(TRACE_INTERNAL, "you have to setup a message handler for the queue!");
-				osync_message_unref(message);
-				osync_trace(TRACE_EXIT_ERROR, "%s: you have to setup a message handler for the queue", __func__);
-				return FALSE;
-			}
+			
+			g_mutex_unlock(queue->pendingLock);
+		} else 
 			queue->message_handler(message, queue->user_data);
-			osync_trace(TRACE_INTERNAL, "message %p refcount2 is %i", message, message->refCount);
-			osync_message_unref(message);
-		}
+		
+		osync_message_unref(message);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: Done dispatching", __func__);
@@ -123,7 +121,6 @@ gboolean _queue_check(GSource *source)
 	return FALSE;
 }
 
-static
 int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSyncError **error)
 {
 	ssize_t nwritten = 0;
@@ -144,7 +141,6 @@ int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSync
 	return (nwritten);
 }
 
-static
 osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message, OSyncError **error)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(long long int), error) < 0)
@@ -153,7 +149,6 @@ osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long i
 	return TRUE;
 }
 
-static
 osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message, OSyncError **error)
 {
 	if (_osync_queue_write_data(queue, &message, sizeof(int), error) < 0)
@@ -350,20 +345,30 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 		message->id1 = id1;
 		message->id2 = id2;
 		
-		int read = 0;
-		do {
-			int inc = _osync_queue_read_data(queue, message->buffer->data + read, size - read, &error);
-			if (inc < 0)
-				goto error;
-			
-			read += inc;
-		} while (read < size);
+		if (size) {
+			int read = 0;
+			do {
+				int inc = _osync_queue_read_data(queue, message->buffer->data + read, size - read, &error);
+				
+				if (inc < 0)
+					goto error_free_message;
+				
+				if (inc == 0) {
+					osync_error_set(&error, OSYNC_ERROR_IO_ERROR, "Encountered EOF while data was missing");
+					goto error_free_message;
+				}
+				
+				read += inc;
+			} while (read < size);
+		}
 		
 		g_async_queue_push(queue->incoming, message);
 	} while (_source_check(queue->read_source));
 	
 	return TRUE;
-	
+
+error_free_message:
+	osync_message_unref(message);
 error:
 	if (error) {
 		message = osync_message_new(OSYNC_MESSAGE_QUEUE_ERROR, 0, &error);
@@ -397,6 +402,8 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 	
+	queue->pendingLock = g_mutex_new();
+	
 	queue->context = g_main_context_new();
 	
 	queue->outgoing = g_async_queue_new();
@@ -413,11 +420,28 @@ error:
 void osync_queue_free(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
-
+	OSyncMessage *message = NULL;
+	OSyncPendingMessage *pending = NULL;
+	
+	g_mutex_free(queue->pendingLock);
+	
 	g_main_context_unref(queue->context);
 
+	while ((message = g_async_queue_try_pop(queue->incoming))) {
+		osync_message_unref(message);
+	}
 	g_async_queue_unref(queue->incoming);
+	
+	while ((message = g_async_queue_try_pop(queue->outgoing))) {
+		osync_message_unref(message);
+	}
 	g_async_queue_unref(queue->outgoing);
+
+	while (queue->pendingReplies) {
+		pending = queue->pendingReplies->data;
+		g_free(pending);
+		queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
+	}
 
 	if (queue->source)
 		g_source_destroy(queue->source);
@@ -676,17 +700,18 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, queue, replyqueue, message, error);
 	
-	if (queue->error) {
-		osync_error_duplicate(error, &(queue->error));
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	
 	if (message->callback) {
-		gen_id(&(message->id1), &(message->id2));
+		OSyncPendingMessage *pending = osync_try_malloc0(sizeof(OSyncPendingMessage), error);
+		if (!pending)
+			goto error;
 		
-		osync_message_ref(message);
-		replyqueue->pendingReplies = g_list_append(replyqueue->pendingReplies, message);
+		gen_id(&(message->id1), &(message->id2));
+		pending->id1 = message->id1;
+		pending->id2 = message->id2;
+		
+		g_mutex_lock(replyqueue->pendingLock);
+		replyqueue->pendingReplies = g_list_append(replyqueue->pendingReplies, pending);
+		g_mutex_unlock(replyqueue->pendingLock);
 	}
 	
 	osync_message_ref(message);
@@ -696,6 +721,10 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, int timeout, OSyncError **error)
@@ -703,12 +732,6 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, queue, message, error);
 	
 	/*TODO: add timeout handling */
-
-	if (queue->error) {
-		osync_error_duplicate(error, &(queue->error));
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
 	
 	osync_bool ret = osync_queue_send_message(queue, replyqueue, message, error);
 	

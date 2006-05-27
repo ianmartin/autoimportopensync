@@ -1,35 +1,21 @@
 #include "support.h"
-
 #include <sys/wait.h>
+
+void _remove_pipe(const char *name)
+{
+	char *cmd = g_strdup_printf("rm %s &> /dev/null", name);
+	system(cmd);
+	g_free(cmd);
+}
 
 START_TEST (ipc_new)
 {
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
 	fail_unless(queue1 != NULL, NULL);
-	fail_unless(error == NULL, NULL);
-	
-	osync_queue_free(queue1);
-	
-	destroy_testbed(testbed);
-}
-END_TEST
-
-START_TEST (ipc_start)
-{
-	char *testbed = setup_testbed(NULL);
-	
-	OSyncError *error = NULL;
-	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
-	fail_unless(queue1 != NULL, NULL);
-	fail_unless(error == NULL, NULL);
-	
-	fail_unless(osync_queue_connect(queue1, OSYNC_QUEUE_RECEIVER, &error), NULL);
-	fail_unless(error == NULL, NULL);
-	
-	fail_unless(osync_queue_disconnect(queue1, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
 	osync_queue_free(queue1);
@@ -41,6 +27,7 @@ END_TEST
 START_TEST (ipc_create)
 {
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
@@ -63,10 +50,10 @@ START_TEST (ipc_create)
 }
 END_TEST
 
-
 START_TEST (ipc_connect)
 {
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", &error);
@@ -115,6 +102,8 @@ END_TEST
 START_TEST (ipc_payload)
 {	
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe-server");
+	_remove_pipe("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -251,6 +240,8 @@ END_TEST
 START_TEST (ipc_payload_wait)
 {	
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe-server");
+	_remove_pipe("/tmp/testpipe-client");
 	
 	OSyncError *error = NULL;
 	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe-server", &error);
@@ -397,6 +388,8 @@ END_TEST
 START_TEST (ipc_payload_stress)
 {	
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe-server");
+	_remove_pipe("/tmp/testpipe-client");
 	
 	int num_mess = 1000;
 	int size = 100;
@@ -540,6 +533,8 @@ END_TEST
 START_TEST (ipc_payload_stress2)
 {	
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe-server");
+	_remove_pipe("/tmp/testpipe-client");
 	int i = 0;
 	
 	int num_mess = 1000;
@@ -681,6 +676,8 @@ END_TEST
 START_TEST (ipc_large_payload)
 {	
 	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe-server");
+	_remove_pipe("/tmp/testpipe-client");
 	int i = 0;
 	
 	int num_mess = 10;
@@ -812,13 +809,184 @@ START_TEST (ipc_large_payload)
 }
 END_TEST
 
+START_TEST (ipc_error_no_pipe)
+{
+	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
+	
+	OSyncError *error = NULL;
+	OSyncQueue *queue1 = osync_queue_new("/tmp/testpipe", &error);
+	fail_unless(queue1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(!osync_queue_connect(queue1, OSYNC_QUEUE_RECEIVER, &error), NULL);
+	fail_unless(error != NULL, NULL);
+	osync_error_free(&error);
+	
+	osync_queue_free(queue1);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (ipc_error_perm)
+{
+	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
+	
+	OSyncError *error = NULL;
+	OSyncQueue *queue = osync_queue_new("/tmp/testpipe", &error);
+	
+	osync_queue_create(queue, &error);
+	fail_unless(error == NULL, NULL);
+	
+	if (system("chmod 000 /tmp/testpipe"))
+		abort();
+	
+	fail_unless(!osync_queue_connect(queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
+	fail_unless(error != NULL, NULL);
+	osync_error_free(&error);
+	
+	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+		
+	fail_unless(osync_queue_remove(queue, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+
+	osync_queue_free(queue);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+void abort_unless(int i)
+{
+	if (!i)
+		abort();
+}
+
+START_TEST (ipc_error_rem)
+{	
+	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
+	
+	OSyncError *error = NULL;
+	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe", &error);
+	OSyncMessage *message = NULL;
+	
+	osync_queue_create(server_queue, &error);
+	fail_unless(error == NULL, NULL);
+	
+	pid_t cpid = fork();
+	if (cpid == 0) { //Child
+		abort_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error));
+		abort_unless(error == NULL);
+		
+		g_free(testbed);
+		exit(0);
+	} else {
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
+		fail_unless(error == NULL, NULL);
+		
+		message = osync_queue_get_message(server_queue);
+		abort_unless(osync_message_get_command(message) == OSYNC_MESSAGE_QUEUE_HUP);
+		osync_message_unref(message);
+		
+		osync_queue_disconnect(server_queue, &error);
+		fail_unless(error == NULL, NULL);
+		
+		int status = 0;
+		wait(&status);
+		fail_unless(WEXITSTATUS(status) == 0, NULL);
+	}
+	
+	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	
+	fail_unless(osync_queue_remove(server_queue, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
+	
+	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+
+	osync_queue_free(server_queue);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (ipc_error_rem2)
+{	
+	char *testbed = setup_testbed(NULL);
+	_remove_pipe("/tmp/testpipe");
+	
+	OSyncError *error = NULL;
+	OSyncQueue *server_queue = osync_queue_new("/tmp/testpipe", &error);
+	OSyncMessage *message = NULL;
+	
+	osync_queue_create(server_queue, &error);
+	fail_unless(error == NULL, NULL);
+	
+	pid_t cpid = fork();
+	if (cpid == 0) { //Child
+		abort_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error));
+		abort_unless(error == NULL);
+		
+		abort_unless(_osync_queue_write_int(server_queue, 10000, &error));
+		abort_unless(error == NULL);
+		
+		abort_unless(_osync_queue_write_int(server_queue, 0, &error));
+		abort_unless(error == NULL);
+
+		abort_unless(_osync_queue_write_long_long_int(server_queue, 0, &error));
+		abort_unless(error == NULL);
+			
+		abort_unless(_osync_queue_write_int(server_queue, 0, &error));
+		abort_unless(error == NULL);
+		
+		sleep(1);
+		
+		osync_queue_disconnect(server_queue, &error);
+		fail_unless(error == NULL, NULL);
+		
+		osync_queue_free(server_queue);
+		
+		g_free(testbed);
+		exit(0);
+	} else {
+		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_RECEIVER, &error), NULL);
+		fail_unless(error == NULL, NULL);
+		
+		message = osync_queue_get_message(server_queue);
+		abort_unless(osync_message_get_command(message) == OSYNC_MESSAGE_QUEUE_ERROR);
+		osync_message_unref(message);
+		
+		osync_queue_disconnect(server_queue, &error);
+		fail_unless(error == NULL, NULL);
+		
+		int status = 0;
+		wait(&status);
+		fail_unless(WEXITSTATUS(status) == 0, NULL);
+	}
+	
+	fail_unless(system("ls /tmp/testpipe &> /dev/null") == 0, NULL);
+	
+	fail_unless(osync_queue_remove(server_queue, &error), NULL);
+	fail_unless(!osync_error_is_set(&error), NULL);
+	
+	fail_unless(system("ls /tmp/testpipe &> /dev/null") != 0, NULL);
+
+	osync_queue_free(server_queue);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *ipc_suite(void)
 {
 	Suite *s = suite_create("IPC");
 	//Suite *s2 = suite_create("IPC");
 	
 	create_case(s, "ipc_new", ipc_new);
-	create_case(s, "ipc_start", ipc_start);
 	create_case(s, "ipc_create", ipc_create);
 	create_case(s, "ipc_connect", ipc_connect);
 	create_case(s, "ipc_payload", ipc_payload);
@@ -826,6 +994,15 @@ Suite *ipc_suite(void)
 	create_case(s, "ipc_payload_stress", ipc_payload_stress);
 	create_case(s, "ipc_payload_stress2", ipc_payload_stress2);
 	create_case(s, "ipc_large_payload", ipc_large_payload);
+	
+	create_case(s, "ipc_error_no_pipe", ipc_error_no_pipe);
+	create_case(s, "ipc_error_perm", ipc_error_perm);
+	create_case(s, "ipc_error_rem", ipc_error_rem);
+	create_case(s, "ipc_error_rem2", ipc_error_rem2);
+	
+	//Test main loop integration
+	//callbacks
+	//timeouts
 	
 	return s;
 }

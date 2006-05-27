@@ -45,9 +45,8 @@ struct OSyncQueue {
 	GAsyncQueue *incoming;
 	GAsyncQueue *outgoing;
 	
-	OSyncError *error;
-	
 	GList *pendingReplies;
+	GMutex *pendingLock;
 	
 	GSourceFuncs *write_functions;
 	GSource *write_source;
@@ -59,6 +58,10 @@ struct OSyncQueue {
 };
 
 /*@}*/
+
+int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSyncError **error);
+osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message, OSyncError **error);
+osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message, OSyncError **error);
 
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error);
