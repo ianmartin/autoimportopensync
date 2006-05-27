@@ -12,8 +12,8 @@ Some parts based on the multisync 0.8x kdepim plugin, copyright:
 
 Compiling and installing kdepim_plugin
 --------------------------------------
-    $ cd kdepim_plugin
-    $ ./autogen.sh
+    $ autoreconf -sfi
+    $ ./configure
     $ make
     $ su
     $ make install
