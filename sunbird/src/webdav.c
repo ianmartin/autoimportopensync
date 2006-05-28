@@ -110,7 +110,12 @@ int webdav_upload(char* filename, char* url, char* username, char* password)
         fclose(f);
         return WEBDAV_ERROR_OUT_OF_MEMORY;
     }
-    fread(buf, 1, filesize, f);
+    if (fread(buf, 1, filesize, f) != 1) {
+	    if (ferror(f)) {
+		    fclose(f);
+		    return WEBDAV_ERROR_RESSOURCE;
+	    }
+    }
     fclose(f);
 
     strcpy(auth_username, username);

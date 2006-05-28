@@ -220,7 +220,14 @@ void write_changes_to_calendars(GList* entries, plugin_environment* env)
             osync_trace(TRACE_EXIT_ERROR, "write_changes_to_calendars");
             return;
         }
-        fread(buffer,1,filesize,f);
+        if (fread(buffer,1,filesize,f) != 1) {
+		if (ferror(f)) {
+			osync_trace(TRACE_EXIT_ERROR, "ERROR: unable to read stream");
+			fclose(f);
+			return;
+		}
+	}
+			
         fclose(f);
         buffer[filesize] = 0; /* end of string delimiter */
         
@@ -308,6 +315,7 @@ void write_changes_to_calendars(GList* entries, plugin_environment* env)
         char *textdata = (char*)(((GString*)curcal->data)->str);
         char *filename = (char*)cur->data;
         FILE* f = fopen(filename, "w");
+	size_t len = 0;
 
         if (!f)
         {
@@ -315,7 +323,14 @@ void write_changes_to_calendars(GList* entries, plugin_environment* env)
             return;
         }
 
-        fwrite(textdata, 1, strlen(textdata), f);
+
+	len = strlen(textdata);
+        if (fwrite(textdata, 1, len, f) != len) {
+		osync_trace(TRACE_EXIT_ERROR, "ERROR: Could not write: %s", filename);
+		fclose(f);
+		return;
+	}
+		
         fclose(f);
         curcal = curcal->next;
     }
