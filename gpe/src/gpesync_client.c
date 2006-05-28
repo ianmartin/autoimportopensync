@@ -342,7 +342,11 @@ gpesync_client_open (const char *addr, int port, char **errmsg)
   char buffer[BUFFER_LEN];
   bzero (buffer, BUFFER_LEN);
 
-  read (ctx->socket, buffer, 255);
+  if (read (ctx->socket, buffer, 255) < 0) {
+	  perror ("read");
+	  exit (1);
+  }
+
   if (strcasecmp (buffer, "OK\n"))
   {
     if (errmsg)
