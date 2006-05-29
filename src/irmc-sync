@@ -1,0 +1,14 @@
+<config>
+  <fixedst>false</fixedst>
+  <donttellsync>false</donttellsync>
+  <onlyphonenumbers>true</onlyphonenumbers>
+  <dontacceptold>true</dontacceptold>
+  <maximumage>7</maximumage>
+  <translatecharset>false</translatecharset>
+  <charset>ISO8859-1</charset>
+  <alarmtoirmc>true</alarmtoirmc>
+  <alarmfromirmc>true</alarmfromirmc>
+  <convertade>false</convertade>
+  <connectmedium></connectmedium>
+  <irname></irname>
+</config>
