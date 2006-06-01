@@ -858,7 +858,7 @@ void osync_thread_free(OSyncThread *thread)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static gpointer osyncThreadStartCallback(gpointer data)
+/*static gpointer osyncThreadStartCallback(gpointer data)
 {
 	OSyncThread *thread = data;
 	
@@ -869,7 +869,7 @@ static gpointer osyncThreadStartCallback(gpointer data)
 	g_main_loop_run(thread->loop);
 	
 	return NULL;
-}
+}*/
 
 static gboolean osyncThreadStopCallback(gpointer data)
 {
@@ -880,7 +880,7 @@ static gboolean osyncThreadStopCallback(gpointer data)
 	return FALSE;
 }
 
-void osync_thread_start(OSyncThread *thread)
+/*void osync_thread_start(OSyncThread *thread)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
 	osync_assert(thread);
@@ -892,7 +892,32 @@ void osync_thread_start(OSyncThread *thread)
 	g_mutex_unlock(thread->started_mutex);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}*/
+
+static gboolean osyncThreadStartCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+	
+	g_mutex_lock(thread->started_mutex);
+	g_cond_signal(thread->started);
+	g_mutex_unlock(thread->started_mutex);
+	return FALSE;
 }
+
+void osync_thread_start(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	
+	g_mutex_lock(thread->started_mutex);
+	GSource *idle = g_idle_source_new();
+	g_source_set_callback(idle, osyncThreadStartCallback, thread, NULL);
+	g_source_attach(idle, thread->context);
+	thread->thread = g_thread_create ((GThreadFunc)g_main_loop_run, thread->loop, TRUE, NULL);
+	g_cond_wait(thread->started, thread->started_mutex);
+	g_mutex_unlock(thread->started_mutex);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}	
 
 void osync_thread_stop(OSyncThread *thread)
 {

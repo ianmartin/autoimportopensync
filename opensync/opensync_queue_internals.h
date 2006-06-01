@@ -35,7 +35,8 @@ struct OSyncQueue {
 	/** The user_data associated with this queue **/
 	gpointer user_data;
 	/** The source associated with this queue */
-	GSource *source;
+	GSourceFuncs *incoming_functions;
+	GSource *incoming_source;
 	/** The context in which the IO of the queue is dispatched */
 	GMainContext *context;
 	GMainContext *incomingContext;
@@ -64,6 +65,7 @@ osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long i
 osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message, OSyncError **error);
 
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error);
+osync_bool osync_queue_new_pipes(OSyncQueue **read_queue, OSyncQueue **write_queue, OSyncError **error);
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error);
 
 void osync_queue_free(OSyncQueue *queue);
@@ -72,6 +74,7 @@ osync_bool osync_queue_exists(OSyncQueue *queue);
 
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error);
 osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error);
+osync_bool osync_queue_is_connected(OSyncQueue *queue);
 
 void osync_queue_set_message_handler(OSyncQueue *queue, OSyncMessageHandler handler, gpointer user_data);
 osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, OSyncMessage *message, OSyncError **error);

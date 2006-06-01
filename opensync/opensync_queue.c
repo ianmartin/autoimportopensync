@@ -57,6 +57,7 @@ gboolean _incoming_check(GSource *source)
 	OSyncQueue *queue = *((OSyncQueue **)(source + 1));
 	if (g_async_queue_length(queue->incoming) > 0)
 		return TRUE;
+	
 	return FALSE;
 }
 
@@ -70,7 +71,6 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 
 	OSyncMessage *message = NULL;
 	while ((message = g_async_queue_try_pop(queue->incoming))) {
-		
 		/* We check of the message is a reply to something */
 		if (message->cmd == OSYNC_MESSAGE_REPLY || message->cmd == OSYNC_MESSAGE_ERRORREPLY) {
 			
@@ -85,6 +85,7 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 				if (pending->id1 == message->id1 && pending->id2 == message->id2) {
 					
 					/* Call the callback of the pending message */
+					osync_assert(pending->callback);
 					pending->callback(message, pending->user_data);
 					
 					/* Then remove the pending message and free it */
@@ -103,6 +104,24 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 	
 	osync_trace(TRACE_EXIT, "%s: Done dispatching", __func__);
 	return TRUE;
+}
+
+static void _osync_queue_stop_incoming(OSyncQueue *queue)
+{
+	if (queue->incoming_source) {
+		g_source_destroy(queue->incoming_source);
+		queue->incoming_source = NULL;
+	}
+	
+	if (queue->incomingContext) {
+		g_main_context_unref(queue->incomingContext);
+		queue->incomingContext = NULL;
+	}
+	
+	if (queue->incoming_functions) {
+		g_free(queue->incoming_functions);
+		queue->incoming_functions = NULL;
+	}
 }
 
 static
@@ -168,6 +187,12 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 	OSyncMessage *message = NULL;
 	
 	while ((message = g_async_queue_try_pop(queue->outgoing))) {
+		/* Check if the queue is connected */
+		if (!queue->connected) {
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Trying to send to a queue thats not connected");
+			goto error;
+		}
+		
 		/*FIXME: review usage of osync_marshal_get_size_message() */
 		if (!_osync_queue_write_int(queue, message->buffer->len + osync_marshal_get_size_message(message), &error))
 			goto error;
@@ -198,6 +223,9 @@ gboolean _queue_dispatch(GSource *source, GSourceFunc callback, gpointer user_da
 	return TRUE;
 	
 error:
+	if (message)
+		osync_message_unref(message);
+	
 	if (error) {
 		message = osync_message_new(OSYNC_MESSAGE_QUEUE_ERROR, 0, &error);
 		if (message) {
@@ -280,8 +308,34 @@ gboolean _source_check(GSource *source)
 	OSyncMessage *message = NULL;
 	OSyncError *error = NULL;
 	
-	if (queue->connected == FALSE)
+	if (queue->connected == FALSE) {
+		/* Ok. so we arent connected. lets check if there are pending replies. We cannot
+		 * receive any data on the pipe, therefore, any pending replies will never
+		 * be answered. So we return error messages for all of them. */
+		if (queue->pendingReplies) {
+			g_mutex_lock(queue->pendingLock);
+			osync_error_set(&error, OSYNC_ERROR_IO_ERROR, "Broken Pipe");
+			GList *p = NULL;
+			for (p = queue->pendingReplies; p; p = p->next) {
+				OSyncPendingMessage *pending = p->data;
+				
+				message = osync_message_new(OSYNC_MESSAGE_ERRORREPLY, 0, NULL);
+				if (message) {
+					osync_marshal_error(message, error);
+	
+					message->id1 = pending->id1;
+					message->id2 = pending->id2;
+					
+					g_async_queue_push(queue->incoming, message);
+				}
+			}
+			
+			osync_error_free(&error);
+			g_mutex_unlock(queue->pendingLock);
+		}
+		
 		return FALSE;
+	}
 	
 	switch (osync_queue_poll(queue)) {
 		case OSYNC_QUEUE_EVENT_NONE:
@@ -291,11 +345,17 @@ gboolean _source_check(GSource *source)
 		case OSYNC_QUEUE_EVENT_HUP:
 		case OSYNC_QUEUE_EVENT_ERROR:
 			queue->connected = FALSE;
+			
+			/* Now we can send the hup message, and wake up the consumer thread so
+			 * it can pickup the messages in the incoming queue */
 			message = osync_message_new(OSYNC_MESSAGE_QUEUE_HUP, 0, &error);
 			if (!message)
 				goto error;
 			
 			g_async_queue_push(queue->incoming, message);
+			
+			if (queue->incomingContext)
+				g_main_context_wakeup(queue->incomingContext);
 			return FALSE;
 	}
 	
@@ -363,6 +423,9 @@ gboolean _source_dispatch(GSource *source, GSourceFunc callback, gpointer user_d
 		}
 		
 		g_async_queue_push(queue->incoming, message);
+		
+		if (queue->incomingContext)
+			g_main_context_wakeup(queue->incomingContext);
 	} while (_source_check(queue->read_source));
 	
 	return TRUE;
@@ -396,7 +459,8 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	if (!queue)
 		goto error;
 	
-	queue->name = g_strdup(name);
+	if (name)
+		queue->name = g_strdup(name);
 	queue->fd = -1;
 	
 	if (!g_thread_supported ())
@@ -417,6 +481,57 @@ error:
 	return NULL;
 }
 
+/* Creates anonymous pipes which dont have to be created and are automatically connected.
+ * 
+ * Lets assume parent wants to send, child wants to receive
+ * 
+ * osync_queue_new_pipes()
+ * fork()
+ * 
+ * Parent:
+ * connect(write_queue)
+ * disconnect(read_queue)
+ * 
+ * Child:
+ * connect(read_queue)
+ * close(write_queue)
+ * 
+ * 
+ *  */
+osync_bool osync_queue_new_pipes(OSyncQueue **read_queue, OSyncQueue **write_queue, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, read_queue, write_queue, error);
+	
+	*read_queue = osync_queue_new(NULL, error);
+	if (!*read_queue)
+		goto error;
+	
+	*write_queue = osync_queue_new(NULL, error);
+	if (!*write_queue)
+		goto error_free_read_queue;
+	
+	int filedes[2];
+	
+	if (pipe(filedes) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create pipes");
+		goto error_free_write_queue;
+	}
+	
+	(*read_queue)->fd = filedes[0];
+	(*write_queue)->fd = filedes[1];
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_write_queue:
+	osync_queue_free(*write_queue);
+error_free_read_queue:
+	osync_queue_free(*read_queue);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
 void osync_queue_free(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
@@ -426,6 +541,8 @@ void osync_queue_free(OSyncQueue *queue)
 	g_mutex_free(queue->pendingLock);
 	
 	g_main_context_unref(queue->context);
+
+	_osync_queue_stop_incoming(queue);
 
 	while ((message = g_async_queue_try_pop(queue->incoming))) {
 		osync_message_unref(message);
@@ -442,9 +559,6 @@ void osync_queue_free(OSyncQueue *queue)
 		g_free(pending);
 		queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
 	}
-
-	if (queue->source)
-		g_source_destroy(queue->source);
 
 	if (queue->name)
 		g_free(queue->name);
@@ -496,22 +610,24 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 	
 	queue->type = type;
 	
-	/* First, open the queue with the flags provided by the user */
-	int fd = open(queue->name, type == OSYNC_QUEUE_SENDER ? O_WRONLY : O_RDONLY);
-	if (fd == -1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
-		goto error;
-	}
-	queue->fd = fd;
-
-	int oldflags = fcntl(fd, F_GETFD);
-	if (oldflags == -1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get fifo flags");
-		goto error_close;
-	}
-	if (fcntl(fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set fifo flags");
-		goto error_close;
+	if (queue->fd == -1) {
+		/* First, open the queue with the flags provided by the user */
+		int fd = open(queue->name, type == OSYNC_QUEUE_SENDER ? O_WRONLY : O_RDONLY);
+		if (fd == -1) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
+			goto error;
+		}
+		queue->fd = fd;
+	
+		int oldflags = fcntl(queue->fd, F_GETFD);
+		if (oldflags == -1) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get fifo flags");
+			goto error_close;
+		}
+		if (fcntl(queue->fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to set fifo flags");
+			goto error_close;
+		}
 	}
 
 	queue->connected = TRUE;
@@ -566,9 +682,11 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
 	osync_assert(queue);
 	
-	osync_thread_stop(queue->thread);
-	osync_thread_free(queue->thread);
-	queue->thread = NULL;
+	if (queue->thread) {
+		osync_thread_stop(queue->thread);
+		osync_thread_free(queue->thread);
+		queue->thread = NULL;
+	}
 	
 	//g_source_unref(queue->write_source);
 	
@@ -577,8 +695,14 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 		
 	//g_source_unref(queue->read_source);
 	
-	if (queue->read_functions)
-		g_free(queue->read_functions);
+	_osync_queue_stop_incoming(queue);
+	
+	/* We have to empty the incoming queue if we disconnect the queue. Otherwise, the
+	 * consumer threads might try to pick up messages even after we are done. */
+	OSyncMessage *message = NULL;
+	while ((message = g_async_queue_try_pop(queue->incoming))) {
+		osync_message_unref(message);
+	}
 	
 	if (close(queue->fd) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to close queue");
@@ -586,10 +710,17 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 		return FALSE;
 	}
 	
+	queue->fd = -1;
 	queue->connected = FALSE;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+}
+
+osync_bool osync_queue_is_connected(OSyncQueue *queue)
+{
+	osync_assert(queue);
+	return queue->connected;
 }
 
 /*! @brief Sets the message handler for a queue
@@ -625,19 +756,23 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, context);
 	
-	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
-	functions->prepare = _incoming_prepare;
-	functions->check = _incoming_check;
-	functions->dispatch = _incoming_dispatch;
-	functions->finalize = NULL;
+	queue->incoming_functions = g_malloc0(sizeof(GSourceFuncs));
+	queue->incoming_functions->prepare = _incoming_prepare;
+	queue->incoming_functions->check = _incoming_check;
+	queue->incoming_functions->dispatch = _incoming_dispatch;
+	queue->incoming_functions->finalize = NULL;
 
-	GSource *source = g_source_new(functions, sizeof(GSource) + sizeof(OSyncQueue *));
-	OSyncQueue **queueptr = (OSyncQueue **)(source + 1);
+	queue->incoming_source = g_source_new(queue->incoming_functions, sizeof(GSource) + sizeof(OSyncQueue *));
+	OSyncQueue **queueptr = (OSyncQueue **)(queue->incoming_source + 1);
 	*queueptr = queue;
-	g_source_set_callback(source, NULL, queue, NULL);
-	queue->source = source;
-	g_source_attach(source, context);
+	g_source_set_callback(queue->incoming_source, NULL, queue, NULL);
+	g_source_attach(queue->incoming_source, context);
 	queue->incomingContext = context;
+	// For the source
+	g_main_context_ref(context);
+	
+	//To unref it later
+	g_main_context_ref(context);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -701,6 +836,7 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, queue, replyqueue, message, error);
 	
 	if (message->callback) {
+		osync_assert(replyqueue);
 		OSyncPendingMessage *pending = osync_try_malloc0(sizeof(OSyncPendingMessage), error);
 		if (!pending)
 			goto error;
@@ -708,6 +844,9 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 		gen_id(&(message->id1), &(message->id2));
 		pending->id1 = message->id1;
 		pending->id2 = message->id2;
+		
+		pending->callback = message->callback;
+		pending->user_data = message->user_data;
 		
 		g_mutex_lock(replyqueue->pendingLock);
 		replyqueue->pendingReplies = g_list_append(replyqueue->pendingReplies, pending);
@@ -734,8 +873,6 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 	/*TODO: add timeout handling */
 	
 	osync_bool ret = osync_queue_send_message(queue, replyqueue, message, error);
-	
-	g_main_context_wakeup(queue->context);
 	
 	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return ret;

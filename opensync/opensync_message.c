@@ -145,28 +145,6 @@ gboolean osync_message_is_error(OSyncMessage *message)
 	return FALSE;
 }
 
-/*! @brief Reset the timeout for a given message
- * 
- * This function will reset the timeout for a message. The timeout will
- * restart with its original value.
- * 
- * @param message The message to reset
- * 
- */
-void osync_message_reset_timeout(OSyncMessage *message)
-{
-	if (!message->to_info)
-		return;
-
-	GSource *source = message->to_info->source;
-
-	GMainContext *context = g_source_get_context(source);
-	g_source_destroy(source);
-	message->to_info->source = g_timeout_source_new(message->to_info->timeout * 1000);
-	g_source_set_callback(message->to_info->source, message->to_info->timeoutfunc, message->to_info, NULL);
-	g_source_attach(message->to_info->source, context);
-}
-
 osync_bool osync_message_is_answered(OSyncMessage *message)
 {
 	return message->is_answered;
