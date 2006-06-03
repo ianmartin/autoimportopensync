@@ -77,7 +77,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
       if ( kapp )
         mApplication = kapp;
       else {
-        mApplication = new KApplication( false, false );
+        mApplication = new KApplication( true, true );
         mNewApplication = true;
       }
 
