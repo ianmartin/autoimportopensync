@@ -732,6 +732,19 @@ VFormat *vformat_new(void)
 	return vformat_new_from_string ("");
 }
 
+VFormatAttribute *vformat_find_attribute(VFormat *vcard, const char *name)
+{
+	GList *attributes = vformat_get_attributes(vcard);
+	GList *a = NULL;
+	for (a = attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
+		if (!strcmp(vformat_attribute_get_name(attr), name)) {
+			return attr;
+		}	
+	}
+	return NULL;
+}	
+
 char *vformat_to_string (VFormat *evc, VFormatType type)
 {
 	GList *l;

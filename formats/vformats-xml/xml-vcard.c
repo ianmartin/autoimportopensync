@@ -339,6 +339,30 @@ has_value:;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static void _generate_formatted_name(VFormat *vcard, xmlNode *root)
+{
+        VFormatAttribute *n = vformat_find_attribute(vcard, "N");
+	GList *v = vformat_attribute_get_values(n);
+	GString *fnentry;
+	fnentry = g_string_new("");
+
+	int order[5] = {3, 1, 2, 0, 4};
+	int i = 0;
+	char *str = NULL;
+	for (i = 0; i < 5; i++) {
+		if ((str = g_list_nth_data(v, order[i])) && str[0]) {
+			if (fnentry->len != 0)
+				g_string_append(fnentry, " ");
+			g_string_append(fnentry, str);
+		}
+	}
+	
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+	osxml_node_add(current, "Content", fnentry->str);
+	g_string_free(fnentry,TRUE);
+	return;
+}
+
 static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
@@ -373,6 +397,11 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 		vcard_handle_attribute(hooks, root, attr);
 	}
 	
+	//Genreate "FN" attribute if it does not exist
+	if (!vformat_find_attribute(vcard, "FN")) {
+		_generate_formatted_name(vcard,root);
+	}
+
 	xmlChar *str = osxml_write_to_string(doc);
 	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
 	xmlFree(str);
