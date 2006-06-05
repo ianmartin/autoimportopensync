@@ -70,16 +70,12 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 	int i;
 	char *tmp = g_strdup(""); 
 
-	osync_trace(TRACE_INTERNAL, "HASH: name %s", contact->name);
-
 	if (contact->name)
 		tmp = g_strdup_printf("%s-%s", tmp, contact->name);
 
 
 // no necassary!	
 //	tmp = g_strdup_printf("%s-%i", tmp, contact->memory_type);
-
-	osync_trace(TRACE_INTERNAL, "HASH: caller_group: %i", contact->caller_group);
 
 	if (contact->caller_group)
 		tmp = g_strdup_printf("%s-%i", tmp, contact->caller_group);
@@ -88,7 +84,6 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 //	if (contact->location)
 //		tmp = g_strdup_printf("%s-%i", tmp, contact->location);
 
-	osync_trace(TRACE_INTERNAL, "HASH: date: %i", contact->date.year);
 	if (contact->date.year)
 		tmp = g_strdup_printf("%s-%i%i%i.%i%i%i.%i",
 				tmp,
@@ -100,19 +95,15 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 				contact->date.second,
 				contact->date.timezone);
 
-	osync_trace(TRACE_INTERNAL, "HASH: subentires_count: %i", contact->subentries_count);
 	for (i=0; i < contact->subentries_count; i++) {
 		tmp = g_strdup_printf("%s-sub%i", tmp, i);
 
-		osync_trace(TRACE_INTERNAL, "HASH: entry_type");
 		if (contact->subentries[i].entry_type)
 			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].entry_type);
 
-		osync_trace(TRACE_INTERNAL, "HASH: number_type");
 		if (contact->subentries[i].number_type)
 			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].number_type);
 
-		osync_trace(TRACE_INTERNAL, "HASH: data.number");
 		if (contact->subentries[i].data.number)
 			tmp = g_strdup_printf("%s-%s", tmp, contact->subentries[i].data.number);
 
@@ -146,8 +137,6 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 
 /* The function return a free location for a contact entry.
  *  
- * TODO: run only once! (performance...)
- *
  * Returns: filled contact note with memory_type and location
  */
 gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
@@ -206,7 +195,6 @@ gn_phonebook_entry *gnokii_contact_read(int memory_type, int pos, gn_data *data,
 
 	data->phonebook_entry = contact;
 
-	osync_trace(TRACE_INTERNAL, "get the stuff...");
 	// get the nth (pos) entry of the cellphone. 
 	error = gn_sm_functions(GN_OP_ReadPhonebook, data, state);
 

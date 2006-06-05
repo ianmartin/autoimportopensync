@@ -279,6 +279,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 #endif	
 
 	char *tmp;
+	osync_bool alldayevent = 0;
 	xmlNode *cur = NULL;
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 
@@ -328,16 +329,22 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 	// DateStarted 
 	cur = osxml_get_node(root, "DateStarted");
 	if (cur) {
+		int ret = 0;
 
 		tmp = (char*) xmlNodeGetContent(cur);
 
-		sscanf(tmp, "%04u%02u%02uT%02u%02u%02u",
+		ret = sscanf(tmp, "%04u%02u%02uT%02u%02u%02u",
 				&(calnote->time.year),
 				&(calnote->time.month),
 				&(calnote->time.day),
 				&(calnote->time.hour),
 				&(calnote->time.minute),
 				&(calnote->time.second));
+
+		// Only 3 matches (=date) means all day event 
+		if (ret == 3)
+			alldayevent = 1;
+			
 
 		// Nokia cellphones cannot handle seconds in calendar - so set it to ZERO
 		calnote->time.second = 0;
@@ -409,13 +416,19 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 	// meeting location
 	cur = osxml_get_node(root, "Location");
-	if (calnote->type == GN_CALNOTE_MEETING && cur)
-		strncpy(calnote->mlocation, (char *) xmlNodeGetContent(cur), sizeof(calnote->mlocation));
+	if (cur) {
+		tmp = (char *) xmlNodeGetContent(cur);
+		if (calnote->type == GN_CALNOTE_MEETING || strlen(tmp))
+			strncpy(calnote->mlocation, tmp, sizeof(calnote->mlocation));
+	}
 
 	// PhoneNumber
 	cur = osxml_get_node(root, "Description");
-	if (calnote->type == GN_CALNOTE_CALL && cur)
-		strncpy(calnote->phone_number, (char *) xmlNodeGetContent(cur), sizeof(calnote->phone_number));
+	if (cur) {
+		tmp = (char *) xmlNodeGetContent(cur);
+		if (calnote->type == GN_CALNOTE_CALL || gnokii_util_valid_number(tmp))
+			strncpy(calnote->phone_number, tmp, sizeof(calnote->phone_number));
+	}
 
 	// Reccurence
 	cur = osxml_get_node(root, "RecurrenceRule");
@@ -444,9 +457,10 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 			calnote->recurrence = GN_CALNOTE_2WEEKLY;
 	}
 
-	// TODO: check for type which fits for given data if no type was set
+	// check for type which fits for given data if no type was set
 	if (!calnote->type)
-		calnote->type = GN_CALNOTE_MEETING;
+		calnote->type = gnokii_util_calendar_type(calnote, alldayevent);
+
 
 	*free_input = TRUE;
 	*output = (void *)calnote;

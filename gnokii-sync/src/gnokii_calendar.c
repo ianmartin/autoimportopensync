@@ -368,7 +368,7 @@ osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
 
 	}
 
-	osync_debug("GNOKII", 2, "number of calendar notes: %i", i - 1);
+	osync_trace(TRACE_INTERNAL, "number of calendar notes: %i", i - 1);
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "event");
 

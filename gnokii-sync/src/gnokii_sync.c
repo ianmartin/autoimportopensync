@@ -121,7 +121,7 @@ static void get_changeinfo(OSyncContext *ctx)
 	contact_changes = gnokii_contact_get_changeinfo(ctx);
 #endif	
 	
-//	TODO: contact & todo
+//	TODO todo
 //	if (calendar_changes && todo_changes && contact_changes)
 	if (calendar_changes && contact_changes)
 		osync_context_report_success(ctx);

@@ -254,7 +254,7 @@ char *gnokii_util_caltype2string(gn_calnote_type type) {
  */
 char *gnokii_util_ttm2wday(const time_t *date) {
 
-	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, (int) date);
+	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, *date);
 
 	struct tm *tmp_date = localtime(date);
 	char *day_string = NULL;
@@ -285,5 +285,79 @@ char *gnokii_util_ttm2wday(const time_t *date) {
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return day_string;
+}
+
+/* Check for valid phone number
+ *
+ * Returns: osync_bool
+ * ReturnValue: true - valid number
+ * ReturnValue: false - invalid number
+ */ 
+osync_bool gnokii_util_valid_number(char *number) {
+
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, number);
+
+	int i;
+	int len = (int) strlen(number);
+
+	for (i=0; i < len; i++) {
+		switch (number[i]) {
+			// valid chars
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':	
+			case '+':	
+			case '*':
+			case '#':
+			case 'p':
+			case 'w':	
+				break;
+			default:
+				// invalid char...
+				return FALSE;	
+				break;
+		}
+	}
+
+	osync_trace(TRACE_EXIT, "%s: valid number", __func__);
+	return TRUE;
+}
+
+
+/* Find a calendar type which fits. 
+ *
+ * Returns: gn_calnote_type
+ */
+gn_calnote_type gnokii_util_calendar_type(gn_calnote *calnote, osync_bool alldayevent) {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, calnote, alldayevent);
+
+	gn_calnote_type type;
+
+	// calnote type
+	type = GN_CALNOTE_MEETING;
+
+	// FIXME this breaks the hash calculation - modified after 2nd sync(?)
+	if (!calnote->end_time.year && !alldayevent 
+			&& gnokii_util_valid_number(calnote->phone_number))
+		type = GN_CALNOTE_CALL;
+
+	if (calnote->end_time.year && alldayevent)
+		type = GN_CALNOTE_MEMO;
+
+	if (!calnote->end_time.year && !alldayevent)
+		type = GN_CALNOTE_REMINDER;
+
+	if (strlen(calnote->mlocation) && !alldayevent)
+		type = GN_CALNOTE_MEETING;
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, type);
+	return type;
 }
 
