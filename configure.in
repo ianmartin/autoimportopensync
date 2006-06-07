@@ -45,7 +45,14 @@ AC_DEFINE_UNQUOTED(HAVE_BLUETOOTH, ${BLUETOOTH},Defined if Bluetooth is enabled.
 AC_ARG_ENABLE(obex,
   AS_HELP_STRING([--enable-obex], [enable obex transports]),
   WANT_OBEX=$enableval)
-AM_PATH_OPENOBEX
+if $(pkg-config --exists openobex); then
+	PKG_CHECK_MODULES(OPENOBEX, [openobex])
+	AC_SUBST(OPENOBEX_CFLAGS)
+	AC_SUBST(OPENOBEX_LIBS)
+else	
+	AM_PATH_OPENOBEX
+fi	
+
 if test -n "${OPENOBEX_LIBS}"; then
 	HAVE_OPENOBEX=yes
 fi
