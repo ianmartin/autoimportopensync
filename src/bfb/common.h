@@ -28,7 +28,7 @@
 
 /* use 0 for production, 1 for verification, >2 for debug */
 #ifndef OBEXFTP_DEBUG
-#define OBEXFTP_DEBUG 2
+#define OBEXFTP_DEBUG 0
 #endif
 
 #if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
