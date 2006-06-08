@@ -82,32 +82,59 @@ time_t vformat_time_to_unix(const char *inptime)
 static char *_fold_lines (char *buf)
 {
 	GString *str = g_string_new ("");
+	GString *line = g_string_new ("");
 	char *p = buf;
-	char *next, *next2;
-
-	/* we're pretty liberal with line folding here.  We handle
-	   lines folded with \r\n<WS>... and \n\r<WS>... and
-	   \n<WS>... We also turn single \r's and \n's not followed by
-	   WS into \r\n's. */
+	char *next, *next2, *q;
+	gboolean newline = TRUE;
+	gboolean quotedprintable = FALSE;
+	
+	/* 
+	 *  We're pretty liberal with line folding here. We handle
+	 *  lines folded with \r\n<WS>, \n\r<WS>, \n<WS>, =\r\n and =\n\r. 
+	 *  We also turn single \r's and \n's not followed by <WS> into \r\n's.
+	 */
+	
 	while (*p) {
-		if (*p == '\r' || *p == '\n') {
+
+		/* search new lines for quoted printable encoding */
+		if (newline) {
+			for (q=p; *q != '\n'; q++)
+				line = g_string_append_unichar (line, g_utf8_get_char (q));
+		
+			if (strstr(line->str, "ENCODING=QUOTED-PRINTABLE"))
+				quotedprintable = TRUE;
+			
+			line = g_string_new ("");
+			newline = FALSE;
+		}
+
+				
+		if ((quotedprintable && *p == '=') || *p == '\r' || *p == '\n') {
 			next = g_utf8_next_char (p);
 			if (*next == '\n' || *next == '\r') {
 				next2 = g_utf8_next_char (next);
-				if (*next2 == ' ' || *next2 == '\t') {
+				if (*next2 == '\n' || *next2 == '\r' || *next2 == ' ' || *next2 == '\t') {
 					p = g_utf8_next_char (next2);
 				}
 				else {
 					str = g_string_append (str, CRLF);
 					p = g_utf8_next_char (next);
+					newline = TRUE;
+					quotedprintable = FALSE;
 				}
 			}
+			else if (*p == '=') {
+				str = g_string_append_unichar (str, g_utf8_get_char (p));
+				p = g_utf8_next_char (p);
+			}	
 			else if (*next == ' ' || *next == '\t') {
 				p = g_utf8_next_char (next);
 			}
 			else {
 				str = g_string_append (str, CRLF);
 				p = g_utf8_next_char (p);
+				newline = TRUE;
+				quotedprintable = FALSE;
 			}
 		}
 		else {
@@ -117,6 +144,7 @@ static char *_fold_lines (char *buf)
 	}
 
 	g_free (buf);
+	g_string_free(line, TRUE);
 
 	return g_string_free (str, FALSE);
 }
@@ -206,14 +234,8 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 			
 			if ((a = *(++lp)) == '\0') break;
 			if ((b = *(++lp)) == '\0') break;
-			if (a == '\r' && b == '\n') {
-				/* it was a = at the end of the line,
-				 * just ignore this and continue
-				 * parsing on the next line.  yay for
-				 * 2 kinds of line folding
-				 */
-			}
-			else if (isalnum(a)) {
+			
+			if (isalnum(a)) {
 				if (isalnum(b)) {
 					/* e.g. ...N=C3=BCrnberg\r\n
 					 *          ^^^
