@@ -914,7 +914,7 @@ error:
 void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);
-//  char *converted_event = NULL;
+  char *converted_event = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 //  irmc_config *config = &(env->config);
@@ -978,8 +978,9 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
                                                         (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
                                                         VOPTION_CONVERTUTC, config->charset);
 	*/						
+	converted_event = strdup(data);
         event_size = strlen(data);
-	osync_change_set_data(change, data, event_size, TRUE);
+	osync_change_set_data(change, converted_event, event_size, TRUE);
         osync_change_set_changetype(change, CHANGE_ADDED);
         osync_context_report_change(ctx, change);
       }
@@ -1004,6 +1005,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
                                           (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
                                           VOPTION_CONVERTUTC, config->charset );
       */					  
+      converted_event = strdup(data);
       event_size = strlen(data);
     } else {
       data = NULL;
@@ -1013,7 +1015,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
     if (type == 'H')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || event_size == 0) {
-      osync_change_set_data(change, data, event_size, TRUE);
+      osync_change_set_data(change, converted_event, event_size, TRUE);
       osync_change_set_changetype(change, CHANGE_MODIFIED);
     }
 
