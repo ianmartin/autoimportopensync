@@ -978,8 +978,9 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
                                                         (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
                                                         VOPTION_CONVERTUTC, config->charset);
 	*/						
+	// use original vcard (data) instead modifieded
 	converted_event = strdup(data);
-        event_size = strlen(data);
+        event_size = strlen(converted_event);
 	osync_change_set_data(change, converted_event, event_size, TRUE);
         osync_change_set_changetype(change, CHANGE_ADDED);
         osync_context_report_change(ctx, change);
@@ -1006,9 +1007,9 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
                                           VOPTION_CONVERTUTC, config->charset );
       */					  
       converted_event = strdup(data);
-      event_size = strlen(data);
+      event_size = strlen(converted_event);
     } else {
-      data = NULL;
+      converted_event = NULL;
       event_size = 0;
     }
 
@@ -1226,6 +1227,7 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   data = osync_change_get_data(change);
 
   // convert the data depending on the object type.
+  /* XXX dropping sync_vtype_convert()
   if (data) {
     if (strcmp(info->identifier, "event") == 0) {
       converted_data = sync_vtype_convert(data, VOPTION_ADDUTF8CHARSET | 0 |
@@ -1242,7 +1244,16 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   } else {
     data_size = 0;
   }
-  converted_data = strdup(data);
+  */
+
+  // use original data instead of converted
+  if (data) {
+	  converted_data = strdup(data);
+	  data_size = strlen(converted_data);
+  } else {
+	  data_size = 0;
+  }
+
   // increase change counter
   (*(info->change_counter))++;
 
