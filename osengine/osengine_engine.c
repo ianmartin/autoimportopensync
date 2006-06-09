@@ -126,6 +126,9 @@ OSyncClient *osengine_get_client(OSyncEngine *engine, long long int memberId)
 
 void send_engine_changed(OSyncEngine *engine)
 {
+	if (!engine->is_initialized)
+		return;
+
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_ENGINE_CHANGED, 0, NULL);
 	/*FIXME: Handle errors here */
 
@@ -516,11 +519,6 @@ OSyncEngine *osengine_new(OSyncGroup *group, OSyncError **error)
 		goto error_free_paths;
 	}
 
-	engine->commands_from_self = osync_queue_new(path, error);
-	engine->commands_to_self = osync_queue_new(path, error);
-	if (!engine->commands_from_self || !engine->commands_to_self)
-		goto error_free_paths;
-	
 	engine->syncing_mutex = g_mutex_new();
 	engine->info_received_mutex = g_mutex_new();
 	engine->syncing = g_cond_new();
@@ -789,8 +787,6 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	
 	engine->is_initialized = TRUE;
 	
-	osync_queue_create(engine->commands_from_self, NULL);
-	
 	osync_trace(TRACE_INTERNAL, "Spawning clients");
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
@@ -814,11 +810,13 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		}
 	}
 	
-	osync_queue_set_message_handler(engine->commands_from_self, (OSyncMessageHandler)engine_message_handler, engine);
-	if (!(engine->man_dispatch))
-		osync_queue_setup_with_gmainloop(engine->commands_from_self, engine->context);
-	
 	osync_trace(TRACE_INTERNAL, "opening engine queue");
+	if (!osync_queue_new_pipes(&engine->commands_from_self, &engine->commands_to_self, error)) {
+		osync_group_unlock(engine->group, TRUE);
+		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
+		return FALSE;
+	}
+
 	if (!osync_queue_connect(engine->commands_from_self, OSYNC_QUEUE_RECEIVER, 0 )) {
 		osync_group_unlock(engine->group, TRUE);
 		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
@@ -830,6 +828,10 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 		osync_trace(TRACE_EXIT_ERROR, "osengine_init: %s", osync_error_print(error));
 		return FALSE;
 	}
+	
+	osync_queue_set_message_handler(engine->commands_from_self, (OSyncMessageHandler)engine_message_handler, engine);
+	if (!(engine->man_dispatch))
+		osync_queue_setup_with_gmainloop(engine->commands_from_self, engine->context);
 	
 	osync_trace(TRACE_INTERNAL, "initializing clients");
 	for (c = engine->clients; c; c = c->next) {
