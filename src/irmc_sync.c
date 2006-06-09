@@ -914,10 +914,10 @@ error:
 void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);
-  char *converted_event = NULL;
+//  char *converted_event = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_config *config = &(env->config);
+//  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *event_start = data, *todo_start;
@@ -970,13 +970,16 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
             osync_change_set_uid(change, g_strdup(luid));
           }
         }
+
+	/* XXX drop sync_vtype_* functions. 
         converted_event = sync_vtype_convert(event, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
                                                         (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
                                                         VOPTION_CALENDAR1TO2 |
                                                         (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
                                                         VOPTION_CONVERTUTC, config->charset);
-        event_size = strlen(converted_event);
-	osync_change_set_data(change, converted_event, event_size, TRUE);
+	*/						
+        event_size = strlen(data);
+	osync_change_set_data(change, data, event_size, TRUE);
         osync_change_set_changetype(change, CHANGE_ADDED);
         osync_context_report_change(ctx, change);
       }
@@ -994,21 +997,23 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
 
     int event_size = strlen(data);
     if (event_size > 0) {
+      /* XXX drop sync_vtype_* functions	    
       converted_event = sync_vtype_convert(data, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
                                           (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
                                           VOPTION_CALENDAR1TO2 |
                                           (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
                                           VOPTION_CONVERTUTC, config->charset );
-      event_size = strlen(converted_event);
+      */					  
+      event_size = strlen(data);
     } else {
-      converted_event = NULL;
+      data = NULL;
       event_size = 0;
     }
 
     if (type == 'H')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || event_size == 0) {
-      osync_change_set_data(change, converted_event, event_size, TRUE);
+      osync_change_set_data(change, data, event_size, TRUE);
       osync_change_set_changetype(change, CHANGE_MODIFIED);
     }
 
@@ -1025,7 +1030,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_config *config = &(env->config);
+//  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *vcard_start = data;
