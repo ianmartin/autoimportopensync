@@ -431,7 +431,11 @@ void message_handler(OSyncMessage *message, void *user_data)
 		}
 		*/
 		break;
-
+	case OSYNC_MESSAGE_QUEUE_HUP:
+		osync_trace(TRACE_INTERNAL, "%s: ERROR: Queue hangup", __func__);
+		fprintf(stderr, "Pipe closed! Exiting.\n");
+		exit(1);
+		break;
 	default:
 		osync_trace(TRACE_INTERNAL, "%s: ERROR: Unknown message", __func__);
 		g_assert_not_reached();
