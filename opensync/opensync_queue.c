@@ -796,6 +796,9 @@ OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 	 * disconnected. Since we mainly dispatch the write IO, we dont want to block here. */
 	int ret = poll(&pfd, 1, queue->type == OSYNC_QUEUE_SENDER ? 0 : 100);
 	
+	if (ret < 0 && errno == EINTR)
+		return OSYNC_QUEUE_EVENT_NONE;
+
 	if (ret == 0)
 		return OSYNC_QUEUE_EVENT_NONE;	
 	
