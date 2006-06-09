@@ -77,25 +77,32 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 			/* Search for the pending reply. We have to lock the
 			 * list since another thread might be duing the updates */
 			g_mutex_lock(queue->pendingLock);
+
+			OSyncPendingMessage *found = NULL;
 			
 			GList *p = NULL;
 			for (p = queue->pendingReplies; p; p = p->next) {
 				OSyncPendingMessage *pending = p->data;
 				
 				if (pending->id1 == message->id1 && pending->id2 == message->id2) {
-					
-					/* Call the callback of the pending message */
-					osync_assert(pending->callback);
-					pending->callback(message, pending->user_data);
-					
-					/* Then remove the pending message and free it */
+
+					/* Get the pending message from the queue */
 					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
-					g_free(pending);
+					found = pending;
 					break;
 				}
 			}
-			
 			g_mutex_unlock(queue->pendingLock);
+
+			if (found) {
+				/* Call the callback of the pending message and free the message */
+				osync_assert(found->callback);
+				found->callback(message, found->user_data);
+				
+				g_free(found);
+			} else
+				osync_trace(TRACE_INTERNAL, "%s: No pending message for %lld:%d", __func__, message->id1, message->id2);
+
 		} else 
 			queue->message_handler(message, queue->user_data);
 		
