@@ -42,4 +42,7 @@ void osync_demarshal_error( OSyncMessage *message, OSyncError **error );
 
 int osync_marshal_get_size_message( OSyncMessage *message );
 
+void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change);
+void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *change);
+
 #endif

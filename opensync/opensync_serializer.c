@@ -43,12 +43,14 @@ int osync_marshal_get_size_change( OSyncChange *change )
   return size;
 }
 
-static void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
+void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
 {
 	OSyncObjFormat *format = osync_change_get_objformat(change);
 	char *data;
 	int datasize;
 	int free_data = 0;
+
+	osync_message_write_int( message, change->has_data );
 
 	if (format && format->marshall_func) {
 		format->marshall_func(change->data, change->size, &data, &datasize, NULL);
@@ -84,7 +86,6 @@ void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
 
   osync_marshal_changedata(message, change);
 
-  osync_message_write_int( message, change->has_data );
   osync_marshal_changetype( message, change->changetype );
   osync_message_write_long_long_int( message, change->id );
   osync_message_write_string( message, change->destobjtype );
@@ -92,11 +93,13 @@ void osync_marshal_change( OSyncMessage *message, OSyncChange *change )
   osync_marshal_member( message, change->sourcemember );
 }
 
-static void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *change)
+void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *change)
 {
 	OSyncObjFormat *format = osync_change_get_objformat(change);
 	char *data;
 	int datasize;
+
+	osync_message_read_int( message, &( change->has_data ) );
 
 	osync_message_read_int(message, &datasize);
 	if (datasize > 0) {
@@ -134,8 +137,6 @@ void osync_demarshal_change( OSyncMessage *message, OSyncFormatEnv *conv_env, OS
   osync_message_read_string( message, &( new_change->initial_format_name ) );
 
   osync_demarshal_changedata(message, new_change);
-
-  osync_message_read_int( message, &( new_change->has_data ) );
 
   osync_demarshal_changetype( message, &( new_change->changetype ) );
   osync_message_read_long_long_int( message, &( new_change->id ) );

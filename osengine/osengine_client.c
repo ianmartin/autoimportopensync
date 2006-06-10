@@ -189,20 +189,7 @@ void _get_change_data_reply_receiver(OSyncMessage *message, OSyncMappingEntry *e
 		//osync_flag_unset(entry->fl_has_data);
 	} else {
 
-		int has_data, size;
-		char *data;
-		osync_message_read_int(message, &has_data);
-		osync_message_read_int(message, &size);
-
-		data = osync_try_malloc0(size, NULL);
-		if (!data) {
-			//FIXME: we need to handle errors properly here
-			osync_trace(TRACE_INTERNAL, "Couldn't allocate change data");
-			return;
-		}
-
-		osync_message_read_data(message, data, size);
-		osync_change_set_data(entry->change, data, size, has_data);
+		osync_demarshal_changedata(message, entry->change);
 
 		osync_flag_set(entry->fl_has_data);
 		osync_status_update_change(engine, entry->change, CHANGE_RECEIVED, NULL);

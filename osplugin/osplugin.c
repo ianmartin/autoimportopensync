@@ -478,10 +478,7 @@ static osync_bool add_get_changedata_reply_data(OSyncMessage *reply, context *ct
 
 	assert(change);
 
-	int size = osync_change_get_datasize(change);
-	osync_message_write_int(reply, osync_change_has_data(change));
-	osync_message_write_int(reply, size);
-	osync_message_write_data(reply, osync_change_get_data(change), size);
+	osync_marshal_changedata(reply, change);
 
 	return TRUE;
 }
