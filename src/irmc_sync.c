@@ -29,7 +29,6 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#include "sync_vtype.h"
 #include "irmc_sync.h"
 #include "irmc_bluetooth.h"
 
@@ -914,10 +913,9 @@ error:
 void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);
-  char *converted_event = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-//  irmc_config *config = &(env->config);
+  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *event_start = data, *todo_start;
@@ -970,18 +968,8 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
             osync_change_set_uid(change, g_strdup(luid));
           }
         }
-
-	/* XXX drop sync_vtype_* functions. 
-        converted_event = sync_vtype_convert(event, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
-                                                        (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                                        VOPTION_CALENDAR1TO2 |
-                                                        (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
-                                                        VOPTION_CONVERTUTC, config->charset);
-	*/						
-	// use original vcard (data) instead modifieded
-	converted_event = strdup(data);
-        event_size = strlen(converted_event);
-	osync_change_set_data(change, converted_event, event_size, TRUE);
+        event_size = strlen(event);
+	osync_change_set_data(change, event, event_size, TRUE);
         osync_change_set_changetype(change, CHANGE_ADDED);
         osync_context_report_change(ctx, change);
       }
@@ -999,24 +987,16 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
 
     int event_size = strlen(data);
     if (event_size > 0) {
-      /* XXX drop sync_vtype_* functions	    
-      converted_event = sync_vtype_convert(data, 0 | (config->fixdst ? VOPTION_FIXDSTFROMCLIENT : 0) |
-                                          (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                          VOPTION_CALENDAR1TO2 |
-                                          (config->alarmfromirmc ? 0 : VOPTION_REMOVEALARM) |
-                                          VOPTION_CONVERTUTC, config->charset );
-      */					  
-      converted_event = strdup(data);
-      event_size = strlen(converted_event);
+      event_size = strlen(data);
     } else {
-      converted_event = NULL;
+      data = NULL;
       event_size = 0;
     }
 
     if (type == 'H')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || event_size == 0) {
-      osync_change_set_data(change, converted_event, event_size, TRUE);
+      osync_change_set_data(change, data, event_size, TRUE);
       osync_change_set_changetype(change, CHANGE_MODIFIED);
     }
 
@@ -1033,7 +1013,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-//  irmc_config *config = &(env->config);
+  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *vcard_start = data;
@@ -1106,7 +1086,6 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
 void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
-  char *converted_vnote = NULL;
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
   irmc_config *config = &(env->config);
@@ -1142,10 +1121,8 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
           }
         }
 
-        converted_vnote = sync_vtype_convert(vnote, 0 | (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                             VOPTION_FIXTELOTHER, config->charset);
-        vnote_size = strlen(converted_vnote);
-        osync_change_set_data(change, converted_vnote, vnote_size, TRUE);
+        vnote_size = strlen(vnote);
+        osync_change_set_data(change, vnote, vnote_size, TRUE);
         osync_change_set_changetype(change, CHANGE_ADDED);
         osync_context_report_change(ctx, change);
       }
@@ -1162,11 +1139,9 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
 
     int vnote_size = strlen(data);
     if (vnote_size > 0) {
-      converted_vnote = sync_vtype_convert(data, 0 | (config->translatecharset ? VOPTION_FIXCHARSET : 0) |
-                                           VOPTION_FIXTELOTHER, config->charset);
-      vnote_size = strlen(converted_vnote);
+      vnote_size = strlen(data);
     } else {
-      converted_vnote = NULL;
+      data = NULL;
       vnote_size = 0;
     }
 
@@ -1174,7 +1149,7 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || vnote_size == 0) {
       osync_change_set_changetype(change, CHANGE_MODIFIED);
-      osync_change_set_data(change, converted_vnote, vnote_size, TRUE);
+      osync_change_set_data(change, data, vnote_size, TRUE);
     }
 
     osync_context_report_change(ctx, change);
@@ -1190,7 +1165,6 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, ctx, info, change);			
   char name[256];
   char *data = NULL;
-  char *converted_data = NULL;
   int data_size = 0;
   char rsp_buffer[256];
   int rsp_buffer_size = 256;
@@ -1227,33 +1201,11 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
   data = osync_change_get_data(change);
 
   // convert the data depending on the object type.
-  /* XXX dropping sync_vtype_convert()
   if (data) {
-    if (strcmp(info->identifier, "event") == 0) {
-      converted_data = sync_vtype_convert(data, VOPTION_ADDUTF8CHARSET | 0 |
-                                          (config->fixdst ? VOPTION_FIXDSTTOCLIENT : 0) |
-                                          VOPTION_CALENDAR2TO1 | (config->alarmtoirmc ? 0 : VOPTION_REMOVEALARM) |
-                                          (config->convertade ? VOPTION_CONVERTALLDAYEVENT : 0), NULL);
-    } else if (strcmp(info->identifier, "contact") == 0) {
-      converted_data = sync_vtype_convert(data, VOPTION_ADDUTF8CHARSET, NULL);
-    } else if (strcmp(info->identifier, "note") == 0) {
-      converted_data = sync_vtype_convert(data, VOPTION_ADDUTF8CHARSET, NULL);
-    }
-
-    data_size = strlen(converted_data);
+    data_size = strlen(data);
   } else {
     data_size = 0;
   }
-  */
-
-  // use original data instead of converted
-  if (data) {
-	  converted_data = strdup(data);
-	  data_size = strlen(converted_data);
-  } else {
-	  data_size = 0;
-  }
-
   // increase change counter
   (*(info->change_counter))++;
 
@@ -1277,9 +1229,9 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       param_buffer_pos += 2;
 
       // send the delete request
-      if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
+      if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
-        g_free(converted_data);
+        g_free(data);
         osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s FALSE: %s", __func__, osync_error_print(&error));
         return FALSE;
@@ -1292,14 +1244,13 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
 
       osync_trace(TRACE_INTERNAL, "%s delete request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
-      g_free(converted_data);
       break;
 
     case CHANGE_ADDED:
       // send the add request
-      if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
+      if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
-        g_free(converted_data);
+        g_free(data);
         osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s FALSE: %s", __func__, osync_error_print(&error));
 	return FALSE;
@@ -1315,14 +1266,12 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
       // set the returned luid for this change
       osync_change_set_uid(change, new_luid);
 
-      g_free(converted_data);
       break;
 
     case CHANGE_MODIFIED:
       // send the modify request
-      if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? converted_data : NULL, data_size,
+      if (!irmc_obex_put(config->obexhandle, name, 0, data_size ? data : NULL, data_size,
                          rsp_buffer, &rsp_buffer_size, param_buffer, param_buffer_pos - param_buffer, &error)) {
-        g_free(converted_data);
         osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: FALSE: %s", __func__, osync_error_print(&error));
         return FALSE;
@@ -1335,7 +1284,6 @@ osync_bool irmcGenericCommitChange(OSyncContext *ctx, data_type_information *inf
 
       osync_trace(TRACE_INTERNAL, "%s modified request: resp=%s new_luid=%s cc=%d\n", info->identifier, rsp_buffer, new_luid, *(info->change_counter) );
 
-      g_free(converted_data);
       break;
 
     default:
