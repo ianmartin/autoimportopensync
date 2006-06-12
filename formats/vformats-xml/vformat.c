@@ -229,9 +229,8 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	str = g_string_new ("");
 	while (*lp != '\r' && *lp != '\0') {
 		if (*lp == '=' && quoted_printable) {
-			char a, b, x1, x2;
-			gboolean convert = FALSE;
-			
+			char a, b, x1=0, x2=0;
+		
 			if ((a = *(++lp)) == '\0') break;
 			if ((b = *(++lp)) == '\0') break;
 			
@@ -242,7 +241,6 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 			       		 */
 					x1=a;
 					x2=b;
-					convert = TRUE;
 				}
 				else if (b == '=') {
 					/* e.g. ...N=C=\r\n
@@ -254,7 +252,6 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 					if (*(++tmplp) == '\r' && *(++tmplp) == '\n' && isalnum(*(++tmplp))) {
 						x1 = a;
 						x2 = *tmplp;
-						convert = TRUE;
 						lp = tmplp;	
 					}	
 				}
@@ -274,7 +271,6 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 				if (b == '\r' && c == '\n' && isalnum(d) && isalnum(e)) {
 					x1 = d;
 					x2 = e;
-					convert = TRUE;
 					lp = tmplp;
 				}
 				else {
@@ -290,7 +286,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 				str = g_string_append_c(str, a);
 				str = g_string_append_c(str, b);
 			}
-			if (convert) {
+			if (x1 && x2) {
 				char c;
 
 				a = tolower (x1);
@@ -302,7 +298,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 				str = g_string_append_c (str, c);
 			}	
 			lp++;
-			convert = FALSE;
+			x1 = x2 = 0;
 		}
 		else if (*lp == '\\') {
 			/* convert back to the non-escaped version of
