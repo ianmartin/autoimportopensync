@@ -915,7 +915,6 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *event_start = data, *todo_start;
@@ -1013,7 +1012,6 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *vcard_start = data;
@@ -1088,7 +1086,6 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
 
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
-  irmc_config *config = &(env->config);
 
   if (sync_type == SLOW_SYNC) {
     char *vnote_start = data;
