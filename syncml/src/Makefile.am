@@ -9,6 +9,7 @@ AM_CFLAGS = -Wall -Werror @PACKAGE_CFLAGS@
 
 EXTRA_DIST = \
 	syncml-http-server \
+	syncml-obex-client \
 	syncml_plugin.h
 
 config_DATA = syncml-http-server syncml-obex-client
