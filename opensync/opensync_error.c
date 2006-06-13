@@ -21,6 +21,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include "opensync_error_internals.h"
+
 /**
  * @defgroup OSyncErrorPrivateAPI OpenSync Error Internals
  * @ingroup OSyncPrivate
@@ -69,18 +71,15 @@ static const char *osync_error_name_from_type(OSyncErrorType type)
  */
 void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
-	if (!error || !format)
-		return;
-	
-	osync_assert(osync_error_is_set(error) == FALSE);
-	
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
+	osync_return_if_fail(error);
+	osync_return_if_fail(osync_error_is_set(error) == FALSE);
+	osync_return_if_fail(format);
+
 	*error = g_malloc0(sizeof(OSyncError));
-	g_vsnprintf(buffer, 1024, format, args);
-	
-	(*error)->message = g_strdup(buffer);
+	(*error)->message = g_strdup_vprintf(format, args);
 	(*error)->type = type;
+	(*error)->ref_count = 1;
+	
 	return;
 }
 
@@ -109,22 +108,26 @@ const char *osync_error_get_name(OSyncError **error)
 	return osync_error_name_from_type((*error)->type);
 }
 
-/*! @brief Frees the error so it can be reused
- * 
- * @param error A pointer to a error struct to free
- * 
- */
-void osync_error_free(OSyncError **error)
+void osync_error_ref(OSyncError **error)
 {
-	osync_return_if_fail(error != NULL);
-	if (*error == NULL)
+	if (!osync_error_is_set(error))
 		return;
+	
+	g_atomic_int_inc(&(*error)->ref_count);
+}
 
-	if ((*error)->message)
-		g_free ((*error)->message);
+void osync_error_unref(OSyncError **error)
+{
+	if (!osync_error_is_set(error))
+		return;
 		
-	g_free(*error);
-	*error = NULL;
+	if (g_atomic_int_dec_and_test(&(*error)->ref_count)) {
+		if ((*error)->message)
+			g_free ((*error)->message);
+			
+		g_free(*error);
+		*error = NULL;
+	}
 }
 
 /*! @brief Checks if the error is set

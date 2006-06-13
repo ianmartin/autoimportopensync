@@ -49,7 +49,7 @@ static void sync_now(OSyncEngine *engine)
 
 	if (!osengine_sync_and_block(engine, &error)) {
 		printf("Error while starting synchronization: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		exit(1);
 	}
 
@@ -440,7 +440,7 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	OSyncEnv *env = osync_env_new();
+	OSyncEnv *env = osync_env_new(NULL);
 	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
 
 	if (plugindir)
@@ -448,7 +448,7 @@ int main (int argc, char *argv[])
 
 	if (!osync_env_initialize(env, &error)) {
 		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return 1;
 	}
 
@@ -471,7 +471,7 @@ int main (int argc, char *argv[])
 	if (configfile) {
 		if (!osync_file_read(configfile, &config, &size, &error)) {
 			fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			return 1;
 		}
 		osync_member_set_config(member, config, size);
@@ -497,7 +497,7 @@ int main (int argc, char *argv[])
 
 	if (!osync_group_save(group, &error)) {
 		printf("Error while creating syncengine: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		goto error_free_env;
 	}
 
@@ -506,13 +506,13 @@ int main (int argc, char *argv[])
 	OSyncEngine *engine = osengine_new(group, &error);
 	if (!engine) {
 		printf("Error while creating syncengine: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		goto error_free_env;
 	}
 
 	if (!osengine_init(engine, &error)) {
 		printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		goto error_free_engine;
 	}
 
@@ -548,13 +548,13 @@ int main (int argc, char *argv[])
 		engine = osengine_new(group, &error);
 		if (!engine) {
 			printf("Error while creating syncengine: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			goto error_free_env;
 		}
 
 		if (!osengine_init(engine, &error)) {
 			printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			goto error_free_engine;
 		}
 	} else {

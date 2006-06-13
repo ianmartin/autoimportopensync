@@ -210,13 +210,13 @@ int main (int argc, char *argv[])
 		}
 	}
 	
-	OSyncEnv *osync = osync_env_new();
+	OSyncEnv *osync = osync_env_new(NULL);
 	osync_env_set_option(osync, "GROUPS_DIRECTORY", configdir);
 	
 	OSyncError *error = NULL;
 	if (!osync_env_initialize(osync, &error)) {
 		printf("Unable to initialize environment: %s\n", error->message);
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return 1;
 	}
 	

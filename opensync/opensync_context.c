@@ -18,72 +18,125 @@
  * 
  */
  
-#include <opensync.h>
+#include "opensync.h"
 #include "opensync_internals.h"
 
-OSyncContext *osync_context_new(OSyncMember *member)
+#include "opensync-context.h"
+#include "opensync_context_internals.h"
+
+void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...);
+void osync_context_report_success(OSyncContext *context);
+void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error);
+
+void osync_context_report_change(OSyncContext *context, OSyncChange *change);
+
+OSyncContext *osync_context_new(OSyncMember *member, OSyncError **error)
 {
-	OSyncContext *ctx = g_malloc0(sizeof(OSyncContext));
+	OSyncContext *ctx = osync_try_malloc0(sizeof(OSyncContext), error);
+	if (!ctx)
+		return NULL;
+	
 	ctx->member = member;
+	ctx->ref_count = 1;
+	
 	return ctx;
 }
 
-void osync_context_free(OSyncContext *context)
+void osync_context_ref(OSyncContext *context)
 {
-	g_assert(context);
-	//FIXME Do we need to free the user_data?
-	g_free(context);
+	osync_assert(context);
+	
+	g_atomic_int_inc(&(context->ref_count));
+}
+
+void osync_context_unref(OSyncContext *context)
+{
+	osync_assert(context);
+	
+	if (g_atomic_int_dec_and_test(&(context->ref_count))) {
+		g_free(context);
+	}
+}
+
+void osync_context_set_callback(OSyncContext *context, OSyncContextCallbackFn callback, void *userdata)
+{
+	osync_assert(context);
+	context->callback_function = callback;
+	context->callback_data = userdata;
+}
+
+void osync_context_set_changes_callback(OSyncContext *context, OSyncContextChangeFn changes)
+{
+	osync_assert(context);
+	context->changes_function = changes;
 }
 
 void *osync_context_get_plugin_data(OSyncContext *context)
 {
-	g_assert(context);
-	g_assert(context->member);
-	return context->member->plugindata;
+	osync_assert(context);
+	return context->plugindata;
+}
+
+void osync_context_set_plugin_data(OSyncContext *context, void *data)
+{
+	osync_assert(context);
+	context->plugindata = data;
+}
+
+OSyncMember *osync_context_get_member(OSyncContext *context)
+{
+	osync_assert(context);
+	return context->member;
 }
 
 void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(error));
-	g_assert(context);
+	osync_assert(context);
+	
 	if (context->callback_function)
-		(context->callback_function)(context->member, context->calldata, error);
-	osync_context_free(context);
+		(context->callback_function)(context->member, context->callback_data, error);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s)", __func__, context, type, format);
-	g_assert(context);
+	osync_assert(context);
+	
 	OSyncError *error = NULL;
 	va_list args;
 	va_start(args, format);
 	osync_error_set_vargs(&error, type, format, args);
 	osync_trace(TRACE_INTERNAL, "ERROR is: %s", osync_error_print(&error));
-	if (context->callback_function)
-		(context->callback_function)(context->member, context->calldata, &error);
 	va_end (args);
-	osync_context_free(context);
+	
+	if (context->callback_function)
+		(context->callback_function)(context->member, context->callback_data, &error);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_report_success(OSyncContext *context)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, context);
-	g_assert(context);
+	osync_assert(context);
+	
 	if (context->callback_function)
-		(context->callback_function)(context->member, context->calldata, NULL);
-	osync_context_free(context);
+		(context->callback_function)(context->member, context->callback_data, NULL);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, context, change);
-	g_assert(context);
-	OSyncMember *member = context->member;
-	g_assert(member);
+	osync_assert(context);
+	osync_assert(change);
+	
+	/*OSyncMember *member = context->member;
+	osync_assert(member);
 	osync_change_set_member(change, member);
 	
 	osync_assert_msg(change->uid, "You forgot to set a uid on the change you reported!");
@@ -104,41 +157,11 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, objtype %s and format %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None");
 	
 	osync_assert_msg(member->memberfunctions->rf_change, "The engine must set a callback to receive changes");
-	member->memberfunctions->rf_change(member, change, context->calldata);
+	member->memberfunctions->rf_change(member, change, context->calldata);*/
+	
+	
+	if (context->changes_function)
+		(context->changes_function)(context->member, context->callback_data, NULL);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-void osync_context_send_log(OSyncContext *ctx, const char *message, ...)
-{
-	g_assert(ctx);
-	OSyncMember *member = ctx->member;
-	g_assert(member);
-	
-	va_list arglist;
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	va_start(arglist, message);
-	g_vsnprintf(buffer, 1024, message, arglist);
-	
-	osync_debug("OSYNC", 3, "Sending logmessage \"%s\"", buffer);
-	if (member->memberfunctions->rf_log)
-		member->memberfunctions->rf_log(member, buffer);
-	
-	va_end(arglist);
-}
-
-void osync_report_message(OSyncMember *member, const char *message, void *data)
-{
-	member->memberfunctions->rf_message(member, message, data, FALSE);
-}
-
-void *osync_report_message_sync(OSyncMember *member, const char *message, void *data)
-{
-	return member->memberfunctions->rf_message(member, message, data, TRUE);
-}
-
-OSyncMember *osync_context_get_member(OSyncContext *ctx)
-{
-	g_assert(ctx);
-	return ctx->member;
 }

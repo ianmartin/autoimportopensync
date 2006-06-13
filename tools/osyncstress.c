@@ -341,12 +341,12 @@ int main (int argc, char *argv[])
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	
 	osync_trace(TRACE_ENTRY, "++++ Started the sync stress test +++");
-	OSyncEnv *osync = osync_env_new();
+	OSyncEnv *osync = osync_env_new(NULL);
 	osync_env_set_option(osync, "GROUPS_DIRECTORY", configdir);
 	
 	if (!osync_env_initialize(osync, &error)) {
 		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		goto error_free_env;
 	}
 	
@@ -364,13 +364,13 @@ int main (int argc, char *argv[])
 		engine = osengine_new(group, &error);
 		if (!engine) {
 			printf("Error while creating syncengine: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			goto error_free_env;
 		}
 		
 		if (!osengine_init(engine, &error)) {
 			printf("Error while initializing syncengine: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			goto error_free_engine;
 		}
 		
@@ -416,7 +416,7 @@ int main (int argc, char *argv[])
 			printf("Starting to synchronize\n");
 			if (!osengine_sync_and_block(engine, &error)) {
 				printf("Error while starting synchronization: %s\n", osync_error_print(&error));
-				osync_error_free(&error);
+				osync_error_unref(&error);
 				goto error_free_engine;
 			}
 			

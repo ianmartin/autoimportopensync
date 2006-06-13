@@ -169,7 +169,7 @@ static void mock_connect(OSyncContext *ctx)
 	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
 		osync_context_report_osyncerror(ctx, &error);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return;
 	}
 	

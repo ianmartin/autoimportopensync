@@ -18,6 +18,9 @@
  * 
  */
  
+#include <opensync/opensync.h>
+#include <opensync/opensync-format.h>
+ 
 #include "opensync-xml.h"
 #include "vformat.h"
 #include "xml-vcard.h"
@@ -846,7 +849,7 @@ static char *print_contact(OSyncChange *change)
 	return osxml_write_to_string(doc);
 }
 
-static void destroy_xml(char *data, size_t size)
+static void destroy_xml(char *data, size_t size, osync_bool free_part)
 {
 	xmlFreeDoc((xmlDoc *)data);
 }
@@ -979,17 +982,30 @@ static time_t get_revision(OSyncChange *change, OSyncError **error)
 	return time;
 }
 
-void get_info(OSyncEnv *env)
+void get_format_info(OSyncFormatEnv *env)
 {
-	osync_env_register_objtype(env, "contact");
-	osync_env_register_objformat(env, "contact", "xml-contact");
-	osync_env_format_set_compare_func(env, "xml-contact", compare_contact);
-	osync_env_format_set_destroy_func(env, "xml-contact", destroy_xml);
-	osync_env_format_set_print_func(env, "xml-contact", print_contact);
-	osync_env_format_set_copy_func(env, "xml-contact", osxml_copy);
-	osync_env_format_set_revision_func(env, "xml-contact", get_revision);
-	osync_env_format_set_marshall_func(env, "xml-contact", osxml_marshall);
-	osync_env_format_set_demarshall_func(env, "xml-contact", osxml_demarshall);
+	OSyncError *error = NULL;
+	
+	OSyncObjFormat *format = osync_objformat_new("xml-contact", "contact", &error);
+	if (!format) {
+		osync_trace(TRACE_ERROR, "Unable to register format xml-contact: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	
+	osync_objformat_set_compare_func(format, compare_contact);
+	osync_objformat_set_destroy_func(format, destroy_xml);
+	osync_objformat_set_print_func(format, print_contact);
+	osync_objformat_set_copy_func(format, osxml_copy);
+	osync_objformat_set_revision_func(format, get_revision);
+	osync_objformat_set_marshall_func(format, osxml_marshall);
+	osync_objformat_set_demarshall_func(format, osxml_demarshall);
+	osync_format_env_register_objformat(env, format);
+}
+
+void get_conversion_info(OSyncFormatEnv *env)
+{
+	
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
 	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);

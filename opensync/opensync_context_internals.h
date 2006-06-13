@@ -1,13 +1,13 @@
 #ifndef _OPENSYNC_CONTEXT_INTERNALS_H_
 #define _OPENSYNC_CONTEXT_INTERNALS_H_
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncContext {
-	OSyncEngCallback callback_function;
-	void *calldata;
+	OSyncContextCallbackFn callback_function;
+	void *callback_data;
+	OSyncContextChangeFn changes_function;
+	void *plugindata;
 	OSyncMember *member;
-	osync_bool success;
+	int ref_count;
 };
-#endif
 
 #endif //_OPENSYNC_CONTEXT_INTERNALS_H_

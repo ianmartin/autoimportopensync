@@ -1,3 +1,4 @@
+
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
@@ -104,7 +105,7 @@ AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
 #(need python, python headers, and pyrex)
 AC_ARG_ENABLE(python,           
   AS_HELP_STRING([--enable-python@<:@=minimum_version@:>@], [build python bindings]),
-  [enable_python=$enableval], [enable_python=auto])
+  [enable_python=$enableval], [enable_python=no])
 if test x$enable_python = xno; then
     have_python=no
 else
@@ -112,11 +113,9 @@ else
     have_python=no
     if test x$enable_python != xyes; then
         minimum_version=$enable_python
-	enable_python=yes
     else
         minimum_version=2.2
     fi
-    AM_PATH_PYTHON($minimum_version)
 	AM_CHECK_PYTHON_HEADERS([have_python_header=yes], [have_python_header=no])
 	
 	if test x$have_python_header = xno ; then
@@ -124,6 +123,7 @@ else
         	AC_MSG_ERROR([Building python explicitly requested, but can't build python bindings])
         fi
 	else
+    	AM_PATH_PYTHON($minimum_version)
 	    if test -z "$PYTHON" ; then
 	        AC_MSG_WARN([Python not found])
 	    else
@@ -156,13 +156,21 @@ AC_SUBST(ac_workaround_abs_srcdir, $PWD/$srcdir)
 AC_OUTPUT([
 Makefile
 opensync/Makefile
+opensync/module/Makefile
+opensync/client/Makefile
+opensync/data/Makefile
+opensync/engine/Makefile
+opensync/format/Makefile
+opensync/group/Makefile
+opensync/helper/Makefile
+opensync/ipc/Makefile
+opensync/mapping/Makefile
+opensync/plugin/Makefile
 tools/Makefile
 tests/Makefile
 tests/mock-plugin/Makefile
 formats/Makefile
 formats/vformats-xml/Makefile
-osengine/Makefile
-osplugin/Makefile
 opensync-1.0.pc
 opensync-1.0-uninstalled.pc
 osengine-1.0.pc

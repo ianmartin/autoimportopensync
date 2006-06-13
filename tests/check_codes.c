@@ -20,7 +20,7 @@ START_TEST (single_init_error)
 	fail_unless(!synchronize_once(engine, &error), NULL);
 	fail_unless(osync_error_is_set(&error), NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -55,7 +55,7 @@ START_TEST (dual_connect_error)
 	fail_unless(num_disconnected == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -91,7 +91,7 @@ START_TEST (one_of_two_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -127,7 +127,7 @@ START_TEST (two_of_three_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -163,7 +163,7 @@ START_TEST (two_of_three_connect_error2)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -199,7 +199,7 @@ START_TEST (three_of_three_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -235,7 +235,7 @@ START_TEST (one_of_three_connect_error)
 	fail_unless(num_member_sent_changes == 0, NULL);
 	fail_unless(num_engine_errors == 1, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -309,7 +309,7 @@ START_TEST (single_connect_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -346,7 +346,7 @@ START_TEST (dual_connect_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -383,7 +383,7 @@ START_TEST (one_of_three_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -421,7 +421,7 @@ START_TEST (timeout_and_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -461,7 +461,7 @@ START_TEST (single_get_changes_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -501,7 +501,7 @@ START_TEST (dual_get_changes_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -540,7 +540,7 @@ START_TEST (two_of_three_get_changes_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -580,7 +580,7 @@ START_TEST (one_of_three_get_changes_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -622,7 +622,7 @@ START_TEST (one_of_three_get_changes_timeout)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -663,7 +663,7 @@ START_TEST (get_changes_timeout_and_error)
 	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_successfull == 0, NULL);
 	
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	osengine_finalize(engine);
 	osengine_free(engine);
 	
@@ -695,7 +695,7 @@ START_TEST (get_changes_timeout_sleep)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -739,7 +739,7 @@ START_TEST (single_commit_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -786,7 +786,7 @@ START_TEST (dual_commit_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -833,7 +833,7 @@ START_TEST (single_commit_timeout)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -880,7 +880,7 @@ START_TEST (dual_commit_timeout)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -928,7 +928,7 @@ START_TEST (commit_timeout_and_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -976,7 +976,7 @@ START_TEST (commit_timeout_and_error2)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1031,7 +1031,7 @@ START_TEST (commit_error_modify)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1087,7 +1087,7 @@ START_TEST (commit_error_delete)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1135,7 +1135,7 @@ START_TEST (committed_all_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1183,7 +1183,7 @@ START_TEST (committed_all_batch_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1230,7 +1230,7 @@ START_TEST (single_sync_done_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1278,7 +1278,7 @@ START_TEST (dual_sync_done_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1326,7 +1326,7 @@ START_TEST (triple_sync_done_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1374,7 +1374,7 @@ START_TEST (single_sync_done_timeout)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1422,7 +1422,7 @@ START_TEST (dual_sync_done_timeout)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1471,7 +1471,7 @@ START_TEST (sync_done_timeout_and_error)
 	fail_unless(osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1519,7 +1519,7 @@ START_TEST (single_disconnect_error)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1568,7 +1568,7 @@ START_TEST (dual_disconnect_error)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1617,7 +1617,7 @@ START_TEST (triple_disconnect_error)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1666,7 +1666,7 @@ START_TEST (single_disconnect_timeout)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1715,7 +1715,7 @@ START_TEST (dual_disconnect_timeout)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1765,7 +1765,7 @@ START_TEST (disconnect_timeout_and_error)
 	fail_unless(!osync_error_is_set(&error), NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();
@@ -1831,7 +1831,7 @@ START_TEST (get_changes_disconnect_error)
 	fail_unless(num_engine_successfull == 0, NULL);
 	
 	mark_point();
-	osync_error_free(&error);
+	osync_error_unref(&error);
 	mark_point();
 	osengine_finalize(engine);
 	mark_point();

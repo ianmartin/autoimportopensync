@@ -1,8 +1,8 @@
 #include <check.h>
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>
-#include "engine.h"
-#include "engine_internals.h"
+
+#include <opensync/opensync-engine.h>
 
 char *setup_testbed(char *fkt_name);
 void destroy_testbed(char *path);
@@ -58,5 +58,5 @@ void mappingtable_close(OSyncMappingTable *maptable);
 OSyncHashTable *hashtable_load(OSyncGroup *group, int member, int entries);
 void check_hash(OSyncHashTable *table, const char *cmpuid);
 void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype);
-OSyncEnv *init_env(void);
-OSyncEnv *init_env_none(void);
+OSyncPluginEnv *init_env(void);
+OSyncPluginEnv *init_env_none(void);

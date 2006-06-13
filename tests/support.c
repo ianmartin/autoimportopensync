@@ -72,15 +72,17 @@ char *setup_testbed(char *fkt_name)
 void destroy_testbed(char *path)
 {
 	char *command = g_strdup_printf("rm -rf %s", path);
-	if (olddir)
+	if (olddir) {
 		chdir(olddir);
+		g_free(olddir);
+	}
 	system(command);
 	g_free(command);
 	osync_trace(TRACE_INTERNAL, "Tearing down %s", path);
 	g_free(path);
 }
 
-void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
+/*void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data)
 {
 	num_conflicts++;
 	fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
@@ -365,7 +367,7 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	
 	mark_point();
 	return osengine_sync_and_block(engine, error);
-}
+}*/
 
 void create_case(Suite *s, const char *name, void (*function)(void))
 {
@@ -375,12 +377,13 @@ void create_case(Suite *s, const char *name, void (*function)(void))
 	tcase_add_test(tc_new, function);
 }
 
-OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped)
+/*OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %i)", __func__, group, num_mappings, num_unmapped);
 	mark_point();
 	OSyncEnv *osync = init_env();
-	OSyncGroup *newgroup = osync_group_load(osync, "configs/group", NULL);
+	OSyncGroup *newgroup = osync_group_new(osync, NULL);
+	osync_group_load(newgroup, "configs/group", NULL);
 	OSyncMappingTable *maptable = _osengine_mappingtable_load_group(newgroup);
 	mark_point();
 	fail_unless(g_list_length(maptable->mappings) == num_mappings, NULL);
@@ -475,7 +478,7 @@ static void load_format(OSyncEnv *env, const char *name)
 OSyncEnv *init_env(void)
 {
 	mark_point();
-	OSyncEnv *osync = osync_env_new();
+	OSyncEnv *osync = osync_env_new(NULL);
 	mark_point();
 	osync_env_set_option(osync, "LOAD_GROUPS", "FALSE");
 	osync_env_set_option(osync, "LOAD_FORMATS", "FALSE");
@@ -507,7 +510,7 @@ OSyncEnv *init_env(void)
 OSyncEnv *init_env_none(void)
 {
 	mark_point();
-	OSyncEnv *osync = osync_env_new();
+	OSyncEnv *osync = osync_env_new(NULL);
 	mark_point();
 	osync_env_set_option(osync, "LOAD_GROUPS", "FALSE");
 	osync_env_set_option(osync, "LOAD_FORMATS", "FALSE");
@@ -517,4 +520,4 @@ OSyncEnv *init_env_none(void)
 	fail_unless(osync_env_initialize(osync, &error), NULL);
 	fail_unless(!osync_error_is_set(&error), NULL);
 	return osync;
-}
+}*/

@@ -470,14 +470,14 @@ int main (int argc, char *argv[])
 		}
 	}
 	
-	OSyncEnv *env = osync_env_new();
+	OSyncEnv *env = osync_env_new(NULL);
 	osync_env_set_option(env, "LOAD_GROUPS", "FALSE");
 	
 	if (plugin) {
 		osync_env_set_option(env, "LOAD_PLUGINS", "FALSE");
 		if (!osync_module_load(env, plugin, &error)) {
 			printf("Unable to load plugin: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			return 1;
 		}
 	} else {
@@ -489,14 +489,14 @@ int main (int argc, char *argv[])
 		osync_env_set_option(env, "LOAD_FORMATS", "FALSE");
 		if (!osync_module_load(env, format, &error)) {
 			printf("Unable to load format: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			return 1;
 		}
 	}
 	
 	if (!osync_env_initialize(env, &error)) {
 		printf("Unable to initialize environment: %s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return 1;
 	}
 	
@@ -519,7 +519,7 @@ int main (int argc, char *argv[])
 	if (configfile) {
 		if (!osync_file_read(configfile, &config, &size, &error)) {
 			fprintf(stderr, "Unable to read config: %s\n", osync_error_print(&error));
-			osync_error_free(&error);
+			osync_error_unref(&error);
 			return 1;
 		}
 		osync_member_set_config(member, config, size);

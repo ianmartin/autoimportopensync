@@ -5,8 +5,12 @@ START_TEST (group_last_sync)
 	char *testbed = setup_testbed("filter_save_and_load");
 	
 	OSyncEnv *env = init_env();
-	OSyncGroup *group = osync_group_load(env, "configs/group", NULL);
+	OSyncGroup *group = osync_group_new(env, NULL);
 	fail_unless(group != NULL, NULL);
+	
+	osync_group_load(group, "configs/group", NULL);
+	
+	osync_env_append_group(env, group);
 	fail_unless(osync_env_num_groups(env) == 1, NULL);
 	mark_point();
 	
@@ -21,8 +25,10 @@ START_TEST (group_last_sync)
 	osync_env_free(env);
 	
 	env = init_env();
-	group = osync_group_load(env, "configs/group", NULL);
+	group = osync_group_new(env, NULL);
+	osync_group_load(group, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
+	osync_env_append_group(env, group);
 	fail_unless(osync_env_num_groups(env) == 1, NULL);
 	mark_point();
 	

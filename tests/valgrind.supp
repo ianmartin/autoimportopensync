@@ -1,0 +1,497 @@
+
+{
+   supp10
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   fun:dl_open_worker
+}
+
+{
+   supp11
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   fun:dl_open_worker
+}
+
+{
+   supp12
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:dl_open_worker
+}
+
+{
+   supp13
+   Memcheck:Cond
+   obj:*
+   fun:dl_open_worker
+}
+
+{
+   supp14
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   fun:do_sym
+}
+
+{
+   supp15
+   Memcheck:Cond
+   obj:*
+   obj:*
+   obj:*
+   fun:do_sym
+}
+
+{
+   supp1
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:_dl_open
+   obj:*
+   obj:*
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:*
+   fun:_nss_compat_getpwnam_r
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   supp4
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:_dl_open
+   obj:*
+   obj:*
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:*
+   fun:__nss_passwd_lookup
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   supp5
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:_dl_open
+   obj:*
+   obj:*
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:*
+   fun:__nss_passwd_lookup
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   supp2
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:_dl_open
+   obj:*
+   obj:*
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:*
+   fun:_nss_compat_getpwnam_r
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   supp3
+   Memcheck:Cond
+   obj:*
+   obj:*
+   obj:*
+   fun:_dl_open
+   obj:*
+   obj:*
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:*
+   fun:__nss_passwd_lookup
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   supp6
+   Memcheck:Cond
+   obj:/lib/ld-2.3.6.so
+   obj:/lib/ld-2.3.6.so
+   obj:/lib/ld-2.3.6.so
+   obj:/lib/ld-2.3.6.so
+   obj:/lib/ld-2.3.6.so
+}
+
+{
+   supp7
+   Memcheck:Leak
+   fun:malloc
+   fun:emalloc
+   fun:suite_create
+}
+
+{
+   supp7.1
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:suite_create
+}
+
+{
+   test2
+   Memcheck:Leak
+   fun:*
+   fun:*
+   obj:*
+   obj:*
+   fun:g_type_init_with_debug_flags
+   fun:g_type_init
+   fun:*
+}
+
+{
+   test3
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   obj:*
+   fun:g_array_set_size
+   fun:*
+   fun:*
+   obj:*
+   fun:*
+   fun:g_thread_init
+}
+
+{
+   test4
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_thread_init
+}
+
+{
+   test5
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_thread_init
+}
+
+{
+   supp9
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   fun:__nss_database_lookup
+   obj:*
+   obj:*
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   test5.1
+   Memcheck:Leak
+   fun:memalign
+   fun:*
+   obj:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:g_get_filename_charsets
+   obj:*
+   fun:*
+   fun:g_thread_init
+}
+
+{
+   test6
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:*
+   fun:g_slice_alloc
+   fun:g_array_sized_new
+   fun:g_array_new
+   fun:g_static_private_set
+   obj:*
+   fun:g_main_context_dispatch
+}
+
+
+{
+   test8
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:create_case
+}
+
+{
+   test9
+   Memcheck:Leak
+   fun:*
+   obj:*
+   fun:*
+   fun:*
+   obj:*
+   fun:g_thread_create_full
+}
+
+{
+   test10
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   obj:*
+   fun:g_ptr_array_add
+   fun:g_main_context_check
+}
+
+{
+   test11
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:setup_pipe
+}
+
+{
+   tmp1
+   Memcheck:Leak
+   fun:malloc
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   tmp2
+   Memcheck:Leak
+   fun:malloc
+   fun:tsearch
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getpwnam_r
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   tmp3
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   tmp4
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_slice_alloc
+   fun:g_slice_alloc0
+   fun:g_slist_prepend
+   fun:g_strsplit
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   tmp5
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   obj:*
+   fun:g_slice_alloc
+   fun:g_slice_alloc0
+   fun:g_slist_prepend
+   fun:g_strsplit
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   tmp6
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:*
+   fun:g_slice_alloc
+   fun:g_slice_alloc0
+   fun:g_slist_prepend
+   fun:g_strsplit
+   obj:*
+   fun:g_get_tmp_dir
+}
+
+{
+   supp17
+   Memcheck:Leak
+   fun:calloc
+   fun:_dlerror_run
+}
+
+{
+   supp18
+   Memcheck:Leak
+   fun:memalign
+   obj:*
+   fun:_dl_allocate_tls
+   fun:__pthread_initialize_minima
+}
+
+{
+   supp19
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_tls_setup
+   fun:__pthread_initialize_minimal
+}
+
+{
+   supp20
+   Memcheck:Leak
+   fun:malloc
+   fun:tsearch
+   fun:__nss_lookup_function
+}
+
+{
+   supp21
+   Memcheck:Leak
+   fun:memalign
+   obj:*
+   fun:_dl_allocate_tls
+   fun:__pthread_initialize_minimal
+}
+
+{
+   supp22
+   Memcheck:Leak
+   fun:malloc
+   fun:__nss_lookup_function
+}
+
+{
+   supp23
+   Memcheck:Leak
+   fun:malloc
+   fun:nss_parse_service_list
+   fun:__nss_database_lookup
+}
+
+{
+   supp24
+   Memcheck:Leak
+   fun:malloc
+   fun:rwlock_have_already
+   fun:pthread_rwlock_rdlock
+}
+
+{
+   supp25
+   Memcheck:Leak
+   fun:calloc
+   obj:*
+   obj:*
+   fun:_dl_allocate_tls
+   fun:__pthread_initialize_minimal
+}
+
+{
+   supp26
+   Memcheck:Cond
+   obj:*
+   fun:_dl_open
+}
+
+{
+   supp27
+   Memcheck:Leak
+   fun:realloc
+   fun:vasprintf
+   fun:asprintf
+   fun:dlerror
+}
+
+{
+   supp28
+   Memcheck:Addr4
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:dl_open_worker
+}

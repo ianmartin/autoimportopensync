@@ -15,22 +15,47 @@ PROFTEST = coverage.sh
 endif
 
 if ENABLE_TESTS
+TESTS = error module ipc checkdata objformat format-env converter
+noinst_PROGRAMS = error module ipc checkdata objformat format-env converter
+else
 TESTS = error ipc user member group plugin locks env conv sync filter multisync vcard vcal vnote errorcodes $(PROFTEST)
 noinst_PROGRAMS = error ipc user member group plugin locks env conv sync filter multisync vcard vcal vnote errorcodes
-else
-TESTS = 
-noinst_PROGRAMS = 
 endif
 
 error_INCLUDES = @CHECK_CFLAGS@
-error_SOURCES = check_error.c
+error_SOURCES = check_error.c support.c
 error_LIBS = @CHECK_LIBS@
 error_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
 
+module_INCLUDES = @CHECK_CFLAGS@
+module_SOURCES = module-tests/check_module.c support.c
+module_LIBS = @CHECK_LIBS@
+module_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
 ipc_INCLUDES = @CHECK_CFLAGS@
-ipc_SOURCES = check_ipc.c support.c
+ipc_SOURCES = ipc-tests/check_ipc.c support.c
 ipc_LIBS = @CHECK_LIBS@
-ipc_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+ipc_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+checkdata_INCLUDES = @CHECK_CFLAGS@
+checkdata_SOURCES = data-tests/check_data.c support.c
+checkdata_LIBS = @CHECK_LIBS@
+checkdata_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+objformat_INCLUDES = @CHECK_CFLAGS@
+objformat_SOURCES = format-tests/check_objformat.c support.c
+objformat_LIBS = @CHECK_LIBS@
+objformat_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+format_env_INCLUDES = @CHECK_CFLAGS@
+format_env_SOURCES = format-tests/check_format_env.c support.c
+format_env_LIBS = @CHECK_LIBS@
+format_env_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+converter_INCLUDES = @CHECK_CFLAGS@
+converter_SOURCES = format-tests/check_converter.c support.c
+converter_LIBS = @CHECK_LIBS@
+converter_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
 
 member_INCLUDES = @CHECK_CFLAGS@
 member_SOURCES = check_member.c
@@ -61,11 +86,6 @@ user_INCLUDES = @CHECK_CFLAGS@
 user_SOURCES = check_user.c
 user_LIBS = @CHECK_LIBS@
 user_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
-
-conv_INCLUDES = @CHECK_CFLAGS@
-conv_SOURCES = check_conv.c support.c
-conv_LIBS = @CHECK_LIBS@
-conv_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la $(top_builddir)/osengine/libosengine.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
 
 sync_INCLUDES = @CHECK_CFLAGS@
 sync_SOURCES = check_sync.c support.c
