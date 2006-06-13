@@ -154,16 +154,7 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
   xmlNode *cur = NULL;
 
   // set defaults
-  config->fixdst = FALSE;
   config->donttellsync = FALSE;
-  config->onlyphonenumbers = TRUE;
-  config->dontacceptold = TRUE;
-  config->maximumage = 7;
-  config->translatecharset = FALSE;
-  config->charset = g_strdup("ISO8859-1");
-  config->alarmtoirmc = TRUE;
-  config->alarmfromirmc = TRUE;
-  config->convertade = FALSE;
   config->serial_number = NULL;
 
 
@@ -212,62 +203,11 @@ osync_bool parse_settings(irmc_config *config, const char *data, unsigned int si
         strncpy(config->cabledev, str, 19);
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"cabletype")) {
         config->cabletype = atoi(str);
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"managedbsize")) {
-        if (!strcmp(str, "true"))
-          config->managedbsize = TRUE;
-        else
-          config->managedbsize = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"fakerecur")) {
-        if (!strcmp(str, "true"))
-          config->fake_recurring = TRUE;
-        else
-          config->fake_recurring = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"fixedst")) {
-        if (!strcmp(str, "true"))
-          config->fixdst = TRUE;
-        else
-          config->fixdst = FALSE;
       } else if (!xmlStrcmp(cur->name, (const xmlChar *)"donttellsync")) {
         if (!strcmp(str, "true"))
           config->donttellsync = TRUE;
         else
           config->donttellsync = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyphonenumbers")) {
-        if (!strcmp(str, "true"))
-          config->onlyphonenumbers = TRUE;
-        else
-          config->onlyphonenumbers = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"dontacceptold")) {
-        if (!strcmp(str, "true"))
-          config->dontacceptold = TRUE;
-        else
-          config->dontacceptold = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"maximumage")) {
-        config->maximumage = atoi(str);
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"translatecharset")) {
-        if (!strcmp(str, "true"))
-          config->translatecharset = TRUE;
-        else
-          config->translatecharset = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"charset")) {
-        if (config->charset)
-          g_free(config->charset);
-        config->charset = g_strdup(str);
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"alarmfromirmc")) {
-        if (!strcmp(str, "true"))
-          config->alarmfromirmc = TRUE;
-        else
-          config->alarmfromirmc = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"alarmtoirmc")) {
-        if (!strcmp(str, "true"))
-          config->alarmtoirmc = TRUE;
-        else
-          config->alarmtoirmc = FALSE;
-      } else if (!xmlStrcmp(cur->name, (const xmlChar *)"convertade")) {
-        if (!strcmp(str, "true"))
-          config->convertade = TRUE;
-        else
-          config->convertade = FALSE;
       }
       xmlFree(str);
     }

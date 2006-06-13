@@ -59,21 +59,8 @@ typedef struct  {
   __u32 ir_addr;                 // Absolute address to IR device (used temporary)
 #endif
 
-  // further options
-  gboolean managedbsize;
-
   // filter options (should be moved to filter objects)
-  gboolean fake_recurring;
-  gboolean fixdst;               // Fix T68i DST bug
   gboolean donttellsync;         // Don't send IRMC-SYNC target to OBEX unless needed
-  gboolean onlyphonenumbers;     // Accept only contacts with phone numbers
-  gboolean dontacceptold;        // Dont accept old contacts
-  int maximumage;                // Old = this many days
-  gboolean translatecharset;     // Use custom charset
-  char *charset;                 // The custom charset
-  gboolean alarmtoirmc;          // Transfer alarms to device
-  gboolean alarmfromirmc;        // Transfer alarms from device
-  gboolean convertade;           // ?
 } irmc_config;
 
 typedef struct irmc_environment {
