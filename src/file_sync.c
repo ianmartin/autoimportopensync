@@ -97,7 +97,7 @@ static void *fs_initialize(OSyncMember *member, OSyncError **error)
 			osync_debug("FILE-SYNC", 3, "Cannot monitor directory %s", fsinfo->path);
 			FAMClose(fsinfo->famConn);
 		} else {
-			fam_setup(fsinfo, NULL);
+			fam_setup(fsinfo, osync_member_get_loop(member));
 		}
 	}
 #endif
@@ -202,7 +202,14 @@ static void fs_report_dir(filesyncinfo *fsinfo, const char *subdir, OSyncContext
 			char *hash = fs_generate_hash(&filestats);
 			osync_change_set_hash(change, hash);
 			
-			osync_change_set_data(change, (char *)info, sizeof(fileFormat), FALSE);			
+			OSyncError *error = NULL;
+			if (!osync_file_read(filename, &info->data, &info->size, &error)) {
+				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to read file");
+				g_free(filename);
+				return;
+			}
+	
+			osync_change_set_data(change, (char *)info, sizeof(fileFormat), TRUE);
 
 			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
 				osync_context_report_change(ctx, change);
