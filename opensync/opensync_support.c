@@ -264,54 +264,6 @@ char *osync_rand_str(int maxlength)
  */
 /*@{*/
 
-/*! @brief Opens a xml document
- * 
- * Opens a xml document
- * 
- * @param doc Pointer to a xmldoc
- * @param cur The pointer to the first node
- * @param path The path of the document
- * @param topentry the name of the top node
- * @param error Pointer to a error struct
- * @returns TRUE if successfull, FALSE otherwise
- * 
- */
-osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *path, const char *topentry, OSyncError **error)
-{
-	if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
-		osync_debug("OSXML", 1, "File %s does not exist", path);
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "File %s does not exist", path);
-		return FALSE;
-	}
-	
-	*doc = xmlParseFile(path);
-
-	if (!*doc) {
-		osync_debug("OSXML", 1, "Could not open: %s", path);
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Could not open: %s", path);
-		return FALSE;
-	}
-
-	*cur = xmlDocGetRootElement(*doc);
-
-	if (!*cur) {
-		osync_debug("OSXML", 0, "%s seems to be empty", path);
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "%s seems to be empty", path);
-		xmlFreeDoc(*doc);
-		return FALSE;
-	}
-
-	if (xmlStrcmp((*cur)->name, (const xmlChar *) topentry)) {
-		osync_debug("OSXML", 0, "%s seems not to be a valid configfile.\n", path);
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "%s seems not to be a valid configfile.\n", path);
-		xmlFreeDoc(*doc);
-		return FALSE;
-	}
-
-	*cur = (*cur)->xmlChildrenNode;
-	return TRUE;
-}
-
 /*! @brief Writes data to a file
  * 
  * Writes data to a file
@@ -321,7 +273,7 @@ osync_bool _osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *pat
  * @param size Size of the data
  * @param mode The mode to set on the file
  * @param oserror Pointer to a error struct
- * @returns TRUE if successfull, FALSE otherwise
+ * @returns TRUE if successful, FALSE otherwise
  * 
  */
 osync_bool osync_file_write(const char *filename, const char *data, int size, int mode, OSyncError **oserror)
@@ -364,7 +316,7 @@ osync_bool osync_file_write(const char *filename, const char *data, int size, in
  * @param data Pointer to the data
  * @param size Size of the data
  * @param oserror Pointer to a error struct
- * @returns TRUE if successfull, FALSE otherwise
+ * @returns TRUE if successful, FALSE otherwise
  * 
  */
 osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncError **oserror)

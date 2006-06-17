@@ -13,15 +13,14 @@ struct OSyncGroup {
 	time_t last_sync;
 	/** The lock file of the group */
 	int lock_fd;
-	
-	
-	
-	
 	/** The filters of this group */
 	GList *filters;
-	OSyncEnv *env;
-	OSyncDB *changes_db;
-	OSyncFormatEnv *conv_env;
+	/** The defined resolution for this group */
+	OSyncConflictResolution conflict_resolution;
+	/** The winning side if the select resolution is choosen */
+	int conflict_winner;
+	
+	int ref_count;
 };
 
 #endif //_OPENSYNC_GROUP_INTERNALS_H_

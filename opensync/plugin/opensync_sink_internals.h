@@ -21,26 +21,21 @@
 #ifndef OPENSYNC_SINK_INTERNALS_H_
 #define OPENSYNC_SINK_INTERNALS_H_
 
-struct OSyncObjFormatSink {
-	/** The format which can be synchronized by this sink */
-	char *format;
-	/** The functions to be called */
-	OSyncObjFormatSinkFunctions functions;
-	/** The objtype of this sink */
-	char *objtype;
-	/** List to pile up changes for batch commit */
-	GList *commit_changes;
-	GList *commit_contexts;
-	
-	int ref_count;
-};
-
 struct OSyncObjTypeSink {
+	/** The format which can be synchronized by this sink */
+	GList *objformats;
+	/** The functions to be called */
+	OSyncObjTypeSinkFunctions functions;
+	
 	char *objtype;
 	osync_bool write;
 	osync_bool read;
 	osync_bool enabled;
+	osync_bool slowsync;
 	int ref_count;
+	/** List to pile up changes for batch commit */
+	GList *commit_changes;
+	GList *commit_contexts;
 };
 
 #endif /*OPENSYNC_SINK_INTERNALS_H_*/

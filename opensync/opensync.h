@@ -62,6 +62,7 @@ typedef struct OSyncObjTypeSink OSyncObjTypeSink;
 
 /* Plugin component */
 typedef struct OSyncPlugin OSyncPlugin;
+typedef struct OSyncPluginInfo OSyncPluginInfo;
 typedef struct OSyncPluginEnv OSyncPluginEnv;
 typedef struct OSyncModule OSyncModule;
 
@@ -78,10 +79,13 @@ typedef struct OSyncMappingEntry OSyncMappingEntry;
 /* Helper component */
 typedef struct OSyncAnchorDB OSyncAnchorDB;
 
-typedef struct OSyncError OSyncError;
+/* Group component */
 typedef struct OSyncGroup OSyncGroup;
-typedef struct OSyncUserInfo OSyncUserInfo;
+typedef struct OSyncGroupEnv OSyncGroupEnv;
 typedef struct OSyncMember OSyncMember;
+
+typedef struct OSyncError OSyncError;
+typedef struct OSyncUserInfo OSyncUserInfo;
 typedef struct OSyncContext OSyncContext;
 typedef struct OSyncHashTable OSyncHashTable;
 typedef struct OSyncFormatProperty OSyncFormatProperty;

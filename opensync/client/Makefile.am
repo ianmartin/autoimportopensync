@@ -1,16 +1,18 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror @GCOV_CFLAGS@ -DOPENSYNC_PLUGINDIR=\"@OPENSYNC_PLUGINDIR@\" -DOPENSYNC_CONFIGDIR=\"@OPENSYNC_CONFIGDIR@\" -DOPENSYNC_FORMATSDIR=\"@OPENSYNC_FORMATSDIR@\"
+AM_CFLAGS = -Wall -Werror @GCOV_CFLAGS@
 
-INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ @XML_CFLAGS@ -I$(top_srcdir)/osengine -I$(top_srcdir)/opensync
+INCLUDES = @PACKAGE_CFLAGS@ -I..
 
-bin_PROGRAMS = osplugin
+noinst_LTLIBRARIES = libopensync-client.la
 
-ospluginincludedir = @OPENSYNC_HEADERDIR@
+ospluginincludedir = @OPENSYNC_HEADERDIR@/client
 
-osplugin_SOURCES = osplugin.c
-osplugin_LDFLAGS = @PACKAGE_LIBS@ @XML_LIBS@ -R $(libdir) @GCOV_LDFLAGS@
-osplugin_LDADD = $(top_builddir)/opensync/libopensync.la
+EXTRA_DIST = \
+	opensync_client_internals.h
+
+libopensync_client_la_SOURCES = opensync_client.c
+libopensync_client_la_LDFLAGS = @PACKAGE_LIBS@ @GCOV_LDFLAGS@
 
 CLEANFILES = \
 	*.bb \

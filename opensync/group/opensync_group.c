@@ -20,76 +20,45 @@
  
 #include "opensync.h"
 #include "opensync_internals.h"
-#include <errno.h>
+
+#include "opensync-format.h"
+#include "opensync-group.h"
+#include "opensync_group_internals.h"
+
 #include <sys/file.h>
 
-extern int errno;
+#include "opensync_xml.h"
 
-
-/*! @brief This will create a new user
- * 
- * The user will hold information like uid, gid, home directory etc
- * 
- * @returns A pointer to a newly allocated OSyncUserInfo
- * 
- */
-OSyncUserInfo *osync_user_new(OSyncError **error)
+static void _build_list(gpointer key, gpointer value, gpointer user_data)
 {
-	OSyncUserInfo *user = osync_try_malloc0(sizeof(OSyncUserInfo), error);
-	if (!user)
-		return NULL;
-	
-	user->uid = getuid();
-	user->gid = getgid();
-	
-	user->homedir = g_get_home_dir();
-	user->username = g_get_user_name();
-	
-	user->confdir = g_strdup_printf("%s/.opensync", user->homedir);
-	
-	osync_trace(TRACE_INTERNAL, "Detected User:\nUID: %i\nGID: %i\nHome: %s\nOSyncDir: %s", user->uid, user->gid, user->homedir, user->confdir);
-	
-	return user;
+	if (GPOINTER_TO_INT(value) >= 2) {
+		GList **l = user_data;
+		*l = g_list_append(*l, key);
+	}
 }
 
-
-void osync_user_free(OSyncUserInfo *info)
+static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 {
-	g_free(info->confdir);
-	
-	g_free(info);
-}
-
-/*! @brief This will set the configdir for the given user
- * 
- * This will set the configdir for the given user
- * 
- * @param user The user to change
- * @param path The new configdir path
- * 
- */
-void osync_user_set_confdir(OSyncUserInfo *user, const char *path)
-{
-	g_assert(user);
-	
-	if (user->confdir)
-		g_free(user->confdir);
-	
-	user->confdir = g_strdup(path);
-}
-
-/*! @brief This will get the configdir for the given user
- * 
- * This will set the configdir for the given user
- * 
- * @param user The user to get the path from
- * @returns The configdir path
- * 
- */
-const char *osync_user_get_confdir(OSyncUserInfo *user)
-{
-	g_assert(user);
-	return user->confdir;
+	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+    
+	GList *m = NULL;
+	/* Loop over all members... */
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		int num = osync_member_num_objtypes(member);
+		int i = 0;
+		/* ... and get the objtype from each of the members. */
+		for (i = 0; i < num; i++) {
+			const char *objtype = osync_member_nth_objtype(member, i);
+			/* For each objtype, add 1 to the hashtable */
+			int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
+			g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
+		}
+	}
+	GList *ret = NULL;
+	g_hash_table_foreach(table, _build_list, &ret);
+	g_hash_table_destroy(table);
+	return ret;
 }
 
 /**
@@ -108,7 +77,7 @@ const char *osync_user_get_confdir(OSyncUserInfo *user)
  * @returns A new unique member id
  * 
  */
-long long int osync_group_create_member_id(OSyncGroup *group)
+static long long int _osync_group_create_member_id(OSyncGroup *group)
 {
 	char *filename = NULL;
 	long long int i = 0;
@@ -122,18 +91,6 @@ long long int osync_group_create_member_id(OSyncGroup *group)
 	return i;
 }
 
-/*! @brief Returns the format environment of a group
- * 
- * @param group The group
- * @returns The format environment
- * 
- */
-OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
-{
-	g_assert(group);
-	return group->conv_env;
-}
-
 /*! @brief Loads all members of a group
  * 
  * Loads all members of a group
@@ -144,38 +101,58 @@ OSyncFormatEnv *osync_group_get_format_env(OSyncGroup *group)
  * @returns True if the members were loaded successfully, FALSE otherwise
  * 
  */
-osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncError **error)
+static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
+	
 	GDir *dir = NULL;
 	GError *gerror = NULL;
+	char *member_path = NULL;
 	char *filename = NULL;
+	OSyncMember *member = NULL;
 	
 	dir = g_dir_open(path, 0, &gerror);
 	if (!dir) {
-		osync_debug("OSGRP", 3, "Unable to open group configdir %s", gerror->message);
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open group configdir %s", gerror->message);
 		g_error_free (gerror);
-		return FALSE;
+		goto error;
 	}
 
 	const gchar *de = NULL;
 	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
-		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || g_pattern_match_simple(".*", de) || !strcmp("db", de)) {
+		filename = g_strdup_printf ("%s/%s/syncmember.conf", osync_group_get_configdir(group), de);
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 			g_free(filename);
 			continue;
 		}
-
-		if (!osync_member_load(group, filename, error)) {
-			osync_debug("OSGRP", 0, "Unable to load one of the members");
-			g_free(filename);
-			g_dir_close(dir);
-			return FALSE;
-		}
 		g_free(filename);
+		
+		member = osync_member_new(error);
+		if (!member)
+			goto error_close;
+		
+		member_path = g_strdup_printf ("%s/%s", osync_group_get_configdir(group), de);
+		if (!osync_member_load(member, member_path, error)) {
+			g_free(member_path);
+			goto error_free_member;
+		}
+		g_free(member_path);
+		
+		osync_group_add_member(group, member);
 	}
 	g_dir_close(dir);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_free_member:
+	osync_member_unref(member);
+error_close:
+	g_free(filename);
+	g_dir_close(dir);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*@}*/
@@ -196,16 +173,13 @@ osync_bool osync_group_load_members(OSyncGroup *group, const char *path, OSyncEr
  * @returns Pointer to a new group
  * 
  */
-OSyncGroup *osync_group_new(OSyncEnv *env, OSyncError **error)
+OSyncGroup *osync_group_new(OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", env, error);
+	osync_trace(TRACE_ENTRY, "%s(%p)", error);
 	
 	OSyncGroup *group = osync_try_malloc0(sizeof(OSyncGroup), error);
 	if (!group)
 		goto error;
-	
-	group->env = env;
-	group->conv_env = osync_conv_env_new(env);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
 	return group;
@@ -215,33 +189,32 @@ error:
 	return NULL;
 }
 
-/*! @brief Frees the given group
- * 
- * Frees the given group
- * 
- * @param group The group
- * 
- */
-void osync_group_free(OSyncGroup *group)
+void osync_group_ref(OSyncGroup *group)
 {
-	g_assert(group);
+	osync_assert(group);
 	
-	if (group->conv_env)
-		osync_conv_env_free(group->conv_env);
-	
-	if (group->lock_fd)
-		osync_group_unlock(group, FALSE);
-	
-	while (osync_group_nth_member(group, 0))
-		osync_member_free(osync_group_nth_member(group, 0));
-	
-	if (group->name)
-		g_free(group->name);
-	
-	if (group->configdir)
-		g_free(group->configdir);
+	g_atomic_int_inc(&(group->ref_count));
+}
+
+void osync_group_unref(OSyncGroup *group)
+{
+	osync_assert(group);
 		
-	g_free(group);
+	if (g_atomic_int_dec_and_test(&(group->ref_count))) {
+		if (group->lock_fd)
+			osync_group_unlock(group);
+		
+		while (group->members)
+			osync_group_remove_member(group, group->members->data);
+		
+		if (group->name)
+			g_free(group->name);
+		
+		if (group->configdir)
+			g_free(group->configdir);
+			
+		g_free(group);
+	}
 }
 
 /*! @brief Locks a group
@@ -253,7 +226,7 @@ void osync_group_free(OSyncGroup *group)
  * 
  * If the lock was acquired, but a old lock file was detected,
  * OSYNC_LOCK_STALE will be returned. Use this to detect if the
- * last sync of this group was successfull, or if this something crashed.
+ * last sync of this group was successful, or if this something crashed.
  * If you get this answer you should perform a slow-sync
  * 
  * If the group is locked, OSYNC_LOCKED is returned
@@ -264,31 +237,29 @@ void osync_group_free(OSyncGroup *group)
  */
 OSyncLockState osync_group_lock(OSyncGroup *group)
 {
-	osync_trace(TRACE_ENTRY, "osync_group_lock(%p)", group);
-	g_assert(group);
-	g_assert(group->configdir);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+	osync_assert(group);
+	osync_assert(group->configdir);
 	
 	osync_bool exists = FALSE;
 	osync_bool locked = FALSE;
 	
 	if (group->lock_fd) {
-		osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCKED, lock_fd existed");
+		osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED, lock_fd existed", __func__);
 		return OSYNC_LOCKED;
 	}
 	
 	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
-	osync_debug("GRP", 4, "locking file %s", lockfile);
 
 	if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
-		osync_debug("GRP", 4, "locking group: file exists");
+		osync_trace(TRACE_INTERNAL, "locking group: file exists");
 		exists = TRUE;
 	}
 	
 	if ((group->lock_fd = open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
 		group->lock_fd = 0;
-		osync_debug("GRP", 1, "error opening file: %s", strerror(errno));
 		g_free(lockfile);
-		osync_trace(TRACE_EXIT_ERROR, "osync_group_lock: %s", strerror(errno));
+		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, strerror(errno));
 		return OSYNC_LOCK_STALE;
 	} else {
 
@@ -308,29 +279,29 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 
 		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
 			if (errno == EWOULDBLOCK) {
-				osync_debug("GRP", 4, "locking group: is locked2");
+				osync_trace(TRACE_INTERNAL, "locking group: is locked2");
 				locked = TRUE;
 				close(group->lock_fd);
 				group->lock_fd = 0;
 			} else
-				osync_debug("GRP", 1, "error setting lock: %s", strerror(errno));
+				osync_trace(TRACE_INTERNAL, "error setting lock: %s", strerror(errno));
 		} else
-			osync_debug("GRP", 4, "Successfully locked");
+			osync_trace(TRACE_INTERNAL, "Successfully locked");
 	}
 	g_free(lockfile);
 	
-	if (!exists) {
-		osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCK_OK");
-		return OSYNC_LOCK_OK;
-	} else {
+	if (exists) {
 		if (locked) {
-			osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCKED");
+			osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED", __func__);
 			return OSYNC_LOCKED;
 		} else {
-			osync_trace(TRACE_EXIT, "osync_group_lock: OSYNC_LOCK_STALE");
+			osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_STALE", __func__);
 			return OSYNC_LOCK_STALE;
 		}
 	}
+	
+	osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_OK", __func__);
+	return OSYNC_LOCK_OK;
 }
 
 /*! @brief Unlocks a group
@@ -343,32 +314,29 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
  * @param remove If the lockfile should be removed
  * 
  */
-void osync_group_unlock(OSyncGroup *group, osync_bool remove)
+void osync_group_unlock(OSyncGroup *group)
 {
-	g_assert(group);
-	g_assert(group->configdir);
-	osync_debug("GRP", 4, "unlocking group %s", group->name);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
+	osync_assert(group);
+	osync_assert(group->configdir);
 	
 	if (!group->lock_fd) {
-		osync_debug("GRP", 1, "You have to lock the group before unlocking");
+		osync_trace(TRACE_EXIT, "%s: You have to lock the group before unlocking", __func__);
 		return;
 	}
     
-	if (flock(group->lock_fd, LOCK_UN) == -1) {
-		osync_debug("GRP", 1, "error releasing lock: %s", strerror(errno));
-		return;
-	}
+	flock(group->lock_fd, LOCK_UN);
 	
 	fsync(group->lock_fd);
 	close(group->lock_fd);
 	
 	group->lock_fd = 0;
 	
-	if (remove) {
-		char *lockfile = g_strdup_printf("%s/lock", group->configdir);
-		unlink(lockfile);
-		g_free(lockfile);
-	}
+	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
+	unlink(lockfile);
+	g_free(lockfile);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Sets the name for the group
@@ -417,11 +385,11 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	osync_assert(group->configdir);
 		
 	char *filename = NULL;
-	osync_debug("OSGRP", 3, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
+	osync_trace(TRACE_INTERNAL, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
 	int i;
 	
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_debug("OSGRP", 3, "Creating group configdirectory %s", group->configdir);
+		osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir);
 		if (mkdir(group->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
 			goto error;
@@ -429,7 +397,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	}
 	
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
-	osync_debug("OSGRP", 3, "Saving group to file %s", filename);
+	osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename);
 	
 	xmlDocPtr doc;
 
@@ -437,7 +405,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 	
 	//The filters
-	GList *f;
+	/*GList *f;
 	for (f = group->filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
 		xmlNodePtr child = xmlNewChild(doc->children, NULL, (xmlChar*)"filter", NULL);
@@ -467,7 +435,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 			xmlNewChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
 		if (filter->config)
 			xmlNewChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
-	}
+	}*/
 
 	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
@@ -495,7 +463,7 @@ error:
 
 /*! @brief Deletes a group from disc
  * 
- * Deletes to group directories and removes it from its environment
+ * Deletes to group directories
  * 
  * @param group The group
  * @param error Pointer to a error struct
@@ -504,15 +472,19 @@ error:
  */
 osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 {
-	g_assert(group);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
+	osync_assert(group);
+	
 	char *delcmd = g_strdup_printf("rm -rf %s", group->configdir);
 	if (system(delcmd)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete group. command %s failed", delcmd);
 		g_free(delcmd);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	g_free(delcmd);
-	osync_group_free(group);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
@@ -542,12 +514,13 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	}
 	osync_group_set_configdir(group, real_path);
 	filename = g_strdup_printf("%s/syncgroup.conf", real_path);
-
+	g_free(real_path);
+	
 	xmlDocPtr doc;
 	xmlNodePtr cur;
-	xmlNodePtr filternode;
+	//xmlNodePtr filternode;
 	
-	if (!_osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
+	if (!osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
 		g_free(filename);
 		goto error;
 	}
@@ -560,7 +533,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 		if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
 			group->last_sync = (time_t)atoi((char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1));
 
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
+		/*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 			filternode = cur->xmlChildrenNode;
 			OSyncFilter *filter = osync_filter_new();
 			filter->group = group;
@@ -620,7 +593,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 				filternode = filternode->next;
 			}
 			osync_filter_register(group, filter);
-		}
+		}*/
 		cur = cur->next;
 	}
 	xmlFreeDoc(doc);
@@ -631,7 +604,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 		goto error;
 	}
 	
-	if (!osync_group_load_members(group, real_path, error))
+	if (!_osync_group_load_members(group, real_path, error))
 		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
@@ -640,26 +613,6 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
-}
-
-/*! @brief Resets all databases of a group
- * 
- * This will reset all databases of a group. So all anchors, mappings
- * hashtables etc will be forgotten (as if the group was never synced)
- * 
- * @param group The group to reset
- * 
- */
-void osync_group_reset(OSyncGroup *group)
-{
-	OSyncError *error = NULL;
-	osync_db_reset_group(group, &error);
-	
-	GList *m = NULL;
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
-		osync_db_reset_member(member, &error);
-	}
 }
 
 /*! @brief Appends a member to the group
@@ -673,7 +626,15 @@ void osync_group_reset(OSyncGroup *group)
 void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
 {
 	g_assert(group);
+	
+	if (!osync_member_get_configdir(member)) {
+		char *configdir = g_strdup_printf("%s/%lli", group->configdir, _osync_group_create_member_id(group));
+		osync_member_set_configdir(member, configdir);
+		g_free(configdir);
+	}
+	
 	group->members = g_list_append(group->members, member);
+	osync_member_ref(member);
 }
 
 /*! @brief Removes a member from the group
@@ -684,8 +645,27 @@ void osync_group_add_member(OSyncGroup *group, OSyncMember *member)
  */
 void osync_group_remove_member(OSyncGroup *group, OSyncMember *member)
 {
-	g_assert(group);
+	osync_assert(group);
 	group->members = g_list_remove(group->members, member);
+	osync_member_unref(member);
+}
+
+/** @brief Searches for a member by its id
+ * 
+ * @param group The group in which to search
+ * @param id The id of the member
+ * @returns The member, or NULL if not found
+ * 
+ */
+OSyncMember *osync_group_find_member(OSyncGroup *group, int id)
+{
+	GList *m = NULL;
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		if (osync_member_get_id(member) == id)
+			return member;
+	}
+	return NULL;
 }
 
 /*! @brief Returns the nth member of the group
@@ -699,7 +679,7 @@ void osync_group_remove_member(OSyncGroup *group, OSyncMember *member)
  */
 OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth)
 {
-	g_assert(group);
+	osync_assert(group);
 	return (OSyncMember *)g_list_nth_data(group->members, nth);
 }
 
@@ -713,7 +693,7 @@ OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth)
  */
 int osync_group_num_members(OSyncGroup *group)
 {
-	g_assert(group);
+	osync_assert(group);
 	return g_list_length(group->members);
 }
 
@@ -727,7 +707,7 @@ int osync_group_num_members(OSyncGroup *group)
  */
 const char *osync_group_get_configdir(OSyncGroup *group)
 {
-	g_assert(group);
+	osync_assert(group);
 	return group->configdir;
 }
 
@@ -740,163 +720,99 @@ const char *osync_group_get_configdir(OSyncGroup *group)
  */
 void osync_group_set_configdir(OSyncGroup *group, const char *directory)
 {
-	g_assert(group);
+	osync_assert(group);
 	if (group->configdir)
 		g_free(group->configdir);
 	group->configdir = g_strdup(directory);
 }
 
-/*! @brief Sets if the group requires slow-sync for the given object type
- * 
- * Sets if the group requires slow-sync for the given object type. This will be
- * reset once the group performs a successfull slow-sync.
- * 
- * @param group The group
- * @param objtypestr The name of the object type
- * @param slow_sync Set to TRUE if you want to perform a slow-sync, FALSE otherwise
- * 
- */
-void osync_group_set_slow_sync(OSyncGroup *group, const char *objtypestr, osync_bool slow_sync)
+int osync_group_num_objtypes(OSyncGroup *group)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, group, objtypestr, slow_sync);
-	
-	g_assert(group);
-	OSyncFormatEnv *conv_env = group->conv_env;
-
-	//FIXME Remove the slow_sync bool since you are not allowed to reset
-	//the slow-sync manually anyways.
-	
-	//FIXME Race Condition!!!
-	if (!osync_group_get_slow_sync(group, objtypestr)) {
-		if (osync_conv_objtype_is_any(objtypestr)) {
-			GList *element;
-			for (element = conv_env->objtypes; element; element = element->next) {
-				OSyncObjType *objtype = element->data;
-				objtype->needs_slow_sync = slow_sync;
-			}
-		} else {
-			OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
-			g_assert(objtype);
-			objtype->needs_slow_sync = slow_sync;
-		}
-	}
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_assert(group);
+	GList *objs = _osync_group_get_supported_objtypes(group);
+	int len = g_list_length(objs);
+	g_list_free(objs);
+	return len;
 }
 
-/** @brief Reset slow-sync for this group
- * 
- * You can use this function to reset the slow-sync status for the given group. This is normally
- * done if a synchronization succeeds.
- *
- * @param group The group to reset slow-sync on
- * @param objtypestr The name of the object type
- */
-void osync_group_reset_slow_sync(OSyncGroup *group, const char *objtypestr)
+const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, group, objtypestr);
-	g_assert(group);
-	OSyncFormatEnv *conv_env = group->conv_env;
-
-	if (osync_conv_objtype_is_any(objtypestr)) {
-		GList *element;
-		for (element = conv_env->objtypes; element; element = element->next) {
-			OSyncObjType *objtype = element->data;
-			objtype->needs_slow_sync = FALSE;
-		}
-	} else {
-		OSyncObjType *objtype = osync_conv_find_objtype(conv_env, objtypestr);
-		g_assert(objtype);
-		objtype->needs_slow_sync = FALSE;
-	}
+	osync_assert(group);
+	GList *objs = _osync_group_get_supported_objtypes(group);
+	const char *objtype = g_list_nth_data(objs, nth);
+	g_list_free(objs);
+	return objtype;
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/*! @brief Returns if the group will perform a slow-sync for the object type
- * 
- * Returns if the group will perform a slow-sync for the object type
- * 
- * @param group The group
- * @param objtype The name of the object type
- * @returns TRUE if a slow-sync will be performed, FALSE otherwise
- * 
- */
-osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
+void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled)
 {
-	g_assert(group);
-	OSyncFormatEnv *env = group->conv_env;
-	g_assert(env);
-	
-	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, "data");
-	if (osync_objtype->needs_slow_sync)
-		return TRUE;
-	osync_objtype = osync_conv_find_objtype(env, objtype);
-	g_assert(osync_objtype);
-	return osync_objtype->needs_slow_sync;
-}
-
-/*! @brief Returns if the object type is enabled for the group
- * 
- * Returns TRUE if the object type is enabled for the group. Note that this
- * information is saved on a per member basis. If one of the members has this object type enabled
- * this function will return TRUE
- * 
- * @param group The group
- * @param objtype The name of the object type
- * @returns TRUE if the object type is enabled for at least one member. FALSE if for none
- * 
- */
-osync_bool osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
-{
-	//FIXME We should actually return a 3-state here.
-	//0 if none is enabled
-	//"0.5" if some are enabled, some are not
-	//1 if all are enabled
-	g_assert(group);
-	GList *m;
+	osync_assert(group);
+	GList *m = NULL;
+	/* Loop over all members... */
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
-		if (osync_member_objtype_enabled(member, objtype))
-			return TRUE;
+		osync_member_set_objtype_enabled(member, objtype, enabled);
 	}
-	return FALSE;
 }
 
-/*! @brief Sets if the object type is accepted for ALL members
- * 
- * BUG We loose information if only some members are enabled
- * 
- * @param group The group
- * @param objtypestr The name of the object type
- * @param enabled What do you want to set today?
- * 
- * Note: the plugin needs to be instanced for this function to be called
- *
- * @todo Change interface to remove requirement to instance the plugin manually.
- *       It needs to be able to return error in order to load the plugin
- */
-void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, osync_bool enabled)
+
+int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
 {
-	g_assert(group);
-	GList *m;
+	osync_assert(group);
+	GList *m = NULL;
+	
+	int enabled = -1;
+	
+	/* What do to:
+	 * 
+	 * g -> enabled variable
+	 * m = value from member
+	 * 
+	 *   g  -1 0 1 2
+	 * m
+	 * -1   -1 0 1 2
+	 * 0     0 0 1 1
+	 * 1     2 1 1 2
+	 * 
+	 */
+	
+	/* Loop over all members... */
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
-
-		/*TODO: What this function should do if we don't have
-		 *      any objtype sink information?
-		 *      It can't return error currently. We should either
-		 *      require that the plugin is instanced, or change the function
-		 *      interface. As changing the function interface require more
-		 *      care, currently the function is marked as requiring the plugin to be instanced
-		 */
-		if (!osync_member_require_sink_info(member, NULL)) {
-			osync_debug("OSGRP", 0, "%s: No sink information, can't load plugin, and I can't return error");
-			continue;
+		switch (osync_member_objtype_enabled(member, objtype)) {
+			case -1:
+				//Do nothing;
+				break;
+			case 0:
+				if (enabled == -1)
+					enabled = 0;
+				else if (enabled == 2)
+					enabled = 1;
+				break;
+			case 1:
+				if (enabled == -1)
+					enabled = 2;
+				else if (enabled == 0)
+					enabled = 1;
+				break;
 		}
-
-		osync_member_set_objtype_enabled(member, objtypestr, enabled);
 	}
+	return enabled;
+}
+
+void osync_group_add_filter(OSyncGroup *group, OSyncFilter *filter)
+{
+	osync_assert(group);
+	group->filters = g_list_append(group->filters, filter);
+	osync_filter_ref(filter);
+}
+
+void osync_group_remove_filter(OSyncGroup *group, OSyncFilter *filter)
+{
+	osync_assert(group);
+	group->filters = g_list_remove(group->filters, filter);
+	osync_filter_unref(filter);
 }
 
 /*! @brief Returns the number of filters registered in a group
@@ -907,7 +823,7 @@ void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtypestr, 
  */
 int osync_group_num_filters(OSyncGroup *group)
 {
-	g_assert(group);
+	osync_assert(group);
 	return g_list_length(group->filters);
 }
 
@@ -923,62 +839,8 @@ int osync_group_num_filters(OSyncGroup *group)
  */
 OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
 {
-	g_assert(group);
+	osync_assert(group);
 	return g_list_nth_data(group->filters, nth);
-}
-
-/*! @brief Flushes the list of filters for a group
- *
- * Clean the list of filters on the group
- */
-void osync_group_flush_filters(OSyncGroup *group)
-{
-	g_assert(group);
-	while (group->filters) {
-		OSyncFilter *f = g_list_nth_data(group->filters, 0);
-		osync_filter_free(f);
-
-		/* Delete the first item */
-		group->filters = g_list_delete_link(group->filters, group->filters);
-	}
-}
-
-/*! @brief Can be used to load all items from the changelog. Loaded items will be removed
- * 
- * @param group The group for which to load the log
- * @param uids Place to return an array with the saved uids
- * @param memberids Place to return an array with the saved memberids
- * @param changetypes Place to return an array with the saved changetypes. Same size as uids
- * @param error Place to return the error
- * @returns TRUE if successfull, FALSE otherwise
- */
-osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error)
-{
-	return osync_db_open_changelog(group, uids, memberids, changetypes, error);
-}
-
-/*! @brief Saves a change to the changelog.
- * 
- * @param group The group in which to save
- * @param change The change to save
- * @param error Place to return the error
- * @returns TRUE if successfull, FALSE otherwise
- */
-osync_bool osync_group_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
-{
-	return osync_db_save_changelog(group, change, error);
-}
-
-/*! @brief Removes a change from the changelog.
- * 
- * @param group The group in which to save
- * @param change The change to remove
- * @param error Place to return the error
- * @returns TRUE if successfull, FALSE otherwise
- */
-osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
-{
-	return osync_db_remove_changelog(group, change, error);
 }
 
 /*! @brief Sets the last synchronization date of this group
@@ -990,8 +852,8 @@ osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, 
  */
 void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, not shown)", __func__, last_sync);
-	osync_assert_msg(group, "Group missing");
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, group, last_sync);
+	osync_assert(group);
 	
 	group->last_sync = last_sync;
                
@@ -1007,8 +869,25 @@ void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
  */
 time_t osync_group_get_last_synchronization(OSyncGroup *group)
 {
-	osync_assert_msg(group, "Group missing");
+	osync_assert(group);
 	return group->last_sync;
+}
+
+void osync_group_set_conflict_resolution(OSyncGroup *group, OSyncConflictResolution res, int num)
+{
+	osync_assert(group);
+	group->conflict_resolution = res;
+	group->conflict_winner = num;
+}
+
+void osync_group_get_conflict_resolution(OSyncGroup *group, OSyncConflictResolution *res, int *num)
+{
+	osync_assert(group);
+	osync_assert(res);
+	osync_assert(num);
+	
+	*res = group->conflict_resolution;
+	*num = group->conflict_winner;
 }
 
 /*@}*/

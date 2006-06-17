@@ -277,7 +277,7 @@ void osync_change_reset(OSyncChange *change)
  * @param change The change to save
  * @param save_format Wether to save the format or not.
  * @param error A pointer to a error struct
- * @returns TRUE if save was successfull, FALSE otherwise
+ * @returns TRUE if save was successful, FALSE otherwise
  * 
  */
 osync_bool osync_change_save(OSyncChange *change, osync_bool save_format, OSyncError **error)
@@ -291,7 +291,7 @@ osync_bool osync_change_save(OSyncChange *change, osync_bool save_format, OSyncE
  * 
  * @param change The change to delete
  * @param error A pointer to a error struct
- * @returns TRUE if deletion was successfull, FALSE otherwise
+ * @returns TRUE if deletion was successful, FALSE otherwise
  * 
  */
 osync_bool osync_change_delete(OSyncChange *change, OSyncError **error)
@@ -308,7 +308,7 @@ osync_bool osync_change_delete(OSyncChange *change, OSyncError **error)
  * @param group The group for which to load the changes
  * @param changes An pointer to an array in which to store the changes
  * @param error A pointer to a error struct
- * @returns TRUE if load was successfull, FALSE otherwise
+ * @returns TRUE if load was successful, FALSE otherwise
  * 
  */
 osync_bool osync_changes_load(OSyncGroup *group, OSyncChange ***changes, OSyncError **error)
@@ -644,7 +644,7 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
  * This is used if a uid is not unique.
  * 
  * @param change The change to duplicate
- * @returns TRUE if the uid was duplicated successfull
+ * @returns TRUE if the uid was duplicated successful
  * 
  */
 osync_bool osync_change_duplicate(OSyncChange *change)

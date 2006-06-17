@@ -167,22 +167,10 @@ void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationTypes c
 	plugin->config_type = config_type;
 }
 
-initialize_fn osync_plugin_get_initialize(OSyncPlugin *plugin)
-{
-	osync_assert(plugin);
-	return plugin->initialize;
-}
-
 void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init)
 {
 	osync_assert(plugin);
 	plugin->initialize = init;
-}
-
-finalize_fn osync_plugin_get_finalize(OSyncPlugin *plugin)
-{
-	osync_assert(plugin);
-	return plugin->finalize;
 }
 
 void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin)
@@ -199,11 +187,16 @@ void osync_plugin_set_objtypes(OSyncPlugin *plugin, finalize_fn fin)
 	plugin->finalize = fin;
 }
 
-void osync_plugin_set_is_usable(OSyncPlugin *plugin, usable_fn useable)
+void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
-	
-	plugin->useable = useable;
+	return plugin->initialize(info, error);
+}
+
+void osync_plugin_finalize(OSyncPlugin *plugin, void *data)
+{
+	osync_assert(plugin);
+	plugin->finalize(data);
 }
 
 /*! @brief Checks if a plugin is available and usable

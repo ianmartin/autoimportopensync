@@ -22,38 +22,39 @@
 #include "opensync_internals.h"
 
 #include "opensync-context.h"
-#include "opensync-format.h"
+#include "opensync_sink.h"
 #include "opensync_sink_internals.h"
 
-OSyncObjFormatSink *osync_sink_new(OSyncObjFormatSinkFunctions functions, const char *format, const char *objtype, OSyncError **error)
+OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error)
 {
-	OSyncObjFormatSink *sink = osync_try_malloc0(sizeof(OSyncObjFormatSink), error);
+	OSyncObjTypeSink *sink = osync_try_malloc0(sizeof(OSyncObjTypeSink), error);
 	if (!sink)
 		return FALSE;
 	
-	sink->format = g_strdup(format);
 	sink->objtype = g_strdup(objtype);
-	sink->functions = functions;
 	sink->ref_count = 1;
 	
 	return sink;
 }
 
-void osync_sink_ref(OSyncObjFormatSink *sink)
+void osync_objtype_sink_ref(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	
 	g_atomic_int_inc(&(sink->ref_count));
 }
 
-void osync_sink_unref(OSyncObjFormatSink *sink)
+void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	
 	if (g_atomic_int_dec_and_test(&(sink->ref_count))) {
-		if (sink->format)
-			g_free(sink->format);
-			
+		while (sink->objformats) {
+			char *format = sink->objformats->data;
+			g_free(format);
+			sink->objformats = g_list_remove(sink->objformats, format);
+		}
+		
 		if (sink->objtype)
 			g_free(sink->objtype);
 		
@@ -61,16 +62,42 @@ void osync_sink_unref(OSyncObjFormatSink *sink)
 	}
 }
 
-const char *osync_sink_get_objformat(OSyncObjFormatSink *sink)
-{
-	osync_assert(sink);
-	return sink->format;
-}
-
-const char *osync_sink_get_objtype(OSyncObjFormatSink *sink)
+const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->objtype;
+}
+
+int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return g_list_length(sink->objformats);
+}
+
+const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth)
+{
+	osync_assert(sink);
+	return g_list_nth_data(sink->objformats, nth);
+}
+
+void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format)
+{
+	osync_assert(sink);
+	osync_assert(format);
+	sink->objformats = g_list_append(sink->objformats, g_strdup(format));
+}
+
+void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format)
+{
+	osync_assert(sink);
+	osync_assert(format);
+	GList *f = NULL;
+	for (f = sink->objformats; f; f = f->next) {
+		if (!strcmp((char *)f->data, format)) {
+			sink->objformats = g_list_remove(sink->objformats, f->data);
+			break;
+		}
+	}
 }
 
 /** @brief Queries a plugin for the changed objects since the last sync
@@ -82,13 +109,13 @@ const char *osync_sink_get_objtype(OSyncObjFormatSink *sink)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_sink_get_changes(OSyncObjFormatSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 	if (!functions.get_changes) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No get_changeinfo function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No get_changes function was given", __func__);
@@ -108,14 +135,14 @@ void osync_sink_get_changes(OSyncObjFormatSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_sink_read_change(OSyncObjFormatSink *sink, OSyncChange *change, OSyncContext *ctx)
+void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sink, change, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	osync_assert(change);
 	
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 	if (!functions.read) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No read function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No read function was given", __func__);
@@ -134,13 +161,13 @@ void osync_sink_read_change(OSyncObjFormatSink *sink, OSyncChange *change, OSync
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_sink_connect(OSyncObjFormatSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 	if (!functions.connect) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No connect function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No connect function was given", __func__);
@@ -159,13 +186,13 @@ void osync_sink_connect(OSyncObjFormatSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_sink_disconnect(OSyncObjFormatSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 	if (!functions.disconnect) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No disconnect function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No disconnect function was given", __func__);
@@ -175,7 +202,7 @@ void osync_sink_disconnect(OSyncObjFormatSink *sink, OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/** @brief Tells the plugin that the sync was successfull
+/** @brief Tells the plugin that the sync was successful
  * 
  * Calls the sync_done function on a plugin
  * 
@@ -184,13 +211,13 @@ void osync_sink_disconnect(OSyncObjFormatSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_sink_sync_done(OSyncObjFormatSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 	if (!functions.sync_done) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No sync_done function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No sync_done function was given", __func__);
@@ -210,14 +237,14 @@ void osync_sink_sync_done(OSyncObjFormatSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_sink_commit_change(OSyncObjFormatSink *sink, OSyncChange *change, OSyncContext *ctx)
+void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sink, change, ctx);
 	g_assert(sink);
 	g_assert(change);
 	g_assert(ctx);
 
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 
 	if (functions.batch_commit) {
 		//Append to the stored changes
@@ -248,13 +275,13 @@ void osync_sink_commit_change(OSyncObjFormatSink *sink, OSyncChange *change, OSy
  * @param user_data The userdata to pass to the callback
  * 
  */
-void osync_sink_committed_all(OSyncObjFormatSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjFormatSinkFunctions functions = sink->functions;
+	OSyncObjTypeSinkFunctions functions = sink->functions;
 	if (functions.batch_commit) {
 		int i = 0;
 		OSyncChange **changes = g_malloc0(sizeof(OSyncChange *) * (g_list_length(sink->commit_changes) + 1));
@@ -287,4 +314,16 @@ void osync_sink_committed_all(OSyncObjFormatSink *sink, OSyncContext *ctx)
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+osync_bool osync_objtype_sink_is_enabled(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->enabled;
+}
+
+void osync_objtype_sink_set_enabled(OSyncObjTypeSink *sink, osync_bool enabled)
+{
+	osync_assert(sink);
+	sink->enabled = enabled;
 }

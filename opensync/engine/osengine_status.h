@@ -65,8 +65,8 @@ typedef enum {
 	ENG_ENDPHASE_DISCON = 4,
 	/** There was an error */
 	ENG_ERROR = 5,
-	/** The sync is done and was successfull (My favorite message) */
-	ENG_SYNC_SUCCESSFULL = 6,
+	/** The sync is done and was successful (My favorite message) */
+	ENG_SYNC_SUCCESSFUL = 6,
 	/** The previous sync was unclean and the engine will perform a slow-sync now */
 	ENG_PREV_UNCLEAN = 7,
 	/** All conflicts have been reported. */

@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@ -I..
 
 noinst_LTLIBRARIES = libopensync-ipc.la
 
-opensyncincludedir = @OPENSYNC_HEADERDIR@
+opensyncincludedir = @OPENSYNC_HEADERDIR@/ipc
 
 opensyncinclude_HEADERS = \
 	opensync_message.h \

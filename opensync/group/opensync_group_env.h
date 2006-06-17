@@ -18,12 +18,17 @@
  * 
  */
 
-#ifndef OPENSYNCFORMAT_H_
-#define OPENSYNCFORMAT_H_
+#ifndef _OPENSYNC_ENV_H_
+#define _OPENSYNC_ENV_H_
 
-#include "format/opensync_converter.h"
-#include "format/opensync_filter.h"
-#include "format/opensync_format_env.h"
-#include "format/opensync_objformat.h"
+OSyncGroupEnv *osync_group_env_new(OSyncError **error);
+void osync_group_env_free(OSyncGroupEnv *env);
 
-#endif /*OPENSYNCFORMAT_H_*/
+osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *p, OSyncError **error);
+OSyncGroup *osync_group_env_find_group(OSyncGroupEnv *env, const char *name);
+void osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group);
+void osync_group_env_remove_group(OSyncGroupEnv *env, OSyncGroup *group);
+int osync_group_env_num_groups(OSyncGroupEnv *env);
+OSyncGroup *osync_group_env_nth_group(OSyncGroupEnv *env, int nth);
+
+#endif //_OPENSYNC_ENV_H_

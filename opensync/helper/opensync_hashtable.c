@@ -209,7 +209,7 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
  * @param i The number of the entry to return
  * @param uid A pointer to a char * that will hold the uid. The caller is responible for freeing
  * @param hash A pointer to a char * that will hold the hash. The caller is responible for freeing
- * @returns TRUE if successfull, FALSE otherwise
+ * @returns TRUE if successful, FALSE otherwise
  * 
  */
 osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash)

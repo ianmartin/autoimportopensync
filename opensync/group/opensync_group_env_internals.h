@@ -18,12 +18,15 @@
  * 
  */
 
-#ifndef OPENSYNCFORMAT_H_
-#define OPENSYNCFORMAT_H_
+#ifndef _OPENSYNC_GROUP_ENV_INTERNALS_H_
+#define _OPENSYNC_GROUP_ENV_INTERNALS_H_
 
-#include "format/opensync_converter.h"
-#include "format/opensync_filter.h"
-#include "format/opensync_format_env.h"
-#include "format/opensync_objformat.h"
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
 
-#endif /*OPENSYNCFORMAT_H_*/
+struct OSyncGroupEnv {
+	GList *groups;
+	char *groupsdir;
+};
+
+#endif /* _OPENSYNC_GROUP_ENV_INTERNALS_H_ */

@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@ -I..
 
 noinst_LTLIBRARIES = libopensync-data.la
 
-opensyncincludedir = @OPENSYNC_HEADERDIR@
+opensyncincludedir = @OPENSYNC_HEADERDIR@/data
 
 opensyncinclude_HEADERS = \
 	opensync_data.h \

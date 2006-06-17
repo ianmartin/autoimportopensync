@@ -1,5 +1,6 @@
-OSyncGroup *osync_group_new(OSyncEnv *env, OSyncError **error);
-void osync_group_free(OSyncGroup *group);
+OSyncGroup *osync_group_new(OSyncError **error);
+void osync_group_unref(OSyncGroup *group);
+void osync_group_ref(OSyncGroup *group);
 
 /*! @ingroup OSyncGroupAPI
  * @brief The lock state of a group
@@ -10,8 +11,16 @@ typedef enum {
 	OSYNC_LOCK_STALE
 } OSyncLockState;
 
+typedef enum {
+	OSYNC_CONFLICT_RESOLUTION_UNKNOWN,
+	OSYNC_CONFLICT_RESOLUTION_DUPLICATE,
+	OSYNC_CONFLICT_RESOLUTION_IGNORE,
+	OSYNC_CONFLICT_RESOLUTION_NEWER,
+	OSYNC_CONFLICT_RESOLUTION_SELECT
+} OSyncConflictResolution;
+
 OSyncLockState osync_group_lock(OSyncGroup *group);
-void osync_group_unlock(OSyncGroup *group, osync_bool remove_file);
+void osync_group_unlock(OSyncGroup *group);
 
 void osync_group_set_name(OSyncGroup *group, const char *name);
 const char *osync_group_get_name(OSyncGroup *group);

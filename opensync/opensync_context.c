@@ -24,19 +24,12 @@
 #include "opensync-context.h"
 #include "opensync_context_internals.h"
 
-void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...);
-void osync_context_report_success(OSyncContext *context);
-void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error);
-
-void osync_context_report_change(OSyncContext *context, OSyncChange *change);
-
-OSyncContext *osync_context_new(OSyncMember *member, OSyncError **error)
+OSyncContext *osync_context_new(OSyncError **error)
 {
 	OSyncContext *ctx = osync_try_malloc0(sizeof(OSyncContext), error);
 	if (!ctx)
 		return NULL;
 	
-	ctx->member = member;
 	ctx->ref_count = 1;
 	
 	return ctx;
@@ -83,19 +76,13 @@ void osync_context_set_plugin_data(OSyncContext *context, void *data)
 	context->plugindata = data;
 }
 
-OSyncMember *osync_context_get_member(OSyncContext *context)
+void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error)
 {
-	osync_assert(context);
-	return context->member;
-}
-
-void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(error));
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error));
 	osync_assert(context);
 	
 	if (context->callback_function)
-		(context->callback_function)(context->member, context->callback_data, error);
+		(context->callback_function)(context->callback_data, error);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -113,7 +100,9 @@ void osync_context_report_error(OSyncContext *context, OSyncErrorType type, cons
 	va_end (args);
 	
 	if (context->callback_function)
-		(context->callback_function)(context->member, context->callback_data, &error);
+		(context->callback_function)(context->callback_data, error);
+	
+	osync_error_unref(&error);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -124,7 +113,7 @@ void osync_context_report_success(OSyncContext *context)
 	osync_assert(context);
 	
 	if (context->callback_function)
-		(context->callback_function)(context->member, context->callback_data, NULL);
+		(context->callback_function)(context->callback_data, NULL);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -161,7 +150,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	
 	
 	if (context->changes_function)
-		(context->changes_function)(context->member, context->callback_data, NULL);
+		(context->changes_function)(context->callback_data, NULL);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

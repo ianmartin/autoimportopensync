@@ -489,7 +489,7 @@ void osync_format_env_free(OSyncFormatEnv *env)
  * @param env The format environment
  * @param path The path to load from or NULL if to load from default path
  * @param error The location to return a error to
- * @returns TRUE if successfull, FALSE otherwise
+ * @returns TRUE if successful, FALSE otherwise
  * 
  */
 osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, OSyncError **error)

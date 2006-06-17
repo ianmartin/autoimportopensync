@@ -424,7 +424,7 @@ osync_bool osengine_reset(OSyncEngine *engine, OSyncError **error)
 		osync_status_update_engine(engine, ENG_ERROR, &newerror);
 		osync_group_set_slow_sync(engine->group, "data", TRUE);
 	} else {
-		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFULL, NULL);
+		osync_status_update_engine(engine, ENG_SYNC_SUCCESSFUL, NULL);
 		osync_group_reset_slow_sync(engine->group, "data");
 	}
 	
@@ -908,7 +908,7 @@ void osengine_finalize(OSyncEngine *engine)
  * 
  * @param engine A pointer to the engine, which will be used to sync
  * @param error A pointer to a error struct
- * @returns TRUE on success, FALSE otherwise. Check the error on FALSE. Note that this just says if the sync has been started successfully, not if the sync itself was successfull
+ * @returns TRUE on success, FALSE otherwise. Check the error on FALSE. Note that this just says if the sync has been started successfully, not if the sync itself was successful
  * 
  */
 osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
@@ -1062,7 +1062,7 @@ error:
  * to end
  * 
  * @param engine A pointer to the engine, for which to wait for the sync end
- * @param error Return location for the error if the sync was not successfull
+ * @param error Return location for the error if the sync was not successful
  * @returns TRUE on success, FALSE otherwise.
  */
 osync_bool osengine_wait_sync_end(OSyncEngine *engine, OSyncError **error)

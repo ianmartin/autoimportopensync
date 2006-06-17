@@ -333,7 +333,7 @@ OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *ri
  * @param source The change to copy from
  * @param target The change to copy to
  * @param error A error struct
- * @returns TRUE if the copy was successfull
+ * @returns TRUE if the copy was successful
  * 
  */
 osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyncError **error)

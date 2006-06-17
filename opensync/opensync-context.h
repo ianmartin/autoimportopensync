@@ -21,10 +21,10 @@
 #ifndef _OPENSYNC_CONTEXT_H
 #define _OPENSYNC_CONTEXT_H
 
-typedef void (* OSyncContextCallbackFn)(OSyncMember *, void *, OSyncError **);
-typedef void (* OSyncContextChangeFn) (OSyncMember *, OSyncChange *, void *);
+typedef void (* OSyncContextCallbackFn)(void *, OSyncError *);
+typedef void (* OSyncContextChangeFn) (OSyncChange *, void *);
 
-OSyncContext *osync_context_new(OSyncMember *member, OSyncError **error);
+OSyncContext *osync_context_new(OSyncError **error);
 void osync_context_ref(OSyncContext *context);
 void osync_context_unref(OSyncContext *context);
 
@@ -33,11 +33,10 @@ void osync_context_set_changes_callback(OSyncContext *context, OSyncContextChang
 
 void *osync_context_get_plugin_data(OSyncContext *context);
 void osync_context_set_plugin_data(OSyncContext *context, void *data);
-OSyncMember *osync_context_get_member(OSyncContext *ctx);
 
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...);
 void osync_context_report_success(OSyncContext *context);
-void osync_context_report_osyncerror(OSyncContext *context, OSyncError **error);
+void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error);
 
 void osync_context_report_change(OSyncContext *context, OSyncChange *change);
 

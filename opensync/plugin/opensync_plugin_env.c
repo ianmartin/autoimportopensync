@@ -220,13 +220,11 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 OSyncPlugin *osync_plugin_env_find_plugin(OSyncPluginEnv *env, const char *name)
 {
 	osync_assert(env);
-	OSyncPlugin *plugin;
-	int i;
-	for (i = 0; i < osync_plugin_env_num_plugins(env); i++) {
-		plugin = osync_plugin_env_nth_plugin(env, i);
-		if (g_ascii_strcasecmp(osync_plugin_get_name(plugin), name) == 0) {
+	GList *p;
+	for (p = env->plugins; p; p = p->next) {
+		OSyncPlugin *plugin = p->data;
+		if (g_ascii_strcasecmp(osync_plugin_get_name(plugin), name) == 0)
 			return plugin;
-		}
 	}
 	return NULL;
 }
