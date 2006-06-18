@@ -38,14 +38,15 @@
  */
 static osync_bool _osync_plugin_env_load_modules(OSyncPluginEnv *env, const char *path, osync_bool must_exist, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i, %p)", __func__, env, path, must_exist, error);
-	osync_assert(env);
-	osync_assert(path);
-	
 	GDir *dir = NULL;
 	GError *gerror = NULL;
 	char *filename = NULL;
 	OSyncModule *module = NULL;
+	const gchar *de = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i, %p)", __func__, env, path, must_exist, error);
+	osync_assert(env);
+	osync_assert(path);
 	
 	//Load all available shared libraries (plugins)
 	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
@@ -64,8 +65,7 @@ static osync_bool _osync_plugin_env_load_modules(OSyncPluginEnv *env, const char
 		g_error_free(gerror);
 		goto error;
 	}
-  
-	const gchar *de = NULL;
+	
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", path, de);
 		
@@ -137,9 +137,10 @@ error:
  */
 OSyncPluginEnv *osync_plugin_env_new(OSyncError **error)
 {
+	OSyncPluginEnv *env = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncPluginEnv *env = osync_try_malloc0(sizeof(OSyncPluginEnv), error);
+	env = osync_try_malloc0(sizeof(OSyncPluginEnv), error);
 	if (!env) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -191,8 +192,8 @@ void osync_plugin_env_free(OSyncPluginEnv *env)
  */
 osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
 	osync_bool must_exist = TRUE;
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
 	
 	if (!path) {
 		path = OPENSYNC_PLUGINDIR;
@@ -219,8 +220,8 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
  */
 OSyncPlugin *osync_plugin_env_find_plugin(OSyncPluginEnv *env, const char *name)
 {
-	osync_assert(env);
 	GList *p;
+	osync_assert(env);
 	for (p = env->plugins; p; p = p->next) {
 		OSyncPlugin *plugin = p->data;
 		if (g_ascii_strcasecmp(osync_plugin_get_name(plugin), name) == 0)
@@ -254,6 +255,11 @@ int osync_plugin_env_num_plugins(OSyncPluginEnv *env)
 OSyncPlugin *osync_plugin_env_nth_plugin(OSyncPluginEnv *env, int nth)
 {
 	return (OSyncPlugin *)g_list_nth_data(env->plugins, nth);
+}
+
+osync_bool osync_plugin_env_plugin_is_usable(OSyncPluginEnv *env, const char *pluginname, OSyncError **error)
+{
+	return TRUE;
 }
 
 /*@}*/

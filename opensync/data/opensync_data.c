@@ -137,17 +137,19 @@ osync_bool osync_data_has_data(OSyncData *data)
 
 OSyncData *osync_data_clone(OSyncData *source, OSyncError **error)
 {
+	OSyncData *data = NULL;
+	char *buffer = NULL;
+	unsigned int size = 0;
+	
 	osync_assert(source);
 	
-	OSyncData *data = osync_data_new(NULL, 0, source->objformat, error);
+	data = osync_data_new(NULL, 0, source->objformat, error);
 	if (!data)
 		return NULL;
 	
 	data->objtype = g_strdup(source->objtype);
 	
 	if (source->data) {
-		char *buffer = NULL;
-		unsigned int size = 0;
 		if (!osync_objformat_copy(source->objformat, source->data, source->size, &buffer, &size, error)) {
 			osync_data_unref(data);
 			return NULL;

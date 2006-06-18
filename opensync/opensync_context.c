@@ -89,11 +89,11 @@ void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error)
 
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...)
 {
+	OSyncError *error = NULL;
+	va_list args;
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s)", __func__, context, type, format);
 	osync_assert(context);
 	
-	OSyncError *error = NULL;
-	va_list args;
 	va_start(args, format);
 	osync_error_set_vargs(&error, type, format, args);
 	osync_trace(TRACE_INTERNAL, "ERROR is: %s", osync_error_print(&error));

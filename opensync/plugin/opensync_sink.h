@@ -43,24 +43,24 @@ typedef struct OSyncObjTypeSinkFunctions {
 	OSyncSinkSyncDoneFn sync_done;
 } OSyncObjTypeSinkFunctions;
 
-OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error);
-void osync_objtype_sink_ref(OSyncObjTypeSink *sink);
-void osync_objtype_sink_unref(OSyncObjTypeSink *sink);
+OSYNC_EXPORT OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error);
+OSYNC_EXPORT void osync_objtype_sink_ref(OSyncObjTypeSink *sink);
+OSYNC_EXPORT void osync_objtype_sink_unref(OSyncObjTypeSink *sink);
 
-const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink);
+OSYNC_EXPORT const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink);
 
-int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink);
-const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth);
-void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format);
-void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format);
+OSYNC_EXPORT int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink);
+OSYNC_EXPORT const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth);
+OSYNC_EXPORT void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format);
+OSYNC_EXPORT void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format);
 
-void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx);
-void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx);
-void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx);
-void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx);
-void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx);
-void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx);
-void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx);
+OSYNC_EXPORT void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx);
 
 osync_bool osync_objtype_sink_is_enabled(OSyncObjTypeSink *sink);
 void osync_objtype_sink_set_enabled(OSyncObjTypeSink *sink, osync_bool enabled);

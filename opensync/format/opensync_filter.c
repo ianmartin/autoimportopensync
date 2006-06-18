@@ -39,9 +39,10 @@
  **/
 OSyncFilter *osync_filter_new(const char *objtype, OSyncFilterAction action, OSyncError **error)
 {
+	OSyncFilter *filter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%s, %i, %p)", __func__, objtype, action, error);
 	
-	OSyncFilter *filter = osync_try_malloc0(sizeof(OSyncFilter), error);
+	filter = osync_try_malloc0(sizeof(OSyncFilter), error);
 	if (!filter)
 		goto error;
 	
@@ -63,9 +64,10 @@ error:
  **/
 OSyncFilter *osync_filter_new_custom(OSyncCustomFilter *custom_filter, const char *config, OSyncFilterAction action, OSyncError **error)
 {
+	OSyncFilter *filter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i, %p)", __func__, custom_filter, config, action, error);
 	
-	OSyncFilter *filter = osync_try_malloc0(sizeof(OSyncFilter), error);
+	filter = osync_try_malloc0(sizeof(OSyncFilter), error);
 	if (!filter)
 		goto error;
 	
@@ -172,9 +174,10 @@ OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncData *data)
  **/
 OSyncCustomFilter *osync_custom_filter_new(const char *objtype, const char *objformat, const char *name, OSyncFilterFunction hook, OSyncError **error)
 {
+	OSyncCustomFilter *filter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s, %p, %p)", __func__, objtype, objformat, name, hook, error);
 	
-	OSyncCustomFilter *filter = osync_try_malloc0(sizeof(OSyncCustomFilter), error);
+	filter = osync_try_malloc0(sizeof(OSyncCustomFilter), error);
 	if (!filter)
 		goto error;
 	

@@ -101,8 +101,8 @@ const char *osync_plugin_info_get_configdir(OSyncPluginInfo *info)
 
 OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name)
 {
-	osync_assert(info);
 	GList *p;
+	osync_assert(info);
 	for (p = info->objtypes; p; p = p->next) {
 		OSyncObjTypeSink *sink = p->data;
 		if (g_ascii_strcasecmp(osync_objtype_sink_get_name(sink), name) == 0)

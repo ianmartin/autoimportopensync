@@ -53,9 +53,10 @@
  */
 OSyncMember *osync_member_new(OSyncError **error)
 {
+	OSyncMember *member = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", error);
 	
-	OSyncMember *member = osync_try_malloc0(sizeof(OSyncMember), error);
+	member = osync_try_malloc0(sizeof(OSyncMember), error);
 	if (!member)
 		goto error;
 	
@@ -160,6 +161,7 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
  */
 osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
+	char *filename = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
 	g_assert(member);
 
@@ -170,7 +172,7 @@ osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, 
 		return TRUE;
 	}
 	
-	char *filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
+	filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 		if (!osync_file_read(filename, data, size, error))
 			goto error_free_filename;
@@ -180,7 +182,7 @@ osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, 
 	}
 	g_free(filename);
 
-	filename = g_strdup_printf(OPENSYNC_CONFIGDIR"/%s", member->pluginname);
+	filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
 	if (!osync_file_read(filename, data, size, error))
 		goto error_free_filename;
 	g_free(filename);
@@ -214,6 +216,7 @@ error_free_filename:
  */
 osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
 {
+	char *filename = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
 	g_assert(member);
 
@@ -224,7 +227,7 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
 		return TRUE;
 	}
 	
-	char *filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
+	filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 		if (!osync_file_read(filename, data, size, error)) {
 			g_free(filename);
@@ -274,15 +277,16 @@ void osync_member_set_config(OSyncMember *member, const char *data, int size)
  * 
  */
 osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path, error);
-	xmlDocPtr doc;
+{	xmlDocPtr doc;
 	xmlNodePtr cur;
 	char *filename = NULL;
+	char *basename = NULL;
 	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path, error);
+
 	filename = g_strdup_printf ("%s/syncmember.conf", path);
 	
-	char *basename = g_path_get_basename(path);
+	basename = g_path_get_basename(path);
 	member->id = atoi(basename);
 	g_free(basename);
 	member->configdir = g_strdup(path);
@@ -317,6 +321,9 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
  */
 osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 {
+	char *filename = NULL;
+	xmlDocPtr doc = NULL;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	osync_assert(member);
 	osync_assert(member->configdir);
@@ -329,8 +336,8 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	}
 	
 	//Saving the syncmember.conf
-	char *filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
-	xmlDocPtr doc = xmlNewDoc((xmlChar*)"1.0");
+	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
+	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 	
 	//The plugin name
@@ -365,10 +372,11 @@ error:
 
 osync_bool osync_member_delete(OSyncMember *member, OSyncError **error)
 {
+	char *delcmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	osync_assert(member);
 	
-	char *delcmd = g_strdup_printf("rm -rf %s", member->configdir);
+	delcmd = g_strdup_printf("rm -rf %s", member->configdir);
 	if (system(delcmd)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete member. command %s failed", delcmd);
 		g_free(delcmd);
@@ -406,10 +414,10 @@ static OSyncObjTypeSink *_osync_member_find_objtype(OSyncMember *member, const c
 
 void osync_member_add_objtype(OSyncMember *member, const char *objtype)
 {
+	OSyncObjTypeSink *sink = NULL;
 	osync_assert(member);
 	osync_assert(objtype);
 
-	OSyncObjTypeSink *sink = NULL;	
 	if (!_osync_member_find_objtype(member, objtype)) {
 		sink = osync_objtype_sink_new(objtype, NULL);
 		member->objtypes = g_list_append(member->objtypes, sink);
@@ -424,8 +432,9 @@ int osync_member_num_objtypes(OSyncMember *member)
 
 const char *osync_member_nth_objtype(OSyncMember *member, int nth)
 {
+	OSyncObjTypeSink *sink = NULL;
 	osync_assert(member);
-	OSyncObjTypeSink *sink = g_list_nth_data(member->objtypes, nth);
+	sink = g_list_nth_data(member->objtypes, nth);
 	return osync_objtype_sink_get_name(sink);
 }
 
@@ -438,8 +447,9 @@ const char *osync_member_nth_objtype(OSyncMember *member, int nth)
  */
 osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype)
 {
+	OSyncObjTypeSink *sink = NULL;
 	osync_assert(member);
-	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
+	sink = _osync_member_find_objtype(member, objtype);
 	if (!sink)
 		return FALSE;
 	return osync_objtype_sink_is_enabled(sink);
@@ -459,10 +469,11 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
  */
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled)
 {
+	OSyncObjTypeSink *sink = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtype, enabled);
 	osync_assert(member);
 	
-	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
+	sink = _osync_member_find_objtype(member, objtype);
 	if (!sink) {
 		osync_trace(TRACE_EXIT, "%s: Unable to find objtype", __func__);
 		return;

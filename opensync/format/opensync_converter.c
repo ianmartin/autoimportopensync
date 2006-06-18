@@ -27,10 +27,11 @@
 
 OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error)
 {
+	OSyncFormatConverter *converter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %p, %p)", __func__, type, sourceformat, targetformat, convert_func, error);
 	osync_assert(convert_func);
 	
-	OSyncFormatConverter *converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
+	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -52,10 +53,11 @@ OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *so
 
 OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error)
 {
+	OSyncFormatConverter *converter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sourceformat, targetformat, detect_func, error);
 	osync_assert(detect_func);
 	
-	OSyncFormatConverter *converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
+	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -117,6 +119,10 @@ ConverterType osync_converter_get_type(OSyncFormatConverter *converter)
 
 OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncData *data)
 {
+	OSyncObjFormat *sourceformat = NULL;
+	char *buffer = NULL;
+	unsigned int size = 0;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, converter, data);
 	osync_assert(converter);
 	osync_assert(data);
@@ -126,7 +132,7 @@ OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncDat
 		return NULL;
 	}
 	
-	OSyncObjFormat *sourceformat = osync_data_get_objformat(data);
+	sourceformat = osync_data_get_objformat(data);
 	
 	/* First, we check if this is a "inverse" detection. So we check if our targetformat
 	 * is the sourceformat of the data. There must always be a converter capable of converting
@@ -141,8 +147,6 @@ OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncDat
 		return NULL;
 	}
 	
-	char *buffer = NULL;
-	unsigned int size = 0;
 	osync_data_get_data(data, &buffer, &size);
 	if (converter->detect_func(buffer, size)) {
 		/* Successfully detected the data */
@@ -157,13 +161,14 @@ OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncDat
 /** Function does not replace the objtype */
 osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *data, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, config, error);
-	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format), converter->target_format, osync_objformat_get_name(converter->target_format));
-	
 	char *input_data = NULL;
 	unsigned int input_size = 0;
 	char *output_data = NULL;
 	unsigned int output_size = 0;
+	osync_bool free_input = FALSE;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, config, error);
+	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format), converter->target_format, osync_objformat_get_name(converter->target_format));
 	
 	osync_data_steal_data(data, &input_data, &input_size);
 	
@@ -172,7 +177,6 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 		osync_assert(converter->convert_func);
 	
 		/* Invoke the converter */
-		osync_bool free_input = FALSE;
 		if (!converter->convert_func(input_data, input_size, &output_data, &output_size, &free_input, config, error))
 			goto error;
 		
@@ -196,10 +200,11 @@ error:
 
 osync_bool osync_converter_matches(OSyncFormatConverter *converter, OSyncData *data)
 {
+	OSyncObjFormat *format = NULL;
 	osync_assert(converter);
 	osync_assert(data);
 	
-	OSyncObjFormat *format = osync_data_get_objformat(data);
+	format = osync_data_get_objformat(data);
 	if (!strcmp(osync_objformat_get_name(converter->source_format), osync_objformat_get_name(format)))
 		return TRUE;
 	return FALSE;

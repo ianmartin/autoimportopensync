@@ -28,7 +28,11 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define _CRT_SECURE_NO_DEPRECATE 1
+#else
 #include "config.h"
+#endif
 
 #include <errno.h>
 extern int errno;

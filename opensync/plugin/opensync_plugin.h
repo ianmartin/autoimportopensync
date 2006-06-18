@@ -39,27 +39,24 @@ typedef enum {
 	NEEDS_CONFIGURATION = 2
 } OSyncConfigurationTypes;
 
-OSyncPlugin *osync_plugin_new(OSyncError **error);
-void osync_plugin_unref(OSyncPlugin *plugin);
-void osync_plugin_ref(OSyncPlugin *plugin);
+OSYNC_EXPORT OSyncPlugin *osync_plugin_new(OSyncError **error);
+OSYNC_EXPORT void osync_plugin_unref(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_ref(OSyncPlugin *plugin);
 
-const char *osync_plugin_get_name(OSyncPlugin *plugin);
-void osync_plugin_set_name(OSyncPlugin *plugin, const char *name);
+OSYNC_EXPORT const char *osync_plugin_get_name(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_set_name(OSyncPlugin *plugin, const char *name);
 
-const char *osync_plugin_get_longname(OSyncPlugin *plugin);
-void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname);
+OSYNC_EXPORT const char *osync_plugin_get_longname(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname);
 
-const char *osync_plugin_get_description(OSyncPlugin *plugin);
-void osync_plugin_set_description(OSyncPlugin *plugin, const char *description);
+OSYNC_EXPORT const char *osync_plugin_get_description(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_set_description(OSyncPlugin *plugin, const char *description);
 
-void *osync_plugin_get_plugin_data(OSyncPlugin *plugin);
-void osync_plugin_set_plugin_data(OSyncPlugin *plugin, void *data);
+OSYNC_EXPORT void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init);
+OSYNC_EXPORT void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin);
 
-void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init);
-void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin);
-
-void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
-void osync_plugin_finalize(OSyncPlugin *plugin, void *data);
-osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error);
+OSYNC_EXPORT void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
+OSYNC_EXPORT void osync_plugin_finalize(OSyncPlugin *plugin, void *data);
+OSYNC_EXPORT osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error);
 
 #endif //_OPENSYNC_PLUGIN_H_

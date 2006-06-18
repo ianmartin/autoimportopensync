@@ -46,16 +46,16 @@ typedef enum {
 	OSYNC_ERROR_PLUGIN_NOT_FOUND = 16
 } OSyncErrorType;
 
-void osync_error_ref(OSyncError **error);
-void osync_error_unref(OSyncError **error);
-osync_bool osync_error_is_set (OSyncError **error);
-void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format, ...);
-const char *osync_error_get_name(OSyncError **error);
-void osync_error_update(OSyncError **error, const char *format, ...);
-void osync_error_duplicate(OSyncError **target, OSyncError **source);
-const char *osync_error_print(OSyncError **error);
-OSyncErrorType osync_error_get_type(OSyncError **error);
-void osync_error_set_type(OSyncError **error, OSyncErrorType type);
-void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args);
+OSYNC_EXPORT void osync_error_ref(OSyncError **error);
+OSYNC_EXPORT void osync_error_unref(OSyncError **error);
+OSYNC_EXPORT osync_bool osync_error_is_set (OSyncError **error);
+OSYNC_EXPORT void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format, ...);
+OSYNC_EXPORT const char *osync_error_get_name(OSyncError **error);
+OSYNC_EXPORT void osync_error_update(OSyncError **error, const char *format, ...);
+OSYNC_EXPORT void osync_error_duplicate(OSyncError **target, OSyncError **source);
+OSYNC_EXPORT const char *osync_error_print(OSyncError **error);
+OSYNC_EXPORT OSyncErrorType osync_error_get_type(OSyncError **error);
+OSYNC_EXPORT void osync_error_set_type(OSyncError **error, OSyncErrorType type);
+OSYNC_EXPORT void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args);
 
 #endif //OPENSYNC_ERROR_H_

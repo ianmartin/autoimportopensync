@@ -21,31 +21,31 @@
 #ifndef _OPENSYNC_MEMBER_H_
 #define _OPENSYNC_MEMBER_H_
 
-OSyncMember *osync_member_new(OSyncError **error);
-void osync_member_ref(OSyncMember *member);
-void osync_member_unref(OSyncMember *member);
+OSYNC_EXPORT OSyncMember *osync_member_new(OSyncError **error);
+OSYNC_EXPORT void osync_member_ref(OSyncMember *member);
+OSYNC_EXPORT void osync_member_unref(OSyncMember *member);
 
-const char *osync_member_get_pluginname(OSyncMember *member);
-void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
+OSYNC_EXPORT const char *osync_member_get_pluginname(OSyncMember *member);
+OSYNC_EXPORT void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
 
-const char *osync_member_get_configdir(OSyncMember *member);
-void osync_member_set_configdir(OSyncMember *member, const char *configdir);
+OSYNC_EXPORT const char *osync_member_get_configdir(OSyncMember *member);
+OSYNC_EXPORT void osync_member_set_configdir(OSyncMember *member, const char *configdir);
 
-osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error);
-osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
-void osync_member_set_config(OSyncMember *member, const char *data, int size);
+OSYNC_EXPORT osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
+OSYNC_EXPORT void osync_member_set_config(OSyncMember *member, const char *data, int size);
 
-osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error);
-osync_bool osync_member_save(OSyncMember *member, OSyncError **error);
-osync_bool osync_member_delete(OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_member_save(OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_member_delete(OSyncMember *member, OSyncError **error);
 
-long long int osync_member_get_id(OSyncMember *member);
+OSYNC_EXPORT long long int osync_member_get_id(OSyncMember *member);
 
-void osync_member_add_objtype(OSyncMember *member, const char *objtype);
-int osync_member_num_objtypes(OSyncMember *member);
-const char *osync_member_nth_objtype(OSyncMember *member, int nth);
+OSYNC_EXPORT void osync_member_add_objtype(OSyncMember *member, const char *objtype);
+OSYNC_EXPORT int osync_member_num_objtypes(OSyncMember *member);
+OSYNC_EXPORT const char *osync_member_nth_objtype(OSyncMember *member, int nth);
 
-osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
-void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled);
+OSYNC_EXPORT osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
+OSYNC_EXPORT void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled);
 
 #endif /* _OPENSYNC_MEMBER_H_ */

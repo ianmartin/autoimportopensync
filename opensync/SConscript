@@ -1,0 +1,79 @@
+Import('*')
+
+env.Append( CPPPATH = '.' )
+
+sources = """
+opensync_error.c
+opensync_context.c
+opensync_support.c
+module/opensync_module.c
+plugin/opensync_plugin.c
+plugin/opensync_plugin_info.c
+plugin/opensync_plugin_env.c
+plugin/opensync_sink.c
+group/opensync_group_env.c
+group/opensync_group.c
+group/opensync_member.c
+group/opensync_xml.c
+format/opensync_converter.c
+format/opensync_filter.c
+format/opensync_format_env.c
+format/opensync_objformat.c
+data/opensync_data.c
+"""
+
+headers = """
+opensync.h
+opensync-context.h
+opensync-data.h
+opensync-engine.h
+opensync-error.h
+opensync-format.h
+opensync-group.h
+opensync-helper.h
+opensync-ipc.h
+opensync-module.h
+opensync-plugin.h
+opensync-support.h
+"""
+
+plugin_headers = """
+plugin/opensync_plugin.h
+plugin/opensync_plugin_info.h
+plugin/opensync_plugin_env.h
+plugin/opensync_sink.h
+"""
+
+group_headers = """
+group/opensync_group_env.h
+group/opensync_group.h
+group/opensync_member.h
+"""
+
+format_headers = """
+format/opensync_converter.h
+format/opensync_filter.h
+format/opensync_format_env.h
+format/opensync_objformat.h
+"""
+
+data_headers = """
+data/opensync_data.h
+"""
+
+Libraries = r"""
+glib-2.0
+gthread-2.0
+gmodule-2.0
+libxml2
+"""
+
+libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries), LIBPATH = 'C:\Documents and Settings\\abauer\Desktop\glib\lib')
+
+env.Install(install_lib, libopensync)
+env.Install(install_inc + '/opensync-1.0/opensync/', Split(headers))
+env.Install(install_inc + '/opensync-1.0/opensync/plugin', Split(plugin_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/group', Split(group_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/format', Split(format_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/data', Split(data_headers))
+env.Alias('install', install_prefix)

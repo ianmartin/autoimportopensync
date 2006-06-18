@@ -21,20 +21,20 @@
 #ifndef _OPENSYNC_DATA_H_
 #define _OPENSYNC_DATA_H_
 
-OSyncData *osync_data_new(char *data, unsigned int size, OSyncObjFormat *format, OSyncError **error);
-void osync_data_ref(OSyncData *data);
-void osync_data_unref(OSyncData *data);
+OSYNC_EXPORT OSyncData *osync_data_new(char *data, unsigned int size, OSyncObjFormat *format, OSyncError **error);
+OSYNC_EXPORT void osync_data_ref(OSyncData *data);
+OSYNC_EXPORT void osync_data_unref(OSyncData *data);
 
-OSyncObjFormat *osync_data_get_objformat(OSyncData *data);
-void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat);
-const char *osync_data_get_objtype(OSyncData *data);
-void osync_data_set_objtype(OSyncData *data, const char *objtype);
+OSYNC_EXPORT OSyncObjFormat *osync_data_get_objformat(OSyncData *data);
+OSYNC_EXPORT void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat);
+OSYNC_EXPORT const char *osync_data_get_objtype(OSyncData *data);
+OSYNC_EXPORT void osync_data_set_objtype(OSyncData *data, const char *objtype);
 
-void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size);
-void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size);
-void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size);
-osync_bool osync_data_has_data(OSyncData *data);
+OSYNC_EXPORT void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size);
+OSYNC_EXPORT void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size);
+OSYNC_EXPORT void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size);
+OSYNC_EXPORT osync_bool osync_data_has_data(OSyncData *data);
 
-OSyncData *osync_data_clone(OSyncData *data, OSyncError **error);
+OSYNC_EXPORT OSyncData *osync_data_clone(OSyncData *data, OSyncError **error);
 
 #endif //_OPENSYNC_DATA_H_

@@ -104,9 +104,10 @@ static long long int _osync_group_env_create_group_id(OSyncGroupEnv *env)
  */
 OSyncGroupEnv *osync_group_env_new(OSyncError **error)
 {
+	OSyncGroupEnv *env = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncGroupEnv *env = osync_try_malloc0(sizeof(OSyncGroupEnv), error);
+	env = osync_try_malloc0(sizeof(OSyncGroupEnv), error);
 	if (!env) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -151,16 +152,19 @@ void osync_group_env_free(OSyncGroupEnv *env)
  * 
  */
 osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
-	
+{	
 	GDir *dir = NULL;
 	GError *gerror = NULL;
 	char *filename = NULL;
+	const gchar *de = NULL;
+	OSyncGroup *group = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
 	
 	/* Create the correct path and test it */
 	if (!path) {
 		env->groupsdir = g_strdup_printf("%s/.opensync", g_get_home_dir());
+		osync_trace(TRACE_INTERNAL, "Default home dir: %s", env->groupsdir);
 		
 		if (!g_file_test(env->groupsdir, G_FILE_TEST_EXISTS)) {
 			if (mkdir(env->groupsdir, 0700) < 0) {
@@ -189,8 +193,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		g_error_free (gerror);
 		goto error_free_path;
 	}
-  
-	const gchar *de = NULL;
+	
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", env->groupsdir, de);
 		
@@ -200,7 +203,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		}
 		
 		/* Try to open the confdir*/
-		OSyncGroup *group = osync_group_new(error);
+		group = osync_group_new(error);
 		if (!group) {
 			g_free(filename);
 			goto error_free_path;
@@ -239,10 +242,10 @@ error_free_path:
  */
 OSyncGroup *osync_group_env_find_group(OSyncGroupEnv *env, const char *name)
 {
+	GList *g = NULL;
 	osync_assert(env);
 	osync_assert(name);
 	
-	GList *g = NULL;
 	for (g = env->groups; g; g = g->next) {
 		OSyncGroup *group = g->data;
 		if (g_ascii_strcasecmp(osync_group_get_name(group), name) == 0)

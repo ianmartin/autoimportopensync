@@ -32,30 +32,30 @@ typedef enum {
 	OSYNC_CONVERTER_DETECTOR = 4
 } ConverterType;
 
-typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size);
-typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+OSYNC_EXPORT typedef osync_bool (* OSyncFormatDetectFunc) (const char *data, int size);
+OSYNC_EXPORT typedef osync_bool (* OSyncFormatConvertFunc) (char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 
-OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
-OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error);
-void osync_converter_ref(OSyncFormatConverter *converter);
-void osync_converter_unref(OSyncFormatConverter *converter);
+OSYNC_EXPORT OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatConvertFunc convert_func, OSyncError **error);
+OSYNC_EXPORT OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncFormatDetectFunc detect_func, OSyncError **error);
+OSYNC_EXPORT void osync_converter_ref(OSyncFormatConverter *converter);
+OSYNC_EXPORT void osync_converter_unref(OSyncFormatConverter *converter);
 
-OSyncObjFormat *osync_converter_get_sourceformat(OSyncFormatConverter *converter);
-OSyncObjFormat *osync_converter_get_targetformat(OSyncFormatConverter *converter);
-ConverterType osync_converter_get_type(OSyncFormatConverter *converter);
+OSYNC_EXPORT OSyncObjFormat *osync_converter_get_sourceformat(OSyncFormatConverter *converter);
+OSYNC_EXPORT OSyncObjFormat *osync_converter_get_targetformat(OSyncFormatConverter *converter);
+OSYNC_EXPORT ConverterType osync_converter_get_type(OSyncFormatConverter *converter);
 
-OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncData *data);
-osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *data, const char *config, OSyncError **error);
-osync_bool osync_converter_matches(OSyncFormatConverter *converter, OSyncData *data);
+OSYNC_EXPORT OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncData *data);
+OSYNC_EXPORT osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *data, const char *config, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_converter_matches(OSyncFormatConverter *converter, OSyncData *data);
 
-OSyncFormatConverterPath *osync_converter_path_new(OSyncError **error);
-void osync_converter_path_ref(OSyncFormatConverterPath *path);
-void osync_converter_path_unref(OSyncFormatConverterPath *path);
+OSYNC_EXPORT OSyncFormatConverterPath *osync_converter_path_new(OSyncError **error);
+OSYNC_EXPORT void osync_converter_path_ref(OSyncFormatConverterPath *path);
+OSYNC_EXPORT void osync_converter_path_unref(OSyncFormatConverterPath *path);
 
-void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatConverter *edge);
-int osync_converter_path_num_edges(OSyncFormatConverterPath *path);
-OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConverterPath *path, unsigned int nth);
-const char *osync_converter_path_get_config(OSyncFormatConverterPath *path);
-void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config);
+OSYNC_EXPORT void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatConverter *edge);
+OSYNC_EXPORT int osync_converter_path_num_edges(OSyncFormatConverterPath *path);
+OSYNC_EXPORT OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConverterPath *path, unsigned int nth);
+OSYNC_EXPORT const char *osync_converter_path_get_config(OSyncFormatConverterPath *path);
+OSYNC_EXPORT void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config);
 
 #endif //_OPENSYNC_CONVERTER_H_

@@ -33,20 +33,20 @@ typedef enum OSyncFilterAction {
 	OSYNC_FILTER_DENY = 2
 } OSyncFilterAction;
 
-typedef osync_bool (* OSyncFilterFunction) (OSyncData *data, const char *config);
+OSYNC_EXPORT typedef osync_bool (* OSyncFilterFunction) (OSyncData *data, const char *config);
 
-OSyncFilter *osync_filter_new(const char *objtype, OSyncFilterAction action, OSyncError **error);
-OSyncFilter *osync_filter_new_custom(OSyncCustomFilter *custom_filter, const char *config, OSyncFilterAction action, OSyncError **error);
-void osync_filter_ref(OSyncFilter *filter);
-void osync_filter_unref(OSyncFilter *filter);
-void osync_filter_set_config(OSyncFilter *filter, const char *config);
-const char *osync_filter_get_config(OSyncFilter *filter);
-const char *osync_filter_get_objtype(OSyncFilter *filter);
-OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncData *data);
+OSYNC_EXPORT OSyncFilter *osync_filter_new(const char *objtype, OSyncFilterAction action, OSyncError **error);
+OSYNC_EXPORT OSyncFilter *osync_filter_new_custom(OSyncCustomFilter *custom_filter, const char *config, OSyncFilterAction action, OSyncError **error);
+OSYNC_EXPORT void osync_filter_ref(OSyncFilter *filter);
+OSYNC_EXPORT void osync_filter_unref(OSyncFilter *filter);
+OSYNC_EXPORT void osync_filter_set_config(OSyncFilter *filter, const char *config);
+OSYNC_EXPORT const char *osync_filter_get_config(OSyncFilter *filter);
+OSYNC_EXPORT const char *osync_filter_get_objtype(OSyncFilter *filter);
+OSYNC_EXPORT OSyncFilterAction osync_filter_invoke(OSyncFilter *filter, OSyncData *data);
 
-OSyncCustomFilter *osync_custom_filter_new(const char *objtype, const char *objformat, const char *name, OSyncFilterFunction hook, OSyncError **error);
-void osync_custom_filter_ref(OSyncCustomFilter *filter);
-void osync_custom_filter_unref(OSyncCustomFilter *filter);
-osync_bool osync_custom_filter_invoke(OSyncCustomFilter *filter, OSyncData *data, const char *config);
+OSYNC_EXPORT OSyncCustomFilter *osync_custom_filter_new(const char *objtype, const char *objformat, const char *name, OSyncFilterFunction hook, OSyncError **error);
+OSYNC_EXPORT void osync_custom_filter_ref(OSyncCustomFilter *filter);
+OSYNC_EXPORT void osync_custom_filter_unref(OSyncCustomFilter *filter);
+OSYNC_EXPORT osync_bool osync_custom_filter_invoke(OSyncCustomFilter *filter, OSyncData *data, const char *config);
 
 #endif //_OPENSYNC_FILTER_H_

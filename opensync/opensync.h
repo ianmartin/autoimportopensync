@@ -21,7 +21,20 @@
 #ifndef HAVE_OPENSYNC_H
 #define HAVE_OPENSYNC_H
 
+#ifdef _WIN32
+
+#include <windows.h>
+#include <process.h>
+#define __func__ __FUNCTION__
+#define OSYNC_EXPORT __declspec(dllexport)
+
+#else
+
 #include <unistd.h>
+#define OSYNC_EXPORT
+
+#endif
+
 #include <sys/types.h>
 #include <time.h>
 #include <fcntl.h>

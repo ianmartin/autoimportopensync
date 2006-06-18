@@ -26,9 +26,10 @@
 
 OSyncModule *osync_module_new(OSyncError **error)
 {
+	OSyncModule *module = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncModule *module = osync_try_malloc0(sizeof(OSyncModule), error);
+	module = osync_try_malloc0(sizeof(OSyncModule), error);
 	if (!module) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
@@ -88,10 +89,11 @@ void *osync_module_get_function(OSyncModule *module, const char *name, OSyncErro
 
 osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, OSyncError **error)
 {
+	osync_bool (* fct_info)(OSyncPluginEnv *env, OSyncError **error) = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	osync_bool (* fct_info)(OSyncPluginEnv *env, OSyncError **error) = osync_module_get_function(module, "get_sync_info", error);
+	fct_info = osync_module_get_function(module, "get_sync_info", error);
 	if (!fct_info)
 		goto error;
 	
@@ -109,10 +111,11 @@ error:
 
 osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env, OSyncError **error)
 {
+	osync_bool (* fct_info)(OSyncFormatEnv *env, OSyncError **error) = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	osync_bool (* fct_info)(OSyncFormatEnv *env, OSyncError **error) = osync_module_get_function(module, "get_format_info", error);
+	fct_info = osync_module_get_function(module, "get_format_info", error);
 	if (!fct_info)
 		goto error;
 	
@@ -130,10 +133,11 @@ error:
 
 osync_bool osync_module_get_conversion_info(OSyncModule *module, OSyncFormatEnv *env, OSyncError **error)
 {
+	osync_bool (* fct_info)(OSyncFormatEnv *env, OSyncError **error) = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	osync_bool (* fct_info)(OSyncFormatEnv *env, OSyncError **error) = osync_module_get_function(module, "get_conversion_info", error);
+	fct_info = osync_module_get_function(module, "get_conversion_info", error);
 	if (!fct_info)
 		goto error;
 	
@@ -151,18 +155,20 @@ error:
 
 int osync_module_get_version(OSyncModule *module)
 {
+	void *function = NULL;
+	int (* fct_version)(void) = NULL;
+	int version = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
 	
 	/* Load the get_info symbol */
-	void *function = NULL;
 	if (!g_module_symbol(module->module, "get_version", &function) || !function) {
 		osync_trace(TRACE_EXIT, "%s: get_version not found. Not a library?", __func__);
 		return 0;
 	}
-	int (* fct_version)(void) = function;
 	
+	fct_version = function;
 	/* Call the get_info function */
-	int version = fct_version();
+	version = fct_version();
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, version);
 	return version;
@@ -170,9 +176,10 @@ int osync_module_get_version(OSyncModule *module)
 
 osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
 {
+	int version = 0;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, module, error);
 	
-	int version = osync_module_get_version(module);
+	version = osync_module_get_version(module);
 	if (!version) {
 		osync_trace(TRACE_EXIT, "%s: No version", __func__);
 		return FALSE;

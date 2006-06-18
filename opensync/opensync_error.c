@@ -188,19 +188,15 @@ const char *osync_error_print(OSyncError **error)
  */
 void osync_error_update(OSyncError **error, const char *format, ...)
 {
+	va_list args;
+	char *buffer;
 	osync_return_if_fail(error != NULL);
 	osync_return_if_fail(*error != NULL);
 
-	va_list args;
 	va_start(args, format);
-	
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	g_vsnprintf(buffer, 1024, format, args);
-	
+	buffer = g_strdup_vprintf(format, args);
 	g_free((*error)->message);
-	(*error)->message = g_strdup(buffer);
-	
+	(*error)->message = buffer;
 	va_end (args);
 }
 

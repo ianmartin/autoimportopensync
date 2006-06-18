@@ -27,8 +27,9 @@
 #include "opensync-support.h"
 #include "opensync_support_internals.h"
 
-#include <pthread.h>
 GPrivate* current_tabs = NULL;
+GPrivate* thread_id = NULL;
+
 /**
  * @defgroup OSyncDebugAPI OpenSync Debug
  * @ingroup OSyncPublic
@@ -57,12 +58,31 @@ void osync_trace_reset_indent(void)
  
 void osync_trace(OSyncTraceType type, const char *message, ...)
 {
-#if defined ENABLE_TRACE
-
+#if ENABLE_TRACE
 	va_list arglist;
 	char *buffer = NULL;
+	int tabs = 0;
+	unsigned long int id = 0;
+#ifdef _WIN32
+	int pid = 0;
+#else
+	pid_t pid = 0;
+#endif
+	char *logfile = NULL;
+	GString *tabstr = NULL;
+	int i = 0;
+	GTimeVal curtime;
+	char *logmessage = NULL;
+	GError *error = NULL;
+	GIOChannel *chan = NULL;
+	gsize writen;
+	const char *trace = NULL;
+	const char *endline = NULL;
+	char tmp_buf[1024];
 	
-	const char *trace = g_getenv("OSYNC_TRACE");
+	if (!g_thread_supported ()) g_thread_init (NULL);
+	
+	trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
 		return;
 	
@@ -71,52 +91,61 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 		return;
 	}
 	
-	if (!g_thread_supported ()) g_thread_init (NULL);
-	int tabs = 0;
-	
 	if (!current_tabs)
 		current_tabs = g_private_new (NULL);
 	else
 		tabs = GPOINTER_TO_INT(g_private_get(current_tabs));
 	
-	unsigned long int id = (unsigned long int)pthread_self();
-	pid_t pid = getpid();
-	char *logfile = g_strdup_printf("%s/Thread%lu-%i.log", trace, id, pid);
+#ifdef _WIN32
+	if (!thread_id)
+		thread_id = g_private_new (NULL);
+	id = GPOINTER_TO_INT(thread_id);
+	pid = _getpid();
+	endline = "\r\n";
+#else
+	id = (unsigned long int)pthread_self();
+	pid = getpid();
+	endline = "\n";
+#endif
+	logfile = g_strdup_printf("%s/Thread%lu-%i.log", trace, id, pid);
 	
 	va_start(arglist, message);
+	
+#ifdef _WIN32
+	vsnprintf(tmp_buf, 1024, message, arglist);
+	buffer = g_strdup(tmp_buf);
+#else
 	buffer = g_strdup_vprintf(message, arglist);
-		
-	GString *tabstr = g_string_new("");
-	int i = 0;
+#endif
+	
+	tabstr = g_string_new("");
 	for (i = 0; i < tabs; i++) {
 		tabstr = g_string_append(tabstr, "\t");
 	}
 
-	GTimeVal curtime;
 	g_get_current_time(&curtime);
-	char *logmessage = NULL;
 	switch (type) {
 		case TRACE_ENTRY:
-			logmessage = g_strdup_printf("[%li.%li]\t%s>>>>>>>  %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			logmessage = g_strdup_printf("[%li.%li]\t%s>>>>>>>  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			tabs++;
 			break;
 		case TRACE_INTERNAL:
-			logmessage = g_strdup_printf("[%li.%li]\t%s%s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			logmessage = g_strdup_printf("[%li.%li]\t%s%s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			break;
 		case TRACE_EXIT:
-			logmessage = g_strdup_printf("[%li.%li]%s<<<<<<<  %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			logmessage = g_strdup_printf("[%li.%li]%s<<<<<<<  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
 			break;
 		case TRACE_EXIT_ERROR:
-			logmessage = g_strdup_printf("[%li.%li]%s<--- ERROR --- %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			logmessage = g_strdup_printf("[%li.%li]%s<--- ERROR --- %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			tabs--;
 			if (tabs < 0)
 				tabs = 0;
 			break;
 		case TRACE_ERROR:
-			logmessage = g_strdup_printf("[%li.%li]%sERROR: %s\n", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer);
+			logmessage = g_strdup_printf("[%li.%li]%sERROR: %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
 			break;
 	}
 	g_free(buffer);
@@ -125,14 +154,12 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	
 	g_string_free(tabstr, TRUE);
 	
-	GError *error = NULL;
-	GIOChannel *chan = g_io_channel_new_file(logfile, "a", &error);
+	chan = g_io_channel_new_file(logfile, "a", &error);
 	if (!chan) {
 		printf("unable to open %s for writing: %s\n", logfile, error->message);
 		return;
 	}
 	
-	gsize writen;
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_write_chars(chan, logmessage, strlen(logmessage), &writen, NULL) != G_IO_STATUS_NORMAL) {
 		printf("unable to write trace to %s\n", logfile);
@@ -144,66 +171,6 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	g_free(logmessage);
 	g_free(logfile);
 	
-#endif
-}
-
-/*! @brief Used for debugging
- * 
- * Used for debugging. Severity ranges from 0=Error to 4=Full Debug
- * 
- * @param subpart String to identify the subpart (and filter on it)
- * @param level The severity of the message
- * @param message The message to display
- * 
- */
-void osync_debug(const char *subpart, int level, const char *message, ...)
-{
-#if defined ENABLE_DEBUG
-		osync_assert_msg(level <= 4 && level >= 0, "The debug level must be between 0 and 4.");
-		va_list arglist;
-		char buffer[1024];
-		memset(buffer, 0, sizeof(buffer));
-		int debug = -1;
-
-		va_start(arglist, message);
-		g_vsnprintf(buffer, 1024, message, arglist);
-		
-		char *debugstr = NULL;
-		switch (level) {
-			case 0:
-				//Error
-				debugstr = g_strdup_printf("[%s] ERROR: %s", subpart, buffer);
-				break;
-			case 1:
-				// Warning
-				debugstr = g_strdup_printf("[%s] WARNING: %s", subpart, buffer);
-				break;
-			case 2:
-				//Information
-				debugstr = g_strdup_printf("[%s] INFORMATION: %s", subpart, buffer);
-				break;
-			case 3:
-				//debug
-				debugstr = g_strdup_printf("[%s] DEBUG: %s", subpart, buffer);
-				break;
-			case 4:
-				//fulldebug
-				debugstr = g_strdup_printf("[%s] FULL DEBUG: %s", subpart, buffer);
-				break;
-		}
-		g_assert(debugstr);
-		va_end(arglist);
-		
-		osync_trace(TRACE_INTERNAL, debugstr);
-		
-		const char *dbgstr = g_getenv("OSYNC_DEBUG");
-		if (dbgstr) {
-			debug = atoi(dbgstr);
-			if (debug >= level)
-				printf("%s\n", debugstr);
-		}
-		
-		g_free(debugstr);
 #endif
 }
 
@@ -280,24 +247,26 @@ osync_bool osync_file_write(const char *filename, const char *data, int size, in
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;
+	gsize writen;
+	
 	GIOChannel *chan = g_io_channel_new_file(filename, "w", &error);
 	if (!chan) {
-		osync_debug("OSYNC", 3, "Unable to open file %s for writing: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to open file %s for writing: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open file %s for writing: %s", filename, error->message);
 		return FALSE;
 	}
 	if (mode) {
 		int fd = g_io_channel_unix_get_fd(chan);
-		if (fchmod(fd, mode)) {
-			osync_debug("OSYNC", 3, "Unable to set file permissions %i for file %s", mode, filename);
+		if (g_chmod(fd, mode)) {
+			osync_trace(TRACE_INTERNAL, "Unable to set file permissions %i for file %s", mode, filename);
 			osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to set file permissions %i for file %s", mode, filename);
 			return FALSE;
 		}
 	}
-	gsize writen;
+	
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_write_chars(chan, data, size, &writen, &error) != G_IO_STATUS_NORMAL) {
-		osync_debug("OSYNC", 3, "Unable to write contents of file %s: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to write contents of file %s: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to write contents of file %s: %s", filename, error->message);
 	} else {
 		g_io_channel_flush(chan, NULL);
@@ -324,21 +293,24 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 	osync_bool ret = FALSE;
 	GError *error = NULL;
 	gsize sz = 0;
+	GIOChannel *chan = NULL;
 	
 	if (!filename) {
-		osync_debug("OSYNC", 3, "No file open specified");
+		osync_trace(TRACE_INTERNAL, "No file open specified");
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "No file to open specified");
 		return FALSE;
 	}
-	GIOChannel *chan = g_io_channel_new_file(filename, "r", &error);
+	
+	chan = g_io_channel_new_file(filename, "r", &error);
 	if (!chan) {
-		osync_debug("OSYNC", 3, "Unable to read file %s: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to read file %s: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open file %s for reading: %s", filename, error->message);
 		return FALSE;
 	}
+	
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_read_to_end(chan, data, &sz, &error) != G_IO_STATUS_NORMAL) {
-		osync_debug("OSYNC", 3, "Unable to read contents of file %s: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to read contents of file %s: %s", filename, error->message);
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {
 		ret = TRUE;
@@ -387,9 +359,10 @@ void *osync_try_malloc0(unsigned int size, OSyncError **error)
 
 OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
 {
+	OSyncThread *thread = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, context, error);
 	
-	OSyncThread *thread = osync_try_malloc0(sizeof(OSyncThread), error);
+	thread = osync_try_malloc0(sizeof(OSyncThread), error);
 	if (!thread)
 		goto error;
 
@@ -474,15 +447,17 @@ static gboolean osyncThreadStartCallback(gpointer data)
 	g_mutex_lock(thread->started_mutex);
 	g_cond_signal(thread->started);
 	g_mutex_unlock(thread->started_mutex);
+	
 	return FALSE;
 }
 
 void osync_thread_start(OSyncThread *thread)
 {
+	GSource *idle = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
 	
 	g_mutex_lock(thread->started_mutex);
-	GSource *idle = g_idle_source_new();
+	idle = g_idle_source_new();
 	g_source_set_callback(idle, osyncThreadStartCallback, thread, NULL);
 	g_source_attach(idle, thread->context);
 	thread->thread = g_thread_create ((GThreadFunc)g_main_loop_run, thread->loop, TRUE, NULL);
@@ -494,10 +469,11 @@ void osync_thread_start(OSyncThread *thread)
 
 void osync_thread_stop(OSyncThread *thread)
 {
+	GSource *source = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
 	osync_assert(thread);
 	
-	GSource *source = g_idle_source_new();
+	source = g_idle_source_new();
 	g_source_set_callback(source, osyncThreadStopCallback, thread, NULL);
 	g_source_attach(source, thread->context);
 

@@ -45,34 +45,34 @@ typedef time_t (* OSyncFormatRevisionFunc) (const char *data, unsigned int size,
 typedef osync_bool (* OSyncFormatMarshalFunc) (const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 typedef osync_bool (* OSyncFormatDemarshalFunc) (const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 
-OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error);
-void osync_objformat_ref(OSyncObjFormat *format);
-void osync_objformat_unref(OSyncObjFormat *format);
+OSYNC_EXPORT OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error);
+OSYNC_EXPORT void osync_objformat_ref(OSyncObjFormat *format);
+OSYNC_EXPORT void osync_objformat_unref(OSyncObjFormat *format);
 
-const char *osync_objformat_get_name(OSyncObjFormat *format);
-const char *osync_objformat_get_objtype(OSyncObjFormat *format);
+OSYNC_EXPORT const char *osync_objformat_get_name(OSyncObjFormat *format);
+OSYNC_EXPORT const char *osync_objformat_get_objtype(OSyncObjFormat *format);
 
-void osync_objformat_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func);
-void osync_objformat_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func);
-void osync_objformat_set_copy_func(OSyncObjFormat *format, OSyncFormatCopyFunc copy_func);
-void osync_objformat_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDuplicateFunc dupe_func);
-void osync_objformat_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func);
-void osync_objformat_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc print_func);
-void osync_objformat_set_revision_func(OSyncObjFormat *format, OSyncFormatRevisionFunc revision_func);
-void osync_objformat_set_marshal_func(OSyncObjFormat *format, OSyncFormatMarshalFunc marshal_func);
-void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemarshalFunc marshal_func);
+OSYNC_EXPORT void osync_objformat_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func);
+OSYNC_EXPORT void osync_objformat_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func);
+OSYNC_EXPORT void osync_objformat_set_copy_func(OSyncObjFormat *format, OSyncFormatCopyFunc copy_func);
+OSYNC_EXPORT void osync_objformat_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDuplicateFunc dupe_func);
+OSYNC_EXPORT void osync_objformat_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func);
+OSYNC_EXPORT void osync_objformat_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc print_func);
+OSYNC_EXPORT void osync_objformat_set_revision_func(OSyncObjFormat *format, OSyncFormatRevisionFunc revision_func);
+OSYNC_EXPORT void osync_objformat_set_marshal_func(OSyncObjFormat *format, OSyncFormatMarshalFunc marshal_func);
+OSYNC_EXPORT void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemarshalFunc marshal_func);
 
-OSyncConvCmpResult osync_objformat_compare(OSyncObjFormat *format, const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize);
-void osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, char **newuid);
-void osync_objformat_create(OSyncObjFormat *format, char **data, unsigned int *size);
-char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size);
-time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error);
-void osync_objformat_destroy(OSyncObjFormat *format, char *data, unsigned int size);
-osync_bool osync_objformat_copy(OSyncObjFormat *format, const char *indata, unsigned int insize, char **outdata, unsigned int *outsize, OSyncError **error);
-osync_bool osync_objformat_is_equal(OSyncObjFormat *leftformat, OSyncObjFormat *rightformat);
+OSYNC_EXPORT OSyncConvCmpResult osync_objformat_compare(OSyncObjFormat *format, const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize);
+OSYNC_EXPORT void osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, char **newuid);
+OSYNC_EXPORT void osync_objformat_create(OSyncObjFormat *format, char **data, unsigned int *size);
+OSYNC_EXPORT char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size);
+OSYNC_EXPORT time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error);
+OSYNC_EXPORT void osync_objformat_destroy(OSyncObjFormat *format, char *data, unsigned int size);
+OSYNC_EXPORT osync_bool osync_objformat_copy(OSyncObjFormat *format, const char *indata, unsigned int insize, char **outdata, unsigned int *outsize, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_objformat_is_equal(OSyncObjFormat *leftformat, OSyncObjFormat *rightformat);
 
-osync_bool osync_objformat_must_marshal(OSyncObjFormat *format);
-osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
-osync_bool osync_objformat_demarshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_objformat_must_marshal(OSyncObjFormat *format);
+OSYNC_EXPORT osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_objformat_demarshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 
 #endif //_OPENSYNC_OBJFORMAT_H_

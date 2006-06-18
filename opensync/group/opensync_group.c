@@ -25,8 +25,6 @@
 #include "opensync-group.h"
 #include "opensync_group_internals.h"
 
-#include <sys/file.h>
-
 #include "opensync_xml.h"
 
 static void _build_list(gpointer key, gpointer value, gpointer user_data)
@@ -39,9 +37,10 @@ static void _build_list(gpointer key, gpointer value, gpointer user_data)
 
 static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 {
+	GList *m = NULL;
+	GList *ret = NULL;
 	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
     
-	GList *m = NULL;
 	/* Loop over all members... */
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
@@ -55,7 +54,7 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 			g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
 		}
 	}
-	GList *ret = NULL;
+	
 	g_hash_table_foreach(table, _build_list, &ret);
 	g_hash_table_destroy(table);
 	return ret;
@@ -81,12 +80,14 @@ static long long int _osync_group_create_member_id(OSyncGroup *group)
 {
 	char *filename = NULL;
 	long long int i = 0;
+	
 	do {
 		i++;
 		if (filename)
 			g_free(filename);
 		filename = g_strdup_printf("%s/%lli", group->configdir, i);
 	} while (g_file_test(filename, G_FILE_TEST_EXISTS));
+	
 	g_free(filename);
 	return i;
 }
@@ -102,15 +103,16 @@ static long long int _osync_group_create_member_id(OSyncGroup *group)
  * 
  */
 static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
-	
+{	
 	GDir *dir = NULL;
 	GError *gerror = NULL;
 	char *member_path = NULL;
 	char *filename = NULL;
 	OSyncMember *member = NULL;
+	const gchar *de = NULL;
 	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
+
 	dir = g_dir_open(path, 0, &gerror);
 	if (!dir) {
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open group configdir %s", gerror->message);
@@ -118,7 +120,6 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 		goto error;
 	}
 
-	const gchar *de = NULL;
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s/syncmember.conf", osync_group_get_configdir(group), de);
 		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
@@ -175,9 +176,10 @@ error:
  */
 OSyncGroup *osync_group_new(OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", error);
+	OSyncGroup *group = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncGroup *group = osync_try_malloc0(sizeof(OSyncGroup), error);
+	group = osync_try_malloc0(sizeof(OSyncGroup), error);
 	if (!group)
 		goto error;
 	
@@ -237,32 +239,43 @@ void osync_group_unref(OSyncGroup *group)
  */
 OSyncLockState osync_group_lock(OSyncGroup *group)
 {
+	char *lockfile = NULL;
+	osync_bool exists = FALSE;
+	osync_bool locked = FALSE;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
 	osync_assert(group);
 	osync_assert(group->configdir);
-	
-	osync_bool exists = FALSE;
-	osync_bool locked = FALSE;
 	
 	if (group->lock_fd) {
 		osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED, lock_fd existed", __func__);
 		return OSYNC_LOCKED;
 	}
 	
-	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
+	lockfile = g_strdup_printf("%s/lock", group->configdir);
 
 	if (g_file_test(lockfile, G_FILE_TEST_EXISTS)) {
 		osync_trace(TRACE_INTERNAL, "locking group: file exists");
 		exists = TRUE;
 	}
-	
+
+#ifdef _WIN32
+	group->lock_fd = CreateFile(lockfile, GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (group->lock_fd == INVALID_HANDLE_VALUE) {
+		if (GetLastError() == ERROR_SHARING_VIOLATION) {
+			osync_trace(TRACE_INTERNAL, "locking group: is locked2");
+			locked = TRUE;
+			group->lock_fd = 0;
+		} else
+			osync_trace(TRACE_INTERNAL, "error setting lock: %s", strerror(errno));
+	}
+#else
 	if ((group->lock_fd = open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
 		group->lock_fd = 0;
 		g_free(lockfile);
 		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, strerror(errno));
 		return OSYNC_LOCK_STALE;
 	} else {
-
 		/* Set FD_CLOEXEC flags for the lock file descriptor. We don't want the
 		 * subprocesses created by plugins or the engine to keep holding the lock
 		 */
@@ -288,6 +301,8 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 		} else
 			osync_trace(TRACE_INTERNAL, "Successfully locked");
 	}
+#endif
+	
 	g_free(lockfile);
 	
 	if (exists) {
@@ -316,6 +331,7 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
  */
 void osync_group_unlock(OSyncGroup *group)
 {
+	char *lockfile = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
 	osync_assert(group);
 	osync_assert(group->configdir);
@@ -325,15 +341,16 @@ void osync_group_unlock(OSyncGroup *group)
 		return;
 	}
     
+#ifndef _WIN32
 	flock(group->lock_fd, LOCK_UN);
-	
-	fsync(group->lock_fd);
+#endif
+
 	close(group->lock_fd);
 	
 	group->lock_fd = 0;
 	
-	char *lockfile = g_strdup_printf("%s/lock", group->configdir);
-	unlink(lockfile);
+	lockfile = g_strdup_printf("%s/lock", group->configdir);
+	g_unlink(lockfile);
 	g_free(lockfile);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -380,13 +397,16 @@ const char *osync_group_get_name(OSyncGroup *group)
  */
 osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 {
+	char *filename = NULL;
+	int i;
+	xmlDocPtr doc;
+	char *tmstr = NULL;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	osync_assert(group);
 	osync_assert(group->configdir);
-		
-	char *filename = NULL;
+	
 	osync_trace(TRACE_INTERNAL, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
-	int i;
 	
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir);
@@ -399,8 +419,6 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
 	osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename);
 	
-	xmlDocPtr doc;
-
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 	
@@ -439,7 +457,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 
 	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
-	char *tmstr = g_strdup_printf("%i", (int)group->last_sync);
+	tmstr = g_strdup_printf("%i", (int)group->last_sync);
 	xmlNewChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
 	g_free(tmstr);
 
@@ -472,10 +490,11 @@ error:
  */
 osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 {
+	char *delcmd = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	osync_assert(group);
 	
-	char *delcmd = g_strdup_printf("rm -rf %s", group->configdir);
+	delcmd = g_strdup_printf("rm -rf %s", group->configdir);
 	if (system(delcmd)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete group. command %s failed", delcmd);
 		g_free(delcmd);
@@ -500,24 +519,24 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
  */
 osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **error)
 {
+	char *filename = NULL;
+	char *real_path = NULL;
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	osync_assert(group);
 	osync_assert(path);
-	
-	char *filename = NULL;
-	char *real_path = NULL;
 	
 	if (!g_path_is_absolute(path)) {
 		real_path = g_strdup_printf("%s/%s", g_get_current_dir(), path);
 	} else {
 		real_path = g_strdup(path);
 	}
+	
 	osync_group_set_configdir(group, real_path);
 	filename = g_strdup_printf("%s/syncgroup.conf", real_path);
 	g_free(real_path);
-	
-	xmlDocPtr doc;
-	xmlNodePtr cur;
 	//xmlNodePtr filternode;
 	
 	if (!osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
@@ -604,7 +623,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 		goto error;
 	}
 	
-	if (!_osync_group_load_members(group, real_path, error))
+	if (!_osync_group_load_members(group, group->configdir, error))
 		goto error;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
@@ -728,18 +747,22 @@ void osync_group_set_configdir(OSyncGroup *group, const char *directory)
 
 int osync_group_num_objtypes(OSyncGroup *group)
 {
+	GList *objs = NULL;
+	int len = 0;
 	osync_assert(group);
-	GList *objs = _osync_group_get_supported_objtypes(group);
-	int len = g_list_length(objs);
+	objs = _osync_group_get_supported_objtypes(group);
+	len = g_list_length(objs);
 	g_list_free(objs);
 	return len;
 }
 
 const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
 {
+	GList *objs = NULL;
+	const char *objtype = NULL;
 	osync_assert(group);
-	GList *objs = _osync_group_get_supported_objtypes(group);
-	const char *objtype = g_list_nth_data(objs, nth);
+	objs = _osync_group_get_supported_objtypes(group);
+	objtype = g_list_nth_data(objs, nth);
 	g_list_free(objs);
 	return objtype;
 	
@@ -747,8 +770,8 @@ const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
 
 void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled)
 {
-	osync_assert(group);
 	GList *m = NULL;
+	osync_assert(group);
 	/* Loop over all members... */
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
@@ -759,10 +782,10 @@ void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osy
 
 int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
 {
-	osync_assert(group);
 	GList *m = NULL;
-	
 	int enabled = -1;
+	
+	osync_assert(group);
 	
 	/* What do to:
 	 * 

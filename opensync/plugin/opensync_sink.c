@@ -89,9 +89,9 @@ void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format
 
 void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format)
 {
+	GList *f = NULL;
 	osync_assert(sink);
 	osync_assert(format);
-	GList *f = NULL;
 	for (f = sink->objformats; f; f = f->next) {
 		if (!strcmp((char *)f->data, format)) {
 			sink->objformats = g_list_remove(sink->objformats, f->data);
@@ -111,11 +111,12 @@ void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *for
  */
 void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 	if (!functions.get_changes) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No get_changeinfo function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No get_changes function was given", __func__);
@@ -137,12 +138,13 @@ void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx)
  */
 void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sink, change, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	osync_assert(change);
 	
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 	if (!functions.read) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No read function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No read function was given", __func__);
@@ -163,11 +165,12 @@ void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change,
  */
 void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 	if (!functions.connect) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No connect function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No connect function was given", __func__);
@@ -188,11 +191,12 @@ void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx)
  */
 void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 	if (!functions.disconnect) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No disconnect function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No disconnect function was given", __func__);
@@ -213,11 +217,12 @@ void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx)
  */
 void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 	if (!functions.sync_done) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No sync_done function was given");
 		osync_trace(TRACE_EXIT_ERROR, "%s: No sync_done function was given", __func__);
@@ -239,12 +244,13 @@ void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx)
  */
 void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sink, change, ctx);
 	g_assert(sink);
 	g_assert(change);
 	g_assert(ctx);
 
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 
 	if (functions.batch_commit) {
 		//Append to the stored changes
@@ -277,21 +283,27 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *chang
  */
 void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx)
 {
+	OSyncObjTypeSinkFunctions functions;
+	int i = 0;
+	GList *o = NULL;
+	GList *c = NULL;
+	OSyncChange *change = NULL;
+	OSyncContext *context = NULL;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
-	OSyncObjTypeSinkFunctions functions = sink->functions;
+	functions = sink->functions;
 	if (functions.batch_commit) {
-		int i = 0;
 		OSyncChange **changes = g_malloc0(sizeof(OSyncChange *) * (g_list_length(sink->commit_changes) + 1));
 		OSyncContext **contexts = g_malloc0(sizeof(OSyncContext *) * (g_list_length(sink->commit_contexts) + 1));
 		
-		GList *o = sink->commit_contexts;
-		GList *c = NULL;
+		o = sink->commit_contexts;
+		c = NULL;
 		for (c = sink->commit_changes; c && o; c = c->next) {
-			OSyncChange *change = c->data;
-			OSyncContext *context = o->data;
+			change = c->data;
+			context = o->data;
 			
 			changes[i] = change;
 			contexts[i] = context;
