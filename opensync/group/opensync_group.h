@@ -30,6 +30,7 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error);
 void osync_group_reset(OSyncGroup *group);
 
 void osync_group_add_member(OSyncGroup *group, OSyncMember *member);
+OSyncMember *osync_group_find_member(OSyncGroup *group, int id);
 void osync_group_remove_member(OSyncGroup *group, OSyncMember *member);
 OSyncMember *osync_group_nth_member(OSyncGroup *group, int nth);
 int osync_group_num_members(OSyncGroup *group);

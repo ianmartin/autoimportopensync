@@ -18,8 +18,8 @@
  * 
  */
 
-#ifndef _OPENSYNC_ENV_H_
-#define _OPENSYNC_ENV_H_
+#ifndef _OPENSYNC_GROUP_ENV_H_
+#define _OPENSYNC_GROUP_ENV_H_
 
 OSyncGroupEnv *osync_group_env_new(OSyncError **error);
 void osync_group_env_free(OSyncGroupEnv *env);
@@ -31,4 +31,4 @@ void osync_group_env_remove_group(OSyncGroupEnv *env, OSyncGroup *group);
 int osync_group_env_num_groups(OSyncGroupEnv *env);
 OSyncGroup *osync_group_env_nth_group(OSyncGroupEnv *env, int nth);
 
-#endif //_OPENSYNC_ENV_H_
+#endif //_OPENSYNC_GROUP_ENV_H_

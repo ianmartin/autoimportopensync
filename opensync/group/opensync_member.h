@@ -1,55 +1,51 @@
+/*
+ * libopensync - A synchronization framework
+ * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * 
+ */
 
-
-int osync_member_num_objtypes(OSyncMember *member);
-const char *osync_member_nth_objtype(OSyncMember *member, int nth);
-void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled);
-int osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
-
+#ifndef _OPENSYNC_MEMBER_H_
+#define _OPENSYNC_MEMBER_H_
 
 OSyncMember *osync_member_new(OSyncError **error);
-void osync_member_unref(OSyncMember *member);
 void osync_member_ref(OSyncMember *member);
+void osync_member_unref(OSyncMember *member);
 
-osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error);
+const char *osync_member_get_pluginname(OSyncMember *member);
+void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
 
 const char *osync_member_get_configdir(OSyncMember *member);
-osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
-osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error);
-
-void osync_member_set_config(OSyncMember *member, const char *data, int size);
-osync_bool osync_member_has_configuration(OSyncMember *member);
-const char *osync_member_get_pluginname(OSyncMember *member);
-osync_bool osync_member_initialize(OSyncMember *member, OSyncError **error);
-void *osync_member_get_enginedata(OSyncMember *member);
-void osync_member_set_enginedata(OSyncMember *member, void *data);
-void *osync_member_get_report_function(OSyncMember *member);
-void osync_member_set_report_function(OSyncMember *member, void *function);
-OSyncGroup *osync_member_get_group(OSyncMember *member);
-void *osync_member_get_data(OSyncMember *member);
-void osync_member_set_data(OSyncMember *member, void *data);
-OSyncMember *osync_member_from_id(OSyncGroup *group, int id);
-OSyncChange *osync_member_get_changeentry(OSyncMember *member, char *uid);
-int osync_member_num_changeentries(OSyncMember *member);
-OSyncChange *osync_member_nth_changeentry(OSyncMember *member, int n);
-long long int osync_member_get_id(OSyncMember *member);
-osync_bool osync_member_save(OSyncMember *member, OSyncError **error);
-
-OSyncChange *osync_member_find_change(OSyncMember *member, const char *uid);
-void osync_member_add_changeentry(OSyncMember *member, OSyncChange *entry);
-void osync_member_request_synchronization(OSyncMember *member);
-OSyncChange *osync_member_add_random_data(OSyncMember *member, const char *objtype);
-void osync_member_finalize(OSyncMember *member);
-void osync_member_remove_changeentry(OSyncMember *member, OSyncChange *entry);
-osync_bool osync_member_modify_random_data(OSyncMember *member, OSyncChange *change);
-osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change);
-void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osync_bool slow_sync);
-osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr);
-osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
-osync_bool osync_member_update_change(OSyncMember *member, OSyncChange **change);
-void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypestr, osync_bool enabled);
-void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
 void osync_member_set_configdir(OSyncMember *member, const char *configdir);
-void *osync_member_get_plugindata(OSyncMember *member);
 
-void *osync_member_get_loop(OSyncMember *member);
-void osync_member_set_loop(OSyncMember *member, void *loop);
+osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error);
+osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error);
+void osync_member_set_config(OSyncMember *member, const char *data, int size);
+
+osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error);
+osync_bool osync_member_save(OSyncMember *member, OSyncError **error);
+osync_bool osync_member_delete(OSyncMember *member, OSyncError **error);
+
+long long int osync_member_get_id(OSyncMember *member);
+
+void osync_member_add_objtype(OSyncMember *member, const char *objtype);
+int osync_member_num_objtypes(OSyncMember *member);
+const char *osync_member_nth_objtype(OSyncMember *member, int nth);
+
+osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
+void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled);
+
+#endif /* _OPENSYNC_MEMBER_H_ */

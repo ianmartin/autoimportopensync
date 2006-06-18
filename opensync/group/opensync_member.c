@@ -363,6 +363,24 @@ error:
 	return FALSE;
 }
 
+osync_bool osync_member_delete(OSyncMember *member, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+	osync_assert(member);
+	
+	char *delcmd = g_strdup_printf("rm -rf %s", member->configdir);
+	if (system(delcmd)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete member. command %s failed", delcmd);
+		g_free(delcmd);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	g_free(delcmd);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 /** @brief Gets the unique id of a member
  * 
  * @param member The member
