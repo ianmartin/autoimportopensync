@@ -1,7 +1,9 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-//#include "../formats/vformats-xml/opensync-xml.h" /** osxml_write_to_string() */
+#include "opensync-merger.h"
+#include "opensync-merger_internals.h"
+
 
 OSyncCapabilities *osync_capabilities_new(void)
 {
@@ -72,6 +74,29 @@ OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities)
 	g_assert(capabilities);
 	return capabilities->first_child;
 }	
+
+void osync_algorithm_quicksort(void * array[], int left, int right, const char *(*getString)(void *))
+{
+  register int i, j;
+  void *x, *temp;
+
+  i = left; j = right;
+  x = array[(left+right)/2];
+
+  do {
+    while((strcmp(getString(array[i]), getString(x)) < 0) && (i < right)) i++;
+    while((strcmp(getString(array[j]), getString(x)) > 0) && (j > left)) j--;
+    if(i <= j) {
+      temp = array[i];
+      array[i] = array[j];
+      array[j] = temp;
+      i++; j--;
+   }
+  } while(i <= j);
+
+  if(left < j) osync_algorithm_quicksort(array, left, j, getString);
+  if(i < right) osync_algorithm_quicksort(array, i, right, getString);
+}
 
 void osync_capabilities_sort(OSyncCapabilities *capabilities)
 {

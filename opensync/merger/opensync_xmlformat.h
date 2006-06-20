@@ -10,7 +10,9 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
 OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat);
 OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, ...);
 osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, int *size);
+osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat);
 void osync_xmlformat_merging(OSyncXMLFormat *xmlfield, OSyncCapabilities *capabilities, OSyncXMLFormat *original);
+//OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints *xmlscore);
 //osync_bool osync_xmlformat_read_xml(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error);
 
 #endif /*OPENSYNC_XMLFORMAT_H_*/

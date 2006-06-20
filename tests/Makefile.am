@@ -4,7 +4,7 @@ SUBDIRS = mock-plugin
 
 AM_CFLAGS = @XML_CFLAGS@ -Wall -Werror @GCOV_CFLAGS@ -DOPENSYNC_TESTDATA=\"$(srcdir)/\"
 
-INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ -I$(top_srcdir)/osengine
+INCLUDES = -I$(top_srcdir) @XML_CFLAGS@ @PACKAGE_CFLAGS@ -I$(top_srcdir)/opensync/engine -I$(top_srcdir)/opensync/
 
 EXTRA_DIST = \
 	data \
@@ -15,11 +15,11 @@ PROFTEST = coverage.sh
 endif
 
 if ENABLE_TESTS
-TESTS = error module ipc checkdata objformat format-env converter
-noinst_PROGRAMS = error module ipc checkdata objformat format-env converter
+TESTS = error module ipc checkdata objformat format-env converter merger
+noinst_PROGRAMS = error module ipc checkdata objformat format-env converter merger
 else
-TESTS = error ipc user member group plugin locks env conv sync filter multisync vcard vcal vnote errorcodes $(PROFTEST)
-noinst_PROGRAMS = error ipc user member group plugin locks env conv sync filter multisync vcard vcal vnote errorcodes
+TESTS = error ipc user member group plugin locks env conv sync filter multisync vcard vcal vnote errorcodes merger $(PROFTEST)
+noinst_PROGRAMS = error ipc user member group plugin locks env conv sync filter multisync vcard vcal vnote errorcodes merger
 endif
 
 error_INCLUDES = @CHECK_CFLAGS@
@@ -61,6 +61,11 @@ member_INCLUDES = @CHECK_CFLAGS@
 member_SOURCES = check_member.c
 member_LIBS = @CHECK_LIBS@
 member_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
+
+merger_INCLUDES = @CHECK_CFLAGS@
+merger_SOURCES = check_merger.c support.c
+merger_LIBS = @CHECK_LIBS@
+merger_LDFLAGS = @PACKAGE_LIBS@ $(top_builddir)/opensync/libopensync.la -lcheck -R $(libdir) @GCOV_LDFLAGS@
 
 group_INCLUDES = @CHECK_CFLAGS@
 group_SOURCES = check_group.c support.c

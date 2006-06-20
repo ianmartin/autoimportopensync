@@ -23,9 +23,9 @@
 #include "vformat.h"
 #include "xml-vcard.h"
 #include "xml-support.c" //only for xmlcompaire
-#include "opensync_xmlformat.h"
-#include "opensync_xmlformat_internals.h"
-#include "opensync_xmlfield.h"
+#include "merger/opensync_xmlformat.h"
+#include "merger/opensync_xmlformat_internals.h"
+#include "merger/opensync_xmlfield.h"
 #include <glib.h>
 
 //static void handle_unknown_parameter(OSyncXMLField *current, VFormatParam *param)
@@ -345,12 +345,15 @@ has_value:;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static osync_bool conv_vcard_to_xmlformat(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static void *init_vcard_to_xmlformat(void);
+
+static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
-	
-	GHashTable *hooks = (GHashTable *)conv_data;
-	
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+
+	GHashTable *hooks = (GHashTable *)init_vcard_to_xmlformat();
+
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
 	/* The input is not null-terminated, but vformat_new_from_string() expects a null-terminated string */
@@ -362,16 +365,16 @@ static osync_bool conv_vcard_to_xmlformat(void *conv_data, char *input, int inps
 	VFormat *vcard = vformat_new_from_string(input_str);
 
 	g_free(input_str);
-	
+
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
-	
+
 	//Create a new xml document
 	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact");
 //	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 //	xmlNode *root = osxml_node_add_root(doc, "contact");
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
-	
+
 	//For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vcard);
 	GList *a = NULL;
@@ -379,14 +382,14 @@ static osync_bool conv_vcard_to_xmlformat(void *conv_data, char *input, int inps
 		VFormatAttribute *attr = a->data;
 		vcard_handle_attribute(hooks, xmlformat, attr);
 	}
-	
+
 	int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
 	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
 // TODO: xmlFree(str);
-	
-	*free_input = TRUE;
+
+
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
@@ -840,45 +843,45 @@ static osync_bool conv_xmlformat_to_vcard(void *user_data, char *input, int inps
 	return TRUE;
 }
 
-static osync_bool conv_xmlformat_to_vcard30(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	return conv_xmlformat_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_30);
-}
-
-static osync_bool conv_xmlformat_to_vcard21(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	return conv_xmlformat_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_21);
-}
+//static osync_bool conv_xmlformat_to_vcard30(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+//{
+//	return conv_xmlformat_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_30);
+//}
+//
+//static osync_bool conv_xmlformat_to_vcard21(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+//{
+//	return conv_xmlformat_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_21);
+//}
 
 static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *rightchange)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
 	
-	OSyncXMLScore score[] =
-	{
-		//{30, "/contact/FullName"},
-		//{20, "/contact/Telephone"},
-		//{20, "/contact/Address"},
-		//{1, "/contact/UnknownNode"},
-		//{0, "/contact/*/Slot"},
-		//{0, "/contact/*/Type"},
-		{0,		"/contact/Class"},
-		{0,		"/contact/FileAs"},
-		{100,	"/contact/Name"},
-		{0,		"/contact/Revision"},
-		{0,		"/contact/Uid"},
-		{0,		"/contact/WantsHtml"},
-		//{0, "/contact/UnknownNode[NodeName=\"X-IRMC-LUID\"]"},
-		{0, NULL}
-	};
+//	OSyncXMLScore score[] =
+//	{
+//		//{30, "/contact/FullName"},
+//		//{20, "/contact/Telephone"},
+//		//{20, "/contact/Address"},
+//		//{1, "/contact/UnknownNode"},
+//		//{0, "/contact/*/Slot"},
+//		//{0, "/contact/*/Type"},
+//		{0,		"/contact/Class"},
+//		{0,		"/contact/FileAs"},
+//		{100,	"/contact/Name"},
+//		{0,		"/contact/Revision"},
+//		{0,		"/contact/Uid"},
+//		{0,		"/contact/WantsHtml"},
+//		//{0, "/contact/UnknownNode[NodeName=\"X-IRMC-LUID\"]"},
+//		{0, NULL}
+//	};
 
-	OSyncXMLFormat *xmlformat_left = (OSyncXMLFormat *) osync_change_get_data(leftchange);
-	OSyncXMLFormat *xmlformat_right = (OSyncXMLFormat *) osync_change_get_data(rightchange);
+//	OSyncXMLFormat *xmlformat_left = (OSyncXMLFormat *) osync_change_get_data(leftchange);
+//	OSyncXMLFormat *xmlformat_right = (OSyncXMLFormat *) osync_change_get_data(rightchange);
 
-	OSyncConvCmpResult ret = osxml_compare(xmlformat_left->doc, xmlformat_right->doc, score, 0, 99);
+//	OSyncConvCmpResult ret = osxml_compare(xmlformat_left->doc, xmlformat_right->doc, score, 0, 99);
 	
 
-//	OSyncConvCmpResult ret = TRUE; //osync_xmlformat_compare(xmlformat_left, xmlformat_right, xmlscore);
+	OSyncConvCmpResult ret = TRUE; //osync_xmlformat_compare(xmlformat_left, xmlformat_right, xmlscore);
 	
 		
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
@@ -887,9 +890,12 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 
 static char *print_contact(OSyncChange *change)
 {
-	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+//	char *buffer;
+//	osync_xmlformat_assemble()
+//	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
 	
-	return (char *)osxml_write_to_string(doc);
+//	return (char *)osxml_write_to_string(doc);
+	return NULL;
 }
 
 static void destroy_xmlformat(char *data, size_t size)
@@ -998,50 +1004,50 @@ static void fin_xmlformat_to_vcard(void *data)
 	g_free(hooks);
 }
 
-static time_t get_revision(OSyncChange *change, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
-	
-	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
-	
-	xmlXPathObject *xobj = osxml_get_nodeset(doc, "/contact/Revision");
-		
-	xmlNodeSet *nodes = xobj->nodesetval;
-		
-	int size = (nodes) ? nodes->nodeNr : 0;
-	if (size != 1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return -1;
-	}
-	
-	char *revision = (char*)osxml_find_node(nodes->nodeTab[0], "Content");
-	
-	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
-	time_t time = vformat_time_to_unix(revision);
-	g_free(revision);
-	xmlXPathFreeObject(xobj);
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
-	return time;
-}
+//static time_t get_revision(OSyncChange *change, OSyncError **error)
+//{	
+//	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+//	
+//	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+//	
+//	xmlXPathObject *xobj = osxml_get_nodeset(doc, "/contact/Revision");
+//		
+//	xmlNodeSet *nodes = xobj->nodesetval;
+//		
+//	int size = (nodes) ? nodes->nodeNr : 0;
+//	if (size != 1) {
+//		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision");
+//		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+//		return -1;
+//	}
+//	
+//	char *revision = (char*)osxml_find_node(nodes->nodeTab[0], "Content");
+//	
+//	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
+//	time_t time = vformat_time_to_unix(revision);
+//	g_free(revision);
+//	xmlXPathFreeObject(xobj);
+//	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
+//	return time;
+//}
 
-void get_info(OSyncEnv *env)
-{
-	osync_env_register_objtype(env, "contact");
-	osync_env_register_objformat(env, "contact", "xmlformat-contact");
-	osync_env_format_set_compare_func(env, "xmlformat-contact", compare_contact);
-	osync_env_format_set_destroy_func(env, "xmlformat-contact", destroy_xmlformat);
-	osync_env_format_set_print_func(env, "xmlformat-contact", print_contact);
-//	osync_env_format_set_copy_func(env, "xmlformat-contact", osxml_copy);
-	osync_env_format_set_revision_func(env, "xmlformat-contact", get_revision);
-	
-	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xmlformat-contact", conv_vcard_to_xmlformat);
-	osync_env_converter_set_init(env, "vcard21", "xmlformat-contact", init_vcard_to_xmlformat, fin_vcard_to_xmlformat);
-	osync_env_register_converter(env, CONVERTER_CONV, "xmlformat-contact", "vcard21", conv_xmlformat_to_vcard21);
-	osync_env_converter_set_init(env, "xmlformat-contact", "vcard21", init_xmlformat_to_vcard, fin_xmlformat_to_vcard);
-	
-	osync_env_register_converter(env, CONVERTER_CONV, "vcard30", "xmlformat-contact", conv_vcard_to_xmlformat);
-	osync_env_converter_set_init(env, "vcard30", "xmlformat-contact", init_vcard_to_xmlformat, fin_vcard_to_xmlformat);
-	osync_env_register_converter(env, CONVERTER_CONV, "xmlformat-contact", "vcard30", conv_xmlformat_to_vcard30);
-	osync_env_converter_set_init(env, "xmlformat-contact", "vcard30", init_xmlformat_to_vcard, fin_xmlformat_to_vcard);	
-}
+//void get_info(OSyncEnv *env)
+//{
+//	osync_env_register_objtype(env, "contact");
+//	osync_env_register_objformat(env, "contact", "xmlformat-contact");
+//	osync_env_format_set_compare_func(env, "xmlformat-contact", compare_contact);
+//	osync_env_format_set_destroy_func(env, "xmlformat-contact", destroy_xmlformat);
+//	osync_env_format_set_print_func(env, "xmlformat-contact", print_contact);
+////	osync_env_format_set_copy_func(env, "xmlformat-contact", osxml_copy);
+//	osync_env_format_set_revision_func(env, "xmlformat-contact", get_revision);
+//	
+//	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xmlformat-contact", conv_vcard_to_xmlformat);
+//	osync_env_converter_set_init(env, "vcard21", "xmlformat-contact", init_vcard_to_xmlformat, fin_vcard_to_xmlformat);
+//	osync_env_register_converter(env, CONVERTER_CONV, "xmlformat-contact", "vcard21", conv_xmlformat_to_vcard21);
+//	osync_env_converter_set_init(env, "xmlformat-contact", "vcard21", init_xmlformat_to_vcard, fin_xmlformat_to_vcard);
+//	
+//	osync_env_register_converter(env, CONVERTER_CONV, "vcard30", "xmlformat-contact", conv_vcard_to_xmlformat);
+//	osync_env_converter_set_init(env, "vcard30", "xmlformat-contact", init_vcard_to_xmlformat, fin_vcard_to_xmlformat);
+//	osync_env_register_converter(env, CONVERTER_CONV, "xmlformat-contact", "vcard30", conv_xmlformat_to_vcard30);
+//	osync_env_converter_set_init(env, "xmlformat-contact", "vcard30", init_xmlformat_to_vcard, fin_xmlformat_to_vcard);	
+//}

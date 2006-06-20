@@ -97,6 +97,13 @@ typedef struct OSyncGroup OSyncGroup;
 typedef struct OSyncGroupEnv OSyncGroupEnv;
 typedef struct OSyncMember OSyncMember;
 
+/* Merger component */
+typedef struct OSyncCapabilities OSyncCapabilities;
+typedef struct OSyncCapability OSyncCapability;
+typedef struct OSyncXMLFormat OSyncXMLFormat;
+typedef struct OSyncXMLField OSyncXMLField;
+typedef struct OSyncXMLFieldList OSyncXMLFieldList;
+
 typedef struct OSyncError OSyncError;
 typedef struct OSyncUserInfo OSyncUserInfo;
 typedef struct OSyncContext OSyncContext;

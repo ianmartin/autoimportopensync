@@ -1,6 +1,9 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include "opensync-merger.h"
+#include "opensync-merger_internals.h"
+
 OSyncCapability *osync_capability_new(OSyncCapability *capability, const char *name)
 {
 	xmlNodePtr node = xmlNewChild(capability->node, NULL, (xmlChar *)name, NULL);

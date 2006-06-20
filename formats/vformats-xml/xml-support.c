@@ -362,14 +362,14 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
 	if (same) {
 		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
-		return CONV_DATA_SAME;
+		return OSYNC_CONV_DATA_SAME;
 	}
 	if (res_score >= treshold) {
 		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
-		return CONV_DATA_SIMILAR;
+		return OSYNC_CONV_DATA_SIMILAR;
 	}
 	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
-	return CONV_DATA_MISMATCH;
+	return OSYNC_CONV_DATA_MISMATCH;
 }
 
 char *osxml_write_to_string(xmlDoc *doc)

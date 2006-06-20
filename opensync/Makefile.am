@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = module data ipc plugin format helper group client
+SUBDIRS = module data ipc plugin format helper group client merger
 
 AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror @GCOV_CFLAGS@
 
@@ -19,7 +19,8 @@ opensyncinclude_HEADERS = \
 	opensync-support.h \
 	opensync-context.h \
 	opensync-client.h \
-	opensync-group.h
+	opensync-group.h \
+	opensync-merger.h
 
 EXTRA_DIST = \
 	opensync_internals.h \
@@ -46,7 +47,8 @@ libopensync_la_LIBADD = @XML_LIBS@ \
 	plugin/libopensync-plugin.la \
 	helper/libopensync-helper.la \
 	group/libopensync-group.la \
-	client/libopensync-client.la
+	client/libopensync-client.la \
+	merger/libopensync-merger.la
 
 bin_PROGRAMS = osplugin
 
