@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<contact version="1">
+	<Telephone Type="Cellular">
+		<Content>123</Content>
+	</Telephone>
+	<Name>
+		<LastName>Doe</LastName>
+		<FirstName>John</FirstName>
+	</Name>
+</contact>

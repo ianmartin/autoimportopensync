@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<capabilities>
+	<contact>
+		<Name>
+			<FirstName />
+			<LastName />
+		</Name>
+		<Telephone>
+			<Content />
+		</Telephone>
+		<Categories>
+			<Category />		
+		</Categories>
+		<Address>
+			<Street />
+			<City />
+			<Region />
+		</Address>
+	</contact>
+</capabilities>
