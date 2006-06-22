@@ -98,7 +98,7 @@ static char *_fold_lines (char *buf)
 
 		/* search new lines for quoted printable encoding */
 		if (newline) {
-			for (q=p; *q != '\n'; q++)
+			for (q=p; *q != '\n' && *q != '\0'; q++)
 				line = g_string_append_unichar (line, g_utf8_get_char (q));
 		
 			if (strstr(line->str, "ENCODING=QUOTED-PRINTABLE"))
