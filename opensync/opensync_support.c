@@ -30,6 +30,11 @@
 GPrivate* current_tabs = NULL;
 GPrivate* thread_id = NULL;
 
+#ifndef _WIN32
+#include <pthread.h>
+#define g_chmod fchmod
+#endif
+
 /**
  * @defgroup OSyncDebugAPI OpenSync Debug
  * @ingroup OSyncPublic
@@ -65,6 +70,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	unsigned long int id = 0;
 #ifdef _WIN32
 	int pid = 0;
+	char tmp_buf[1024];
 #else
 	pid_t pid = 0;
 #endif
@@ -78,7 +84,6 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	gsize writen;
 	const char *trace = NULL;
 	const char *endline = NULL;
-	char tmp_buf[1024];
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
 	

@@ -45,6 +45,7 @@ osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error);
 OSyncQueueEvent osync_queue_poll(OSyncQueue *queue);
 
 OSyncMessage *osync_queue_get_message(OSyncQueue *queue);
+const char *osync_queue_get_path(OSyncQueue *queue);
 
 osync_bool osync_queue_is_alive(OSyncQueue *queue);
 

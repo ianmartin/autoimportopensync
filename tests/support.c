@@ -27,18 +27,23 @@ char *setup_testbed(char *fkt_name)
 	
 	char *command = NULL;
 	if (fkt_name) {
-		command = g_strdup_printf("cp -R "OPENSYNC_TESTDATA"data/%s/* %s", fkt_name, testbed);
+		command = g_strdup_printf("cp -R "OPENSYNC_TESTDATA"/%s/* %s", fkt_name, testbed);
 		if (system(command))
 			abort();
 		g_free(command);
 	}
 	
-	command = g_strdup_printf("cp -R ../osplugin/osplugin %s", testbed);
+	/*command = g_strdup_printf("cp -R ../osplugin/osplugin %s", testbed);
+	if (system(command))
+		abort();
+	g_free(command);*/
+	
+	command = g_strdup_printf("cp libmocksync.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp -R mock-plugin/.libs/*.so %s", testbed);
+	command = g_strdup_printf("cp libmockformat.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);

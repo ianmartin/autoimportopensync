@@ -31,6 +31,7 @@ struct OSyncClient {
 	OSyncPluginInfo *plugin_info;
 	OSyncPluginEnv *plugin_env;
 	void *plugin_data;
+	OSyncThread *thread;
 };
 
 #endif /*OPENSYNC_CLIENT_INTERNALS_H_*/

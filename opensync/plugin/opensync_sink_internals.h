@@ -36,6 +36,7 @@ struct OSyncObjTypeSink {
 	/** List to pile up changes for batch commit */
 	GList *commit_changes;
 	GList *commit_contexts;
+	osync_bool available;
 };
 
 #endif /*OPENSYNC_SINK_INTERNALS_H_*/

@@ -56,22 +56,26 @@ gboolean _incoming_check(GSource *source)
 static
 gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
+	OSyncPendingMessage *pending = NULL;
 	OSyncQueue *queue = user_data;
-
+	GList *p = NULL;
 	OSyncMessage *message = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
+
 	while ((message = g_async_queue_try_pop(queue->incoming))) {
-		/* We check of the message is a reply to something */
+		/* We check if the message is a reply to something */
+		osync_trace(TRACE_INTERNAL, "Dispatching %p:%i", message, osync_message_get_cmd(message));
+		
 		if (osync_message_get_cmd(message) == OSYNC_MESSAGE_REPLY || osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
 			
 			/* Search for the pending reply. We have to lock the
 			 * list since another thread might be duing the updates */
 			g_mutex_lock(queue->pendingLock);
 			
-			GList *p = NULL;
 			for (p = queue->pendingReplies; p; p = p->next) {
-				OSyncPendingMessage *pending = p->data;
-				
+				pending = p->data;
+			
 				if (pending->id == osync_message_get_id(message)) {
 					
 					/* Call the callback of the pending message */
@@ -587,9 +591,11 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
 	
 	if (mkfifo(queue->name, 0600) != 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create fifo");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		if (errno != EEXIST) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create fifo");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+			return FALSE;
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -599,8 +605,8 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
-	
-	if (unlink(queue->name) != 0) {
+
+	if (queue->name && unlink(queue->name) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to remove queue");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
@@ -659,7 +665,8 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 	*queueptr = queue;
 	g_source_set_callback(queue->write_source, NULL, queue, NULL);
 	g_source_attach(queue->write_source, queue->context);
-	g_main_context_ref(queue->context);
+	if (queue->context)
+		g_main_context_ref(queue->context);
 
 	queue->read_functions = g_malloc0(sizeof(GSourceFuncs));
 	queue->read_functions->prepare = _source_prepare;
@@ -672,7 +679,8 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 	*queueptr = queue;
 	g_source_set_callback(queue->read_source, NULL, queue, NULL);
 	g_source_attach(queue->read_source, queue->context);
-	g_main_context_ref(queue->context);
+	if (queue->context)
+		g_main_context_ref(queue->context);
 	
 	osync_thread_start(queue->thread);
 	
@@ -778,10 +786,12 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 	g_source_attach(queue->incoming_source, context);
 	queue->incomingContext = context;
 	// For the source
-	g_main_context_ref(context);
+	if (context)
+		g_main_context_ref(context);
 	
 	//To unref it later
-	g_main_context_ref(context);
+	if (context)
+		g_main_context_ref(context);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -857,6 +867,7 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 		long long int id = gen_id();
 		osync_message_set_id(message, id);
 		pending->id = id;
+		osync_trace(TRACE_INTERNAL, "Setting id %lli for pending reply", id);
 		
 		pending->callback = osync_message_get_handler(message);
 		pending->user_data = osync_message_get_handler_data(message);
@@ -916,4 +927,10 @@ osync_bool osync_queue_is_alive(OSyncQueue *queue)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+}
+
+const char *osync_queue_get_path(OSyncQueue *queue)
+{
+	osync_assert(queue);
+	return queue->name;
 }

@@ -56,6 +56,17 @@ extern "C"
 #endif
 
 /**************************************************************
+ * Enums
+ *************************************************************/
+
+typedef enum {
+	OSYNC_START_TYPE_UNKNOWN,
+	OSYNC_START_TYPE_PROCESS,
+	OSYNC_START_TYPE_THREAD,
+	OSYNC_START_TYPE_EXTERNAL
+} OSyncStartType;
+
+/**************************************************************
  * Structs
  *************************************************************/
  
@@ -82,6 +93,7 @@ typedef struct OSyncModule OSyncModule;
 /* Engine component */
 typedef struct OSyncEngine OSyncEngine;
 typedef struct OSyncClient OSyncClient;
+typedef struct OSyncClientProxy OSyncClientProxy;
 
 /* Mapping component */
 typedef struct OSyncMapping OSyncMapping;

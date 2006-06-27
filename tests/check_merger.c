@@ -2,8 +2,8 @@
 
 #include <opensync/opensync-merger.h>
 #include "opensync/opensync-format.h"
-#include "formats/vformats-xml/vformat.c"
-#include "formats/vformats-xml/xmlformat-vcard.c"
+#include "formats/vformats-xml/vformat.h"
+#include "formats/vformats-xml/xmlformat-vcard.h"
 
 VFormat *vcard_new_from_string (const char *str);
 

@@ -24,6 +24,20 @@
 #include "opensync-ipc.h"
 #include "opensync-client.h"
 
+static void usage (int ecode)
+{
+  fprintf (stderr, "This is the opensync sync client.\n\n");
+  fprintf (stderr, "The purpose of this tool is,to allow plugin to run in its own process\n");
+  fprintf (stderr, "It is normally started by OpenSync. But you can start it yourself, for\n");
+  fprintf (stderr, "debugging purposes (in gdb for example).\n\n");
+  fprintf (stderr, "Usage:\n");
+  fprintf (stderr, "osplugin <PipePath>\n\n");
+  fprintf (stderr, "The pipe path tells the plugin, where to create the listing pipe.\n");
+  fprintf (stderr, "The pipe is normally created in the member directory with the name\n");
+  fprintf (stderr, "\"pluginpipe\"\n");
+  exit (ecode);
+}
+
 /** The setup process for the client is as follows:
  * 
  * 3 cases:
@@ -39,7 +53,9 @@
 int main(int argc, char **argv)
 {
 	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
-	osync_assert(argc == 2 || argc == 4);
+	
+	if (argc != 2 && argc != 4)
+		usage(0);
 	
 	osync_bool usePipes = FALSE;
 	OSyncError *error = NULL;
@@ -98,7 +114,7 @@ int main(int argc, char **argv)
 		osync_client_set_incoming_queue(client, incoming);
 	}
 
-	osync_client_run(client);
+	osync_client_run_and_block(client);
 	
 	osync_client_unref(client);
 	

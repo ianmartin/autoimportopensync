@@ -25,85 +25,6 @@
 #include "opensync-plugin.h"
 #include "opensync_plugin_env_internals.h"
 
-/*! @brief Loads the modules from a given directory
- * 
- * Loads all modules from a directory into a osync environment
- * 
- * @param env Pointer to a OSyncEnv environment
- * @param path The path where to look for plugins, NULL for the default sync module directory
- * @param must_exist If set to TRUE, this function will return an error if the directory does not exist
- * @param error Pointer to a error struct to return a error
- * @returns TRUE on success, FALSE otherwise
- * 
- */
-static osync_bool _osync_plugin_env_load_modules(OSyncPluginEnv *env, const char *path, osync_bool must_exist, OSyncError **error)
-{
-	GDir *dir = NULL;
-	GError *gerror = NULL;
-	char *filename = NULL;
-	OSyncModule *module = NULL;
-	const gchar *de = NULL;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i, %p)", __func__, env, path, must_exist, error);
-	osync_assert(env);
-	osync_assert(path);
-	
-	//Load all available shared libraries (plugins)
-	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
-		if (must_exist) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");
-			goto error;
-		} else {
-			osync_trace(TRACE_EXIT, "%s: Directory does not exist (non-fatal)", __func__);
-			return TRUE;
-		}
-	}
-	
-	dir = g_dir_open(path, 0, &gerror);
-	if (!dir) {
-		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", path, gerror->message);
-		g_error_free(gerror);
-		goto error;
-	}
-	
-	while ((de = g_dir_read_name(dir))) {
-		filename = g_strdup_printf ("%s/%s", path, de);
-		
-		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.so", filename)) {
-			g_free(filename);
-			continue;
-		}
-		
-		module = osync_module_new(error);
-		if (!module)
-			goto error_free_filename;
-		
-		if (!osync_module_load(module, filename, error)) {
-			osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename, osync_error_print(error));
-			osync_error_unref(error);
-			osync_module_free(module);
-		} else {
-			if (!osync_module_get_sync_info(module, env, error))
-				goto error_free_module;
-		}
-		g_free(filename);
-	}
-	
-	g_dir_close(dir);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error_free_module:
-	osync_module_free(module);
-error_free_filename:
-	g_free(filename);
-	g_dir_close(dir);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
 /**
  * @defgroup PublicAPI Public APIs
  * @brief Available public APIs
@@ -193,6 +114,11 @@ void osync_plugin_env_free(OSyncPluginEnv *env)
 osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncError **error)
 {
 	osync_bool must_exist = TRUE;
+	GDir *dir = NULL;
+	GError *gerror = NULL;
+	char *filename = NULL;
+	const gchar *de = NULL;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
 	
 	if (!path) {
@@ -200,13 +126,101 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 		must_exist = FALSE;
 	}
 	
-	if (!_osync_plugin_env_load_modules(env, path, must_exist, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+	//Load all available shared libraries (plugins)
+	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		if (must_exist) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");
+			goto error;
+		} else {
+			osync_trace(TRACE_EXIT, "%s: Directory does not exist (non-fatal)", __func__);
+			return TRUE;
+		}
+	}
+	
+	dir = g_dir_open(path, 0, &gerror);
+	if (!dir) {
+		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", path, gerror->message);
+		g_error_free(gerror);
+		goto error;
+	}
+	
+	while ((de = g_dir_read_name(dir))) {
+		filename = g_strdup_printf ("%s/%s", path, de);
+		
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.so", filename)) {
+			g_free(filename);
+			continue;
+		}
+		
+		if (!osync_plugin_env_load_module(env, filename, error)) {
+			osync_trace(TRACE_ERROR, "Unable to load module: %s", osync_error_print(error));
+			osync_error_unref(error);
+		}
+		
+		g_free(filename);
+	}
+	
+	g_dir_close(dir);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+void osync_plugin_env_register_plugin(OSyncPluginEnv *env, OSyncPlugin *plugin)
+{
+	osync_assert(env);
+	osync_assert(plugin);
+	
+	env->plugins = g_list_append(env->plugins, plugin);
+	osync_plugin_ref(plugin);
+}
+
+osync_bool osync_plugin_env_load_module(OSyncPluginEnv *env, const char *filename, OSyncError **error)
+{
+	OSyncModule *module = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, filename, error);
+	osync_assert(env);
+	osync_assert(filename);
+	
+	module = osync_module_new(error);
+	if (!module)
+		goto error;
+	
+	if (!osync_module_load(module, filename, error)) {
+		osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename, osync_error_print(error));
+		osync_error_unref(error);
+		osync_module_free(module);
+	} else {
+		if (!osync_module_check(module, error)) {
+			if (osync_error_is_set(error)) {
+				osync_trace(TRACE_INTERNAL, "Module check error for %s: %s", filename, osync_error_print(error));
+				osync_error_unref(error);
+			}
+			osync_module_unload(module);
+			osync_module_free(module);
+			osync_trace(TRACE_EXIT, "%s: Unable to load module", __func__);
+			return TRUE;
+		}
+		
+		if (!osync_module_get_sync_info(module, env, error))
+			goto error_free_module;
+		env->modules = g_list_append(env->modules, module);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_free_module:
+	osync_module_unload(module);
+	osync_module_free(module);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*! @brief Finds the plugin with the given name

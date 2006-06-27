@@ -68,6 +68,14 @@ const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink)
 	return sink->objtype;
 }
 
+void osync_objtype_sink_set_name(OSyncObjTypeSink *sink, const char *name)
+{
+	osync_assert(sink);
+	if (sink->objtype)
+		g_free(sink->objtype);
+	sink->objtype = g_strdup(name);
+}
+
 int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
@@ -100,6 +108,12 @@ void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *for
 	}
 }
 
+void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions)
+{
+	osync_assert(sink);
+	sink->functions = functions;
+}
+
 /** @brief Queries a plugin for the changed objects since the last sync
  * 
  * Calls the get_changeinfo function on a plugin
@@ -109,10 +123,10 @@ void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *for
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sink, plugindata, info, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
@@ -122,7 +136,7 @@ void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx)
 		osync_trace(TRACE_EXIT_ERROR, "%s: No get_changes function was given", __func__);
 		return;
 	}
-	functions.get_changes(ctx);
+	functions.get_changes(plugindata, info, ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -136,10 +150,10 @@ void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx)
+void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sink, change, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, sink, plugindata, info, change, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	osync_assert(change);
@@ -150,7 +164,7 @@ void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change,
 		osync_trace(TRACE_EXIT_ERROR, "%s: No read function was given", __func__);
 		return;
 	}
-	functions.read(ctx, change);
+	functions.read(plugindata, info, ctx, change);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -163,10 +177,10 @@ void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, OSyncChange *change,
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_connect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sink, plugindata, info, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
@@ -176,7 +190,7 @@ void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx)
 		osync_trace(TRACE_EXIT_ERROR, "%s: No connect function was given", __func__);
 		return;
 	}
-	functions.connect(ctx);
+	functions.connect(plugindata, info, ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -189,10 +203,10 @@ void osync_objtype_sink_connect(OSyncObjTypeSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sink, plugindata, info, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
@@ -202,7 +216,7 @@ void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx)
 		osync_trace(TRACE_EXIT_ERROR, "%s: No disconnect function was given", __func__);
 		return;
 	}
-	functions.disconnect(ctx);
+	functions.disconnect(plugindata, info, ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -215,10 +229,10 @@ void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sink, plugindata, info, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
@@ -228,7 +242,7 @@ void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx)
 		osync_trace(TRACE_EXIT_ERROR, "%s: No sync_done function was given", __func__);
 		return;
 	}
-	functions.sync_done(ctx);
+	functions.sync_done(plugindata, info, ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -242,10 +256,10 @@ void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, OSyncContext *ctx)
  * @param user_data User data that will be passed on to the callback function
  * 
  */
-void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *change, OSyncContext *ctx)
+void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, sink, change, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, sink, plugindata, info, change, ctx);
 	g_assert(sink);
 	g_assert(change);
 	g_assert(ctx);
@@ -265,7 +279,7 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *chang
 			osync_trace(TRACE_EXIT_ERROR, "%s: No commit_change function was given", __func__);
 			return;
 		}
-		functions.commit(ctx, change);
+		functions.commit(plugindata, info, ctx, change);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -281,7 +295,7 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, OSyncChange *chang
  * @param user_data The userdata to pass to the callback
  * 
  */
-void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx)
+void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncObjTypeSinkFunctions functions;
 	int i = 0;
@@ -290,7 +304,7 @@ void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx)
 	OSyncChange *change = NULL;
 	OSyncContext *context = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, sink, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sink, plugindata, info, ctx);
 	osync_assert(sink);
 	osync_assert(ctx);
 	
@@ -315,12 +329,12 @@ void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, OSyncContext *ctx)
 		g_list_free(sink->commit_changes);
 		g_list_free(sink->commit_contexts);
 		
-		functions.batch_commit(ctx, contexts, changes);
+		functions.batch_commit(plugindata, info, ctx, contexts, changes);
 		
 		g_free(changes);
 		g_free(contexts);
 	} else if (functions.committed_all) {
-		functions.committed_all(ctx);
+		functions.committed_all(plugindata, info, ctx);
 	} else {
 		osync_context_report_success(ctx);
 	}
@@ -338,4 +352,16 @@ void osync_objtype_sink_set_enabled(OSyncObjTypeSink *sink, osync_bool enabled)
 {
 	osync_assert(sink);
 	sink->enabled = enabled;
+}
+
+osync_bool osync_objtype_sink_is_available(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->available;
+}
+
+void osync_objtype_sink_set_available(OSyncObjTypeSink *sink, osync_bool available)
+{
+	osync_assert(sink);
+	sink->available = available;
 }

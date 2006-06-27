@@ -495,3 +495,29 @@
    obj:*
    fun:dl_open_worker
 }
+
+{
+   supp29
+   Memcheck:Free
+   fun:free
+   fun:free_mem
+   fun:__libc_freeres
+   fun:_vgw_freeres
+   fun:exit
+}
+
+{
+   supp30
+   Memcheck:Cond
+   fun:__pthread_manager
+   fun:clone
+}
+
+{
+   supp31
+   Memcheck:Param
+   clone(child_tidptr)
+   fun:clone
+   fun:clone
+}
+

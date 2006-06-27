@@ -18,17 +18,10 @@
  * 
  */
 
-#ifndef OPENSYNC_CLIENT_H_
-#define OPENSYNC_CLIENT_H_
+#ifndef OPENSYNCCLIENT_H_
+#define OPENSYNCCLIENT_H_
 
-OSyncClient *osync_client_new(OSyncError **error);
-void osync_client_ref(OSyncClient *client);
-void osync_client_unref(OSyncClient *client);
+#include "client/opensync_client.h"
+#include "client/opensync_client_proxy.h"
 
-void osync_client_set_incoming_queue(OSyncClient *client, OSyncQueue *incoming);
-void osync_client_set_outgoing_queue(OSyncClient *client, OSyncQueue *outgoing);
-
-void osync_client_run(OSyncClient *client);
-void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
-
-#endif /*OPENSYNC_CLIENT_H_*/
+#endif /*OPENSYNCCLIENT_H_*/

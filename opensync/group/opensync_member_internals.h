@@ -35,6 +35,8 @@ struct OSyncMember {
 	GList *objtypes;
 	GList *filters;
 	int ref_count;
+	
+	OSyncStartType starttype;
 };
 
 #endif /* _OPENSYNC_MEMBER_INTERNALS_H_ */

@@ -26,6 +26,7 @@
 
 #include "opensync-data.h"
 #include "opensync-format.h"
+#include "opensync-plugin.h"
 
 osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError **error)
 {
@@ -172,6 +173,7 @@ osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyn
 error:
 	return FALSE;
 }
+
 osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, OSyncFormatEnv *env, OSyncError **error)
 {
 	/* Order:
@@ -225,6 +227,69 @@ osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, O
 
 error_free_change:
 	osync_change_unref(*change);
+error:
+	return FALSE;
+}
+
+osync_bool osync_marshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink *sink, OSyncError **error)
+{
+	/* Order:
+	 * 
+	 * name
+	 * number of formats
+	 * format list (string)
+	 * enabled */
+	
+	int i = 0;
+	int num = osync_objtype_sink_num_objformats(sink);
+	osync_message_write_string(message, osync_objtype_sink_get_name(sink));
+	osync_message_write_int(message, num);
+	
+	for (i = 0; i < num; i++) {
+		const char *format = osync_objtype_sink_nth_objformat(sink, i);
+		osync_message_write_string(message, format);
+	}
+	
+	osync_message_write_int(message, osync_objtype_sink_is_enabled(sink));
+	
+	return TRUE;
+}
+
+osync_bool osync_demarshal_objtype_sink(OSyncMessage *message, OSyncObjTypeSink **sink, OSyncError **error)
+{
+	/* Order:
+	 * 
+	 * name
+	 * number of formats
+	 * format list (string)
+	 * enabled */
+	
+	*sink = osync_objtype_sink_new(NULL, error);
+	if (!*sink)
+		goto error;
+
+	char *name = NULL;
+	int num_formats = 0;
+	int enabled = 0;
+	char *format = NULL;
+	
+ 	osync_message_read_string(message, &name);
+ 	osync_objtype_sink_set_name(*sink, name);
+ 	g_free(name);
+ 	
+	osync_message_read_int(message, &num_formats);
+	int i = 0;
+	for (i = 0; i < num_formats; i++) {
+ 		osync_message_read_string(message, &format);
+		osync_objtype_sink_add_objformat(*sink, format);
+ 		g_free(format);
+	}
+
+	osync_message_read_int(message, &enabled);
+	osync_objtype_sink_set_enabled(*sink, enabled);
+
+	return TRUE;
+
 error:
 	return FALSE;
 }

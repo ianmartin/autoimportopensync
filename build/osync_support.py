@@ -1,9 +1,9 @@
 import os
 import sys
 
-def CheckPKGConfig(context, pkg_config_path, version):
+def CheckPKGConfig(context, version):
      context.Message( 'Checking for pkg-config... ' )
-     ret = context.TryAction("\"" + pkg_config_path + '\" --atleast-pkgconfig-version=%s' % version)[0]
+     ret = context.TryAction('pkg-config --atleast-pkgconfig-version=%s' % version)[0]
      context.Result( ret )
      return ret
 
@@ -23,7 +23,7 @@ def SelectBuildDir(build_dir, platform=None):
 
     # setup where we start looking at first
     test_dir = build_dir + os.sep + platform
-    default_dir = build_dir + os.sep + 'default'
+    default_dir = build_dir + os.sep + 'linux'
 
 
     # we look for a directory named exactly after the

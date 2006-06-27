@@ -24,7 +24,9 @@
 OSYNC_EXPORT OSyncPluginEnv *osync_plugin_env_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_env_free(OSyncPluginEnv *env);
 OSYNC_EXPORT osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_plugin_env_load_module(OSyncPluginEnv *env, const char *filename, OSyncError **error);
 
+OSYNC_EXPORT void osync_plugin_env_register_plugin(OSyncPluginEnv *env, OSyncPlugin *plugin);
 OSYNC_EXPORT OSyncPlugin *osync_plugin_env_find_plugin(OSyncPluginEnv *env, const char *name);
 OSYNC_EXPORT int osync_plugin_env_num_plugins(OSyncPluginEnv *env);
 OSYNC_EXPORT OSyncPlugin *osync_plugin_env_nth_plugin(OSyncPluginEnv *env, int nth);

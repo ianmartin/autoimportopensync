@@ -55,6 +55,15 @@ void osync_plugin_info_unref(OSyncPluginInfo *info)
 		if (info->configdir)
 			g_free(info->configdir);
 		
+		while (info->objtypes) {
+			OSyncObjTypeSink *sink = info->objtypes->data;
+			osync_objtype_sink_unref(sink);
+			info->objtypes = g_list_remove(info->objtypes, sink);
+		}
+		
+		if (info->sink)
+			osync_objtype_sink_unref(info->sink);
+		
 		g_free(info);
 	}
 }

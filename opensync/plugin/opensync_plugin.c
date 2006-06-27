@@ -180,6 +180,12 @@ void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin)
 	plugin->finalize = fin;
 }
 
+void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn discover)
+{
+	osync_assert(plugin);
+	plugin->discover = discover;
+}
+
 void osync_plugin_set_objtypes(OSyncPlugin *plugin, finalize_fn fin)
 {
 	osync_assert(plugin);
@@ -197,6 +203,15 @@ void osync_plugin_finalize(OSyncPlugin *plugin, void *data)
 {
 	osync_assert(plugin);
 	plugin->finalize(data);
+}
+
+osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_assert(plugin);
+	if (!plugin->discover)
+		return TRUE;
+		
+	return plugin->discover(data, info, error);
 }
 
 /*! @brief Checks if a plugin is available and usable

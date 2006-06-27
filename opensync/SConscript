@@ -20,6 +20,14 @@ format/opensync_filter.c
 format/opensync_format_env.c
 format/opensync_objformat.c
 data/opensync_data.c
+data/opensync_change.c
+ipc/opensync_queue.c
+ipc/opensync_message.c
+ipc/opensync_serializer.c
+client/opensync_client.c
+client/opensync_client_proxy.c
+engine/opensync_engine.c
+engine/opensync_sink_engine.c
 """
 
 headers = """
@@ -35,6 +43,7 @@ opensync-ipc.h
 opensync-module.h
 opensync-plugin.h
 opensync-support.h
+opensync-client.h
 """
 
 plugin_headers = """
@@ -59,6 +68,13 @@ format/opensync_objformat.h
 
 data_headers = """
 data/opensync_data.h
+data/opensync_change.h
+"""
+
+ipc_headers = """
+ipc/opensync_queue.h
+ipc/opensync_message.h
+ipc/opensync_serializer.h
 """
 
 Libraries = r"""
@@ -68,12 +84,15 @@ gmodule-2.0
 libxml2
 """
 
-libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries), LIBPATH = 'C:\Documents and Settings\\abauer\Desktop\glib\lib')
+libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries))
+osplugin = env.Program('osplugin', 'client/osplugin.c', LIBS = 'opensync', LIBPATH='#opensync')
 
 env.Install(install_lib, libopensync)
+env.Install(install_bin, osplugin)
 env.Install(install_inc + '/opensync-1.0/opensync/', Split(headers))
 env.Install(install_inc + '/opensync-1.0/opensync/plugin', Split(plugin_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/group', Split(group_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/format', Split(format_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/data', Split(data_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/ipc', Split(ipc_headers))
 env.Alias('install', install_prefix)

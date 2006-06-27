@@ -112,15 +112,59 @@ static void _osync_client_connect_callback(void *data, OSyncError *error)
 	}
 	if (!reply)
 		goto error;
+	osync_trace(TRACE_INTERNAL, "Reply id %lli", osync_message_get_id(reply));
 
 	_free_baton(baton);
-
-	osync_queue_send_message(client->outgoing, NULL, reply, NULL);
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, &locerror))
+		goto error_free_message;
+	
 	osync_message_unref(reply);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
+	
+error_free_message:
+	osync_message_unref(reply);
+error:
+	_free_baton(baton);
+	osync_client_error_shutdown(client, locerror);
+	osync_error_unref(&locerror);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
 
+static void _osync_client_disconnect_callback(void *data, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, data, error);
+	OSyncError *locerror = NULL;
+	callContext *baton = data;
+
+	OSyncMessage *message = baton->message;
+	OSyncClient *client = baton->client;
+
+	OSyncMessage *reply = NULL;
+	if (!osync_error_is_set(&error)) {
+		reply = osync_message_new_reply(message, &locerror);
+	} else {
+		reply = osync_message_new_errorreply(message, error, &locerror);
+	}
+	if (!reply)
+		goto error;
+	osync_trace(TRACE_INTERNAL, "Reply id %lli", osync_message_get_id(reply));
+
+	_free_baton(baton);
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, &locerror))
+		goto error_free_message;
+	
+	osync_message_unref(reply);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_message:
+	osync_message_unref(reply);
 error:
 	_free_baton(baton);
 	osync_client_error_shutdown(client, locerror);
@@ -131,12 +175,18 @@ error:
 
 static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMessage *message, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 	OSyncMessage *reply = NULL;
 	char *enginepipe = NULL;
 	char *pluginname = NULL;
+	char *plugindir = NULL;
 	char *configdir = NULL;
+	char *formatdir = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+	
 	osync_message_read_string(message, &enginepipe);
+	osync_message_read_string(message, &formatdir);
+	osync_message_read_string(message, &plugindir);
 	osync_message_read_string(message, &pluginname);
 	osync_message_read_string(message, &configdir);
 	
@@ -160,7 +210,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	if (!client->plugin_env)
 		goto error;
 	
-	if (!osync_plugin_env_load(client->plugin_env, NULL, error))
+	if (!osync_plugin_env_load(client->plugin_env, plugindir, error))
 		goto error;
 
 	client->plugin = osync_plugin_env_find_plugin(client->plugin_env, pluginname);
@@ -190,6 +240,12 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	
 	osync_message_unref(reply);
 		
+	g_free(enginepipe);
+	g_free(pluginname);
+	g_free(configdir);
+	g_free(plugindir);
+	g_free(formatdir);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 	
@@ -201,6 +257,8 @@ error:
 	g_free(enginepipe);
 	g_free(pluginname);
 	g_free(configdir);
+	g_free(plugindir);
+	g_free(formatdir);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
@@ -208,6 +266,17 @@ error:
 static osync_bool _osync_client_handle_finalize(OSyncClient *client, OSyncMessage *message, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+	
+	osync_plugin_finalize(client->plugin, client->plugin_data);
+	
+	osync_plugin_unref(client->plugin);
+	client->plugin = NULL;
+	
+	osync_plugin_env_free(client->plugin_env);
+	client->plugin_env = NULL;
+	
+	osync_plugin_info_unref(client->plugin_info);
+	client->plugin_info = NULL;
 	
 	OSyncMessage *reply = osync_message_new_reply(message, NULL);
 	if (!reply)
@@ -217,23 +286,52 @@ static osync_bool _osync_client_handle_finalize(OSyncClient *client, OSyncMessag
 		goto error_free_message;
 	
 	osync_message_unref(reply);
-	
-	/* First, we disconnect our incoming queue. This will generate a HUP on the remote
-	 * side. We dont disconnect our outgoing queue yet, since we have to make sure that
-	 * all data is read. Only the listener should disconnect a pipe! */
-	if (!osync_queue_disconnect(client->incoming, error))
-		goto error;
-
-	/* We now wait until the other side disconnect our outgoing queue */
-	while (osync_queue_is_connected(client->outgoing)) { usleep(100); }
-	
-	/* Now we can safely disconnect our outgoing queue */
-	if (!osync_queue_disconnect(client->outgoing, error))
-		goto error;
-
-	/* now we can quit the main loop */
-	g_main_loop_quit(client->syncloop);
 		
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error_free_message:
+	osync_message_unref(reply);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessage *message, OSyncError **error)
+{
+	OSyncMessage *reply = NULL;
+	int i = 0;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+
+	if (!osync_plugin_discover(client->plugin, client->plugin_data, client->plugin_info, error))
+		goto error;
+
+	reply = osync_message_new_reply(message, error);
+	if (!reply)
+		goto error;
+
+	if (osync_plugin_info_get_sink(client->plugin_info))
+		osync_message_write_int(reply, 1);
+	else
+		osync_message_write_int(reply, 0);
+
+	int numobjs = osync_plugin_info_num_objtypes(client->plugin_info);
+	osync_message_write_int(reply, numobjs);
+	
+	for (i = 0; i < numobjs; i++) {
+		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(client->plugin_info, i);
+		if (osync_objtype_sink_is_available(sink)) {
+			if (!osync_marshal_objtype_sink(reply, sink, error))
+				goto error_free_message;
+		}
+	}
+
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
+		goto error_free_message;
+	
+	osync_message_unref(reply);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 	
@@ -250,6 +348,7 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 
 	char *objtype = NULL;
 	osync_message_read_string(message, &objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype)
@@ -259,15 +358,56 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		
 	if (!sink) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+		g_free(objtype);
 		goto error;
 	}
+	g_free(objtype);
 	
 	OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, error);
 	if (!context)
 		goto error;
 	
-	osync_objtype_sink_connect(sink, context);
+	osync_objtype_sink_connect(sink, client->plugin_data, client->plugin_info, context);
+	
+	osync_context_unref(context);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMessage *message, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+
+	char *objtype = NULL;
+	osync_message_read_string(message, &objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	
+	OSyncObjTypeSink *sink = NULL;
+	if (objtype)
+		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
+	else
+		sink = osync_plugin_info_get_sink(client->plugin_info);
 		
+	if (!sink) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+		g_free(objtype);
+		goto error;
+	}
+	g_free(objtype);
+	
+	OSyncContext *context = _create_context(client, message, _osync_client_disconnect_callback, error);
+	if (!context)
+		goto error;
+	
+	osync_objtype_sink_disconnect(sink, client->plugin_data, client->plugin_info, context);
+		
+	osync_context_unref(context);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 	
@@ -312,8 +452,18 @@ static void _osync_client_message_handler(OSyncMessage *message, void *user_data
 				goto error;
 			break;
 			
+		case OSYNC_MESSAGE_DISCOVER:
+			if (!_osync_client_handle_discover(client, message, &error))
+				goto error;
+			break;
+			
 		case OSYNC_MESSAGE_CONNECT:
 			if (!_osync_client_handle_connect(client, message, &error))
+				goto error;
+			break;
+	
+		case OSYNC_MESSAGE_DISCONNECT:
+			if (!_osync_client_handle_disconnect(client, message, &error))
 				goto error;
 			break;
 			
@@ -333,14 +483,6 @@ static void _osync_client_message_handler(OSyncMessage *message, void *user_data
 			ctx->message = message;
 			osync_message_ref(message);
 	  		osync_member_sync_done(member, (OSyncEngCallback)message_callback, ctx);*/
-			break;
-	
-		case OSYNC_MESSAGE_DISCONNECT:
-			/*ctx = g_malloc0(sizeof(context));
-			ctx->pp = pp;
-			ctx->message = message;
-			osync_message_ref(message);
-	  		osync_member_disconnect(member, (OSyncEngCallback)message_callback, ctx);*/
 			break;
 			
 	  	case OSYNC_MESSAGE_COMMITTED_ALL:
@@ -409,16 +551,53 @@ error:;
 	osync_error_unref(&error);
 }
 
+/** This function takes care of the messages received on the outgoing (sending)
+ * queue. The only messages we can receive there, are HUPs or ERRORs. */
+static void _osync_client_hup_handler(OSyncMessage *message, void *user_data)
+{
+	OSyncClient *client = user_data;
+	OSyncError *error = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
+
+	osync_trace(TRACE_INTERNAL, "plugin received command %i on sending queue", osync_message_get_command(message));
+
+	if (osync_message_get_command(message) == OSYNC_MESSAGE_QUEUE_ERROR) {
+		/* Houston, we have a problem */
+	} else if (osync_message_get_command(message) == OSYNC_MESSAGE_QUEUE_HUP) {
+		/* The remote side disconnected. So we can now disconnect as well and then
+		 * shutdown */
+		if (!osync_queue_disconnect(client->outgoing, &error))
+			osync_error_unref(&error);
+		
+		if (!osync_queue_disconnect(client->incoming, &error))
+			osync_error_unref(&error);
+		
+		if (client->syncloop) {
+			g_main_loop_quit(client->syncloop);
+		}
+	} else {
+		/* This should never ever happen */
+		osync_trace(TRACE_ERROR, "received neither a hup, nor a error on a sending queue...");
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
 OSyncClient *osync_client_new(OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+	
 	OSyncClient *client = osync_try_malloc0(sizeof(OSyncClient), error);
-	if (!client)
+	if (!client) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
+	}
 	
 	client->ref_count = 1;
 	client->context = g_main_context_new();
-	client->syncloop = g_main_loop_new(client->context, TRUE);
 	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, client);
 	return client;
 }
 
@@ -434,14 +613,18 @@ void osync_client_unref(OSyncClient *client)
 	osync_assert(client);
 	
 	if (g_atomic_int_dec_and_test(&(client->ref_count))) {
+		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
+		
 		if (client->incoming) {
-			osync_queue_disconnect(client->incoming, NULL);
+			if (osync_queue_is_connected(client->incoming))
+				osync_queue_disconnect(client->incoming, NULL);
 			osync_queue_remove(client->incoming, NULL);
 			osync_queue_free(client->incoming);
 		}
 	
 		if (client->outgoing) {
-			osync_queue_disconnect(client->incoming, NULL);
+			if (osync_queue_is_connected(client->outgoing))
+				osync_queue_disconnect(client->outgoing, NULL);
 			osync_queue_free(client->outgoing);
 		}
 	
@@ -449,6 +632,8 @@ void osync_client_unref(OSyncClient *client)
 			osync_plugin_unref(client->plugin);
 		
 		g_free(client);
+		
+		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
 }
 
@@ -461,24 +646,81 @@ void osync_client_set_incoming_queue(OSyncClient *client, OSyncQueue *incoming)
 
 void osync_client_set_outgoing_queue(OSyncClient *client, OSyncQueue *outgoing)
 {
-	osync_queue_set_message_handler(outgoing, _osync_client_message_handler, client);
+	osync_queue_set_message_handler(outgoing, _osync_client_hup_handler, client);
 	osync_queue_setup_with_gmainloop(outgoing, client->context);
 	client->outgoing = outgoing;
 }
 
-void osync_client_run(OSyncClient *client)
+void osync_client_run_and_block(OSyncClient *client)
 {
+	client->syncloop = g_main_loop_new(client->context, TRUE);
 	g_main_loop_run(client->syncloop);
 }
 
-void osync_client_error_shutdown(OSyncClient *client, OSyncError *error)
+osync_bool osync_client_run(OSyncClient *client, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, client, error);
+	client->thread = osync_thread_new(client->context, error);
+	if (!client->thread)
+		return FALSE;
+		
+	osync_thread_start(client->thread);
+	
+	return TRUE;
+}
 
-	OSyncMessage *message = osync_message_new_error(error, NULL);
-	if (message)
-		osync_queue_send_message(client->outgoing, NULL, message, NULL);
+static gboolean osyncClientConnectCallback(gpointer data)
+{
+	OSyncClient *client = data;
+	osync_trace(TRACE_INTERNAL, "About to connect to the incoming queue");
+	
+	/* We now connect to our incoming queue */
+	osync_queue_connect(client->incoming, OSYNC_QUEUE_RECEIVER, NULL);
+	
+	return FALSE;
+}
 
+
+osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, client, pipe_path, error);
+	/* Create connection pipes **/
+	OSyncQueue *incoming = osync_queue_new(pipe_path, error);
+	if (!incoming)
+		goto error;
+	
+	if (!osync_queue_create(incoming, error))
+		goto error_free_queue;
+	
+	osync_client_set_incoming_queue(client, incoming);
+	
+	client->thread = osync_thread_new(client->context, error);
+	if (!client->thread)
+		goto error_remove_queue;
+	
+	osync_thread_start(client->thread);
+	
+	GSource *source = NULL;
+	
+	source = g_idle_source_new();
+	g_source_set_callback(source, osyncClientConnectCallback, client, NULL);
+	g_source_attach(source, client->context);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_remove_queue:
+	osync_queue_remove(incoming, NULL);
+error_free_queue:
+	osync_queue_free(incoming);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static gboolean osyncClientStopCallback(gpointer data)
+{
+	OSyncClient *client = data;
+	
 	/* First, we disconnect our incoming queue. This will generate a HUP on the remote
 	 * side. We dont disconnect our outgoing queue yet, since we have to make sure that
 	 * all data is read. Only the listener should disconnect a pipe! */
@@ -492,6 +734,44 @@ void osync_client_error_shutdown(OSyncClient *client, OSyncError *error)
 
 	/* now we can quit the main loop */
 	g_main_loop_quit(client->syncloop);
+	return FALSE;
+}
+
+void osync_client_shutdown(OSyncClient *client)
+{
+	GSource *source = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
+	osync_assert(client);
+	
+	if (client->syncloop) {
+		if (g_main_loop_is_running(client->syncloop)) {
+			source = g_idle_source_new();
+			g_source_set_callback(source, osyncClientStopCallback, client, NULL);
+			g_source_attach(source, client->context);
+			
+			g_source_unref(source);
+		}
+		
+		g_main_loop_unref(client->syncloop);
+		client->syncloop = NULL;
+	} else if (client->thread) {
+		osync_thread_stop(client->thread);
+		osync_thread_free(client->thread);
+		client->thread = NULL;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_client_error_shutdown(OSyncClient *client, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, client, error);
+
+	OSyncMessage *message = osync_message_new_error(error, NULL);
+	if (message)
+		osync_queue_send_message(client->outgoing, NULL, message, NULL);
+
+	osync_client_shutdown(client);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

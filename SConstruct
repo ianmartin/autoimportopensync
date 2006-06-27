@@ -1,69 +1,63 @@
-from support import *
-from os import *
+import sys
+import os
+sys.path.append('build')
+from osync_support import *
 
-version = "0.30"
-plugin_version = 1
 
-path_sep = r"\\"
+#Define the default values for some variables. Take note, that they might
+#get overwriten by the scons files in the build directory
 
-#pkg_config = ARGUMENTS.get('with-pkg-config', 'pkg-config')
-#pkg_config_path = ARGUMENTS.get('pkg-config-path', '/usr/lib/pkgconfig')
 
-env = Environment()
+class BuildConfig:
+	version = "0.30"
+	plugin_version = 1
+	path_sep = r"/"
+	plugindir = r"$prefix/libs/opensync/plugins"
+	formatdir = r"$prefix/libs/opensync/formats"
+	configdir = r"$prefix/share/opensync/defaults"
+
+config = BuildConfig()
 
 # Get our configuration options:
+env = Environment()
 opts = Options('libopensync.conf')
-opts.Add('prefix', 'Directory to install under', '/usr/local')
+opts.Add(BoolOption('debug', 'Should debugging be enabled?', 1))
 opts.Add(BoolOption('enable_trace', 'Should tracing be enabled?', 1))
-opts.Add('sqlite_headers', 'Path to location of sqlite header', '/usr/include')
-opts.Add('sqlite_libs', 'Path to location of sqlite libs', '/usr/lib')
+opts.Add(BoolOption('enable_tests', 'Should the unit tests be enabled', 1))
+opts.Add(BoolOption('enable_tools', 'Should the developer tools be build', 1))
+opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled', 0))
+
+target_dir = SelectBuildDir('build')
+sys.path.append(target_dir)
+from osync_build import *
+target_dir = '#' + target_dir
+configure(opts)
+SConsignFile()
+
 opts.Update(env)
 opts.Save('libopensync.conf', env)
 
-Help(opts.GenerateHelpText(env))
+env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
+env.Append(CCFLAGS = r'-DENABLE_TESTS=$enable_tests')
+env.Append(CCFLAGS = r'-DENABLE_TOOLS=$enable_tools')
+env.Append(CCFLAGS = r'-DENABLE_PROFILING=$enable_profiling')
 
-#conf = Configure(env, custom_tests = { 'CheckPKGConfig' : CheckPKGConfig,
-#                                       'CheckPKG' : CheckPKG })
+Help("""
+++++++++++++++++++++++++++++++++++++
+Welcome to the OpenSync Help System!
 
-#if not conf.CheckPKGConfig(pkg_config, '0.15.0'):
-#     print 'pkg-config (' + pkg_config + ') >= 0.15.0 not found.'
-#     Exit(1)
 
-#if not conf.CheckPKG('glib-2.0 >= 2.4'):
-#     print 'glib-2.0 >= 2.4 not found.'
-#     Exit(1)
+You can set the following options:
+""" + opts.GenerateHelpText(env))
 
-#env = conf.Finish()
+testenv = check(env, config)
 
 install_prefix = '$prefix'
 install_lib    = '$prefix/lib'
 install_bin    = '$prefix/bin'
 install_inc    = '$prefix/include'
 
-env.Append(CCFLAGS = '-DOPENSYNC_PLUGINDIR=\"\\"$prefix/libs/opensync/plugins\\"\"')
-env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"$prefix/libs/opensync/formats\""')
-env.Append(CCFLAGS = '-DOPENSYNC_CONFIGDIR="\\"$prefix' + path_sep + 'share' + path_sep + 'opensync' + path_sep + 'defaults\\"\"')
-env.Append(CCFLAGS = '-DVERSION=\"\\"' + version + '\"\\"')
-env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
-env.Append(CCFLAGS = '-DOPENSYNC_PLUGINVERSION=\"' + str(plugin_version) + '\"')
-env.Append(CCFLAGS = '/I"C:\Documents and Settings\\abauer\Desktop\glib\include"' )
-env.Append(CCFLAGS = '/I.' )
-env.Append(CCFLAGS = '/Iopensync' )
-env.Append(CCFLAGS = '/I"C:\Documents and Settings\\abauer\Desktop\glib\include\glib-2.0"' )
-env.Append(CCFLAGS = '/I"C:\Documents and Settings\\abauer\Desktop\glib\lib\glib-2.0\include"' )
-env.Append(CPPPATH = '.' )
+Export('env opts testenv install_prefix install_lib install_bin install_inc')
 
-#env.ParseConfig('pkg-config --cflags --libs glib-2.0')
-#env.ParseConfig('pkg-config --cflags --libs libxml-2.0')
-
-sources = []
-
-Export('env install_prefix install_lib install_bin install_inc sources')
-
-
-target_dir = '#' + SelectBuildDir('build')
-SConscript('opensync/SConscript')
+SConscript(['opensync/SConscript', 'tests/SConscript'])
 BuildDir(target_dir, 'opensync', duplicate=0)
-Default('opensync')
-
-#SConscript(['opensync/SConscript'], build_dir=SelectBuildDir("build"))

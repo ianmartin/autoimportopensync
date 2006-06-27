@@ -26,6 +26,7 @@
 		if (!condition) fail(msg);       \
 	} while (0)
 
+#if 0
 int mock_custom_function(mock_env *env, int input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, input, error);
@@ -556,4 +557,121 @@ void get_info(OSyncEnv *env)
 	osync_plugin_set_batch_commit_objformat(info, "data", "mockformat", mock_batch_commit);
 	osync_plugin_set_commit_objformat(info, "data", "mockformat", mock_commit_change);
 	osync_plugin_set_committed_all_objformat(info, "data", "mockformat", mock_committed_all);
+}
+#endif
+
+static osync_bool discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	
+	OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, "file");
+	if (!sink) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for file");
+		goto error;
+	}
+	osync_objtype_sink_set_available(sink, TRUE);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	//mock_env *env = (mock_env *)data;
+	//GError *direrror = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+
+	/*env->dir = g_dir_open(env->path, 0, &direrror);
+	if (direrror) {
+		//Unable to open directory
+		osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to open directory %s", env->path);
+		g_error_free(direrror);
+	} else {
+		osync_context_report_success(ctx);
+	}*/
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void *initialize(OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
+	if (!env)
+		goto error;
+
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	if (!sink)
+		goto error;
+	
+	osync_objtype_sink_add_objformat(sink, "file");
+	
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect;
+	functions.disconnect = disconnect;
+	
+	osync_objtype_sink_set_functions(sink, functions);
+	osync_plugin_info_add_objtype(info, sink);
+	osync_objtype_sink_unref(sink);
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	return (void *)env;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static void finalize(void *data)
+{
+	mock_env *env = data;
+	g_free(env);
+}
+
+void get_sync_info(OSyncPluginEnv *env)
+{
+	OSyncError *error = NULL;
+	OSyncPlugin *plugin = osync_plugin_new(&error);
+	if (!plugin)
+		goto error;
+	
+	
+	osync_plugin_set_name(plugin, "mock-sync");
+	osync_plugin_set_longname(plugin, "Mock Sync Plugin");
+	osync_plugin_set_description(plugin, "This is a pseudo plugin");
+	
+	osync_plugin_set_initialize(plugin, initialize);
+	osync_plugin_set_finalize(plugin, finalize);
+	osync_plugin_set_discover(plugin, discover);
+	
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	
+	return;
+	
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+int get_version(void)
+{
+	return 1;
 }

@@ -48,4 +48,7 @@ OSYNC_EXPORT const char *osync_member_nth_objtype(OSyncMember *member, int nth);
 OSYNC_EXPORT osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype);
 OSYNC_EXPORT void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled);
 
+OSYNC_EXPORT void osync_member_set_start_type(OSyncMember *member, OSyncStartType type);
+OSYNC_EXPORT OSyncStartType osync_member_get_start_type(OSyncMember *member);
+
 #endif /* _OPENSYNC_MEMBER_H_ */

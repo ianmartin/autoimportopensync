@@ -27,6 +27,11 @@
 
 #include "opensync_xml.h"
 
+#ifndef _WIN32
+#include <sys/file.h>
+#define g_unlink unlink
+#endif
+
 static void _build_list(gpointer key, gpointer value, gpointer user_data)
 {
 	if (GPOINTER_TO_INT(value) >= 2) {
@@ -245,7 +250,11 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
 	osync_assert(group);
-	osync_assert(group->configdir);
+	
+	if (!group->configdir) {
+		osync_trace(TRACE_EXIT, "%s: OSYNC_LOCK_OK: No configdir", __func__);
+		return OSYNC_LOCK_OK;
+	}
 	
 	if (group->lock_fd) {
 		osync_trace(TRACE_EXIT, "%s: OSYNC_LOCKED, lock_fd existed", __func__);
@@ -334,7 +343,11 @@ void osync_group_unlock(OSyncGroup *group)
 	char *lockfile = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, group);
 	osync_assert(group);
-	osync_assert(group->configdir);
+	
+	if (!group->configdir) {
+		osync_trace(TRACE_EXIT, "%s: No configdir", __func__);
+		return;
+	}
 	
 	if (!group->lock_fd) {
 		osync_trace(TRACE_EXIT, "%s: You have to lock the group before unlocking", __func__);
@@ -350,6 +363,7 @@ void osync_group_unlock(OSyncGroup *group)
 	group->lock_fd = 0;
 	
 	lockfile = g_strdup_printf("%s/lock", group->configdir);
+	
 	g_unlink(lockfile);
 	g_free(lockfile);
 	

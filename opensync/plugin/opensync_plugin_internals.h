@@ -35,6 +35,8 @@ struct OSyncPlugin {
 	/** The function to finalize the plugin. The input will be the output of the initialize function */
 	finalize_fn finalize;
 	
+	discover_fn discover;
+	
 	usable_fn useable;
 	/** Does the plugin have configuration options? */
 	OSyncConfigurationTypes config_type;

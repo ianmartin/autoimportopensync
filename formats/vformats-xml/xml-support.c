@@ -59,7 +59,7 @@ xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data)
 		return NULL;
 	if (strlen(data) == 0)
 		return NULL;
-	xmlNode *node = xmlNewTextChild(parent, NULL, (xmlChar*)name, (xmlChar*)data);
+	xmlNode *node = xmlNewTextChild(parent, NULL, (const xmlChar*)name, (const xmlChar*)data);
 	return node;
 }
 

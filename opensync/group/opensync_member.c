@@ -54,11 +54,12 @@
 OSyncMember *osync_member_new(OSyncError **error)
 {
 	OSyncMember *member = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p)", error);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
 	member = osync_try_malloc0(sizeof(OSyncMember), error);
 	if (!member)
 		goto error;
+	member->starttype = OSYNC_START_TYPE_THREAD;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, member);
 	return member;
@@ -481,6 +482,18 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, 
 		
 	osync_objtype_sink_set_enabled(sink, enabled);
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_member_set_start_type(OSyncMember *member, OSyncStartType type)
+{
+	osync_assert(member);
+	member->starttype = type;
+}
+
+OSyncStartType osync_member_get_start_type(OSyncMember *member)
+{
+	osync_assert(member);
+	return member->starttype;
 }
 
 /*@}*/
