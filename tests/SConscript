@@ -1,0 +1,18 @@
+Import('*')
+
+if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
+	testenv.Program('error', ['check_error.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('module', ['module-tests/check_module.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('ipc', ['ipc-tests/check_ipc.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('checkdata', ['data-tests/check_data.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('conv', ['format-tests/check_conv.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('converter', ['format-tests/check_converter.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('formatenv', ['format-tests/check_format_env.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('objformat', ['format-tests/check_objformat.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	#testenv.Program('merger', ['check_merger.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('client', ['client-tests/check_client.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('proxy', ['client-tests/check_proxy.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('engine', ['engine-tests/check_engine.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	
+	testenv.SharedLibrary('mockformat', ['mock-plugin/mock_format.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.SharedLibrary('mocksync', ['mock-plugin/mock_sync.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')

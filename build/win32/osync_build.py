@@ -1,0 +1,18 @@
+Import('*')
+
+opts.Add('prefix', 'Directory, where opensync should be installed', '/usr/local')
+opts.Add('with_sqlite', 'Path to location of sqlite', '/usr')
+opts.Add('with_check', 'Path to location of sqlite', '/usr')
+
+env.Append(CCFLAGS = '-DOPENSYNC_PLUGINDIR=\"\\"$prefix/libs/opensync/plugins\\"\"')
+env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"$prefix/libs/opensync/formats\""')
+env.Append(CCFLAGS = '-DOPENSYNC_CONFIGDIR="\\"$prefix' + path_sep + 'share' + path_sep + 'opensync' + path_sep + 'defaults\\"\"')
+env.Append(CCFLAGS = '-DVERSION=\"\\"' + version + '\"\\"')
+env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
+env.Append(CCFLAGS = '-DOPENSYNC_PLUGINVERSION=\"' + str(plugin_version) + '\"')
+env.Append(CCFLAGS = '/I"C:\Documents and Settings\\abauer\Desktop\glib\include"' )
+env.Append(CCFLAGS = '/I.' )
+env.Append(CCFLAGS = '/Iopensync' )
+env.Append(CCFLAGS = '/I"C:\Documents and Settings\\abauer\Desktop\glib\include\glib-2.0"' )
+env.Append(CCFLAGS = '/I"C:\Documents and Settings\\abauer\Desktop\glib\lib\glib-2.0\include"' )
+env.Append(CPPPATH = '.' )
