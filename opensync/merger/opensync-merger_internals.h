@@ -3,6 +3,7 @@
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
+#include <libxml/xmlschemas.h>
 
 #include "opensync_capabilities_internals.h"
 #include "opensync_capability_internals.h"

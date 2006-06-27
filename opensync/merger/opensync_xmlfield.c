@@ -52,11 +52,6 @@ OSyncXMLField *_osync_xmlfield_new(OSyncXMLFormat *xmlformat, xmlNodePtr node)
 	return xmlfield;
 }
 
-const char *_osync_xmlfield_get_sortname(void *xmlfield)
-{
-	return (const char *)((OSyncXMLField *)xmlfield)->node->name;
-}
-
 /*@}*/
 
 /**
@@ -68,7 +63,7 @@ const char *_osync_xmlfield_get_sortname(void *xmlfield)
 /*@{*/
 
 /*! @brief Creates a new xmlfield of a xmlfield.
- * 
+ * The returned OSyncXMLField will be freed with the given OSyncXMLFormat object.
  * @param xmlfield The xmlfield to free
  * 
  */
@@ -93,18 +88,18 @@ void osync_xmlfield_free(OSyncXMLField *xmlfield)
 	g_free(xmlfield);
 }
 
-OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield)
-{
-	g_assert(xmlfield);
-	
-	return xmlfield->next;
-}
-
 const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield)
 {
 	g_assert(xmlfield);
 	
 	return (const char *) xmlfield->node->name;
+}
+
+OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield)
+{
+	g_assert(xmlfield);
+	
+	return xmlfield->next;
 }
 
 const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
@@ -257,37 +252,37 @@ void osync_xmlfield_link_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_
 	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
-int osync_xmlfield_compaire(const void *xmlfield1, const void *xmlfield2)
+int osync_xmlfield_compaire_stdlib(const void *xmlfield1, const void *xmlfield2)
 {
 	//g_assert(*(void **)xmlfield1);
 	//g_assert(*(void **)xmlfield2);
 	return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
 }
 
-OSyncXMLField *osync_xmlfield_insert_copy_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_copy)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
-	g_assert(xmlfield);
-	g_assert(to_copy);
-	
-	OSyncXMLField *newxmlfield = g_malloc0(sizeof(OSyncXMLField));
-	xmlNodePtr node = xmlCopyNode(to_copy->node, 1);
-
-	node = xmlAddPrevSibling(xmlfield->node, node);
-	
-	newxmlfield->next = xmlfield;
-	newxmlfield->node = node;
-	newxmlfield->prev = xmlfield->prev;
-	node->_private = newxmlfield;
-
-	if(xmlfield->prev)
-		xmlfield->prev->next = newxmlfield;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = newxmlfield;
-	xmlfield->prev = newxmlfield;
-	
-	osync_trace(TRACE_EXIT, "%s");
-	return newxmlfield;
-}
+//OSyncXMLField *osync_xmlfield_insert_copy_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_copy)
+//{
+//	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
+//	g_assert(xmlfield);
+//	g_assert(to_copy);
+//	
+//	OSyncXMLField *newxmlfield = g_malloc0(sizeof(OSyncXMLField));
+//	xmlNodePtr node = xmlCopyNode(to_copy->node, 1);
+//
+//	node = xmlAddPrevSibling(xmlfield->node, node);
+//	
+//	newxmlfield->next = xmlfield;
+//	newxmlfield->node = node;
+//	newxmlfield->prev = xmlfield->prev;
+//	node->_private = newxmlfield;
+//
+//	if(xmlfield->prev)
+//		xmlfield->prev->next = newxmlfield;
+//	else
+//		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = newxmlfield;
+//	xmlfield->prev = newxmlfield;
+//	
+//	osync_trace(TRACE_EXIT, "%s");
+//	return newxmlfield;
+//}
 
 /*@}*/

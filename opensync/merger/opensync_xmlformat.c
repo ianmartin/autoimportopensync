@@ -1,10 +1,28 @@
+/*
+ * libopensync - A synchronization framework
+ * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * 
+ */
+ 
 #include "opensync.h"
 #include "opensync_internals.h"
 
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"
-
-#include <libxml/xmlschemas.h>
 
 /**
  * @defgroup OSyncXMLFormatAPI OpenSync XMLFormat
@@ -97,66 +115,6 @@ const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat)
 	return (const char *)xmlDocGetRootElement(xmlformat->doc)->name;
 }
 
-void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
-{
-	int index;
-//	xmlNodePtr root;
-	OSyncXMLField *cur;
-	
-	g_assert(xmlformat);
-	
-//	root = xmlDocGetRootElement(xmlformat->doc);
-//	count = 0;
-//	cur = osync_xmlformat_get_first_field(xmlformat);
-//	while(cur != NULL)
-//	{
-//		count++;
-//		cur = osync_xmlfield_get_next(cur);
-//	}
-
-	if(xmlformat->child_count <= 1)
-		return;
-	
-	void **liste = malloc(sizeof(OSyncXMLField *) * xmlformat->child_count);
-	
-	index = 0;
-	cur = osync_xmlformat_get_first_field(xmlformat);
-	while(cur != NULL)
-	{
-		liste[index] = cur;
-		index++;
-		xmlUnlinkNode(cur->node);
-		cur = osync_xmlfield_get_next(cur);
-	}
-	
-	//osync_algorithm_quicksort(liste, 0, count-1, _osync_xmlfield_get_sortname);
-	qsort(liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compaire);
-	/** bring the xmlformat and the xmldoc in a consistent state */
-	xmlformat->first_child = ((OSyncXMLField *)liste[0])->node->_private;
-	xmlformat->last_child = ((OSyncXMLField *)liste[xmlformat->child_count-1])->node->_private;
-
-	index = 0;
-	while(index < xmlformat->child_count)
-	{
-		cur = (OSyncXMLField *)liste[index];
-		xmlAddChild(xmlDocGetRootElement(xmlformat->doc), cur->node);
-			
-		if(index < xmlformat->child_count-1)
-			cur->next = (OSyncXMLField *)liste[index+1];
-		else
-			cur->next = NULL;
-		
-		if(index)
-			cur->prev = (OSyncXMLField *)liste[index-1];
-		else
-			cur->prev = NULL;
-		
-		index++;
-	}
-	
-	free(liste);
-}
-
 OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat)
 {
 	g_assert(xmlformat);
@@ -166,19 +124,9 @@ OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat)
 OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, ...)
 {
 	int index;
-//	xmlNodePtr root;
 	OSyncXMLField *cur, *key, *res;
 	
 	g_assert(xmlformat);
-	
-//	root = xmlDocGetRootElement(xmlformat->doc);
-//	count = 0;
-//	cur = osync_xmlformat_get_first_field(xmlformat);
-//	while(cur != NULL)
-//	{
-//		count++;
-//		cur = osync_xmlfield_get_next(cur);
-//	}
 	
 	void **liste = malloc(sizeof(OSyncXMLField *) * xmlformat->child_count);
 
@@ -193,7 +141,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	
 	key = g_malloc0(sizeof(OSyncXMLField));
 	key->node = xmlNewNode(NULL, BAD_CAST name);
-	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compaire);
+	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compaire_stdlib);
 	
 	free(liste);
 
@@ -222,8 +170,6 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 
 		cur = cur->next;
 	}
-	
-	
 
 	return xmlfieldlist;
 }
@@ -233,38 +179,103 @@ osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, in
 	g_assert(xmlformat);
 	g_assert(buffer);
 	g_assert(size);
-	//g_assert(error);
-	
 	xmlDocDumpFormatMemoryEnc(xmlformat->doc, (xmlChar **) buffer, size, NULL, 1);
 	return TRUE;	
 }
 
-void osync_xmlformat_merging(OSyncXMLFormat *xmlfield, OSyncCapabilities *capabilities, OSyncXMLFormat *original)
+osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
+{
+	int res;
+ 	xmlSchemaValidCtxtPtr xsdCtxt;
+ 	xmlSchemaPtr wxschemas;
+ 	xmlSchemaParserCtxtPtr ctxt;
+	
+ 	ctxt = xmlSchemaNewParserCtxt("xmlformat.xsd");
+ 	wxschemas = xmlSchemaParse(ctxt);
+
+ 	xsdCtxt = xmlSchemaNewValidCtxt(wxschemas);
+ 	if (xsdCtxt == NULL) {
+ 		xmlSchemaFreeValidCtxt(xsdCtxt);
+ 		xmlSchemaFreeParserCtxt(ctxt);
+   		return (FALSE);
+ 	}
+
+ 	/* Validate the document */
+ 	res = xmlSchemaValidateDoc(xsdCtxt, xmlformat->doc);
+ 	xmlSchemaFreeValidCtxt(xsdCtxt);
+ 	xmlSchemaFreeParserCtxt(ctxt);
+ 	if(res == 0)
+ 		return TRUE;
+ 	else
+ 		return FALSE;
+}
+
+void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
+{
+	int index;
+	OSyncXMLField *cur;
+	
+	g_assert(xmlformat);
+
+	if(xmlformat->child_count <= 1)
+		return;
+	
+	void **list = malloc(sizeof(OSyncXMLField *) * xmlformat->child_count);
+	
+	index = 0;
+	cur = osync_xmlformat_get_first_field(xmlformat);
+	while(cur != NULL)
+	{
+		list[index] = cur;
+		index++;
+		xmlUnlinkNode(cur->node);
+		cur = osync_xmlfield_get_next(cur);
+	}
+	
+	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compaire_stdlib);
+	
+	/** bring the xmlformat and the xmldoc in a consistent state */
+	xmlformat->first_child = ((OSyncXMLField *)list[0])->node->_private;
+	xmlformat->last_child = ((OSyncXMLField *)list[xmlformat->child_count-1])->node->_private;
+
+	index = 0;
+	while(index < xmlformat->child_count)
+	{
+		cur = (OSyncXMLField *)list[index];
+		xmlAddChild(xmlDocGetRootElement(xmlformat->doc), cur->node);
+			
+		if(index < xmlformat->child_count-1)
+			cur->next = (OSyncXMLField *)list[index+1];
+		else
+			cur->next = NULL;
+		
+		if(index)
+			cur->prev = (OSyncXMLField *)list[index-1];
+		else
+			cur->prev = NULL;
+		
+		index++;
+	}
+	
+	free(list);
+}
+
+void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capabilities, OSyncXMLFormat *original)
 {
 	OSyncXMLField *old_cur, *new_cur, *tmp;
-	OSyncCapability *cap_contenttype;
 	OSyncCapability *cap_cur;
 	int ret;
 	
-	g_assert(xmlfield);
+	g_assert(xmlformat);
 	g_assert(original);
 	g_assert(capabilities);
 	
-	 /* get the right capabilites for the content type */
-	 cap_contenttype = osync_capabilities_get_first(capabilities);
-	 while(cap_contenttype != NULL)
-	 {
-	 	if(strcmp(osync_xmlformat_get_objtype(xmlfield), osync_capability_get_name(cap_contenttype)) == 0)
-	 	{
-	 		break;	
-	 	}
-	 }
-	 if(cap_contenttype == NULL)
-	 	return;	
-		 
 	 /* compairision */
-	 cap_cur = osync_capability_get_first_child(cap_contenttype);
-	 new_cur = osync_xmlformat_get_first_field(xmlfield);
+	 cap_cur = osync_capabilities_get_first(capabilities, osync_xmlformat_get_objtype(xmlformat));
+	 if(!cap_cur)
+	 	return;
+	 	
+	 new_cur = osync_xmlformat_get_first_field(xmlformat);
 	 old_cur = osync_xmlformat_get_first_field(original);
 	 while(old_cur != NULL)
 	 {
@@ -313,33 +324,6 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlfield, OSyncCapabilities *capabi
 	 	}
 		g_assert_not_reached();
 	 }
-}
-
-osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
-{
-	int res;
- 	xmlSchemaValidCtxtPtr xsdCtxt;
- 	xmlSchemaPtr wxschemas;
- 	xmlSchemaParserCtxtPtr ctxt;
-	
- 	ctxt = xmlSchemaNewParserCtxt("../opensync/merger/xmlformat.xsd");
- 	wxschemas = xmlSchemaParse(ctxt);
-
- 	xsdCtxt = xmlSchemaNewValidCtxt(wxschemas);
- 	if (xsdCtxt == NULL) {
- 		xmlSchemaFreeValidCtxt(xsdCtxt);
- 		xmlSchemaFreeParserCtxt(ctxt);
-   		return (FALSE);
- 	}
-
- 	/* Validate the document */
- 	res = xmlSchemaValidateDoc(xsdCtxt, xmlformat->doc);
- 	xmlSchemaFreeValidCtxt(xsdCtxt);
- 	xmlSchemaFreeParserCtxt(ctxt);
- 	if(res == 0)
- 		return TRUE;
- 	else
- 		return FALSE;
 }
 
 //OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints *xmlscores, int default_value, int treshold)
@@ -393,7 +377,7 @@ osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
 //		{
 //			for (j = 0; j < osync_xmlfieldlist_getLength(list_right); j++) {
 //				b = FALSE;
-//				if (osync_xmlfield_compaire(osync_xmlfieldlist_item(list_left, i),
+//				if (osync_xmlfield_compaire_stdlib (osync_xmlfieldlist_item(list_left, i),
 //											osync_xmlfieldlist_item(list_right, j)))
 //				{
 //					found = TRUE;
@@ -565,28 +549,6 @@ osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
 //	}
 //	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
 //	return CONV_DATA_MISMATCH;
-//}
-
-
-//osync_boo l osync_xmlformat_read_xml(OSyncXMLFormat *xmlformat, const char *path, OSyncError **error)
-//{
-//	xmlFreeDoc(xmlformat->doc);
-//	xmlformat->doc = NULL;
-//	xmlNodePtr cur = NULL;
-//
-//	//if (!_osync_open_xml_file(&(xmlformat->doc), &cur, path, "xmlformat", error))
-//	//{
-//	//		return FALSE;
-//	//}
-//	xmlformat->doc = xmlReadFile(path, NULL, XML_PARSE_NOBLANKS);
-//	xmlformat->doc->_private = xmlformat;
-//	cur = xmlDocGetRootElement(xmlformat->doc);
-//	cur = cur->children;
-//	while (cur != NULL) {
-//		_osync_xmlfield_new(xmlformat, cur);
-//		cur = cur->next;
-//	}
-//	return TRUE;
 //}
 
 /*@}*/

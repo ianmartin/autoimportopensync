@@ -1,79 +1,78 @@
+/*
+ * libopensync - A synchronization framework
+ * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * 
+ */
+ 
 #include "opensync.h"
 #include "opensync_internals.h"
 
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"
 
-OSyncCapability *osync_capability_new(OSyncCapability *capability, const char *name)
+/**
+ * @defgroup OSyncCapabilityPrivateAPI OpenSync Capability Internals
+ * @ingroup OSyncPrivate
+ * @brief The private part of the OSyncCapability
+ * 
+ */
+/*@{*/
+
+OSyncCapability *_osync_capability_new(OSyncCapabilitiesObjType *objtype, xmlNodePtr node)
 {
-	xmlNodePtr node = xmlNewChild(capability->node, NULL, (xmlChar *)name, NULL);
-	return _osync_capability_new(capability, node);
+	OSyncCapability *capability = g_malloc0(sizeof(OSyncCapability));
+	
+	capability->next = NULL;
+	capability->node = node;
+	capability->prev = objtype->last_child;
+	node->_private = capability;
+	
+	if(!objtype->first_child)
+		objtype->first_child = capability;
+	if(objtype->last_child)
+		objtype->last_child->next = capability;
+	objtype->last_child = capability;
+	objtype->child_count++;
+	
+	return capability;
 }
 
-OSyncCapability *osync_capability_new_content_type(OSyncCapabilities *capabilities, const char *name)
+/*@}*/
+
+/**
+ * @defgroup OSyncCapabilityAPI OpenSync Capability
+ * @ingroup OSyncPublic
+ * @brief The public part of the OSyncCapability
+ * 
+ */
+/*@{*/
+
+OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const char *objtype, const char *name)
 {
+	OSyncCapabilitiesObjType *tmp = _osync_capabilitiesobjtype_get(capabilities, objtype);
+	if(!tmp)
+	{
+		xmlNodePtr node = xmlNewChild(xmlDocGetRootElement(capabilities->doc), NULL, BAD_CAST objtype, NULL);
+		tmp = _osync_capabilitiesobjtype_new(capabilities, node);
+	}
 	xmlNodePtr node = xmlNewChild(xmlDocGetRootElement(capabilities->doc), NULL, (xmlChar *)name, NULL);
-	return _osync_capability_new_content_type(capabilities, node);
+	return _osync_capability_new(tmp, node);
 }
 
-/** internal */
-OSyncCapability *_osync_capability_new(OSyncCapability *capability, xmlNodePtr node)
-{
-	OSyncCapability *new_capability = g_malloc0(sizeof(OSyncCapability));
-	
-	if(!capability->first_child)
-		capability->first_child = new_capability;
-	if(capability->last_child)
-		capability->last_child->next = new_capability;
-	capability->last_child = new_capability;
-	
-	new_capability->first_child = NULL;
-	new_capability->last_child = NULL;
-	new_capability->next = NULL;
-	new_capability->node = node;
-	node->_private = new_capability;
-	
-	xmlNodePtr cur = new_capability->node->children;
-	while(cur != NULL && cur->type == XML_ELEMENT_NODE)
-	{
-		_osync_capability_new(new_capability, cur);
-		cur = cur->next;	
-	}
-			
-	return new_capability;
-}
-
-/** internal */
-OSyncCapability *_osync_capability_new_content_type(OSyncCapabilities *capabilities, xmlNodePtr node)
-{
-	OSyncCapability *new_capability = g_malloc0(sizeof(OSyncCapability));
-	
-	if(!capabilities->first_child)
-		capabilities->first_child = new_capability;
-	if(capabilities->last_child)
-		capabilities->last_child->next = new_capability;
-	capabilities->last_child = new_capability;
-	
-	new_capability->first_child = NULL;
-	new_capability->last_child = NULL;
-	new_capability->next = NULL;
-	new_capability->node = node;
-	node->_private = new_capability;
-	
-	xmlNodePtr cur = new_capability->node->children;
-	while(cur != NULL  && cur->type == XML_ELEMENT_NODE)
-	{
-		_osync_capability_new(new_capability, cur);
-		cur = cur->next;	
-	}
-	
-	return new_capability;	
-}
-
-const char *_osync_capability_get_sortname(void *node)
-{
-	return (const char *)((OSyncCapability *)node)->node->name;
-}
 
 void osync_capability_free(OSyncCapability *capability)
 {
@@ -99,13 +98,7 @@ OSyncCapability *osync_capability_get_next(OSyncCapability *capability)
 	return capability->next;
 }
 
-OSyncCapability *osync_capability_get_first_child(OSyncCapability *capability)
-{
-	g_assert(capability);
-	return capability->first_child;
-}
-
-int osync_capability_get_field_count(OSyncCapability *capability)
+int osync_capability_get_key_count(OSyncCapability *capability)
 {
 	int count = 0;
 	xmlNodePtr child = capability->node->xmlChildrenNode;
@@ -118,7 +111,7 @@ int osync_capability_get_field_count(OSyncCapability *capability)
 	return count;
 }
 
-const char *osync_capability_get_nth_field(OSyncCapability *capability, int nth)
+const char *osync_capability_get_nth_key(OSyncCapability *capability, int nth)
 {
 	int count = 0;
 	xmlNodePtr child = capability->node->xmlChildrenNode;
@@ -134,7 +127,16 @@ const char *osync_capability_get_nth_field(OSyncCapability *capability, int nth)
 	return NULL;
 }
 
-void osync_capability_add_Field(OSyncCapability *capabilitiy, const char *name)
+void osync_capability_add_key(OSyncCapability *capabilitiy, const char *name)
 {
 	xmlNewChild(capabilitiy->node, NULL, (xmlChar*)name, NULL);
 }
+
+int osync_capability_compare_stdlib(const void *capability1, const void *capability2)
+{
+	//g_assert(*(void **)capability1);
+	//g_assert(*(void **)capability2);
+	return strcmp(osync_capability_get_name(*(OSyncCapability **)capability1), osync_capability_get_name(*(OSyncCapability **)capability2));
+}
+
+/*@}*/

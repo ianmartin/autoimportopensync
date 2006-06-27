@@ -1,22 +1,16 @@
 #ifndef OPENSYNC_CAPABILITY_H_
 #define OPENSYNC_CAPABILITY_H_
 
-OSyncCapability *osync_capability_new(OSyncCapability *capability, const char *name);
+OSYNC_EXPORT OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const char *objtype, const char *name);
+OSYNC_EXPORT void osync_capability_free(OSyncCapability *capability);
 
-OSyncCapability *osync_capability_new_content_type(OSyncCapabilities *capabilities, const char *name);
+OSYNC_EXPORT const char *osync_capability_get_name(OSyncCapability *capability);
+OSYNC_EXPORT OSyncCapability *osync_capability_get_next(OSyncCapability *capability);
 
-void osync_capability_free(OSyncCapability *capability);
+OSYNC_EXPORT int osync_capability_get_key_count(OSyncCapability *capability);
+OSYNC_EXPORT const char *osync_capability_get_nth_key(OSyncCapability *capability, int nth);
+OSYNC_EXPORT void osync_capability_add_key(OSyncCapability *capabilitiy, const char *name);
 
-const char *osync_capability_get_name(OSyncCapability *capability);
-
-OSyncCapability *osync_capability_get_next(OSyncCapability *capability);
-
-OSyncCapability *osync_capability_get_first_child(OSyncCapability *capability);
-
-int osync_capability_get_field_count(OSyncCapability *capability);
-
-const char *osync_capability_get_nth_field(OSyncCapability *capability, int nth);
-
-void osync_capability_add_Field(OSyncCapability *capabilitiy, const char *name);
+OSYNC_EXPORT int osync_capability_compare_stdlib(const void *capability1, const void *capability2);
 
 #endif /*OPENSYNC_CAPABILITY_H_*/
