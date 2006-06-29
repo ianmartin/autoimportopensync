@@ -1274,6 +1274,8 @@ static void *init_vcal_to_xml(void)
 	insert_attr_handler(hooks->comptable, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->comptable, "END", HANDLE_IGNORE);
 	insert_attr_handler(hooks->comptable, "UID", HANDLE_IGNORE);	
+	insert_attr_handler(hooks->comptable, "X-IRMC-LUID", HANDLE_IGNORE);
+	insert_attr_handler(hooks->comptable, "X-SONYERICSSON-DST", HANDLE_IGNORE);
 	insert_attr_handler(hooks->comptable, "DTSTAMP", handle_dtstamp_attribute);
 	insert_attr_handler(hooks->comptable, "DESCRIPTION", handle_description_attribute);
 	insert_attr_handler(hooks->comptable, "SUMMARY", handle_summary_attribute);
@@ -1351,14 +1353,14 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
 	g_hash_table_insert(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
 	g_hash_table_insert(hooks->tztable, "TZNAME", handle_tzname_attribute);
-    g_hash_table_insert(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
-    g_hash_table_insert(hooks->tztable, "RRULE", handle_tzrrule_attribute);
+	g_hash_table_insert(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
+	g_hash_table_insert(hooks->tztable, "RRULE", handle_tzrrule_attribute);
 	g_hash_table_insert(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
 	g_hash_table_insert(hooks->tztable, "BEGIN", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->tztable, "END", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->tztable, "TZURL", handle_tzurl_attribute);
 	g_hash_table_insert(hooks->tztable, "COMMENT", HANDLE_IGNORE);
-    g_hash_table_insert(hooks->tztable, "RDATE", handle_tzrdate_attribute);
+	g_hash_table_insert(hooks->tztable, "RDATE", handle_tzrdate_attribute);
 
 	/*FIXME: The functions below shoudn't be on tztable, but on another hash table */
 	g_hash_table_insert(hooks->tztable, "VALUE", handle_value_parameter);

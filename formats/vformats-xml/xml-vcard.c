@@ -870,7 +870,6 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	{0, "/contact/FileAs"},
 	{0, "/contact/Uid"},
 	{0, "/contact/Revision"},
-	{0, "/contact/UnknownNode[NodeName=\"X-IRMC-LUID\"]"},
 	{0, NULL}
 	};
 	
@@ -930,6 +929,8 @@ static void *init_vcard_to_xml(void)
 	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
 	
 	g_hash_table_insert(table, "TYPE", handle_type_parameter);
+
+	g_hash_table_insert(table, "X-IRMC-LUID", HANDLE_IGNORE);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
 	return (void *)table;

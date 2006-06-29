@@ -693,7 +693,7 @@ vformat_unescape_string (const char *s)
 
 	str = g_string_new ("");
 
-	/* Unescape a string as described in RFC2426, section 5 */
+	/* Unescape a string as described in RFC2426, section 4 (Formal Grammar) */
 	for (p = s; *p; p++) {
 		if (*p == '\\') {
 			p++;

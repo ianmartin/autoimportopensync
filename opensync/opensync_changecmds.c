@@ -171,7 +171,7 @@ OSyncConvCmpResult osync_change_compare_data(OSyncChange *leftchange, OSyncChang
 	if (!osync_change_convert_to_common(rightchange, &error)) {
 		osync_trace(TRACE_INTERNAL, "osync_change_compare_data: %s", osync_error_print(&error));
 		osync_error_free(&error);
-		osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: Could not convert leftchange to common format");
+		osync_trace(TRACE_EXIT, "osync_change_compare_data: MISMATCH: Could not convert rightchange to common format");
 		return CONV_DATA_MISMATCH;
 	}
 
