@@ -341,7 +341,8 @@ has_value:;
 
 static void _generate_formatted_name(VFormat *vcard, xmlNode *root)
 {
-        VFormatAttribute *n = vformat_find_attribute(vcard, "N");
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, root);
+	VFormatAttribute *n = vformat_find_attribute(vcard, "N");
 	GList *v = vformat_attribute_get_values(n);
 	GString *fnentry;
 	fnentry = g_string_new("");
@@ -359,7 +360,11 @@ static void _generate_formatted_name(VFormat *vcard, xmlNode *root)
 	
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 	osxml_node_add(current, "Content", fnentry->str);
+	
+	osync_trace(TRACE_INTERNAL, "generated FormattedName");
+
 	g_string_free(fnentry,TRUE);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
 
@@ -397,8 +402,8 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 		vcard_handle_attribute(hooks, root, attr);
 	}
 	
-	//Genreate "FN" attribute if it does not exist
-	if (!vformat_find_attribute(vcard, "FN")) {
+	//Generate "FN" attribute if it doesn't exist
+	if (!vformat_find_attribute(vcard, "FN") && !vformat_find_attribute(vcard, "X-EVOLUTION-FILE-AS")) {
 		_generate_formatted_name(vcard,root);
 	}
 
