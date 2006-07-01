@@ -25,6 +25,29 @@
 #include "opensync-merger_internals.h"
 
 /**
+ * @defgroup OSyncXMLFormatPrivateAPI OpenSync XMLFormat Internals
+ * @ingroup OSyncPrivate
+ * @brief The private part of the OSyncXMLFormat
+ * 
+ */
+/*@{*/
+
+int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname)
+{
+	while(points[(*cur_pos)].fieldname) {
+		int res = strcmp(points[(*cur_pos)].fieldname, fieldname);
+		if(res == 0) 
+			return points[(*cur_pos)].points;
+		if(res > 0)
+			return basic_points;
+		(*cur_pos)++;
+	};
+	return basic_points;
+}
+
+/*@}*/
+
+/**
  * @defgroup OSyncXMLFormatAPI OpenSync XMLFormat
  * @ingroup OSyncPublic
  * @brief The public part of the OSyncXMLFormat
@@ -141,7 +164,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	
 	key = g_malloc0(sizeof(OSyncXMLField));
 	key->node = xmlNewNode(NULL, BAD_CAST name);
-	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compaire_stdlib);
+	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
 	
 	free(liste);
 
@@ -185,26 +208,29 @@ osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, in
 
 osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
 {
-	int res;
- 	xmlSchemaValidCtxtPtr xsdCtxt;
- 	xmlSchemaPtr wxschemas;
- 	xmlSchemaParserCtxtPtr ctxt;
+	g_assert(xmlformat);
 	
- 	ctxt = xmlSchemaNewParserCtxt("xmlformat.xsd");
- 	wxschemas = xmlSchemaParse(ctxt);
+	int res;
+ 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
+ 	xmlSchemaPtr xmlSchema;
+ 	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt;
+	
+ 	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt("xmlformat.xsd");
+ 	xmlSchema = xmlSchemaParse(xmlSchemaParserCtxt);
+ 	xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt);
 
- 	xsdCtxt = xmlSchemaNewValidCtxt(wxschemas);
- 	if (xsdCtxt == NULL) {
- 		xmlSchemaFreeValidCtxt(xsdCtxt);
- 		xmlSchemaFreeParserCtxt(ctxt);
-   		return (FALSE);
+ 	xmlSchemaValidCtxt = xmlSchemaNewValidCtxt(xmlSchema);
+ 	if (xmlSchemaValidCtxt == NULL) {
+ 		xmlSchemaFree(xmlSchema);
+   		res = 1;
+ 	}else{
+ 		/* Validate the document */
+ 		res = xmlSchemaValidateDoc(xmlSchemaValidCtxt, xmlformat->doc);
+	 	xmlSchemaFree(xmlSchema);
+		xmlSchemaFreeValidCtxt(xmlSchemaValidCtxt);
  	}
 
- 	/* Validate the document */
- 	res = xmlSchemaValidateDoc(xsdCtxt, xmlformat->doc);
- 	xmlSchemaFreeValidCtxt(xsdCtxt);
- 	xmlSchemaFreeParserCtxt(ctxt);
- 	if(res == 0)
+	if(res == 0)
  		return TRUE;
  	else
  		return FALSE;
@@ -232,7 +258,7 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 		cur = osync_xmlfield_get_next(cur);
 	}
 	
-	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compaire_stdlib);
+	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
 	
 	/** bring the xmlformat and the xmldoc in a consistent state */
 	xmlformat->first_child = ((OSyncXMLField *)list[0])->node->_private;
@@ -279,6 +305,8 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 	 old_cur = osync_xmlformat_get_first_field(original);
 	 while(old_cur != NULL)
 	 {
+	 	
+	 		 	
 	 	ret = strcmp(osync_xmlfield_get_name(new_cur), osync_xmlfield_get_name(old_cur));
 	 	if(ret < 0)
 	 	{
@@ -294,8 +322,7 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 			tmp = old_cur;
 			old_cur = osync_xmlfield_get_next(old_cur);
 			osync_xmlfield_unlink(tmp);
-			if(ret >= 0)
-			{
+			if(ret >= 0) {
 				osync_xmlfield_link_before_field(new_cur, tmp);
 			} else {
 				osync_xmlfield_link_after_field(new_cur, tmp);
@@ -306,6 +333,75 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
  		ret = strcmp(osync_capability_get_name(cap_cur), osync_xmlfield_get_name(old_cur));
 	 	if(ret == 0)
 	 	{
+	 		/* merge key/value pairs (second level)*/
+	 		printf("%s %s\n",osync_capability_get_name(cap_cur), osync_xmlfield_get_name(new_cur));
+	 		if( osync_capability_has_key(cap_cur) &&
+	 			strcmp(osync_capability_get_name(cap_cur), osync_xmlfield_get_name(new_cur)) == 0) 
+	 		{
+		 		int r, s;
+	 			xmlNodePtr tmp;
+				xmlNodePtr cap_node = cap_cur->node->children;
+				xmlNodePtr new_node = new_cur->node->children;
+				xmlNodePtr old_node = old_cur->node->children;
+				xmlNodePtr new_par_node = new_cur->node;
+				
+				while(old_node)
+	 			{
+	 				r = 0;
+	 				while(cap_node != NULL) {
+		 				r = strcmp((const char *) cap_node->name, (const char *)  old_node->name);
+	 					if(r < 0)
+ 							cap_node = cap_node->next;
+ 						if(r >= 0)
+ 							break;
+	 				}
+	 				
+	 				/* merge all avalible nodes */
+	 				if(cap_node == NULL) {
+	 					while(old_node != NULL) {
+							tmp = old_node;
+		 					old_node = old_node->next;
+		 					xmlUnlinkNode(tmp);
+		 					xmlAddChild(new_par_node, tmp);	 						
+	 					}
+	 					break;
+	 				}
+
+	 				/* merge node */
+	 				if(r > 0) {
+		 				tmp = old_node;
+		 				old_node = old_node->next;
+		 				xmlUnlinkNode(tmp);
+		 				if(!new_node) {
+		 					new_node = xmlAddChild(new_par_node, tmp);
+	 					}else{
+		 					do {
+		 						s = strcmp((const char *) new_node->name, (const char *) cap_node->name);
+		 						if(s <= 0 && new_node->next) {
+		 							new_node = new_node->next;
+		 							continue;
+		 						}else if(s <= 0 && !new_node->next) {
+		 							new_node = xmlAddChild(new_par_node, tmp);
+		 							break;
+		 						}else if(s > 0) {
+		 							xmlAddPrevSibling(new_node, tmp);
+		 							break;
+		 						}
+		 						g_assert_not_reached(); 						
+		 					}while(1);
+		 				}
+		 				if(!old_node)
+			 				break;
+	 				}
+	 				
+	 				if(r == 0) {
+	 					old_node = old_node->next;
+	 					continue;
+	 				}
+	 				
+	 				g_assert_not_reached();
+	 			}
+	 		}
 	 		old_cur = osync_xmlfield_get_next(old_cur);
 			continue;		 		
 	 	}
@@ -326,229 +422,199 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 	 }
 }
 
-//OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints *xmlscores, int default_value, int treshold)
-//{
-//	OSyncXMLField *cur_left, *cur_right, *tmp;
-//	int score_ptr;
-//	int res_score;
-//	int value;
-//	
-//	cur_left = osync_xmlformat_get_first_field(xmlformat1);
-//	cur_right = osync_xmlformat_get_first_field(xmlformat2);
-//	score_ptr = 0;
-//	res_score = 0;
-//	
-//	
-//	while(cur_left)
-//	{
-//		char *fieldname = osync_xmlfield_get_name(cur_left);
-//		
-//		SyncXMLFieldList *list_left = osync_xmlfieldlist_new();		
-//		while(!strcmp(osync_xmlfield_(fieldname, osync_xmlfield_get_name(cur_lefright))))
-//			osync_xmlfieldlist_add(list_right, cur_right);
-//			cur_right = osync_xmlfield_get_next(cur_right);
-//			continue;
-//		}
-//		
-//		SyncXMLFieldList *list_right = osync_xmlfieldlist_new();		
-//		while(!strcmp(osync_xmlfield_(fieldname, osync_xmlfield_get_name(cur_right))))
-//			osync_xmlfieldlist_add(list_right, cur_right);
-//			cur_right = osync_xmlfield_get_next(cur_right);
-//			continue;
-//		}
-//		
-//		
-//		int res = strcmp(osync_xmlfield_(fieldname, xmlscores[score_ptr].path));
-//		do{
-//			if(res = 0)
-//			{
-//				value = xmlscores[score_ptr].value;
-//				break;
-//			}else(res < 0) {
-//				value = default_value;
-//				break;
-//			}else(res > 0) {
-//				score_ptr += 1;
-//			}
-//		}while(1)
-//		
-//		int i, j, found;
-//		for(i=0; i< osync_xmlfieldlist_getLength(list_left); i++)
-//		{
-//			for (j = 0; j < osync_xmlfieldlist_getLength(list_right); j++) {
-//				b = FALSE;
-//				if (osync_xmlfield_compaire_stdlib (osync_xmlfieldlist_item(list_left, i),
-//											osync_xmlfieldlist_item(list_right, j)))
-//				{
-//					found = TRUE;
-//					osync_xmlfield_remove(list_left, j);
-//					res_score += value;
-//				}
-//			}
-//			if(!found) {
-//				res_score += value;
-//			}
-//		
-//		}
-//	}
-//	
-//	while(cur_right)
-//	{
-//		
-//		cur_right = osync_xmlfield_get_next(cur_right);
-//	}
-//	
-//	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
-//	if (same) {
-//		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
-//		return CONV_DATA_SAME;
-//	}
-//	if (res_score >= treshold) {
-//		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
-//		return CONV_DATA_SIMILAR;
-//	}
-//	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
-//	return CONV_DATA_MISMATCH;
-//}
+OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold)
+{
+	int res, collected_points, cur_pos;
+	OSyncXMLField *xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
+	OSyncXMLField *xmlfield2 = osync_xmlformat_get_first_field(xmlformat2);
+	cur_pos = 0;
+	collected_points = 0;
+	osync_bool same = TRUE;
+	
+	while(xmlfield1 != NULL && xmlfield2 != NULL)
+	{
+		/* subtract points for xmlfield2*/
+		if(xmlfield1 == NULL) {
+			same = FALSE;
+			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield2->node->name);
+			xmlfield2 = xmlfield2->next;
+			continue;	
+		}
+		
+		/* subtract points for xmlfield1*/
+		if(xmlfield2 == NULL) {
+			same = FALSE;
+			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name);
+			xmlfield1 = xmlfield1->next;
+			continue;
+		}
+		
+		res = strcmp((const char *)xmlfield1->node->name, (const char *)xmlfield2->node->name);
+		
+		/* subtract points for xmlfield1*/
+		if(res < 0) {
+			same = FALSE;
+			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name);
+			xmlfield1 = xmlfield1->next;
+			continue;		
+		}
+		
+		/* subtract points for xmlfield2*/
+		if(res > 0) {
+			same = FALSE;
+			collected_points -= _osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield2->node->name);			
+			xmlfield2 = xmlfield2->next;
+			continue;			
+		}
+		
+		/* make lists and compare */
+		if(res == 0)
+		{
+			GSList *fieldlist1;
+			GSList *fieldlist2;
+			fieldlist1 = NULL;
+			fieldlist2 = NULL;
+			
+			const char *curfieldname = (const char *)xmlfield1->node->name;
+			do {
+				fieldlist1 = g_slist_prepend(fieldlist1, xmlfield1);
+				xmlfield1 = xmlfield1->next;
+				if(xmlfield1 == NULL)
+					break;
+				res = strcmp((const char *)xmlfield1->node->name, curfieldname);
+			} while(res == 0);
+			
+			do {
+				fieldlist2 = g_slist_prepend(fieldlist2, xmlfield2);
+				xmlfield2 = xmlfield2->next;
+				if(xmlfield2 == NULL)
+					break;
+				res = strcmp((const char *)xmlfield2->node->name, curfieldname);
+			} while(res == 0);			
+			
+			do {
+				/* get the points*/
+				int p = _osync_xmlformat_get_points(points, &cur_pos, basic_points, curfieldname);
+				
+				/* if same then compare and give points*/
+				do {
+					if(!same)
+						break;
+						
+					/* both lists must have the same length */	
+					if(g_slist_length(fieldlist1) != g_slist_length(fieldlist2)) {
+						same = FALSE;
+						break;
+					}
+					
+					GSList *cur_list1;
+					GSList *cur_list2;
+					do {
+						cur_list1 = fieldlist1;
+						cur_list2 = fieldlist2;
 
-//OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores, int default_score, int treshold)
-//{
-//	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, leftinpdoc, rightinpdoc, scores);
-//	int z = 0, i = 0, n = 0;
-//	int res_score = 0;
-//	
-//	xmlDoc *leftdoc = xmlCopyDoc(leftinpdoc, TRUE);
-//	xmlDoc *rightdoc = xmlCopyDoc(rightinpdoc, TRUE);
-//	
-//	osync_trace(TRACE_INTERNAL, "Comparing given score list");
-//	while (scores && scores[z].path) {
-//		OSyncXMLScore *score = &scores[z];
-//		z++;
-//		xmlXPathObject *leftxobj = osxml_get_nodeset(leftdoc, score->path);
-//		xmlXPathObject *rightxobj = osxml_get_nodeset(rightdoc, score->path);
-//		
-//		xmlNodeSet *lnodes = leftxobj->nodesetval;
-//		xmlNodeSet *rnodes = rightxobj->nodesetval;
-//		
-//		int lsize = (lnodes) ? lnodes->nodeNr : 0;
-//		int rsize = (rnod es) ? rnodes->nodeNr : 0;
-//		osync_trace(TRACE_INTERNAL, "parsing next path %s", score->path);
-//		
-//		if (!score->value) {
-//			for (i = 0; i < lsize; i++) {
-//				xmlUnlinkNode(lnodes->nodeTab[i]);
-//				xmlFreeNode(lnodes->nodeTab[i]);
-//				lnodes->nodeTab[i] = NULL;
-//			}
-//			
-//			for (n = 0; n < rsize; n++) {
-//				xmlUnlinkNode(rnodes->nodeTab[n]);
-//				xmlFreeNode(rnodes->nodeTab[n]);
-//				rnodes->nodeTab[n] = NULL;
-//			}
-//		} else {
-//			for (i = 0; i < lsize; i++) {
-//				if (!lnodes->nodeTab[i])
-//					continue;
-//				for (n = 0; n < rsize; n++) {
-//					if (!rnodes->nodeTab[n])
-//						continue;
-//					osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
-//					if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
-//						osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
-//						res_score += score->value;
-//						xmlUnlinkNode(lnodes->nodeTab[i]);
-//						xmlFreeNode(lnodes->nodeTab[i]);
-//						lnodes->nodeTab[i] = NULL;
-//						xmlUnlinkNode(rnodes->nodeTab[n]);
-//						xmlFreeNode(rnodes->nodeTab[n]);
-//						rnodes->nodeTab[n] = NULL;
-//						goto next;
-//					}
-//				}
-//				osync_trace(TRACE_INTERNAL, "Subtracting %i for %s", score->value, score->path);
-//				res_score -= score->value;
-//				next:;
-//			}
-//			for(i = 0; i < rsize; i++) {
-//				if (!rnodes->nodeTab[i])
-//					continue;
-//				res_score -= score->value;
-//			}
-//		}
-//		
-//		xmlXPathFreeObject(leftxobj);
-//		xmlXPathFreeObject(rightxobj);
-//	}
-//	
-//	xmlXPathObject *leftxobj = osxml_get_nodeset(leftdoc, "/*/*");
-//	xmlXPathObject *rightxobj = osxml_get_nodeset(rightdoc, "/*/*");
-//	
-//	xmlNodeSet *lnodes = leftxobj->nodesetval;
-//	xmlNodeSet *rnodes = rightxobj->nodesetval;
-//	
-//	int lsize = (lnodes) ? lnodes->nodeNr : 0;
-//	int rsize = (rnodes) ? rnodes->nodeNr : 0;
-//	
-//	osync_trace(TRACE_INTERNAL, "Comparing remaining list");
-//	osync_bool same = TRUE;
-//	for(i = 0; i < lsize; i++) {		
-//		for (n = 0; n < rsize; n++) {
-//			if (!rnodes->nodeTab[n])
-//				continue;
-//			osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
-//			if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
-//				xmlUnlinkNode(lnodes->nodeTab[i]);
-//				xmlFreeNode(lnodes->nodeTab[i]);
-//				lnodes->nodeTab[i] = NULL;
-//				xmlUnlinkNode(rnodes->nodeTab[n]);
-//				xmlFreeNode(rnodes->nodeTab[n]);
-//				rnodes->nodeTab[n] = NULL;
-//				osync_trace(TRACE_INTERNAL, "Adding %i", default_score);
-//				res_score += default_score;
-//				goto next2;
-//			}
-//		}
-//		osync_trace(TRACE_INTERNAL, "Subtracting %i", default_score);
-//		res_score -= default_score;
-//		same = FALSE;
-//		//goto out;
-//		next2:;
-//	}
-//	
-//	for(i = 0; i < lsize; i++) {
-//		if (!lnodes->nodeTab[i])
-//			continue;
-//		osync_trace(TRACE_INTERNAL, "left remaining: %s", lnodes->nodeTab[i]->name);
-//		same = FALSE;
-//		goto out;
-//	}
-//	
-//	for(i = 0; i < rsize; i++) {
-//		if (!rnodes->nodeTab[i])
-//			continue;
-//		osync_trace(TRACE_INTERNAL, "right remaining: %s", rnodes->nodeTab[i]->name);
-//		same = FALSE;
-//		goto out;
-//	}
-//	out:
-//	xmlXPathFreeObject(leftxobj);
-//	xmlXPathFreeObject(rightxobj);
-//
-//	xmlFreeDoc(leftdoc);
-//	xmlFreeDoc(rightdoc);
-//
-//	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
-//	if (same) {
-//		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
-//		return CONV_DATA_SAME;
-//	}
-//	if (res_score >= treshold) {
-//		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
-//		return CONV_DATA_SIMILAR;
-//	}
-//	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
-//	return CONV_DATA_MISMATCH;
-//}
+						do {
+							if(osync_xmlfield_compare((OSyncXMLField *)cur_list1->data, (OSyncXMLField *)cur_list2->data) == TRUE)
+								break;
+							cur_list2 = g_slist_next(cur_list2);
+							if(cur_list2 == NULL) {
+								same = FALSE;	
+								break;
+							}
+						}while(1);
+						
+						if(same) {
+							/* add the points */
+							collected_points += p;
+							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
+							fieldlist2 = g_slist_delete_link(fieldlist2, cur_list2);
+						}else
+							break;							
+
+					}while(fieldlist1 != NULL);
+				} while(0);
+				
+				/* if similar then compare and give points*/
+				do {
+					if(same)
+						break;
+					/* if no points to add or to subtract we need no compair of similarity */
+					if(!p) {
+						g_slist_free(fieldlist1);
+						g_slist_free(fieldlist2);
+						fieldlist1 = NULL;
+						fieldlist2 = NULL;
+						break;
+					}
+					
+					GSList *cur_list1;
+					GSList *cur_list2;
+					osync_bool found;
+					int subtracted_count;
+					subtracted_count = 0;
+					do {
+						found = FALSE;
+						cur_list1 = fieldlist1;
+						cur_list2 = fieldlist2;
+						
+						do {
+							if(osync_xmlfield_compare_similar(	(OSyncXMLField *)cur_list1->data,
+																(OSyncXMLField *)cur_list2->data,
+																points[cur_pos].keys) == TRUE) {
+								found = TRUE;	
+								break;
+							}
+							cur_list2 = g_slist_next(cur_list2);
+							if(cur_list2 == NULL)
+								break;
+						}while(1);
+						
+						/* add or subtract the points */
+						if(found) {
+							/* add the points */
+							collected_points += p;
+							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
+							fieldlist2 = g_slist_delete_link(fieldlist2, cur_list2);
+						}else{
+							/* subtract the points */
+							collected_points -= p;
+							subtracted_count++;
+							fieldlist1 = g_slist_delete_link(fieldlist1, cur_list1);
+						}
+					}while(fieldlist1 != NULL);
+					
+					/* subtract the points for the remaining elements in the list2 */
+					while(fieldlist2) {
+						/* subtract the points */
+						if(subtracted_count > 0)
+							subtracted_count--;
+						else
+							collected_points -= p;
+						fieldlist2 = g_slist_delete_link(fieldlist2, fieldlist2);
+					}
+	
+				}while(0);
+				
+			}while(0);
+
+			/* the lists should not exist */
+			g_assert(!fieldlist1);
+			g_assert(!fieldlist2);
+		}
+	};
+	
+printf("collected points: %i\n", collected_points);
+	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", collected_points, treshold);
+	if (same) {
+		osync_trace(TRACE_EXIT, "%s: SAME", __func__);
+		return OSYNC_CONV_DATA_SAME;
+	}
+	if (collected_points >= treshold) {
+		osync_trace(TRACE_EXIT, "%s: SIMILAR", __func__);
+		return OSYNC_CONV_DATA_SIMILAR;
+	}
+	osync_trace(TRACE_EXIT, "%s: MISMATCH", __func__);
+	return OSYNC_CONV_DATA_MISMATCH;
+}
 
 /*@}*/

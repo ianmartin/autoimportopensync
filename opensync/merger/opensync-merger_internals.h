@@ -1,7 +1,6 @@
 #ifndef OPENSYNC_MERGER_INTERNALS_H_
 #define OPENSYNC_MERGER_INTERNALS_H_
 
-#include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xmlschemas.h>
 

@@ -1,6 +1,15 @@
 #ifndef OPENSYNC_XMLFORMAT_H_
 #define OPENSYNC_XMLFORMAT_H_
 
+#include "opensync/format/opensync_objformat.h"
+
+typedef struct OSyncXMLPoints {
+	char *fieldname;
+	int points;
+	char** keys;
+} OSyncXMLPoints;
+
+
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_new(const char *objtype);
 OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSyncError **error);
 OSYNC_EXPORT void osync_xmlformat_ref(OSyncXMLFormat *xmlformat);
@@ -17,6 +26,6 @@ OSYNC_EXPORT osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat);
 OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
 OSYNC_EXPORT void osync_xmlformat_merging(OSyncXMLFormat *xmlfield, OSyncCapabilities *capabilities, OSyncXMLFormat *original);
 
-//OSYNC_EXPORT OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints *xmlscore);
+OSYNC_EXPORT OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold);
 
 #endif /*OPENSYNC_XMLFORMAT_H_*/

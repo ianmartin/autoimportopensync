@@ -59,5 +59,5 @@ install_inc    = '$prefix/include'
 
 Export('env opts testenv install_prefix install_lib install_bin install_inc')
 
-SConscript(['opensync/SConscript', 'tests/SConscript'])
+SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript'])
 BuildDir(target_dir, 'opensync', duplicate=0)

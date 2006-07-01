@@ -252,7 +252,101 @@ void osync_xmlfield_link_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_
 	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
-int osync_xmlfield_compaire_stdlib(const void *xmlfield1, const void *xmlfield2)
+osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2)
+{
+	g_assert(xmlfield1);
+	g_assert(xmlfield2);
+	
+	osync_bool res;
+
+	res = FALSE;
+	do {
+		if(strcmp((const char *) xmlfield1->node->name, (const char *) xmlfield2->node->name) != 0)
+			break;
+
+		osync_bool equal, check_attr;
+		xmlNodePtr node1, node2;
+		
+		check_attr = TRUE;
+		node1 = xmlfield1->node->children;
+		node2 = xmlfield2->node->children;
+
+cmp:	equal = TRUE;
+		while(equal)
+		{
+			if(node1 == NULL && node2 == NULL)
+				break;
+			if(node1 == NULL || node2 == NULL) {
+				equal = FALSE;
+				break;				
+			}
+			
+			if( strcmp((const char *) node1->name, (const char *) node2->name) != 0 ||
+				strcmp((const char *) xmlNodeGetContent(node1), (const char *) xmlNodeGetContent(node2)) != 0 ) {
+				equal = FALSE;
+			}
+			node1 = node1->next;
+			node2 = node2->next;
+		}
+		
+		if(equal && check_attr) {
+			check_attr = FALSE;
+			node1 = (xmlNodePtr)((xmlElementPtr)xmlfield1->node)->attributes;
+			node2 = (xmlNodePtr)((xmlElementPtr)xmlfield2->node)->attributes;
+			goto cmp;
+		}
+		
+		if(equal)
+			res = TRUE;
+	
+	} while(0);
+	
+	return res;
+}
+
+osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[])
+{
+	g_assert(xmlfield1);
+	g_assert(xmlfield2);
+	
+	osync_bool res;
+
+	res = TRUE;
+	if(strcmp((const char *) xmlfield1->node->name, (const char *) xmlfield2->node->name) != 0)
+		res = FALSE;
+
+	xmlNodePtr node1, node2;
+	node1 = xmlfield1->node->children;
+	node2 = xmlfield2->node->children;
+
+	int i;
+	for(i=0; keys[i]; i++) {
+		while(node1 != NULL) {
+			if(strcmp(keys[i], (const char *)node1->name) == 0)
+				break;
+			node1 = node1->next;
+		};
+		while(node2 != NULL) {
+			if(strcmp(keys[i], (const char *)node2->name) == 0)
+				break;
+			node2 = node2->next;
+		};
+		
+		if(node1 == NULL || node2 == NULL) {
+			res = FALSE;
+			break;	
+		}
+		
+		if(strcmp((const char *)xmlNodeGetContent(node1), (const char *)xmlNodeGetContent(node2)) != 0) {
+			res = FALSE;
+			break;			
+		}
+	}
+	
+	return res;
+}
+
+int osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 {
 	//g_assert(*(void **)xmlfield1);
 	//g_assert(*(void **)xmlfield2);

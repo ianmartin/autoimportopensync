@@ -19,13 +19,10 @@
  * 
  */
 
-#include "opensync-xml.h"
+#include "opensync/opensync-data.h"
 #include "vformat.h"
 #include "xml-vcard.h"
 #include "xml-support.c" //only for xmlcompaire
-#include "merger/opensync_xmlformat.h"
-#include "merger/opensync_xmlformat_internals.h"
-#include "merger/opensync_xmlfield.h"
 #include <glib.h>
 
 //static void handle_unknown_parameter(OSyncXMLField *current, VFormatParam *param)
@@ -36,15 +33,46 @@
 //	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 //}
 
-//static void handle_type_parameter(OSyncXMLField *current, VFormatParam *param)
-//{
-//	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
-//	
-//	GList *v = vformat_attribute_param_get_values(param);
-//	for (; v; v = v->next) {
-//		xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)v->data);
-//	}
+static void handle_type_parameter(OSyncXMLField *current, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling type parameter %s\n", vformat_attribute_param_get_name(param));
 	
+	GList *v = vformat_attribute_param_get_values(param);
+	for (; v; v = v->next) {
+		printf("Handling type parameter %s %p %s\n", vformat_attribute_param_get_name(param), current, (char *) v->data);
+		osync_xmlfield_set_attr(current, "Type", v->data);
+	}
+}
+
+//static void handle_parameters(OSyncXMLField *xmlfield, VFormatAttribute *attr, char *config )
+//{
+//	int i,j;
+//	//Handle all parameters of this attribute
+//	GList *params = vformat_attribute_get_params(attr);
+//	GList *p = NULL;
+//	for (p = params; p; p = p->next) {
+//		i = 0;
+//		j = 0;
+//		VFormatParam *param = p->data;
+//		
+//		while(config[i][j] != NULL)
+//		{
+//			while(config[i][j] != NULL)
+//			{
+//				if(strcmp(vformat_get_attributes), "") = 0)
+//				{
+//					
+//				}
+//							
+//				j++
+//			}
+//			i++;
+//		}
+//	}
+//	return;
+//	
+//found:
+//	
 //}
 
 static OSyncXMLField *handle_formatted_name_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
@@ -72,6 +100,7 @@ static OSyncXMLField *handle_photo_attribute(OSyncXMLFormat *xmlformat, VFormatA
 	osync_trace(TRACE_INTERNAL, "Handling photo attribute");
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Photo");
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
+	
 	return xmlfield;
 }
 
@@ -87,10 +116,10 @@ static OSyncXMLField *handle_address_attribute(OSyncXMLFormat *xmlformat, VForma
 {
 	osync_trace(TRACE_INTERNAL, "Handling address attribute");
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Address");
-	osync_xmlfield_set_key_value(xmlfield, "PostalBox", vformat_attribute_get_nth_value(attr, 0));
+	osync_xmlfield_set_key_value(xmlfield, "PostOfficeBox", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "ExtendedAddress", vformat_attribute_get_nth_value(attr, 1));
 	osync_xmlfield_set_key_value(xmlfield, "Street", vformat_attribute_get_nth_value(attr, 2));
-	osync_xmlfield_set_key_value(xmlfield, "City", vformat_attribute_get_nth_value(attr, 3));
+	osync_xmlfield_set_key_value(xmlfield, "Locality", vformat_attribute_get_nth_value(attr, 3));
 	osync_xmlfield_set_key_value(xmlfield, "Region", vformat_attribute_get_nth_value(attr, 4));
 	osync_xmlfield_set_key_value(xmlfield, "PostalCode", vformat_attribute_get_nth_value(attr, 5));
 	osync_xmlfield_set_key_value(xmlfield, "Country", vformat_attribute_get_nth_value(attr, 6));
@@ -110,6 +139,13 @@ static OSyncXMLField *handle_telephone_attribute(OSyncXMLFormat *xmlformat, VFor
 	osync_trace(TRACE_INTERNAL, "Handling Telephone attribute");
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Telephone");
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
+	
+//	char* config[10][20] = { {"Type", "Voice", "Cellular", "Fax", NULL},
+//							 {"Loc", "WORK", "HOME", NULL},
+//							 {"Pref", NULL},
+//							 {NULL} };
+	//handle_parameters(xmlfield, attr, config)
+	
 	return xmlfield;
 }
 
@@ -256,12 +292,14 @@ static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFo
 	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Categories");
 	
-	GList *values = vformat_attribute_get_values_decoded(attr);
+	/*GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
 		GString *retstr = (GString *)values->data;
 		g_assert(retstr);
 		osync_xmlfield_set_key_value(xmlfield, "Category", retstr->str);
-	}
+	}*/
+	osync_xmlfield_set_key_value(xmlfield, "Category", vformat_attribute_get_nth_value(attr, 0));
+	return xmlfield;
 	
 	return xmlfield;
 }
@@ -299,8 +337,8 @@ static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFo
 //	
 //	if (param_handler)
 //		param_handler(current, param);
-//	else
-//		handle_unknown_parameter(current, param);
+////	else 
+////		handle_unknown_parameter(current, param);
 //	
 //	osync_trace(TRACE_EXIT, "%s", __func__);
 //}
@@ -308,8 +346,7 @@ static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFo
 static void vcard_handle_attribute(GHashTable *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, xmlformat, attr, attr ? vformat_attribute_get_name(attr) : "None");
-//	xmlNode *current = NULL;
-	OSyncXMLField *current;
+	OSyncXMLField *current = NULL;
 
 	//Dont add empty stuff
 	GList *v;
@@ -335,7 +372,7 @@ has_value:;
 //	else
 //		current = handle_unknown_attribute(xmlformat, attr);
 
-	//Handle all parameters of this attribute
+//	//Handle all parameters of this attribute
 //	GList *params = vformat_attribute_get_params(attr);
 //	GList *p = NULL;
 //	for (p = params; p; p = p->next) {
@@ -366,12 +403,8 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 
 	g_free(input_str);
 
-	osync_trace(TRACE_INTERNAL, "Creating xml doc");
-
-	//Create a new xml document
+	osync_trace(TRACE_INTERNAL, "Creating xmlformat object");
 	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact");
-//	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
-//	xmlNode *root = osxml_node_add_root(doc, "contact");
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 
@@ -386,9 +419,8 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
-// TODO: xmlFree(str);
-
+	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+	free(str);
 
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
@@ -865,6 +897,23 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 //		//{1, "/contact/UnknownNode"},
 //		//{0, "/contact/*/Slot"},
 //		//{0, "/contact/*/Type"},
+
+//		{0,		"Class", 		NULL},
+//		{0,		"FileAs", 		NULL},
+//		{100, 	"Name", 		NULL},
+//		{100, 	"Name", 		{"LastName", "FirstName"}}
+//		{0,		"Revision", 	NULL},
+//		{0,		"Uid", 			NULL},
+//		{0,		"WantsHtml", 	NULL},
+//		{0,		"UnknownNode", 	NULL},
+//		{0, NULL}
+
+//		//{30, "/contact/FullName"},
+//		//{20, "/contact/Telephone"},
+//		//{20, "/contact/Address"},
+//		//{1, "/contact/UnknownNode"},
+//		//{0, "/contact/*/Slot"},
+//		//{0, "/contact/*/Type"},
 //		{0,		"/contact/Class"},
 //		{0,		"/contact/FileAs"},
 //		{100,	"/contact/Name"},
@@ -890,12 +939,10 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 
 static char *print_contact(OSyncChange *change)
 {
-//	char *buffer;
-//	osync_xmlformat_assemble()
-//	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
-	
-//	return (char *)osxml_write_to_string(doc);
-	return NULL;
+	char *buffer;
+	int size;
+	osync_xmlformat_assemble((OSyncXMLFormat *)osync_change_get_data(change), &buffer, &size);
+	return buffer;
 }
 
 static void destroy_xmlformat(char *data, size_t size)
@@ -940,7 +987,7 @@ static void *init_vcard_to_xmlformat(void)
 	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
 	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
 	
-//	g_hash_table_insert(table, "TYPE", handle_type_parameter);
+	g_hash_table_insert(table, "TYPE", handle_type_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
 	return (void *)table;

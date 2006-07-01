@@ -1,0 +1,8 @@
+Import('*')
+
+if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
+	testenv.Program('osyncbinary', ['osyncbinary.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+	#testenv.Program('osyncdump', ['osyncdump.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+	#testenv.Program('osyncplugin', ['osyncplugin.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+	#testenv.Program('osyncstress', ['osyncstress.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+	#testenv.Program('osynctest', ['osynctest.c'], LIBS = ['opensync'], LIBPATH = '#opensync')

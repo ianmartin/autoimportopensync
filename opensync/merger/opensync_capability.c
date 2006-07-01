@@ -98,6 +98,16 @@ OSyncCapability *osync_capability_get_next(OSyncCapability *capability)
 	return capability->next;
 }
 
+osync_bool osync_capability_has_key(OSyncCapability *capability)
+{
+	osync_bool res;
+	
+	res = FALSE;
+	if(capability->node->children)
+		res = TRUE;
+	return res;	
+}
+
 int osync_capability_get_key_count(OSyncCapability *capability)
 {
 	int count = 0;

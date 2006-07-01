@@ -16,4 +16,6 @@ struct OSyncXMLFormat {
 	xmlDocPtr doc;
 };
 
+int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname);
+
 #endif /*OPENSYNC_XMLFORMAT_INTERNAL_H_*/

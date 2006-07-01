@@ -28,6 +28,11 @@ client/opensync_client.c
 client/opensync_client_proxy.c
 engine/opensync_engine.c
 engine/opensync_sink_engine.c
+merger/opensync_capabilities.c
+merger/opensync_capability.c
+merger/opensync_xmlformat.c
+merger/opensync_xmlfield.c
+merger/opensync_xmlfieldlist.c
 """
 
 headers = """
@@ -44,6 +49,7 @@ opensync-module.h
 opensync-plugin.h
 opensync-support.h
 opensync-client.h
+opensync-merger.h
 """
 
 plugin_headers = """
@@ -77,6 +83,14 @@ ipc/opensync_message.h
 ipc/opensync_serializer.h
 """
 
+merger_headers = """
+merger/opensync_capabilities.h
+merger/opensync_capability.h
+merger/opensync_xmlformat.h
+merger/opensync_xmlfield.h
+merger/opensync_xmlfieldlist.h
+"""
+
 Libraries = r"""
 glib-2.0
 gthread-2.0
@@ -95,4 +109,5 @@ env.Install(install_inc + '/opensync-1.0/opensync/group', Split(group_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/format', Split(format_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/data', Split(data_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/ipc', Split(ipc_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/merger', Split(merger_headers))
 env.Alias('install', install_prefix)

@@ -23,7 +23,9 @@ OSYNC_EXPORT void osync_xmlfield_unlink(OSyncXMLField *xmlfield);
 OSYNC_EXPORT void osync_xmlfield_link_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
 OSYNC_EXPORT void osync_xmlfield_link_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
 
-OSYNC_EXPORT int osync_xmlfield_compaire_stdlib(const void *xmlfield1, const void *xmlfield2);
+OSYNC_EXPORT osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2);
+OSYNC_EXPORT osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[]);
+OSYNC_EXPORT int osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2);
 
 //OSYNC_EXPORT OSyncXMLField *osync_xmlfield_insert_copy_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_copy);
 
