@@ -323,6 +323,8 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 					break;
 				case '\\': str = g_string_append_c (str, '\\'); break;
 				case '"': str = g_string_append_c (str, '"'); break;
+				  /* \t is (incorrectly) used by kOrganizer, so handle it here */
+				case 't': str = g_string_append_c (str, '\t'); break;
 				default:
 					g_warning ("invalid escape, passing it through. escaped char was %i", *lp);
 					str = g_string_append_c (str, '\\');
@@ -708,6 +710,8 @@ vformat_unescape_string (const char *s)
 			case ',':  str = g_string_append_c (str, ','); break;
 			case '\\': str = g_string_append_c (str, '\\'); break;
 			case '"': str = g_string_append_c (str, '"'); break;
+			  /* \t is (incorrectly) used by kOrganizer, so handle it here */
+			case 't': str = g_string_append_c (str, '\t'); break;
 			default:
 				g_warning ("invalid escape, passing it through. escaped char was %i", *p);
 				str = g_string_append_c (str, '\\');
