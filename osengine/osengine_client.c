@@ -491,6 +491,24 @@ osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, 
 	osync_trace(TRACE_INTERNAL, "Committing change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(entry->change), osync_change_get_changetype(entry->change), osync_change_get_data(entry->change), osync_change_get_datasize(entry->change), osync_change_get_objtype(entry->change) ? osync_objtype_get_name(osync_change_get_objtype(entry->change)) : "None", osync_change_get_objformat(entry->change) ? osync_objformat_get_name(osync_change_get_objformat(entry->change)) : "None", osync_member_get_id(entry->client->member));
 	
 	osync_flag_changing(entry->fl_dirty);
+
+	if (osync_change_get_changetype(entry->change) == CHANGE_ADDED) {
+		int elevated = 0;
+		// Generate a new UID, if necessary
+		OSyncMappingView *view = osengine_mappingtable_find_view(sender->maptable, target->member);
+		while (!osengine_mappingview_uid_is_unique(view, entry, TRUE)) {
+			if (!osync_change_elevate(sender, entry->change, 1))
+				break;
+			elevated++;
+		}
+
+		if (elevated) {
+			// Save the newly generated UID
+			if (!osync_change_save(entry->change, TRUE, error))
+				goto error;
+		}
+	}
+
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_COMMIT_CHANGE, 0, error);
 	if (!message)
 		goto error;
