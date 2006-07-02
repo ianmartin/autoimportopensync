@@ -889,9 +889,12 @@ void osengine_finalize(OSyncEngine *engine)
 	GList *c = NULL;
 	for (c = engine->clients; c; c = c->next) {
 		OSyncClient *client = c->data;
-//		osync_queue_stop_thread(client->commands_from_osplugin);
+		osync_queue_disconnect(client->commands_from_osplugin, NULL);
 		osync_client_finalize(client, NULL);
 	}
+
+	osync_queue_disconnect(engine->commands_from_self, NULL);
+	osync_queue_disconnect(engine->commands_to_self, NULL);
 	
 	osengine_mappingtable_close(engine->maptable);
 	
