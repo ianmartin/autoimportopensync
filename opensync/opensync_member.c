@@ -1205,7 +1205,6 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	g_assert(member);
 	g_assert(change);
 
-	OSyncFormatEnv *env = osync_member_get_format_env(member);
 	OSyncContext *context = osync_context_new(member);
 	context->callback_function = function;
 	context->calldata = user_data;
@@ -1233,13 +1232,6 @@ void osync_member_commit_change(OSyncMember *member, OSyncChange *change, OSyncE
 	}
 
 
-	OSyncError *error = NULL;
-	if (!osync_change_convert_member_sink(env, change, member, &error)) {
-		osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to convert change");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-		osync_error_free(&error);
-		return;
-	}
 	//The destobjtype is the objtype of the format to which
 	//the change was just converted
 	change->destobjtype = g_strdup(osync_change_get_objtype(change)->name);

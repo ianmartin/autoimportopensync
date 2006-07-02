@@ -492,6 +492,10 @@ osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, 
 	
 	osync_flag_changing(entry->fl_dirty);
 
+	// convert the data to the format accepted by the member
+	if (!osync_change_convert_member_sink(osync_group_get_format_env(sender->group), entry->change, target->member, error))
+		goto error;
+
 	if (osync_change_get_changetype(entry->change) == CHANGE_ADDED) {
 		int elevated = 0;
 		// Generate a new UID, if necessary
