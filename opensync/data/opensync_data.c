@@ -85,7 +85,16 @@ void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat)
 const char *osync_data_get_objtype(OSyncData *data)
 {
 	osync_assert(data);
-	return data->objtype;
+	if (data->objtype)
+		return data->objtype;
+	
+	/* If no object type is explicitly set, we will just
+	 * return the default objtype for this format */
+	OSyncObjFormat *format = data->objformat;
+	if (format)
+		return osync_objformat_get_objtype(format);
+	
+	return NULL;
 }
 
 void osync_data_set_objtype(OSyncData *data, const char *objtype)

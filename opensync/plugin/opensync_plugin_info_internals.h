@@ -7,6 +7,7 @@ struct OSyncPluginInfo {
 	GList *objtypes;
 	char *configdir;
 	OSyncObjTypeSink *sink;
+	OSyncFormatEnv *formatenv;
 	//devinfo
 	int ref_count;
 };

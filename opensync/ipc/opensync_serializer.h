@@ -25,6 +25,7 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFormatEnv *env, OSyncError **error);
 
 osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyncError **error);
+osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, OSyncFormatEnv *env, OSyncError **error);
 
 void osync_marshal_error(OSyncMessage *message, OSyncError *error);
 void osync_demarshal_error(OSyncMessage *message, OSyncError **error);

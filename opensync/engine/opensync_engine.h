@@ -31,19 +31,39 @@ typedef enum {
 	OSYNC_ENGINE_STATE_DISCONNECTING
 } OSyncEngineState;
 
+typedef enum {
+	OSYNC_ENGINE_COMMAND_CONNECT = 1,
+	OSYNC_ENGINE_COMMAND_READ = 2,
+	OSYNC_ENGINE_COMMAND_WRITE = 3,
+	OSYNC_ENGINE_COMMAND_SYNC_DONE = 4,
+	OSYNC_ENGINE_COMMAND_DISCONNECT = 5
+} OSyncEngineCommand;
+
+typedef enum {
+	OSYNC_ENGINE_EVENT_CONNECTED = 1,
+	OSYNC_ENGINE_EVENT_ERROR = 2,
+	OSYNC_ENGINE_EVENT_READ = 3,
+	OSYNC_ENGINE_EVENT_WRITTEN = 4,
+	OSYNC_ENGINE_EVENT_SYNC_DONE = 5,
+	OSYNC_ENGINE_EVENT_DISCONNECTED = 6
+} OSyncEngineEvent;
+
 OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error);
 void osync_engine_ref(OSyncEngine *engine);
 void osync_engine_unref(OSyncEngine *engine);
 
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
+void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
 
 osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error);
 osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error);
 
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error);
+osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **error);
+osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error);
+
 void osync_engine_pause(OSyncEngine *engine);
 void osync_engine_abort(OSyncEngine *engine);
-osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error);
 
 void osync_engine_one_iteration(OSyncEngine *engine);
 void osync_engine_flag_manual(OSyncEngine *engine);
@@ -55,6 +75,11 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, void (* functi
 void osync_engine_set_enginestatus_callback(OSyncEngine *engine, void (* function) (OSyncEngine *, OSyncEngineUpdate *, void *), void *user_data);
 void osync_engine_set_memberstatus_callback(OSyncEngine *engine, void (* function) (OSyncMemberUpdate *, void *), void *user_data);*/
 
-osync_bool osync_engine_sync_and_block(OSyncEngine *engine, OSyncError **error);
+
+void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event);
+void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand command);
+
+int osync_engine_num_proxies(OSyncEngine *engine);
+OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth);
 
 #endif /*OPENSYNC_ENGINE_H_*/

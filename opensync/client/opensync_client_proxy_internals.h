@@ -30,11 +30,15 @@ struct OSyncClientProxy {
 	pid_t child_pid;
 	OSyncClient *client;
 	OSyncStartType type;
+	OSyncFormatEnv *formatenv;
 	
 	osync_bool has_main_sink;
 	GList *objtypes;
 	
 	GMainContext *context;
+	
+	change_cb change_callback;
+	void *change_callback_data;
 };
 
 #endif /*OSYNC_CLIENT_PROXY_INTERNALS_H_*/

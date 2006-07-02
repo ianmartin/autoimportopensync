@@ -187,6 +187,7 @@ OSyncGroup *osync_group_new(OSyncError **error)
 	group = osync_try_malloc0(sizeof(OSyncGroup), error);
 	if (!group)
 		goto error;
+	group->ref_count = 1;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
 	return group;

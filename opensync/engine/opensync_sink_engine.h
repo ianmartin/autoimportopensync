@@ -23,16 +23,13 @@
 
 typedef struct OSyncSinkEngine OSyncSinkEngine;
 
-typedef enum {
-	OSYNC_SINK_EVENT_START,
-	OSYNC_SINK_EVENT_CONNECTED,
-	OSYNC_SINK_EVENT_ERROR
-} OSyncSinkEvent;
+typedef void (* OSyncSinkEngineEventCallback) (OSyncSinkEngine *engine, OSyncEngineEvent event, OSyncError *error, void *userdata);
 
 OSyncSinkEngine *osync_sink_engine_new(OSyncClientProxy *proxy, const char *objtype, OSyncError **error);
 void osync_sink_engine_ref(OSyncSinkEngine *engine);
 void osync_sink_engine_unref(OSyncSinkEngine *engine);
 
-void osync_sink_engine_event(OSyncSinkEngine *engine, OSyncSinkEvent event);
+void osync_sink_engine_event(OSyncSinkEngine *engine, OSyncEngineEvent event);
+void osync_sink_engine_set_callback(OSyncSinkEngine *engine, OSyncSinkEngineEventCallback callback, void *userdata);
 
 #endif /*OPENSYNC_SINK_ENGINE_H_*/

@@ -27,7 +27,7 @@ ipc/opensync_serializer.c
 client/opensync_client.c
 client/opensync_client_proxy.c
 engine/opensync_engine.c
-engine/opensync_sink_engine.c
+engine/opensync_obj_engine.c
 merger/opensync_capabilities.c
 merger/opensync_capability.c
 merger/opensync_xmlformat.c

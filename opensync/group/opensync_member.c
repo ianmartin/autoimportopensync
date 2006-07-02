@@ -60,6 +60,7 @@ OSyncMember *osync_member_new(OSyncError **error)
 	if (!member)
 		goto error;
 	member->starttype = OSYNC_START_TYPE_THREAD;
+	member->ref_count = 1;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, member);
 	return member;
@@ -86,6 +87,12 @@ void osync_member_unref(OSyncMember *member)
 		
 		if (member->configdir)
 			g_free(member->configdir);
+		
+		while (member->objtypes) {
+			OSyncObjTypeSink *sink = member->objtypes->data;
+			osync_objtype_sink_unref(sink);
+			member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
+		}
 		
 		g_free(member);
 	}

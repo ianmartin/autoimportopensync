@@ -33,6 +33,6 @@ osync_bool osync_client_run(OSyncClient *client, OSyncError **error);
 void osync_client_shutdown(OSyncClient *client);
 void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
 
-osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncError **error);
+osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error);
 
 #endif /*OPENSYNC_CLIENT_H_*/

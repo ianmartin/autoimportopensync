@@ -22,4 +22,7 @@ OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *in
 OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_get_sink(OSyncPluginInfo *info);
 OSYNC_EXPORT void osync_plugin_info_set_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink);
 
+OSYNC_EXPORT OSyncFormatEnv *osync_plugin_info_get_format_env(OSyncPluginInfo *info);
+OSYNC_EXPORT void osync_plugin_info_set_format_env(OSyncPluginInfo *info, OSyncFormatEnv *env);
+
 #endif /*OPENSYNC_PLUGIN_INFO_H_*/

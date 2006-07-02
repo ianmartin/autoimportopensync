@@ -26,6 +26,9 @@ struct OSyncSinkEngine {
 	OSyncEngineState state;
 	OSyncClientProxy *proxy;
 	char *objtype;
+	
+	OSyncSinkEngineEventCallback callback;
+	void *callback_userdata;
 };
 
 #endif /*OPENSYNC_SINK_ENGINE_INTERNALS_H_*/

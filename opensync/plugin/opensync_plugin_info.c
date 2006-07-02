@@ -152,3 +152,16 @@ void osync_plugin_info_set_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 	info->sink = sink;
 	osync_objtype_sink_ref(sink);
 }
+
+OSyncFormatEnv *osync_plugin_info_get_format_env(OSyncPluginInfo *info)
+{
+	osync_assert(info);
+	return info->formatenv;
+}
+
+void osync_plugin_info_set_format_env(OSyncPluginInfo *info, OSyncFormatEnv *env)
+{
+	osync_assert(info);
+	osync_assert(env);
+	info->formatenv = env;
+}

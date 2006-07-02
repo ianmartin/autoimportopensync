@@ -38,6 +38,11 @@ OSyncSinkEngine *osync_sink_engine_new(OSyncClientProxy *proxy, const char *objt
 	engine->state = OSYNC_ENGINE_STATE_WAITING;
 	engine->ref_count = 1;
 	
+	engine->proxy = proxy;
+	osync_client_proxy_ref(proxy);
+	
+	engine->objtype = g_strdup(objtype);
+	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, engine);
 	return engine;
 
@@ -58,47 +63,134 @@ void osync_sink_engine_unref(OSyncSinkEngine *engine)
 	osync_assert(engine);
 		
 	if (g_atomic_int_dec_and_test(&(engine->ref_count))) {
+		if (engine->proxy)
+			osync_client_proxy_unref(engine->proxy);
+		
+		if (engine->objtype)
+			g_free(engine->objtype);
+			
 		g_free(engine);
 	}
 }
 
-static void connect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _sink_connect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncSinkEngine *engine = userdata;
-	if (!error)
-		osync_sink_engine_event(engine, OSYNC_SINK_EVENT_CONNECTED);
-	else
-		osync_sink_engine_event(engine, OSYNC_SINK_EVENT_ERROR);
-}
-
-void osync_sink_engine_raise(OSyncSinkEngine *engine, OSyncSinkEvent event, OSyncError *error)
-{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
+	if (!error) {
+		osync_sink_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
+		engine->callback(engine, OSYNC_ENGINE_EVENT_CONNECTED, NULL, engine->callback_userdata);
+	} else {
+		osync_sink_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		engine->callback(engine, OSYNC_ENGINE_EVENT_ERROR, error, engine->callback_userdata);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void osync_sink_engine_event(OSyncSinkEngine *engine, OSyncSinkEvent event)
+static void _sink_disconnect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+{
+	OSyncSinkEngine *engine = userdata;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
+	
+	if (!error) {
+		engine->callback(engine, OSYNC_ENGINE_EVENT_DISCONNECT, NULL, engine->callback_userdata);
+	} else {
+		osync_sink_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		engine->callback(engine, OSYNC_ENGINE_EVENT_ERROR, error, engine->callback_userdata);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _sink_read_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+{
+	OSyncSinkEngine *engine = userdata;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
+	
+	if (!error) {
+		engine->callback(engine, OSYNC_ENGINE_EVENT_READ, NULL, engine->callback_userdata);
+	} else {
+		osync_sink_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		engine->callback(engine, OSYNC_ENGINE_EVENT_ERROR, error, engine->callback_userdata);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _sink_change_callback(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
+{
+	OSyncSinkEngine *engine = userdata;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
+	
+	if (!error) {
+		engine->callback(engine, OSYNC_ENGINE_EVENT_READ, NULL, engine->callback_userdata);
+	} else {
+		osync_sink_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		engine->callback(engine, OSYNC_ENGINE_EVENT_ERROR, error, engine->callback_userdata);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void _sink_committed_all_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+{
+	OSyncSinkEngine *engine = userdata;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
+	
+	if (!error) {
+		engine->callback(engine, OSYNC_ENGINE_EVENT_WRITE, NULL, engine->callback_userdata);
+	} else {
+		osync_sink_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+		engine->callback(engine, OSYNC_ENGINE_EVENT_ERROR, error, engine->callback_userdata);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_sink_engine_set_callback(OSyncSinkEngine *engine, OSyncSinkEngineEventCallback callback, void *userdata)
+{
+	osync_assert(engine);
+	engine->callback = callback;
+	engine->callback_userdata = userdata;
+}
+
+void osync_sink_engine_event(OSyncSinkEngine *engine, OSyncEngineEvent event)
 {
 	OSyncError *error = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, engine, event);
 	osync_assert(engine);
 	
 	switch (event) {
-		case OSYNC_SINK_EVENT_START:
-			if (engine->state == OSYNC_ENGINE_STATE_WAITING) {
-				if (!osync_client_proxy_connect(engine->proxy, connect_callback, engine, engine->objtype, &error))
-					goto error;
-			} else {
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Invalid state transistation: %i %i", engine->state, event);
+		case OSYNC_ENGINE_EVENT_CONNECT:
+			if (!osync_client_proxy_connect(engine->proxy, _sink_connect_callback, engine, engine->objtype, &error))
 				goto error;
-			}
 			break;
-		case OSYNC_SINK_EVENT_CONNECTED:
-		case OSYNC_SINK_EVENT_ERROR:
+		case OSYNC_ENGINE_EVENT_CONNECTED:
+		case OSYNC_ENGINE_EVENT_ERROR:
+			break;
+		case OSYNC_ENGINE_EVENT_READ:
+			if (!osync_client_proxy_get_changes(engine->proxy, _sink_read_callback, _sink_change_callback, engine, engine->objtype, &error))
+				goto error;
+			break;
+		case OSYNC_ENGINE_EVENT_WRITE:
+			if (!osync_client_proxy_committed_all(engine->proxy, _sink_committed_all_callback, engine, engine->objtype, &error))
+				goto error;
+			break;
+		case OSYNC_ENGINE_EVENT_DISCONNECT:
+			if (!osync_client_proxy_disconnect(engine->proxy, _sink_disconnect_callback, engine, engine->objtype, &error))
+				goto error;
 			break;
 	}
 	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
 
 error:
-	osync_sink_engine_raise(engine, OSYNC_SINK_EVENT_ERROR, error);
+	engine->callback(engine, OSYNC_ENGINE_EVENT_ERROR, error, engine->callback_userdata);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 	osync_error_unref(&error);
 }
 

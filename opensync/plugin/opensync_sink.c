@@ -237,12 +237,11 @@ void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, void *plugindata, OSyn
 	osync_assert(ctx);
 	
 	functions = sink->functions;
-	if (!functions.sync_done) {
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No sync_done function was given");
-		osync_trace(TRACE_EXIT_ERROR, "%s: No sync_done function was given", __func__);
-		return;
-	}
-	functions.sync_done(plugindata, info, ctx);
+	if (!functions.sync_done)
+		osync_context_report_success(ctx);
+	else
+		functions.sync_done(plugindata, info, ctx);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 

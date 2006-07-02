@@ -97,6 +97,16 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 			g_free(filename);
 			continue;
 		}
+	
+		if (!osync_module_get_format_info(module, env, error)) {
+			if (osync_error_is_set(error)) {
+				osync_trace(TRACE_INTERNAL, "Module get format error for %s: %s", filename, osync_error_print(error));
+				osync_error_unref(error);
+			}
+			osync_module_free(module);
+			g_free(filename);
+			continue;
+		}
 		
 		env->modules = g_list_append(env->modules, module);
 		
@@ -105,25 +115,16 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	
 	g_dir_close(dir);
 	
-	/* Load the formats */
-	for (m = env->modules; m; m = m->next) {
-		module = m->data;
-		if (!osync_module_get_format_info(module, env, error))
-			goto error_free_module;
-	}
-	
 	/* Load the converters, filters, etc */
 	for (m = env->modules; m; m = m->next) {
 		module = m->data;
 		if (!osync_module_get_conversion_info(module, env, error))
-			goto error_free_module;
+			goto error;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_module:
-	osync_module_free(module);
 error_free_filename:
 	g_free(filename);
 	g_dir_close(dir);

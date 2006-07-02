@@ -24,6 +24,7 @@
 #include "opensync-context.h"
 #include "opensync-plugin.h"
 #include "opensync-ipc.h"
+#include "opensync-format.h"
 #include "opensync-client.h"
 #include "opensync_client_internals.h"
 
@@ -64,35 +65,6 @@ static void _free_baton(callContext *baton)
 	
 	g_free(baton);
 }
-
-/*static void _osync_client_changes_sink(OSyncPlugin *plugin, OSyncChange *change, void *user_data)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, change, user_data);
-	context *ctx = (context *)user_data;
-	PluginProcess *pp = ctx->pp;
-	OSyncMessage *orig = ctx->message;
-
-	OSyncError *error = NULL;
-
-	if (osync_message_is_answered(orig)) {
-		osync_change_free(change);
-		osync_trace(TRACE_EXIT, "%s", __func__);
-		return;
-	}
-
-	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NEW_CHANGE, 0, &error);
-	if (!message)
-		process_error_shutdown(pp, &error);
-
-	osync_marshal_change(message, change);
-
-	osync_message_write_long_long_int(message, osync_member_get_id(member));
-
-	if (!osync_queue_send_message(pp->outgoing, NULL, message, &error))
-		process_error_shutdown(pp, &error);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}*/
 
 static void _osync_client_connect_callback(void *data, OSyncError *error)
 {
@@ -173,6 +145,197 @@ error:
 	return;
 }
 
+static void _osync_client_get_changes_callback(void *data, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, data, error);
+	OSyncError *locerror = NULL;
+	callContext *baton = data;
+
+	OSyncMessage *message = baton->message;
+	OSyncClient *client = baton->client;
+
+	OSyncMessage *reply = NULL;
+	if (!osync_error_is_set(&error)) {
+		reply = osync_message_new_reply(message, &locerror);
+		//Send get_changes specific reply data
+	} else {
+		reply = osync_message_new_errorreply(message, error, &locerror);
+	}
+	if (!reply)
+		goto error;
+	osync_trace(TRACE_INTERNAL, "Reply id %lli", osync_message_get_id(reply));
+
+	_free_baton(baton);
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, &locerror))
+		goto error_free_message;
+	
+	osync_message_unref(reply);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_message:
+	osync_message_unref(reply);
+error:
+	_free_baton(baton);
+	osync_client_error_shutdown(client, locerror);
+	osync_error_unref(&locerror);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+void _osync_client_change_callback(OSyncChange *change, void *data)
+{
+	callContext *baton = data;
+	OSyncError *locerror = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, data);
+	
+	OSyncClient *client = baton->client;
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NEW_CHANGE, 0, &locerror);
+	if (!message)
+		goto error;
+
+	if (!osync_marshal_change(message, change, &locerror))
+		goto error_free_message;
+
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, message, &locerror))
+		goto error_free_message;
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_message:
+	osync_message_unref(message);
+error:
+	_free_baton(baton);
+	osync_client_error_shutdown(client, locerror);
+	osync_error_unref(&locerror);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+static void _osync_client_commit_change_callback(void *data, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, data, error);
+	OSyncError *locerror = NULL;
+	callContext *baton = data;
+
+	OSyncMessage *message = baton->message;
+	OSyncClient *client = baton->client;
+
+	OSyncMessage *reply = NULL;
+	if (!osync_error_is_set(&error)) {
+		reply = osync_message_new_reply(message, &locerror);
+		//Send get_changes specific reply data
+	} else {
+		reply = osync_message_new_errorreply(message, error, &locerror);
+	}
+	if (!reply)
+		goto error;
+	osync_trace(TRACE_INTERNAL, "Reply id %lli", osync_message_get_id(reply));
+
+	_free_baton(baton);
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, &locerror))
+		goto error_free_message;
+	
+	osync_message_unref(reply);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_message:
+	osync_message_unref(reply);
+error:
+	_free_baton(baton);
+	osync_client_error_shutdown(client, locerror);
+	osync_error_unref(&locerror);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+static void _osync_client_committed_all_callback(void *data, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, data, error);
+	OSyncError *locerror = NULL;
+	callContext *baton = data;
+
+	OSyncMessage *message = baton->message;
+	OSyncClient *client = baton->client;
+
+	OSyncMessage *reply = NULL;
+	if (!osync_error_is_set(&error)) {
+		reply = osync_message_new_reply(message, &locerror);
+		//Send get_changes specific reply data
+	} else {
+		reply = osync_message_new_errorreply(message, error, &locerror);
+	}
+	if (!reply)
+		goto error;
+	osync_trace(TRACE_INTERNAL, "Reply id %lli", osync_message_get_id(reply));
+
+	_free_baton(baton);
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, &locerror))
+		goto error_free_message;
+	
+	osync_message_unref(reply);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_message:
+	osync_message_unref(reply);
+error:
+	_free_baton(baton);
+	osync_client_error_shutdown(client, locerror);
+	osync_error_unref(&locerror);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+static void _osync_client_sync_done_callback(void *data, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, data, error);
+	OSyncError *locerror = NULL;
+	callContext *baton = data;
+
+	OSyncMessage *message = baton->message;
+	OSyncClient *client = baton->client;
+
+	OSyncMessage *reply = NULL;
+	if (!osync_error_is_set(&error)) {
+		reply = osync_message_new_reply(message, &locerror);
+		//Send get_changes specific reply data
+	} else {
+		reply = osync_message_new_errorreply(message, error, &locerror);
+	}
+	if (!reply)
+		goto error;
+	osync_trace(TRACE_INTERNAL, "Reply id %lli", osync_message_get_id(reply));
+
+	_free_baton(baton);
+	
+	if (!osync_queue_send_message(client->outgoing, NULL, reply, &locerror))
+		goto error_free_message;
+	
+	osync_message_unref(reply);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error_free_message:
+	osync_message_unref(reply);
+error:
+	_free_baton(baton);
+	osync_client_error_shutdown(client, locerror);
+	osync_error_unref(&locerror);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
 static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMessage *message, OSyncError **error)
 {
 	OSyncMessage *reply = NULL;
@@ -181,6 +344,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	char *plugindir = NULL;
 	char *configdir = NULL;
 	char *formatdir = NULL;
+	OSyncQueue *outgoing = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 	
@@ -190,43 +354,56 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_string(message, &pluginname);
 	osync_message_read_string(message, &configdir);
 	
-	osync_trace(TRACE_INTERNAL, "enginepipe %s, plugin %s", enginepipe, pluginname);
+	osync_trace(TRACE_INTERNAL, "enginepipe %s, formatdir %s, plugindir %s, pluginname %s", enginepipe, formatdir, plugindir, pluginname);
 		
 	/* First we connect the engine pipe if necessary*/
 	if (enginepipe) {
-		client->outgoing = osync_queue_new(enginepipe, error);
-		if (!client->outgoing)
+		outgoing = osync_queue_new(enginepipe, error);
+		if (!outgoing)
 			goto error;
 		
 		osync_trace(TRACE_INTERNAL, "connecting to engine");
 		
-		if (!osync_queue_connect(client->outgoing, OSYNC_QUEUE_SENDER, error))
+		if (!osync_queue_connect(outgoing, OSYNC_QUEUE_SENDER, error)) {
+			osync_queue_free(outgoing);
 			goto error;
+		}
 		
+		osync_client_set_outgoing_queue(client, outgoing);
 		osync_trace(TRACE_INTERNAL, "done connecting to engine");
 	}
 	
-	client->plugin_env = osync_plugin_env_new(error);
-	if (!client->plugin_env)
+	if (!client->plugin) {
+		client->plugin_env = osync_plugin_env_new(error);
+		if (!client->plugin_env)
+			goto error;
+		
+		if (!osync_plugin_env_load(client->plugin_env, plugindir, error))
+			goto error;
+	
+		client->plugin = osync_plugin_env_find_plugin(client->plugin_env, pluginname);
+		if (!client->plugin) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", pluginname);
+			goto error;
+		}
+		osync_plugin_ref(client->plugin);
+	}
+	
+	client->format_env = osync_format_env_new(error);
+	if (!client->format_env)
 		goto error;
 	
-	if (!osync_plugin_env_load(client->plugin_env, plugindir, error))
+	if (!osync_format_env_load_plugins(client->format_env, formatdir, error))
 		goto error;
-
-	client->plugin = osync_plugin_env_find_plugin(client->plugin_env, pluginname);
-	if (!client->plugin) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", pluginname);
-		goto error;
-	}
-	osync_plugin_ref(client->plugin);
-
+	
 	client->plugin_info = osync_plugin_info_new(error);
 	if (!client->plugin_info)
 		goto error;
 	
 	osync_plugin_info_set_configdir(client->plugin_info, configdir);
 	osync_plugin_info_set_loop(client->plugin_info, client->context);
-
+	osync_plugin_info_set_format_env(client->plugin_info, client->format_env);
+	
 	client->plugin_data = osync_plugin_initialize(client->plugin, client->plugin_info, error);
 	if (!client->plugin_data)
 		goto error;
@@ -272,8 +449,10 @@ static osync_bool _osync_client_handle_finalize(OSyncClient *client, OSyncMessag
 	osync_plugin_unref(client->plugin);
 	client->plugin = NULL;
 	
-	osync_plugin_env_free(client->plugin_env);
-	client->plugin_env = NULL;
+	if (client->plugin_env) {
+		osync_plugin_env_free(client->plugin_env);
+		client->plugin_env = NULL;
+	}
 	
 	osync_plugin_info_unref(client->plugin_info);
 	client->plugin_info = NULL;
@@ -347,33 +526,48 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
 	char *objtype = NULL;
+	OSyncMessage *reply = NULL;
+	
 	osync_message_read_string(message, &objtype);
 	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
 	
 	OSyncObjTypeSink *sink = NULL;
-	if (objtype)
+	if (objtype) {
 		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
-	else
+		
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+			g_free(objtype);
+			goto error;
+		}
+		
+		g_free(objtype);
+	} else
 		sink = osync_plugin_info_get_sink(client->plugin_info);
 		
 	if (!sink) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
-		g_free(objtype);
-		goto error;
+		reply = osync_message_new_reply(message, error);
+		if (!reply)
+			goto error;
+		
+		if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
+			goto error_free_reply;
+		
+		osync_message_unref(reply);
+	} else {
+		OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, error);
+		if (!context)
+			goto error;
+		
+		osync_objtype_sink_connect(sink, client->plugin_data, client->plugin_info, context);
+	
+		osync_context_unref(context);
 	}
-	g_free(objtype);
-	
-	OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, error);
-	if (!context)
-		goto error;
-	
-	osync_objtype_sink_connect(sink, client->plugin_data, client->plugin_info, context);
-	
-	osync_context_unref(context);
-	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
-	
+
+error_free_reply:
+	osync_message_unref(reply);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -384,33 +578,241 @@ static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMess
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
 	char *objtype = NULL;
+	OSyncMessage *reply = NULL;
+	
 	osync_message_read_string(message, &objtype);
 	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
 	
 	OSyncObjTypeSink *sink = NULL;
-	if (objtype)
+	if (objtype) {
 		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
-	else
+		
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+			g_free(objtype);
+			goto error;
+		}
+		
+		g_free(objtype);
+	} else
 		sink = osync_plugin_info_get_sink(client->plugin_info);
 		
 	if (!sink) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+		reply = osync_message_new_reply(message, error);
+		if (!reply)
+			goto error;
+		
+		if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
+			goto error_free_reply;
+		
+		osync_message_unref(reply);
+	} else {
+		OSyncContext *context = _create_context(client, message, _osync_client_disconnect_callback, error);
+		if (!context)
+			goto error;
+		
+		osync_objtype_sink_disconnect(sink, client->plugin_data, client->plugin_info, context);
+	
+		osync_context_unref(context);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_reply:
+	osync_message_unref(reply);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMessage *message, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+
+	char *objtype = NULL;
+	OSyncMessage *reply = NULL;
+	
+	osync_message_read_string(message, &objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	
+	OSyncObjTypeSink *sink = NULL;
+	if (objtype) {
+		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
+		
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+			g_free(objtype);
+			goto error;
+		}
+		
 		g_free(objtype);
+	} else
+		sink = osync_plugin_info_get_sink(client->plugin_info);
+		
+	if (!sink) {
+		reply = osync_message_new_reply(message, error);
+		if (!reply)
+			goto error;
+		
+		if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
+			goto error_free_reply;
+		
+		osync_message_unref(reply);
+	} else {
+		OSyncContext *context = _create_context(client, message, _osync_client_get_changes_callback, error);
+		if (!context)
+			goto error;
+		osync_context_set_changes_callback(context, _osync_client_change_callback);
+		
+		osync_objtype_sink_get_changes(sink, client->plugin_data, client->plugin_info, context);
+	
+		osync_context_unref(context);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_reply:
+	osync_message_unref(reply);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_client_handle_commit_change(OSyncClient *client, OSyncMessage *message, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+
+	OSyncChange *change = NULL;
+	
+	OSyncData *data = osync_change_get_data(change);
+	
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", osync_data_get_objtype(data));
+	
+	OSyncObjTypeSink *sink = NULL;
+	sink = osync_plugin_info_find_objtype(client->plugin_info, osync_data_get_objtype(data));
+	
+	if (!sink) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", osync_data_get_objtype(data));
+		osync_change_unref(change);
 		goto error;
 	}
-	g_free(objtype);
-	
-	OSyncContext *context = _create_context(client, message, _osync_client_disconnect_callback, error);
+		
+	OSyncContext *context = _create_context(client, message, _osync_client_commit_change_callback, error);
 	if (!context)
 		goto error;
 	
-	osync_objtype_sink_disconnect(sink, client->plugin_data, client->plugin_info, context);
-		
-	osync_context_unref(context);
+	osync_objtype_sink_commit_change(sink, client->plugin_data, client->plugin_info, change, context);
 	
+	osync_change_unref(change);
+	osync_context_unref(context);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_client_handle_committed_all(OSyncClient *client, OSyncMessage *message, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+
+	char *objtype = NULL;
+	OSyncMessage *reply = NULL;
 	
+	osync_message_read_string(message, &objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	
+	OSyncObjTypeSink *sink = NULL;
+	if (objtype) {
+		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
+		
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+			g_free(objtype);
+			goto error;
+		}
+		
+		g_free(objtype);
+	} else
+		sink = osync_plugin_info_get_sink(client->plugin_info);
+		
+	if (!sink) {
+		reply = osync_message_new_reply(message, error);
+		if (!reply)
+			goto error;
+		
+		if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
+			goto error_free_reply;
+		
+		osync_message_unref(reply);
+	} else {
+		OSyncContext *context = _create_context(client, message, _osync_client_committed_all_callback, error);
+		if (!context)
+			goto error;
+		
+		osync_objtype_sink_committed_all(sink, client->plugin_data, client->plugin_info, context);
+	
+		osync_context_unref(context);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_reply:
+	osync_message_unref(reply);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static osync_bool _osync_client_handle_sync_done(OSyncClient *client, OSyncMessage *message, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
+
+	char *objtype = NULL;
+	OSyncMessage *reply = NULL;
+	
+	osync_message_read_string(message, &objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	
+	OSyncObjTypeSink *sink = NULL;
+	if (objtype) {
+		sink = osync_plugin_info_find_objtype(client->plugin_info, objtype);
+		
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for %s", objtype);
+			g_free(objtype);
+			goto error;
+		}
+		
+		g_free(objtype);
+	} else
+		sink = osync_plugin_info_get_sink(client->plugin_info);
+		
+	if (!sink) {
+		reply = osync_message_new_reply(message, error);
+		if (!reply)
+			goto error;
+		
+		if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
+			goto error_free_reply;
+		
+		osync_message_unref(reply);
+	} else {
+		OSyncContext *context = _create_context(client, message, _osync_client_sync_done_callback, error);
+		if (!context)
+			goto error;
+		
+		osync_objtype_sink_sync_done(sink, client->plugin_data, client->plugin_info, context);
+	
+		osync_context_unref(context);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_reply:
+	osync_message_unref(reply);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -468,29 +870,23 @@ static void _osync_client_message_handler(OSyncMessage *message, void *user_data
 			break;
 			
 		case OSYNC_MESSAGE_GET_CHANGES:
+			if (!_osync_client_handle_get_changes(client, message, &error))
+				goto error;
 			break;
 	
 		case OSYNC_MESSAGE_COMMIT_CHANGE:
-			/*OSyncChange *change;
-	  		osync_demarshal_change(message, member->group->conv_env, &change);
-			osync_change_set_member(change, member);
-		  	osync_member_commit_change(member, change, (OSyncEngCallback)message_callback, ctx);*/
+			if (!_osync_client_handle_commit_change(client, message, &error))
+				goto error;
 			break;
 			
 		case OSYNC_MESSAGE_SYNC_DONE:
-			/*ctx = g_malloc0(sizeof(context));
-			ctx->pp = pp;
-			ctx->message = message;
-			osync_message_ref(message);
-	  		osync_member_sync_done(member, (OSyncEngCallback)message_callback, ctx);*/
+			if (!_osync_client_handle_sync_done(client, message, &error))
+				goto error;
 			break;
 			
 	  	case OSYNC_MESSAGE_COMMITTED_ALL:
-			/*ctx = g_malloc0(sizeof(context));
-			ctx->pp = pp;
-			ctx->message = message;
-			osync_message_ref(message);
-	  		osync_member_committed_all(member, (OSyncEngCallback)message_callback, ctx);*/
+			if (!_osync_client_handle_committed_all(client, message, &error))
+				goto error;
 			break;
 	
 		/*case OSYNC_MESSAGE_READ_CHANGE:
@@ -631,6 +1027,9 @@ void osync_client_unref(OSyncClient *client)
 		if (client->plugin)
 			osync_plugin_unref(client->plugin);
 		
+		if (client->thread)
+			osync_thread_free(client->thread);
+		
 		g_free(client);
 		
 		osync_trace(TRACE_EXIT, "%s", __func__);
@@ -680,9 +1079,9 @@ static gboolean osyncClientConnectCallback(gpointer data)
 }
 
 
-osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncError **error)
+osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, client, pipe_path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, client, pipe_path, plugin, error);
 	/* Create connection pipes **/
 	OSyncQueue *incoming = osync_queue_new(pipe_path, error);
 	if (!incoming)
@@ -698,6 +1097,9 @@ osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSync
 		goto error_remove_queue;
 	
 	osync_thread_start(client->thread);
+	
+	client->plugin = plugin;
+	osync_plugin_ref(client->plugin);
 	
 	GSource *source = NULL;
 	

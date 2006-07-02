@@ -77,12 +77,17 @@ gboolean _incoming_dispatch(GSource *source, GSourceFunc callback, gpointer user
 				pending = p->data;
 			
 				if (pending->id == osync_message_get_id(message)) {
-					
+					/* Unlock the pending lock since the messages might be sent during the callback */
+					g_mutex_unlock(queue->pendingLock);
+			
 					/* Call the callback of the pending message */
 					osync_assert(pending->callback);
 					pending->callback(message, pending->user_data);
 					
-					/* Then remove the pending message and free it */
+					/* Then remove the pending message and free it.
+					 * But first, lock the queue to make sure that the removal
+					 * is atomic */
+					g_mutex_lock(queue->pendingLock);
 					queue->pendingReplies = g_list_remove(queue->pendingReplies, pending);
 					g_free(pending);
 					break;

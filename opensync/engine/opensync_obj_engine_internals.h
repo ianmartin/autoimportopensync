@@ -21,4 +21,23 @@
 #ifndef OPENSYNC_OBJ_ENGINE_INTERNALS_H_
 #define OPENSYNC_OBJ_ENGINE_INTERNALS_H_
 
+struct OSyncObjEngine {
+	int ref_count;
+	OSyncEngine *parent;
+	char *objtype;
+	//OSyncMappingTable *mapping_table;
+	GList *proxies;
+	OSyncError *error;
+	
+	int sink_errors;
+	int sink_connects;
+	int sink_disconnects;
+	int sink_get_changes;
+	int sink_sync_done;
+	int sink_written;
+	
+	OSyncObjEngineEventCallback callback;
+	void *callback_userdata;
+};
+
 #endif /*OPENSYNC_OBJ_ENGINE_INTERNALS_H_*/

@@ -30,6 +30,7 @@ struct OSyncClient {
 	OSyncPlugin *plugin;
 	OSyncPluginInfo *plugin_info;
 	OSyncPluginEnv *plugin_env;
+	OSyncFormatEnv *format_env;
 	void *plugin_data;
 	OSyncThread *thread;
 };

@@ -28,6 +28,9 @@ struct OSyncEngine {
 	
 	char *engine_path;
 	char *plugin_dir;
+	char *format_dir;
+	
+	OSyncFormatEnv *formatenv;
 	
 	OSyncEngineState state;
 	
@@ -48,6 +51,10 @@ struct OSyncEngine {
 	OSyncThread *thread;
 	GMainContext *context;
 	
+	GAsyncQueue *command_queue;
+	GSourceFuncs *command_functions;
+	GSource *command_source;
+	
 	GCond* syncing;
 	GMutex* syncing_mutex;
 	
@@ -55,11 +62,26 @@ struct OSyncEngine {
 	GMutex* started_mutex;
 	
 	GList *proxies;
+	GList *object_engines;
 	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
 	
 	OSyncError *error;
+	
+	int proxy_connects;
+	int proxy_disconnects;
+	int proxy_get_changes;
+	int proxy_written;
+	int proxy_sync_done;
+	int proxy_errors;
+	
+	int obj_errors;
+	int obj_connects;
+	int obj_disconnects;
+	int obj_get_changes;
+	int obj_written;
+	int obj_sync_done;
 };
 
 #endif /*OPENSYNC_ENGINE_INTERNALS_H_*/
