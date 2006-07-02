@@ -111,7 +111,7 @@ static osync_bool conv_plain_to_file(void *user_data, char *input, int inpsize, 
 	
 	*free_input = FALSE;
 	*output = (char *)file;
-	*outpsize = sizeof(file);
+	*outpsize = sizeof(*file);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
