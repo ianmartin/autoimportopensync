@@ -22,6 +22,7 @@ opensyncinclude_HEADERS = \
 	opensync_convreg.h \
 	opensync_anchor.h \
 	opensync_filter.h \
+	opensync_time.h \
 	opensync_debug.h \
 	opensync_changecmds.h
 
@@ -58,6 +59,7 @@ libopensync_la_SOURCES = \
 	opensync_changecmds.c \
 	opensync_convreg.c \
 	opensync_anchor.c \
+	opensync_time.c \
 	opensync_filter.c
 
 CLEANFILES = \

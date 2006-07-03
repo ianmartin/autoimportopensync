@@ -1,0 +1,276 @@
+/*
+ * libopensync - A synchronization framework
+ * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * Copyright (C) 2006 Daniel Gollub <dgollub@suse.de>
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * 
+ */
+
+#include "opensync.h"
+#include "opensync_internals.h"
+
+/* 
+ * Time formatting helper
+ */
+
+/* Function remove dashes from datestamp. 
+ * Returns: YYYYMMDD[THH:MM:DD[Z]]
+ */
+char *osync_time_timestamp_remove_dash(const char *timestamp) {
+        int i, len;
+        GString *str = g_string_new("");
+
+        len = strlen(timestamp);
+
+	for (i=0; i < len; i++) {
+		if (timestamp[i] == '-')
+			continue;
+
+		str = g_string_append_c(str, timestamp[i]);
+	}
+
+        return (char*) g_string_free(str, FALSE);
+}
+
+char *osync_time_timestamp(const char *vformat) {
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vformat);
+
+	char *timestamp;
+
+	timestamp = osync_time_timestamp_remove_dash(vformat);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, timestamp);
+	return timestamp;
+}
+
+/* Function returns a date without timestamp
+ * Returns: new allocated date string
+ */ 
+char *osync_time_datestamp(const char *vformat) {
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vformat);
+
+	char *tmp;
+	const char *p;
+	GString *str = g_string_new ("");
+
+	tmp = osync_time_timestamp_remove_dash(vformat); 
+
+	for (p=tmp; *p && *p != 'T'; p++)
+		str = g_string_append_c (str, *p);
+
+	free(tmp);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, str->str);
+	return (char*) g_string_free(str, FALSE);
+}
+
+
+
+/* Function sets the time of vtime timestamp to the given time parameter.
+ * If vtime only stores date (without THH:MM:SS[Z]) parameter time will
+ * appended. The is_utc append a Z (Zulu) for UTC if not present. 
+ */
+char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc) {
+	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime, time);
+
+	char *tmp = NULL;
+	
+	// TODO
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
+	return tmp;
+}
+
+
+/*
+ * Timezone helper
+ */
+
+/* Function gets current offset between UTC and localtime in seconds.
+ * Returns: Seconds of timezone offset
+ */  
+int osync_time_timezone_diff(void) {	
+	osync_trace(TRACE_ENTRY, "%s()", __func__);
+
+	struct tm ltime, utime;
+	long zonediff;
+	time_t timestamp;
+
+	time( &timestamp );
+
+	tzset();
+
+	ltime = *localtime( &timestamp );
+	utime = *gmtime( &timestamp );
+
+	zonediff = utime.tm_hour - ltime.tm_hour; 
+	zonediff *= 3600;
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, zonediff);
+	return zonediff;
+}
+
+/* Function converts vtime to tm struct and adjusting year (-1900)
+ * and month (-1).
+ * Returns: struct tm
+ */
+struct tm *osync_time_vtime2tm(const char *vtime) {
+
+	struct tm *utime = NULL;
+
+	sscanf(vtime, "%d-%02d-%02dT%02d:%02d:%02d%*01c",
+			&(utime->tm_year), &(utime->tm_mon), &(utime->tm_mday),
+			&(utime->tm_hour), &(utime->tm_min), &(utime->tm_sec));
+
+	utime->tm_year -= 1900;
+	utime->tm_mon -= 1;
+
+	return utime;
+}
+
+/* Function converts struct tm in vtime string: YYYY-MM-DDTHH:MM:SS[Z]
+ * Parameter bool utc appends Z (Zulu) for UTC timezone.  
+ * Returns: vtime in UTC
+ */
+char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc) {
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
+	struct tm *utime = NULL;
+	char *vtime = NULL;
+	int zonediff = 0;
+
+	if (!is_utc) {
+		zonediff = osync_time_timezone_diff();
+		utime = osync_time_localtime2utc(time, zonediff);
+
+		vtime = g_strdup_printf("%d%02d%02dT%02d:%02d:%02dZ",
+				utime->tm_year + 1900, utime->tm_mon + 1, utime->tm_mday,
+				utime->tm_hour, utime->tm_min, utime->tm_sec);
+	} else {
+		vtime = g_strdup_printf("%d%02d%02dT%02d:%02d:%02dZ",
+				time->tm_year + 1900, time->tm_mon + 1, time->tm_mday,
+				time->tm_hour, time->tm_min, time->tm_sec);
+	}
+
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
+	return vtime;
+}
+
+/* Function converts vtime to unix time.
+ * Returns: time_t (in UTC)
+ */ 
+time_t osync_time_vtime2unix(const char *vtime) {
+
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
+	struct tm *utime;
+	time_t timestamp;
+
+	utime = osync_time_vtime2tm(vtime);
+	timestamp = mktime(utime);
+
+	osync_trace(TRACE_EXIT, "%s: %ld", __func__, timestamp);
+	return timestamp;
+}
+
+/* Function converts unix timestamp to vtime in UTC
+ * Returns: vtime (in UTC)   
+ */
+char *osync_time_unix2vtime_utc(const time_t *timestamp) {
+
+	osync_trace(TRACE_ENTRY, "%s(%ld)", __func__, timestamp);
+	char *vtime;
+	struct tm utime;
+
+	utime = *gmtime(timestamp);
+	vtime = osync_time_tm2vtime(&utime, TRUE);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
+	return vtime;
+}
+
+/* Function converts unix timestamp to vtime in localtime
+ * Returns: vtime (in localtime)   
+ */
+char *osync_time_unix2vtime_localtime(const time_t *timestamp) {
+
+	osync_trace(TRACE_ENTRY, "%s(%ld)", __func__, timestamp);
+	char *vtime;
+	struct tm ltime;
+
+	ltime = *localtime(timestamp);
+	vtime = osync_time_tm2vtime(&ltime, FALSE);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
+	return vtime;
+}
+
+/* Function converts (struct tm) utime from UTC to localtime 
+ * Returns: struct tm in localtime / system timezone
+ */ 
+struct tm *osync_time_utc2localtime(const struct tm *utime, int tzdiff) {
+
+	int hour;
+	time_t timestamp;
+	struct tm *tmtime = NULL;
+
+	tmtime = (struct tm*) memcpy(malloc(sizeof(struct tm)), utime, sizeof(struct tm)); 
+
+	tmtime->tm_hour -= tzdiff / 3600;
+
+	if (tmtime->tm_hour > 23) {
+
+		hour = tmtime->tm_hour - 24;
+
+		timestamp = mktime(tmtime);
+		timestamp += 24 * 3600;
+
+		utime = localtime(&timestamp);
+
+		tmtime->tm_hour = hour;
+	}
+
+	return tmtime; 
+}
+
+/* Function converts (struct tm) ltime from localtime to UTC 
+ * Returns: struct tm in UTC 
+ */ 
+struct tm *osync_time_localtime2utc(const struct tm *ltime, int tzdiff) {
+
+	int hour;
+	time_t timestamp;
+	struct tm *tmtime = NULL;
+
+	tmtime = (struct tm*) memcpy(malloc(sizeof(struct tm)), ltime, sizeof(struct tm));
+
+	tmtime->tm_hour += tzdiff / 3600;
+
+	if (tmtime->tm_hour > 23) {
+
+		hour = tmtime->tm_hour - 24;
+
+		timestamp = mktime(tmtime); 
+		timestamp += 24 * 3600;
+
+		tmtime = localtime(&timestamp);
+
+		tmtime->tm_hour = hour;
+	}
+
+	return tmtime; 
+}
+

@@ -72,9 +72,16 @@ static xmlNode *handle_photo_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_birthday_attribute(xmlNode *root, VFormatAttribute *attr)
 {
+	char *datestamp;
+	const char *tmp;
+
 	osync_trace(TRACE_INTERNAL, "Handling birthday attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Birthday", NULL);
-	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	tmp = vformat_attribute_get_nth_value(attr, 0);
+	datestamp = osync_time_datestamp(tmp);
+	osxml_node_add(current, "Content", datestamp);
+	free(datestamp);
+
 	return current;
 }
 
@@ -192,9 +199,15 @@ static xmlNode *handle_note_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_revision_attribute(xmlNode *root, VFormatAttribute *attr)
 {
+	const char *tmp;
+	char *revision;
+
 	osync_trace(TRACE_INTERNAL, "Handling Revision attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Revision", NULL);
-	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	tmp = vformat_attribute_get_nth_value(attr, 0);
+	revision = osync_time_timestamp(tmp);
+	osxml_node_add(current, "Content", revision);
+	free(revision);
 	return current;
 }
 
