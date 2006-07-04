@@ -80,10 +80,25 @@ char *osync_time_datestamp(const char *vformat) {
 	return (char*) g_string_free(str, FALSE);
 }
 
+/* Function returns TRUE if vformat is a valid datestamp (YYYYMMDD).
+ * FALSE is returned if vformat includes a timestamp.
+ */
+osync_bool osync_time_isdate(const char *vformat) {
 
+	int year, month, day;
+
+	if (strstr(vformat, "T"))
+		return FALSE;
+
+	// YYYYMMDD
+	if (sscanf(vformat, "%04d%02d%02d", &year, &month, &day) != 3)
+		return FALSE;
+
+	return TRUE;
+}
 
 /* Function sets the time of vtime timestamp to the given time parameter.
- * If vtime only stores date (without THH:MM:SS[Z]) parameter time will
+ * If vtime only stores date (without THHMMSS[Z]) parameter time will
  * appended. The is_utc append a Z (Zulu) for UTC if not present. 
  */
 char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc) {
@@ -132,26 +147,42 @@ int osync_time_timezone_diff(void) {
  */
 struct tm *osync_time_vtime2tm(const char *vtime) {
 
-	struct tm *utime = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
 
+	struct tm *utime = &_tmbuf;
+
+	utime->tm_year = 0;
+	utime->tm_mon = 0;
+	utime->tm_mday = 0;
+	utime->tm_hour = 0;
+	utime->tm_min = 0;
+	utime->tm_sec = 0;
+
+	// TODO handle zulu?
 	sscanf(vtime, "%04d%02d%02dT%02d%02d%02d%*01c",
 			&(utime->tm_year), &(utime->tm_mon), &(utime->tm_mday),
 			&(utime->tm_hour), &(utime->tm_min), &(utime->tm_sec));
 
+	osync_trace(TRACE_INTERNAL, "date: %04d-%02d-%02d T %02d:%02d:%02d\n",
+			utime->tm_year, utime->tm_mon, utime->tm_mday,
+			utime->tm_hour, utime->tm_min, utime->tm_sec);
+
 	utime->tm_year -= 1900;
 	utime->tm_mon -= 1;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 
 	return utime;
 }
 
-/* Function converts struct tm in vtime string: YYYY-MM-DDTHH:MM:SS[Z]
+/* Function converts struct tm in vtime string: YYYYMMDDTHHMMSS[Z]
  * Parameter bool utc appends Z (Zulu) for UTC timezone.  
  * Returns: vtime in UTC
  */
 char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc) {
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
-	struct tm *utime = NULL;
+	struct tm *utime = &_tmbuf;
 	char *vtime = NULL;
 	int zonediff = 0;
 
@@ -179,7 +210,7 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc) {
 time_t osync_time_vtime2unix(const char *vtime) {
 
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
-	struct tm *utime;
+	struct tm *utime = &_tmbuf;
 	time_t timestamp;
 
 	utime = osync_time_vtime2tm(vtime);
@@ -228,9 +259,14 @@ struct tm *osync_time_utc2localtime(const struct tm *utime, int tzdiff) {
 
 	int hour;
 	time_t timestamp;
-	struct tm *tmtime = NULL;
+	struct tm *tmtime = &_tmbuf;
 
-	tmtime = (struct tm*) memcpy(malloc(sizeof(struct tm)), utime, sizeof(struct tm)); 
+	tmtime->tm_year = utime->tm_year;
+	tmtime->tm_mon = utime->tm_mon;
+	tmtime->tm_mday = utime->tm_mday;
+	tmtime->tm_hour = utime->tm_hour;
+	tmtime->tm_min = utime->tm_min;
+	tmtime->tm_sec = utime->tm_sec;
 
 	tmtime->tm_hour -= tzdiff / 3600;
 
@@ -256,9 +292,14 @@ struct tm *osync_time_localtime2utc(const struct tm *ltime, int tzdiff) {
 
 	int hour;
 	time_t timestamp;
-	struct tm *tmtime = NULL;
+	struct tm *tmtime = &_tmbuf;
 
-	tmtime = (struct tm*) memcpy(malloc(sizeof(struct tm)), ltime, sizeof(struct tm));
+	tmtime->tm_year = ltime->tm_year;
+	tmtime->tm_mon = ltime->tm_mon;
+	tmtime->tm_mday = ltime->tm_mday;
+	tmtime->tm_hour = ltime->tm_hour;
+	tmtime->tm_min = ltime->tm_min;
+	tmtime->tm_sec = ltime->tm_sec;
 
 	tmtime->tm_hour += tzdiff / 3600;
 

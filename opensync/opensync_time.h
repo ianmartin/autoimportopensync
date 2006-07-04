@@ -1,10 +1,13 @@
 #ifndef _OPENSYNC_FORMAT_H_
 #define _OPENSYNC_FORMAT_H_
 
+struct tm _tmbuf;
+
 char *osync_time_timestamp_remove_dash(const char *timestamp);
 char *osync_time_datestamp(const char *stamp); 
 char *osync_time_timestamp(const char *vtime);
 char *osync_time_bdaystamp(const char *bday);
+osync_bool osync_time_isdate(const char *vformat);
 char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc);
 int osync_time_timezone_diff(void);
 struct tm *osync_time_vtime2tm(const char *vtime);
