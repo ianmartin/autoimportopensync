@@ -40,7 +40,7 @@ char *osync_time_timestamp_remove_dash(const char *timestamp) {
 			continue;
 
 		if (timestamp[i] == ':')
-			continue
+			continue;
 
 		str = g_string_append_c(str, timestamp[i]);
 	}
