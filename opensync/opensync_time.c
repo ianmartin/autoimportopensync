@@ -26,8 +26,8 @@
  * Time formatting helper
  */
 
-/* Function remove dashes from datestamp. 
- * Returns: YYYYMMDD[THH:MM:DD[Z]]
+/* Function remove dashes from datestamp and colon. 
+ * Returns: YYYYMMDD[THHMMDD[Z]]
  */
 char *osync_time_timestamp_remove_dash(const char *timestamp) {
         int i, len;
@@ -38,6 +38,9 @@ char *osync_time_timestamp_remove_dash(const char *timestamp) {
 	for (i=0; i < len; i++) {
 		if (timestamp[i] == '-')
 			continue;
+
+		if (timestamp[i] == ':')
+			continue
 
 		str = g_string_append_c(str, timestamp[i]);
 	}
@@ -131,7 +134,7 @@ struct tm *osync_time_vtime2tm(const char *vtime) {
 
 	struct tm *utime = NULL;
 
-	sscanf(vtime, "%d-%02d-%02dT%02d:%02d:%02d%*01c",
+	sscanf(vtime, "%04d%02d%02dT%02d%02d%02d%*01c",
 			&(utime->tm_year), &(utime->tm_mon), &(utime->tm_mday),
 			&(utime->tm_hour), &(utime->tm_min), &(utime->tm_sec));
 
@@ -156,11 +159,11 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc) {
 		zonediff = osync_time_timezone_diff();
 		utime = osync_time_localtime2utc(time, zonediff);
 
-		vtime = g_strdup_printf("%d%02d%02dT%02d:%02d:%02dZ",
+		vtime = g_strdup_printf("%04d%02d%02dT%02d%02d%02dZ",
 				utime->tm_year + 1900, utime->tm_mon + 1, utime->tm_mday,
 				utime->tm_hour, utime->tm_min, utime->tm_sec);
 	} else {
-		vtime = g_strdup_printf("%d%02d%02dT%02d:%02d:%02dZ",
+		vtime = g_strdup_printf("%04d%02d%02dT%02d%02d%02dZ",
 				time->tm_year + 1900, time->tm_mon + 1, time->tm_mday,
 				time->tm_hour, time->tm_min, time->tm_sec);
 	}
