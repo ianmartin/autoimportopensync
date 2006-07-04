@@ -49,6 +49,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	PSyncEventEntry *entry = (PSyncEventEntry *)input;
 	char *tmp = NULL;
+	char *vtime = NULL;
 	xmlNode *current = NULL;
 	struct tm begin, end;
 	
@@ -92,38 +93,41 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	osync_trace(TRACE_INTERNAL, "starttime: %i event: %i", entry->appointment.begin,
 		entry->appointment.event); 
 			
+	// All Day Event
 	if (entry->appointment.event == 1) {
-		begin = entry->appointment.begin;
 
-		tmp = g_strdup_printf("%04d%02d%02d", 
-			begin.tm_year + 1900, begin.tm_mon + 1, begin.tm_mday);
+		// Start
+		begin = entry->appointment.begin;
+		tmp = osync_time_tm2vtime(&begin, FALSE);
+		vtime = osync_time_datestamp(tmp);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 		g_free(tmp);
+		g_free(vtime);
 		
+		// End
 		end = entry->appointment.end;
-		tmp = g_strdup_printf("%04d%02d%02d", 
-			end.tm_year + 1900, end.tm_mon + 1, end.tm_mday);
+		tmp = osync_time_tm2vtime(&end, FALSE);
+		vtime = osync_time_datestamp(tmp);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 		g_free(tmp);
+		g_free(vtime);
 	} else {
-		begin = entry->appointment.begin;
 
-		tmp = g_strdup_printf("%04d%02d%02dT%02d%02d%02d", 
-			begin.tm_year + 1900, begin.tm_mon + 1, begin.tm_mday,
-			begin.tm_hour, begin.tm_min, begin.tm_sec);
+		// Start
+		begin = entry->appointment.begin;
+		vtime = osync_time_tm2vtime(&begin, FALSE);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
-		g_free(tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		g_free(vtime);
 		
+		// End
 		end = entry->appointment.end;
-		tmp = g_strdup_printf("%04d%02d%02dT%02d%02d%02d", 
-			end.tm_year + 1900, end.tm_mon + 1, end.tm_mday,
-			end.tm_hour, end.tm_min, end.tm_sec);
+		vtime = osync_time_tm2vtime(&end, FALSE);
 		current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
-		g_free(tmp);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		g_free(vtime);
 	}
 		
 	// Alarm
@@ -150,7 +154,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		g_free(tmp);
 	}
 	
-	// recurrence
+	// Recurrence
 	if (entry->appointment.repeatType != repeatNone) {
 		
 		int i;
@@ -206,7 +210,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 
 				int weekno = (entry->appointment.repeatDay / 7) + 1; 
 
-				// 5 Week issuse?! :(
+				// TODO: 
+				// testing 5 Week issuse?! :(
 				if (weekno > 4)
 					weekno = -1;
 
@@ -244,49 +249,45 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 				break;
 		}
 	
+		// Frequencly
 		xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp);
+		g_free(tmp);
 
+		// Every #X YYYY
 		if (strlen(rrulestr->str))
 			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) rrulestr->str);
 
-		g_string_free(rrulestr, FALSE);
+		g_string_free(rrulestr, TRUE);
 
-		//interval
+		// Interval
 		if (entry->appointment.repeatFrequency) {
 			tmp = g_strdup_printf("INTERVAL=%i", entry->appointment.repeatFrequency);
 			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp); 
+			g_free(tmp);
 		}
 
-		//repeatEnd
+		// RepeatEnd
 		if (!entry->appointment.repeatForever) {
-			tmp = g_strdup_printf("%04d%02d%02dT%02d%02d%02d",
-					entry->appointment.repeatEnd.tm_year + 1900,
-					entry->appointment.repeatEnd.tm_mon + 1,
-					entry->appointment.repeatEnd.tm_mday,
-					entry->appointment.repeatEnd.tm_hour,
-					entry->appointment.repeatEnd.tm_min,
-					entry->appointment.repeatEnd.tm_sec);
-			tmp = g_strdup_printf("UNTIL=%s", tmp);
-			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp);
+			tmp = osync_time_tm2vtime(&(entry->appointment.repeatEnd), FALSE);
+			vtime = g_strdup_printf("UNTIL=%s", tmp);
+			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) vtime);
+			g_free(tmp);
+			g_free(vtime);
 		}
 
-		// TODO: test
-		//exceptions
+		// Exceptions
 		if (entry->appointment.exceptions) {
 			for (i = 0; i < entry->appointment.exceptions; i++) {
 				current = xmlNewChild(root, NULL, (xmlChar*)"ExclusionDate", NULL);
-				tmp = g_strdup_printf("%04d%02d%02d",
-						entry->appointment.exception[i].tm_year + 1900,
-						entry->appointment.exception[i].tm_mon + 1,
-						entry->appointment.exception[i].tm_mday);
+				tmp = osync_time_tm2vtime(&(entry->appointment.exception[i]), FALSE);
 				xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
 				xmlNewChild(current, NULL, (xmlChar*) "Value", (xmlChar*) "DATE");
+				g_free(tmp);
 			}
 		}
 
-		g_free(tmp);
 	}
-	// end of reccurence
+	// End of reccurence
 
 	// Categories
 	GList *c = NULL;
@@ -318,7 +319,9 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
 	int i = 0;
+	int zonediff = osync_time_timezone_diff();
 	char *tmp = NULL;
+	char *vtime = NULL;
 	
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -374,58 +377,45 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	cur = osxml_get_node(root, "DateStarted");
 	if (cur) {
 		cur = osxml_get_node(cur, "Content");
-		tmp = (char *)xmlNodeGetContent(cur);
-		struct tm start;
+		vtime = (char *)xmlNodeGetContent(cur);
+		struct tm *start = NULL;
 
-		if (strstr(tmp, "T")) {
-			sscanf(tmp, "%04d%02d%02dT%02d%02d%02d%*01c", // TODO timezone
-					&start.tm_year, &start.tm_mon, &start.tm_mday,
-					&start.tm_hour, &start.tm_min, &start.tm_sec);
-		} else {
-			sscanf(tmp, "%04d%02d%02d",
-					&start.tm_year, &start.tm_mon, &start.tm_mday);
+		start = osync_time_vtime2tm(vtime);
+
+		if (!osync_time_isdate(vtime))
+			start = osync_time_utc2localtime(start, zonediff);
+		else
 			entry->appointment.event = 1;
 
-			start.tm_hour = 0;
-			start.tm_min = 0;
-			start.tm_sec = 0;
-		}
+		osync_trace(TRACE_INTERNAL, "event: %i datestart node: %s, year: %i month: %i days: %i / %02i:%02i", 
+				entry->appointment.event, vtime,
+				start->tm_year + 1900, start->tm_mon + 1, start->tm_mday,
+				start->tm_hour, start->tm_min);
 
-		osync_trace(TRACE_INTERNAL, "event: %i datestart node: %s, year: %i month: %i days: %i", 
-				entry->appointment.event, tmp,
-				start.tm_year, start.tm_mon, start.tm_mday);
+		entry->appointment.begin = *start;
 
-		start.tm_year -= 1900;
-		start.tm_mon -= 1;
-		entry->appointment.begin = start;
-		g_free(tmp);
+		g_free(vtime);
 	}
 
 	//End
 	cur = osxml_get_node(root, "DateEnd");
 	if (cur) {
 		cur = osxml_get_node(cur, "Content");
-		tmp = (char *)xmlNodeGetContent(cur);
-		struct tm end;
+		vtime = (char *)xmlNodeGetContent(cur);
+		struct tm *end = NULL;
+
+		end = osync_time_vtime2tm(vtime);
+
+		if (!osync_time_isdate(vtime))
+			end = osync_time_utc2localtime(end, zonediff);
 		
-		if (strstr(tmp, "T"))
-			sscanf(tmp, "%04d%02d%02dT%02d%02d%02d%*01c",
-					&end.tm_year, &end.tm_mon, &end.tm_mday,
-					&end.tm_hour, &end.tm_min, &end.tm_sec);
-		else
-			sscanf(tmp, "%04d%02d%02d",
-					&end.tm_year, &end.tm_mon, &end.tm_mday);
-	
-		osync_trace(TRACE_INTERNAL, "dateend node: %s, year: %i month: %i days: %i", tmp,
-				end.tm_year, end.tm_mon, end.tm_mday);
+		osync_trace(TRACE_INTERNAL, "dateend node: %s, year: %i month: %i days: %i", vtime, 
+				end->tm_year + 1900, end->tm_mon + 1, end->tm_mday);
 
 
-		end.tm_year -= 1900;
-		end.tm_mon -= 1;
+		entry->appointment.end = *end;
 
-		entry->appointment.end = end;
-
-		g_free(tmp);
+		g_free(vtime);
 	}
 	
 	//Alarm
@@ -588,7 +578,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 				else if (!strcmp("SA", tmp_wday))
 					wday = 6;
 				
-				// A month can have 5 <-------- WEEKS :( (palm cannot handle this?)
 				switch (weekno) {
 					// first week
 					case 1:
@@ -600,7 +589,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 					case -4:	
 						entry->appointment.repeatDay = 7 + wday;
 					break;
-				case 3:
+					case 3:
 					case -3:	
 						entry->appointment.repeatDay = 14 + wday;
 						break;
@@ -618,21 +607,16 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 						, wday);
 
 			} else if (strstr(tmp, "UNTIL")) {
-				struct tm repeat_end;
-				if (strstr(tmp, "T"))
-					sscanf(tmp, "UNTIL=%04d%02d%02dT%02d%02d%02d%*01c",	// TODO timezone
-							&repeat_end.tm_year, &repeat_end.tm_mon, &repeat_end.tm_mday,
-							&repeat_end.tm_hour, &repeat_end.tm_min, &repeat_end.tm_sec);
-				else
-					sscanf(tmp, "UNTIL=%04d%02d%02d", &repeat_end.tm_year, &repeat_end.tm_mon, &repeat_end.tm_mday);
+				struct tm *repeat_end = NULL;
+				vtime = tmp; 
+				vtime += strlen("UNTIL=");
 
-				repeat_end.tm_year -= 1900;
-				repeat_end.tm_mon -= 1;
+				repeat_end = osync_time_vtime2tm(vtime);
 							
 				// when repeat_end is euqal or less then begin palm shows strange phenomenons
-				if ((unsigned int) mktime(&repeat_end) > (unsigned int) mktime(&(entry->appointment.begin))) {
+				if ((unsigned int) mktime(repeat_end) > (unsigned int) mktime(&(entry->appointment.begin))) {
 					osync_trace(TRACE_INTERNAL, "UNTIL: %s", tmp);
-					entry->appointment.repeatEnd = repeat_end;
+					entry->appointment.repeatEnd = *repeat_end;
 					entry->appointment.repeatForever = 0;
 				}
 			} else if (strstr(tmp, "INTERVAL")) {
@@ -653,24 +637,21 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	for (i = 0; i < 5 && i < nodes->nodeNr; i++) {
 		cur = nodes->nodeTab[i];
 
-		struct tm exclusion;
+		struct tm *exclusion = NULL;
 		cur = osxml_get_node(cur, "Content");
-		tmp = (char *) xmlNodeGetContent(cur);
-
-		sscanf(tmp, "%04d%02d%02d",
-				&exclusion.tm_year, &exclusion.tm_mon, &exclusion.tm_mday);
-
-		osync_trace(TRACE_INTERNAL, "exclusion node: %s, year: %i month: %i days: %i", tmp,
-				exclusion.tm_year, exclusion.tm_mon, exclusion.tm_mday);
+		vtime = (char *) xmlNodeGetContent(cur);
 
 
-		exclusion.tm_year -= 1900;
-		exclusion.tm_mon -= 1;
-		
-		entry->appointment.exception[entry->appointment.exceptions] = exclusion;
+		exclusion = osync_time_vtime2tm(vtime);
+
+		osync_trace(TRACE_INTERNAL, "exclusion node: %s, year: %i month: %i days: %i", vtime,
+				exclusion->tm_year + 1900, exclusion->tm_mon + 1, exclusion->tm_mday);
+
+
+		entry->appointment.exception[entry->appointment.exceptions] = *exclusion;
 		entry->appointment.exceptions++;
 
-		g_free(tmp);
+		g_free(vtime);
 	}
 	
 	//Categories
@@ -955,14 +936,14 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 
 	//Names
 	if (has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)) {
-		char *formatted_name = g_strdup(""); 
+		GString *formatted_name = g_string_new("");
 
 		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
 		//Last Name
 		tmp = return_next_entry(entry, entryLastname);
 		if (tmp) {
 			osxml_node_add(current, "LastName", tmp);
-			formatted_name = g_strdup_printf("%s", tmp);
+			formatted_name = g_string_append(formatted_name, tmp);
 			g_free(tmp);
 		}
 	
@@ -970,14 +951,14 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		tmp = return_next_entry(entry, entryFirstname);
 		if (tmp) {
 			osxml_node_add(current, "FirstName", tmp);
-			formatted_name = g_strdup_printf("%s %s", formatted_name, tmp);
+			formatted_name = g_string_append(formatted_name, tmp);
 			g_free(tmp);
 		}
 
 		//Formatted
 		current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-		osxml_node_add(current, "Content", formatted_name);
-		g_free(formatted_name);
+		osxml_node_add(current, "Content", formatted_name->str);
+		g_string_free(formatted_name, TRUE);
 	}
 	
 	//Company
@@ -993,9 +974,9 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		tmp = return_next_entry(entry, i);
 		if (tmp) {
 			osync_trace(TRACE_INTERNAL, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
-			if (entry->address.phoneLabel[i - 3] == 4) {
+			if (entry->address.phoneLabel[i - 3] == 4)
 				current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
-			} else
+			else
 				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
 		
 			xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
@@ -1306,12 +1287,14 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 
 	// Summary & Body
 	if (entry->memo.text) {
+		//FIXME memory leak?! - free gchar **?
 		gchar **splitMemo = g_strsplit(entry->memo.text, "\n", 2);
 		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
 
 		current = xmlNewChild(root, NULL, (xmlChar*)"Body", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
+
 	}
 
 	GList *c = NULL;
@@ -1341,6 +1324,7 @@ static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsiz
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
 	xmlNode *cur = NULL;
+	GString *memo = g_string_new("");
 
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
@@ -1365,15 +1349,15 @@ static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsiz
 
 	// Summary 
 	cur = osxml_get_node(root, "Summary");
-	if (cur) {
-		entry->memo.text = (char *)xmlNodeGetContent(cur);
-	}
+	if (cur)
+		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
 	
 	// Body
 	cur = osxml_get_node(root, "Body"); 
-	if (cur) {
-		entry->memo.text = g_strdup_printf("%s\n%s", entry->memo.text, (char *)xmlNodeGetContent(cur));
-	}
+	if (cur)
+		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
+
+	entry->memo.text = (char *) g_string_free(memo, FALSE);
 	
 	//Categories
 	cur = osxml_get_node(root, "Categories");
