@@ -7,9 +7,7 @@ OSYNC_EXPORT void osync_capabilities_ref(OSyncCapabilities *capabilities);
 OSYNC_EXPORT void osync_capabilities_unref(OSyncCapabilities *capabilities);
 
 OSYNC_EXPORT OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, const char *objtype);
-
 OSYNC_EXPORT osync_bool osync_capabilities_assemble(OSyncCapabilities *capabilities, char **buffer, int *size);
-
 OSYNC_EXPORT void osync_capabilities_sort(OSyncCapabilities *capabilities);
 
 #endif /*OPENSYNC_CAPABILITIES_H_*/

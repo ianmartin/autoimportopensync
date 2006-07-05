@@ -34,13 +34,12 @@
 
 int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname)
 {
-	while(points[(*cur_pos)].fieldname) {
+	for(; points[(*cur_pos)].fieldname; (*cur_pos)++) {
 		int res = strcmp(points[(*cur_pos)].fieldname, fieldname);
 		if(res == 0) 
 			return points[(*cur_pos)].points;
 		if(res > 0)
 			return basic_points;
-		(*cur_pos)++;
 	};
 	return basic_points;
 }
@@ -151,47 +150,48 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	
 	g_assert(xmlformat);
 	
-	void **liste = malloc(sizeof(OSyncXMLField *) * xmlformat->child_count);
+	void **liste = g_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count);
 
 	index = 0;
 	cur = osync_xmlformat_get_first_field(xmlformat);
-	while(cur != NULL)
-	{
+	for(; cur != NULL; cur = osync_xmlfield_get_next(cur)) {
 		liste[index] = cur;
 		index++;
-		cur = osync_xmlfield_get_next(cur);
 	}
 	
 	key = g_malloc0(sizeof(OSyncXMLField));
 	key->node = xmlNewNode(NULL, BAD_CAST name);
+	
 	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
 	
-	free(liste);
+	xmlFreeNode(key->node);
+	g_free(key);
+		
+	g_free(liste);
 
-	cur = res;
-	while(cur->prev != NULL && !strcmp(osync_xmlfield_get_name(cur->prev), name))
-	{
-		cur = cur->prev;
-	}
+	/* we set the cur ptr to the first field from the fields with name name because -> bsearch -> more than one field with the same name*/
+	for(cur = res; cur->prev != NULL && !strcmp(osync_xmlfield_get_name(cur->prev), name); cur = cur->prev) ;
 	
-	OSyncXMLFieldList *xmlfieldlist = osync_xmlfieldlist_new();
-	osync_xmlfieldlist_add(xmlfieldlist, cur);
-
-	while(cur->next != NULL && !strcmp(osync_xmlfield_get_name(cur->next), name))
-	{
-		va_list args;
+	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new();
+	
+	osync_bool all_attr_equal;
+	for(; cur != NULL && !strcmp(osync_xmlfield_get_name(cur), name); cur = cur->next) {
 		const char *attr, *value;
+		all_attr_equal = TRUE;
+		va_list args;
 		va_start(args, name);
 		do {
 			attr = va_arg(args, char *);
 			value = va_arg(args, char *);
-			if(!strcmp(value, osync_xmlfield_get_attr(cur, attr)))
-				osync_xmlfieldlist_add(xmlfieldlist, cur->next);
+			if(	attr == NULL || value == NULL)
+				break;
+			if(strcmp(value, osync_xmlfield_get_attr(cur, attr)) != 0)
+				all_attr_equal = FALSE;
 			
-		}while(key != 0 || value != 0);
+		}while(1);
 		va_end(args);
-
-		cur = cur->next;
+		if(all_attr_equal)
+			_osync_xmlfieldlist_add(xmlfieldlist, cur);
 	}
 
 	return xmlfieldlist;
@@ -202,7 +202,7 @@ osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, in
 	g_assert(xmlformat);
 	g_assert(buffer);
 	g_assert(size);
-	xmlDocDumpFormatMemoryEnc(xmlformat->doc, (xmlChar **) buffer, size, NULL, 1);
+	xmlDocDumpFormatMemoryEnc(xmlformat->doc, (xmlChar **)buffer, size, NULL, 1);
 	return TRUE;	
 }
 
@@ -246,16 +246,14 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 	if(xmlformat->child_count <= 1)
 		return;
 	
-	void **list = malloc(sizeof(OSyncXMLField *) * xmlformat->child_count);
+	void **list = g_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count);
 	
 	index = 0;
 	cur = osync_xmlformat_get_first_field(xmlformat);
-	while(cur != NULL)
-	{
+	for(; cur != NULL; cur = osync_xmlfield_get_next(cur)) {
 		list[index] = cur;
 		index++;
 		xmlUnlinkNode(cur->node);
-		cur = osync_xmlfield_get_next(cur);
 	}
 	
 	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
@@ -264,9 +262,7 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 	xmlformat->first_child = ((OSyncXMLField *)list[0])->node->_private;
 	xmlformat->last_child = ((OSyncXMLField *)list[xmlformat->child_count-1])->node->_private;
 
-	index = 0;
-	while(index < xmlformat->child_count)
-	{
+	for(index = 0; index < xmlformat->child_count; index++) {
 		cur = (OSyncXMLField *)list[index];
 		xmlAddChild(xmlDocGetRootElement(xmlformat->doc), cur->node);
 			
@@ -279,11 +275,9 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 			cur->prev = (OSyncXMLField *)list[index-1];
 		else
 			cur->prev = NULL;
-		
-		index++;
 	}
 	
-	free(list);
+	g_free(list);
 }
 
 void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capabilities, OSyncXMLFormat *original)
@@ -296,7 +290,6 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 	g_assert(original);
 	g_assert(capabilities);
 	
-	 /* compairision */
 	 cap_cur = osync_capabilities_get_first(capabilities, osync_xmlformat_get_objtype(xmlformat));
 	 if(!cap_cur)
 	 	return;
@@ -308,17 +301,14 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 	 	
 	 		 	
 	 	ret = strcmp(osync_xmlfield_get_name(new_cur), osync_xmlfield_get_name(old_cur));
-	 	if(ret < 0)
-	 	{
-	 		if(new_cur->next != NULL)
-			{
+	 	if(ret < 0) {
+	 		if(new_cur->next != NULL) {
 				new_cur = osync_xmlfield_get_next(new_cur);
 				continue;
 	 		}
 		 }
 		 
-	 	if(cap_cur == NULL)
-	 	{
+	 	if(cap_cur == NULL)	{
 			tmp = old_cur;
 			old_cur = osync_xmlfield_get_next(old_cur);
 			osync_xmlfield_unlink(tmp);
@@ -603,7 +593,6 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 		}
 	};
 	
-printf("collected points: %i\n", collected_points);
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", collected_points, treshold);
 	if (same) {
 		osync_trace(TRACE_EXIT, "%s: SAME", __func__);

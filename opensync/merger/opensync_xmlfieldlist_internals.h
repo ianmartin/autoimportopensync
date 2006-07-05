@@ -8,8 +8,8 @@ struct OSyncXMLFieldList {
 	GPtrArray *array;
 };
 
-OSyncXMLFieldList *osync_xmlfieldlist_new(void);
-void osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xmlfield);
-void osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index);
+OSyncXMLFieldList *_osync_xmlfieldlist_new(void);
+void _osync_xmlfieldlist_add(OSyncXMLFieldList *xmlfieldlist, OSyncXMLField *xmlfield);
+void _osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index);
 
 #endif /*OPENSYNC_XMLFIELDLIST_INTERNALS_H_*/

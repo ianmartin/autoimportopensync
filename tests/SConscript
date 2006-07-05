@@ -9,7 +9,7 @@ if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
 	testenv.Program('converter', ['format-tests/check_converter.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('formatenv', ['format-tests/check_format_env.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('objformat', ['format-tests/check_objformat.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
-	testenv.Program('merger', ['check_merger.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	#testenv.Program('merger', ['check_merger.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('client', ['client-tests/check_client.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('proxy', ['client-tests/check_proxy.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('engine', ['engine-tests/check_engine.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')

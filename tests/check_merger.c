@@ -57,13 +57,12 @@ printf("---------------------------\n");
 //		}
 //		cur = osync_xmlfield_get_next(cur);
 //	}
-
 	osync_xmlformat_assemble(xmlformat, &buffer, &size);
 	printf("\n%s\n", buffer);
 	
 	printf("search for \"Name\"\n");
-	OSyncXMLFieldList *res = osync_xmlformat_search_field(xmlformat, "Name");
-	size = osync_xmlfieldlist_getLength(res);
+	OSyncXMLFieldList *res = osync_xmlformat_search_field(xmlformat, "Name", NULL);
+	size = osync_xmlfieldlist_get_length(res);
 	for(i=0; i < size; i++)
 	{
 		cur = osync_xmlfieldlist_item(res, i);
@@ -86,13 +85,14 @@ START_TEST (merger_conv_vcard)
 	
 	/* the never used functions */
 	if(0){
-		conv_xmlformat_to_vcard(NULL, NULL, 0, NULL, NULL, NULL, NULL, 0);
-		compare_contact(NULL, NULL);
-		print_contact(NULL);
-		destroy_xmlformat(NULL, 0);
-		fin_vcard_to_xmlformat(NULL);
-		init_xmlformat_to_vcard();
-		fin_xmlformat_to_vcard(NULL);
+		conv_xmlformat_to_vcard(NULL, 0, NULL, 0, NULL, NULL, NULL, 0);
+		compare_contact(NULL, 0, NULL, 0);
+		print_contact(NULL, 0);
+		destroy_contact(NULL, 0);
+		get_revision(NULL, 0, NULL);
+		get_version();
+		get_format_info(NULL);
+		get_conversion_info(NULL);
 	}
 	
 	char *buffer;
@@ -103,18 +103,22 @@ START_TEST (merger_conv_vcard)
 	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
 	printf("%s\n\n", buffer);
 	
-	OSyncXMLFormat** tmp = &xmlformat;
+	osync_bool booollllllll;
 	conv_vcard_to_xmlformat(buffer, size,
-							(char **)tmp,  (unsigned int *) &size,
-							FALSE, NULL, &error);
+							(char **)&xmlformat,  (unsigned int *) &size,
+							&booollllllll, "VCARD_EXTENSION=Evolution", &error);
 	osync_xmlformat_sort(xmlformat);
 	osync_xmlformat_assemble(xmlformat, &buffer, &size);
 	printf("%s", buffer);
+//	printf("\nChecking against Schema....");
+//	fail_unless(osync_xmlformat_validate(xmlformat), NULL);
+//	printf("is valid :-)\n");
+
+	conv_xmlformat_to_vcard((char*)xmlformat, size,
+							&buffer, (unsigned int *)&size,
+							&booollllllll, "VCARD_EXTENSION=Evolution",	&error, VFORMAT_CARD_30);
+	printf("%s", buffer);
 	
-	printf("\nChecking against Schema....");
-	fail_unless(osync_xmlformat_validate(xmlformat), NULL);
-	printf("is valid :-)\n");
-		
 	destroy_testbed(testbed);
 }
 END_TEST

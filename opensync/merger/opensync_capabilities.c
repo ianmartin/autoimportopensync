@@ -56,10 +56,12 @@ OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capa
 
 OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype)
 {
+	g_assert(capabilities);
+	g_assert(objtype);
+	
 	OSyncCapabilitiesObjType *tmp = capabilities->first_objtype;
-	while(tmp != NULL)
-	{
-		if( strcmp((const char *)tmp->node->name, objtype) == 0)
+	for(; tmp != NULL; tmp = tmp->next) {
+		if(!strcmp((const char *)tmp->node->name, objtype))
 			break;
 	}	
 	return tmp;	
@@ -112,15 +114,12 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	
 	xmlNodePtr cur = xmlDocGetRootElement(capabilities->doc);
 	cur = cur->children;
-	while (cur != NULL) {
+	for(; cur != NULL; cur = cur->next) {
 		OSyncCapabilitiesObjType *objtype = _osync_capabilitiesobjtype_new(capabilities, cur);
 		xmlNodePtr tmp = cur->children;
-		while(tmp != NULL)
-		{
+		for(; tmp != NULL; tmp = tmp->next) {
 			_osync_capability_new(objtype, tmp);
-			tmp = tmp->next;
 		}
-		cur = cur->next;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
@@ -147,7 +146,7 @@ void osync_capabilities_unref(OSyncCapabilities *capabilities)
 			while(capability)
 			{
 				tmp2 = osync_capability_get_next(capability);
-				osync_capability_free(capability);
+				_osync_capability_free(capability);
 				capability = tmp2;
 			}				
 			
@@ -178,7 +177,7 @@ osync_bool osync_capabilities_assemble(OSyncCapabilities *capabilities, char **b
 	g_assert(buffer);
 	g_assert(size);
 	xmlDocDumpFormatMemoryEnc(capabilities->doc, (xmlChar **) buffer, size, NULL, 1);
-	return TRUE;	
+	return TRUE;
 }
 
 void osync_capabilities_sort(OSyncCapabilities *capabilities)
@@ -188,32 +187,27 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
 	OSyncCapability *cur;
 		
 	objtype = capabilities->first_objtype;
-	while(objtype != NULL)
+	for(; objtype != NULL; objtype = objtype->next)
 	{
 		if(objtype->child_count <= 1)
-			return;
+			continue;
 	
-		void **list = malloc(sizeof(xmlNodePtr) * objtype->child_count);
+		void **list = g_malloc0(sizeof(OSyncCapability *) * objtype->child_count);
 	
 		index = 0;
-		cur = objtype->first_child;
-		while(cur != NULL)
-		{
+		for(cur = objtype->first_child; cur != NULL; cur = osync_capability_get_next(cur)) {
 			list[index] = cur;
 			index++;
 			xmlUnlinkNode(cur->node);
-			cur = osync_capability_get_next(cur);
 		}
 	
-		qsort(list, objtype->child_count, sizeof(OSyncCapability *), osync_capability_compare_stdlib);
+		qsort(list, objtype->child_count, sizeof(OSyncCapability *), _osync_capability_compare_stdlib);
 	
 		/** bring the capabilities and xmldoc in a consistent state */
 		objtype->first_child = ((OSyncCapability *)list[0])->node->_private;
 		objtype->last_child = ((OSyncCapability *)list[objtype->child_count - 1])->node->_private;
 
-		index = 0;
-		while(index < objtype->child_count)
-		{
+		for(index = 0; index < objtype->child_count; index++) {
 			cur = (OSyncCapability *)list[index];
 			xmlAddChild(objtype->node, cur->node);
 			
@@ -226,13 +220,9 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
 				cur->prev = (OSyncCapability *)list[index-1];
 			else
 				cur->prev = NULL;
-		
-			index++;
 		}
 		
-		free(list);
-		
-		objtype = objtype->next;
+		g_free(list);
 	}
 }
 

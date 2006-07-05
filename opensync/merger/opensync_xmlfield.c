@@ -107,7 +107,12 @@ const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
 	g_assert(xmlfield);
 	g_assert(attr);
 	
-	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
+    xmlAttrPtr prop;
+    prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
+    if(prop == NULL)
+    	return NULL;
+	return (const char *)prop->children->content;
+//	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
 }
 
 void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const char *value)
@@ -116,7 +121,51 @@ void osync_xmlfield_set_attr(OSyncXMLField *xmlfield, const char *attr, const ch
 	g_assert(attr);
 	g_assert(value);
 	
-	xmlNewProp(xmlfield->node, BAD_CAST attr, BAD_CAST value);
+	xmlSetProp(xmlfield->node, BAD_CAST attr, BAD_CAST value);
+}
+
+int osync_xmlfield_get_attr_count(OSyncXMLField *xmlfield)
+{
+	g_assert(xmlfield);
+	
+	int count;
+	xmlAttrPtr attr = xmlfield->node->properties;
+	
+	for(count=0; attr != NULL; count++) {
+		attr = attr->next;
+	}
+	return count;
+}
+
+const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
+{
+	g_assert(xmlfield);
+	
+	int count;
+	xmlAttrPtr attr = xmlfield->node->properties;
+	
+	for(count=0; attribute != NULL; count++) {
+		if(count == nth)
+			return (const char *)attr->name;
+		attr = attr->next;
+	}
+	return NULL;
+}
+
+const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
+{
+	g_assert(xmlfield);
+	
+	int count;
+	xmlAttrPtr attr = xmlfield->node->properties;
+	
+	for(count=0; attr != NULL; count++) {
+		if(count == nth)
+			return (const char *)attr->children->content;
+//			return (const char *)xmlNodeGetContent((xmlNodePtr)attr);
+		attr = attr->next;
+	}
+	return NULL;
 }
 
 const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *key)
@@ -125,11 +174,10 @@ const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *ke
 	g_assert(key);
 	
 	xmlNodePtr cur = xmlfield->node->children;
-	while(cur != NULL)
-	{
+	for(; cur != NULL; cur = cur->next) {
 		if(!xmlStrcmp(cur->name, BAD_CAST key))
-			return (const char *)xmlNodeGetContent(cur);
-		cur = cur->next;
+				return (const char *)cur->children->content;
+//				return (const char *)xmlNodeGetContent(cur);
 	}
 	return NULL;
 }
@@ -141,47 +189,65 @@ void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, cons
 	g_assert(value);
 
 	xmlNodePtr cur = xmlfield->node->children;
-	while(cur != NULL)
-	{
-		if(!xmlStrcmp(cur->name, BAD_CAST key))
-		{
+	for(; cur != NULL; cur = cur->next) {
+		if(!xmlStrcmp(cur->name, BAD_CAST key)) {
 			xmlNodeSetContent(xmlfield->node, BAD_CAST value);
-			break;			
+			break;
 		}
-		cur = cur->next;
 	}
 	if(cur == NULL)
 		xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
+}
+
+void osync_xmlfield_add_key_value(OSyncXMLField *xmlfield, const char *key, const char *value)
+{
+	g_assert(xmlfield);
+	g_assert(key);
+	g_assert(value);
+
+	xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
 }
 
 int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 {
 	g_assert(xmlfield);
 	
-	int count = 0;
+	int count;
 	xmlNodePtr child = xmlfield->node->children;
-	while(child != NULL)
-	{
-		count++;
+	
+	for(count=0; child != NULL; count++) {
 		child = child->next;
 	}
 	return count;
+}
+
+const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
+{
+	g_assert(xmlfield);
+	g_assert(nth);
+	
+	int count;
+	xmlNodePtr child = xmlfield->node->children;
+	
+	for(count=0; child != NULL; count++) {
+		if(count == nth)
+			return (const char *)child->name;
+		child = child->next;
+	}
+	return NULL;
 }
 
 const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 {
 	g_assert(xmlfield);
 	
-	int count = 0;
+	int count;
 	xmlNodePtr child = xmlfield->node->children;
 	
-	while(child != NULL)
-	{
+	for(count=0; child != NULL; count++) {
 		if(count == nth)
-		{
-			return (const char *)xmlNodeGetContent(child);
-		}
-		count++;
+			return (const char *)child->children->content;
+			//return (const char *)xmlNodeGetContent(child);
 		child = child->next;
 	}
 	return NULL;
@@ -192,16 +258,14 @@ void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int nth, const ch
 	g_assert(xmlfield);
 	g_assert(value);
 	
-	int i;
+	int count;
 	xmlNodePtr cur = xmlfield->node->children;
-	for(i = 0; i < nth; i++)
-	{
-		if(cur->next)
-			cur = cur->next;
-		else
-			return;		
+	
+	for(count = 0; cur != NULL ; count++) {
+		if(count == nth)
+			xmlNodeSetContent(cur, BAD_CAST value);		
+		cur = cur->next;
 	}
-	xmlNodeSetContent(cur, BAD_CAST value);
 }
 
 void osync_xmlfield_unlink(OSyncXMLField *xmlfield)
@@ -282,7 +346,8 @@ cmp:	equal = TRUE;
 			}
 			
 			if( strcmp((const char *) node1->name, (const char *) node2->name) != 0 ||
-				strcmp((const char *) xmlNodeGetContent(node1), (const char *) xmlNodeGetContent(node2)) != 0 ) {
+				strcmp((const char *) node1->children->content, (const char *) node2->children->content) != 0 ) {
+//				strcmp((const char *) xmlNodeGetContent(node1), (const char *) xmlNodeGetContent(node2)) != 0 ) {
 				equal = FALSE;
 			}
 			node1 = node1->next;
@@ -309,9 +374,7 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 	g_assert(xmlfield1);
 	g_assert(xmlfield2);
 	
-	osync_bool res;
-
-	res = TRUE;
+	osync_bool res = TRUE;
 	if(strcmp((const char *) xmlfield1->node->name, (const char *) xmlfield2->node->name) != 0)
 		res = FALSE;
 
@@ -321,28 +384,63 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 
 	int i;
 	for(i=0; keys[i]; i++) {
+		GSList *list1;
+		GSList *list2;
+		list1 = NULL;
+		list2 = NULL;
+		
 		while(node1 != NULL) {
 			if(strcmp(keys[i], (const char *)node1->name) == 0)
-				break;
+				list1 = g_slist_prepend(list1, node1);
 			node1 = node1->next;
 		};
+		
 		while(node2 != NULL) {
 			if(strcmp(keys[i], (const char *)node2->name) == 0)
-				break;
+				list2 = g_slist_prepend(list2, node2);
 			node2 = node2->next;
 		};
 		
-		if(node1 == NULL || node2 == NULL) {
-			res = FALSE;
-			break;	
-		}
+		GSList *cur_list1;
+		GSList *cur_list2;
 		
-		if(strcmp((const char *)xmlNodeGetContent(node1), (const char *)xmlNodeGetContent(node2)) != 0) {
-			res = FALSE;
-			break;			
+		while(list1 != NULL)
+		{
+			cur_list1 = list1;
+			cur_list2 = list2;
+			
+			if(cur_list2 == NULL) {
+				res = FALSE;
+				break;	
+			}
+			
+			while(!xmlStrcmp(((xmlNodePtr)cur_list1->data)->children->content,
+						 	 ((xmlNodePtr)cur_list2->data)->children->content)) {		
+//			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
+//						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {
+				cur_list2 = g_slist_next(cur_list2);
+				if(cur_list2 == NULL) {
+					res = FALSE;	
+					break;
+				}
+			};
+			
+			if(res) {
+				list1 = g_slist_delete_link(list1, cur_list1);
+				list2 = g_slist_delete_link(list2, cur_list2);
+			}else
+				break;
 		}
-	}
-	
+		if(list2 != NULL)
+			res = FALSE;
+			
+		if(!res) {
+			if(list1 != NULL)
+				g_slist_free(list1);
+			if(list2 != NULL)
+				g_slist_free(list2);
+		}
+	}	
 	return res;
 }
 

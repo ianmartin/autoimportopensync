@@ -34,6 +34,9 @@
 
 OSyncCapability *_osync_capability_new(OSyncCapabilitiesObjType *objtype, xmlNodePtr node)
 {
+	g_assert(objtype);
+	g_assert(node);
+	
 	OSyncCapability *capability = g_malloc0(sizeof(OSyncCapability));
 	
 	capability->next = NULL;
@@ -51,6 +54,21 @@ OSyncCapability *_osync_capability_new(OSyncCapabilitiesObjType *objtype, xmlNod
 	return capability;
 }
 
+void _osync_capability_free(OSyncCapability *capability)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, capability);
+	g_assert(capability);
+	
+	g_free(capability);
+	
+	osync_trace(TRACE_EXIT, "%s");
+}
+
+int _osync_capability_compare_stdlib(const void *capability1, const void *capability2)
+{
+	return strcmp(osync_capability_get_name(*(OSyncCapability **)capability1), osync_capability_get_name(*(OSyncCapability **)capability2));
+}
+
 /*@}*/
 
 /**
@@ -63,27 +81,17 @@ OSyncCapability *_osync_capability_new(OSyncCapabilitiesObjType *objtype, xmlNod
 
 OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const char *objtype, const char *name)
 {
+	g_assert(capabilities);
+	g_assert(objtype);
+	g_assert(name);
+	
 	OSyncCapabilitiesObjType *tmp = _osync_capabilitiesobjtype_get(capabilities, objtype);
-	if(!tmp)
-	{
+	if(tmp == NULL) {
 		xmlNodePtr node = xmlNewChild(xmlDocGetRootElement(capabilities->doc), NULL, BAD_CAST objtype, NULL);
 		tmp = _osync_capabilitiesobjtype_new(capabilities, node);
 	}
 	xmlNodePtr node = xmlNewChild(xmlDocGetRootElement(capabilities->doc), NULL, (xmlChar *)name, NULL);
 	return _osync_capability_new(tmp, node);
-}
-
-
-void osync_capability_free(OSyncCapability *capability)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, capability);
-	g_assert(capability);
-	
-	if(osync_capability_get_next(capability))
-		osync_capability_free(osync_capability_get_next(capability));
-	g_free(capability);
-	
-	osync_trace(TRACE_EXIT, "%s");
 }
 
 const char *osync_capability_get_name(OSyncCapability *capability)
@@ -100,22 +108,23 @@ OSyncCapability *osync_capability_get_next(OSyncCapability *capability)
 
 osync_bool osync_capability_has_key(OSyncCapability *capability)
 {
-	osync_bool res;
-	
-	res = FALSE;
+	g_assert(capability);
+
 	if(capability->node->children)
-		res = TRUE;
-	return res;	
+		return TRUE;
+	else
+		return FALSE;	
 }
 
 int osync_capability_get_key_count(OSyncCapability *capability)
 {
-	int count = 0;
+	g_assert(capability);
+	
+	int count;
 	xmlNodePtr child = capability->node->xmlChildrenNode;
 	
-	while(child != NULL) {
+	for(count=0 ; child != NULL; child = child->next) {
 		count++;
-		child = child->next;
 	}
 	
 	return count;
@@ -123,30 +132,26 @@ int osync_capability_get_key_count(OSyncCapability *capability)
 
 const char *osync_capability_get_nth_key(OSyncCapability *capability, int nth)
 {
+	g_assert(capability);
+	
 	int count = 0;
 	xmlNodePtr child = capability->node->xmlChildrenNode;
 	
-	while(child != NULL) {
-		count++;
+	for(count=0; child != NULL; child = child->next) {
 		if(count == nth)
-		{
 			return (const char *)child->name;
-		}
-		child = child->next;
+		count++;
 	}
+	
 	return NULL;
 }
 
 void osync_capability_add_key(OSyncCapability *capabilitiy, const char *name)
 {
+	g_assert(capabilitiy);
+	g_assert(name);
+	
 	xmlNewChild(capabilitiy->node, NULL, (xmlChar*)name, NULL);
-}
-
-int osync_capability_compare_stdlib(const void *capability1, const void *capability2)
-{
-	//g_assert(*(void **)capability1);
-	//g_assert(*(void **)capability2);
-	return strcmp(osync_capability_get_name(*(OSyncCapability **)capability1), osync_capability_get_name(*(OSyncCapability **)capability2));
 }
 
 /*@}*/
