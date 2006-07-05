@@ -693,6 +693,22 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       }
     }
 
+    // get $objecttype/info.log for debugging
+    memset(buffer, 0, DATABUFSIZE);
+    buffer_length = DATABUFSIZE;
+
+    filename = g_strdup_printf("telecom/%s/info.log", info->path_identifier);
+    if (!irmc_obex_get(config->obexhandle, filename, buffer, &buffer_length, error)) {
+      g_free(buffer);
+      g_free(filename);
+      goto error;
+    } else {
+      g_free(filename);
+      buffer[buffer_length] = '\0';
+      osync_trace(TRACE_INTERNAL, "info.log of object type \"%s\"\n%s\n",
+		      info->path_identifier, buffer);
+    }
+
     // read change counter from device
     memset(buffer, 0, DATABUFSIZE);
     buffer_length = DATABUFSIZE;
