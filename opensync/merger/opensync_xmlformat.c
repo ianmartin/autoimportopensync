@@ -123,7 +123,7 @@ void osync_xmlformat_unref(OSyncXMLFormat *xmlformat)
 		while(cur != NULL)
 		{
 			tmp = osync_xmlfield_get_next(cur);
-			osync_xmlfield_free(cur);
+			_osync_xmlfield_free(cur);
 			cur = tmp;
 		}
 		xmlFreeDoc(xmlformat->doc);
@@ -162,7 +162,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	key = g_malloc0(sizeof(OSyncXMLField));
 	key->node = xmlNewNode(NULL, BAD_CAST name);
 	
-	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
+	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
 	
 	xmlFreeNode(key->node);
 	g_free(key);
@@ -256,7 +256,7 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 		xmlUnlinkNode(cur->node);
 	}
 	
-	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), osync_xmlfield_compare_stdlib);
+	qsort(list, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
 	
 	/** bring the xmlformat and the xmldoc in a consistent state */
 	xmlformat->first_child = ((OSyncXMLField *)list[0])->node->_private;
@@ -280,7 +280,7 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 	g_free(list);
 }
 
-void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capabilities, OSyncXMLFormat *original)
+void osync_xmlformat_merge(OSyncXMLFormat *xmlformat, OSyncCapabilities *capabilities, OSyncXMLFormat *original)
 {
 	OSyncXMLField *old_cur, *new_cur, *tmp;
 	OSyncCapability *cap_cur;
@@ -311,11 +311,11 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 	 	if(cap_cur == NULL)	{
 			tmp = old_cur;
 			old_cur = osync_xmlfield_get_next(old_cur);
-			osync_xmlfield_unlink(tmp);
+			_osync_xmlfield_unlink(tmp);
 			if(ret >= 0) {
-				osync_xmlfield_link_before_field(new_cur, tmp);
+				_osync_xmlfield_link_before_field(new_cur, tmp);
 			} else {
-				osync_xmlfield_link_after_field(new_cur, tmp);
+				_osync_xmlfield_link_after_field(new_cur, tmp);
 			}
 			continue;		 		
 	 	}
@@ -323,74 +323,86 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
  		ret = strcmp(osync_capability_get_name(cap_cur), osync_xmlfield_get_name(old_cur));
 	 	if(ret == 0)
 	 	{
-	 		/* merge key/value pairs (second level)*/
-	 		printf("%s %s\n",osync_capability_get_name(cap_cur), osync_xmlfield_get_name(new_cur));
+	 		/* 
+	 		 * merge key/value pairs (second level)
+	 		 * we see the second level as sorted and with the same fields (exception the last key)
+	 		 * KEY(new)		Capabilities		KEY(old)
+	 		 * KEY1				KEY1				KEY1
+	 		 * KEY2(empty)		KEY3				KEY2
+	 		 * KEY2(empty)							KEY2
+	 		 * KEY3									KEY3
+	 		 * 										KEY4
+	 		 * 										KEY4
+	 		 */
 	 		if( osync_capability_has_key(cap_cur) &&
-	 			strcmp(osync_capability_get_name(cap_cur), osync_xmlfield_get_name(new_cur)) == 0) 
+	 			!strcmp(osync_capability_get_name(cap_cur), osync_xmlfield_get_name(new_cur))) 
 	 		{
-		 		int r, s;
-	 			xmlNodePtr tmp;
+				xmlNodePtr cap_tmp, new_tmp;
 				xmlNodePtr cap_node = cap_cur->node->children;
 				xmlNodePtr new_node = new_cur->node->children;
 				xmlNodePtr old_node = old_cur->node->children;
 				xmlNodePtr new_par_node = new_cur->node;
-				
-				while(old_node)
-	 			{
-	 				r = 0;
-	 				while(cap_node != NULL) {
-		 				r = strcmp((const char *) cap_node->name, (const char *)  old_node->name);
-	 					if(r < 0)
- 							cap_node = cap_node->next;
- 						if(r >= 0)
- 							break;
-	 				}
-	 				
-	 				/* merge all avalible nodes */
-	 				if(cap_node == NULL) {
-	 					while(old_node != NULL) {
-							tmp = old_node;
-		 					old_node = old_node->next;
-		 					xmlUnlinkNode(tmp);
-		 					xmlAddChild(new_par_node, tmp);	 						
-	 					}
-	 					break;
-	 				}
+			
+				while(old_node) {
+					GSList *list, *tmp;
+					int i, size;
+					const xmlChar *curkeyname;
+					
+					size=0;
+					curkeyname = old_node->name;
+					list = NULL;
+					do {
+						list = g_slist_prepend(list, old_node);
+						size++;
+						old_node = old_node->next;
+						if(old_node == NULL)
+							break;
+						i = xmlStrcmp(old_node->name, curkeyname);
+					} while(i == 0);
 
-	 				/* merge node */
-	 				if(r > 0) {
-		 				tmp = old_node;
-		 				old_node = old_node->next;
-		 				xmlUnlinkNode(tmp);
-		 				if(!new_node) {
-		 					new_node = xmlAddChild(new_par_node, tmp);
-	 					}else{
-		 					do {
-		 						s = strcmp((const char *) new_node->name, (const char *) cap_node->name);
-		 						if(s <= 0 && new_node->next) {
-		 							new_node = new_node->next;
-		 							continue;
-		 						}else if(s <= 0 && !new_node->next) {
-		 							new_node = xmlAddChild(new_par_node, tmp);
-		 							break;
-		 						}else if(s > 0) {
-		 							xmlAddPrevSibling(new_node, tmp);
-		 							break;
-		 						}
-		 						g_assert_not_reached(); 						
-		 					}while(1);
-		 				}
-		 				if(!old_node)
-			 				break;
-	 				}
-	 				
-	 				if(r == 0) {
-	 					old_node = old_node->next;
-	 					continue;
-	 				}
-	 				
-	 				g_assert_not_reached();
-	 			}
+					/* search for the curkeyname in the capabilities */
+					for(cap_tmp = cap_node; cap_tmp != NULL; cap_tmp = cap_tmp->next) {
+						if(!xmlStrcmp(cap_tmp->name, curkeyname)) {
+							cap_node = cap_tmp;
+							break;
+						}
+					}
+
+					if(cap_tmp) { 
+						/* curkeyname was found in the capibilities */
+						/* we have to set the new_node ptr to the right position */
+						for(; new_node && size > 0; size--) {
+							new_node = new_node->next;
+						}
+					}else{
+						/* curkeyname was _not_ found in the capabilities */
+						/* link all key/value pairs with the key curkeyname to the the new_node */
+						
+						list = g_slist_reverse(list);
+
+						if(new_node == NULL) {
+							for(tmp=list; tmp != NULL; tmp = g_slist_next(tmp)) {
+								xmlUnlinkNode(tmp->data);
+								xmlAddChild(new_par_node, tmp->data);		
+							}
+						}else{
+							for(tmp=list; tmp != NULL; tmp = g_slist_next(tmp)) {
+								xmlUnlinkNode(tmp->data);
+								xmlAddPrevSibling(new_node, tmp->data);		
+							}
+							
+							do{
+								new_tmp = new_node;
+								new_node = new_node->next;
+								xmlUnlinkNode(new_tmp);
+								xmlFreeNode(new_tmp);
+								size--;
+							}while(size > 0 && new_node);
+							
+						}
+					}
+					g_slist_free(list);
+		 		}
 	 		}
 	 		old_cur = osync_xmlfield_get_next(old_cur);
 			continue;		 		
@@ -404,8 +416,8 @@ void osync_xmlformat_merging(OSyncXMLFormat *xmlformat, OSyncCapabilities *capab
 	 	{
 			tmp = old_cur;
 			old_cur = osync_xmlfield_get_next(old_cur);
-			osync_xmlfield_unlink(tmp);
-			osync_xmlfield_link_before_field(new_cur, tmp);
+			_osync_xmlfield_unlink(tmp);
+			_osync_xmlfield_link_before_field(new_cur, tmp);
 	 		continue;
 	 	}
 		g_assert_not_reached();

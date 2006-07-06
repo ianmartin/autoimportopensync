@@ -2,15 +2,10 @@
 <capabilities>
 	<contact>
 		<Name>
-			<FirstName />
 			<LastName />
 		</Name>
-		<Telephone>
-			<Content />
-		</Telephone>
-		<Categories>
-			<Category />		
-		</Categories>
+		<Telephone />
+		<Categories />
 		<Address>
 			<Street />
 			<City />

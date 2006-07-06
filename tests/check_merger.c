@@ -42,7 +42,7 @@ printf("---------------------------\n");
 	osync_capabilities_sort(capabilities);
 	printf("%s", buffer);
 printf("---------------------------\n");
-	osync_xmlformat_merging(xmlformat, capabilities, xmlformat_full);
+	osync_xmlformat_merge(xmlformat, capabilities, xmlformat_full);
 
 	
 //	cur = osync_xmlformat_get_first_field(xmlformat);

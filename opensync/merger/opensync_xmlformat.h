@@ -24,7 +24,7 @@ OSYNC_EXPORT osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char
 OSYNC_EXPORT osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat);
 
 OSYNC_EXPORT void osync_xmlformat_sort(OSyncXMLFormat *xmlformat);
-OSYNC_EXPORT void osync_xmlformat_merging(OSyncXMLFormat *xmlfield, OSyncCapabilities *capabilities, OSyncXMLFormat *original);
+OSYNC_EXPORT void osync_xmlformat_merge(OSyncXMLFormat *xmlfield, OSyncCapabilities *capabilities, OSyncXMLFormat *original);
 
 OSYNC_EXPORT OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold);
 

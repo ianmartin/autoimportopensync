@@ -47,10 +47,28 @@ static void handle_company_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 	osync_xmlfield_set_attr(xmlfield, "Type", "Company");
 }
 
-static void handle_location_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+//static void handle_location_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+//	osync_xmlfield_set_attr(xmlfield, "Location", vformat_attribute_param_get_nth_value(param,0));
+//}
+
+static void handle_location_home_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Location", vformat_attribute_param_get_nth_value(param,0));
+	osync_xmlfield_set_attr(xmlfield, "Location", "Home");
+}
+
+static void handle_location_work_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Location", "Work");
+}
+
+static void handle_location_other_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Location", "Other");
 }
 
 static void handle_preferred_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -71,16 +89,46 @@ static void handle_telex_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_xmlfield_set_attr(xmlfield, "Type", "Telex");
 }
 
-static void handle_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+//static void handle_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+//{
+//	
+//	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s\n", vformat_attribute_param_get_name(param));
+//	
+//	GList *v = vformat_attribute_param_get_values(param);
+//	for (; v; v = v->next) {
+//		osync_xmlfield_set_attr(xmlfield, "Type", v->data);
+//	}
+//}
+
+static void handle_type_car_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Type", "Car");
+}
+
+static void handle_type_cellular_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Type", "Cellular");
+}
+
+static void handle_type_fax_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Type", "Fax");
+}
+
+static void handle_type_voice_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Type", "Voice");
+}
+
+static void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	
-	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s\n", vformat_attribute_param_get_name(param));
-	
-	GList *v = vformat_attribute_param_get_values(param);
-	for (; v; v = v->next) {
-		printf("Handling type parameter %s %p %s\n", vformat_attribute_param_get_name(param), xmlfield, (char *) v->data);
-		osync_xmlfield_set_attr(xmlfield, "Type", v->data);
-	}
+	osync_trace(TRACE_INTERNAL, "Handling Value parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Value", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_uislot_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -111,6 +159,14 @@ static OSyncXMLField *handle_address_attribute(OSyncXMLFormat *xmlformat, VForma
 	osync_xmlfield_set_key_value(xmlfield, "Country", vformat_attribute_get_nth_value(attr, 6));	
 	return xmlfield;
 }
+
+static OSyncXMLField *handle_agent_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling agent attribute"); 
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Agent"); 
+	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0)); 
+	return xmlfield; 
+} 
 
 static OSyncXMLField *handle_aim_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
 {
@@ -638,6 +694,7 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 	g_hash_table_insert(hooks->attributes, "PHOTO", handle_photo_attribute);
 	g_hash_table_insert(hooks->attributes, "BDAY", handle_birthday_attribute);
 	g_hash_table_insert(hooks->attributes, "ADR", handle_address_attribute);
+	g_hash_table_insert(hooks->attributes, "AGENT", handle_agent_attribute); 
 	g_hash_table_insert(hooks->attributes, "LABEL", handle_label_attribute);
 	g_hash_table_insert(hooks->attributes, "TEL", handle_telephone_attribute);
 	g_hash_table_insert(hooks->attributes, "EMAIL", handle_email_attribute);
@@ -667,13 +724,14 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 	
 	//g_hash_table_insert(hooks->parameters, "TYPE", handle_type_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=PREF", handle_preferred_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=HOME", handle_location_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=WORK", handle_location_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=OTHER", handle_location_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=VOICE", handle_type_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=CELL", handle_type_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=FAX", handle_type_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=CAR", handle_type_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=HOME", handle_location_home_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=WORK", handle_location_work_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=OTHER", handle_location_other_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=VOICE", handle_type_voice_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=CELL", handle_type_cellular_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=FAX", handle_type_fax_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=CAR", handle_type_car_parameter);
+	g_hash_table_insert(hooks->parameters, "VALUE", handle_value_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -920,11 +978,29 @@ static void handle_xml_company_x_evolution_parameter(VFormatAttribute *attr, OSy
 	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-COMPANY");
 }
 
-static void handle_xml_location_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//static void handle_xml_location_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling location xml parameter");
+//	const char *content = osync_xmlfield_get_attr(xmlfield, "Location");
+//	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+//}
+
+static void handle_xml_location_home_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling location xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Location");
-	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+	vformat_attribute_add_param_with_value(attr, "TYPE", "HOME");
+}
+
+static void handle_xml_location_work_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling location xml parameter");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "WORK");
+}
+
+static void handle_xml_location_other_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling location xml parameter");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "OTHER");
 }
 
 static void handle_xml_preferred_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
@@ -959,11 +1035,42 @@ static void handle_xml_telex_x_evolution_parameter(VFormatAttribute *attr, OSync
 	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-TELEX");
 }
 
-static void handle_xml_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//static void handle_xml_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
+//	const char *content = osync_xmlfield_get_attr(xmlfield, "Type");
+//	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+//}
+
+static void handle_xml_type_car_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Type");
-	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+	vformat_attribute_add_param_with_value(attr, "TYPE", "CAR");
+}
+
+static void handle_xml_type_cellular_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "CELL");
+}
+
+static void handle_xml_type_fax_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "FAX");
+}
+
+static void handle_xml_type_voice_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "VOICE");
+}
+
+static void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling value xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Value");
+	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 }
 
 //static void handle_xml_unknown_parameter(VFormatAttribute *attr, xmlNode *current)
@@ -988,6 +1095,15 @@ static VFormatAttribute *handle_xml_address_attribute(VFormat *vcard, OSyncXMLFi
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
+
+static VFormatAttribute *handle_xml_agent_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding) 
+{ 
+		osync_trace(TRACE_INTERNAL, "Handling agent xml attribute"); 
+		VFormatAttribute *attr = vformat_attribute_new(NULL, "AGENT"); 
+		add_value(attr, xmlfield, "Content", encoding); 
+		vformat_add_attribute(vcard, attr); 
+		return attr; 
+} 
 
 static VFormatAttribute *handle_xml_aim_x_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
 {
@@ -1610,6 +1726,7 @@ static OSyncHookTables *init_xmlformat_to_vcard(void)
 	g_hash_table_insert(hooks->attributes, "Birthday", handle_xml_birthday_attribute);
 	g_hash_table_insert(hooks->attributes, "Address", handle_xml_address_attribute);
 	g_hash_table_insert(hooks->attributes, "AddressLabel", handle_xml_label_attribute);
+	g_hash_table_insert(hooks->attributes, "Agent", handle_xml_agent_attribute); 
 	g_hash_table_insert(hooks->attributes, "Telephone", handle_xml_telephone_attribute);
 	g_hash_table_insert(hooks->attributes, "EMail", handle_xml_email_attribute);
 	g_hash_table_insert(hooks->attributes, "Mailer", handle_xml_mailer_attribute);
@@ -1630,9 +1747,28 @@ static OSyncHookTables *init_xmlformat_to_vcard(void)
 	g_hash_table_insert(hooks->attributes, "Categories", handle_xml_categories_attribute);
 //	g_hash_table_insert(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
 	
-	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
-	g_hash_table_insert(hooks->parameters, "Location", handle_xml_location_parameter);
+//	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
+	g_hash_table_insert(hooks->parameters, "Type=Voice", handle_xml_type_voice_parameter);
+	g_hash_table_insert(hooks->parameters, "Type=Cellular", handle_xml_type_cellular_parameter);
+	g_hash_table_insert(hooks->parameters, "Type=Fax", handle_xml_type_fax_parameter);
+	g_hash_table_insert(hooks->parameters, "Type=Car", handle_xml_type_car_parameter);
+//	g_hash_table_insert(hooks->parameters, "Location", handle_xml_location_parameter);
+	g_hash_table_insert(hooks->parameters, "Location=Home", handle_xml_location_home_parameter);
+	g_hash_table_insert(hooks->parameters, "Location=Work", handle_xml_location_work_parameter);
+	g_hash_table_insert(hooks->parameters, "Location=Other", handle_xml_location_other_parameter);
+	
 	g_hash_table_insert(hooks->parameters, "Preferred", handle_xml_preferred_parameter);
+	g_hash_table_insert(hooks->parameters, "Value", handle_xml_value_parameter);
+	
+
+	g_hash_table_insert(hooks->parameters, "TYPE=HOME", handle_location_home_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=WORK", handle_location_work_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=OTHER", handle_location_other_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=VOICE", handle_type_voice_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=CELL", handle_type_cellular_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=FAX", handle_type_fax_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=CAR", handle_type_car_parameter);
+	
 //	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
 //	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
 //	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);
