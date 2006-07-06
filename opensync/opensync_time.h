@@ -1,8 +1,6 @@
 #ifndef _OPENSYNC_FORMAT_H_
 #define _OPENSYNC_FORMAT_H_
 
-struct tm _tmbuf;
-
 char *osync_time_timestamp_remove_dash(const char *timestamp);
 char *osync_time_datestamp(const char *stamp); 
 char *osync_time_timestamp(const char *vtime);

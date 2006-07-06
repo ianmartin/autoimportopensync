@@ -22,6 +22,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+struct tm _tmbuf;
+
 /* 
  * Time formatting helper
  */
