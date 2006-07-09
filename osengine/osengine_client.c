@@ -316,6 +316,7 @@ osync_bool osync_client_init(OSyncClient *client, OSyncError **error)
 	
 	g_mutex_lock(client->started_mutex);
 	GSource *idle = g_idle_source_new();
+	g_source_set_priority(idle, G_PRIORITY_HIGH);
 	g_source_set_callback(idle, startupfunc, client, NULL);
     g_source_attach(idle, client->context);
 	osync_trace(TRACE_INTERNAL, "Waiting for startup");

@@ -1007,6 +1007,7 @@ osync_bool osengine_init(OSyncEngine *engine, OSyncError **error)
 	//We protect the startup by a g_cond
 	g_mutex_lock(engine->started_mutex);
 	GSource *idle = g_idle_source_new();
+	g_source_set_priority(idle, G_PRIORITY_HIGH);
 	g_source_set_callback(idle, startupfunc, engine, NULL);
     g_source_attach(idle, engine->context);
 	engine->thread = g_thread_create ((GThreadFunc)g_main_loop_run, engine->syncloop, TRUE, NULL);
