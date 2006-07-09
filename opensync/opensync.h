@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <time.h>
+#include <fcntl.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -56,6 +57,8 @@ typedef struct OSyncFormatConverter OSyncFormatConverter;
 typedef struct OSyncFormatProperty OSyncFormatProperty;
 typedef struct OSyncFilter OSyncFilter;
 typedef struct OSyncCustomFilter OSyncCustomFilter;
+typedef struct OSyncMessage OSyncMessage;
+typedef struct OSyncQueue OSyncQueue;
 typedef int osync_bool;
 
 #include "opensync_debug.h"
@@ -73,6 +76,7 @@ typedef int osync_bool;
 #include "opensync_convreg.h"
 #include "opensync_anchor.h"
 #include "opensync_time.h"
+#include "opensync_serializer.h"
 
 #ifdef __cplusplus
 }

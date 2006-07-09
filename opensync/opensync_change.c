@@ -76,7 +76,7 @@ OSyncObjFormat *osync_change_get_initial_objformat(OSyncChange *change)
 	if (!change->initial_format)
 		return NULL;
 	
-	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
+	osync_assert_msg(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
 	change->initial_format = osync_conv_find_objformat(change->conv_env, change->initial_format_name);
 	return change->initial_format;
 }
@@ -283,7 +283,7 @@ OSyncObjType *osync_change_get_objtype(OSyncChange *change)
 		return format->objtype;
 	}
 	
-	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
+	osync_assert_msg(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
 	change->objtype = osync_conv_find_objtype(change->conv_env, change->objtype_name);
 	return change->objtype;
 }
@@ -341,7 +341,7 @@ OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
 		return NULL;
 	}
 	
-	osync_assert(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
+	osync_assert_msg(change->conv_env, "The conv env of the change must be set by calling member_set or conv_env_set");
 	change->format = osync_conv_find_objformat(change->conv_env, change->format_name);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change->format);

@@ -60,6 +60,9 @@ START_TEST (sync_init_error)
 
 	fail_unless(error != NULL, NULL);
 	fail_unless(error->type == OSYNC_ERROR_MISCONFIGURATION, NULL);
+	osengine_finalize(engine);
+	osengine_free(engine);
+
 	destroy_testbed(testbed);
 }
 END_TEST
@@ -206,6 +209,9 @@ START_TEST (sync_easy_new_mapping)
 	table = hashtable_load(group, 2, 1);
     check_hash(table, "testdata");
 	osync_hashtable_close(table);
+
+	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	destroy_testbed(testbed);
 }
@@ -315,6 +321,7 @@ START_TEST (sync_conflict_duplicate)
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
+	osengine_free(engine);
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
 	
@@ -357,6 +364,7 @@ START_TEST (sync_conflict_duplicate2)
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	system("diff -x \".*\" data1 data2");
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
@@ -402,6 +410,7 @@ START_TEST (sync_conflict_deldel)
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -452,6 +461,7 @@ START_TEST (sync_moddel)
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 0, NULL);
@@ -495,6 +505,7 @@ START_TEST (sync_conflict_moddel)
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
+	osengine_free(engine);
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	fail_unless(num_conflicts == 1, NULL);
@@ -535,6 +546,8 @@ START_TEST (sync_easy_dualdel)
 	
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
+	osengine_free(engine);
+	
 	
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	

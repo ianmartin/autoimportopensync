@@ -215,7 +215,7 @@ long long int osengine_mappingtable_get_next_id(OSyncMappingTable *table)
 void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
-	OSyncEngine *engine = table->engine;
+	//OSyncEngine *engine = table->engine;
 
 	char **uids = NULL;
 	long long int *memberids = NULL;
@@ -245,7 +245,7 @@ void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 		if (entry->mapping)
 			osync_flag_set(entry->fl_mapped);
 
-		send_read_change(engine, entry);
+		//send_read_change(engine, entry);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

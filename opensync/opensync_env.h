@@ -25,3 +25,7 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 const char *osync_get_version(void);
 void *osync_try_malloc0(unsigned int size, OSyncError **error);
 char *osync_strreplace(const char *input, const char *delimiter, const char *replacement);
+
+void osync_env_export_all_options(OSyncEnv *env);
+void osync_env_export_loaded_modules(OSyncEnv *env);
+

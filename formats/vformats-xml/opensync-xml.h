@@ -60,6 +60,9 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 xmlChar *osxml_write_to_string(xmlDoc *doc);
 osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize);
 
+osync_bool osxml_marshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error);
+osync_bool osxml_demarshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error);
+
 #ifdef __cplusplus
 }
 #endif

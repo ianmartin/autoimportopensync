@@ -1998,6 +1998,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_print_func(env, "xml-event", print_vcal);
 	osync_env_format_set_copy_func(env, "xml-event", osxml_copy);
 	osync_env_format_set_revision_func(env, "xml-event", get_event_revision);
+	osync_env_format_set_marshall_func(env, "xml-event", osxml_marshall);
+	osync_env_format_set_demarshall_func(env, "xml-event", osxml_demarshall);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vevent10", "xml-event", conv_vcal_to_xml);
 	osync_env_converter_set_init(env, "vevent10", "xml-event", init_vcal_to_xml, fin_vcal_to_xml);
@@ -2017,6 +2019,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_print_func(env, "xml-todo", print_vcal);
 	osync_env_format_set_copy_func(env, "xml-todo", osxml_copy);
 	osync_env_format_set_revision_func(env, "xml-todo", get_todo_revision);
+	osync_env_format_set_marshall_func(env, "xml-todo", osxml_marshall);
+	osync_env_format_set_demarshall_func(env, "xml-todo", osxml_demarshall);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vtodo10", "xml-todo", conv_vcal_to_xml);
 	osync_env_converter_set_init(env, "vtodo10", "xml-todo", init_vcal_to_xml, fin_vcal_to_xml);

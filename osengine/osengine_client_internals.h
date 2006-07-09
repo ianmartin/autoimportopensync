@@ -2,8 +2,8 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 struct OSyncClient {
 	OSyncMember *member;
-	ITMQueue *incoming;
-	GMainLoop *memberloop;
+	OSyncQueue *commands_to_osplugin;
+	OSyncQueue *commands_from_osplugin;
 	OSyncEngine *engine;
 
 	OSyncFlag *fl_connected;
@@ -11,15 +11,9 @@ struct OSyncClient {
 	OSyncFlag *fl_done;
 	OSyncFlag *fl_finished;
 	OSyncFlag *fl_committed_all;
-	GThread *thread;
-	GMainContext *context;
 	
-	GCond* started;
-	GMutex* started_mutex;
-	
-	osync_bool is_initialized;
-	
-	GList *changes;
+	pid_t child_pid;
+	//GList *changes;
 };
 #endif
 
@@ -30,11 +24,22 @@ typedef struct OSyncPluginCallContext {
 	void *userdata;
 } OSyncPluginCallContext;
 
-OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member);
+OSyncClient *osync_client_new(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
+void osync_client_free(OSyncClient *client);
+
+osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncError **error);
 OSyncEngine *osync_client_get_engine(OSyncClient *client);
 void osync_client_call_plugin(OSyncClient *client, char *function, void *data, OSyncPluginReplyHandler replyhandler, void *userdata);
-void osync_client_free(OSyncClient *client);
-osync_bool osync_client_init(OSyncClient *client, OSyncError **error);
-void osync_client_finalize(OSyncClient *client);
+
+osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncError **error);
+osync_bool osync_client_finalize(OSyncClient *client, OSyncError **error);
 OSyncPluginTimeouts osync_client_get_timeouts(OSyncClient *client);
 void osync_client_reset(OSyncClient *client);
+
+osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_committed_all(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_sync_done(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_disconnect(OSyncClient *target, OSyncEngine *sender, OSyncError **error);
+osync_bool osync_client_commit_change(OSyncClient *target, OSyncEngine *sender, OSyncMappingEntry *entry, OSyncError **error);
+osync_bool osync_client_get_change_data(OSyncClient *target, OSyncEngine *sender, OSyncMappingEntry *entry, OSyncError **error);

@@ -84,3 +84,4 @@ void osengine_mappingentry_reset(OSyncMappingEntry *entry);
 void osengine_mappingentry_free(OSyncMappingEntry *entry);
 OSyncMapping *osengine_mappingtable_mapping_from_id(OSyncMappingTable *table, long long id);
 OSyncMappingEntry *osengine_mappingentry_copy(OSyncMappingEntry *entry);
+

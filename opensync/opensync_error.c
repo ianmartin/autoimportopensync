@@ -72,7 +72,7 @@ void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *
 	if (!error || !format)
 		return;
 	
-	osync_return_if_fail(osync_error_is_set(error) == FALSE);
+	osync_assert(osync_error_is_set(error) == FALSE);
 	
 	char buffer[1024];
 	memset(buffer, 0, sizeof(buffer));

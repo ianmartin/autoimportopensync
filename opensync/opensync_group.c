@@ -254,6 +254,21 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 		osync_trace(TRACE_EXIT_ERROR, "osync_group_lock: %s", strerror(errno));
 		return OSYNC_LOCK_STALE;
 	} else {
+
+		/* Set FD_CLOEXEC flags for the lock file descriptor. We don't want the
+		 * subprocesses created by plugins or the engine to keep holding the lock
+		 */
+		int oldflags = fcntl(group->lock_fd, F_GETFD);
+		if (oldflags == -1) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to get fd flags");
+			return OSYNC_LOCK_STALE;
+		}
+
+		if (fcntl(group->lock_fd, F_SETFD, oldflags|FD_CLOEXEC) == -1) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, "Unable to set fd flags");
+			return OSYNC_LOCK_STALE;
+		}
+
 		if (flock(group->lock_fd, LOCK_EX | LOCK_NB) == -1) {
 			if (errno == EWOULDBLOCK) {
 				osync_debug("GRP", 4, "locking group: is locked2");
@@ -362,7 +377,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	g_assert(group);
-	osync_assert(group->env, "You must specify a Environment prior to saving the group");
+	osync_assert_msg(group->env, "You must specify a Environment prior to saving the group");
 	
 	if (!group->configdir) {
 		group->id = _osync_env_create_group_id(group->env);
@@ -951,7 +966,7 @@ osync_bool osync_group_remove_changelog(OSyncGroup *group, OSyncChange *change, 
 void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, not shown)", __func__, last_sync);
-	osync_assert(group, "Group missing");
+	osync_assert_msg(group, "Group missing");
 	
 	group->last_sync = last_sync;
                
@@ -967,7 +982,7 @@ void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
  */
 time_t osync_group_get_last_synchronization(OSyncGroup *group)
 {
-	osync_assert(group, "Group missing");
+	osync_assert_msg(group, "Group missing");
 	return group->last_sync;
 }
 

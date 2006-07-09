@@ -4,18 +4,18 @@
 
 START_TEST (user_create)
 {
-  OSyncUserInfo *osuser = _osync_user_new();
+  OSyncUserInfo *osuser = osync_user_new(NULL);
   fail_unless(osuser != NULL, "osuser == NULL on creation");
-  fail_unless(_osync_user_get_confdir(osuser) != NULL, "confdir == NULL on creation");
+  fail_unless(osync_user_get_confdir(osuser) != NULL, "confdir == NULL on creation");
 }
 END_TEST
 
 START_TEST (user_confdir)
 {
-  OSyncUserInfo *osuser = _osync_user_new();
-  fail_unless(_osync_user_get_confdir(osuser) != NULL, "configdir == NULL on creation");
-  _osync_user_set_confdir(osuser, "test");
-  if (g_ascii_strcasecmp (_osync_user_get_confdir(osuser), "test") != 0)
+  OSyncUserInfo *osuser = osync_user_new(NULL);
+  fail_unless(osync_user_get_confdir(osuser) != NULL, "configdir == NULL on creation");
+  osync_user_set_confdir(osuser, "test");
+  if (g_ascii_strcasecmp (osync_user_get_confdir(osuser), "test") != 0)
   	fail("configpath == \"test\"");
 }
 END_TEST

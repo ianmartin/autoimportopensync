@@ -425,7 +425,7 @@ osync_bool osync_conv_convert_fn(OSyncFormatEnv *env, OSyncChange *change, OSync
 	g_assert(change);
 	g_assert(target_fn);
 	OSyncObjFormat *source = osync_change_get_objformat(change);
-	osync_assert(source, "Cannot convert! change has no objformat!");
+	osync_assert_msg(source, "Cannot convert! change has no objformat!");
 	GList *path = NULL;
 	osync_bool ret = TRUE;
 
@@ -601,6 +601,8 @@ OSyncFormatEnv *osync_conv_env_new(OSyncEnv *env)
 		format->destroy_func = ftempl->destroy_func;
 		format->print_func = ftempl->print_func;
 		format->revision_func = ftempl->revision_func;
+		format->marshall_func = ftempl->marshall_func;
+		format->demarshall_func = ftempl->demarshall_func;
 		type->formats = g_list_append(type->formats, format);
 		conv_env->objformats = g_list_append(conv_env->objformats, format);
 	}

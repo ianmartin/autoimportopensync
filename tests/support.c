@@ -20,6 +20,7 @@ static void reset_env(void)
 
 char *setup_testbed(char *fkt_name)
 {
+	
 	setuid(65534);
 	char *testbed = g_strdup_printf("%s/testbed.XXXXXX", g_get_tmp_dir());
 	mkdtemp(testbed);
@@ -31,6 +32,11 @@ char *setup_testbed(char *fkt_name)
 			abort();
 		g_free(command);
 	}
+	
+	command = g_strdup_printf("cp -R ../osplugin/osplugin %s", testbed);
+	if (system(command))
+		abort();
+	g_free(command);
 	
 	command = g_strdup_printf("cp -R mock-plugin/.libs/*.so %s", testbed);
 	if (system(command))
@@ -56,7 +62,7 @@ char *setup_testbed(char *fkt_name)
 	if (chdir(testbed))
 		abort();
 	
-	osync_debug("TEST", 4, "Seting up %s at %s", fkt_name, testbed);
+	osync_trace(TRACE_INTERNAL, "Seting up %s at %s", fkt_name, testbed);
 	printf(".");
 	fflush(NULL);
 	reset_env();
@@ -70,7 +76,7 @@ void destroy_testbed(char *path)
 		chdir(olddir);
 	system(command);
 	g_free(command);
-	osync_debug("TEST", 4, "Tearing down %s\n", path);
+	osync_trace(TRACE_INTERNAL, "Tearing down %s", path);
 	g_free(path);
 }
 

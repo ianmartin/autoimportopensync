@@ -1048,6 +1048,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_print_func(env, "xml-contact", print_contact);
 	osync_env_format_set_copy_func(env, "xml-contact", osxml_copy);
 	osync_env_format_set_revision_func(env, "xml-contact", get_revision);
+	osync_env_format_set_marshall_func(env, "xml-contact", osxml_marshall);
+	osync_env_format_set_demarshall_func(env, "xml-contact", osxml_demarshall);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
 	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);

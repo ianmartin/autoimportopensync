@@ -20,6 +20,12 @@
  
 #include "mock_sync.h"
 
+#define fail(x) abort()
+
+#define fail_unless(condition, msg) do { \
+		if (!condition) fail(msg);       \
+	} while (0)
+
 int mock_custom_function(mock_env *env, int input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, input, error);

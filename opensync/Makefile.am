@@ -24,7 +24,8 @@ opensyncinclude_HEADERS = \
 	opensync_filter.h \
 	opensync_time.h \
 	opensync_debug.h \
-	opensync_changecmds.h
+	opensync_changecmds.h \
+	opensync_serializer.h
 
 EXTRA_DIST = \
 	opensync_internals.h \
@@ -60,7 +61,10 @@ libopensync_la_SOURCES = \
 	opensync_convreg.c \
 	opensync_anchor.c \
 	opensync_time.c \
-	opensync_filter.c
+	opensync_filter.c \
+	opensync_queue.c \
+	opensync_message.c \
+	opensync_serializer.c
 
 CLEANFILES = \
 	*.bb \

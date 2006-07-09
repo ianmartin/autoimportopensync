@@ -163,6 +163,7 @@ tests/mock-plugin/Makefile
 formats/Makefile
 formats/vformats-xml/Makefile
 osengine/Makefile
+osplugin/Makefile
 opensync-1.0.pc
 opensync-1.0-uninstalled.pc
 osengine-1.0.pc

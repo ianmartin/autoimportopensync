@@ -44,19 +44,88 @@
  */
 /*@{*/
 
+/* Get the value of a an OSyncEnv option
+ *
+ * Search order:
+ * - options set using osync_env_set_option()
+ * - OSYNC_* environment variables
+ */
 static const char *osync_env_query_option(OSyncEnv *env, const char *name)
 {
-	return g_hash_table_lookup(env->options, name);
+	const char *value;
+	value = g_hash_table_lookup(env->options, name);
+	if (value)
+		return value;
+
+	gchar *env_name = g_strdup_printf("OSYNC_%s", name);
+	value = getenv(env_name);
+	g_free(env_name);
+
+	if (value)
+		return value;
+
+	return NULL;
 }
 
 static osync_bool osync_env_query_option_bool(OSyncEnv *env, const char *name)
 {
 	const char *get_value;
-	if (!(get_value = g_hash_table_lookup(env->options, name)))
+	if (!(get_value = osync_env_query_option(env, name)))
 		return FALSE;
 	if (!strcmp(get_value, "TRUE"))
 		return TRUE;
 	return FALSE;
+}
+
+/** Export the list of loaded plugins through the OSYNC_LOADED_PLUGINS environment variable
+ *
+ */
+void osync_env_export_loaded_modules(OSyncEnv *env)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+
+	int num_modules = g_list_length(env->modules);
+
+	/* build an array for g_strjoinv() */
+	gchar **path_array = g_malloc0(sizeof(gchar*)*num_modules + 1);
+	int i;
+	for (i = 0; i < num_modules; i++) {
+		GModule *module = g_list_nth_data(env->modules, i);
+		const gchar *path = g_module_name(module);
+		osync_trace(TRACE_INTERNAL, "Path being exported: %s", path);
+		/*XXX: casting to non-const, here. Ugly.
+		 *
+		 * We know the elements pointed by path_array won't
+		 * be touched. But isn't g_strjoinv() supposed to get a
+		 * 'const gchar **' instead of a 'gchar **'?
+		 */
+		path_array[i] = (gchar*)path;
+	}
+
+	/* Build a ':'-separated list */
+	gchar *list_str = g_strjoinv(":", path_array);
+	osync_trace(TRACE_INTERNAL, "MODULE_LIST: %s", list_str);
+	setenv("OSYNC_MODULE_LIST", list_str, 1);
+	g_free(list_str);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void export_option_to_env(gpointer key, gpointer data, gpointer user_data)
+{
+	const char *name = (const char*)key;
+	const char *value = (const char*)data;
+	gchar *env_name = g_strdup_printf("OSYNC_%s", name);
+	setenv(env_name, value, 1);
+	g_free(env_name);
+}
+
+/** Export all options set through osync_env_set_option() to environment variables
+ *
+ */
+void osync_env_export_all_options(OSyncEnv *env)
+{
+	g_hash_table_foreach(env->options, export_option_to_env, NULL);
 }
 
 static void free_hash(char *key, char *value, void *data)
@@ -406,24 +475,37 @@ osync_bool osync_env_plugin_is_usable(OSyncEnv *env, const char *pluginname, OSy
  * @returns TRUE on success, FALSE otherwise
  * 
  */
-osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **error)
+osync_bool osync_env_load_groups(OSyncEnv *env, const char *p, OSyncError **error)
 {
 	GDir *dir;
 	GError *gerror = NULL;
 	char *filename = NULL;
 	char *real_path = NULL;
-
+	char *path = g_strdup(p);
+	
 	if (!path) {
-		OSyncUserInfo *user = _osync_user_new();
-		path = _osync_user_get_confdir(user);
-		//FIXME Free user info
+		OSyncUserInfo *user = osync_user_new(error);
+		if (!user)
+			return FALSE;
+		path = g_strdup(osync_user_get_confdir(user));
+		
 		if (!g_file_test(path, G_FILE_TEST_EXISTS)) {
 			if (mkdir(path, 0700) == -1) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, strerror(errno));
+				g_free(path);
 				return FALSE;
 			}
+			char *enginepath = g_strdup_printf("%s/engines", path);
+			if (mkdir(enginepath, 0700) == -1) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create engine group directory at %s: %s", enginepath, strerror(errno));
+				g_free(path);
+				g_free(enginepath);
+				return FALSE;
+			}
+			g_free(enginepath);
 			osync_debug("OSGRP", 3, "Created groups configdir %s\n", path);
 		}
+		osync_user_free(user);
 	}
 	
 	if (!g_path_is_absolute(path)) {
@@ -436,6 +518,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 		osync_debug("OSGRP", 0, "%s exists, but is no dir", real_path);
 		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "%s exists, but is no dir", real_path);
 		g_free(real_path);
+		g_free(path);
 		return FALSE;
 	}
 	
@@ -445,6 +528,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open main configdir %s: %s", real_path, gerror->message);
 		g_error_free (gerror);
 		g_free(real_path);
+		g_free(path);
 		return FALSE;
 	}
   
@@ -452,7 +536,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	while ((de = g_dir_read_name(dir))) {
 		filename = g_strdup_printf ("%s/%s", real_path, de);
 		
-		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK)) {
+		if (!g_file_test(filename, G_FILE_TEST_IS_DIR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("group*", de)) {
 			g_free(filename);
 			continue;
 		}
@@ -469,7 +553,7 @@ osync_bool osync_env_load_groups(OSyncEnv *env, const char *path, OSyncError **e
 	g_free(real_path);
 	g_dir_close(dir);
 	
-	env->groupsdir = g_strdup(path);
+	env->groupsdir = path;
 	return TRUE;
 }
 
@@ -740,3 +824,127 @@ char *osync_strreplace(const char *input, const char *delimiter, const char *rep
 }
 
 /*@}*/
+
+OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, context, error);
+	
+	OSyncThread *thread = osync_try_malloc0(sizeof(OSyncThread), error);
+	if (!thread)
+		goto error;
+
+	if (!g_thread_supported ()) g_thread_init (NULL);
+	
+	thread->started_mutex = g_mutex_new();
+	thread->started = g_cond_new();
+	thread->context = context;
+	if (thread->context)
+		g_main_context_ref(thread->context);
+	thread->loop = g_main_loop_new(thread->context, FALSE);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, thread);
+	return thread;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+void osync_thread_free(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	osync_assert(thread);
+	
+	if (thread->started_mutex)
+		g_mutex_free(thread->started_mutex);
+
+	if (thread->started)
+		g_cond_free(thread->started);
+	
+	if (thread->loop)
+		g_main_loop_unref(thread->loop);
+	
+	if (thread->context)
+		g_main_context_unref(thread->context);
+		
+	g_free(thread);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+/*static gpointer osyncThreadStartCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+	
+	g_mutex_lock(thread->started_mutex);
+	g_cond_signal(thread->started);
+	g_mutex_unlock(thread->started_mutex);
+	
+	g_main_loop_run(thread->loop);
+	
+	return NULL;
+}*/
+
+static gboolean osyncThreadStopCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+	
+	g_main_loop_quit(thread->loop);
+	
+	return FALSE;
+}
+
+/*void osync_thread_start(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	osync_assert(thread);
+	
+	//Start the thread
+	g_mutex_lock(thread->started_mutex);
+	thread->thread = g_thread_create (osyncThreadStartCallback, thread, TRUE, NULL);
+	g_cond_wait(thread->started, thread->started_mutex);
+	g_mutex_unlock(thread->started_mutex);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}*/
+
+static gboolean osyncThreadStartCallback(gpointer data)
+{
+	OSyncThread *thread = data;
+	
+	g_mutex_lock(thread->started_mutex);
+	g_cond_signal(thread->started);
+	g_mutex_unlock(thread->started_mutex);
+	return FALSE;
+}
+
+void osync_thread_start(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	
+	g_mutex_lock(thread->started_mutex);
+	GSource *idle = g_idle_source_new();
+	g_source_set_callback(idle, osyncThreadStartCallback, thread, NULL);
+	g_source_attach(idle, thread->context);
+	thread->thread = g_thread_create ((GThreadFunc)g_main_loop_run, thread->loop, TRUE, NULL);
+	g_cond_wait(thread->started, thread->started_mutex);
+	g_mutex_unlock(thread->started_mutex);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}	
+
+void osync_thread_stop(OSyncThread *thread)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, thread);
+	osync_assert(thread);
+	
+	GSource *source = g_idle_source_new();
+	g_source_set_callback(source, osyncThreadStopCallback, thread, NULL);
+	g_source_attach(source, thread->context);
+
+	g_thread_join(thread->thread);
+	thread->thread = NULL;
+	
+	g_source_unref(source);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}

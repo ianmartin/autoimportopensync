@@ -144,7 +144,7 @@ void osync_env_register_converter(OSyncEnv *env, ConverterType type, const char 
 void osync_env_converter_set_init(OSyncEnv *env, const char *sourcename, const char *targetname, OSyncFormatConverterInitFunc init_func, OSyncFormatConverterFinalizeFunc fin_func)
 {
 	OSyncConverterTemplate *converter = osync_env_find_converter_template(env, sourcename, targetname);
-	osync_assert(converter != NULL, "You need to register the converter first");
+	osync_assert_msg(converter != NULL, "You need to register the converter first");
 	
 	converter->init_func = init_func;
 	converter->fin_func = fin_func;
@@ -161,12 +161,30 @@ void osync_env_register_extension(OSyncEnv *env, const char *from_format, const 
 	env->extension_templates = g_list_append(env->extension_templates, ext);
 }
 
+void osync_env_format_set_demarshall_func(OSyncEnv *env, const char *formatname, OSyncFormatDemarshallFunc demarshall_func)
+{
+	osync_trace(TRACE_INTERNAL, "osync_env_format_set_demarshall_func(%p, %s, %p)", env, formatname, demarshall_func);
+	g_assert(env);
+	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
+	osync_assert_msg(format, "You need to register the formattype first");
+	format->demarshall_func = demarshall_func;
+}
+
+void osync_env_format_set_marshall_func(OSyncEnv *env, const char *formatname, OSyncFormatMarshallFunc marshall_func)
+{
+	osync_trace(TRACE_INTERNAL, "osync_env_format_set_marshall_func(%p, %s, %p)", env, formatname, marshall_func);
+	g_assert(env);
+	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
+	osync_assert_msg(format, "You need to register the formattype first");
+	format->marshall_func = marshall_func;
+}
+
 void osync_env_format_set_compare_func(OSyncEnv *env, const char *formatname, OSyncFormatCompareFunc cmp_func)
 {
 	osync_trace(TRACE_INTERNAL, "osync_env_format_set_compare_func(%p, %s, %p)", env, formatname, cmp_func);
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->cmp_func = cmp_func;
 }
 
@@ -174,7 +192,7 @@ void osync_env_format_set_destroy_func(OSyncEnv *env, const char *formatname, OS
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->destroy_func = destroy_func;
 }
 
@@ -182,7 +200,7 @@ void osync_env_format_set_copy_func(OSyncEnv *env, const char *formatname, OSync
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->copy_func = copy_func;
 }
 
@@ -208,7 +226,7 @@ void osync_env_format_set_copy_func(OSyncEnv *env, const char *formatname, OSync
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->detect_func = detect_func;
 }*/
 
@@ -216,7 +234,7 @@ void osync_env_format_set_duplicate_func(OSyncEnv *env, const char *formatname, 
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->duplicate_func = dupe_func;
 }
 
@@ -224,7 +242,7 @@ void osync_env_format_set_create_func(OSyncEnv *env, const char *formatname, OSy
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->create_func = create_func;
 }
 
@@ -232,7 +250,7 @@ void osync_env_format_set_print_func(OSyncEnv *env, const char *formatname, OSyn
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->print_func = print_func;
 }
 
@@ -240,6 +258,6 @@ void osync_env_format_set_revision_func(OSyncEnv *env, const char *formatname, O
 {
 	g_assert(env);
 	OSyncObjFormatTemplate *format = osync_env_find_format_template(env, formatname);
-	osync_assert(format, "You need to register the formattype first");
+	osync_assert_msg(format, "You need to register the formattype first");
 	format->revision_func = revision_func;
 }

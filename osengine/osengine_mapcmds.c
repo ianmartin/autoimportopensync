@@ -72,7 +72,7 @@ static OSyncMappingEntry *_osync_change_clone(OSyncEngine *engine, OSyncMapping 
 	return newentry;
 }
 
-static osync_bool _osync_change_elevate(OSyncEngine *engine, OSyncChange *change, int level)
+osync_bool osync_change_elevate(OSyncEngine *engine, OSyncChange *change, int level)
 {
 	osync_debug("MAP", 3, "elevating change %s (%p) to level %i", osync_change_get_uid(change), change, level);
 	int i = 0;
@@ -85,7 +85,7 @@ static osync_bool _osync_change_elevate(OSyncEngine *engine, OSyncChange *change
 	return TRUE;
 }
 
-static osync_bool _osync_change_check_level(OSyncEngine *engine, OSyncMappingEntry *entry)
+osync_bool osync_change_check_level(OSyncEngine *engine, OSyncMappingEntry *entry)
 {
 	GList *c;
 	osync_debug("MAP", 3, "checking level for change %s (%p)", osync_change_get_uid(entry->change), entry);
@@ -358,10 +358,10 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		 * or a (2) to the change uid. We then check if there is already
 		 * another change on this level and if there is, we elevate again */
 		do {
-			if (!_osync_change_elevate(engine, newentry->change, 1))
+			if (!osync_change_elevate(engine, newentry->change, 1))
 				break;
 			elevation += 1;
-		} while (!_osync_change_check_level(engine, newentry));
+		} while (!osync_change_check_level(engine, newentry));
 		OSyncError *error = NULL;
 		osync_change_save(newentry->change, TRUE, &error);
 		
@@ -370,7 +370,7 @@ void osengine_mapping_duplicate(OSyncEngine *engine, OSyncMapping *dupe_mapping)
 		 * to be different from the master of the mapping to duplicate */
 		while ((next_entry = _osync_find_next_same(dupe_mapping, first_diff_entry))) {
 			newentry = _osync_change_clone(engine, new_mapping, first_diff_entry);
-			_osync_change_elevate(engine, newentry->change, elevation);
+			osync_change_elevate(engine, newentry->change, elevation);
 			osengine_mappingentry_update(orig_entry, next_entry->change);
 			osync_change_save(next_entry->change, TRUE, NULL);
 		}
