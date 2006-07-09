@@ -608,7 +608,7 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 	return TRUE;
 }
 
-osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error)
+static osync_bool __osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, osync_bool nonblocking, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, queue, type, error);
 	osync_assert(queue);
@@ -619,7 +619,7 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 	
 	if (queue->fd == -1) {
 		/* First, open the queue with the flags provided by the user */
-		int fd = open(queue->name, type == OSYNC_QUEUE_SENDER ? O_WRONLY : O_RDONLY);
+		int fd = open(queue->name, (type == OSYNC_QUEUE_SENDER ? O_WRONLY : O_RDONLY) | (nonblocking ? O_NONBLOCK : 0));
 		if (fd == -1) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open fifo");
 			goto error;
@@ -682,6 +682,17 @@ error_close:
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
+}
+
+
+osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error)
+{
+    return __osync_queue_connect(queue, type, FALSE, error);
+}
+
+osync_bool osync_queue_try_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error)
+{
+    return __osync_queue_connect(queue, type, TRUE, error);
 }
 
 osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
@@ -892,11 +903,10 @@ osync_bool osync_queue_is_alive(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
-	// FIXME
-	/*if (!osync_queue_connect(queue, O_WRONLY | O_NONBLOCK, NULL)) {
+	if (!osync_queue_try_connect(queue, OSYNC_QUEUE_SENDER, NULL)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
 		return FALSE;
-	}*/
+	}
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NOOP, 0, NULL);
 	if (!message) {

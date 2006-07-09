@@ -73,6 +73,7 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error);
 osync_bool osync_queue_exists(OSyncQueue *queue);
 
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error);
+osync_bool osync_queue_try_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error);
 osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error);
 osync_bool osync_queue_is_connected(OSyncQueue *queue);
 
