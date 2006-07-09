@@ -19,6 +19,7 @@ plugin_LTLIBRARIES = kdepim_sync.la kdepim_lib.la
 EXTRA_DIST = \
 	src/kaddrbook.h \
 	src/kcal.h \
+	src/kdepim-sync \
 	src/osyncbase.h \
 	src/knotes.h \
 	src/KNotesIface.h \
