@@ -740,7 +740,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       buffer[buffer_length] = '\0';
     }
 
-    osync_trace(TRACE_INTERNAL, "obex get data: %s", buffer);
+    osync_trace(TRACE_INTERNAL, "OBEX-IN:\n%s\n", buffer);
 
     // handle object specific part
     if ( strcmp( info->identifier, "event" ) == 0 )
