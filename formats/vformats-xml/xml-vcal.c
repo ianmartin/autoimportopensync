@@ -1205,7 +1205,7 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{0, "/vcal/Event/LastModified"},
 	{0, "/vcal/Event/Sequence"},
 	{0, "/vcal/Event/Class[Content = \"PUBLIC\"]"},
-	{0, "/vcal/Event/Priority[Content = 3]"},
+	{0, "/vcal/Event/Priority"},
 	{0, "/vcal/Event/Transparency[Content = \"OPAQUE\"]"},
 	{0, NULL}
 	};
@@ -1231,7 +1231,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/LastModified"},
 	{0, "/vcal/Todo/Sequence"},
 	{0, "/vcal/Todo/Class[Content = \"PUBLIC\"]"},
-	{0, "/vcal/Todo/Priority[Content = 3]"},
+	{0, "/vcal/Todo/Priority"},
 	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
 	{0, NULL}
 	};
