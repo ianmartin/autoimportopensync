@@ -700,7 +700,7 @@ gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
     if (body) {
       /* Add body header*/ 
       hd.bs = (const uint8_t *) body;
-      osync_trace(TRACE_INTERNAL, "OBEX-BODY:\n %s\n", hd.bs); 
+      osync_trace(TRACE_INTERNAL, "OBEX-OUT:\n%s\n", hd.bs); 
       OBEX_ObjectAddHeader(handle, object, OBEX_HDR_BODY, hd, body_size, 0); 
     }
     userdata->busy = 1;
