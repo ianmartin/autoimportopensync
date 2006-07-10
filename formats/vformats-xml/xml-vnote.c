@@ -34,9 +34,15 @@ static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 
 static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
 {
+	char *timestamp;
+	const char *tmp;
+
 	osync_trace(TRACE_INTERNAL, "Handling created attribute");
 	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateCreated", NULL);
-	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	tmp = vformat_attribute_get_nth_value(attr, 0); 
+	timestamp = osync_time_timestamp(tmp);
+	osxml_node_add(current, "Content", timestamp);
+	g_free(timestamp);
 	return current;
 }
 
