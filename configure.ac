@@ -31,6 +31,38 @@ AC_SUBST(OPENSYNC_PLUGINDIR) ## This is the dir where you plugin will be install
 AC_SUBST(OPENSYNC_FORMATSDIR) ## Here are format plugins installed (if any)
 AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may need (if any)
 
+AC_ARG_ENABLE(note,
+	AS_HELP_STRING([--disable-note], [Disable note support]),
+	disable_note=$enableval)
+if test "x$disable_note" != "xno"; then
+	AC_DEFINE(HAVE_NOTE, 1, [Enabled note support])
+				AC_SUBST(HAVE_NOTE)
+fi				
+
+AC_ARG_ENABLE(todo,
+	AS_HELP_STRING([--disable-todo], [Disable todo support]),
+	disable_todo=$enableval)
+if test "x$disable_todo" != "xno"; then
+	AC_DEFINE(HAVE_TODO, 1, [Enabled todo support])
+				AC_SUBST(HAVE_TODO)
+fi				
+
+AC_ARG_ENABLE(contact,
+	AS_HELP_STRING([--disable-contact], [Disable contact support]),
+	disable_contact=$enableval)
+if test "x$disable_contact" != "xno"; then
+	AC_DEFINE(HAVE_CONTACT, 1, [Enabled contact support])
+				AC_SUBST(HAVE_CONTACT)
+fi				
+
+AC_ARG_ENABLE(event,
+	AS_HELP_STRING([--disable-event], [Disable event support]),
+	disable_event=$enableval)
+if test "x$disable_event" != "xno"; then
+	AC_DEFINE(HAVE_EVENT, 1, [Enabled event support])
+				AC_SUBST(HAVE_EVENT)
+fi				
+
 AC_OUTPUT([
 Makefile
 src/Makefile

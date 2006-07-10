@@ -23,27 +23,7 @@
 
 #include <opensync/opensync-xml.h>
 
-static char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
-	char *tmp = NULL;
-	
-	osync_trace(TRACE_INTERNAL, "Entry: %p", entry->address.entry[i]);
-	if (entry->address.entry[i]) {
-		osync_trace(TRACE_INTERNAL, "Before: %s", entry->address.entry[i]);
-		tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), "utf8", entry->codepage, NULL, NULL, NULL);
-	}
-	osync_trace(TRACE_INTERNAL, "Palm Entry: %i: %s", i, tmp);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return tmp;
-}
-
-static osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
-{
-	return entry->address.entry[i] ? TRUE : FALSE;
-}
-
+#ifdef HAVE_EVENT
 static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
@@ -699,7 +679,9 @@ static void destroy_palm_event(char *input, size_t inpsize)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+#endif
 
+#ifdef HAVE_TODO
 static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
@@ -902,6 +884,31 @@ static void destroy_palm_todo(char *input, size_t inpsize)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+#endif
+
+#ifdef HAVE_CONTACT
+static *return_next_entry(PSyncContactEntry *entry, unsigned int i)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
+	char *tmp = NULL;
+	
+	osync_trace(TRACE_INTERNAL, "Entry: %p", entry->address.entry[i]);
+	if (entry->address.entry[i]) {
+		osync_trace(TRACE_INTERNAL, "Before: %s", entry->address.entry[i]);
+		tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), "utf8", entry->codepage, NULL, NULL, NULL);
+	}
+	osync_trace(TRACE_INTERNAL, "Palm Entry: %i: %s", i, tmp);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return tmp;
+}
+
+static osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
+{
+	return entry->address.entry[i] ? TRUE : FALSE;
+}
+
+
 
 static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
@@ -1269,7 +1276,9 @@ static void destroy_palm_contact(char *input, size_t inpsize)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+#endif
 
+#ifdef HAVE_NOTE
 static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
@@ -1402,35 +1411,44 @@ static void destroy_palm_note(char *input, size_t inpsize)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+#endif
 
 void get_info(OSyncEnv *env)
 {
+#ifdef HAVE_CONTACT	
 	osync_env_register_objtype(env, "contact");
 	osync_env_register_objformat(env, "contact", "palm-contact");
 	osync_env_format_set_destroy_func(env, "palm-contact", destroy_palm_contact);
 
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_contact_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm_contact);
+#endif	
 	
+#ifdef HAVE_TODO	
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "palm-todo");
 	osync_env_format_set_destroy_func(env, "palm-todo", destroy_palm_todo);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-todo", "xml-todo", conv_palm_todo_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo", "palm-todo", conv_xml_to_palm_todo);
+#endif	
 	
+#ifdef HAVE_EVENT	
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "palm-event");
 	osync_env_format_set_destroy_func(env, "palm-event", destroy_palm_event);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-event", "xml-event", conv_palm_event_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "palm-event", conv_xml_to_palm_event);
+#endif	
 	
+#ifdef HAVE_NOTE	
 	osync_env_register_objtype(env, "note");
 	osync_env_register_objformat(env, "note", "palm-note");
 	osync_env_format_set_destroy_func(env, "palm-note", destroy_palm_note);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-note", "xml-note", conv_palm_note_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "palm-note", conv_xml_to_palm_note);
+#endif	
 
 }

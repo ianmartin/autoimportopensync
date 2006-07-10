@@ -8,13 +8,16 @@ New Features (which should be tested!)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * recurrence of events
 * excluding recurrence events
-* change time format from unixtimestamp to "vtype" format (2006-03-09T13:13:00Z)
+* change time format from unixtimestamp to "vtime" format (20060309T131300Z)
 * notes/memos
 * formattedname -> hack
+* added osync time helper functions
+* added configure flags for disabling object types. example --disable-note
 
 Tested Devices
 ^^^^^^^^^^^^^^
 [USB] Handspring Treo 270 
+[USB] Palm T|X
 [TTY] 3Com Palm V
 
 Tested Plugins
@@ -39,8 +42,8 @@ TODO
 	^^^^^^^
 * Test categories of event/contact/todo/..
 * Public/Private option
-* Timezone
+* Timezone [testing!]
 * Test with other plugins: evolution, sunbird-sync, ... 
 * Find limit of excluding recurrences
-* Clean up & split palm_format code in smart functions
-* Testing with pilot-link 0.12.x [later]
+* Clean up & split palm_format code in smart functions [done]
+* Testing with pilot-link 0.12.x [testing]
