@@ -28,13 +28,17 @@ static int init_neon()
     return neon_initialized;
 }
 
-static int webdav_spliturl(char* url, char* server, char* path)
+static int webdav_spliturl(char* protocol, char* url, char* server, char* path)
 {
     char *p1, *p2;
     
     p1 = strstr(url, "://");
     if (!p1)
         return 0;
+    
+    memcpy(protocol, url, sizeof(p1-url));
+    protocol[p1-url] = 0;
+    
     p1 += 3;
         
     p2 = strstr(p1, "/");
@@ -50,7 +54,7 @@ static int webdav_spliturl(char* url, char* server, char* path)
 
 int webdav_download(char* filename, char* url, char* username, char* password)
 {
-    char server[256], path[256];
+    char protocol[256], server[256], path[256];
     int result;
     ne_session* sess;
     FILE* f;
@@ -58,7 +62,7 @@ int webdav_download(char* filename, char* url, char* username, char* password)
     if (strlen(url) > 255 || strlen(username) > 99 || strlen(password) > 99)
         return WEBDAV_ERROR_INVALID_PARAMETER;
 
-    if (!webdav_spliturl(url, server, path))
+    if (!webdav_spliturl(protocol, url, server, path))
         return WEBDAV_ERROR_INVALID_PARAMETER;
     
     f = fopen(filename, "w");
@@ -71,10 +75,13 @@ int webdav_download(char* filename, char* url, char* username, char* password)
     if (!init_neon())
         return WEBDAV_ERROR_INIT;
         
-    sess = ne_session_create("http", server, 80);
+    sess = ne_session_create(protocol, server, 80);
     if (!sess)
         return WEBDAV_ERROR_CONNECT;
 
+    if (strcmp(protocol, "https") == 0)
+        ne_ssl_trust_default_ca(sess);
+    
     ne_set_server_auth(sess, webdav_server_auth, 0);
     result = ne_get(sess, path, fileno(f)) ? WEBDAV_ERROR_RESSOURCE : WEBDAV_SUCCESS;
     fclose(f);
@@ -85,7 +92,7 @@ int webdav_download(char* filename, char* url, char* username, char* password)
 
 int webdav_upload(char* filename, char* url, char* username, char* password)
 {
-    char server[256], path[256], *buf;
+    char protocol[256], server[256], path[256], *buf;
     int result;
     int filesize;
     ne_session* sess;
@@ -95,7 +102,7 @@ int webdav_upload(char* filename, char* url, char* username, char* password)
     if (strlen(url) > 255 || strlen(username) > 99 || strlen(password) > 99)
         return WEBDAV_ERROR_INVALID_PARAMETER;
 
-    if (!webdav_spliturl(url, server, path))
+    if (!webdav_spliturl(protocol, url, server, path))
         return WEBDAV_ERROR_INVALID_PARAMETER;
     
     f = fopen(filename, "r");
@@ -124,13 +131,16 @@ int webdav_upload(char* filename, char* url, char* username, char* password)
     if (!init_neon())
         return WEBDAV_ERROR_INIT;
         
-    sess = ne_session_create("http", server, 80);
+    sess = ne_session_create(protocol, server, 80);
     if (!sess)
     {
         free(buf);
         return WEBDAV_ERROR_CONNECT;
     }
 
+    if (strcmp(protocol, "https") == 0)
+        ne_ssl_trust_default_ca(sess);
+    
     ne_set_server_auth(sess, webdav_server_auth, 0);
 
     req = ne_request_create(sess, "PUT", path);
