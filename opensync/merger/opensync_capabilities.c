@@ -24,6 +24,8 @@
 #include "opensync-merger.h"
 #include "opensync-merger_internals.h"
 
+#include "opensync-group.h"
+
 /**
  * @defgroup OSyncCapabilitiesPrivateAPI OpenSync Capabilities Internals
  * @ingroup OSyncPrivate
@@ -106,6 +108,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse XML.");
 		g_free(capabilities);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
 	}
 	capabilities->refcount = 1;
 	capabilities->first_objtype = NULL;
@@ -224,6 +227,68 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
 		
 		g_free(list);
 	}
+}
+
+OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
+{
+	g_assert(file);
+	
+	int size;
+	char *buffer, *filename;
+	OSyncCapabilities *capabilities;
+	
+	filename = g_strdup_printf("/usr/share/opensync/capabilities/%s", file);
+	osync_bool b = osync_file_read(filename, &buffer, &size, error);
+	g_free(filename);
+	if(!b) return NULL;
+	capabilities = osync_capabilities_parse(buffer, size, error);
+	g_free(buffer);
+	return capabilities;
+}
+
+//osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member)
+//{
+//	g_assert(member);
+//	
+//	char *filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+//	gboolean res = g_file_test(filename, G_FILE_TEST_IS_REGULAR);
+//	g_free(filename);
+//	return res;
+//}
+
+OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *member, OSyncError** error)
+{
+	g_assert(member);
+	
+	int size;
+	char* buffer, *filename;
+	osync_bool res;
+	OSyncCapabilities *capabilities;
+	
+	filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+	res = osync_file_read(filename, &buffer, &size, error);
+	g_free(filename);
+	if(!res) return NULL;
+	capabilities = osync_capabilities_parse(buffer, size, error);
+	g_free(buffer);
+	return capabilities;
+}
+
+osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSyncCapabilities* capabilities, OSyncError** error)
+{
+	g_assert(member);
+	g_assert(capabilities);
+	
+	int size;
+	char* buffer, *filename;
+	osync_bool res;
+	
+	osync_capabilities_assemble(capabilities, &buffer, &size);
+	filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+	res = osync_file_write(filename, buffer, size, 0600, error);
+	g_free(filename);
+	g_free(buffer);
+	return res;
 }
 
 //void osync_algorithm_quicksort(void * array[], int left, int right, const char *(*getString)(void *))
