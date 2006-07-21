@@ -862,6 +862,9 @@ osync_bool osync_client_finalize(OSyncClient *client, OSyncError **error)
 			goto error;
 	}
 
+	osync_queue_disconnect(client->commands_to_osplugin, NULL);
+
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
     return TRUE;
 
