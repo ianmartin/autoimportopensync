@@ -82,6 +82,23 @@ error:
 	exit(2);
 }
 
+void osync_client_sync_alert_sink(OSyncMember *member)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	PluginProcess *pp = (PluginProcess*)osync_member_get_data(member);
+
+	OSyncError *error = NULL;
+
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_SYNC_ALERT, 0, &error);
+	if (!message)
+		process_error_shutdown(pp, &error);
+
+	if (!osync_queue_send_message(pp->outgoing, NULL, message, &error))
+		process_error_shutdown(pp, &error);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *user_data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, change, user_data);
@@ -204,11 +221,14 @@ int main( int argc, char **argv )
 		exit(1);
 	}
 
+	
+	osync_member_set_data(pp.member, &pp);
+
 	/** Set callback functions **/
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(pp.member);
 	functions->rf_change = osync_client_changes_sink;
 	//functions->rf_message = osync_client_message_sink;
-	//functions->rf_sync_alert = osync_client_sync_alert_sink;
+	functions->rf_sync_alert = osync_client_sync_alert_sink;
 
 	/** Start loop **/
 	osync_trace(TRACE_INTERNAL, "plugin setting up mainloop");
@@ -568,17 +588,4 @@ void *osync_client_message_sink(OSyncMember *member, const char *name, void *dat
 	}
 */
   return NULL;
-}
-
-void osync_client_sync_alert_sink(OSyncMember *member)
-{
-	/*TODO: Implement support for sync alerts */
-/*
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
-	OSyncClient *client = osync_member_get_data(member);
-	OSyncEngine *engine = client->engine;
-	ITMessage *message = itm_message_new_signal(client, "SYNC_ALERT");
-	itm_queue_send(engine->incoming, message);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-*/
 }

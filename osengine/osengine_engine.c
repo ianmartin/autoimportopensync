@@ -226,6 +226,13 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 			osengine_mappingentry_decider(engine, entry);
 		}
 		break;
+		case OSYNC_MESSAGE_SYNC_ALERT:
+			if (engine->allow_sync_alert)
+				osync_flag_set(engine->fl_running);
+			else
+				osync_trace(TRACE_INTERNAL, "Sync Alert not allowed");
+		break;
+
 		default:
 			break;
 	}
@@ -250,15 +257,6 @@ static void engine_message_handler(OSyncMessage *message, OSyncEngine *engine)
 		char *name = osync_message_get_data(message, "name");
 		void *data = osync_message_get_data(message, "data");
 		engine->plgmsg_callback(engine, sender, name, data, engine->plgmsg_userdata);
-		osync_trace(TRACE_EXIT, "engine_message_handler");
-		return;
-	}
-	
-	if (osync_message_is_signal (message, "SYNC_ALERT")) {
-		if (engine->allow_sync_alert)
-			osync_flag_set(engine->fl_running);
-		else
-			osync_trace(TRACE_INTERNAL, "Sync Alert not allowed");
 		osync_trace(TRACE_EXIT, "engine_message_handler");
 		return;
 	}
