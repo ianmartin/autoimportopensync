@@ -28,6 +28,7 @@ client/opensync_client.c
 client/opensync_client_proxy.c
 engine/opensync_engine.c
 engine/opensync_obj_engine.c
+merger/opensync_archive.c
 merger/opensync_capabilities.c
 merger/opensync_capability.c
 merger/opensync_xmlformat.c
@@ -96,6 +97,7 @@ glib-2.0
 gthread-2.0
 gmodule-2.0
 libxml2
+sqlite3
 """
 
 libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries))

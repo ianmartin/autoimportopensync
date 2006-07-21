@@ -87,6 +87,7 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse XML.");
 		g_free(xmlformat);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
 	}
 	xmlformat->refcount = 1;
 	xmlformat->first_child = NULL;
