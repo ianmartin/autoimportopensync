@@ -18,6 +18,7 @@
  * 
  */
 
+#include "config.h"
 #include "engine.h"
 #include <glib.h>
 #include <opensync/opensync_support.h>
@@ -757,7 +758,7 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 
 			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
-			execlp("osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
+			execlp(OSPLUGIN, OSPLUGIN, osync_group_get_configdir(engine->group), memberstring, NULL);
 			
 			if (errno == ENOENT) {
 				osync_trace(TRACE_INTERNAL, "Unable to find osplugin. Trying local path.");

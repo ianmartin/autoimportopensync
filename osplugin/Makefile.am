@@ -4,7 +4,7 @@ AM_CFLAGS = -Wall @XML_CFLAGS@ -Werror @GCOV_CFLAGS@ -DOPENSYNC_PLUGINDIR=\"@OPE
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@ @XML_CFLAGS@ -I$(top_srcdir)/osengine -I$(top_srcdir)/opensync
 
-bin_PROGRAMS = osplugin
+libexec_PROGRAMS = osplugin
 
 ospluginincludedir = @OPENSYNC_HEADERDIR@
 
