@@ -87,7 +87,7 @@ void osync_env_export_loaded_modules(OSyncEnv *env)
 	int num_modules = g_list_length(env->modules);
 
 	/* build an array for g_strjoinv() */
-	gchar **path_array = g_malloc0(sizeof(gchar*)*num_modules + 1);
+	gchar **path_array = g_malloc0(sizeof(gchar*)*(num_modules + 1));
 	int i;
 	for (i = 0; i < num_modules; i++) {
 		GModule *module = g_list_nth_data(env->modules, i);
