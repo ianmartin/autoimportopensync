@@ -432,7 +432,7 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	*free_input = TRUE;
 	*output = vformat_to_string(vnote, VFORMAT_NOTE);
 	osync_trace(TRACE_INTERNAL, "vnote output is: \n%s", *output);
-	*outpsize = strlen(*output) + 1;
+	*outpsize = strlen(*output);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
