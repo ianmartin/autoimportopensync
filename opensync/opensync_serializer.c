@@ -52,7 +52,7 @@ void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
 
 	osync_message_write_int( message, change->has_data );
 
-	if (format && format->marshall_func) {
+	if (change->data && format && format->marshall_func) {
 		format->marshall_func(change->data, change->size, &data, &datasize, NULL);
 		/*FIXME: Handle errors on marshall_func */
 		free_data = 1;
