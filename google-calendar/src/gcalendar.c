@@ -74,7 +74,7 @@ osync_bool run_helper(struct gc_plgdata *plgdata, const char *operation,
 
 		char *pwdstr = g_strdup_printf("%d", fdpwd[0]);
 		char *const argv[] = {
-			"gchelper.py",
+			GCAL_HELPER,
 			plgdata->url,
 			plgdata->username,
 			pwdstr,
@@ -83,7 +83,7 @@ osync_bool run_helper(struct gc_plgdata *plgdata, const char *operation,
 			NULL
 		};
 
-		execvp("gchelper.py", argv);
+		execvp(argv[0], argv);
 		
 		/* execvp() error */
 		fprintf(stderr, "Cannot exec gchelper.py\n");

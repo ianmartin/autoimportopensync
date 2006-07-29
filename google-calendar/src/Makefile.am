@@ -12,11 +12,12 @@ config_DATA = google-calendar
 
 plugin_LTLIBRARIES = gcalendar.la
 
-bin_PROGRAMS = gchelper.py
+libexec_PROGRAMS = google-cal-helper
 
-gchelper_py_SOURCES = gchelper.py
+google_cal_helper_SOURCES = google-cal-helper
 
 gcalendar_la_SOURCES = gcalendar.c
+gcalendar_la_CFLAGS = -DGCAL_HELPER=\"$(libexecdir)/google-cal-helper\"
 gcalendar_la_LDFLAGS = -avoid-version -export-dynamic -module
 gcalendar_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ -lopensync-xml
 
