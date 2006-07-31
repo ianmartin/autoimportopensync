@@ -86,7 +86,7 @@ osync_bool run_helper(struct gc_plgdata *plgdata, const char *operation,
 		execvp(argv[0], argv);
 		
 		/* execvp() error */
-		fprintf(stderr, "Cannot exec gchelper.py\n");
+		fprintf(stderr, "Cannot exec plugin helper (%s)\n", GCAL_HELPER);
 		exit(1);
 	}
 
