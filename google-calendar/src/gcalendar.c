@@ -222,6 +222,7 @@ out:
 
 error_freedata:
 	g_free(plgdata);
+	plgdata = NULL;
 	goto out_freecfg;
 }
 
