@@ -294,6 +294,17 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table, const char *objtype)
 	return retarr;
 }
 
+/*! @brief Get the hash value from the hash table
+ *
+ */
+void osync_hashtable_get_hash(OSyncHashTable *table, OSyncChange *chg)
+{
+	char *orighash = NULL;
+	osync_db_get_hash(table, chg->uid, &orighash);
+	osync_change_set_hash(chg, orighash);
+	g_free(orighash);
+}
+
 /*! @brief Gets the changetype for a given uid and hash
  * 
  * This functions does not report the object so if you only use this function
