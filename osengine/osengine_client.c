@@ -818,8 +818,14 @@ osync_bool osync_client_init(OSyncClient *client, OSyncEngine *engine, OSyncErro
 	OSyncMessage *reply = osync_queue_get_message(client->commands_from_osplugin);
 	
 	osync_trace(TRACE_INTERNAL, "reply received %i", reply->cmd);
+	if (reply->cmd == OSYNC_MESSAGE_ERRORREPLY) {
+		if (error)
+			osync_demarshal_error(reply, error);
+		goto error_free_reply;
+	}
+
 	if (reply->cmd != OSYNC_MESSAGE_REPLY) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong answer");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid answer from plugin process");
 		goto error_free_reply;
 	}
 	
