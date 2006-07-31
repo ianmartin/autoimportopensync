@@ -22,6 +22,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+/* Floating Timestamps...... (handle tzid!) */
+
 /* 
  * Time formatting helper
  */
@@ -280,6 +282,7 @@ int osync_time_timezone_diff(void) {
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
 	struct tm ltime, utime;
+	unsigned int lsecs, usecs;
 	long zonediff;
 	time_t timestamp;
 
@@ -290,8 +293,18 @@ int osync_time_timezone_diff(void) {
 	ltime = *localtime( &timestamp );
 	utime = *gmtime( &timestamp );
 
-	zonediff = utime.tm_hour - ltime.tm_hour; 
-	zonediff *= 3600;
+	lsecs = 3600 * ltime.tm_hour + 60 * ltime.tm_min + ltime.tm_sec;
+	usecs = 3600 * utime.tm_hour + 60 * utime.tm_min + utime.tm_sec;
+
+	zonediff = lsecs - usecs;
+
+	/* check for different day */
+	if (utime.tm_mday != ltime.tm_mday) {
+		if (utime.tm_mday < ltime.tm_mday)
+			zonediff += 24 * 3600; 
+		else
+			zonediff -= 24 * 3600;
+	}
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, zonediff);
 	return zonediff;
