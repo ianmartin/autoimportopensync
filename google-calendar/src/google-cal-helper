@@ -240,7 +240,7 @@ class GCalHelper:
 		self.h = httplib2.Http()
 		self.h.follow_all_redirects = True
 		self.h.add_credentials(user, pwd)
-		self.hdrs = { 'Content-Type':'application/atom+xml' }
+		self.hdrs = { 'Content-Type':'application/atom+xml; charset=utf-8' }
 
 	@staticmethod
 	def check_response_success(r):
