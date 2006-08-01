@@ -158,6 +158,7 @@ class GCalEntry:
 		self.dtend = self.elementValue('gd:when/@endTime')
 
 		self.eventStatus = self.elementValue('gd:eventStatus/@value')
+		self.whereString = self.elementValue('gd:where/@valueString')
 
 		#FIXME: Handle recurrency
 		#FIXME: Handle gd:eventStatus
@@ -170,6 +171,8 @@ class GCalEntry:
 		self.content = self.elementValue('Event/Description/Content/text()')
 		self.dtstart = osyncToXsdate(self.elementValue('Event/DateStarted/Content/text()'))
 		self.dtend = osyncToXsdate(self.elementValue('Event/DateEnd/Content/text()'))
+		self.whereString = self.elementValue('Event/Location/Content/text()')
+
 		#TODO: UID, editUri, dtstart, dtend, recurrency, eventStatus
 
 
@@ -184,6 +187,8 @@ class GCalEntry:
 
 		self.addElementContent(doc, event, 'DateStarted', xsdateToOsync(self.dtstart))
 		self.addElementContent(doc, event, 'DateEnd', xsdateToOsync(self.dtend))
+		self.addElementContent(doc, event, 'Location', self.whereString)
+
 		#TODO: UID, editUri, dtstart, dtend, recurrency, eventStatus
 		return doc.toxml(encoding='utf-8')
 
@@ -204,6 +209,9 @@ class GCalEntry:
 		when = self.addElement(doc, entry, 'gd:when')
 		when.setAttribute('startTime', self.dtstart)
 		when.setAttribute('endTime', self.dtend)
+
+		where = self.addElement(doc, entry, 'gd:where')
+		where.setAttribute('valueString', self.whereString)
 
 		return doc.toxml(encoding='utf-8')
 
