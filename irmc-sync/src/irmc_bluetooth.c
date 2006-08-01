@@ -66,7 +66,7 @@ int rfcomm_connect(struct bt_unit *btu, int channel) {
   bacpy(&my_addr.rc_bdaddr, BDADDR_ANY);
   
   baswap(&tmp, &btu->bdaddr);
-  osync_trace(TRACE_INTERNAL, "Trying to connect on to %s... ", batostr(&tmp));
+  osync_trace(TRACE_SENSITIVE, "Trying to connect on to %s... ", batostr(&tmp));
   fflush(stdout);
   if( (s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM))==-1 ) {
     osync_trace(TRACE_INTERNAL, "Can't create socket. %s(%d)\n", strerror(errno), errno);

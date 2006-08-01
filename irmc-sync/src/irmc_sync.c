@@ -149,7 +149,9 @@ void irmc_disconnect(irmc_config *config)
  */
 osync_bool parse_settings(irmc_config *config, const char *data, unsigned int size, OSyncError **error)
 {
-  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, config, data, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, data, error);
+  osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
+
   xmlDoc *doc = NULL;
   xmlNode *cur = NULL;
 
@@ -705,7 +707,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     } else {
       g_free(filename);
       buffer[buffer_length] = '\0';
-      osync_trace(TRACE_INTERNAL, "info.log of object type \"%s\"\n%s\n",
+      osync_trace(TRACE_SENSITIVE, "info.log of object type \"%s\"\n%s\n",
 		      info->path_identifier, buffer);
     }
 
@@ -740,7 +742,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
       buffer[buffer_length] = '\0';
     }
 
-    osync_trace(TRACE_INTERNAL, "OBEX-IN:\n%s\n", buffer);
+    osync_trace(TRACE_SENSITIVE, "OBEX-IN:\n%s\n", buffer);
 
     // handle object specific part
     if ( strcmp( info->identifier, "event" ) == 0 )
@@ -965,8 +967,9 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
  */
 void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
-  osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
-
+  osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
+  osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
+  
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
   if (sync_type == SLOW_SYNC) {
