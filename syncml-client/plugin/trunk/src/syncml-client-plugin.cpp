@@ -94,7 +94,9 @@ static SyncManager* createSyncManager( OSyncContext* ctx, char* uri )
 /**
 * Initialize the plugin environment, read config data.
 */
-extern "C" static void* smc_initialize(OSyncMember *member, OSyncError **error)
+extern "C" {
+
+static void* smc_initialize(OSyncMember *member, OSyncError **error)
 {
     char *configData;
     int  configSize;
@@ -123,6 +125,8 @@ extern "C" static void* smc_initialize(OSyncMember *member, OSyncError **error)
         return NULL;
     }
 }
+
+} /* extern "C" */
 
 /**
 * Set up SyncSource, SyncManager and sync mode, establish connection to server.
