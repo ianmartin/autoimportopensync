@@ -279,7 +279,11 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 				for (n = 0; n < rsize; n++) {
 					if (!rnodes->nodeTab[n])
 						continue;
-					osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+					osync_trace(TRACE_INTERNAL, "cmp %i:%s (leftcontent), %i:%s (rightcontent)", i, lnodes->nodeTab[i]->name,  
+							n, rnodes->nodeTab[n]->name);
+					osync_trace(TRACE_SENSITIVE, "cmp %i:%s (%s), %i:%s (%s)\n", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], 
+							"Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+
 					if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 						osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
 						res_score += score->value;
@@ -322,7 +326,11 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		for (n = 0; n < rsize; n++) {
 			if (!rnodes->nodeTab[n])
 				continue;
-			osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+			osync_trace(TRACE_INTERNAL, "cmp %i:%s (leftcontent), %i:%s (rightcontent)", i, lnodes->nodeTab[i]->name,  
+							n, rnodes->nodeTab[n]->name);
+			osync_trace(TRACE_SENSITIVE, "cmp %i:%s (%s), %i:%s (%s)\n", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i],
+					"Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+
 			if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 				xmlUnlinkNode(lnodes->nodeTab[i]);
 				xmlFreeNode(lnodes->nodeTab[i]);
