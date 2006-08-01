@@ -46,8 +46,9 @@ EVSTATUS_CANCELLED = 'http://schemas.google.com/g/2005#event.canceled'
 # an Add is sent with an UID containing invalid characters
 
 def escape(uri):
+	re_validchar = re.compile('[a-zA-Z0-9_-]')
 	def cescape(c):
-		if not c.isalnum():
+		if not re_validchar.match(c):
 			return "%%%02x" % (ord(c))
 		else:
 			return c
@@ -265,7 +266,10 @@ class GCalHelper:
 			data = e.dumpOsync()
 			uid = escape(e.id)
 			hash = escape(e.editUri)
-			sys.stdout.write("%d %d %d\n%s%s%s" % (len(data), len(uid), len(hash), data, uid, hash))
+			sys.stdout.write("%d %d %d\n" % (len(data), len(uid), len(hash)))
+			sys.stdout.write(data)
+			sys.stdout.write(uid)
+			sys.stdout.write(hash)
 
 	def oper_test(self, argv):
 		doc = md.parseString(sys.stdin.read())
@@ -326,7 +330,10 @@ class GCalHelper:
 		data = e.dumpOsync()
 		uid = escape(e.id)
 		hash = escape(e.editUri)
-		sys.stdout.write("%d %d %d\n%s%s%s" % (len(data), len(uid), len(hash), data, uid, hash))
+		sys.stdout.write("%d %d %d\n" % (len(data), len(uid), len(hash)))
+		sys.stdout.write(data)
+		sys.stdout.write(uid)
+		sys.stdout.write(hash)
 
 	def oper_add(self, argv):
 		entryData = sys.stdin.read()
@@ -346,7 +353,10 @@ class GCalHelper:
 		data = e.dumpOsync()
 		uid = escape(e.id)
 		hash = escape(e.editUri)
-		sys.stdout.write("%d %d %d\n%s%s%s" % (len(data), len(uid), len(hash), data, uid, hash))
+		sys.stdout.write("%d %d %d\n" % (len(data), len(uid), len(hash)))
+		sys.stdout.write(data)
+		sys.stdout.write(uid)
+		sys.stdout.write(hash)
 		
 
 def main(argv):
