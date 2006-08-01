@@ -44,6 +44,8 @@ void parse_connection_type(char *str, gn_config *config) {
 		config->connection_type = GN_CT_M2BUS;
 	else if (!strcasecmp(str, "dku2libusb"))
 		config->connection_type = GN_CT_DKU2LIBUSB;
+	else
+		config->connection_type = GN_CT_NONE;
 }
 
 /* Parse config file of gnokii plugin 
@@ -122,7 +124,7 @@ osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncErr
 		return FALSE;
 	}
 
-	if (!config->connection_type) {
+	if (GN_CT_NONE == config->connection_type) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Connection type is not (correctly) set in configuration");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
