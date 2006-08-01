@@ -184,7 +184,7 @@ static osync_bool conv_vnote_to_xml(void *conv_data, char *input, int inpsize, c
 	
 	GHashTable *hooks = (GHashTable *)conv_data;
 	
-	osync_trace(TRACE_INTERNAL, "Input vnote is:\n%s", input);
+	osync_trace(TRACE_SENSITIVE, "Input vnote is:\n%s", input);
 	
 	/* The input is not null-terminated, but vformat_new_from_string() expects a null-terminated string */
 	char *input_str = g_malloc(inpsize + 1);
@@ -213,7 +213,7 @@ static osync_bool conv_vnote_to_xml(void *conv_data, char *input, int inpsize, c
 	}
 	
 	xmlChar *str = osxml_write_to_string(doc);
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", str);
 	xmlFree(str);
 	
 	*free_input = TRUE;

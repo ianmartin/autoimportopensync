@@ -208,8 +208,10 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 			if (!strcmp("UnknownParam", (char*)rightnode->name))
 				continue;
 			char *rightcontent = (char*)xmlNodeGetContent(rightnode);
+
+			osync_trace(TRACE_INTERNAL, "leftnode %s, rightnode %s", leftnode->name, rightnode->name);
+			osync_trace(TRACE_SENSITIVE, "leftcontent %s, rightcontent %s\n", leftcontent, rightcontent);
 			
-			osync_trace(TRACE_INTERNAL, "leftcontent %s (%s), rightcontent %s (%s)", leftcontent, leftnode->name, rightcontent, rightnode->name);
 			if (leftcontent == rightcontent) {
 				g_free(rightcontent);
 				goto next;

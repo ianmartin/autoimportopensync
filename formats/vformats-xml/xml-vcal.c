@@ -732,7 +732,7 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	
 	OSyncHooksTable *hooks = (OSyncHooksTable *)conv_data;
 	
-	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
+	osync_trace(TRACE_SENSITIVE, "Input vcal is:\n%s", input);
 	
 	/* The input is not null-terminated, but vformat_new_from_string() expects a null-terminated string */
 	char *input_str = g_malloc(inpsize + 1);
@@ -756,7 +756,7 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	vcal_parse_attributes(hooks, hooks->table, hooks->table, &attributes, root);
 	
 	xmlChar *str = osxml_write_to_string(doc);
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", str);
 	xmlFree(str);
 	
 	*free_input = TRUE;
