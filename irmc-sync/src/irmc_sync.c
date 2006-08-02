@@ -870,8 +870,9 @@ error:
  */
 void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
-  osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);
-
+  osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);
+  osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
+  
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
   if (sync_type == SLOW_SYNC) {
@@ -1042,8 +1043,9 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
  */
 void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
 {
-  osync_trace(TRACE_ENTRY, "%s(%i, %p, %s, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
-
+  osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
+  osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
+  
   irmc_environment *env = (irmc_environment *)osync_context_get_plugin_data(ctx);
 
   if (sync_type == SLOW_SYNC) {
