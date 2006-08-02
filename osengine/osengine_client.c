@@ -102,7 +102,7 @@ void _connect_reply_receiver(OSyncMessage *message, OSyncClient *sender)
 		osync_flag_set(engine->fl_stop);
 		
 	} else {
-		osync_member_read_slow_sync_list(sender->member, message);
+		osync_member_read_sink_info(sender->member, message);
 
 		osync_status_update_member(engine, sender, MEMBER_CONNECTED, NULL);
 		osync_flag_set(sender->fl_connected);	
@@ -395,7 +395,7 @@ osync_bool osync_client_get_changes(OSyncClient *target, OSyncEngine *sender, OS
 		
 	osync_message_set_handler(message, (OSyncMessageHandler)_get_changes_reply_receiver, target);
 
-	osync_member_write_slow_sync_list(target->member, message);
+	osync_member_write_sink_info(target->member, message);
 	
 	OSyncPluginTimeouts timeouts = osync_client_get_timeouts(target);
 	if (!osync_queue_send_message_with_timeout(target->commands_to_osplugin, target->commands_from_osplugin, message, timeouts.get_changeinfo_timeout, error))
@@ -466,7 +466,7 @@ osync_bool osync_client_connect(OSyncClient *target, OSyncEngine *sender, OSyncE
 	if (!message)
 		goto error;
 		
-	osync_member_write_slow_sync_list(target->member, message);
+	osync_member_write_sink_info(target->member, message);
 
 	osync_message_set_handler(message, (OSyncMessageHandler)_connect_reply_receiver, target);
 	

@@ -333,7 +333,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_CONNECT:
-		osync_member_read_slow_sync_full_list(member, message);
+		osync_member_read_sink_info_full(member, message);
 
 		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
@@ -349,7 +349,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 		break;
 
 	case OSYNC_MESSAGE_GET_CHANGES:
-		osync_member_read_slow_sync_full_list(member, message);
+		osync_member_read_sink_info_full(member, message);
 
 		ctx = g_malloc0(sizeof(context));
 		ctx->pp = pp;
@@ -522,7 +522,7 @@ static osync_bool add_connect_reply_data(OSyncMessage *reply, context *ctx, OSyn
 
 	assert(member);
 
-	osync_member_write_slow_sync_list(member, reply);
+	osync_member_write_sink_info(member, reply);
 	
 	return TRUE;
 }

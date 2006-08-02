@@ -1505,16 +1505,59 @@ osync_bool osync_member_delete_data(OSyncMember *member, OSyncChange *change)
 
 
 /** Write the list of objtypes that had slow-sync set to a message */
-void osync_member_write_slow_sync_list(OSyncMember *member, OSyncMessage *message)
+void osync_member_write_sink_info(OSyncMember *member, OSyncMessage *message)
 {
 	GList *obj = NULL;
 	for (osync_member_get_objtype_sinks(member, &obj, NULL); obj; obj = obj->next) {
 		OSyncObjTypeSink *sink = obj->data;
-		if (osync_member_get_slow_sync(member, sink->objtype->name) == TRUE) 
-			osync_message_write_string(message, sink->objtype->name);
+		int slow;
+		slow = osync_member_get_slow_sync(member, sink->objtype->name);
+		osync_message_write_string(message, sink->objtype->name);
+		osync_message_write_int(message, sink->read);
+		osync_message_write_int(message, sink->write);
+		osync_message_write_int(message, sink->enabled);
+		osync_message_write_int(message, slow);
 	}
 	osync_message_write_string(message, NULL);
 }
+
+/** Read sink info for member
+ *
+ * @see osync_member_read_sink_info_full(), osync_member_read_sink_info()
+ */
+int __sync_member_read_sink_info(OSyncMember *member, OSyncMessage *message)
+{
+	char *objtypestr;
+	int r = 0;
+	for (;;) {
+		int read, write, enabled, slow;
+		osync_message_read_string(message, &objtypestr);
+		if (!objtypestr)
+			break;
+
+		osync_message_read_int(message, &read);
+		osync_message_read_int(message, &write);
+		osync_message_read_int(message, &enabled);
+		osync_message_read_int(message, &slow);
+
+		OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtypestr);
+		if (!sink)
+			continue;
+
+		sink->read = read;
+		sink->write = write;
+		sink->enabled = enabled;
+
+		if (slow) {
+			osync_member_set_slow_sync(member, objtypestr, TRUE);
+			r++;
+		}
+
+		free(objtypestr);
+	}
+	return r;
+}
+
 
 /** Read a list of objtypes that had slow-sync set, replacing old settings
  *
@@ -1529,18 +1572,10 @@ void osync_member_write_slow_sync_list(OSyncMember *member, OSyncMessage *messag
  * know about the slow-sync settings of other members in the sync
  * group.
  */
-void osync_member_read_slow_sync_full_list(OSyncMember *member, OSyncMessage *message)
+void osync_member_read_sink_info_full(OSyncMember *member, OSyncMessage *message)
 {
-	char *objtypestr;
 	osync_group_reset_slow_sync(member->group, "data");
-	for (;;) {
-		osync_message_read_string(message, &objtypestr);
-		if (!objtypestr)
-			break;
-
-		osync_member_set_slow_sync(member, objtypestr, TRUE);
-		free(objtypestr);
-	}
+	__sync_member_read_sink_info(member, message);
 }
 
 /** Read a list of objtypes that had slow-sync set, keeping old settings
@@ -1555,21 +1590,11 @@ void osync_member_read_slow_sync_full_list(OSyncMember *member, OSyncMessage *me
  * from osplugin to the engine, but NOT for messages from the engine
  * to osplugin.
  */
-void osync_member_read_slow_sync_list(OSyncMember *member, OSyncMessage *message)
+void osync_member_read_sink_info(OSyncMember *member, OSyncMessage *message)
 {
-	char *objtypestr;
-	osync_bool set_for_any = FALSE;
+	int set_for_any;
 
-	for (;;) {
-		osync_message_read_string(message, &objtypestr);
-		if (!objtypestr)
-			break;
-
-		set_for_any = TRUE;
-		osync_member_set_slow_sync(member, objtypestr, TRUE);
-		free(objtypestr);
-
-	}
+	set_for_any = __sync_member_read_sink_info(member, message);
 
 	if (set_for_any) {
 		/* FIXME: We must force slow-sync in "data" when some

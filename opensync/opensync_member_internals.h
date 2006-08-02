@@ -51,7 +51,7 @@ OSyncObjFormatSink *osync_member_make_random_data(OSyncMember *member, OSyncChan
 osync_bool osync_member_get_objtype_sinks(OSyncMember *member, GList **list_ptr, OSyncError **error);
 osync_bool osync_member_require_sink_info(OSyncMember *member, OSyncError **error);
 
-void osync_member_write_slow_sync_list(OSyncMember *member, OSyncMessage *message);
-void osync_member_read_slow_sync_list(OSyncMember *member, OSyncMessage *message);
-void osync_member_read_slow_sync_full_list(OSyncMember *member, OSyncMessage *message);
+void osync_member_write_sink_info(OSyncMember *member, OSyncMessage *message);
+void osync_member_read_sink_info(OSyncMember *member, OSyncMessage *message);
+void osync_member_read_sink_info_full(OSyncMember *member, OSyncMessage *message);
 
