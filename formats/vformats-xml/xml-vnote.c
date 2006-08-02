@@ -409,7 +409,7 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	
 	xmlChar *str = osxml_write_to_string((xmlDoc *)input);
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", str);
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", str);
 	xmlFree(str);
 	
 	//Get the root node of the input document
@@ -431,7 +431,7 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	
 	*free_input = TRUE;
 	*output = vformat_to_string(vnote, VFORMAT_NOTE);
-	osync_trace(TRACE_INTERNAL, "vnote output is: \n%s", *output);
+	osync_trace(TRACE_SENSITIVE, "vnote output is: \n%s", *output);
 	*outpsize = strlen(*output);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
