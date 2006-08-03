@@ -22,7 +22,7 @@
 
 osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "EVO2-SYNC: %s(%p)", __func__, env);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	GError *gerror = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
@@ -54,6 +54,7 @@ osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
 			return FALSE;
 		}
 	} else {
+		osync_trace(TRACE_INTERNAL, "Opening default addressbook\n");
 		if (!(env->addressbook = e_book_new_default_addressbook(&gerror))) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
 			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
@@ -74,13 +75,13 @@ osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
 	if (!osync_anchor_compare(env->member, "contact", env->addressbook_path))
 		osync_member_set_slow_sync(env->member, "contact", TRUE);
 	
-	osync_trace(TRACE_EXIT, "EVO2-SYNC: %s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
 void evo2_addrbook_get_changes(OSyncContext *ctx)
 {
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	
 	GList *changes = NULL;
@@ -92,11 +93,12 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 	int datasize = 0;
 	
 	if (osync_member_get_slow_sync(env->member, "contact") == FALSE) {
-		osync_debug("EVO2-SYNC", 4, "No slow_sync for contact");
+		osync_trace(TRACE_INTERNAL, "No slow_sync for contact");
 		if (!e_book_get_changes(env->addressbook, env->change_id, &changes, NULL)) {
 			osync_context_send_log(ctx, "Unable to open changed contacts");
 			return;
-		} 
+		}
+		osync_trace(TRACE_INTERNAL, "Found %i changes for change-ID %s", g_list_length(changes), env->change_id);
 		
 		for (l = changes; l; l = l->next) {
 			ebc = (EBookChange *)l->data;
@@ -122,11 +124,10 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 			g_free(uid);
 		}
 	} else {
-		osync_debug("EVO2-SYNC", 4, "slow_sync for contact");
+		osync_trace(TRACE_INTERNAL, "slow_sync for contact");
 		EBookQuery *query = e_book_query_any_field_contains("");
 		if (!e_book_get_contacts(env->addressbook, query, &changes, NULL)) {
 			osync_context_send_log(ctx, "Unable to open contacts");
-			printf("unable to get contacts\n");
 			return;
 		} 
 		for (l = changes; l; l = l->next) {
@@ -139,7 +140,7 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 		}
 		e_book_query_unref(query);
 	}
-	osync_debug("EVO2-SYNC", 4, "end: %s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)

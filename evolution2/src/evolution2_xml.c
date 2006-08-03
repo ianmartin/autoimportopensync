@@ -58,7 +58,7 @@ osync_bool evo2_parse_settings(evo_environment *env, char *data, int size)
 	while (cur != NULL) {
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"adress_path")) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"address_path")) {
 				env->addressbook_path = g_strdup(str);
 			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_path")) {
