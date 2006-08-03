@@ -195,7 +195,8 @@ static osync_bool evo2_calendar_modify(OSyncContext *ctx, OSyncChange *change)
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to get vevent2", __func__);
 				return FALSE;
 			}
-			
+
+			icalcomponent_set_uid (icomp, uid);
 			if (!e_cal_modify_object(env->calendar, icomp, CALOBJ_MOD_ALL, &gerror)) {
 				/* try to add */
 				osync_trace(TRACE_INTERNAL, "unable to mod event: %s", gerror ? gerror->message : "None");
