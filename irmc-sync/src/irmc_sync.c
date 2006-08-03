@@ -707,7 +707,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     } else {
       g_free(filename);
       buffer[buffer_length] = '\0';
-      osync_trace(TRACE_SENSITIVE, "info.log of object type \"%s\"\n%s\n",
+      osync_trace(TRACE_INTERNAL, "info.log of object type \"%s\"\n%s\n",
 		      info->path_identifier, buffer);
     }
 
