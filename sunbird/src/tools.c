@@ -3,7 +3,7 @@
    Copyright (C) 2005-2006 Markus Meyer <meyer@mesw.de>
 
    This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
+   it under the terms of the GNU Lesser General Public License version 2.1 as
    published by the Free Software Foundation;
 
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
