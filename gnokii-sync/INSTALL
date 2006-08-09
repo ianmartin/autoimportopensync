@@ -5,7 +5,7 @@ INSTALL of gnokii-sync
 REQUIREMENTS
 ^^^^^^^^^^^^
 	OpenSync	>= 0.18		http://www.opensync.org
-	gnokii		> 0.6.12 (CVS!)	http://www.gnokii.org
+	gnokii		>= 0.6.13	http://www.gnokii.org
 
 	If you use packages of your distribution don't forget
 	to install the -devel packages of above requirements.
