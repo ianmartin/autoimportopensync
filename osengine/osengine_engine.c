@@ -621,12 +621,6 @@ void osengine_free(OSyncEngine *engine)
 	osync_flag_free(engine->cmb_committed_all);
 	osync_flag_free(engine->cmb_committed_all_sent);
 	
-	osync_queue_free(engine->commands_from_self);
-	engine->commands_from_self = NULL;
-
-	osync_queue_free(engine->commands_to_self);
-	engine->commands_from_self = NULL;
-	
 	g_list_free(engine->clients);
 	g_main_loop_unref(engine->syncloop);
 	
@@ -894,6 +888,11 @@ void osengine_finalize(OSyncEngine *engine)
 
 	osync_queue_disconnect(engine->commands_from_self, NULL);
 	osync_queue_disconnect(engine->commands_to_self, NULL);
+
+	osync_queue_free(engine->commands_from_self);
+	engine->commands_from_self = NULL;
+	osync_queue_free(engine->commands_to_self);
+	engine->commands_to_self = NULL;
 	
 	osengine_mappingtable_close(engine->maptable);
 	
