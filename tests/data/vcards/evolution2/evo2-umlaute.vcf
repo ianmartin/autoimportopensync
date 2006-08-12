@@ -1,0 +1,54 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Titleö Firstä Middleü Lastß Suffixö
+N:Lastß;Firstä;Middleü;Titleö;Suffixö
+ORG:organization;department;office
+REV:2005-02-26T10:41:24Z
+ROLE:profession
+TITLE:title
+UID:pas-id-421A5F6100000014
+URL:homepage
+X-EVOLUTION-FILE-AS:Lastß\, Firstä
+X-EVOLUTION-MANAGER:manager
+X-EVOLUTION-ASSISTANT:assistant
+NICKNAME:nicknameü
+BDAY:2005-02-10
+X-EVOLUTION-ANNIVERSARY:2005-02-08
+X-EVOLUTION-SPOUSE:spouse
+NOTE:This is a multiline note with special chars\nNote how there are multip
+ le\nl\ni\nn\ne\ns\nand special chars: öüööüöäüßßß asd
+CATEGORIES:Birthday,Business
+X-EVOLUTION-BLOG-URL:weblog
+CALURI:calendar
+FBURL:freebusy
+X-EVOLUTION-VIDEO-URL:video chat
+X-MOZILLA-HTML:TRUE
+ADR;TYPE=WORK:PO-BOX2;Multiline street\nmultiline cityäüööüä;Address2
+ ;City2;State2;zip2;country2
+LABEL;TYPE=WORK:Address2\nMultiline street\nmultiline cityäüööüä\nCit
+ y2\, State2\nzip2\nPO-BOX2\ncountry2
+ADR;TYPE=HOME:PO-BOX1;Multiline street\nmultiline city\nöüä;Address1;Cit
+ y1;State1;zip1;country1
+LABEL;TYPE=HOME:Address1\nMultiline street\nmultiline city\nöüä\nCity1\,
+  State1\nzip1\nPO-BOX1\ncountry1
+ADR;TYPE=OTHER:PO-BOX3;Multiline street\nmultiline cityä\nöü;Address3;Ci
+ ty3;State3;zip3;country3
+LABEL;TYPE=OTHER:Address3\nMultiline street\nmultiline cityä\nöü\nCity3\
+ , State3\nzip3\nPO-BOX3\ncountry3
+EMAIL;TYPE=WORK;X-EVOLUTION-UI-SLOT=1:workemailö
+EMAIL;TYPE=HOME;X-EVOLUTION-UI-SLOT=2:homeemailü
+EMAIL;TYPE=OTHER;X-EVOLUTION-UI-SLOT=3:otheremailü
+EMAIL;TYPE=OTHER;X-EVOLUTION-UI-SLOT=4:otheremail2ä
+TEL;TYPE="X-EVOLUTION-COMPANY";X-EVOLUTION-UI-SLOT=1:company phoneöä
+TEL;TYPE=HOME;TYPE=FAX;X-EVOLUTION-UI-SLOT=2:homefaxöä
+TEL;TYPE=FAX;X-EVOLUTION-UI-SLOT=3:other fax
+TEL;TYPE=PAGER;X-EVOLUTION-UI-SLOT=4:pagerß
+TEL;TYPE=ISDN;X-EVOLUTION-UI-SLOT=5:ISDNä
+TEL;TYPE=VOICE;X-EVOLUTION-UI-SLOT=6:other phoneö
+TEL;TYPE="X-EVOLUTION-RADIO";X-EVOLUTION-UI-SLOT=7:radioü
+TEL;TYPE="X-EVOLUTION-TELEX";X-EVOLUTION-UI-SLOT=8:telexä
+X-JABBER;TYPE=HOME;X-EVOLUTION-UI-SLOT=3:jabberüä
+X-YAHOO;TYPE=HOME;X-EVOLUTION-UI-SLOT=2:yahooä
+X-MSN;TYPE=HOME;X-EVOLUTION-UI-SLOT=1:msnöä
+X-GROUPWISE;TYPE=HOME;X-EVOLUTION-UI-SLOT=4:groupwiseä
+END:VCARD
