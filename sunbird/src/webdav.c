@@ -1,4 +1,4 @@
-/* 
+/*
    MultiSync Plugin for Mozilla Sunbird
    Copyright (C) 2005-2006 Markus Meyer <meyer@mesw.de>
 
@@ -10,13 +10,13 @@
    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
    IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) AND AUTHOR(S) BE LIABLE FOR ANY
-   CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES 
-   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
-   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF 
+   CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES
+   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-   ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS, 
-   COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS 
+   ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS,
+   COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
 
@@ -50,60 +50,103 @@ static int init_neon()
     return neon_initialized;
 }
 
-static int webdav_spliturl(char* protocol, char* url, char* server, char* path)
+int webdav_spliturl(char* protocol, char* url, char* server, char* path)
 {
-    char *p1, *p2;
-    
+    if (strlen(url) > 255)
+        return 0;
+
+    char *p1, *p2, *pPort;
+    char portString[255] ="";
+    unsigned int port=80;
+    /**
+     * url  http://[.\d\w]+(:\d+){0,1}/path
+     * examples: http://192.168.0.100/bla, https://192.168.0.100/bla,
+     * http://192.168.0.100:8001/bla, https://192.168.0.100:8001/bla
+    **/
     p1 = strstr(url, "://");
     if (!p1)
         return 0;
-    
-    memcpy(protocol, url, sizeof(p1-url));
+
+    strcpy(protocol, url);
     protocol[p1-url] = 0;
-    
+    if (strcmp(protocol, "https") == 0)
+        port=443;
     p1 += 3;
-        
-    p2 = strstr(p1, "/");
-    if (!p2)
-        return 0;
-    
-    strcpy(server, p1);
-    server[p2-p1] = 0;
-    strcpy(path, p2);
-    
-    return 1;
+
+    pPort = strstr(p1, ":");
+    if (pPort)
+    {
+	strcpy(server, p1);
+	server[pPort-p1] = 0;
+        pPort++;
+        p2 = strstr(pPort, "/");
+        if (!p2)
+            return 0;
+        strcpy(portString, pPort);
+        portString[p2-pPort]=0;
+        strcpy(path, p2);
+    }
+    else
+    {
+        p2 = strstr(p1, "/");
+        if (!p2)
+            return 0;
+
+        strcpy(server, p1);
+        server[p2-p1] = 0;
+        strcpy(path, p2);
+    }
+    if(strcmp(portString, "") != 0)
+        sscanf (portString,"%d",&port);
+
+    if ((port >0) && (port<65536))
+        return port;
+    else
+        return 80;
+}
+
+static int acceptCert (void *userdata, int failures, const ne_ssl_certificate *cert)
+{
+    /*TODO: add cert menagement*/
+    /*we accept everything ;-)*/
+    printf("using a not trusted cert. FIXME: add cert menagement\n");
+    return 0;
 }
 
 int webdav_download(char* filename, char* url, char* username, char* password)
 {
     char protocol[256], server[256], path[256];
+    int port=80;
     int result;
     ne_session* sess;
     FILE* f;
-    
+
     if (strlen(url) > 255 || strlen(username) > 99 || strlen(password) > 99)
         return WEBDAV_ERROR_INVALID_PARAMETER;
 
-    if (!webdav_spliturl(protocol, url, server, path))
+    if (!(port=webdav_spliturl(protocol, url, server, path)))
         return WEBDAV_ERROR_INVALID_PARAMETER;
-    
+
     f = fopen(filename, "w");
     if (!f)
         return WEBDAV_ERROR_FILE_NOT_FOUND;
 
     strcpy(auth_username, username);
     strcpy(auth_password, password);
-    
+
     if (!init_neon())
         return WEBDAV_ERROR_INIT;
-        
-    sess = ne_session_create(protocol, server, 80);
+
+    sess = ne_session_create(protocol, server, port);
     if (!sess)
         return WEBDAV_ERROR_CONNECT;
 
     if (strcmp(protocol, "https") == 0)
+    {
         ne_ssl_trust_default_ca(sess);
-    
+        ne_ssl_set_verify(sess, acceptCert, server);
+    }
+
     ne_set_server_auth(sess, webdav_server_auth, 0);
     result = ne_get(sess, path, fileno(f)) ? WEBDAV_ERROR_RESSOURCE : WEBDAV_SUCCESS;
     fclose(f);
@@ -115,18 +158,19 @@ int webdav_download(char* filename, char* url, char* username, char* password)
 int webdav_upload(char* filename, char* url, char* username, char* password)
 {
     char protocol[256], server[256], path[256], *buf;
+    int port=80;
     int result;
     int filesize;
     ne_session* sess;
     ne_request* req;
     FILE* f;
-    
+
     if (strlen(url) > 255 || strlen(username) > 99 || strlen(password) > 99)
         return WEBDAV_ERROR_INVALID_PARAMETER;
 
-    if (!webdav_spliturl(protocol, url, server, path))
+    if (!(port=webdav_spliturl(protocol, url, server, path)))
         return WEBDAV_ERROR_INVALID_PARAMETER;
-    
+
     f = fopen(filename, "r");
     if (!f)
         return WEBDAV_ERROR_FILE_NOT_FOUND;
@@ -149,11 +193,11 @@ int webdav_upload(char* filename, char* url, char* username, char* password)
 
     strcpy(auth_username, username);
     strcpy(auth_password, password);
-    
+
     if (!init_neon())
         return WEBDAV_ERROR_INIT;
-        
-    sess = ne_session_create(protocol, server, 80);
+
+    sess = ne_session_create(protocol, server, port);
     if (!sess)
     {
         free(buf);
@@ -161,8 +205,11 @@ int webdav_upload(char* filename, char* url, char* username, char* password)
     }
 
     if (strcmp(protocol, "https") == 0)
+    {
         ne_ssl_trust_default_ca(sess);
-    
+        ne_ssl_set_verify(sess, acceptCert, server);
+    }
+
     ne_set_server_auth(sess, webdav_server_auth, 0);
 
     req = ne_request_create(sess, "PUT", path);
@@ -176,11 +223,11 @@ int webdav_upload(char* filename, char* url, char* username, char* password)
     }
 
     result = ne_get_status(req)->code;
-    
+
     ne_request_destroy(req);
     ne_session_destroy(sess);
     free(buf);
-    
+
     if (result < 200 || result > 299)
         return WEBDAV_ERROR_RESSOURCE;
     else
