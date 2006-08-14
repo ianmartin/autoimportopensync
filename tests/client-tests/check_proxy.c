@@ -10,7 +10,7 @@ START_TEST (proxy_new)
 	char *testbed = setup_testbed(NULL);
 	
 	OSyncError *error = NULL;
-	OSyncClientProxy *proxy = osync_client_proxy_new(&error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -27,7 +27,7 @@ START_TEST (proxy_spawn)
 	char *testbed = setup_testbed(NULL);
 	
 	OSyncError *error = NULL;
-	OSyncClientProxy *proxy = osync_client_proxy_new(&error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -94,17 +94,15 @@ START_TEST (proxy_init)
 	fail_unless(error == NULL, NULL);
 	osync_thread_start(thread);
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(&error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	char *module = g_strdup_printf("%s/libmocksync.so", testbed);
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, module, "mock-sync", &error), NULL);
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
-	g_free(module);
 	
 	while (init_replies != 1) { usleep(100); }
 	
@@ -135,17 +133,15 @@ START_TEST (proxy_discover)
 	fail_unless(error == NULL, NULL);
 	osync_thread_start(thread);
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(&error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	char *module = g_strdup_printf("%s/libmocksync.so", testbed);
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, module, "mock-sync", &error), NULL);
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
-	g_free(module);
 	
 	while (init_replies != 1) { usleep(100); }
 	
@@ -191,17 +187,15 @@ START_TEST (proxy_connect)
 	fail_unless(error == NULL, NULL);
 	osync_thread_start(thread);
 	
-	OSyncClientProxy *proxy = osync_client_proxy_new(&error);
+	OSyncClientProxy *proxy = osync_client_proxy_new(NULL, NULL, &error);
 	fail_unless(proxy != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	char *module = g_strdup_printf("%s/libmocksync.so", testbed);
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, module, "mock-sync", &error), NULL);
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
-	g_free(module);
 	
 	while (init_replies != 1) { usleep(100); }
 	

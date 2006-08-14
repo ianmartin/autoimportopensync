@@ -1,5 +1,9 @@
 #include "support.h"
 
+#include <opensync/opensync-mapping.h>
+#include <opensync/opensync-archive.h>
+#include <opensync/opensync-helper.h>
+
 char *olddir = NULL;
 
 static void reset_env(void)
@@ -188,147 +192,6 @@ void conflict_handler_delay(OSyncEngine *engine, OSyncMapping *mapping, void *us
 	g_thread_create ((GThreadFunc)solve_conflict, mapping, TRUE, NULL);
 }
 
-void entry_status(OSyncEngine *engine, OSyncChangeUpdate *status, void *user_data)
-{
-	switch (status->type) {
-		case CHANGE_RECEIVED:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_read++;
-			break;
-		case CHANGE_RECEIVED_INFO:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_read_info++;
-			break;
-		case CHANGE_SENT:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_written++;
-			break;
-		case CHANGE_WRITE_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "CHANGE_WRITE_ERROR: %s", status->error->message);
-			num_written_errors++;
-			break;
-		case CHANGE_RECV_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "CHANGE_RECV_ERROR: %s", status->error->message);
-			num_recv_errors++;
-			break;
-	}
-}
-
-void member_status(OSyncMemberUpdate *status, void *user_data)
-{
-	mark_point();
-	switch (status->type) {
-		case MEMBER_CONNECTED:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_connected++;
-			break;
-		case MEMBER_DISCONNECTED:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_disconnected++;
-			break;
-		case MEMBER_SENT_CHANGES:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_member_sent_changes++;
-			break;
-		case MEMBER_COMMITTED_ALL:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			num_member_comitted_all++;
-			break;
-		case MEMBER_CONNECT_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "MEMBER_CONNECT_ERROR: %s", status->error->message);
-			num_member_connect_errors++;
-			break;
-		case MEMBER_GET_CHANGES_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "MEMBER_CONNECT_ERROR: %s", status->error->message);
-			num_member_get_changes_errors++;
-			break;
-		case MEMBER_SYNC_DONE_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "MEMBER_SYNC_DONE_ERROR: %s", status->error->message);
-			num_member_sync_done_errors++;
-			break;
-		case MEMBER_DISCONNECT_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "MEMBER_DISCONNECT_ERROR: %s", status->error->message);
-			num_member_disconnect_errors++;
-			break;
-		case MEMBER_COMMITTED_ALL_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "MEMBER_COMMITTED_ALL_ERROR: %s", status->error->message);
-			num_member_comitted_all_errors++;
-			break;
-	}
-}
-
-void engine_status(OSyncEngine *engine, OSyncEngineUpdate *status, void *user_data)
-{
-	switch (status->type) {
-		case ENG_ENDPHASE_CON:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "All clients connected or error");
-			num_engine_connected++;
-			break;
-		case ENG_ENDPHASE_READ:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "All clients sent changes or error");
-			num_engine_read++;
-			break;
-		case ENG_ENDPHASE_WRITE:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "All clients have writen");
-			num_engine_wrote++;
-			break;
-		case ENG_ENDPHASE_DISCON:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "All clients have disconnected");
-			num_engine_disconnected++;
-			break;
-		case ENG_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "ENG_ERROR: %s", status->error->message);
-			num_engine_errors++;
-			break;
-		case ENG_SYNC_SUCCESSFULL:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "Sync Successfull");
-			num_engine_successfull++;
-			break;
-		case ENG_PREV_UNCLEAN:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "Previous sync was unclean");
-			num_engine_prev_unclean++;
-			break;
-		case ENG_END_CONFLICTS:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "End conflicts");
-			num_engine_end_conflicts++;
-			break;
-	}
-}
-
-void mapping_status(OSyncMappingUpdate *status, void *user_data)
-{
-	switch (status->type) {
-		case MAPPING_SOLVED:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "Mapping solved");
-			break;
-		case MAPPING_SYNCED:
-			fail_unless(!osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "Mapping Synced");
-			break;
-		case MAPPING_WRITE_ERROR:
-			fail_unless(osync_error_is_set(&(status->error)), NULL);
-			osync_debug("TEST", 4, "MAPPING_WRITE_ERROR: %s", status->error->message);
-			num_mapping_errors++;
-			break;
-	}
-}
-
 OSyncEngine *init_engine(OSyncGroup *group)
 {
 	OSyncError *error = NULL;
@@ -382,34 +245,55 @@ void create_case(Suite *s, const char *name, void (*function)(void))
 	tcase_add_test(tc_new, function);
 }
 
-/*OSyncMappingTable *mappingtable_load(OSyncGroup *group, int num_mappings, int num_unmapped)
+OSyncMappingTable *mappingtable_load(const char *path, const char *objtype, int num_mappings)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %i)", __func__, group, num_mappings, num_unmapped);
-	mark_point();
-	OSyncEnv *osync = init_env();
-	OSyncGroup *newgroup = osync_group_new(osync, NULL);
-	osync_group_load(newgroup, "configs/group", NULL);
-	OSyncMappingTable *maptable = _osengine_mappingtable_load_group(newgroup);
-	mark_point();
-	fail_unless(g_list_length(maptable->mappings) == num_mappings, NULL);
-	fail_unless(g_list_length(maptable->unmapped) == num_unmapped, NULL);
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, maptable);
-	return maptable;
-}
-
-void mappingtable_close(OSyncMappingTable *maptable)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, maptable);
-	osengine_mappingtable_close(maptable);
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %i)", __func__, path, objtype, num_mappings);
+	
+	OSyncError *error = NULL;
+	OSyncMappingTable *table = osync_mapping_table_new(&error);
+	fail_unless(table != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncArchive *archive = osync_archive_new(path, objtype, &error);
+	fail_unless(archive != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_mapping_table_load(table, archive, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_archive_unref(archive);
+	
+	fail_unless(osync_mapping_table_num_mappings(table) == num_mappings, NULL);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
+	return table;
 }
 
 void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %i, %i, %s, %s, %s)", __func__, maptable, memberid, mappingid, numentries, uid, format, objecttype);
-	OSyncMapping *mapping = NULL;
-	mark_point();
-	OSyncMember *member = osync_member_from_id(maptable->group, memberid);
+	
+	int i = 0;
+	for (i = 0; i < osync_mapping_table_num_mappings(maptable); i++) {
+		OSyncMapping *mapping = osync_mapping_table_nth_mapping(maptable, i);
+		OSyncMappingEntry *testentry = osync_mapping_find_entry_by_member_id(mapping, memberid);
+		if ((mappingid != -1 && osync_mapping_get_id(mapping) == mappingid) || (mappingid == -1 && !strcmp(osync_mapping_entry_get_uid(testentry), uid))) {
+			fail_unless(osync_mapping_num_entries(mapping) == numentries);
+			int n = 0;
+			for (n = 0; n < osync_mapping_num_entries(mapping); n++) {
+				OSyncMappingEntry *entry = osync_mapping_nth_entry(mapping, n);
+				if (osync_mapping_entry_get_member_id(entry) == memberid) {
+					fail_unless(!strcmp(osync_mapping_entry_get_uid(entry), uid), NULL);
+					goto out;
+				}
+			}
+			fail(NULL);
+		}
+	}
+	fail(NULL);
+
+out:
+	/*OSyncMember *member = osync_member_from_id(maptable->group, memberid);
 	OSyncMappingView *view = osengine_mappingtable_find_view(maptable, member);
 	mark_point();
 	if (mappingid != -1) {
@@ -428,11 +312,11 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 		}
 	}
 	fail_unless(mapping != NULL, NULL);
-	fail_unless(osengine_mapping_num_changes(mapping) == numentries, "osengine_mapping_num_changes(mapping) == numentries for %s, %i: %i != %i", uid, memberid, osengine_mapping_num_changes(mapping), numentries);
-	mark_point();
+	fail_unless(osengine_mapping_num_changes(mapping) == numentries, "osengine_mapping_num_changes(mapping) == numentries for %s, %i: %i != %i", uid, memberid, osengine_mapping_num_changes(mapping), numentries);*/
 	
 	
-	OSyncChange *change = osengine_mapping_find_entry(mapping, NULL, view)->change;
+	
+	/*OSyncChange *change = osengine_mapping_find_entry(mapping, NULL, view)->change;
 	fail_unless(change != NULL, NULL);
 	if (format)
 		fail_unless(!strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), format), NULL);
@@ -441,20 +325,19 @@ void check_mapping(OSyncMappingTable *maptable, int memberid, int mappingid, int
 	if (uid && strcmp(osync_change_get_uid(change), uid)) {
 		printf("uid mismatch: %s != %s for member %i and mapping %i\n", osync_change_get_uid(change), uid, memberid, mappingid);
 		fail("uid mismatch");
-	}
+	}*/
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-OSyncHashTable *hashtable_load(OSyncGroup *group, int memberid, int entries)
+OSyncHashTable *hashtable_load(const char *path, const char *objtype, int entries)
 {
-	mark_point();
-	OSyncMember *member = osync_member_from_id(group, memberid);
-	mark_point();
-	OSyncHashTable *table = osync_hashtable_new();
-	mark_point();
-    fail_unless(osync_hashtable_load(table, member, NULL), NULL);
-    mark_point();
+	OSyncError *error = NULL;
+	OSyncHashTable *table = osync_hashtable_new(path, objtype, &error);
+	fail_unless(table != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
     fail_unless(osync_hashtable_num_entries(table) == entries, NULL);
+    
     return table;
 }
 
@@ -468,61 +351,8 @@ void check_hash(OSyncHashTable *table, const char *cmpuid)
 		osync_hashtable_nth_entry(table, i, &uid, &hash);
 		if (!strcmp(cmpuid, uid))
 			found = TRUE;
+		g_free(hash);
+		g_free(uid);
 	}
 	fail_unless(found == TRUE, NULL);
 }
-
-static void load_format(OSyncEnv *env, const char *name)
-{
-	OSyncError *error = NULL;
-	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), name);	
-	fail_unless(osync_module_load(env, path, &error), NULL);
-	g_free(path);
-}
-
-OSyncEnv *init_env(void)
-{
-	mark_point();
-	OSyncEnv *osync = osync_env_new(NULL);
-	mark_point();
-	osync_env_set_option(osync, "LOAD_GROUPS", "FALSE");
-	osync_env_set_option(osync, "LOAD_FORMATS", "FALSE");
-	osync_env_set_option(osync, "LOAD_PLUGINS", "FALSE");
-	mark_point();
-	OSyncError *error = NULL;
-	fail_unless(osync_env_initialize(osync, &error), NULL);
-	fail_unless(!osync_error_is_set(&error), NULL);
-	
-	char *path = g_strdup_printf("%s/%s", g_get_current_dir(), "mock_sync.so");	
-	fail_unless(osync_module_load(osync, path, &error), NULL);
-	g_free(path);
-	
-	load_format(osync, "contact.so");
-	load_format(osync, "data.so");
-	load_format(osync, "event.so");
-	load_format(osync, "note.so");
-	load_format(osync, "todo.so");
-	load_format(osync, "xml-vcal.so");
-	load_format(osync, "xml-vcard.so");
-	load_format(osync, "xml-vnote.so");
-	load_format(osync, "xml-evolution.so");
-	load_format(osync, "xml-kde.so");
-	load_format(osync, "mockformat.so");
-	
-	return osync;
-}
-
-OSyncEnv *init_env_none(void)
-{
-	mark_point();
-	OSyncEnv *osync = osync_env_new(NULL);
-	mark_point();
-	osync_env_set_option(osync, "LOAD_GROUPS", "FALSE");
-	osync_env_set_option(osync, "LOAD_FORMATS", "FALSE");
-	osync_env_set_option(osync, "LOAD_PLUGINS", "FALSE");
-	mark_point();
-	OSyncError *error = NULL;
-	fail_unless(osync_env_initialize(osync, &error), NULL);
-	fail_unless(!osync_error_is_set(&error), NULL);
-	return osync;
-}*/

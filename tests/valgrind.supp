@@ -521,3 +521,56 @@
    fun:clone
 }
 
+
+{
+   supp32
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   obj:*
+   fun:g_array_set_size
+   fun:g_static_private_set
+   fun:g_module_supported
+}
+
+
+{
+   supp33
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewMutex
+   fun:xmlInitGlobals
+}
+
+{
+   supp34
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlStrndup
+   fun:xmlStrdup
+   fun:xmlNewCharEncodingHandler
+}
+
+{
+   supp35
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewCharEncodingHandler
+}
+
+{
+   supp36
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlNewRMutex
+   obj:*
+   fun:xmlDictCreate
+}
+
+{
+   supp37
+   Memcheck:Leak
+   fun:malloc
+   fun:xmlInitCharEncodingHandlers
+}
+

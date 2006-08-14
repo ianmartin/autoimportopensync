@@ -1275,9 +1275,13 @@ static void get_changes5(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_assert(change != NULL);
 	osync_assert(error == NULL);
 	
+	osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
 	osync_change_set_uid(change, "uid");
 	
-	OSyncData *changedata = osync_data_new("test", 5, format, &error);
+	char *string = g_strdup_printf("%p", change);
+	OSyncData *changedata = osync_data_new(string, strlen(string) + 1, format, &error);
+	osync_data_set_objtype(changedata, "file");
+	
 	osync_assert(changedata != NULL);
 	osync_assert(error == NULL);
 	osync_change_set_data(change, changedata);
@@ -1446,6 +1450,379 @@ START_TEST (engine_sync_read_write)
 }
 END_TEST
 
+static void get_changes6(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	mock_env *env = data;
+	int i;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	osync_assert(formatenv != NULL);
+	
+	OSyncObjFormat *format = osync_format_env_find_objformat(formatenv, "mockformat1");
+	osync_assert(format != NULL);
+	
+	OSyncError *error = NULL;
+	
+	for (i = 0; i < 1000; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		osync_assert(change != NULL);
+		osync_assert(error == NULL);
+		
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
+		char *uid = g_strdup_printf("uid%i", i);
+		osync_change_set_uid(change, uid);
+		g_free(uid);
+		
+		char *string = g_strdup_printf("%p", change);
+		OSyncData *changedata = osync_data_new(string, strlen(string) + 1, format, &error);
+		osync_data_set_objtype(changedata, "file");
+		
+		osync_assert(changedata != NULL);
+		osync_assert(error == NULL);
+		osync_change_set_data(change, changedata);
+		osync_data_unref(changedata);
+		
+		osync_context_report_change(ctx, change);
+	}
+	
+	g_atomic_int_inc(&(env->num_get_changes));
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void *initialize6(OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
+	if (!env)
+		goto error;
+
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	if (!sink)
+		goto error;
+	
+	osync_objtype_sink_add_objformat(sink, "mockformat1");
+	
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect5;
+	functions.disconnect = disconnect5;
+	functions.get_changes = get_changes6;
+	functions.commit = commit_change5;
+	
+	osync_objtype_sink_set_functions(sink, functions);
+	osync_plugin_info_add_objtype(info, sink);
+	osync_objtype_sink_unref(sink);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	return (void *)env;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static void finalize6(void *data)
+{
+	mock_env *env = data;
+	
+	osync_assert(env->num_connect == 1);
+	osync_assert(env->num_disconnect == 1);
+	osync_assert(env->num_get_changes == 1);
+	osync_assert(env->num_commit_changes == 1000);
+	osync_assert(env->main_connect == 0);
+	osync_assert(env->main_disconnect == 0);
+	osync_assert(env->main_get_changes == 0);
+	
+	g_free(env);
+}
+
+static OSyncDebugGroup *_create_group6(char *testbed)
+{
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, testbed);
+	
+	OSyncDebugGroup *debug = g_malloc0(sizeof(OSyncDebugGroup));
+	
+	OSyncError *error = NULL;
+	debug->group = osync_group_new(&error);
+	fail_unless(debug->group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	debug->member1 = osync_member_new(&error);
+	fail_unless(debug->member1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_add_member(debug->group, debug->member1);
+	osync_member_set_pluginname(debug->member1, "mock-sync");
+	char *path = g_strdup_printf("%s/configs/group/1", testbed);
+	osync_member_set_configdir(debug->member1, path);
+	g_free(path);
+	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	osync_member_add_objtype(debug->member1, "file");
+	
+	debug->member2 = osync_member_new(&error);
+	fail_unless(debug->member2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_add_member(debug->group, debug->member2);
+	osync_member_set_pluginname(debug->member2, "mock-sync");
+	path = g_strdup_printf("%s/configs/group/2", testbed);
+	osync_member_set_configdir(debug->member2, path);
+	g_free(path);
+	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	osync_member_add_objtype(debug->member2, "file");
+	osync_member_add_objtype(debug->member2, "contact");
+	osync_member_add_objtype(debug->member2, "note");
+	
+	debug->plugin = osync_plugin_new(&error);
+	fail_unless(debug->plugin != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
+	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	
+	osync_plugin_set_initialize(debug->plugin, initialize6);
+	osync_plugin_set_finalize(debug->plugin, finalize6);
+	
+	debug->client1 = osync_client_new(&error);
+	fail_unless(debug->client1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	char *pipe_path = g_strdup_printf("%s/configs/group/1/pluginpipe", testbed);
+	osync_client_run_external(debug->client1, pipe_path, debug->plugin, &error);
+	g_free(pipe_path);
+	
+	debug->client2 = osync_client_new(&error);
+	fail_unless(debug->client2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	pipe_path = g_strdup_printf("%s/configs/group/2/pluginpipe", testbed);
+	osync_client_run_external(debug->client2, pipe_path, debug->plugin, &error);
+	g_free(pipe_path);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, debug);
+	return debug;
+}
+
+START_TEST (engine_sync_read_write_stress)
+{
+	char *testbed = setup_testbed("sync_setup");
+	
+	OSyncError *error = NULL;
+	OSyncDebugGroup *debug = _create_group6(testbed);
+	
+	OSyncEngine *engine = osync_engine_new(debug->group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+	
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_finalize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	_free_group(debug);
+	
+	osync_engine_unref(engine);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+static void get_changes7(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	mock_env *env = data;
+	int i;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	osync_assert(formatenv != NULL);
+	
+	OSyncObjFormat *format = osync_format_env_find_objformat(formatenv, "mockformat1");
+	osync_assert(format != NULL);
+	
+	OSyncError *error = NULL;
+	
+	for (i = 0; i < 2; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		osync_assert(change != NULL);
+		osync_assert(error == NULL);
+		
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
+		char *uid = g_strdup_printf("uid%i", i);
+		osync_change_set_uid(change, uid);
+		g_free(uid);
+		
+		char *string = osync_rand_str(100000);
+		OSyncData *changedata = osync_data_new(string, strlen(string) + 1, format, &error);
+		osync_data_set_objtype(changedata, "file");
+		
+		osync_assert(changedata != NULL);
+		osync_assert(error == NULL);
+		osync_change_set_data(change, changedata);
+		osync_data_unref(changedata);
+		
+		osync_context_report_change(ctx, change);
+		
+		osync_change_unref(change);
+		osync_data_unref(data);
+	}
+	
+	g_atomic_int_inc(&(env->num_get_changes));
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void *initialize7(OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
+	if (!env)
+		goto error;
+
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("file", error);
+	if (!sink)
+		goto error;
+	
+	osync_objtype_sink_add_objformat(sink, "mockformat1");
+	
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect5;
+	functions.disconnect = disconnect5;
+	functions.get_changes = get_changes7;
+	functions.commit = commit_change5;
+	
+	osync_objtype_sink_set_functions(sink, functions);
+	osync_plugin_info_add_objtype(info, sink);
+	osync_objtype_sink_unref(sink);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	return (void *)env;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static void finalize7(void *data)
+{
+	mock_env *env = data;
+	
+	osync_assert(env->num_connect == 1);
+	osync_assert(env->num_disconnect == 1);
+	osync_assert(env->num_get_changes == 1);
+	osync_assert(env->num_commit_changes == 2);
+	osync_assert(env->main_connect == 0);
+	osync_assert(env->main_disconnect == 0);
+	osync_assert(env->main_get_changes == 0);
+	
+	g_free(env);
+}
+
+static OSyncDebugGroup *_create_group7(char *testbed)
+{
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, testbed);
+	
+	OSyncDebugGroup *debug = g_malloc0(sizeof(OSyncDebugGroup));
+	
+	OSyncError *error = NULL;
+	debug->group = osync_group_new(&error);
+	fail_unless(debug->group != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	debug->member1 = osync_member_new(&error);
+	fail_unless(debug->member1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_add_member(debug->group, debug->member1);
+	osync_member_set_pluginname(debug->member1, "mock-sync");
+	char *path = g_strdup_printf("%s/configs/group/1", testbed);
+	osync_member_set_configdir(debug->member1, path);
+	g_free(path);
+	osync_member_set_start_type(debug->member1, OSYNC_START_TYPE_EXTERNAL);
+	osync_member_add_objtype(debug->member1, "file");
+	
+	debug->member2 = osync_member_new(&error);
+	fail_unless(debug->member2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_group_add_member(debug->group, debug->member2);
+	osync_member_set_pluginname(debug->member2, "mock-sync");
+	path = g_strdup_printf("%s/configs/group/2", testbed);
+	osync_member_set_configdir(debug->member2, path);
+	g_free(path);
+	osync_member_set_start_type(debug->member2, OSYNC_START_TYPE_EXTERNAL);
+	osync_member_add_objtype(debug->member2, "file");
+	osync_member_add_objtype(debug->member2, "contact");
+	osync_member_add_objtype(debug->member2, "note");
+	
+	debug->plugin = osync_plugin_new(&error);
+	fail_unless(debug->plugin != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_plugin_set_name(debug->plugin, "mock-sync");
+	osync_plugin_set_longname(debug->plugin, "Mock Sync Plugin");
+	osync_plugin_set_description(debug->plugin, "This is a pseudo plugin");
+	
+	osync_plugin_set_initialize(debug->plugin, initialize7);
+	osync_plugin_set_finalize(debug->plugin, finalize7);
+	
+	debug->client1 = osync_client_new(&error);
+	fail_unless(debug->client1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	char *pipe_path = g_strdup_printf("%s/configs/group/1/pluginpipe", testbed);
+	osync_client_run_external(debug->client1, pipe_path, debug->plugin, &error);
+	g_free(pipe_path);
+	
+	debug->client2 = osync_client_new(&error);
+	fail_unless(debug->client2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	pipe_path = g_strdup_printf("%s/configs/group/2/pluginpipe", testbed);
+	osync_client_run_external(debug->client2, pipe_path, debug->plugin, &error);
+	g_free(pipe_path);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, debug);
+	return debug;
+}
+
+START_TEST (engine_sync_read_write_stress2)
+{
+	char *testbed = setup_testbed("sync_setup");
+	
+	OSyncError *error = NULL;
+	OSyncDebugGroup *debug = _create_group7(testbed);
+	
+	OSyncEngine *engine = osync_engine_new(debug->group, &error);
+	fail_unless(engine != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_engine_set_plugindir(engine, testbed);
+	osync_engine_set_formatdir(engine, testbed);
+	
+	fail_unless(osync_engine_initialize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	fail_unless(osync_engine_finalize(engine, &error), NULL);
+	fail_unless(error == NULL, NULL);
+	
+	_free_group(debug);
+	
+	osync_engine_unref(engine);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *engine_suite(void)
 {
 	Suite *s = suite_create("Engine");
@@ -1459,7 +1836,9 @@ Suite *engine_suite(void)
 	create_case(s, "engine_sync_reuse", engine_sync_reuse);
 	create_case(s, "engine_sync_stress", engine_sync_stress);
 	
-	create_case(s2, "engine_sync_read_write", engine_sync_read_write);
+	create_case(s, "engine_sync_read_write", engine_sync_read_write);
+	create_case(s2, "engine_sync_read_write_stress", engine_sync_read_write_stress);
+	create_case(s, "engine_sync_read_write_stress2", engine_sync_read_write_stress2);
 	
 	//batch commit
 	//connect problem

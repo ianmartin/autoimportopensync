@@ -1,6 +1,7 @@
 #include "support.h"
 
 #include <opensync/opensync-format.h>
+#include <opensync/opensync-serializer.h>
 
 static OSyncConvCmpResult compare_format(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
@@ -22,10 +23,11 @@ osync_bool copy_format(const char *indata, unsigned int insize, char **outdata, 
 	return TRUE;
 }
 
-void duplicate_format(const char *uid, char **newuid)
+static osync_bool duplicate_format(const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
 	fail_unless(!strcmp(uid, "uid"), NULL);
 	*newuid = strdup("newuid");
+	return TRUE;
 }
 
 void create_format(char **data, unsigned int *size)
@@ -44,10 +46,15 @@ time_t revision_format(const char *data, unsigned int size, OSyncError **error)
 	return atoi(data);
 }
 
-osync_bool marshal_format(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
+osync_bool marshal_format(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
-	*output = strdup(input);
-	*outpsize = inpsize;
+	osync_message_write_buffer(message, input, inpsize);
+	return TRUE;
+}
+
+osync_bool demarshal_format(OSyncMessage *message, char **output, unsigned int *outsize, OSyncError **error)
+{
+	osync_message_read_buffer(message, (void *)output, (int *)outsize);
 	return TRUE;
 }
 
@@ -187,7 +194,11 @@ START_TEST (objformat_duplicate)
 	osync_objformat_set_duplicate_func(format, duplicate_format);
 	
 	char *newuid = NULL;
-	osync_objformat_duplicate(format, "uid", &newuid);
+	char *output = NULL;
+	unsigned int outsize = 0;
+	osync_bool dirty = FALSE;
+	fail_unless(osync_objformat_duplicate(format, "uid", "test", 5, &newuid, &output, &outsize, &dirty, &error), NULL);
+	fail_unless(error == NULL, NULL);
 	
 	fail_unless(!strcmp(newuid, "newuid"), NULL);
 	g_free(newuid);
@@ -281,14 +292,14 @@ START_TEST (objformat_marshal)
 	
 	fail_unless(osync_objformat_must_marshal(format) == TRUE, NULL);
 
-	char *outdata = NULL;
-	unsigned int outsize = 0;
-	fail_unless(osync_objformat_marshal(format, "test", 5, &outdata, &outsize, &error), NULL);
+	OSyncMessage *message = osync_message_new(0, 0, &error);
+	fail_unless(message != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_objformat_marshal(format, "test", 5, message, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(!strcmp(outdata, "test"), NULL);
-	fail_unless(outsize == 5, NULL);
-	g_free(outdata);
+	osync_message_unref(message);
 	
 	osync_objformat_unref(format);
 	
@@ -304,12 +315,19 @@ START_TEST (objformat_demarshal)
 	OSyncObjFormat *format = osync_objformat_new("format", "objtype", &error);
 	fail_unless(format != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-	osync_objformat_set_demarshal_func(format, marshal_format);
+	osync_objformat_set_demarshal_func(format, demarshal_format);
 	osync_objformat_set_destroy_func(format, destroy_format);
+	
+	OSyncMessage *message = osync_message_new(0, 0, &error);
+	fail_unless(message != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_objformat_marshal(format, "test", 5, message, &error), NULL);
+	fail_unless(error == NULL, NULL);
 	
 	char *outdata = NULL;
 	unsigned int outsize = 0;
-	fail_unless(osync_objformat_demarshal(format, "test", 5, &outdata, &outsize, &error), NULL);
+	fail_unless(osync_objformat_demarshal(format, message, &outdata, &outsize, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
 	fail_unless(!strcmp(outdata, "test"), NULL);
@@ -317,6 +335,7 @@ START_TEST (objformat_demarshal)
 	g_free(outdata);
 	
 	osync_objformat_unref(format);
+	osync_message_unref(message);
 	
 	destroy_testbed(testbed);
 }
