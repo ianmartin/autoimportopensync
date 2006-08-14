@@ -267,6 +267,13 @@ void osync_message_write_data(OSyncMessage *message, const void *value, int size
 	g_byte_array_append( message->buffer, value, size );
 }
 
+void osync_message_write_buffer(OSyncMessage *message, const void *value, int size)
+{
+	osync_message_write_int(message, size);
+	if (size > 0)
+		osync_message_write_data(message, value, size);
+}
+
 void osync_message_read_int(OSyncMessage *message, int *value)
 {
 	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
@@ -320,3 +327,13 @@ void osync_message_read_data(OSyncMessage *message, void *value, int size)
 	message->buffer_read_pos += size;
 }
 
+void osync_message_read_buffer(OSyncMessage *message, void **value, int *size)
+{
+	/* Now, read the data from the message */
+	osync_message_read_int(message, size);
+	
+	if (*size > 0) {
+		*value = g_malloc0(*size);
+		osync_message_read_data(message, *value, *size);
+	}
+}

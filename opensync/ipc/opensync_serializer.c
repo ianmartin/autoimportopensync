@@ -49,24 +49,19 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 	unsigned int input_size = 0;
 	osync_data_get_data(data, &input_data, &input_size);
 	
-	/* If the format must be marshalled, we call the marshal function
-	 * and the send the marshalled data. Otherwise we send the unmarshalled data */
-	if (osync_objformat_must_marshal(objformat) == TRUE) {
-		char *output_data = NULL;
-		unsigned int output_size = 0;
+	if (input_size > 0) {
+		osync_message_write_int(message, 1);
 		
-		if (!osync_objformat_marshal(objformat, input_data, input_size, &output_data, &output_size, error))
-			goto error;
-		
-		osync_message_write_int(message, output_size);
-		if (output_size > 0)
-			osync_message_write_data(message, output_data, output_size);
-		
-		g_free(output_data);
+		/* If the format must be marshalled, we call the marshal function
+		 * and the send the marshalled data. Otherwise we send the unmarshalled data */
+		if (osync_objformat_must_marshal(objformat) == TRUE) {
+			if (!osync_objformat_marshal(objformat, input_data, input_size, message, error))
+				goto error;
+		} else {
+			osync_message_write_buffer(message, input_data, input_size);
+		}
 	} else {
-		osync_message_write_int(message, input_size);
-		if (input_size > 0)
-			osync_message_write_data(message, input_data, input_size);
+		osync_message_write_int(message, 0);
 	}
 	
 	return TRUE;
@@ -97,41 +92,36 @@ osync_bool osync_demarshal_data(OSyncMessage *message, OSyncData **data, OSyncFo
 		goto error;
 	}
 	
-	/* Now, read the data from the message */
-	int input_size = 0;
-	osync_message_read_int(message, &input_size);
+	unsigned int input_size = 0;
+	char *input_data = NULL;
 	
-	char *input_data = osync_try_malloc0(input_size, error);
-	if (!input_data)
-		goto error;
+	int has_data = 0;
+	osync_message_read_int(message, &has_data);
 	
-	osync_message_read_data(message, input_data, input_size);
-	
-	/* If the format must be marshalled, we call the demarshal function. 
-	 * Otherwise we use the undemarshalled data */
-	if (osync_objformat_must_marshal(format) == TRUE) {
-		char *output_data = NULL;
-		unsigned int output_size = 0;
-		
-		if (!osync_objformat_demarshal(format, input_data, input_size, &output_data, &output_size, error))
-			goto error;
-		
-		g_free(input_data);
-		
-		
-		input_data = output_data;
-		input_size = output_size;
+	if (has_data) {
+		if (osync_objformat_must_marshal(format) == TRUE) {
+			if (!osync_objformat_demarshal(format, message, &input_data, &input_size, error))
+				goto error;
+		} else {
+			osync_message_read_buffer(message, (void *)&input_data, (int *)&input_size);
+		}
 	}
+	
+	osync_trace(TRACE_INTERNAL, "Data is: %p, %i", input_data, input_size);
 	
 	*data = osync_data_new(input_data, input_size, format, error);
 	if (!*data)
 		goto error;
 	
 	osync_data_set_objtype(*data, objtype);
+	g_free(objtype);
+	g_free(objformat);
 	
 	return TRUE;
 
 error:
+	g_free(objformat);
+	g_free(objtype);
 	return FALSE;
 }
 
@@ -151,22 +141,6 @@ osync_bool osync_marshal_change(OSyncMessage *message, OSyncChange *change, OSyn
 	OSyncData *data = osync_change_get_data(change);
 	if (!osync_marshal_data(message, data, error))
 		goto error;
-	
-	/*char *format_name = change->format ? change->format->name : change->format_name;
-	char *objtype_name = change->objtype ? change->objtype->name : change->objtype_name;
-	char *initial_format_name = change->initial_format ? change->initial_format->name : change->initial_format_name;
-	osync_message_write_string( message, objtype_name );
-	osync_message_write_string( message, format_name );
-	osync_message_write_string( message, initial_format_name );
-	
-	osync_marshal_changedata(message, change);
-	
-	osync_message_write_int( message, change->has_data );
-	osync_marshal_changetype( message, change->changetype );
-	osync_message_write_long_long_int( message, change->id );
-	osync_message_write_string( message, change->destobjtype );
-	osync_message_write_string( message, change->sourceobjtype );
-	osync_marshal_member( message, change->sourcemember );*/
 	
 	return TRUE;
 
@@ -200,32 +174,20 @@ osync_bool osync_demarshal_change(OSyncMessage *message, OSyncChange **change, O
 		goto error_free_change;
 	
 	osync_change_set_uid(*change, uid);
+	g_free(uid);
+	
 	osync_change_set_hash(*change, hash);
+	g_free(hash);
+	
 	osync_change_set_changetype(*change, change_type);
 	osync_change_set_data(*change, data);
-
-/*  osync_message_read_string( message, &( new_change->objtype_name ) );
-  osync_message_read_string( message, &( new_change->format_name ) );
-  osync_message_read_string( message, &( new_change->initial_format_name ) );
-
-  osync_demarshal_changedata(message, new_change);
-
-  osync_message_read_int( message, &( new_change->has_data ) );
-
-  osync_demarshal_changetype( message, &( new_change->changetype ) );
-  osync_message_read_long_long_int( message, &( new_change->id ) );
-  osync_message_read_string( message, &( new_change->destobjtype ) );
-  osync_message_read_string( message, &( new_change->sourceobjtype ) );
-  osync_demarshal_member( message, &( new_change->sourcemember ) );
-
-  new_change->member = 0;
-  new_change->engine_data = 0;
-  new_change->mappingid = 0;
-  new_change->changes_db = 0;*/
+	osync_data_unref(data);
 
 	return TRUE;
 
 error_free_change:
+	g_free(uid);
+	g_free(hash);
 	osync_change_unref(*change);
 error:
 	return FALSE;

@@ -77,6 +77,7 @@ void osync_message_write_int(OSyncMessage *message, int value);
 void osync_message_write_long_long_int(OSyncMessage *message, long long int value);
 void osync_message_write_string(OSyncMessage *message, const char *value);
 void osync_message_write_data(OSyncMessage *message, const void *value, int size);
+void osync_message_write_buffer(OSyncMessage *message, const void *value, int size);
 
 void osync_message_read_int(OSyncMessage *message, int *value);
 void osync_message_read_long_long_int(OSyncMessage *message, long long int *value);
@@ -84,5 +85,6 @@ void osync_message_read_string(OSyncMessage *message, char **value);
 void osync_message_read_data(OSyncMessage *message, void *value, int size);
 void osync_message_read_const_data(OSyncMessage *message, void **value, int size);
 void osync_message_read_const_string(OSyncMessage *message, char **value);
+void osync_message_read_buffer(OSyncMessage *message, void **value, int *size);
 
 #endif //_OPENSYNC_MESSAGES_H
