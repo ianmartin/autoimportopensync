@@ -21,6 +21,18 @@
 #ifndef OPENSYNC_ENGINE_INTERNALS_H_
 #define OPENSYNC_ENGINE_INTERNALS_H_
 
+typedef enum {
+	OSYNC_ENGINE_SOLVE_DUPLICATE,
+	OSYNC_ENGINE_SOLVE_CHOOSE
+} OSyncEngineSolveType;
+
+typedef struct OSyncEngineCommand {
+	OSyncEngineCmd cmd;
+	OSyncMappingEngine *mapping_engine;
+	OSyncChange *master;
+	OSyncEngineSolveType solve_type;
+} OSyncEngineCommand;
+
 struct OSyncEngine {
 	int ref_count;
 	/** The opensync group **/
@@ -34,18 +46,23 @@ struct OSyncEngine {
 	
 	OSyncEngineState state;
 	
-	void (* conflict_callback) (OSyncEngine *, OSyncMapping *, void *);
+	osync_conflict_cb conflict_callback;
 	void *conflict_userdata;
-	/*void (* changestat_callback) (OSyncEngine *, OSyncChangeUpdate *, void *);
+	
+	osync_status_change_cb changestat_callback;
 	void *changestat_userdata;
-	void (* mebstat_callback) (OSyncMemberUpdate *, void *);
+	
+	osync_status_member_cb mebstat_callback;
 	void *mebstat_userdata;
-	void (* engstat_callback) (OSyncEngine *, OSyncEngineUpdate *, void *);
+	
+	osync_status_engine_cb engstat_callback;
 	void *engstat_userdata;
-	void (* mapstat_callback) (OSyncMappingUpdate *, void *);
-	void *mapstat_userdata;*/
-	void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
-	void *plgmsg_userdata;
+	
+	osync_status_mapping_cb mapstat_callback;
+	void *mapstat_userdata;
+	
+	//void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
+	//void *plgmsg_userdata;
 	
 	/** The g_main_loop of this engine **/
 	OSyncThread *thread;

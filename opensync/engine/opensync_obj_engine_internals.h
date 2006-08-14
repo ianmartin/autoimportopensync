@@ -25,9 +25,14 @@ struct OSyncObjEngine {
 	int ref_count;
 	OSyncEngine *parent;
 	char *objtype;
-	//OSyncMappingTable *mapping_table;
-	GList *proxies;
+	
+	OSyncMappingTable *mapping_table;
+	OSyncArchive *archive;
+	GList *mapping_engines;
+	
+	GList *sink_engines;
 	OSyncError *error;
+	OSyncFormatEnv *formatenv;
 	
 	int sink_errors;
 	int sink_connects;
@@ -38,6 +43,55 @@ struct OSyncObjEngine {
 	
 	OSyncObjEngineEventCallback callback;
 	void *callback_userdata;
+	
+	GList *conflicts;
+	osync_bool written;
 };
+
+typedef struct OSyncSinkEngine {
+	int ref_count;
+	int position;
+	OSyncClientProxy *proxy;
+	OSyncObjEngine *engine;
+	GList *entries;
+	GList *unmapped;
+	OSyncArchive *archive;
+} OSyncSinkEngine;
+
+typedef struct OSyncMappingEntryEngine {
+	int ref_count;
+	OSyncSinkEngine *sink_engine;
+	osync_bool dirty;
+	OSyncChange *change;
+	OSyncObjEngine *objengine;
+	OSyncMappingEngine *mapping_engine;
+	OSyncMappingEntry *entry;
+} OSyncMappingEntryEngine;
+
+struct OSyncMappingEngine {
+	int ref_count;
+	OSyncMapping *mapping;
+	OSyncMappingEntryEngine *master;
+	GList *entries;
+	OSyncObjEngine *parent;
+	osync_bool conflict;
+	osync_bool synced;
+};
+
+OSyncMappingEntryEngine *osync_entry_engine_new(OSyncMappingEntry *entry, OSyncMappingEngine *mapping_engine, OSyncSinkEngine *sink_engine, OSyncObjEngine *objengine, OSyncError **error);
+void osync_entry_engine_ref(OSyncMappingEntryEngine *engine);
+void osync_entry_engine_unref(OSyncMappingEntryEngine *engine);
+osync_bool osync_entry_engine_matches(OSyncMappingEntryEngine *engine, OSyncChange *change);
+void osync_entry_engine_update(OSyncMappingEntryEngine *engine, OSyncChange *change);
+OSyncChange *osync_entry_engine_get_change(OSyncMappingEntryEngine *engine);
+osync_bool osync_entry_engine_is_dirty(OSyncMappingEntryEngine *engine);
+void osync_entry_engine_set_dirty(OSyncMappingEntryEngine *engine, osync_bool dirty);
+
+OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMapping *mapping, OSyncError **error);
+void osync_mapping_engine_ref(OSyncMappingEngine *engine);
+void osync_mapping_engine_unref(OSyncMappingEngine *engine);
+osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError **error);
+void osync_mapping_engine_check_conflict(OSyncMappingEngine *engine);
+OSyncMappingEntryEngine *osync_mapping_engine_get_entry(OSyncMappingEngine *engine, OSyncSinkEngine *sinkengine);
 
 #endif /*OPENSYNC_OBJ_ENGINE_INTERNALS_H_*/

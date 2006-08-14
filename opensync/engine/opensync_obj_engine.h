@@ -1,6 +1,6 @@
 /*
- * libosync_engine - A synchronization engine for the opensync framework
- * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
+ * libopensync - A synchronization framework
+ * Copyright (C) 2004-2006  Armin Bauer <armin.bauer@desscon.com>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,14 +25,20 @@ typedef struct OSyncObjEngine OSyncObjEngine;
 
 typedef void (* OSyncObjEngineEventCallback) (OSyncObjEngine *engine, OSyncEngineEvent event, OSyncError *error, void *userdata);
 
-OSyncObjEngine *osync_obj_engine_new(OSyncEngine *engine, const char *objtype, OSyncError **error);
+OSyncObjEngine *osync_obj_engine_new(OSyncEngine *engine, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error);
 void osync_obj_engine_ref(OSyncObjEngine *engine);
 void osync_obj_engine_unref(OSyncObjEngine *engine);
 
 void osync_obj_engine_event(OSyncObjEngine *objengine, OSyncEngineEvent event);
-osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCommand cmd, OSyncError **error);
+osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error);
 void osync_obj_engine_set_callback(OSyncObjEngine *engine, OSyncObjEngineEventCallback callback, void *userdata);
 				
 void osync_obj_engine_set_error(OSyncObjEngine *engine, OSyncError *error);
+
+int osync_mapping_engine_num_changes(OSyncMappingEngine *engine);
+OSyncChange *osync_mapping_engine_nth_change(OSyncMappingEngine *engine, int nth);
+
+osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *change, OSyncError **error);
+osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, OSyncError **error);
 
 #endif /*OPENSYNC_OBJ_ENGINE_H_*/

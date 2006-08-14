@@ -27,6 +27,7 @@
 #include "opensync-format.h"
 #include "opensync-data.h"
 
+#include "opensync_obj_engine.h"
 #include "opensync_engine_internals.h"
 
 /* Implementation of g_mkdir_with_parents()
@@ -96,27 +97,70 @@ static gboolean _command_check(GSource *source)
 	return FALSE;
 }
 
+void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command);
+
 /* This function is called from the master thread. The function dispatched incoming data from
  * the remote end */
 static gboolean _command_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
 {
 	OSyncEngine *engine = user_data;
-	void *command = NULL;
+	OSyncEngineCommand *command = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, user_data);
 	
 	while ((command = g_async_queue_try_pop(engine->command_queue))) {
 		/* We check if the message is a reply to something */
-		osync_trace(TRACE_INTERNAL, "Dispatching %p", command);
+		osync_trace(TRACE_INTERNAL, "Dispatching %p: %i", command, command->cmd);
 		
-		osync_engine_command(engine, GPOINTER_TO_INT(command));
+		osync_engine_command(engine, command);
+		g_free(command);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: Done dispatching", __func__);
 	return TRUE;
 }
 
-		
+osync_bool osync_engine_solve_mapping(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, mapping_engine, change, error);
+	
+	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	if (!cmd) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	cmd->cmd = OSYNC_ENGINE_COMMAND_SOLVE;
+	cmd->mapping_engine = mapping_engine;
+	cmd->master = change;
+	cmd->solve_type = OSYNC_ENGINE_SOLVE_CHOOSE;
+	
+	g_async_queue_push(engine->command_queue, cmd);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_engine_duplicate_mapping(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, mapping_engine, error);
+	
+	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	if (!cmd) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	cmd->cmd = OSYNC_ENGINE_COMMAND_SOLVE;
+	cmd->mapping_engine = mapping_engine;
+	cmd->solve_type = OSYNC_ENGINE_SOLVE_DUPLICATE;
+	
+	g_async_queue_push(engine->command_queue, cmd);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 /*! @brief This will create a new engine for the given group
  * 
  * This will create a new engine for the given group
@@ -151,7 +195,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 
 	char *enginesdir = g_strdup_printf("%s/.opensync/engines", g_get_home_dir());
 	engine->engine_path = g_strdup_printf("%s/enginepipe", enginesdir);
-
+	
 	if (mkdir_with_parents(enginesdir, 0755) < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create engines directory: %s", strerror(errno));
 		g_free(enginesdir);
@@ -232,6 +276,12 @@ void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir)
 	engine->plugin_dir = g_strdup(dir);
 }
 
+OSyncGroup *osync_engine_get_group(OSyncEngine *engine)
+{
+	osync_assert(engine);
+	return engine->group;
+}
+
 void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir)
 {
 	osync_assert(engine);
@@ -301,7 +351,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	for (i = 0; i < osync_group_num_members(group); i++) {
 		OSyncMember *member = osync_group_nth_member(group, i);
 		
-		OSyncClientProxy *proxy = osync_client_proxy_new(engine->formatenv, error);
+		OSyncClientProxy *proxy = osync_client_proxy_new(engine->formatenv, member, error);
 		if (!proxy)
 			goto error_finalize;
 			
@@ -311,7 +361,11 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 			goto error_finalize;
 		waiting = TRUE;
 		
-		if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), error))
+		const char *config = osync_member_get_config(member, error);
+		if (!config)
+			goto error_finalize;
+		
+		if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_member_get_configdir(member), config, error))
 			goto error_finalize;
 		
 		//FIXME
@@ -390,26 +444,44 @@ static int BitCount(unsigned int u)
 	return ((uCount + (uCount >> 3)) & 030707070707) % 63;
 }
 
-static void _generate_connected_event(OSyncEngine *engine)
+static osync_bool _generate_connected_event(OSyncEngine *engine)
 {
 	if (BitCount(engine->proxy_errors | engine->proxy_connects) != g_list_length(engine->proxies))
-		return;
+		return FALSE;
 	
 	if (BitCount(engine->obj_errors | engine->obj_connects) == g_list_length(engine->object_engines)) {
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_CONNECTED, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
-	} else
-		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_connects));
+		return TRUE;
+	}
+	
+	osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_connects));
+	return FALSE;
+}
+
+osync_bool osync_engine_check_get_changes(OSyncEngine *engine)
+{
+	if (BitCount(engine->proxy_errors | engine->proxy_get_changes) != g_list_length(engine->proxies)) {
+		osync_trace(TRACE_INTERNAL, "Not yet. main sinks still need to read: %i", BitCount(engine->proxy_errors | engine->proxy_get_changes), g_list_length(engine->proxies));
+		return FALSE;
+	}
+	
+	if (BitCount(engine->obj_errors | engine->obj_get_changes) == g_list_length(engine->object_engines))
+		return TRUE;
+		
+	osync_trace(TRACE_INTERNAL, "Not yet. Obj Engines still need to read: %i", BitCount(engine->obj_errors | engine->obj_get_changes));
+	return FALSE;
 }
 
 static void _generate_get_changes_event(OSyncEngine *engine)
 {
-	if (BitCount(engine->proxy_errors | engine->proxy_get_changes) != g_list_length(engine->proxies))
+	if (!osync_engine_check_get_changes(engine))
 		return;
+		
+	osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_READ, NULL);
+	osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_END_CONFLICTS, NULL);
 	
-	if (BitCount(engine->obj_errors | engine->obj_get_changes) == g_list_length(engine->object_engines)) {
-		osync_engine_event(engine, OSYNC_ENGINE_EVENT_READ);
-	} else
-		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_get_changes));
+	osync_engine_event(engine, OSYNC_ENGINE_EVENT_READ);
 }
 
 static void _generate_written_event(OSyncEngine *engine)
@@ -418,6 +490,7 @@ static void _generate_written_event(OSyncEngine *engine)
 		return;
 	
 	if (BitCount(engine->obj_errors | engine->obj_written) == g_list_length(engine->object_engines)) {
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_WRITTEN, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_WRITTEN);
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_written));
@@ -429,20 +502,25 @@ static void _generate_sync_done_event(OSyncEngine *engine)
 		return;
 	
 	if (BitCount(engine->obj_errors | engine->obj_sync_done) == g_list_length(engine->object_engines)) {
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SYNC_DONE, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_SYNC_DONE);
 	} else
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_sync_done));
 }
 
-static void _generate_disconnected_event(OSyncEngine *engine)
+static osync_bool _generate_disconnected_event(OSyncEngine *engine)
 {
 	if (BitCount(engine->proxy_errors | engine->proxy_disconnects) != g_list_length(engine->proxies))
-		return;
+		return FALSE;
 	
 	if (BitCount(engine->obj_errors | engine->obj_disconnects) == g_list_length(engine->object_engines)) {
+		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_DISCONNECTED, NULL);
 		osync_engine_event(engine, OSYNC_ENGINE_EVENT_DISCONNECTED);
-	} else
-		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_disconnects));
+		return TRUE;
+	}
+	
+	osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->obj_errors | engine->obj_disconnects));
+	return FALSE;
 }
 
 static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
@@ -462,8 +540,10 @@ static void _engine_connect_callback(OSyncClientProxy *proxy, void *userdata, OS
 		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
 		engine->error = error;
 		osync_error_ref(&error);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_connects = engine->proxy_connects | (0x1 << i);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_CONNECTED, NULL, NULL);
 	}
 	
 	_generate_connected_event(engine);
@@ -488,8 +568,10 @@ static void _engine_disconnect_callback(OSyncClientProxy *proxy, void *userdata,
 		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
 		engine->error = error;
 		osync_error_ref(&error);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_disconnects = engine->proxy_disconnects | (0x1 << i);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_DISCONNECTED, NULL, NULL);
 	}
 	
 	_generate_disconnected_event(engine);
@@ -514,8 +596,10 @@ static void _engine_get_changes_callback(OSyncClientProxy *proxy, void *userdata
 		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
 		engine->error = error;
 		osync_error_ref(&error);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_get_changes = engine->proxy_get_changes | (0x1 << i);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_READ, NULL, NULL);
 	}
 	
 	_generate_get_changes_event(engine);
@@ -540,8 +624,10 @@ static void _engine_written_callback(OSyncClientProxy *proxy, void *userdata, OS
 		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
 		engine->error = error;
 		osync_error_ref(&error);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_written = engine->proxy_written | (0x1 << i);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_WRITTEN, NULL, NULL);
 	}
 	
 	_generate_written_event(engine);
@@ -566,8 +652,10 @@ static void _engine_sync_done_callback(OSyncClientProxy *proxy, void *userdata, 
 		engine->proxy_errors = engine->proxy_errors | (0x1 << i);
 		engine->error = error;
 		osync_error_ref(&error);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
 	} else {
 		engine->proxy_sync_done = engine->proxy_sync_done | (0x1 << i);
+		osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_SYNC_DONE, NULL, NULL);
 	}
 	
 	_generate_sync_done_event(engine);
@@ -612,21 +700,25 @@ static void _engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent e
 			engine->obj_disconnects = engine->obj_disconnects | (0x1 << i);
 			_generate_disconnected_event(engine);
 			break;
+		case OSYNC_ENGINE_EVENT_SUCCESSFUL:
+		case OSYNC_ENGINE_EVENT_END_CONFLICTS:
+		case OSYNC_ENGINE_EVENT_PREV_UNCLEAN:
+			break;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand command)
+void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 {
 	GList *o = NULL;
 	int num = 0;
 	int i;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, engine, command);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, command);
 	osync_assert(engine);
 	
-	switch (command) {
+	switch (command->cmd) {
 		case OSYNC_ENGINE_COMMAND_CONNECT:
 			/* Lets see which objtypes are synchronizable in this group */
 			num = osync_group_num_objtypes(engine->group);
@@ -637,7 +729,7 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand command)
 			
 			for (i = 0; i < num; i++) {
 				const char *objtype = osync_group_nth_objtype(engine->group, i);
-				OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, &engine->error);
+				OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
 				if (!objengine)
 					goto error;
 				osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
@@ -663,6 +755,17 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand command)
 		case OSYNC_ENGINE_COMMAND_DISCONNECT:
 		case OSYNC_ENGINE_COMMAND_SYNC_DONE:
 			break;
+		case OSYNC_ENGINE_COMMAND_SOLVE:
+			switch (command->solve_type) {
+				case OSYNC_ENGINE_SOLVE_CHOOSE:
+					if (!osync_mapping_engine_solve(command->mapping_engine, command->master, &engine->error))
+						goto error;
+					break;
+				case OSYNC_ENGINE_SOLVE_DUPLICATE:
+					if (!osync_mapping_engine_duplicate(command->mapping_engine, &engine->error))
+						goto error;
+					break;
+			}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -701,7 +804,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			}
 			break;
 		case OSYNC_ENGINE_EVENT_READ:
-			/* Now that we are connected, we read the changes */
+			/* Now that we are connected, we write the changes */
 			for (o = engine->object_engines; o; o = o->next) {
 				OSyncObjEngine *objengine = o->data;
 				if (!osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_WRITE, &engine->error))
@@ -767,11 +870,17 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			engine->obj_written = 0;
 			engine->obj_sync_done = 0;
 			
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_SUCCESSFUL, NULL);
+			
 			g_mutex_lock(engine->syncing_mutex);
 			g_cond_signal(engine->syncing);
 			g_mutex_unlock(engine->syncing_mutex);
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
+			break;
+		case OSYNC_ENGINE_EVENT_SUCCESSFUL:
+		case OSYNC_ENGINE_EVENT_END_CONFLICTS:
+		case OSYNC_ENGINE_EVENT_PREV_UNCLEAN:
 			break;
 	}
 	
@@ -790,7 +899,7 @@ error:
 /*! @brief Starts to synchronize the given OSyncEngine
  *
  * This function synchronizes a given engine. The Engine has to be created
- * from a OSyncGroup before by using osengine_new(). This function will not block
+ * from a OSyncGroup before by using osync_engine_new(). This function will not block
  * 
  * @param engine A pointer to the engine, which will be used to sync
  * @param error A pointer to a error struct
@@ -807,7 +916,12 @@ osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 		goto error;
 	}
 	
-	g_async_queue_push(engine->command_queue, GINT_TO_POINTER(OSYNC_ENGINE_COMMAND_CONNECT));
+	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
+	if (!cmd)
+		goto error;
+	cmd->cmd = OSYNC_ENGINE_COMMAND_CONNECT;
+	
+	g_async_queue_push(engine->command_queue, cmd);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -820,7 +934,7 @@ error:
 /*! @brief This function will synchronize once and block until the sync has finished
  *
  * This can be used to sync a group and wait for the synchronization end. DO NOT USE
- * osengine_wait_sync_end for this as this might introduce a race condition.
+ * osync_engine_wait_sync_end for this as this might introduce a race condition.
  * 
  * @param engine A pointer to the engine, which to sync and wait for the sync end
  * @param error A pointer to a error struct
@@ -888,3 +1002,95 @@ OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth)
 	osync_assert(engine);
 	return g_list_nth_data(engine->proxies, nth);
 }
+
+/*! @brief This will set the conflict handler for the given engine
+ * 
+ * The conflict handler will be called everytime a conflict occurs
+ * 
+ * @param engine A pointer to the engine, for which to set the callback
+ * @param function A pointer to a function which will receive the conflict
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
+ * 
+ */
+void osync_engine_set_conflict_callback(OSyncEngine *engine, osync_conflict_cb callback, void *user_data)
+{
+	engine->conflict_callback = callback;
+	engine->conflict_userdata = user_data;
+}
+
+/*! @brief This will set the change status handler for the given engine
+ * 
+ * The change status handler will be called every time a new change is received, written etc
+ * 
+ * @param engine A pointer to the engine, for which to set the callback
+ * @param function A pointer to a function which will receive the change status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
+ * 
+ */
+void osync_engine_set_changestatus_callback(OSyncEngine *engine, osync_status_change_cb callback, void *user_data)
+{
+	engine->changestat_callback = callback;
+	engine->changestat_userdata = user_data;
+}
+
+/*! @brief This will set the mapping status handler for the given engine
+ * 
+ * The mapping status handler will be called every time a mapping is updated
+ * 
+ * @param engine A pointer to the engine, for which to set the callback
+ * @param function A pointer to a function which will receive the mapping status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
+ * 
+ */
+void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, osync_status_mapping_cb callback, void *user_data)
+{
+	engine->mapstat_callback = callback;
+	engine->mapstat_userdata = user_data;
+}
+
+/*! @brief This will set the engine status handler for the given engine
+ * 
+ * The engine status handler will be called every time the engine is updated (started, stoped etc)
+ * 
+ * @param engine A pointer to the engine, for which to set the callback
+ * @param function A pointer to a function which will receive the engine status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
+ * 
+ */
+void osync_engine_set_enginestatus_callback(OSyncEngine *engine, osync_status_engine_cb callback, void *user_data)
+{
+	engine->engstat_callback = callback;
+	engine->engstat_userdata = user_data;
+}
+
+/*! @brief This will set the member status handler for the given engine
+ * 
+ * The member status handler will be called every time a member is updated (connects, disconnects etc)
+ * 
+ * @param engine A pointer to the engine, for which to set the callback
+ * @param function A pointer to a function which will receive the member status
+ * @param user_data Pointer to some data that will get passed to the status function as the last argument
+ * 
+ */
+void osync_engine_set_memberstatus_callback(OSyncEngine *engine, osync_status_member_cb callback, void *user_data)
+{
+	engine->mebstat_callback = callback;
+	engine->mebstat_userdata = user_data;
+}
+
+#if 0
+/*! @brief This will set the callback handler for a custom message
+ * 
+ * A custom message can be used to communicate with a plugin directly
+ * 
+ * @param engine A pointer to the engine, for which to set the callback
+ * @param function A pointer to a function which will receive the member status
+ * @param user_data A pointer to some user data that the callback function will get passed
+ * 
+ */
+void osync_engine_set_message_callback(OSyncEngine *engine, void *(* function) (OSyncEngine *, OSyncClient *, const char *, void *, void *), void *user_data)
+{
+	engine->plgmsg_callback = function;
+	engine->plgmsg_userdata = user_data;
+}
+#endif
