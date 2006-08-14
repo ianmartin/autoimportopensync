@@ -161,7 +161,7 @@ void osengine_mappingtable_add_mapping(OSyncMappingTable *table, OSyncMapping *m
 
 osync_bool osengine_mappingtable_load(OSyncMappingTable *table, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osengine_mappingtable_load(%p, %p)", table, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, error);
 	OSyncChange **changes = NULL;
 	if (!osync_changes_load(table->group, &changes, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "osengine_mappingtable_load: %s", osync_error_print(error));
@@ -196,7 +196,7 @@ osync_bool osengine_mappingtable_load(OSyncMappingTable *table, OSyncError **err
     	i++;
 	}
 	
-	osync_trace(TRACE_EXIT, "osengine_mappingtable_load: TRUE");
+	osync_trace(TRACE_EXIT, "%s",);
 	return TRUE;
 }
 
@@ -361,19 +361,6 @@ void osengine_mapping_remove_entry(OSyncMapping *mapping, OSyncMappingEntry *ent
 	osync_flag_detach(entry->fl_has_info);
 	osync_flag_detach(entry->fl_synced);
 	osync_flag_detach(entry->fl_deleted);
-}
-
-OSyncMappingEntry *osengine_mapping_find_entry(OSyncMapping *mapping, OSyncChange *change, OSyncMappingView *view)
-{
-	GList *e;
-	for (e = mapping->entries; e; e = e->next) {
-		OSyncMappingEntry *entry = e->data;
-		if (change && entry->change == change)
-			return entry;
-		if (view && entry->view == view)
-			return entry;
-	}
-	return NULL;
 }
 
 OSyncMappingEntry *osengine_mapping_nth_entry(OSyncMapping *mapping, int nth)
