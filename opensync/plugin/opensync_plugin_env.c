@@ -207,8 +207,15 @@ osync_bool osync_plugin_env_load_module(OSyncPluginEnv *env, const char *filenam
 			return TRUE;
 		}
 		
-		if (!osync_module_get_sync_info(module, env, error))
-			goto error_free_module;
+		if (!osync_module_get_sync_info(module, env, error)) {
+			if (osync_error_is_set(error))
+				goto error_free_module;
+			
+			osync_module_unload(module);
+			osync_module_free(module);
+			osync_trace(TRACE_EXIT, "%s: No get_info function", __func__);
+			return TRUE;
+		}
 		env->modules = g_list_append(env->modules, module);
 	}
 	

@@ -88,6 +88,9 @@ void osync_member_unref(OSyncMember *member)
 		if (member->configdir)
 			g_free(member->configdir);
 		
+		if (member->configdata)
+			g_free(member->configdata);
+		
 		while (member->objtypes) {
 			OSyncObjTypeSink *sink = member->objtypes->data;
 			osync_objtype_sink_unref(sink);
@@ -167,41 +170,48 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
  * @returns TRUE if the config was loaded successfully, FALSE otherwise
  * 
  */
-osync_bool osync_member_get_config_or_default(OSyncMember *member, char **data, int *size, OSyncError **error)
+const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
+	char *data;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	g_assert(member);
 
 	if (member->configdata) {
-		*data = member->configdata;
-		*size = member->configsize;
 		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
-		return TRUE;
+		return member->configdata;
 	}
 	
 	filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		if (!osync_file_read(filename, data, size, error))
+		if (!osync_file_read(filename, &data, NULL, error))
 			goto error_free_filename;
 		g_free(filename);
+		
+		osync_member_set_config(member, data);
+		g_free(data);
+		
 		osync_trace(TRACE_EXIT, "%s: Read already set config from member", __func__);
-		return TRUE;
+		return osync_member_get_config(member, NULL);
 	}
 	g_free(filename);
 
 	filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
-	if (!osync_file_read(filename, data, size, error))
+	if (!osync_file_read(filename, &data, NULL, error))
 		goto error_free_filename;
 	g_free(filename);
 	
+	osync_member_set_config(member, data);
+	g_free(data);
+		
 	osync_trace(TRACE_EXIT, "%s: Read default config", __func__);
-	return TRUE;
+	return osync_member_get_config(member, NULL);
 
 error_free_filename:
 	g_free(filename);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+	return NULL;
 }
 
 /** @brief Gets the configuration data of this member
@@ -222,35 +232,41 @@ error_free_filename:
  * @returns TRUE if the config was loaded successfully, FALSE otherwise
  * 
  */
-osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, OSyncError **error)
+const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, member, data, size, error);
-	g_assert(member);
+	char *data = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+	osync_assert(member);
 
 	if (member->configdata) {
-		*data = member->configdata;
-		*size = member->configsize;
 		osync_trace(TRACE_EXIT, "%s: Configdata already in memory", __func__);
-		return TRUE;
+		return member->configdata;
 	}
 	
 	filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
+	osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename);
+	
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		if (!osync_file_read(filename, data, size, error)) {
+		if (!osync_file_read(filename, &data, NULL, error)) {
 			g_free(filename);
 			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-			return FALSE;
+			return NULL;
 		}
 		g_free(filename);
+		
+		osync_member_set_config(member, data);
+		g_free(data);
+		
 		osync_trace(TRACE_EXIT, "%s: Read set config from member", __func__);
-		return TRUE;
+		return osync_member_get_config(member, NULL);
 	}
 	g_free(filename);
 	
 	osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin is not configured");
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+	return NULL;
 }
 
 /** @brief Sets the config data for a member
@@ -262,16 +278,15 @@ osync_bool osync_member_get_config(OSyncMember *member, char **data, int *size, 
  * @param size The size of the data
  * 
  */
-void osync_member_set_config(OSyncMember *member, const char *data, int size)
+void osync_member_set_config(OSyncMember *member, const char *data)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i)", __func__, member, data, size);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, data);
 	g_assert(member);
 	
 	if (member->configdata)
 		g_free(member->configdata);
 
 	member->configdata = g_strdup(data);
-	member->configsize = size;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -297,7 +312,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	basename = g_path_get_basename(path);
 	member->id = atoi(basename);
 	g_free(basename);
-	member->configdir = g_strdup(path);
+	osync_member_set_configdir(member, path);
 	
 	if (!osync_open_xml_file(&doc, &cur, filename, "syncmember", error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -310,6 +325,10 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname"))
 				member->pluginname = g_strdup(str);
+
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype"))
+				osync_member_add_objtype(member, str);
+			
 			xmlFree(str);
 		}
 		cur = cur->next;
@@ -358,7 +377,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	//Saving the config if it exists
 	if (member->configdata) {
 		filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
-		if (!osync_file_write(filename, member->configdata, member->configsize, 0600, error)) {
+		if (!osync_file_write(filename, member->configdata, strlen(member->configdata), 0600, error)) {
 			g_free(filename);
 			goto error;
 		}
@@ -367,7 +386,6 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		
 		g_free(member->configdata);
 		member->configdata = NULL;
-		member->configsize = 0;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

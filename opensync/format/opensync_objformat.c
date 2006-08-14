@@ -26,6 +26,8 @@
 
 OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, name, objtype_name, error);
+	
 	OSyncObjFormat *format = osync_try_malloc0(sizeof(OSyncObjFormat), error);
 	if (!format)
 		return FALSE;
@@ -34,12 +36,14 @@ OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, 
 	format->objtype_name = g_strdup(objtype_name);
 	format->ref_count = 1;
 	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, format);
 	return format;
 }
 
 void osync_objformat_ref(OSyncObjFormat *format)
 {
 	osync_assert(format);
+	osync_trace(TRACE_INTERNAL, "%s(%p): %i", __func__, format, format->ref_count);
 	
 	g_atomic_int_inc(&(format->ref_count));
 }
@@ -47,8 +51,10 @@ void osync_objformat_ref(OSyncObjFormat *format)
 void osync_objformat_unref(OSyncObjFormat *format)
 {
 	osync_assert(format);
+	osync_trace(TRACE_INTERNAL, "%s(%p): %i", __func__, format, format->ref_count);
 	
 	if (g_atomic_int_dec_and_test(&(format->ref_count))) {
+		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, format);
 		if (format->name)
 			g_free(format->name);
 			
@@ -56,6 +62,7 @@ void osync_objformat_unref(OSyncObjFormat *format)
 			g_free(format->objtype_name);
 		
 		g_free(format);
+		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
 }
 
@@ -144,10 +151,10 @@ void osync_objformat_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDupli
 	format->duplicate_func = dupe_func;
 }
 
-void osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, char **newuid)
+osync_bool osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
 	osync_assert(format);
-	format->duplicate_func(uid, newuid);
+	return format->duplicate_func(uid, input, insize, newuid, output, outsize, dirty, error);
 }
 
 void osync_objformat_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFunc create_func)
@@ -198,11 +205,11 @@ osync_bool osync_objformat_must_marshal(OSyncObjFormat *format)
 	return format->marshal_func ? TRUE : FALSE;
 }
 
-osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
+osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
 	osync_assert(format);
 	osync_assert(format->marshal_func);
-	return format->marshal_func(input, inpsize, output, outpsize, error);
+	return format->marshal_func(input, inpsize, message, error);
 }
 
 void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemarshalFunc demarshal_func)
@@ -211,9 +218,9 @@ void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemar
 	format->demarshal_func = demarshal_func;
 }
 
-osync_bool osync_objformat_demarshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
+osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
 	osync_assert(format);
 	osync_assert(format->demarshal_func);
-	return format->demarshal_func(input, inpsize, output, outpsize, error);
+	return format->demarshal_func(message, output, outpsize, error);
 }

@@ -34,16 +34,17 @@ typedef void (* commit_change_cb) (OSyncClientProxy *proxy, void *userdata, OSyn
 typedef void (* committed_all_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 typedef void (* sync_done_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 
-OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncError **error);
+OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember *member, OSyncError **error);
 void osync_client_proxy_ref(OSyncClientProxy *proxy);
 void osync_client_proxy_unref(OSyncClientProxy *proxy);
 
 void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx);
+OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy);
 
 osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type, const char *path, OSyncError **error);
 osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **error);
 
-osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, OSyncError **error);
+osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *configdir, const char *config, OSyncError **error);
 osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb callback, void *userdata, OSyncError **error);
 
 osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb callback, void *userdata, OSyncError **error);

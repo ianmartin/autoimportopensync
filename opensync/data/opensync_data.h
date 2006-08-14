@@ -36,5 +36,6 @@ OSYNC_EXPORT void osync_data_set_data(OSyncData *data, char *buffer, unsigned in
 OSYNC_EXPORT osync_bool osync_data_has_data(OSyncData *data);
 
 OSYNC_EXPORT OSyncData *osync_data_clone(OSyncData *data, OSyncError **error);
+OSYNC_EXPORT OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata);
 
 #endif //_OPENSYNC_DATA_H_

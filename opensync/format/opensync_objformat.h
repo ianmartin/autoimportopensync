@@ -21,29 +21,15 @@
 #ifndef _OPENSYNC_OBJFORMAT_H_
 #define _OPENSYNC_OBJFORMAT_H_
 
-/*! @ingroup OSyncChangeCmds
- * @brief The possible returns of a change comparison
- */
-typedef enum {
-	/** The result is unknown, there was a error */
-	OSYNC_CONV_DATA_UNKNOWN = 0,
-	/** The changes are not the same */
-	OSYNC_CONV_DATA_MISMATCH = 1,
-	/** The changs are not the same but look similar */
-	OSYNC_CONV_DATA_SIMILAR = 2,
-	/** The changes are exactly the same */
-	OSYNC_CONV_DATA_SAME = 3
-} OSyncConvCmpResult;
-
 typedef OSyncConvCmpResult (* OSyncFormatCompareFunc) (const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize);
 typedef osync_bool (* OSyncFormatCopyFunc) (const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
-typedef void (* OSyncFormatDuplicateFunc) (const char *uid, char **newuid);
+typedef osync_bool (* OSyncFormatDuplicateFunc) (const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error);
 typedef void (* OSyncFormatCreateFunc) (char **data, unsigned int *size);
 typedef void (* OSyncFormatDestroyFunc) (char *data, unsigned int size);
 typedef char *(* OSyncFormatPrintFunc) (const char *data, unsigned int size);
 typedef time_t (* OSyncFormatRevisionFunc) (const char *data, unsigned int size, OSyncError **error);
-typedef osync_bool (* OSyncFormatMarshalFunc) (const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
-typedef osync_bool (* OSyncFormatDemarshalFunc) (const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
+typedef osync_bool (* OSyncFormatMarshalFunc) (const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
+typedef osync_bool (* OSyncFormatDemarshalFunc) (OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
 
 OSYNC_EXPORT OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error);
 OSYNC_EXPORT void osync_objformat_ref(OSyncObjFormat *format);
@@ -63,7 +49,7 @@ OSYNC_EXPORT void osync_objformat_set_marshal_func(OSyncObjFormat *format, OSync
 OSYNC_EXPORT void osync_objformat_set_demarshal_func(OSyncObjFormat *format, OSyncFormatDemarshalFunc marshal_func);
 
 OSYNC_EXPORT OSyncConvCmpResult osync_objformat_compare(OSyncObjFormat *format, const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize);
-OSYNC_EXPORT void osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, char **newuid);
+osync_bool osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error);
 OSYNC_EXPORT void osync_objformat_create(OSyncObjFormat *format, char **data, unsigned int *size);
 OSYNC_EXPORT char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size);
 OSYNC_EXPORT time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error);
@@ -72,7 +58,7 @@ OSYNC_EXPORT osync_bool osync_objformat_copy(OSyncObjFormat *format, const char 
 OSYNC_EXPORT osync_bool osync_objformat_is_equal(OSyncObjFormat *leftformat, OSyncObjFormat *rightformat);
 
 OSYNC_EXPORT osync_bool osync_objformat_must_marshal(OSyncObjFormat *format);
-OSYNC_EXPORT osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_objformat_demarshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
 
 #endif //_OPENSYNC_OBJFORMAT_H_

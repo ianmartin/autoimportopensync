@@ -37,12 +37,19 @@ typedef enum {
 
 OSYNC_EXPORT char *osync_rand_str(int maxlength);
 OSYNC_EXPORT char *osync_print_binary(const unsigned char *data, int len);
+
 OSYNC_EXPORT void osync_trace_reset_indent(void);
 OSYNC_EXPORT void osync_trace(OSyncTraceType type, const char *message, ...);
+OSYNC_EXPORT void osync_trace_disable(void);
+OSYNC_EXPORT void osync_trace_enable(void);
 
-OSYNC_EXPORT osync_bool osync_file_write(const char *filename, const char *data, int size, int mode, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_file_write(const char *filename, const char *data, unsigned int size, int mode, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_file_read(const char *filename, char **data, unsigned int *size, OSyncError **error);
 OSYNC_EXPORT const char *osync_get_version(void);
 OSYNC_EXPORT void *osync_try_malloc0(unsigned int size, OSyncError **error);
+
+char *osync_strreplace(const char *input, const char *delimiter, const char *replacement);
+
+#include "opensync_list.h"
 
 #endif //_OPENSYNC_SUPPORT_H

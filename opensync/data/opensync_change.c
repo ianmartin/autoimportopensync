@@ -22,6 +22,7 @@
 #include "opensync_internals.h"
 
 #include "opensync-data.h"
+#include "opensync-format.h"
 #include "opensync_change_internals.h"
 
 OSyncChange *osync_change_new(OSyncError **error)
@@ -149,6 +150,76 @@ OSyncData *osync_change_get_data(OSyncChange *change)
 {
 	osync_assert(change);
 	return change->data;
+}
+
+/*! @brief Compares 2 changes
+ * 
+ * Compares the two given changes and returns:
+ * CONV_DATA_MISMATCH if they are not the same
+ * CONV_DATA_SIMILAR if the are not the same but look similar
+ * CONV_DATA_SAME if they are exactly the same
+ * This function does also compare changetypes etc unlike
+ * osync_data_compare()
+ * 
+ * @param leftchange The left change to compare
+ * @param rightchange The right change to compare
+ * @returns The result of the comparison
+ * 
+ */
+OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
+	osync_assert(rightchange);
+	osync_assert(leftchange);
+
+	if (rightchange->changetype == leftchange->changetype) {
+		OSyncConvCmpResult ret = osync_data_compare(leftchange->data, rightchange->data);
+		osync_trace(TRACE_EXIT, "%s: Compare data: %i", __func__, ret);
+		return ret;
+	} else {
+		osync_trace(TRACE_EXIT, "%s: MISMATCH: Change types do not match", __func__);
+		return OSYNC_CONV_DATA_MISMATCH;
+	}
+}
+
+/*! @brief Duplicates the uid of the change
+ * 
+ * This will call the duplicate function of a format.
+ * This is used if a uid is not unique.
+ * 
+ * @param change The change to duplicate
+ * @returns TRUE if the uid was duplicated successful
+ * 
+ */
+osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncError **error)
+{
+	osync_assert(change);
+	
+	OSyncData *data = change->data;
+	osync_assert(data);
+	
+	char *newuid = NULL;
+	char *output = NULL;
+	unsigned int outsize = 0;
+	
+	char *input = NULL;
+	unsigned int insize = 0;
+	osync_data_get_data(data, &input, &insize);
+	
+	if (!osync_objformat_duplicate(osync_data_get_objformat(data), osync_change_get_uid(change), input, insize, &newuid, &output, &outsize, dirty, error))
+		return FALSE;
+	
+	if (newuid) {
+		osync_change_set_uid(change, newuid);
+		g_free(newuid);
+	}
+	
+	if (output) {
+		osync_objformat_destroy(osync_data_get_objformat(data), input, insize);
+		osync_data_set_data(data, output, outsize);
+	}
+	
+	return TRUE;
 }
 
 #if 0
@@ -635,27 +706,6 @@ void osync_change_update(OSyncChange *source, OSyncChange *target)
 	target->changes_db = source->changes_db;
 	
 	osync_trace(TRACE_EXIT, "osync_change_update");
-}
-
-
-/*! @brief Duplicates the uid of the change
- * 
- * This will call the duplicate function of a format.
- * This is used if a uid is not unique.
- * 
- * @param change The change to duplicate
- * @returns TRUE if the uid was duplicated successful
- * 
- */
-osync_bool osync_change_duplicate(OSyncChange *change)
-{
-	g_assert(change);
-	OSyncObjFormat *format = osync_change_get_objformat(change);
-	osync_debug("OSCONV", 3, "Duplicating change %s with format %s\n", change->uid, format->name);
-	if (!format || !format->duplicate_func)
-		return FALSE;
-	format->duplicate_func(change);
-	return TRUE;
 }
 
 #endif

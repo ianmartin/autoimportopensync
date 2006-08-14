@@ -23,7 +23,9 @@
 
 #include "opensync-data.h"
 #include "opensync-ipc.h"
+#include "opensync-serializer.h"
 #include "opensync-client.h"
+#include "opensync-group.h"
 #include "opensync-plugin.h"
  
 #include "opensync_client_proxy.h"
@@ -103,7 +105,7 @@ static osync_bool _osync_client_kill_old_osplugin(OSyncClientProxy *proxy, OSync
 	osync_bool ret = FALSE;
 
 	char *pidstr;
-	int pidlen;
+	unsigned int pidlen;
 	pid_t pid;
 
 	char *pidpath = _osync_client_pid_filename(proxy);
@@ -509,6 +511,8 @@ static void _osync_client_proxy_message_handler(OSyncMessage *message, void *use
 				goto error;
 			
 			proxy->change_callback(proxy, proxy->change_callback_data, change);
+			
+			osync_change_unref(change);
 			break;
 		default:
 			break;
@@ -521,10 +525,10 @@ error:
 	osync_error_unref(&error);
 }
 
-OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncError **error)
+OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncMember *member, OSyncError **error)
 {
 	OSyncClientProxy *proxy = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, formatenv, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, formatenv, member, error);
 	
 	proxy = osync_try_malloc0(sizeof(OSyncClientProxy), error);
 	if (!proxy)
@@ -532,6 +536,11 @@ OSyncClientProxy *osync_client_proxy_new(OSyncFormatEnv *formatenv, OSyncError *
 	proxy->ref_count = 1;
 	proxy->type = OSYNC_START_TYPE_UNKNOWN;
 	proxy->formatenv = formatenv;
+	
+	if (member) {
+		proxy->member = member;
+		osync_member_ref(member);
+	}
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, proxy);
 	return proxy;
@@ -551,11 +560,13 @@ void osync_client_proxy_ref(OSyncClientProxy *proxy)
 void osync_client_proxy_unref(OSyncClientProxy *proxy)
 {
 	osync_assert(proxy);
-		
+	
 	if (g_atomic_int_dec_and_test(&(proxy->ref_count))) {
-		
 		if (proxy->path)
 			g_free(proxy->path);
+	
+		if (proxy->member)
+			osync_member_unref(proxy->member);
 		
 		while (proxy->objtypes) {
 			OSyncObjTypeSink *sink = proxy->objtypes->data;
@@ -576,6 +587,12 @@ void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx)
 	proxy->context = ctx;
 	if (ctx)
 		g_main_context_ref(ctx);
+}
+
+OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy)
+{
+	osync_assert(proxy);
+	return proxy->member;
 }
 
 osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type, const char *path, OSyncError **error)
@@ -779,9 +796,9 @@ error:
 	return FALSE;
 }
 
-osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, OSyncError **error)
+osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *configdir, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, configdir, config, error);
 	osync_assert(proxy);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
@@ -800,7 +817,8 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	osync_message_write_string(message, formatdir);
 	osync_message_write_string(message, plugindir);
 	osync_message_write_string(message, plugin);
-	osync_message_write_string(message, NULL);
+	osync_message_write_string(message, configdir);
+	osync_message_write_string(message, config);
 	
 	osync_message_set_handler(message, _osync_client_proxy_init_handler, ctx);
 	

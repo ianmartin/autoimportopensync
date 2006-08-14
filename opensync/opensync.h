@@ -66,6 +66,36 @@ typedef enum {
 	OSYNC_START_TYPE_EXTERNAL
 } OSyncStartType;
 
+/*! @ingroup OSyncChangeCmds
+ * @brief The possible returns of a change comparison
+ */
+typedef enum {
+	/** The result is unknown, there was a error */
+	OSYNC_CONV_DATA_UNKNOWN = 0,
+	/** The changes are not the same */
+	OSYNC_CONV_DATA_MISMATCH = 1,
+	/** The changs are not the same but look similar */
+	OSYNC_CONV_DATA_SIMILAR = 2,
+	/** The changes are exactly the same */
+	OSYNC_CONV_DATA_SAME = 3
+} OSyncConvCmpResult;
+
+/*! 
+ * @ingroup OSyncChange
+ * @brief The changetypes of a change object */
+typedef enum  {
+	/** Unknown changetype */
+	OSYNC_CHANGE_TYPE_UNKNOWN = 0,
+	/** Object was added */
+	OSYNC_CHANGE_TYPE_ADDED = 1,
+	/** Object is unmodifed */
+	OSYNC_CHANGE_TYPE_UNMODIFIED = 2,
+	/** Object is deleted */
+	OSYNC_CHANGE_TYPE_DELETED = 3,
+	/** Object has been modified */
+	OSYNC_CHANGE_TYPE_MODIFIED = 4
+} OSyncChangeType;
+
 /**************************************************************
  * Structs
  *************************************************************/

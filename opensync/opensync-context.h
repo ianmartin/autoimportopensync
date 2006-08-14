@@ -31,9 +31,6 @@ void osync_context_unref(OSyncContext *context);
 void osync_context_set_callback(OSyncContext *context, OSyncContextCallbackFn callback, void *userdata);
 void osync_context_set_changes_callback(OSyncContext *context, OSyncContextChangeFn changes);
 
-void *osync_context_get_plugin_data(OSyncContext *context);
-void osync_context_set_plugin_data(OSyncContext *context, void *data);
-
 void osync_context_report_error(OSyncContext *context, OSyncErrorType type, const char *format, ...);
 void osync_context_report_success(OSyncContext *context);
 void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error);

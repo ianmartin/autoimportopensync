@@ -233,7 +233,7 @@ OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
 {
 	g_assert(file);
 	
-	int size;
+	unsigned int size;
 	char *buffer, *filename;
 	OSyncCapabilities *capabilities;
 	
@@ -260,7 +260,7 @@ OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *membe
 {
 	g_assert(member);
 	
-	int size;
+	unsigned int size;
 	char* buffer, *filename;
 	osync_bool res;
 	OSyncCapabilities *capabilities;

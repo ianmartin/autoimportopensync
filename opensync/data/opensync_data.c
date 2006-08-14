@@ -170,6 +170,49 @@ OSyncData *osync_data_clone(OSyncData *source, OSyncError **error)
 	return data;
 }
 
+/*! @brief Compares the 2 data objects
+ * 
+ * Compares the two given changes and returns:
+ * CONV_DATA_MISMATCH if they are not the same
+ * CONV_DATA_SIMILAR if the are not the same but look similar
+ * CONV_DATA_SAME if they are exactly the same
+ * 
+ * @param leftdata The left data to compare
+ * @param rightdata The right data to compare
+ * @returns The result of the comparison
+ * 
+ */
+OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
+	osync_assert(leftdata);
+	osync_assert(rightdata);
+
+	if (leftdata == rightdata) {
+		osync_trace(TRACE_EXIT, "%s: SAME: OK. data is the same", __func__);
+		return OSYNC_CONV_DATA_SAME;
+	}
+	
+	if (leftdata->data == rightdata->data && leftdata->size == rightdata->size) {
+		osync_trace(TRACE_EXIT, "%s: SAME: OK. data point to same memory", __func__);
+		return OSYNC_CONV_DATA_SAME;
+	}
+	
+	if (!leftdata->objformat || !rightdata->objformat || strcmp(osync_objformat_get_name(leftdata->objformat), osync_objformat_get_name(rightdata->objformat))) {
+		osync_trace(TRACE_EXIT, "%s: MISMATCH: Objformats do not match", __func__);
+		return OSYNC_CONV_DATA_MISMATCH;
+	}
+		
+	if (!rightdata->data || !leftdata->data) {
+		osync_trace(TRACE_EXIT, "%s: MISMATCH: One change has no data", __func__);
+		return OSYNC_CONV_DATA_MISMATCH;
+	}
+	
+	OSyncConvCmpResult ret = osync_objformat_compare(leftdata->objformat, leftdata->data, leftdata->size, rightdata->data, rightdata->size);
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
 
 #if 0
 /**

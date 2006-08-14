@@ -24,6 +24,8 @@
 struct OSyncClientProxy {
 	int ref_count;
 	
+	OSyncMember *member;
+	
 	char *path;
 	OSyncQueue *incoming;
 	OSyncQueue *outgoing;

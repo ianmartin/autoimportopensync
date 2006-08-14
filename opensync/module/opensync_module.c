@@ -49,7 +49,6 @@ OSyncModule *osync_module_new(OSyncError **error)
 void osync_module_free(OSyncModule *module)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
-	
 	if (module->module)
 		osync_module_unload(module);
 		
@@ -93,9 +92,11 @@ osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	fct_info = osync_module_get_function(module, "get_sync_info", error);
-	if (!fct_info)
-		goto error;
+	fct_info = osync_module_get_function(module, "get_sync_info", NULL);
+	if (!fct_info) {
+		osync_trace(TRACE_EXIT, "%s: Not get_sync_info function", __func__);
+		return FALSE;
+	}
 	
 	/* Call the get_info function */
 	if (!fct_info(env, error))
@@ -115,9 +116,11 @@ osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	fct_info = osync_module_get_function(module, "get_format_info", error);
-	if (!fct_info)
-		goto error;
+	fct_info = osync_module_get_function(module, "get_format_info", NULL);
+	if (!fct_info) {
+		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
+		return FALSE;
+	}
 	
 	/* Call the get_info function */
 	if (!fct_info(env, error))

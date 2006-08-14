@@ -3,9 +3,11 @@ Import('*')
 env.Append( CPPPATH = '.' )
 
 sources = """
+opensync_list.c
 opensync_error.c
 opensync_context.c
 opensync_support.c
+helper/opensync_hashtable.c
 module/opensync_module.c
 plugin/opensync_plugin.c
 plugin/opensync_plugin_info.c
@@ -28,12 +30,17 @@ client/opensync_client.c
 client/opensync_client_proxy.c
 engine/opensync_engine.c
 engine/opensync_obj_engine.c
-merger/opensync_archive.c
+engine/opensync_status.c
 merger/opensync_capabilities.c
 merger/opensync_capability.c
 merger/opensync_xmlformat.c
 merger/opensync_xmlfield.c
 merger/opensync_xmlfieldlist.c
+mapping/opensync_mapping_table.c
+mapping/opensync_mapping_view.c
+mapping/opensync_mapping_entry.c
+mapping/opensync_mapping.c
+archive/opensync_archive.c
 """
 
 headers = """

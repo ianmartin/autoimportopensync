@@ -24,6 +24,7 @@
 #include "opensync-context.h"
 #include "opensync-plugin.h"
 #include "opensync-ipc.h"
+#include "opensync-serializer.h"
 #include "opensync-format.h"
 #include "opensync-client.h"
 #include "opensync_client_internals.h"
@@ -185,7 +186,7 @@ error:
 	return;
 }
 
-void _osync_client_change_callback(OSyncChange *change, void *data)
+static void _osync_client_change_callback(OSyncChange *change, void *data)
 {
 	callContext *baton = data;
 	OSyncError *locerror = NULL;
@@ -199,9 +200,10 @@ void _osync_client_change_callback(OSyncChange *change, void *data)
 	if (!osync_marshal_change(message, change, &locerror))
 		goto error_free_message;
 
-	
 	if (!osync_queue_send_message(client->outgoing, NULL, message, &locerror))
 		goto error_free_message;
+	
+	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -344,6 +346,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	char *plugindir = NULL;
 	char *configdir = NULL;
 	char *formatdir = NULL;
+	char *config = NULL;
 	OSyncQueue *outgoing = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
@@ -353,6 +356,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_string(message, &plugindir);
 	osync_message_read_string(message, &pluginname);
 	osync_message_read_string(message, &configdir);
+	osync_message_read_string(message, &config);
 	
 	osync_trace(TRACE_INTERNAL, "enginepipe %s, formatdir %s, plugindir %s, pluginname %s", enginepipe, formatdir, plugindir, pluginname);
 		
@@ -401,6 +405,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 		goto error;
 	
 	osync_plugin_info_set_configdir(client->plugin_info, configdir);
+	osync_plugin_info_set_config(client->plugin_info, config);
 	osync_plugin_info_set_loop(client->plugin_info, client->context);
 	osync_plugin_info_set_format_env(client->plugin_info, client->format_env);
 	
@@ -422,6 +427,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	g_free(configdir);
 	g_free(plugindir);
 	g_free(formatdir);
+	g_free(config);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -436,6 +442,7 @@ error:
 	g_free(configdir);
 	g_free(plugindir);
 	g_free(formatdir);
+	g_free(config);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
@@ -456,6 +463,11 @@ static osync_bool _osync_client_handle_finalize(OSyncClient *client, OSyncMessag
 	
 	osync_plugin_info_unref(client->plugin_info);
 	client->plugin_info = NULL;
+	
+	if (client->format_env) {
+		osync_format_env_free(client->format_env);
+		client->format_env = NULL;
+	}
 	
 	OSyncMessage *reply = osync_message_new_reply(message, NULL);
 	if (!reply)
@@ -683,6 +695,11 @@ static osync_bool _osync_client_handle_commit_change(OSyncClient *client, OSyncM
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
 	OSyncChange *change = NULL;
+	
+	if (!osync_demarshal_change(message, &change, client->format_env, error))
+		goto error;
+		
+	osync_trace(TRACE_INTERNAL, "Change %p", change);
 	
 	OSyncData *data = osync_change_get_data(change);
 	

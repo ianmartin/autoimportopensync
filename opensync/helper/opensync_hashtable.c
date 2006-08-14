@@ -42,14 +42,19 @@ static int _osync_db_count(sqlite3 *db, char *query)
 	sqlite3_stmt *ppStmt = NULL;
 	if (sqlite3_prepare(db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_trace(TRACE_ERROR, "Unable prepare count! %s", sqlite3_errmsg(db));
-	if (sqlite3_step(ppStmt) != SQLITE_OK)
-		osync_trace(TRACE_ERROR, "Unable step count! %s", sqlite3_errmsg(db));
+	sqlite3_step(ppStmt);
+	
 	ret = sqlite3_column_int64(ppStmt, 0);
 	sqlite3_finalize(ppStmt);
 	return ret;
 }
 
 /*@}*/
+
+void _osync_hashtable_trace(void *data, const char *query)
+{
+	osync_trace(TRACE_INTERNAL, "hashtable query executed: %s", query);
+}
 
 /**
  * @defgroup OSyncHashtableAPI OpenSync Hashtables
@@ -104,7 +109,7 @@ static int _osync_db_count(sqlite3 *db, char *query)
  */
 OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, path, objtype, error);
 	
 	OSyncHashTable *table = osync_try_malloc0(sizeof(OSyncHashTable), error);
 	if (!table) {
@@ -112,7 +117,7 @@ OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSync
 		return NULL;
 	}
 	
-	table->used_entries = g_hash_table_new(g_str_hash, g_str_equal);
+	table->used_entries = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 	
 	int rc = sqlite3_open(path, &(table->dbhandle));
 	if (rc) {
@@ -120,6 +125,7 @@ OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSync
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	sqlite3_trace(table->dbhandle, _osync_hashtable_trace, NULL);
 	
 	table->tablename = g_strdup_printf("tbl_hash_%s", objtype);
 	
@@ -127,8 +133,6 @@ OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSync
 	if (sqlite3_exec(table->dbhandle, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_trace(TRACE_INTERNAL, "Unable create hash table! %s", sqlite3_errmsg(table->dbhandle));
 	g_free(query);
-	
-	
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
 	return table;
@@ -191,6 +195,7 @@ void osync_hashtable_reset(OSyncHashTable *table)
  */
 int osync_hashtable_num_entries(OSyncHashTable *table)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 	
@@ -198,6 +203,7 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
 	int ret = _osync_db_count(table->dbhandle, query);
 	g_free(query);
 	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
 	return ret;
 }
 
@@ -299,9 +305,9 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, co
  * @param uid The uid to report
  * 
  */
-void osync_hashtable_report(OSyncHashTable *table, const char *uid, const char *objtype)
+void osync_hashtable_report(OSyncHashTable *table, const char *uid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, objtype);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 	

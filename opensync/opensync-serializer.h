@@ -18,26 +18,10 @@
  * 
  */
 
-#ifndef _OPENSYNC_MEMBER_INTERNALS_H_
-#define _OPENSYNC_MEMBER_INTERNALS_H_
+#ifndef OPENSYNC_SERIALIZER_H
+#define OPENSYNC_SERIALIZER_H
 
-/*! @brief A member of a group which represent a single device */
-struct OSyncMember {
-	long long int id;
-	char *configdir;
-	
-	char *configdata;
-	
-	OSyncGroup *group;
+#include "ipc/opensync_message.h"
+#include "ipc/opensync_serializer.h"
 
-	char *pluginname;
-	
-	//For the filters
-	GList *objtypes;
-	GList *filters;
-	int ref_count;
-	
-	OSyncStartType starttype;
-};
-
-#endif /* _OPENSYNC_MEMBER_INTERNALS_H_ */
+#endif /* OPENSYNC_SERIALIZER_H */

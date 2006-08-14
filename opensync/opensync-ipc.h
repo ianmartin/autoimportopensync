@@ -25,6 +25,5 @@
 
 #include "ipc/opensync_message.h"
 #include "ipc/opensync_queue.h"
-#include "ipc/opensync_serializer.h"
 
 #endif /* _OPENSYNC_IPC_H_ */

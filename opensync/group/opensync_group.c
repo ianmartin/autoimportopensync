@@ -145,6 +145,7 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 		g_free(member_path);
 		
 		osync_group_add_member(group, member);
+		osync_member_unref(member);
 	}
 	g_dir_close(dir);
 	
@@ -538,13 +539,16 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	char *real_path = NULL;
 	xmlDocPtr doc;
 	xmlNodePtr cur;
+	//xmlNodePtr filternode;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	osync_assert(group);
 	osync_assert(path);
 	
 	if (!g_path_is_absolute(path)) {
-		real_path = g_strdup_printf("%s/%s", g_get_current_dir(), path);
+		char *curdir = g_get_current_dir();
+		real_path = g_strdup_printf("%s/%s", curdir, path);
+		g_free(curdir);
 	} else {
 		real_path = g_strdup(path);
 	}
@@ -552,7 +556,6 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	osync_group_set_configdir(group, real_path);
 	filename = g_strdup_printf("%s/syncgroup.conf", real_path);
 	g_free(real_path);
-	//xmlNodePtr filternode;
 	
 	if (!osync_open_xml_file(&doc, &cur, filename, "syncgroup", error)) {
 		g_free(filename);
@@ -561,73 +564,78 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	g_free(filename);
 	
 	while (cur != NULL) {
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
-			group->name = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
-
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
-			group->last_sync = (time_t)atoi((char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1));
-
-		/*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
-			filternode = cur->xmlChildrenNode;
-			OSyncFilter *filter = osync_filter_new();
-			filter->group = group;
-			
-			while (filternode != NULL) {
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
-					filter->sourceobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+		char *str = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"groupname"))
+				osync_group_set_name(group, str);
+	
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
+				group->last_sync = (time_t)atoi(str);
+	
+			/*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
+				filternode = cur->xmlChildrenNode;
+				OSyncFilter *filter = osync_filter_new();
+				filter->group = group;
 				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
-					filter->destobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
-					filter->detectobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
-					filter->config = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
-					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-					if (!str) {
-						filternode = filternode->next;
-						continue;
+				while (filternode != NULL) {
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourceobjtype"))
+						filter->sourceobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"destobjtype"))
+						filter->destobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"detectobjtype"))
+						filter->detectobjtype = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"config"))
+						filter->config = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"function_name")) {
+						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+						if (!str) {
+							filternode = filternode->next;
+							continue;
+						}
+						osync_filter_update_hook(filter, group, str);
+						xmlFree(str);
 					}
-					osync_filter_update_hook(filter, group, str);
-					xmlFree(str);
-				}
-				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
-					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-					if (!str) {
-						filternode = filternode->next;
-						continue;
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"sourcemember")) {
+						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+						if (!str) {
+							filternode = filternode->next;
+							continue;
+						}
+						filter->sourcememberid = atoll(str);
+						xmlFree(str);
 					}
-					filter->sourcememberid = atoll(str);
-					xmlFree(str);
-				}
-				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
-					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-					if (!str) {
-						filternode = filternode->next;
-						continue;
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"destmember")) {
+						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+						if (!str) {
+							filternode = filternode->next;
+							continue;
+						}
+						filter->destmemberid = atoll(str);
+						xmlFree(str);
 					}
-					filter->destmemberid = atoll(str);
-					xmlFree(str);
-				}
-				
-				if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
-					char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
-					if (!str) {
-						filternode = filternode->next;
-						continue;
+					
+					if (!xmlStrcmp(filternode->name, (const xmlChar *)"action")) {
+						char *str = (char*)xmlNodeListGetString(doc, filternode->xmlChildrenNode, 1);
+						if (!str) {
+							filternode = filternode->next;
+							continue;
+						}
+						filter->action = atoi(str);
+						xmlFree(str);
 					}
-					filter->action = atoi(str);
-					xmlFree(str);
+					filternode = filternode->next;
 				}
-				filternode = filternode->next;
-			}
-			osync_filter_register(group, filter);
-		}*/
+				osync_filter_register(group, filter);
+			}*/
+		
+			xmlFree(str);
+		}
 		cur = cur->next;
 	}
 	xmlFreeDoc(doc);

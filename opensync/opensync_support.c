@@ -29,6 +29,7 @@
 
 GPrivate* current_tabs = NULL;
 GPrivate* thread_id = NULL;
+GPrivate* trace_disabled = NULL;
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -86,6 +87,12 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	const char *endline = NULL;
 	
 	if (!g_thread_supported ()) g_thread_init (NULL);
+	
+	if (!trace_disabled)
+		osync_trace_enable();
+	
+	if (GPOINTER_TO_INT(g_private_get(trace_disabled)))
+		return;
 	
 	trace = g_getenv("OSYNC_TRACE");
 	if (!trace)
@@ -179,6 +186,22 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 #endif
 }
 
+void osync_trace_disable(void)
+{
+	if (!trace_disabled)
+		trace_disabled = g_private_new (NULL);
+	
+	g_private_set(trace_disabled, GINT_TO_POINTER(1));
+}
+
+void osync_trace_enable(void)
+{
+	if (!trace_disabled)
+		trace_disabled = g_private_new (NULL);
+	
+	g_private_set(trace_disabled, GINT_TO_POINTER(0));
+}
+
 /*! @brief Used for printing binary data
  * 
  * Unprintable character will be printed in hex, printable are just printed
@@ -248,7 +271,7 @@ char *osync_rand_str(int maxlength)
  * @returns TRUE if successful, FALSE otherwise
  * 
  */
-osync_bool osync_file_write(const char *filename, const char *data, int size, int mode, OSyncError **oserror)
+osync_bool osync_file_write(const char *filename, const char *data, unsigned int size, int mode, OSyncError **oserror)
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;
@@ -293,7 +316,7 @@ osync_bool osync_file_write(const char *filename, const char *data, int size, in
  * @returns TRUE if successful, FALSE otherwise
  * 
  */
-osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncError **oserror)
+osync_bool osync_file_read(const char *filename, char **data, unsigned int *size, OSyncError **oserror)
 {
 	osync_bool ret = FALSE;
 	GError *error = NULL;
@@ -319,7 +342,8 @@ osync_bool osync_file_read(const char *filename, char **data, int *size, OSyncEr
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {
 		ret = TRUE;
-		*size = (int)sz;
+		if (size)
+			*size = (int)sz;
 	}
 	g_io_channel_shutdown(chan, FALSE, NULL);
 	g_io_channel_unref(chan);
@@ -488,4 +512,17 @@ void osync_thread_stop(OSyncThread *thread)
 	g_source_unref(source);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+char *osync_strreplace(const char *input, const char *delimiter, const char *replacement)
+{
+	osync_return_val_if_fail(input != NULL, NULL);
+	osync_return_val_if_fail(delimiter != NULL, NULL);
+	osync_return_val_if_fail(replacement != NULL, NULL);
+
+	gchar **array = g_strsplit(input, delimiter, 0);
+	gchar *ret = g_strjoinv(replacement, array);
+	g_strfreev(array);
+
+	return ret;
 }
