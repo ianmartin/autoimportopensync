@@ -10,9 +10,12 @@ New Features (which should be tested!)
 * excluding recurrence events
 * change time format from unixtimestamp to "vtime" format (20060309T131300Z)
 * notes/memos
-* formattedname -> hack
+* formattedname -> "hack"
 * added osync time helper functions
-* added configure flags for disabling object types. example --disable-note
+* added configure flags for disabling object types. example --disable-note 
+  (will be dropped with capability support in libopensync)
+* marshall functions for format plugin (required for ipc merge)	
+
 
 Tested Devices
 ^^^^^^^^^^^^^^
@@ -28,8 +31,8 @@ file-sync
 
 Bugs/Known Problems
 ^^^^^^^^^^^^^^^^^^^
-* is this code really pilot-link 0.12 proof? [later]
-* changetype of new entries are modified instead of added?
+* changetype of new entries are modified instead of added(?)
+* problems with special characters like german umlauts and other multibyte character	
 
 TODO
 ^^^^
@@ -40,10 +43,12 @@ TODO
 
 	general
 	^^^^^^^
-* Test categories of event/contact/todo/..
+* encoding (utf8 -> cp1252 / cp1252 -> utf8) 
+* Test categories of event/contact/todo/.. [done]
 * Public/Private option
 * Timezone [testing!]
 * Test with other plugins: evolution, sunbird-sync, ... 
 * Find limit of excluding recurrences
+  ( T|X more then > 25 recurrences! (no limit?))
 * Clean up & split palm_format code in smart functions [done]
-* Testing with pilot-link 0.12.x [testing]
+* Testing with pilot-link 0.12.x [done]

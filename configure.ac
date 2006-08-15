@@ -6,11 +6,16 @@ AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/palm_sync.c)
 AM_CONFIG_HEADER(config.h)
 
-export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
-pkg_modules="opensync-1.0 glib-2.0 libxml-2.0"
+pkg_modules="opensync-1.0 glib-2.0 libxml-2.0 pilot-link >= 0.11.8"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
+
+dnl check for libpisock API
+pilot_version=$(pkg-config --modversion pilot-link)	
+if test "x$pilot_version" == "x0.11.8"; then
+	AC_DEFINE(OLD_PILOT_LINK, 1, [old pilot-link api used]) AC_SUBST(OLD_PILOT_LINK)
+fi	
 
 AC_ISC_POSIX
 AC_PROG_CC
@@ -18,8 +23,6 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
-
-AM_PATH_PILOT_LINK
 
 OPENSYNC_CONFIGDIR=$(pkg-config --variable=configdir opensync-1.0)
 OPENSYNC_PLUGINDIR=$(pkg-config --variable=plugindir opensync-1.0)

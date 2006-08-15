@@ -34,9 +34,13 @@
 #include <pi-todo.h>
 #include <pi-memo.h>
 
+#if 0
+
 #if ((PILOT_LINK_VERSION == 0) && (PILOT_LINK_MAJOR < 12))
 #define OLD_PILOT_LINK
 #endif
+
+#endif 
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>

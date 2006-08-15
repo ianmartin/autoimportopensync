@@ -38,28 +38,36 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		goto error;
 	}
 
-	osync_trace(TRACE_INTERNAL, "event: %i\n begin: %i\n end: %i\n alarm: %i\n",
+	osync_trace(TRACE_SENSITIVE, "codepage: %s\n", entry->codepage);
+	osync_trace(TRACE_SENSITIVE, "event: %i\n begin: %i\n end: %i\n alarm: %i\n",
 		       entry->appointment.event, entry->appointment.begin, entry->appointment.end, entry->appointment.alarm);	
-	osync_trace(TRACE_INTERNAL, "advance: %i\n advanceUnits: %i\n repeatType: %i\n",
+	osync_trace(TRACE_SENSITIVE, "advance: %i\n advanceUnits: %i\n repeatType: %i\n",
 			entry->appointment.advance, entry->appointment.advanceUnits, entry->appointment.repeatType);
-	osync_trace(TRACE_INTERNAL, "repeatForever: %i\n repeatEnd.tm_year: %i\n repeatFrequency: %i\n",
+	osync_trace(TRACE_SENSITIVE, "repeatForever: %i\n repeatEnd.tm_year: %i\n repeatFrequency: %i\n",
 			entry->appointment.repeatForever, entry->appointment.repeatEnd.tm_year, entry->appointment.repeatFrequency);
-	osync_trace(TRACE_INTERNAL, "repeatDay: %i\n repeatDays: %i %i %i %i %i %i %i\n repeatWeekstart: %i\n",
+	osync_trace(TRACE_SENSITIVE, "repeatDay: %i\n repeatDays: %i %i %i %i %i %i %i\n repeatWeekstart: %i\n",
 			entry->appointment.repeatDay, entry->appointment.repeatDays[0],
 			entry->appointment.repeatDays[1], entry->appointment.repeatDays[2],
 			entry->appointment.repeatDays[3], entry->appointment.repeatDays[4],
 			entry->appointment.repeatDays[5], entry->appointment.repeatDays[6],
 			entry->appointment.repeatWeekstart);
-	osync_trace(TRACE_INTERNAL, "execptions: %i\n tm_exception: NULL\n descriotion: %s\n note: %s\n",
-		       entry->appointment.exception, entry->appointment.description, entry->appointment.note);	
-		       				
+	osync_trace(TRACE_SENSITIVE, "execptions: %i\n tm_exception: NULL\n descriotion: %s\n note: %s\n",
+		       entry->appointment.exceptions, entry->appointment.description, entry->appointment.note);	
+
+	int i;
+	for (i=0; i < entry->appointment.exceptions; i++) {
+		osync_trace(TRACE_SENSITIVE, "exception[%i]: %04d-%02d-%02d", i,
+				entry->appointment.exception[i].tm_year + 1900,
+				entry->appointment.exception[i].tm_mon + 1,
+				entry->appointment.exception[i].tm_mday);
+	}
 
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	root = xmlNewChild(root, NULL, (xmlChar*)"Event", NULL);
 
-	osync_trace(TRACE_INTERNAL, "note: \"%s\" event: %i", entry->appointment.note, entry->appointment.event);
+	osync_trace(TRACE_SENSITIVE, "note: \"%s\" event: %i", entry->appointment.note, entry->appointment.event);
 
 	//Description
 	current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
@@ -70,11 +78,12 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
 
 	//Start and end time
-	osync_trace(TRACE_INTERNAL, "starttime: %i event: %i", entry->appointment.begin,
-		entry->appointment.event); 
+	osync_trace(TRACE_SENSITIVE, "starttime: %i event: %i", entry->appointment.begin, entry->appointment.event); 
 			
 	// All Day Event
 	if (entry->appointment.event == 1) {
+
+		osync_trace(TRACE_SENSITIVE, "all-day event...");
 
 		// Start
 		begin = entry->appointment.begin;
@@ -95,6 +104,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		g_free(vtime);
 	} else {
 
+		osync_trace(TRACE_SENSITIVE, "non-all-day event...");
+		
 		// Start
 		begin = entry->appointment.begin;
 		vtime = osync_time_tm2vtime(&begin, FALSE);
@@ -113,7 +124,6 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	// Alarm
 	if(entry->appointment.alarm) {
 		xmlNode *alarm = xmlNewChild(root, NULL, (xmlChar*)"Alarm", NULL);
-		osync_trace(TRACE_INTERNAL, "ADDED alarm node: %i", alarm);
 		
 		switch(entry->appointment.advanceUnits) {
 			case 0:
@@ -275,6 +285,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
 			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+		osync_trace(TRACE_SENSITIVE, "category: %s", (char *) c->data);
 		osxml_node_add(current, "Category", (char *)c->data);
 	}
 
@@ -282,7 +293,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -296,13 +307,16 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
 	int i = 0;
-	int zonediff = osync_time_timezone_diff();
 	char *tmp = NULL;
 	char *vtime = NULL;
-	
+
+	struct tm *start = NULL;
+	struct tm *end = NULL;
+	struct tm *tmptm = NULL;
+
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 	if (!root) {
@@ -336,7 +350,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	// repeatFrequencly of ZERO will break your palm(-calendar) on recurrence entries
 	entry->appointment.repeatFrequency = 1;
 	entry->appointment.repeatWeekstart= 0;
-	entry->appointment.exception = malloc(sizeof(struct tm) * 20); // FIXME: realloc?
+//	entry->appointment.exception = malloc(sizeof(struct tm) * 20); // FIXME: realloc?
 	entry->appointment.exceptions = 0;
 	entry->appointment.description = NULL;
 	entry->appointment.note = NULL;
@@ -358,19 +372,16 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	if (cur) {
 		cur = osxml_get_node(cur, "Content");
 		vtime = (char *)xmlNodeGetContent(cur);
-		struct tm *start = NULL;
 
 		start = osync_time_vtime2tm(vtime);
 
-		if (!osync_time_isdate(vtime))
-			start = osync_time_utc2localtime(start, zonediff);
-		else
+		if (!osync_time_isdate(vtime)) {
+			tmptm = osync_time_tm2localtime(start);
+			g_free(start);
+			start = tmptm;
+		} else {
 			entry->appointment.event = 1;
-
-		osync_trace(TRACE_INTERNAL, "event: %i datestart node: %s, year: %i month: %i days: %i / %02i:%02i", 
-				entry->appointment.event, vtime,
-				start->tm_year + 1900, start->tm_mon + 1, start->tm_mday,
-				start->tm_hour, start->tm_min);
+		}
 
 		entry->appointment.begin = *start;
 
@@ -382,17 +393,15 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	if (cur) {
 		cur = osxml_get_node(cur, "Content");
 		vtime = (char *)xmlNodeGetContent(cur);
-		struct tm *end = NULL;
 
 		end = osync_time_vtime2tm(vtime);
 
-		if (!osync_time_isdate(vtime))
-			end = osync_time_utc2localtime(end, zonediff);
+		if (!osync_time_isdate(vtime)) {
+			tmptm = osync_time_tm2utc(end);
+			g_free(end);
+			end = tmptm;
+		}
 		
-		osync_trace(TRACE_INTERNAL, "dateend node: %s, year: %i month: %i days: %i", vtime, 
-				end->tm_year + 1900, end->tm_mon + 1, end->tm_mday);
-
-
 		entry->appointment.end = *end;
 
 		g_free(vtime);
@@ -401,8 +410,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	//Alarm
 	cur = osxml_get_node(root, "Alarm");
 	if (cur) {
-		osync_trace(TRACE_INTERNAL, "Alarm is enabled.");
-
 		// enable alarm
 		entry->appointment.alarm = 1;
 
@@ -416,8 +423,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 			int weeks = 0, days = 0, hours = 0, minutes = 0, seconds = 0;
 			int i, advance_in_secs;
 
-			// TODO: seperate function
-			osync_trace(TRACE_INTERNAL, "alarm: ical %s", tmp); 
 			for (i = 0; i < (int) strlen(tmp); i++) {
 
 				switch(tmp[i])
@@ -467,6 +472,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 				}
 			}
 
+			// TODO split this / modulize
 			advance_in_secs = (weeks * 7 * 24 * 3600) + (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds; 
 			osync_trace(TRACE_INTERNAL, "in seconds: %i", advance_in_secs);
 
@@ -490,8 +496,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 
 			if (!is_signed) 		// alarm after event start is not supported - disable alarm
 				entry->appointment.alarm = 0;
-
-			osync_trace(TRACE_INTERNAL, "alarm: %i (unit: %i)", entry->appointment.advance, entry->appointment.advanceUnits); 
 
 			g_free(tmp);
 		}
@@ -583,9 +587,9 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 						break;
 				}
 
-				osync_trace(TRACE_INTERNAL, "appointment.repeatDay: %i wday: %i", entry->appointment.repeatDay
-						, wday);
+				osync_trace(TRACE_INTERNAL, "appointment.repeatDay: %i wday: %i", entry->appointment.repeatDay, wday);
 
+						
 			} else if (strstr(tmp, "UNTIL")) {
 				struct tm *repeat_end = NULL;
 				vtime = tmp; 
@@ -595,7 +599,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 							
 				// when repeat_end is euqal or less then begin palm shows strange phenomenons
 				if ((unsigned int) mktime(repeat_end) > (unsigned int) mktime(&(entry->appointment.begin))) {
-					osync_trace(TRACE_INTERNAL, "UNTIL: %s", tmp);
+					osync_trace(TRACE_INTERNAL, "UNTIL: %s", vtime);
 					entry->appointment.repeatEnd = *repeat_end;
 					entry->appointment.repeatForever = 0;
 				}
@@ -614,6 +618,8 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	//XXX Treo270: 5 Exceptions?
 	xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)input, "/vcal/Event/ExclusionDate");
 	xmlNodeSet *nodes = xobj->nodesetval;
+	entry->appointment.exception = g_malloc0(sizeof(struct tm) * nodes->nodeNr);
+
 	for (i = 0; i < 5 && i < nodes->nodeNr; i++) {
 		cur = nodes->nodeTab[i];
 
@@ -623,10 +629,6 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 
 
 		exclusion = osync_time_vtime2tm(vtime);
-
-		osync_trace(TRACE_INTERNAL, "exclusion node: %s, year: %i month: %i days: %i", vtime,
-				exclusion->tm_year + 1900, exclusion->tm_mon + 1, exclusion->tm_mday);
-
 
 		entry->appointment.exception[entry->appointment.exceptions] = *exclusion;
 		entry->appointment.exceptions++;
@@ -660,7 +662,6 @@ static void destroy_palm_event(char *input, size_t inpsize)
 	PSyncEventEntry *entry = (PSyncEventEntry *)input;
 	g_assert(inpsize == sizeof(PSyncEventEntry));
 	
-	g_free(entry->uid);
 	g_free(entry->codepage);
 	
 	g_free(entry->appointment.exception);
@@ -678,6 +679,192 @@ static void destroy_palm_event(char *input, size_t inpsize)
 	g_free(entry);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+osync_bool marshall_palm_event(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+
+        int i;
+        int tmp_size, osize;
+
+        g_assert(inpsize == sizeof(PSyncEventEntry));
+        PSyncEventEntry *event = (PSyncEventEntry*) input;
+
+        // get size
+        osize = sizeof(PSyncEventEntry) + 1; 
+
+        if (event->codepage)
+                osize += strlen(event->codepage);
+
+	osize += 1;
+
+        if (event->appointment.description)
+                osize += strlen(event->appointment.description); 
+
+	osize += 1;
+
+        if (event->appointment.note)
+                osize += strlen(event->appointment.note); 
+
+	osize += 1;
+
+	GList *c = NULL;
+	for (c = event->categories; c; c = c->next) {
+		osize += strlen((char *) c->data);
+		osize += 1;
+	}
+	osize += 1;
+
+	osize += (sizeof(struct tm) + 1) * event->appointment.exceptions; 
+
+        char *outevent = g_malloc0(osize);
+        if (!outevent)
+                goto error;
+
+        char *outdata = ((char *)outevent) + sizeof(PSyncEventEntry) + 1;
+        memcpy(outevent, event, sizeof(PSyncEventEntry));
+
+        /* event->codepage */
+        if (event->codepage) {
+                tmp_size = strlen(event->codepage);
+                memcpy(outdata, event->codepage, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata += 1;
+
+        /* description */
+        if (event->appointment.description) {
+                tmp_size = strlen(event->appointment.description);
+                memcpy(outdata, event->appointment.description, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata += 1;
+
+        /* note */
+        if (event->appointment.note) {
+                tmp_size = strlen(event->appointment.note);
+                memcpy(outdata, event->appointment.note, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata += 1;
+
+	/* exception */
+	for (i=0; i < event->appointment.exceptions; i++) {
+		struct tm *exception = &(event->appointment.exception[i]);
+		memcpy(outdata, exception, sizeof(struct tm));
+		outdata += sizeof(struct tm);
+		outdata += 1;
+	}
+
+	/* glist stuff comes at the end */
+	for (c = event->categories; c; c = c->next) {
+		tmp_size = strlen((char *) c->data);
+		memcpy(outdata, c->data, tmp_size);
+		outdata += tmp_size;
+		outdata += 1;
+	}	
+	outdata += 1;
+
+	/*	
+        for (i=0; i < osize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, outevent[i]);
+	*/		
+
+        *output = (char*)outevent;
+        *outpsize = osize;
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
+}
+
+osync_bool demarshall_palm_event(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+
+        int i;
+        int tmp_size;
+        char *pos = NULL;
+        PSyncEventEntry *newevent = NULL;
+        /* get PSyncEventEntry struct */
+        g_assert(inpsize >= sizeof(PSyncEventEntry));
+        PSyncEventEntry *event = (PSyncEventEntry *)input;
+
+        /* get PSyncEventEntry data */
+        newevent = g_malloc0(sizeof(PSyncEventEntry));
+        if (!newevent)
+                goto error;
+
+        memcpy(newevent, event, sizeof(PSyncEventEntry));
+        pos = (char *) event + sizeof(PSyncEventEntry) + 1;
+
+	newevent->codepage = NULL;
+	newevent->categories = NULL;
+	newevent->appointment.note = NULL;
+	newevent->appointment.description = NULL;
+
+	/*
+        for (i=0; i < inpsize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
+	*/	
+	
+        /* event->codepage */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newevent->codepage = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+        /* description */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newevent->appointment.description = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+        /* note */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newevent->appointment.note = strdup(pos);
+	        pos += tmp_size;
+	}
+	pos += 1;
+
+	osync_trace(TRACE_INTERNAL, "exception: %i", newevent->appointment.exceptions);
+        /* exception */
+        newevent->appointment.exception = g_malloc0(sizeof(struct tm) * newevent->appointment.exceptions);
+	for (i=0; i < newevent->appointment.exceptions; i++) {
+		memcpy(&(newevent->appointment.exception[i]), pos, sizeof(struct tm));
+		pos += sizeof(struct tm);
+		pos += 1;
+	}
+
+	/* (glist) categories... */
+	newevent->categories = NULL;
+	while ((tmp_size = strlen(pos)) > 0) {
+		newevent->categories = g_list_append(newevent->categories, g_strdup(pos));
+		pos += tmp_size;
+		pos += 1;
+	}
+	pos += 1;
+
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newevent->codepage);
+			
+	osync_trace(TRACE_SENSITIVE, "note: [%s] desc: [%s]",
+			newevent->appointment.note,
+			newevent->appointment.description);
+
+        *output = (char*) newevent;
+        *outpsize = sizeof(PSyncEventEntry);
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
 }
 #endif
 
@@ -699,16 +886,16 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	root = xmlNewChild(root, NULL, (xmlChar*)"Todo", NULL);
 
-	//Description
+	//Summary
 	if (entry->todo.description) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
 	}
 	
-	//Note
+	//Description
 	if (entry->todo.note) {
 		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
+		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
 	}
 	
 	//priority
@@ -749,7 +936,7 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -763,7 +950,7 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -824,8 +1011,8 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 		entry->todo.description = (char *)xmlNodeGetContent(cur);
 	}
 	
-	//Note
-	cur = osxml_get_node(root, "Note");
+	//Description
+	cur = osxml_get_node(root, "Description");
 	if (cur) {
 		entry->todo.note = (char *)xmlNodeGetContent(cur);
 	}
@@ -865,13 +1052,12 @@ static void destroy_palm_todo(char *input, size_t inpsize)
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	PSyncTodoEntry *entry = (PSyncTodoEntry *)input;
 	g_assert(inpsize == sizeof(PSyncTodoEntry));
-	
-	g_free(entry->uid);
+
 	g_free(entry->codepage);
-	
+
 	g_free(entry->todo.description);
 	g_free(entry->todo.note);
-	
+
 	GList *c = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		g_free(c->data);
@@ -884,20 +1070,190 @@ static void destroy_palm_todo(char *input, size_t inpsize)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+
+osync_bool marshall_palm_todo(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+	
+        int tmp_size, osize;
+
+        g_assert(inpsize == sizeof(PSyncTodoEntry));
+        PSyncTodoEntry *todo = (PSyncTodoEntry*) input;
+
+        // get size
+        osize = sizeof(PSyncTodoEntry) + 1; 
+
+        if (todo->codepage)
+                osize += strlen(todo->codepage);
+
+	osize += 1;
+
+        if (todo->todo.description)
+                osize += strlen(todo->todo.description); 
+
+	osize += 1;
+
+        if (todo->todo.note)
+                osize += strlen(todo->todo.note); 
+
+	osize += 1;
+
+	GList *c = NULL;
+	for (c = todo->categories; c; c = c->next) {
+		osize += strlen((char *) c->data);
+		osize += 1;
+	}
+
+	osize += 1;
+
+
+        char *outtodo = g_malloc0(osize);
+        if (!outtodo)
+                goto error;
+
+        char *outdata = ((char *)outtodo) + sizeof(PSyncTodoEntry) + 1;
+        memcpy(outtodo, todo, sizeof(PSyncTodoEntry));
+
+        /* todo->codepage */
+        if (todo->codepage) {
+                tmp_size = strlen(todo->codepage);
+                memcpy(outdata, todo->codepage, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata +=1;
+
+        /* description */
+        if (todo->todo.description) {
+                tmp_size = strlen(todo->todo.description);
+                memcpy(outdata, todo->todo.description, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata += 1;
+
+        /* note */
+        if (todo->todo.note) {
+                tmp_size = strlen(todo->todo.note);
+               memcpy(outdata, todo->todo.note, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata += 1;
+
+	/* glist stuff comes at the end */
+	for (c = todo->categories; c; c = c->next) {
+		tmp_size = strlen((char *) c->data);
+		memcpy(outdata, c->data, tmp_size);
+		outdata += tmp_size;
+		outdata += 1;
+	}	
+	outdata += 1;
+
+	/*
+	int i;   
+        for (i=0; i < osize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, outtodo[i]);
+	*/	
+
+        *output = (char*)outtodo;
+        *outpsize = osize;
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
+}
+
+osync_bool demarshall_palm_todo(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+	
+        int tmp_size;
+        char *pos = NULL;
+        PSyncTodoEntry *newtodo = NULL;
+        /* get PSyncTodoEntry struct */
+        g_assert(inpsize >= sizeof(PSyncTodoEntry));
+        PSyncTodoEntry *todo = (PSyncTodoEntry *)input;
+
+        /* get PSyncTodoEntry data */
+        newtodo = g_malloc0(sizeof(PSyncTodoEntry));
+        if (!newtodo)
+                goto error;
+
+        memcpy(newtodo, todo, sizeof(PSyncTodoEntry));
+        pos = (char *) todo + sizeof(PSyncTodoEntry) + 1;
+
+	newtodo->codepage = NULL;
+
+	newtodo->todo.note = NULL;
+	newtodo->todo.description = NULL;
+
+	/*
+	int i;	   
+        for (i=0; i < inpsize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
+	*/	
+
+        /* todo->codepage */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newtodo->codepage = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+        /* description */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newtodo->todo.description = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+        /* note */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newtodo->todo.note = strdup(pos);
+	        pos += tmp_size;
+	}
+	pos += 1;
+
+	/* (glist) categories... */
+	newtodo->categories = NULL;
+	while ((tmp_size = strlen(pos)) > 0) {
+		newtodo->categories = g_list_append(newtodo->categories, g_strdup(pos));
+		pos += tmp_size;
+		pos += 1;
+	}
+	pos += 1;
+
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newtodo->codepage);
+
+
+	osync_trace(TRACE_SENSITIVE, "desc: [%s] note: [%s]",
+			newtodo->todo.description,
+			newtodo->todo.note);
+
+        *output = (char*) newtodo;
+        *outpsize = sizeof(PSyncTodoEntry);
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
+}
 #endif
 
 #ifdef HAVE_CONTACT
-static *return_next_entry(PSyncContactEntry *entry, unsigned int i)
+static char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
 {	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
 	char *tmp = NULL;
 	
-	osync_trace(TRACE_INTERNAL, "Entry: %p", entry->address.entry[i]);
+	osync_trace(TRACE_SENSITIVE, "Entry: %p", entry->address.entry[i]);
 	if (entry->address.entry[i]) {
-		osync_trace(TRACE_INTERNAL, "Before: %s", entry->address.entry[i]);
+		osync_trace(TRACE_SENSITIVE, "Before: %s", entry->address.entry[i]);
 		tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), "utf8", entry->codepage, NULL, NULL, NULL);
 	}
-	osync_trace(TRACE_INTERNAL, "Palm Entry: %i: %s", i, tmp);
+	osync_trace(TRACE_SENSITIVE, "Palm Entry: %i: %s", i, tmp);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return tmp;
@@ -934,7 +1290,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	    entry->address.entry[i] = NULL;
 	    palm_debug(conn, 3, "Address %i: %s", i, entry->address.entry[i]);
 	  }*/
-	  osync_trace(TRACE_INTERNAL, "entry %i: %s", i, entry->address.entry[i]);
+	  osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
 	}
 	
 	//Create a new xml document
@@ -980,7 +1336,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	for (i = entryPhone1; i <= entryPhone5; i++) {
 		tmp = return_next_entry(entry, i);
 		if (tmp) {
-			osync_trace(TRACE_INTERNAL, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
+			osync_trace(TRACE_SENSITIVE, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
 			if (entry->address.phoneLabel[i - 3] == 4)
 				current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
 			else
@@ -1093,7 +1449,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1109,7 +1465,7 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -1160,7 +1516,7 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 		cur = nodes->nodeTab[i];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
 
-		osync_trace(TRACE_INTERNAL, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "Work"), osxml_has_property(cur, "Home"), osxml_has_property(cur, "Voice"));
+		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "Work"), osxml_has_property(cur, "Home"), osxml_has_property(cur, "Voice"));
 
 		if (osxml_has_property(cur, "Work")) {
 			entry->address.phoneLabel[i] = 0;
@@ -1195,17 +1551,17 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 	xmlXPathFreeObject(xobj);
 	
 	//Address
-	cur = osxml_get_node(root, "Organization");
+	cur = osxml_get_node(root, "Address");
 	if (cur) {
-		entry->address.entry[8] = osxml_find_node(cur, "Address");
+		entry->address.entry[8] = osxml_find_node(cur, "Street");
 		entry->address.entry[9] = osxml_find_node(cur, "City");
 		entry->address.entry[10] = osxml_find_node(cur, "Region");
-		entry->address.entry[11] = osxml_find_node(cur, "Code");
+		entry->address.entry[11] = osxml_find_node(cur, "PostalCode");
 		entry->address.entry[12] = osxml_find_node(cur, "Country");
 	}
 
 	//Title
-	cur = osxml_get_node(root, "Summary");
+	cur = osxml_get_node(root, "Title");
 	if (cur)
 		entry->address.entry[13] = (char*)xmlNodeGetContent(cur);
 
@@ -1213,7 +1569,7 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 	cur = osxml_get_node(root, "Note");
 	if (cur)
 		entry->address.entry[18] = (char*)xmlNodeGetContent(cur);
-	
+
 	//Categories
 	cur = osxml_get_node(root, "Categories");
 	if (cur) {
@@ -1224,17 +1580,34 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 
 	/* Now convert to the charset */
 	for (i = 0; i < 19; i++) {
-	  /*if (entry->address.entry[i]) {
-	    char *tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), conn->codepage ,"utf8", NULL, NULL, NULL);
-	    free(entry->address.entry[i]);
-	    entry->address.entry[i] = tmp;
-	  }
-	  if (entry->address.entry[i] && !strlen(entry->address.entry[i])) {
-	    free(entry->address.entry[i]);
+	  /*	
+	  if (entry->address.entry[i] && !strlen(entry->address.entry[i]))
 	    entry->address.entry[i] = NULL;
-	    palm_debug(conn, 3, "Address %i: %s", i, entry->address.entry[i]);
-	  }*/
-	  osync_trace(TRACE_INTERNAL, "entry %i: %s", i, entry->address.entry[i]);
+
+	  if (entry->address.entry[i]) {
+		iconv_t cd = iconv_open("CP1252", "UTF-8");
+
+
+		char *inbuf, *outbuf;
+		size_t inbytesleft, outbytesleft;
+		size_t size = strlen(inbuf);
+
+		inbuf = entry->address.entry[i];
+		
+		outbuf = malloc(size * 2);
+
+		inbytesleft = size * 2;
+		
+		if (iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft) != (size_t)(-1)) {
+			osync_trace(TRACE_INTERNAL, "entry(cp1252): %s (%s)", outbuf, entry->address.entry[i]);
+		} else {
+			osync_trace(TRACE_INTERNAL, "iconv failed.");
+		}
+		
+	  }
+	  */
+
+	  osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
 	}
 	
 	*free_input = TRUE;
@@ -1255,7 +1628,6 @@ static void destroy_palm_contact(char *input, size_t inpsize)
 	PSyncContactEntry *entry = (PSyncContactEntry *)input;
 	g_assert(inpsize == sizeof(PSyncContactEntry));
 	
-	g_free(entry->uid);
 	g_free(entry->codepage);
 	
 	int i = 0;
@@ -1269,12 +1641,172 @@ static void destroy_palm_contact(char *input, size_t inpsize)
 		g_free(c->data);
 	}
 	
-	if (entry->categories)
-		g_list_free(entry->categories);
+	g_list_free(entry->categories);
 	
 	g_free(entry);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+osync_bool marshall_palm_contact(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+	
+        int i;
+        int tmp_size, osize;
+
+        g_assert(inpsize == sizeof(PSyncContactEntry));
+        PSyncContactEntry *contact = (PSyncContactEntry*) input;
+
+        // get size
+        osize = sizeof(PSyncContactEntry) + 1; 
+
+        if (contact->codepage)
+                osize += strlen(contact->codepage);
+
+	osize += 1;
+
+	for (i=0; i < 19; i++) {
+		osize += 1;
+		if (!contact->address.entry[i])
+			continue;
+		osize += strlen(contact->address.entry[i]);
+		osize += 1;
+	}
+	osize += 1;
+
+	GList *c = NULL;
+	for (c = contact->categories; c; c = c->next) {
+		osize += strlen((char *) c->data);
+		osize += 1;
+	}
+	osize += 1;
+
+
+        char *outcontact = g_malloc0(osize);
+        if (!outcontact)
+                goto error;
+
+        char *outdata = ((char *)outcontact) + sizeof(PSyncContactEntry) + 1;
+        memcpy(outcontact, contact, sizeof(PSyncContactEntry));
+
+        /* contact->codepage */
+        if (contact->codepage) {
+                tmp_size = strlen(contact->codepage);
+                memcpy(outdata, contact->codepage, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata +=1;
+
+	/* address.entry[19] */
+	for (i=0; i < 19; i++) {
+		if (!contact->address.entry[i]) {
+			outdata += 1;
+			continue;
+		}
+		osync_trace(TRACE_SENSITIVE, "entry #%i: %s", i, contact->address.entry[i]);
+
+		tmp_size = strlen(contact->address.entry[i]);
+		memcpy(outdata, contact->address.entry[i], tmp_size);
+		outdata += tmp_size;
+		outdata += 1;
+	}
+	outdata += 1;
+
+	/*
+        for (i=0; i < osize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, outcontact[i]);
+	*/	
+
+        /* glist stuff comes at the end */
+	for (c = contact->categories; c; c = c->next) {
+		tmp_size = strlen((char *) c->data);
+		memcpy(outdata, c->data, tmp_size);
+		outdata += tmp_size;
+		outdata += 1;
+	}	
+	outdata += 1;
+
+        *output = (char*)outcontact;
+        *outpsize = osize;
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
+}
+
+osync_bool demarshall_palm_contact(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+	
+        int i;
+        int tmp_size;
+        char *pos = NULL;
+        PSyncContactEntry *newcontact = NULL;
+        /* get PSyncContactEntry struct */
+        g_assert(inpsize >= sizeof(PSyncContactEntry));
+        PSyncContactEntry *contact = (PSyncContactEntry *)input;
+
+        /* get PSyncContactEntry data */
+        newcontact = g_malloc0(sizeof(PSyncContactEntry));
+        if (!newcontact)
+                goto error;
+
+        memcpy(newcontact, contact, sizeof(PSyncContactEntry));
+        pos = (char *) contact + sizeof(PSyncContactEntry) + 1;
+
+	newcontact->codepage = NULL;
+
+	/*
+        for (i=0; i < inpsize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
+	*/	
+
+        /* contact->codepage */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newcontact->codepage = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+        /* contact->address.entry[19] */
+	for (i=0; i < 19; i++) {
+		if (!pos) {
+			newcontact->address.entry[i] = NULL;
+			pos += 1;
+			continue;
+		}
+
+		tmp_size = strlen(pos);
+                newcontact->address.entry[i] = strdup(pos);
+        	pos += tmp_size;
+		pos += 1;
+	}
+	pos += 1;
+
+	/* (glist) categories... */
+	newcontact->categories = NULL;
+	while ((tmp_size = strlen(pos)) > 0) {
+		newcontact->categories = g_list_append(newcontact->categories, g_strdup(pos));
+		pos += tmp_size;
+		pos += 1;
+	}
+	pos += 1;
+
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newcontact->codepage);
+
+			
+        *output = (char*) newcontact;
+        *outpsize = sizeof(PSyncContactEntry);
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
 }
 #endif
 
@@ -1296,14 +1828,15 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 
 	// Summary & Body
 	if (entry->memo.text) {
-		//FIXME memory leak?! - free gchar **?
 		gchar **splitMemo = g_strsplit(entry->memo.text, "\n", 2);
+
 		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
 
 		current = xmlNewChild(root, NULL, (xmlChar*)"Body", NULL);
 		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
 
+		g_strfreev(splitMemo);
 	}
 
 	GList *c = NULL;
@@ -1318,7 +1851,7 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1335,7 +1868,7 @@ static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsiz
 	xmlNode *cur = NULL;
 	GString *memo = g_string_new("");
 
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -1394,7 +1927,6 @@ static void destroy_palm_note(char *input, size_t inpsize)
 	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
 	g_assert(inpsize == sizeof(PSyncNoteEntry));
 	
-	g_free(entry->uid);
 	g_free(entry->codepage);
 	
 	g_free(entry->memo.text);
@@ -1411,6 +1943,157 @@ static void destroy_palm_note(char *input, size_t inpsize)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+
+osync_bool marshall_palm_note(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+		
+        int tmp_size, osize;
+
+        g_assert(inpsize == sizeof(PSyncNoteEntry));
+        PSyncNoteEntry *note = (PSyncNoteEntry*) input;
+
+        // get size
+        osize = sizeof(PSyncNoteEntry) + 1; 
+
+        if (note->codepage)
+                osize += strlen(note->codepage);
+
+	osize += 1;
+
+        if (note->memo.text)
+                osize += strlen(note->memo.text); 
+
+	osize += 1;
+
+	GList *c = NULL;
+	for (c = note->categories; c; c = c->next) {
+		osize += strlen((char *) c->data);
+		osize += 1;
+	}
+
+	osize += 1;
+
+
+        char *outnote = g_malloc0(osize);
+        if (!outnote)
+                goto error;
+
+        char *outdata = ((char *)outnote) + sizeof(PSyncNoteEntry) + 1;
+        memcpy(outnote, note, sizeof(PSyncNoteEntry));
+
+        /* note->codepage */
+        if (note->codepage) {
+                tmp_size = strlen(note->codepage);
+                memcpy(outdata, note->codepage, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata +=1;
+
+        /* description */
+        if (note->memo.text) {
+                tmp_size = strlen(note->memo.text);
+                memcpy(outdata, note->memo.text, tmp_size);
+                outdata += tmp_size;
+        }
+        outdata += 1;
+
+	/* glist stuff comes at the end */
+	for (c = note->categories; c; c = c->next) {
+		tmp_size = strlen((char *) c->data);
+		memcpy(outdata, c->data, tmp_size);
+		outdata += tmp_size;
+		outdata += 1;
+	}	
+	outdata += 1;
+
+
+	/*
+	int i;
+        for (i=0; i < osize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, outnote[i]);
+	*/	
+
+        *output = (char*)outnote;
+        *outpsize = osize;
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
+}
+
+osync_bool demarshall_palm_note(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+		
+        int tmp_size;
+        char *pos = NULL;
+        PSyncNoteEntry *newnote = NULL;
+        /* get PSyncNoteEntry struct */
+        g_assert(inpsize >= sizeof(PSyncNoteEntry));
+        PSyncNoteEntry *note = (PSyncNoteEntry *)input;
+
+        /* get PSyncNoteEntry data */
+        newnote = g_malloc0(sizeof(PSyncNoteEntry));
+        if (!newnote)
+                goto error;
+
+        memcpy(newnote, note, sizeof(PSyncNoteEntry));
+        pos = (char *) note + sizeof(PSyncNoteEntry) + 1;
+
+	newnote->codepage = NULL;
+
+	newnote->memo.text = NULL;
+	
+	/*
+	int i;
+        for (i=0; i < inpsize; i++)
+                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
+	*/	
+
+
+        /* note->codepage */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newnote->codepage = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+        /* description */
+        if ((tmp_size = strlen(pos)) > 0) {
+                newnote->memo.text = strdup(pos);
+        	pos += tmp_size;
+	}
+	pos += 1;
+
+	/* (glist) categories... */
+	newnote->categories = NULL;
+	while ((tmp_size = strlen(pos)) > 0) {
+		newnote->categories = g_list_append(newnote->categories, g_strdup(pos));
+		pos += tmp_size;
+		pos += 1;
+	}
+
+	pos += 1;
+
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newnote->codepage);
+
+	osync_trace(TRACE_SENSITIVE, "memo.text: [%s]",
+			newnote->memo.text);
+
+        *output = (char*) newnote;
+        *outpsize = sizeof(PSyncNoteEntry);
+
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
+	return FALSE;	
+}
+
 #endif
 
 void get_info(OSyncEnv *env)
@@ -1419,6 +2102,8 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objtype(env, "contact");
 	osync_env_register_objformat(env, "contact", "palm-contact");
 	osync_env_format_set_destroy_func(env, "palm-contact", destroy_palm_contact);
+	osync_env_format_set_marshall_func(env, "palm-contact", marshall_palm_contact);
+	osync_env_format_set_demarshall_func(env, "palm-contact", demarshall_palm_contact);
 
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_contact_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm_contact);
@@ -1428,6 +2113,8 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "palm-todo");
 	osync_env_format_set_destroy_func(env, "palm-todo", destroy_palm_todo);
+	osync_env_format_set_marshall_func(env, "palm-todo", marshall_palm_todo);
+	osync_env_format_set_demarshall_func(env, "palm-todo", demarshall_palm_todo);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-todo", "xml-todo", conv_palm_todo_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo", "palm-todo", conv_xml_to_palm_todo);
@@ -1437,6 +2124,8 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "palm-event");
 	osync_env_format_set_destroy_func(env, "palm-event", destroy_palm_event);
+	osync_env_format_set_marshall_func(env, "palm-event", marshall_palm_event);
+	osync_env_format_set_demarshall_func(env, "palm-event", demarshall_palm_event);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-event", "xml-event", conv_palm_event_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "palm-event", conv_xml_to_palm_event);
@@ -1446,6 +2135,8 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objtype(env, "note");
 	osync_env_register_objformat(env, "note", "palm-note");
 	osync_env_format_set_destroy_func(env, "palm-note", destroy_palm_note);
+	osync_env_format_set_marshall_func(env, "palm-note", marshall_palm_note);
+	osync_env_format_set_demarshall_func(env, "palm-note", demarshall_palm_note);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-note", "xml-note", conv_palm_note_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "palm-note", conv_xml_to_palm_note);

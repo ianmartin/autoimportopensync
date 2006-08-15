@@ -445,7 +445,7 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 	}
 
 	osync_trace(TRACE_INTERNAL, "Creating socket");
-	if (!(listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, PI_PF_DLP))) {
+	if ((listen_sd = pi_socket (PI_AF_PILOT, PI_SOCK_STREAM, PI_PF_DLP)) < 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create listen sock");
 		goto error;
 	}

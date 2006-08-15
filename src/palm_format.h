@@ -24,28 +24,24 @@
 struct PSyncContactEntry {
 	struct Address address;
 	char *codepage;
-	char *uid;
 	GList *categories;
 };
 
 struct PSyncEventEntry {
 	struct Appointment appointment;
 	char *codepage;
-	char *uid;
 	GList *categories;
 };
 
 struct PSyncTodoEntry {
 	struct ToDo todo;
 	char *codepage;
-	char *uid;
 	GList *categories;
 };
 
 struct PSyncNoteEntry {
 	struct Memo memo;
 	char *codepage;
-	char *uid;
 	GList *categories;
 };
 
