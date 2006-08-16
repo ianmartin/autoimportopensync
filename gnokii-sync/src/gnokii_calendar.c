@@ -97,35 +97,42 @@ char *gnokii_calendar_hash(gn_calnote *calnote) {
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, calnote);
 	
-	char *tmp = g_strup(""); 
+	char *tmp = NULL; 
+	GString *hash = g_string_new("");	
 
-	if (calnote->type)
-		tmp = g_strdup_printf("%s-%i", tmp, calnote->type);
+	if (calnote->type) {
+		tmp = g_strdup_printf("%i", calnote->type);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 
-	if (calnote->time.year)
-		tmp = g_strdup_printf("%s-%i%i%i.%i%i%i", 
-					tmp,
+	if (calnote->time.year) {
+		tmp = g_strdup_printf("%i%i%i.%i%i%i", 
 					calnote->time.year,
 					calnote->time.month,
 					calnote->time.day,
 					calnote->time.hour,
 					calnote->time.minute,
 					calnote->time.second);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 
-	if (calnote->end_time.year)
-		tmp = g_strdup_printf("%s-%i%i%i.%i%i%i",
-					tmp,
+	if (calnote->end_time.year) {
+		tmp = g_strdup_printf("%i%i%i.%i%i%i",
 					calnote->end_time.year,
 					calnote->end_time.month,
 					calnote->end_time.day,
 					calnote->end_time.hour,
 					calnote->end_time.minute,
 					calnote->end_time.second);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 
 
-	if (calnote->alarm.enabled)
-		tmp = g_strdup_printf("%s-%i%i.%i%i%i.%i%i%i",
-					tmp,
+	if (calnote->alarm.enabled) {
+		tmp = g_strdup_printf("%i%i.%i%i%i.%i%i%i",
 					calnote->alarm.enabled,
 					calnote->alarm.tone,
 					calnote->alarm.timestamp.year,
@@ -134,23 +141,33 @@ char *gnokii_calendar_hash(gn_calnote *calnote) {
 					calnote->alarm.timestamp.hour,
 					calnote->alarm.timestamp.minute,
 					calnote->alarm.timestamp.second);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 
-	if (calnote->text)
-		tmp = g_strdup_printf("%s-%s", tmp, calnote->text);
+	if (calnote->text) {
+		hash =  g_string_append(hash, calnote->text);
+	}
 
-	if (calnote->type == GN_CALNOTE_CALL)
-		tmp = g_strdup_printf("%s-%s", tmp, calnote->phone_number);
+	if (calnote->type == GN_CALNOTE_CALL) {
+		hash = g_string_append(hash, calnote->phone_number);
+	}
 
-	if (calnote->mlocation)
-		tmp = g_strdup_printf("%s-%s", tmp, calnote->mlocation);
+	if (calnote->mlocation) {
+		hash = g_string_append(hash, calnote->mlocation);
+	}
 
-	if (calnote->recurrence)
-		tmp = g_strdup_printf("%s-%i", tmp, calnote->recurrence);
+	if (calnote->recurrence) {
+		tmp = g_strdup_printf("%i", calnote->recurrence);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 	
-#ifndef HIDE_SENSITIVE	
-	osync_trace(TRACE_INTERNAL, "HASH LINE: %s", tmp);
-#endif	
-	tmp = g_strdup_printf("%u", g_str_hash(tmp));
+	osync_trace(TRACE_SENSITIVE, "HASH LINE: %s", hash->str);
+
+	tmp = g_strdup_printf("%u", g_str_hash(hash->str));
+
+	g_string_free(hash, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
 
@@ -219,8 +236,7 @@ osync_bool gnokii_calendar_write_calnote(gn_calnote *calnote, struct gn_statemac
 
         data->calnote = calnote;
 
-#ifndef HIDE_SENSITIVE	
-	osync_trace(TRACE_INTERNAL, "calnote->location: %i\n"
+	osync_trace(TRACE_SENSITIVE, "calnote->location: %i\n"
 			            "calnote->text: %s\n"
 				    "calnote->type: %i\n"
 				    "calnote->time: %04i.%02i.%02i-%02i:%02i:%02i\n" 
@@ -249,7 +265,7 @@ osync_bool gnokii_calendar_write_calnote(gn_calnote *calnote, struct gn_statemac
 			calnote->mlocation, calnote->phone_number,
 
 			calnote->recurrence);
-#endif	
+
 
         error = gn_sm_functions(GN_OP_WriteCalendarNote, data, state);
 
@@ -350,10 +366,12 @@ osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
 		// prepare UID with gnokii-calendar-<memory location>
 		uid = g_strdup_printf ("gnokii-calendar-%i", calnote->location);
 		osync_change_set_uid(change, uid);
+		g_free(uid);
 
 		// get hash of calnote
 		hash = gnokii_calendar_hash(calnote);
 		osync_change_set_hash(change, hash);	
+		g_free(hash);
 
 		osync_change_set_objformat_string(change, "gnokii-event"); 
 		osync_change_set_objtype_string(change, "event");
@@ -372,8 +390,6 @@ osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "event");
 
-	g_free(hash);
-	g_free(uid);
 	g_free(caldata);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -423,10 +439,12 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			// memory location is known after note was written
 			uid = gnokii_calendar_memory_uid(calnote->location);
 			osync_change_set_uid(change, uid);
+			g_free(uid);
 
 			// generate and set hash of entry
 			hash = gnokii_calendar_hash(calnote);
 			osync_change_set_hash(change, hash);
+			g_free(hash);
 
 			break;
 		case CHANGE_MODIFIED:
@@ -457,6 +475,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			// - is needed for new memory location
 			uid = gnokii_calendar_memory_uid(calnote->location);
 			osync_change_set_uid(change, uid);
+			g_free(uid);
 
 			// set modified changetype for calendar entry 
 			osync_change_set_changetype(change, CHANGE_MODIFIED);
@@ -464,6 +483,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			// set hash for the modified calendar entry
 			hash = gnokii_calendar_hash(calnote);
 			osync_change_set_hash(change, hash);
+			g_free(hash);
 
 			/*
 			osync_trace(TRACE_INTERNAL, "New CHANGE: %p UID: %s (%s) changetype: %i", 
@@ -492,10 +512,6 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 	
 	// update hashtable
 	osync_hashtable_update_hash(env->hashtable, change);
-
-	// free uid and hash
-	g_free(uid);
-	g_free(hash);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 

@@ -16,7 +16,7 @@ in the INSTALL file. Troubleshooting guide is also included in INSTALL.
 FEATURES:
 ^^^^^^^^^
 	* syncing events (calendar)
-	* syncing contacs (addressbook) [EXPERIMENTAL!] 
+	* syncing contacs (addressbook)
 	
 
 Tested with:
@@ -71,14 +71,12 @@ TODO:
 * contact format
   	# testing with other plugins [done: kdepim-sync, evo2-sync, file-sync, ...]
   	# find limits for subentries
-  	
 	
 * todo format
-	# todo support in libgnokii is broken at the moment for nk6510 devices (2006-05-19)
+	# todo support in libgnokii is broken at the moment for nk6510 devices (2006-08-01)
 
 * notes format:
 	# writing into calendar as memo entry?
 	
 * suggest default gnokii-sync configuration when ~/.gnokiirc is present
-* prepare for API changes of libgnokii > 0.6.12 (0.7.0?)
 * timezone handling (fixed? more testing!)

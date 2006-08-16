@@ -57,6 +57,7 @@ void parse_connection_type(char *str, gn_config *config) {
 osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, config, data, size, error);
+	char *str = NULL;
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 
@@ -87,7 +88,7 @@ osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncErr
 	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		char *str = (char*) xmlNodeGetContent(cur);
+		str = (char *) xmlNodeGetContent(cur);
 		
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *) "model"))
@@ -111,10 +112,9 @@ osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncErr
 				if (!strcasecmp(str, "on"))
 					gn_log_debug_mask = GN_LOG_T_STDERR;	// debug output to stderr
 			}
-
-
-			xmlFree(str);
+			g_free(str);
 		}
+
 		cur = cur->next;
 	}
 

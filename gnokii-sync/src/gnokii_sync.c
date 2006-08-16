@@ -21,43 +21,52 @@
 #include "gnokii_sync.h"
 
 #include <opensync/opensync.h>
-#include <stdlib.h>
-#include <assert.h>
+
+static void free_gnokiienv(gnokii_environment *env) { 
+	osync_trace(TRACE_ENTRY, "%s()", __func__);
+
+	if (env->config)
+		g_free(env->config);
+
+	if (env->state)
+		g_free(env->state);
+
+	g_free(env);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
 
 static void *initialize(OSyncMember *member, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 
-	char *configdata;
+	char *configdata = NULL;
 	int configsize;
 	
 	// create gnokii_environment which stores config and statemachine for libgnokii
 	gnokii_environment *env = malloc(sizeof(gnokii_environment));
-	assert(env != NULL);
+	g_assert(env != NULL);
 	memset(env, 0, sizeof(gnokii_environment));
 
 	env->config = malloc(sizeof(gn_config));
-	assert(env->config != NULL);
+	g_assert(env->config != NULL);
 	memset(env->config, 0, sizeof(gn_config));
 
 	env->state = (struct gn_statemachine *) malloc(sizeof(struct gn_statemachine));
-	assert(env->state != NULL);
+	g_assert(env->state != NULL);
 	memset(env->state, 0, sizeof(struct gn_statemachine));
 
 
 	// now you can get the config file for this plugin
 	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
 		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-		free(env->config);
-		free(env->state);
-		free(env);
+		free_gnokiienv(env);
 		return NULL;
 	}
 	
 	if (!gnokii_config_parse(env->config, configdata, configsize, error)) {
-		free(env->config);
-		free(env->state);
-		free(env);
+		free_gnokiienv(env);
 		return NULL;
 	}
 	
@@ -65,7 +74,8 @@ static void *initialize(OSyncMember *member, OSyncError **error)
 	gnokii_config_state(env->state, env->config);
 	
 	//Process the config data here and set the options on your environment
-	free(configdata);
+	if (configdata)
+		g_free(configdata);
 	env->member = member;
 	
 	// create the hashtable
@@ -85,9 +95,7 @@ static void connect(OSyncContext *ctx)
 	// connect to cellphone
 	if (!gnokii_comm_connect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Connection failed");
-		free(env->config);
-		free(env->state);
-		free(env);
+		free_gnokiienv(env);
 		return;
 	}
 
@@ -153,9 +161,7 @@ static void disconnect(OSyncContext *ctx)
 	// disconnect the connection with phone
 	if (!gnokii_comm_disconnect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "disconnect failed");
-		free(env->config);       
-                free(env->state);
-		free(env);
+		free_gnokiienv(env);
                 return;
 	}
 	
@@ -174,13 +180,12 @@ static void finalize(void *data)
 
 	gnokii_environment *env = (gnokii_environment *)data;
 
-	// free everything
-	free(env->config);
-	free(env->state);
-	free(env);
-
-	// free hashtable
+	// close and free hashtable
+	osync_hashtable_close(env->hashtable);
 	osync_hashtable_free(env->hashtable);
+
+	// free everything
+	free_gnokiienv(env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

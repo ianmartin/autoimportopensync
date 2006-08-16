@@ -1,3 +1,8 @@
+2006-08-15  Daniel Gollub  <dgollub@suse.de>
+	* modified hash functions (update leads to different hash results!)
+	* fixed serveral memory leaks 
+	* replaced privacy function with TRACE_SENSITIVE
+
 2006-05-26  Daniel Gollub  <dgollub@suse.de>
 	* added configure parameters 
        		--disable-event

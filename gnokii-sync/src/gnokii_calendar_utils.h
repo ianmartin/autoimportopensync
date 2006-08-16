@@ -20,10 +20,11 @@
 
 #include <gnokii.h>
 
-char *gnokii_util_ttm2wday(const time_t *date);
+char *gnokii_util_unix2wday(const time_t *date);
 char *gnokii_util_caltype2string(gn_calnote_type type);
-gn_timestamp gnokii_util_ttm2timestamp(time_t time);
-time_t gnokii_util_timestamp2ttm(gn_timestamp timestamp);
+gn_timestamp gnokii_util_unix2timestamp(time_t time);
+gn_timestamp gnokii_util_tm2timestamp(const struct tm *timetm);
+time_t gnokii_util_timestamp2unix(gn_timestamp *timestamp);
 int gnokii_util_alarmevent2secs(char *alarm);
 char *gnokii_util_secs2alarmevent(int secs_before_event); 
 osync_bool gnokii_util_valid_number(char *number); 

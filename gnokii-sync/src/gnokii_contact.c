@@ -68,25 +68,21 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, contact);
 	
 	int i;
-	char *tmp = g_strdup(""); 
+	char *tmp = NULL; 
+	GString *hash = g_string_new("");
 
-	if (contact->name)
-		tmp = g_strdup_printf("%s-%s", tmp, contact->name);
+	if (contact->name) {
+		hash = g_string_append(hash, contact->name);
+	}
 
+	if (contact->caller_group) {
+		tmp = g_strdup_printf("%i", contact->caller_group);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 
-// no necassary!	
-//	tmp = g_strdup_printf("%s-%i", tmp, contact->memory_type);
-
-	if (contact->caller_group)
-		tmp = g_strdup_printf("%s-%i", tmp, contact->caller_group);
-
-// not necassary!	
-//	if (contact->location)
-//		tmp = g_strdup_printf("%s-%i", tmp, contact->location);
-
-	if (contact->date.year)
-		tmp = g_strdup_printf("%s-%i%i%i.%i%i%i.%i",
-				tmp,
+	if (contact->date.year) {
+		tmp = g_strdup_printf("%i%i%i.%i%i%i.%i",
 				contact->date.year,
 				contact->date.month,
 				contact->date.day,
@@ -94,41 +90,37 @@ char *gnokii_contact_hash(gn_phonebook_entry *contact) {
 				contact->date.minute,
 				contact->date.second,
 				contact->date.timezone);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
+	}
 
 	for (i=0; i < contact->subentries_count; i++) {
-		tmp = g_strdup_printf("%s-sub%i", tmp, i);
+		tmp = g_strdup_printf("sub%i", i);
+		hash = g_string_append(hash, tmp);
+		g_free(tmp);
 
-		if (contact->subentries[i].entry_type)
-			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].entry_type);
+		if (contact->subentries[i].entry_type) {
+			tmp = g_strdup_printf("%i", contact->subentries[i].entry_type);
+			hash = g_string_append(hash, tmp);
+			g_free(tmp);
+		}
 
-		if (contact->subentries[i].number_type)
-			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].number_type);
+		if (contact->subentries[i].number_type) {
+			tmp = g_strdup_printf("%i", contact->subentries[i].number_type);
+			hash = g_string_append(hash, tmp);
+			g_free(tmp);
+		}
 
-		if (contact->subentries[i].data.number)
-			tmp = g_strdup_printf("%s-%s", tmp, contact->subentries[i].data.number);
-
-		/* only filled when the entry is already written? XXX
-		if (contact->subentries[i].data.date.year)
-			tmp = g_strdup_printf("%s-%04i%02i%02i.%02i%02i%02i.%i", tmp, 
-					contact->subentries[i].data.date.year,
-					contact->subentries[i].data.date.month,
-					contact->subentries[i].data.date.day,
-					contact->subentries[i].data.date.hour,
-					contact->subentries[i].data.date.minute,
-					contact->subentries[i].data.date.second,
-					contact->subentries[i].data.date.timezone);
-		*/			
-
-		/* this is only filled when the entry is already written. hash after reading the written stuff?
-		if (contact->subentries[i].id)
-			tmp = g_strdup_printf("%s-%i", tmp, contact->subentries[i].id);
-		*/
+		if (contact->subentries[i].data.number) {
+			hash = g_string_append(hash, contact->subentries[i].data.number);
+		}
 	}
 	
-#ifndef HIDE_SENSITIVE	
-	osync_trace(TRACE_INTERNAL, "HASH LINE: %s", tmp);
-#endif	
-	tmp = g_strdup_printf("%u", g_str_hash(tmp));
+	osync_trace(TRACE_SENSITIVE, "HASH LINE: %s", hash->str);
+
+	tmp = g_strdup_printf("%u", g_str_hash(hash->str));
+
+	g_string_free(hash, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
 
@@ -245,7 +237,6 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 	gn_phonebook_entry_sanitize(contact);
         data->phonebook_entry = contact;
 
-#ifndef HIDE_SENSITIVE	
 	osync_trace(TRACE_INTERNAL, "contact->location: %i\n"
 				    "contact->empty: %i\n"
 				    "contact->name: %s\n"
@@ -273,8 +264,6 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 				contact->subentries[i].entry_type);
 
 	}
-
-#endif	
 
         error = gn_sm_functions(GN_OP_WritePhonebook, data, state);
 
@@ -403,10 +392,12 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 			// prepare UID with gnokii-contact-<memory type>-<memory location>
 			uid = gnokii_contact_uid(contact);
 			osync_change_set_uid(change, uid);
+			g_free(uid);
 
 			// get hash of contact 
 			hash = gnokii_contact_hash(contact);
 			osync_change_set_hash(change, hash);	
+			g_free(hash);
 
 			osync_change_set_objformat_string(change, "gnokii-contact"); 
 			osync_change_set_objtype_string(change, "contact");
@@ -424,9 +415,6 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 	osync_debug("GNOKII", 2, "number of contact notes: %i", location - 1);
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "contact");
-
-	g_free(hash);
-	g_free(uid);
 
 	osync_trace(TRACE_EXIT, "%s()", __func__);
 	return TRUE;
@@ -475,10 +463,12 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 			// memory location is known after note was written
 			uid = gnokii_contact_uid(contact);
 			osync_change_set_uid(change, uid);
+			g_free(uid);
 
 			// generate and set hash of entry
 			hash = gnokii_contact_hash(contact);
 			osync_change_set_hash(change, hash);
+			g_free(hash);
 
 			break;
 		case CHANGE_MODIFIED:
@@ -494,6 +484,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 			// set hash for the modified contact entry
 			hash = gnokii_contact_hash(contact);
 			osync_change_set_hash(change, hash);
+			g_free(hash);
 
 			break;
 		default:
@@ -506,10 +497,6 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 
 	// update hashtable
 	osync_hashtable_update_hash(env->hashtable, change);
-
-	// free uid and hash
-	g_free(uid);
-	g_free(hash);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 

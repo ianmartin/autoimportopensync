@@ -157,63 +157,91 @@ end:
         return tmp;
 }
 
+/*! @brief Function converts struct tm to gn_timestamp
+ *
+ * @param timetm The struct tm which gets converted
+ * @returns gn_timestamp
+ */ 
+gn_timestamp gnokii_util_tm2timestamp(const struct tm *timetm) {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, timetm);
+
+	gn_timestamp timestamp;
+
+	timestamp.year = timetm->tm_year + 1900;
+	timestamp.month = timetm->tm_mon + 1;
+	timestamp.day = timetm->tm_mday;
+	timestamp.hour = timetm->tm_hour;
+	timestamp.minute = timetm->tm_min;
+	timestamp.second = 0;
+	timestamp.timezone = 0;
+
+	osync_trace(TRACE_EXIT, "%s()", __func__);
+	return timestamp;
+}
+
+/*! @brief Function converts struct tm to gn_timestamp
+ *
+ * @param timetm The struct tm which gets converted
+ * @returns gn_timestamp (the caller is responsible for freeing)
+ */ 
+struct tm *gnokii_util_timestamp2tm(const gn_timestamp *timestamp) {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, timestamp);
+
+	struct tm *timetm = g_malloc0(sizeof(struct tm));
+
+	tzset();
+	timetm->tm_year = timestamp->year - 1900;
+	timetm->tm_mon = timestamp->month - 1;
+	timetm->tm_mday = timestamp->day;
+	timetm->tm_hour = timestamp->hour;
+	timetm->tm_min = timestamp->minute;
+	timetm->tm_sec = 0;
+	timetm->tm_wday = 0;
+	timetm->tm_yday = 0;
+	timetm->tm_isdst = -1;
+
+	osync_trace(TRACE_EXIT, "%s()", __func__);
+	return timetm;
+}
+
 /* Convert a time_t struct to a gnokii timestamp (gn_timestamp).
  * Seconds will be ignored - cellphone cannot handle seconds.
  * 
  * Returns: gn_timestamp
  */
-gn_timestamp gnokii_util_ttm2timestamp(time_t time) {
+gn_timestamp gnokii_util_unix2timestamp(time_t time) {
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, time);
 
-	struct tm *date = (struct tm *) malloc(sizeof(struct tm)); 
+	struct tm *date = NULL;
 	gn_timestamp timestamp;
-
-	memset(&timestamp, 0, sizeof(gn_timestamp));
 
 	tzset();
 	date = localtime(&time);	
 
-	timestamp.second = 0; 		// cellphone calendar doesn't support seconds
-	timestamp.minute = date->tm_min;
-	timestamp.hour = date->tm_hour;
-	timestamp.day = date->tm_mday;
-	timestamp.month = date->tm_mon + 1;
-	timestamp.year = date->tm_year + 1900;
+	timestamp = gnokii_util_tm2timestamp(date);
 
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, timestamp);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return timestamp;
 }
+
+
 
 /* Converts gnokii timestamp (gn_timestamp) to time_t struct.
  * 
  * Returns: time_t of event 
  */
-time_t gnokii_util_timestamp2ttm(gn_timestamp timestamp) {
+time_t gnokii_util_timestamp2unix(gn_timestamp *timestamp) {
 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, timestamp);
-	struct tm *date = (struct tm *) malloc(sizeof(struct tm));
+	struct tm *date = NULL; 
+	time_t timet;
 
-	osync_trace(TRACE_INTERNAL, "%04i %02i %02i - %02i:%02i:%02i",
-			timestamp.year, timestamp.month, timestamp.day,
-			timestamp.hour, timestamp.minute, timestamp.second);
-			
+	date = gnokii_util_timestamp2tm(timestamp);
+	timet = mktime(date);
 
-	tzset();
-	date->tm_sec = timestamp.second;
-	date->tm_min = timestamp.minute;
-	date->tm_hour = timestamp.hour;
-	date->tm_mday = timestamp.day;
-	date->tm_mon = timestamp.month;
-	date->tm_mon -= 1;
-	date->tm_year = timestamp.year;
-	date->tm_year -= 1900;
-	date->tm_wday = 0;
-	date->tm_yday = 0;
-	date->tm_isdst = -1;
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return mktime(date);
+	osync_trace(TRACE_EXIT, "%s: %ul", __func__, timet);
+	return timet; 
 }
 
 /* Converts gnokii calendar note type into a string.
@@ -252,14 +280,14 @@ char *gnokii_util_caltype2string(gn_calnote_type type) {
  *
  * Returns: day string (SU, MO, TU, WE, ...) 
  */
-char *gnokii_util_ttm2wday(const time_t *date) {
+char *gnokii_util_unix2wday(const time_t *date) {
 
 	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, *date);
 
-	struct tm *tmp_date = localtime(date);
+	struct tm tmp_date = *localtime(date);
 	char *day_string = NULL;
 
-	switch (tmp_date->tm_wday) {
+	switch (tmp_date.tm_wday) {
 		case 0:
 			day_string = strdup("SU");
 			break;
@@ -293,7 +321,7 @@ char *gnokii_util_ttm2wday(const time_t *date) {
  * ReturnValue: true - valid number
  * ReturnValue: false - invalid number
  */ 
-osync_bool gnokii_util_valid_number(char *number) {
+osync_bool gnokii_util_valid_number(const char *number) {
 
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, number);
 

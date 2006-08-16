@@ -82,7 +82,6 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 		}
 
 		xmlNewChild(current, NULL, (xmlChar*)"Category", (xmlChar*) tmp);
-
 		g_free(tmp);
 	}
 
@@ -90,7 +89,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 	// Record Date / Revision
 	if (contact->date.year) {
 		// TODO timezone
-		tmp = g_strdup_printf("%04d-%02d-%02dT%02d:%02d:%02d",
+		tmp = g_strdup_printf("%04d%02d%02dT%02d%02d%02d",
 				contact->date.year + 1900,
 				contact->date.month + 1,
 				contact->date.day,
@@ -173,9 +172,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-#ifndef HIDE_SENSITIVE
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
-#endif	
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 	return TRUE;
@@ -188,11 +185,10 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, 
 			output, outpsize, free_input, error);
-#ifndef HIDE_SENSITIVE
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
-#endif	
 
-	char *tmp = NULL;
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+
+	char *tmp = NULL, *number = NULL;
 	xmlNode *cur = NULL;
 	xmlNode *sub = NULL;
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -221,8 +217,11 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 
 	// FormattedName - XXX Also Node "Name"?
 	 cur = osxml_get_node(root, "FormattedName");
-	 if (cur)
-		 strncpy(contact->name, (char *) xmlNodeGetContent(cur), GN_PHONEBOOK_NAME_MAX_LENGTH);
+	 if (cur) {
+		 tmp = (char *) xmlNodeGetContent(cur);
+		 strncpy(contact->name, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		 g_free(tmp);
+	 }
 	
 	// Telephone
 	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Telephone");
@@ -234,10 +233,12 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Number;
 		
 		sub = osxml_get_node(cur, "Content");
-		tmp = gnokii_contact_util_cleannumber((char *) xmlNodeGetContent(sub));
-		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		tmp = (char *) xmlNodeGetContent(sub);
+		number = gnokii_contact_util_cleannumber(tmp);
+		strncpy(contact->subentries[subcount].data.number, number, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
+		g_free(number);
 
-		// FIXME - is there any other cool osync_xml function?!
 		sub = osxml_get_node(cur, "Type");
 		if (sub) {
 			tmp = (char *) xmlNodeGetContent(sub);
@@ -251,9 +252,10 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Mobile; 
 			else
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_General;
+
+			g_free(tmp);
 		}
 		subcount++;
-		g_free(tmp);
 	}
 	xmlXPathFreeObject(xobj);
 
@@ -268,8 +270,10 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_URL;
 
 		sub = osxml_get_node(cur, "Content");
-
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
+		
+		tmp = (char *) xmlNodeGetContent(sub);
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
 
 		subcount++;
 	}
@@ -285,7 +289,10 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Email;
 		sub = osxml_get_node(cur, "Content");
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
+
+		tmp = (char *) xmlNodeGetContent(sub);
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
 
 		subcount++;
 	}
@@ -301,7 +308,9 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 
 		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Note;
 		sub = osxml_get_node(cur, "Content");
-		strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH);
+		tmp = (char *) xmlNodeGetContent(sub);
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
 
 		subcount++;
 	}
@@ -331,7 +340,8 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 		} else if (!strcasecmp(tmp, "OTHERS")) {
 			contact->caller_group = GN_PHONEBOOK_GROUP_Others;
 		}
-		
+
+		g_free(tmp);
 	}
 	xmlXPathFreeObject(xobj);
 
@@ -348,8 +358,11 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 
 		sub = osxml_get_node(cur, "Content");
 
-		if (sub)
-			strncpy(contact->subentries[subcount].data.number, (char *) xmlNodeGetContent(sub), GN_PHONEBOOK_NAME_MAX_LENGTH); 
+		if (sub) { 
+			tmp = (char *) xmlNodeGetContent(sub);
+			strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH); 
+			g_free(tmp);
+		}
 
 		subcount++;
 	}
@@ -357,7 +370,7 @@ static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int i
 
 	contact->subentries_count = subcount;
 
-	osync_trace(TRACE_INTERNAL, "TEST: name: %s\n", contact->name);
+	osync_trace(TRACE_SENSITIVE, "TEST: name: %s\n", contact->name);
 	 
 	*free_input = TRUE;
 	*output = (void *)contact;
