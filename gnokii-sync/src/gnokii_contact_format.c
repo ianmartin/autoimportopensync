@@ -47,18 +47,18 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 
 	// Name
 	if (contact->name) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) contact->name);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*) contact->name);
 
 		// FIXME: evo2 workaround - evo2 requires a Name / N filed :(
-		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"FirstName", (xmlChar*) contact->name);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"FirstName", (xmlChar*) contact->name);
 
 	}
 
 	// Group
 	if (contact->caller_group != GN_PHONEBOOK_GROUP_None) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 
 		switch (contact->caller_group) {
 			case GN_PHONEBOOK_GROUP_Family:
@@ -81,7 +81,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 				break;
 		}
 
-		xmlNewChild(current, NULL, (xmlChar*)"Category", (xmlChar*) tmp);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Category", (xmlChar*) tmp);
 		g_free(tmp);
 	}
 
@@ -97,8 +97,8 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 				contact->date.minute,
 				contact->date.second);
 		
-		current = xmlNewChild(root, NULL, (xmlChar*)"Revision", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*) tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Revision", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*) tmp);
 
 		g_free(tmp);
 	}
@@ -110,29 +110,29 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_ENTRY_Name:
 				break;
 			case GN_PHONEBOOK_ENTRY_Email:
-				current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
-				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"EMail", NULL);
+				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_Postal:
-				current = xmlNewChild(root, NULL, (xmlChar*)"AddressLabel", NULL);
-				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"AddressLabel", NULL);
+				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_Number:
-				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
-				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
+				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_Group:
-				current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
-				xmlNewChild(current, NULL, (xmlChar*) "Category", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
+				xmlNewTextChild(current, NULL, (xmlChar*) "Category", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_URL:
-				current = xmlNewChild(root, NULL, (xmlChar*)"Url", NULL);
-				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"Url", NULL);
+				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 
 				break;
 			case GN_PHONEBOOK_ENTRY_Note:
-				current = xmlNewChild(root, NULL, (xmlChar*)"Note", NULL);
-				xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"Note", NULL);
+				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
 				break;
 			// Unused	
 			case GN_PHONEBOOK_ENTRY_Ringtone:
@@ -149,19 +149,19 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 
 		switch (contact->subentries[i].number_type) {
 			case GN_PHONEBOOK_NUMBER_Home:
-				xmlNewChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "HOME");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "HOME");
 				break;
 			case GN_PHONEBOOK_NUMBER_Mobile:
-				xmlNewChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "CELL");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "CELL");
 				break;
 			case GN_PHONEBOOK_NUMBER_Fax:
-				xmlNewChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "FAX");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "FAX");
 				break;
 			case GN_PHONEBOOK_NUMBER_Work:
-				xmlNewChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "WORK");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "WORK");
 				break;
 			case GN_PHONEBOOK_NUMBER_General:
-				xmlNewChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "GERNERAL");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "GERNERAL");
 				break;
 			default:
 				break;	

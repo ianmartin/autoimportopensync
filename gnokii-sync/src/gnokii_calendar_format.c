@@ -46,10 +46,10 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 
 	xmlDoc *doc = xmlNewDoc((xmlChar*) "1.0");
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
-	root = xmlNewChild(root, NULL, (xmlChar*) "Event", NULL);
+	root = xmlNewTextChild(root, NULL, (xmlChar*) "Event", NULL);
 
 	// Type
-	current = xmlNewChild(root, NULL, (xmlChar *) "Categories", NULL);
+	current = xmlNewTextChild(root, NULL, (xmlChar *) "Categories", NULL);
 	switch (cal->type) {
 		case GN_CALNOTE_MEETING:
 			 osxml_node_add(current, "Category", "Meeting");
@@ -96,8 +96,8 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		}
 
 		osync_trace(TRACE_SENSITIVE, "start time: %s (ical - UTC)\n", vtime);
-		current = xmlNewChild(root, NULL, (xmlChar *) "DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar*) vtime);
+		current = xmlNewTextChild(root, NULL, (xmlChar *) "DateStarted", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) vtime);
 
 		g_free(vtime);
 
@@ -133,8 +133,8 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 			vtime = osync_time_vtime2utc(tmp);
 		}
 
-		current = xmlNewChild(root, NULL, (xmlChar *) "DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar*) vtime);
+		current = xmlNewTextChild(root, NULL, (xmlChar *) "DateEnd", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) vtime);
 
 		g_free(tmp);	
 		g_free(vtime);
@@ -179,34 +179,34 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		// convert seconds into ical duration string - example: -P1DT22H30M 
 		tmp = gnokii_util_secs2alarmevent(secs_before_event);	
 		
-		current = xmlNewChild(root, NULL, (xmlChar *) "Alarm", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar *) "Alarm", NULL);
 
 		if (cal->alarm.tone)
-			xmlNewChild(current, NULL, (xmlChar*) "AlarmAction", (xmlChar*) "DISPLAY");
+			xmlNewTextChild(current, NULL, (xmlChar*) "AlarmAction", (xmlChar*) "DISPLAY");
 
-		xmlNode *sub = xmlNewChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
-		xmlNewChild(sub, NULL, (xmlChar*) "Content", (xmlChar*) tmp); 
-		xmlNewChild(sub, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
+		xmlNode *sub = xmlNewTextChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
+		xmlNewTextChild(sub, NULL, (xmlChar*) "Content", (xmlChar*) tmp); 
+		xmlNewTextChild(sub, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
 
 		g_free(tmp);
 	}
 
 	// Summary
 	if (cal->text) {
-		current = xmlNewChild(root, NULL, (xmlChar*) "Summary", NULL);
-		xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar *) cal->text);
+		current = xmlNewTextChild(root, NULL, (xmlChar*) "Summary", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar *) cal->text);
 	}
 
 	// Phone Number
 	if (cal->phone_number && cal->type == GN_CALNOTE_CALL) {
-		current = xmlNewChild(root, NULL, (xmlChar*) "Description", NULL);
-		xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar *) cal->phone_number);
+		current = xmlNewTextChild(root, NULL, (xmlChar*) "Description", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar *) cal->phone_number);
 	}
 
 	// mlocation
 	if (cal->mlocation && cal->type == GN_CALNOTE_MEETING) {
-		current = xmlNewChild(root, NULL, (xmlChar*) "Location", NULL);
-		xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar*) cal->mlocation);
+		current = xmlNewTextChild(root, NULL, (xmlChar*) "Location", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) cal->mlocation);
 	}
 
 	// Recurrence
@@ -231,8 +231,8 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 				break;
 		}
 		
-		current = xmlNewChild(root, NULL, (xmlChar*) "RecurrenceRule", NULL);
-		xmlNewChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*) "RecurrenceRule", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
 		g_free(tmp);
 
 		// prepare "by day/day of month/..." string
@@ -242,11 +242,11 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 				break;
 			case GN_CALNOTE_2WEEKLY:
 				tmp = g_strdup("INTERVAL=4");
-				xmlNewChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
+				xmlNewTextChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
 			case GN_CALNOTE_WEEKLY:
 				wday = gnokii_util_unix2wday(&start_timet);
 				tmp = g_strdup_printf("BYDAY=%s", wday);
-				xmlNewChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
+				xmlNewTextChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
 				g_free(wday);
 				break;
 			case GN_CALNOTE_MONTHLY:
