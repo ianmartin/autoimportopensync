@@ -67,7 +67,18 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	root = xmlNewTextChild(root, NULL, (xmlChar*)"Event", NULL);
 
-	osync_trace(TRACE_SENSITIVE, "note: \"%s\" event: %i", entry->appointment.note, entry->appointment.event);
+
+	//Convert from cp1252 -> utf8 ...
+	// ...description
+	tmp = g_convert(entry->appointment.description, strlen(entry->appointment.description), "utf8", entry->codepage, NULL, NULL, NULL);
+	g_free(entry->appointment.description); 
+	entry->appointment.description = tmp;
+
+	// ...note	
+	tmp = g_convert(entry->appointment.note, strlen(entry->appointment.note), "utf8", entry->codepage, NULL, NULL, NULL);
+	g_free(entry->appointment.note); 
+	entry->appointment.note = tmp;
+
 
 	//Description
 	current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
@@ -347,24 +358,27 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	entry->appointment.advanceUnits = 0;
 	entry->appointment.repeatForever = 1;
 	entry->appointment.repeatType = repeatNone;
-	// repeatFrequencly of ZERO will break your palm(-calendar) on recurrence entries
+	// XXX repeatFrequencly of ZERO will break your palm(-calendar) on recurrence entries
 	entry->appointment.repeatFrequency = 1;
 	entry->appointment.repeatWeekstart= 0;
-//	entry->appointment.exception = malloc(sizeof(struct tm) * 20); // FIXME: realloc?
 	entry->appointment.exceptions = 0;
 	entry->appointment.description = NULL;
 	entry->appointment.note = NULL;
 
-	//Summary
+	//Description
 	xmlNode *cur = osxml_get_node(root, "Description");
 	if (cur) {
-		entry->appointment.note = (char *)xmlNodeGetContent(cur);
+		tmp = (char *)xmlNodeGetContent(cur);
+		entry->appointment.note = g_convert(tmp, strlen(tmp), "cp1252", "utf8", NULL, NULL, NULL);
+		g_free(tmp);
 	}
 	
-	//Note
+	//Summary
 	cur = osxml_get_node(root, "Summary");
 	if (cur) {
-		entry->appointment.description = (char *)xmlNodeGetContent(cur);
+		tmp = (char *)xmlNodeGetContent(cur);
+		entry->appointment.description = g_convert(tmp, strlen(tmp), "cp1252", "utf8", NULL, NULL, NULL);
+		g_free(tmp);
 	}
 
 	//Start
@@ -886,20 +900,34 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	root = xmlNewTextChild(root, NULL, (xmlChar*)"Todo", NULL);
 
-	//Summary
-	if (entry->todo.description) {
+
+	//Convert from cp1252 -> utf8 ...
+	// ...description
+	tmp = g_convert(entry->todo.description, strlen(entry->todo.description), "utf8", entry->codepage, NULL, NULL, NULL);
+	g_free(entry->todo.description); 
+	entry->todo.description = tmp;
+
+	// ...note	
+	tmp = g_convert(entry->todo.note, strlen(entry->todo.note), "utf8", entry->codepage, NULL, NULL, NULL);
+	g_free(entry->todo.note); 
+	entry->todo.note = tmp;
+
+
+	//Description
+	if (entry->todo.note) {
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Description", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
 	}
 	
-	//Description
-	if (entry->todo.note) {
+	//Summary
+	if (entry->todo.description) {
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
 	}
 	
 	//priority
 	if (entry->todo.priority) {
+		// FIXME - nonsense?
 		tmp = g_strdup_printf("%i", entry->todo.priority + 2);
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Priority", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
@@ -908,17 +936,20 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 
 	//due
 	if (entry->todo.indefinite == 0) {
-		time_t ttm = mktime(&(entry->todo.due));
-		tmp = g_strdup_printf("%i", (int)ttm);
+		char *date = NULL; 
+		tmp = osync_time_tm2vtime(&(entry->todo.due), FALSE); 
+		// palm t|x is only able to handle datestamp (no timestamp!) dues
+		date = osync_time_datestamp(tmp);
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateDue", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)date);
 		g_free(tmp);
+		g_free(date);
 	}
 
 	//completed
 	if (entry->todo.complete) {
 		time_t now = time(NULL);
-		tmp = g_strdup_printf("%i", (int)now);
+		tmp = osync_time_unix2vtime(&now); 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Completed", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
@@ -949,6 +980,8 @@ error:
 static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+
+	char *tmp = NULL;
 
 	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
@@ -1008,23 +1041,26 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 	//Summary
 	cur = osxml_get_node(root, "Summary");
 	if (cur) {
-		entry->todo.description = (char *)xmlNodeGetContent(cur);
+		tmp = (char *)xmlNodeGetContent(cur);
+		entry->todo.description = g_convert(tmp, strlen(tmp), "cp1252", "utf8", NULL, NULL, NULL);
+		g_free(tmp);
 	}
 	
 	//Description
 	cur = osxml_get_node(root, "Description");
 	if (cur) {
-		entry->todo.note = (char *)xmlNodeGetContent(cur);
+		tmp = (char *)xmlNodeGetContent(cur);
+		entry->todo.note = g_convert(tmp, strlen(tmp), "cp1252", "utf8", NULL, NULL, NULL);
+		g_free(tmp);
 	}
 	
 	//Due
-	cur = osxml_get_node(root, "Due");
+	cur = osxml_get_node(root, "DateDue");
 	if (cur) {
-		char *content = (char *)xmlNodeGetContent(cur);
-		time_t ttm = atoi(content);
-		struct tm *tm = gmtime(&ttm);
-		entry->todo.due = *tm;
+		struct tm *due = osync_time_vtime2tm((char *) xmlNodeGetContent(cur));
+		entry->todo.due = *due;
 		entry->todo.indefinite = 0;
+		g_free(due);
 	}
 
 	//Categories
@@ -1248,12 +1284,9 @@ static char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
 	char *tmp = NULL;
 	
-	osync_trace(TRACE_SENSITIVE, "Entry: %p", entry->address.entry[i]);
-	if (entry->address.entry[i]) {
-		osync_trace(TRACE_SENSITIVE, "Before: %s", entry->address.entry[i]);
+	osync_trace(TRACE_SENSITIVE, "Entry: %s (%p)", entry->address.entry[i], entry->address.entry[i]);
+	if (strlen(entry->address.entry[i]) > 0)
 		tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), "utf8", entry->codepage, NULL, NULL, NULL);
-	}
-	osync_trace(TRACE_SENSITIVE, "Palm Entry: %i: %s", i, tmp);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return tmp;
@@ -1269,7 +1302,10 @@ static osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
 static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+
 	PSyncContactEntry *entry = (PSyncContactEntry *)input;
+
+	int i;
 	char *tmp = NULL;
 	xmlNode *current = NULL;
 	
@@ -1278,20 +1314,8 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		goto error;
 	}
 	
-	int i = 0;
-	for (i = 0; i < 19; i++) {
-	  /*if (entry->address.entry[i]) {
-	    char *tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), conn->codepage ,"utf8", NULL, NULL, NULL);
-	    free(entry->address.entry[i]);
-	    entry->address.entry[i] = tmp;
-	  }
-	  if (entry->address.entry[i] && !strlen(entry->address.entry[i])) {
-	    free(entry->address.entry[i]);
-	    entry->address.entry[i] = NULL;
-	    palm_debug(conn, 3, "Address %i: %s", i, entry->address.entry[i]);
-	  }*/
-	  osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
-	}
+	for (i = 0; i < 19; i++)
+		osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
 	
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
@@ -1302,13 +1326,6 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		GString *formatted_name = g_string_new("");
 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
-		//Last Name
-		tmp = return_next_entry(entry, entryLastname);
-		if (tmp) {
-			osxml_node_add(current, "LastName", tmp);
-			formatted_name = g_string_append(formatted_name, tmp);
-			g_free(tmp);
-		}
 	
 		//First Name
 		tmp = return_next_entry(entry, entryFirstname);
@@ -1318,10 +1335,23 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 			g_free(tmp);
 		}
 
-		//Formatted
+		//Last Name
+		tmp = return_next_entry(entry, entryLastname);
+		if (tmp) {
+			osxml_node_add(current, "LastName", tmp);
+			
+			// this is only for the FormattedName
+			formatted_name = g_string_append(formatted_name, " ");
+			formatted_name = g_string_append(formatted_name, tmp);
+			g_free(tmp);
+		}
+
+		//Formatted Name
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 		osxml_node_add(current, "Content", formatted_name->str);
+		osync_trace(TRACE_SENSITIVE, "FormattedName: \"%s\"", formatted_name->str);
 		g_string_free(formatted_name, TRUE);
+
 	}
 	
 	//Company
@@ -1483,7 +1513,7 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 	PSyncContactEntry *entry = osync_try_malloc0(sizeof(PSyncContactEntry), error);
 	if (!entry)
 		goto error;
-	
+
 	/* Set the entries */
 	entry->address.phoneLabel[0] = 0;
 	entry->address.phoneLabel[1] = 1;
@@ -1580,35 +1610,16 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 
 	/* Now convert to the charset */
 	for (i = 0; i < 19; i++) {
-	  /*	
-	  if (entry->address.entry[i] && !strlen(entry->address.entry[i]))
-	    entry->address.entry[i] = NULL;
-
 	  if (entry->address.entry[i]) {
-		iconv_t cd = iconv_open("CP1252", "UTF-8");
-
-
-		char *inbuf, *outbuf;
-		size_t inbytesleft, outbytesleft;
-		size_t size = strlen(inbuf);
-
-		inbuf = entry->address.entry[i];
-		
-		outbuf = malloc(size * 2);
-
-		inbytesleft = size * 2;
-		
-		if (iconv(cd, &inbuf, &inbytesleft, &outbuf, &outbytesleft) != (size_t)(-1)) {
-			osync_trace(TRACE_INTERNAL, "entry(cp1252): %s (%s)", outbuf, entry->address.entry[i]);
-		} else {
-			osync_trace(TRACE_INTERNAL, "iconv failed.");
-		}
-		
+		// FIXME cp1252 hardcoded? entry->codepage is null ... how to get this in the palm env?		  
+		char *tmp = g_convert(entry->address.entry[i], strlen(entry->address.entry[i]), "cp1252", "utf8", NULL, NULL, NULL);
+		g_free(entry->address.entry[i]);
+		entry->address.entry[i] = tmp;
+	 	osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
 	  }
-	  */
-
-	  osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
 	}
+	
+	osync_trace(TRACE_INTERNAL, "DONE");
 	
 	*free_input = TRUE;
 	*output = (void *)entry;
@@ -1760,15 +1771,14 @@ osync_bool demarshall_palm_contact(const char *input, int inpsize, char **output
 
 	newcontact->codepage = NULL;
 
-	/*
         for (i=0; i < inpsize; i++)
                 osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
-	*/	
 
         /* contact->codepage */
         if ((tmp_size = strlen(pos)) > 0) {
                 newcontact->codepage = strdup(pos);
         	pos += tmp_size;
+		osync_trace(TRACE_INTERNAL, "codepage: %s", newcontact->codepage);
 	}
 	pos += 1;
 
@@ -1815,6 +1825,8 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
+
+	char *tmp = NULL;
 	xmlNode *current = NULL;
 	
 	if (inpsize != sizeof(PSyncNoteEntry)) {
@@ -1825,6 +1837,12 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "Note");
+
+	// convert memo.text from cp1252 -> utf8 
+	tmp = g_strdup(entry->memo.text);
+	g_free(entry->memo.text);
+	entry->memo.text = g_convert(tmp, strlen(tmp), "utf8", "cp1252", NULL, NULL, NULL);
+	g_free(tmp);
 
 	// Summary & Body
 	if (entry->memo.text) {
@@ -1865,6 +1883,7 @@ static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsiz
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
+	char *tmp = NULL;
 	xmlNode *cur = NULL;
 	GString *memo = g_string_new("");
 
@@ -1900,6 +1919,12 @@ static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsiz
 		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
 
 	entry->memo.text = (char *) g_string_free(memo, FALSE);
+
+	// convert memo.text from utf8 -> cp1252
+	tmp = g_strdup(entry->memo.text);
+	g_free(entry->memo.text);
+	entry->memo.text = g_convert(tmp, strlen(tmp), "utf8", "cp1252", NULL, NULL, NULL);
+	g_free(tmp);
 	
 	//Categories
 	cur = osxml_get_node(root, "Categories");

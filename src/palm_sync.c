@@ -508,7 +508,7 @@ static gboolean _psyncPoll(gpointer data)
 		osync_trace(TRACE_EXIT, "%s: Already have a socket", __func__);
 		return TRUE;
 	}
-	
+
 	OSyncError *error = NULL;
 	if (_connectDevice(env, 1, &error))
 		osync_member_request_synchronization(env->member);
@@ -548,6 +548,8 @@ static void psyncThreadStart(PSyncEnv *env)
 	g_source_set_callback(source, _psyncPing, env, NULL);
 	g_source_attach(source, context);
 	
+
+	//FIXME needed?
 	source = g_timeout_source_new(1000);
 	g_source_set_callback(source, _psyncPoll, env, NULL);
 	g_source_attach(source, context);
