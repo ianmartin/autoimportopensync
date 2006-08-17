@@ -765,11 +765,14 @@ void osync_member_set_slow_sync(OSyncMember *member, const char *objtypestr, osy
  */
 osync_bool osync_member_get_slow_sync(OSyncMember *member, const char *objtypestr)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, member, objtypestr);
 	g_assert(member);	
 	OSyncGroup *group = osync_member_get_group(member);
 	g_assert(group);
 
 	osync_bool needs_slow_sync = osync_group_get_slow_sync(group, objtypestr);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, needs_slow_sync);
 	return needs_slow_sync;
 }
 
@@ -1095,6 +1098,25 @@ void osync_member_read_change(OSyncMember *member, OSyncChange *change, OSyncEng
 	
 	osync_context_report_error(context, OSYNC_ERROR_CONVERT, "Unable to send changes");
 	osync_trace(TRACE_EXIT_ERROR, "%s: Unable to find a sink", __func__);
+}
+
+/** @brief Checks if the member has a read method for the given objtype
+ * 
+ * @param member The member
+ * @param objtype The objtype for which to check the read methid
+ * @return TRUE if the member has read function, FALSE otherwise
+ * 
+ */
+osync_bool osync_member_has_read_function(OSyncMember *member, OSyncObjType *objtype)
+{
+	GList *i;
+	for (i = member->format_sinks; i; i = i->next) {
+		OSyncObjFormatSink *fmtsink = i->data;
+
+		if (osync_objformat_get_objtype(fmtsink->format) == objtype)
+			return fmtsink->functions.read ? TRUE : FALSE;
+	}
+	return FALSE;
 }
 
 /** @brief Gets the "real" data of a object
