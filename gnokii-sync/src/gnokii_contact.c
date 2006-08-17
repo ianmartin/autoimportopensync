@@ -366,10 +366,15 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 	for (memtype=0; memtype <= GN_MT_SM; memtype++) {
 
 		location = 0;
+		num_entries = 0;
 
 		data->memory_status = &memstat;
 		memstat.memory_type = memtype; 
 		gnokii_error = gn_sm_functions(GN_OP_GetMemoryStatus, data, env->state);
+		if (gnokii_error != GN_ERR_NONE) {
+			osync_trace(TRACE_EXIT_ERROR, "%s: gnokii memory stat error: %s", __func__, gn_error_print(gnokii_error));
+			return FALSE;
+		}
 		num_entries = memstat.used;
 
 		osync_trace(TRACE_INTERNAL, "Memory Usage: Number of entries in MEM[%i]: %i", memtype, num_entries);
@@ -381,8 +386,11 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 
 			if (gnokii_error == GN_ERR_NONE)
 				num_entries--;
-			else if (gnokii_error != GN_ERR_EMPTYLOCATION)
-				osync_trace(TRACE_EXIT_ERROR, "gnokii contact error: %s", gn_error_print(gnokii_error));
+
+			else if (gnokii_error != GN_ERR_EMPTYLOCATION) {
+				osync_trace(TRACE_EXIT_ERROR, "%s: gnokii contact error: %s", __func__, gn_error_print(gnokii_error));
+				return FALSE;
+			}
 
 			if (contact == NULL)
 				continue;
@@ -412,7 +420,7 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 		}
 	}
 
-	osync_debug("GNOKII", 2, "number of contact notes: %i", location - 1);
+	osync_trace(TRACE_INTERNAL, "number of contact notes: %i", location - 1);
 
 	osync_hashtable_report_deleted(env->hashtable, ctx, "contact");
 
