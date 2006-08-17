@@ -388,6 +388,12 @@ START_TEST (todo_no_revision)
 }
 END_TEST
 
+START_TEST (conv_test_crash)
+{
+	conv_vcal("data/vevents/crash.ics");
+}
+END_TEST
+
 Suite *vcal_suite(void)
 {
 	Suite *s = suite_create("VCal");
@@ -410,8 +416,8 @@ Suite *vcal_suite(void)
 	create_case(s, "conv_vevent_kdepim_1hour_10", conv_vevent_kdepim_1hour_10);
 	create_case(s, "conv_vevent_kdepim_1hour_20", conv_vevent_kdepim_1hour_20);
 	
-	create_case(s2, "cmp_vevent_1hour_1", cmp_vevent_1hour_1);
-	create_case(s2, "cmp_vevent_1hour_2", cmp_vevent_1hour_2);
+	create_case(s, "cmp_vevent_1hour_1", cmp_vevent_1hour_1);
+	create_case(s, "cmp_vevent_1hour_2", cmp_vevent_1hour_2);
 	
 	create_case(s, "event_get_revision1", event_get_revision1);
 	create_case(s, "event_get_revision2", event_get_revision2);
@@ -434,8 +440,11 @@ Suite *vcal_suite(void)
 	create_case(s, "todo_get_revision2", todo_get_revision2);
 	create_case(s, "todo_get_revision3", todo_get_revision3);
 	create_case(s, "todo_no_revision", todo_no_revision);
+	create_case(s2, "conv_test_crash", conv_test_crash);
 	
-	return s;
+	
+	
+	return s2;
 }
 
 int main(void)
