@@ -438,6 +438,45 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/** @brief Checks if a conflict can be ignore
+ * 
+ * To be able to ignore a conflict, you opensync must be able to read
+ * the changes of the conflict again during the next synchronization. This must be done
+ * even if they are not reported by the plugin. Therefore, all plugins should provide
+ * a "read" method. If there is a member in the engine's group that does not have this
+ * method (either since it is not possible to implement one or since it has not been done
+ * yet), this function will return FALSE.
+ *
+ * @param engine The engine
+ * @param mapping The mapping to check
+ * @returns TRUE if conflicts can be ignored, FALSE otherwise
+ */
+osync_bool osengine_mapping_ignore_supported(OSyncEngine *engine, OSyncMapping *mapping)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
+	
+	int i, count = 0;
+	OSyncChange *change = NULL;
+	OSyncMember *member = NULL;
+	OSyncObjType *objtype = NULL;
+
+	count = osengine_mapping_num_changes(mapping);
+	for (i = 0; i < count; ++i) {
+		change = osengine_mapping_nth_change(mapping, i);
+		objtype = osync_change_get_objtype(change);
+
+		member = osync_change_get_member(change);
+
+		if (!osync_member_has_read_function(member, objtype)) {
+			osync_trace(TRACE_EXIT, "%s: Ignore NOT supported", __func__);
+			return FALSE;
+		}
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: Ignore supported", __func__);
+	return TRUE;
+}
+
 /** @brief Solves a mapping by choosing the entry that was last modified
  * 
  * Solves the mapping by choosing the last modified entry. Note that this can fail
