@@ -799,15 +799,21 @@ void osync_group_reset_slow_sync(OSyncGroup *group, const char *objtypestr)
  */
 osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, group, objtype);
+	
 	g_assert(group);
 	OSyncFormatEnv *env = group->conv_env;
 	g_assert(env);
 	
 	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, "data");
-	if (osync_objtype->needs_slow_sync)
+	if (osync_objtype->needs_slow_sync) {
+		osync_trace(TRACE_EXIT, "%s: Data objtype needs slow-sync", __func__);
 		return TRUE;
+	}
 	osync_objtype = osync_conv_find_objtype(env, objtype);
 	g_assert(osync_objtype);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, osync_objtype->needs_slow_sync);
 	return osync_objtype->needs_slow_sync;
 }
 

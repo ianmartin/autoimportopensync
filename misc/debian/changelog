@@ -1,3 +1,9 @@
+libopensync (0.18-1) unstable; urgency=low
+
+  * Updated release to 0.18
+
+ -- Armin Bauer <armin.bauer@desscon.com>  Thu, 20 Apr 2006 14:53:47 +0200
+
 libopensync (0.13-1) unstable; urgency=low
 
   * Initial Release.
