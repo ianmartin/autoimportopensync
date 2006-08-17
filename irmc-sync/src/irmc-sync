@@ -1,5 +1,6 @@
 <config>
   <donttellsync>false</donttellsync>
-  <connectmedium></connectmedium>
-  <irname></irname>
+  <connectmedium>bluetooth</connectmedium>
+  <btunit></btunit>
+  <btchannel></btchannel>
 </config>
