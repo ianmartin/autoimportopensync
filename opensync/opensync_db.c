@@ -103,8 +103,7 @@ osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long in
 	
 	OSyncDB *log_db = _open_changelog(group, error);
 	if (!log_db) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	sqlite3 *sdb = log_db->db;
 	
@@ -132,14 +131,20 @@ osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long in
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to remove all logs! %s", sqlite3_errmsg(sdb));
 		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error_db_close;
 	}
 	g_free(query);
 	
 	osync_db_close(log_db);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_db_close:
+	osync_db_close(log_db);
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
@@ -148,8 +153,7 @@ osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSync
 	
 	OSyncDB *log_db = _open_changelog(group, error);
 	if (!log_db) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	sqlite3 *sdb = log_db->db;
 	
@@ -160,14 +164,21 @@ osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSync
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert log! %s", sqlite3_errmsg(sdb));
 		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error_db_close;
 	}
 	g_free(query);
 	
 	osync_db_close(log_db);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_db_close:
+	osync_db_close(log_db);
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+
 }
 
 osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error)
@@ -176,8 +187,7 @@ osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSy
 	
 	OSyncDB *log_db = _open_changelog(group, error);
 	if (!log_db) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	sqlite3 *sdb = log_db->db;
 	
@@ -188,14 +198,20 @@ osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSy
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to remove log! %s", sqlite3_errmsg(sdb));
 		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error_db_close;
 	}
 	g_free(query);
 	
 	osync_db_close(log_db);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_db_close:
+	osync_db_close(log_db);	
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyncError **error)
@@ -207,8 +223,7 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	char *filename = g_strdup_printf("%s/change.db", group->changes_path);
 	if (!(group->changes_db = osync_db_open(filename, error))) {
 		osync_error_update(error, "Unable to load changes: %s", osync_error_print(error));
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	osync_debug("OSDB", 3, "Preparing to load changes from file %s", filename);
 	g_free(filename);
@@ -244,19 +259,22 @@ osync_bool osync_db_open_changes(OSyncGroup *group, OSyncChange ***changes, OSyn
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_db_save_change(%p, %i, %p) (Table: %p)", change, save_format, error, change->changes_db);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p) (Table: %p)", __func__, change, save_format, error, change->changes_db);
 	osync_assert_msg(change, "Need to set change");
 	osync_assert_msg(osync_change_get_objtype(change), "change->objtype was NULL while saving");
 	osync_assert_msg(osync_change_get_objformat(change), "change->objformat was NULL while saving");
 	
 	if (!change || !change->changes_db) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_save_change was called with wrong parameters");
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_save_change: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	sqlite3 *sdb = change->changes_db->db;
 	
@@ -269,8 +287,7 @@ osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSy
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert change! %s", sqlite3_errmsg(sdb));
 			g_free(query);
-			osync_trace(TRACE_EXIT_ERROR, "osync_db_save_change: %s", osync_error_print(error));
-			return FALSE;
+			goto error;
 		}
 		change->id = sqlite3_last_insert_rowid(sdb);
 	} else {
@@ -284,23 +301,26 @@ osync_bool osync_db_save_change(OSyncChange *change, osync_bool save_format, OSy
 		if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to update change! %s", sqlite3_errmsg(sdb));
 			g_free(query);
-			osync_trace(TRACE_EXIT_ERROR, "osync_db_save_change: %s", osync_error_print(error));
-			return FALSE;
+			goto error;
 		}
 	}
 	g_free(query);
-	osync_trace(TRACE_EXIT, "osync_db_save_change");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+
 }
 
 osync_bool osync_db_delete_change(OSyncChange *change, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_db_delete_change(%p, %p)", change, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
 	
 	if (!change || !change->changes_db) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_delete_change was called with wrong parameters");
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_delete_change: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	sqlite3 *sdb = change->changes_db->db;
 	
@@ -308,22 +328,24 @@ osync_bool osync_db_delete_change(OSyncChange *change, OSyncError **error)
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to delete change! %s", sqlite3_errmsg(sdb));
 		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_delete_change: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	g_free(query);
-	osync_trace(TRACE_EXIT, "osync_db_delete_change");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_db_reset_changes(OSyncGroup *group, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_db_reset_changes(%p, %s, %p)", group, objtype, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, objtype, error);
 	
 	if (!group || !objtype) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_reset_changes was called with wrong parameters");
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_changes: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	sqlite3 *sdb = group->changes_db->db;
 
@@ -333,73 +355,80 @@ osync_bool osync_db_reset_changes(OSyncGroup *group, const char *objtype, OSyncE
 	} else {
 		query = g_strdup_printf("DELETE FROM tbl_changes WHERE objtype='%s'", objtype);
 	}
+
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset changes! %s", sqlite3_errmsg(sdb));
 		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_changes: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
+
 	g_free(query);
-	osync_trace(TRACE_EXIT, "osync_db_reset_changes");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+	
 }
 
 osync_bool osync_db_reset_group(OSyncGroup *group, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_db_reset_group(%p, %p)", group, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
 	OSyncDB *db = NULL;
 	
 	if (!group) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_reset_group was called with wrong parameters");
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_group: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	
 	char *changesdb = g_strdup_printf("%s/change.db", group->configdir);
 	if (!(db = osync_db_open(changesdb, error))) {
 		g_free(changesdb);
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_group: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 
 	if (sqlite3_exec(db->db, "DELETE FROM tbl_changes", NULL, NULL, NULL) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset changes! %s", sqlite3_errmsg(db->db));
 		g_free(changesdb);
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_group: %s", osync_error_print(error));
-		return FALSE;
+		goto error_db_close;
 	}
 	
 	osync_db_close(db);
 	g_free(changesdb);
 	
-	osync_trace(TRACE_EXIT, "osync_db_reset_member");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_db_close:	
+	osync_db_close(db);
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 osync_bool osync_db_reset_member(OSyncMember *member, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "osync_db_reset_member(%p, %p)", member, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	OSyncDB *db = NULL;
 	
 	if (!member) {
 		osync_error_set(error, OSYNC_ERROR_PARAMETER, "osync_db_reset_member was called with wrong parameters");
-		osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_member: %s", osync_error_print(error));
-		return FALSE;
+		goto error;
 	}
 	
 	char *hashtable = g_strdup_printf("%s/hash.db", member->configdir);
 	if (g_file_test(hashtable, G_FILE_TEST_EXISTS)) {
 		if (!(db = osync_db_open(hashtable, error))) {
 			g_free(hashtable);
-			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_member: %s", osync_error_print(error));
-			return FALSE;
+			goto error;
 		}
 	
 		if (sqlite3_exec(db->db, "DELETE FROM tbl_hash", NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset hashtable! %s", sqlite3_errmsg(db->db));
 			g_free(hashtable);
-			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_changes: %s", osync_error_print(error));
-			return FALSE;
+			goto error_db_close;
 		}
 		
 		osync_db_close(db);
@@ -410,23 +439,29 @@ osync_bool osync_db_reset_member(OSyncMember *member, OSyncError **error)
 	if (g_file_test(anchordb, G_FILE_TEST_EXISTS)) {
 		if (!(db = osync_db_open(anchordb, error))) {
 			g_free(anchordb);
-			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_member: %s", osync_error_print(error));
-			return FALSE;
+			goto error;
 		}
 	
 		if (sqlite3_exec(db->db, "DELETE FROM tbl_anchor", NULL, NULL, NULL) != SQLITE_OK) {
 			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to reset anchors! %s", sqlite3_errmsg(db->db));
 			g_free(anchordb);
-			osync_trace(TRACE_EXIT_ERROR, "osync_db_reset_changes: %s", osync_error_print(error));
-			return FALSE;
+			goto error_db_close;
 		}
 		
 		osync_db_close(db);
 	}
 	g_free(anchordb);
 	
-	osync_trace(TRACE_EXIT, "osync_db_reset_member");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_db_close:	
+	osync_db_close(db);
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+
 }
 
 void osync_db_close_changes(OSyncGroup *group)
