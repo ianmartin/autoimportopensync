@@ -387,7 +387,7 @@ static void _generate_name_from_fn(VFormat *vcard, xmlNode *root)
 {
 	/*
 	 * We copy FN to N:LASTNAME because we don't now how FN was build.
-	 * e.g. we don't now if FN is "PREFIX FIRST LAST" or "FIRST ADDITIONAL LAST"
+	 * e.g. we don't know if FN is "PREFIX FIRST LAST" or "FIRST ADDITIONAL LAST"
 	 * With copying FN to N we prevent the vcard from being invalid.
 	 */
 
