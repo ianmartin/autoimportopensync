@@ -70,6 +70,16 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	
 	osync_group_remove_changelog(engine->group, change, &error);
 	
+	if (osync_change_get_changetype(change) != CHANGE_DELETED && osync_change_has_data(change)) {
+		OSyncFormatEnv *env = osync_group_get_format_env(engine->group);
+		OSyncObjType *objtype = osync_change_detect_objtype_full(env, change, &error);
+		if (objtype) {
+			osync_trace(TRACE_INTERNAL, "Detected the object to be of type %s", osync_objtype_get_name(objtype));
+			osync_change_set_objtype(change, objtype);
+		}
+	} else
+		osync_trace(TRACE_INTERNAL, "Change has no data!");
+	
 	//We convert to the common format here to make sure we always pass it
 	osync_change_convert_to_common(change, NULL);
 	
