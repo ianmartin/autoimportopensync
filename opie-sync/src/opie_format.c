@@ -46,7 +46,7 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
 
 	//Names
 	if (entry->last_name || entry->first_name) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
 		//Last Name
 		if (entry->last_name)
 			osxml_node_add(current, "LastName", entry->last_name);
@@ -68,7 +68,7 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
 	
 	//Company
  	if (entry->company || entry->department ) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
 		if ( entry->company )
                     osxml_node_add(current, "Name", entry->company);
 		if ( entry->department )
@@ -77,44 +77,44 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
 
 	// Telephone numbers
 	if ( entry->home_phone ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->home_phone );
         osxml_node_add(current, "Type", "HOME" );
         osxml_node_add(current, "Type", "VOICE" );
 	}
     if ( entry->home_fax ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->home_fax );
         osxml_node_add(current, "Type", "HOME" );
         osxml_node_add(current, "Type", "FAX" );
 	}
     if ( entry->home_mobile ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->home_mobile );
         osxml_node_add(current, "Type", "CELL" );
         osxml_node_add(current, "Type", "HOME" );
 	}
     
     if ( entry->business_phone ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->business_phone );
         osxml_node_add(current, "Type", "WORK" );
         osxml_node_add(current, "Type", "VOICE" );
     }
     if ( entry->business_fax ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->business_fax );
         osxml_node_add(current, "Type", "WORK" );
         osxml_node_add(current, "Type", "FAX" );
 	}
     if ( entry->business_mobile ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->business_mobile );
         osxml_node_add(current, "Type", "WORK" );
         osxml_node_add(current, "Type", "CELL" );
 	}
     if ( entry->business_pager ) {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
         osxml_node_add(current, "Content", entry->business_pager );
         osxml_node_add(current, "Type", "WORK" );
         osxml_node_add(current, "Type", "PAGER" );
@@ -126,7 +126,7 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
         while ( current_email != NULL ) 
         {
             if (current_email->data) {
-                current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
+                current = xmlNewTextChild(root, NULL, (xmlChar*)"EMail", NULL);
                 osxml_node_add(current, "Content", current_email->data );
                 if ( entry->default_email &&
                      strcasecmp( entry->default_email, current_email->data ) == 0 )
@@ -143,7 +143,7 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
     if ( entry->home_street || entry->home_city || entry->home_state
          || entry->home_zip || entry->home_country )
     {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Address", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
         if ( entry->home_street )
             osxml_node_add(current, "Street", entry->home_street );
         if ( entry->home_city )
@@ -161,7 +161,7 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
     if ( entry->business_street || entry->business_city || entry->business_state
          || entry->business_zip || entry->business_country )
     {
-        current = xmlNewChild(root, NULL, (xmlChar*)"Address", NULL);
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
         if ( entry->business_street )
             osxml_node_add(current, "Street", entry->business_street );
         if ( entry->business_city )
@@ -177,15 +177,15 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
 
 	//Title
 	if (entry->jobtitle) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Title", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->jobtitle);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Title", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->jobtitle);
 	}
 	
 	
 	//Note
 	if (entry->notes) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Note", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->notes);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Note", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->notes);
 	}
 
 /*
@@ -193,59 +193,59 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
 	current = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
-			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 		osxml_node_add(current, "Category", (char *)c->data);
 	}
 */
 
     // Spouse
 	if ( entry->spouse ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Spouse", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->spouse );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Spouse", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->spouse );
 	}
 
     // Nickname
 	if ( entry->nickname ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Nickname", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->nickname );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Nickname", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->nickname );
 	}
 
     // Assistant
 	if ( entry->assistant ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Assistant", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->assistant );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Assistant", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->assistant );
 	}
     if ( entry->assistant )
-        current = xmlNewChild(root, NULL, (xmlChar*)"Assistant", (xmlChar*)entry->assistant );
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Assistant", (xmlChar*)entry->assistant );
             
     // Manager
 	if ( entry->manager ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Manager", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->manager );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Manager", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->manager );
 	}
             
     // Profession
 	if ( entry->profession ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Profession", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->profession );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Profession", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->profession );
 	}
 
     // Birthday (do we need to create an xml datetime??)
 	if ( entry->birthday ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Birthday", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->birthday );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Birthday", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->birthday );
 	}
 
     // Anniversary
 	if ( entry->anniversary ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"Anniversary", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->anniversary );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"Anniversary", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->anniversary );
 	}
 
     // File-as. This is what the Evo plugin does, so copy it.
 	if ( entry->file_as ) {
-		current = xmlNewChild( root, NULL, (xmlChar*)"FormattedName", NULL );
-		xmlNewChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->file_as );
+		current = xmlNewTextChild( root, NULL, (xmlChar*)"FormattedName", NULL );
+		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->file_as );
 	}
 
 // TODO: Entries to be handled
