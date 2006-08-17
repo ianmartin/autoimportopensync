@@ -438,7 +438,7 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 	}
 
 	//Generate FormattedName from Name if it doesn't exist
-	if (!vformat_find_attribute(vcard, "FN") && !vformat_find_attribute(vcard, "X-EVOLUTION-FILE-AS") && vformat_find_attribute(vcard, "N")) {
+	if (!vformat_find_attribute(vcard, "FN") && vformat_find_attribute(vcard, "N")) {
 		_generate_formatted_name(vcard,root);
 	}
 
