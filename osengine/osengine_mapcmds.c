@@ -417,9 +417,15 @@ void osengine_mapping_solve(OSyncEngine *engine, OSyncMapping *mapping, OSyncCha
  * @param mapping The mapping to ignore
  * 
  */
-void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping)
+osync_bool osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, mapping);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, error);
+	
+	if (!osengine_mapping_ignore_supported(engine, mapping)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Ignore is not supported for this mapping");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 	
 	GList *e = NULL;
 	for (e = mapping->entries; e; e = e->next) {
@@ -436,6 +442,7 @@ void osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping
 	osync_flag_set(mapping->cmb_synced);
 	osync_flag_set(mapping->cmb_has_info);
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 /** @brief Checks if a conflict can be ignore
