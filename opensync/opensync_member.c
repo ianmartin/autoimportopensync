@@ -676,9 +676,9 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 	//The plugin name
-	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
+	xmlNewTextChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
   //The name
-	xmlNewChild(doc->children, NULL, (xmlChar*)"name", (xmlChar*)member->name);
+	xmlNewTextChild(doc->children, NULL, (xmlChar*)"name", (xmlChar*)member->name);
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);

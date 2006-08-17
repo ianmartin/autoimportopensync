@@ -408,39 +408,39 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	GList *f;
 	for (f = group->filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
-		xmlNodePtr child = xmlNewChild(doc->children, NULL, (xmlChar*)"filter", NULL);
+		xmlNodePtr child = xmlNewTextChild(doc->children, NULL, (xmlChar*)"filter", NULL);
 		
 		if (filter->sourcememberid) {
 			char *sourcememberid = g_strdup_printf("%lli", filter->sourcememberid);
-			xmlNewChild(child, NULL, (xmlChar*)"sourcemember", (xmlChar*)sourcememberid);
+			xmlNewTextChild(child, NULL, (xmlChar*)"sourcemember", (xmlChar*)sourcememberid);
 			g_free(sourcememberid);
 		}
 		if (filter->destmemberid) {
 			char *destmemberid = g_strdup_printf("%lli", filter->destmemberid);
-			xmlNewChild(child, NULL, (xmlChar*)"destmember", (xmlChar*)destmemberid);
+			xmlNewTextChild(child, NULL, (xmlChar*)"destmember", (xmlChar*)destmemberid);
 			g_free(destmemberid);
 		}
 		if (filter->sourceobjtype)
-			xmlNewChild(child, NULL, (xmlChar*)"sourceobjtype", (xmlChar*)filter->sourceobjtype);
+			xmlNewTextChild(child, NULL, (xmlChar*)"sourceobjtype", (xmlChar*)filter->sourceobjtype);
 		if (filter->destobjtype)
-			xmlNewChild(child, NULL, (xmlChar*)"destobjtype", (xmlChar*)filter->destobjtype);
+			xmlNewTextChild(child, NULL, (xmlChar*)"destobjtype", (xmlChar*)filter->destobjtype);
 		if (filter->detectobjtype)
-			xmlNewChild(child, NULL, (xmlChar*)"detectobjtype", (xmlChar*)filter->detectobjtype);
+			xmlNewTextChild(child, NULL, (xmlChar*)"detectobjtype", (xmlChar*)filter->detectobjtype);
 		if (filter->action) {
 			char *action = g_strdup_printf("%i", filter->action);
-			xmlNewChild(child, NULL, (xmlChar*)"action", (xmlChar*)action);
+			xmlNewTextChild(child, NULL, (xmlChar*)"action", (xmlChar*)action);
 			g_free(action);
 		}
 		if (filter->function_name)
-			xmlNewChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
+			xmlNewTextChild(child, NULL, (xmlChar*)"function_name", (xmlChar*)filter->function_name);
 		if (filter->config)
-			xmlNewChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
+			xmlNewTextChild(child, NULL, (xmlChar*)"config", (xmlChar*)filter->config);
 	}
 
-	xmlNewChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
+	xmlNewTextChild(doc->children, NULL, (xmlChar*)"groupname", (xmlChar*)group->name);
 
 	char *tmstr = g_strdup_printf("%i", (int)group->last_sync);
-	xmlNewChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
+	xmlNewTextChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
 	g_free(tmstr);
 
 	xmlSaveFile(filename, doc);

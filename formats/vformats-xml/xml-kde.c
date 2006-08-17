@@ -27,7 +27,7 @@
 static xmlNode *handle_aim_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling x-aim attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IM-AIM", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IM-AIM", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -35,7 +35,7 @@ static xmlNode *handle_aim_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_manager_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Manager attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Manager", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Manager", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -43,7 +43,7 @@ static xmlNode *handle_manager_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_assistant_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Assistant attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Assistant", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Assistant", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -51,7 +51,7 @@ static xmlNode *handle_assistant_attribute(xmlNode *root, VFormatAttribute *attr
 static xmlNode *handle_anniversary_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Anniversary attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Anniversary", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Anniversary", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -59,7 +59,7 @@ static xmlNode *handle_anniversary_attribute(xmlNode *root, VFormatAttribute *at
 static xmlNode *handle_spouse_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Spouse attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Spouse", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Spouse", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -67,7 +67,7 @@ static xmlNode *handle_spouse_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_blog_url_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Blog Url attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"BlogUrl", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"BlogUrl", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -75,7 +75,7 @@ static xmlNode *handle_blog_url_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_yahoo_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-Yahoo attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IM-Yahoo", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IM-Yahoo", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -83,7 +83,7 @@ static xmlNode *handle_yahoo_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_icq_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-ICQ attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IM-ICQ", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IM-ICQ", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -91,7 +91,7 @@ static xmlNode *handle_icq_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_jabber_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Jabber attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IM-Jabber", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IM-Jabber", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -99,7 +99,7 @@ static xmlNode *handle_jabber_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_msn_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling MSN attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IM-MSN", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IM-MSN", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -111,7 +111,7 @@ static xmlNode *handle_department_attribute(xmlNode *root, VFormatAttribute *att
 	
 	//We need to check first if the node already exists.
 	if (!(current = osxml_get_node(root, "Organization")))
-		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
 	
 	osxml_node_add(current, "Department", vformat_attribute_get_nth_value(attr, 0));
 	return current;
@@ -124,7 +124,7 @@ static xmlNode *handle_office_attribute(xmlNode *root, VFormatAttribute *attr)
 	
 	//We need to check first if the node already exists.
 	if (!(current = osxml_get_node(root, "Organization")))
-		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
 	
 	osxml_node_add(current, "Unit", vformat_attribute_get_nth_value(attr, 0));
 	return current;
@@ -133,7 +133,7 @@ static xmlNode *handle_office_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_profession_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling profession attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Profession", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Profession", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -141,7 +141,7 @@ static xmlNode *handle_profession_attribute(xmlNode *root, VFormatAttribute *att
 static xmlNode *handle_gadu_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling gadu attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IM-GaduGadu", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IM-GaduGadu", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -149,7 +149,7 @@ static xmlNode *handle_gadu_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_irc_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IRC attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"IRC", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"IRC", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -157,7 +157,7 @@ static xmlNode *handle_irc_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_sms_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling SMS attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"SMS", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"SMS", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -169,7 +169,7 @@ static xmlNode *handle_organization_attribute(xmlNode *root, VFormatAttribute *a
 	
 	//We need to check first if the node already exists.
 	if (!(current = osxml_get_node(root, "Organization")))
-		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
 	
 	osxml_node_add(current, "Name", vformat_attribute_get_nth_value(attr, 0));
 	osxml_node_add(current, "Department", vformat_attribute_get_nth_value(attr, 1));
@@ -187,7 +187,7 @@ static xmlNode *handle_organization_attribute(xmlNode *root, VFormatAttribute *a
 static xmlNode *handle_x_kde_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling X-KDE attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"KDE-Extension", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"KDE-Extension", NULL);
 	osxml_node_add(current, "ExtName", vformat_attribute_get_name(attr));
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;

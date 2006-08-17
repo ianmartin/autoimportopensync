@@ -27,7 +27,7 @@
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
-	xmlNode *property = xmlNewChild(current, NULL, (xmlChar*)"UnknownParam",
+	xmlNode *property = xmlNewTextChild(current, NULL, (xmlChar*)"UnknownParam",
 		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 }
@@ -38,7 +38,7 @@ static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
 	const char *tmp;
 
 	osync_trace(TRACE_INTERNAL, "Handling created attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateCreated", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"DateCreated", NULL);
 	tmp = vformat_attribute_get_nth_value(attr, 0); 
 	timestamp = osync_time_timestamp(tmp);
 	osxml_node_add(current, "Content", timestamp);
@@ -49,7 +49,7 @@ static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"LastModified", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"LastModified", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -57,7 +57,7 @@ static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *
 static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling summary attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -65,7 +65,7 @@ static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -80,7 +80,7 @@ static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *att
 static xmlNode *handle_body_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling body attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Body", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Body", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -88,7 +88,7 @@ static xmlNode *handle_body_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Class", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Class", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -96,14 +96,14 @@ static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
-	xmlNewChild(current, NULL, (xmlChar*)"Type",
+	xmlNewTextChild(current, NULL, (xmlChar*)"Type",
 		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
-	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"UnknownNode", NULL);
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"UnknownNode", NULL);
 	osxml_node_add(current, "NodeName", vformat_attribute_get_name(attr));
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
