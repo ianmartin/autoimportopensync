@@ -65,17 +65,17 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
-	root = xmlNewChild(root, NULL, (xmlChar*)"Event", NULL);
+	root = xmlNewTextChild(root, NULL, (xmlChar*)"Event", NULL);
 
 	osync_trace(TRACE_SENSITIVE, "note: \"%s\" event: %i", entry->appointment.note, entry->appointment.event);
 
 	//Description
-	current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
-	xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.description);
+	current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
+	xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.description);
 	
 	//Note
-	current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
-	xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
+	current = xmlNewTextChild(root, NULL, (xmlChar*)"Description", NULL);
+	xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
 
 	//Start and end time
 	osync_trace(TRACE_SENSITIVE, "starttime: %i event: %i", entry->appointment.begin, entry->appointment.event); 
@@ -89,8 +89,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		begin = entry->appointment.begin;
 		tmp = osync_time_tm2vtime(&begin, FALSE);
 		vtime = osync_time_datestamp(tmp);
-		current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateStarted", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 		g_free(tmp);
 		g_free(vtime);
 		
@@ -98,8 +98,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		end = entry->appointment.end;
 		tmp = osync_time_tm2vtime(&end, FALSE);
 		vtime = osync_time_datestamp(tmp);
-		current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateEnd", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 		g_free(tmp);
 		g_free(vtime);
 	} else {
@@ -109,21 +109,21 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		// Start
 		begin = entry->appointment.begin;
 		vtime = osync_time_tm2vtime(&begin, FALSE);
-		current = xmlNewChild(root, NULL, (xmlChar*)"DateStarted", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateStarted", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 		g_free(vtime);
 		
 		// End
 		end = entry->appointment.end;
 		vtime = osync_time_tm2vtime(&end, FALSE);
-		current = xmlNewChild(root, NULL, (xmlChar*)"DateEnd", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateEnd", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 		g_free(vtime);
 	}
 		
 	// Alarm
 	if(entry->appointment.alarm) {
-		xmlNode *alarm = xmlNewChild(root, NULL, (xmlChar*)"Alarm", NULL);
+		xmlNode *alarm = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
 		
 		switch(entry->appointment.advanceUnits) {
 			case 0:
@@ -137,9 +137,9 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 				break;
 		}
 		
-		xmlNode *alarmtrigger = xmlNewChild(alarm, NULL, (xmlChar*) "AlarmTrigger", NULL);
-		xmlNewChild(alarmtrigger, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
-		xmlNewChild(alarmtrigger, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
+		xmlNode *alarmtrigger = xmlNewTextChild(alarm, NULL, (xmlChar*) "AlarmTrigger", NULL);
+		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
+		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
 
 		g_free(tmp);
 	}
@@ -150,7 +150,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		int i;
 		GString *rrulestr = g_string_new("");
 
-		current = xmlNewChild(root, NULL, (xmlChar*) "RecurrenceRule", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*) "RecurrenceRule", NULL);
 
 		//Frequency
 		switch (entry->appointment.repeatType) {
@@ -240,19 +240,19 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		}
 	
 		// Frequencly
-		xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp);
 		g_free(tmp);
 
 		// Every #X YYYY
 		if (strlen(rrulestr->str))
-			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) rrulestr->str);
+			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) rrulestr->str);
 
 		g_string_free(rrulestr, TRUE);
 
 		// Interval
 		if (entry->appointment.repeatFrequency) {
 			tmp = g_strdup_printf("INTERVAL=%i", entry->appointment.repeatFrequency);
-			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp); 
+			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp); 
 			g_free(tmp);
 		}
 
@@ -260,7 +260,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		if (!entry->appointment.repeatForever) {
 			tmp = osync_time_tm2vtime(&(entry->appointment.repeatEnd), FALSE);
 			vtime = g_strdup_printf("UNTIL=%s", tmp);
-			xmlNewChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) vtime);
+			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) vtime);
 			g_free(tmp);
 			g_free(vtime);
 		}
@@ -268,10 +268,10 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		// Exceptions
 		if (entry->appointment.exceptions) {
 			for (i = 0; i < entry->appointment.exceptions; i++) {
-				current = xmlNewChild(root, NULL, (xmlChar*)"ExclusionDate", NULL);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"ExclusionDate", NULL);
 				tmp = osync_time_tm2vtime(&(entry->appointment.exception[i]), FALSE);
-				xmlNewChild(current, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
-				xmlNewChild(current, NULL, (xmlChar*) "Value", (xmlChar*) "DATE");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
+				xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*) "DATE");
 				g_free(tmp);
 			}
 		}
@@ -284,7 +284,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	current = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
-			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 		osync_trace(TRACE_SENSITIVE, "category: %s", (char *) c->data);
 		osxml_node_add(current, "Category", (char *)c->data);
 	}
@@ -884,25 +884,25 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
-	root = xmlNewChild(root, NULL, (xmlChar*)"Todo", NULL);
+	root = xmlNewTextChild(root, NULL, (xmlChar*)"Todo", NULL);
 
 	//Summary
 	if (entry->todo.description) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Description", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Description", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
 	}
 	
 	//Description
 	if (entry->todo.note) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
 	}
 	
 	//priority
 	if (entry->todo.priority) {
 		tmp = g_strdup_printf("%i", entry->todo.priority + 2);
-		current = xmlNewChild(root, NULL, (xmlChar*)"Priority", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Priority", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -910,8 +910,8 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	if (entry->todo.indefinite == 0) {
 		time_t ttm = mktime(&(entry->todo.due));
 		tmp = g_strdup_printf("%i", (int)ttm);
-		current = xmlNewChild(root, NULL, (xmlChar*)"DateDue", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateDue", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -919,8 +919,8 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	if (entry->todo.complete) {
 		time_t now = time(NULL);
 		tmp = g_strdup_printf("%i", (int)now);
-		current = xmlNewChild(root, NULL, (xmlChar*)"Completed", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Completed", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -928,7 +928,7 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	current = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
-			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 		osxml_node_add(current, "Category", (char *)c->data);
 	}
 
@@ -1301,7 +1301,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	if (has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)) {
 		GString *formatted_name = g_string_new("");
 
-		current = xmlNewChild(root, NULL, (xmlChar*)"Name", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
 		//Last Name
 		tmp = return_next_entry(entry, entryLastname);
 		if (tmp) {
@@ -1319,7 +1319,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		}
 
 		//Formatted
-		current = xmlNewChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 		osxml_node_add(current, "Content", formatted_name->str);
 		g_string_free(formatted_name, TRUE);
 	}
@@ -1327,7 +1327,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	//Company
 	tmp = return_next_entry(entry, entryCompany);
 	if (tmp) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
 		osxml_node_add(current, "Name", tmp);
 		g_free(tmp);
 	}
@@ -1338,44 +1338,44 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 		if (tmp) {
 			osync_trace(TRACE_SENSITIVE, "phone #%i: [%i][telephone type /email == 4]", i, entry->address.phoneLabel[i - 3]);
 			if (entry->address.phoneLabel[i - 3] == 4)
-				current = xmlNewChild(root, NULL, (xmlChar*)"EMail", NULL);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"EMail", NULL);
 			else
-				current = xmlNewChild(root, NULL, (xmlChar*)"Telephone", NULL);
+				current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
 		
-			xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+			xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 			g_free(tmp);
 			
 			switch (entry->address.phoneLabel[i - 3]) {
 				case 0:
 					// Work
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Work");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Work");
 					break;
 				case 1:
 					// Home
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Home");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Home");
 					break;
 				case 2:
 					// Fax
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Fax");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Fax");
 					break;
 				case 3:
 					// Other
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Voice");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Voice");
 					break;
 				case 4:
 					// E Mail
 					break;	
 				case 5:
 					// Main
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pref");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pref");
 					break;
 				case 6:
 					// Pager
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pager");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pager");
 					break;
 				case 7:
 					// Mobile / Cellular
-					xmlNewChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Cell");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Cell");
 					break;
 			}
 		}
@@ -1384,7 +1384,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 
 	//Address
 	if (has_entry(entry, entryAddress) || has_entry(entry, entryCity) || has_entry(entry, entryState) || has_entry(entry, entryZip) || has_entry(entry, entryCountry)) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Address", NULL);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
 		//Street
 		tmp = return_next_entry(entry, entryAddress);
 		if (tmp) {
@@ -1424,16 +1424,16 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	//Title
 	tmp = return_next_entry(entry, entryTitle);
 	if (tmp) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Title", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Title", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 		
 	//Note
 	tmp = return_next_entry(entry, entryNote);
 	if (tmp) {
-		current = xmlNewChild(root, NULL, (xmlChar*)"Note", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Note", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 		g_free(tmp);
 	}
 
@@ -1441,7 +1441,7 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	current = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
-			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 		osxml_node_add(current, "Category", (char *)c->data);
 	}
 
@@ -1830,11 +1830,11 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 	if (entry->memo.text) {
 		gchar **splitMemo = g_strsplit(entry->memo.text, "\n", 2);
 
-		current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
 
-		current = xmlNewChild(root, NULL, (xmlChar*)"Body", NULL);
-		xmlNewChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Body", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
 
 		g_strfreev(splitMemo);
 	}
@@ -1843,7 +1843,7 @@ static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsiz
 	current = NULL;
 	for (c = entry->categories; c; c = c->next) {
 		if (!current)
-			current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
 		osxml_node_add(current, "Category", (char *)c->data);
 	}
 
