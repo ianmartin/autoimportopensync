@@ -140,7 +140,9 @@ void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *u
 		fail_unless(osengine_mapping_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
 	
-	osengine_mapping_ignore_conflict(engine, mapping);
+	OSyncError *error = NULL;
+	fail_unless(osengine_mapping_ignore_conflict(engine, mapping, &error), NULL);
+	fail_unless(error == NULL, NULL);
 }
 
 
