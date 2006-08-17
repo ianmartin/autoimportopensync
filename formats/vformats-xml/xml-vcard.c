@@ -360,6 +360,9 @@ static void _generate_formatted_name(VFormat *vcard, xmlNode *root)
 	GString *fnentry;
 	fnentry = g_string_new("");
 
+	// NAME:LAST;FIRST;ADDITIONAL;PREFIX;SUFFIX
+	// FN:PREFIX FIRST ADDITIONAL LAST SUFFIX
+
 	int order[5] = {3, 1, 2, 0, 4};
 	int i = 0;
 	char *str = NULL;
@@ -371,15 +374,34 @@ static void _generate_formatted_name(VFormat *vcard, xmlNode *root)
 		}
 	}
 	
+	osync_trace(TRACE_INTERNAL, "Handling formattedname attribute");
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 	osxml_node_add(current, "Content", fnentry->str);
 	
-	osync_trace(TRACE_INTERNAL, "generated FormattedName");
-
 	g_string_free(fnentry,TRUE);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
+
+static void _generate_name_from_fn(VFormat *vcard, xmlNode *root)
+{
+	/*
+	 * We copy FN to N:LASTNAME because we don't now how FN was build.
+	 * e.g. we don't now if FN is "PREFIX FIRST LAST" or "FIRST ADDITIONAL LAST"
+	 * With copying FN to N we prevent the vcard from being invalid.
+	 */
+
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, root);
+	VFormatAttribute *n = vformat_find_attribute(vcard, "FN");
+	char *fn = vformat_attribute_get_value(n);
+
+        osync_trace(TRACE_INTERNAL, "Handling name attribute");
+        xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+        osxml_node_add(current, "LastName", fn);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}	
 
 static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
@@ -414,11 +436,16 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 		VFormatAttribute *attr = a->data;
 		vcard_handle_attribute(hooks, root, attr);
 	}
-	
-	//Generate "FN" attribute if it doesn't exist
-	if (!vformat_find_attribute(vcard, "FN") && !vformat_find_attribute(vcard, "X-EVOLUTION-FILE-AS")) {
+
+	//Generate FormattedName from Name if it doesn't exist
+	if (!vformat_find_attribute(vcard, "FN") && !vformat_find_attribute(vcard, "X-EVOLUTION-FILE-AS") && vformat_find_attribute(vcard, "N")) {
 		_generate_formatted_name(vcard,root);
 	}
+
+	//Generate Name from FormattedName if it doesn't exist
+	if (!vformat_find_attribute(vcard, "N") && vformat_find_attribute(vcard, "FN")) {
+		_generate_name_from_fn(vcard,root);
+	}		
 
 	xmlChar *str = osxml_write_to_string(doc);
 	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", str);
