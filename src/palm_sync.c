@@ -549,7 +549,7 @@ static void psyncThreadStart(PSyncEnv *env)
 	g_source_attach(source, context);
 	
 
-	//FIXME needed?
+//FIXME also polls at the end of a hot sync ... 
 	source = g_timeout_source_new(1000);
 	g_source_set_callback(source, _psyncPoll, env, NULL);
 	g_source_attach(source, context);

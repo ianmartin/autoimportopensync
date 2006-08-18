@@ -32,18 +32,17 @@ file-sync
 Bugs/Known Problems
 ^^^^^^^^^^^^^^^^^^^
 * changetype of new entries are modified instead of added(?)
-* problems with special characters like german umlauts and other multibyte character	
+* newer palm can select sepecific timezone for specific entry - unsupported by pilot-link
 
 TODO
 ^^^^
 	contact
 	^^^^^^^
-* phonelabel - tele type	
 * fix tele type "spelling" (Home / HOME / home ...)
 
 	general
 	^^^^^^^
-* encoding (utf8 -> cp1252 / cp1252 -> utf8) 
+* encoding (utf8 -> cp1252 / cp1252 -> utf8) [done] 
 * Test categories of event/contact/todo/.. [done]
 * Public/Private option
 * Timezone [testing!]
