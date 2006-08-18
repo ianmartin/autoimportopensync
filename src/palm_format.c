@@ -51,7 +51,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 			entry->appointment.repeatDays[3], entry->appointment.repeatDays[4],
 			entry->appointment.repeatDays[5], entry->appointment.repeatDays[6],
 			entry->appointment.repeatWeekstart);
-	osync_trace(TRACE_SENSITIVE, "execptions: %i\n tm_exception: NULL\n descriotion: %s\n note: %s\n",
+	osync_trace(TRACE_SENSITIVE, "execptions: %i\n tm_exception: NULL\n description: %s\n note: %s\n",
 		       entry->appointment.exceptions, entry->appointment.description, entry->appointment.note);	
 
 	int i;
@@ -140,7 +140,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 
 		osync_trace(TRACE_INTERNAL, "advance Unit: %i", entry->appointment.advanceUnits);
 		switch(entry->appointment.advanceUnits) {
-			case 4:
+			case 1:
+			case 4:	// TODO: check for devices if they need 4 (typo?)
 				tmp = g_strdup_printf("-PT%iH", entry->appointment.advance);
 				break;
 			case 2:
