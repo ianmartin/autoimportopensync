@@ -276,9 +276,14 @@ static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_due_attribute(xmlNode *root, VFormatAttribute *attr)
 {
+	const char *tmp;
+	char *timestamp = NULL;
 	osync_trace(TRACE_INTERNAL, "Handling due attribute");
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"DateDue", NULL);
-	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	tmp = vformat_attribute_get_nth_value(attr, 0);
+	timestamp = osync_time_timestamp(tmp);
+	osxml_node_add(current, "Content", timestamp);
+	g_free(timestamp);
 	return current;
 }
 
