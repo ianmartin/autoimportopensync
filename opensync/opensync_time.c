@@ -160,14 +160,12 @@ struct tm *osync_time_vtime2tm(const char *vtime) {
 			&(utime->tm_year), &(utime->tm_mon), &(utime->tm_mday),
 			&(utime->tm_hour), &(utime->tm_min), &(utime->tm_sec));
 
-	osync_trace(TRACE_INTERNAL, "date: %04d-%02d-%02d T %02d:%02d:%02d\n",
-			utime->tm_year, utime->tm_mon, utime->tm_mday,
-			utime->tm_hour, utime->tm_min, utime->tm_sec);
 
 	utime->tm_year -= 1900;
 	utime->tm_mon -= 1;
 
-	// TODO set isdst?
+	// isdst is handled by tz offset calcualtion
+	utime->tm_isdst = -1;
 
 	mktime(utime);
 
@@ -209,7 +207,7 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc) {
 time_t osync_time_vtime2unix(const char *vtime) {
 
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
-	struct tm *utime = g_malloc0(sizeof(struct tm)); 
+	struct tm *utime = NULL; 
 	time_t timestamp;
 	char *utc = NULL;
 
@@ -217,7 +215,9 @@ time_t osync_time_vtime2unix(const char *vtime) {
 	utc = osync_time_vtime2utc(vtime);
 	utime = osync_time_vtime2tm(utc);
 	timestamp = mktime(utime);
+
 	g_free(utc);
+	g_free(utime);
 
 	osync_trace(TRACE_EXIT, "%s: %ld", __func__, timestamp);
 	return timestamp;
@@ -244,13 +244,18 @@ char *osync_time_unix2vtime(const time_t *timestamp) {
 /*! @brief Function converts struct tm to unix timestamp
  *
  * @param tmtime The struct tm which gets converted
- * @returns time_t (in UTC)
+ * @returns time_t (in UTC XXX is this correct ?)
  */ 
-time_t osync_time_tm2unix(struct tm *tmtime) {
+time_t osync_time_tm2unix(const struct tm *tmtime) {
 
 	time_t timestamp;
+	struct tm *tmp = g_malloc0(sizeof(struct tm));
 
-	timestamp = mktime(tmtime);
+	memcpy(tmp, tmtime, sizeof(struct tm));
+
+	timestamp = mktime(tmp);
+
+	g_free(tmp);
 
 	return timestamp; 
 }
@@ -274,11 +279,12 @@ struct tm *osync_time_unix2tm(const time_t *timestamp) {
  * TODO: function which handles icalendar tzid fields
  */
 
-/*! @brief Function gets current offset between UTC and localtime in seconds
- *
+/*! @brief Function gets offset of parameter time between UTC and localtime in seconds. 
+ * 
+ * @param time is the point in time when the offset have to be calculated (need for CEST/CET)
  * @returns Seconds of timezone offset
  */  
-int osync_time_timezone_diff(void) {	
+int osync_time_timezone_diff(const struct tm *time) {	
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
 	struct tm ltime, utime;
@@ -286,7 +292,7 @@ int osync_time_timezone_diff(void) {
 	long zonediff;
 	time_t timestamp;
 
-	time( &timestamp );
+	timestamp = osync_time_tm2unix(time);
 
 	tzset();
 
@@ -317,12 +323,12 @@ int osync_time_timezone_diff(void) {
  */ 
 struct tm *osync_time_tm2utc(const struct tm *ltime) {
 
-	int hour, tzdiff;
-	time_t timestamp;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ltime);
+	int tzdiff = 0;
 	struct tm *tmtime = g_malloc0(sizeof(struct tm));
 
 	/* set timezone difference */
-	tzdiff = osync_time_timezone_diff();
+	tzdiff = osync_time_timezone_diff(ltime);
 
 	tmtime->tm_year = ltime->tm_year;
 	tmtime->tm_mon = ltime->tm_mon;
@@ -332,20 +338,21 @@ struct tm *osync_time_tm2utc(const struct tm *ltime) {
 	tmtime->tm_sec = ltime->tm_sec;
 
 	/* in seconds to have a exactly timezone diff like -13.5h */
-	tmtime->tm_hour += tzdiff / 3600;
+	tmtime->tm_hour -= tzdiff / 3600;
 
-	if (tmtime->tm_hour > 23) {
-
-		hour = tmtime->tm_hour - 24;
-
-		timestamp = mktime(tmtime); 
-		timestamp += 24 * 3600;
-
-		tmtime = localtime(&timestamp);
-
-		tmtime->tm_hour = hour;
+	if (tmtime->tm_hour > 23 || tmtime->tm_hour < 0) {
+	
+		if (tmtime->tm_hour < 0) {
+			tmtime->tm_hour += 24;	
+			tmtime->tm_mday -= 1;
+		} else {
+			tmtime->tm_hour -= 24;
+			tmtime->tm_mday += 1;
+		}
+	
 	}
 
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, tmtime);
 	return tmtime; 
 }
 
@@ -356,11 +363,10 @@ struct tm *osync_time_tm2utc(const struct tm *ltime) {
  */ 
 struct tm *osync_time_tm2localtime(const struct tm *utime) {
 
-	int hour, tzdiff;
-	time_t timestamp;
+	int tzdiff = 0;
 	struct tm *tmtime = g_malloc0(sizeof(struct tm));
 	
-	tzdiff = osync_time_timezone_diff();
+	tzdiff = osync_time_timezone_diff(utime);
 
 	tmtime->tm_year = utime->tm_year;
 	tmtime->tm_mon = utime->tm_mon;
@@ -369,18 +375,17 @@ struct tm *osync_time_tm2localtime(const struct tm *utime) {
 	tmtime->tm_min = utime->tm_min;
 	tmtime->tm_sec = utime->tm_sec;
 
-	tmtime->tm_hour -= tzdiff / 3600;
+	tmtime->tm_hour += tzdiff / 3600;
 
-	if (tmtime->tm_hour > 23) {
+	if (tmtime->tm_hour > 23 || tmtime->tm_hour < 0) {
 
-		hour = tmtime->tm_hour - 24;
-
-		timestamp = mktime(tmtime);
-		timestamp += 24 * 3600;
-
-		utime = localtime(&timestamp);
-
-		tmtime->tm_hour = hour;
+		if (tmtime->tm_hour < 0) {
+			tmtime->tm_mday -= 1;
+			tmtime->tm_hour += 24;
+		} else {
+			tmtime->tm_mday += 1;
+			tmtime->tm_hour -= 24;
+		}
 	}
 
 	return tmtime; 
@@ -392,19 +397,26 @@ struct tm *osync_time_tm2localtime(const struct tm *utime) {
  * @returns vtime in UTC timezone (caller is responsible for freeing)
  */ 
 char *osync_time_vtime2utc(const char* localtime) {
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, localtime);
 	
 	char *utc = NULL; 
-	struct tm *tm_local, *tm_utc;
+	struct tm *tm_local = NULL, *tm_utc = NULL;
 
 	if (strstr(localtime, "Z")) {
 		utc = strdup(localtime);
-		return utc;
+		goto end;
 	}
 		
 	tm_local = osync_time_vtime2tm(localtime);
 	tm_utc = osync_time_tm2utc(tm_local);
 	utc = osync_time_tm2vtime(tm_utc, TRUE);
+
+	g_free(tm_local);
+// FIXME memory leak	
+//	g_free(tm_utc);
 	
+end:	
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc);
 	return utc;
 }
 
@@ -416,7 +428,7 @@ char *osync_time_vtime2utc(const char* localtime) {
 char *osync_time_vtime2localtime(const char* utc) {
 	
 	char *localtime = NULL; 
-	struct tm *tm_local, *tm_utc;
+	struct tm *tm_local = NULL, *tm_utc = NULL;
 
 	if (strstr(utc, "Z")) {
 		localtime = strdup(utc);
@@ -426,6 +438,9 @@ char *osync_time_vtime2localtime(const char* utc) {
 	tm_utc = osync_time_vtime2tm(utc);
 	tm_local = osync_time_tm2localtime(tm_utc);
 	localtime = osync_time_tm2vtime(tm_local, FALSE);
+
+	g_free(tm_local);
+	g_free(tm_utc);
 	
 	return localtime;
 }

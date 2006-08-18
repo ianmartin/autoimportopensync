@@ -12,11 +12,11 @@ struct tm *osync_time_vtime2tm(const char *vtime);
 char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc);
 time_t osync_time_vtime2unix(const char *vtime);
 char *osync_time_unix2vtime(const time_t *timestamp);
-time_t osync_time_tm2unix(struct tm *tmtime);
+time_t osync_time_tm2unix(const struct tm *tmtime);
 struct tm *osync_time_unix2tm(const time_t *timestamp);
 
 /* Timezone helper */
-int osync_time_timezone_diff(void);
+int osync_time_timezone_diff(const struct tm *time);
 struct tm *osync_time_tm2utc(const struct tm *ltime);
 struct tm *osync_time_tm2localtime(const struct tm *utime);
 char *osync_time_vtime2utc(const char* localtime);
