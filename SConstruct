@@ -12,8 +12,8 @@ class BuildConfig:
 	version = "0.30"
 	plugin_version = 1
 	path_sep = r"/"
-	plugindir = r"$prefix/libs/opensync/plugins"
-	formatdir = r"$prefix/libs/opensync/formats"
+	plugindir = r"$prefix/lib/opensync/plugins"
+	formatdir = r"$prefix/lib/opensync/formats"
 	configdir = r"$prefix/share/opensync/defaults"
 
 config = BuildConfig()
@@ -56,8 +56,11 @@ install_prefix = '$prefix'
 install_lib    = '$prefix/lib'
 install_bin    = '$prefix/bin'
 install_inc    = '$prefix/include'
+install_format    = '$prefix/lib/opensync/formats'
+install_plugin    = '$prefix/lib/opensync/plugins'
+install_config    = '$prefix/share/opensync/defaults'
 
-Export('env opts testenv install_prefix install_lib install_bin install_inc')
+Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config')
 
-SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript'])
+SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript', 'formats/SConscript'])
 BuildDir(target_dir, 'opensync', duplicate=0)
