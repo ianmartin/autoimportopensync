@@ -68,25 +68,29 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	root = xmlNewTextChild(root, NULL, (xmlChar*)"Event", NULL);
 
 
-	//Convert from cp1252 -> utf8 ...
-	// ...description
-	tmp = g_convert(entry->appointment.description, strlen(entry->appointment.description), "utf8", entry->codepage, NULL, NULL, NULL);
-	g_free(entry->appointment.description); 
-	entry->appointment.description = tmp;
-
-	// ...note	
-	tmp = g_convert(entry->appointment.note, strlen(entry->appointment.note), "utf8", entry->codepage, NULL, NULL, NULL);
-	g_free(entry->appointment.note); 
-	entry->appointment.note = tmp;
-
-
 	//Description
-	current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
-	xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.description);
-	
+        if (entry->appointment.description) {
+		//Convert from cp1252 -> utf8 ...
+		tmp = g_convert(entry->appointment.description, strlen(entry->appointment.description), "utf8", entry->codepage, NULL, NULL, NULL);
+		g_free(entry->appointment.description); 
+		entry->appointment.description = tmp;
+
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.description);
+	}
+
 	//Note
-	current = xmlNewTextChild(root, NULL, (xmlChar*)"Description", NULL);
-	xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
+        if (entry->appointment.note) {
+		//Convert from cp1252 -> utf8 ...
+		tmp = g_convert(entry->appointment.note, strlen(entry->appointment.note), "utf8", entry->codepage, NULL, NULL, NULL);
+		g_free(entry->appointment.note); 
+		entry->appointment.note = tmp;
+
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"Description", NULL);
+		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
+	}
+
+	
 
 	//Start and end time
 	osync_trace(TRACE_SENSITIVE, "starttime: %i event: %i", entry->appointment.begin, entry->appointment.event); 
@@ -901,26 +905,24 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	root = xmlNewTextChild(root, NULL, (xmlChar*)"Todo", NULL);
 
 
-	//Convert from cp1252 -> utf8 ...
-	// ...description
-	tmp = g_convert(entry->todo.description, strlen(entry->todo.description), "utf8", entry->codepage, NULL, NULL, NULL);
-	g_free(entry->todo.description); 
-	entry->todo.description = tmp;
-
-	// ...note	
-	tmp = g_convert(entry->todo.note, strlen(entry->todo.note), "utf8", entry->codepage, NULL, NULL, NULL);
-	g_free(entry->todo.note); 
-	entry->todo.note = tmp;
-
-
 	//Description
 	if (entry->todo.note) {
+		//Convert from cp1252 -> utf8 ...
+		tmp = g_convert(entry->todo.note, strlen(entry->todo.note), "utf8", entry->codepage, NULL, NULL, NULL);
+		g_free(entry->todo.note); 
+		entry->todo.note = tmp;
+
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Description", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.note);
 	}
 	
 	//Summary
 	if (entry->todo.description) {
+		//Convert from cp1252 -> utf8 ...
+		tmp = g_convert(entry->todo.description, strlen(entry->todo.description), "utf8", entry->codepage, NULL, NULL, NULL);
+		g_free(entry->todo.description); 
+		entry->todo.description = tmp;
+
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->todo.description);
 	}
