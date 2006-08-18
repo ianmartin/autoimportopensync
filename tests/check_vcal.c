@@ -397,7 +397,7 @@ END_TEST
 Suite *vcal_suite(void)
 {
 	Suite *s = suite_create("VCal");
-	Suite *s2 = suite_create("VCal");
+	//Suite *s2 = suite_create("VCal");
 	
 	create_case(s, "conv_vevent_evolution2_1hour", conv_vevent_evolution2_1hour);
 	create_case(s, "conv_vevent_evolution2_1hour_alarm", conv_vevent_evolution2_1hour_alarm);
@@ -440,11 +440,11 @@ Suite *vcal_suite(void)
 	create_case(s, "todo_get_revision2", todo_get_revision2);
 	create_case(s, "todo_get_revision3", todo_get_revision3);
 	create_case(s, "todo_no_revision", todo_no_revision);
-	create_case(s2, "conv_test_crash", conv_test_crash);
+	create_case(s, "conv_test_crash", conv_test_crash);
 	
 	
 	
-	return s2;
+	return s;
 }
 
 int main(void)
