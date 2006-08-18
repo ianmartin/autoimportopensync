@@ -90,8 +90,6 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->appointment.note);
 	}
 
-	
-
 	//Start and end time
 	osync_trace(TRACE_SENSITIVE, "starttime: %i event: %i", entry->appointment.begin, entry->appointment.event); 
 			
@@ -139,17 +137,20 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	// Alarm
 	if(entry->appointment.alarm) {
 		xmlNode *alarm = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
-		
+
+		osync_trace(TRACE_INTERNAL, "advance Unit: %i", entry->appointment.advanceUnits);
 		switch(entry->appointment.advanceUnits) {
-			case 0:
-				tmp = g_strdup_printf("-PT%iM", entry->appointment.advance);
-				break;
 			case 4:
 				tmp = g_strdup_printf("-PT%iH", entry->appointment.advance);
 				break;
 			case 2:
 				tmp = g_strdup_printf("-P%iD", entry->appointment.advance);
 				break;
+			case 0:	
+			default:	
+				tmp = g_strdup_printf("-PT%iM", entry->appointment.advance);
+				break;
+
 		}
 		
 		xmlNode *alarmtrigger = xmlNewTextChild(alarm, NULL, (xmlChar*) "AlarmTrigger", NULL);
@@ -163,6 +164,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	if (entry->appointment.repeatType != repeatNone) {
 		
 		int i;
+		tmp = NULL;
 		GString *rrulestr = g_string_new("");
 
 		current = xmlNewTextChild(root, NULL, (xmlChar*) "RecurrenceRule", NULL);
