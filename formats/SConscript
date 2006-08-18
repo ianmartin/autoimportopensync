@@ -1,0 +1,11 @@
+Import('*')
+
+env.Append( CPPPATH = '.' )
+
+file = env.SharedLibrary('file', ['file.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+data = env.SharedLibrary('data', ['data.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+
+env.Install(install_format, file)
+env.Install(install_format, data)
+env.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
+env.Alias('install', install_prefix)

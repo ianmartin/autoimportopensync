@@ -554,7 +554,7 @@ char *vformat_escape_string (const char *s, VFormatType type)
 			str = g_string_append (str, "\\;");
 			break;
 		case ',':
-			if (type == VFORMAT_CARD_30)
+			if (type == VFORMAT_CARD_30 || type == VFORMAT_EVENT_20 || type == VFORMAT_TODO_20)
 				str = g_string_append (str, "\\,");
 			else
 				str = g_string_append_c (str, *p);

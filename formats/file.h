@@ -25,7 +25,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-typedef struct fileFormat {
+typedef struct OSyncFileFormat {
 	/** The mode of this file. See man fstat for explanation */
 	mode_t mode;
 	/** The id of the user (owner) of this file */
@@ -34,10 +34,9 @@ typedef struct fileFormat {
 	gid_t groupid;
 	/** Time of the last modification */
 	time_t last_mod;
-	/** The file contents */
-	char *data;
-	/** The size of the file contents (without trailing /0) */
-	int size;
-} fileFormat;
+    char *path;
+    char *data;
+    unsigned int size;
+} OSyncFileFormat;
 
 #endif //_FILE_H
