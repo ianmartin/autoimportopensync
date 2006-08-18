@@ -22,32 +22,34 @@
 #define _FILE_PLUGIN_H
 
 #include <opensync/opensync.h>
+
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-helper.h>
+
 #include <sys/stat.h>
-//#include <unistd.h>
 #include <stdio.h>
 #include <glib.h>
 #include <string.h>
-#include <config.h>
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#ifdef HAVE_FAM
-#include <fam.h>
-#endif
+typedef struct OSyncFileEnv {
+	GList *directories;
+	OSyncObjFormat *objformat;
+} OSyncFileEnv;
 
-typedef struct filesyncinfo {
-        char *path;
-        OSyncMember *member;
-        GDir *dir;
-        OSyncHashTable *hashtable;
-        osync_bool recursive;
-#ifdef HAVE_FAM
-        FAMConnection *famConn;
-        FAMRequest *famRequest;
-#endif
-} filesyncinfo;
-
-osync_bool fs_parse_settings(filesyncinfo *env, char *data, int size, OSyncError **error);
+typedef struct OSyncFileDir {
+	char *objtype;
+	char *path;
+	GDir *dir;
+	OSyncHashTable *hashtable;
+	OSyncObjTypeSink *sink;
+	osync_bool recursive;
+	OSyncFileEnv *env;
+} OSyncFileDir;
 
 #endif //_FILE_PLUGIN_H

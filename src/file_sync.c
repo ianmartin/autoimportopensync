@@ -17,125 +17,289 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
- 
+
 #include "file_sync.h"
 #include <opensync/file.h>
 #include <stdlib.h>
 
-#ifdef HAVE_FAM
-static gboolean _fam_prepare(GSource *source, gint *timeout_)
+static void free_dir(OSyncFileDir *dir)
 {
-	*timeout_ = 1;
+	if (dir->path)
+		g_free(dir->path);
+		
+	if (dir->objtype)
+		g_free(dir->objtype);
+	
+	g_free(dir);
+}
+
+static void free_env(OSyncFileEnv *env)
+{
+	while (env->directories) {
+		free_dir(env->directories->data);
+		env->directories = g_list_remove(env->directories, env->directories->data);
+	}
+	
+	g_free(env);
+}
+
+static osync_bool osync_filesync_parse_directory(OSyncFileEnv *env, xmlNode *cur, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
+
+	OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
+	if (!dir)
+		goto error;
+	dir->env = env;
+	
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
+				dir->path = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
+				dir->objtype = g_strdup(str);
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+
+	if (!dir->path) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Path not set");
+		goto error_free_dir;
+	}
+
+	osync_trace(TRACE_INTERNAL, "Got directory %s with objtype %s", dir->path, dir->objtype);
+
+	env->directories = g_list_append(env->directories, dir);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_dir:
+	free_dir(dir);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
-static gboolean _fam_check(GSource *source)
+/*Load the state from a xml file and return it in the conn struct*/
+static osync_bool osync_filesync_parse_settings(OSyncFileEnv *env, const char *data, OSyncError **error)
 {
-	return TRUE;
-}
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data, error);
+	xmlDoc *doc = NULL;
+	xmlNode *cur = NULL;
 
-static gboolean _fam_dispatch(GSource *source, GSourceFunc callback, gpointer user_data)
-{
-	filesyncinfo *fsinfo = user_data;
-	FAMEvent famEvent;
-	if (FAMPending(fsinfo->famConn)) {
-		if (FAMNextEvent(fsinfo->famConn, &famEvent) < 0) {
-			osync_debug("FILE-SYNC", 1, "Error getting fam event");
-		} else {
-			if (famEvent.code == 1 || famEvent.code == 2 || famEvent.code == 5 || famEvent.code == 6)
-				osync_member_request_synchronization(fsinfo->member);
+	doc = xmlParseMemory(data, strlen(data) + 1);
+	if (!doc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+		goto error;
+	}
+
+	cur = xmlDocGetRootElement(doc);
+
+	if (!cur) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
+		goto error_free_doc;
+	}
+
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
+		goto error_free_doc;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"directory")) {
+				if (!osync_filesync_parse_directory(env, cur->xmlChildrenNode, error))
+					goto error_free_doc;
+			}
+			xmlFree(str);
 		}
+		cur = cur->next;
 	}
+
+	xmlFreeDoc(doc);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error_free_doc:
+	xmlFreeDoc(doc);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-static void fam_setup(filesyncinfo *fsinfo, GMainContext *context)
+static char *osync_filesync_generate_hash(struct stat *buf)
 {
-	GSourceFuncs *functions = g_malloc0(sizeof(GSourceFuncs));
-	functions->prepare = _fam_prepare;
-	functions->check = _fam_check;
-	functions->dispatch = _fam_dispatch;
-	functions->finalize = NULL;
-
-	GSource *source = g_source_new(functions, sizeof(GSource));
-	g_source_set_callback(source, NULL, fsinfo, NULL);
-	g_source_attach(source, context);
-}
-#endif
-
-static void *fs_initialize(OSyncMember *member, OSyncError **error)
-{
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-
-	char *configdata;
-	int configsize;
-	filesyncinfo *fsinfo = g_malloc0(sizeof(filesyncinfo));
-	
-	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
-		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-		g_free(fsinfo);
-		return NULL;
-	}
-	
-	if (!fs_parse_settings(fsinfo, configdata, configsize, error)) {
-		g_free(fsinfo);
-		return NULL;
-	}
-	
-	fsinfo->member = member;
-	fsinfo->hashtable = osync_hashtable_new();
-
-#ifdef HAVE_FAM
-
-	fsinfo->famConn = g_malloc0(sizeof(FAMConnection));
-	fsinfo->famRequest = g_malloc0(sizeof(FAMRequest));
-
-	if (FAMOpen(fsinfo->famConn) < 0) {
-		osync_debug("FILE-SYNC", 3, "Cannot connect to FAM");
-	} else {
-		if( FAMMonitorDirectory(fsinfo->famConn, fsinfo->path, fsinfo->famRequest, fsinfo ) < 0 ) {
-			osync_debug("FILE-SYNC", 3, "Cannot monitor directory %s", fsinfo->path);
-			FAMClose(fsinfo->famConn);
-		} else {
-			fam_setup(fsinfo, osync_member_get_loop(member));
-		}
-	}
-#endif
-
-	return (void *)fsinfo;
-}
-
-static void fs_connect(OSyncContext *ctx)
-{
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-
-	OSyncError *error = NULL;
-	if (!osync_hashtable_load(fsinfo->hashtable, fsinfo->member, &error)) {
-		osync_context_report_osyncerror(ctx, &error);
-		return;
-	}
-	
-	if (!osync_anchor_compare(fsinfo->member, "path", fsinfo->path))
-		osync_member_set_slow_sync(fsinfo->member, "data", TRUE);
-	
-	GError *direrror = NULL;
-
-	fsinfo->dir = g_dir_open(fsinfo->path, 0, &direrror);
-	if (direrror) {
-		//Unable to open directory
-		osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to open directory %s", fsinfo->path);
-		g_error_free (direrror);
-	} else {
-		osync_context_report_success(ctx);
-	}
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
-}
-
-static char *fs_generate_hash(struct stat *filestats)
-{
-	char *hash = g_strdup_printf("%i-%i", (int)filestats->st_mtime, (int)filestats->st_ctime);
+	char *hash = g_strdup_printf("%i-%i", (int)buf->st_mtime, (int)buf->st_ctime);
 	return hash;
+}
+
+static void osync_filesync_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	OSyncError *error = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	
+	osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
+	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+	dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
+	g_free(tablepath);
+	
+	if (!dir->hashtable)
+		goto error;
+
+	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	if (!osync_anchor_compare(anchorpath, "path", dir->path))
+		osync_objtype_sink_set_slowsync(dir->sink, TRUE);
+	g_free(anchorpath);
+	
+	if (!g_file_test(dir->path, G_FILE_TEST_IS_DIR)) {
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s is not a directory", dir->path);
+		goto error;
+	}
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+static void osync_filesync_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	
+	osync_hashtable_free(dir->hashtable);
+	dir->hashtable = NULL;
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+
+//typedef void (* OSyncSinkWriteFn) 
+//typedef void (* OSyncSinkCommittedAllFn) (void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+
+
+static osync_bool osync_filesync_read(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	OSyncFileEnv *env = (OSyncFileEnv *)data;
+	OSyncError *error = NULL;
+	
+	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
+	
+	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+	if (!file)
+		goto error;
+	file->path = g_strdup(osync_change_get_uid(change));
+	
+	struct stat filestats;
+	stat(filename, &filestats);
+	file->userid = filestats.st_uid;
+	file->groupid = filestats.st_gid;
+	file->mode = filestats.st_mode;
+	file->last_mod = filestats.st_mtime;
+			
+	if (!osync_file_read(filename, &(file->data), &(file->size), &error))
+		goto error_free_file;
+	
+	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), env->objformat, &error);
+	if (!odata)
+		goto error_free_data;
+	
+	osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+	osync_change_set_data(change, odata);
+	osync_data_unref(odata);
+	
+	osync_context_report_success(ctx);
+	
+	g_free(filename);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_data:
+	g_free(file->data);
+error_free_file:
+	g_free(file->path);
+	g_free(file);
+error:
+	g_free(filename);
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+	return FALSE;
+}
+
+static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	OSyncError *error = NULL;
+	OSyncData *odata = NULL;
+	char *buffer = NULL;
+	unsigned int size = 0;
+	
+	char *filename = g_strdup_printf ("%s/%s", dir->path, osync_change_get_uid(change));
+			
+	switch (osync_change_get_changetype(change)) {
+		case OSYNC_CHANGE_TYPE_DELETED:
+			if (!remove(filename) == 0) {
+				osync_error_set(&error, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
+				goto error;
+			}
+			break;
+		case OSYNC_CHANGE_TYPE_ADDED:
+			if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+				osync_error_set(&error, OSYNC_ERROR_EXISTS, "Entry already exists");
+				goto error;
+			}
+			/* No break. Continue below */
+		case OSYNC_CHANGE_TYPE_MODIFIED:
+			//FIXME add ownership for file-sync
+			odata = osync_change_get_data(change);
+			osync_data_get_data(odata, &buffer, &size);
+			
+			OSyncFileFormat *file = (OSyncFileFormat *)buffer;
+			
+			if (!osync_file_write(filename, file->data, file->size, file->mode, &error))
+				goto error;
+			break;
+		default:
+			break;
+	}
+	
+	g_free(filename);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	g_free(filename);
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+	return FALSE;
 }
 
 /** Report files on a directory
@@ -149,23 +313,28 @@ static char *fs_generate_hash(struct stat *filestats)
  *            start with a slash. See note above.
  *
  */
-static void fs_report_dir(filesyncinfo *fsinfo, const char *subdir, OSyncContext *ctx)
+static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdir, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "fs_report_dir(%p, %s, %p)", fsinfo, subdir, ctx);
-	const char *de = NULL;
-	
-	char *path = g_build_filename(fsinfo->path, subdir, NULL);
-	osync_trace(TRACE_INTERNAL, "path %s", path);
-		
-	GDir *dir;
 	GError *gerror = NULL;
-
+	const char *de = NULL;
+	char *path = NULL;
+	GDir *dir = NULL;
+	OSyncError *error = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, directory, subdir, ctx);
+	
+	path = g_build_filename(directory->path, subdir, NULL);
+	osync_trace(TRACE_INTERNAL, "path %s", path);
+	
 	dir = g_dir_open(path, 0, &gerror);
 	if (!dir) {
 		/*FIXME: Permission errors may make files to be reported as deleted.
 		 * Make fs_report_dir() able to report errors
 		 */
-		osync_trace(TRACE_EXIT_ERROR, "fs_report_dir: Unable to open directory %s: %s", path, gerror ? gerror->message : "None");
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to open directory %s: %s", path, gerror ? gerror->message : "None");
+		osync_context_report_osyncwarning(ctx, error);
+		osync_error_unref(&error);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 		return;
 	}
 
@@ -177,44 +346,71 @@ static void fs_report_dir(filesyncinfo *fsinfo, const char *subdir, OSyncContext
 		else
 			relative_filename = g_build_filename(subdir, de, NULL);
 			
+		osync_hashtable_report(directory->hashtable, relative_filename);
 		osync_trace(TRACE_INTERNAL, "path2 %s %s", filename, relative_filename);
 		
 		if (g_file_test(filename, G_FILE_TEST_IS_DIR)) {
 			/* Recurse into subdirectories */
-			if (fsinfo->recursive)
-				fs_report_dir(fsinfo, relative_filename, ctx);
+			if (directory->recursive)
+				osync_filesync_report_dir(directory, relative_filename, ctx);
 		} else if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+			
+			struct stat buf;
+			stat(filename, &buf);
+			char *hash = osync_filesync_generate_hash(&buf);
+			
+			OSyncChangeType type = osync_hashtable_get_changetype(directory->hashtable, relative_filename, hash);
+			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
+				g_free(hash);
+				g_free(filename);
+				continue;
+			}
+			osync_hashtable_update_hash(directory->hashtable, type, relative_filename, hash);
+			
 			/* Report normal files */
-			OSyncChange *change = osync_change_new();
-			osync_change_set_member(change, fsinfo->member);
+			OSyncChange *change = osync_change_new(&error);
+			if (!change) {
+				osync_context_report_osyncwarning(ctx, error);
+				osync_error_unref(&error);
+				continue;
+			}
+			
 			osync_change_set_uid(change, relative_filename);
-
-			osync_change_set_objformat_string(change, "file");
-			
-			fileFormat *info = g_malloc0(sizeof(fileFormat));
-			struct stat filestats;
-			stat(filename, &filestats);
-			info->userid = filestats.st_uid;
-			info->groupid = filestats.st_gid;
-			info->mode = filestats.st_mode;
-			info->last_mod = filestats.st_mtime;
-			
-			char *hash = fs_generate_hash(&filestats);
 			osync_change_set_hash(change, hash);
+			osync_change_set_changetype(change, type);
+			
+			OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+			if (!file) {
+				osync_change_unref(change);
+				osync_context_report_osyncwarning(ctx, error);
+				osync_error_unref(&error);
+				continue;
+			}
+			file->path = g_strdup(relative_filename);
 			
 			OSyncError *error = NULL;
-			if (!osync_file_read(filename, &info->data, &info->size, &error)) {
-				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to read file");
-				g_free(filename);
-				return;
+			if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
+				osync_change_unref(change);
+				osync_context_report_osyncwarning(ctx, error);
+				osync_error_unref(&error);
+				continue;
 			}
+			
+			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
+			if (!odata) {
+				osync_change_unref(change);
+				osync_context_report_osyncwarning(ctx, error);
+				osync_error_unref(&error);
+				continue;
+			}
+			
+			osync_data_set_objtype(odata, osync_objtype_sink_get_name(directory->sink));
+			osync_change_set_data(change, odata);
+			osync_data_unref(odata);
 	
-			osync_change_set_data(change, (char *)info, sizeof(fileFormat), TRUE);
-
-			if (osync_hashtable_detect_change(fsinfo->hashtable, change)) {
-				osync_context_report_change(ctx, change);
-				osync_hashtable_update_hash(fsinfo->hashtable, change);
-			}
+			osync_context_report_change(ctx, change);
+			
+			osync_change_unref(change);
 			g_free(hash);
 		}
 
@@ -224,242 +420,225 @@ static void fs_report_dir(filesyncinfo *fsinfo, const char *subdir, OSyncContext
 	g_dir_close(dir);
 
 	g_free(path);
-	osync_trace(TRACE_EXIT, "fs_report_dir");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void fs_get_changeinfo(OSyncContext *ctx)
+static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	
-	if (osync_member_get_slow_sync(fsinfo->member, "data")) {
-		osync_debug("FILE-SYNC", 3, "Slow sync requested");
-		osync_hashtable_set_slow_sync(fsinfo->hashtable, "data");
-	}
-
-	if (fsinfo->dir) {
-		fs_report_dir(fsinfo, NULL, ctx);
-		osync_hashtable_report_deleted(fsinfo->hashtable, ctx, "data");
-	}
-	osync_context_report_success(ctx);
-	
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
-}
-
-static void fs_get_data(OSyncContext *ctx, OSyncChange *change)
-{
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	fileFormat *file_info = (fileFormat *)osync_change_get_data(change);
-	
-	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+	OSyncFileEnv *env = (OSyncFileEnv *)data;
+	int i = 0;
 	OSyncError *error = NULL;
-	if (!osync_file_read(filename, &file_info->data, &file_info->size, &error)) {
-		osync_context_report_osyncerror(ctx, &error);
-		g_free(filename);
-		return;
+	
+	if (osync_objtype_sink_get_slowsync(dir->sink)) {
+		osync_trace(TRACE_INTERNAL, "Slow sync requested");
+		osync_hashtable_reset(dir->hashtable);
 	}
 	
-	osync_change_set_data(change, (char *)file_info, sizeof(fileFormat), TRUE);
-	g_free(filename);
-	
-	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
-}
+	osync_trace(TRACE_INTERNAL, "get_changes for %s", osync_objtype_sink_get_name(sink));
 
-static void fs_read(OSyncContext *ctx, OSyncChange *change)
-{
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	osync_filesync_report_dir(dir, NULL, ctx);
 	
-	char *filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
-
-	fileFormat *info = g_malloc0(sizeof(fileFormat));
-	struct stat filestats;
-	stat(filename, &filestats);
-	info->userid = filestats.st_uid;
-	info->groupid = filestats.st_gid;
-	info->mode = filestats.st_mode;
-	info->last_mod = filestats.st_mtime;
-	
-	OSyncError *error = NULL;
-	if (!osync_file_read(filename, &info->data, &info->size, &error)) {
-		osync_context_report_osyncerror(ctx, &error);
-		g_free(filename);
-		return;
-	}
+	char **uids = osync_hashtable_get_deleted(dir->hashtable);
+	for (i = 0; uids[i]; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		if (!change) {
+			g_free(uids[i]);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
 		
-	osync_change_set_data(change, (char *)info, sizeof(fileFormat), TRUE);
-
-	g_free(filename);
+		osync_change_set_uid(change, uids[i]);
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+		
+		OSyncData *odata = osync_data_new(NULL, 0, env->objformat, &error);
+		if (!odata) {
+			g_free(uids[i]);
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+		
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
+		
+		osync_context_report_change(ctx, change);
+		
+		osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+	
+		osync_change_unref(change);
+		g_free(uids[i]);
+	}
+	g_free(uids);
 	
 	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/** Write a change, but doesn't report success
- *
- * This function writes a change, but doesn't report success on
- * the OSyncContext object on error. This function is used by
- * fs_access() and fs_commit_change(), and allow the caller to
- * do more tasks before reporting success to opensync.
- *
- * On success, TRUE will be returned but osync_context_report_success() won't be called
- * On failure, FALSE will be returned, and osync_context_report_error() will be called
- */
-static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
+static void osync_filesync_commit_change(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
 {
-	/*TODO: Create directory for file, if it doesn't exist */
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
-	fileFormat *file_info = (fileFormat *)osync_change_get_data(change);
-
-	char *hash = NULL;
-	char *filename = NULL;
-	OSyncError *error = NULL;
-	filename = g_strdup_printf ("%s/%s", fsinfo->path, osync_change_get_uid(change));
-	struct stat filestats;
+	osync_trace(TRACE_ENTRY, "%s", __func__);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 	
-	switch (osync_change_get_changetype(change)) {
-		case CHANGE_DELETED:
-			if (remove(filename) != 0) {
-				osync_debug("FILE-SYNC", 0, "Unable to remove file %s", filename);
-				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
-				g_free(filename);
-				return FALSE;
-			}
-			break;
-		case CHANGE_ADDED:
-			if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
-				osync_debug("FILE-SYNC", 0, "File %s already exists", filename);
-				osync_context_report_error(ctx, OSYNC_ERROR_EXISTS, "Entry already exists");
-				g_free(filename);
-				return FALSE;
-			}
-			
-			if (!osync_file_write(filename, file_info->data, file_info->size, file_info->mode, &error)) {
-				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
-				osync_context_report_osyncerror(ctx, &error);
-				g_free(filename);
-				return FALSE;
-			}
-			
-			stat(filename, &filestats);
-			
-			hash = fs_generate_hash(&filestats);
-			osync_change_set_hash(change, hash);
-			break;
-		case CHANGE_MODIFIED:
-			/* Dont touch the permissions */
-			if (stat(filename, &filestats) == -1)
-				filestats.st_mode = 0700; //An error occured. Choose a save default value
-				
-			if (!osync_file_write(filename, file_info->data, file_info->size, filestats.st_mode, &error)) {
-				osync_debug("FILE-SYNC", 0, "Unable to write to file %s", filename);
-				osync_context_report_osyncerror(ctx, &error);
-				g_free(filename);
-				return FALSE;
-			}
-			
-			if (stat(filename, &filestats) != 0) {
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to stat file");
-				osync_context_report_osyncerror(ctx, &error);
-				g_free(filename);
-				return FALSE;
-			}
-			
-			hash = fs_generate_hash(&filestats);
-			osync_change_set_hash(change, hash);
-			break;
-		default:
-			osync_debug("FILE-SYNC", 0, "Unknown change type");
+	char *filename = NULL;
+	
+	if (!osync_filesync_write(data, info, ctx, change)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
+		return;
+	}
+	
+	filename = g_strdup_printf ("%s/%s", dir->path, osync_change_get_uid(change));
+	char *hash = NULL;
+	
+	if (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
+		struct stat buf;
+		stat(filename, &buf);
+		hash = osync_filesync_generate_hash(&buf);
 	}
 	g_free(filename);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
+
+	osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), hash);
+	g_free(hash);
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void osync_filesync_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
+
+	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	osync_anchor_update(anchorpath, "path", dir->path);
+	g_free(anchorpath);
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+/* In initialize, we get the config for the plugin. Here we also must register
+ * all _possible_ objtype sinks. */
+static void *osync_filesync_initialize(OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	OSyncFileEnv *env = osync_try_malloc0(sizeof(OSyncFileEnv), error);
+	if (!env)
+		goto error;
+	
+	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
+	
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	env->objformat = osync_format_env_find_objformat(formatenv, "file");
+	
+	if (!osync_filesync_parse_settings(env, osync_plugin_info_get_config(info), error))
+		goto error_free_env;
+	
+	/* Now we register the objtypes that we can sync. This plugin is special. It can
+	 * synchronize any objtype we configure it to sync and where a conversion
+	 * path to the file format can be found */
+	GList *o = env->directories;
+	for (; o; o = o->next) {
+		OSyncFileDir *dir = o->data;
+		/* We register the given objtype here */
+		OSyncObjTypeSink *sink = osync_objtype_sink_new(dir->objtype, error);
+		if (!sink)
+			goto error_free_env;
+		
+		dir->sink = sink;
+		osync_objtype_sink_ref(sink);
+		
+		/* The file format is the only one we understand */
+		osync_objtype_sink_add_objformat(sink, "file");
+		
+		/* All sinks have the same functions of course */
+		OSyncObjTypeSinkFunctions functions;
+		memset(&functions, 0, sizeof(functions));
+		functions.connect = osync_filesync_connect;
+		functions.disconnect = osync_filesync_disconnect;
+		functions.get_changes = osync_filesync_get_changes;
+		functions.commit = osync_filesync_commit_change;
+		functions.read = osync_filesync_read;
+		functions.write = osync_filesync_write;
+		functions.sync_done = osync_filesync_sync_done;
+		
+		/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
+		 * again once the functions are called */
+		osync_objtype_sink_set_functions(sink, functions, dir);
+		osync_plugin_info_add_objtype(info, sink);
+		osync_objtype_sink_unref(sink);
+	}
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	return (void *)env;
+
+error_free_env:
+	free_env(env);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static void osync_filesync_finalize(void *data)
+{
+	OSyncFileEnv *env = data;
+
+	free_env(env);
+}
+
+/* Here we actually tell opensync which sinks are available. For this plugin, we
+ * go through the list of directories and enable all, since all have been configured */
+static osync_bool osync_filesync_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	
+	OSyncFileEnv *env = (OSyncFileEnv *)data;
+	GList *o = env->directories;
+	for (; o; o = o->next) {
+		OSyncFileDir *dir = o->data;
+		osync_objtype_sink_set_available(dir->sink, TRUE);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
-static osync_bool fs_commit_change(OSyncContext *ctx, OSyncChange *change)
+void get_sync_info(OSyncPluginEnv *env)
 {
-	osync_debug("FILE-SYNC", 4, "start: %s", __func__);
-	osync_debug("FILE-SYNC", 3, "Writing change %s with changetype %i", osync_change_get_uid(change), osync_change_get_changetype(change));
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	OSyncError *error = NULL;
+	OSyncPlugin *plugin = osync_plugin_new(&error);
+	if (!plugin)
+		goto error;
 	
-	if (!__fs_access(ctx, change))
-		return FALSE;
-
-	osync_hashtable_update_hash(fsinfo->hashtable, change);
-	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
-	return TRUE;
-}
-
-static osync_bool fs_access(OSyncContext *ctx, OSyncChange *change)
-{
-	if (!__fs_access(ctx, change))
-		return FALSE;
-
-	osync_context_report_success(ctx);
-	return TRUE;
-}
-
-static void fs_sync_done(OSyncContext *ctx)
-{
-	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	osync_plugin_set_name(plugin, "file-sync");
+	osync_plugin_set_longname(plugin, "File Synchronization Plugin");
+	osync_plugin_set_description(plugin, "Plugin to synchronize files on the local filesystem");
 	
-	//osync_hashtable_forget(fsinfo->hashtable);
-	osync_anchor_update(fsinfo->member, "path", fsinfo->path);
-	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 3, "end: %s", __func__);
-}
-
-static void fs_disconnect(OSyncContext *ctx)
-{
-	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)osync_context_get_plugin_data(ctx);
+	osync_plugin_set_initialize(plugin, osync_filesync_initialize);
+	osync_plugin_set_finalize(plugin, osync_filesync_finalize);
+	osync_plugin_set_discover(plugin, osync_filesync_discover);
 	
-	g_dir_close(fsinfo->dir);
-	osync_hashtable_close(fsinfo->hashtable);
-	osync_context_report_success(ctx);
-	osync_debug("FILE-SYNC", 3, "end: %s", __func__);
-}
-
-static void fs_finalize(void *data)
-{
-	osync_debug("FILE-SYNC", 3, "start: %s", __func__);
-	filesyncinfo *fsinfo = (filesyncinfo *)data;
-	osync_hashtable_free(fsinfo->hashtable);
-#ifdef HAVE_FAM
-	//FAMCancelMonitor(fsinfo->famConn, fsinfo->famRequest);
-	//FAMClose(fsinfo->famConn);
-#endif
-
-	g_free(fsinfo->path);
-	g_free(fsinfo);
-}
-
-void get_info(OSyncEnv *env)
-{
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
-	info->name = "file-sync";
-	info->longname = "File Synchronization Plugin";
-	info->description = "Plugin to synchronize files on the local filesystem";
-	info->version = 1;
-	info->is_threadsafe = TRUE;
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
 	
-	info->functions.initialize = fs_initialize;
-	info->functions.connect = fs_connect;
-	info->functions.sync_done = fs_sync_done;
-	info->functions.disconnect = fs_disconnect;
-	info->functions.finalize = fs_finalize;
-	info->functions.get_changeinfo = fs_get_changeinfo;
-	info->functions.get_data = fs_get_data;
+	return;
+	
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(&error));
+	osync_error_unref(&error);
+}
 
-	osync_plugin_accept_objtype(info, "data");
-	osync_plugin_accept_objformat(info, "data", "file", NULL);
-	osync_plugin_set_commit_objformat(info, "data", "file", fs_commit_change);
-	osync_plugin_set_access_objformat(info, "data", "file", fs_access);
-	osync_plugin_set_read_objformat(info, "data", "file", fs_read);
-
+int get_version(void)
+{
+	return 1;
 }
