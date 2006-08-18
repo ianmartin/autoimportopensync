@@ -139,18 +139,31 @@ OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, int nth)
 	return g_list_nth_data(info->objtypes, nth);
 }
 
-OSyncObjTypeSink *osync_plugin_info_get_sink(OSyncPluginInfo *info)
+OSyncObjTypeSink *osync_plugin_info_get_main_sink(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return info->sink;
+}
+
+void osync_plugin_info_set_main_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
+{
+	osync_assert(info);
+	osync_assert(sink);
+	info->sink = sink;
+	osync_objtype_sink_ref(sink);
+}
+
+OSyncObjTypeSink *osync_plugin_info_get_sink(OSyncPluginInfo *info)
+{
+	osync_assert(info);
+	return info->current_sink;
 }
 
 void osync_plugin_info_set_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 {
 	osync_assert(info);
 	osync_assert(sink);
-	info->sink = sink;
-	osync_objtype_sink_ref(sink);
+	info->current_sink = sink;
 }
 
 OSyncFormatEnv *osync_plugin_info_get_format_env(OSyncPluginInfo *info)

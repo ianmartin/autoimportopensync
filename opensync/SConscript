@@ -8,6 +8,7 @@ opensync_error.c
 opensync_context.c
 opensync_support.c
 helper/opensync_hashtable.c
+helper/opensync_anchor.c
 module/opensync_module.c
 plugin/opensync_plugin.c
 plugin/opensync_plugin_info.c
@@ -45,6 +46,7 @@ archive/opensync_archive.c
 
 headers = """
 opensync.h
+opensync_list.h
 opensync-context.h
 opensync-data.h
 opensync-engine.h
@@ -99,6 +101,17 @@ merger/opensync_xmlfield.h
 merger/opensync_xmlfieldlist.h
 """
 
+helper_headers = """
+helper/opensync_anchor.h
+helper/opensync_hashtable.h
+"""
+
+engine_headers = """
+engine/opensync_engine.h
+engine/opensync_obj_engine.h
+engine/opensync_status.h
+"""
+
 Libraries = r"""
 glib-2.0
 gthread-2.0
@@ -119,4 +132,6 @@ env.Install(install_inc + '/opensync-1.0/opensync/format', Split(format_headers)
 env.Install(install_inc + '/opensync-1.0/opensync/data', Split(data_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/ipc', Split(ipc_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/merger', Split(merger_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/helper', Split(helper_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/engine', Split(engine_headers))
 env.Alias('install', install_prefix)

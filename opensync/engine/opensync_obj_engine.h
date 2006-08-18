@@ -28,11 +28,13 @@ typedef void (* OSyncObjEngineEventCallback) (OSyncObjEngine *engine, OSyncEngin
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *engine, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error);
 void osync_obj_engine_ref(OSyncObjEngine *engine);
 void osync_obj_engine_unref(OSyncObjEngine *engine);
+const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine);
 
 void osync_obj_engine_event(OSyncObjEngine *objengine, OSyncEngineEvent event);
 osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error);
 void osync_obj_engine_set_callback(OSyncObjEngine *engine, OSyncObjEngineEventCallback callback, void *userdata);
-				
+osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClientProxy *proxy, OSyncChange *change, OSyncError **error);
+
 void osync_obj_engine_set_error(OSyncObjEngine *engine, OSyncError *error);
 
 int osync_mapping_engine_num_changes(OSyncMappingEngine *engine);

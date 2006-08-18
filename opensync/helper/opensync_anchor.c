@@ -26,7 +26,7 @@
 #include "opensync-helper.h"
 #include "opensync_anchor_internals.h"
 
-OSyncAnchorDB *osync_anchor_db_new(const char *filename, OSyncError **error)
+static OSyncAnchorDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
 	
@@ -53,7 +53,7 @@ error:
 	return NULL;
 }
 
-void osync_anchor_db_free(OSyncAnchorDB *db)
+static void _osync_anchor_db_free(OSyncAnchorDB *db)
 {
 	osync_assert(db);
 	
@@ -63,7 +63,7 @@ void osync_anchor_db_free(OSyncAnchorDB *db)
 	g_free(db);
 }
 
-char *osync_anchor_db_retrieve(OSyncAnchorDB *db, const char *key)
+static char *_osync_anchor_db_retrieve(OSyncAnchorDB *db, const char *key)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key);
 	osync_assert(db);
@@ -83,7 +83,7 @@ char *osync_anchor_db_retrieve(OSyncAnchorDB *db, const char *key)
 	return retanchor;
 }
 
-void osync_anchor_db_update(OSyncAnchorDB *db, const char *key, const char *anchor)
+static void _osync_anchor_db_update(OSyncAnchorDB *db, const char *key, const char *anchor)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
 	osync_assert(db);
@@ -97,26 +97,63 @@ void osync_anchor_db_update(OSyncAnchorDB *db, const char *key, const char *anch
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-osync_bool osync_anchor_db_compare(OSyncAnchorDB *db, const char *key, const char *new_anchor)
+osync_bool osync_anchor_compare(const char *anchordb, const char *key, const char *new_anchor)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, db, key, new_anchor);
-	osync_assert(db);
-	osync_assert(key);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
+	osync_assert(anchordb);
 	
-	char *old_anchor = osync_anchor_db_retrieve(db, key);
+	OSyncAnchorDB *db = _osync_anchor_db_new(anchordb, NULL);
+	if (!db)
+		return FALSE;
+	
+	char *old_anchor = _osync_anchor_db_retrieve(db, key);
+	osync_bool retval = FALSE;
 	
 	if (old_anchor) {
 		if (!strcmp(old_anchor, new_anchor)) {
-			g_free(old_anchor);
-			osync_trace(TRACE_EXIT, "%s: Anchors match", __func__);
-			return TRUE;
+			retval = TRUE;
 		} else {
-			g_free(old_anchor);
-			osync_trace(TRACE_EXIT, "%s: Anchor mismatch", __func__);
-			return FALSE;
+			retval = FALSE;
 		}
+		g_free(old_anchor);
 	}
 	
-	osync_trace(TRACE_EXIT, "%s: No previous anchor", __func__);
-	return FALSE;
+	_osync_anchor_db_free(db);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, retval);
+	return retval;
+}
+
+void osync_anchor_update(const char *anchordb, const char *key, const char *new_anchor)
+{
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
+	osync_assert(anchordb);
+	
+	OSyncAnchorDB *db = _osync_anchor_db_new(anchordb, NULL);
+	if (!db)
+		return;
+	
+	_osync_anchor_db_update(db, key, new_anchor);
+	
+	_osync_anchor_db_free(db);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+char *osync_anchor_retrieve(const char *anchordb, const char *key)
+{
+	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb, key);
+	osync_assert(anchordb);
+	
+	OSyncAnchorDB *db = _osync_anchor_db_new(anchordb, NULL);
+	if (!db)
+		return NULL;
+	
+	char *retval = _osync_anchor_db_retrieve(db, key);
+	
+	_osync_anchor_db_free(db);
+	
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval);
+	return retval;
 }

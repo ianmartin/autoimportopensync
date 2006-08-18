@@ -21,11 +21,8 @@
 #ifndef _OPENSYNC_ANCHOR_H_
 #define _OPENSYNC_ANCHOR_H_
 
-OSyncAnchorDB *osync_anchor_db_new(const char *filename, OSyncError **error);
-void osync_anchor_db_free(OSyncAnchorDB *db);
-
-char *osync_anchor_db_retrieve(OSyncAnchorDB *db, const char *key);
-void osync_anchor_db_update(OSyncAnchorDB *db, const char *key, const char *anchor);
-osync_bool osync_anchor_db_compare(OSyncAnchorDB *db, const char *key, const char *new_anchor);
+osync_bool osync_anchor_compare(const char *anchordb, const char *key, const char *new_anchor);
+void osync_anchor_update(const char *anchordb, const char *key, const char *new_anchor);
+char *osync_anchor_retrieve(const char *anchordb, const char *key);
 
 #endif //_OPENSYNC_ANCHOR_H_

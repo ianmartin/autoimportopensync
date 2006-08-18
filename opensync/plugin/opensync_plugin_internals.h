@@ -39,7 +39,7 @@ struct OSyncPlugin {
 	
 	usable_fn useable;
 	/** Does the plugin have configuration options? */
-	OSyncConfigurationTypes config_type;
+	OSyncConfigurationType config_type;
 	/** The pointer to the plugin (for internal use) */
 	OSyncModule *module;
 	/** Plugin-specific data

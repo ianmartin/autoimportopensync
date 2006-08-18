@@ -43,7 +43,6 @@ OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, 
 void osync_objformat_ref(OSyncObjFormat *format)
 {
 	osync_assert(format);
-	osync_trace(TRACE_INTERNAL, "%s(%p): %i", __func__, format, format->ref_count);
 	
 	g_atomic_int_inc(&(format->ref_count));
 }
@@ -51,10 +50,8 @@ void osync_objformat_ref(OSyncObjFormat *format)
 void osync_objformat_unref(OSyncObjFormat *format)
 {
 	osync_assert(format);
-	osync_trace(TRACE_INTERNAL, "%s(%p): %i", __func__, format, format->ref_count);
 	
 	if (g_atomic_int_dec_and_test(&(format->ref_count))) {
-		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, format);
 		if (format->name)
 			g_free(format->name);
 			
@@ -62,7 +59,6 @@ void osync_objformat_unref(OSyncObjFormat *format)
 			g_free(format->objtype_name);
 		
 		g_free(format);
-		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
 }
 
@@ -178,6 +174,10 @@ void osync_objformat_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc
 char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size)
 {
 	osync_assert(format);
+	
+	if (!format->print_func)
+		return g_strndup(data, size);
+	
 	return format->print_func(data, size);
 }
 
@@ -190,6 +190,12 @@ void osync_objformat_set_revision_func(OSyncObjFormat *format, OSyncFormatRevisi
 time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_assert(format);
+	
+	if (!format->revision_func) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No revision function set");
+		return -1;
+	}
+	
 	return format->revision_func(data, size, error);
 }
 

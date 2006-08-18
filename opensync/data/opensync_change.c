@@ -85,6 +85,22 @@ void osync_change_set_changetype(OSyncChange *change, OSyncChangeType type)
 	change->changetype = type;
 }
 
+OSyncObjFormat *osync_change_get_objformat(OSyncChange *change)
+{
+	osync_assert(change);
+	if (!change->data)
+		return NULL;
+	return osync_data_get_objformat(change->data);
+}
+
+const char *osync_change_get_objtype(OSyncChange *change)
+{
+	osync_assert(change);
+	if (!change->data)
+		return NULL;
+	return osync_data_get_objtype(change->data);
+}
+
 /*! @brief Sets the hash of a change that is used to decide wether a change is new, modifed etc
  * 
  * @param change The change

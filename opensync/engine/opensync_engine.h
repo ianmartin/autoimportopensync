@@ -27,7 +27,8 @@ typedef enum {
 	OSYNC_ENGINE_COMMAND_WRITE = 3,
 	OSYNC_ENGINE_COMMAND_SYNC_DONE = 4,
 	OSYNC_ENGINE_COMMAND_DISCONNECT = 5,
-	OSYNC_ENGINE_COMMAND_SOLVE = 6
+	OSYNC_ENGINE_COMMAND_SOLVE = 6,
+	OSYNC_ENGINE_COMMAND_DISCOVER = 7
 } OSyncEngineCmd;
 
 typedef enum {
@@ -58,7 +59,8 @@ typedef enum {
 	OSYNC_CLIENT_EVENT_READ = 3,
 	OSYNC_CLIENT_EVENT_WRITTEN = 4,
 	OSYNC_CLIENT_EVENT_SYNC_DONE = 5,
-	OSYNC_CLIENT_EVENT_DISCONNECTED = 6
+	OSYNC_CLIENT_EVENT_DISCONNECTED = 6,
+	OSYNC_CLIENT_EVENT_DISCOVERED = 7
 } OSyncMemberEvent;
 
 typedef enum {
@@ -143,6 +145,9 @@ osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error);
 osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **error);
 osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error);
 
+osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
+osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
+
 void osync_engine_pause(OSyncEngine *engine);
 void osync_engine_abort(OSyncEngine *engine);
 
@@ -171,8 +176,11 @@ osync_bool osync_engine_check_get_changes(OSyncEngine *engine);
 
 int osync_engine_num_proxies(OSyncEngine *engine);
 OSyncClientProxy *osync_engine_nth_proxy(OSyncEngine *engine, int nth);
+OSyncClientProxy *osync_engine_find_proxy(OSyncEngine *engine, OSyncMember *member);
 
-osync_bool osync_engine_solve_mapping(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncChange *change, OSyncError **error);
-osync_bool osync_engine_duplicate_mapping(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error);
+osync_bool osync_engine_mapping_solve(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncChange *change, OSyncError **error);
+osync_bool osync_engine_mapping_duplicate(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error);
+osync_bool osync_engine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error);
+osync_bool osync_engine_mapping_use_latest(OSyncEngine *engine, OSyncMappingEngine *mapping_engine, OSyncError **error);
 
 #endif /*OPENSYNC_ENGINE_H_*/

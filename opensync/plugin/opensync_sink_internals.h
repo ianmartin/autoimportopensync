@@ -26,6 +26,7 @@ struct OSyncObjTypeSink {
 	GList *objformats;
 	/** The functions to be called */
 	OSyncObjTypeSinkFunctions functions;
+	void *userdata;
 	
 	char *objtype;
 	osync_bool write;

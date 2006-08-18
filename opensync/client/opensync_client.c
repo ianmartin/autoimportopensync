@@ -502,13 +502,21 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 	if (!reply)
 		goto error;
 
-	if (osync_plugin_info_get_sink(client->plugin_info))
+	if (osync_plugin_info_get_main_sink(client->plugin_info))
 		osync_message_write_int(reply, 1);
 	else
 		osync_message_write_int(reply, 0);
 
 	int numobjs = osync_plugin_info_num_objtypes(client->plugin_info);
-	osync_message_write_int(reply, numobjs);
+	int avail = 0;
+	for (i = 0; i < numobjs; i++) {
+		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(client->plugin_info, i);
+		if (osync_objtype_sink_is_available(sink)) {
+			avail++;
+		}
+	}
+
+	osync_message_write_int(reply, avail);
 	
 	for (i = 0; i < numobjs; i++) {
 		OSyncObjTypeSink *sink = osync_plugin_info_nth_objtype(client->plugin_info, i);
@@ -555,7 +563,7 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		
 		g_free(objtype);
 	} else
-		sink = osync_plugin_info_get_sink(client->plugin_info);
+		sink = osync_plugin_info_get_main_sink(client->plugin_info);
 		
 	if (!sink) {
 		reply = osync_message_new_reply(message, error);
@@ -571,6 +579,7 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		if (!context)
 			goto error;
 		
+		osync_plugin_info_set_sink(client->plugin_info, sink);
 		osync_objtype_sink_connect(sink, client->plugin_data, client->plugin_info, context);
 	
 		osync_context_unref(context);
@@ -607,7 +616,7 @@ static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMess
 		
 		g_free(objtype);
 	} else
-		sink = osync_plugin_info_get_sink(client->plugin_info);
+		sink = osync_plugin_info_get_main_sink(client->plugin_info);
 		
 	if (!sink) {
 		reply = osync_message_new_reply(message, error);
@@ -623,6 +632,7 @@ static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMess
 		if (!context)
 			goto error;
 		
+		osync_plugin_info_set_sink(client->plugin_info, sink);
 		osync_objtype_sink_disconnect(sink, client->plugin_data, client->plugin_info, context);
 	
 		osync_context_unref(context);
@@ -659,7 +669,7 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 		
 		g_free(objtype);
 	} else
-		sink = osync_plugin_info_get_sink(client->plugin_info);
+		sink = osync_plugin_info_get_main_sink(client->plugin_info);
 		
 	if (!sink) {
 		reply = osync_message_new_reply(message, error);
@@ -676,6 +686,7 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 			goto error;
 		osync_context_set_changes_callback(context, _osync_client_change_callback);
 		
+		osync_plugin_info_set_sink(client->plugin_info, sink);
 		osync_objtype_sink_get_changes(sink, client->plugin_data, client->plugin_info, context);
 	
 		osync_context_unref(context);
@@ -718,6 +729,7 @@ static osync_bool _osync_client_handle_commit_change(OSyncClient *client, OSyncM
 	if (!context)
 		goto error;
 	
+	osync_plugin_info_set_sink(client->plugin_info, sink);
 	osync_objtype_sink_commit_change(sink, client->plugin_data, client->plugin_info, change, context);
 	
 	osync_change_unref(change);
@@ -753,7 +765,7 @@ static osync_bool _osync_client_handle_committed_all(OSyncClient *client, OSyncM
 		
 		g_free(objtype);
 	} else
-		sink = osync_plugin_info_get_sink(client->plugin_info);
+		sink = osync_plugin_info_get_main_sink(client->plugin_info);
 		
 	if (!sink) {
 		reply = osync_message_new_reply(message, error);
@@ -769,6 +781,7 @@ static osync_bool _osync_client_handle_committed_all(OSyncClient *client, OSyncM
 		if (!context)
 			goto error;
 		
+		osync_plugin_info_set_sink(client->plugin_info, sink);
 		osync_objtype_sink_committed_all(sink, client->plugin_data, client->plugin_info, context);
 	
 		osync_context_unref(context);
@@ -805,7 +818,7 @@ static osync_bool _osync_client_handle_sync_done(OSyncClient *client, OSyncMessa
 		
 		g_free(objtype);
 	} else
-		sink = osync_plugin_info_get_sink(client->plugin_info);
+		sink = osync_plugin_info_get_main_sink(client->plugin_info);
 		
 	if (!sink) {
 		reply = osync_message_new_reply(message, error);
@@ -821,6 +834,7 @@ static osync_bool _osync_client_handle_sync_done(OSyncClient *client, OSyncMessa
 		if (!context)
 			goto error;
 		
+		osync_plugin_info_set_sink(client->plugin_info, sink);
 		osync_objtype_sink_sync_done(sink, client->plugin_data, client->plugin_info, context);
 	
 		osync_context_unref(context);

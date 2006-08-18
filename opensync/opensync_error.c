@@ -126,8 +126,9 @@ void osync_error_unref(OSyncError **error)
 			g_free ((*error)->message);
 			
 		g_free(*error);
-		*error = NULL;
 	}
+	
+	*error = NULL;
 }
 
 /*! @brief Checks if the error is set

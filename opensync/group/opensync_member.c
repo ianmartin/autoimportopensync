@@ -173,7 +173,8 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
 const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error)
 {
 	char *filename = NULL;
-	char *data;
+	char *data = NULL;
+	const char *config = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
 	g_assert(member);
@@ -184,26 +185,33 @@ const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError *
 	}
 	
 	filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
+	osync_trace(TRACE_INTERNAL, "Reading %s", filename);
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 		if (!osync_file_read(filename, &data, NULL, error))
 			goto error_free_filename;
 		g_free(filename);
 		
 		osync_member_set_config(member, data);
-		g_free(data);
 		
-		osync_trace(TRACE_EXIT, "%s: Read already set config from member", __func__);
-		return osync_member_get_config(member, NULL);
+		/* Free the data and return the const pointer */
+		g_free(data);
+		const char *config = osync_member_get_config(member, error);
+		
+		osync_trace(TRACE_EXIT, "%s: Read from member directory", __func__);
+		return config;
 	}
 	g_free(filename);
 
 	filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
+	osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
 	if (!osync_file_read(filename, &data, NULL, error))
 		goto error_free_filename;
 	g_free(filename);
 	
 	osync_member_set_config(member, data);
 	g_free(data);
+		
+	config = osync_member_get_config(member, error);
 		
 	osync_trace(TRACE_EXIT, "%s: Read default config", __func__);
 	return osync_member_get_config(member, NULL);
@@ -291,6 +299,32 @@ void osync_member_set_config(OSyncMember *member, const char *data)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
+	if (!sink) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
+				osync_objtype_sink_set_name(sink, str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
+				osync_objtype_sink_set_enabled(sink, atoi(str));
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, sink);
+	return sink;
+}
+
 /** @brief Loads a member from a directory where it has been saved
  * 
  * @param group The group which is the parent
@@ -315,20 +349,22 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	osync_member_set_configdir(member, path);
 	
 	if (!osync_open_xml_file(&doc, &cur, filename, "syncmember", error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		g_free(filename);
+		goto error;
 	}
 	g_free(filename);
 
 	while (cur != NULL) {
-		char *str = (char*)xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
+		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname"))
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"pluginname")) {
 				member->pluginname = g_strdup(str);
-
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype"))
-				osync_member_add_objtype(member, str);
-			
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
+				OSyncObjTypeSink *sink = _osync_member_parse_objtype(cur->xmlChildrenNode, error);
+				if (!sink)
+					goto error_free_doc;
+				member->objtypes = g_list_append(member->objtypes, sink);
+			}
 			xmlFree(str);
 		}
 		cur = cur->next;
@@ -337,6 +373,12 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+	
+error_free_doc:
+	xmlFreeDoc(doc);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /** @brief Saves a member to it config directory
@@ -369,6 +411,17 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	
 	//The plugin name
 	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
+	
+	//The objtypes
+	GList *o = NULL;
+	for (o = member->objtypes; o; o = o->next) {
+		OSyncObjTypeSink *sink = o->data;
+		xmlNode *node = xmlNewChild(doc->children, NULL, (xmlChar*)"objtype", NULL);
+		
+		xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
+		xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+		
+	}
 	
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);

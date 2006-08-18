@@ -100,10 +100,16 @@ long long int osync_message_get_id(OSyncMessage *message)
 	return message->id;
 }
 
-int osync_message_get_message_size(OSyncMessage *message)
+unsigned int osync_message_get_message_size(OSyncMessage *message)
 {
 	osync_assert(message);
 	return message->buffer->len;
+}
+
+void osync_message_set_message_size(OSyncMessage *message, unsigned int size)
+{
+	osync_assert(message);
+	message->buffer->len = size;
 }
 
 void osync_message_get_buffer(OSyncMessage *message, char **data, unsigned int *size)
@@ -276,12 +282,16 @@ void osync_message_write_buffer(OSyncMessage *message, const void *value, int si
 
 void osync_message_read_int(OSyncMessage *message, int *value)
 {
+	osync_assert(message->buffer->len >= message->buffer_read_pos + sizeof(int));
+	
 	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
 	message->buffer_read_pos += sizeof(int);
 }
 
 void osync_message_read_long_long_int(OSyncMessage *message, long long int *value)
 {
+	osync_assert(message->buffer->len >= message->buffer_read_pos + sizeof(long long int));
+	
 	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(long long int));
 	message->buffer_read_pos += sizeof(long long int);
 }
@@ -289,13 +299,14 @@ void osync_message_read_long_long_int(OSyncMessage *message, long long int *valu
 void osync_message_read_const_string(OSyncMessage *message, char **value)
 {
 	int length = 0;
-	memcpy(&length, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
-	message->buffer_read_pos += sizeof(int);
+	osync_message_read_int(message, &length);
 
 	if (length == -1) {
 		*value = NULL;
 		return;
 	}
+	
+	osync_assert(message->buffer->len >= message->buffer_read_pos + length);
 	*value = (char *)&(message->buffer->data[message->buffer_read_pos]);
 	message->buffer_read_pos += length;
 }
@@ -303,13 +314,15 @@ void osync_message_read_const_string(OSyncMessage *message, char **value)
 void osync_message_read_string(OSyncMessage *message, char **value)
 {
 	int length = 0;
-	memcpy(&length, &(message->buffer->data[ message->buffer_read_pos ]), sizeof(int));
-	message->buffer_read_pos += sizeof(int);
+	osync_message_read_int(message, &length);
 
 	if (length == -1) {
 		*value = NULL;
 		return;
 	}
+	
+	osync_assert(message->buffer->len >= message->buffer_read_pos + length);
+	
 	*value = (char*)malloc(length);
 	memcpy(*value, &(message->buffer->data[ message->buffer_read_pos ]), length );
 	message->buffer_read_pos += length;
@@ -317,12 +330,16 @@ void osync_message_read_string(OSyncMessage *message, char **value)
 
 void osync_message_read_const_data(OSyncMessage *message, void **value, int size)
 {
+	osync_assert(message->buffer->len >= message->buffer_read_pos + size);
+	
 	*value = &(message->buffer->data[message->buffer_read_pos]);
 	message->buffer_read_pos += size;
 }
 
 void osync_message_read_data(OSyncMessage *message, void *value, int size)
 {
+	osync_assert(message->buffer->len >= message->buffer_read_pos + size);
+	
 	memcpy(value, &(message->buffer->data[ message->buffer_read_pos ]), size );
 	message->buffer_read_pos += size;
 }

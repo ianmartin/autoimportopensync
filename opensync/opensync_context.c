@@ -66,6 +66,12 @@ void osync_context_set_changes_callback(OSyncContext *context, OSyncContextChang
 	context->changes_function = changes;
 }
 
+void osync_context_set_warning_callback(OSyncContext *context, OSyncContextCallbackFn warning)
+{
+	osync_assert(context);
+	context->warning_function = warning;
+}
+
 void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error));
@@ -73,6 +79,17 @@ void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error)
 	
 	if (context->callback_function)
 		(context->callback_function)(context->callback_data, error);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void osync_context_report_osyncwarning(OSyncContext *context, OSyncError *error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error));
+	osync_assert(context);
+	
+	if (context->warning_function)
+		(context->warning_function)(context->callback_data, error);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }

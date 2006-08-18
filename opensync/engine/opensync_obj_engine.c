@@ -892,12 +892,26 @@ static void _obj_engine_read_callback(OSyncClientProxy *proxy, void *userdata, O
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void _obj_engine_change_callback(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
+osync_bool osync_obj_engine_receive_change(OSyncObjEngine *objengine, OSyncClientProxy *proxy, OSyncChange *change, OSyncError **error)
 {
-	OSyncSinkEngine *sinkengine = userdata;
+	OSyncSinkEngine *sinkengine = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_member_get_id(osync_client_proxy_get_member(proxy)));
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, objengine, proxy, change, error);
+	
+	/* Find the sinkengine for the proxy */
+	GList *s = NULL;
+	for (s = objengine->sink_engines; s; s = s->next) {
+		sinkengine = s->data;
+		if (sinkengine->proxy == proxy)
+			break;
+		sinkengine = NULL;
+	}
+	
+	if (!sinkengine) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sinkengine");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 	
 	/* We now have to see if the change matches one of the already existing mappings */
 	GList *e;
@@ -910,7 +924,7 @@ static void _obj_engine_change_callback(OSyncClientProxy *proxy, void *userdata,
 			osync_status_update_change(sinkengine->engine->parent, change, osync_client_proxy_get_member(proxy), mapping_engine->mapping_engine->mapping, OSYNC_CHANGE_EVENT_READ, NULL);
 			
 			osync_trace(TRACE_EXIT, "%s: Updated", __func__);
-			return;
+			return TRUE;
 		}
 	}
 	
@@ -922,7 +936,7 @@ static void _obj_engine_change_callback(OSyncClientProxy *proxy, void *userdata,
 	osync_change_ref(change);
 	
 	osync_trace(TRACE_EXIT, "%s: Unmapped", __func__);
-	return;
+	return TRUE;
 }
 
 static void _generate_written_event(OSyncObjEngine *engine)
@@ -1171,6 +1185,12 @@ void osync_obj_engine_unref(OSyncObjEngine *engine)
 	}
 }
 
+const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine)
+{
+	osync_assert(engine);
+	return engine->objtype;
+}
+
 osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error)
 {
 	GList *p = NULL;
@@ -1192,7 +1212,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 		case OSYNC_ENGINE_COMMAND_READ:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
-				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, _obj_engine_change_callback, sinkengine, engine->objtype, error))
+				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}
 			break;
@@ -1263,6 +1283,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 			}
 			break;
 		case OSYNC_ENGINE_COMMAND_SOLVE:
+		case OSYNC_ENGINE_COMMAND_DISCOVER:
 			break;
 	}
 	

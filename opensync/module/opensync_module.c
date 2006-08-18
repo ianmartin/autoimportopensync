@@ -95,7 +95,7 @@ osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, 
 	fct_info = osync_module_get_function(module, "get_sync_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_sync_info function", __func__);
-		return FALSE;
+		return TRUE;
 	}
 	
 	/* Call the get_info function */
@@ -119,7 +119,7 @@ osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env
 	fct_info = osync_module_get_function(module, "get_format_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
-		return FALSE;
+		return TRUE;
 	}
 	
 	/* Call the get_info function */
@@ -140,9 +140,11 @@ osync_bool osync_module_get_conversion_info(OSyncModule *module, OSyncFormatEnv 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	fct_info = osync_module_get_function(module, "get_conversion_info", error);
-	if (!fct_info)
-		goto error;
+	fct_info = osync_module_get_function(module, "get_conversion_info", NULL);
+	if (!fct_info) {
+		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
+		return TRUE;
+	}
 	
 	/* Call the get_info function */
 	if (!fct_info(env, error))

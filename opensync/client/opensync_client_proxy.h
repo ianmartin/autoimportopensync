@@ -39,6 +39,7 @@ void osync_client_proxy_ref(OSyncClientProxy *proxy);
 void osync_client_proxy_unref(OSyncClientProxy *proxy);
 
 void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx);
+void osync_client_proxy_set_change_callback(OSyncClientProxy *proxy, change_cb cb, void *userdata);
 OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy);
 
 osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type, const char *path, OSyncError **error);
@@ -54,7 +55,7 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, OSyncError **error);
 osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error);
 
-osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, change_cb change_callback, void *userdata, const char *objtype, OSyncError **error);
+osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, OSyncError **error);
 osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_change_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
 osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error);
 

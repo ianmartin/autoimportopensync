@@ -3,6 +3,7 @@
 
 struct OSyncContext {
 	OSyncContextCallbackFn callback_function;
+	OSyncContextCallbackFn warning_function;
 	void *callback_data;
 	OSyncContextChangeFn changes_function;
 	void *plugindata;

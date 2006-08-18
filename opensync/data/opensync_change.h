@@ -20,4 +20,7 @@ OSyncData *osync_change_get_data(OSyncChange *change);
 OSyncConvCmpResult osync_change_compare(OSyncChange *leftchange, OSyncChange *rightchange);
 osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncError **error);
 
+OSyncObjFormat *osync_change_get_objformat(OSyncChange *change);
+const char *osync_change_get_objtype(OSyncChange *change);
+
 #endif //_OPENSYNC_CHANGE_H_

@@ -132,7 +132,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");
 			goto error;
 		} else {
-			osync_trace(TRACE_EXIT, "%s: Directory does not exist (non-fatal)", __func__);
+			osync_trace(TRACE_EXIT, "%s: Directory %s does not exist (non-fatal)", __func__, path);
 			return TRUE;
 		}
 	}

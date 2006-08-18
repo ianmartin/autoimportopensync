@@ -33,12 +33,12 @@ typedef osync_bool (* usable_fn) (OSyncError **);
  **/
 typedef enum {
 	/** Plugin has no configuration options */
-	NO_CONFIGURATION = 0,
+	OSYNC_PLUGIN_NO_CONFIGURATION = 0,
 	/** Plugin can be configured, but will accept the default config in the initialize function */
-	OPTIONAL_CONFIGURATION = 1,
+	OSYNC_PLUGIN_OPTIONAL_CONFIGURATION = 1,
 	/** Plugin must be configured to run correctly */
-	NEEDS_CONFIGURATION = 2
-} OSyncConfigurationTypes;
+	OSYNC_PLUGIN_NEEDS_CONFIGURATION = 2
+} OSyncConfigurationType;
 
 OSYNC_EXPORT OSyncPlugin *osync_plugin_new(OSyncError **error);
 OSYNC_EXPORT void osync_plugin_unref(OSyncPlugin *plugin);
@@ -49,6 +49,9 @@ OSYNC_EXPORT void osync_plugin_set_name(OSyncPlugin *plugin, const char *name);
 
 OSYNC_EXPORT const char *osync_plugin_get_longname(OSyncPlugin *plugin);
 OSYNC_EXPORT void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname);
+
+OSYNC_EXPORT OSyncConfigurationType osync_plugin_get_config_type(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType type);
 
 OSYNC_EXPORT const char *osync_plugin_get_description(OSyncPlugin *plugin);
 OSYNC_EXPORT void osync_plugin_set_description(OSyncPlugin *plugin, const char *description);

@@ -47,7 +47,7 @@ OSyncPlugin *osync_plugin_new(OSyncError **error)
 	if (!plugin)
 		return NULL;
 	
-	plugin->config_type = NEEDS_CONFIGURATION;
+	plugin->config_type = OSYNC_PLUGIN_NEEDS_CONFIGURATION;
 	plugin->ref_count = 1;
 	
 	return plugin;
@@ -155,13 +155,13 @@ void osync_plugin_set_data(OSyncPlugin *plugin, void *data)
 	plugin->plugin_data = data;
 }
 
-OSyncConfigurationTypes osync_plugin_get_config_type(OSyncPlugin *plugin)
+OSyncConfigurationType osync_plugin_get_config_type(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->config_type;
 }
 
-void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationTypes config_type)
+void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType config_type)
 {
 	osync_assert(plugin);
 	plugin->config_type = config_type;

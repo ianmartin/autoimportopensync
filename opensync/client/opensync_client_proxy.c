@@ -278,6 +278,9 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			osync_trace(TRACE_INTERNAL, "Received sink: %s", osync_objtype_sink_get_name(sink));
 			
 			proxy->objtypes = g_list_append(proxy->objtypes, sink);
+			
+			if (proxy->member)
+				osync_member_add_objtype(proxy->member, osync_objtype_sink_get_name(sink));
 		}
 		
 		ctx->discover_callback(proxy, ctx->discover_callback_data, NULL);
@@ -587,6 +590,15 @@ void osync_client_proxy_set_context(OSyncClientProxy *proxy, GMainContext *ctx)
 	proxy->context = ctx;
 	if (ctx)
 		g_main_context_ref(ctx);
+}
+
+
+void osync_client_proxy_set_change_callback(OSyncClientProxy *proxy, change_cb cb, void *userdata)
+{
+	osync_assert(proxy);
+	
+	proxy->change_callback = cb;
+	proxy->change_callback_data = userdata;
 }
 
 OSyncMember *osync_client_proxy_get_member(OSyncClientProxy *proxy)
@@ -991,9 +1003,9 @@ error:
 	return FALSE;
 }
 
-osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, change_cb change_callback, void *userdata, const char *objtype, OSyncError **error)
+osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %s, %p)", __func__, proxy, callback, change_callback, userdata, objtype, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
@@ -1002,11 +1014,6 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 	ctx->proxy = proxy;
 	ctx->get_changes_callback = callback;
 	ctx->get_changes_callback_data = userdata;
-	
-	if (change_callback) {
-		proxy->change_callback = change_callback;
-		proxy->change_callback_data = userdata;
-	}
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_GET_CHANGES, 0, error);
 	if (!message)

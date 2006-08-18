@@ -58,7 +58,8 @@ void osync_message_set_cmd(OSyncMessage *message, OSyncMessageCommand cmd);
 OSyncMessageCommand osync_message_get_cmd(OSyncMessage *message);
 void osync_message_set_id(OSyncMessage *message, long long int id);
 long long int osync_message_get_id(OSyncMessage *message);
-int osync_message_get_message_size(OSyncMessage *message);
+unsigned int osync_message_get_message_size(OSyncMessage *message);
+void osync_message_set_message_size(OSyncMessage *message, unsigned int size);
 void osync_message_get_buffer(OSyncMessage *message, char **data, unsigned int *size);
 
 void osync_message_set_handler(OSyncMessage *message, OSyncMessageHandler handler, void *user_data);

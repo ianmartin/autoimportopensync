@@ -34,6 +34,10 @@ OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error
 	sink->objtype = g_strdup(objtype);
 	sink->ref_count = 1;
 	
+	sink->read = TRUE;
+	sink->write = TRUE;
+	sink->enabled = TRUE;
+	
 	return sink;
 }
 
@@ -108,10 +112,17 @@ void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *for
 	}
 }
 
-void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions)
+void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions, void *userdata)
 {
 	osync_assert(sink);
 	sink->functions = functions;
+	sink->userdata = userdata;
+}
+
+void *osync_objtype_sink_get_userdata(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->userdata;
 }
 
 /** @brief Queries a plugin for the changed objects since the last sync
@@ -363,4 +374,40 @@ void osync_objtype_sink_set_available(OSyncObjTypeSink *sink, osync_bool availab
 {
 	osync_assert(sink);
 	sink->available = available;
+}
+
+osync_bool osync_objtype_sink_get_write(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->write;
+}
+
+void osync_objtype_sink_set_write(OSyncObjTypeSink *sink, osync_bool write)
+{
+	osync_assert(sink);
+	sink->write = write;
+}
+
+osync_bool osync_objtype_sink_get_read(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->read;
+}
+
+void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read)
+{
+	osync_assert(sink);
+	sink->read = read;
+}
+
+osync_bool osync_objtype_sink_get_slowsync(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->slowsync;
+}
+
+void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync)
+{
+	osync_assert(sink);
+	sink->slowsync = slowsync;
 }

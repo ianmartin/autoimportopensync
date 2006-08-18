@@ -23,7 +23,9 @@
 
 typedef enum {
 	OSYNC_ENGINE_SOLVE_DUPLICATE,
-	OSYNC_ENGINE_SOLVE_CHOOSE
+	OSYNC_ENGINE_SOLVE_CHOOSE,
+	OSYNC_ENGINE_SOLVE_IGNORE,
+	OSYNC_ENGINE_SOLVE_USE_LATEST
 } OSyncEngineSolveType;
 
 typedef struct OSyncEngineCommand {
@@ -31,6 +33,7 @@ typedef struct OSyncEngineCommand {
 	OSyncMappingEngine *mapping_engine;
 	OSyncChange *master;
 	OSyncEngineSolveType solve_type;
+	OSyncMember *member;
 } OSyncEngineCommand;
 
 struct OSyncEngine {
@@ -99,6 +102,8 @@ struct OSyncEngine {
 	int obj_get_changes;
 	int obj_written;
 	int obj_sync_done;
+	
+	osync_bool busy;
 };
 
 #endif /*OPENSYNC_ENGINE_INTERNALS_H_*/
