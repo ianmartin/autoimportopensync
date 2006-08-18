@@ -166,7 +166,7 @@ static void *initialize(OSyncPluginInfo *info, OSyncError **error)
 	functions.disconnect = disconnect;
 	functions.get_changes = get_changes;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 
@@ -428,7 +428,7 @@ static void *initialize_multi(OSyncPluginInfo *info, OSyncError **error)
 	functions.disconnect = disconnect2;
 	functions.get_changes = get_changes2;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -443,7 +443,7 @@ static void *initialize_multi(OSyncPluginInfo *info, OSyncError **error)
 	functions.disconnect = disconnect2;
 	functions.get_changes = get_changes2;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -458,7 +458,7 @@ static void *initialize_multi(OSyncPluginInfo *info, OSyncError **error)
 	functions.disconnect = disconnect2;
 	functions.get_changes = get_changes2;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -472,8 +472,8 @@ static void *initialize_multi(OSyncPluginInfo *info, OSyncError **error)
 	functions.disconnect = main_disconnect2;
 	functions.get_changes = main_get_changes2;
 	
-	osync_objtype_sink_set_functions(sink, functions);
-	osync_plugin_info_set_sink(info, sink);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
+	osync_plugin_info_set_main_sink(info, sink);
 	osync_objtype_sink_unref(sink);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
@@ -808,7 +808,7 @@ static void *initialize_order(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes3;
 	functions.sync_done = sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -824,7 +824,7 @@ static void *initialize_order(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes3;
 	functions.sync_done = sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -840,7 +840,7 @@ static void *initialize_order(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes3;
 	functions.sync_done = sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -855,8 +855,8 @@ static void *initialize_order(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = main_get_changes3;
 	functions.sync_done = main_sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
-	osync_plugin_info_set_sink(info, sink);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
+	osync_plugin_info_set_main_sink(info, sink);
 	osync_objtype_sink_unref(sink);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
@@ -1034,7 +1034,7 @@ static void *initialize_reuse(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes3;
 	functions.sync_done = sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -1050,7 +1050,7 @@ static void *initialize_reuse(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes3;
 	functions.sync_done = sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -1066,7 +1066,7 @@ static void *initialize_reuse(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes3;
 	functions.sync_done = sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -1081,8 +1081,8 @@ static void *initialize_reuse(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = main_get_changes3;
 	functions.sync_done = main_sync_done3;
 	
-	osync_objtype_sink_set_functions(sink, functions);
-	osync_plugin_info_set_sink(info, sink);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
+	osync_plugin_info_set_main_sink(info, sink);
 	osync_objtype_sink_unref(sink);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
@@ -1329,7 +1329,7 @@ static void *initialize5(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes5;
 	functions.commit = commit_change5;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -1514,7 +1514,7 @@ static void *initialize6(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes6;
 	functions.commit = commit_change5;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	
@@ -1702,7 +1702,7 @@ static void *initialize7(OSyncPluginInfo *info, OSyncError **error)
 	functions.get_changes = get_changes7;
 	functions.commit = commit_change5;
 	
-	osync_objtype_sink_set_functions(sink, functions);
+	osync_objtype_sink_set_functions(sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, sink);
 	osync_objtype_sink_unref(sink);
 	

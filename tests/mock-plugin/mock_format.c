@@ -198,7 +198,7 @@ void get_format_info(OSyncFormatEnv *env)
 {
 	OSyncError *error = NULL;
 	
-	OSyncObjFormat *format = osync_objformat_new("mockformat1", "data", &error);
+	OSyncObjFormat *format = osync_objformat_new("mockformat1", "mockobjtype1", &error);
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format mockformat: %s", osync_error_print(&error));
 		osync_error_unref(&error);
@@ -218,12 +218,45 @@ void get_format_info(OSyncFormatEnv *env)
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 	
-	format = osync_objformat_new("mockformat2", "data", &error);
+	
+	
+	format = osync_objformat_new("mockformat2", "mockobjtype2", &error);
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format mockformat: %s", osync_error_print(&error));
 		osync_error_unref(&error);
 		return;
 	}
+	
+	osync_objformat_set_compare_func(format, compare_file);
+	osync_objformat_set_destroy_func(format, destroy_file);
+	osync_objformat_set_duplicate_func(format, duplicate_file);
+	osync_objformat_set_print_func(format, print_file);
+	osync_objformat_set_copy_func(format, copy_file);
+	osync_objformat_set_create_func(format, create_file);
+	
+	osync_objformat_set_marshal_func(format, marshal_file);
+	osync_objformat_set_demarshal_func(format, demarshal_file);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	
+	
+	format = osync_objformat_new("mockformat3", "mockobjtype3", &error);
+	if (!format) {
+		osync_trace(TRACE_ERROR, "Unable to register format mockformat: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	
+	osync_objformat_set_compare_func(format, compare_file);
+	osync_objformat_set_destroy_func(format, destroy_file);
+	osync_objformat_set_duplicate_func(format, duplicate_file);
+	osync_objformat_set_print_func(format, print_file);
+	osync_objformat_set_copy_func(format, copy_file);
+	osync_objformat_set_create_func(format, create_file);
+	
+	osync_objformat_set_marshal_func(format, marshal_file);
+	osync_objformat_set_demarshal_func(format, demarshal_file);
 	
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);

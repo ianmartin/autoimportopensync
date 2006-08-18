@@ -22,4 +22,4 @@ void mappingtable_close(OSyncMappingTable *maptable);
 
 OSyncHashTable *hashtable_load(const char *path, const char *objtype, int entries);
 void check_hash(OSyncHashTable *table, const char *cmpuid);
-void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid, const char *format, const char *objecttype);
+void check_mapping(OSyncMappingTable *table, int memberid, int mappingid, int numentries, const char *uid);
