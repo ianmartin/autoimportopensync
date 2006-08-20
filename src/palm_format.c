@@ -1409,34 +1409,38 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 	//Names
 	if (has_entry(entry, entryLastname) || has_entry(entry, entryFirstname)) {
 		GString *formatted_name = g_string_new("");
-
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
 	
-		//First Name
-		tmp = return_next_entry(entry, entryFirstname);
-		if (tmp) {
-			osxml_node_add(current, "FirstName", tmp);
-			formatted_name = g_string_append(formatted_name, tmp);
-			g_free(tmp);
-		}
+		char *tmp_first = return_next_entry(entry, entryFirstname);
+		char *tmp_last  = return_next_entry(entry, entryLastname);
 
-		//Last Name
-		tmp = return_next_entry(entry, entryLastname);
-		if (tmp) {
-			osxml_node_add(current, "LastName", tmp);
+		if (tmp_first || tmp_last) {
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+
+			//First Name
+			if (tmp_first) {
+				osxml_node_add(current, "FirstName", tmp_first);
+				formatted_name = g_string_append(formatted_name, tmp_first);
+				g_free(tmp_first);
+			}
+
+			//Last Name
+			if (tmp_last) {
+				osxml_node_add(current, "LastName", tmp_last);
 			
-			// this is only for the FormattedName
-			formatted_name = g_string_append(formatted_name, " ");
-			formatted_name = g_string_append(formatted_name, tmp);
-			g_free(tmp);
+				// this is only for the FormattedName
+				formatted_name = g_string_append(formatted_name, " ");
+				formatted_name = g_string_append(formatted_name, tmp_last);
+				g_free(tmp_last);
+			}
+
+			//Formatted Name
+			//JFYI: This will be dropped, when the xml-vcard convert is able to generate FormattedName
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+			osxml_node_add(current, "Content", formatted_name->str);
+			osync_trace(TRACE_SENSITIVE, "FormattedName: \"%s\"", formatted_name->str);
+
+			g_string_free(formatted_name, TRUE);
 		}
-
-		//Formatted Name
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-		osxml_node_add(current, "Content", formatted_name->str);
-		osync_trace(TRACE_SENSITIVE, "FormattedName: \"%s\"", formatted_name->str);
-		g_string_free(formatted_name, TRUE);
-
 	}
 	
 	//Company
@@ -1499,40 +1503,43 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 
 	//Address
 	if (has_entry(entry, entryAddress) || has_entry(entry, entryCity) || has_entry(entry, entryState) || has_entry(entry, entryZip) || has_entry(entry, entryCountry)) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
-		//Street
-		tmp = return_next_entry(entry, entryAddress);
-		if (tmp) {
-			osxml_node_add(current, "Street", tmp);
-			g_free(tmp);
-		}
+		char *tmp_address = return_next_entry(entry, entryAddress);
+		char *tmp_city = return_next_entry(entry, entryCity);
+		char *tmp_state = return_next_entry(entry, entryState);
+		char *tmp_zip = return_next_entry(entry, entryZip);
+		char *tmp_country = return_next_entry(entry, entryCountry);
+
+		if (tmp_address || tmp_city || tmp_state || tmp_zip || tmp_country) {
+			current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
+			//Street
+			if (tmp_address) {
+				osxml_node_add(current, "Street", tmp_address);
+				g_free(tmp_address);
+			}
 	
-		//City
-		tmp = return_next_entry(entry, entryCity);
-		if (tmp) {
-			osxml_node_add(current, "City", tmp);
-			g_free(tmp);
-		}
+			//City
+			if (tmp_city) {
+				osxml_node_add(current, "City", tmp_city);
+				g_free(tmp_city);
+			}
 		
-		//Region
-		tmp = return_next_entry(entry, entryState);
-		if (tmp) {
-			osxml_node_add(current, "Region", tmp);
-			g_free(tmp);
-		}
+			//Region
+			if (tmp_state) {
+				osxml_node_add(current, "Region", tmp_state);
+				g_free(tmp_state);
+			}
 		
-		//Code
-		tmp = return_next_entry(entry, entryZip);
-		if (tmp) {
-			osxml_node_add(current, "PostalCode", tmp);
-			g_free(tmp);
-		}
+			//Code
+			if (tmp_zip) {
+				osxml_node_add(current, "PostalCode", tmp_zip);
+				g_free(tmp_zip);
+			}
 		
-		//Country
-		tmp = return_next_entry(entry, entryCountry);
-		if (tmp) {
-			osxml_node_add(current, "Country", tmp);
-			g_free(tmp);
+			//Country
+			if (tmp_country) {
+				osxml_node_add(current, "Country", tmp_country);
+				g_free(tmp_country);
+			}
 		}
 	}
 	
