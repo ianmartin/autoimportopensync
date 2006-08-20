@@ -11,9 +11,10 @@ AC_CHECK_COMPILERS
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
+KDE_SET_PREFIX
+
 dnl for NLS support. Call them in this order!
 dnl WITH_NLS is for the po files
-KDE_SET_PREFIX
 AM_KDE_WITH_NLS
 
 KDE_USE_QT(3.0.0)
