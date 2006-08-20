@@ -224,6 +224,16 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 				osync_trace(TRACE_EXIT, "%s: One is empty", __func__);
 				return FALSE;
 			}
+
+			/* Workaround for palm-sync. palm-sync is not able to set a correct Completed date-timestamp so ignore value */ 
+			if (!strcmp("Completed", (char*)rightnode->name) && !strcmp("Completed",(char*)leftnode->name)) {
+				if ((leftcontent && rightcontent) || (!leftcontent && !rightcontent)) {
+					osync_trace(TRACE_INTERNAL, "PALM-SYNC workaround active!");
+					g_free(rightcontent);
+					goto next;
+				}
+			}
+			
 			g_free(rightcontent);
 		} while ((rightnode = rightnode->next));
 		osync_trace(TRACE_EXIT, "%s: Could not match one", __func__);

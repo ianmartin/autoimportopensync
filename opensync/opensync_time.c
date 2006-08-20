@@ -223,7 +223,7 @@ time_t osync_time_vtime2unix(const char *vtime) {
 	return timestamp;
 }
 
-/*! @brief Function converts unix timestamp to vtime in localtime
+/*! @brief Function converts unix timestamp to vtime in UTC 
  *
  * @param timestamp The unix timestamp which gets converted 
  * @returns vtime formatted as YYYYMMDDTHHMMSSZ (caller is responsible for freeing)
