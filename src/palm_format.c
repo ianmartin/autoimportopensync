@@ -136,6 +136,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateStarted", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		//RFC2445: default value type is DATE-TIME. We alter to DATE
+		xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*)"DATE");
 
 		osync_trace(TRACE_SENSITIVE, "Start: %s", vtime);
 
@@ -148,6 +150,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateEnd", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
+		//RFC2445: default value type is DATE-TIME. We alter to DATE
+		xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*)"DATE");
 
 		osync_trace(TRACE_SENSITIVE, "End: %s", vtime);
 
@@ -204,7 +208,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		
 		xmlNode *alarmtrigger = xmlNewTextChild(alarm, NULL, (xmlChar*) "AlarmTrigger", NULL);
 		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
-		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
+		//XXX: This is not needed - value type DURATION is default (rfc2445 - 4.8.6.3 Trigger)
+//		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
 
 		g_free(tmp);
 	}
@@ -338,7 +343,9 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 				vtime = osync_time_tm2vtime(&(entry->appointment.exception[i]), FALSE);
 				tmp = osync_time_datestamp(vtime);
 				xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
-//				xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*) "DATE");
+				// workaround for date value property (rfc2445)
+				// Palm device always stores exceptions as DATE default in rfc2445 is DATE-TIME
+				xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*) "DATE");
 				g_free(tmp);
 				g_free(vtime);
 			}
@@ -971,6 +978,7 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	PSyncTodoEntry *entry = (PSyncTodoEntry *)input;
 	char *tmp = NULL;
+	char *date = NULL; 
 	xmlNode *current = NULL;
 	
 	if (inpsize != sizeof(PSyncTodoEntry)) {
@@ -1008,7 +1016,9 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	
 	//priority
 	if (entry->todo.priority) {
-		// FIXME - nonsense?
+		//Palm device only have priority range from 1 to 5.
+		//RFC2445 have the priority range from 0 - 9
+		//FIXME: change offset value?
 		tmp = g_strdup_printf("%i", entry->todo.priority + 2);
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Priority", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
@@ -1016,20 +1026,27 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	}
 
 	//due
+	// RFC2445: 4.8.2.3 Date/Time Due 
 	if (entry->todo.indefinite == 0) {
-		char *date = NULL; 
 		tmp = osync_time_tm2vtime(&(entry->todo.due), FALSE); 
 		// palm t|x is only able to handle datestamp (no timestamp!) dues
 		date = osync_time_datestamp(tmp);
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateDue", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)date);
+		// RFC2445 says the default valute type is DATE-TIME. But the Palm only
+		// stores DATE as due date => alter VALUE to DATE
+		xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*) "DATE");
 		g_free(tmp);
 		g_free(date);
 	}
 
 	//completed
+	// RFC2445: 4.8.2.1 Date/Time Completed  
 	if (entry->todo.complete) {
+		//FIXME At the moment pilot-link 0.11.8 / 0.12.0-prev4 doesn't provide the completed timestamp.
+		//As workaround we take the current timestamp. This will lead to conflicts on slow-syncs.
 		time_t now = time(NULL);
+		//RFC2445 says the timestamp must be UTC.
 		tmp = osync_time_unix2vtime(&now); 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"Completed", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
