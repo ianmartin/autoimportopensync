@@ -169,8 +169,15 @@ class GCalEntry:
 
 		self.title = self.elementValue('Event/Summary/Content/text()')
 		self.content = self.elementValue('Event/Description/Content/text()')
-		self.dtstart = osyncToXsdate(self.elementValue('Event/DateStarted/Content/text()'))
-		self.dtend = osyncToXsdate(self.elementValue('Event/DateEnd/Content/text()'))
+
+		dtstart = self.elementValue('Event/DateStarted/Content/text()')
+		self.dtstart = osyncToXsdate(dtstart)
+
+		dtend = self.elementValue('Event/DateEnd/Content/text()')
+		if not dtend:
+			dtend = dtstart
+		self.dtend = osyncToXsdate(dtend)
+
 		self.whereString = self.elementValue('Event/Location/Content/text()')
 
 		#TODO: UID, editUri, dtstart, dtend, recurrency, eventStatus
