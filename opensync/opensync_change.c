@@ -120,7 +120,7 @@ void osync_change_free(OSyncChange *change)
 	//FIXME cleanly release the change!
 	g_free(change);
 
-	osync_trace(TRACE_EXIT, "%s");
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*! @brief Frees the data of a change
