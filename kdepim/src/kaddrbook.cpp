@@ -124,14 +124,18 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 		QString hash = calc_hash(*it);
 			
 		// Convert the VCARD data into a string
-		QString tmp = converter.createVCard(*it, KABC::VCardConverter::v2_1);
+		// only vcard3.0 exports Categories
+		QString tmp = converter.createVCard(*it, KABC::VCardConverter::v3_0);
+
 		char *data = strdup((const char *)tmp.utf8());
+
+		osync_trace(TRACE_SENSITIVE,"\n%s", data);
 		
 		osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
 		
 		// object type and format
 		osync_change_set_objtype_string(chg, "contact");
-		osync_change_set_objformat_string(chg, "vcard21");
+		osync_change_set_objformat_string(chg, "vcard30");
 		
 		// Use the hash table to check if the object
 		// needs to be reported
