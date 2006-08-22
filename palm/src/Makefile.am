@@ -20,6 +20,11 @@ palm_la_LIBADD = @PILOT_LIBS@ @PACKAGE_LIBS@ @LIBS@
 
 plugin_LTLIBRARIES = palm_sync.la
 
-palm_sync_la_SOURCES = palm_sync.c
+palm_sync_la_SOURCES =  	 	\
+		       palm_contact.c	\
+		       palm_event.c	\
+		       palm_note.c	\
+		       palm_todo.c	\
+		       palm_sync.c
 palm_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 palm_sync_la_LIBADD = @PILOT_LIBS@ @PACKAGE_LIBS@ @LIBS@

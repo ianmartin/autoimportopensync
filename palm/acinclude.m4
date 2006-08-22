@@ -2,7 +2,7 @@ dnl AM_PATH_PILOT_LINK([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND
 dnl Test for check, and define PILOT_CFLAGS and PILOT_LIBS
 dnl
 
-AC_DEFUN(AM_PATH_PILOT_LINK,
+AC_DEFUN([AM_PATH_PILOT_LINK],
 [
   AC_ARG_WITH(pilot_link,
   [  --with-pilot_link=PATH       prefix where pilot-link is installed [default=auto]])
