@@ -1,0 +1,24 @@
+OpenSync Plugin: palm-sync
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+This is the palm-sync plugin based on the pilot-link library libpisock.
+
+Don't use it without a full backup of your palm!
+
+Have fun! :)
+
+Tested Devices
+^^^^^^^^^^^^^^
+[USB] Handspring Treo 270 
+[USB] Palm Tungsten X
+[TTY] 3Com Palm V
+
+Bugs/Known Problems
+^^^^^^^^^^^^^^^^^^^
+* changetype of new entries are modified instead of added(?)
+* newer palm can select sepecific timezone for specific entry - unsupported by pilot-link
+
+TODO
+^^^^
+* Public/Private option
+* Timezone [testing!]
+* Find limit of excluding recurrences

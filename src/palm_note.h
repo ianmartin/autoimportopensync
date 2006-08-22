@@ -18,31 +18,13 @@
  * 
  */
 
-#ifndef _PALM_FORMAT_H
-#define _PALM_FORMAT_H
+#include "palm_sync.h"
 
-struct PSyncContactEntry {
-	struct Address address;
-	char *codepage;
-	GList *categories;
-};
+OSyncChange *psyncNoteCreate(PSyncEntry *entry, OSyncError **error);
+osync_bool psyncNoteGetChangeInfo(OSyncContext *ctx, OSyncError **error);
+osync_bool psyncNoteCommit(OSyncContext *ctx, OSyncChange *change);
+void psyncNoteRead(OSyncContext *ctx, OSyncChange *change);
 
-struct PSyncEventEntry {
-	struct Appointment appointment;
-	char *codepage;
-	GList *categories;
-};
 
-struct PSyncTodoEntry {
-	struct ToDo todo;
-	char *codepage;
-	GList *categories;
-};
 
-struct PSyncNoteEntry {
-	struct Memo memo;
-	char *codepage;
-	GList *categories;
-};
 
-#endif /* _PALM_FORMAT_H */

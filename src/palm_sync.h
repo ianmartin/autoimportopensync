@@ -32,6 +32,7 @@
 #include <pi-address.h>
 #include <pi-datebook.h>
 #include <pi-todo.h>
+#include <pi-memo.h>
 
 #if ((PILOT_LINK_VERSION == 0) && (PILOT_LINK_MAJOR < 12))
 #define OLD_PILOT_LINK
@@ -47,6 +48,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "config.h"
+
 #define PILOT_DEVICE_SERIAL 0
 #define PILOT_DEVICE_USB_VISOR 1
 #define PILOT_DEVICE_IRDA 2
@@ -55,6 +58,7 @@
 typedef struct PSyncContactEntry PSyncContactEntry;
 typedef struct PSyncEventEntry PSyncEventEntry;
 typedef struct PSyncTodoEntry PSyncTodoEntry;
+typedef struct PSyncNoteEntry PSyncNoteEntry;
 
 typedef struct PSyncEnv PSyncEnv;
 
@@ -105,4 +109,17 @@ struct PSyncEnv {
 	char *codepage;
 };
 
+void psyncDBClose(PSyncDatabase *db);
+const char *psyncDBCategoryFromId(PSyncDatabase *db, int id, OSyncError **error);
+PSyncDatabase *psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error); 
+PSyncEntry *psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error);
+PSyncEntry *psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error);	
+void psyncDBClose(PSyncDatabase *db);
+unsigned long psyncUidGetID(const char *uid, OSyncError **error);
+osync_bool psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError **error);
+int psyncDBCategoryToId(PSyncDatabase *db, const char *name, OSyncError **error);
+osync_bool psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned long *id, OSyncError **error);
+osync_bool psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error);
+PSyncEntry *psyncDBGetEntryByID(PSyncDatabase *db, unsigned long id, OSyncError **error);
+		
 #endif //_PALM_SYNC_H
