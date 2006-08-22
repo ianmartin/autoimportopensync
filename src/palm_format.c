@@ -209,7 +209,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		xmlNode *alarmtrigger = xmlNewTextChild(alarm, NULL, (xmlChar*) "AlarmTrigger", NULL);
 		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Content", (xmlChar*) tmp);
 		//XXX: This is not needed - value type DURATION is default (rfc2445 - 4.8.6.3 Trigger)
-//		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
+		// But kdepim-sync force us to do so.....
+		xmlNewTextChild(alarmtrigger, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
 
 		g_free(tmp);
 	}
@@ -321,7 +322,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		g_string_free(rrulestr, TRUE);
 
 		// Interval
-		if (entry->appointment.repeatFrequency) {
+		// intveral value 1 is default and is not required as seperate field. would lead to conflicts.
+		if (entry->appointment.repeatFrequency && entry->appointment.repeatFrequency != 1) {
 			tmp = g_strdup_printf("INTERVAL=%i", entry->appointment.repeatFrequency);
 			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp); 
 			g_free(tmp);
@@ -1484,34 +1486,34 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 			switch (entry->address.phoneLabel[i - 3]) {
 				case 0:
 					// Work
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Work");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"WORK");
 					break;
 				case 1:
 					// Home
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Home");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"HOME");
 					break;
 				case 2:
 					// Fax
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Fax");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"FAX");
 					break;
 				case 3:
 					// Other
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Voice");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"VOICE");
 					break;
 				case 4:
 					// E Mail
 					break;	
 				case 5:
 					// Main
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pref");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"PREF");
 					break;
 				case 6:
 					// Pager
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Pager");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"PAGER");
 					break;
 				case 7:
 					// Mobile / Cellular
-					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"Cell");
+					xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)"CELL");
 					break;
 			}
 		}
@@ -1658,9 +1660,9 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 		cur = nodes->nodeTab[i];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
 
-		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "Work"), osxml_has_property(cur, "Home"), osxml_has_property(cur, "Voice"));
+		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "WORK"), osxml_has_property(cur, "HOME"), osxml_has_property(cur, "VOICE"));
 
-		if (osxml_has_property(cur, "Work")) {
+		if (osxml_has_property(cur, "WORK")) {
 			entry->address.phoneLabel[i] = 0;
 		} else if (osxml_has_property(cur, "HOME")) {
 			entry->address.phoneLabel[i] = 1;
