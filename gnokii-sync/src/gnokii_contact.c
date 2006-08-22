@@ -138,6 +138,8 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 	gn_error error;
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) malloc(sizeof(gn_phonebook_entry));
 	gn_data *data = (gn_data *) malloc(sizeof(gn_data));
+	memset(data, 0, sizeof(gn_data));
+	memset(contact, 0, sizeof(gn_phonebook_entry));
 
 	for (memtype=0; memtype <= GN_MT_SM; memtype++) {
 		contact->memory_type = memtype;
@@ -148,8 +150,13 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 
 			error = gn_sm_functions(GN_OP_ReadPhonebook, data, state);
 
-			if (error == GN_ERR_EMPTYLOCATION || contact->empty) {
-				osync_trace(TRACE_EXIT, "%s(): memorty_type: %i location: %i", __func__, contact->memory_type, contact->location);
+			if (error == GN_ERR_INVALIDMEMORYTYPE) {
+				osync_trace(TRACE_INTERNAL, "gnokii contact error: %s, exiting loop.", gn_error_print(error));
+				break;
+			}
+
+			if (error == GN_ERR_EMPTYLOCATION) {
+				osync_trace(TRACE_EXIT, "%s(): memorty_type: %i location: %i counter: %i", __func__, contact->memory_type, contact->location, i);
 				return contact;
 			}
 
@@ -169,7 +176,7 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
  * ReturnVal: gn_phonebook_entry*
  * ReturnVal: NULL on error or when no entries are left on cellphone.
  */
-gn_phonebook_entry *gnokii_contact_read(int memory_type, int pos, gn_data *data, struct gn_statemachine *state, gn_error error) {
+gn_phonebook_entry *gnokii_contact_read(int memory_type, int pos, gn_data *data, struct gn_statemachine *state, gn_error *error) {
 
 	osync_trace(TRACE_ENTRY, "%s(%i, %i, %p, %p, %i)", __func__, memory_type, pos, data, state, error);
 	
@@ -188,17 +195,19 @@ gn_phonebook_entry *gnokii_contact_read(int memory_type, int pos, gn_data *data,
 	data->phonebook_entry = contact;
 
 	// get the nth (pos) entry of the cellphone. 
-	error = gn_sm_functions(GN_OP_ReadPhonebook, data, state);
+	*error = gn_sm_functions(GN_OP_ReadPhonebook, data, state);
 
 	// ignore empty locations
-	if (error == GN_ERR_EMPTYLOCATION) {
+	if (*error == GN_ERR_EMPTYLOCATION) {
+		g_free(contact);
 		osync_trace(TRACE_EXIT, "%s: empty location", __func__);
 		return NULL;
 	}
 
 	// check if there were any other errors
-	if (error != GN_ERR_NONE) {
-		osync_trace(TRACE_EXIT_ERROR, "%s(): error while query the phone - gnokii: %s",	__func__, gn_error_print(error));
+	if (*error != GN_ERR_NONE) {
+		g_free(contact);
+		osync_trace(TRACE_EXIT_ERROR, "%s(): error while query the phone - gnokii: %s",	__func__, gn_error_print(*error));
 		return NULL;
 	}
 
@@ -237,13 +246,13 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 	gn_phonebook_entry_sanitize(contact);
         data->phonebook_entry = contact;
 
-	osync_trace(TRACE_INTERNAL, "contact->location: %i\n"
+	osync_trace(TRACE_SENSITIVE, "contact->location: %i\n"
 				    "contact->empty: %i\n"
 				    "contact->name: %s\n"
-				    "contact->memory_type: %i"
-				    "contact->caller_group: %i"
-				    "contact->date: %04i-%02i-%02i %02i:%02i:%02i tz:%i"
-				    "contact->subentries_count: %i",
+				    "contact->memory_type: %i\n"
+				    "contact->caller_group: %i\n"
+				    "contact->date: %04i-%02i-%02i %02i:%02i:%02i tz:%i\n"
+				    "contact->subentries_count: %i\n",
 			contact->location,
 			contact->empty, contact->name,
 			contact->memory_type,
@@ -257,7 +266,7 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 
 	for (i=0; i < contact->subentries_count; i++) { 
 
-		osync_trace(TRACE_INTERNAL, "subentry #%i Number: %s [Number TYpe: %i] [Entry Type: %i]",
+		osync_trace(TRACE_SENSITIVE, "subentry #%i Number: %s [Number TYpe: %i] [Entry Type: %i]",
 				i,
 				contact->subentries[i].data.number,
 				contact->subentries[i].number_type,
@@ -269,6 +278,7 @@ osync_bool gnokii_contact_write(gn_phonebook_entry *contact, struct gn_statemach
 
         if (error != GN_ERR_NONE) {
 		osync_trace(TRACE_EXIT_ERROR, "%s(): Couldn't write contact: %s", __func__, gn_error_print(error));
+		g_free(data);
 		return FALSE;
 	} else {
 		osync_trace(TRACE_INTERNAL, "%s(): successfully written at %i on memory_type: %i", __func__, 
@@ -370,10 +380,12 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 
 		data->memory_status = &memstat;
 		memstat.memory_type = memtype; 
+		memstat.used = 0;
 		gnokii_error = gn_sm_functions(GN_OP_GetMemoryStatus, data, env->state);
 		if (gnokii_error != GN_ERR_NONE) {
-			osync_trace(TRACE_EXIT_ERROR, "%s: gnokii memory stat error: %s", __func__, gn_error_print(gnokii_error));
-			return FALSE;
+			osync_trace(TRACE_EXIT_ERROR, "%s: gnokii memory stat error: %s (memory: %i)", __func__, 
+					gn_error_print(gnokii_error), memtype);
+			continue;
 		}
 		num_entries = memstat.used;
 
@@ -382,14 +394,23 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 		while (num_entries > 0) {
 			location++;
 
-			contact = gnokii_contact_read(memtype, location, data, env->state, gnokii_error);
+			gnokii_error = GN_ERR_NONE;
+			contact = gnokii_contact_read(memtype, location, data, env->state, &gnokii_error);
 
-			if (gnokii_error == GN_ERR_NONE)
+			if ((gnokii_error == GN_ERR_NONE) && (contact != NULL)) {
+				// Decrement the number of entries to fetch only if we got one
 				num_entries--;
+			} else { 
+				// Check the various reasons why we did not get a good entry
+				if (gnokii_error == GN_ERR_INVALIDMEMORYTYPE) {
+					osync_trace(TRACE_INTERNAL, "gnokii contact error: %s, exiting loop.", gn_error_print(gnokii_error));
+					break;
+				}
 
-			else if (gnokii_error != GN_ERR_EMPTYLOCATION) {
-				osync_trace(TRACE_EXIT_ERROR, "%s: gnokii contact error: %s", __func__, gn_error_print(gnokii_error));
-				return FALSE;
+				if (gnokii_error != GN_ERR_EMPTYLOCATION) {
+	       				osync_trace(TRACE_INTERNAL, "gnokii contact error: %s", gn_error_print(gnokii_error));
+					break;
+				}
 			}
 
 			if (contact == NULL)
@@ -455,7 +476,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			// memory leak? XXX XXX
 			if (!gnokii_contact_delete(osync_change_get_uid(change), env->state)) {
-				osync_error_update(&error, "Unable to delete contact.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to delete contact.");
 				goto error;
 			}
 	
@@ -464,7 +485,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 		case CHANGE_ADDED:
 			// Add the change
 			if (!gnokii_contact_write(contact, env->state)) {
-				osync_error_update(&error, "Unable to write contact.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to write contact.");
 				goto error;
 			}
 
@@ -485,7 +506,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			// overwrite the changed contact with the write function 
 			if (!gnokii_contact_write(contact, env->state)) {
-				osync_error_update(&error, "Unable to modify (write) contact.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to modify (write) contact.");
 				goto error;
 			}
 
@@ -513,6 +534,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 error:
 	osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
 	return FALSE;
 }
 

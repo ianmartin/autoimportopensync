@@ -206,7 +206,7 @@ gn_calnote *gnokii_calendar_get_calnote(int pos, gn_data *caldata, struct gn_sta
 
 	// check if there were any other errors
 	if (error != GN_ERR_NONE) {
-		osync_trace(TRACE_EXIT_ERROR, "%s(): error while query the phone - gnokii: %s",	gn_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s(): error while query the phone - gnokii: %s", __func__, gn_error_print(error));
 		return NULL;
 	}
 
@@ -271,6 +271,7 @@ osync_bool gnokii_calendar_write_calnote(gn_calnote *calnote, struct gn_statemac
 
         if (error != GN_ERR_NONE) {
 		osync_trace(TRACE_EXIT_ERROR, "%s(): Couldn't write calnote: %s\n", __func__, gn_error_print(error));
+		g_free(data);
 		return FALSE;
 	}
 
@@ -423,7 +424,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			if (!gnokii_calendar_delete_calnote(osync_change_get_uid(change), env->state)) {
 
-				osync_error_update(&error, "Unable to delete event.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to delete event.");
 				goto error;
 			}
 			
@@ -432,7 +433,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			// Add the change
 			if (!gnokii_calendar_write_calnote(calnote, env->state)) {
-				osync_error_update(&error, "Unable to write event.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to write event.");
 				goto error;
 			}
 
@@ -452,12 +453,12 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			// libgnokii can not modify - delete the old calnote and add a new note
 			if (!gnokii_calendar_delete_calnote(osync_change_get_uid(change), env->state)) {
-				osync_error_update(&error, "Unable to modify (delete) event.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to modify (delete) event.");
 				goto error;
 			}
 
 			if (!gnokii_calendar_write_calnote(calnote, env->state)) {
-				osync_error_update(&error, "Unable to modify (write) event.");
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to modify (write) event.");
 				goto error;
 			}
 
@@ -520,6 +521,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 error:
 	osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_free(&error);
 	return FALSE;
 }
 
