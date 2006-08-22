@@ -1,7 +1,10 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>
-#include <osengine/engine.h>
-#include <osengine/engine_internals.h>
+#include <opensync/opensync-group.h>
+#include <opensync/opensync-archive.h>
+#include <opensync/opensync-mapping.h>
+#include <opensync/opensync-helper.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,9 +15,8 @@
 static void usage (char *name, int ecode)
 {
 	fprintf (stderr, "Usage: %s <groupname>\n", name);
-	fprintf (stderr, "[--mappings] \tDump all mappings. Default\n");
-	fprintf (stderr, "[--hash <memberid>] \tDump hash table for member id\n");
-	fprintf (stderr, "[--unmapped] \tAlso dumps changes which are unmapped\n");
+	fprintf (stderr, "[--mappings <objtype>] \tDump all mappings. Default\n");
+	fprintf (stderr, "[--hash <objtype> <memberid>] \tDump hash table for member id\n");
 	fprintf (stderr, "[--configdir] \tSet a different configdir then ~./opensync\n");
 	fprintf (stderr, "[--reset] \tReset the database for this group\n");
 	exit(ecode);
@@ -23,139 +25,107 @@ static void usage (char *name, int ecode)
 typedef enum  {
 	DUMPMAPS = 1,
 	DUMPHASH = 2,
-	DUMPUNMAPPED = 3,
 	RESET = 4
 } ToolAction;
 
-static void dump_map(OSyncEnv *osync, char *groupname)
+static void dump_map(OSyncGroupEnv *env, const char *objtype, const char *groupname)
 {
-	OSyncGroup *group = osync_env_find_group(osync, groupname);
-	
-	if (!group) {
-		printf("Unable to find group with name \"%s\"\n", groupname);
-		return;
-	}
-	
-	
-	OSyncChange **changes = NULL;
 	OSyncError *error = NULL;
-	if (!osync_changes_load(group, &changes, &error)) {
-		printf("Unable to load changes: %s\n", osync_error_print(&error));
-		return;
-	}
-	
-	int i = 0;
-	OSyncChange *change = NULL;
-	while ((change = changes[i])) {
-		OSyncMember *member = osync_change_get_member(change);
-		int memberid = 0;
-    	if (member)
-    		memberid = osync_member_get_id(member);
-		const char *formatname = NULL;
-    	if (osync_change_get_objformat(change))
-    		formatname = osync_objformat_get_name(osync_change_get_objformat(change));
-    	const char *objname = NULL;
-    	if (osync_change_get_objtype(change))
-    		objname = osync_objtype_get_name(osync_change_get_objtype(change));
-    	printf("ID: %lli UID: %s MEMBER: %i\n\tOBJTYPE: %s OBJFORMAT: %s MAPPINGID: %lli\n", osync_change_get_id(change), osync_change_get_uid(change), memberid, objname, formatname, osync_change_get_mappingid(change));
-		i++;
-	}
-
-	osync_changes_close(group);
-}
-
-static void dump_unmapped(OSyncEnv *osync, char *groupname)
-{
-	OSyncGroup *group = osync_env_find_group(osync, groupname);
+	OSyncGroup *group = osync_group_env_find_group(env, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
 		return;
 	}
 	
-	char *filename = g_strdup_printf("%s/change.db", osync_group_get_configdir(group));
-	OSyncDB *db = osync_db_open(filename, NULL);
-	g_free(filename);
+	char *path = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
+	OSyncArchive *archive = osync_archive_new(path, objtype, &error);
+	if (!archive)
+		goto error;
+	g_free(path);
 	
-	sqlite3 *sdb = db->db;
+	OSyncList *ids = NULL;
+	OSyncList *uids = NULL;
+	OSyncList *mappingids = NULL;
+	OSyncList *memberids = NULL;
 	
-	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT id, uid, objtype, format, memberid FROM tbl_changes WHERE mappingid=0", -1, &ppStmt, NULL);
-	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
-		long long int entryid = sqlite3_column_int64(ppStmt, 0);
-		char *uid = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
-		char *objtype = g_strdup((gchar*)sqlite3_column_text(ppStmt, 2));
-		char *objformat = g_strdup((gchar*)sqlite3_column_text(ppStmt, 3));
-		long long int memberid = sqlite3_column_int64(ppStmt, 4);
+	if (!osync_archive_load_changes(archive, &ids, &uids, &mappingids, &memberids, &error))
+		goto error;
+	
+	OSyncList *d = ids;
+	OSyncList *u = uids;
+	OSyncList *m = mappingids;
+	OSyncList *i = memberids;
+	
+	for (; u; u = u->next) {
+		long long int id = (long long int)GPOINTER_TO_INT(d->data);
+		char *uid = u->data;
+		long long int memberid = (long long int)GPOINTER_TO_INT(i->data);
+		long long int mappingid = (long long int)GPOINTER_TO_INT(m->data);
 		
-    	printf("ID: %lli UID: %s MEMBER: %lli, TYPE %s, FORMAT %s\n", entryid, uid, memberid, objtype, objformat);
-	}
-	sqlite3_finalize(ppStmt);
-	
-	osync_db_close(db);
-	
-	
-	/*
-	
-	OSyncMappingTable *table = osync_mappingtable_new(group);
-	char *entrydb = g_strdup_printf("%s/change.db", osync_group_get_configdir(group)); //FIXME!!!
-	DB *entrytable = osync_db_open(entrydb, "Entries", DB_BTREE, NULL);
-	g_free(entrydb);
-	if (!entrytable) {
-		printf("Unable to open change database\n");
-		return;
+		printf("ID: %lli UID: %s MEMBER: %lli MAPPINGID: %lli\n", id, uid, memberid, mappingid);
+		
+		m = m->next;
+		d = d->next;
+		i = i->next;
 	}
 	
-	DBC *dbcp = osync_db_cursor_new(entrytable);
+	osync_list_free(ids);
+	osync_list_free(uids);
+	osync_list_free(mappingids);
+	osync_list_free(memberids);
+	
+	osync_archive_unref(archive);
+	return;
 
-	void *entryid;
-	void *data;
-    
-	OSyncChange *change = NULL;
-	
-	while (osync_db_cursor_next(dbcp, &entryid, &data)) {
-		change = osync_change_new();
-    	osync_change_unmarshal(table, change, data);
-    	
-    }
-    osync_db_cursor_close(dbcp);
-    
-    osync_db_close(entrytable);*/
+error:
+	printf("ERROR: %s", osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
-static void dump_hash(OSyncEnv *osync, char *groupname, char *memberid)
+static void dump_hash(OSyncGroupEnv *env, const char *objtype, const char *groupname, char *memberid)
 {
-	long long int id = atoi(memberid);
-	OSyncGroup *group = osync_env_find_group(osync, groupname);
+	OSyncError *error = NULL;
+	OSyncGroup *group = osync_group_env_find_group(env, groupname);
 	
 	if (!group) {
-		printf("Unable to find group with name %s\n", groupname);
+		printf("Unable to find group with name \"%s\"\n", groupname);
 		return;
 	}
 	
-	OSyncMember *member = osync_member_from_id(group, id);
+	long long int id = atoi(memberid);
+	OSyncMember *member = osync_group_find_member(group, id);
 	if (!member) {
 		printf("Unable to find member with id %s\n", memberid);
 		return;
 	}
 	
-    OSyncHashTable *table = osync_hashtable_new();
-    osync_db_open_hashtable(table, member, NULL);
-    
-    sqlite3 *sdb = table->dbhandle->db;
+	char *path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
+	OSyncHashTable *table = osync_hashtable_new(path, objtype, &error);
+	if (!table)
+		goto error;
+	g_free(path);
 	
-	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT uid, hash FROM tbl_hash", -1, &ppStmt, NULL);
-	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
-		char *uid = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
-		char *hash = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
+	int i;
+	char *uid;
+	char *hash;
+	for (i = 0; i < osync_hashtable_num_entries(table); i++) {
+		osync_hashtable_nth_entry(table, i, &uid, &hash);
     	printf("UID: %s HASH: %s\n", uid, hash);
+		g_free(hash);
+		g_free(uid);
 	}
-	sqlite3_finalize(ppStmt);
+	
+	osync_hashtable_free(table);
+	
+	return;
 
-	osync_db_close_hashtable(table);
+error:
+	printf("ERROR: %s", osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
+#if 0
 static void reset(OSyncEnv *osync, char *groupname)
 {
 	OSyncGroup *group = osync_env_find_group(osync, groupname);
@@ -167,6 +137,7 @@ static void reset(OSyncEnv *osync, char *groupname)
 	
 	osync_group_reset(group);
 }
+#endif
 
 int main (int argc, char *argv[])
 {
@@ -175,6 +146,7 @@ int main (int argc, char *argv[])
 	char *membername = NULL;
 	ToolAction action = DUMPMAPS;
 	char *configdir = NULL;
+	char *objtype = NULL;
 	
 	if (argc == 1)
 		usage (argv[0], 1);
@@ -184,16 +156,19 @@ int main (int argc, char *argv[])
 		char *arg = argv[i];
 		if (!strcmp (arg, "--mappings")) {
 			action = DUMPMAPS;
+			objtype = argv[i + 1];
+			i++;
+			if (!objtype)
+				usage (argv[0], 1);
 		} else if (!strcmp (arg, "--hash")) {
 			action = DUMPHASH;
-			membername = argv[i + 1];
-			i++;
-			if (!membername)
+			objtype = argv[i + 1];
+			membername = argv[i + 2];
+			i += 2;
+			if (!objtype || !membername)
 				usage (argv[0], 1);
 		} else if (!strcmp (arg, "--reset")) {
 			action = RESET;
-		} else if (!strcmp (arg, "--unmapped")) {
-			action = DUMPUNMAPPED;
 		} else if (!strcmp (arg, "--help")) {
 			usage (argv[0], 0);
 		} else if (!strcmp (arg, "--configdir")) {
@@ -210,32 +185,31 @@ int main (int argc, char *argv[])
 		}
 	}
 	
-	OSyncEnv *osync = osync_env_new(NULL);
-	osync_env_set_option(osync, "GROUPS_DIRECTORY", configdir);
-	
 	OSyncError *error = NULL;
-	if (!osync_env_initialize(osync, &error)) {
-		printf("Unable to initialize environment: %s\n", error->message);
-		osync_error_unref(&error);
-		return 1;
-	}
+	
+	OSyncGroupEnv *env = osync_group_env_new(&error);
+	if (!env)
+		goto error;
+	
+	if (!osync_group_env_load_groups(env, configdir, &error))
+		goto error;
 	
 	switch (action) {
 		case DUMPMAPS:
-			dump_map(osync, groupname);
+			dump_map(env, objtype, groupname);
 			break;
 		case DUMPHASH:
-			dump_hash(osync, groupname, membername);
-			break;
-		case DUMPUNMAPPED:
-			dump_unmapped(osync, groupname);
+			dump_hash(env, objtype, groupname, membername);
 			break;
 		case RESET:
-			reset(osync, groupname);
+			//reset(osync, groupname);
 			break;
-		default:
-			printf("error\n");
 	}
 	
 	return 0;
+
+error:
+	printf("ERROR: %s", osync_error_print(&error));
+	osync_error_unref(&error);
+	return 1;
 }
