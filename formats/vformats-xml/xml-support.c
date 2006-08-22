@@ -19,6 +19,7 @@
  */
  
 #include "opensync-xml.h"
+#include <opensync/opensync-serializer.h>
 #include <glib.h>
 
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name)
@@ -381,7 +382,7 @@ char *osxml_write_to_string(xmlDoc *doc)
 	return (char *)temp;
 }
 
-osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize)
+osync_bool osxml_copy(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
 	xmlDoc *doc = (xmlDoc *)(input);
 	xmlDoc *newdoc = xmlCopyDoc(doc, TRUE);
@@ -390,20 +391,24 @@ osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsi
 	return TRUE;
 }
 
-osync_bool osxml_marshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+osync_bool osxml_marshal(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
 	xmlDoc *doc = (xmlDoc*)input;
 	xmlChar *result;
 	int size;
 	xmlDocDumpMemory(doc, &result, &size);
-	*output = (char*)result;
-	*outpsize = size;
+	osync_message_write_buffer(message, result, size);
+	
 	return TRUE;
 }
 
-osync_bool osxml_demarshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+osync_bool osxml_demarshal(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	xmlDoc *doc = xmlParseMemory(input, inpsize);
+	void *input = NULL;
+	int size = 0;
+	osync_message_read_buffer(message, &input, &size);
+	
+	xmlDoc *doc = xmlParseMemory((char *)input, size);
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid XML data received");
 		goto error;

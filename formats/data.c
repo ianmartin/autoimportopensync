@@ -24,7 +24,6 @@
 #include <opensync/opensync-serializer.h>
 #include <opensync/opensync-format.h>
 #include <glib.h>
-#include "file.h"
 
 static OSyncConvCmpResult compare_plain(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {

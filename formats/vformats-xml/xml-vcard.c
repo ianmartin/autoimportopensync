@@ -20,6 +20,7 @@
  
 #include <opensync/opensync.h>
 #include <opensync/opensync-format.h>
+#include <opensync/opensync-data.h>
  
 #include "opensync-xml.h"
 #include "vformat.h"
@@ -342,11 +343,45 @@ has_value:;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_vcard_to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
-	GHashTable *hooks = (GHashTable *)conv_data;
+	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+	
+	g_hash_table_insert(table, "FN", handle_fullname_attribute);
+	g_hash_table_insert(table, "N", handle_name_attribute);
+	g_hash_table_insert(table, "PHOTO", handle_photo_attribute);
+	g_hash_table_insert(table, "BDAY", handle_birthday_attribute);
+	g_hash_table_insert(table, "ADR", handle_address_attribute);
+	g_hash_table_insert(table, "LABEL", handle_label_attribute);
+	g_hash_table_insert(table, "TEL", handle_telephone_attribute);
+	g_hash_table_insert(table, "EMAIL", handle_email_attribute);
+	g_hash_table_insert(table, "MAILER", handle_mailer_attribute);
+	g_hash_table_insert(table, "TZ", handle_timezone_attribute);
+	g_hash_table_insert(table, "GEO", handle_location_attribute);
+	g_hash_table_insert(table, "TITLE", handle_title_attribute);
+	g_hash_table_insert(table, "ROLE", handle_role_attribute);
+	g_hash_table_insert(table, "LOGO", handle_logo_attribute);
+	g_hash_table_insert(table, "ORG", handle_organization_attribute);
+	g_hash_table_insert(table, "NOTE", handle_note_attribute);
+	g_hash_table_insert(table, "REV", handle_revision_attribute);
+	g_hash_table_insert(table, "SOUND", handle_sound_attribute);
+	g_hash_table_insert(table, "URL", handle_url_attribute);
+	g_hash_table_insert(table, "UID", handle_uid_attribute);
+	g_hash_table_insert(table, "KEY", handle_key_attribute);
+	g_hash_table_insert(table, "NICKNAME", handle_nickname_attribute);
+	g_hash_table_insert(table, "CLASS", handle_class_attribute);
+	g_hash_table_insert(table, "CATEGORIES", handle_categories_attribute);
+	
+	g_hash_table_insert(table, "VERSION", HANDLE_IGNORE);
+	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
+	g_hash_table_insert(table, "END", HANDLE_IGNORE);
+	
+	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
+	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
+	
+	g_hash_table_insert(table, "TYPE", handle_type_parameter);
 	
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
@@ -366,7 +401,7 @@ static osync_bool conv_vcard_to_xml(void *conv_data, char *input, int inpsize, c
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
-		vcard_handle_attribute(hooks, root, attr);
+		vcard_handle_attribute(table, root, attr);
 	}
 	
 	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string(doc));
@@ -759,9 +794,9 @@ static VFormatAttribute *handle_xml_categories_attribute(VFormat *vcard, xmlNode
 	return attr;
 }
 
-static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error, int target)
+static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p, %i)", __func__, input, inpsize, output, outpsize, free_input, config, error, target);
 	
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 	
@@ -788,123 +823,6 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 		std_encoding = "QUOTED-PRINTABLE";
 	else
 		std_encoding = "B";
-	
-	if (root)
-		root = root->children;
-	while (root) {
-		xml_vcard_handle_attribute((OSyncHookTables *)user_data, vcard, root, std_encoding);
-		root = root->next;
-	}
-	
-	*free_input = TRUE;
-	*output = vformat_to_string(vcard, target);
-	osync_trace(TRACE_INTERNAL, "vcard output is: \n%s", *output);
-	*outpsize = strlen(*output) + 1;
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	
-	return TRUE;
-}
-
-static osync_bool conv_xml_to_vcard30(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_30);
-}
-
-static osync_bool conv_xml_to_vcard21(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	return conv_xml_to_vcard(user_data, input, inpsize, output, outpsize, free_input, error, VFORMAT_CARD_21);
-}
-
-static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *rightchange)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
-	
-	OSyncXMLScore score[] =
-	{
-	//{30, "/contact/FullName"},
-	{100, "/contact/Name"},
-	//{20, "/contact/Telephone"},
-	//{20, "/contact/Address"},
-	//{1, "/contact/UnknownNode"},
-	{0, "/contact/*/Slot"},
-	{0, "/contact/*/Type"},
-	{0, "/contact/WantsHtml"},
-	{0, "/contact/Class"},
-	{0, "/contact/FileAs"},
-	{0, "/contact/Uid"},
-	{0, "/contact/Revision"},
-	{0, NULL}
-	};
-	
-	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)osync_change_get_data(leftchange), (xmlDoc*)osync_change_get_data(rightchange), score, 0, 99);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-	return ret;
-}
-
-static char *print_contact(OSyncChange *change)
-{
-	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
-	
-	return osxml_write_to_string(doc);
-}
-
-static void destroy_xml(char *data, size_t size, osync_bool free_part)
-{
-	xmlFreeDoc((xmlDoc *)data);
-}
-
-static void *init_vcard_to_xml(void)
-{
-	osync_trace(TRACE_ENTRY, "%s", __func__);
-	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
-	
-	g_hash_table_insert(table, "FN", handle_fullname_attribute);
-	g_hash_table_insert(table, "N", handle_name_attribute);
-	g_hash_table_insert(table, "PHOTO", handle_photo_attribute);
-	g_hash_table_insert(table, "BDAY", handle_birthday_attribute);
-	g_hash_table_insert(table, "ADR", handle_address_attribute);
-	g_hash_table_insert(table, "LABEL", handle_label_attribute);
-	g_hash_table_insert(table, "TEL", handle_telephone_attribute);
-	g_hash_table_insert(table, "EMAIL", handle_email_attribute);
-	g_hash_table_insert(table, "MAILER", handle_mailer_attribute);
-	g_hash_table_insert(table, "TZ", handle_timezone_attribute);
-	g_hash_table_insert(table, "GEO", handle_location_attribute);
-	g_hash_table_insert(table, "TITLE", handle_title_attribute);
-	g_hash_table_insert(table, "ROLE", handle_role_attribute);
-	g_hash_table_insert(table, "LOGO", handle_logo_attribute);
-	g_hash_table_insert(table, "ORG", handle_organization_attribute);
-	g_hash_table_insert(table, "NOTE", handle_note_attribute);
-	g_hash_table_insert(table, "REV", handle_revision_attribute);
-	g_hash_table_insert(table, "SOUND", handle_sound_attribute);
-	g_hash_table_insert(table, "URL", handle_url_attribute);
-	g_hash_table_insert(table, "UID", handle_uid_attribute);
-	g_hash_table_insert(table, "KEY", handle_key_attribute);
-	g_hash_table_insert(table, "NICKNAME", handle_nickname_attribute);
-	g_hash_table_insert(table, "CLASS", handle_class_attribute);
-	g_hash_table_insert(table, "CATEGORIES", handle_categories_attribute);
-	
-	g_hash_table_insert(table, "VERSION", HANDLE_IGNORE);
-	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
-	g_hash_table_insert(table, "END", HANDLE_IGNORE);
-	
-	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
-	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
-	
-	g_hash_table_insert(table, "TYPE", handle_type_parameter);
-	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
-	return (void *)table;
-}
-
-static void fin_vcard_to_xml(void *data)
-{
-	g_hash_table_destroy((GHashTable *)data);
-}
-
-static void *init_xml_to_vcard(void)
-{
-	osync_trace(TRACE_ENTRY, "%s", __func__);
 	
 	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
 	
@@ -943,23 +861,76 @@ static void *init_xml_to_vcard(void)
 	
 	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);
 	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
-	return (void *)hooks;
-}
-
-static void fin_xml_to_vcard(void *data)
-{
-	OSyncHookTables *hooks = (OSyncHookTables *)hooks;
-	g_hash_table_destroy(hooks->attributes);
-	g_hash_table_destroy(hooks->parameters);
-	g_free(hooks);
-}
-
-static time_t get_revision(OSyncChange *change, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+	if (root)
+		root = root->children;
+	while (root) {
+		xml_vcard_handle_attribute(hooks, vcard, root, std_encoding);
+		root = root->next;
+	}
 	
-	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
+	*free_input = TRUE;
+	*output = vformat_to_string(vcard, target);
+	osync_trace(TRACE_INTERNAL, "vcard output is: \n%s", *output);
+	*outpsize = strlen(*output) + 1;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	
+	return TRUE;
+}
+
+static osync_bool conv_xml_to_vcard30(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xml_to_vcard(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_CARD_30);
+}
+
+static osync_bool conv_xml_to_vcard21(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xml_to_vcard(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_CARD_21);
+}
+
+static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i)", __func__, leftdata, leftsize, rightdata, rightsize);
+	
+	OSyncXMLScore score[] =
+	{
+	//{30, "/contact/FullName"},
+	{100, "/contact/Name"},
+	//{20, "/contact/Telephone"},
+	//{20, "/contact/Address"},
+	//{1, "/contact/UnknownNode"},
+	{0, "/contact/*/Slot"},
+	{0, "/contact/*/Type"},
+	{0, "/contact/WantsHtml"},
+	{0, "/contact/Class"},
+	{0, "/contact/FileAs"},
+	{0, "/contact/Uid"},
+	{0, "/contact/Revision"},
+	{0, NULL}
+	};
+	
+	OSyncConvCmpResult ret = osxml_compare((xmlDoc*)leftdata, (xmlDoc*)rightdata, score, 0, 99);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+static char *print_contact(const char *data, unsigned int size)
+{
+	xmlDoc *doc = (xmlDoc *)data;
+	
+	return osxml_write_to_string(doc);
+}
+
+static void destroy_xml(char *input, size_t inpsize)
+{
+	xmlFreeDoc((xmlDoc *)input);
+}
+
+static time_t get_revision(const char *input, unsigned int inpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, input, inpsize, error);
+	
+	xmlDoc *doc = (xmlDoc *)input;
 	
 	xmlXPathObject *xobj = osxml_get_nodeset(doc, "/contact/Revision");
 		
@@ -982,38 +953,73 @@ static time_t get_revision(OSyncChange *change, OSyncError **error)
 	return time;
 }
 
-void get_format_info(OSyncFormatEnv *env)
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	OSyncError *error = NULL;
-	
-	OSyncObjFormat *format = osync_objformat_new("xml-contact", "contact", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xml-contact: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
+	OSyncObjFormat *format = osync_objformat_new("xml-contact", "contact", error);
+	if (!format)
+		return FALSE;
 	
 	osync_objformat_set_compare_func(format, compare_contact);
 	osync_objformat_set_destroy_func(format, destroy_xml);
 	osync_objformat_set_print_func(format, print_contact);
 	osync_objformat_set_copy_func(format, osxml_copy);
 	osync_objformat_set_revision_func(format, get_revision);
-	osync_objformat_set_marshall_func(format, osxml_marshall);
-	osync_objformat_set_demarshall_func(format, osxml_demarshall);
+	osync_objformat_set_marshal_func(format, osxml_marshal);
+	osync_objformat_set_demarshal_func(format, osxml_demarshal);
+	
 	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	return TRUE;
 }
 
-void get_conversion_info(OSyncFormatEnv *env)
+osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
+	OSyncObjFormat *xml = osync_format_env_find_objformat(env, "xml-contact");
+	if (!xml) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xml contact format");
+		return FALSE;
+	}
 	
+	OSyncObjFormat *vcard21 = osync_format_env_find_objformat(env, "vcard21");
+	if (!vcard21) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard21 format");
+		return FALSE;
+	}
 	
-	osync_env_register_converter(env, CONVERTER_CONV, "vcard21", "xml-contact", conv_vcard_to_xml);
-	osync_env_converter_set_init(env, "vcard21", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard21", conv_xml_to_vcard21);
-	osync_env_converter_set_init(env, "xml-contact", "vcard21", init_xml_to_vcard, fin_xml_to_vcard);
+	OSyncObjFormat *vcard30 = osync_format_env_find_objformat(env, "vcard30");
+	if (!vcard30) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard30 format");
+		return FALSE;
+	}
 	
-	osync_env_register_converter(env, CONVERTER_CONV, "vcard30", "xml-contact", conv_vcard_to_xml);
-	osync_env_converter_set_init(env, "vcard30", "xml-contact", init_vcard_to_xml, fin_vcard_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "vcard30", conv_xml_to_vcard30);
-	osync_env_converter_set_init(env, "xml-contact", "vcard30", init_xml_to_vcard, fin_xml_to_vcard);
+	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcard21, xml, conv_vcard_to_xml, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcard30, xml, conv_vcard_to_xml, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xml, vcard21, conv_xml_to_vcard21, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xml, vcard30, conv_xml_to_vcard30, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	return TRUE;
+}
+
+int get_version(void)
+{
+	return 1;
 }
