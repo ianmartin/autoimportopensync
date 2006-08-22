@@ -106,7 +106,6 @@ typedef struct OSyncChange OSyncChange;
  
 /* Format Component */
 typedef struct OSyncFormatEnv OSyncFormatEnv;
-typedef struct OSyncObjType OSyncObjType;
 typedef struct OSyncObjFormat OSyncObjFormat;
 typedef struct OSyncFormatConverterPath OSyncFormatConverterPath;
 typedef struct OSyncFormatConverter OSyncFormatConverter;

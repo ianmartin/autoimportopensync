@@ -23,7 +23,7 @@
 
 struct OSyncObjTypeSink {
 	/** The format which can be synchronized by this sink */
-	GList *objformats;
+	OSyncList *objformats;
 	/** The functions to be called */
 	OSyncObjTypeSinkFunctions functions;
 	void *userdata;

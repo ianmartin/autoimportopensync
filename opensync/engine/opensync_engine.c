@@ -26,6 +26,7 @@
 #include "opensync-group.h"
 #include "opensync-format.h"
 #include "opensync-data.h"
+#include "opensync-plugin.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_engine_internals.h"
@@ -99,6 +100,18 @@ static gboolean _command_check(GSource *source)
 
 void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command);
 
+OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, const char *objtype)
+{
+	char *format = g_hash_table_lookup(engine->internalFormats, objtype);
+	return osync_format_env_find_objformat(engine->formatenv, format);
+}
+
+void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
+{
+	osync_trace(TRACE_INTERNAL, "Setting internal format of %s to %p", objtype, format);
+	g_hash_table_insert(engine->internalFormats, g_strdup(objtype), g_strdup(osync_objformat_get_name(format)));
+}
+
 static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
 {
 	OSyncEngine *engine = userdata;
@@ -108,7 +121,35 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(proxy)));
 	
-	/* If objtype == unknown, detect the objtype */
+	OSyncData *data = osync_change_get_data(change);
+		
+	/* If objtype == "data", detect the objtype */
+	if (osync_change_ osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
+		OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
+		if (!detectedFormat)
+			goto error;
+		
+		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), osync_objformat_get_objtype(detectedFormat));
+		osync_change_set_objtype(
+	}
+	
+	/* Convert the format to the internal format */
+	OSyncObjFormat *internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
+	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change));
+	if (internalFormat) {
+		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
+	
+		OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), internalFormat, &error);
+		if (!path)
+			goto error;
+	
+		if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
+			osync_converter_path_unref(path);
+			goto error;
+		}
+		
+		osync_converter_path_unref(path);
+	}
 	
 	/* Search for the correct objengine */
 	GList * o = NULL;
@@ -261,6 +302,8 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 	
+	engine->internalFormats = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	
 	engine->context = g_main_context_new();
 	engine->thread = osync_thread_new(engine->context, error);
 	if (!engine->thread)
@@ -323,6 +366,9 @@ void osync_engine_unref(OSyncEngine *engine)
 	osync_assert(engine);
 		
 	if (g_atomic_int_dec_and_test(&(engine->ref_count))) {
+		if (engine->internalFormats)
+			g_hash_table_destroy(engine->internalFormats);
+		
 		if (engine->group)
 			osync_group_unref(engine->group);
 		
@@ -388,13 +434,25 @@ void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir)
 	engine->format_dir = g_strdup(dir);
 }
 
-static void _osync_engine_start(OSyncEngine *engine)
+static osync_bool _osync_engine_start(OSyncEngine *engine, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	
+	engine->pluginenv = osync_plugin_env_new(error);
+	if (!engine->pluginenv)
+		goto error;
+	
+	if (!osync_plugin_env_load(engine->pluginenv, engine->plugin_dir, error))
+		goto error;
 	
 	osync_thread_start(engine->thread);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 static void _osync_engine_stop(OSyncEngine *engine)
@@ -436,6 +494,8 @@ error:
 
 static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OSyncMember *member, OSyncError **error)
 {
+	const char *config = NULL;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 	
 	OSyncClientProxy *proxy = osync_client_proxy_new(engine->formatenv, member, error);
@@ -449,11 +509,28 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 		goto error_free_proxy;
 	engine->busy = TRUE;
 	
-	const char *config = osync_member_get_config(member, error);
-	if (!config)
+	OSyncPlugin *plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
+	if (!plugin) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", osync_member_get_pluginname(member));
 		goto error_finalize;
+	}
 	
-	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_member_get_configdir(member), config, error))
+	switch (osync_plugin_get_config_type(plugin)) {
+		case OSYNC_PLUGIN_NO_CONFIGURATION:
+			break;
+		case OSYNC_PLUGIN_OPTIONAL_CONFIGURATION:
+			config = osync_member_get_config_or_default(member, error);
+			if (!config)
+				goto error_finalize;
+			break;
+		case OSYNC_PLUGIN_NEEDS_CONFIGURATION:
+			config = osync_member_get_config(member, error);
+			if (!config)
+				goto error_finalize;
+			break;
+	}
+	
+	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, error))
 		goto error_finalize;
 	
 	//FIXME
@@ -506,15 +583,18 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	engine->formatenv = osync_format_env_new(error);
 	if (!engine->formatenv)
 		goto error;
-		
+	
 	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
 	
 	if (!osync_format_env_load_plugins(engine->formatenv, engine->format_dir, error))
 		goto error_finalize;
 	
-	osync_trace(TRACE_INTERNAL, "Running the main loop");
-	_osync_engine_start(engine);
+	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xml-contact"));
 	
+	osync_trace(TRACE_INTERNAL, "Running the main loop");
+	if (!_osync_engine_start(engine, error))
+		goto error_finalize;
+		
 	osync_trace(TRACE_INTERNAL, "Spawning clients");
 	int i;
 	for (i = 0; i < osync_group_num_members(group); i++) {
@@ -556,6 +636,9 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 	
 	if (engine->formatenv)
 		osync_format_env_free(engine->formatenv);
+	
+	if (engine->pluginenv)
+		osync_plugin_env_free(engine->pluginenv);
 	
 	osync_group_unlock(engine->group);
 	
@@ -1203,7 +1286,8 @@ osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *mem
 		goto error;
 	}
 	
-	_osync_engine_start(engine);
+	if (!_osync_engine_start(engine, error))
+		goto error;
 	
 	engine->state = OSYNC_ENGINE_STATE_INITIALIZED;
 	

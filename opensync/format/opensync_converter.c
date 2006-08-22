@@ -29,7 +29,6 @@ OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *so
 {
 	OSyncFormatConverter *converter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %p, %p)", __func__, type, sourceformat, targetformat, convert_func, error);
-	osync_assert(convert_func);
 	
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
@@ -55,8 +54,7 @@ OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat,
 {
 	OSyncFormatConverter *converter = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, sourceformat, targetformat, detect_func, error);
-	osync_assert(detect_func);
-	
+
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -148,9 +146,9 @@ OSyncObjFormat *osync_converter_detect(OSyncFormatConverter *converter, OSyncDat
 	}
 	
 	osync_data_get_data(data, &buffer, &size);
-	if (converter->detect_func(buffer, size)) {
+	if (!converter->detect_func || converter->detect_func(buffer, size)) {
 		/* Successfully detected the data */
-		osync_trace(TRACE_EXIT, "%s: %p", __func__, converter->source_format);
+		osync_trace(TRACE_EXIT, "%s: %p", __func__, converter->target_format);
 		return converter->target_format;
 	}
 	
@@ -170,21 +168,22 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, config, error);
 	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format), converter->target_format, osync_objformat_get_name(converter->target_format));
 	
-	osync_data_steal_data(data, &input_data, &input_size);
-	
-	if (converter->type != OSYNC_CONVERTER_DETECTOR && input_data) {
+	if (converter->type != OSYNC_CONVERTER_DETECTOR) {
 		
-		osync_assert(converter->convert_func);
-	
-		/* Invoke the converter */
-		if (!converter->convert_func(input_data, input_size, &output_data, &output_size, &free_input, config, error))
-			goto error;
+		osync_data_steal_data(data, &input_data, &input_size);
+		if (input_data) {
+			osync_assert(converter->convert_func);
 		
-		/* Good. We new have some new data. Now we have to see what to do with the old data */
-		if (free_input) {
-			osync_objformat_destroy(converter->source_format, input_data, input_size);
+			/* Invoke the converter */
+			if (!converter->convert_func(input_data, input_size, &output_data, &output_size, &free_input, config, error))
+				goto error;
+			
+			/* Good. We now have some new data. Now we have to see what to do with the old data */
+			if (free_input) {
+				osync_objformat_destroy(converter->source_format, input_data, input_size);
+			}
+			osync_data_set_data(data, output_data, output_size);
 		}
-		osync_data_set_data(data, output_data, output_size);
 	}
 	
 	osync_data_set_objformat(data, converter->target_format);

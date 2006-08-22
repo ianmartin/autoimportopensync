@@ -466,7 +466,7 @@ osync_list_first (OSyncList *list)
 }
 
 unsigned int
-osync_list_length (OSyncList *list)
+osync_list_length (const OSyncList *list)
 {
   unsigned int length;
   

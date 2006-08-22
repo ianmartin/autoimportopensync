@@ -101,6 +101,14 @@ const char *osync_change_get_objtype(OSyncChange *change)
 	return osync_data_get_objtype(change->data);
 }
 
+void osync_change_set_objtype(OSyncChange *change, const char *objtype)
+{
+	osync_assert(change);
+	if (!change->data)
+		return;
+	osync_data_set_objtype(change->data, objtype);
+}
+
 /*! @brief Sets the hash of a change that is used to decide wether a change is new, modifed etc
  * 
  * @param change The change

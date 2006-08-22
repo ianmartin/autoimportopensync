@@ -248,7 +248,7 @@ void osync_module_unload(OSyncModule *module)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, module);
 	osync_assert(module->module);
 	
-	g_module_close(module->module);
+	//g_module_close(module->module);
 	module->module = NULL;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

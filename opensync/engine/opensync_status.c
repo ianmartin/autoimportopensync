@@ -58,7 +58,7 @@ void osync_status_free_change_update(OSyncChangeUpdate *update)
 {
 	osync_assert(update);
 	
-	//osync_member_unref(update->member);
+	osync_member_unref(update->member);
 	
 	if (update->change)
 		osync_change_unref(update->change);
@@ -133,8 +133,8 @@ void osync_status_update_change(OSyncEngine *engine, OSyncChange *change, OSyncM
 		update->change = change;
 		osync_change_ref(change);
 		
-		//update->member = member;
-		//osync_member_ref(member);
+		update->member = member;
+		osync_member_ref(member);
 		
 		update->error = error;
 		osync_error_ref(&error);

@@ -32,9 +32,10 @@
 typedef struct callContext {
 	OSyncClient *client;
 	OSyncMessage *message;
+	OSyncChange *change;
 } callContext;
 
-static OSyncContext *_create_context(OSyncClient *client, OSyncMessage *message, OSyncContextCallbackFn callback, OSyncError **error)
+static OSyncContext *_create_context(OSyncClient *client, OSyncMessage *message, OSyncContextCallbackFn callback, OSyncChange *change, OSyncError **error)
 {
 	OSyncContext *context = osync_context_new(error);
 	if (!context)
@@ -50,6 +51,10 @@ static OSyncContext *_create_context(OSyncClient *client, OSyncMessage *message,
 	baton->message = message;
 	osync_message_ref(message);
 	
+	baton->change = change;
+	if (baton->change)
+		osync_change_ref(baton->change);
+		
 	osync_context_set_callback(context, callback, baton);
 	return context;
 	
@@ -63,6 +68,9 @@ static void _free_baton(callContext *baton)
 {
 	osync_client_unref(baton->client);
 	osync_message_unref(baton->message);
+	
+	if (baton->change)
+		osync_change_unref(baton->change);
 	
 	g_free(baton);
 }
@@ -231,6 +239,7 @@ static void _osync_client_commit_change_callback(void *data, OSyncError *error)
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
 		//Send get_changes specific reply data
+		osync_message_write_string(reply, osync_change_get_uid(baton->change));
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
 	}
@@ -344,6 +353,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	char *enginepipe = NULL;
 	char *pluginname = NULL;
 	char *plugindir = NULL;
+	char *groupname = NULL;
 	char *configdir = NULL;
 	char *formatdir = NULL;
 	char *config = NULL;
@@ -355,6 +365,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_string(message, &formatdir);
 	osync_message_read_string(message, &plugindir);
 	osync_message_read_string(message, &pluginname);
+	osync_message_read_string(message, &groupname);
 	osync_message_read_string(message, &configdir);
 	osync_message_read_string(message, &config);
 	
@@ -408,6 +419,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_plugin_info_set_config(client->plugin_info, config);
 	osync_plugin_info_set_loop(client->plugin_info, client->context);
 	osync_plugin_info_set_format_env(client->plugin_info, client->format_env);
+	osync_plugin_info_set_groupname(client->plugin_info, groupname);
 	
 	client->plugin_data = osync_plugin_initialize(client->plugin, client->plugin_info, error);
 	if (!client->plugin_data)
@@ -426,6 +438,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	g_free(pluginname);
 	g_free(configdir);
 	g_free(plugindir);
+	g_free(groupname);
 	g_free(formatdir);
 	g_free(config);
 	
@@ -441,6 +454,7 @@ error:
 	g_free(pluginname);
 	g_free(configdir);
 	g_free(plugindir);
+	g_free(groupname);
 	g_free(formatdir);
 	g_free(config);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -575,7 +589,7 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		
 		osync_message_unref(reply);
 	} else {
-		OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, error);
+		OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, NULL, error);
 		if (!context)
 			goto error;
 		
@@ -628,7 +642,7 @@ static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMess
 		
 		osync_message_unref(reply);
 	} else {
-		OSyncContext *context = _create_context(client, message, _osync_client_disconnect_callback, error);
+		OSyncContext *context = _create_context(client, message, _osync_client_disconnect_callback, NULL, error);
 		if (!context)
 			goto error;
 		
@@ -681,7 +695,7 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 		
 		osync_message_unref(reply);
 	} else {
-		OSyncContext *context = _create_context(client, message, _osync_client_get_changes_callback, error);
+		OSyncContext *context = _create_context(client, message, _osync_client_get_changes_callback, NULL, error);
 		if (!context)
 			goto error;
 		osync_context_set_changes_callback(context, _osync_client_change_callback);
@@ -725,10 +739,10 @@ static osync_bool _osync_client_handle_commit_change(OSyncClient *client, OSyncM
 		goto error;
 	}
 		
-	OSyncContext *context = _create_context(client, message, _osync_client_commit_change_callback, error);
+	OSyncContext *context = _create_context(client, message, _osync_client_commit_change_callback, change, error);
 	if (!context)
 		goto error;
-	
+		
 	osync_plugin_info_set_sink(client->plugin_info, sink);
 	osync_objtype_sink_commit_change(sink, client->plugin_data, client->plugin_info, change, context);
 	
@@ -777,7 +791,7 @@ static osync_bool _osync_client_handle_committed_all(OSyncClient *client, OSyncM
 		
 		osync_message_unref(reply);
 	} else {
-		OSyncContext *context = _create_context(client, message, _osync_client_committed_all_callback, error);
+		OSyncContext *context = _create_context(client, message, _osync_client_committed_all_callback, NULL, error);
 		if (!context)
 			goto error;
 		
@@ -830,7 +844,7 @@ static osync_bool _osync_client_handle_sync_done(OSyncClient *client, OSyncMessa
 		
 		osync_message_unref(reply);
 	} else {
-		OSyncContext *context = _create_context(client, message, _osync_client_sync_done_callback, error);
+		OSyncContext *context = _create_context(client, message, _osync_client_sync_done_callback, NULL, error);
 		if (!context)
 			goto error;
 		

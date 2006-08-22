@@ -94,7 +94,7 @@ int     osync_list_index                   (OSyncList            *list,
 					 void *     data);
 OSyncList*   osync_list_last                    (OSyncList            *list);
 OSyncList*   osync_list_first                   (OSyncList            *list);
-unsigned int    osync_list_length                  (OSyncList            *list);
+unsigned int    osync_list_length                  (const OSyncList            *list);
 void     osync_list_foreach                 (OSyncList            *list,
 					 OSyncFunc             func,
 					 void *          user_data);

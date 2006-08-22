@@ -82,4 +82,6 @@ OSYNC_EXPORT void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool
 OSYNC_EXPORT osync_bool osync_objtype_sink_get_slowsync(OSyncObjTypeSink *sink);
 OSYNC_EXPORT void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync);
 
+const OSyncList *osync_objtype_sink_get_objformats(OSyncObjTypeSink *sink);
+
 #endif //_OPENSYNC_SINK_H_

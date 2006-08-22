@@ -98,7 +98,7 @@ typedef struct OSyncChangeUpdate {
 	/** The change for which the status update is */
 	OSyncChange *change;
 	/** The id of the member which sent this change */
-	int member_id;
+	OSyncMember *member;
 	/** The id of the mapping to which this change belongs if any */
 	int mapping_id;
 	/** If the status was a error, this error will be set */

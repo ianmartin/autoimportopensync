@@ -56,7 +56,7 @@ void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 		while (sink->objformats) {
 			char *format = sink->objformats->data;
 			g_free(format);
-			sink->objformats = g_list_remove(sink->objformats, format);
+			sink->objformats = osync_list_remove(sink->objformats, format);
 		}
 		
 		if (sink->objtype)
@@ -80,33 +80,52 @@ void osync_objtype_sink_set_name(OSyncObjTypeSink *sink, const char *name)
 	sink->objtype = g_strdup(name);
 }
 
+static osync_bool _osync_objtype_sink_find_objformat(OSyncObjTypeSink *sink, const char *format)
+{
+	osync_assert(sink);
+	OSyncList *f = sink->objformats;
+	for (; f; f = f->next) {
+		if (!strcmp(f->data, format))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
-	return g_list_length(sink->objformats);
+	return osync_list_length(sink->objformats);
 }
 
 const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth)
 {
 	osync_assert(sink);
-	return g_list_nth_data(sink->objformats, nth);
+	return osync_list_nth_data(sink->objformats, nth);
+}
+
+const OSyncList *osync_objtype_sink_get_objformats(OSyncObjTypeSink *sink)
+{
+	osync_assert(sink);
+	return sink->objformats;
 }
 
 void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format)
 {
 	osync_assert(sink);
 	osync_assert(format);
-	sink->objformats = g_list_append(sink->objformats, g_strdup(format));
+	
+	if (!_osync_objtype_sink_find_objformat(sink, format))
+		sink->objformats = osync_list_append(sink->objformats, g_strdup(format));
 }
 
 void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format)
 {
-	GList *f = NULL;
+	OSyncList *f = NULL;
 	osync_assert(sink);
 	osync_assert(format);
 	for (f = sink->objformats; f; f = f->next) {
 		if (!strcmp((char *)f->data, format)) {
-			sink->objformats = g_list_remove(sink->objformats, f->data);
+			sink->objformats = osync_list_remove(sink->objformats, f->data);
 			break;
 		}
 	}

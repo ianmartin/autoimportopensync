@@ -279,8 +279,14 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			
 			proxy->objtypes = g_list_append(proxy->objtypes, sink);
 			
-			if (proxy->member)
+			if (proxy->member) {
 				osync_member_add_objtype(proxy->member, osync_objtype_sink_get_name(sink));
+				const OSyncList *f = osync_objtype_sink_get_objformats(sink);
+				for (; f; f = f->next) {
+					const char *format = f->data;
+					osync_member_add_objformat(proxy->member, osync_objtype_sink_get_name(sink), format);
+				}
+			}
 		}
 		
 		ctx->discover_callback(proxy, ctx->discover_callback_data, NULL);
@@ -411,10 +417,13 @@ static void _osync_client_proxy_commit_change_handler(OSyncMessage *message, voi
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
 	
 	if (osync_message_get_cmd(message) == OSYNC_MESSAGE_REPLY) {
-		ctx->commit_change_callback(proxy, ctx->commit_change_callback_data, NULL);
+		char *uid = NULL;
+		osync_message_read_string(message, &uid);
+		ctx->commit_change_callback(proxy, ctx->commit_change_callback_data, uid, NULL);
+		g_free(uid);
 	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
 		osync_demarshal_error(message, &error);
-		ctx->commit_change_callback(proxy, ctx->commit_change_callback_data, error);
+		ctx->commit_change_callback(proxy, ctx->commit_change_callback_data, NULL, error);
 		osync_error_unref(&error);
 	} else {
 		osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Unexpected reply");
@@ -808,9 +817,9 @@ error:
 	return FALSE;
 }
 
-osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *configdir, const char *config, OSyncError **error)
+osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, configdir, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
 	osync_assert(proxy);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
@@ -829,6 +838,7 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 	osync_message_write_string(message, formatdir);
 	osync_message_write_string(message, plugindir);
 	osync_message_write_string(message, plugin);
+	osync_message_write_string(message, groupname);
 	osync_message_write_string(message, configdir);
 	osync_message_write_string(message, config);
 	

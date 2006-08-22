@@ -22,5 +22,6 @@ osync_bool osync_change_duplicate(OSyncChange *change, osync_bool *dirty, OSyncE
 
 OSyncObjFormat *osync_change_get_objformat(OSyncChange *change);
 const char *osync_change_get_objtype(OSyncChange *change);
+void osync_change_set_objtype(OSyncChange *change, const char *objtype);
 
 #endif //_OPENSYNC_CHANGE_H_

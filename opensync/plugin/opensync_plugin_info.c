@@ -55,6 +55,9 @@ void osync_plugin_info_unref(OSyncPluginInfo *info)
 		if (info->configdir)
 			g_free(info->configdir);
 		
+		if (info->groupname)
+			g_free(info->groupname);
+		
 		while (info->objtypes) {
 			OSyncObjTypeSink *sink = info->objtypes->data;
 			osync_objtype_sink_unref(sink);
@@ -108,6 +111,20 @@ const char *osync_plugin_info_get_configdir(OSyncPluginInfo *info)
 	return info->configdir;
 }
 
+void osync_plugin_info_set_groupname(OSyncPluginInfo *info, const char *groupname)
+{
+	osync_assert(info);
+	if (info->groupname)
+		g_free(info->groupname);
+	info->groupname = g_strdup(groupname);
+}
+
+const char *osync_plugin_info_get_groupname(OSyncPluginInfo *info)
+{
+	osync_assert(info);
+	return info->groupname;
+}
+
 OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name)
 {
 	GList *p;
@@ -117,6 +134,15 @@ OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const ch
 		if (g_ascii_strcasecmp(osync_objtype_sink_get_name(sink), name) == 0)
 			return sink;
 	}
+	
+	/* If we couldnt find the requested objtype, look if we find a sink
+	 * which accepts any objtype ("data") */
+	for (p = info->objtypes; p; p = p->next) {
+		OSyncObjTypeSink *sink = p->data;
+		if (g_ascii_strcasecmp(osync_objtype_sink_get_name(sink), "data") == 0)
+			return sink;
+	}
+	
 	return NULL;
 }
 

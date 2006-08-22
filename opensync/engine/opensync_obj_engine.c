@@ -221,6 +221,7 @@ OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMappin
 		
 		OSyncMember *member = osync_client_proxy_get_member(sink_engine->proxy);
 		OSyncMappingEntry *mapping_entry = osync_mapping_find_entry_by_member_id(mapping, osync_member_get_id(member));
+		osync_assert(mapping_entry);
 		
 		OSyncMappingEntryEngine *entry_engine = osync_entry_engine_new(mapping_entry, engine, sink_engine, parent, error);
 		if (!entry_engine)
@@ -293,22 +294,58 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		
 		osync_trace(TRACE_INTERNAL, "Propagating change %s to %p from %p", __func__, osync_mapping_entry_get_uid(entry_engine->entry), entry_engine, engine->master);
 		
+		/* Input is:
+		 * masterChange -> change that solved the mapping
+		 * masterData -> data of masterChange
+		 * existChange -> change that will be overwritten (if any) */
+		
 		OSyncChange *existChange = entry_engine->change;
-		OSyncChange *newChange = osync_entry_engine_get_change(engine->master);
+		OSyncChange *masterChange = osync_entry_engine_get_change(engine->master);
+		OSyncData *masterData = osync_change_get_data(masterChange);
 		
-		OSyncChangeType existChangeType = existChange ? osync_change_get_changetype(existChange) : OSYNC_CHANGE_TYPE_UNKNOWN;
-		OSyncChangeType newChangeType = newChange ? osync_change_get_changetype(newChange) : OSYNC_CHANGE_TYPE_UNKNOWN;
-		osync_entry_engine_update(entry_engine, newChange);
+		/* Clone the masterData. This has to be done since the data
+		 * might get changed (converted) and we dont want to touch the 
+		 * original data */
+		OSyncData *newData = osync_data_clone(masterData, error);
+		if (!newData)
+			goto error;
 		
+		if (!existChange) {
+			existChange = osync_change_new(error);
+			if (!existChange)
+				goto error;
+			
+			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_UNKNOWN);
+		} else {
+			/* Ref the change so that we can unref it later */
+			osync_change_ref(existChange);
+		}
+		
+		/* Save the changetypes, so that we can calculate the correct changetype later */
+		OSyncChangeType existChangeType = osync_change_get_changetype(existChange);
+		OSyncChangeType newChangeType = osync_change_get_changetype(masterChange);
+		
+		/* Now update the entry with the change */
+		osync_entry_engine_update(entry_engine, existChange);
+		
+		/* We have to use the uid of the entry, so that the member
+		 * can correctly identify the entry */
+		osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
+		osync_change_set_data(existChange, newData);
+		osync_change_set_changetype(existChange, osync_change_get_changetype(masterChange));
+		
+		/* We also have to update the changetype of the new change */
 		osync_trace(TRACE_INTERNAL, "Orig change type: %i New change type: %i", existChangeType, newChangeType);
 		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && (existChangeType != OSYNC_CHANGE_TYPE_DELETED && existChangeType != OSYNC_CHANGE_TYPE_UNKNOWN)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to MODIFIED");
-			osync_change_set_changetype(newChange, OSYNC_CHANGE_TYPE_MODIFIED);
+			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_MODIFIED);
 		} else if (newChangeType == OSYNC_CHANGE_TYPE_MODIFIED && (existChangeType == OSYNC_CHANGE_TYPE_DELETED)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to ADDED");
-			osync_change_set_changetype(newChange, OSYNC_CHANGE_TYPE_ADDED);
+			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_ADDED);
 		}
 		
+		osync_change_unref(existChange);
+			
 		osync_entry_engine_set_dirty(entry_engine, TRUE);
 	}
 	
@@ -976,14 +1013,14 @@ static void _generate_written_event(OSyncObjEngine *engine)
 		osync_trace(TRACE_INTERNAL, "Not yet: %i", BitCount(engine->sink_errors | engine->sink_written));
 }
 
-static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *userdata, const char *uid, OSyncError *error)
 {
 	OSyncMappingEntryEngine *entry_engine = userdata;
 	OSyncObjEngine *engine = entry_engine->objengine;
 	OSyncSinkEngine *sink_engine = entry_engine->sink_engine;
 	OSyncError *locerror = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, proxy, userdata, uid, error);
 	
 	osync_entry_engine_set_dirty(entry_engine, FALSE);
 	
@@ -991,6 +1028,9 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 	OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 	OSyncMember *member = osync_client_proxy_get_member(proxy);
 	OSyncMappingEntry *entry = entry_engine->entry;
+	
+	if (uid)
+		osync_change_set_uid(entry_engine->change, uid);
 	
 	if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
 		osync_archive_delete_change(sink_engine->archive, osync_mapping_entry_get_id(entry), &locerror);
@@ -1191,6 +1231,43 @@ const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine)
 	return engine->objtype;
 }
 
+static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProxy *proxy, const char *objtype, OSyncError **error)
+{
+	OSyncMember *member = osync_client_proxy_get_member(proxy);
+	
+	const OSyncList *formats = osync_member_get_objformats(member, objtype, error);
+	osync_trace(TRACE_INTERNAL, "Found %i possible sink formats", osync_list_length(formats));
+	
+	if (!formats) {
+		if (!osync_error_is_set(error))
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a valid target format");
+		return NULL;
+	}
+						
+	int num = osync_list_length(formats);
+	
+	OSyncObjFormat **formatArray = osync_try_malloc0(sizeof(OSyncObjFormat *) * (num + 1), error);
+	if (!formatArray)
+		return NULL;
+	
+	const OSyncList *f = NULL;
+	int i = 0;
+	for (f = formats; f; f = f->next) {
+		const char *formatstr = f->data;
+		OSyncObjFormat *format = osync_format_env_find_objformat(env, formatstr);
+		if (!format) {
+			g_free(formatArray);
+			return NULL;
+		}
+		
+		formatArray[i] = format;
+		i++;
+	}
+	formatArray[i] = NULL;
+	
+	return formatArray;
+}
+
 osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error)
 {
 	GList *p = NULL;
@@ -1248,6 +1325,39 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_mapping_entry_get_uid(entry_engine->entry), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)), osync_entry_engine_is_dirty(entry_engine));
 					if (osync_entry_engine_is_dirty(entry_engine)) {
 						osync_assert(entry_engine->change);
+						OSyncChange *change = entry_engine->change;
+						
+						osync_trace(TRACE_INTERNAL, "Starting to convert from objtype %s and format %s", osync_change_get_objtype(entry_engine->change), osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
+						/* We have to save the objtype of the change so that it does not get
+						 * overwritten by the conversion */
+						char *objtype = g_strdup(osync_change_get_objtype(change));
+						
+						/* Now we have to convert to one of the formats
+						 * that the client can understand */
+						OSyncObjFormat **formats = _get_member_formats(engine->formatenv, sinkengine->proxy, osync_change_get_objtype(entry_engine->change), error);
+						if (!formats)
+							goto error;
+						
+						OSyncFormatConverterPath *path = osync_format_env_find_path_formats(engine->formatenv, osync_change_get_objformat(entry_engine->change), formats, error);
+						if (!path) {
+							g_free(formats);
+							goto error;
+						}
+						g_free(formats);
+						
+						if (!osync_format_env_convert(engine->formatenv, path, osync_change_get_data(entry_engine->change), error)) {
+							osync_converter_path_unref(path);
+							goto error;
+						}
+						osync_trace(TRACE_INTERNAL, "converted to format %s", osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
+						
+						osync_converter_path_unref(path);
+						
+						osync_change_set_objtype(change, objtype);
+						g_free(objtype);
+						
+						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
+	
 						if (!osync_client_proxy_commit_change(sinkengine->proxy, _obj_engine_commit_change_callback, entry_engine, osync_entry_engine_get_change(entry_engine), error))
 							goto error;
 					} else if (entry_engine->change) {

@@ -11,6 +11,7 @@ struct OSyncPluginInfo {
 	OSyncFormatEnv *formatenv;
 	//devinfo
 	int ref_count;
+	char *groupname;
 };
 
 #endif /*OPENSYNC_PLUGIN_INFO_INTERNALS_H_*/

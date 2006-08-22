@@ -46,6 +46,7 @@ struct OSyncEngine {
 	char *format_dir;
 	
 	OSyncFormatEnv *formatenv;
+	OSyncPluginEnv *pluginenv;
 	
 	OSyncEngineState state;
 	
@@ -104,6 +105,8 @@ struct OSyncEngine {
 	int obj_sync_done;
 	
 	osync_bool busy;
+	
+	GHashTable *internalFormats;
 };
 
 #endif /*OPENSYNC_ENGINE_INTERNALS_H_*/

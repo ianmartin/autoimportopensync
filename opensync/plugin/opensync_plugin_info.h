@@ -28,4 +28,7 @@ OSYNC_EXPORT void osync_plugin_info_set_format_env(OSyncPluginInfo *info, OSyncF
 OSYNC_EXPORT OSyncObjTypeSink *osync_plugin_info_get_sink(OSyncPluginInfo *info);
 OSYNC_EXPORT void osync_plugin_info_set_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink);
 
+OSYNC_EXPORT void osync_plugin_info_set_groupname(OSyncPluginInfo *info, const char *groupname);
+OSYNC_EXPORT const char *osync_plugin_info_get_groupname(OSyncPluginInfo *info);
+
 #endif /*OPENSYNC_PLUGIN_INFO_H_*/

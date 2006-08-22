@@ -250,12 +250,16 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 			neigh->losses++;
 		
 		neigh->objtype_changes = ve->objtype_changes;
-		source_objtype = osync_objformat_get_objtype(osync_converter_get_sourceformat(converter));
-		target_objtype = osync_objformat_get_objtype(osync_converter_get_targetformat(converter));
+		
+		OSyncObjFormat *sourceformat = osync_converter_get_sourceformat(converter);
+		OSyncObjFormat *targetformat = osync_converter_get_targetformat(converter);
+		
+		source_objtype = osync_objformat_get_objtype(sourceformat);
+		target_objtype = osync_objformat_get_objtype(targetformat);
 		if (strcmp(source_objtype, target_objtype))
 			neigh->objtype_changes++;
 
-		osync_trace(TRACE_EXIT, "%s: %p", __func__, neigh);
+		osync_trace(TRACE_EXIT, "%s: %p (converter from %s to %s)", __func__, neigh, osync_objformat_get_name(sourceformat), osync_objformat_get_name(targetformat));
 		return neigh;
 	}
 	
@@ -271,8 +275,6 @@ static void _free_tree(conv_tree *tree)
 {
 	/* Remove the remaining references on the search queue */
 	g_list_foreach(tree->search, (GFunc)_free_vertice, NULL);
-	
-	g_list_foreach(tree->unused, (GFunc)_free_vertice, NULL);
 	
 	g_list_free(tree->unused);
 	g_list_free(tree->search);
@@ -327,7 +329,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		if (!path)
 			goto error;
 		
-		osync_trace(TRACE_EXIT, "%s: Target already valid");
+		osync_trace(TRACE_EXIT, "%s: Target already valid", __func__);
 		return path;
 	}
 
@@ -374,32 +376,35 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 		/* Done, drop the reference to the vertice */
 		_free_vertice(current);
 	}
-	
-	if (result) {
-		/* Found it. Create a path object */
-		path = osync_converter_path_new(error);
-		if (!path)
-			goto error;
-		
-		for (e = result->path; e; e = e->next) {
-			OSyncFormatConverter *edge = e->data;
-			osync_converter_path_add_edge(path, edge);
-		}
-		
-		/* Drop the reference to the result vertice */
-		_free_vertice(result);
+			
+	if (!result) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find conversion path");
+		goto error_free_tree;
 	}
+	
+	/* Found it. Create a path object */
+	path = osync_converter_path_new(error);
+	if (!path)
+		goto error;
+	
+	for (e = result->path; e; e = e->next) {
+		OSyncFormatConverter *edge = e->data;
+		osync_converter_path_add_edge(path, edge);
+	}
+	
+	/* Drop the reference to the result vertice */
+	_free_vertice(result);
 	
 	/* Free the tree */
 	_free_tree(tree);
 	
-	osync_trace(TRACE_EXIT, "%s: %p", path);
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, path);
 	return path;
 
 error_free_tree:
 	_free_tree(tree);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -582,6 +587,17 @@ void osync_format_env_register_converter(OSyncFormatEnv *env, OSyncFormatConvert
 	osync_assert(env);
 	osync_assert(converter);
 	
+	/* Register the inverse converter if its a detector. The inverse
+	 * of a detector can always be used */
+	if (osync_converter_get_type(converter) == OSYNC_CONVERTER_DETECTOR) {
+		
+		OSyncFormatConverter *conv = osync_converter_new_detector(osync_converter_get_targetformat(converter), osync_converter_get_sourceformat(converter), NULL, NULL);
+		if (!conv)
+			return;
+	
+		env->converters = g_list_append(env->converters, conv);
+	}
+	
 	env->converters = g_list_append(env->converters, converter);
 	osync_converter_ref(converter);
 }
@@ -689,14 +705,14 @@ OSyncCustomFilter *osync_format_env_nth_filter(OSyncFormatEnv *env, int nth)
 OSyncObjFormat *osync_format_env_detect_objformat(OSyncFormatEnv *env, OSyncData *data)
 {
 	GList *d = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, data);
 	
 	/* Run all datadetectors for our source type */
 	for (d = env->converters; d; d = d->next) {
 		OSyncFormatConverter *converter = d->data;
 		/* We check if the converter might be able to converter the change */
 		if (osync_converter_get_type(converter) == OSYNC_CONVERTER_DETECTOR && osync_converter_matches(converter, data)) {
-			osync_trace(TRACE_INTERNAL, "running detector %s for format %s\n", osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_objformat_get_name(osync_data_get_objformat(data)));
+			osync_trace(TRACE_INTERNAL, "running detector %s for format %s", osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_objformat_get_name(osync_data_get_objformat(data)));
 			if (osync_converter_detect(converter, data))  {
 				OSyncObjFormat *detected_format = osync_converter_get_targetformat(converter);
 				osync_trace(TRACE_EXIT, "%s: %p", __func__, detected_format);
@@ -705,7 +721,7 @@ OSyncObjFormat *osync_format_env_detect_objformat(OSyncFormatEnv *env, OSyncData
 		}
 	}
 	
-	osync_trace(TRACE_EXIT, "%s: No detector triggered");
+	osync_trace(TRACE_EXIT, "%s: No detector triggered", __func__);
 	return NULL;
 }
 
@@ -741,9 +757,10 @@ OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyn
 		} else
 			detected_format = osync_data_get_objformat(new_data);
 		
+		OSyncFormatConverter *converter = NULL;
 		/* Try to decap the change as far as possible */
 		for (d = env->converters; d; d = d->next) {
-			OSyncFormatConverter *converter = d->data;
+			converter = d->data;
 			if (osync_converter_matches(converter, new_data) && osync_converter_get_type(converter) == OSYNC_CONVERTER_DECAP) {
 				/* Run the decap */
 				if (!osync_converter_invoke(converter, new_data, NULL, error)) {
@@ -751,14 +768,18 @@ OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyn
 					goto error_free_data;
 				}
 				
-				continue;
-			}
+				break;
+			} else
+				converter = NULL;
 		}
+		
 		/* We couldnt find a decap, so we quit. */
-		break;
+		if (!converter)
+			break;
 	}
 	osync_data_unref(new_data);
 	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, detected_format);
 	return detected_format;
 
 error_free_data:
@@ -786,7 +807,7 @@ osync_bool osync_format_env_convert(OSyncFormatEnv *env, OSyncFormatConverterPat
 	int length = 0;
 	char *buffer = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, data, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, path, data, error);
 	osync_assert(data);
 	osync_assert(env);
 	osync_assert(path);
