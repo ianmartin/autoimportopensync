@@ -315,6 +315,8 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 				osync_objtype_sink_set_name(sink, str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
 				osync_objtype_sink_set_enabled(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
+				osync_objtype_sink_add_objformat(sink, str);
 			}
 			xmlFree(str);
 		}
@@ -421,6 +423,11 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
 		xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
 		
+		int i = 0;
+		for (i = 0; i < osync_objtype_sink_num_objformats(sink); i++) {
+			const char *format = osync_objtype_sink_nth_objformat(sink, i);
+			xmlNewChild(node, NULL, (xmlChar*)"objformat", (xmlChar*)format);
+		}
 	}
 	
 	xmlSaveFile(filename, doc);
@@ -489,6 +496,26 @@ static OSyncObjTypeSink *_osync_member_find_objtype(OSyncMember *member, const c
 			return sink;
 	}
 	return NULL;
+}
+
+void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format)
+{
+	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
+	if (!sink)
+		return;
+	
+	osync_objtype_sink_add_objformat(sink, format);
+}
+
+const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error)
+{
+	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
+	if (!sink) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
+		return NULL;
+	}
+	
+	return osync_objtype_sink_get_objformats(sink);
 }
 
 void osync_member_add_objtype(OSyncMember *member, const char *objtype)

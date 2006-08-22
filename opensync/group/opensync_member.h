@@ -51,4 +51,7 @@ OSYNC_EXPORT void osync_member_set_objtype_enabled(OSyncMember *member, const ch
 OSYNC_EXPORT void osync_member_set_start_type(OSyncMember *member, OSyncStartType type);
 OSYNC_EXPORT OSyncStartType osync_member_get_start_type(OSyncMember *member);
 
+const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error);
+void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format);
+
 #endif /* _OPENSYNC_MEMBER_H_ */

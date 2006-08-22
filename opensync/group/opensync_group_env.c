@@ -129,6 +129,9 @@ void osync_group_env_free(OSyncGroupEnv *env)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 	g_assert(env);
 	
+	if (env->groupsdir)
+		g_free(env->groupsdir);
+	
 	/* Free the groups */
 	while (env->groups) {
 		osync_group_unref(env->groups->data);
@@ -216,6 +219,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		}
 		
 		osync_group_env_add_group(env, group);
+		osync_group_unref(group);
 		
 		g_free(filename);
 	}

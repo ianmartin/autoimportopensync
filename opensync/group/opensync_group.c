@@ -40,11 +40,22 @@ static void _build_list(gpointer key, gpointer value, gpointer user_data)
 	}
 }
 
+static void _add_one(gpointer key, gpointer value, gpointer user_data)
+{
+	GHashTable *table = user_data;
+	
+	int num = GPOINTER_TO_INT(value);
+	g_hash_table_replace(table, key, GINT_TO_POINTER(num + 1));
+}
+
 static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 {
 	GList *m = NULL;
 	GList *ret = NULL;
 	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+    
+    int num_data = 0;
+    int i = 0;
     
 	/* Loop over all members... */
 	for (m = group->members; m; m = m->next) {
@@ -54,11 +65,19 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 		/* ... and get the objtype from each of the members. */
 		for (i = 0; i < num; i++) {
 			const char *objtype = osync_member_nth_objtype(member, i);
-			/* For each objtype, add 1 to the hashtable */
-			int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
-			g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
+			/* For each objtype, add 1 to the hashtable. If the objtype is
+			 * the special objtype "data", add 1 to all objtypes */
+			if (!strcmp(objtype, "data")) {
+				num_data++;
+			} else {
+				int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
+				g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
+			}
 		}
 	}
+	
+	for (i = 0; i < num_data; i++)
+		g_hash_table_foreach(table, _add_one, table);
 	
 	g_hash_table_foreach(table, _build_list, &ret);
 	g_hash_table_destroy(table);
