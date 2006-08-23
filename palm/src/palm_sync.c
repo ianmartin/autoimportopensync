@@ -690,7 +690,6 @@ static void psyncConnect(OSyncContext *ctx)
 
 	//check the user
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
-	osync_trace(TRACE_INTERNAL, "test %i", ret);
 	if (_psyncCheckReturn(env->socket, ret, &error) != PSYNC_NO_ERROR) {
 		osync_error_update(&error, "Unable to read UserInfo: %s", osync_error_print(&error));
 		goto error;
@@ -699,7 +698,7 @@ static void psyncConnect(OSyncContext *ctx)
 	if (env->user.userID == 0)
 		strcpy(env->user.username, "");
 		
-	osync_trace(TRACE_INTERNAL, "User: %s, %i\n", env->user.username, env->user.userID);
+	osync_trace(TRACE_SENSITIVE, "User: %s, %i\n", env->user.username, env->user.userID);
 	/*if (strcmp(User.username, conn->username) || User.userID != conn->id) {
 		//Id or username mismatch
 		switch (conn->mismatch) {
@@ -725,6 +724,7 @@ static void psyncConnect(OSyncContext *ctx)
 		}
 	}*/
 	
+	// TODO set anchor of lastSyncPC and check if got synced somewhere else in meantime....
 	if (env->user.lastSyncPC == 0) {
 		//Device has been reseted
 		osync_trace(TRACE_INTERNAL, "Detected that the Device has been reset");

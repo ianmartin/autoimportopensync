@@ -157,6 +157,7 @@ osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 	PSyncEventEntry *event = NULL;
 	OSyncError *error = NULL;
 	unsigned long id = 0;
+	GList *c = NULL;
 
 	//open the DB
 	if (!(db = psyncDBOpen(env, "DatebookDB", &error)))
@@ -175,7 +176,17 @@ osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 			if (!entry)
 				goto error;
 			entry->id = id;
-			
+				
+			// set category id
+			for (c = event->categories; c; c = c->next) {
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				entry->category = psyncDBCategoryToId(db, c->data, NULL);
+				if (entry->category != 0) {
+					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
+					break;
+				}
+			}
+
 #ifdef OLD_PILOT_LINK
 			entry->size = pack_Appointment(&(event->appointment), entry->buffer, 0xffff);
 #else
@@ -201,7 +212,6 @@ osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 			entry->id = id;
 			
-			GList *c = NULL;
 			for (c = event->categories; c; c = c->next) {
 				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
 				entry->category = psyncDBCategoryToId(db, c->data, NULL);

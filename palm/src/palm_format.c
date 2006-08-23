@@ -315,11 +315,18 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp);
 		g_free(tmp);
 
-		// Every #X YYYY
-		if (strlen(rrulestr->str))
-			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) rrulestr->str);
+		// RepeatEnd
+		if (!entry->appointment.repeatForever) {
+			vtime = osync_time_tm2vtime(&(entry->appointment.repeatEnd), FALSE);
+			tmp = osync_time_datestamp(vtime);
+			g_free(vtime);
 
-		g_string_free(rrulestr, TRUE);
+			vtime = g_strdup_printf("UNTIL=%s", tmp);
+			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) vtime);
+			
+			g_free(tmp);
+			g_free(vtime);
+		}
 
 		// Interval
 		// intveral value 1 is default and is not required as seperate field. would lead to conflicts.
@@ -329,14 +336,11 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 			g_free(tmp);
 		}
 
-		// RepeatEnd
-		if (!entry->appointment.repeatForever) {
-			tmp = osync_time_tm2vtime(&(entry->appointment.repeatEnd), FALSE);
-			vtime = g_strdup_printf("UNTIL=%s", tmp);
-			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) vtime);
-			g_free(tmp);
-			g_free(vtime);
-		}
+		// Every #X YYYY
+		if (strlen(rrulestr->str))
+			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) rrulestr->str);
+
+		g_string_free(rrulestr, TRUE);
 
 		// Exceptions
 		if (entry->appointment.exceptions) {
@@ -459,11 +463,14 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		start = osync_time_vtime2tm(vtime);
 
 		if (!osync_time_isdate(vtime)) {
-			tmptm = osync_time_tm2localtime(start);
-			g_free(start);
-			start = tmptm;
+			if (osync_time_isutc(vtime)) {
+				tmptm = osync_time_tm2localtime(start);
+				g_free(start);
+				start = tmptm;
+			}
 		} else {
 			entry->appointment.event = 1;
+			osync_trace(TRACE_SENSITIVE, "Is all day event...");
 		}
 
 		entry->appointment.begin = *start;
@@ -492,9 +499,12 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		end = osync_time_vtime2tm(vtime);
 
 		if (!osync_time_isdate(vtime)) {
-			tmptm = osync_time_tm2localtime(end);
-			g_free(end);
-			end = tmptm;
+
+			if (osync_time_isutc(vtime)) {
+				tmptm = osync_time_tm2localtime(end);
+				g_free(end);
+				end = tmptm;
+			}
 		}
 	
 		entry->appointment.end = *end;
@@ -582,14 +592,15 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 
 			// use lowest used advance units
 			if (weeks || days) {		// set days - weeks not supported as unit
-				entry->appointment.advanceUnits = 4;
+				entry->appointment.advanceUnits = 2;
 				entry->appointment.advance = advance_in_secs / 24 / 3600;
 				if (weeks)
 					entry->appointment.advance /= 7;
 			}
 			
 			if (hours) {
-				entry->appointment.advanceUnits = 2;
+				// TODO: check for older models the advanceUnit for Hour! (is 4 related to hour type?)
+				entry->appointment.advanceUnits = 1;
 				entry->appointment.advance = advance_in_secs / 3600;
 			}
 			
@@ -605,7 +616,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		}
 	}
 
-	//recurrence
+	//Recurrence
 	cur = osxml_get_node(root, "RecurrenceRule");
 	if (cur) {
 
@@ -745,7 +756,8 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	if (cur) {
 		for (cur = cur->children; cur; cur = cur->next) {
 			tmp = conv_enc_xml_to_palm((char*)xmlNodeGetContent(cur));
-			entry->categories = g_list_append(entry->categories, tmp);
+			osync_trace(TRACE_SENSITIVE, "category: %s", tmp);
+			entry->categories = g_list_append(entry->categories, g_strdup(tmp));
 			g_free(tmp);
 		}
 	}
@@ -1170,7 +1182,7 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 	if (cur) {
 		for (cur = cur->children; cur; cur = cur->next) {
 			tmp = conv_enc_xml_to_palm((char*)xmlNodeGetContent(cur));
-			entry->categories = g_list_append(entry->categories, tmp);
+			entry->categories = g_list_append(entry->categories, g_strdup(tmp));
 			g_free(tmp);
 		}
 	}
@@ -1719,7 +1731,7 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 	if (cur) {
 		for (cur = cur->children; cur; cur = cur->next) {
 			tmp = conv_enc_xml_to_palm((char*)xmlNodeGetContent(cur));
-			entry->categories = g_list_append(entry->categories, tmp);
+			entry->categories = g_list_append(entry->categories, g_strdup(tmp));
 			g_free(tmp);
 		}
 	}

@@ -16,9 +16,10 @@ Bugs/Known Problems
 ^^^^^^^^^^^^^^^^^^^
 * changetype of new entries are modified instead of added(?)
 * newer palm can select sepecific timezone for specific entry - unsupported by pilot-link
+* extended timezone information get lost
 
 TODO
 ^^^^
+* creating new category on palm device
 * Public/Private option
-* Timezone [testing!]
 * Find limit of excluding recurrences
