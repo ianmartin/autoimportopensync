@@ -55,22 +55,13 @@ struct gpesync_client_query_context
 
 
 static void
-write_command (gpesync_client * ctx, const char *cmd, ...)
+write_command (gpesync_client * ctx, const char *buf)
 {
-  char *buf;
-  va_list va;
-
-  va_start (va, cmd);
-  g_vasprintf (&buf, cmd, va);
-  va_end (va);
-
   if (verbose)
     fprintf (stderr, "[gpsyncclient %s]: %s\n", __func__, buf);
 
   if (write (ctx->outfd, buf, strlen (buf)) == -1 && verbose)
     fprintf (stderr, "[gpsyncclient %s]: failed\n", __func__);
-
-  free (buf);
 }
 
 /*! \brief moves forward to the next line
