@@ -47,9 +47,9 @@ int get_type_uid (const char *string)
  * if string gets freed, value and modified are no more valid!
  *
  */
-osync_bool parse_value_modified (gchar *string, gchar **value, gchar **modified)
+osync_bool parse_value_modified (char *string, char **value, char **modified)
 {
-	gchar *c = NULL;
+	char *c = NULL;
 	*value = string;
 	*modified = (strchr (string, ':'));
 	if (*modified == NULL)

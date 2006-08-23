@@ -31,23 +31,24 @@ osync_bool gpe_contacts_commit_change (OSyncContext *ctx, OSyncChange *change)
 	osync_debug("GPE_SYNC", 4, "start %s", __func__);
 
         gpe_environment *env = (gpe_environment *)osync_context_get_plugin_data(ctx);
-	gchar *result = NULL;
-	gchar *modified = NULL;
-	gchar *error = NULL;
+	gchar *response = NULL;
+	char *result = NULL;
+	char *modified = NULL;
+	char *error = NULL;
 	osync_bool state = FALSE;
 		
 	switch (osync_change_get_changetype (change)) {
 		case CHANGE_DELETED:
 			osync_debug("GPE_SYNC", 3, "contacts: delete item %d", get_type_uid (osync_change_get_uid (change)));
-			gpesync_client_exec_printf (env->client, "del vcard %d", client_callback_string, &result, &error, get_type_uid (osync_change_get_uid (change)));
+			gpesync_client_exec_printf (env->client, "del vcard %d", client_callback_string, &response, NULL, get_type_uid (osync_change_get_uid (change)));
 			break;
 		case CHANGE_ADDED:
 			osync_debug("GPE_SYNC", 3, "contacts: adding item: %s", osync_change_get_data (change));
-			gpesync_client_exec_printf (env->client, "add vcard %s", client_callback_string, &result, &error, osync_change_get_data (change));
+			gpesync_client_exec_printf (env->client, "add vcard %s", client_callback_string, &response, NULL, osync_change_get_data (change));
 			break;
 		case CHANGE_MODIFIED:
 			osync_debug("GPE_SYNC", 3, "contacts: modifying item %d: %s", get_type_uid (osync_change_get_uid (change)), osync_change_get_data (change));
-			gpesync_client_exec_printf (env->client, "modify vcard %d %s", client_callback_string, &result, &error, get_type_uid (osync_change_get_uid (change)), osync_change_get_data (change));
+			gpesync_client_exec_printf (env->client, "modify vcard %d %s", client_callback_string, &response, NULL, get_type_uid (osync_change_get_uid (change)), osync_change_get_data (change));
 			break;
 		default:
 			osync_debug ("GPE_SYNC", 0, "Unknown change type");
@@ -55,7 +56,7 @@ osync_bool gpe_contacts_commit_change (OSyncContext *ctx, OSyncChange *change)
 
 	osync_debug("GPE_SYNC", 3, "commit result: %s", result);
 
-	if (parse_value_modified (result, &result, &modified))
+	if (parse_value_modified (response, &result, &modified))
 	{
 		if (!strcasecmp (result, "OK"))
 		{
@@ -69,8 +70,8 @@ osync_bool gpe_contacts_commit_change (OSyncContext *ctx, OSyncChange *change)
 				 * on success:
 				 * OK:MODIFIED:UID
 				 * so we can split value again */
-				gchar *uid = NULL;
-				gchar buf[25];
+				char *uid = NULL;
+				char buf[25];
 				parse_value_modified (modified, &modified, &uid);
 				sprintf (buf, "gpe-contact-%s", uid);
 				osync_change_set_uid (change, g_strdup (buf));
@@ -85,14 +86,13 @@ osync_bool gpe_contacts_commit_change (OSyncContext *ctx, OSyncChange *change)
 			error = modified;
 			osync_debug ("GPE_SYNC", 0, "Couldn't commit contact: %s", error);
 			osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Couldn't commit contact: %s", error);
-			g_free (error);
 		}
 	} else {
 		osync_context_report_error (ctx, OSYNC_ERROR_GENERIC, "Couldn't process answer form gpesyncd: %s", result);
 	}
 	
-	if (result)
-		g_free (result);
+	if (response)
+		g_free (response);
 
 	osync_debug("GPE_SYNC", 4, "stop %s", __func__);
 	
@@ -168,7 +168,7 @@ osync_bool gpe_contacts_get_changes(OSyncContext *ctx)
 
 		g_string_assign (vcard_data, "");
 		osync_debug("GPE_SYNC", 3, "Getting vcard %s", uid);
-		gpesync_client_exec_printf (env->client, "get vcard %s", client_callback_gstring, &vcard_data, &errmsg, uid);
+		gpesync_client_exec_printf (env->client, "get vcard %s", client_callback_gstring, &vcard_data, NULL, uid);
 		osync_debug("GPE_SYNC", 3, "vcard output:\n%s", vcard_data->str);
 
 		report_change (ctx, "contact", uid, modified, vcard_data->str);

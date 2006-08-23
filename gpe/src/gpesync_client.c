@@ -27,18 +27,6 @@
 
 int verbose = 0;
 
-struct gpesync_client
-{
-  int infd;
-  int outfd;
-  int seq;
-
-  int busy;
-
-  const gchar *hostname;
-  const gchar *username;
-};
-
 struct gpesync_client_query_context
 {
   gpesync_client *ctx;
@@ -96,7 +84,7 @@ get_next_line (const char *data, gsize *len)
   if (!string->str || string->str[0] == '\0')
   {
     g_string_free (string, TRUE);
-    return FALSE;
+    return NULL;
   }
   
   return g_string_free (string, FALSE);
@@ -232,7 +220,7 @@ read_response (struct gpesync_client_query_context *query_ctx)
 }
 
 gpesync_client *
-gpesync_client_open_ssh (const char *addr, char **errmsg)
+gpesync_client_open_ssh (const char *addr, gchar **errmsg)
 {
   gpesync_client *ctx;
   gchar *hostname = NULL;
@@ -298,7 +286,7 @@ gpesync_client_open_ssh (const char *addr, char **errmsg)
 }
 
 gpesync_client *
-gpesync_client_open (const char *addr, int port, char **errmsg)
+gpesync_client_open (const char *addr, int port, gchar **errmsg)
 {
   gpesync_client *ctx;
   ctx = g_malloc0 (sizeof (gpesync_client));
@@ -342,7 +330,7 @@ gpesync_client_open (const char *addr, int port, char **errmsg)
   {
     if (errmsg)
     {
-      *errmsg = strdup (buffer);
+      *errmsg = g_strdup (buffer);
     }
     gpesync_client_close (ctx);
     return NULL;
@@ -371,7 +359,7 @@ gpesync_client_close (gpesync_client * ctx)
 
 int
 gpesync_client_exec (gpesync_client * ctx, const char *command,
-		 gpesync_client_callback cb, void *cb_data, char **err)
+		 gpesync_client_callback cb, void *cb_data, gchar **err)
 {
   struct gpesync_client_query_context query;
   GString *cmd = g_string_new ("");
