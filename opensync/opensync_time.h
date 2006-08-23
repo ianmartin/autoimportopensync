@@ -5,6 +5,7 @@
 char *osync_time_timestamp(const char *vtime);
 char *osync_time_datestamp(const char *vtime); 
 osync_bool osync_time_isdate(const char *vformat);
+osync_bool osync_time_isutc(const char *vformat);
 //char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc);
 
 /* Timetype helper */

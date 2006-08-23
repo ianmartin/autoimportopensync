@@ -109,6 +109,18 @@ osync_bool osync_time_isdate(const char *vtime) {
 	return TRUE;
 }
 
+/*! @brief Function returns TRUE if vtime is in UTC (YYYYMMDDTHH:MM:SSZ)
+ * 
+ * @returns FALSE if vtime includes no Zulu, TRUE if the timestamp is UTC
+ */
+osync_bool osync_time_isutc(const char *vtime) {
+
+	if (!strstr(vtime, "Z"))
+		return FALSE;
+
+	return TRUE;
+}
+
 /*! @brief Function sets the time of vtime timestamp to the given time parameter
  * 
  * If vtime only stores date (without THHMMSS[Z]) parameter time will
@@ -430,7 +442,7 @@ char *osync_time_vtime2localtime(const char* utc) {
 	char *localtime = NULL; 
 	struct tm *tm_local = NULL, *tm_utc = NULL;
 
-	if (strstr(utc, "Z")) {
+	if (!strstr(utc, "Z")) {
 		localtime = strdup(utc);
 		return localtime;
 	}

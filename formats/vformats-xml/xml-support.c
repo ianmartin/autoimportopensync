@@ -233,7 +233,26 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 					goto next;
 				}
 			}
-			
+
+			/* Workaround for kdepim-sync. kdepim-sync always creates a AlarmTrigger with DISPLAY also when DESCRIPTION is empty */ 
+			if (!strcmp("Alarm", (char*)rightnode->name) && !strcmp("Alarm",(char*)leftnode->name)) {
+			       char *left = leftcontent;
+			       char *right = rightcontent;
+
+				if (strstr(leftcontent, "DISPLAY"))
+					left += 7;
+
+				if (strstr(rightcontent, "DISPLAY"))
+					right += 7; 
+
+				osync_trace(TRACE_SENSITIVE, "left: %s right: %s", left, right);
+				if (!strcmp(left, right)) {
+					osync_trace(TRACE_INTERNAL, "KDEPIM-SYNC (ALARM trigger) workaround active!");
+					g_free(rightcontent);
+					goto next;
+				}
+			}
+		
 			g_free(rightcontent);
 		} while ((rightnode = rightnode->next));
 		osync_trace(TRACE_EXIT, "%s: Could not match one", __func__);
