@@ -451,6 +451,9 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		entry->appointment.description = conv_enc_xml_to_palm(tmp); 
 		g_free(tmp);
 	}
+	//XXX ugly hack to avoid crash of palm device - description = NULL leads to crash
+	if (!entry->appointment.description)
+		entry->appointment.description = g_malloc0(sizeof(char)); 
 
 	//Start
 	cur = osxml_get_node(root, "DateStarted");
