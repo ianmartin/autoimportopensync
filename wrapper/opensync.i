@@ -35,7 +35,7 @@ typedef struct {} OSyncHashTable;
 		return osync_member_get_configdir(self);
 	}
 
-	const char *set_configdir(const char *configdir) {
+	void set_configdir(const char *configdir) {
 		osync_member_set_configdir(self, configdir);
 	}
 
