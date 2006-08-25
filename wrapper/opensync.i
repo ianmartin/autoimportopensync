@@ -1,5 +1,6 @@
 %module opensync
 %include "cdata.i"
+%include "typemaps.i"
 
 %{
 #include "opensync.h"
@@ -29,6 +30,48 @@ typedef struct {} OSyncHashTable;
 	void set_slow_sync(const char *objtype, osync_bool set) {
 		osync_member_set_slow_sync(self, objtype, set);
 	}
+	
+	const char *get_configdir() {
+		return osync_member_get_configdir(self);
+	}
+
+	const char *set_configdir(const char *configdir) {
+		osync_member_set_configdir(self, configdir);
+	}
+
+	%pythoncode %{
+	configdir = property(get_configdir, set_configdir);
+	%}
+
+	/* This SWIG code is really confusing, so I'd better explain it:
+	 * The %apply directive means that any argument called int *sizeout is actually a return value;
+	 * this means that __get_config (from python) returns two values, a pointer and a length.
+	 * The char * is returned as a void * to avoid SWIG converting it to a string automatically
+	 * (because theoretically it might not be null-terminated).
+	 */
+	%apply int *OUTPUT {int *sizeout};
+	void * __get_config(int *sizeout) {
+		char *data;
+		OSyncError *error;
+		/* FIXME: do something with the error! */
+		if (osync_member_get_config(self, &data, sizeout, &error))
+			return data;
+		else
+			return NULL;
+	}
+
+	void __set_config(void *data, int size) {
+		osync_member_set_config(self, data, size);
+	}
+
+	%pythoncode %{
+	def get_config(self):
+		data, len = self.__get_config()
+		return cdata(data, len)
+	def set_config(self, data):
+		self.__set_config(data, len(data))
+	config = property(get_config, set_config)
+	%}
 }
 
 %extend OSyncChange {
@@ -45,62 +88,66 @@ typedef struct {} OSyncHashTable;
 		osync_trace(TRACE_INTERNAL, "Deleting change %p", self);
 	}
 	
-	void data_set(char *data, int datasize, osync_bool has_data) {
-		/* take a copy of the data, so python does not try to reclaim it
-		 * this memory should be freed by opensync after the change is written
-		 * FIXME: if the change is not handed over to opensync, this will leak
-		 */
-		char *copy = memcpy(malloc(datasize), data, datasize);
-		osync_change_set_data(self, copy, datasize, has_data);
+	void __set_data(char *data, int datasize) {
+		osync_change_set_data(self, data, datasize, TRUE);
 	}
 	
-	void *data_get() {
+	void *__get_data() {
 		return osync_change_get_data(self);
 	}
 	
-	int datasize_get() {
+	int __get_datasize() {
 		return osync_change_get_datasize(self);
 	}
 	
 	%pythoncode %{
 	def get_data(self):
-		data = cdata(self.data_get(), self.datasize_get())
-		# FIXME: despite passing the size around, sometimes the data
-		# seems also to be null-terminated; remove this.
-		if data[-1] == '\0':
-			data = data[:-1]
-		return data
-	def set_data(self, data, has_data=True):
-		return self.data_set(data, len(data), has_data)
+		if not hasattr(self, "__data"):
+			self.__data = cdata(self.__get_data(), self.__get_datasize())
+			# FIXME: despite passing the size around, sometimes the data
+			# seems also to be null-terminated; remove this.
+			if self.__data[-1] == '\0':
+				self.__data = self.__data[:-1]
+		return self.__data
+
+	def set_data(self, data):
+		self.__data = data
+		self.__set_data(data, len(data))
+
 	data = property(get_data,set_data)
 	%}
 	
 	void report(OSyncContext *ctx)
 	{
+		/* take a copy of the data, so python does not try to reclaim it
+		 * this memory should be freed by opensync after the change is written
+		 */
+		if (osync_change_has_data(self)) {
+			char *data = osync_change_get_data(self);
+			int datasize = osync_change_get_datasize(self);
+			char *copy = memcpy(malloc(datasize), data, datasize);
+			osync_change_set_data(self, copy, datasize, TRUE);
+		}
 		osync_context_report_change(ctx, self);
 	}
 	
-	void uid_set(const char *uid) {
+	void set_uid(const char *uid) {
 		osync_change_set_uid(self, uid);
 	}
 	
-	const char *uid_get() {
+	const char *get_uid() {
 		return osync_change_get_uid(self);
 	}
 	
 	%pythoncode %{
-	def get_uid(self):
-		return self.uid_get()
-	def set_uid(self, uid):
-		self.uid_set(uid)
 	uid = property(get_uid, set_uid)
 	%}
 	
-	void format_set(const char *format) {
+	void set_format(const char *format) {
 		osync_change_set_objformat_string(self, format);
 	}
 	
-	const char *format_get() {
+	const char *get_format() {
 		OSyncObjFormat *format = osync_change_get_objformat(self);
 		if (!format)
 			return NULL;
@@ -108,18 +155,14 @@ typedef struct {} OSyncHashTable;
 	}
 	
 	%pythoncode %{
-	def get_format(self):
-		return self.format_get()
-	def set_format(self, format):
-		self.format_set(format)
 	format = property(get_format, set_format)
 	%}
 	
-	void objtype_set(const char *objtype) {
+	void set_objtype(const char *objtype) {
 		osync_change_set_objtype_string(self, objtype);
 	}
 	
-	const char *objtype_get() {
+	const char *get_objtype() {
 		OSyncObjType *objtype = osync_change_get_objtype(self);
 		if (!objtype)
 			return NULL;
@@ -127,42 +170,30 @@ typedef struct {} OSyncHashTable;
 	}
 	
 	%pythoncode %{
-	def get_objtype(self):
-		return self.objtype_get()
-	def set_objtype(self, objtype):
-		self.objtype_set(objtype)
 	objtype = property(get_objtype, set_objtype)
 	%}
 	
-	void changetype_set(int changetype) {
+	void set_changetype(int changetype) {
 		osync_change_set_changetype(self, changetype);
 	}
 	
-	int changetype_get() {
+	int get_changetype() {
 		return osync_change_get_changetype(self);
 	}
 	
 	%pythoncode %{
-	def get_changetype(self):
-		return self.changetype_get()
-	def set_changetype(self, changetype):
-		self.changetype_set(changetype)
 	changetype = property(get_changetype, set_changetype)
 	%}
 	
-	void hash_set(const char *hash) {
+	void set_hash(const char *hash) {
 		osync_change_set_hash(self, hash);
 	}
 	
-	const char *hash_get() {
+	const char *get_hash() {
 		return osync_change_get_hash(self);
 	}
 	
 	%pythoncode %{
-	def get_hash(self):
-		return self.hash_get()
-	def set_hash(self, hash):
-		self.hash_set(hash)
 	hash = property(get_hash, set_hash)
 	%}
 };
@@ -192,13 +223,11 @@ typedef struct {} OSyncHashTable;
 		osync_plugin_free(self);
 	}
 	
-	const char *name_get() {
+	const char *get_name() {
 		return osync_plugin_get_name(self);
 	}
 	
 	%pythoncode %{
-	def get_name(self):
-		return self.name_get()
 	name = property(get_name)
 	%}
 };
@@ -217,19 +246,15 @@ typedef struct {} OSyncHashTable;
 		osync_plugin_accept_objformat(self, objtype, objformat, extension);
 	}
 	
-	void name_set(const char *name) {
+	void set_name(const char *name) {
 		self->name = g_strdup(name);
 	}
 	
-	const char *name_get() {
+	const char *get_name() {
 		return self->name;
 	}
 	
 	%pythoncode %{
-	def get_name(self):
-		return self.name_get()
-	def set_name(self, name):
-		self.name_set(name)
 	name = property(get_name, set_name)
 	%}
 };
