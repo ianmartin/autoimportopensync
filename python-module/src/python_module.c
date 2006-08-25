@@ -29,6 +29,7 @@
 
 typedef struct MemberData {
 	PyThreadState *interp_thread;
+	PyObject *osync_module;
 	PyObject *module;
 	PyObject *object;
 } MemberData;
@@ -67,7 +68,7 @@ static PyObject *pm_load_script(const char *filename, OSyncError **error)
 	return module;
 }
 
-static PyObject *pm_make_change(PyObject *module, OSyncChange *change, OSyncError **error)
+static PyObject *pm_make_change(PyObject *osync_module, OSyncChange *change, OSyncError **error)
 {
 	PyObject *pychg_cobject = PyCObject_FromVoidPtr(change, NULL);
 	if (!pychg_cobject) {
@@ -76,7 +77,7 @@ static PyObject *pm_make_change(PyObject *module, OSyncChange *change, OSyncErro
 		return NULL;
 	}
 	
-	PyObject *pychg = PyObject_CallMethod(module, "OSyncChange", "O", pychg_cobject);
+	PyObject *pychg = PyObject_CallMethod(osync_module, "OSyncChange", "O", pychg_cobject);
 	if (!pychg) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncChange");
 		PyErr_Print();
@@ -86,7 +87,7 @@ static PyObject *pm_make_change(PyObject *module, OSyncChange *change, OSyncErro
 	return pychg;
 }
 
-static PyObject *pm_make_context(PyObject *module, OSyncContext *ctx, OSyncError **error)
+static PyObject *pm_make_context(PyObject *osync_module, OSyncContext *ctx, OSyncError **error)
 {
 	PyObject *pyctx_cobject = PyCObject_FromVoidPtr(ctx, NULL);
 	if (!pyctx_cobject) {
@@ -95,7 +96,7 @@ static PyObject *pm_make_context(PyObject *module, OSyncContext *ctx, OSyncError
 		return NULL;
 	}
 	
-	PyObject *pyctx = PyObject_CallMethod(module, "OSyncContext", "O", pyctx_cobject);
+	PyObject *pyctx = PyObject_CallMethod(osync_module, "OSyncContext", "O", pyctx_cobject);
 	if (!pyctx) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncContext");
 		PyErr_Print();
@@ -105,7 +106,7 @@ static PyObject *pm_make_context(PyObject *module, OSyncContext *ctx, OSyncError
 	return pyctx;
 }
 
-static PyObject *pm_make_member(PyObject *module, OSyncMember *member, OSyncError **error)
+static PyObject *pm_make_member(PyObject *osync_module, OSyncMember *member, OSyncError **error)
 {
 	PyObject *pymember_cobject = PyCObject_FromVoidPtr(member, NULL);
 	if (!pymember_cobject) {
@@ -114,7 +115,7 @@ static PyObject *pm_make_member(PyObject *module, OSyncMember *member, OSyncErro
 		return NULL;
 	}
 	
-	PyObject *pymember = PyObject_CallMethod(module, "OSyncMember", "O", pymember_cobject);
+	PyObject *pymember = PyObject_CallMethod(osync_module, "OSyncMember", "O", pymember_cobject);
 	if (!pymember) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncMember");
 		PyErr_Print();
@@ -145,13 +146,13 @@ static void *pm_initialize(OSyncMember *member, OSyncError **error)
 		goto error_free_data;
 	}
 	
-	if (!pm_load_opensync(error))
+	if (!(data->osync_module = pm_load_opensync(error)))
 		goto error_free_interp;
 	
 	if (!(data->module = pm_load_script(name, error)))
 		goto error_free_interp;
 	
-	PyObject *pymember = pm_make_member(data->module, member, error);
+	PyObject *pymember = pm_make_member(data->osync_module, member, error);
 	if (!pymember)
 		goto error_unload_module;
 	
@@ -213,7 +214,7 @@ static osync_bool pm_call_module_method(OSyncContext *ctx, OSyncChange *chg, cha
 	MemberData *data = osync_context_get_plugin_data(ctx);
 	PyEval_AcquireThread(data->interp_thread);
 
-	pycontext = pm_make_context(data->module, ctx, error);
+	pycontext = pm_make_context(data->osync_module, ctx, error);
 	if (!pycontext) {
 		PyEval_ReleaseThread(data->interp_thread);
 		osync_context_report_osyncerror(ctx, error);
@@ -222,7 +223,7 @@ static osync_bool pm_call_module_method(OSyncContext *ctx, OSyncChange *chg, cha
 	}
 
 	if (chg) {
-		PyObject *pychange = pm_make_change(data->module, chg, error);
+		PyObject *pychange = pm_make_change(data->osync_module, chg, error);
 		if (!pychange) {
 			PyEval_ReleaseThread(data->interp_thread);
 			osync_context_report_osyncerror(ctx, error);
@@ -311,7 +312,8 @@ static void pm_disconnect(OSyncContext *ctx)
  *       plugin information on another place (including
  *       accepted objtypes/formats info)
  */
-static osync_bool register_plugin(OSyncEnv *env, const char *filename, OSyncError **error)
+static osync_bool register_plugin(OSyncEnv *env, PyObject *osync_module,
+                                  const char *filename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, filename, error);
 
@@ -340,7 +342,7 @@ static osync_bool register_plugin(OSyncEnv *env, const char *filename, OSyncErro
 		return FALSE;
 	}
 	
-	PyObject *pyinfo = PyObject_CallMethod(module, "OSyncPluginInfo", "O", pyinfo_cobject);
+	PyObject *pyinfo = PyObject_CallMethod(osync_module, "OSyncPluginInfo", "O", pyinfo_cobject);
 	if (!pyinfo) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot create Python OSyncPluginInfo");
 		PyErr_Print();
@@ -368,7 +370,7 @@ static osync_bool register_plugin(OSyncEnv *env, const char *filename, OSyncErro
 	return TRUE;
 }
 
-static osync_bool scan_for_plugins(OSyncEnv *env)
+static osync_bool scan_for_plugins(OSyncEnv *env, PyObject *osync_module)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 
@@ -384,7 +386,7 @@ static osync_bool scan_for_plugins(OSyncEnv *env)
 	while ((de = g_dir_read_name(dir))) {
 		char *filename = g_build_filename(path, de, NULL);
 		OSyncError *error = NULL;
-		if (!register_plugin(env, filename, &error))
+		if (!register_plugin(env, osync_module, filename, &error))
 			osync_debug("python", 1, "Couldn't register plugin \"%s\": %s", filename, osync_error_print(&error));
 
 		g_free(filename);
@@ -407,8 +409,9 @@ void get_info(OSyncEnv *env)
 	PyEval_InitThreads();
 
 	OSyncError *error = NULL;
-	if (!pm_load_opensync(&error))
+	PyObject *osync_module = pm_load_opensync(&error); 
+	if (!osync_module)
 		return;
 
-	scan_for_plugins(env);
+	scan_for_plugins(env, osync_module);
 }
