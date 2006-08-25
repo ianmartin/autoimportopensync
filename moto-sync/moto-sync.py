@@ -1,12 +1,18 @@
-# opensync plugin for syncing to Motorola mobile phone
-# only tested (and barely at that) with a Motorola L7
-# Andrew Baumann <andrewb@cse.unsw.edu.au>, 2006/03
+"""
+ opensync plugin for syncing to Motorola mobile phone
+ HIGHLY EXPERIMENTAL, USE AT YOUR OWN RISK!
+"""
 
-import sys, os, md5, time, calendar
+# Copyright (C) 2006  Andrew Baumann <andrewb@cse.unsw.edu.au>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of version 2 of the GNU General Public License
+#  as published by the Free Software Foundation.
+
+import sys, os, traceback, md5, time, calendar, xml.sax
 from datetime import date, datetime, timedelta
 import icalendar # from http://codespeak.net/icalendar/
 import opensync
-from opensync import * # FIXME: import * needed for opensync-python bindings
 
 # FIXME: error/exception handling in this module needs to be much better
 # most possible exceptions are currently unhandled
@@ -17,54 +23,68 @@ PHONE_DATE = '%m-%d-%Y'
 VCAL_DATETIME = '%Y%m%dT%H%M%S'
 VCAL_DATE = '%Y%m%d'
 
-# device to use to access phone (FIXME: should use OpenSync config data)
-PHONE_DEVICE = "/dev/rfcomm0"
+# if enabled, this prints all interaction with the phone to stdout
+DEBUG_OUTPUT = True
+
+class OpenSyncError(Exception):
+	def __init__(self, msg, errnum=opensync.ERROR_GENERIC):
+		self.msg = msg
+		self.num = errnum
+	def __str__(self):
+		return self.msg
+	def report(self, context):
+		context.report_error(self.num, self.msg)
 
 # functions for directly accessing the phone
 class PhoneComms:
 	def __init__(self, device):
-		self.calendar_open = False
-		self.fd = os.open(device, os.O_RDWR)
+		self.__calendar_open = False
+		self.__fd = os.open(device, os.O_RDWR)
 
 		# reset the phone and send it a bunch of init strings
-		self.do_cmd('AT&F')     # factory defaults
-		self.do_cmd('ATE0Q0V1') # echo off, result codes off, verbose results
+		self.__do_cmd('AT&F')      # reset to factory defaults
+		self.__do_cmd('AT+MODE=0') # ?
+		self.__do_cmd('ATE0Q0V1')  # echo off, result codes off, verbose results
 
 		# use ISO 8859-1 encoding for data values (FIXME: change to UCS2)
-		self.do_cmd('AT+CSCS="8859-1"')
+		self.__do_cmd('AT+CSCS="8859-1"')
 
 	def __del__(self):
-		os.close(self.fd)
+		try:
+			os.close(self.__fd)
+		except: # we might not have successfully opened this
+			pass
 
 	# read the phone's serial number (IMEI)
 	def read_serial(self):
-		data = self.do_cmd('AT+CGSN')
-		return self.parse_results('CGSN', data)[0][0]
+		data = self.__do_cmd('AT+CGSN')
+		return self.__parse_results('CGSN', data)[0][0]
 
 	# read the phone's current date & time
 	def read_time(self):
-		data = self.do_cmd('AT+CCLK?')
-		return self.parse_results('CCLK', data)[0][0]
+		data = self.__do_cmd('AT+CCLK?')
+		return self.__parse_results('CCLK', data)[0][0]
 
 	# open the calendar
 	# this "locks" out the phone's own UI from accessing the data
 	def open_calendar(self):
-		assert(not self.calendar_open)
-		self.do_cmd('AT+MDBL=1')
-		self.calendar_open = True
+		assert(not self.__calendar_open)
+		self.__do_cmd('AT+MDBL=1')
+		self.__calendar_open = True
 
 	def close_calendar(self):
-		assert(self.calendar_open)
-		self.do_cmd('AT+MDBL=0')
+		assert(self.__calendar_open)
+		self.__do_cmd('AT+MDBL=0')
+		self.__calendar_open = False
 
 	# read the list of all events on the phone
 	def read_events(self):
-		assert(self.calendar_open)
+		assert(self.__calendar_open)
 		ret = []
 
 		# read calendar/event parameters
-		data = self.do_cmd('AT+MDBR=?') # read event parameters
-		(maxevs, numevs, titlelen, exmax, extypemax) = self.parse_results('MDBR', data)[0]
+		data = self.__do_cmd('AT+MDBR=?') # read event parameters
+		(maxevs, numevs, titlelen, exmax, extypemax) = self.__parse_results('MDBR', data)[0]
 		maxevents = int(maxevs)
 		numevents = int(numevs)
 
@@ -73,20 +93,21 @@ class PhoneComms:
 		pos = 0
 		while pos < maxevents and len(ret) < numevents:
 			end = min(pos + 14, maxevents - 1)
-			data = self.do_cmd('AT+MDBR=%d,%d' % (pos, end))
+			data = self.__do_cmd('AT+MDBR=%d,%d' % (pos, end))
 
 			# first parse all the exceptions for each event
 			exceptions = {}
-			for (expos, exnum, extype) in self.parse_results('MDBRE', data):
+			for (expos, exnum, extype) in self.__parse_results('MDBRE', data):
 				expos = int(expos)
 				exnum = int(exnum)
 				extype = int(extype)
-				assert(extype == 1) # haven't seen anything else
+				if extype != 1: # haven't seen anything else
+					raise OpenSyncError('unexpected exception type %d' % extype)
 				if not exceptions.has_key(expos):
 					exceptions[expos] = []
 				exceptions[expos].append(exnum)
 			# ...then add them into the event data
-			for evdata in self.parse_results('MDBR', data):
+			for evdata in self.__parse_results('MDBR', data):
 				evdata.append(exceptions.get(pos, []))
 				ret.append(evdata)
 			pos += 15
@@ -95,50 +116,53 @@ class PhoneComms:
 	# write a single event to the phone
 	# uses specified pos given in event (overwriting anything on the phone)
 	def write_event(self, evdata):
-		assert(self.calendar_open)
+		assert(self.__calendar_open)
 		pos = evdata[0]
 		self.delete_event(pos)
 		exceptions = evdata[-1]
 		data = evdata[:-1]
-		self.do_cmd('AT+MDBW=%d,"%s",%d,%d,"%s","%s",%d,"%s","%s",%d' % data)
+		self.__do_cmd('AT+MDBW=%d,"%s",%d,%d,"%s","%s",%d,"%s","%s",%d' % data)
 		for expos in exceptions:
-			self.do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos))
+			self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos))
 
 	# delete the event at a specific position
 	def delete_event(self, pos):
-		assert(self.calendar_open)
-		self.do_cmd('AT+MDBWE=%d,0,0' % pos)
+		assert(self.__calendar_open)
+		self.__do_cmd('AT+MDBWE=%d,0,0' % pos)
 
-	# private function, read the next line of text from the phone
-	def readline(self):
+	# read the next line of text from the phone
+	def __readline(self):
 		ret = ''
-		c = os.read(self.fd, 1)
+		c = os.read(self.__fd, 1)
 		while c == '\r' or c == '\n':
-			c = os.read(self.fd, 1)
+			c = os.read(self.__fd, 1)
 		while c != '\r' and c != '\n' and c != '':
 			ret += c
-			c = os.read(self.fd, 1)
-		print ('<-- %s' % ret)
-		assert(c != '') # EOF, shouldn't happen
+			c = os.read(self.__fd, 1)
+		if DEBUG_OUTPUT:
+			print ('<-- %s' % ret)
+		if c == '': # EOF, shouldn't happen
+			raise OpenSyncError('Unexpected EOF talking to phone', opensync.ERROR_IO_ERROR)
 		return ret
 
-	# private function, send a command to the phone and wait for its response
+	# send a command to the phone and wait for its response
 	# if it succeeds, return lines as a list; otherwise raise an exception
-	def do_cmd(self, cmd):
-		print ('--> %s' % cmd)
-		os.write(self.fd, cmd + "\r\n")
+	def __do_cmd(self, cmd):
+		if DEBUG_OUTPUT:
+			print ('--> %s' % cmd)
+		os.write(self.__fd, cmd + "\r")
 		ret = []
-		line = self.readline()
+		line = self.__readline()
 		while line != 'OK' and line != 'ERROR':
 			ret.append(line)
-			line = self.readline()
+			line = self.__readline()
 		if line == 'OK':
 			return ret
 		else:
-			raise RuntimeError("Error in phone command")
+			raise OpenSyncError("Error in phone command '%s'" % cmd, opensync.ERROR_IO_ERROR)
 
-	# private function, extract results from a list of reply lines
-	def parse_results(self, restype, lines):
+	# extract results from a list of reply lines
+	def __parse_results(self, restype, lines):
 		ret = []
 		prefix = '+' + restype + ': '
 		for line in lines:
@@ -179,7 +203,7 @@ class PhoneEvent:
 		elif format == "vevent20":
 			self.from_ical(data)
 		else:
-			raise RuntimeError("unhandled data format %s" % format)
+			raise OpenSyncError("unhandled data format %s" % format, opensync.ERROR_NOT_SUPPORTED)
 
 	# grab stuff out of the list of values from the phone
 	def from_moto(self, data):
@@ -197,17 +221,17 @@ class PhoneEvent:
 		self.exceptions = data[10]
 
 		if timeflag:
-			self.eventdt = self.parse_time(date, time)
+			self.eventdt = self.__parse_time(date, time)
 		else:
-			self.eventdt = self.parse_time(date)
+			self.eventdt = self.__parse_time(date)
 
 		if alarmflag:
-			self.alarmdt = self.parse_time(alarmdate, alarmtime)
+			self.alarmdt = self.__parse_time(alarmdate, alarmtime)
 		else:
 			self.alarmdt = None
 
 	# parse ical event
-	# FIXME: handle exceptions if parameters don't exist
+	# FIXME: handle exceptions if parameters don't exist or we can't parse the data
 	def from_ical(self, data):
 		cal = icalendar.Calendar.from_string(data)
 		event = cal.walk('vevent')[0]
@@ -269,16 +293,16 @@ class PhoneEvent:
 	def to_moto(self):
 		if isinstance(self.eventdt, datetime):
 			timeflag = 1
-			datestr = self.format_time(self.eventdt, PHONE_DATE)
-			timestr = self.format_time(self.eventdt, PHONE_TIME)
+			datestr = self.__format_time(self.eventdt, PHONE_DATE)
+			timestr = self.__format_time(self.eventdt, PHONE_TIME)
 		else:
 			timeflag = 0
 			datestr = self.eventdt.strftime(PHONE_DATE)
 			timestr = '00:00'
 		if self.alarmdt:
 			alarmflag = 1
-			alarmdatestr = self.format_time(self.alarmdt, PHONE_DATE)
-			alarmtimestr = self.format_time(self.alarmdt, PHONE_TIME)
+			alarmdatestr = self.__format_time(self.alarmdt, PHONE_DATE)
+			alarmtimestr = self.__format_time(self.alarmdt, PHONE_TIME)
 		else:
 			alarmflag = 0
 			alarmdatestr = '00-00-2000'
@@ -339,8 +363,8 @@ class PhoneEvent:
 		cal.add_component(event)
 		return cal.as_string()
 
-	# private, convert phone's date and time string into a datetime object
-	def parse_time(self, datestr, timestr=None):
+	# convert phone's date and time string into a datetime object
+	def __parse_time(self, datestr, timestr=None):
 		if timestr:
 			t = time.strptime(datestr+' '+timestr, PHONE_DATE+' '+PHONE_TIME)
 			# assume that phone time is in our local timezone, convert to UTC
@@ -349,8 +373,8 @@ class PhoneEvent:
 			t = time.strptime(datestr, PHONE_DATE)
 			return date.fromtimestamp(time.mktime(t))
 
-	# private, convert datetime object into local time and format as a string
-	def format_time(self, dt, format):
+	# convert datetime object into local time and format as a string
+	def __format_time(self, dt, format):
 		if dt.utcoffset() == timedelta(0):
 			# FIXME: assumes local timezone
 			t = time.localtime(calendar.timegm(dt.utctimetuple()))
@@ -384,7 +408,7 @@ class PhoneAccess:
 			event = PhoneEvent(evdata, "moto-event")
 			change = opensync.OSyncChange()
 			change.objtype = "event"
-			change.uid = self.generate_uid(event)
+			change.uid = self.__generate_uid(event)
 			change.hash = event.gen_hash()
 			change.format = "vevent20"
 			change.data = event.to_ical()
@@ -394,7 +418,7 @@ class PhoneAccess:
 
 	# delete an event with the given UID
 	def delete_event(self, uid):
-		pos = self.uid_to_pos(uid)
+		pos = self.__uid_to_pos(uid)
 		self.comms.delete_event(pos)
 		self.positions_used.remove(pos)
 
@@ -402,53 +426,74 @@ class PhoneAccess:
 	def update_event(self, change):
 		event = PhoneEvent(change.data, change.format)
 		if change.changetype == opensync.CHANGE_ADDED:
-			event.pos = self.get_free_position()
-			change.uid = self.generate_uid(event)
+			event.pos = self.__get_free_position()
+			change.uid = self.__generate_uid(event)
 		else:
-			event.pos = self.uid_to_pos(change.uid)
+			event.pos = self.__uid_to_pos(change.uid)
 		change.hash = event.gen_hash()
 		self.comms.write_event(event.to_moto())
 	
-	# private function, generate a "hopefully unique" UID for an event
+	# generate a "hopefully unique" UID for an event
 	# uses the last 8 digit's of the phone's IMEI to do so
-	def generate_uid(self, event):
+	def __generate_uid(self, event):
 		return "%d@%s.moto" % (event.pos, self.sn[-8:])
 
-	# private function, reverse the generate_uid function above
-	def uid_to_pos(self, uid):
+	# reverse the generate_uid function above
+	def __uid_to_pos(self, uid):
 		split = uid.split('@',1)
 		# check that given uid is one of our own
 		assert(len(split) == 2)
 		assert(split[1] == "%s.moto" % self.sn[-8:])
 		return int(split[0])
 
-	# private function, allocate the next free position for a new event
+	# allocate the next free position for a new event
 	# FIXME: check for maximum number of events in the phone
-	def get_free_position(self):
+	def __get_free_position(self):
 		i = 0
 		while i < len(self.positions_used) and self.positions_used[i] == i:
 			i += 1
 		self.positions_used.insert(i, i)
 		return i
 
+# decorator used to wrap every method in SyncClass with the same exception handlers
+def stdexceptions(func):
+	def new_func(*args, **kwds):
+		context = args[1] # context is always the first argument after 'self'
+		try:
+			func(*args, **kwds)
+			context.report_success()
+		except OpenSyncError, e:
+			e.report(context)
+		except (IOError, OSError), e:
+			context.report_error(opensync.ERROR_IO_ERROR, str(e))
+		except:
+			context.report_error(opensync.ERROR_GENERIC, traceback.format_exc())
+	new_func.func_name = func.func_name
+	return new_func
+
 # synchronisation class used by OpenSync
 class SyncClass:
 	def __init__(self, member):
 		self.member = member
-		self.hashtable = opensync.OSyncHashTable()
 
+	@stdexceptions
 	def connect(self, ctx):
-		rc = self.hashtable.load(self.member)
-		assert(rc)
 		try:
-			self.comms = PhoneComms(PHONE_DEVICE) # FIXME: use config data
-			self.access = PhoneAccess(self.comms)
-			self.comms.open_calendar()
-		except IOError, e:
-			ctx.report_error(opensync.ERROR_IO_ERROR, str(e))
-			return
-		ctx.report_success()
+			self.config = self.__parse_config(self.member.config)
+		except: # FIXME: more specific catch?
+			raise OpenSyncError('failed to parse config data', opensync.ERROR_MISCONFIGURATION)
+		if not self.config.has_key('device'):
+			raise OpenSyncError('device not specified in config file', opensync.ERROR_MISCONFIGURATION)
 
+		self.hashtable = opensync.OSyncHashTable()
+		if not self.hashtable.load(self.member):
+			raise OpenSyncError('hashtable load failed', opensync.ERROR_INITIALIZATION)
+
+		self.comms = PhoneComms(self.config['device'])
+		self.access = PhoneAccess(self.comms)
+		self.comms.open_calendar()
+
+	@stdexceptions
 	def get_changeinfo(self, ctx):
 		if self.member.get_slow_sync("event"):
 			self.hashtable.set_slow_sync("event")
@@ -458,30 +503,49 @@ class SyncClass:
 				change.report(ctx)
 				self.hashtable.update_hash(change)
 		self.hashtable.report_deleted(ctx, "event")
-		ctx.report_success()
 
+	@stdexceptions
 	def commit_change(self, ctx, change):
-		assert(change.objtype == "event")
+		if change.objtype != "event":
+			raise OpenSyncError('unsupported objtype %s' % change.objtype,
+			                    opensync.ERROR_NOT_SUPPORTED)
 		if change.changetype == opensync.CHANGE_DELETED:
 			self.access.delete_event(change.uid)
 		else:
 			self.access.update_event(change)
 		self.hashtable.update_hash(change)
-		ctx.report_success()
 
+	@stdexceptions
+	def sync_done(self, ctx):
+		self.hashtable.forget()
+
+	@stdexceptions
 	def disconnect(self, ctx):
+		self.comms.close_calendar()
 		del self.access
 		del self.comms
 		self.hashtable.close()
-		ctx.report_success()
-
-	def sync_done(self, ctx):
-		self.comms.close_calendar()
-		self.hashtable.forget()
-		ctx.report_success()
+		del self.hashtable
 
 	def finalize(self):
-		del self.hashtable
+		del self.member
+
+	def __parse_config(self, configstr):
+		class Handler(xml.sax.handler.ContentHandler):
+			def __init__(self):
+				self.currentelt = None
+				self.elems = {}
+			def startElement(self, name, attrs):
+				self.currentelt = name
+				self.elems[name] = ''
+			def endElement(self, name):
+				self.currentelt = None
+			def characters(self, ch):
+				if self.currentelt:
+					self.elems[self.currentelt] = self.elems[self.currentelt] + ch
+		handler = Handler()
+		xml.sax.parseString(configstr, handler)
+		return handler.elems
 
 def initialize(member):
 	return SyncClass(member)
@@ -496,8 +560,8 @@ def get_info(info):
 	#info.accept_objformat("contact", "vcard30")
 
 # debug code (not used when plugin is loaded by opensync)
-if __name__ == "__main__" and hasattr(sys,"argv"):
-	pc = PhoneComms(PHONE_DEVICE)
+if __name__ == "__main__" and hasattr(sys, "argv"):
+	pc = PhoneComms('/dev/rfcomm0')
 	pa = PhoneAccess(pc)
 	pc.open_calendar()
 	if len(sys.argv) > 1 and sys.argv[1] == '--delete':

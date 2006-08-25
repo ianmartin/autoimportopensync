@@ -1,0 +1,72 @@
+INTRODUCTION
+
+This is a VERY EXPERIMENTAL plugin for syncing with Motorola phones 
+using the AT command set. It currently only supports syncing calendar 
+entries. It has only really beed tested with the L7 model. See KNOWN 
+PROBLEMS below.
+
+
+REQUIREMENTS
+
+ * OpenSync from svn with the python bindings and python-module plugin
+ * The icalendar python library (at least version 0.11),
+   from http://codespeak.net/icalendar/
+ * Python 2.4
+
+
+INSTALLATION
+
+Just copy/move/link moto-sync.py to $PREFIX/lib/opensync/python-plugins
+
+
+CONFIGURATION
+
+For now, the only configuration option to moto-sync is the device it 
+should use to talk to the phone. This is specified in a small XML 
+file that should contain only:
+	<config><device>/dev/whatever</device></config>
+
+Devices you're likely to use are:
+ * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
+   that channel to bind with your phone, by doing something like:
+	rfcomm bind rfcomm0 00:11:22:33:44:55 1
+ * /dev/ttyUSB0 for a USB connection (or whatever other device the phone 
+   shows up on, see dmesg).
+
+The only way I have tested or used the plugin so far is in a sync group 
+with file-sync:
+	msynctool --addgroup phone
+	msynctool --addmember phone moto-sync
+	msynctool --addmember phone file-sync
+	msynctool --configure phone 1 # configure moto-sync, as above
+	msynctool --configure phone 2 # configure file-sync, set the path
+	msynctool --sync phone # cross your fingers!
+
+
+KNOWN PROBLEMS
+
+Unfortunately the functionality offered by the phone is very limited, it
+basically comes down to:
+ * events are stored in memory "positions"
+ * each event has a name, date/time, duration, alarm date/time, repeat type, 
+   and list of exceptions
+ * there are commands to list the events on the phone or write a new event in 
+   a certain slot
+
+Obviously there's no way to express or store the full vcal event data in 
+the phone. The way opensync works at the moment, this means that if an 
+event is synced to the phone, then modified in some way on the phone 
+(eg. the duration is changed), all the data in the other members is 
+replaced by the small amount of data that we can return from the phone.
+
+What we really need is a way to "diff" the changes to the event, so we 
+can detect that the duration field has been changed, and apply that 
+"patch" to the full data in the other members of the sync. There are 
+also other problems maintaining consistent UIDs for events.
+
+
+TODO
+
+ * Implement support for syncing the contacts
+ * Better error/exception handling (see all the FIXMEs in the code)
+ * Test with other phones
