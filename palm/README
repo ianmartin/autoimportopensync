@@ -17,6 +17,7 @@ Bugs/Known Problems
 * changetype of new entries are modified instead of added(?)
 * newer palm can select sepecific timezone for specific entry - unsupported by pilot-link
 * extended timezone information get lost
+* the address type information can not be sycned - unsupported by pilot-link
 
 TODO
 ^^^^

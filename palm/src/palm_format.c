@@ -1574,6 +1574,10 @@ static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inp
 				osxml_node_add(current, "Country", tmp_country);
 				g_free(tmp_country);
 			}
+
+			//Type
+			//FIXME - find a way to get type of address
+			osxml_node_add(current, "Type", "HOME");
 		}
 	}
 	
@@ -1675,23 +1679,31 @@ static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inp
 		cur = nodes->nodeTab[i];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
 
-		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "WORK"), osxml_has_property(cur, "HOME"), osxml_has_property(cur, "VOICE"));
+		// TODO - handle more then only one "Type" node.
+		tmp = (char*)osxml_find_node(cur, "Type");
 
-		if (osxml_has_property(cur, "WORK")) {
+		if (!tmp)
+			continue;
+
+		if (!strcasecmp(tmp, "WORK")) {
 			entry->address.phoneLabel[i] = 0;
-		} else if (osxml_has_property(cur, "HOME")) {
+		} else if (!strcasecmp(tmp, "HOME")) {
 			entry->address.phoneLabel[i] = 1;
-		} else if (osxml_has_property(cur, "FAX")) {
+		} else if (!strcasecmp(tmp, "FAX")) {
 			entry->address.phoneLabel[i] = 2;
-		} else if (!(osxml_has_property(cur, "WORK")) && !(osxml_has_property(cur, "HOME")) && osxml_has_property(cur, "VOICE")) {
-			entry->address.phoneLabel[i] = 3;
-		} else if (osxml_has_property(cur, "PREF")) {
+		// id 4 is E-Mail	
+		} else if (!strcasecmp(tmp, "PREF")) {
 			entry->address.phoneLabel[i] = 5;
-		} else if (osxml_has_property(cur, "PAGER")) {
+		} else if (!strcasecmp(tmp, "PAGER")) {
 			entry->address.phoneLabel[i] = 6;
-		} else if (osxml_has_property(cur, "CELL")) {
+		} else if (!strcasecmp(tmp, "CELL")) {
 			entry->address.phoneLabel[i] = 7;
-		} else osync_trace(TRACE_INTERNAL, "Unknown TEL entry");
+		} else {
+			// Others
+			entry->address.phoneLabel[i] = 3;
+		}
+
+		g_free(tmp);
 	}
 	xmlXPathFreeObject(xobj);
 	
@@ -1902,8 +1914,10 @@ osync_bool demarshall_palm_contact(const char *input, int inpsize, char **output
 
 	newcontact->codepage = NULL;
 
+	/*
         for (i=0; i < inpsize; i++)
                 osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
+	*/	
 
         /* contact->codepage */
         if ((tmp_size = strlen(pos)) > 0) {
