@@ -16,7 +16,7 @@ opensyncheader_HEADERS = opensync-xml.h opensync-xml-contact.h
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@
 
-formats_LTLIBRARIES = xml-vcard.la xml-vcal.la xml-evolution.la xml-vnote.la xml-kde.la
+formats_LTLIBRARIES = xml-vcard.la xml-vcal.la xml-evolution.la xml-vnote.la xml-kde.la xmldoc.la
 
 lib_LTLIBRARIES =  libopensync-xml.la
 
@@ -39,6 +39,10 @@ xml_evolution_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 xml_kde_la_SOURCES = xml-kde.c vformat.c
 xml_kde_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_kde_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
+
+xmldoc_la_SOURCES = xmldoc.c
+xmldoc_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
+xmldoc_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
 libopensync_xml_la_SOURCES = xml-support.c
 libopensync_xml_la_LDFLAGS = @GCOV_LDFLAGS@
