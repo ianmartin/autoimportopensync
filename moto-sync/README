@@ -23,8 +23,7 @@ CONFIGURATION
 
 For now, the only configuration option to moto-sync is the device it 
 should use to talk to the phone. This is specified in a small XML 
-file that should contain only:
-	<config><device>/dev/whatever</device></config>
+file, an example of which is included as moto-sync.conf.
 
 Devices you're likely to use are:
  * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
