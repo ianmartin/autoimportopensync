@@ -9,7 +9,7 @@
 #  it under the terms of version 2 of the GNU General Public License
 #  as published by the Free Software Foundation.
 
-__revision__ = "$Id: $"
+__revision__ = "$Id$"
 
 import sys, os, types, traceback, md5, time, calendar
 import xml.dom.minidom
