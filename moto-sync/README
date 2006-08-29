@@ -1,14 +1,30 @@
 INTRODUCTION
 
 This is a VERY EXPERIMENTAL plugin for syncing with Motorola phones 
-using the AT command set. It currently only supports syncing calendar 
-entries. It has only really beed tested with the L7 model. See KNOWN 
-PROBLEMS below.
+using the AT command set. It supports syncing phonebook and calendar 
+entries. It will most likely mess up the data on your phone and any 
+other members of the sync group. To make it write any changes to the 
+phone, you'll need to change WRITE_ENABLED from False to True (near the 
+top of the file).
+
+Also see KNOWN PROBLEMS below.
+
+
+SUPPORTED HARDWARE
+
+This plugin has been developed on a Motorola L7 ("SLVR")
+
+It has also been (lightly) tested on the following models:
+ * RAZR V3x (read only)
+ * V635 (read only)
+
+If your phone isn't listed above, please let me know if it works for
+you, by emailing andrewb AT cse DOT unsw DOT edu DOT au.
 
 
 REQUIREMENTS
 
- * OpenSync from svn with the python bindings and python-module plugin
+ * OpenSync from svn HEAD with the python bindings and python-module plugin
  * The icalendar python library (at least version 0.11),
    from http://codespeak.net/icalendar/
  * Python 2.4
@@ -16,7 +32,7 @@ REQUIREMENTS
 
 INSTALLATION
 
-Just copy/move/link moto-sync.py to $PREFIX/lib/opensync/python-plugins
+Copy moto-sync.py to $PREFIX/lib/opensync/python-plugins
 
 
 CONFIGURATION
@@ -29,8 +45,8 @@ Devices you're likely to use are:
  * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
    that channel to bind with your phone, by doing something like:
 	rfcomm bind rfcomm0 00:11:22:33:44:55 1
- * /dev/ttyUSB0 for a USB connection (or whatever other device the phone 
-   shows up on, see dmesg).
+ * /dev/ttyACM0 for a USB modem connection (or whatever other device the
+   phone shows up on, see dmesg).
 
 The only way I have tested or used the plugin so far is in a sync group 
 with file-sync:
@@ -44,8 +60,15 @@ with file-sync:
 
 KNOWN PROBLEMS
 
+A common problem happens early on when talking to a phone for the first 
+time, some init strings get echoed multiple times and fail with an ERROR 
+message. I'm not sure what causes this, but a workaround seems to be to 
+open the phone device in minicom (use the -o flag to stop it sending 
+init strings) and then immediately exit it again. I have no idea how 
+this fixes the problem, but it does.
+
 Unfortunately the functionality offered by the phone is very limited, it
-basically comes down to:
+basically comes down to (for the calendar, the phonebook is similar):
  * events are stored in memory "positions"
  * each event has a name, date/time, duration, alarm date/time, repeat type, 
    and list of exceptions
@@ -66,6 +89,8 @@ also other problems maintaining consistent UIDs for events.
 
 TODO
 
- * Implement support for syncing the contacts
  * Better error/exception handling (see all the FIXMEs in the code)
- * Test with other phones
+ * (Sanely) handle RRULEs on incoming events
+ * Handle exceptions on incoming/outgoing events
+ * Do something with "mailing list" entries in the phonebook
+ * Test with other hardware
