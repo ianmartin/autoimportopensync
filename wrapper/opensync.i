@@ -1,5 +1,6 @@
 %module opensync
 %include "cdata.i"
+%include "cstring.i"
 %include "typemaps.i"
 
 %{
@@ -88,6 +89,7 @@ typedef struct {} OSyncHashTable;
 		osync_trace(TRACE_INTERNAL, "Deleting change %p", self);
 	}
 	
+	%cstring_input_binary(char *data, int datasize);
 	void __set_data(char *data, int datasize) {
 		osync_change_set_data(self, data, datasize, TRUE);
 	}
@@ -102,7 +104,9 @@ typedef struct {} OSyncHashTable;
 	
 	%pythoncode %{
 	def get_data(self):
-		if not hasattr(self, "__data"):
+		try:
+			return self.__data
+		except AttributeError:
 			self.__data = cdata(self.__get_data(), self.__get_datasize())
 			# FIXME: despite passing the size around, sometimes the data
 			# seems also to be null-terminated; remove this.
@@ -112,7 +116,7 @@ typedef struct {} OSyncHashTable;
 
 	def set_data(self, data):
 		self.__data = data
-		self.__set_data(data, len(data))
+		self.__set_data(data)
 
 	data = property(get_data,set_data)
 	%}
@@ -123,9 +127,9 @@ typedef struct {} OSyncHashTable;
 		 * this memory should be freed by opensync after the change is written
 		 */
 		if (osync_change_has_data(self)) {
-			char *data = osync_change_get_data(self);
+			void *data = osync_change_get_data(self);
 			int datasize = osync_change_get_datasize(self);
-			char *copy = memcpy(malloc(datasize), data, datasize);
+			void *copy = memcpy(malloc(datasize), data, datasize);
 			osync_change_set_data(self, copy, datasize, TRUE);
 		}
 		osync_context_report_change(ctx, self);
