@@ -192,38 +192,72 @@ static void _skip_until (char **p, char *s)
 	*p = lp;
 }
 
-static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, iconv_t cd)
+static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GString *charset)
 {
-	if (cd != (iconv_t)(-1)) {
-		char *inbuf, *outbuf, *p;
-		size_t inbytesleft, outbytesleft;
+	char *inbuf, *outbuf, *p;
+	size_t inbytesleft, outbytesleft;
 
-		inbuf = str->str;
-		p = outbuf = malloc(str->len*2);
-		inbytesleft = str->len;
-		outbytesleft = str->len*2;
-		if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
-			*p = 0;
-			vformat_attribute_add_value(attr, outbuf);
-		} else {
-			/* hmm, should not happen */
-			vformat_attribute_add_value(attr, str->str);
+	inbuf = str->str;
+	p = outbuf = malloc(str->len*2);
+	inbytesleft = str->len;
+	outbytesleft = str->len*2;
+
+	iconv_t cd;
+
+	/* if a CHARSET was given, let's try to convert inbuf to UTF-8 */
+	if (charset) {
+
+		cd = iconv_open("UTF-8", charset->str);
+                if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+
+                        *p = 0;
+                        vformat_attribute_add_value(attr, outbuf);
+
+                } else {
+
+                        /* hmm, should not happen */
+                        vformat_attribute_add_value(attr, str->str);
+
+                }
+	
+		iconv_close(cd);
+
+	} else {
+
+		/* no CHARSET was given, if inbuf is already UTF-8 we add str->str */
+		if (g_utf8_validate (inbuf, -1, NULL)) {
+
+			vformat_attribute_add_value (attr, str->str);	
+
+                } else {
+
+			/* because inbuf is not UTF-8, we think it is ISO-8859-1 */
+                        cd = iconv_open("UTF-8", "ISO-8859-1");
+                        if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+
+                                *p = 0;
+                                vformat_attribute_add_value (attr, outbuf);
+
+                        } else {
+
+                                vformat_attribute_add_value (attr, str->str);
+
+                        }
+		
+			iconv_close(cd);
+
 		}
 
-		free(outbuf);
-	} else {
-		/* character set not converted. leave it untouched... */
-		vformat_attribute_add_value (attr, str->str);
 	}
+
+	free(outbuf);
+
 }
 
 static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable, GString *charset)
 {
 	char *lp = *p;
 	GString *str;
-	iconv_t cd;
-
-	if (charset) cd = iconv_open("UTF-8", charset->str); else cd = (iconv_t)-1;
 
 	/* read in the value */
 	str = g_string_new ("");
@@ -316,7 +350,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 					if (!strcmp (attr->name, "CATEGORIES")) {
 						//We need to handle categories here to work
 						//aroung a bug in evo2
-						_read_attribute_value_add (attr, str, cd);
+						_read_attribute_value_add (attr, str, charset);
 						g_string_assign (str, "");
 					} else
 						str = g_string_append_c (str, ',');
@@ -335,7 +369,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 		}
 		else if ((*lp == ';') ||
 			 (*lp == ',' && !strcmp (attr->name, "CATEGORIES"))) {
-			_read_attribute_value_add (attr, str, cd);
+			_read_attribute_value_add (attr, str, charset);
 			g_string_assign (str, "");
 			lp = g_utf8_next_char(lp);
 		}
@@ -345,10 +379,9 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 		}
 	}
 	if (str) {
-		_read_attribute_value_add (attr, str, cd);
+		_read_attribute_value_add (attr, str, charset);
 		g_string_free (str, TRUE);
 	}
-	if (cd != (iconv_t) - 1) iconv_close(cd);
 
 	if (*lp == '\r') {
 		lp = g_utf8_next_char (lp); /* \n */
