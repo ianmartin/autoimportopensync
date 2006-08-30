@@ -17,6 +17,11 @@ from datetime import date, datetime, timedelta, tzinfo
 import icalendar # from http://codespeak.net/icalendar/
 import opensync
 
+try:
+    import tty # this module is only present on Unix
+except ImportError:
+    pass
+
 # FIXME: error/exception handling in this module needs to be much better
 
 # debug options:
@@ -34,6 +39,9 @@ PHONE_TIME = '%H:%M'
 PHONE_DATE = '%m-%d-%Y' # yuck!
 VCAL_DATETIME = '%Y%m%dT%H%M%S'
 VCAL_DATE = '%Y%m%d'
+
+# days of the week in vcal parlance
+VCAL_DAYS = ['MO','TU','WE','TH','FR','SA','SU']
 
 # repeat types in the calendar
 MOTO_REPEAT_NONE = 0
@@ -112,6 +120,8 @@ MOTO_INVALID = 255
 XML_NAME_PARTS = 'Prefix FirstName Additional LastName Suffix'.split()
 XML_ADDRESS_PARTS = 'Street ExtendedAddress City Region PostalCode Country'.split()
 
+# legal characters in telephone numbers
+TEL_NUM_DIGITS = set('+0123456789')
 
 # UTC tzinfo class, stolen from python-icalendar
 class UTC(tzinfo):
@@ -176,6 +186,11 @@ class PhoneComms:
     def __init__(self, device):
         self.__calendar_open = False
         self.__fd = os.open(device, os.O_RDWR)
+
+        try:
+            tty.setraw(self.__fd)
+        except NameError:
+            print 'Warning: tty module not present, unable to set raw mode'
 
         # reset the phone and send it a bunch of init strings
         self.__do_cmd('AT&F')      # reset to factory defaults
@@ -297,18 +312,27 @@ class PhoneComms:
 
         return ret
 
-    def read_contacts(self):
-        """read a list of all contacts in the phonebook"""
-        self.close_calendar()
+    def read_contact_params(self):
+        """Read phonebook parameters.
+        
+        Returns: (minimum position, maximum pos, length of contact field, length of name field)
+        """
         # open phone memory
+        self.close_calendar()
         self.__do_cmd('AT+CPBS="ME"')
 
         # read parameters
         data = self.__do_cmd('AT+CPBR=?')
         (rangestr, numberlenstr, namelenstr) = self.__parse_results('CPBR', data)[0]
-        (minpos, maxpos) = self.__parse_range(rangestr)
-        numberlen = int(numberlenstr)
-        namelen = int(namelenstr)
+        (self.min_contact_pos, self.max_contact_pos) = self.__parse_range(rangestr)
+        return (self.min_contact_pos, self.max_contact_pos, int(numberlenstr), int(namelenstr))
+
+    def read_contacts(self):
+        """read a list of all contacts in the phonebook"""
+
+        # open phone memory
+        self.close_calendar()
+        self.__do_cmd('AT+CPBS="ME"')
 
         # check usage
         data = self.__do_cmd('AT+CPBS?')
@@ -320,18 +344,18 @@ class PhoneComms:
             (memtype, inusestr, maxusedstr) = result[:3]
             assert(memtype == 'ME')
             maxused = int(maxusedstr)
-            assert(maxpos - minpos + 1 <= maxused)
+            assert(self.max_contact_pos - self.min_contact_pos + 1 <= maxused)
             inuse = int(inusestr)
         else:
             # older phones we don't seem to know how many entries are in use, so have
             # to read all of them :(
-            inuse = maxpos - minpos
+            inuse = self.max_contact_pos - self.min_contact_pos
 
         # read entries from the phone until we've seen all of them
         ret = []
-        pos = minpos
-        while pos <= maxpos and len(ret) < inuse:
-            end = min(pos + ENTRIES_PER_READ - 1, maxpos)
+        pos = self.min_contact_pos
+        while pos <= self.max_contact_pos and len(ret) < inuse:
+            end = min(pos + ENTRIES_PER_READ - 1, self.max_contact_pos)
             data = self.__do_cmd('AT+MPBR=%d,%d' % (pos, end))
             ret.extend(self.__parse_results('MPBR', data))
             pos += ENTRIES_PER_READ
@@ -341,15 +365,18 @@ class PhoneComms:
         """write a single contact to the position specified in the data list"""
         def make_placeholder(val):
             t = type(val)
-            if t == types.StringType:
+            if t == types.StringType or t == types.UnicodeType:
                 return '"%s"'
             elif t == types.IntType:
                 return '%d'
-            assert(False, 'unexpected type %s' % str(t))
+            else:
+                assert(False, 'unexpected type %s' % str(t))
+                return '"%s"'
 
         self.close_calendar()
+        placeholders = ','.join(map(make_placeholder, data))
         if WRITE_ENABLED:
-            self.__do_cmd('AT+MPBW=' + ','.join(map(make_placeholder, data)) % data)
+            self.__do_cmd(('AT+MPBW=' + placeholders) % data)
 
     def delete_contact(self, pos):
         """delete the contact at a given position"""
@@ -367,7 +394,7 @@ class PhoneComms:
             ret += c
             c = os.read(self.__fd, 1)
         if DEBUG_OUTPUT:
-            print ('<-- %s' % ret)
+            print ('<-- ' + ret)
         if c == '': # EOF, shouldn't happen
             raise OpenSyncError('Unexpected EOF talking to phone', opensync.ERROR_IO_ERROR)
         return ret
@@ -377,8 +404,9 @@ class PhoneComms:
 
         If it succeeds, return lines as a list; otherwise raise an exception.
         """
+        cmd = cmd.encode('iso_8859_1')
         if DEBUG_OUTPUT:
-            print ('--> %s' % cmd)
+            print ('--> ' + cmd)
         os.write(self.__fd, cmd + "\r")
         ret = []
         line = self.__readline()
@@ -542,7 +570,6 @@ class PhoneEvent(PhoneEntry):
         else:
             self.alarmdt = None
 
-    # FIXME: handle exceptions if parameters don't exist or we can't parse the data
     def __from_xml(self, data):
         """parse xml event"""
         doc = xml.dom.minidom.parseString(data)
@@ -572,14 +599,84 @@ class PhoneEvent(PhoneEntry):
             else:
                 self.alarmdt = trigger
 
-        rrule = getField('RecurrenceRule', 'Rule')
-        if rrule != '':
-            # FIXME: process RRULE!
-            self.repeat_type = MOTO_REPEAT_NONE # failed conversion
+        rrules = event.getElementsByTagName('RecurrenceRule')
+        if len(rrules) != 0:
+            self.repeat_type = self.__handle_rrule(rrules[0], self.eventdt)
         else:
             self.repeat_type = MOTO_REPEAT_NONE
 
         self.exceptions = [] # FIXME!
+
+    def __handle_rrule(self, node, eventdt):
+        """Process the recursion rules.
+        
+        The general approach we take is: if the recursion can be represented
+        by the phone's data structure, we convert it, otherwise we ignore the
+        rule completely (to avoid the event showing up at incorrect times).
+        
+        FIXME: the phone does not allow repeating events to end. we currently
+        ignore the UNTIL or COUNT fields. we should filter out events that
+        are no longer occurring (but this currently lacks opensync support).
+        
+        FIXME: this code doesn't yet handle all the tricky parts of RRULE
+        specifications (such as BYSETPOS)
+        """
+
+        # build hash of rule parts
+        rules = {}
+        for rule in map(getXMLText, node.getElementsByTagName('Rule')):
+            key, val = rule.split('=',1)
+            key = key.lower()
+            if key[:1] == 'by':
+                val = set(val.split(','))
+            rules[key] = val
+
+        # extract the parts
+        assert(rules.has_key('freq')) # required by RFC2445
+        freq = rules['freq'].lower()
+        bymonth = rules.get('bymonth')
+        byweekno = rules.get('byweekno')
+        byyearday = rules.get('byyearday')
+        bymonthday = rules.get('bymonthday')
+        byday = rules.get('byday')
+
+        # fail the conversion if any of these are set
+        if (rules.has_key('byhour') or rules.has_key('byminute')
+            or rules.has_key('bysecond') or rules.has_key('bysetpos')
+            or rules.get('interval', '1') != '1'):
+            return MOTO_REPEAT_NONE
+
+        # compute the day and week number that the event falls in
+        eventday = VCAL_DAYS[eventdt.weekday()]
+        if eventdt.day % 7 == 0:
+            eventweek = eventdt.day / 7
+        else:
+            eventweek = eventdt.day / 7 + 1
+
+        # some convenience variables for the tests below
+        byeventweekday = set(['%d%s' % (eventweek, eventday)])
+        byalldays = set(VCAL_DAYS)
+        byallmonths = set(range(1,12))
+
+        # now test if the rule matches what we can represent
+        if (freq == 'daily' and (not byday or byday == set(VCAL_DAYS))
+            and not bymonthday and not byyearday and not byweekno and not bymonth):
+            return MOTO_REPEAT_DAILY
+        elif (freq == 'weekly' and (not byday or byday == set([eventday]))
+             and not bymonthday and not byyearday and not byweekno and not bymonth):
+            return MOTO_REPEAT_WEEKLY
+        elif (freq == 'monthly' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
+              and not byyearday and not byweekno and (not bymonth or bymonth == byallmonths)):
+            return MOTO_REPEAT_MONTHLY_DATE
+        elif (freq == 'monthly' and byday == byeventweekday and not bymonthday
+              and not byyearday and not byweekno and (not bymonth or bymonth == byallmonths)):
+            return MOTO_REPEAT_MONTHLY_DAY
+        elif (freq == 'yearly' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
+            and not byyearday and not byweekno and (not bymonth or bymonth == set([eventdt.month]))):
+            return MOTO_REPEAT_YEARLY
+
+        return MOTO_REPEAT_NONE
+
 
     def to_moto(self):
         """generate motorola event-data list"""
@@ -646,7 +743,7 @@ class PhoneEvent(PhoneEntry):
             appendXMLChild(doc, e, 'Rule', 'BYMONTHDAY=%d' % self.eventdt.day)
         elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
             appendXMLChild(doc, e, 'Rule', 'FREQ=MONTHLY')
-            day = ['MO','TU','WE','TH','FR','SA','SU'][self.eventdt.weekday()]
+            day = VCAL_DAYS[self.eventdt.weekday()]
             # compute the week number that the event falls in
             if self.eventdt.day % 7 == 0:
                 wk = self.eventdt.day / 7
@@ -655,6 +752,8 @@ class PhoneEvent(PhoneEntry):
             appendXMLChild(doc, e, 'Rule', 'BYDAY=%d%s' % (wk, day))
         elif self.repeat_type == MOTO_REPEAT_YEARLY:
             appendXMLChild(doc, e, 'Rule', 'FREQ=YEARLY')
+            appendXMLChild(doc, e, 'Rule', 'BYMONTH=%d' % self.eventdt.month)
+            appendXMLChild(doc, e, 'Rule', 'BYMONTHDAY=%d' % self.eventdt.day)
 
         if e.hasChildNodes():
             top.appendChild(e)
@@ -817,6 +916,8 @@ class PhoneContactBase(PhoneEntry):
         telephones = []
         for tel in doc.getElementsByTagName('Telephone'):
             telephone = getXMLField(tel, 'Content')
+            # filter out any illegal characters from the phone number
+            telephone = filter(lambda c: c in TEL_NUM_DIGITS, telephone)
             types = map(lambda e: getXMLText(e).lower(), tel.getElementsByTagName('Type'))
             moto_type = MOTO_CONTACT_DEFAULT
             for t in types:
@@ -1041,6 +1142,11 @@ class PhoneAccess:
         ret = []
         self.__init_categories()
 
+        # XXX FIXME, nasty hack:
+        # fill in the positions_used table so that no positions < minpos are allocated
+        (minpos, maxpos, _, _) = self.comms.read_contact_params()
+        self.positions_used['contact'] = range(0, minpos)
+
         # sort contacts by name, and attempt to merge adjacent ones
         contacts = map(lambda d: PhoneContact(d, 'moto-contact', self.revcategories), self.comms.read_contacts())
         contacts.sort(key=lambda c: c.name)
@@ -1129,7 +1235,7 @@ class PhoneAccess:
             positions = PhoneContactBase.unpack_uid(lastpart[:lastpos])
         return objtype, positions
 
-    # FIXME: check for maximum number of events in the phone
+    # FIXME: check for minimum/maximum number of events in the phone
     def __get_free_positions(self, objtype, num_pos):
         """Allocate num_pos free positions for a new event."""
         i = 0

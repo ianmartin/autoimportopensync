@@ -12,7 +12,7 @@ Also see KNOWN PROBLEMS below.
 
 SUPPORTED HARDWARE
 
-This plugin has been developed on a Motorola L7 ("SLVR")
+This plugin has been developed on a Motorola L7 ("SLVR").
 
 It has also been (lightly) tested on the following models:
  * RAZR V3x (read only)
@@ -65,8 +65,9 @@ A common problem happens early on when talking to a phone for the first
 time, some init strings get echoed multiple times and fail with an ERROR 
 message. I'm not sure what causes this, but a workaround seems to be to 
 open the phone device in minicom (use the -o flag to stop it sending 
-init strings) and then immediately exit it again. I have no idea how 
-this fixes the problem, but it does.
+init strings) and then immediately exit it again. I have now added some
+code in the initialisation routine to attempt to fix this, so if you
+have errors that go away after opening the device in minicom, let me know.
 
 Unfortunately the functionality offered by the phone is very limited, it
 basically comes down to (for the calendar, the phonebook is similar):
@@ -94,4 +95,5 @@ TODO
  * (Sanely) handle RRULEs on incoming events
  * Handle exceptions on incoming/outgoing events
  * Do something with "mailing list" entries in the phonebook
+ * Add support for reading/writing the SIM phonebook
  * Test with other hardware
