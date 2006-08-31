@@ -1073,9 +1073,9 @@ class PhoneContact:
             assert(0) # FIXME
         else:
             e = doc.createElement('Telephone')
-            appendXMLChild(doc, e, 'Type', MOTO_CONTACT_TYPES[self.contacttype])
+            appendXMLChild(doc, e, 'Type', MOTO_CONTACT_TYPES[self.contacttype].upper())
             if self.primaryflag:
-                appendXMLChild(doc, e, 'Type', 'pref')
+                appendXMLChild(doc, e, 'Type', 'PREF')
         appendXMLChild(doc, e, 'Content', self.contact)
         ret.append(e)
 
@@ -1085,7 +1085,7 @@ class PhoneContact:
                 appendXMLChild(doc, e, part, val)
             if e.hasChildNodes():
                 if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
-                    appendXMLChild(doc, e, 'Type', MOTO_ADDRESS_TYPES[self.contacttype])
+                    appendXMLChild(doc, e, 'Type', MOTO_ADDRESS_TYPES[self.contacttype].upper())
                 ret.append(e)
 
         return ret
