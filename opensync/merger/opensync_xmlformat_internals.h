@@ -1,18 +1,20 @@
 #ifndef OPENSYNC_XMLFORMAT_INTERNALS_H_
 #define OPENSYNC_XMLFORMAT_INTERNALS_H_
 
-/*! @brief Represent a Capabilities Object
+/** 
+ * @brief Represent a XMLFormat object
+ * @ingroup OSyncXMLFormatPrivateAPI
  */
 struct OSyncXMLFormat {
 	/** The reference counter for this object */
-	int refcount;
-	/** */
+	int ref_count;
+	/** The first xmlfield */
 	OSyncXMLField *first_child;
-	/** */
+	/** The last xmlfield */
 	OSyncXMLField *last_child;
-	/** */
+	/** counter which holds the number of xmlfields */
 	int child_count;	
-	/** */
+	/** The wrapped xml document */
 	xmlDocPtr doc;
 };
 

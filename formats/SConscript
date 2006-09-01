@@ -12,14 +12,21 @@ contact = env.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPA
 
 xml = env.SharedLibrary('opensync-xml', ['vformats-xml/xml-support.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
+# The vcard support library
+
+vcard = env.SharedLibrary('opensync-vcard', ['vformats-xml/vformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+
 # The xml formats
 
-xmlvcard = env.SharedLibrary('xml-vcard', ['vformats-xml/xml-vcard.c', 'vformats-xml/vformat.c'], LIBS = ['opensync', 'opensync-xml'], LIBPATH = ['#opensync', '.'])
+xmlvcard = env.SharedLibrary('xml-vcard', ['vformats-xml/xml-vcard.c'], LIBS = ['opensync', 'opensync-xml', 'opensync-vcard'], LIBPATH = ['#opensync', '.'])
+xmlformatvcard = env.SharedLibrary('xmlformat-vcard', ['vformats-xml/xmlformat-vcard.c'], LIBS = ['opensync', 'opensync-vcard'], LIBPATH = ['#opensync', '.'])
 
 env.Install(install_format, file)
 env.Install(install_format, data)
 env.Install(install_format, contact)
 env.Install(install_format, xmlvcard)
+env.Install(install_format, xmlformatvcard)
 env.Install(install_lib, xml)
+env.Install(install_lib, vcard)
 env.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
 env.Alias('install', install_prefix)

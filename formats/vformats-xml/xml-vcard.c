@@ -46,6 +46,16 @@ static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 	
 }
 
+static void handle_value_parameter(xmlNode *current, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling value parameter %s", vformat_attribute_param_get_name(param));
+	
+	GList *v = vformat_attribute_param_get_values(param);
+	for (; v; v = v->next) {
+		xmlNewTextChild(current, NULL, (xmlChar*)"Value", (xmlChar*)v->data);
+	}
+}
+
 static xmlNode *handle_fullname_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling fullname attribute");
@@ -63,6 +73,14 @@ static xmlNode *handle_name_attribute(xmlNode *root, VFormatAttribute *attr)
 	osxml_node_add(current, "Additional", vformat_attribute_get_nth_value(attr, 2));
 	osxml_node_add(current, "Prefix", vformat_attribute_get_nth_value(attr, 3));
 	osxml_node_add(current, "Suffix", vformat_attribute_get_nth_value(attr, 4));
+	return current;
+}
+
+static xmlNode *handle_agent_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling agent attribute");
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Agent", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
@@ -351,6 +369,7 @@ static osync_bool conv_vcard_to_xml(char *input, unsigned int inpsize, char **ou
 	
 	g_hash_table_insert(table, "FN", handle_fullname_attribute);
 	g_hash_table_insert(table, "N", handle_name_attribute);
+	g_hash_table_insert(table, "AGENT", handle_agent_attribute);
 	g_hash_table_insert(table, "PHOTO", handle_photo_attribute);
 	g_hash_table_insert(table, "BDAY", handle_birthday_attribute);
 	g_hash_table_insert(table, "ADR", handle_address_attribute);
@@ -382,6 +401,7 @@ static osync_bool conv_vcard_to_xml(char *input, unsigned int inpsize, char **ou
 	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
 	
 	g_hash_table_insert(table, "TYPE", handle_type_parameter);
+	g_hash_table_insert(table, "VALUE", handle_value_parameter);
 	
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
@@ -474,6 +494,16 @@ static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 	g_free(content);
 }
 
+static void handle_xml_value_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	osync_trace(TRACE_INTERNAL, "Handling value xml parameter");
+	char *content = (char*)xmlNodeGetContent(current);
+	VFormatParam *param = vformat_attribute_param_new("VALUE");
+	vformat_attribute_param_add_value(param, content);
+	vformat_attribute_add_param (attr, param);
+	g_free(content);
+}
+
 static void handle_xml_category_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling category xml parameter");
@@ -551,6 +581,15 @@ static VFormatAttribute *handle_xml_name_attribute(VFormat *vcard, xmlNode *root
 	add_value(attr, root, "Additional", encoding);
 	add_value(attr, root, "Prefix", encoding);
 	add_value(attr, root, "Suffix", encoding);
+	vformat_add_attribute(vcard, attr);
+	return attr;
+}
+
+static VFormatAttribute *handle_xml_agent_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling agent xml attribute");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "AGENT");
+	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -831,6 +870,7 @@ static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **ou
 	
 	g_hash_table_insert(hooks->attributes, "FullName", handle_xml_fullname_attribute);
 	g_hash_table_insert(hooks->attributes, "Name", handle_xml_name_attribute);
+	g_hash_table_insert(hooks->attributes, "Agent", handle_xml_agent_attribute);
 	g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_attribute);
 	g_hash_table_insert(hooks->attributes, "Birthday", handle_xml_birthday_attribute);
 	g_hash_table_insert(hooks->attributes, "Address", handle_xml_address_attribute);
@@ -856,6 +896,7 @@ static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **ou
 	g_hash_table_insert(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
 	
 	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
+	g_hash_table_insert(hooks->parameters, "Value", handle_xml_value_parameter);
 	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
 	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
 	

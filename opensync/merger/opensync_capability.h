@@ -1,7 +1,7 @@
 #ifndef OPENSYNC_CAPABILITY_H_
 #define OPENSYNC_CAPABILITY_H_
 
-OSYNC_EXPORT OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const char *objtype, const char *name);
+OSYNC_EXPORT OSyncCapability *osync_capability_new(OSyncCapabilities *capabilities, const char *objtype, const char *name, OSyncError **error);
 
 OSYNC_EXPORT const char *osync_capability_get_name(OSyncCapability *capability);
 OSYNC_EXPORT OSyncCapability *osync_capability_get_next(OSyncCapability *capability);

@@ -1,5 +1,6 @@
 /*
  * libopensync - A synchronization framework
+ * Copyright (C) 2006  NetNix Finland Ltd <netnix@netnix.fi>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
@@ -26,6 +27,8 @@
 
 #include "opensync-group.h"
 
+#define OSYNC_CAPABILITIES_DIRECTORY "/usr/share/opensync/capabilities"
+
 /**
  * @defgroup OSyncCapabilitiesPrivateAPI OpenSync Capabilities Internals
  * @ingroup OSyncPrivate
@@ -34,12 +37,24 @@
  */
 /*@{*/
 
-OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node)
+/**
+ * @brief Creates a new capabilitiesobjtype object which will be added to the end of capabilitiesobjtype of the capabilities object.
+ *  The returned object will be freed with the capabilities object. 
+ * @param capabilities The pointer to a capabilities object
+ * @param node The node must be already inserted at the end of childs of the xmlDoc root element
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated capabilitiesobjtype object or NULL in case of error
+ */
+OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capabilities, xmlNodePtr node, OSyncError **error)
 {
-	g_assert(capabilities);
-	g_assert(node);
+	osync_assert(capabilities);
+	osync_assert(node);
 	
-	OSyncCapabilitiesObjType *objtype = g_malloc0(sizeof(OSyncCapabilitiesObjType));
+	OSyncCapabilitiesObjType *objtype = osync_try_malloc0(sizeof(OSyncCapabilitiesObjType), error);
+	if(!objtype) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	
 	objtype->child_count = 0;
 	objtype->first_child = NULL;
@@ -56,10 +71,16 @@ OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capa
 	return objtype;
 }
 
+/**
+ * @brief Get the first capabilitiesobjtype for a given objtype from the capabilities
+ * @param capabilities The pointer to a capabilities object
+ * @param objtype The name of the objtype (e.g.: contact)
+ * @return The capabilitiesobjtype for a given objtype from the capabilities
+ */
 OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_get(OSyncCapabilities *capabilities, const char *objtype)
 {
-	g_assert(capabilities);
-	g_assert(objtype);
+	osync_assert(capabilities);
+	osync_assert(objtype);
 	
 	OSyncCapabilitiesObjType *tmp = capabilities->first_objtype;
 	for(; tmp != NULL; tmp = tmp->next) {
@@ -79,12 +100,22 @@ OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_get(OSyncCapabilities *capa
  */
 /*@{*/
 
-OSyncCapabilities *osync_capabilities_new(void)
+/**
+ * @brief Creates a new capabilities object
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated capabilities object or NULL in case of error
+ */
+OSyncCapabilities *osync_capabilities_new(OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s()", __func__);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 	
-	OSyncCapabilities *capabilities = g_malloc0(sizeof(OSyncCapabilities));
-	capabilities->refcount = 1;
+	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
+	if(!capabilities) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	capabilities->ref_count = 1;
 	capabilities->doc = xmlNewDoc(BAD_CAST "1.0");
 	capabilities->doc->children = xmlNewDocNode(capabilities->doc, NULL, (xmlChar *)"capabilities", NULL);
 	capabilities->first_objtype = NULL;
@@ -94,23 +125,32 @@ OSyncCapabilities *osync_capabilities_new(void)
 	return capabilities;
 }
 
+/**
+ * @brief Creates a new capabilities object from a xml document. 
+ * @param buffer The pointer to the xml document
+ * @param size The size of the xml document
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated capabilities object or NULL in case of error
+ */
 OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, buffer);
+	osync_assert(buffer);
 	
-	g_assert(buffer);
-	
-	OSyncCapabilities *capabilities = g_malloc0(sizeof(OSyncCapabilities));
-	capabilities->refcount = 1;
-	capabilities->doc = xmlReadMemory(buffer, size, NULL, NULL, XML_PARSE_NOBLANKS);
-	if(capabilities->doc == NULL)
-	{
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse XML.");
-		g_free(capabilities);
+	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
+	if(!capabilities) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
-	capabilities->refcount = 1;
+	
+	capabilities->doc = xmlReadMemory(buffer, size, NULL, NULL, XML_PARSE_NOBLANKS);
+	if(capabilities->doc == NULL) {
+		g_free(capabilities);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse XML.");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	capabilities->ref_count = 1;
 	capabilities->first_objtype = NULL;
 	capabilities->last_objtype = NULL;
 	capabilities->doc->_private = capabilities;
@@ -118,10 +158,21 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	xmlNodePtr cur = xmlDocGetRootElement(capabilities->doc);
 	cur = cur->children;
 	for(; cur != NULL; cur = cur->next) {
-		OSyncCapabilitiesObjType *objtype = _osync_capabilitiesobjtype_new(capabilities, cur);
+		OSyncCapabilitiesObjType *capabilitiesobjtype = _osync_capabilitiesobjtype_new(capabilities, cur, error);
+		if(!capabilitiesobjtype) {
+			osync_capabilities_unref(capabilities);
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+			return NULL;
+		}
+		
 		xmlNodePtr tmp = cur->children;
 		for(; tmp != NULL; tmp = tmp->next) {
-			_osync_capability_new(objtype, tmp);
+			OSyncCapability *capability = _osync_capability_new(capabilitiesobjtype, tmp, error);
+			if(!capability) {
+				osync_capabilities_unref(capabilities);
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+				return NULL;
+			}
 		}
 	}
 	
@@ -129,17 +180,27 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	return capabilities;
 }
 
+/**
+ * @brief Increments the reference counter
+ * @param capabilities The pointer to a capabilities object
+ */
 void osync_capabilities_ref(OSyncCapabilities *capabilities)
 {
-	g_assert(capabilities);
-	capabilities->refcount++;
+	osync_assert(capabilities);
+	
+	g_atomic_int_inc(&(capabilities->ref_count));
 }
 
+/**
+ * @brief Decrement the reference counter. The xmlformat object will 
+ *  be freed if there is no more reference to it.
+ * @param capabilities The pointer to a capabilities object
+ */
 void osync_capabilities_unref(OSyncCapabilities *capabilities)
 {
-	g_assert(capabilities);
-	capabilities->refcount--;
-	if(capabilities->refcount <= 0) {
+	osync_assert(capabilities);
+			
+	if (g_atomic_int_dec_and_test(&(capabilities->ref_count))) {
 		OSyncCapabilitiesObjType *objtype, *tmp;
 		objtype = capabilities->first_objtype;
 		while(objtype)
@@ -162,10 +223,16 @@ void osync_capabilities_unref(OSyncCapabilities *capabilities)
 	}
 }
 
+/**
+ * @brief Get the first capability for a given objtype from the capabilities
+ * @param capabilities The pointer to a capabilities object
+ * @param objtype The name of the objtype (e.g.: contact)
+ * @return The first capability for a given objtype from the capabilities
+ */
 OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, const char *objtype)
 {
-	g_assert(capabilities);
-	g_assert(objtype);
+	osync_assert(capabilities);
+	osync_assert(objtype);
 	
 	OSyncCapability *res = NULL;
 	OSyncCapabilitiesObjType *tmp = _osync_capabilitiesobjtype_get(capabilities, objtype);
@@ -174,15 +241,29 @@ OSyncCapability *osync_capabilities_get_first(OSyncCapabilities *capabilities, c
 	return res;
 }	
 
+/**
+ * @brief Dump the capabilities into the memory.
+ * @param capabilities The pointer to a capabilities object 
+ * @param buffer The pointer to the buffer which will hold the xml document
+ * @param size The pointer to the buffer which will hold the size of the xml document
+ * @return The xml document and the size of it. It's up to the caller to free
+ *  the buffer. Always it return TRUE.
+ */
 osync_bool osync_capabilities_assemble(OSyncCapabilities *capabilities, char **buffer, int *size)
 {
-	g_assert(capabilities);
-	g_assert(buffer);
-	g_assert(size);
+	osync_assert(capabilities);
+	osync_assert(buffer);
+	osync_assert(size);
+	
 	xmlDocDumpFormatMemoryEnc(capabilities->doc, (xmlChar **) buffer, size, NULL, 1);
 	return TRUE;
 }
 
+/**
+ * @brief Sort all the capabilities of every objtype of the capabilities object. This function has to
+ *  be called after a capability was added to the capabilities.
+ * @param capabilities The pointer to a capabilities object
+ */
 void osync_capabilities_sort(OSyncCapabilities *capabilities)
 {
 	int index;
@@ -229,55 +310,106 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
 	}
 }
 
+/**
+ * @brief Load a capabilities object from a prepackaged file 
+ * @param file The name of the file
+ * @param error The error which will hold the info in case of an error
+ * @return The pointer to the newly allocated capabilities object or NULL in case of error
+ */
 OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
 {
-	g_assert(file);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, file, error);
+	osync_assert(file);
 	
 	unsigned int size;
 	char *buffer, *filename;
 	OSyncCapabilities *capabilities;
 	
-	filename = g_strdup_printf("/usr/share/opensync/capabilities/%s", file);
+	filename = g_strdup_printf("%s%c%s", OSYNC_CAPABILITIES_DIRECTORY, G_DIR_SEPARATOR, file);
+	
 	osync_bool b = osync_file_read(filename, &buffer, &size, error);
 	g_free(filename);
-	if(!b) return NULL;
+	if(!b) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
 	capabilities = osync_capabilities_parse(buffer, size, error);
 	g_free(buffer);
+	if(!capabilities) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
 	return capabilities;
 }
 
-//osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member)
-//{
-//	g_assert(member);
-//	
-//	char *filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
-//	gboolean res = g_file_test(filename, G_FILE_TEST_IS_REGULAR);
-//	g_free(filename);
-//	return res;
-//}
+/**
+ * @brief Checks if the capabilities are already cached 
+ * @param member The member which should be tested for cached capabilities
+ * @return TRUE if the capabilities for this member are cached otherwise FALSE
+ */
+osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, member);
+	osync_assert(member);
+	
+	char *filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
+	gboolean res = g_file_test(filename, G_FILE_TEST_IS_REGULAR);
+	g_free(filename);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
+	return res;
+}
 
+/**
+ * @brief Get the cached capabilities of a member
+ * @param member The pointer to a member object
+ * @param error The error which will hold the info in case of an error
+ * @return The objtype of the xmlformat
+ */
 OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *member, OSyncError** error)
 {
-	g_assert(member);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+	osync_assert(member);
 	
 	unsigned int size;
 	char* buffer, *filename;
-	osync_bool res;
 	OSyncCapabilities *capabilities;
 	
 	filename = g_strdup_printf("%s%ccapabilities.xml", osync_member_get_configdir(member), G_DIR_SEPARATOR);
-	res = osync_file_read(filename, &buffer, &size, error);
+	osync_bool res = osync_file_read(filename, &buffer, &size, error);
 	g_free(filename);
-	if(!res) return NULL;
+	
+	if(!res) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
 	capabilities = osync_capabilities_parse(buffer, size, error);
 	g_free(buffer);
+	if(!capabilities) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
 	return capabilities;
 }
 
+/**
+ * @brief Set the capabilities of a member
+ * @param member The pointer to a member object
+ * @param capabilities The pointer to a capabilities object
+ * @param error The error which will hold the info in case of an error
+ * @return TRUE on success otherwise FALSE
+ */
 osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSyncCapabilities* capabilities, OSyncError** error)
 {
-	g_assert(member);
-	g_assert(capabilities);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, member, capabilities, error);
+	osync_assert(member);
+	osync_assert(capabilities);
 	
 	int size;
 	char* buffer, *filename;
@@ -288,6 +420,12 @@ osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSync
 	res = osync_file_write(filename, buffer, size, 0600, error);
 	g_free(filename);
 	g_free(buffer);
+	if(!res) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return FALSE;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
 	return res;
 }
 

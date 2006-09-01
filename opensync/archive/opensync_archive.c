@@ -1,5 +1,6 @@
 /*
  * libopensync - A synchronization framework
+ * Copyright (C) 2006  NetNix Finland Ltd <netnix@netnix.fi>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
@@ -52,6 +53,11 @@ char *_osync_archive_sql_escape(const char *s)
  */
 /*@{*/
 
+/**
+ * @brief Creates a new archive object
+ * @param
+ * @return The pointer to the newly allocated archive object or NULL in case of error
+ */
 OSyncArchive *osync_archive_new(const char *filename, const char *objtype, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
@@ -80,6 +86,10 @@ error:
 	return NULL;
 }
 
+/**
+ * @brief Increments the reference counter
+ * @param archive The pointer to a archive object
+ */
 void osync_archive_ref(OSyncArchive *archive)
 {
 	osync_assert(archive);
@@ -87,6 +97,11 @@ void osync_archive_ref(OSyncArchive *archive)
 	g_atomic_int_inc(&(archive->ref_count));
 }
 
+/**
+ * @brief Decrement the reference counter. The archive object will 
+ *  be freed if there is no more reference to it.
+ * @param archive The pointer to a archive object
+ */
 void osync_archive_unref(OSyncArchive *archive)
 {
 	osync_assert(archive);
@@ -152,24 +167,6 @@ error:
 	return 0;
 }
 
-osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %p)", __func__, archive, id, error);
-	osync_assert(archive);
-	
-	char *query = g_strdup_printf("DELETE FROM %s WHERE id=%lli", archive->tablename, id);
-	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK) {
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to delete change! %s", sqlite3_errmsg(archive->db));
-		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-	g_free(query);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
-
 osync_bool osync_archive_load_changes(OSyncArchive *archive, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p, %p)", __func__, archive, ids, uids, mappingids, memberids, error);
@@ -198,6 +195,24 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, OSyncList **ids, OS
     	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
 	}
 	sqlite3_finalize(ppStmt);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %p)", __func__, archive, id, error);
+	osync_assert(archive);
+	
+	char *query = g_strdup_printf("DELETE FROM %s WHERE id=%lli", archive->tablename, id);
+	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to delete change! %s", sqlite3_errmsg(archive->db));
+		g_free(query);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
