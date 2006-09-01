@@ -33,7 +33,7 @@ REQUIREMENTS
 
 INSTALLATION
 
-Copy moto-sync.py to $PREFIX/lib/opensync/python-plugins
+Copy motosync.py to $PREFIX/lib/opensync/python-plugins
 
 
 CONFIGURATION
@@ -57,6 +57,14 @@ with file-sync:
 	msynctool --configure phone 1 # configure moto-sync, as above
 	msynctool --configure phone 2 # configure file-sync, set the path
 	msynctool --sync phone # cross your fingers!
+
+
+TESTING/BACKUP
+
+Before doing anything with write enabled, it is probably a good idea to
+backup the data from your phone. You can use the mototest.py script to
+do this, to delete entries on the phone, or to examine the data that
+moto-sync would send to opensync. Run 'mototest.py --help' for details.
 
 
 KNOWN PROBLEMS
@@ -92,7 +100,6 @@ also other problems maintaining consistent UIDs for events.
 TODO
 
  * Better error/exception handling (see all the FIXMEs in the code)
- * (Sanely) handle RRULEs on incoming events
  * Handle exceptions on incoming/outgoing events
  * Do something with "mailing list" entries in the phonebook
  * Add support for reading/writing the SIM phonebook

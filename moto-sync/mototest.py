@@ -1,0 +1,146 @@
+#!/usr/bin/env python2.4
+
+"""
+Test code for moto-sync plugin, independent of opensync
+"""
+
+import sys, types
+from optparse import OptionParser
+import motosync
+
+DEFAULT_DEVICE = '/dev/rfcomm0'
+
+def parse_args():
+    p = OptionParser(version=motosync.__revision__, description='moto-sync test utility')
+    p.add_option('-d', '--device', dest='device',
+                 help='device used to access phone, defaults to %s' % DEFAULT_DEVICE)
+    p.add_option('-v', '--verbose', action='store_true', dest='verbose',
+                 help='log phone commands to stdout')
+    p.add_option('-t', '--type', action='append', dest='objtype', choices=motosync.SUPPORTED_OBJTYPES,
+                 help='object type to access (defaults to all types)')
+    p.add_option('-f', '--file', dest='filename',
+                 help='name of backup/restore data file')
+    p.add_option('--list', action='store_const', dest='mode', const='list',
+                 help='list data on the phone in OpenSync XML format')
+    p.add_option('--backup', action='store_const', dest='mode', const='backup',
+                 help='backup entries from the phone to a file')
+    p.add_option('--restore', action='store_const', dest='mode', const='restore',
+                 help='restore a backup created with the --backup option')
+    p.add_option('--delete', action='store_const', dest='mode', const='delete',
+                 help='delete all entries on the phone')
+    p.set_defaults(device=DEFAULT_DEVICE, verbose=False, filename=None, mode=None, objtype=None)
+    options, args = p.parse_args()
+    if not options.mode:
+        p.error('one of the list, backup, restore or delete actions must be given')
+    if options.mode in ['backup', 'restore'] and not options.filename:
+        p.error('this action requires a --file argument')
+    return options
+
+def pack_backup(typestr, edata):
+    strings = []
+    for val in edata:
+        if type(val) == types.IntType:
+            strings.append(str(val))
+        else:
+            strings.append('"%s"' % val)
+            assert('"' not in val)
+    return ','.join([typestr] + strings) + '\n'
+
+def unpack_backup(line):
+    if line[-1] == '\n':
+        line = line[:-1]
+    parts = []
+    nextpart = ''
+    wasquote = False
+    inquote = False
+    for c in line:
+        if c == ',' and not inquote:
+            if not wasquote and len(parts) > 0:
+                nextpart = int(nextpart)
+            parts.append(nextpart)
+            nextpart = ''
+            wasquote = False
+        elif c == '"':
+            wasquote = True
+            inquote = not inquote
+        else:
+            nextpart = nextpart + c
+    if not wasquote:
+        nextpart = int(nextpart)
+    parts.append(nextpart)
+    return parts[0], parts[1:]
+
+def main():
+    options = parse_args()
+    motosync.DEBUG_OUTPUT = options.verbose
+    if not options.objtype:
+        options.objtype = motosync.SUPPORTED_OBJTYPES
+
+    if not motosync.WRITE_ENABLED:
+        print 'All phone writes are disabled, this tool will have no effect on the phone.'
+
+    if options.mode == 'delete' or options.mode == 'restore':
+        print 'WARNING: About to %s all %s entries from the phone!' % (options.mode, ' & '.join(options.objtype))
+        print 'Are you sure? [yn] ',
+        if sys.stdin.read(1).lower() != 'y':
+            print 'Operation aborted'
+            return
+
+    pc = motosync.PhoneComms(options.device)
+
+    if options.mode == 'list':
+        # FIXME: doesn't respect objtype argument
+        pa = motosync.PhoneAccess(pc)
+        for change in pa.list_changes():
+            print change.uid
+            print change.data
+
+    if options.mode == 'delete' or options.mode == 'restore':
+        if 'event' in options.objtype:
+            for edata in pc.read_events():
+                pc.delete_event(edata[0])
+        if 'contact' in options.objtype:
+            pc.read_contact_params()
+            for edata in pc.read_contacts():
+                pc.delete_contact(edata[0])
+
+    if options.mode == 'backup':
+        f = open(options.filename, 'w')
+        if 'event' in options.objtype:
+            for edata in pc.read_events():
+                f.write(pack_backup('E', edata[:-1]))
+                if edata[-1] != []: # exceptions
+                    f.write(pack_backup('X', edata[-1]))
+        if 'contact' in options.objtype:
+            pc.read_contact_params()
+            for edata in pc.read_contacts():
+                f.write(pack_backup('C', edata))
+        f.close()
+
+    if options.mode == 'restore':
+        events = []
+        contacts = []
+        f = open(options.filename, 'r')
+        for line in f.readlines():
+            typestr, edata = unpack_backup(line)
+            if typestr == 'E':
+                events.append(edata + [[]])
+            elif typestr == 'X':
+                events[-1][-1] = edata
+            elif typestr == 'C':
+                contacts.append(edata)
+            else:
+                raise 'Unexpected type %s' % typestr
+        f.close()
+
+        if 'event' in options.objtype:
+            for e in events:
+                pc.write_event(e)
+        if 'contact' in options.objtype:
+            for e in contacts:
+                pc.write_contact(e)
+
+
+# debug code (not used when plugin is loaded by opensync)
+if __name__ == "__main__":
+    main()

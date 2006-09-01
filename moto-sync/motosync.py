@@ -243,9 +243,7 @@ class PhoneComms:
 
         # read calendar/event parameters
         data = self.__do_cmd('AT+MDBR=?') # read event parameters
-        (maxevs, numevs, titlelen, exmax, extypemax) = self.__parse_results('MDBR', data)[0]
-        maxevents = int(maxevs)
-        numevents = int(numevs)
+        (maxevents, numevents, titlelen, exmax, extypemax) = self.__parse_results('MDBR', data)[0]
 
         # read entries from the phone until we've seen all of them
         ret = []
@@ -257,9 +255,6 @@ class PhoneComms:
             # first parse all the exceptions for each event
             exceptions = {}
             for (expos, exnum, extype) in self.__parse_results('MDBRE', data):
-                expos = int(expos)
-                exnum = int(exnum)
-                extype = int(extype)
                 if extype != 1: # haven't seen anything else
                     raise OpenSyncError('unexpected exception type %d' % extype)
                 if not exceptions.has_key(expos):
@@ -282,16 +277,15 @@ class PhoneComms:
         self.delete_event(pos)
         exceptions = evdata[-1]
         data = evdata[:-1]
-        if WRITE_ENABLED:
-            self.__do_cmd('AT+MDBW=%d,"%s",%d,%d,"%s","%s",%d,"%s","%s",%d' % data)
-            for expos in exceptions:
-                self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos))
+        placeholders = self.__make_placeholders(data)
+        self.__do_cmd(('AT+MDBW=' + placeholders) % tuple(data), WRITE_ENABLED)
+        for expos in exceptions:
+            self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos), WRITE_ENABLED)
 
     def delete_event(self, pos):
         """delete the event at a specific position"""
         self.open_calendar()
-        if WRITE_ENABLED:
-            self.__do_cmd('AT+MDBWE=%d,0,0' % pos)
+        self.__do_cmd('AT+MDBWE=%d,0,0' % pos, WRITE_ENABLED)
 
     def read_categories(self):
         """Get list of category IDs/names for the phonebook."""
@@ -301,7 +295,7 @@ class PhoneComms:
 
         # read groups
         data = self.__do_cmd('AT+MPGR=?')
-        (mingroup, maxgroup) = self.__parse_range(self.__parse_results('MPGR', data)[0][0])
+        (mingroup, maxgroup) = self.__parse_results('MPGR', data)[0][0]
         ret = []
         pos = mingroup
         while pos <= maxgroup:
@@ -323,9 +317,8 @@ class PhoneComms:
 
         # read parameters
         data = self.__do_cmd('AT+CPBR=?')
-        (rangestr, numberlenstr, namelenstr) = self.__parse_results('CPBR', data)[0]
-        (self.min_contact_pos, self.max_contact_pos) = self.__parse_range(rangestr)
-        return (self.min_contact_pos, self.max_contact_pos, int(numberlenstr), int(namelenstr))
+        ((self.min_contact_pos, self.max_contact_pos), numberlen, namelen) = self.__parse_results('CPBR', data)[0]
+        return (self.min_contact_pos, self.max_contact_pos, numberlen, namelen)
 
     def read_contacts(self):
         """read a list of all contacts in the phonebook"""
@@ -341,11 +334,9 @@ class PhoneComms:
 
         if len(result) >= 3:
             # newer phones gives us three values
-            (memtype, inusestr, maxusedstr) = result[:3]
+            (memtype, inuse, maxused) = result[:3]
             assert(memtype == 'ME')
-            maxused = int(maxusedstr)
             assert(self.max_contact_pos - self.min_contact_pos + 1 <= maxused)
-            inuse = int(inusestr)
         else:
             # older phones we don't seem to know how many entries are in use, so have
             # to read all of them :(
@@ -363,26 +354,14 @@ class PhoneComms:
 
     def write_contact(self, data):
         """write a single contact to the position specified in the data list"""
-        def make_placeholder(val):
-            t = type(val)
-            if t == types.StringType or t == types.UnicodeType:
-                return '"%s"'
-            elif t == types.IntType:
-                return '%d'
-            else:
-                assert(False, 'unexpected type %s' % str(t))
-                return '"%s"'
-
         self.close_calendar()
-        placeholders = ','.join(map(make_placeholder, data))
-        if WRITE_ENABLED:
-            self.__do_cmd(('AT+MPBW=' + placeholders) % data)
+        placeholders = self.__make_placeholders(data)
+        self.__do_cmd(('AT+MPBW=' + placeholders) % tuple(data), WRITE_ENABLED)
 
     def delete_contact(self, pos):
         """delete the contact at a given position"""
         self.close_calendar()
-        if WRITE_ENABLED:
-            self.__do_cmd('AT+MPBW=%d' % pos)
+        self.__do_cmd('AT+MPBW=%d' % pos, WRITE_ENABLED)
 
     def __readline(self):
         """read the next line of text from the phone"""
@@ -399,7 +378,7 @@ class PhoneComms:
             raise OpenSyncError('Unexpected EOF talking to phone', opensync.ERROR_IO_ERROR)
         return ret
 
-    def __do_cmd(self, cmd):
+    def __do_cmd(self, cmd, reallydoit=True):
         """Send a command to the phone and wait for its response.
 
         If it succeeds, return lines as a list; otherwise raise an exception.
@@ -407,9 +386,12 @@ class PhoneComms:
         cmd = cmd.encode('iso_8859_1')
         if DEBUG_OUTPUT:
             print ('--> ' + cmd)
-        os.write(self.__fd, cmd + "\r")
         ret = []
-        line = self.__readline()
+        if reallydoit:
+            os.write(self.__fd, cmd + "\r")
+            line = self.__readline()
+        else:
+            line = 'OK'
         while line != 'OK' and line != 'ERROR':
             ret.append(line)
             line = self.__readline()
@@ -427,29 +409,60 @@ class PhoneComms:
                 # remove prefix
                 line = line[len(prefix):]
 
-                # split line into comma-separated values, removing quotes
+                # split line into comma-separated values, observing quotes
                 parts = []
                 nextpart = ''
-                inquote = False
+                inquote = inbracket = False
                 for c in line:
                     if c == '"':
                         inquote = not inquote
-                    elif c == ',' and not inquote:
+                        nextpart += c
+                    elif (c == '(' or c == ')') and not inquote:
+                        inbracket = not inbracket
+                        nextpart += c
+                    elif c == ',' and not (inquote or inbracket):
                         parts.append(nextpart)
                         nextpart = ''
                     else:
-                        if inquote:
-                            nextpart += c.decode('iso_8859_1')
-                        else:
-                            nextpart += c
+                        nextpart += c
                 parts.append(nextpart)
-                ret.append(parts)
+
+                # convert quoted values to strings, everything else to integers
+                valparts = []
+                for part in parts:
+                    if part[0] == '"':
+                        assert(part[-1] == '"')
+                        valparts.append(part[1:-1].decode('iso_8859_1'))
+                    elif part[0] == '(':
+                        # parse a range string like '(1-10,45,50-60)'
+                        assert(part[-1] == ')')
+                        part = part[1:-1]
+                        ranges = map(lambda s: map(int, s.split('-',1)), part.split(','))
+                        if len(ranges) == 1:
+                            ranges = ranges[0]
+                        valparts.append(ranges)
+                    else:
+                        try:
+                            part = int(part)
+                        except ValueError:
+                            pass # leave as a string
+                        valparts.append(part)
+                ret.append(valparts)
         return ret
 
-    def __parse_range(self, rangestr):
-        """parse a range string like '(1-1000)'"""
-        assert(rangestr[0] == '(' and rangestr[-1] == ')')
-        return map(int, rangestr[1:-1].split('-',1))
+    def __make_placeholders(self, vals):
+        """make the placeholder values (%s %d) etc for a write command"""
+        def make_placeholder(val):
+            t = type(val)
+            if t == types.IntType:
+                return '%d'
+            else:
+                assert(t == types.StringType or t == types.UnicodeType,
+                       'unexpected type %s' % str(t))
+                return '"%s"'
+
+        return ','.join(map(make_placeholder, vals))
+
 
 
 class PhoneEntry:
@@ -548,16 +561,16 @@ class PhoneEvent(PhoneEntry):
     def __from_moto(self, data):
         """grab stuff out of the list of values from the phone"""
         assert(type(data) == list and len(data) == 11)
-        self.pos = int(data[0])
+        self.pos = data[0]
         self.name = data[1]
-        timeflag = int(data[2])
-        alarmflag = int(data[3])
+        timeflag = data[2]
+        alarmflag = data[3]
         time = data[4]
         date = data[5]
-        self.duration = timedelta(0, 0, 0, 0, int(data[6]))
+        self.duration = timedelta(0, 0, 0, 0, data[6])
         alarmtime = data[7]
         alarmdate = data[8]
-        self.repeat_type = int(data[9])
+        self.repeat_type = data[9]
         self.exceptions = data[10]
 
         if timeflag:
@@ -809,9 +822,9 @@ class PhoneContactBase(PhoneEntry):
         """grab stuff out of the list of values from the phone"""
         assert(type(data) == list and len(data) >= 24)
         self.name = data[3]
-        self.categorynum = int(data[9])
-        self.firstlast_enabled = int(data[11]) #0 firstname lastname, 1 lastname firstname, 255 unknown
-        self.firstlast_index = int(data[12]) # 0-based index of second field (ignored if enabled=255)
+        self.categorynum = data[9]
+        self.firstlast_enabled = data[11] #0 firstname lastname, 1 lastname firstname, 255 unknown
+        self.firstlast_index = data[12] # 0-based index of second field (ignored if enabled=255)
         self.nickname = data[22]
         if data[23] == '':
             self.birthday = None
@@ -1048,18 +1061,18 @@ class PhoneContact:
     def __from_moto(self, data):
         """grab stuff out of the list of values from the phone"""
         assert(type(data) == list and len(data) >= 24)
-        self.pos = int(data[0])
+        self.pos = data[0]
         self.contact = data[1]
-        self.numtype = int(data[2])
-        self.contacttype = int(data[4])
-        self.voicetag = int(data[5])
-        self.ringerid = int(data[6])
-        assert(int(data[7]) == 0) # backlight flag?
-        self.primaryflag = int(data[8])
-        self.profile_icon = int(data[10])
+        self.numtype = data[2]
+        self.contacttype = data[4]
+        self.voicetag = data[5]
+        self.ringerid = data[6]
+        assert(data[7] == 0) # backlight flag?
+        self.primaryflag = data[8]
+        self.profile_icon = data[10]
         self.picture_path = data[13]
-        assert(int(data[14]) == 0) # unknown?
-        assert(int(data[15]) == 0) # unknown?
+        assert(data[14] == 0) # unknown?
+        assert(data[15] == 0) # unknown?
         self.address = (data[17], data[16], data[18], data[19], data[20], data[21])
         # assert(data[24] == '') # unknown? old phones don't have it
 
@@ -1206,7 +1219,6 @@ class PhoneAccess:
         # for each category we get: pos,name,ringer id,0,0,""
         for data in self.comms.read_categories():
             catid, catname = data[:2]
-            catid = int(catid)
             self.categories[catid] = catname
             self.revcategories[catname.lower()] = catid
 
@@ -1347,17 +1359,3 @@ def get_info(info):
     for objtype in SUPPORTED_OBJTYPES:
         info.accept_objtype(objtype)
         info.accept_objformat(objtype, "xml-%s-doc" % objtype)
-
-
-# debug code (not used when plugin is loaded by opensync)
-if __name__ == "__main__" and hasattr(sys, "argv"):
-    pc = PhoneComms('/dev/rfcomm0')
-    pa = PhoneAccess(pc)
-    if len(sys.argv) > 1 and sys.argv[1] == '--delete':
-        # delete events
-        for pos in range(0,40):
-            pc.delete_event(pos)
-    else:
-        for change in pa.list_changes():
-            print change.uid
-            print change.data
