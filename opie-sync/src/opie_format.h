@@ -25,6 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _OPIE_FORMAT_H
 #define _OPIE_FORMAT_H
 
+void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
 
 #endif /* _OPIE_FORMAT_H */
 

@@ -50,6 +50,7 @@ typedef struct {
   char* local_filename;
 } fetch_pair;
 
+/* FIXME don't use hardcoded temp filenames */
 static fetch_pair addr_file = { "Applications/addressbook/addressbook.xml", "/tmp/addressbook.xml" };
 static fetch_pair todo_file = { "Applications/todolist/todolist.xml", "/tmp/todolist.xml" };
 static fetch_pair cal_file = { "Applications/datebook/datebook.xml", "/tmp/datebook.xml" };
@@ -62,7 +63,7 @@ gboolean ftp_put_file(OpieSyncEnv* env, char* filename,
                       opie_object_type obj_type);
 gboolean scp_put_file(OpieSyncEnv* env, char* filename,
                       opie_object_type obj_type);
-gboolean write_contact_data( OpieSyncEnv* env, GList* contacts, char *fname );
+gboolean write_contact_data( OpieSyncEnv* env, xmlDoc *contacts, char *fname );
 
 
 /*
@@ -169,12 +170,7 @@ const char* opie_add_category(const char* name, GList** categories)
 /*
  * opie_connect_and_fetch
  */
-gboolean opie_connect_and_fetch(OpieSyncEnv* env,
-                                opie_object_type object_types,
-                                GList** calendar,
-                                GList** contacts,
-                                GList** todos,
-                                GList** categories)
+gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 {
   gboolean rc = TRUE;
   
@@ -201,7 +197,7 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env,
   switch (env->conn_type)
   {
     case OPIE_CONN_NONE:
-      /* attempt an FTP connection */
+			/* no connection (useful for debugging) */
       OPIE_DEBUG("Skipping Connection.\n");
       break;
       
@@ -229,8 +225,8 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env,
 /*    if(object_types & OPIE_OBJECT_TYPE_CALENDAR)
       parse_cal_data(cal_file.local_filename, calendar);*/
 
-    if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK)
-      parse_contact_data(addr_file.local_filename, contacts);
+		if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK)
+			env->contacts_file = g_strdup(addr_file.local_filename);
       
 /*    if(object_types & OPIE_OBJECT_TYPE_TODO)  
       parse_todo_data(todo_file.local_filename, todos);*/
@@ -354,11 +350,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
  * opie_connect_and_put
  */
 gboolean opie_connect_and_put( OpieSyncEnv* env,
-                               opie_object_type object_types,
-                               GList* calendar,
-                               GList* contacts,
-                               GList* todos,
-                               GList* categories )
+                               opie_object_type object_types)
 { 
     osync_trace(TRACE_ENTRY, "%s", __func__ );
 
@@ -370,7 +362,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
   if ( !env ) return FALSE;
 
   if ( object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
-      rc = write_contact_data( env, contacts, addr_file.local_filename );
+//      rc = write_contact_data( env, contacts, addr_file.local_filename );
       files_to_put = g_list_append(files_to_put, &addr_file);
   }
 
@@ -701,44 +693,15 @@ int opie_curl_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 }
 
 
-/*
- * serialize_contact_data
- */
-char* serialize_contact_data(OpieSyncEnv* env, GList* contacts)
-{
-  return contact_data_to_xml(env, contacts);
-}
-
 /* write the contact data to a file
  * is this right? shouldn't we just have contact_data_to_xml() write directly
  *  to a file (like parse_contact_data)?
  */
-gboolean write_contact_data( OpieSyncEnv* env, GList* contacts, char *fname )
+gboolean write_contact_data( OpieSyncEnv* env, xmlDoc *contacts, char *fname )
 {
-    osync_trace(TRACE_ENTRY, "%s", __func__ );
-    gboolean rc = FALSE;
-    char *buf = NULL;
-    FILE *fOut = fopen( fname, "w" );
-    if ( ! fOut ) {
-        osync_trace( TRACE_INTERNAL, "Opening contact file for write failed" );
-        goto ERROR;
-    }
-
-    buf = contact_data_to_xml(env, contacts);
-    int n = strlen( buf );
-    size_t written = fwrite( buf, sizeof(char), n, fOut );
-    if ( written != n * sizeof(char) ) {
-        osync_trace( TRACE_INTERNAL, "write failed" );
-        goto ERROR;
-    }
-
-    rc = TRUE;
-
-ERROR:
-    if ( fOut ) fclose( fOut );
-    if ( buf ) g_free( buf );
-    osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
-    return rc;
+	osync_trace(TRACE_ENTRY, "%s", __func__ );
+	xmlSaveFormatFile(fname, contacts, 1);
+	return TRUE;
 }
 
 /*
@@ -927,16 +890,6 @@ void free_contact_data(contact_data* contact)
 
 
 /*
- * serialize_cal_data
- */
-char* serialize_cal_data(OpieSyncEnv* env, GList* calendar)
-{
-/*  return cal_data_to_xml(env, calendar); */
-	return g_strdup("");
-}
-
-
-/*
  * free_cal_data
  */
 void free_cal_data(cal_data* calendar)
@@ -1015,16 +968,6 @@ void free_cal_data(cal_data* calendar)
 
 
 /*
- * serialize_todo_data
- */
-char* serialize_todo_data(OpieSyncEnv* env, GList* todos)
-{
-/*  return todo_data_to_xml(env, todos);*/
-	return g_strdup("");
-}
-
-
-/*
  * free_todo_data
  */
 void free_todo_data(todo_data* todo)
@@ -1097,16 +1040,6 @@ void free_todo_data(todo_data* todo)
   g_free(todo);
   todo = NULL;
 } 
-
-
-/*
- * serialize_category_data
- */
-char* serialize_category_data(OpieSyncEnv* env, GList* categories)
-{
-/*  return category_data_to_xml(env, categories);*/
-	return g_strdup("");
-}
 
 
 /*

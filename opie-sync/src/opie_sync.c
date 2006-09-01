@@ -24,6 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "opie_sync.h"
 #include "opie_comms.h"
+#include "opie_xml.h"
 
 
 /* sync_cancelled()
@@ -50,7 +51,7 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	env->device_type = OPIE_SYNC_OPIE;
 	env->conn_type = OPIE_CONN_FTP;
 	env->device_port = 4242;
-    env->use_qcop = TRUE;
+	env->use_qcop = TRUE;
 
 	doc = xmlParseMemory(config, size);
 
@@ -115,7 +116,7 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	return TRUE;
 	
 error_free_doc:
-		xmlFreeDoc(doc);
+	xmlFreeDoc(doc);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
@@ -126,9 +127,7 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	char* errmsg = NULL;
 	opie_object_type object_types = OPIE_OBJECT_TYPE_PHONEBOOK; // FIXME
-        GList* li;
-	contact_data* contact = NULL;
-
+	
 	if (env->qcopconn)
 	{
 		osync_trace(TRACE_EXIT, "%s: Already connected", __func__);
@@ -172,12 +171,7 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 	}
 
 	/* connect to the device and pull the required data back */
-	if(!opie_connect_and_fetch(env, 
-                               object_types, 
-                               &env->calendar, 
-                               &env->contacts, 
-                               &env->todos,
-                               &env->categories))
+	if(!opie_connect_and_fetch(env, object_types))
 	{
 		/* failed */
 		if(env->qcopconn)
@@ -200,15 +194,14 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 		goto error;
 	}
 
+	/*
 	for (li = env->contacts; li != NULL; li = g_list_next(li))
 	{
 		contact = (contact_data*)li->data;
 		errmsg = g_strdup_printf("Contact %s %s", contact->first_name, contact->last_name);
 		osync_trace(TRACE_INTERNAL, errmsg);
-		/*free_contact_data(contact);*/
 	}
-	/*g_list_free(env->contacts);*/
-
+	*/
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -283,7 +276,7 @@ static void opie_sync_connect( OSyncContext* ctx )
 	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
 
-	//now connect with the device
+	/* now connect with the device */
 	if (!_connectDevice(env, &error))
 		goto error;
 
@@ -299,14 +292,18 @@ error:
 static void opie_sync_sync_done( OSyncContext* ctx )
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__ );
+	/*	
 	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
 	opie_object_type object_types = OPIE_OBJECT_TYPE_PHONEBOOK; // FIXME
+	*/
         
+	/*
 	osync_trace( TRACE_INTERNAL, "number of contacts = %d", 
 		     g_list_length( env->contacts ) );
+	*/
 
-	if ( !opie_connect_and_put(env, 
+	/*	if ( !opie_connect_and_put(env, 
                                    object_types, 
                                    env->calendar, 
                                    env->contacts, 
@@ -319,29 +316,39 @@ static void opie_sync_sync_done( OSyncContext* ctx )
             goto error;
         }
 
+	*/
+	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-
+	/*
 error:
 	osync_context_report_osyncerror(ctx, &error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	*/
 }
 
 static osync_bool opie_sync_contact_commit(OSyncContext *ctx, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
+	//OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
 	//unsigned char *uid = osync_change_get_uid(change);
 
-	contact_data *contact = (contact_data *)osync_change_get_data(change);
-	osync_trace( TRACE_INTERNAL, "contact name=%s", contact->last_name );
-
+	char *change_str = (char *)osync_change_get_data(change);
+	xmlDoc *change_doc = xmlRecoverMemory(change_str, strlen(change_str));
+	if(!change_doc) {
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to retrieve XML from change");
+		goto error;
+	}
+	
+	// FIXME should create some functions in opie_xml.c to handle these operations
+	// now that we are dealing with XML nodes/documents
+	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 			break;
 		case CHANGE_ADDED:
-		    env->contacts = g_list_append( env->contacts, contact );
+//	    env->contacts = g_list_append( env->contacts, contact );
 			break;
 		case CHANGE_DELETED:
 			break;
@@ -350,9 +357,8 @@ static osync_bool opie_sync_contact_commit(OSyncContext *ctx, OSyncChange *chang
 			goto error;
 	}
 	
-	osync_trace( TRACE_INTERNAL, "number of contacts now = %d", 
-		     g_list_length( env->contacts ) );
-
+	xmlFreeDoc(change_doc);
+	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -388,22 +394,30 @@ static void opie_sync_disconnect( OSyncContext* ctx)
 }
 
 
-static OSyncChange *opie_sync_contact_change_create(contact_data *entry, OSyncError **error)
+static OSyncChange *opie_sync_contact_change_create(xmlDoc *doc, xmlNode *node, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, doc, node, error);
 
 	OSyncChange *change = osync_change_new();
 	if (!change)
 		goto error;
 	
-//	char *uid = g_strdup_printf("uid-contact-%s-%s", entry->first_name, entry->last_name);
-	char *uid = g_strdup_printf("uid-contact-%s", entry->uid );
-	osync_change_set_uid(change, uid);
+	char *uid = xmlGetProp(node, "Uid");
+	char *full_uid = g_strdup_printf("uid-contact-%s", uid);
+	osync_change_set_uid(change, full_uid);
 	g_free(uid);
+	g_free(full_uid);
 	
-	osync_change_set_objformat_string(change, "opie-contact");
-
-	osync_change_set_data(change, (void *)entry, sizeof(contact_data), TRUE);
+	osync_change_set_objformat_string(change, "opie-xml-contact");
+	
+	char *nodetext = xml_node_to_text(doc, node);
+	printf("OPIE: change xml = %s\n", nodetext); 
+	
+	unsigned char *hash = hash_str(nodetext);
+	osync_change_set_hash(change, hash);
+	g_free(hash);
+	
+	osync_change_set_data(change, nodetext, strlen(nodetext) + 1, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
 	return change;
@@ -419,9 +433,6 @@ static osync_bool opie_sync_contact_get_changeinfo(OSyncContext *ctx, OSyncError
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
 	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	GList* li;
-	contact_data* contact = NULL;
-	unsigned char *hash;
 	
 	if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
 		osync_trace(TRACE_INTERNAL, "slow sync");
@@ -429,28 +440,32 @@ static osync_bool opie_sync_contact_get_changeinfo(OSyncContext *ctx, OSyncError
 		printf("OPIE: slow sync\n");
 	}
 
-	for(li = env->contacts; li != NULL; li = g_list_next(li))
+	xmlNode *contact_node;
+	xmlDoc *doc = opie_xml_contact_open(env->contacts_file, &contact_node);
+	
+	while(contact_node)
 	{
-		contact = (contact_data*)li->data;
-		OSyncChange *change = opie_sync_contact_change_create(contact, error);
+		printf("OPIE: creating change\n");
+		OSyncChange *change = opie_sync_contact_change_create(doc, contact_node, error);
 		if (!change)
 			goto error;
-			
-		hash = hash_contact(contact);
-		//printf("OPIE: change hash = %s\n", hash);
 		
 		/* Use the hash table to check if the object
 		needs to be reported */
-		osync_change_set_hash(change, hash);
+//		osync_change_set_member(change, env->member);
 		if (osync_hashtable_detect_change(env->hashtable, change)) {
-			printf("OPIE: reporting\n");
+			printf("OPIE: reporting change\n");
 			osync_context_report_change(ctx, change);
 			osync_hashtable_update_hash(env->hashtable, change);
 		}
+		
+		contact_node = opie_xml_contact_next(contact_node);
 	}
 	
-	// Use the hashtable to report deletions
+	/* Use the hashtable to report deletions */
 	osync_hashtable_report_deleted(env->hashtable, ctx, "contact");
+	
+	xmlFreeDoc(doc);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -468,18 +483,8 @@ static void opie_sync_get_changeinfo( OSyncContext* ctx )
 /*	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);*/
 	OSyncError *error = NULL;
 
-/*
-	if (!_psyncTodoGetChangeInfo(ctx, &error))
-		goto error;
-*/
-	
 	if (!opie_sync_contact_get_changeinfo(ctx, &error))
 		goto error;
-
-/*		
-	if (!_psyncEventGetChangeInfo(ctx, &error))
-		goto error;
-*/
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -521,6 +526,6 @@ void get_info(OSyncEnv* env )
      * Object types
      */
     osync_plugin_accept_objtype(info, "contact");
-    osync_plugin_accept_objformat(info, "contact", "opie-contact", NULL);
-    osync_plugin_set_commit_objformat(info, "contact", "opie-contact", opie_sync_contact_commit);
+    osync_plugin_accept_objformat(info, "contact", "opie-xml-contact", NULL);
+    osync_plugin_set_commit_objformat(info, "contact", "opie-xml-contact", opie_sync_contact_commit);
 }

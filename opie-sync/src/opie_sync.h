@@ -60,7 +60,7 @@ struct OpieSyncEnv {
     qcop_conn*        qcopconn;
 
     GList*            calendar;
-    GList*            contacts;
+    gchar*            contacts_file;
     GList*            todos;
     GList*            categories;
 

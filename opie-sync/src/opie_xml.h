@@ -37,11 +37,6 @@ void parse_cal_data(char* cal_file,
                     GList** calendar);
 
 
-/* pull the contact data out of the file and parse it */
-void parse_contact_data(char* contact_file, 
-                        GList** contacts);
-
-
 /* pull the todo data out of the file and parse it */
 void parse_todo_data(char* todo_file, 
                      GList** todos);
@@ -65,5 +60,13 @@ char* todo_data_to_xml(OpieSyncEnv* env, GList* todos);
 
 /* convert category GList to xml string - caller must free */
 char* category_data_to_xml(OpieSyncEnv* env, GList* categories);
+
+
+xmlDoc *opie_xml_contact_open(const gchar *contact_file, xmlNode **contact_node);
+xmlNode *opie_xml_contact_next(xmlNode *contact_node);
+char *hash_xml_node(xmlDoc *doc, xmlNode *node);
+char *hash_str(const char *str);
+char *xml_node_to_text(xmlDoc *doc, xmlNode *node); 
+void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
 
 #endif

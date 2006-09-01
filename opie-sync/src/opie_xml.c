@@ -27,6 +27,7 @@
 #include "opie_xml.h"
 #include "opie_sync.h"
 #include "opie_comms.h"
+#include <openssl/md5.h>
 
 #include <string.h>
 //#include <expat.h>
@@ -126,282 +127,6 @@ void parse_cal_data(char* cal_file,
 
 #endif
 
-
-/*
- * parse_contact_data
- */
-void parse_contact_data(char* contact_file, 
-                        GList** contacts)
-{
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, contact_file, contacts);
-	xmlDoc *doc = NULL;
-	xmlNode *cur = NULL;
-  int j;
-  contact_data* contact = NULL;
-  anon_data* anon;
-  gchar** emailtokens;
-	struct _xmlAttr *prop;
-
-	doc = xmlParseFile(contact_file);
-
-	if (!doc) {
-		osync_trace(TRACE_INTERNAL, "Unable to parse contacts XML file");
-		goto error;
-	}
-
-	cur = xmlDocGetRootElement(doc);
-
-	if (!cur) {
-		osync_trace(TRACE_INTERNAL, "Unable to get addressbook root element");
-		goto error_free_doc;
-	}
-
-	printf("XML-root: %s\n", cur->name);
-	
-
-	cur = cur->xmlChildrenNode;
-
-	while (cur != NULL) {
-		if(!strcasecmp(cur->name, "Contacts"))
-			break;
-		cur = cur->next;
-	}
-
-	if (!cur) {
-		osync_trace(TRACE_INTERNAL, "Unable to get contacts element");
-		goto error_free_doc;
-	}
-
-	cur = cur->xmlChildrenNode;
-
-	while (cur != NULL) {
-		if(!strcasecmp(cur->name, "Contact"))
-		{
-			/* this is a contact element - the attributes are the data we care about */
-			contact = g_malloc0(sizeof(contact_data));
-			
-			for (prop = cur->properties; prop; prop=prop->next) 
-			{
-				if (prop->children && prop->children->content) 
-				{
-					/* key on the attribute name */
-					if(!strcasecmp(prop->name, "FirstName"))
-					{
-						contact->first_name = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "MiddleName"))
-					{
-						contact->middle_name = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "LastName"))
-					{
-						contact->last_name = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name,"Suffix"))
-					{
-						contact->suffix = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "FileAs"))
-					{
-						contact->file_as = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Department"))
-					{
-						contact->department = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Company"))
-					{
-						contact->company = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Emails"))
-					{
-						emailtokens = g_strsplit(prop->children->content," ",3);
-						
-						for(j=0;emailtokens[j]!=NULL;j++) 
-						{
-							contact->emails = g_list_append(contact->emails, 
-																							g_strdup(emailtokens[j]));
-						}
-						g_strfreev(emailtokens);
-					}
-					else if(!strcasecmp(prop->name, "Categories"))
-					{
-						gchar** categorytokens = g_strsplit(prop->children->content,";",20);
-						
-						for(j=0;categorytokens[j]!=NULL;j++) 
-						{
-							contact->cids = g_list_append(contact->cids, 
-																						g_strdup(categorytokens[j]));
-						}
-						g_strfreev(categorytokens);
-					}
-					else if(!strcasecmp(prop->name, "DefaultEmail"))
-					{
-						contact->default_email = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomePhone"))
-					{
-						contact->home_phone = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeFax"))
-					{
-						contact->home_fax = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeMobile"))
-					{
-						contact->home_mobile = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeStreet"))
-					{
-						contact->home_street = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeCity"))
-					{
-						contact->home_city = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeState"))
-					{
-						contact->home_state = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeZip"))
-					{
-						contact->home_zip = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeCountry"))
-					{
-						contact->home_country = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "HomeWebPage"))
-					{
-						contact->home_webpage = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessPhone"))
-					{
-						contact->business_phone = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessFax"))
-					{
-						contact->business_fax = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessMobile"))
-					{
-						contact->business_mobile = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessPager"))
-					{
-						contact->business_pager = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessStreet"))
-					{
-						contact->business_street = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessCity"))
-					{
-						contact->business_city = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessState"))
-					{
-						contact->business_state = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessZip"))
-					{
-						contact->business_zip = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessCountry"))
-					{
-						contact->business_country = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "BusinessWebPage"))
-					{
-						contact->business_webpage = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Spouse"))
-					{
-						contact->spouse = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Birthday"))
-					{
-						contact->birthday = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Anniversary"))
-					{
-						contact->anniversary = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Nickname"))
-					{
-						contact->nickname = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Children"))
-					{
-						contact->children = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Notes"))
-					{
-						contact->notes = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Uid"))
-					{
-						contact->uid = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "rid"))
-					{
-						contact->rid = atoi(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "rinfo"))
-					{
-						contact->rinfo = atoi(prop->children->content);
-						contact_rinfo = contact->rinfo;
-					}
-					else if(!strcasecmp(prop->name, "Gender"))
-					{
-						contact->gender = atoi(prop->children->content);   // FIXME: used to be char*+1 (?)
-					}
-					else if(!strcasecmp(prop->name, "Assistant"))
-					{
-						contact->assistant = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Manager"))
-					{
-						contact->manager = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Office"))
-					{
-						contact->office = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "Profession"))
-					{
-						contact->profession = g_strdup(prop->children->content);
-					}
-					else if(!strcasecmp(prop->name, "JobTitle"))
-					{
-						contact->jobtitle = g_strdup(prop->children->content);
-					}
-					else
-					{
-						/* unknown attribute - store in the anon list */
-						anon = g_malloc0(sizeof(anon_data)); 
-						anon->attr = g_strdup(prop->name);
-						anon->val = g_strdup(prop->children->content);
-						contact->anons = g_list_append(contact->anons, anon);
-					}
-				}
-			}
-
-			*contacts = g_list_append(*contacts, contact);  
-		}
-
-		cur = cur->next;
-	}
-
-	xmlFreeDoc(doc);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-
-error_free_doc:
-	xmlFreeDoc(doc);
-error:
-	return;
-}    
 
 #if 0
 
@@ -1913,4 +1638,90 @@ gchar* opie_xml_markup_escape_text(const gchar *text,
   return ret;
 }
 
+
+xmlDoc *opie_xml_contact_open(const gchar *contact_file, xmlNode **contact_node) {
+	xmlDoc *doc;
+	xmlNode *cur;
+	
+	doc = xmlParseFile(contact_file);
+
+	if (!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to parse contacts XML file");
+		goto error;
+	}
+
+	cur = xmlDocGetRootElement(doc);
+
+	if (!cur) {
+		osync_trace(TRACE_INTERNAL, "Unable to get addressbook root element");
+		goto error_free_doc;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		if(!strcasecmp(cur->name, "Contacts"))
+			break;
+		cur = cur->next;
+	}
+
+	if (!cur) {
+		osync_trace(TRACE_INTERNAL, "Unable to get contacts element");
+		goto error_free_doc;
+	}
+
+	*contact_node = cur->xmlChildrenNode;
+	while(contact_node && strcmp("Contact", (*contact_node)->name))
+		*contact_node = (*contact_node)->next;
+	
+	return doc;
+	
+error_free_doc:
+	xmlFreeDoc(doc);
+error:
+	return NULL;
+}
+
+xmlNode *opie_xml_contact_next(xmlNode *contact_node) {
+	xmlNode *node = contact_node->next;
+	while(node && strcmp("Contact", node->name))
+		node = node->next;
+	return node;
+}
+
+char *hash_str(const char *str) {
+	unsigned char* t_hash;
+	MD5_CTX c;
+	
+	MD5_Init(&c);
+	t_hash = g_malloc0(MD5_DIGEST_LENGTH + 1);
+	
+	MD5_Update(&c, str, strlen(str));
+
+	/* compute the hash */
+	MD5_Final(t_hash, &c);
+
+	return t_hash;
+}
+
+char *hash_xml_node(xmlDoc *doc, xmlNode *node) {
+	unsigned char* t_hash;
+	xmlBufferPtr bufptr;
+	
+	bufptr = xmlBufferCreate();
+	xmlNodeDump(bufptr, doc, node, 0, 0);
+	const char *bufstr = xmlBufferContent(bufptr);
+	t_hash = hash_str(bufstr);
+	xmlBufferFree(bufptr);
+
+	return t_hash;
+}
+
+char *xml_node_to_text(xmlDoc *doc, xmlNode *node) {
+	xmlBufferPtr bufptr = xmlBufferCreate();
+	xmlNodeDump(bufptr, doc, node, 0, 0);
+	char *nodetext = strdup(xmlBufferContent(bufptr));
+	xmlBufferFree(bufptr);
+	return nodetext;
+}
 

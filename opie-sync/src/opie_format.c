@@ -22,249 +22,301 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 
-#include "opie_format.h"
 #include "opie_comms.h"
+#include "opie_xml.h"
+#include "opie_format.h"
 
 #include <opensync/opensync-xml.h>
 
 
-static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+/** Convert Opie XML contacts to OpenSync XML contacts 
+ * 
+ **/
+static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	contact_data *entry = (contact_data *)input;
-	xmlNode *current = NULL;
-        GList* current_email;
-	
-	if (inpsize != sizeof(contact_data)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong size");
+	int j;
+//	anon_data* anon;
+	gchar** emailtokens;
+	struct _xmlAttr *iprop;
+	xmlNode *on_name = NULL;
+	xmlNode *on_organisation = NULL;
+	xmlNode *on_homeaddress = NULL;
+	xmlNode *on_workaddress = NULL;
+	xmlNode *on_temp = NULL;
+		
+	/* Get the root node of the input document */
+	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
+	if (!idoc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
 		goto error;
 	}
 	
-	//Create a new xml document
-	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *root = osxml_node_add_root(doc, "contact");
-
-	//Names
-	if (entry->last_name || entry->first_name) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
-		//Last Name
-		if (entry->last_name)
-			osxml_node_add(current, "LastName", entry->last_name);
-	
-		//First Name
-		if (entry->first_name)
-			osxml_node_add(current, "FirstName", entry->first_name);
-
-		// Suffix
-		if (entry->suffix)
-			osxml_node_add(current, "Suffix", entry->suffix);
-
-		// Middle name
-		if (entry->middle_name)
-			osxml_node_add(current, "Additional", entry->middle_name );
-//TODO
-// what about PREFIX?
+	xmlNode *icur = xmlDocGetRootElement(idoc);
+	if (!icur) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
 	}
 	
-	//Company
- 	if (entry->company || entry->department ) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Organization", NULL);
-		if ( entry->company )
-                    osxml_node_add(current, "Name", entry->company);
-		if ( entry->department )
-                    osxml_node_add(current, "Department", entry->department);
-	}
-
-	// Telephone numbers
-	if ( entry->home_phone ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->home_phone );
-        osxml_node_add(current, "Type", "HOME" );
-        osxml_node_add(current, "Type", "VOICE" );
-	}
-    if ( entry->home_fax ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->home_fax );
-        osxml_node_add(current, "Type", "HOME" );
-        osxml_node_add(current, "Type", "FAX" );
-	}
-    if ( entry->home_mobile ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->home_mobile );
-        osxml_node_add(current, "Type", "CELL" );
-        osxml_node_add(current, "Type", "HOME" );
-	}
-    
-    if ( entry->business_phone ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->business_phone );
-        osxml_node_add(current, "Type", "WORK" );
-        osxml_node_add(current, "Type", "VOICE" );
-    }
-    if ( entry->business_fax ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->business_fax );
-        osxml_node_add(current, "Type", "WORK" );
-        osxml_node_add(current, "Type", "FAX" );
-	}
-    if ( entry->business_mobile ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->business_mobile );
-        osxml_node_add(current, "Type", "WORK" );
-        osxml_node_add(current, "Type", "CELL" );
-	}
-    if ( entry->business_pager ) {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-        osxml_node_add(current, "Content", entry->business_pager );
-        osxml_node_add(current, "Type", "WORK" );
-        osxml_node_add(current, "Type", "PAGER" );
-	}
-
-    // Email addresses
-    if ( entry->emails ) {
-        current_email = entry->emails;
-        while ( current_email != NULL ) 
-        {
-            if (current_email->data) {
-                current = xmlNewTextChild(root, NULL, (xmlChar*)"EMail", NULL);
-                osxml_node_add(current, "Content", current_email->data );
-                if ( entry->default_email &&
-                     strcasecmp( entry->default_email, current_email->data ) == 0 )
-                {
-                    // this is the preferred email address
-                    osxml_node_add(current, "Type", "PREF" );
-                }
-            }
-            current_email=current_email->next;
-        }
-    }
-
-    // Home Address
-    if ( entry->home_street || entry->home_city || entry->home_state
-         || entry->home_zip || entry->home_country )
-    {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
-        if ( entry->home_street )
-            osxml_node_add(current, "Street", entry->home_street );
-        if ( entry->home_city )
-            osxml_node_add(current, "City", entry->home_city );
-        if ( entry->home_state )
-            osxml_node_add(current, "Region", entry->home_state );
-        if ( entry->home_zip )
-            osxml_node_add(current, "PostalCode", entry->home_zip );
-        if ( entry->home_country )
-            osxml_node_add(current, "Country", entry->home_country );
-        osxml_node_add(current, "Type", "HOME" );
-    }            
-
-    // Business Address
-    if ( entry->business_street || entry->business_city || entry->business_state
-         || entry->business_zip || entry->business_country )
-    {
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Address", NULL);
-        if ( entry->business_street )
-            osxml_node_add(current, "Street", entry->business_street );
-        if ( entry->business_city )
-            osxml_node_add(current, "City", entry->business_city );
-        if ( entry->business_state )
-            osxml_node_add(current, "Region", entry->business_state );
-        if ( entry->business_zip )
-            osxml_node_add(current, "PostalCode", entry->business_zip );
-        if ( entry->business_country )
-            osxml_node_add(current, "Country", entry->business_country );
-        osxml_node_add(current, "Type", "WORK" );
-    }            
-
-	//Title
-	if (entry->jobtitle) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Title", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->jobtitle);
-	}
+	/* Create a new output xml document */
+	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *on_root = osxml_node_add_root(odoc, "contact");
 	
-	
-	//Note
-	if (entry->notes) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Note", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)entry->notes);
+	if(!strcasecmp(icur->name, "Contact"))
+	{
+		/* this is a contact element - the attributes are the data we care about */
+		for (iprop = icur->properties; iprop; iprop=iprop->next) 
+		{
+			if (iprop->children && iprop->children->content)
+			{
+				if ( (!strcasecmp(iprop->name, "FirstName"))
+					|| (!strcasecmp(iprop->name, "MiddleName"))
+					|| (!strcasecmp(iprop->name, "LastName"))
+					|| (!strcasecmp(iprop->name,"Suffix")) )
+				{
+					if (!on_name)
+						on_name = xmlNewTextChild(on_root, NULL, (xmlChar*)"Name", NULL);
+					
+					if (!strcasecmp(iprop->name, "FirstName"))
+						osxml_node_add(on_name, "FirstName", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "MiddleName"))
+						osxml_node_add(on_name, "Additional", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "LastName"))
+						osxml_node_add(on_name, "LastName", iprop->children->content);
+					else if (!strcasecmp(iprop->name,"Suffix"))
+						osxml_node_add(on_name, "Suffix", iprop->children->content);
+					/* FIXME is there a prefix also ? */
+				}
+				else if ( (!strcasecmp(iprop->name, "Company"))
+					|| (!strcasecmp(iprop->name, "Department")) )
+				{
+					if (!on_organisation)
+						on_organisation = xmlNewTextChild(on_root, NULL, (xmlChar*)"Organisation", NULL);
+					
+					if (!strcasecmp(iprop->name, "Company"))
+						osxml_node_add(on_organisation, "Name", iprop->children->content);
+					if (!strcasecmp(iprop->name, "Department"))
+						osxml_node_add(on_organisation, "Department", iprop->children->content);
+				}
+				else if(!strcasecmp(iprop->name, "FileAs"))
+				{
+					// File-as. This is what the Evo plugin does, so copy it.
+					xmlNode *on_formattedname = xmlNewTextChild( on_root, NULL, (xmlChar*)"FormattedName", NULL);
+					xmlNewTextChild(on_formattedname, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
+				else if(!strcasecmp(iprop->name, "Emails"))
+				{
+					emailtokens = g_strsplit(iprop->children->content," ",3);
+					for(j=0;emailtokens[j]!=NULL;j++) 
+					{
+						xmlNode *on_email = xmlNewTextChild(on_root, NULL, (xmlChar*)"EMail", NULL);
+						xmlNewTextChild(on_email, NULL, (xmlChar*)"Content", (xmlChar*)emailtokens[j]);
+					}
+					g_strfreev(emailtokens);
+				}
+				else if(!strcasecmp(iprop->name, "Categories"))
+				{
+					/*
+					gchar** categorytokens = g_strsplit(iprop->children->content,";",20);
+					
+					for(j=0;categorytokens[j]!=NULL;j++) 
+					{
+						contact->cids = g_list_append(contact->cids, 
+																					g_strdup(categorytokens[j]));
+					}
+					g_strfreev(categorytokens);
+					*/
+				}
+				else if(!strcasecmp(iprop->name, "DefaultEmail"))
+				{
+					xmlNode *on_email = xmlNewTextChild(on_root, NULL, (xmlChar*)"EMail", NULL);
+					xmlNewTextChild(on_email, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+					// this is the preferred email address
+					osxml_node_add(on_email, "Type", "PREF" );
+				}
+				else if(!strcasecmp(iprop->name, "HomePhone"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "HOME" );
+					osxml_node_add(on_phone, "Type", "VOICE" );
+				}
+				else if(!strcasecmp(iprop->name, "HomeFax"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "HOME" );
+					osxml_node_add(on_phone, "Type", "FAX" );
+				}
+				else if(!strcasecmp(iprop->name, "HomeMobile"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "HOME" );
+					osxml_node_add(on_phone, "Type", "CELL" );
+				}
+				else if(!strcasecmp(iprop->name, "BusinessPhone"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "WORK" );
+					osxml_node_add(on_phone, "Type", "VOICE" );
+				}
+				else if(!strcasecmp(iprop->name, "BusinessFax"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "WORK" );
+					osxml_node_add(on_phone, "Type", "FAX" );
+				}
+				else if(!strcasecmp(iprop->name, "BusinessMobile"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "WORK" );
+					osxml_node_add(on_phone, "Type", "CELL" );
+				}
+				else if(!strcasecmp(iprop->name, "BusinessPager"))
+				{
+					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
+					osxml_node_add(on_phone, "Content", iprop->children->content );
+					osxml_node_add(on_phone, "Type", "WORK" );
+					osxml_node_add(on_phone, "Type", "PAGER" );
+				}
+				else if ( (!strcasecmp(iprop->name, "HomeStreet"))
+					|| (!strcasecmp(iprop->name, "HomeCity"))
+					|| (!strcasecmp(iprop->name, "HomeState"))
+					|| (!strcasecmp(iprop->name,"HomeZip"))
+					|| (!strcasecmp(iprop->name,"HomeCountry")) )
+				{
+					if (!on_homeaddress)
+						on_homeaddress = xmlNewTextChild(on_root, NULL, (xmlChar*)"Address", NULL);
+					
+					if (!strcasecmp(iprop->name, "HomeStreet"))
+						osxml_node_add(on_homeaddress, "Street", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "HomeCity"))
+						osxml_node_add(on_homeaddress, "City", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "HomeState"))
+						osxml_node_add(on_homeaddress, "Region", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "HomeZip"))
+						osxml_node_add(on_homeaddress, "PostalCode", iprop->children->content);
+					else if (!strcasecmp(iprop->name,"HomeCountry"))
+						osxml_node_add(on_homeaddress, "Country", iprop->children->content);
+					osxml_node_add(on_homeaddress, "Type", "HOME" );
+				}
+				else if ( (!strcasecmp(iprop->name, "BusinessStreet"))
+					|| (!strcasecmp(iprop->name, "BusinessCity"))
+					|| (!strcasecmp(iprop->name, "BusinessState"))
+					|| (!strcasecmp(iprop->name,"BusinessZip"))
+					|| (!strcasecmp(iprop->name,"BusinessCountry")) )
+				{
+					if (!on_workaddress)
+						on_workaddress = xmlNewTextChild(on_root, NULL, (xmlChar*)"Address", NULL);
+					
+					if (!strcasecmp(iprop->name, "BusinessStreet"))
+						osxml_node_add(on_workaddress, "Street", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "BusinessCity"))
+						osxml_node_add(on_workaddress, "City", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "BusinessState"))
+						osxml_node_add(on_workaddress, "Region", iprop->children->content);
+					else if (!strcasecmp(iprop->name, "BusinessZip"))
+						osxml_node_add(on_workaddress, "PostalCode", iprop->children->content);
+					else if (!strcasecmp(iprop->name,"BusinessCountry"))
+						osxml_node_add(on_workaddress, "Country", iprop->children->content);
+					osxml_node_add(on_workaddress, "Type", "WORK" );
+				}
+				else if(!strcasecmp(iprop->name, "HomeWebPage"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "BusinessWebPage"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "Spouse"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Spouse", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Birthday"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Birthday", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Anniversary"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Anniversary", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Nickname"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Nickname", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Children"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "Notes"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Note", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Uid"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "rid"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "rinfo"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "Gender"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "Assistant"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Assistant", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Manager"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Manager", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "Office"))
+				{
+					/* FIXME handle this field */
+				}
+				else if(!strcasecmp(iprop->name, "Profession"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Profession", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else if(!strcasecmp(iprop->name, "JobTitle"))
+				{
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Title", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+				}
+				else
+				{
+					/* FIXME handle unknown fields somehow? */
+				}
+			}
+		}
 	}
-
-/*
-	GList *c = NULL;
-	current = NULL;
-	for (c = entry->categories; c; c = c->next) {
-		if (!current)
-			current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
-		osxml_node_add(current, "Category", (char *)c->data);
-	}
-*/
-
-    // Spouse
-	if ( entry->spouse ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Spouse", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->spouse );
-	}
-
-    // Nickname
-	if ( entry->nickname ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Nickname", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->nickname );
-	}
-
-    // Assistant
-	if ( entry->assistant ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Assistant", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->assistant );
-	}
-    if ( entry->assistant )
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Assistant", (xmlChar*)entry->assistant );
-            
-    // Manager
-	if ( entry->manager ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Manager", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->manager );
-	}
-            
-    // Profession
-	if ( entry->profession ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Profession", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->profession );
-	}
-
-    // Birthday (do we need to create an xml datetime??)
-	if ( entry->birthday ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Birthday", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->birthday );
-	}
-
-    // Anniversary
-	if ( entry->anniversary ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"Anniversary", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->anniversary );
-	}
-
-    // File-as. This is what the Evo plugin does, so copy it.
-	if ( entry->file_as ) {
-		current = xmlNewTextChild( root, NULL, (xmlChar*)"FormattedName", NULL );
-		xmlNewTextChild( current, NULL, (xmlChar*)"Content", (xmlChar*)entry->file_as );
-	}
-
-// TODO: Entries to be handled
-/*   char* uid; */
-/*   GList* cids; */
-/*   unsigned int rid; */
-/*   unsigned int rinfo; */
-/*   char* home_webpage; */
-/*   char* business_webpage; */
-/*   int gender; */
-/*   char* children; */
-/*   char* office; */
-/*   GList* anons; */
 
 	*free_input = TRUE;
-	*output = (char *)doc;
-	*outpsize = sizeof(doc);
+	*output = (char *)odoc;
+	*outpsize = sizeof(odoc);
+	
+	xmlFreeDoc(idoc);
 
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)odoc));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -272,24 +324,28 @@ static osync_bool conv_opie_contact_to_xml(void *user_data, char *input, int inp
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
-}
+}    
 
-static osync_bool conv_xml_to_opie_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+
+/** Convert OpenSync XML contacts to Opie XML contacts 
+ * 
+ **/
+static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
     // only list the ones we use
-    enum PhoneType {
-        PT_HOME = 1,
-        PT_WORK = 2,
-        PT_PREF = 4,
-        PT_VOICE = 8,
-        PT_FAX = 16,
-        PT_CELL = 32,
-        PT_PAGER = 64
-    };
+	enum PhoneType {
+		PT_HOME = 1,
+		PT_WORK = 2,
+		PT_PREF = 4,
+		PT_VOICE = 8,
+		PT_FAX = 16,
+		PT_CELL = 32,
+		PT_PAGER = 64
+	};
 
-    int i, numnodes;
-    xmlXPathObject *xobj;
-    xmlNodeSet *nodes;
+	int i, numnodes;
+	xmlXPathObject *xobj;
+	xmlNodeSet *nodes;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
                     __func__, user_data, input, inpsize, output, 
@@ -298,7 +354,7 @@ static osync_bool conv_xml_to_opie_contact(void *user_data, char *input, int inp
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
                     osxml_write_to_string((xmlDoc *)input));
 	
-	//Get the root node of the input document
+	/* Get the root node of the input document */
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 	if (!root) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, 
@@ -312,165 +368,165 @@ static osync_bool conv_xml_to_opie_contact(void *user_data, char *input, int inp
 		goto error;
 	}
 
-	/* Start the new entry */
-	contact_data *entry = osync_try_malloc0(sizeof(contact_data), error);
-	if (!entry)
-		goto error;
+	/* Create a new output xml document */
+	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *on_contact = osxml_node_add_root(odoc, "Contact");
 	
-	//Name
+	// Name
 	xmlNode *cur = osxml_get_node(root, "Name");
 	if (cur) {
-		entry->last_name = osxml_find_node(cur, "LastName");
-		entry->first_name = osxml_find_node(cur, "FirstName");
-		entry->suffix = osxml_find_node(cur, "Suffix");
-                entry->middle_name = osxml_find_node(cur, "Additional");
+		xml_node_to_attr(cur, "LastName",   on_contact, "LastName");
+		xml_node_to_attr(cur, "FirstName",  on_contact, "FirstName");
+		xml_node_to_attr(cur, "Suffix",     on_contact, "Suffix");
+		xml_node_to_attr(cur, "Additional", on_contact, "MiddleName");
 	} else {
-            osync_trace(TRACE_INTERNAL, "No Name node found" );
+		osync_trace(TRACE_INTERNAL, "No Name node found" );
 	}
-	osync_trace(TRACE_INTERNAL, "Name = %s %s %s", entry->first_name, 
-				entry->middle_name, entry->last_name );
 
-	//Company
+	// Company
 	cur = osxml_get_node(root, "Organization");
 	if (cur) {
-        entry->company = osxml_find_node(cur, "Name");
-        entry->department = osxml_find_node(cur, "Department");
-    }
+		xml_node_to_attr(cur, "Organisation", on_contact, "Company");
+		xml_node_to_attr(cur, "Department",   on_contact, "Organisation");
+	}
 
-	//Telephone
+	// Telephone
 	xobj = osxml_get_nodeset((xmlDoc *)root, "/Telephone");
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
-	for ( i = 0; i < numnodes; i++ )
-    {
-        cur = nodes->nodeTab[i];
-        
-        unsigned int type = 0;
-        xmlXPathObject *xobj2 = osxml_get_nodeset((xmlDoc *)cur, "/Type");
-        xmlNodeSet *nodes2 = xobj2->nodesetval;
-        int numnodes2 = (nodes2) ? nodes2->nodeNr : 0;
-        osync_trace(TRACE_INTERNAL, "Telephone found %d types\n", numnodes2 );
-        int j;
-        for ( j = 0; j < numnodes2; j++ )
-        {
-            xmlNode *cur2 = nodes2->nodeTab[j];
-            char *typeName = (char*)xmlNodeGetContent(cur2);
+	for ( i = 0; i < numnodes; i++ ) {
+		cur = nodes->nodeTab[i];
+		unsigned int type = 0;
+		xmlXPathObject *xobj2 = osxml_get_nodeset((xmlDoc *)cur, "/Type");
+		xmlNodeSet *nodes2 = xobj2->nodesetval;
+		int numnodes2 = (nodes2) ? nodes2->nodeNr : 0;
+		osync_trace(TRACE_INTERNAL, "Telephone found %d types\n", numnodes2 );
+		int j;
+		for ( j = 0; j < numnodes2; j++ )
+		{
+			xmlNode *cur2 = nodes2->nodeTab[j];
+			char *typeName = (char*)xmlNodeGetContent(cur2);
 
-            if ( strcasecmp( typeName, "HOME" ) == 0 )
-                type |= PT_HOME;
-            else if ( strcasecmp( typeName, "WORK" ) == 0 )
-                type |= PT_WORK;
-            else if ( strcasecmp( typeName, "VOICE" ) == 0 )
-                type |= PT_VOICE;
-            else if ( strcasecmp( typeName, "CELL" ) == 0 )
-                type |= PT_CELL;
-            else if ( strcasecmp( typeName, "FAX" ) == 0 )
-                type |= PT_FAX;
-            else if ( strcasecmp( typeName, "PAGER" ) == 0 )
-                type |= PT_PAGER;
-            else {
-                // ??????
-            }
-        }
-        xmlXPathFreeObject(xobj2);
+			if ( strcasecmp( typeName, "HOME" ) == 0 )
+				type |= PT_HOME;
+			else if ( strcasecmp( typeName, "WORK" ) == 0 )
+				type |= PT_WORK;
+			else if ( strcasecmp( typeName, "VOICE" ) == 0 )
+				type |= PT_VOICE;
+			else if ( strcasecmp( typeName, "CELL" ) == 0 )
+				type |= PT_CELL;
+			else if ( strcasecmp( typeName, "FAX" ) == 0 )
+				type |= PT_FAX;
+			else if ( strcasecmp( typeName, "PAGER" ) == 0 )
+				type |= PT_PAGER;
+			else {
+				// ??????
+			}
+		}
+		xmlXPathFreeObject(xobj2);
 		char *number = osxml_find_node(cur, "Content");
 
-		osync_trace(TRACE_INTERNAL, "Telephone type %d %s",
-					type, number );		
+		osync_trace(TRACE_INTERNAL, "Telephone type %d %s", type, number );
 
-        // Telephone numbers
-        if ( type & PT_PAGER ) {
-            entry->business_pager = number;
-        }
-        else if ( type & PT_WORK ) {
-            if ( type & PT_VOICE )
-                entry->business_phone = number;
-            else if ( type & PT_FAX ) 
-                entry->business_fax = number;
-            else if ( type & PT_CELL ) 
-                entry->business_mobile = number;
-            else {
-                // ???
-            }
-        }
-        else if ( type & PT_VOICE )
-            entry->home_phone = number;
-        else if ( type & PT_FAX ) 
-            entry->home_fax = number;
-        else if ( type & PT_CELL ) 
-            entry->home_mobile = number;
-        else {
-            // ???
-        }
-    }
+		// Telephone numbers
+		if ( type & PT_PAGER ) {
+			xmlSetProp(on_contact, "BusinessPager", number);
+		}
+		else if ( type & PT_WORK ) {
+			if ( type & PT_VOICE )
+				xmlSetProp(on_contact, "BusinessPhone", number);
+			else if ( type & PT_FAX ) 
+				xmlSetProp(on_contact, "BusinessFax", number);
+			else if ( type & PT_CELL ) 
+				xmlSetProp(on_contact, "BusinessMobile", number);
+			else {
+				// ???
+			}
+		}
+		else if ( type & PT_VOICE )
+			xmlSetProp(on_contact, "HomePhone", number);
+		else if ( type & PT_FAX ) 
+			xmlSetProp(on_contact, "HomeFax", number);
+		else if ( type & PT_CELL ) 
+			xmlSetProp(on_contact, "HomeMobile", number);
+		else {
+				// ???
+		}
+	}
 	xmlXPathFreeObject(xobj);
 	
 	// EMail
 	xobj = osxml_get_nodeset((xmlDoc *)root, "/EMail");
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
-	for ( i = 0; i < numnodes; i++ )
-    {
-        cur = nodes->nodeTab[i];
-        entry->emails = g_list_append(
-            entry->emails, 
-            g_strdup( osxml_find_node(cur, "Content") )
-            );
+	char *emailaddr;
+	GString *emails = g_string_new("");
+	for ( i = 0; i < numnodes; i++ ) {
+		cur = nodes->nodeTab[i];
+		emailaddr = osxml_find_node(cur, "Content");
+		xmlFree(emailaddr);
+		g_string_append(emails, emailaddr);
+		if(i < numnodes - 1)
+			g_string_append_c(emails, ' ');
 
-        xmlXPathObject *xobj2 = osxml_get_nodeset((xmlDoc *)cur, "/Type");
-        xmlNodeSet *nodes2 = xobj2->nodesetval;
-        int numnodes2 = (nodes2) ? nodes2->nodeNr : 0;
-        int j;
-        for ( j = 0; j < numnodes2; j++ )
-        {
-            xmlNode *cur2 = nodes2->nodeTab[j];
-            char *type = (char*)xmlNodeGetContent(cur2);
-            if ( type != NULL && strcasecmp( type, "PREF" ) == 0 ) {
-                entry->default_email = (char*)xmlNodeGetContent(cur);
-                break;
-            }
-        }
-        xmlXPathFreeObject(xobj2);
+		xmlXPathObject *xobj2 = osxml_get_nodeset((xmlDoc *)cur, "/Type");
+		xmlNodeSet *nodes2 = xobj2->nodesetval;
+		int numnodes2 = (nodes2) ? nodes2->nodeNr : 0;
+		int j;
+		for ( j = 0; j < numnodes2; j++ )
+		{
+			xmlNode *cur2 = nodes2->nodeTab[j];
+			char *type = (char*)xmlNodeGetContent(cur2);
+			if ( type != NULL && strcasecmp( type, "PREF" ) == 0 ) {
+				char *emailaddr = (char*)xmlNodeGetContent(cur); 
+				xmlSetProp(on_contact, "DefaultEmail", emailaddr);
+				xmlFree(emailaddr);
+				break;
+			}
+		}
+		xmlXPathFreeObject(xobj2);
 	}
 	xmlXPathFreeObject(xobj);
+	xmlSetProp(on_contact, "Emails", emails->str);
+	g_string_free(emails, TRUE);
+	
 	
 	// Addresses
 	xobj = osxml_get_nodeset((xmlDoc *)root, "/Address" );
 	nodes = xobj->nodesetval;
 	numnodes = (nodes) ? nodes->nodeNr : 0;
-	for ( i = 0; i < numnodes; i++ )
-        {
-            cur = nodes->nodeTab[i];
-            char *type = osxml_find_node(cur, "Type");
-            if ( strcasecmp( type, "HOME" ) == 0 ) 
-            {
-                entry->home_street = (char*)osxml_find_node(cur, "Street");
-                entry->home_city = (char*)osxml_find_node(cur, "City");
-                entry->home_state = (char*)osxml_find_node(cur, "Region");
-                entry->home_zip = (char*)osxml_find_node(cur, "PostalCode");
-                entry->home_country = (char*)osxml_find_node(cur, "Country");
-            }
-            else if ( strcasecmp( type, "WORK" ) == 0 ) 
-            {
-                entry->business_street = (char*)osxml_find_node(cur, "Street");
-                entry->business_city = (char*)osxml_find_node(cur, "City");
-                entry->business_state = (char*)osxml_find_node(cur, "Region");
-                entry->business_zip = (char*)osxml_find_node(cur, "PostalCode");
-                entry->business_country = (char*)osxml_find_node(cur, "Country");
-            } 
-            else
-            {
-                // TODO put it in anon???
-            }
+	for ( i = 0; i < numnodes; i++ ) {
+		cur = nodes->nodeTab[i];
+		char *type = osxml_find_node(cur, "Type");
+		if ( strcasecmp( type, "HOME" ) == 0 ) {
+			xml_node_to_attr(cur, "Street",     on_contact, "HomeStreet");
+			xml_node_to_attr(cur, "City",       on_contact, "HomeCity");
+			xml_node_to_attr(cur, "Region",     on_contact, "HomeState");
+			xml_node_to_attr(cur, "PostalCode", on_contact, "HomeZip");
+			xml_node_to_attr(cur, "Country",    on_contact, "HomeCountry");
+		}
+		else if ( strcasecmp( type, "WORK" ) == 0 ) {
+			xml_node_to_attr(cur, "Street",     on_contact, "BusinessStreet");
+			xml_node_to_attr(cur, "City",       on_contact, "BusinessCity");
+			xml_node_to_attr(cur, "Region",     on_contact, "BusinessState");
+			xml_node_to_attr(cur, "PostalCode", on_contact, "BusinessZip");
+			xml_node_to_attr(cur, "Country",    on_contact, "BusinessCountry");
+		} 
+		else
+		{
+			// FIXME put it in anon???
+		}
 	}
 
-	//Title
+	// Title
 	cur = osxml_get_node(root, "Title");
-	if (cur) entry->jobtitle = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "JobTitle");
 
-	//Note
+	// Note
 	cur = osxml_get_node(root, "Note");
-	if (cur) entry->notes = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Notes");
 	
 /*
 	//Categories
@@ -484,35 +540,43 @@ static osync_bool conv_xml_to_opie_contact(void *user_data, char *input, int inp
 
 	// Spouse
 	cur = osxml_get_node(root, "Spouse");
-	if (cur) entry->spouse = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Spouse");
 
 	// Nickname
 	cur = osxml_get_node(root, "Nickname");
-	if (cur) entry->nickname = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Nickname");
 
 	// Assistant
 	cur = osxml_get_node(root, "Assistant");
-	if (cur) entry->assistant = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Assistant");
 
 	// Manager
 	cur = osxml_get_node(root, "Manager");
-	if (cur) entry->manager = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Manager");
 
 	// Profession
 	cur = osxml_get_node(root, "Profession");
-	if (cur) entry->profession = osxml_find_node(cur, "Content");
-
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Profession");
+	
 	// Birthday
 	cur = osxml_get_node(root, "Birthday");
-	if (cur) entry->birthday = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Birthday");
 
 	// Anniversary
 	cur = osxml_get_node(root, "Anniversary");
-	if (cur) entry->anniversary = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Anniversary");
 
 	// File-as
 	cur = osxml_get_node(root, "FormattedName");
-	if (cur) entry->file_as = osxml_find_node(cur, "Content");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "FileAs");
 
 // TODO: Entries to be handled
 /*   char* uid; */
@@ -542,8 +606,10 @@ static osync_bool conv_xml_to_opie_contact(void *user_data, char *input, int inp
 	}*/
 	
 	*free_input = TRUE;
-	*output = (void *)entry;
-	*outpsize = sizeof(contact_data);
+	*output = xml_node_to_text(odoc, on_contact);
+	*outpsize = strlen(*output);
+	
+	xmlFree(odoc);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -556,10 +622,9 @@ error:
 static void destroy_opie_contact(char *input, size_t inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
-	contact_data *entry = (contact_data *)input;
-	g_assert(inpsize == sizeof(contact_data));
 	
-	free_contact_data(entry);	
+	printf("OPIE: freeing\n");
+	g_free(input);	
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -567,9 +632,15 @@ static void destroy_opie_contact(char *input, size_t inpsize)
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
-	osync_env_register_objformat(env, "contact", "opie-contact");
-	osync_env_format_set_destroy_func(env, "opie-contact", destroy_opie_contact);
+	osync_env_register_objformat(env, "contact", "opie-xml-contact");
+	osync_env_format_set_destroy_func(env, "opie-xml-contact", destroy_opie_contact);
 
-	osync_env_register_converter(env, CONVERTER_CONV, "opie-contact", "xml-contact", conv_opie_contact_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "opie-contact", conv_xml_to_opie_contact);
+	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-contact", "xml-contact", conv_opie_xml_contact_to_xml_contact);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "opie-xml-contact", conv_xml_contact_to_opie_xml_contact);
+}
+
+void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
+	char *value = osxml_find_node(node_from, nodename);
+	xmlSetProp(node_to, attrname, value);
+	xmlFree(value);
 }

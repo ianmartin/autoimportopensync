@@ -227,21 +227,11 @@ const char* opie_add_category(const char* name, GList** categories);
 
 
 /* connect to the device and pull down the data */
-gboolean opie_connect_and_fetch(OpieSyncEnv* env,
-                                opie_object_type object_types,
-                                GList** calendar,
-                                GList** contacts,
-                                GList** todos,
-                                GList** categories);
+gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types);
 
 
 /* connect to the device and push the files back */
-gboolean opie_connect_and_put( OpieSyncEnv* env,
-                               opie_object_type object_types,
-                               GList* calendar,
-                               GList* contacts,
-                               GList* todos,
-                               GList* categories );
+gboolean opie_connect_and_put( OpieSyncEnv* env, opie_object_type object_types);
 
 /* convert a cal_data linked list into a string representation */
 char* serialize_cal_data(OpieSyncEnv* env, GList* calendar);
