@@ -2,68 +2,40 @@
 #define _OPIE_XML_H_
 
 /* 
-   MultiSync Opie Plugin - Synchronize Opie/Zaurus Devices
-   Copyright (C) 2003 Tom Foottit <tom@foottit.com>
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License version 2 as
-   published by the Free Software Foundation;
+   Copyright 2005 Paul Eggleton
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
-   IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) AND AUTHOR(S) BE LIABLE FOR ANY
-   CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES 
-   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
-   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF 
-   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-   ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS, 
-   COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS 
-   SOFTWARE IS DISCLAIMED.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 */
-
-/*
- *  $Id: opie_xml.h,v 1.1 2003/07/11 21:21:04 irix Exp $
- */
 
 #include <glib.h>
 
 #include "opie_comms.h"
 #include "opie_sync.h"
 
-/* pull the calendar data out of the file and parse it */
-void parse_cal_data(char* cal_file, 
-                    GList** calendar);
+xmlDoc *opie_xml_file_open(const gchar *xml_file);
+xmlNode *opie_xml_get_collection(xmlDoc *doc, const char *listelement);
+xmlNode *opie_xml_get_first(xmlDoc *doc, const char *listelement, const char *itemelement);
+xmlNode *opie_xml_get_next(xmlNode *prev_node);
+xmlNode *opie_xml_add_node(xmlDoc *doc, const char *listelement, xmlNode *new_node);
+xmlDoc *opie_xml_change_parse(const char *change_data, xmlNode **node);
 
-
-/* pull the todo data out of the file and parse it */
-void parse_todo_data(char* todo_file, 
-                     GList** todos);
-
-
-/* pull the category data out of the file and parse it */
-void parse_category_data(char* cat_file,
-                         GList** categories);
-
-
-/* convert calendar GList to xml string - caller must free */
-char* cal_data_to_xml(OpieSyncEnv* env, GList* calendar);
-
-
-/* convert contact GList to xml string - caller must free */
-char* contact_data_to_xml(OpieSyncEnv* env, GList* contacts);
-
-/* convert todo GList to xml string - caller must free */
-char* todo_data_to_xml(OpieSyncEnv* env, GList* todos);
-
-
-/* convert category GList to xml string - caller must free */
-char* category_data_to_xml(OpieSyncEnv* env, GList* categories);
-
-
-xmlDoc *opie_xml_contact_open(const gchar *contact_file, xmlNode **contact_node);
-xmlNode *opie_xml_contact_next(xmlNode *contact_node);
 char *hash_xml_node(xmlDoc *doc, xmlNode *node);
 char *hash_str(const char *str);
 char *xml_node_to_text(xmlDoc *doc, xmlNode *node); 

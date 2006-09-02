@@ -48,23 +48,24 @@ typedef enum {
 } OPIE_CONN_TYPE;
 
 struct OpieSyncEnv {
-    OSyncMember*      member;
-    gchar*            username;
-    gchar*            password;
-    gchar*            url;
-    unsigned int      device_port;
-    OPIE_CONN_TYPE    conn_type;
-    OPIE_DEVICE_TYPE  device_type;
+	OSyncMember*      member;
+	gchar*            username;
+	gchar*            password;
+	gchar*            url;
+	unsigned int      device_port;
+	OPIE_CONN_TYPE    conn_type;
+	OPIE_DEVICE_TYPE  device_type;
 
-    gboolean          use_qcop;
-    qcop_conn*        qcopconn;
+	gboolean          use_qcop;
+	qcop_conn*        qcopconn;
 
-    GList*            calendar;
-    gchar*            contacts_file;
-    GList*            todos;
-    GList*            categories;
+	gchar*            calendar_file;
+	gchar*            contacts_file;
+	xmlDoc*           contacts_doc;
+	gchar*            todos_file;
+	gchar*            categories_file;
 
-    OSyncHashTable*   hashtable;
+	OSyncHashTable*   hashtable;
 };
 
 
