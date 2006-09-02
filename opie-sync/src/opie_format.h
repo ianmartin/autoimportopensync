@@ -26,6 +26,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define _OPIE_FORMAT_H
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
+void xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
 
 #endif /* _OPIE_FORMAT_H */
 

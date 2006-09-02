@@ -267,7 +267,8 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 				}
 				else if(!strcasecmp(iprop->name, "Uid"))
 				{
-					/* FIXME handle this field */
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Uid", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
 				}
 				else if(!strcasecmp(iprop->name, "rid"))
 				{
@@ -451,7 +452,7 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 		else if ( type & PT_CELL ) 
 			xmlSetProp(on_contact, "HomeMobile", number);
 		else {
-				// ???
+			// ???
 		}
 	}
 	xmlXPathFreeObject(xobj);
@@ -582,8 +583,12 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	if (cur)
 		xml_node_to_attr(cur, "Content", on_contact, "FileAs");
 
+	/* UID */
+	cur = osxml_get_node(root, "Uid");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "Uid");
+
 // TODO: Entries to be handled
-/*   char* uid; */
 /*   GList* cids; */
 /*   unsigned int rid; */
 /*   unsigned int rinfo; */
@@ -687,12 +692,25 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
 					g_free(tmp);
 				}
+				else if(!strcasecmp(iprop->name, "Progress"))
+				{
+					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"PercentComplete", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
+				else if(!strcasecmp(iprop->name, "StartDate"))
+				{
+					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateStarted", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
+				}
+				else if(!strcasecmp(iprop->name, "Uid"))
+				{
+					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Uid", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
 			}
 			/* FIXME Stuff to handle:
-				Progress (percentage)
 				Categories
-				Uid
-				StartDate
 				State (0=Started, 1=Postponed, 2=Finished, 3=Not started)
 				Alarms datehhmmss:0:<0=silent,1=loud>:[;nextalarmentry]
 			*/
@@ -805,60 +823,97 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			This conversion matches the behaviour of the Palm plugin.
 			FIXME what if the priority is > 7 ?
 		*/
-		char *prio = (char *)xmlNodeGetContent(icur);
-		if (prio) {
-			int priority = atoi(prio) - 2;
-			xmlFree(prio);
-			if (priority < 1) {
-				//Never go lower than 1
-				priority = 1;
+		icur = osxml_get_node(icur, "Content");
+		if (icur) {
+			char *prio = (char *)xmlNodeGetContent(icur);
+			if (prio) {
+				int priority = atoi(prio) - 2;
+				xmlFree(prio);
+				if (priority < 1) {
+					//Never go lower than 1
+					priority = 1;
+				}
+				if (atoi(prio) == 0) {
+					//Default to priority 5
+					priority = 5;
+				}
+				prio = g_strdup_printf("%d", priority);
+				xmlSetProp(on_todo, "Priority", prio);
+				g_free(prio);
 			}
-			if (atoi(prio) == 0) {
-				//Default to priority 5
-				priority = 5;
-			}
-			prio = g_strdup_printf("%d", priority);
-			xmlSetProp(on_todo, "Priority", prio);
-			g_free(prio);
 		}
 	}
 	
 	/* Completed */
 	icur = osxml_get_node(root, "Completed");
 	if (icur) {
-		char *completedstr = (char *) xmlNodeGetContent(icur);
-		struct tm *completed = osync_time_vtime2tm(completedstr);
-		xmlFree(completedstr);
-		completedstr = g_strdup_printf("%04d%02d%02d", completed->tm_year, (completed->tm_mon + 1), completed->tm_mday);
-		xmlSetProp(on_todo, "Completed", "1");
-		xmlSetProp(on_todo, "CompletedDate", completedstr);
-		g_free(completedstr);
+		icur = osxml_get_node(icur, "Content");
+		if (icur) {
+			char *completedstr = (char *) xmlNodeGetContent(icur);
+			struct tm *completed = osync_time_vtime2tm(completedstr);
+			xmlFree(completedstr);
+			completedstr = g_strdup_printf("%04d%02d%02d", completed->tm_year, (completed->tm_mon + 1), completed->tm_mday);
+			xmlSetProp(on_todo, "Completed", "1");
+			xmlSetProp(on_todo, "CompletedDate", completedstr);
+			g_free(completedstr);
+		}
 	}
 	else {
 		xmlSetProp(on_todo, "Completed", "0");
 	}
 	
+	/* Start date */
+	icur = osxml_get_node(root, "DateStarted");
+	if (icur) {
+		icur = osxml_get_node(icur, "Content");
+		if (icur) {
+			char *startedstr = (char *) xmlNodeGetContent(icur);
+			struct tm *started = osync_time_vtime2tm(startedstr);
+			xmlFree(startedstr);
+			startedstr = g_strdup_printf("%04d%02d%02d", started->tm_year, (started->tm_mon + 1), started->tm_mday);
+			xmlSetProp(on_todo, "StartDate", startedstr);
+			g_free(startedstr);
+		}
+	}
+	else {
+		xmlSetProp(on_todo, "StartDate", "0");
+	}
+	
 	/* Due date */
 	icur = osxml_get_node(root, "DateDue");
 	if (icur) {
-		char *duestr = (char *) xmlNodeGetContent(icur);
-		struct tm *due = osync_time_vtime2tm(duestr);
-		xmlFree(duestr);
-		char *dueyear  = g_strdup_printf("%04d", due->tm_year);
-		char *duemonth = g_strdup_printf("%02d", (due->tm_mon + 1));
-		char *dueday   = g_strdup_printf("%02d", due->tm_mday);
-		xmlSetProp(on_todo, "HasDate",   "1");
-		xmlSetProp(on_todo, "DateYear",  dueyear);
-		xmlSetProp(on_todo, "DateMonth", duemonth);
-		xmlSetProp(on_todo, "DateDay",   dueday);
-		g_free(dueyear);
-		g_free(duemonth);
-		g_free(dueday);
+		icur = osxml_get_node(icur, "Content");
+		if (icur) {
+			char *duestr = (char *) xmlNodeGetContent(icur);
+			struct tm *due = osync_time_vtime2tm(duestr);
+			xmlFree(duestr);
+			char *dueyear  = g_strdup_printf("%04d", due->tm_year);
+			char *duemonth = g_strdup_printf("%02d", (due->tm_mon + 1));
+			char *dueday   = g_strdup_printf("%02d", due->tm_mday);
+			xmlSetProp(on_todo, "HasDate",   "1");
+			xmlSetProp(on_todo, "DateYear",  dueyear);
+			xmlSetProp(on_todo, "DateMonth", duemonth);
+			xmlSetProp(on_todo, "DateDay",   dueday);
+			g_free(dueyear);
+			g_free(duemonth);
+			g_free(dueday);
+		}
 	}
 	else {
 		xmlSetProp(on_todo, "HasDate", "0");
 	}
-		
+	
+	/* Progress */	
+	icur = osxml_get_node(root, "PercentComplete");
+	if (icur) {
+		xml_node_to_attr(icur, "Content", on_todo, "Progress");
+	}
+	
+	/* UID */
+	icur = osxml_get_node(root, "Uid");
+	if (icur)
+		xml_node_to_attr(icur, "Content", on_todo, "Uid");
+	
 	*free_input = TRUE;
 	*output = xml_node_to_text(odoc, on_todo);
 	*outpsize = strlen(*output);
@@ -874,6 +929,480 @@ error:
 }
 
 
+/** Convert Opie XML event to OpenSync XML event 
+ * 
+ **/
+static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	struct _xmlAttr *iprop;
+	xmlNode *on_curr;
+	GDate *startdate = NULL;
+		
+	/* Get the root node of the input document */
+	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
+	if (!idoc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read xml event");
+		goto error;
+	}
+	
+	xmlNode *icur = xmlDocGetRootElement(idoc);
+	if (!icur) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
+	}
+	
+	/* Create a new output xml document */
+	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *on_root = osxml_node_add_root(odoc, "vcal");
+	on_root = xmlNewTextChild(on_root, NULL, (xmlChar*)"Event", NULL);
+	
+	if(!strcasecmp(icur->name, "event"))
+	{
+		/* Check if this is an all-day event */
+		int allday = 0;
+		char *eventtype = xmlGetProp(icur, "type");
+		if(eventtype) {
+			if(!strcasecmp(eventtype, "AllDay")) {
+				allday = 1;
+			}
+			xmlFree(eventtype);
+		}
+		
+		/* this is a todo element - the attributes are the data we care about */
+		for (iprop = icur->properties; iprop; iprop=iprop->next) 
+		{
+			if (iprop->children && iprop->children->content)
+			{
+				if(!strcasecmp(iprop->name, "description"))
+				{
+					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Summary", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
+				else if(!strcasecmp(iprop->name, "note")) 
+				{
+					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Description", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
+				else if(!strcasecmp(iprop->name, "location")) 
+				{
+					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Location", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
+				else if(!strcasecmp(iprop->name, "created")) 
+				{
+					time_t createtime = (time_t)atoi(iprop->children->content);
+					char *createvtime = osync_time_unix2vtime(&createtime); 
+					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateCreated", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)createvtime);
+					g_free(createvtime);
+				}
+				else if(!strcasecmp(iprop->name, "start")) 
+				{
+					time_t starttime = (time_t)atoi(iprop->children->content);
+					char *startvtime = osync_time_unix2vtime(&starttime); 
+					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateStarted", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)startvtime);
+					if(allday)
+						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
+					g_free(startvtime);
+					/* Record the start date for use later */
+					startdate = g_date_new();
+					g_date_set_time_t(startdate, starttime);
+				}
+				else if(!strcasecmp(iprop->name, "end")) 
+				{
+					time_t endtime = (time_t)atoi(iprop->children->content);
+					char *endvtime = osync_time_unix2vtime(&endtime); 
+					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateEnd", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)endvtime);
+					if(allday)
+						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
+					g_free(endvtime);
+				}
+				else if(!strcasecmp(iprop->name, "uid")) 
+				{
+					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Uid", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+				}
+			}
+			/* FIXME Stuff to handle:
+			"categories"
+			"alarm"
+			"sound" (alarm sound - "silent" for none)
+			timezone?
+			*/
+		}
+		
+		/* Recurrence */
+		char *recurType = xmlGetProp(icur, "rtype");
+		if(recurType) {
+			xmlNode *on_recur = xmlNewTextChild(on_root, NULL, (xmlChar*) "RecurrenceRule", NULL);
+			
+			/* Frequency */
+			if(!strcmp(recurType, "Daily")) {
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=DAILY");
+			}
+			else if(!strcmp(recurType, "Weekly")) {
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=WEEKLY");
+				
+				/* Weekdays */
+				char *weekdays = xmlGetProp(icur, "rweekdays");
+				if(weekdays) {
+					int weekdaysnum = atoi(weekdays);
+					if(weekdaysnum > 0) {
+						GString *byday = g_string_new("");
+						g_string_append(byday, "BYDAY=");
+						if(weekdaysnum & 1)
+							g_string_append(byday, "MO,");
+						if(weekdaysnum & 2)
+							g_string_append(byday, "TU,");
+						if(weekdaysnum & 4)
+							g_string_append(byday, "WE,");
+						if(weekdaysnum & 8)
+							g_string_append(byday, "TH,");
+						if(weekdaysnum & 16)
+							g_string_append(byday, "FR,");
+						if(weekdaysnum & 32)
+							g_string_append(byday, "SA,");
+						if(weekdaysnum & 64)
+							g_string_append(byday, "SU,");
+					
+						/* Remove the trailing comma */
+						g_string_truncate(byday, strlen(byday->str) - 1);
+					
+						xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) byday->str);
+						g_string_free(byday, TRUE);
+					}
+					xmlFree(weekdays);
+				}
+			}
+			else if(!strcmp(recurType, "MonthlyDate")) {
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=MONTHLY");
+				if(startdate) {
+					char *bymonthday = g_strdup_printf("BYMONTHDAY=%i", (int)g_date_get_day(startdate));
+					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) bymonthday);
+					g_free(bymonthday);
+				}
+			}
+			else if(!strcmp(recurType, "MonthlyDay")) {
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=MONTHLY");
+				if(startdate) {
+					int weekno;
+					char *weeknostr = xmlGetProp(icur, "rposition");
+					if(weeknostr) {
+						weekno = atoi(weeknostr);
+						xmlFree(weeknostr);
+					}
+					else {
+						weekno = -1;
+					}
+					
+					char *byday = NULL;
+					GDateWeekday weekday = g_date_get_weekday(startdate);
+					switch (weekday) {
+						case G_DATE_MONDAY:
+							byday = g_strdup_printf("BYDAY=%iMO", weekno);
+							break;
+						case G_DATE_TUESDAY:
+							byday = g_strdup_printf("BYDAY=%iTU", weekno);
+							break;
+						case G_DATE_WEDNESDAY:
+							byday = g_strdup_printf("BYDAY=%iWE", weekno);
+							break;
+						case G_DATE_THURSDAY:
+							byday = g_strdup_printf("BYDAY=%iTH", weekno);
+							break;
+						case G_DATE_FRIDAY:
+							byday = g_strdup_printf("BYDAY=%iFR", weekno);
+							break;
+						case G_DATE_SATURDAY:
+							byday = g_strdup_printf("BYDAY=%iSA", weekno);
+							break;
+						case G_DATE_SUNDAY:
+							byday = g_strdup_printf("BYDAY=%iSU", weekno);
+							break;
+						case G_DATE_BAD_WEEKDAY:
+							break;
+					}
+					if(byday) {
+						xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) byday);
+						g_free(byday);
+					}
+				}
+			}
+			else if(!strcmp(recurType, "Yearly")) {
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=YEARLY");
+			}
+
+			/* Interval */
+			char *interval = xmlGetProp(icur, "rfreq");
+			if(interval) {
+				char *intervalstr = g_strdup_printf("INTERVAL=%s", interval);
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*)intervalstr);
+				xmlFree(interval);
+				g_free(intervalstr);
+			}
+			
+			/* End date */
+			char *hasEndDate = xmlGetProp(icur, "rhasenddate");
+			if(hasEndDate) {
+				char *recurendstr = xmlGetProp(icur, "enddt");
+				if(recurendstr) {
+					time_t recurendtime = (time_t)atoi(iprop->children->content);
+					char *recurendvtime = osync_time_unix2vtime(&recurendtime); 
+					char *until = g_strdup_printf("UNTIL=%s", recurendvtime);
+					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) until);
+					g_free(recurendvtime);
+					g_free(until);
+					xmlFree(recurendstr);
+				}
+			}
+			
+			xmlFree(recurType);
+		}
+		
+	}
+
+	*free_input = TRUE;
+	*output = (char *)odoc;
+	*outpsize = sizeof(odoc);
+	
+	xmlFreeDoc(idoc);
+
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)odoc));
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+
+/** Convert OpenSync XML event to Opie XML event 
+ * 
+ **/
+static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	xmlNode *icur;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
+							__func__, user_data, input, inpsize, output, 
+							outpsize, free_input, error);
+
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
+							osxml_write_to_string((xmlDoc *)input));
+	
+	/* Get the root node of the input document */
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, 
+										"Unable to get xml root element");
+		goto error;
+	}
+	
+	if (xmlStrcmp(root->name, (const xmlChar *)"Event")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, 
+										"Wrong xml root element");
+		goto error;
+	}
+
+	/* Create a new output xml document */
+	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *on_event = osxml_node_add_root(odoc, "event");
+	
+	/* Summary */
+	icur = osxml_get_node(root, "Summary");
+	if (icur) {
+		xml_node_to_attr(icur, "Content", on_event, "description");
+	}
+
+	/* Description */
+	icur = osxml_get_node(root, "Description");
+	if (icur) {
+		xml_node_to_attr(icur, "Content", on_event, "note");
+	}
+
+	/* Location */
+	icur = osxml_get_node(root, "Location");
+	if (icur) {
+		xml_node_to_attr(icur, "Content", on_event, "location");
+	}
+
+	/* Creation Date */
+	icur = osxml_get_node(root, "DateCreated");
+	if (icur) {
+		xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "created");
+	}
+	
+	/* Start */
+	icur = osxml_get_node(root, "DateStarted");
+	if (icur) {
+		xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "start");
+	}
+	
+	/* End */
+	icur = osxml_get_node(root, "DateEnd");
+	if (icur) {
+		xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "end");
+	}
+	
+	/* FIXME detect and mark all-day events */
+	
+	/* Recurrence */
+	icur = osxml_get_node(root, "RecurrenceRule");
+	if (icur) {
+		char *enddt = NULL;
+		char *weekdaysrule = NULL;
+		char *rfreq = NULL;
+		int i;
+		
+		enum 
+		{
+			RECUR_TYPE_NONE         = 0,
+			RECUR_TYPE_DAILY        = 1,
+			RECUR_TYPE_WEEKLY       = 2,
+			RECUR_TYPE_MONTHLY_DAY  = 3,
+			RECUR_TYPE_MONTHLY_DATE = 4,
+			RECUR_TYPE_YEARLY       = 5
+		} rectype;
+		rectype = RECUR_TYPE_NONE;
+		
+		/* read recurrence rules */
+		xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)icur, "/Rule" );
+		xmlNodeSet *nodes = xobj->nodesetval;
+		int numnodes = (nodes) ? nodes->nodeNr : 0;
+		for ( i = 0; i < numnodes; i++ ) {
+			icur = nodes->nodeTab[i];
+			char *rulestr = (char*)xmlNodeGetContent(icur);
+			gchar **rule = g_strsplit(rulestr, "=", 1);
+			if (!strcasecmp(rule[0], "FREQ")) {
+				if (!strcasecmp(rule[1], "DAILY")) {
+					rectype = RECUR_TYPE_DAILY;
+				}
+				else if (!strcasecmp(rule[1], "WEEKLY")) {
+					rectype = RECUR_TYPE_WEEKLY;
+				}
+				else if (!strcasecmp(rule[1], "MONTHLY")) {
+					if(rectype != RECUR_TYPE_MONTHLY_DATE)
+						rectype = RECUR_TYPE_MONTHLY_DAY;
+				}
+				else if (!strcasecmp(rule[1], "YEARLY")) {
+					rectype = RECUR_TYPE_YEARLY;
+				}
+			}
+			else if (!strcasecmp(rule[0], "BYDAY")) {
+				weekdaysrule = g_strdup(rule[1]);
+			}
+			else if (!strcasecmp(rule[0], "BYMONTHDAY")) {
+				rectype = RECUR_TYPE_MONTHLY_DATE;
+			}
+			else if (!strcasecmp(rule[0], "INTERVAL")) {
+				rfreq = g_strdup(rule[1]);
+			}
+			else if (!strcasecmp(rule[0], "UNTIL")) {
+				time_t utime = osync_time_vtime2unix(rule[1]);
+				enddt = g_strdup_printf("%d", (int)utime);
+			}
+			xmlFree(rulestr);
+			g_strfreev(rule);
+		}
+		xmlXPathFreeObject(xobj);
+	
+		switch(rectype) {
+			case RECUR_TYPE_NONE:
+				break;
+			case RECUR_TYPE_DAILY:
+				xmlSetProp(on_event, "rtype", "Daily");
+				break;
+			case RECUR_TYPE_WEEKLY:
+				xmlSetProp(on_event, "rtype", "Weekly");
+				break;
+			case RECUR_TYPE_MONTHLY_DAY:
+				xmlSetProp(on_event, "rtype", "MonthlyDay");
+				break;
+			case RECUR_TYPE_MONTHLY_DATE:
+				xmlSetProp(on_event, "rtype", "MonthlyDate");
+				break;
+			case RECUR_TYPE_YEARLY:
+				xmlSetProp(on_event, "rtype", "Yearly");
+				break;
+		}
+		
+		if(weekdaysrule) {
+			if(rectype == RECUR_TYPE_WEEKLY) {
+				/* Weekly recurrence */
+				int weekdays = 0;
+				int i;
+				gchar** weekdaystokens = g_strsplit(weekdaysrule, ",", 7);
+				for (i=0; weekdaystokens[i] != NULL; i++) {
+					if (strstr(weekdaystokens[i], "MO"))
+						weekdays |= 1;
+					else if (strstr(weekdaystokens[i], "TU"))
+						weekdays |= 2;
+					else if (strstr(weekdaystokens[i], "WE"))
+						weekdays |= 4;
+					else if (strstr(weekdaystokens[i], "TH"))
+						weekdays |= 8;
+					else if (strstr(weekdaystokens[i], "FR"))
+						weekdays |= 16;
+					else if (strstr(weekdaystokens[i], "SA"))
+						weekdays |= 32;
+					else if (strstr(weekdaystokens[i], "SU"))
+						weekdays |= 64;
+				}
+				char *rweekdays = g_strdup_printf("%d", weekdays);
+				xmlSetProp(on_event, "rweekdays", rweekdays);
+				g_free(rweekdays);
+			}
+			else {
+				/* MonthlyDate recurrence */
+				int weekno = 0;
+				char *tmp_wday = g_strdup("XX");
+				sscanf(weekdaysrule, "%d%2s", &weekno, tmp_wday);
+				g_free(tmp_wday);
+				char *rposition = g_strdup_printf("%d", weekno);
+				xmlSetProp(on_event, "rposition", rposition);
+				g_free(rposition);
+			}
+			g_free(weekdaysrule);
+		}
+		if(rfreq) {
+			xmlSetProp(on_event, "rfreq", rfreq);
+			g_free(rfreq);
+		}
+		if(enddt) {
+			xmlSetProp(on_event, "rhasenddate", "1");
+			xmlSetProp(on_event, "enddt", enddt);
+			g_free(enddt);
+		}
+		else {
+			xmlSetProp(on_event, "rhasenddate", "0");
+		}
+	}
+	
+	/* UID */
+	icur = osxml_get_node(root, "Uid");
+	if (icur)
+		xml_node_to_attr(icur, "Content", on_event, "uid");
+
+	*free_input = TRUE;
+	*output = xml_node_to_text(odoc, on_event);
+	*outpsize = strlen(*output);
+	
+	xmlFree(odoc);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+
+
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
@@ -881,15 +1410,28 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_destroy_func(env, "opie-xml-contact", destroy_opie_contact);
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "opie-xml-todo");
+	osync_env_register_objtype(env, "event");
+	osync_env_register_objformat(env, "event", "opie-xml-event");
 
 	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-contact", "xml-contact",      conv_opie_xml_contact_to_xml_contact);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact",      "opie-xml-contact", conv_xml_contact_to_opie_xml_contact);
 	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-todo",    "xml-todo",         conv_opie_xml_todo_to_xml_todo);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo",         "opie-xml-todo",    conv_xml_todo_to_opie_xml_todo);
+	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-event",   "xml-event",        conv_opie_xml_event_to_xml_event);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-event",        "opie-xml-event",   conv_xml_event_to_opie_xml_event);
 }
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
 	char *value = osxml_find_node(node_from, nodename);
 	xmlSetProp(node_to, attrname, value);
 	xmlFree(value);
+}
+
+void xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
+	char *vtime = osxml_find_node(node_from, nodename);
+	time_t utime = osync_time_vtime2unix(vtime);
+	char *timestr = g_strdup_printf("%d", (int)utime);
+	xmlSetProp(node_to, attrname, timestr);
+	g_free(timestr);
+	xmlFree(vtime);
 }
