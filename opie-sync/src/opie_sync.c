@@ -308,33 +308,54 @@ static osync_bool opie_sync_contact_commit(OSyncContext *ctx, OSyncChange *chang
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
 	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
-	const char *uid = osync_change_get_uid(change);
-
-	char *change_str = (char *)osync_change_get_data(change);
-	xmlNode *change_node;
-	xmlDoc *change_doc = opie_xml_change_parse(change_str, &change_node);
-	if(!change_doc) {
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to retrieve XML from change");
-		goto error;
+	const char *tagged_uid = osync_change_get_uid(change);
+	
+	xmlNode *change_node = NULL;
+	xmlDoc *change_doc = NULL;
+	char *change_data = (char *)osync_change_get_data(change);
+	if(change_data) {
+		/* Make data into a null-terminated string */
+		char *change_str = g_strndup(change_data, osync_change_get_datasize(change));
+		/* Parse the string as XML */
+		change_doc = opie_xml_change_parse(change_str, &change_node);
+		if(!change_doc) {
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to retrieve XML from change");
+			goto error;
+		}
+		opie_xml_set_tagged_uid(change_node, tagged_uid);
 	}
 	
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
-			/* FIXME handle */
+			if(change_node) {
+				opie_xml_update_node(env->contacts_doc, "Contacts", change_node);
+			}
+			else
+			{
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Change data expected, none passed");
+				goto error;
+			}
 			break;
 		case CHANGE_ADDED:
-			xmlSetProp(change_node, "Uid", uid);
-			opie_xml_add_node(env->contacts_doc, "Contacts", change_node);
+			if(change_node) {
+				opie_xml_add_node(env->contacts_doc, "Contacts", change_node);
+			}
+			else
+			{
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Change data expected, none passed");
+				goto error;
+			}
 			break;
 		case CHANGE_DELETED:
-			/* FIXME handle */
+			opie_xml_remove_by_tagged_uid(env->contacts_doc, "Contacts", "Contact", tagged_uid);
 			break;
 		default:
 			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
 			goto error;
 	}
 	
-	xmlFreeDoc(change_doc);
+	if(change_doc)
+		xmlFreeDoc(change_doc);
 	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -379,10 +400,8 @@ static OSyncChange *opie_sync_contact_change_create(xmlDoc *doc, xmlNode *node, 
 	if (!change)
 		goto error;
 	
-	char *uid = xmlGetProp(node, "Uid");
-	char *full_uid = g_strdup_printf("uid-contact-%s", uid);
+	char *full_uid = opie_xml_get_tagged_uid(node);
 	osync_change_set_uid(change, full_uid);
-	g_free(uid);
 	g_free(full_uid);
 	
 	osync_change_set_objformat_string(change, "opie-xml-contact");
