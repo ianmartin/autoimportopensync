@@ -737,11 +737,11 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 		char *hasDate = xmlGetProp(icur, "HasDate");
 		if(hasDate) { 
 			if(!strcmp(hasDate, "1")) {
-				char *dateday   = xmlGetProp(icur, "DateDay"); 
-				char *datemonth = xmlGetProp(icur, "DateMonth"); 
+				char *dateday   = xmlGetProp(icur, "DateDay");
+				char *datemonth = xmlGetProp(icur, "DateMonth");
 				char *dateyear  = xmlGetProp(icur, "DateYear");
 				if(dateday && datemonth && dateyear) {
-					char *duedate = g_strdup_printf("%s%s%s", dateyear, datemonth, dateday); 
+					char *duedate = g_strdup_printf("%04d%02d%02d", atoi(dateyear), atoi(datemonth), atoi(dateday));
 					on_curr = xmlNewTextChild(on_root, NULL, (xmlChar*)"DateDue", NULL);
 					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)duedate);
 					g_free(duedate);
@@ -1407,7 +1407,7 @@ void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
 	osync_env_register_objformat(env, "contact", "opie-xml-contact");
-	osync_env_format_set_destroy_func(env, "opie-xml-contact", destroy_opie_contact);
+	osync_env_format_set_destroy_func(env, "opie-xml-contact", destroy_opie_contact); /* FIXME do we need this for all types? */
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "opie-xml-todo");
 	osync_env_register_objtype(env, "event");
