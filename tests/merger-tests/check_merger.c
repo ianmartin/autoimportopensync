@@ -1,11 +1,9 @@
 #include "support.h"
 
 #include <opensync/opensync-merger.h>
-#include "opensync/opensync-format.h"
+
 #include "formats/vformats-xml/vformat.c"
 #include "formats/vformats-xml/xmlformat-vcard.c"
-
-VFormat *vcard_new_from_string (const char *str);
 
 START_TEST (merger_setup)
 {
@@ -13,7 +11,8 @@ START_TEST (merger_setup)
 	printf("\n");
 
 	char *buffer;
-	int i, size;
+	int i;
+	unsigned int size;
 	OSyncError *error = NULL;
 	OSyncXMLFormat *xmlformat, *xmlformat_full;
 	OSyncXMLField *cur;
@@ -83,24 +82,12 @@ START_TEST (merger_conv_vcard)
 	system(command);
 	g_free(command);
 	
-	/* the never used functions */
-	if(0){
-		conv_xmlformat_to_vcard(NULL, 0, NULL, 0, NULL, NULL, NULL, 0);
-		compare_contact(NULL, 0, NULL, 0);
-		print_contact(NULL, 0);
-		destroy_contact(NULL, 0);
-		get_revision(NULL, 0, NULL);
-		get_version();
-		get_format_info(NULL);
-		get_conversion_info(NULL);
-	}
-	
 	char *buffer;
-	int size;
+	unsigned int size;
 	OSyncError *error = NULL;
 	OSyncXMLFormat *xmlformat = NULL;
 
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
+	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
 	printf("%s\n\n", buffer);
 	
 	osync_bool booollllllll;
@@ -132,11 +119,11 @@ START_TEST (merger_validate)
 	g_free(command);
 
 	char *buffer;
-	int size;
+	unsigned int size;
 	OSyncError *error = NULL;
 	OSyncXMLFormat *xmlformat;
 
-	fail_unless(osync_file_read("contact.xml", &buffer, &size, &error), NULL);
+	fail_unless(osync_file_read("contact.xml", &buffer, (unsigned int *)(&size), &error), NULL);
 	xmlformat = osync_xmlformat_parse(buffer, size, &error);
 	osync_xmlformat_assemble(xmlformat, &buffer, &size);
 	printf("%s", buffer);

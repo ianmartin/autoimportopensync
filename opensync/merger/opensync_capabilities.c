@@ -116,11 +116,12 @@ OSyncCapabilities *osync_capabilities_new(OSyncError **error)
 	}
 	
 	capabilities->ref_count = 1;
-	capabilities->doc = xmlNewDoc(BAD_CAST "1.0");
-	capabilities->doc->children = xmlNewDocNode(capabilities->doc, NULL, (xmlChar *)"capabilities", NULL);
 	capabilities->first_objtype = NULL;
 	capabilities->last_objtype = NULL;
-		
+	capabilities->doc = xmlNewDoc(BAD_CAST "1.0");
+	capabilities->doc->children = xmlNewDocNode(capabilities->doc, NULL, (xmlChar *)"capabilities", NULL);
+	capabilities->doc->_private = capabilities;
+	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
 	return capabilities;
 }
@@ -134,7 +135,7 @@ OSyncCapabilities *osync_capabilities_new(OSyncError **error)
  */
 OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, buffer);
+	osync_trace(TRACE_ENTRY, "%s(%p, %u, %p)", __func__, buffer, size, error);
 	osync_assert(buffer);
 	
 	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
@@ -142,7 +143,10 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
-	
+
+	capabilities->ref_count = 1;
+	capabilities->first_objtype = NULL;
+	capabilities->last_objtype = NULL;	
 	capabilities->doc = xmlReadMemory(buffer, size, NULL, NULL, XML_PARSE_NOBLANKS);
 	if(capabilities->doc == NULL) {
 		g_free(capabilities);
@@ -150,9 +154,6 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
-	capabilities->ref_count = 1;
-	capabilities->first_objtype = NULL;
-	capabilities->last_objtype = NULL;
 	capabilities->doc->_private = capabilities;
 	
 	xmlNodePtr cur = xmlDocGetRootElement(capabilities->doc);
@@ -214,7 +215,7 @@ void osync_capabilities_unref(OSyncCapabilities *capabilities)
 				capability = tmp2;
 			}				
 			
-			tmp = objtype;
+			tmp = objtype->next;
 			g_free(objtype);
 			objtype = tmp;
 		}

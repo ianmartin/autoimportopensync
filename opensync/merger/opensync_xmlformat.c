@@ -289,12 +289,13 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
  * @return The xml document and the size of it. It's up to the caller to free
  *  the buffer. Always it return TRUE.
  */
-osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, int *size)
+osync_bool osync_xmlformat_assemble(OSyncXMLFormat *xmlformat, char **buffer, unsigned int *size)
 {
 	osync_assert(xmlformat);
 	osync_assert(buffer);
 	osync_assert(size);
-	xmlDocDumpFormatMemoryEnc(xmlformat->doc, (xmlChar **)buffer, size, NULL, 1);
+	
+	xmlDocDumpFormatMemoryEnc(xmlformat->doc, (xmlChar **)buffer, (int *)size, NULL, 1);
 	return TRUE;	
 }
 

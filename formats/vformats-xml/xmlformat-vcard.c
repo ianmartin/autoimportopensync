@@ -146,11 +146,14 @@ static void handle_uislot_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 //	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 //}
 
-static OSyncXMLField *handle_address_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_address_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling address attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Address", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Address", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "PostOfficeBox", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "ExtendedAddress", vformat_attribute_get_nth_value(attr, 1));
 	osync_xmlfield_set_key_value(xmlfield, "Street", vformat_attribute_get_nth_value(attr, 2));
@@ -161,76 +164,100 @@ static OSyncXMLField *handle_address_attribute(OSyncXMLFormat *xmlformat, VForma
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_agent_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
+static OSyncXMLField *handle_agent_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	osync_trace(TRACE_INTERNAL, "Handling agent attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Agent", &error); 
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Agent", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0)); 
 	return xmlfield; 
 } 
 
-static OSyncXMLField *handle_aim_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_aim_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling x-aim attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-AIM", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-AIM", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_anniversary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_anniversary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Anniversary attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Anniversary", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Anniversary", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_assistant_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_assistant_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Assistant attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Assistant", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Assistant", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_birthday_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_birthday_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling birthday attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Birthday", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Birthday", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 //	char * datestamp = osync_time_datestamp(vformat_attribute_get_nth_value(attr, 0));
 //	osync_xmlfield_set_key_value(xmlfield, "Content", datestamp);
 //	free(datestamp);
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_blog_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_blog_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling BlogUrl attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "BlogUrl", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "BlogUrl", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_calendar_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_calendar_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling CalendarUrl attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "CalendarUrl", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "CalendarUrl", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Categories", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -242,126 +269,162 @@ static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFo
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Class", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Class", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_department_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_department_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling department attribute");
-	OSyncError *error = NULL;
 	OSyncXMLField *xmlfield = NULL;
 	
 	//We need to check first if the node already exists.
 	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
-	if(xmlfield == NULL)
-		xmlfield = osync_xmlfield_new(xmlformat, "Organization", &error);
-	
+	if(xmlfield == NULL) {
+		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
+		if(!xmlfield) {
+			osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+			return NULL;
+		}
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_email_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_email_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling EMail attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "EMail", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "EMail", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_file_as_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_file_as_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling FileAs attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FileAs", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FileAs", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_formatted_name_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_formatted_name_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling formatted name attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_free_busy_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_free_busy_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling FreeBusyUrl attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FreeBusyUrl", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FreeBusyUrl", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_gadu_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_gadu_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling gadu attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-GaduGadu", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-GaduGadu", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_groupwise_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_groupwise_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling GroupwiseDirectory attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "GroupwiseDirectory", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "GroupwiseDirectory", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_icq_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_icq_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-ICQ attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-ICQ", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-ICQ", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_irc_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_irc_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IRC attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IRC", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IRC", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_jabber_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_jabber_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Jabber attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-Jabber", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-Jabber", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_kde_organization_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_kde_organization_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
-	OSyncError *error = NULL;
 	OSyncXMLField *xmlfield = NULL;
 
 	//We need to check first if the node already exists.
 	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
-	if(xmlfield == NULL)
-		xmlfield = osync_xmlfield_new(xmlformat, "Organization", &error);
-	
+	if(xmlfield == NULL) {
+		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
+		if(!xmlfield) {
+			osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+			return NULL;
+		}
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1));
 	
@@ -375,75 +438,99 @@ static OSyncXMLField *handle_kde_organization_attribute(OSyncXMLFormat *xmlforma
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_key_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_key_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Key attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Key", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Key", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_label_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_label_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling AddressLabel attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "AddressLabel", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "AddressLabel", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Location attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Location", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Location", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Latitude", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "Longitude", vformat_attribute_get_nth_value(attr, 1));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_logo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_logo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Logo attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Logo", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Logo", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_mailer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_mailer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Mailer attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Mailer", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Mailer", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_manager_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_manager_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Manager attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Manager", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Manager", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_msn_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_msn_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling MSN attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-MSN", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-MSN", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_name_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_name_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling name attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "LastName", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "FirstName", vformat_attribute_get_nth_value(attr, 1));
 	osync_xmlfield_set_key_value(xmlfield, "Additional", vformat_attribute_get_nth_value(attr, 2));
@@ -452,46 +539,59 @@ static OSyncXMLField *handle_name_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_nickname_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_nickname_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Nickname attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Nickname", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Nickname", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_note_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_note_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Note attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Note", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Note", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_office_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_office_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling office attribute");
-	OSyncError *error = NULL;
 	OSyncXMLField *xmlfield = NULL;
 	
 	//We need to check first if the node already exists.
 	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
-	if(xmlfield == NULL)
-		xmlfield = osync_xmlfield_new(xmlformat, "Organization", &error);
+	if(xmlfield == NULL) {
+		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
+		if(!xmlfield) {
+			osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+			return NULL;
+		}	
+	}
 
 	osync_xmlfield_set_key_value(xmlfield, "Unit", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Organization", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1));
 	
@@ -505,112 +605,148 @@ static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, V
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_photo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_photo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling photo attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Photo", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Photo", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_profession_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_profession_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling profession attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Profession", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Profession", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_revision_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_revision_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Revision attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Revision", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Revision", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 //	char *revision = osync_time_timestamp(vformat_attribute_get_nth_value(attr, 0));
 //	osync_xmlfield_set_key_value(xmlfield, "Content", revision);
 //	free(revision);
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_role_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_role_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Role attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Role", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Role", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_sms_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_sms_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling SMS attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "SMS", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "SMS", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_sound_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_sound_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Sound attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Sound", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Sound", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_spouse_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_spouse_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Spouse attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Spouse", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Spouse", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_telephone_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_telephone_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Telephone attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Telephone", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Telephone", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_timezone_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_timezone_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Timezone attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Timezone", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Timezone", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_title_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_title_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Title attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Title", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Title", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_uid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_uid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Uid attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Uid", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Uid", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_unknown_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_unknown_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "UnknownNode", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "UnknownNode", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "NodeName", vformat_attribute_get_name(attr));
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -621,48 +757,63 @@ static OSyncXMLField *handle_unknown_attribute(OSyncXMLFormat *xmlformat, VForma
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Url attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Url", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Url", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_video_chat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_video_chat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling VideoUrl attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "VideoUrl", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "VideoUrl", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_wants_html_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_wants_html_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling WantsHtml attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "WantsHtml", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "WantsHtml", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_x_kde_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_x_kde_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling X-KDE attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "KDE-Extension", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "KDE-Extension", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "ExtName", vformat_attribute_get_name(attr));
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_yahoo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static OSyncXMLField *handle_yahoo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling IM-Yahoo attribute");
-	OSyncError *error = NULL;
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-Yahoo", &error);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "IM-Yahoo", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
 }
@@ -818,9 +969,9 @@ static void vcard_handle_parameter(OSyncHookTables *hooks, OSyncXMLField *xmlfie
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void vcard_handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr)
+static void vcard_handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, xmlformat, attr, attr ? vformat_attribute_get_name(attr) : "None");
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %p)", __func__, hooks, xmlformat, attr, attr ? vformat_attribute_get_name(attr) : "None", error);
 	OSyncXMLField *xmlfield = NULL;
 
 	//Dont add empty stuff
@@ -836,16 +987,16 @@ static void vcard_handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlfo
 has_value:;
 	
 	//We need to find the handler for this attribute
-	OSyncXMLField *(* attr_handler)(OSyncXMLFormat *, VFormatAttribute *) = g_hash_table_lookup(hooks->attributes, vformat_attribute_get_name(attr));
+	OSyncXMLField *(* attr_handler)(OSyncXMLFormat *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(hooks->attributes, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
 		return;
 	}
 	if (attr_handler)
-		xmlfield = attr_handler(xmlformat, attr);
+		xmlfield = attr_handler(xmlformat, attr, error);
 	else
-		xmlfield = handle_unknown_attribute(xmlformat, attr);
+		xmlfield = handle_unknown_attribute(xmlformat, attr, error);
 
 	//Handle all parameters of this attribute
 	GList *params = vformat_attribute_get_params(attr);
@@ -856,6 +1007,61 @@ has_value:;
 	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+
+//static void _generate_formatted_name(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
+//{
+//	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
+//	VFormatAttribute *n = vformat_find_attribute(vcard, "N");
+//	GList *v = vformat_attribute_get_values(n);
+//	GString *fnentry;
+//	fnentry = g_string_new("");
+//
+//	// NAME:LAST;FIRST;ADDITIONAL;PREFIX;SUFFIX
+//	// FN:PREFIX FIRST ADDITIONAL LAST SUFFIX
+//
+//	int order[5] = {3, 1, 2, 0, 4};
+//	int i = 0;
+//	char *str = NULL;
+//	for (i = 0; i < 5; i++) {
+//		if ((str = g_list_nth_data(v, order[i])) && str[0]) {
+//			if (fnentry->len != 0)
+//				g_string_append(fnentry, " ");
+//			g_string_append(fnentry, str);
+//		}
+//	}
+//	
+//	osync_trace(TRACE_INTERNAL, "Handling formattedname attribute");
+////	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+////	osxml_node_add(current, "Content", fnentry->str);
+//OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
+//osync_xmlfield_set_key_value(xmlfield, "Content", fnentry->str);
+//	
+//	g_string_free(fnentry,TRUE);
+//	osync_trace(TRACE_EXIT, "%s", __func__);
+//	return;
+//}
+
+//static void _generate_name_from_fn(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
+//{
+//	/*
+//	 * We copy FN to N:LASTNAME because we don't now how FN was build.
+//	 * e.g. we don't know if FN is "PREFIX FIRST LAST" or "FIRST ADDITIONAL LAST"
+//	 * With copying FN to N we prevent the vcard from being invalid.
+//	 */
+//
+//	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, root);
+//	VFormatAttribute *n = vformat_find_attribute(vcard, "FN");
+//	char *fn = vformat_attribute_get_value(n);
+//
+//	osync_trace(TRACE_INTERNAL, "Handling name attribute");
+////xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+////	osxml_node_add(current, "LastName", fn);
+//OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
+//osync_xmlfield_set_key_value(xmlfield, "LastName", fn);
+//
+//	osync_trace(TRACE_EXIT, "%s", __func__);
+//	return;
+//}
 
 static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
@@ -883,6 +1089,12 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 			else if(strcmp(config_array[i+1], "Evolution") == 0)
 				init_evolution_to_xmlformat(hooks);	
 				
+		}else if(strcmp(config_array[i], "REMOVE_SINGLE_WHITESPACES")) {
+			
+			if(strcmp(config_array[i+1], "TRUE") == 0) {
+				/* TODO: */	
+			}
+			
 		}else if(strcmp(config_array[i], "VCARD_ENCODING")) {
 			
 			if(strcmp(config_array[i+1], "UTF-16") == 0)
@@ -907,8 +1119,18 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
-		vcard_handle_attribute(hooks, xmlformat, attr);
+		vcard_handle_attribute(hooks, xmlformat, attr, error);
 	}
+
+//	//Generate FormattedName from Name if it doesn't exist
+//	if (!vformat_find_attribute(vcard, "FN") && vformat_find_attribute(vcard, "N")) {
+//		_generate_formatted_name(vcard, xmlformat);
+//	}
+//
+//	//Generate Name from FormattedName if it doesn't exist
+//	if (!vformat_find_attribute(vcard, "N") && vformat_find_attribute(vcard, "FN")) {
+//		_generate_name_from_fn(vcard, xmlformat);
+//	}	
 
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
@@ -918,7 +1140,7 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
 	
-	int size;
+	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
@@ -1924,7 +2146,7 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	g_strfreev(config_array);
 
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
-	int size;
+	unsigned int size;
 	char *str;
 	osync_xmlformat_assemble(xmlformat, &str, &size);
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
@@ -2003,14 +2225,16 @@ static osync_bool copy_contact(const char *input, unsigned int inpsize, char **o
 
 static void create_contact(char **data, unsigned int *size)
 {
-OSyncError *error = NULL;
-*data = (char *)osync_xmlformat_new("contact", &error);
+	OSyncError *error = NULL;
+	*data = (char *)osync_xmlformat_new("contact", &error);
+	if (!*data)
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
 static char *print_contact(const char *data, unsigned int size)
 {
 	char *buffer;
-	int i;
+	unsigned int i;
 	if(osync_xmlformat_assemble((OSyncXMLFormat *)data, &buffer, &i) == TRUE)
 		return buffer;
 	else
