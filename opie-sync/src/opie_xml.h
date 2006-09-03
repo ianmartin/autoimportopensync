@@ -29,6 +29,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_comms.h"
 #include "opie_sync.h"
 
+xmlDoc *opie_xml_fd_open(int fd);
 xmlDoc *opie_xml_file_open(const gchar *xml_file);
 xmlNode *opie_xml_get_collection(xmlDoc *doc, const char *listelement);
 xmlNode *opie_xml_get_first(xmlDoc *doc, const char *listelement, const char *itemelement);
@@ -48,5 +49,6 @@ void opie_xml_set_tagged_uid(xmlNode *node, const char *tagged_uid);
 char *opie_xml_get_tagged_uid(xmlNode *node);
 char *opie_xml_get_uid(xmlNode *node);
 void opie_xml_set_uid(xmlNode *node, const char *uid);
-
+int opie_xml_save_to_fd(xmlDoc *doc, int fd);
+		
 #endif

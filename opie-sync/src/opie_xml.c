@@ -33,10 +33,22 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <string.h>
 
 
-xmlDoc *opie_xml_file_open(const gchar *xml_file) {
-	xmlDoc *doc;
+xmlDoc *opie_xml_fd_open(int fd) {
+	xmlDoc *doc = xmlReadFd(fd, "/", NULL, 0);
+	if (!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to parse XML data");
+		goto error;
+	}
+
+	return doc;
 	
-	doc = xmlParseFile(xml_file);
+error:
+	return NULL;
+}
+
+
+xmlDoc *opie_xml_file_open(const gchar *xml_file) {
+	xmlDoc *doc = xmlParseFile(xml_file);
 	if (!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to parse XML file %s", xml_file);
 		goto error;
@@ -55,11 +67,13 @@ xmlNode *opie_xml_get_collection(xmlDoc *doc, const char *listelement) {
 		goto error;
 	}
 	
-	cur = cur->xmlChildrenNode;
-	while (cur != NULL) {
-		if(!strcasecmp(cur->name, listelement))
-			break;
-		cur = cur->next;
+	if(strcasecmp(cur->name, listelement)) {
+		cur = cur->xmlChildrenNode;
+		while (cur != NULL) {
+			if(!strcasecmp(cur->name, listelement))
+				break;
+			cur = cur->next;
+		}
 	}
 
 	if (!cur) {
@@ -285,3 +299,12 @@ void opie_xml_set_uid(xmlNode *node, const char *uid) {
 	xmlSetProp(node, uidattr, uid);
 }
 
+int opie_xml_save_to_fd(xmlDoc *doc, int fd) {
+	ftruncate(fd, 0);
+	xmlOutputBuffer *buf = xmlOutputBufferCreateFd(fd, NULL);
+	/* Prevent the fd from being closed after writing */
+	buf->closecallback = NULL;
+	/* Write the XML */
+	int bytes = xmlSaveFormatFileTo(buf, doc, NULL, 1);
+	return bytes;
+}

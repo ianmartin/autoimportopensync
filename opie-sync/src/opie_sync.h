@@ -59,11 +59,9 @@ struct OpieSyncEnv {
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;
 
-	gchar*            calendar_file;
-	gchar*            contacts_file;
+	xmlDoc*           calendar_doc;
 	xmlDoc*           contacts_doc;
-	gchar*            todos_file;
-	gchar*            categories_file;
+	xmlDoc*           todos_doc;
 
 	OSyncHashTable*   hashtable;
 };
