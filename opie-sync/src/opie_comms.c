@@ -87,6 +87,7 @@ int list_add_temp_file(GList **file_list, const char *remote_file, int bypasstmp
 	fetch_pair *pair = g_malloc(sizeof(fetch_pair));
 	pair->remote_filename = g_strdup(remote_file);
 	if(bypasstmp) {
+		/* Bypass normal temporary file handling (for debugging purposes) */
 		char *basename = g_path_get_basename(remote_file);
 		pair->local_filename = g_strdup_printf("/tmp/%s", basename);
 		g_free(basename);
@@ -293,7 +294,9 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 				OPIE_DEBUG("FTP ok\n");
 			}
 
-			fclose(fd);
+			fflush(fd);
+			free(fd);   /* don't fclose, we still need it */
+			lseek(pair->local_fd, 0, SEEK_SET);
 
 			g_free(ftpurl);
 			curl_easy_cleanup(curl);
@@ -335,6 +338,8 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 			osync_trace(TRACE_EXIT_ERROR, "failed to write contacts to temporary file");
 			goto error;
 		}
+		fsync(contacts_fd);
+		lseek(contacts_fd, 0, SEEK_SET);
 	}
 
 	if(object_types & OPIE_OBJECT_TYPE_TODO) {
@@ -343,6 +348,8 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 			osync_trace(TRACE_EXIT_ERROR, "failed to write todos to temporary file");
 			goto error;
 		}
+		fsync(todos_fd);
+		lseek(todos_fd, 0, SEEK_SET);
 	}
 	
 	if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
@@ -351,11 +358,13 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 			osync_trace(TRACE_EXIT_ERROR, "failed to write events to temporary file");
 			goto error;
 		}
+		fsync(calendar_fd);
+		lseek(calendar_fd, 0, SEEK_SET);
 	}
 
 	/* always fetch the categories file */
 	/*files_to_put = g_list_append(files_to_put, &cat_file); */
-	/* FIXME */   
+	/* FIXME */
 
 	/* check which connection method was requested */
 	switch (env->conn_type)
@@ -472,7 +481,7 @@ gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put)
 				}
 				
 				/* cleanup */
-				fclose(hd_src);
+				free(hd_src);   /* don't fclose, we still need it */
 				curl_easy_cleanup(curl);
 			}
 			else
