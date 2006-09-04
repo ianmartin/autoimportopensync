@@ -11,12 +11,14 @@ import motosync
 DEFAULT_DEVICE = '/dev/rfcomm0'
 
 def parse_args():
-    p = OptionParser(version=motosync.__revision__, description='moto-sync test utility')
+    p = OptionParser(version=motosync.__revision__,
+                     description='moto-sync test utility')
     p.add_option('-d', '--device', dest='device',
-                 help='device used to access phone, defaults to %s' % DEFAULT_DEVICE)
+                 help='device to access phone, defaults to %s' % DEFAULT_DEVICE)
     p.add_option('-v', '--verbose', action='store_true', dest='verbose',
                  help='log phone commands to stdout')
-    p.add_option('-t', '--type', action='append', dest='objtype', choices=motosync.SUPPORTED_OBJTYPES,
+    p.add_option('-t', '--type', action='append', dest='objtype',
+                 choices=motosync.SUPPORTED_OBJTYPES,
                  help='object type to access (defaults to all types)')
     p.add_option('-f', '--file', dest='filename',
                  help='name of backup/restore data file')
@@ -28,15 +30,30 @@ def parse_args():
                  help='restore a backup created with the --backup option')
     p.add_option('--delete', action='store_const', dest='mode', const='delete',
                  help='delete all entries on the phone')
-    p.set_defaults(device=DEFAULT_DEVICE, verbose=False, filename=None, mode=None, objtype=None)
+    p.set_defaults(device=DEFAULT_DEVICE, verbose=False, filename=None,
+                   mode=None, objtype=None)
     options, args = p.parse_args()
     if not options.mode:
-        p.error('one of the list, backup, restore or delete actions must be given')
+        p.error('one of the list, backup, restore, delete actions is required')
     if options.mode in ['backup', 'restore'] and not options.filename:
         p.error('this action requires a --file argument')
     return options
 
+def prompt_user(options):
+    """Prompt the user if they are trying to write to the phone."""
+    if options.mode == 'delete' or options.mode == 'restore':
+        if not motosync.WRITE_ENABLED:
+            print 'WARNING: writes disabled, this will not save/delete anything'
+        else:
+            print ('WARNING: About to %s all %s entries from the phone!'
+                % (options.mode, ' & '.join(options.objtype)))
+        print 'Are you sure? [yn] ',
+        if sys.stdin.read(1).lower() != 'y':
+            print 'Operation aborted'
+            return
+
 def pack_backup(typestr, edata):
+    """pack event data into a single-line string to write to the backup file"""
     strings = []
     for val in edata:
         if type(val) == types.IntType:
@@ -47,6 +64,7 @@ def pack_backup(typestr, edata):
     return ','.join([typestr] + strings) + '\n'
 
 def unpack_backup(line):
+    """reverse the pack_backup function above"""
     if line[-1] == '\n':
         line = line[:-1]
     parts = []
@@ -72,20 +90,11 @@ def unpack_backup(line):
 
 def main():
     options = parse_args()
-    motosync.DEBUG_OUTPUT = options.verbose
     if not options.objtype:
         options.objtype = motosync.SUPPORTED_OBJTYPES
+    motosync.DEBUG_OUTPUT = options.verbose
 
-    if not motosync.WRITE_ENABLED:
-        print 'All phone writes are disabled, this tool will have no effect on the phone.'
-
-    if options.mode == 'delete' or options.mode == 'restore':
-        print 'WARNING: About to %s all %s entries from the phone!' % (options.mode, ' & '.join(options.objtype))
-        print 'Are you sure? [yn] ',
-        if sys.stdin.read(1).lower() != 'y':
-            print 'Operation aborted'
-            return
-
+    prompt_user(options)
     pc = motosync.PhoneComms(options.device)
 
     if options.mode == 'list':
@@ -130,7 +139,7 @@ def main():
             elif typestr == 'C':
                 contacts.append(edata)
             else:
-                raise 'Unexpected type %s' % typestr
+                assert(False, 'Unexpected type %s' % typestr)
         f.close()
 
         if 'event' in options.objtype:
@@ -141,6 +150,5 @@ def main():
                 pc.write_contact(e)
 
 
-# debug code (not used when plugin is loaded by opensync)
 if __name__ == "__main__":
     main()
