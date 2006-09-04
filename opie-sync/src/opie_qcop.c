@@ -358,7 +358,7 @@ void qcop_start_sync(qcop_conn* qconn, void (*cancel_routine)())
   qconn->result = FALSE; /* ..until proven otherwise */
 
    /* first lock the UI */
-  send_allof(qconn, "CALL QPE/System startSync(QString) Multisync\n");
+  send_allof(qconn, "CALL QPE/System startSync(QString) OpenSync\n");
   if(!expect(qconn,"200","Failed to bring up sync screen!"))
     return;
   /* Flush addressbook to storage */   
