@@ -397,12 +397,10 @@ static void opie_sync_disconnect( OSyncContext* ctx)
 		if (!env->qcopconn->result)
 		{
 			osync_trace(TRACE_INTERNAL, env->qcopconn->resultmsg);
-			g_free(env->qcopconn->resultmsg);
 		}
-		qcop_disconnect(env->qcopconn);
-		qcop_freeqconn(env->qcopconn);
+		qcop_disconnect(env->qcopconn); /* frees qcopconn */
 		env->qcopconn = NULL;
-	}	
+	}
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
