@@ -1149,7 +1149,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 			if(hasEndDate) {
 				char *recurendstr = xmlGetProp(icur, "enddt");
 				if(recurendstr) {
-					time_t recurendtime = (time_t)atoi(iprop->children->content);
+					time_t recurendtime = (time_t)atoi(recurendstr);
 					char *recurendvtime = osync_time_unix2vtime(&recurendtime); 
 					char *until = g_strdup_printf("UNTIL=%s", recurendvtime);
 					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) until);
@@ -1176,7 +1176,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 	return TRUE;
 
 error:
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
