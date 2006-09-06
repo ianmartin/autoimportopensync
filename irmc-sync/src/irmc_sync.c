@@ -413,7 +413,7 @@ int *test_connection( void *foo, const char *configuration, void *bar )
 gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **serial_number,
                          gboolean *slowsync, obex_t obexhandle, OSyncError **error)
 {
-  osync_trace(TRACE_ENTRY, "%s(%d, %s, %p, %p)", __func__, changecounter, object, obexhandle, error);
+  osync_trace(TRACE_ENTRY, "%s(%d, %s, %s, %s, %p, %p)", __func__, changecounter, object, *dbid, *serial_number, obexhandle, error);
 
   char *data;
   char *datap;
@@ -421,7 +421,8 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   char serial[256];
   char did[256] = "";
   char *filename;
-  int foo;
+  //int foo;
+  int ret;
 
   data = g_malloc(DATABUFSIZE);
   datap = data;
@@ -431,6 +432,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
 
   memset(data, 0, DATABUFSIZE);
   len = DATABUFSIZE;
+  //FIXME: irmc_obex_get is always true - cstender 2006/09/06
   if (!irmc_obex_get(obexhandle, filename, data, &len, error)) {
     g_free(filename);
     g_free(data);
@@ -441,12 +443,17 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   g_free(filename);
   data[len] = '\0';
 
-  sscanf(datap, "SN:%256s\r\n", serial);
-  if (!*serial_number || strcmp(*serial_number, serial)) {
-    if (*serial_number)
-      g_free(*serial_number);
-    *serial_number = g_strdup(serial);
-    *slowsync = TRUE;
+  // FIXME: workaround for SyncML ready SE cell phones which can't sync
+  // notes over irmc and cause always a slow-sync because of overwriting
+  // the serial number with garbage - cstender 2006/09/06
+  ret = sscanf(datap, "SN:%256s\r\n", serial);
+  if (ret > 0) {
+    if (!*serial_number || strcmp(*serial_number, serial)) {
+      if (*serial_number)
+        g_free(*serial_number);
+      *serial_number = g_strdup(serial);
+      *slowsync = TRUE;
+    }
   }
   datap = strstr(datap, "\r\n");
   if (!datap) {
@@ -471,7 +478,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
     return TRUE;
   }
   datap+=2;
-  sscanf(datap, "Total-Records:%d\r\n", &foo);
+  //sscanf(datap, "Total-Records:%d\r\n", &foo);
   datap = strstr(datap, "\r\n");
   if (!datap) {
     g_free(data);
@@ -479,11 +486,12 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
     return TRUE;
   }
   datap+=2;
-  sscanf(datap, "Maximum-Records:%d\r\n", &foo);
+  //sscanf(datap, "Maximum-Records:%d\r\n", &foo);
   datap = strstr(datap, "\r\n");
 
-  if ( strstr(datap, "*") != NULL )
+  if ( strstr(datap, "*") != NULL ) {
     *slowsync = TRUE;
+  }
 
   g_free(data);
 
@@ -915,7 +923,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
         g_assert(change);
 
         if (objtype == SYNC_OBJECT_TYPE_CALENDAR)
-          osync_change_set_objformat_string(change, "vevent20");
+          osync_change_set_objformat_string(change, "vevent10");
         else if (objtype == SYNC_OBJECT_TYPE_TODO)
           osync_change_set_objformat_string(change, "vtodo20");
 

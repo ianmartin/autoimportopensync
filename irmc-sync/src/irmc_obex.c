@@ -63,6 +63,7 @@ extern gboolean multisync_debug;
 void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gint obex_cmd, gint obex_rsp)
 {
   obexdata_t *userdata;
+  osync_trace(TRACE_INTERNAL, "obex event: %i", event);
 
   userdata = (obexdata_t*) OBEX_GetUserData(handle);
   switch (event)	{
@@ -97,7 +98,7 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
   case OBEX_EV_PARSEERR:
   case OBEX_EV_ABORT:
     userdata->state = IRMC_OBEX_REQFAILED;
-    osync_error_set(userdata->error, OSYNC_ERROR_NO_CONNECTION, NULL);
+    osync_error_set(userdata->error, OSYNC_ERROR_NO_CONNECTION, "Request failed." );
     break;
   default:
     g_print("Unknown event!\n");
@@ -180,6 +181,7 @@ void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
 
   if(obex_rsp != OBEX_RSP_SUCCESS) {
     ud->state = IRMC_OBEX_REQFAILED;
+    osync_error_set(ud->error, OSYNC_ERROR_GENERIC, "OBEX RSP unsuccessful");
     return;
   }
   
@@ -746,6 +748,9 @@ gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OS
     userdata->databuf = buffer;
     userdata->databuflen = buflen;
     userdata->busy = 1;
+    // FIXME: irmc_obex_get will never fail because userdata->error
+    // is not set - cstender 2006-09-06
+    //userdata->error = error;
     OBEX_Request(handle, object);
     userdata->state = IRMC_OBEX_GETTING;
     while ( userdata->busy ) {
