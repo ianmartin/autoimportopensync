@@ -884,7 +884,7 @@ AC_DEFUN([AM_PATH_PYTHON],
   dnl doesn't work.
   AC_CACHE_CHECK([for $am_display_PYTHON script directory],
     [am_cv_python_pythondir],
-    [am_cv_python_pythondir=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib(0,0,prefix='$PYTHON_PREFIX')" 2>/dev/null ||
+    [am_cv_python_pythondir=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_lib(1,0,prefix='$PYTHON_PREFIX')" 2>/dev/null ||
      echo "$PYTHON_PREFIX/lib/python$PYTHON_VERSION/site-packages"`])
   AC_SUBST([pythondir], [$am_cv_python_pythondir])
 
