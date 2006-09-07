@@ -51,6 +51,12 @@ typedef struct {
   int local_fd;
 } fetch_pair;
 
+enum temp_file_type {
+	TT_STANDARD = 1,
+	TT_VISIBLE = 2,
+	TT_DEBUG = 3
+};
+
 const char *OPIE_ADDRESS_FILE  = "Applications/addressbook/addressbook.xml";
 const char *OPIE_TODO_FILE     = "Applications/todolist/todolist.xml";
 const char *OPIE_CALENDAR_FILE = "Applications/datebook/datebook.xml";
@@ -83,10 +89,14 @@ void comms_shutdown()
 	curl_global_cleanup();
 }
 
-int list_add_temp_file(GList **file_list, const char *remote_file, int bypasstmp) {
+
+/*
+ * Set up a temporary file and add it to a list
+ */
+int list_add_temp_file(GList **file_list, const char *remote_file, int tmpfilemode) {
 	fetch_pair *pair = g_malloc(sizeof(fetch_pair));
 	pair->remote_filename = g_strdup(remote_file);
-	if(bypasstmp) {
+	if(tmpfilemode == TT_DEBUG) {
 		/* Bypass normal temporary file handling (for debugging purposes) */
 		char *basename = g_path_get_basename(remote_file);
 		pair->local_filename = g_strdup_printf("/tmp/%s", basename);
@@ -106,18 +116,25 @@ int list_add_temp_file(GList **file_list, const char *remote_file, int bypasstmp
 			return -1;
 		}
 		pair->local_filename = template;
-		if(unlink(template) == -1) {
-			osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
+		if(tmpfilemode != TT_VISIBLE) {
+			if(unlink(template) == -1) {
+				osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
+			}
 		}
 	}
+	
 	*file_list = g_list_append(*file_list, pair);
 	return pair->local_fd; 
 }
 
+
+/*
+ * Free a file list as built by list_add_temp_files 
+ */
 void list_cleanup(GList *file_list) {
 	guint len = g_list_length(file_list);
 	guint t;
-	/* fetch each of the requested files */
+	/* free each of the items in turn */
 	for(t = 0; t < len; ++t)
 	{
 		fetch_pair* pair = g_list_nth_data(file_list, t);
@@ -127,6 +144,23 @@ void list_cleanup(GList *file_list) {
 	g_list_free(file_list);
 }
 
+
+/*
+ * Manually clean up temp files
+ */
+void cleanup_temp_files(GList* file_list) {
+	guint len = g_list_length(file_list);
+	guint t;
+	
+	for(t = 0; t < len; ++t) {
+		fetch_pair* pair = g_list_nth_data(file_list, t);
+		if(unlink(pair->local_filename) == -1) {
+			osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
+		}
+	}
+}
+
+
 /*
  * opie_connect_and_fetch
  */
@@ -135,7 +169,9 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 	int contacts_fd = 0;
 	int todos_fd = 0;
 	int calendar_fd = 0;
+	int categories_fd = 0;
 	gboolean rc = TRUE;
+	int tmpfilemode;
 	
 	/* files to fetch */
 	GList* files_to_fetch = NULL;
@@ -143,20 +179,27 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 	if(!env)
 		return FALSE;
 	
-	int bypasstmp = ( env->conn_type == OPIE_CONN_NONE ); 
-
+	if(env->conn_type == OPIE_CONN_NONE) {
+		tmpfilemode = TT_DEBUG;
+	}
+	else if (env->conn_type == OPIE_CONN_SCP) {
+		tmpfilemode = TT_VISIBLE;
+	}
+	else {
+		tmpfilemode = TT_STANDARD;
+	}
+	
 	if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK)
-		contacts_fd = list_add_temp_file(&files_to_fetch, OPIE_ADDRESS_FILE, bypasstmp);
+		contacts_fd = list_add_temp_file(&files_to_fetch, OPIE_ADDRESS_FILE, tmpfilemode);
 	
 	if(object_types & OPIE_OBJECT_TYPE_TODO)
-		todos_fd = list_add_temp_file(&files_to_fetch, OPIE_TODO_FILE, bypasstmp);
+		todos_fd = list_add_temp_file(&files_to_fetch, OPIE_TODO_FILE, tmpfilemode);
 	
 	if(object_types & OPIE_OBJECT_TYPE_CALENDAR)
-		calendar_fd = list_add_temp_file(&files_to_fetch, OPIE_CALENDAR_FILE, bypasstmp);
+		calendar_fd = list_add_temp_file(&files_to_fetch, OPIE_CALENDAR_FILE, tmpfilemode);
 	
 	/* always fetch the categories file */
-	/*list_add_file(files_to_fetch, OPIE_CATEGORY_FILE);*/
-	/* FIXME */
+	categories_fd = list_add_temp_file(&files_to_fetch, OPIE_CATEGORY_FILE, tmpfilemode);
 
 	/* check which connection method was requested */
 	osync_trace( TRACE_INTERNAL, "conn_type = %d", env->conn_type );
@@ -204,9 +247,13 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 			close(calendar_fd);
 		}
 		
-		/* FIXME */
 		/* parse the categories file */
-		/*env->category_doc = opie_xml_fd_open(category_fd); */
+		env->categories_doc = opie_xml_fd_open(categories_fd);
+		close(categories_fd);
+	
+		if(tmpfilemode == TT_VISIBLE) {
+			cleanup_temp_files(files_to_fetch);
+		}
 	}  
 	
 	list_cleanup(files_to_fetch);
@@ -323,17 +370,27 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	int contacts_fd = 0;
 	int todos_fd = 0;
 	int calendar_fd = 0;
+	int categories_fd = 0;
 	gboolean rc = TRUE;
+	int tmpfilemode;
 
 	/* files to fetch */
 	GList* files_to_put = NULL;
 
 	if ( !env ) return FALSE;
 
-	int bypasstmp = ( env->conn_type == OPIE_CONN_NONE ); 
+	if(env->conn_type == OPIE_CONN_NONE) {
+		tmpfilemode = TT_DEBUG;
+	}
+	else if (env->conn_type == OPIE_CONN_SCP) {
+		tmpfilemode = TT_VISIBLE;
+	}
+	else {
+		tmpfilemode = TT_STANDARD;
+	}
 	
 	if ( object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
-		contacts_fd = list_add_temp_file(&files_to_put, OPIE_ADDRESS_FILE, bypasstmp);
+		contacts_fd = list_add_temp_file(&files_to_put, OPIE_ADDRESS_FILE, tmpfilemode);
 		if(opie_xml_save_to_fd(env->contacts_doc, contacts_fd) == -1) {
 			osync_trace(TRACE_EXIT_ERROR, "failed to write contacts to temporary file");
 			goto error;
@@ -343,7 +400,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 
 	if(object_types & OPIE_OBJECT_TYPE_TODO) {
-		todos_fd = list_add_temp_file(&files_to_put, OPIE_TODO_FILE, bypasstmp);
+		todos_fd = list_add_temp_file(&files_to_put, OPIE_TODO_FILE, tmpfilemode);
 		if(opie_xml_save_to_fd(env->todos_doc, todos_fd) == -1) {
 			osync_trace(TRACE_EXIT_ERROR, "failed to write todos to temporary file");
 			goto error;
@@ -353,7 +410,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 	
 	if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
-		calendar_fd = list_add_temp_file(&files_to_put, OPIE_CALENDAR_FILE, bypasstmp);
+		calendar_fd = list_add_temp_file(&files_to_put, OPIE_CALENDAR_FILE, tmpfilemode);
 		if(opie_xml_save_to_fd(env->calendar_doc, calendar_fd) == -1) {
 			osync_trace(TRACE_EXIT_ERROR, "failed to write events to temporary file");
 			goto error;
@@ -363,8 +420,13 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 
 	/* always fetch the categories file */
-	/*files_to_put = g_list_append(files_to_put, &cat_file); */
-	/* FIXME */
+	categories_fd = list_add_temp_file(&files_to_put, OPIE_CATEGORY_FILE, tmpfilemode);
+	if(opie_xml_save_to_fd(env->categories_doc, categories_fd) == -1) {
+		osync_trace(TRACE_EXIT_ERROR, "failed to write categories to temporary file");
+		goto error;
+	}
+	fsync(categories_fd);
+	lseek(categories_fd, 0, SEEK_SET);
 
 	/* check which connection method was requested */
 	switch (env->conn_type)
@@ -392,12 +454,18 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 			break;
   }
 	
+	if(rc && (tmpfilemode == TT_VISIBLE)) {
+		cleanup_temp_files(files_to_put);
+	}
+	
 	if(contacts_fd)
 		close(contacts_fd);
-	if(todos_fd)	
+	if(todos_fd)
 		close(todos_fd);
-	if(calendar_fd)		
+	if(calendar_fd)
 		close(calendar_fd);
+	if(categories_fd)
+		close(categories_fd);
 	
 	list_cleanup(files_to_put);
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
@@ -533,11 +601,11 @@ gboolean scp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			
 			/* not keeping it quiet for the moment */
 			scpcommand = g_strdup_printf("sftp -o Port=%d -o BatchMode=yes %s@%s:%s %s",
-																	env->device_port,
-																	env->username,
-																	env->url,
-																	pair->remote_filename,
-																	pair->local_filename);
+			                            env->device_port,
+			                            env->username,
+			                            env->url,
+			                            pair->remote_filename,
+			                            pair->local_filename);
 			
 			scpretval = pclose(popen(scpcommand,"w"));
 			
@@ -659,6 +727,5 @@ int opie_curl_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 	size_t written = fwrite(buffer, size, nmemb, (FILE *)stream);
 	return written; 
 }
-
 
 
