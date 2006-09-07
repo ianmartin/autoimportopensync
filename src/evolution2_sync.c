@@ -20,7 +20,24 @@
  
 #include "evolution2_sync.h"
 
-GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
+static void free_env(OSyncEvoEnv *env)
+{
+	if (env->addressbook_path)
+		g_free(env->addressbook_path);
+		
+	if (env->calendar_path)
+		g_free(env->calendar_path);
+		
+	if (env->tasks_path)
+		g_free(env->tasks_path);
+	
+	if (env->change_id)
+		g_free(env->change_id);
+	
+	g_free(env);
+}
+
+GList *evo2_list_calendars(OSyncEvoEnv *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
@@ -52,7 +69,7 @@ GList *evo2_list_calendars(evo_environment *env, void *data, OSyncError **error)
 	return paths;
 }
 
-GList *evo2_list_tasks(evo_environment *env, void *data, OSyncError **error)
+GList *evo2_list_tasks(OSyncEvoEnv *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
@@ -84,7 +101,7 @@ GList *evo2_list_tasks(evo_environment *env, void *data, OSyncError **error)
 	return paths;
 }
 
-GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **error)
+GList *evo2_list_addressbooks(OSyncEvoEnv *env, void *data, OSyncError **error)
 {
 	GList *paths = NULL;
 	ESourceList *sources = NULL;
@@ -115,37 +132,6 @@ GList *evo2_list_addressbooks(evo_environment *env, void *data, OSyncError **err
 	return paths;
 }
 
-static void *evo2_initialize(OSyncMember *member, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "EVO2-SYNC %s(%p, %p)", __func__, member, error);
-	char *configdata = NULL;
-	int configsize = 0;
-	
-	g_type_init();
-	
-	evo_environment *env = g_malloc0(sizeof(evo_environment));
-
-	if (!osync_member_get_config_or_default(member, &configdata, &configsize, error))
-		goto error_free;
-	if (!evo2_parse_settings(env, configdata, configsize)) {
-		g_free(configdata);
-		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Unable to parse plugin configuration for evo2 plugin");
-		goto error_free;
-	}
-	g_free(configdata);
-	env->member = member;
-	OSyncGroup *group = osync_member_get_group(member);
-	env->change_id = g_strdup(osync_group_get_name(group));
-	
-	osync_trace(TRACE_EXIT, "EVO2-SYNC %s: %p", __func__, env);
-	return (void *)env;
-	
-	error_free:
-		g_free(env);
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC %s: %s", __func__, osync_error_print(error));
-		return NULL;
-}
-
 ESource *evo2_find_source(ESourceList *list, char *uri)
 {
 	GSList *g;
@@ -154,6 +140,7 @@ ESource *evo2_find_source(ESourceList *list, char *uri)
 		GSList *s;
 		for (s = e_source_group_peek_sources (group); s; s = s->next) {
 			ESource *source = E_SOURCE (s->data);
+			osync_trace(TRACE_INTERNAL, "Comparing %s and %s", e_source_get_uri(source), uri);
 			if (!strcmp(e_source_get_uri(source), uri))
 				return source;
 		}
@@ -161,157 +148,145 @@ ESource *evo2_find_source(ESourceList *list, char *uri)
 	return NULL;
 }
 
-static void evo2_connect(OSyncContext *ctx)
+/*Load the state from a xml file and return it in the conn struct*/
+static osync_bool evo2_parse_settings(OSyncEvoEnv *env, const char *data, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "EVO2-SYNC: %s(%p)", __func__, ctx);
-	OSyncError *error = NULL;
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-	osync_bool open_any = FALSE;
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+
+	//set defaults
+	env->addressbook_path = NULL;
+	env->calendar_path = NULL;
+	env->tasks_path = NULL;
+
+	doc = xmlParseMemory(data, strlen(data));
+
+	if (!doc) 
+		return FALSE;
 	
-	if (osync_member_objtype_enabled(env->member, "contact") &&  env->addressbook_path && strlen(env->addressbook_path)) {
-		if (evo2_addrbook_open(env, &error))
-			open_any = TRUE;
-		else {
-			osync_trace(TRACE_INTERNAL, "EVO2-SYNC: Error opening addressbook: %s", osync_error_print(&error));
-			osync_context_send_log(ctx, "Unable to open addressbook");
-			osync_error_free(&error);
+
+	cur = xmlDocGetRootElement(doc);
+
+	if (!cur) {
+		xmlFreeDoc(doc);
+		return FALSE;
+	}
+
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
+		xmlFreeDoc(doc);
+		return FALSE;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"address_path")) {
+				env->addressbook_path = g_strdup(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"calendar_path")) {
+				env->calendar_path = g_strdup(str);
+			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"tasks_path")) {
+				env->tasks_path = g_strdup(str);	
+			}
+			xmlFree(str);
 		}
-	}
-	
-	if (osync_member_objtype_enabled(env->member, "event") &&  env->calendar_path && strlen(env->calendar_path)) {
-		if (evo2_calendar_open(env, &error))
-			open_any = TRUE;
-		else {
-			osync_trace(TRACE_INTERNAL, "Error opening calendar: %s", osync_error_print(&error));
-			osync_context_send_log(ctx, "Unable to open calendar");
-			osync_error_free(&error);
-		}
+		cur = cur->next;
 	}
 
-	if (osync_member_objtype_enabled(env->member, "todo") &&  env->tasks_path && strlen(env->tasks_path)) {
-		if (evo2_todo_open(env, &error))
-			open_any = TRUE;
-		else {
-			osync_trace(TRACE_INTERNAL, "Error opening todo: %s", osync_error_print(&error));
-			osync_context_send_log(ctx, "Unable to open todo");
-			osync_error_free(&error);
-		}
-	}
-
-	srand(time(NULL));
-	if (!open_any) {
-		osync_debug("EVO2-SYNC", 0, "Unable to open anything!");
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to open anything");
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s", __func__);
-		return;
-	}
-	
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "EVO2-SYNC: %s", __func__);
+	xmlFreeDoc(doc);
+	return TRUE;
 }
 
-void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, const char *uid, OSyncChangeType type)
+/* In initialize, we get the config for the plugin. Here we also must register
+ * all _possible_ objtype sinks. */
+static void *evo2_initialize(OSyncPluginInfo *info, OSyncError **error)
 {
-	OSyncChange *change = osync_change_new();
-	osync_change_set_uid(change, uid);
-	osync_change_set_objformat_string(change, objformatstr);
-	osync_change_set_changetype(change, type);
-	osync_change_set_data(change, data, datasize, TRUE);
-	osync_context_report_change(ctx, change);
-}
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
-static void evo2_get_changeinfo(OSyncContext *ctx)
-{
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	OSyncEvoEnv *env = osync_try_malloc0(sizeof(OSyncEvoEnv), error);
+	if (!env)
+		goto error;
+		
+	osync_trace(TRACE_INTERNAL, "Setting change id: %s", osync_plugin_info_get_groupname(info));
+	
+	env->change_id = g_strdup(osync_plugin_info_get_groupname(info));
+	
+	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
+	
+	if (!evo2_parse_settings(env, osync_plugin_info_get_config(info), error))
+		goto error_free_env;
+	
+	if (!evo2_ebook_initialize(env, info, error))
+		goto error_free_env;
+	
+	/*if (!evo2_etodo_initialize(env, error))
+		goto error_free_env;
+	
+	if (!evo2_ecal_initialize(env, error))
+		goto error_free_env;*/
 
-	if (env->addressbook)
-		evo2_addrbook_get_changes(ctx);
-	
-	if (env->calendar)
-		evo2_calendar_get_changes(ctx);
-	
-	if (env->tasks)
-		evo2_todo_get_changes(ctx);
-	
-	osync_context_report_success(ctx);
-}
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	return (void *)env;
 
-static void evo2_sync_done(OSyncContext *ctx)
-{
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-
-	GList *changes;
-	
-	if (env->addressbook) {
-		osync_anchor_update(env->member, "contact", env->addressbook_path);
-		e_book_get_changes(env->addressbook, env->change_id, &changes, NULL);
-	}
-	
-	if (env->calendar) {
-		osync_anchor_update(env->member, "event", env->calendar_path);
-		e_cal_get_changes(env->calendar, env->change_id, &changes, NULL);
-	}
-	
-	if (env->tasks) {
-		osync_anchor_update(env->member, "todo", env->tasks_path);
-		e_cal_get_changes(env->tasks, env->change_id, &changes, NULL);
-	}
-	
-	osync_context_report_success(ctx);
-}
-
-static void evo2_disconnect(OSyncContext *ctx)
-{
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
-
-	if (env->addressbook) {
-		g_object_unref(env->addressbook);
-		env->addressbook = NULL;
-	}
-	
-	if (env->tasks) {
-		g_object_unref(env->tasks);
-		env->tasks = NULL;
-	}
-	
-	if (env->calendar) {
-		g_object_unref(env->calendar);
-		env->calendar = NULL;
-	}
-	
-	osync_context_report_success(ctx);
+error_free_env:
+	free_env(env);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 static void evo2_finalize(void *data)
 {
-	osync_debug("EVO2-SYNC", 4, "start: %s", __func__);
-	evo_environment *env = (evo_environment *)data;
-	
-	g_free(env->change_id);
-	g_free(env);
+	OSyncEvoEnv *env = data;
+
+	free_env(env);
 }
 
-void get_info(OSyncEnv *env)
+/* Here we actually tell opensync which sinks are available. For this plugin, we
+ * go through the list of directories and enable all, since all have been configured */
+static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
-	info->name = "evo2-sync";
-	info->longname = "Evolution 2.x";
-	info->description = "Address book, calendar and task list of Evolution 2.x";
-	info->version = 1;
-	info->is_threadsafe = TRUE;
-	info->config_type = OPTIONAL_CONFIGURATION;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
-	info->functions.initialize = evo2_initialize;
-	info->functions.connect = evo2_connect;
-	info->functions.get_changeinfo = evo2_get_changeinfo;
-	info->functions.sync_done = evo2_sync_done;
-	info->functions.disconnect = evo2_disconnect;
-	info->functions.finalize = evo2_finalize;
+	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
+	
+	if (env->addressbook_path)
+		osync_objtype_sink_set_available(env->contact_sink, TRUE);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
 
-	evo2_addrbook_setup(info);
-	evo2_calendar_setup(info);
-	evo2_tasks_setup(info);
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
+{
+	OSyncPlugin *plugin = osync_plugin_new(error);
+	if (!plugin)
+		goto error;
+	
+	osync_plugin_set_name(plugin, "evo2-sync");
+	osync_plugin_set_longname(plugin, "Evolution 2.x");
+	osync_plugin_set_description(plugin, "Address book, calendar and task list of Evolution 2");
+	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_OPTIONAL_CONFIGURATION);
+	
+	osync_plugin_set_initialize(plugin, evo2_initialize);
+	osync_plugin_set_finalize(plugin, evo2_finalize);
+	osync_plugin_set_discover(plugin, evo2_discover);
+	
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
+}
+
+int get_version(void)
+{
+	return 1;
 }

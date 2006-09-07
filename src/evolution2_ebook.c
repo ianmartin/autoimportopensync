@@ -20,69 +20,140 @@
  
 #include "evolution2_sync.h"
 
-osync_bool evo2_addrbook_open(evo_environment *env, OSyncError **error)
+static void evo2_ebook_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
+	OSyncError *error = NULL;
 	GError *gerror = NULL;
 	ESourceList *sources = NULL;
 	ESource *source = NULL;
-
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
+	
 	if (!env->addressbook_path) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "no addressbook path set");
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "no addressbook path set");
+	  	goto error;
 	}
 
 	if (strcmp(env->addressbook_path, "default")) {
-		if (!e_book_get_addressbooks(&sources, NULL)) {
-	  		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error getting addressbooks: %s", gerror ? gerror->message : "None");
-			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-			g_clear_error(&gerror);
-			return FALSE;
+		if (!e_book_get_addressbooks(&sources, &gerror)) {
+	  		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error getting addressbooks: %s", gerror ? gerror->message : "None");
+	  		goto error;
 		}
 		
 		if (!(source = evo2_find_source(sources, env->addressbook_path))) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->addressbook_path);
-			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-			return FALSE;
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Error finding source \"%s\"", env->addressbook_path);
+	  		goto error;
 		}
 		
 		if (!(env->addressbook = e_book_new(source, &gerror))) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new addressbook: %s", gerror ? gerror->message : "None");
-			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-			g_clear_error(&gerror);
-			return FALSE;
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Failed to alloc new addressbook: %s", gerror ? gerror->message : "None");
+	  		goto error;
 		}
 	} else {
 		osync_trace(TRACE_INTERNAL, "Opening default addressbook\n");
 		if (!(env->addressbook = e_book_new_default_addressbook(&gerror))) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
-			osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-			g_clear_error(&gerror);
-			return FALSE;
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
+	  		goto error;
 		}
 	}
 	
+	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	if (!osync_anchor_compare(anchorpath, "contact", env->addressbook_path))
+		osync_objtype_sink_set_slowsync(sink, TRUE);
+	g_free(anchorpath);
+	
 	if (!e_book_open(env->addressbook, TRUE, &gerror)) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to alloc new addressbook: %s", gerror ? gerror->message : "None");
-		g_clear_error(&gerror);
-		g_object_unref(env->addressbook);
-		env->addressbook = NULL;
-		osync_trace(TRACE_EXIT_ERROR, "EVO2-SYNC: %s: %s", __func__, osync_error_print(error));
-		return FALSE;
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, "Failed to alloc new addressbook: %s", gerror ? gerror->message : "None");
+	  	goto error_free_book;
 	}
 	
-	if (!osync_anchor_compare(env->member, "contact", env->addressbook_path))
-		osync_member_set_slow_sync(env->member, "contact", TRUE);
+	osync_context_report_success(ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	return;
+	
+error_free_book:
+		g_object_unref(env->addressbook);
+		env->addressbook = NULL;
+error:
+	if (gerror)
+		g_clear_error(&gerror);
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
-void evo2_addrbook_get_changes(OSyncContext *ctx)
+static void evo2_ebook_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
+	
+	if (env->addressbook) {
+		g_object_unref(env->addressbook);
+		env->addressbook = NULL;
+	}
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void evo2_ebook_sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
+
+	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+	osync_anchor_update(anchorpath, "contact", env->addressbook_path);
+	g_free(anchorpath);
+	
+	
+	GList *changes = NULL;
+	e_book_get_changes(env->addressbook, env->change_id, &changes, NULL);
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+void evo2_report_change(OSyncContext *ctx, OSyncObjFormat *format, char *data, unsigned int size, const char *uid, OSyncChangeType changetype)
+{
+	OSyncError *error = NULL;
+	
+	OSyncChange *change = osync_change_new(&error);
+	if (!change) {
+		osync_context_report_osyncwarning(ctx, error);
+		osync_error_unref(&error);
+		return;
+	}
+	
+	osync_change_set_uid(change, uid);
+	osync_change_set_changetype(change, changetype);
+	
+	OSyncData *odata = osync_data_new(data, size, format, &error);
+	if (!odata) {
+		osync_change_unref(change);
+		osync_context_report_osyncwarning(ctx, error);
+		osync_error_unref(&error);
+		return;
+	}
+	
+	osync_change_set_data(change, odata);
+	osync_data_unref(odata);
+
+	osync_context_report_change(ctx, change);
+	
+	osync_change_unref(change);
+}
+
+static void evo2_ebook_get_changes(void *indata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, indata, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OSyncEvoEnv *env = (OSyncEvoEnv *)indata;
+	OSyncError *error = NULL;
 	
 	GList *changes = NULL;
 	EBookChange *ebc = NULL;
@@ -91,12 +162,13 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 	char *data = NULL;
 	char *uid = NULL;
 	int datasize = 0;
+	GError *gerror = NULL;
 	
-	if (osync_member_get_slow_sync(env->member, "contact") == FALSE) {
+	if (osync_objtype_sink_get_slowsync(sink) == FALSE) {
 		osync_trace(TRACE_INTERNAL, "No slow_sync for contact");
-		if (!e_book_get_changes(env->addressbook, env->change_id, &changes, NULL)) {
-			osync_context_send_log(ctx, "Unable to open changed contacts");
-			return;
+		if (!e_book_get_changes(env->addressbook, env->change_id, &changes, &gerror)) {
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Failed to alloc new default addressbook: %s", gerror ? gerror->message : "None");
+			goto error;
 		}
 		osync_trace(TRACE_INTERNAL, "Found %i changes for change-ID %s", g_list_length(changes), env->change_id);
 		
@@ -109,16 +181,16 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 					vcard = ebc->contact->parent;
 					data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
 					datasize = strlen(data) + 1;
-					evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_ADDED);
+					evo2_report_change(ctx, env->contact_format, data, datasize, uid, OSYNC_CHANGE_TYPE_ADDED);
 					break;
 				case E_BOOK_CHANGE_CARD_MODIFIED:
 					vcard = ebc->contact->parent;
 					data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
 					datasize = strlen(data) + 1;
-					evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_MODIFIED);
+					evo2_report_change(ctx, env->contact_format, data, datasize, uid, OSYNC_CHANGE_TYPE_MODIFIED);
 					break;
 				case E_BOOK_CHANGE_CARD_DELETED:
-					evo2_report_change(ctx, "contact", "vcard30", NULL, 0, uid, CHANGE_DELETED);
+					evo2_report_change(ctx, env->contact_format, NULL, 0, uid, OSYNC_CHANGE_TYPE_DELETED);
 					break;
 			}
 			g_free(uid);
@@ -126,55 +198,70 @@ void evo2_addrbook_get_changes(OSyncContext *ctx)
 	} else {
 		osync_trace(TRACE_INTERNAL, "slow_sync for contact");
 		EBookQuery *query = e_book_query_any_field_contains("");
-		if (!e_book_get_contacts(env->addressbook, query, &changes, NULL)) {
-			osync_context_send_log(ctx, "Unable to open contacts");
-			return;
-		} 
+		if (!e_book_get_contacts(env->addressbook, query, &changes, &gerror)) {
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Failed to get changes from addressbook: %s", gerror ? gerror->message : "None");
+			goto error;
+		}
 		for (l = changes; l; l = l->next) {
 			EContact *contact = E_CONTACT(l->data);
 			vcard = contact->parent;
 			char *data = e_vcard_to_string(&vcard, EVC_FORMAT_VCARD_30);
 			const char *uid = e_contact_get_const(contact, E_CONTACT_UID);
 			int datasize = strlen(data) + 1;
-			evo2_report_change(ctx, "contact", "vcard30", data, datasize, uid, CHANGE_ADDED);
+			evo2_report_change(ctx, env->contact_format, data, datasize, uid, OSYNC_CHANGE_TYPE_ADDED);
 		}
 		e_book_query_unref(query);
 	}
+	
+	osync_context_report_success(ctx);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	if (gerror)
+		g_clear_error(&gerror);
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
-static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
+static void evo2_ebook_modify(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
-	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
+	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
 	
 	const char *uid = osync_change_get_uid(change);
 	EContact *contact = NULL;
 	GError *gerror = NULL;
-	
+	OSyncError *error = NULL;
+	OSyncData *odata = NULL;
+	char *plain = NULL;
 	switch (osync_change_get_changetype(change)) {
-		case CHANGE_DELETED:
-			if (!e_book_remove_contact(env->addressbook, uid, NULL)) {
-				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete contact");
-				osync_trace(TRACE_EXIT_ERROR, "%s: unable to delete contact", __func__);
-				return FALSE;
+		case OSYNC_CHANGE_TYPE_DELETED:
+			if (!e_book_remove_contact(env->addressbook, uid, &gerror)) {
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to delete contact: %s", gerror ? gerror->message : "None");
+				goto error;
 			}
 			break;
-		case CHANGE_ADDED:
-			contact = e_contact_new_from_vcard(osync_change_get_data(change));
+		case OSYNC_CHANGE_TYPE_ADDED:
+			odata = osync_change_get_data(change);
+			osync_data_get_data(odata, &plain, NULL);
+			contact = e_contact_new_from_vcard(plain);
 			e_contact_set(contact, E_CONTACT_UID, NULL);
 			if (e_book_add_contact(env->addressbook, contact, &gerror)) {
 				uid = e_contact_get_const(contact, E_CONTACT_UID);
 				osync_change_set_uid(change, uid);
 			} else {
-				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to add contact");
-				osync_trace(TRACE_EXIT_ERROR, "%s: unable to add contact: %s", __func__, gerror ? gerror->message : "None");
-				return FALSE;
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to add contact: %s", gerror ? gerror->message : "None");
+				goto error;
 			}
 			break;
-		case CHANGE_MODIFIED:
+		case OSYNC_CHANGE_TYPE_MODIFIED:
+			odata = osync_change_get_data(change);
+			osync_data_get_data(odata, &plain, NULL);
 			
-			contact = e_contact_new_from_vcard(osync_change_get_data(change));
+			contact = e_contact_new_from_vcard(plain);
 			e_contact_set(contact, E_CONTACT_UID, g_strdup(uid));
 			
 			osync_trace(TRACE_INTERNAL, "ABout to modify vcard:\n%s", e_vcard_to_string(&(contact->parent), EVC_FORMAT_VCARD_30));
@@ -192,24 +279,52 @@ static osync_bool evo2_addrbook_modify(OSyncContext *ctx, OSyncChange *change)
 					uid = e_contact_get_const(contact, E_CONTACT_UID);
 					osync_change_set_uid(change, uid);
 				} else {
-					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to modify or add contact");
-					osync_trace(TRACE_EXIT_ERROR, "%s: unable to add contact: %s", __func__, gerror ? gerror->message : "None");
-					return FALSE;
+					osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to modify contact: %s", gerror ? gerror->message : "None");
+					goto error;
 				}
 			}
 			break;
 		default:
 			printf("Error\n");
 	}
+	
 	osync_context_report_success(ctx);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	return;
+
+error:
+	if (gerror)
+		g_clear_error(&gerror);
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
-void evo2_addrbook_setup(OSyncPluginInfo *info)
+osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "vcard30", NULL);
-	osync_plugin_set_commit_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
-	osync_plugin_set_access_objformat(info, "contact", "vcard30", evo2_addrbook_modify);
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	env->contact_format = osync_format_env_find_objformat(formatenv, "vcard30");
+	
+	
+	env->contact_sink = osync_objtype_sink_new("contact", error);
+	if (!env->contact_sink)
+		return FALSE;
+	
+	osync_objtype_sink_add_objformat(env->contact_sink, "vcard30");
+	osync_objtype_sink_add_objformat(env->contact_sink, "vcard21");
+	
+	/* All sinks have the same functions of course */
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = evo2_ebook_connect;
+	functions.disconnect = evo2_ebook_disconnect;
+	functions.get_changes = evo2_ebook_get_changes;
+	functions.commit = evo2_ebook_modify;
+	functions.sync_done = evo2_ebook_sync_done;
+	
+	/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
+	 * again once the functions are called */
+	osync_objtype_sink_set_functions(env->contact_sink, functions, NULL);
+	osync_plugin_info_add_objtype(info, env->contact_sink);
 }
