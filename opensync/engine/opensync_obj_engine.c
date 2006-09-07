@@ -52,20 +52,9 @@ OSyncSinkEngine *osync_sink_engine_new(int position, OSyncClientProxy *proxy, OS
 	
 	sinkengine->engine = objengine;
 	
-	OSyncEngine *engine = objengine->parent;
-	OSyncGroup *group = osync_engine_get_group(engine);
-	
-	char *filename = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
-	sinkengine->archive = osync_archive_new(filename, objengine->objtype, error);
-	g_free(filename);
-	if (!sinkengine->archive)
-		goto error_unref;
-	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, sinkengine);
 	return sinkengine;
 	
-error_unref:
-	osync_sink_engine_unref(sinkengine);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
@@ -96,9 +85,6 @@ void osync_sink_engine_unref(OSyncSinkEngine *engine)
 			
 			engine->entries = g_list_remove(engine->entries, engine->entries->data);
 		}
-		
-		if (engine->archive)
-			osync_archive_unref(engine->archive);
 		
 		g_free(engine);
 	}
@@ -1017,7 +1003,6 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 {
 	OSyncMappingEntryEngine *entry_engine = userdata;
 	OSyncObjEngine *engine = entry_engine->objengine;
-	OSyncSinkEngine *sink_engine = entry_engine->sink_engine;
 	OSyncError *locerror = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, proxy, userdata, uid, error);
@@ -1032,12 +1017,14 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 	if (uid)
 		osync_change_set_uid(entry_engine->change, uid);
 	
-	if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
-		osync_archive_delete_change(sink_engine->archive, osync_mapping_entry_get_id(entry), &locerror);
-	} else {
-		osync_archive_save_change(sink_engine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), osync_mapping_get_id(mapping), osync_member_get_id(member), &locerror);
+	if (engine->archive) {
+		if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
+			osync_archive_delete_change(engine->archive, osync_mapping_entry_get_id(entry), &locerror);
+		} else {
+			osync_archive_save_change(engine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), osync_change_get_objtype(entry_engine->change), osync_mapping_get_id(mapping), osync_member_get_id(member), &locerror);
+		}
 	}
-	
+
 	osync_assert(entry_engine->mapping_engine);
 	osync_status_update_change(engine->parent, entry_engine->change, osync_client_proxy_get_member(proxy), entry_engine->mapping_engine->mapping, OSYNC_CHANGE_EVENT_WRITTEN, NULL);
 	osync_entry_engine_update(entry_engine, NULL);
@@ -1143,17 +1130,12 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 	if (!engine->mapping_table)
 		goto error_free_engine;
 	
-	OSyncGroup *group = osync_engine_get_group(parent);
+	engine->archive = osync_engine_get_archive(parent);
 	
-	char *filename = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
-	engine->archive = osync_archive_new(filename, objtype, error);
-	g_free(filename);
-	if (!engine->archive)
-		goto error_free_engine;
-	
-	if (!osync_mapping_table_load(engine->mapping_table, engine->archive, error))
-		goto error_free_engine;
-	
+	if (engine->archive) {
+		if (!osync_mapping_table_load(engine->mapping_table, engine->archive, objtype, error))
+			goto error_free_engine;
+	}
 	osync_trace(TRACE_INTERNAL, "Loaded %i mappings", osync_mapping_table_num_mappings(engine->mapping_table));
 	
 	int num = osync_engine_num_proxies(engine->parent);
@@ -1217,9 +1199,6 @@ void osync_obj_engine_unref(OSyncObjEngine *engine)
 		
 		if (engine->mapping_table)
 			osync_mapping_table_unref(engine->mapping_table);
-		
-		if (engine->archive)
-			osync_archive_unref(engine->archive);
 		
 		g_free(engine);
 	}
@@ -1364,12 +1343,15 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 						OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
 						OSyncMappingEntry *entry = entry_engine->entry;
-						if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
-							if (!osync_archive_delete_change(sinkengine->archive, osync_mapping_entry_get_id(entry), error))
-								goto error;
-						} else {
-							if (!osync_archive_save_change(sinkengine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), osync_mapping_get_id(mapping), osync_member_get_id(member), error))
-								goto error;
+						
+						if (engine->archive) {
+							if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
+								if (!osync_archive_delete_change(engine->archive, osync_mapping_entry_get_id(entry), error))
+									goto error;
+							} else {
+								if (!osync_archive_save_change(engine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), osync_change_get_objtype(entry_engine->change), osync_mapping_get_id(mapping), osync_member_get_id(member), error))
+									goto error;
+							}
 						}
 					}
 				}

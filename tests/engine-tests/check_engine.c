@@ -1,4 +1,5 @@
 #include "support.h"
+#include "engine_support.h"
 
 #include <opensync/opensync-group.h>
 #include <opensync/opensync-data.h>
@@ -77,17 +78,6 @@ START_TEST (engine_init)
 	destroy_testbed(testbed);
 }
 END_TEST
-
-typedef struct OSyncDebugGroup {
-	OSyncGroup *group;
-	OSyncMember *member1;
-	OSyncClient *client1;
-	
-	OSyncMember *member2;
-	OSyncClient *client2;
-	
-	OSyncPlugin *plugin;
-} OSyncDebugGroup;
 
 static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {

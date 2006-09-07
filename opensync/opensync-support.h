@@ -30,8 +30,11 @@ typedef enum {
 	TRACE_EXIT,
 	/** Used for traces inside a function. Does not indent. */
 	TRACE_INTERNAL,
+	/** Used for traces with sensitive content inside a function. Does not indent. */
+	TRACE_SENSITIVE,
 	/** Used when exiting a function with a error. This will unindent the callgraph */
 	TRACE_EXIT_ERROR,
+	/** Used to log a general error. This will not unindent the callgraph */
 	TRACE_ERROR
 } OSyncTraceType;
 

@@ -31,8 +31,9 @@ OSYNC_EXPORT void osync_member_set_pluginname(OSyncMember *member, const char *p
 OSYNC_EXPORT const char *osync_member_get_configdir(OSyncMember *member);
 OSYNC_EXPORT void osync_member_set_configdir(OSyncMember *member, const char *configdir);
 
-const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error);
-const char *osync_member_get_config(OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_member_has_config(OSyncMember *member);
+OSYNC_EXPORT const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error);
+OSYNC_EXPORT const char *osync_member_get_config(OSyncMember *member, OSyncError **error);
 OSYNC_EXPORT void osync_member_set_config(OSyncMember *member, const char *data);
 
 OSYNC_EXPORT osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error);
@@ -51,7 +52,7 @@ OSYNC_EXPORT void osync_member_set_objtype_enabled(OSyncMember *member, const ch
 OSYNC_EXPORT void osync_member_set_start_type(OSyncMember *member, OSyncStartType type);
 OSYNC_EXPORT OSyncStartType osync_member_get_start_type(OSyncMember *member);
 
-const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error);
-void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format);
+OSYNC_EXPORT const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error);
+OSYNC_EXPORT void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format);
 
 #endif /* _OPENSYNC_MEMBER_H_ */

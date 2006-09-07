@@ -137,6 +137,7 @@ void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
 void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
 
 OSyncGroup *osync_engine_get_group(OSyncEngine *engine);
+OSyncArchive *osync_engine_get_archive(OSyncEngine *engine);
 
 osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error);
 osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error);

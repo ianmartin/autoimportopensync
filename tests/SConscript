@@ -14,8 +14,10 @@ if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
 	testenv.Program('xmlformat', ['merger-tests/check_xmlformat.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('client', ['client-tests/check_client.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('proxy', ['client-tests/check_proxy.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
-	testenv.Program('engine', ['engine-tests/check_engine.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	testenv.Program('mapping', ['mapping-tests/check_mapping.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	
+	testenv.Program('engine', ['engine-tests/check_engine.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
+	testenv.Program('engine-error', ['engine-tests/check_engine_error.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	
 	testenv.Program('sync', ['sync-tests/check_sync.c', 'support.c'], LIBS = ['opensync', 'check'], LIBPATH = '#opensync')
 	

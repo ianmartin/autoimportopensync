@@ -208,21 +208,18 @@ void osync_error_update(OSyncError **error, const char *format, ...)
  * @param source The source error which to duplicate
  * 
  */
-void osync_error_duplicate(OSyncError **target, OSyncError **source)
+void osync_error_set_from_error(OSyncError **target, OSyncError **source)
 {
-	if (!target)
+	if (!target || osync_error_is_set(target))
 		return;
-	
-	osync_return_if_fail(osync_error_is_set(source));
 	
 	if (!osync_error_is_set(source)) {
 		*target = NULL;
 		return;
 	}
 	
-	*target = g_malloc0(sizeof(OSyncError));
-	(*target)->message = g_strdup((*source)->message);
-	(*target)->type = (*source)->type;
+	*target = *source;
+	osync_error_ref(target);
 }
 
 /*! @brief Sets the error

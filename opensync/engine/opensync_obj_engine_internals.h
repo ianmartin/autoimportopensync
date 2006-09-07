@@ -25,9 +25,9 @@ struct OSyncObjEngine {
 	int ref_count;
 	OSyncEngine *parent;
 	char *objtype;
+	OSyncArchive *archive;
 	
 	OSyncMappingTable *mapping_table;
-	OSyncArchive *archive;
 	GList *mapping_engines;
 	
 	GList *sink_engines;
@@ -55,7 +55,6 @@ typedef struct OSyncSinkEngine {
 	OSyncObjEngine *engine;
 	GList *entries;
 	GList *unmapped;
-	OSyncArchive *archive;
 } OSyncSinkEngine;
 
 typedef struct OSyncMappingEntryEngine {

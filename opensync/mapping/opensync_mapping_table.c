@@ -76,19 +76,19 @@ void osync_mapping_table_unref(OSyncMappingTable *table)
 	}
 }
 
-osync_bool osync_mapping_table_load(OSyncMappingTable *table, OSyncArchive *archive, OSyncError **error)
+osync_bool osync_mapping_table_load(OSyncMappingTable *table, OSyncArchive *archive, const char *objtype, OSyncError **error)
 {
 	OSyncMappingEntry *entry = NULL;
 	OSyncMapping *mapping = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, table, archive, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, table, archive, objtype, error);
 	
 	OSyncList *uids = NULL;
 	OSyncList *ids = NULL;
 	OSyncList *mappings = NULL;
 	OSyncList *memberids = NULL;
 
-	if (!osync_archive_load_changes(archive, &ids, &uids, &mappings, &memberids, error))
+	if (!osync_archive_load_changes(archive, objtype, &ids, &uids, &mappings, &memberids, error))
 		goto error;
 	
 	OSyncList *d = ids;

@@ -39,7 +39,7 @@ static void dump_map(OSyncGroupEnv *env, const char *objtype, const char *groupn
 	}
 	
 	char *path = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
-	OSyncArchive *archive = osync_archive_new(path, objtype, &error);
+	OSyncArchive *archive = osync_archive_new(path, &error);
 	if (!archive)
 		goto error;
 	g_free(path);
@@ -49,7 +49,7 @@ static void dump_map(OSyncGroupEnv *env, const char *objtype, const char *groupn
 	OSyncList *mappingids = NULL;
 	OSyncList *memberids = NULL;
 	
-	if (!osync_archive_load_changes(archive, &ids, &uids, &mappingids, &memberids, &error))
+	if (!osync_archive_load_changes(archive, objtype, &ids, &uids, &mappingids, &memberids, &error))
 		goto error;
 	
 	OSyncList *d = ids;

@@ -7,6 +7,7 @@ opensync_list.c
 opensync_error.c
 opensync_context.c
 opensync_support.c
+opensync_time.c
 helper/opensync_hashtable.c
 helper/opensync_anchor.c
 module/opensync_module.c
@@ -60,6 +61,8 @@ opensync-plugin.h
 opensync-support.h
 opensync-client.h
 opensync-merger.h
+opensync-time.h
+opensync-serializer.h
 """
 
 plugin_headers = """

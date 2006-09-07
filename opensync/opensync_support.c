@@ -98,6 +98,8 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	if (!trace)
 		return;
 	
+	const char *sensitive = g_getenv("OSYNC_PRIVACY");
+	
 	if (!g_file_test(trace, G_FILE_TEST_IS_DIR)) {
 		printf("OSYNC_TRACE argument is no directory\n");
 		return;
@@ -143,6 +145,12 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 			break;
 		case TRACE_INTERNAL:
 			logmessage = g_strdup_printf("[%li.%li]\t%s%s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			break;
+		case TRACE_SENSITIVE:
+			if (!sensitive)
+				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE] %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);
+			else
+				logmessage = g_strdup_printf("[%li.%li]\t%s[SENSITIVE CONTENT HIDDEN]%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, endline);
 			break;
 		case TRACE_EXIT:
 			logmessage = g_strdup_printf("[%li.%li]%s<<<<<<<  %s%s", curtime.tv_sec, curtime.tv_usec, tabstr->str, buffer, endline);

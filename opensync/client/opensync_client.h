@@ -32,6 +32,7 @@ void osync_client_run_and_block(OSyncClient *client);
 osync_bool osync_client_run(OSyncClient *client, OSyncError **error);
 void osync_client_shutdown(OSyncClient *client);
 void osync_client_error_shutdown(OSyncClient *client, OSyncError *error);
+void osync_client_disconnect(OSyncClient *client);
 
 osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error);
 

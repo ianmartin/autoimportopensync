@@ -155,8 +155,23 @@ START_TEST (error_duplicate_null)
 {
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_GENERIC, "asd");
-	osync_error_duplicate(NULL, &error);
+	osync_error_set_from_error(NULL, &error);
 	osync_error_unref(&error);
+}
+END_TEST
+
+
+START_TEST (error_duplicate)
+{
+	OSyncError *error = NULL;
+	OSyncError *error2 = NULL;
+	osync_error_set(&error, OSYNC_ERROR_GENERIC, "asd");
+	osync_error_set_from_error(&error2, &error);
+	
+	fail_unless(error2 != NULL, NULL);
+	
+	osync_error_unref(&error);
+	osync_error_unref(&error2);
 }
 END_TEST
 
@@ -184,6 +199,7 @@ Suite *error_suite(void)
 	create_case(s, "error_set_null", error_set_null);
 	create_case(s, "error_set_null2", error_set_null2);
 	create_case(s, "error_duplicate_null", error_duplicate_null);
+	create_case(s, "error_duplicate", error_duplicate);
 	
 	return s;
 }

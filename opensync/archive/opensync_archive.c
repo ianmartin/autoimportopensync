@@ -1,6 +1,5 @@
 /*
  * libopensync - A synchronization framework
- * Copyright (C) 2006  NetNix Finland Ltd <netnix@netnix.fi>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
@@ -53,12 +52,7 @@ char *_osync_archive_sql_escape(const char *s)
  */
 /*@{*/
 
-/**
- * @brief Creates a new archive object
- * @param
- * @return The pointer to the newly allocated archive object or NULL in case of error
- */
-OSyncArchive *osync_archive_new(const char *filename, const char *objtype, OSyncError **error)
+OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
 	
@@ -74,8 +68,6 @@ OSyncArchive *osync_archive_new(const char *filename, const char *objtype, OSync
 	}
 	sqlite3_trace(archive->db, _osync_archive_trace, NULL);
 	
-	archive->tablename = g_strdup_printf("tbl_changes_%s", objtype);
-	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, archive);
 	return archive;
 
@@ -86,10 +78,6 @@ error:
 	return NULL;
 }
 
-/**
- * @brief Increments the reference counter
- * @param archive The pointer to a archive object
- */
 void osync_archive_ref(OSyncArchive *archive)
 {
 	osync_assert(archive);
@@ -97,11 +85,6 @@ void osync_archive_ref(OSyncArchive *archive)
 	g_atomic_int_inc(&(archive->ref_count));
 }
 
-/**
- * @brief Decrement the reference counter. The archive object will 
- *  be freed if there is no more reference to it.
- * @param archive The pointer to a archive object
- */
 void osync_archive_unref(OSyncArchive *archive)
 {
 	osync_assert(archive);
@@ -114,9 +97,6 @@ void osync_archive_unref(OSyncArchive *archive)
 			if (ret)
 				osync_trace(TRACE_INTERNAL, "Can't close database: %s", sqlite3_errmsg(archive->db));
 		}
-		
-		if (archive->tablename)
-			g_free(archive->tablename);
 		
 		g_free(archive);
 		
@@ -134,18 +114,18 @@ osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, const
 	return TRUE;
 }
 
-long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, long long int mappingid, long long int memberid, OSyncError **error)
+long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error)
 {
 	char *query = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %lli, %lli, %p)", __func__, archive, id, uid, mappingid, memberid, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %s, %lli, %lli, %p)", __func__, archive, id, uid, objtype, mappingid, memberid, error);
 	osync_assert(archive);
 	
 	char *escaped_uid = _osync_archive_sql_escape(uid);
 	if (!id) {
-		query = g_strdup_printf("INSERT INTO %s (uid, memberid, mappingid) VALUES('%s', '%lli', '%lli')", archive->tablename, escaped_uid, memberid, mappingid);
+		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, memberid, mappingid) VALUES('%s', '%s', '%lli', '%lli')", escaped_uid, objtype, memberid, mappingid);
 	} else {
-		query = g_strdup_printf("UPDATE %s SET uid='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", archive->tablename, escaped_uid, memberid, mappingid, id);
+		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", escaped_uid, objtype, memberid, mappingid, id);
 	}
 	g_free(escaped_uid);
 	
@@ -167,20 +147,36 @@ error:
 	return 0;
 }
 
-osync_bool osync_archive_load_changes(OSyncArchive *archive, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
+osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p, %p)", __func__, archive, ids, uids, mappingids, memberids, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %p)", __func__, archive, id, error);
+	osync_assert(archive);
 	
-	char *query = g_strdup_printf("CREATE TABLE %s (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, format VARCHAR, memberid INTEGER, mappingid INTEGER)", archive->tablename);
-	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable create changes table! %s", sqlite3_errmsg(archive->db));
+	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE id=%lli", id);
+	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK) {
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to delete change! %s", sqlite3_errmsg(archive->db));
+		g_free(query);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
 	g_free(query);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p, %p, %p)", __func__, archive, objtype, ids, uids, mappingids, memberids, error);
+	
+	if (sqlite3_exec(archive->db, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
+		osync_trace(TRACE_INTERNAL, "Unable create changes table! %s", sqlite3_errmsg(archive->db));
 	
 	sqlite3_stmt *ppStmt = NULL;
-	query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM %s ORDER BY mappingid", archive->tablename);
+	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", objtype);
 	sqlite3_prepare(archive->db, query, -1, &ppStmt, NULL);
 	g_free(query);
-
+	
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		long long int id = sqlite3_column_int64(ppStmt, 0);
 		const char *uid = (const char *)sqlite3_column_text(ppStmt, 1);
@@ -200,22 +196,37 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, OSyncList **ids, OS
 	return TRUE;
 }
 
-osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
+char *osync_archive_get_objtype(OSyncArchive *archive, const char *uid, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %p)", __func__, archive, id, error);
-	osync_assert(archive);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, uid, error);
 	
-	char *query = g_strdup_printf("DELETE FROM %s WHERE id=%lli", archive->tablename, id);
-	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK) {
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to delete change! %s", sqlite3_errmsg(archive->db));
-		g_free(query);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
+	sqlite3_stmt *ppStmt = NULL;
+	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE uid='%s'", uid);
+	sqlite3_prepare(archive->db, query, -1, &ppStmt, NULL);
 	g_free(query);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	if (sqlite3_step(ppStmt) != SQLITE_ROW) {
+		osync_trace(TRACE_EXIT, "%s: uid not found", __func__);
+		return NULL;
+	}
+	
+	char *objtype = g_strdup((const char *)sqlite3_column_text(ppStmt, 0));
+	
+	if (sqlite3_step(ppStmt) == SQLITE_ROW) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Returned more than one result for a uid");
+		goto error;
+	}
+	
+	sqlite3_finalize(ppStmt);
+	
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, objtype);
+	return objtype;
+	
+error:
+	g_free(objtype);
+	sqlite3_finalize(ppStmt);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 /*@}*/

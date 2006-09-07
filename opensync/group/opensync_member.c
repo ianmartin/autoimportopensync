@@ -222,6 +222,12 @@ error_free_filename:
 	return NULL;
 }
 
+osync_bool osync_member_has_config(OSyncMember *member)
+{
+	osync_assert(member);
+	return member->configdata ? TRUE : FALSE;
+}
+
 /** @brief Gets the configuration data of this member
  * 
  * The config file is read in this order:

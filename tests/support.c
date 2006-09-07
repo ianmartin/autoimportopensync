@@ -137,11 +137,11 @@ OSyncMappingTable *mappingtable_load(const char *path, const char *objtype, int 
 	fail_unless(table != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	OSyncArchive *archive = osync_archive_new(path, objtype, &error);
+	OSyncArchive *archive = osync_archive_new(path, &error);
 	fail_unless(archive != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_mapping_table_load(table, archive, &error), NULL);
+	fail_unless(osync_mapping_table_load(table, archive, objtype, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
 	osync_archive_unref(archive);

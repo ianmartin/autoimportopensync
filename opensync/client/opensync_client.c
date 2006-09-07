@@ -465,22 +465,32 @@ static osync_bool _osync_client_handle_finalize(OSyncClient *client, OSyncMessag
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 	
-	osync_plugin_finalize(client->plugin, client->plugin_data);
-	
-	osync_plugin_unref(client->plugin);
-	client->plugin = NULL;
+	if (client->plugin) {
+		if (client->plugin_data)
+			osync_plugin_finalize(client->plugin, client->plugin_data);
+		
+		osync_plugin_unref(client->plugin);
+		client->plugin = NULL;
+	}
 	
 	if (client->plugin_env) {
 		osync_plugin_env_free(client->plugin_env);
 		client->plugin_env = NULL;
 	}
 	
-	osync_plugin_info_unref(client->plugin_info);
-	client->plugin_info = NULL;
+	if (client->plugin_info) {
+		osync_plugin_info_unref(client->plugin_info);
+		client->plugin_info = NULL;
+	}
 	
 	if (client->format_env) {
 		osync_format_env_free(client->format_env);
 		client->format_env = NULL;
+	}
+	
+	if (!client->outgoing) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No outgoing queue yet");
+		goto error;
 	}
 	
 	OSyncMessage *reply = osync_message_new_reply(message, NULL);
@@ -968,6 +978,14 @@ static void _osync_client_message_handler(OSyncMessage *message, void *user_data
 	return;
 
 error:;
+	if (!client->outgoing) {
+		client->thread = NULL;
+		osync_client_shutdown(client);
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to notify parent. no outgoing queue: %s", __func__, osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+
 	OSyncError *locerror = NULL;
 	OSyncMessage *errorreply = osync_message_new_errorreply(message, error, &locerror);
 	if (!errorreply) {
@@ -1164,7 +1182,7 @@ error:
 	return FALSE;
 }
 
-static gboolean osyncClientStopCallback(gpointer data)
+static gboolean osyncClientDisconnectCallback(gpointer data)
 {
 	OSyncClient *client = data;
 	
@@ -1173,30 +1191,43 @@ static gboolean osyncClientStopCallback(gpointer data)
 	 * all data is read. Only the listener should disconnect a pipe! */
 	osync_queue_disconnect(client->incoming, NULL);
 
-	/* We now wait until the other side disconnect our outgoing queue */
-	while (osync_queue_is_connected(client->outgoing)) { usleep(100); }
+	if (client->outgoing) {
+		/* We now wait until the other side disconnect our outgoing queue */
+		while (osync_queue_is_connected(client->outgoing)) { usleep(100); }
+		
+		/* Now we can safely disconnect our outgoing queue */
+		osync_queue_disconnect(client->outgoing, NULL);
+	}
 	
-	/* Now we can safely disconnect our outgoing queue */
-	osync_queue_disconnect(client->outgoing, NULL);
-
-	/* now we can quit the main loop */
-	g_main_loop_quit(client->syncloop);
 	return FALSE;
+}
+
+void osync_client_disconnect(OSyncClient *client)
+{
+	GSource *source = NULL;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
+	
+	source = g_idle_source_new();
+	g_source_set_callback(source, osyncClientDisconnectCallback, client, NULL);
+	g_source_attach(source, client->context);
+	
+	g_source_unref(source);
+			
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void osync_client_shutdown(OSyncClient *client)
 {
-	GSource *source = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, client);
 	osync_assert(client);
 	
+	osync_client_disconnect(client);
+			
 	if (client->syncloop) {
 		if (g_main_loop_is_running(client->syncloop)) {
-			source = g_idle_source_new();
-			g_source_set_callback(source, osyncClientStopCallback, client, NULL);
-			g_source_attach(source, client->context);
-			
-			g_source_unref(source);
+
+			/* now we can quit the main loop */
+			g_main_loop_quit(client->syncloop);
 		}
 		
 		g_main_loop_unref(client->syncloop);

@@ -2765,6 +2765,8 @@ Suite *env_suite(void)
 	create_case(s, "sync_detect_obj", sync_detect_obj);
 	create_case(s, "sync_detect_obj2", sync_detect_obj2);
 	
+	//stateless sync
+	
 	return s;
 }
 

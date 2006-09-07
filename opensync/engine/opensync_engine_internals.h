@@ -40,6 +40,7 @@ struct OSyncEngine {
 	int ref_count;
 	/** The opensync group **/
 	OSyncGroup *group;
+	OSyncArchive *archive;
 	
 	char *engine_path;
 	char *plugin_dir;

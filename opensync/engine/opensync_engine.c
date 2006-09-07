@@ -27,6 +27,7 @@
 #include "opensync-format.h"
 #include "opensync-data.h"
 #include "opensync-plugin.h"
+#include "opensync-archive.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_engine_internals.h"
@@ -73,10 +74,27 @@ static int mkdir_with_parents(const char *dir, int mode)
 	return r;
 }
 
+static void osync_engine_set_error(OSyncEngine *engine, OSyncError *error)
+{
+	osync_assert(engine);
+	if (engine->error) {
+		osync_trace(TRACE_ERROR, "Not overwriting error");
+		return;
+	}
+	
+	engine->error = error;
+	if (error)
+		osync_error_ref(&error);
+}
+
 static void _finalize_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	OSyncEngine *engine = userdata;
+	
+	if (error) {
+		osync_engine_set_error(engine, error);
+	}
 	
 	engine->busy = FALSE;
 	
@@ -122,15 +140,32 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(proxy)));
 	
 	OSyncData *data = osync_change_get_data(change);
-		
+	
+	/* First, check if we already know this change. This should be the case,
+	 * if the change is modified or deleted, and not the case if it is added */
+	if (engine->archive) {
+		char *knownObjType = osync_archive_get_objtype(engine->archive, osync_change_get_uid(change), &error);
+		if (osync_error_is_set(&error))
+			goto error;
+	
+		/* We update the object type with the stored object type. This is needed, since
+		 * a deleted change does not carry any information from which we could detect
+		 * the objtype. Therefore we would not be able to add the change to the correct
+		 * obj engine */
+		if (knownObjType) {
+			osync_trace(TRACE_INTERNAL, "Setting loaded objtype %s", knownObjType);
+			osync_change_set_objtype(change, knownObjType);
+		}
+	}
+	
 	/* If objtype == "data", detect the objtype */
-	if (osync_change_ osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
+	if (!strcmp(osync_change_get_objtype(change), "data") && osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
 		OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
 		if (!detectedFormat)
 			goto error;
 		
 		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), osync_objformat_get_objtype(detectedFormat));
-		osync_change_set_objtype(
+		osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
 	}
 	
 	/* Convert the format to the internal format */
@@ -314,6 +349,16 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 
 	engine->command_queue = g_async_queue_new();
 
+	if (!osync_group_get_configdir(group)) {
+		osync_trace(TRACE_INTERNAL, "No config dir found. Making stateless sync");
+	} else {
+		char *filename = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
+		engine->archive = osync_archive_new(filename, error);
+		g_free(filename);
+		if (!engine->archive)
+			goto error_free_engine;
+	}
+	
 	/* Now we attach a queue to the engine which handles our commands */
 	engine->command_functions = g_malloc0(sizeof(GSourceFuncs));
 	engine->command_functions->prepare = _command_prepare;
@@ -408,6 +453,9 @@ void osync_engine_unref(OSyncEngine *engine)
 		if (engine->command_functions)
 			g_free(engine->command_functions);
 	
+		if (engine->archive)
+			osync_archive_unref(engine->archive);
+		
 		g_free(engine);
 	}
 }
@@ -424,6 +472,12 @@ OSyncGroup *osync_engine_get_group(OSyncEngine *engine)
 {
 	osync_assert(engine);
 	return engine->group;
+}
+
+OSyncArchive *osync_engine_get_archive(OSyncEngine *engine)
+{
+	osync_assert(engine);
+	return engine->archive;
 }
 
 void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir)
@@ -474,15 +528,16 @@ static osync_bool _osync_engine_finalize_member(OSyncEngine *engine, OSyncClient
 		goto error;
 	
 	//FIXME
-	while (engine->busy) { usleep(100); }
+	unsigned int i = 2000;
+	while (engine->busy && i > 0) { usleep(1000); g_main_context_iteration(engine->context, FALSE); i--; }
 	osync_trace(TRACE_INTERNAL, "Done waiting");
 	
 	if (!osync_client_proxy_shutdown(proxy, error))
 		goto error;
 	
-	osync_client_proxy_unref(proxy);
-	
 	engine->proxies = g_list_remove(engine->proxies, proxy);
+	
+	osync_client_proxy_unref(proxy);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -498,6 +553,34 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, member, error);
 	
+	/* If we dont have a config we have to ask the plugin if it needs a config */
+	if (!osync_member_has_config(member)) {
+		OSyncPlugin *plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
+		if (!plugin) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", osync_member_get_pluginname(member));
+			goto error;
+		}
+		
+		switch (osync_plugin_get_config_type(plugin)) {
+			case OSYNC_PLUGIN_NO_CONFIGURATION:
+				break;
+			case OSYNC_PLUGIN_OPTIONAL_CONFIGURATION:
+				config = osync_member_get_config_or_default(member, error);
+				if (!config)
+					goto error;
+				break;
+			case OSYNC_PLUGIN_NEEDS_CONFIGURATION:
+				config = osync_member_get_config(member, error);
+				if (!config)
+					goto error;
+				break;
+		}
+	} else {
+		config = osync_member_get_config(member, error);
+		if (!config)
+			goto error;
+	}
+	
 	OSyncClientProxy *proxy = osync_client_proxy_new(engine->formatenv, member, error);
 	if (!proxy)
 		goto error;
@@ -507,42 +590,31 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 
 	if (!osync_client_proxy_spawn(proxy, osync_member_get_start_type(member), osync_member_get_configdir(member), error))
 		goto error_free_proxy;
+	
 	engine->busy = TRUE;
 	
-	OSyncPlugin *plugin = osync_plugin_env_find_plugin(engine->pluginenv, osync_member_get_pluginname(member));
-	if (!plugin) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plugin %s", osync_member_get_pluginname(member));
-		goto error_finalize;
-	}
-	
-	switch (osync_plugin_get_config_type(plugin)) {
-		case OSYNC_PLUGIN_NO_CONFIGURATION:
-			break;
-		case OSYNC_PLUGIN_OPTIONAL_CONFIGURATION:
-			config = osync_member_get_config_or_default(member, error);
-			if (!config)
-				goto error_finalize;
-			break;
-		case OSYNC_PLUGIN_NEEDS_CONFIGURATION:
-			config = osync_member_get_config(member, error);
-			if (!config)
-				goto error_finalize;
-			break;
-	}
-	
 	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, error))
-		goto error_finalize;
+		goto error_shutdown;
 	
 	//FIXME
 	while (engine->busy) { usleep(100); }
-		
+	
 	engine->proxies = g_list_append(engine->proxies, proxy);
+	
+	if (engine->error) {
+		_osync_engine_finalize_member(engine, proxy, NULL);
+		osync_error_set_from_error(error, &(engine->error));
+		osync_error_unref(&(engine->error));
+		engine->error = NULL;
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return NULL;
+	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return proxy;
 	
-error_finalize:
-	_osync_engine_finalize_member(engine, proxy, NULL);
+error_shutdown:
+	osync_client_proxy_shutdown(proxy, NULL);
 error_free_proxy:
 	osync_client_proxy_unref(proxy);
 error:
@@ -564,6 +636,11 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	if (osync_group_num_members(group) < 2) {
 		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
+		goto error;
+	}
+	
+	if (osync_group_num_objtypes(engine->group) == 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
 		goto error;
 	}
 	
@@ -1211,7 +1288,9 @@ osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **
 	g_mutex_unlock(engine->syncing_mutex);
 	
 	if (engine->error) {
-		osync_error_duplicate(error, &(engine->error));
+		osync_error_set_from_error(error, &(engine->error));
+		osync_error_unref(&(engine->error));
+		engine->error = NULL;
 		goto error;
 	}
 	
@@ -1240,7 +1319,9 @@ osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error)
 	g_mutex_unlock(engine->syncing_mutex);
 	
 	if (engine->error) {
-		osync_error_duplicate(error, &(engine->error));
+		osync_error_set_from_error(error, &(engine->error));
+		osync_error_unref(&(engine->error));
+		engine->error = NULL;
 		return FALSE;
 	}
 	return TRUE;
@@ -1309,7 +1390,9 @@ osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *mem
 		goto error;
 	
 	if (engine->error) {
-		osync_error_duplicate(error, &(engine->error));
+		osync_error_set_from_error(error, &(engine->error));
+		osync_error_unref(&(engine->error));
+		engine->error = NULL;
 		goto error;
 	}
 	
