@@ -308,3 +308,144 @@ int opie_xml_save_to_fd(xmlDoc *doc, int fd) {
 	int bytes = xmlSaveFormatFileTo(buf, doc, NULL, 1);
 	return bytes;
 }
+
+char *opie_xml_category_name_to_id(xmlNode *categories_node, const char *name) {
+	xmlNode *category_node = categories_node->xmlChildrenNode;
+	int count = 0;
+	
+	while(category_node && strcmp("Category", category_node->name))
+		category_node = category_node->next;
+	
+	char *category_id = NULL;
+	while(category_node) {
+		char *cname = xmlGetProp(category_node, "name");
+		if(cname) {
+			if(!strcasecmp(name, cname)) {
+				char *cid =  xmlGetProp(category_node, "id");
+				if(cid) {
+					category_id = g_strdup(cid);
+					xmlFree(cid);
+				}
+				break;
+			} 
+			xmlFree(cname);
+		}
+		category_node = opie_xml_get_next(category_node);
+		count++;
+	}
+	
+	if(!category_id) {
+		/* Need to add a new category */
+		xmlNode *new_node = xmlNewNode(NULL, "Category");
+		category_id = g_strdup_printf("-%d", count);
+		if(!new_node) {
+			osync_trace(TRACE_INTERNAL, "Unable to create new category node");
+			return NULL;
+		}
+		xmlSetProp(new_node, "id", category_id);
+		xmlSetProp(new_node, "name", name);
+		if(!xmlAddChild(categories_node, new_node)) {
+			osync_trace(TRACE_INTERNAL, "Unable to add category node node to document");
+			xmlFreeNode(new_node);
+			return NULL;
+		}
+	}
+	
+	return category_id;
+}
+
+void opie_xml_category_ids_to_names(xmlDoc *categories_doc, xmlNode *change_node) {
+	int i;
+	
+	char *attr_value = opie_xml_get_categories(change_node);
+	if(attr_value) {
+		GString *cat_names = g_string_new(""); 
+		gchar **categories = g_strsplit(attr_value, ",", 0);
+		xmlNode *category_node = opie_xml_get_first(categories_doc, "Categories", "Category");
+		while(category_node) {
+			char *cid = xmlGetProp(category_node, "id");
+			if(cid) {
+				for(i=0; categories[i] != NULL; i++) {
+					if(!strcmp(cid, categories[i])) {
+						char *cname = xmlGetProp(category_node, "name");
+						if(cname) {
+							g_string_append_printf(cat_names, "%s|", cname);
+							xmlFree(cname);
+							break;
+						}
+					}
+				}
+				xmlFree(cid);
+			}
+			category_node = opie_xml_get_next(category_node);
+		}
+		
+		if(cat_names->len > 0)
+			g_string_truncate(cat_names, cat_names->len - 1);
+		opie_xml_set_categories(change_node, cat_names->str);
+		
+		g_strfreev(categories);
+		g_string_free(cat_names, TRUE); 
+		xmlFree(attr_value);
+	}
+}
+
+void opie_xml_category_names_to_ids(xmlDoc *categories_doc, xmlNode *change_node) {
+	int i;
+	
+	char *attr_value = opie_xml_get_categories(change_node);
+	if(attr_value) {
+		xmlNode *categories_node = opie_xml_get_collection(categories_doc, "Categories");
+		
+		GString *cat_ids = g_string_new(""); 
+		gchar **categories = g_strsplit(attr_value, "|", 0);
+		for(i=0; categories[i] != NULL; i++) {
+			char *cid = opie_xml_category_name_to_id(categories_node, categories[i]);
+			if(cid) {
+				g_string_append_printf(cat_ids, "%s,", cid);
+				g_free(cid);
+				break;
+			}
+		}
+		
+		if(cat_ids->len > 0)
+			g_string_truncate(cat_ids, cat_ids->len - 1);
+		opie_xml_set_categories(change_node, cat_ids->str);
+		
+		g_strfreev(categories);
+		g_string_free(cat_ids, TRUE); 
+		xmlFree(attr_value);
+	}
+}
+
+char *opie_xml_get_categories(xmlNode *item_node) {
+	char *attr_name;
+	if(!strcasecmp(item_node->name, "event")) {
+		attr_name = "categories";
+	}
+	else {
+		attr_name = "Categories";
+	}
+	
+	char *value = xmlGetProp(item_node, attr_name);
+	if(value) {
+		char *rvalue = g_strdup(value);
+		xmlFree(value);
+		return rvalue;
+	}
+	else {
+		return NULL;
+	}
+}
+
+void opie_xml_set_categories(xmlNode *item_node, const char *value) {
+	char *attr_name;
+	if(!strcasecmp(item_node->name, "event")) {
+		attr_name = "categories";
+	}
+	else {
+		attr_name = "Categories";
+	}
+	
+	xmlSetProp(item_node, attr_name, value);
+}

@@ -50,5 +50,9 @@ char *opie_xml_get_tagged_uid(xmlNode *node);
 char *opie_xml_get_uid(xmlNode *node);
 void opie_xml_set_uid(xmlNode *node, const char *uid);
 int opie_xml_save_to_fd(xmlDoc *doc, int fd);
-		
+void opie_xml_category_ids_to_names(xmlDoc *categories_doc, xmlNode *change_node);
+void opie_xml_category_names_to_ids(xmlDoc *categories_doc, xmlNode *change_node);
+char *opie_xml_get_categories(xmlNode *item_node);
+void opie_xml_set_categories(xmlNode *item_node, const char *value);
+
 #endif

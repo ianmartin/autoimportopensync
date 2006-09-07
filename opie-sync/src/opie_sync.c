@@ -309,6 +309,7 @@ static osync_bool opie_sync_item_commit(OSyncContext *ctx, OSyncChange *change,
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, \"%s\", \"%s\")", __func__, ctx, change, doc, listelement, itemelement);
 	OSyncError *error = NULL;
 	const char *tagged_uid = osync_change_get_uid(change);
+	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
 	
 	xmlNode *change_node = NULL;
 	xmlDoc *change_doc = NULL;
@@ -323,6 +324,9 @@ static osync_bool opie_sync_item_commit(OSyncContext *ctx, OSyncChange *change,
 			goto error;
 		}
 		opie_xml_set_tagged_uid(change_node, tagged_uid);
+		/* Convert categories into names that other systems can use */
+		if(env->categories_doc)
+			opie_xml_category_names_to_ids(env->categories_doc, change_node);
 	}
 	
 	switch (osync_change_get_changetype(change)) {
@@ -457,9 +461,21 @@ static osync_bool opie_sync_item_get_changeinfo(OSyncContext *ctx, OSyncError **
 	while(item_node)
 	{
 		printf("OPIE: creating change\n");
+		/* Convert category IDs to names that other systems can use */
+		char *categories_bkup = opie_xml_get_categories(item_node);
+		if(env->categories_doc && categories_bkup)
+			opie_xml_category_ids_to_names(env->categories_doc, item_node);
+		/* Create the change */
 		OSyncChange *change = opie_sync_item_change_create(doc, item_node, error);
+		/* Restore old categories value as we don't want to save this back to our XML file */
+		if(categories_bkup) {
+			opie_xml_set_categories(item_node, categories_bkup);
+			g_free(categories_bkup);
+		}
+		
 		if (!change)
 			goto error;
+		
 		osync_change_set_objformat_string(change, objformat);
 		
 		/* Use the hash table to check if the object

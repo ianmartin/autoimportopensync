@@ -118,17 +118,13 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 				}
 				else if(!strcasecmp(iprop->name, "Categories"))
 				{
-					/* FIXME handle categories */
-					/*
-					gchar** categorytokens = g_strsplit(iprop->children->content,";",20);
-					
+					gchar** categorytokens = g_strsplit(iprop->children->content, "|", 0);
+					xmlNode *on_categories = xmlNewTextChild(on_root, NULL, (xmlChar*)"Categories", NULL);
 					for(j=0;categorytokens[j]!=NULL;j++) 
 					{
-						contact->cids = g_list_append(contact->cids, 
-																					g_strdup(categorytokens[j]));
+						xmlNewTextChild(on_categories, NULL, (xmlChar*)"Category", (xmlChar*)categorytokens[j]);
 					}
 					g_strfreev(categorytokens);
-					*/
 				}
 				else if(!strcasecmp(iprop->name, "DefaultEmail"))
 				{
@@ -533,15 +529,10 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	if (cur)
 		xml_node_to_attr(cur, "Content", on_contact, "Notes");
 	
-/*
-	//Categories
+	/* Categories */
 	cur = osxml_get_node(root, "Categories");
-	if (cur) {
-		for (cur = cur->children; cur; cur = cur->next) {
-			entry->categories = g_list_append(entry->categories, (char*)xmlNodeGetContent(cur));
-		}
-	}
-*/
+	if (cur)
+		xml_categories_to_attr(cur, on_contact, "Categories");
 
 	/* Spouse */
 	cur = osxml_get_node(root, "Spouse");
@@ -589,7 +580,6 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 		xml_node_to_attr(cur, "Content", on_contact, "Uid");
 
 // TODO: Entries to be handled
-/*   GList* cids; */
 /*   unsigned int rid; */
 /*   unsigned int rinfo; */
 /*   char* home_webpage; */
@@ -646,6 +636,7 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 	struct _xmlAttr *iprop;
 	xmlNode *on_curr;
+	int j;
 		
 	/* Get the root node of the input document */
 	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
@@ -708,9 +699,18 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Uid", NULL);
 					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
 				}
+				else if(!strcasecmp(iprop->name, "Categories"))
+				{
+					gchar** categorytokens = g_strsplit(iprop->children->content, "|", 0);
+					xmlNode *on_categories = xmlNewTextChild(on_root, NULL, (xmlChar*)"Categories", NULL);
+					for(j=0;categorytokens[j]!=NULL;j++) 
+					{
+						xmlNewTextChild(on_categories, NULL, (xmlChar*)"Category", (xmlChar*)categorytokens[j]);
+					}
+					g_strfreev(categorytokens);
+				}
 			}
 			/* FIXME Stuff to handle:
-				Categories
 				State (0=Started, 1=Postponed, 2=Finished, 3=Not started)
 				Alarms datehhmmss:0:<0=silent,1=loud>:[;nextalarmentry]
 			*/
@@ -909,6 +909,11 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 		xml_node_to_attr(icur, "Content", on_todo, "Progress");
 	}
 	
+	/* Categories */
+	icur = osxml_get_node(root, "Categories");
+	if (icur)
+		xml_categories_to_attr(icur, on_todo, "Categories");
+
 	/* UID */
 	icur = osxml_get_node(root, "Uid");
 	if (icur)
@@ -938,6 +943,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 	struct _xmlAttr *iprop;
 	xmlNode *on_curr;
 	GDate *startdate = NULL;
+	int j;
 		
 	/* Get the root node of the input document */
 	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
@@ -1020,6 +1026,16 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
 					g_free(endvtime);
 				}
+				else if(!strcasecmp(iprop->name, "categories"))
+				{
+					gchar** categorytokens = g_strsplit(iprop->children->content, "|", 0);
+					xmlNode *on_categories = xmlNewTextChild(on_root, NULL, (xmlChar*)"Categories", NULL);
+					for(j=0;categorytokens[j]!=NULL;j++) 
+					{
+						xmlNewTextChild(on_categories, NULL, (xmlChar*)"Category", (xmlChar*)categorytokens[j]);
+					}
+					g_strfreev(categorytokens);
+				}
 				else if(!strcasecmp(iprop->name, "uid")) 
 				{
 					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Uid", NULL);
@@ -1027,7 +1043,6 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 				}
 			}
 			/* FIXME Stuff to handle:
-			"categories"
 			"alarm"
 			"sound" (alarm sound - "silent" for none)
 			timezone?
@@ -1382,6 +1397,11 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 		}
 	}
 	
+	/* Categories */
+	icur = osxml_get_node(root, "Categories");
+	if (icur)
+		xml_categories_to_attr(icur, on_event, "categories");
+
 	/* UID */
 	icur = osxml_get_node(root, "Uid");
 	if (icur)
@@ -1434,4 +1454,21 @@ void xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xml
 	xmlSetProp(node_to, attrname, timestr);
 	g_free(timestr);
 	xmlFree(vtime);
+}
+
+void xml_categories_to_attr(xmlNode *categories_node, xmlNode *node_to, const char *category_attr) {
+	xmlNode *cur;
+	GString *categories = g_string_new("");
+	for (cur = categories_node->children; cur; cur = cur->next) {
+		if(!strcmp(cur->name, "Category")) {
+			char *cat_name = xmlNodeGetContent(cur);
+			g_string_append_printf(categories, "%s|", cat_name);
+			xmlFree(cat_name);
+		}
+	}
+	if(categories->len > 0) {
+		g_string_truncate(categories, categories->len - 1);
+		xmlSetProp(node_to, category_attr, categories->str);
+	}
+	g_string_free(categories, TRUE);
 }
