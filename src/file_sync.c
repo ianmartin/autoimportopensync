@@ -36,8 +36,13 @@ static void free_dir(OSyncFileDir *dir)
 static void free_env(OSyncFileEnv *env)
 {
 	while (env->directories) {
-		free_dir(env->directories->data);
-		env->directories = g_list_remove(env->directories, env->directories->data);
+		OSyncFileDir *dir = env->directories->data;
+		
+		if (dir->sink)
+			osync_objtype_sink_unref(dir->sink);
+		
+		free_dir(dir);
+		env->directories = g_list_remove(env->directories, dir);
 	}
 	
 	g_free(env);
@@ -278,7 +283,10 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 		case OSYNC_CHANGE_TYPE_MODIFIED:
 			//FIXME add ownership for file-sync
 			odata = osync_change_get_data(change);
+			g_assert(odata);
 			osync_data_get_data(odata, &buffer, &size);
+			g_assert(buffer);
+			g_assert(size == sizeof(OSyncFileFormat));
 			
 			OSyncFileFormat *file = (OSyncFileFormat *)buffer;
 			
@@ -556,7 +564,6 @@ static void *osync_filesync_initialize(OSyncPluginInfo *info, OSyncError **error
 			goto error_free_env;
 		
 		dir->sink = sink;
-		osync_objtype_sink_ref(sink);
 		
 		/* The file format is the only one we understand */
 		osync_objtype_sink_add_objformat(sink, "file");
@@ -576,7 +583,6 @@ static void *osync_filesync_initialize(OSyncPluginInfo *info, OSyncError **error
 		 * again once the functions are called */
 		osync_objtype_sink_set_functions(sink, functions, dir);
 		osync_plugin_info_add_objtype(info, sink);
-		osync_objtype_sink_unref(sink);
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
@@ -613,10 +619,9 @@ static osync_bool osync_filesync_discover(void *data, OSyncPluginInfo *info, OSy
 	return TRUE;
 }
 
-void get_sync_info(OSyncPluginEnv *env)
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
-	OSyncError *error = NULL;
-	OSyncPlugin *plugin = osync_plugin_new(&error);
+	OSyncPlugin *plugin = osync_plugin_new(error);
 	if (!plugin)
 		goto error;
 	
@@ -631,11 +636,12 @@ void get_sync_info(OSyncPluginEnv *env)
 	osync_plugin_env_register_plugin(env, plugin);
 	osync_plugin_unref(plugin);
 	
-	return;
+	return TRUE;
 	
 error:
-	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(&error));
-	osync_error_unref(&error);
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
 }
 
 int get_version(void)
