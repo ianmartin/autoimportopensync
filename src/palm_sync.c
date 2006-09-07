@@ -26,6 +26,11 @@
 #include "palm_event.h"
 #include "palm_note.h"
 
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+
 #define CATCOUNT 16
 
 #ifdef OLD_PILOT_LINK
@@ -184,7 +189,7 @@ PSyncEntry *psyncDBGetEntryByID(PSyncDatabase *db, unsigned long id, OSyncError 
 		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
 		goto error_free_buffer;
 	} else if (err == PSYNC_ERROR_NOT_FOUND) {
-		osync_error_free(error);
+		osync_error_unref(error);
 		goto error_free_buffer;
 	}
 	
@@ -234,7 +239,7 @@ PSyncEntry *psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error)
 		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
 		goto error_free_buffer;
 	} else if (err == PSYNC_ERROR_NOT_FOUND) {
-		osync_error_free(error);
+		osync_error_unref(error);
 		goto error_free_buffer;
 	}
 	
@@ -285,7 +290,7 @@ PSyncEntry *psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error)
 		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
 		goto error_free_buffer;
 	} else if (err == PSYNC_ERROR_NOT_FOUND) {
-		osync_error_free(error);
+		osync_error_unref(error);
 		goto error_free_buffer;
 	}
 	
@@ -509,11 +514,11 @@ static gboolean _psyncPoll(gpointer data)
 		return TRUE;
 	}
 
-	OSyncError *error = NULL;
-	if (_connectDevice(env, 1, &error))
-		osync_member_request_synchronization(env->member);
-	else
-		osync_error_free(&error);
+	//OSyncError *error = NULL;
+	//if (_connectDevice(env, 1, &error))
+		//osync_member_request_synchronization(env->member);
+	//else
+		//osync_error_unref(&error);
 		
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -538,18 +543,17 @@ static gboolean _psyncPing(gpointer data)
 	return TRUE;
 }
 
-static void psyncThreadStart(PSyncEnv *env)
+static void psyncThreadStart(PSyncEnv *env, OSyncPluginInfo *info)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, info);
 	
-	GMainContext *context = osync_member_get_loop(env->member);
+	GMainContext *context = osync_plugin_info_get_loop(info);
 	
 	GSource *source = g_timeout_source_new(5000);
 	g_source_set_callback(source, _psyncPing, env, NULL);
 	g_source_attach(source, context);
 	
-
-//FIXME also polls at the end of a hot sync ... 
+	//FIXME also polls at the end of a hot sync ... 
 	source = g_timeout_source_new(1000);
 	g_source_set_callback(source, _psyncPoll, env, NULL);
 	g_source_attach(source, context);
@@ -557,7 +561,7 @@ static void psyncThreadStart(PSyncEnv *env)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
+static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
 	xmlDoc *doc = NULL;
@@ -574,7 +578,7 @@ static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, unsigned
 	env->mismatch = 1;
 	env->popup = 0;
 
-	doc = xmlParseMemory(config, size);
+	doc = xmlParseMemory(config, strlen(config));
 
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
@@ -642,46 +646,26 @@ error:
 	return FALSE;
 }
 
-static void *psyncInitialize(OSyncMember *member, OSyncError **error)
+unsigned long psyncUidGetID(const char *uid, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-
-	PSyncEnv *env = osync_try_malloc0(sizeof(PSyncEnv), error);
-	if (!env)
-		goto error;
-		
-	char *configdata = NULL;
-	int configsize = 0;
-	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
-		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-		goto error_free_env;
+	unsigned long id = 0;
+	if (sscanf(uid, "uid-%*[^-]-%ld", &id) != 1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse uid %s", uid);
+		return 0;
 	}
+	osync_trace(TRACE_INTERNAL, "Got id %ld", id);
+	if (!id)
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Found 0 ID");
 	
-	if (!psyncSettingsParse(env, configdata, configsize, error))
-		goto error_free_config;
-	
-	env->member = member;
-	g_free(configdata);
-	
-	psyncThreadStart(env);
-	
-	osync_trace(TRACE_EXIT, "%s, %p", __func__, env);
-	return (void *)env;
-
-error_free_config:
-	g_free(configdata);
-error_free_env:
-	g_free(env);
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
+	return id;
 }
 
-static void psyncConnect(OSyncContext *ctx)
+static void psyncConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	PSyncEnv *env = (PSyncEnv *)data;
 	int ret;
 
 	//now connect with the palm
@@ -728,7 +712,7 @@ static void psyncConnect(OSyncContext *ctx)
 	if (env->user.lastSyncPC == 0) {
 		//Device has been reseted
 		osync_trace(TRACE_INTERNAL, "Detected that the Device has been reset");
-		osync_member_set_slow_sync(env->member, "data", TRUE);
+		//osync_member_set_slow_sync(env->member, "data", TRUE);
 	}
 	
 	osync_context_report_success(ctx);
@@ -743,97 +727,14 @@ error:
 		env->socket = 0;
 	}
 	
-	osync_context_report_osyncerror(ctx, &error);
+	osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-unsigned long psyncUidGetID(const char *uid, OSyncError **error)
+static void psyncSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	unsigned long id = 0;
-	if (sscanf(uid, "uid-%*[^-]-%ld", &id) != 1) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse uid %s", uid);
-		return 0;
-	}
-	osync_trace(TRACE_INTERNAL, "Got id %ld", id);
-	if (!id)
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Found 0 ID");
-	
-	return id;
-}
-
-static void psyncGetChangeinfo(OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-	OSyncError *error = NULL;
-
-	osync_trace(TRACE_INTERNAL, "Opening conduit");
-	dlp_OpenConduit(env->socket);
-
-#ifdef HAVE_TODO	
-	if (!psyncTodoGetChangeInfo(ctx, &error))
-		goto error;
-#endif	
-	
-#ifdef HAVE_CONTACT	
-	if (!psyncContactGetChangeInfo(ctx, &error))
-		goto error;
-#endif	
-		
-#ifdef HAVE_EVENT	
-	if (!psyncEventGetChangeInfo(ctx, &error))
-		goto error;
-#endif	
-
-#ifdef HAVE_NOTE	
-	if (!psyncNoteGetChangeInfo(ctx, &error))
-		goto error;
-#endif	
-
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static void psyncDone(OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
-
-	PSyncDatabase *db = NULL;
-	OSyncError *error = NULL;
-
-	if ((db = psyncDBOpen(env, "AddressDB", &error))) {
-		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for AddressDB");
-		dlp_ResetSyncFlags(env->socket, db->handle);
-		dlp_CleanUpDatabase(env->socket, db->handle);
-		psyncDBClose(db);
-	}
-	
-	if ((db = psyncDBOpen(env, "ToDoDB", &error))) {
-		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for ToDoDB");
-		dlp_ResetSyncFlags(env->socket, db->handle);
-		dlp_CleanUpDatabase(env->socket, db->handle);
-		psyncDBClose(db);
-	}
-	
-	if ((db = psyncDBOpen(env, "DatebookDB", &error))) {
-		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for DatebookDB");
-		dlp_ResetSyncFlags(env->socket, db->handle);
-		dlp_CleanUpDatabase(env->socket, db->handle);
-		psyncDBClose(db);
-	}
-
-	if ((db = psyncDBOpen(env, "MemoDB", &error))) {
-		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for MemoDB");
-		dlp_ResetSyncFlags(env->socket, db->handle);
-		dlp_CleanUpDatabase(env->socket, db->handle);
-		psyncDBClose(db);
-	}
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	PSyncEnv *env = (PSyncEnv *)data;
 
 	//Set the log and sync entries on the palm
 	dlp_AddSyncLogEntry(env->socket, "Sync Successfull\n");
@@ -850,13 +751,12 @@ static void psyncDone(OSyncContext *ctx)
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
 }
 
-static void psyncDisconnect(OSyncContext *ctx)
+static void psyncDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	PSyncEnv *env = (PSyncEnv *)data;
 
 	if (env->currentDB)
 		psyncDBClose(env->currentDB);
@@ -874,6 +774,47 @@ static void psyncDisconnect(OSyncContext *ctx)
 	return;
 }
 
+static void *psyncInitialize(OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	PSyncEnv *env = osync_try_malloc0(sizeof(PSyncEnv), error);
+	if (!env)
+		goto error;
+		
+	if (!psyncSettingsParse(env, osync_plugin_info_get_config(info), error))
+		goto error_free_env;
+	
+	if (!psyncContactInitialize(env, info, error))
+		goto error_free_env;
+	
+	/* Add the main sink */
+	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
+	if (!sink)
+		goto error_free_env;
+	
+	/* All sinks have the same functions of course */
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = psyncConnect;
+	functions.disconnect = psyncDisconnect;
+	functions.sync_done = psyncSyncDone;
+	
+	osync_objtype_sink_set_functions(sink, functions, NULL);
+	osync_plugin_info_add_objtype(info, sink);
+
+	psyncThreadStart(env, info);
+	
+	osync_trace(TRACE_EXIT, "%s, %p", __func__, env);
+	return (void *)env;
+
+error_free_env:
+	g_free(env);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
 static void psyncFinalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
@@ -884,44 +825,43 @@ static void psyncFinalize(void *data)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void get_info(OSyncEnv *env)
+static osync_bool psyncDiscover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
-	info->name = "palm-sync";
-	info->longname = "Palm Synchronization Plugin";
-	info->description = "Plugin to synchronize Palm devices";
-	info->version = 1;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	PSyncEnv *env = (PSyncEnv *)data;
 	
-	info->functions.initialize = psyncInitialize;
-	info->functions.connect = psyncConnect;
-	info->functions.sync_done = psyncDone;
-	info->functions.disconnect = psyncDisconnect;
-	info->functions.finalize = psyncFinalize;
-	info->functions.get_changeinfo = psyncGetChangeinfo;
-
-#ifdef HAVE_CONTACT	
-	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "palm-contact", NULL);
-	osync_plugin_set_commit_objformat(info, "contact", "palm-contact", psyncContactCommit);
-#endif	
+	osync_objtype_sink_set_available(env->contact_sink, TRUE);
 	
-#ifdef HAVE_TODO	
-	osync_plugin_accept_objtype(info, "todo");
-	osync_plugin_accept_objformat(info, "todo", "palm-todo", NULL);
-	osync_plugin_set_commit_objformat(info, "todo", "palm-todo", psyncTodoCommit);
-#endif	
-	
-#ifdef HAVE_EVENT	
-	osync_plugin_accept_objtype(info, "event");
-	osync_plugin_accept_objformat(info, "event", "palm-event", NULL);
-	osync_plugin_set_commit_objformat(info, "event", "palm-event", psyncEventCommit);
-#endif	
-	
-#ifdef HAVE_NOTE	
-	osync_plugin_accept_objtype(info, "note");
-	osync_plugin_accept_objformat(info, "note", "palm-note", NULL);
-	osync_plugin_set_commit_objformat(info, "note", "palm-note", psyncNoteCommit);
-	osync_plugin_set_read_objformat(info, "note", "palm-note", psyncNoteRead);
-#endif	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
+{
+	OSyncPlugin *plugin = osync_plugin_new(error);
+	if (!plugin)
+		goto error;
+	
+	osync_plugin_set_name(plugin, "palm-sync");
+	osync_plugin_set_longname(plugin, "Palm Synchronization Plugin");
+	osync_plugin_set_description(plugin, "Plugin to synchronize Palm devices");
+	
+	osync_plugin_set_initialize(plugin, psyncInitialize);
+	osync_plugin_set_finalize(plugin, psyncFinalize);
+	osync_plugin_set_discover(plugin, psyncDiscover);
+	
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
+}
+
+int get_version(void)
+{
+	return 1;
+}

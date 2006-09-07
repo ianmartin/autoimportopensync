@@ -21,27 +21,36 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-static OSyncChange *psyncContactCreate(PSyncEntry *entry, OSyncError **error)
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+
+static OSyncChange *psyncContactCreate(PSyncEnv *env, PSyncEntry *entry, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, entry, error);
 	PSyncDatabase *db = entry->db;
 
-	OSyncChange *change = osync_change_new();
+	OSyncChange *change = osync_change_new(error);
 	if (!change)
 		goto error;
 	
+	OSyncData *data = osync_data_new(NULL, 0, env->contact_format, error);
+	if (!data)
+		goto error_free_change;
+	
+	osync_change_set_data(change, data);
+		
 	char *uid = g_strdup_printf("uid-AddressDB-%ld", entry->id);
 	osync_change_set_uid(change, uid);
 	g_free(uid);
-	
-	osync_change_set_objformat_string(change, "palm-contact");
 	
 	if ((entry->attr &  dlpRecAttrDeleted) || (entry->attr & dlpRecAttrArchived)) {
 		if ((entry->attr & dlpRecAttrArchived)) {
 			osync_trace(TRACE_INTERNAL, "Archieved");
 		}
 		//we have a deleted record
-		osync_change_set_changetype(change, CHANGE_DELETED);
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 	} else {
 		/* Create the object data */
 		PSyncContactEntry *contact = osync_try_malloc0(sizeof(PSyncContactEntry), error);
@@ -59,12 +68,12 @@ static OSyncChange *psyncContactCreate(PSyncEntry *entry, OSyncError **error)
 	    if (catname)
 			contact->categories = g_list_append(contact->categories, g_strdup(catname));
 		
-		osync_change_set_data(change, (void *)contact, sizeof(PSyncContactEntry), TRUE);
+		osync_data_set_data(data, (void *)contact, sizeof(PSyncContactEntry));
 		
 		if (entry->attr & dlpRecAttrDirty)  {
-			osync_change_set_changetype(change, CHANGE_MODIFIED);
+			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
 		} else {
-			osync_change_set_changetype(change, CHANGE_UNKNOWN);
+			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_UNKNOWN);
 		}
 	}
 	
@@ -72,42 +81,48 @@ static OSyncChange *psyncContactCreate(PSyncEntry *entry, OSyncError **error)
 	return change;
 
 error_free_change:
-	osync_change_free(change);
+	osync_change_unref(change);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
-osync_bool psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **error)
+static void psyncContactGetChanges(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, error);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	OSyncError *error = NULL;
+	PSyncEnv *env = (PSyncEnv *)data;
 	PSyncDatabase *db = NULL;
 	PSyncEntry *entry = NULL;
 	
-	if (!(db = psyncDBOpen(env, "AddressDB", error)))
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	
+	osync_trace(TRACE_INTERNAL, "Opening conduit");
+	dlp_OpenConduit(env->socket);
+	
+	if (!(db = psyncDBOpen(env, "AddressDB", &error)))
 		goto error;
 	
-	if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
+	if (osync_objtype_sink_get_slowsync(sink) == TRUE) {
 		osync_trace(TRACE_INTERNAL, "slow sync");
 		
 		int n;
-		for (n = 0; (entry = psyncDBGetNthEntry(db, n, error)); n++) {
+		for (n = 0; (entry = psyncDBGetNthEntry(db, n, &error)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got record with id %ld", entry->id);
 			
-			OSyncChange *change = psyncContactCreate(entry, error);
+			OSyncChange *change = psyncContactCreate(env, entry, &error);
 			if (!change)
 				goto error;
 			
 			if (osync_change_get_data(change) == NULL)
 				continue;
 
-			osync_change_set_changetype(change, CHANGE_ADDED);
+			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
 			osync_context_report_change(ctx, change);
 		}
 	} else {
-		while ((entry = psyncDBGetNextModified(db, error))) {
-			OSyncChange *change = psyncContactCreate(entry, error);
+		while ((entry = psyncDBGetNextModified(db, &error))) {
+			OSyncChange *change = psyncContactCreate(env, entry, &error);
 			if (!change)
 				goto error;
 			
@@ -115,19 +130,22 @@ osync_bool psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 		}
 	}
 				
-	if (osync_error_is_set(error))
+	if (osync_error_is_set(&error))
 		goto error_close_db;
 	
 	psyncDBClose(db);
 	
+	osync_context_report_success(ctx);
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	return;
 
 error_close_db:
 	psyncDBClose(db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_context_report_osyncerror(ctx, error);
+	osync_error_unref(&error);
 }
 
 /*
@@ -146,10 +164,11 @@ error:
 			}
 		} else {*/
 
-osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
+
+static void psyncContactCommit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, change);
-	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
+	PSyncEnv *env = (PSyncEnv *)data;
 	PSyncDatabase *db = NULL;
 	PSyncEntry *entry = NULL;
 	PSyncContactEntry *contact = NULL;
@@ -163,7 +182,7 @@ osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 	contact = (PSyncContactEntry *)osync_change_get_data(change);
 			
 	switch (osync_change_get_changetype(change)) {
-		case CHANGE_MODIFIED:
+		case OSYNC_CHANGE_TYPE_MODIFIED:
 			//Get the id
 			id = psyncUidGetID(osync_change_get_uid(change), &error);
 			if (!id)
@@ -205,7 +224,7 @@ osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 				goto error;
 				
 			break;
-		case CHANGE_ADDED:
+		case OSYNC_CHANGE_TYPE_ADDED:
 			//Add a new entry
 			osync_trace(TRACE_INTERNAL, "Find category");
 			
@@ -241,7 +260,7 @@ osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 			osync_change_set_uid(change, uid);
 			g_free(uid);
 			break;
-		case CHANGE_DELETED:
+		case OSYNC_CHANGE_TYPE_DELETED:
 			id = psyncUidGetID(osync_change_get_uid(change), &error);
 			if (!id)
 				goto error;
@@ -257,11 +276,60 @@ osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change)
 	
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	return;
 
 error:
-	osync_context_report_osyncerror(ctx, &error);
+	osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	return FALSE;
+	osync_error_unref(&error);
 }
 
+static void psyncContactSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	PSyncEnv *env = (PSyncEnv *)data;
+
+	PSyncDatabase *db = NULL;
+	OSyncError *error = NULL;
+
+	if ((db = psyncDBOpen(env, "AddressDB", &error))) {
+		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for AddressDB");
+		dlp_ResetSyncFlags(env->socket, db->handle);
+		dlp_CleanUpDatabase(env->socket, db->handle);
+		psyncDBClose(db);
+	} else {
+		osync_context_report_osyncerror(ctx, error);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+osync_bool psyncContactInitialize(PSyncEnv *env, OSyncPluginInfo *info, OSyncError **error)
+{
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	env->contact_format = osync_format_env_find_objformat(formatenv, "palm-format");
+	
+	env->contact_sink = osync_objtype_sink_new("contact", error);
+	if (!env->contact_sink)
+		return FALSE;
+	
+	osync_objtype_sink_add_objformat(env->contact_sink, "palm-format");
+	
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.get_changes = psyncContactGetChanges;
+	functions.commit = psyncContactCommit;
+	functions.sync_done = psyncContactSyncDone;
+	
+	/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
+	 * again once the functions are called */
+	osync_objtype_sink_set_functions(env->contact_sink, functions, NULL);
+	osync_plugin_info_add_objtype(info, env->contact_sink);
+	
+	return TRUE;
+}

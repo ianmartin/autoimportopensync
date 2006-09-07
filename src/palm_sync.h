@@ -90,8 +90,6 @@ typedef struct PSyncEntry {
 } PSyncEntry;
 
 struct PSyncEnv {
-	OSyncMember *member;
-	
 	char *username;
 	int id;
 	char *sockaddr;
@@ -107,6 +105,9 @@ struct PSyncEnv {
 	struct PilotUser user;
 	
 	char *codepage;
+	
+	OSyncObjFormat *contact_format;
+	OSyncObjTypeSink *contact_sink;
 };
 
 void psyncDBClose(PSyncDatabase *db);

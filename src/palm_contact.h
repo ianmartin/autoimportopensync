@@ -20,9 +20,5 @@
 
 #include "palm_sync.h"
 
-OSyncChange *psyncContactCreate(PSyncEntry *entry, OSyncError **error);
-osync_bool psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **error);
-osync_bool psyncContactCommit(OSyncContext *ctx, OSyncChange *change);
-
-
+osync_bool psyncContactInitialize(PSyncEnv *env, OSyncPluginInfo *info, OSyncError **error);
 

@@ -22,8 +22,11 @@
 #include "palm_format.h"
 
 #include <opensync/opensync-xml.h>
+#include <opensync/opensync-time.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-serializer.h>
 
-char *conv_enc_palm_to_xml(const char *text) {
+static char *conv_enc_palm_to_xml(const char *text) {
 	char *ret;
 
 	ret = g_convert(text, strlen(text), "utf8", "cp1252", NULL, NULL, NULL);
@@ -33,7 +36,7 @@ char *conv_enc_palm_to_xml(const char *text) {
 	return ret;
 }
 
-char *conv_enc_xml_to_palm(const char *text) {
+static char *conv_enc_xml_to_palm(const char *text) {
 	char *ret;
 
 	ret = g_convert(text, strlen(text), "cp1252", "utf8", NULL, NULL, NULL);
@@ -43,7 +46,7 @@ char *conv_enc_xml_to_palm(const char *text) {
 	return ret;
 }
 
-#ifdef HAVE_EVENT
+#if 0
 static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
@@ -972,9 +975,7 @@ error:
 	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
 	return FALSE;	
 }
-#endif
 
-#ifdef HAVE_TODO
 static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
@@ -1382,7 +1383,6 @@ error:
 }
 #endif
 
-#ifdef HAVE_CONTACT
 static char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
 {	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
@@ -1401,11 +1401,9 @@ static osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
 	return entry->address.entry[i] ? TRUE : FALSE;
 }
 
-
-
-static osync_bool conv_palm_contact_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 
 	PSyncContactEntry *entry = (PSyncContactEntry *)input;
 
@@ -1602,11 +1600,9 @@ error:
 	return FALSE;
 }
 
-
-
-static osync_bool conv_xml_to_palm_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
 	char *tmp = NULL;
@@ -1775,171 +1771,67 @@ static void destroy_palm_contact(char *input, size_t inpsize)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-osync_bool marshall_palm_contact(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool marshal_palm_contact(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, input, inpsize, message, error);
+	g_assert(inpsize == sizeof(PSyncContactEntry));
 	
-        int i;
-        int tmp_size, osize;
-
-        g_assert(inpsize == sizeof(PSyncContactEntry));
-        PSyncContactEntry *contact = (PSyncContactEntry*) input;
-
-        // get size
-        osize = sizeof(PSyncContactEntry) + 1; 
-
-        if (contact->codepage)
-                osize += strlen(contact->codepage);
-
-	osize += 1;
-
-	for (i=0; i < 19; i++) {
-		osize += 1;
-		if (!contact->address.entry[i])
-			continue;
-		osize += strlen(contact->address.entry[i]);
-		osize += 1;
+	PSyncContactEntry *contact = (PSyncContactEntry*)input;
+	
+	osync_message_write_buffer(message, &(contact), sizeof(PSyncContactEntry));
+	osync_message_write_string(message, contact->codepage);
+	
+	int i = 0;
+	for (i = 0; i < 19; i++) {
+		osync_message_write_string(message, contact->address.entry[i]);
 	}
-	osize += 1;
 
+	osync_message_write_int(message, g_list_length(contact->categories));
 	GList *c = NULL;
 	for (c = contact->categories; c; c = c->next) {
-		osize += strlen((char *) c->data);
-		osize += 1;
+		osync_message_write_string(message, (char *)c->data);
 	}
-	osize += 1;
 
-
-        char *outcontact = g_malloc0(osize);
-        if (!outcontact)
-                goto error;
-
-        char *outdata = ((char *)outcontact) + sizeof(PSyncContactEntry) + 1;
-        memcpy(outcontact, contact, sizeof(PSyncContactEntry));
-
-        /* contact->codepage */
-        if (contact->codepage) {
-                tmp_size = strlen(contact->codepage);
-                memcpy(outdata, contact->codepage, tmp_size);
-                outdata += tmp_size;
-        }
-        outdata +=1;
-
-	/* address.entry[19] */
-	for (i=0; i < 19; i++) {
-		if (!contact->address.entry[i]) {
-			outdata += 1;
-			continue;
-		}
-		osync_trace(TRACE_SENSITIVE, "entry #%i: %s", i, contact->address.entry[i]);
-
-		tmp_size = strlen(contact->address.entry[i]);
-		memcpy(outdata, contact->address.entry[i], tmp_size);
-		outdata += tmp_size;
-		outdata += 1;
-	}
-	outdata += 1;
-
-	/*
-        for (i=0; i < osize; i++)
-                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, outcontact[i]);
-	*/	
-
-        /* glist stuff comes at the end */
-	for (c = contact->categories; c; c = c->next) {
-		tmp_size = strlen((char *) c->data);
-		memcpy(outdata, c->data, tmp_size);
-		outdata += tmp_size;
-		outdata += 1;
-	}	
-	outdata += 1;
-
-        *output = (char*)outcontact;
-        *outpsize = osize;
-
-	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
-	return TRUE;
-
-error:
-	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
-	return FALSE;	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;	
 }
 
-osync_bool demarshall_palm_contact(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
+static osync_bool demarshal_palm_contact(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p)", __func__, input, inpsize, output, outpsize, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, message, output, outpsize, error);
 	
-        int i;
-        int tmp_size;
-        char *pos = NULL;
-        PSyncContactEntry *newcontact = NULL;
-        /* get PSyncContactEntry struct */
-        g_assert(inpsize >= sizeof(PSyncContactEntry));
-        PSyncContactEntry *contact = (PSyncContactEntry *)input;
-
-        /* get PSyncContactEntry data */
-        newcontact = g_malloc0(sizeof(PSyncContactEntry));
-        if (!newcontact)
-                goto error;
-
-        memcpy(newcontact, contact, sizeof(PSyncContactEntry));
-        pos = (char *) contact + sizeof(PSyncContactEntry) + 1;
-
-	newcontact->codepage = NULL;
-
-        for (i=0; i < inpsize; i++)
-                osync_trace(TRACE_SENSITIVE, "[%i] %c", i, input[i]);
-
-        /* contact->codepage */
-        if ((tmp_size = strlen(pos)) > 0) {
-                newcontact->codepage = strdup(pos);
-        	pos += tmp_size;
-		osync_trace(TRACE_INTERNAL, "codepage: %s", newcontact->codepage);
+	void *buffer = NULL;
+	int size = 0;
+	osync_message_read_buffer(message, &(buffer), &size);
+	PSyncContactEntry *contact = buffer;
+	osync_message_read_string(message, &(contact->codepage));
+	
+	int i = 0;
+	for (i = 0; i < 19; i++) {
+		osync_message_read_string(message, &(contact->address.entry[i]));
 	}
-	pos += 1;
-
-        /* contact->address.entry[19] */
-	for (i=0; i < 19; i++) {
-		if (!pos) {
-			newcontact->address.entry[i] = NULL;
-			pos += 1;
-			continue;
-		}
-
-		tmp_size = strlen(pos);
-                newcontact->address.entry[i] = strdup(pos);
-        	pos += tmp_size;
-		pos += 1;
+	
+	int num = 0;
+	osync_message_read_int(message, &num);
+	
+	char *category = NULL;
+	contact->categories = NULL;
+	for (i = 0; i < num; i++) {
+		osync_message_read_string(message, &category);
+		contact->categories = g_list_append(contact->categories, category);
 	}
-	pos += 1;
-
-	/* (glist) categories... */
-	newcontact->categories = NULL;
-	while ((tmp_size = strlen(pos)) > 0) {
-		newcontact->categories = g_list_append(newcontact->categories, g_strdup(pos));
-		pos += tmp_size;
-		pos += 1;
-	}
-	pos += 1;
-
-	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newcontact->codepage);
-
 			
-        *output = (char*) newcontact;
-        *outpsize = sizeof(PSyncContactEntry);
+	*output = (char*)contact;
+	*outpsize = sizeof(PSyncContactEntry);
 
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
-error:
-	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
-	return FALSE;	
 }
-#endif
 
-#ifdef HAVE_NOTE
-static osync_bool conv_palm_note_to_xml(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+#if 0
+static osync_bool conv_palm_note_to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
 
 	char *tmp = NULL;
@@ -1997,9 +1889,10 @@ error:
 	return FALSE;
 }
 
-static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+
+static osync_bool conv_xml_to_palm_note(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 
 	char *tmp = NULL;
 	xmlNode *cur = NULL;
@@ -2238,23 +2131,74 @@ error:
 	osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
 	return FALSE;	
 }
-
 #endif
 
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *format = osync_objformat_new("palm-contact", "contact", error);
+	if (!format)
+		return FALSE;
+	
+	osync_objformat_set_destroy_func(format, destroy_palm_contact);
+	osync_objformat_set_marshal_func(format, marshal_palm_contact);
+	osync_objformat_set_demarshal_func(format, demarshal_palm_contact);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	return TRUE;
+}
+
+osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *palmContact = osync_format_env_find_objformat(env, "palm-contact");
+	if (!palmContact) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find palm-contact format");
+		return FALSE;
+	}
+	
+	OSyncObjFormat *xmlContact = osync_format_env_find_objformat(env, "xml-contact");
+	if (!xmlContact) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xml-contact format");
+		return FALSE;
+	}
+	
+	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_CONV, palmContact, xmlContact, conv_palm_contact_to_xml, error);
+	if (!conv)
+		return FALSE;
+	
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlContact, palmContact, conv_xml_to_palm_contact, error);
+	if (!conv)
+		return FALSE;
+	
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	return TRUE;
+}
+
+int get_version(void)
+{
+	return 1;
+}
+
+
+
+
+
+/*
 void get_info(OSyncEnv *env)
 {
-#ifdef HAVE_CONTACT	
 	osync_env_register_objtype(env, "contact");
-	osync_env_register_objformat(env, "contact", "palm-contact");
+	osync_env_register_objformat(env, "contact", "");
 	osync_env_format_set_destroy_func(env, "palm-contact", destroy_palm_contact);
 	osync_env_format_set_marshall_func(env, "palm-contact", marshall_palm_contact);
 	osync_env_format_set_demarshall_func(env, "palm-contact", demarshall_palm_contact);
 
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_contact_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm_contact);
-#endif	
-	
-#ifdef HAVE_TODO	
+
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "palm-todo");
 	osync_env_format_set_destroy_func(env, "palm-todo", destroy_palm_todo);
@@ -2263,9 +2207,7 @@ void get_info(OSyncEnv *env)
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-todo", "xml-todo", conv_palm_todo_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo", "palm-todo", conv_xml_to_palm_todo);
-#endif	
-	
-#ifdef HAVE_EVENT	
+
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "palm-event");
 	osync_env_format_set_destroy_func(env, "palm-event", destroy_palm_event);
@@ -2274,9 +2216,7 @@ void get_info(OSyncEnv *env)
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-event", "xml-event", conv_palm_event_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "palm-event", conv_xml_to_palm_event);
-#endif	
-	
-#ifdef HAVE_NOTE	
+
 	osync_env_register_objtype(env, "note");
 	osync_env_register_objformat(env, "note", "palm-note");
 	osync_env_format_set_destroy_func(env, "palm-note", destroy_palm_note);
@@ -2285,6 +2225,5 @@ void get_info(OSyncEnv *env)
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "palm-note", "xml-note", conv_palm_note_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "palm-note", conv_xml_to_palm_note);
-#endif	
 
-}
+}*/
