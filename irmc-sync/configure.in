@@ -85,7 +85,6 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 src/bfb/Makefile
-misc/irmc-sync.spec
 ])
 
 echo
