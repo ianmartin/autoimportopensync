@@ -577,8 +577,8 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 		if (!datastore)
 			goto error;
 		
-		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
-		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
 		
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
@@ -891,8 +891,8 @@ static void *syncml_obex_client_init(OSyncMember *member, OSyncError **error)
 		if (!datastore)
 			goto error_free_auth;
 		
-		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
-		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
+		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "1.0");
 		
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
@@ -1004,7 +1004,7 @@ static void client_connect(OSyncContext *ctx)
 		env->connectCtx = ctx;
 		
 		/* Create the SAN */
-		san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
+		san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
 		if (!san)
 			goto error;
 		
@@ -1536,7 +1536,14 @@ void get_info(OSyncEnv *env)
 	info->functions.disconnect = disconnect;
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
-	
+
+	info->timeouts.disconnect_timeout = 0;
+	info->timeouts.connect_timeout = 0;
+	info->timeouts.sync_done_timeout = 0;
+	info->timeouts.get_changeinfo_timeout = 0;
+	info->timeouts.get_data_timeout = 0;
+	info->timeouts.commit_timeout = 0;
+		
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "vcard21", "clean");
 	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit);
@@ -1564,18 +1571,25 @@ void get_info(OSyncEnv *env)
 	info->functions.disconnect = disconnect;
 	info->functions.finalize = finalize;
 	info->functions.get_changeinfo = get_changeinfo;
+
+	info->timeouts.disconnect_timeout = 0;
+	info->timeouts.connect_timeout = 0;
+	info->timeouts.sync_done_timeout = 0;
+	info->timeouts.get_changeinfo_timeout = 0;
+	info->timeouts.get_data_timeout = 0;
+	info->timeouts.commit_timeout = 0;
 	
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "vcard21", "clean");
 	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "event");
-	osync_plugin_accept_objformat(info, "event", "vevent20", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "event", "vevent20", batch_commit);
+	osync_plugin_accept_objformat(info, "event", "vevent10", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "event", "vevent10", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "todo");
-	osync_plugin_accept_objformat(info, "todo", "vtodo20", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo20", batch_commit);
+	osync_plugin_accept_objformat(info, "todo", "vtodo10", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo10", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "note");
 	osync_plugin_accept_objformat(info, "note", "plain", "clean");
