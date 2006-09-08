@@ -852,7 +852,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			char *completedstr = (char *) xmlNodeGetContent(icur);
 			struct tm *completed = osync_time_vtime2tm(completedstr);
 			xmlFree(completedstr);
-			completedstr = g_strdup_printf("%04d%02d%02d", completed->tm_year, (completed->tm_mon + 1), completed->tm_mday);
+			completedstr = g_strdup_printf("%04d%02d%02d", completed->tm_year + 1900, (completed->tm_mon + 1), completed->tm_mday);
 			xmlSetProp(on_todo, "Completed", "1");
 			xmlSetProp(on_todo, "CompletedDate", completedstr);
 			g_free(completedstr);
@@ -870,7 +870,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			char *startedstr = (char *) xmlNodeGetContent(icur);
 			struct tm *started = osync_time_vtime2tm(startedstr);
 			xmlFree(startedstr);
-			startedstr = g_strdup_printf("%04d%02d%02d", started->tm_year, (started->tm_mon + 1), started->tm_mday);
+			startedstr = g_strdup_printf("%04d%02d%02d", (started->tm_year + 1900), (started->tm_mon + 1), started->tm_mday);
 			xmlSetProp(on_todo, "StartDate", startedstr);
 			g_free(startedstr);
 		}
@@ -887,7 +887,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			char *duestr = (char *) xmlNodeGetContent(icur);
 			struct tm *due = osync_time_vtime2tm(duestr);
 			xmlFree(duestr);
-			char *dueyear  = g_strdup_printf("%04d", due->tm_year);
+			char *dueyear  = g_strdup_printf("%04d", (due->tm_year + 1900));
 			char *duemonth = g_strdup_printf("%02d", (due->tm_mon + 1));
 			char *dueday   = g_strdup_printf("%02d", due->tm_mday);
 			xmlSetProp(on_todo, "HasDate",   "1");
