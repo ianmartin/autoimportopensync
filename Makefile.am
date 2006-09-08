@@ -19,8 +19,6 @@ DISTCLEANFILES = \
 EXTRA_DIST = \
 	opensync-1.0.pc.in \
 	osengine-1.0.pc.in \
-	misc/opensync.spec.in \
-	misc/opensync.spec \
 	misc/buildtest.sh \
 	misc/doxygen.css
 

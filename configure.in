@@ -176,7 +176,6 @@ opensync-1.0-uninstalled.pc
 osengine-1.0.pc
 osengine-1.0-uninstalled.pc
 Doxyfile
-misc/opensync.spec
 wrapper/Makefile
 ])
 
