@@ -393,8 +393,13 @@ static void _generate_formatted_name(VFormat *vcard, xmlNode *root)
 	}
 	
 	osync_trace(TRACE_INTERNAL, "Handling formattedname attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-	osxml_node_add(current, "Content", fnentry->str);
+
+	if (fnentry->len != 0) {
+		xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+		osxml_node_add(current, "Content", fnentry->str);
+	} else {
+		osync_trace(TRACE_INTERNAL, "FN is empty!");
+	}	
 	
 	g_string_free(fnentry,TRUE);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -414,9 +419,13 @@ static void _generate_name_from_fn(VFormat *vcard, xmlNode *root)
 	char *fn = vformat_attribute_get_value(n);
 
         osync_trace(TRACE_INTERNAL, "Handling name attribute");
-        xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
-        osxml_node_add(current, "LastName", fn);
-
+	if (strlen(fn) != 0) {
+		xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+        	osxml_node_add(current, "LastName", fn);
+	} else {
+		osync_trace(TRACE_INTERNAL, "Name is empty");
+	}
+		
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }	
