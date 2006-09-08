@@ -107,7 +107,8 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 			  else 
 					env->use_qcop = TRUE;
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
-				env->backupdir = g_strdup(str);
+				if(strlen(str) > 0)
+					env->backupdir = g_strdup(str);
 			}
 			xmlFree(str);
 		}
