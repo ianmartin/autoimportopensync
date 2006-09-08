@@ -71,7 +71,6 @@ fi
 AC_OUTPUT([
 Makefile
 src/Makefile
-misc/palm.spec
 ])
 
 echo "================================"
