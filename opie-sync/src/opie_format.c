@@ -688,6 +688,27 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"PercentComplete", NULL);
 					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
 				}
+				else if(!strcasecmp(iprop->name, "State"))
+				{
+					int state = atoi(iprop->children->content);
+					char *status;
+					switch(state) {
+						case 0:  /* "Started" */
+							status = "IN-PROCESS";
+							break;
+						case 1:  /* "Postponed" */
+							status = "CANCELLED";
+							break;
+						case 2:  /* "Finished" */
+							status = "COMPLETED";
+							break;
+						case 3:  /* "Not started" */
+						default:
+							status = "NEEDS-ACTION";
+					}
+					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Status", NULL);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)status);
+				}
 				else if(!strcasecmp(iprop->name, "StartDate"))
 				{
 					xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateStarted", NULL);
