@@ -55,6 +55,7 @@ struct OpieSyncEnv {
 	unsigned int      device_port;
 	OPIE_CONN_TYPE    conn_type;
 	OPIE_DEVICE_TYPE  device_type;
+	gchar*            backupdir;
 
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;

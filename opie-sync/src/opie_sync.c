@@ -44,7 +44,7 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	xmlDoc *doc = NULL;
 	xmlNode *cur = NULL;
 
-	//set defaults
+	/* Set defaults */
 	env->username = g_strdup("root");
 	env->password = g_strdup("Qtopia");
 	env->url = g_strdup("192.168.10.123");
@@ -52,6 +52,7 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	env->conn_type = OPIE_CONN_FTP;
 	env->device_port = 4242;
 	env->use_qcop = TRUE;
+	env->backupdir = NULL;
 
 	doc = xmlParseMemory(config, size);
 
@@ -105,6 +106,8 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 					env->use_qcop = FALSE;
 			  else 
 					env->use_qcop = TRUE;
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
+				env->backupdir = g_strdup(str);
 			}
 			xmlFree(str);
 		}

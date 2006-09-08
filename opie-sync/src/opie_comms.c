@@ -162,6 +162,105 @@ void cleanup_temp_files(GList* file_list) {
 
 
 /*
+ * backup data from an fd to a file
+ */
+int backup_file(const char *backupfile, int fd) {
+	int destfd = 0;
+	int rc = TRUE;
+	int bufsize = 1024;
+	int rbytes, wbytes;
+	char *buf = NULL;
+	
+	destfd = open(backupfile, O_CREAT | O_WRONLY | O_EXCL, 0600);
+	if(destfd == -1) {
+		perror("error creating backup file");
+		goto error;
+	}
+	
+	/* Rewind to start */
+	lseek(fd, 0, SEEK_SET);
+	
+	buf = g_malloc0(bufsize);
+	while(TRUE) {
+		rbytes = read(fd, buf, bufsize);
+		if(rbytes == -1) {
+			perror("error reading during backup");
+			close(destfd);
+			goto error;
+		}
+		else if(rbytes > 0) {
+			wbytes = write(destfd, buf, rbytes);
+			if(wbytes == -1) {
+				perror("error writing to backup file");
+				close(destfd);
+				goto error;
+			}
+		}
+		else  {
+			/* finished */
+			close(destfd);
+			break;
+		}
+	}
+	
+	/* Rewind to start */
+	lseek(fd, 0, SEEK_SET);
+
+error:
+	g_free(buf);
+	
+	return rc;
+}
+
+
+/*
+ * backup a list of files
+ */
+int backup_files(const char *backupdir, GList* file_list) {
+	guint len = g_list_length(file_list);
+	guint t;
+	time_t currtime;
+	int rc = TRUE;
+	char *backuppath = NULL;
+	char *datestamp = NULL;
+
+	/* Construct a path */
+	time(&currtime);
+	struct tm *tm_ptr = localtime(&currtime);
+	datestamp = g_strdup_printf("%04d%02d%02d%02d%02d%02d", 
+															(tm_ptr->tm_year + 1900), (tm_ptr->tm_mon + 1), tm_ptr->tm_mday, 
+															tm_ptr->tm_hour, tm_ptr->tm_min, tm_ptr->tm_sec);
+	backuppath = g_build_filename(backupdir, datestamp, NULL);
+	if(g_mkdir_with_parents(backuppath, 0700)) {
+		perror("error creating backup directory");
+		goto error;
+	}
+	
+	for(t = 0; t < len; ++t) {
+		fetch_pair* pair = g_list_nth_data(file_list, t);
+		/* Build full path to file */
+		char *basename = g_path_get_basename(pair->remote_filename);
+		char *backupfile = g_build_filename(backuppath, basename, NULL);
+		/* Run the backup */
+		rc = backup_file(backupfile, pair->local_fd);
+		g_free(backupfile);
+		g_free(basename);
+		if(!rc) {
+			/* Error occurred */
+			break;
+		}
+	}
+
+error:
+	g_free(datestamp);
+	g_free(backuppath);
+	
+	return rc;
+} 
+
+
+
+/*
  * opie_connect_and_fetch
  */
 gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
@@ -232,30 +331,51 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 	
 	if(rc)
 	{
-		if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
-			env->contacts_doc = opie_xml_fd_open(contacts_fd);
-			close(contacts_fd);
-		}
-
-		if(object_types & OPIE_OBJECT_TYPE_TODO) {
-			env->todos_doc = opie_xml_fd_open(todos_fd);
-			close(todos_fd);
-		}
-			
-		if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
-			env->calendar_doc = opie_xml_fd_open(calendar_fd);
-			close(calendar_fd);
+		if(env->backupdir) 
+		{
+			rc = backup_files(env->backupdir, files_to_fetch);
 		}
 		
-		/* parse the categories file */
-		env->categories_doc = opie_xml_fd_open(categories_fd);
-		close(categories_fd);
+		if(rc)
+		{
+			/* Parse files */
+			
+			if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
+				env->contacts_doc = opie_xml_fd_open(contacts_fd);
+				close(contacts_fd);
+				if(!env->contacts_doc) {
+					return FALSE;
+				}
+			}
 	
-		if(tmpfilemode == TT_VISIBLE) {
-			cleanup_temp_files(files_to_fetch);
+			if(object_types & OPIE_OBJECT_TYPE_TODO) {
+				env->todos_doc = opie_xml_fd_open(todos_fd);
+				close(todos_fd);
+				if(!env->todos_doc) {
+					return FALSE;
+				}
+			}
+				
+			if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
+				env->calendar_doc = opie_xml_fd_open(calendar_fd);
+				close(calendar_fd);
+				if(!env->calendar_doc) {
+					return FALSE;
+				}
+			}
+			
+			/* parse the categories file */
+			env->categories_doc = opie_xml_fd_open(categories_fd);
+			close(categories_fd);
+			if(!env->categories_doc) {
+				return FALSE;
+			}
 		}
-	}  
+	}
 	
+	if(tmpfilemode == TT_VISIBLE) {
+		cleanup_temp_files(files_to_fetch);
+	}
 	list_cleanup(files_to_fetch);
 	
 	return rc;
