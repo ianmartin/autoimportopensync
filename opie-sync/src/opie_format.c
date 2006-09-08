@@ -28,6 +28,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <opensync/opensync-xml.h>
 
+enum OpieTodoState {
+	OPIE_TODO_STATE_STARTED     = 0,
+	OPIE_TODO_STATE_POSTPONED   = 1,
+	OPIE_TODO_STATE_FINISHED    = 2,
+	OPIE_TODO_STATE_NOT_STARTED = 3
+};
+
 
 /** Convert Opie XML contact to OpenSync XML contact 
  * 
@@ -226,7 +233,8 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 				}
 				else if(!strcasecmp(iprop->name, "HomeWebPage"))
 				{
-					/* FIXME handle this field */
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Url", NULL );
+					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
 				}
 				else if(!strcasecmp(iprop->name, "BusinessWebPage"))
 				{
@@ -569,6 +577,11 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	if (cur)
 		xml_node_to_attr(cur, "Content", on_contact, "Anniversary");
 
+	/* Home webpage */
+	cur = osxml_get_node(root, "Url");
+	if (cur)
+		xml_node_to_attr(cur, "Content", on_contact, "HomeWebPage");
+
 	/* File-as */
 	cur = osxml_get_node(root, "FormattedName");
 	if (cur)
@@ -693,16 +706,16 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 					int state = atoi(iprop->children->content);
 					char *status;
 					switch(state) {
-						case 0:  /* "Started" */
+						case OPIE_TODO_STATE_STARTED:
 							status = "IN-PROCESS";
 							break;
-						case 1:  /* "Postponed" */
+						case OPIE_TODO_STATE_POSTPONED:
 							status = "CANCELLED";
 							break;
-						case 2:  /* "Finished" */
+						case OPIE_TODO_STATE_FINISHED:
 							status = "COMPLETED";
 							break;
-						case 3:  /* "Not started" */
+						case OPIE_TODO_STATE_NOT_STARTED:
 						default:
 							status = "NEEDS-ACTION";
 					}
@@ -732,7 +745,6 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 				}
 			}
 			/* FIXME Stuff to handle:
-				State (0=Started, 1=Postponed, 2=Finished, 3=Not started)
 				Alarms datehhmmss:0:<0=silent,1=loud>:[;nextalarmentry]
 			*/
 		}
@@ -928,6 +940,32 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 	icur = osxml_get_node(root, "PercentComplete");
 	if (icur) {
 		xml_node_to_attr(icur, "Content", on_todo, "Progress");
+	}
+	
+	/* State */
+	icur = osxml_get_node(root, "Status");
+	if (icur) {
+		icur = osxml_get_node(icur, "Content");
+		if (icur) {
+			char *status = (char *) xmlNodeGetContent(icur);
+			int state;
+			if(!strcasecmp(status, "IN-PROCESS")) {
+				state = OPIE_TODO_STATE_NOT_STARTED;
+			}
+			else if (!strcasecmp(status, "CANCELLED")) {
+				state = OPIE_TODO_STATE_POSTPONED;
+			}
+			else if (!strcasecmp(status, "COMPLETED")) {
+				state = OPIE_TODO_STATE_FINISHED;
+			}
+			else {
+				state = OPIE_TODO_STATE_NOT_STARTED;
+			}
+			char *statestr = g_strdup_printf("%d", state);
+			xmlSetProp(on_todo, "State", statestr); 
+			g_free(statestr);
+			xmlFree(status);
+		}
 	}
 	
 	/* Categories */
@@ -1223,6 +1261,9 @@ error:
 static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	xmlNode *icur;
+	time_t start_time = 0;
+	time_t end_time = 0;
+	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
 							__func__, user_data, input, inpsize, output, 
 							outpsize, free_input, error);
@@ -1275,16 +1316,19 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 	/* Start */
 	icur = osxml_get_node(root, "DateStarted");
 	if (icur) {
-		xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "start");
+		start_time = xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "start");
 	}
 	
 	/* End */
 	icur = osxml_get_node(root, "DateEnd");
 	if (icur) {
-		xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "end");
+		end_time = xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "end");
 	}
 	
-	/* FIXME detect and mark all-day events */
+	/* Check for all-day event */
+	if(start_time - end_time == 86399) {
+		xmlSetProp(on_event, "type", "AllDay");
+	}
 	
 	/* Recurrence */
 	icur = osxml_get_node(root, "RecurrenceRule");
@@ -1468,13 +1512,14 @@ void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to
 	xmlFree(value);
 }
 
-void xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
+time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
 	char *vtime = osxml_find_node(node_from, nodename);
 	time_t utime = osync_time_vtime2unix(vtime);
 	char *timestr = g_strdup_printf("%d", (int)utime);
 	xmlSetProp(node_to, attrname, timestr);
 	g_free(timestr);
 	xmlFree(vtime);
+	return utime;
 }
 
 void xml_categories_to_attr(xmlNode *categories_node, xmlNode *node_to, const char *category_attr) {
