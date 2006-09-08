@@ -8,9 +8,49 @@ as found on the Sharp Zaurus but no testing of this has been done.
 
 This plugin is a work in progress but should be able to sync contacts, 
 calendar events and todo list entries, minus a few fields. However, use 
-is entirely at your own risk - back up your data first!
+is entirely at your own risk - back up your data on both sides first!
 
 If you'd like to help, please try the plugin and send any questions, patches 
 or corrections to the opensync developers list 
 (opensync-devel@lists.sourceforge.net). Thanks!
 
+
+Configuration Options
+---------------------
+
+url
+  IP address or hostname (not actually a URL) eg. 192.168.0.2
+
+username
+  User name to log into the device as (default root).
+
+password
+  Password to log into the device with (default rootme).
+
+device
+  Device type being connected to:
+    opie    - Opie or compatible OS (default)
+    qtopia2 - Qtopia 2.0 or compatible OS (eg. Zaurus with original ROM).
+
+port
+  TCP port to use for file transfers. Default is 4242.
+
+conntype
+  Connection type to use:
+    ftp  - use FTP (default)
+    scp  - use SFTP
+    none - don't connect. Useful for debugging only - will expect the device 
+           files to sync with to be in /tmp.
+
+use_qcop
+  Control the use of QCOP to notify the device of syncing:
+    true  - enable QCOP (default)
+    false - disable QCOP. Only really useful for debugging.
+
+backupdir
+  (Optional) If you want the files from your device backed up prior to every 
+  sync, set this option to a directory to put the backups into. A directory 
+  named using the current date and time will be created for each backup. 
+  Files will also be written to this directory in the event that uploading to 
+  the device fails.
+  Note that old backups are not purged - you will need to do this yourself.
