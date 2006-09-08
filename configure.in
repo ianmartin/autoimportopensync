@@ -133,7 +133,11 @@ else
 	    else
 			AC_PROG_SWIG(1.3.17)
 			SWIG_PYTHON
-			have_python=yes
+			if test x$SWIG_LIB = x; then
+				have_python=no
+			else
+				have_python=yes
+			fi
 	    fi
 	
 	    if test x$have_python = xno ; then
