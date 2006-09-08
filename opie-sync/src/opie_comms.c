@@ -148,15 +148,18 @@ void list_cleanup(GList *file_list) {
 /*
  * Manually clean up temp files
  */
-void cleanup_temp_files(GList* file_list) {
+void cleanup_temp_files(GList* file_list, int tmpfilemode) {
 	guint len = g_list_length(file_list);
 	guint t;
 	
 	for(t = 0; t < len; ++t) {
 		fetch_pair* pair = g_list_nth_data(file_list, t);
-		if(unlink(pair->local_filename) == -1) {
-			osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
+		if(tmpfilemode == TT_VISIBLE) {
+			if(unlink(pair->local_filename) == -1) {
+				osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
+			}
 		}
+		close(pair->local_fd);
 	}
 }
 
@@ -373,9 +376,7 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 		}
 	}
 	
-	if(tmpfilemode == TT_VISIBLE) {
-		cleanup_temp_files(files_to_fetch);
-	}
+	cleanup_temp_files(files_to_fetch, tmpfilemode);
 	list_cleanup(files_to_fetch);
 	
 	return rc;
@@ -574,20 +575,18 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 			break;
   }
 	
-	if(rc && (tmpfilemode == TT_VISIBLE)) {
-		cleanup_temp_files(files_to_put);
+	if((!rc) && (env->conn_type != OPIE_CONN_NONE) && env->backupdir) {
+		/* If something went wrong and the user has a backup directory set,
+		   we write the files to their backups dir to avoid possible data loss */ 
+		char *backupdir = g_build_filename(env->backupdir, "upload_failures", NULL);
+		fprintf(stderr, "Error during upload to device, writing files to %s", backupdir); 
+		backup_files(backupdir, files_to_put);
+		g_free(backupdir);
 	}
 	
-	if(contacts_fd)
-		close(contacts_fd);
-	if(todos_fd)
-		close(todos_fd);
-	if(calendar_fd)
-		close(calendar_fd);
-	if(categories_fd)
-		close(categories_fd);
-	
+	cleanup_temp_files(files_to_put, tmpfilemode);
 	list_cleanup(files_to_put);
+	
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
 	return rc;
 	
