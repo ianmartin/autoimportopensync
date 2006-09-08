@@ -301,8 +301,8 @@ static osync_bool _fs_filename_is_valid(const char *filename)
 {
 	const char invalid[] = {'\x10', '/', '\0'}; 
 	if (strpbrk(filename, invalid))
-		return TRUE;
-	return FALSE;
+		return FALSE;
+	return TRUE;
 }
 
 /** Write a change, but doesn't report success
