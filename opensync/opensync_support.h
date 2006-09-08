@@ -13,5 +13,6 @@ OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error);
 void osync_thread_free(OSyncThread *thread);
 void osync_thread_start(OSyncThread *thread);
 void osync_thread_stop(OSyncThread *thread);
+osync_bool osync_pattern_match(const char *pattern, const char *data, int size);
 
 #endif

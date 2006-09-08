@@ -948,3 +948,11 @@ void osync_thread_stop(OSyncThread *thread)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
+
+osync_bool osync_pattern_match(const char *pattern, const char *data, int size)
+{
+	GPatternSpec *spec = g_pattern_spec_new(pattern);
+	osync_bool result = g_pattern_match(spec, size, data, NULL);
+	g_pattern_spec_free(spec);
+	return result;
+}

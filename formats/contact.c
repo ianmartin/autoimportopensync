@@ -20,6 +20,7 @@
  
 #include <opensync/opensync.h>
 #include <glib.h>
+#include <opensync/opensync_support.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -48,7 +49,7 @@ static osync_bool detect_plain_as_vcard21(OSyncFormatEnv *env, const char *data,
 	if (!data)
 		return FALSE;
 		
-	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:2.1*", data);
+	return osync_pattern_match("*BEGIN:VCARD*VERSION:2.1*", data, size);
 }
 
 static osync_bool detect_plain_as_vcard30(OSyncFormatEnv *env, const char *data, int size)
@@ -58,7 +59,7 @@ static osync_bool detect_plain_as_vcard30(OSyncFormatEnv *env, const char *data,
 	if (!data)
 		return FALSE;
 
-	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:3.0*", data);
+	return osync_pattern_match("*BEGIN:VCARD*VERSION:3.0*", data, size);
 }
 
 static void create_vcard21(OSyncChange *change)

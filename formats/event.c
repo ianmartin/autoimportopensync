@@ -20,6 +20,7 @@
  
 #include <opensync/opensync.h>
 #include <glib.h>
+#include <opensync/opensync_support.h>
 #include <string.h>
 
 /** @defgroup event_vevent event/vevent data format
@@ -41,14 +42,14 @@ static osync_bool detect_plain_as_vevent10(OSyncFormatEnv *env, const char *data
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
 
-	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VEVENT*", data);
+	return osync_pattern_match("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VEVENT*", data, size);
 }
 
 static osync_bool detect_plain_as_vevent20(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
 
-	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VEVENT*", data);
+	return osync_pattern_match("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VEVENT*", data, size);
 }
 
 static void create_event10(OSyncChange *change)
