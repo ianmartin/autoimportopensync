@@ -3,9 +3,7 @@
 SUBDIRS = src
 
 EXTRA_DIST = \
-	autogen.sh \
-	misc/synce.spec \
-	misc/synce.spec.in
+	autogen.sh
 
 
 ## The distclean files are just there so we can ship the example correctly. Remove these ##
