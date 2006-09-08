@@ -297,6 +297,14 @@ static void fs_read(OSyncContext *ctx, OSyncChange *change)
 	osync_debug("FILE-SYNC", 4, "end: %s", __func__);
 }
 
+static osync_bool _fs_filename_is_valid(const char *filename)
+{
+	const char invalid[] = {'\x10', '/', '\0'}; 
+	if (strpbrk(filename, invalid))
+		return TRUE;
+	return FALSE;
+}
+
 /** Write a change, but doesn't report success
  *
  * This function writes a change, but doesn't report success on
@@ -330,6 +338,20 @@ static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
 			}
 			break;
 		case CHANGE_ADDED:
+			/* It can happen, that if we sync against another plugin like evo2 or kde,
+			 * that we get an invalid character in the uid for the filesystem. Since we
+			 * use the uid as the filename, this is a problem. This fix replaces any uid
+			 * it receives, which contains an invalid uid with a new uid which is valid.
+			 * 
+			 * This has some problems: we cannot compare the filename correctly if its a strange
+			 * charset like utf16. Another problem appears if we have filesystems which supports
+			 * different characters in filenames */
+			if (!_fs_filename_is_valid(filename)) {
+				g_free(filename);
+				osync_change_set_uid(change, osync_rand_str(15));
+				filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
+			}
+
 			if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
 				osync_debug("FILE-SYNC", 0, "File %s already exists", filename);
 				osync_context_report_error(ctx, OSYNC_ERROR_EXISTS, "Entry already exists");
