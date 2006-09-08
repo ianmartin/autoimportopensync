@@ -2,6 +2,3 @@
 
 SUBDIRS = src tests
 
-EXTRA_DIST = \
-	misc/file-sync.spec \
-	misc/file-sync.spec.in

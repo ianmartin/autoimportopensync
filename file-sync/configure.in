@@ -48,7 +48,6 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 tests/Makefile
-misc/file-sync.spec
 ])
 
 echo "================================"
