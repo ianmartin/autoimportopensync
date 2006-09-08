@@ -21,7 +21,7 @@
 #define INCL_GCONF_MANAGEMENT_NODE
 
 #include <glib.h>
-#include <gtk/gtk.h>
+/**#include <gtk/gtk.h>*/
 #include <gconf/gconf-client.h>
 
 #include "spdm/common/Constants.h"

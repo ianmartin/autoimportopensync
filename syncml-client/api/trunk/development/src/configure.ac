@@ -38,7 +38,7 @@ AC_CHECK_FUNCS([gettimeofday localtime_r memmove memset setlocale strchr strstr]
 
 # Checks for installed packages
 # FIXME: split to separate tests - better error messages and configure options
-PKG_CHECK_MODULES([SYNCML],[glib-2.0 gtk+-2.0 pango atk gconf-2.0])
+PKG_CHECK_MODULES([SYNCML],[glib-2.0 gconf-2.0])
 
 AC_CHECK_PROG(CURL_PROG,curl-config,yes,no)
 if test "$CURL_PROG" = "no" 
