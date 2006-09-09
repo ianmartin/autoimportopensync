@@ -688,10 +688,8 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 				}
 				else if(!strcasecmp(iprop->name, "Priority"))
 				{
-					/* Priority is 1-5 on Opie, 0-9 in OpenSync XML */
+					/* Priority is 1-5 on Opie, 0-9 in OpenSync XML (0 = undefined) */
 					int priority = atoi(iprop->children->content);
-					if(priority > 0)
-						priority--;
 					char *prio = g_strdup_printf("%d", priority);
 					on_curr = xmlNewTextChild(on_root, NULL, (xmlChar*)"Priority", NULL);
 					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)prio);
@@ -853,19 +851,17 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 	/* Priority */
 	icur = osxml_get_node(root, "Priority");
 	if (icur) {
-		/* Priority is 1-5 on Opie, 0-9 in OpenSync XML */ 
+		/* Priority is 1-5 on Opie, 0-9 in OpenSync XML (0 = undefined) */
 		icur = osxml_get_node(icur, "Content");
 		if (icur) {
 			char *prio = (char *)xmlNodeGetContent(icur);
 			if (prio) {
-				int priority = atoi(prio) + 1;
+				int priority = atoi(prio);
 				xmlFree(prio);
 				if (priority < 1) {
-					/* Never go lower than 1 */
 					priority = 1;
 				}
-				if (priority > 5) {
-					/* Default to priority 5 */
+				else if (priority > 5) {
 					priority = 5;
 				}
 				prio = g_strdup_printf("%d", priority);
