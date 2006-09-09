@@ -953,7 +953,7 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	{100, "/contact/Name"},
 	//{20, "/contact/Telephone"},
 	//{20, "/contact/Address"},
-	//{1, "/contact/UnknownNode"},
+	{0, "/contact/UnknownNode"},
 	{0, "/contact/*/Slot"},
 	{0, "/contact/*/Type"},
 	{0, "/contact/WantsHtml"},

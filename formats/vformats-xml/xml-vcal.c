@@ -226,52 +226,41 @@ static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 	osync_trace(TRACE_INTERNAL, "Handling rrule attribute");
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"RecurrenceRule", NULL);
 
-	char *tmp = NULL;
-	xmlNode *node = NULL;
 	GList *values = NULL; 
-	const char *rrule = NULL;
-	osync_bool vevent10 = FALSE;
 	osync_bool interval_isset = FALSE; 
 
-	rrule = vformat_attribute_get_nth_value(attr, 0);
-
-	if (!strstr(rrule, "FREQ")) {
-		values = conv_vcal2ical_rrule(rrule);
-		vevent10 = TRUE;
-	} else {
-		values = vformat_attribute_get_values_decoded(attr);
-	}
-
+	values = vformat_attribute_get_values_decoded(attr);
 
 	for (; values; values = values->next) {
-
-		if (!vevent10) {
-			GString *retstr = (GString *)values->data;
-			g_assert(retstr);
-			osxml_node_add(current, "Rule", retstr->str);
-		} else {
-			osxml_node_add(current, "Rule", (char *) values->data);
-		}
-	}
-
-	if (vevent10) {
-		g_list_free(values);
-	}
-
-	/* Check if INTERVAL is alreay set. (Avoid conflicts - INTERVAL=1 is default) */
-	node = root->children;
-	while (node) {
-		tmp = (char *) xmlNodeGetContent(node);
-		if (strstr(tmp, "INTERVAL")) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		osxml_node_add(current, "Rule", retstr->str);
+		if (strstr(retstr->str, "INTERVAL"))
 			interval_isset = TRUE;
-			break;
-		}
-		node = node->next;
 	}
 
 	if (!interval_isset)
 		osxml_node_add(current, "Rule", "INTERVAL=1");
 		
+	return current;
+}
+
+static xmlNode *handle_vcal_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling rrule attribute");
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"RecurrenceRule", NULL);
+
+	GList *values = NULL; 
+
+	const char *rrule = vformat_attribute_get_nth_value(attr, 0);
+	values = conv_vcal2ical_rrule(rrule);
+
+	for (; values; values = values->next) {
+		osxml_node_add(current, "Rule", (char *) values->data);
+	}
+
+	g_list_free(values);
+
 	return current;
 }
 
@@ -1173,6 +1162,7 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{0, "/vcal/Event/Class[Content = \"PUBLIC\"]"},
 	{0, "/vcal/Event/Priority"},
 	{0, "/vcal/Event/Transparency[Content = \"OPAQUE\"]"},
+	{0, "/vcal/Method"},
 	{0, NULL}
 	};
 	
@@ -1199,6 +1189,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/Class[Content = \"PUBLIC\"]"},
 	{0, "/vcal/Todo/Priority"},
 	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
+	{0, "/vcal/Method"},
 	{0, NULL}
 	};
 	
@@ -1225,7 +1216,7 @@ static void insert_attr_handler(GHashTable *table, const char *attrname, vattr_h
 	g_hash_table_insert(table, (gpointer)attrname, handler);
 }
 
-static void *init_vcal_to_xml(void)
+static void *init_ical_to_xml(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	OSyncHooksTable *hooks = g_malloc0(sizeof(OSyncHooksTable));
@@ -1257,10 +1248,6 @@ static void *init_vcal_to_xml(void)
 	insert_attr_handler(hooks->comptable, "CREATED", handle_created_attribute);
 	insert_attr_handler(hooks->comptable, "DCREATED", handle_created_attribute);
 	insert_attr_handler(hooks->comptable, "RRULE", handle_rrule_attribute);
-
-	//vcal (event10) only
-	insert_attr_handler(hooks->comptable, "AALARM", handle_aalarm_attribute);
-	insert_attr_handler(hooks->comptable, "DALARM", handle_dalarm_attribute);
 
 	insert_attr_handler(hooks->comptable, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->comptable, "LOCATION", handle_location_attribute);
@@ -1383,6 +1370,20 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->alarmtable, "X-LIC-ERROR", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->alarmtable, "X-EVOLUTION-ALARM-UID", HANDLE_IGNORE);
 	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
+	return (void *)hooks;
+}
+
+static void *init_vcal_to_xml(void)
+{
+	osync_trace(TRACE_ENTRY, "%s", __func__);
+	OSyncHooksTable *hooks = (OSyncHooksTable *)init_ical_to_xml();
+	
+	//vcal (event10) only
+	insert_attr_handler(hooks->comptable, "RRULE", handle_vcal_rrule_attribute);
+	insert_attr_handler(hooks->comptable, "AALARM", handle_aalarm_attribute);
+	insert_attr_handler(hooks->comptable, "DALARM", handle_dalarm_attribute);
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
 }
@@ -2327,7 +2328,7 @@ void get_info(OSyncEnv *env)
 	osync_env_converter_set_init(env, "xml-event", "vevent10", init_xml_to_vcal, fin_xml_to_vcal);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vevent20", "xml-event", conv_vcal_to_xml);
-	osync_env_converter_set_init(env, "vevent20", "xml-event", init_vcal_to_xml, fin_vcal_to_xml);
+	osync_env_converter_set_init(env, "vevent20", "xml-event", init_ical_to_xml, fin_vcal_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "vevent20", conv_xml_to_vevent20);
 	osync_env_converter_set_init(env, "xml-event", "vevent20", init_xml_to_vcal, fin_xml_to_vcal);
 	
@@ -2348,7 +2349,7 @@ void get_info(OSyncEnv *env)
 	osync_env_converter_set_init(env, "xml-todo", "vtodo10", init_xml_to_vcal, fin_xml_to_vcal);
 	
 	osync_env_register_converter(env, CONVERTER_CONV, "vtodo20", "xml-todo", conv_vcal_to_xml);
-	osync_env_converter_set_init(env, "vtodo20", "xml-todo", init_vcal_to_xml, fin_vcal_to_xml);
+	osync_env_converter_set_init(env, "vtodo20", "xml-todo", init_ical_to_xml, fin_vcal_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo", "vtodo20", conv_xml_to_vtodo20);
 	osync_env_converter_set_init(env, "xml-todo", "vtodo20", init_xml_to_vcal, fin_xml_to_vcal);
 }

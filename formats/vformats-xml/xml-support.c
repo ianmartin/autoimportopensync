@@ -216,10 +216,22 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 				g_free(rightcontent);
 				goto next;
 			}
-			if (!strcmp(leftcontent, rightcontent)) {
+
+			/* We compare the striped content to work around bugs in
+			 * applications like evo2 which always strip the content
+			 * and would therefore cause conflicts. This change should not break
+			 * anything since it does not touch the actual content */			
+			char *strip_right = g_strstrip(g_strdup(rightcontent));
+			char *strip_left = g_strstrip(g_strdup(leftcontent));
+			if (!strcmp(strip_left, strip_right)) {
+				g_free(strip_right);
+				g_free(strip_left);
 				g_free(rightcontent);
 				goto next;
 			}
+			g_free(strip_right);
+			g_free(strip_left);
+
 			if (!leftcontent || !rightcontent) {
 				osync_trace(TRACE_EXIT, "%s: One is empty", __func__);
 				return FALSE;
