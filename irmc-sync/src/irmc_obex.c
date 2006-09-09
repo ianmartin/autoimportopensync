@@ -748,9 +748,7 @@ gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OS
     userdata->databuf = buffer;
     userdata->databuflen = buflen;
     userdata->busy = 1;
-    // FIXME: irmc_obex_get will never fail because userdata->error
-    // is not set - cstender 2006-09-06
-    //userdata->error = error;
+    userdata->error = error;
     OBEX_Request(handle, object);
     userdata->state = IRMC_OBEX_GETTING;
     while ( userdata->busy ) {

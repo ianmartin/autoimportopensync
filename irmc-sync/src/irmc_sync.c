@@ -432,7 +432,6 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
 
   memset(data, 0, DATABUFSIZE);
   len = DATABUFSIZE;
-  //FIXME: irmc_obex_get is always true - cstender 2006/09/06
   if (!irmc_obex_get(obexhandle, filename, data, &len, error)) {
     g_free(filename);
     g_free(data);
@@ -443,11 +442,8 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   g_free(filename);
   data[len] = '\0';
 
-  // FIXME: workaround for SyncML ready SE cell phones which can't sync
-  // notes over irmc and cause always a slow-sync because of overwriting
-  // the serial number with garbage - cstender 2006/09/06
   ret = sscanf(datap, "SN:%256s\r\n", serial);
-  if (ret > 0) {
+ if (ret > 0) {
     if (!*serial_number || strcmp(*serial_number, serial)) {
       if (*serial_number)
         g_free(*serial_number);
@@ -562,40 +558,49 @@ static void irmcConnect(OSyncContext *ctx)
   load_sync_anchors(env->member, config);
 
   // check whether a slowsync is necessary
-  gboolean slowsync = FALSE;
-  if ( !detect_slowsync( config->calendar_changecounter, "cal", &(config->calendar_dbid),
-                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-  {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-    return;
-  } else {
-    osync_member_set_slow_sync(env->member, "event", slowsync);
-  }
 
-  slowsync = FALSE;
-  if ( !detect_slowsync( config->addressbook_changecounter, "pb", &(config->addressbook_dbid),
-                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-  {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-    return;
-  } else {
-    osync_member_set_slow_sync(env->member, "contact", slowsync);
+  gboolean slowsync = FALSE;  
+  
+  if (osync_member_objtype_enabled(env->member, "event")) { 
+    slowsync = FALSE;
+    if ( !detect_slowsync( config->calendar_changecounter, "cal", &(config->calendar_dbid),
+                           &(config->serial_number), &slowsync, config->obexhandle, &error ) )
+    {
+      irmc_disconnect(config);
+      osync_context_report_osyncerror(ctx, &error);
+      osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
+      return;
+    } else {
+      osync_member_set_slow_sync(env->member, "event", slowsync);
+    }
   }
-
-  slowsync = FALSE;
-  if ( !detect_slowsync( config->notebook_changecounter, "nt", &(config->notebook_dbid),
-                         &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-  {
-    irmc_disconnect(config);
-    osync_context_report_osyncerror(ctx, &error);
-    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-    return;
-  } else {
-    osync_member_set_slow_sync(env->member, "note", slowsync);
+  
+  if (osync_member_objtype_enabled(env->member, "contact")) { 
+    slowsync = FALSE;
+    if ( !detect_slowsync( config->addressbook_changecounter, "pb", &(config->addressbook_dbid),
+                           &(config->serial_number), &slowsync, config->obexhandle, &error ) )
+    {
+      irmc_disconnect(config);
+      osync_context_report_osyncerror(ctx, &error);
+      osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
+      return;
+    } else {
+      osync_member_set_slow_sync(env->member, "contact", slowsync);
+    }
+  }
+  
+  if (osync_member_objtype_enabled(env->member, "note")) { 
+    slowsync = FALSE;
+    if ( !detect_slowsync( config->notebook_changecounter, "nt", &(config->notebook_dbid),
+                           &(config->serial_number), &slowsync, config->obexhandle, &error ) )
+    {
+      irmc_disconnect(config);
+      osync_context_report_osyncerror(ctx, &error);
+      osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+      return;
+    } else {
+      osync_member_set_slow_sync(env->member, "note", slowsync);
+    }
   }
 
   osync_context_report_success(ctx);
@@ -625,7 +630,7 @@ static void irmcGetChangeinfo(OSyncContext *ctx)
   strcpy(info.path_extension, "vcs");
   info.change_counter = &(config->calendar_changecounter);
 
-  if (!get_generic_changeinfo(ctx, &info, &error))
+  if (osync_member_objtype_enabled(env->member, "event") && !get_generic_changeinfo(ctx, &info, &error))
     goto error;
 
   memset(&info, 0, sizeof(info));
@@ -635,7 +640,7 @@ static void irmcGetChangeinfo(OSyncContext *ctx)
   strcpy(info.path_extension, "vcf");
   info.change_counter = &(config->addressbook_changecounter);
 
-  if (!get_generic_changeinfo(ctx, &info, &error))
+  if (osync_member_objtype_enabled(env->member, "contact") && !get_generic_changeinfo(ctx, &info, &error))
     goto error;
 
   memset(&info, 0, sizeof(info));
@@ -645,7 +650,7 @@ static void irmcGetChangeinfo(OSyncContext *ctx)
   strcpy(info.path_extension, "vnt");
   info.change_counter = &(config->notebook_changecounter);
 
-  if (!get_generic_changeinfo(ctx, &info, &error))
+  if (osync_member_objtype_enabled(env->member, "note") && !get_generic_changeinfo(ctx, &info, &error))
     goto error;
 
   osync_context_report_success(ctx);

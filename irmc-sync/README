@@ -1,7 +1,9 @@
 Notes:
 ------
-- syncronisation of notes doesn't work with newer syncml ready Sony Ericsson cell phones
-
+- Syncronisation of notes doesn't work with newer Sony Ericsson cell phones like
+  the K750i. You will receive a "OBEX RSP unsuccessful" error. Please use
+  "msynctool --sync $GROUP --filter-objtype note" to deactivate syncronisation
+  of notes.
 
 
 
