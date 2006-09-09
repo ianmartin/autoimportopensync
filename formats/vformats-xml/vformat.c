@@ -884,6 +884,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 
 			attr_str = g_string_append (attr_str, escaped_value);
 			if (v->next) {
+
 				/* XXX toshok - i hate you, rfc 2426.
 				   why doesn't CATEGORIES use a ; like
 				   a normal list attribute? */
@@ -1319,6 +1320,15 @@ VFormatParam *vformat_attribute_find_param(VFormatAttribute *attr, const char *n
 			return param;
 	}
 	return NULL;
+}
+
+void
+vformat_attribute_set_value (VFormatAttribute *attr,
+				int nth, const char *value)
+{
+	GList *param = g_list_nth(attr->values, nth);
+	g_free(param->data);	
+	param->data = g_strdup(value);
 }
 
 void

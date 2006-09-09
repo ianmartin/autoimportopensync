@@ -24,7 +24,7 @@ xml_vcard_la_SOURCES = xml-vcard.c vformat.c
 xml_vcard_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_vcard_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 
-xml_vcal_la_SOURCES = xml-vcal.c vformat.c
+xml_vcal_la_SOURCES = xml-vcal.c vformat.c vcalical.c
 xml_vcal_la_LDFLAGS = -avoid-version -export-dynamic -module @GCOV_LDFLAGS@
 xml_vcal_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ libopensync-xml.la
 

@@ -102,6 +102,7 @@ void             vformat_add_attribute               (VFormat *vformat, VFormatA
 void             vformat_add_attribute_with_value    (VFormat *vformat, VFormatAttribute *attr, const char *value);
 void             vformat_add_attribute_with_values   (VFormat *vformat, VFormatAttribute *attr, ...);
 void             vformat_attribute_add_value         (VFormatAttribute *attr, const char *value);
+void             vformat_attribute_set_value         (VFormatAttribute *attr, int nth, const char *value);
 void             vformat_attribute_add_value_decoded (VFormatAttribute *attr, const char *value, int len);
 void             vformat_attribute_add_values        (VFormatAttribute *attr, ...);
 void             vformat_attribute_remove_values     (VFormatAttribute *attr);
