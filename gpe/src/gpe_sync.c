@@ -112,9 +112,9 @@ static void get_changeinfo(OSyncContext *ctx)
 
 	gpe_environment *env = (gpe_environment *)osync_context_get_plugin_data(ctx);
 
-	osync_bool get_contacts = FALSE;
-	osync_bool get_calendar = FALSE;
-	osync_bool get_todo     = FALSE;
+	osync_bool get_contacts = TRUE;
+	osync_bool get_calendar = TRUE;
+	osync_bool get_todo     = TRUE;
 		   
 	if (osync_member_objtype_enabled(env->member, "contact"))
 		get_contacts = gpe_contacts_get_changes(ctx);
