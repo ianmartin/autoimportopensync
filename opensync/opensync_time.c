@@ -179,8 +179,6 @@ struct tm *osync_time_vtime2tm(const char *vtime) {
 	// isdst is handled by tz offset calcualtion
 	utime->tm_isdst = -1;
 
-	mktime(utime);
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
 
 	return utime;
@@ -197,7 +195,7 @@ struct tm *osync_time_vtime2tm(const char *vtime) {
  */
 char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc) {
 
-	osync_trace(TRACE_ENTRY, "%s(%p, %b)", __func__, time, is_utc);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
 	GString *vtime = g_string_new("");
 
 	g_string_printf(vtime, "%04d%02d%02dT%02d%02d%02d",
@@ -231,7 +229,7 @@ time_t osync_time_vtime2unix(const char *vtime) {
 	g_free(utc);
 	g_free(utime);
 
-	osync_trace(TRACE_EXIT, "%s: %ld", __func__, timestamp);
+	osync_trace(TRACE_EXIT, "%s: %lu", __func__, timestamp);
 	return timestamp;
 }
 
@@ -242,11 +240,12 @@ time_t osync_time_vtime2unix(const char *vtime) {
  */
 char *osync_time_unix2vtime(const time_t *timestamp) {
 
-	osync_trace(TRACE_ENTRY, "%s(%ld)", __func__, timestamp);
+	osync_trace(TRACE_ENTRY, "%s(%lu)", __func__, *timestamp);
 	char *vtime;
 	struct tm *utc;
 
-	utc = gmtime(timestamp);
+//	utc = gmtime(timestamp);
+	utc = localtime(timestamp);
 	vtime = osync_time_tm2vtime(utc, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
@@ -455,5 +454,141 @@ char *osync_time_vtime2localtime(const char* utc) {
 	g_free(tm_utc);
 	
 	return localtime;
+}
+
+
+/*! @brief Functions converts seconds in duration before or after alarm event 
+ * 
+ * @param seconds 
+ * @returns ical alarm duration string (caller is preponsible for freeing) 
+ */ 
+
+char *osync_time_sec2alarmdu(int seconds) {
+
+	osync_trace(TRACE_ENTRY, "%s(%i)", __func__, seconds);
+
+        char *tmp = NULL;
+	char *prefix = NULL;
+
+	if (!seconds) { 
+		tmp = g_strdup("PT0S");
+		goto end;
+	}
+
+	if (seconds > 0) { 
+		prefix = g_strdup("-P");
+	} else {
+		prefix = g_strdup("P");
+		seconds *= -1;
+	}
+
+	// Days 
+        if (!(seconds % (3600 * 24))) {
+               tmp = g_strdup_printf("%s%iD", prefix, seconds / (3600 * 24));
+	       goto end;
+	}
+
+	// Hours
+        if (!(seconds % 3600)) {
+                tmp = g_strdup_printf("%sT%iH", prefix, seconds / 3600);
+		goto end;
+	}
+
+	// Minutes
+        if (!(seconds % 60) && seconds < 3600) {
+                tmp = g_strdup_printf("%sT%iM", prefix, seconds / 60);
+		goto end;
+	}
+
+        if (seconds > 60)
+                tmp = g_strdup_printf("%sT%iM", prefix, seconds / 60);
+
+        if (seconds > 3600)
+                tmp = g_strdup_printf("%sT%iH%iM", prefix, seconds / 3600,
+                                (seconds % 3600) / 60);
+
+        if (seconds > (3600 * 24))
+               tmp = g_strdup_printf("%s%iDT%iH%iM", prefix, seconds / (3600 * 24),
+                               seconds % (3600 * 24) / 3600,
+                               ((seconds % (3600 * 24) % 3600)) / 60);
+
+end:
+	g_free(prefix);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
+        return tmp;
+}
+
+/*! @brief Functions converts alarm duration event to seconds needed for reminder of vcal/ical
+ * 
+ * TODO: Test support for ALARM after/before end and after start
+ *
+ * @param alarm 
+ * @returns seconds of alarm and duration
+ */ 
+
+int osync_time_alarmdu2sec(char *alarm) {
+
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
+
+        int i, secs, digits;
+        int is_digit = 0;
+	int sign = 1;	// when ical stamp doesn't start with '-' => seconds after event
+        int days = 0, weeks = 0, hours = 0, minutes = 0, seconds = 0;
+
+	        for (i=0; i < (int) strlen(alarm); i++) {
+
+                switch (alarm[i]) {
+                        case '-':
+				sign = -1; // seconds before event - change the sign 
+                        case 'P':
+                        case 'T':
+                                is_digit = 0;
+                                break;
+                        case 'W':
+                                is_digit = 0;
+                                weeks = digits;
+                                break;
+                        case 'D':
+                                is_digit = 0;
+                                days = digits;
+                                break;
+                        case 'H':
+                                is_digit = 0;
+                                hours = digits;
+                                break;
+                        case 'M':
+                                is_digit = 0;
+                                minutes = digits;
+                                break;
+                        case 'S':
+                                is_digit = 0;
+                                seconds = digits;
+                                break;
+                        case '0':
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                                if (is_digit)
+                                        break;
+
+                                sscanf((char*)(alarm+i),"%d",&digits);
+                                is_digit = 1;
+                                break;
+                }
+	}
+
+        secs = (weeks * 7 * 24 * 3600) + (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds;
+
+	secs = secs * sign;	// change sign if the alarm is in seconds before event (leading '-')
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, secs);
+        return secs;
 }
 

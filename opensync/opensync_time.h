@@ -23,5 +23,9 @@ struct tm *osync_time_tm2localtime(const struct tm *utime);
 char *osync_time_vtime2utc(const char* localtime);
 char *osync_time_vtime2localtime(const char* utc);
 
+/* Alarm Duration Timeformat helper  */
+char *osync_time_sec2alarmdu(int seconds);
+int osync_time_alarmdu2sec(char *alarm);
+
 #endif // _OPENSYNC_FORMAT_H_
 
