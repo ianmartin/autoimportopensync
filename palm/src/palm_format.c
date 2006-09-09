@@ -329,8 +329,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		}
 
 		// Interval
-		// intveral value 1 is default and is not required as seperate field. would lead to conflicts.
-		if (entry->appointment.repeatFrequency && entry->appointment.repeatFrequency != 1) {
+		if (entry->appointment.repeatFrequency) {
 			tmp = g_strdup_printf("INTERVAL=%i", entry->appointment.repeatFrequency);
 			xmlNewTextChild(current, NULL, (xmlChar*)"Rule", (xmlChar*) tmp); 
 			g_free(tmp);
