@@ -683,10 +683,17 @@ static void psyncConnect(OSyncContext *ctx)
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 	OSyncError *error = NULL;
 	int ret;
+	struct SysInfo sys_info;
 
 	//now connect with the palm
 	if (!_connectDevice(env, env->timeout, &error))
 		goto error;
+
+	// Do the following so that OpenSync will work with password enabled
+        // Palm devices (OS 4 and higher).
+        if (dlp_ReadSysInfo(env->socket, &sys_info) < 0) {
+                osync_trace(TRACE_INTERNAL, "Unable to read SysInfo");
+        }
 
 	//check the user
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
@@ -771,22 +778,22 @@ static void psyncGetChangeinfo(OSyncContext *ctx)
 	dlp_OpenConduit(env->socket);
 
 #ifdef HAVE_TODO	
-	if (!psyncTodoGetChangeInfo(ctx, &error))
+	if (osync_member_objtype_enabled(env->member, "todo") && !psyncTodoGetChangeInfo(ctx, &error))
 		goto error;
 #endif	
 	
 #ifdef HAVE_CONTACT	
-	if (!psyncContactGetChangeInfo(ctx, &error))
+	if (osync_member_objtype_enabled(env->member, "contact") && !psyncContactGetChangeInfo(ctx, &error))
 		goto error;
 #endif	
 		
 #ifdef HAVE_EVENT	
-	if (!psyncEventGetChangeInfo(ctx, &error))
+	if (osync_member_objtype_enabled(env->member, "event") && !psyncEventGetChangeInfo(ctx, &error))
 		goto error;
 #endif	
 
 #ifdef HAVE_NOTE	
-	if (!psyncNoteGetChangeInfo(ctx, &error))
+	if (osync_member_objtype_enabled(env->member, "note") && !psyncNoteGetChangeInfo(ctx, &error))
 		goto error;
 #endif	
 
