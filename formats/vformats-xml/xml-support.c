@@ -177,6 +177,9 @@ osync_bool osxml_has_property(xmlNode *parent, const char *name)
 static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p:%s, %p:%s)", __func__, leftnode, leftnode->name, rightnode, rightnode->name);
+
+	char *left, *right;
+
 	if (strcmp((char*)leftnode->name, (char*)rightnode->name)) {
 		osync_trace(TRACE_EXIT, "%s: FALSE: Different Name", __func__);
 		return FALSE;
@@ -248,8 +251,9 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 
 			/* Workaround for kdepim-sync. kdepim-sync always creates a AlarmTrigger with DISPLAY also when DESCRIPTION is empty */ 
 			if (!strcmp("Alarm", (char*)rightnode->name) && !strcmp("Alarm",(char*)leftnode->name)) {
-			       char *left = leftcontent;
-			       char *right = rightcontent;
+
+				left = leftcontent;
+				right = rightcontent;
 
 				if (strstr(leftcontent, "DISPLAY"))
 					left += 7;
@@ -257,15 +261,48 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 				if (strstr(rightcontent, "DISPLAY"))
 					right += 7; 
 
-				osync_trace(TRACE_SENSITIVE, "left: %s right: %s", left, right);
+				osync_trace(TRACE_SENSITIVE, "Alarm Display Workaround - left: %s right: %s", left, right);
 				if (!strcmp(left, right)) {
 					osync_trace(TRACE_INTERNAL, "KDEPIM-SYNC (ALARM trigger) workaround active!");
 					g_free(rightcontent);
 					goto next;
 				}
 			}
+
+			/* Workaround for comparing UTC and localtime stamps. This will be replaced ASAP (beep!) when task #331 is done */
+			if ((!strcmp("DateStarted", (char*)rightnode->name) && !strcmp("DateStarted", (char*)leftnode->name))
+					|| (!strcmp("DateEnd", (char*)rightnode->name) && !strcmp("DateEnd", (char*)leftnode->name))) {
+
+				int ret = 0;
+
+				if (osync_time_isutc(leftcontent)) {
+					left = osync_time_vtime2localtime(leftcontent);
+				} else {
+					left = g_strdup(leftcontent);
+				}
+
+				if (osync_time_isutc(rightcontent)) {
+					right = osync_time_vtime2localtime(rightcontent);
+				} else {
+					right = g_strdup(rightcontent);
+				}
+
+				osync_trace(TRACE_SENSITIVE, "utc2localtime conversion - left: %s right: %s", left, right);
+
+				ret = strcmp(left, right);
+
+				g_free(left);
+				g_free(right);
+
+				if (!ret) {
+					osync_trace(TRACE_INTERNAL, "utc2localtime workaround active!");
+					g_free(rightcontent);
+					goto next;
+				}
+			}
 		
 			g_free(rightcontent);
+
 		} while ((rightnode = rightnode->next));
 		osync_trace(TRACE_EXIT, "%s: Could not match one", __func__);
 		g_free(leftcontent);

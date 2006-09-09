@@ -290,7 +290,11 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	time_t dalarm_t = osync_time_vtime2unix((const char *) v->data);
 
 	tmp = osync_time_sec2alarmdu(dtstart_t - dalarm_t);
-	osxml_node_add(current, "AlarmTrigger", tmp);
+	
+	current = osxml_node_add(current, "AlarmTrigger", NULL);
+	osxml_node_add(current, "Content", tmp);
+	osxml_node_add(current, "Value", "DURATION");
+
 	g_free(tmp);
 
 	return current;
