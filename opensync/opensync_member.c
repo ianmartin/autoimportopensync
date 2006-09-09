@@ -966,7 +966,14 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtypest
 			sink->enabled = enabled;
 		}
 	} else {
-		sink = osync_member_find_objtype_sink(member, objtypestr);
+		GList *o = NULL;
+	        for (o = member->objtype_sinks; o; o = o->next) {
+	                sink = o->data;
+	                if (!strcmp(sink->objtype->name, objtypestr))
+	                        break;
+			sink = NULL;
+	        }
+
 		if (!sink) {
 			osync_trace(TRACE_EXIT_ERROR, "Unable to find sink with name \"%s\"", objtypestr);
 			return;
