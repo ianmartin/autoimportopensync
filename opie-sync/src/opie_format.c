@@ -688,13 +688,14 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 				}
 				else if(!strcasecmp(iprop->name, "Priority"))
 				{
-					/* Priority is 1-5 on Opie, 0-9 in OpenSync XML 
-						This conversion matches the behaviour of the Palm plugin.
-					*/
-					char *tmp = g_strdup_printf("%i", atoi(iprop->children->content) + 2);
+					/* Priority is 1-5 on Opie, 0-9 in OpenSync XML */
+					int priority = atoi(iprop->children->content);
+					if(priority > 0)
+						priority--;
+					char *prio = g_strdup_printf("%d", priority);
 					on_curr = xmlNewTextChild(on_root, NULL, (xmlChar*)"Priority", NULL);
-					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)tmp);
-					g_free(tmp);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)prio);
+					g_free(prio);
 				}
 				else if(!strcasecmp(iprop->name, "Progress"))
 				{
@@ -852,22 +853,19 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 	/* Priority */
 	icur = osxml_get_node(root, "Priority");
 	if (icur) {
-		/* Priority is 1-5 on Opie, 0-9 in OpenSync XML 
-			This conversion matches the behaviour of the Palm plugin.
-			FIXME what if the priority is > 7 ?
-		*/
+		/* Priority is 1-5 on Opie, 0-9 in OpenSync XML */ 
 		icur = osxml_get_node(icur, "Content");
 		if (icur) {
 			char *prio = (char *)xmlNodeGetContent(icur);
 			if (prio) {
-				int priority = atoi(prio) - 2;
+				int priority = atoi(prio) + 1;
 				xmlFree(prio);
 				if (priority < 1) {
-					//Never go lower than 1
+					/* Never go lower than 1 */
 					priority = 1;
 				}
-				if (atoi(prio) == 0) {
-					//Default to priority 5
+				if (priority > 5) {
+					/* Default to priority 5 */
 					priority = 5;
 				}
 				prio = g_strdup_printf("%d", priority);
