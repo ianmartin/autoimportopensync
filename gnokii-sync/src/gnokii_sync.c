@@ -115,18 +115,22 @@ static void get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
+	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+
 	osync_bool calendar_changes = TRUE; 
 //	osync_bool todo_changes = TRUE;
 	osync_bool contact_changes = TRUE;
 	
 #ifdef HAVE_EVENT	
 	// get changes of events (calendar)
-	calendar_changes = gnokii_calendar_get_changeinfo(ctx);
+	if (osync_member_objtype_enabled(env->member, "event"))
+		calendar_changes = gnokii_calendar_get_changeinfo(ctx);
 #endif	
 
 #ifdef HAVE_CONTACT	
 	// get changes of contacts
-	contact_changes = gnokii_contact_get_changeinfo(ctx);
+	if (osync_member_objtype_enabled(env->member, "contact"))
+		contact_changes = gnokii_contact_get_changeinfo(ctx);
 #endif	
 	
 //	TODO todo

@@ -37,39 +37,16 @@ BUGS/KNOWN PROBLEMS:
 * nokia cellphones can't store alarm after event. Entry without reminder will be stored on
   the phone. (If your cellphone support alarm after event contact me! :)
 
-* conflict handling doesn't work well. gnokii-event doesn't have any priority and other nodes
-  which are missing while comparing xml-events with compare_vevent(). Mabye a own compare_func
-  without comparing the priority and other missing fields will help(?).
-  [Update]: This should/will be fixed in the engine of opensync.
-
 * the gnokii-sync plugin doesn't support all object types (notes, todo) so it is
-  recommended to filter out this object types. This can be done with the latest revision 
-  (subversion) of msynctool-cli with --filter-objtype:
+  recommended to filter out this object types. This can be done with multisync-cli 
+  with --filter-objtype:
   	msynctool --sync gnokii-kdepim --filter-objtype note --filter-objtype todo
-
-* there is a problem in gnokii_calendar_commit() with osync_hashtable_update_hash() while commiting
-  modified events. change is NULL in some not reproduceable cases! .(
 
 TODO:
 ^^^^^
-* event format:
-	# How to handle Birthday notes for PIMs?
-		- filtering to contacts?
-		- event with yearly recurrence? [done] 
-		- both?
-		
-	# check for a fit calendar type:
-		A note from another plugin with a unknown calendar category will set 		
-		by default to reminder type. A better solution is to check the
-		detailed information and decide for a calendar category which fits.
-		This will lead to a modification on further syncs. Possible solutions:
-			- filtering content
-			- add additional calendar category to source entry
-
 	# print function (written, but never tested)
 		
 * contact format
-  	# testing with other plugins [done: kdepim-sync, evo2-sync, file-sync, ...]
   	# find limits for subentries
 	
 * todo format
@@ -77,6 +54,3 @@ TODO:
 
 * notes format:
 	# writing into calendar as memo entry?
-	
-* suggest default gnokii-sync configuration when ~/.gnokiirc is present
-* timezone handling (fixed? more testing!)
