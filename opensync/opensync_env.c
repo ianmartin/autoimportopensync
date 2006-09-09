@@ -104,8 +104,8 @@ void osync_env_export_loaded_modules(OSyncEnv *env)
 
 	/* Build a ':'-separated list */
 	gchar *list_str = g_strjoinv(":", path_array);
-	osync_trace(TRACE_INTERNAL, "MODULE_LIST: %s", list_str);
-	setenv("OSYNC_MODULE_LIST", list_str, 1);
+	osync_trace(TRACE_INTERNAL, "FORMAT_LIST: %s", list_str);
+	setenv("OSYNC_FORMAT_LIST", list_str, 1);
 	g_free(list_str);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);

@@ -5,7 +5,7 @@
 struct OSyncPlugin {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 	GModule *real_plugin;
-	char *path;
+//	char *path;
 	OSyncPluginInfo info;
 	GList *accepted_objtypes;
 	OSyncEnv *env;

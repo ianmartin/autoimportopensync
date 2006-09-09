@@ -129,6 +129,7 @@ const char *osync_plugin_get_longname(OSyncPlugin *plugin);
 const char *osync_plugin_get_description(OSyncPlugin *plugin);
 OSyncPluginTimeouts osync_plugin_get_timeouts(OSyncPlugin *plugin);
 void *osync_plugin_get_plugin_data(OSyncPlugin *plugin);
+const char *osync_plugin_get_path(OSyncPlugin *plugin);
 
 void *osync_plugin_get_function(OSyncPlugin *plugin, const char *name, OSyncError **error);
 void osync_plugin_accept_objtype(OSyncPluginInfo *info, const char *objtypestr);

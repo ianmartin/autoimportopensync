@@ -152,9 +152,9 @@ int main( int argc, char **argv )
 
 	/* Don't load plugins automatically if OSYNC_MODULE_LIST is set */
 	char *module_list = getenv("OSYNC_MODULE_LIST");
+
 	if (module_list) {
 		osync_env_set_option(env, "LOAD_PLUGINS", "no");
-		osync_env_set_option(env, "LOAD_FORMATS", "no");
 
 		osync_trace(TRACE_INTERNAL, "OSYNC_MODULE_LIST variable: %s", module_list);
 

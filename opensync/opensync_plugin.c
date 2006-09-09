@@ -447,6 +447,12 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
 	return plugin->info.plugin_data;
 }
 
+const char *osync_plugin_get_path(OSyncPlugin *plugin)
+{
+	g_assert(plugin);
+	return g_module_name(plugin->real_plugin);
+}
+
 /*! @brief Sets the commit function of a format
  * 
  * @param info Pointer to a plugin info struct to fill
