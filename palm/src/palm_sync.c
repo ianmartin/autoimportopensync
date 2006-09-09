@@ -702,9 +702,6 @@ static void psyncConnect(OSyncContext *ctx)
 		goto error;
 	}
 	
-	if (env->user.userID == 0)
-		strcpy(env->user.username, "");
-		
 	osync_trace(TRACE_SENSITIVE, "User: %s, %i\n", env->user.username, env->user.userID);
 	/*if (strcmp(User.username, conn->username) || User.userID != conn->id) {
 		//Id or username mismatch
