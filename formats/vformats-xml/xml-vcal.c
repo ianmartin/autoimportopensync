@@ -1167,6 +1167,7 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{0, "/vcal/Event/Priority"},
 	{0, "/vcal/Event/Transparency[Content = \"OPAQUE\"]"},
 	{0, "/vcal/Method"},
+	{0, "/vcal/Timezone"},
 	{0, NULL}
 	};
 	
@@ -1194,6 +1195,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/Priority"},
 	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
 	{0, "/vcal/Method"},
+	{0, "/vcal/Timezone"},
 	{0, NULL}
 	};
 	
