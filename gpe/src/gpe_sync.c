@@ -110,13 +110,20 @@ static void get_changeinfo(OSyncContext *ctx)
 {
 	osync_debug("GPE_SYNC", 4, "start: %s", __func__);
 
+	gpe_environment *env = (gpe_environment *)osync_context_get_plugin_data(ctx);
+
 	osync_bool get_contacts = FALSE;
 	osync_bool get_calendar = FALSE;
 	osync_bool get_todo     = FALSE;
 		   
-	get_contacts = gpe_contacts_get_changes(ctx);
-	get_calendar = gpe_calendar_get_changes(ctx);
-	get_todo = gpe_todo_get_changes(ctx);
+	if (osync_member_objtype_enabled(env->member, "contact"))
+		get_contacts = gpe_contacts_get_changes(ctx);
+
+	if (osync_member_objtype_enabled(env->member, "event"))
+		get_calendar = gpe_calendar_get_changes(ctx);
+
+	if (osync_member_objtype_enabled(env->member, "todo"))
+		get_todo = gpe_todo_get_changes(ctx);
 
 	//Now we need to answer the call (if all went fine)
 	if (get_contacts && get_calendar && get_todo)
