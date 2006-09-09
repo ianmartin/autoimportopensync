@@ -162,10 +162,12 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
         hash = utf8str;
         osxml_node_set(sum, "Summary", utf8str, enc);
 
-        xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
         utf8str = strip_html(kn_iface->text(i.key())).utf8();
         hash += utf8str;
-        osxml_node_set(body, "Body", utf8str, enc);
+	if (utf8str && !utf8str.isEmpty()) {
+        	xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
+        	osxml_node_set(body, "Body", utf8str, enc);
+	}
 		
         // initialize the change object
         OSyncChange *chg = osync_change_new();
