@@ -24,7 +24,12 @@ This helper should die when a proper C or C++ implementation
 of a Google Calendar library is made
 """
 
-import sys, httplib2, os, re
+import sys, os, re
+try:
+    import httplib2
+except:
+    print "httplib2 not found!\n You need httplib2 which could be found http://bitworking.org/projects/httplib2/"
+    sys.exit(1)
 from xml.dom import minidom as md
 from xml import xpath
 

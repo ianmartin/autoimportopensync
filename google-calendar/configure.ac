@@ -12,6 +12,27 @@ PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
+AC_CACHE_CHECK([for python httplib2 ], act_httplib, [ prog="
+import sys
+try:
+    import httplib2
+except:
+    sys.exit(1)
+sys.exit(0)
+"
+	
+if `python -c "$prog"` ; then
+    act_httplib="yes"
+else
+    echo "you need httplib2. (http://bitworking.org/projects/httplib2/)"
+    act_httplib="no"
+fi
+])
+			
+if test "$act_httplib" != "yes"; then
+    exit 1
+fi 
+
 ## Defaults ##
 CRASH_TEST=no
 STRESS_TEST=no
