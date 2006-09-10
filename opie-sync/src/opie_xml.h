@@ -54,5 +54,9 @@ void opie_xml_category_ids_to_names(xmlDoc *categories_doc, xmlNode *change_node
 void opie_xml_category_names_to_ids(xmlDoc *categories_doc, xmlNode *change_node);
 char *opie_xml_get_categories(xmlNode *item_node);
 void opie_xml_set_categories(xmlNode *item_node, const char *value);
+xmlDoc *opie_xml_create_contacts_doc(void);
+xmlDoc *opie_xml_create_todos_doc(void);
+xmlDoc *opie_xml_create_calendar_doc(void);
+xmlDoc *opie_xml_create_categories_doc(void);
 
 #endif

@@ -46,9 +46,10 @@
 #include "opie_qcop.h"
 
 typedef struct {
-  char *remote_filename;
+	char *remote_filename;
 	char *local_filename; /* use fd instead where possible */
-  int local_fd;
+	int local_fd;
+	int resource_type;
 } fetch_pair;
 
 enum temp_file_type {
@@ -93,9 +94,10 @@ void comms_shutdown()
 /*
  * Set up a temporary file and add it to a list
  */
-int list_add_temp_file(GList **file_list, const char *remote_file, int tmpfilemode) {
+int list_add_temp_file(GList **file_list, const char *remote_file, int resource_type, int tmpfilemode) {
 	fetch_pair *pair = g_malloc(sizeof(fetch_pair));
 	pair->remote_filename = g_strdup(remote_file);
+	pair->resource_type = resource_type;
 	if(tmpfilemode == TT_DEBUG) {
 		/* Bypass normal temporary file handling (for debugging purposes) */
 		char *basename = g_path_get_basename(remote_file);
@@ -159,7 +161,8 @@ void cleanup_temp_files(GList* file_list, int tmpfilemode) {
 				osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
 			}
 		}
-		close(pair->local_fd);
+		if(pair->local_fd)
+			close(pair->local_fd);
 	}
 }
 
@@ -241,16 +244,18 @@ int backup_files(const char *backupdir, GList* file_list) {
 	
 	for(t = 0; t < len; ++t) {
 		fetch_pair* pair = g_list_nth_data(file_list, t);
-		/* Build full path to file */
-		char *basename = g_path_get_basename(pair->remote_filename);
-		char *backupfile = g_build_filename(backuppath, basename, NULL);
-		/* Run the backup */
-		rc = backup_file(backupfile, pair->local_fd);
-		g_free(backupfile);
-		g_free(basename);
-		if(!rc) {
-			/* Error occurred */
-			break;
+		if(pair->local_fd) {
+			/* Build full path to file */
+			char *basename = g_path_get_basename(pair->remote_filename);
+			char *backupfile = g_build_filename(backuppath, basename, NULL);
+			/* Run the backup */
+			rc = backup_file(backupfile, pair->local_fd);
+			g_free(backupfile);
+			g_free(basename);
+			if(!rc) {
+				/* Error occurred */
+				break;
+			}
 		}
 	}
 
@@ -268,10 +273,6 @@ error:
  */
 gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 {
-	int contacts_fd = 0;
-	int todos_fd = 0;
-	int calendar_fd = 0;
-	int categories_fd = 0;
 	gboolean rc = TRUE;
 	int tmpfilemode;
 	
@@ -292,16 +293,16 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 	}
 	
 	if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK)
-		contacts_fd = list_add_temp_file(&files_to_fetch, OPIE_ADDRESS_FILE, tmpfilemode);
+		list_add_temp_file(&files_to_fetch, OPIE_ADDRESS_FILE, OPIE_OBJECT_TYPE_PHONEBOOK, tmpfilemode);
 	
 	if(object_types & OPIE_OBJECT_TYPE_TODO)
-		todos_fd = list_add_temp_file(&files_to_fetch, OPIE_TODO_FILE, tmpfilemode);
+		list_add_temp_file(&files_to_fetch, OPIE_TODO_FILE, OPIE_OBJECT_TYPE_TODO, tmpfilemode);
 	
 	if(object_types & OPIE_OBJECT_TYPE_CALENDAR)
-		calendar_fd = list_add_temp_file(&files_to_fetch, OPIE_CALENDAR_FILE, tmpfilemode);
+		list_add_temp_file(&files_to_fetch, OPIE_CALENDAR_FILE, OPIE_OBJECT_TYPE_CALENDAR, tmpfilemode);
 	
 	/* always fetch the categories file */
-	categories_fd = list_add_temp_file(&files_to_fetch, OPIE_CATEGORY_FILE, tmpfilemode);
+	list_add_temp_file(&files_to_fetch, OPIE_CATEGORY_FILE, OPIE_OBJECT_TYPE_CATEGORIES, tmpfilemode);
 
 	/* check which connection method was requested */
 	osync_trace( TRACE_INTERNAL, "conn_type = %d", env->conn_type );
@@ -330,8 +331,6 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 			break;     
 	}
 
-	/* FIXME: if a file doesn't exist we need to create a document for it from scratch */
-	
 	if(rc)
 	{
 		if(env->backupdir) 
@@ -342,36 +341,46 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 		if(rc)
 		{
 			/* Parse files */
-			
-			if(object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
-				env->contacts_doc = opie_xml_fd_open(contacts_fd);
-				close(contacts_fd);
-				if(!env->contacts_doc) {
-					return FALSE;
+			guint len = g_list_length(files_to_fetch);
+			guint t;
+			for(t = 0; t < len; ++t)
+			{
+				fetch_pair* pair = g_list_nth_data(files_to_fetch, t);
+				xmlDoc **doc = NULL;
+				switch(pair->resource_type) {
+					case OPIE_OBJECT_TYPE_PHONEBOOK:
+						doc = &env->contacts_doc;
+						if(!pair->local_fd)
+							*doc = opie_xml_create_contacts_doc(); 
+						break;
+					case OPIE_OBJECT_TYPE_TODO:
+						doc = &env->todos_doc;
+						if(!pair->local_fd)
+							*doc = opie_xml_create_todos_doc(); 
+						break;
+					case OPIE_OBJECT_TYPE_CALENDAR:
+						doc = &env->calendar_doc;
+						if(!pair->local_fd)
+							*doc = opie_xml_create_calendar_doc(); 
+						break;
+					case OPIE_OBJECT_TYPE_CATEGORIES:
+						doc = &env->categories_doc;
+						if(!pair->local_fd)
+							*doc = opie_xml_create_categories_doc(); 
+						break;
+					default:
+						osync_trace( TRACE_INTERNAL, "unrecognised resource type %d", pair->resource_type );
+						return FALSE;
 				}
-			}
-	
-			if(object_types & OPIE_OBJECT_TYPE_TODO) {
-				env->todos_doc = opie_xml_fd_open(todos_fd);
-				close(todos_fd);
-				if(!env->todos_doc) {
-					return FALSE;
-				}
-			}
 				
-			if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
-				env->calendar_doc = opie_xml_fd_open(calendar_fd);
-				close(calendar_fd);
-				if(!env->calendar_doc) {
-					return FALSE;
+				if(pair->local_fd) {
+					*doc = opie_xml_fd_open(pair->local_fd);
+					close(pair->local_fd);
+					pair->local_fd = 0;
 				}
-			}
-			
-			/* parse the categories file */
-			env->categories_doc = opie_xml_fd_open(categories_fd);
-			close(categories_fd);
-			if(!env->categories_doc) {
-				return FALSE;
+				
+				if(!*doc)
+					return FALSE;
 			}
 		}
 	}
@@ -450,7 +459,14 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			/* perform the transfer */
 			res = curl_easy_perform(curl);
 
-			if(CURLE_OK != res) 
+			if(res == CURLE_FTP_COULDNT_RETR_FILE) 
+			{
+				/* This is not unlikely (eg. blank device) */
+				OPIE_DEBUG("FTP file doesn't exist, ignoring\n");
+				/* Close the fd and set it to 0 to indicate the file wasn't there */
+				pair->local_fd = 0;
+			}
+			else if(res != CURLE_OK) 
 			{
 				/* could not get the file */
 				OPIE_DEBUG("FTP transfer failed\n");
@@ -463,8 +479,13 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			}
 
 			fflush(fd);
-			free(fd);   /* don't fclose, we still need it */
-			lseek(pair->local_fd, 0, SEEK_SET);
+			if(pair->local_fd) {
+				free(fd);   /* don't fclose, we still need it */
+				lseek(pair->local_fd, 0, SEEK_SET);
+			}
+			else {
+				fclose(fd);
+			}
 
 			g_free(ftpurl);
 			curl_easy_cleanup(curl);
@@ -511,7 +532,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 	
 	if ( object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
-		contacts_fd = list_add_temp_file(&files_to_put, OPIE_ADDRESS_FILE, tmpfilemode);
+		contacts_fd = list_add_temp_file(&files_to_put, OPIE_ADDRESS_FILE, OPIE_OBJECT_TYPE_PHONEBOOK, tmpfilemode);
 		if(opie_xml_save_to_fd(env->contacts_doc, contacts_fd) == -1) {
 			osync_trace(TRACE_EXIT_ERROR, "failed to write contacts to temporary file");
 			goto error;
@@ -521,7 +542,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 
 	if(object_types & OPIE_OBJECT_TYPE_TODO) {
-		todos_fd = list_add_temp_file(&files_to_put, OPIE_TODO_FILE, tmpfilemode);
+		todos_fd = list_add_temp_file(&files_to_put, OPIE_TODO_FILE, OPIE_OBJECT_TYPE_TODO, tmpfilemode);
 		if(opie_xml_save_to_fd(env->todos_doc, todos_fd) == -1) {
 			osync_trace(TRACE_EXIT_ERROR, "failed to write todos to temporary file");
 			goto error;
@@ -531,7 +552,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 	
 	if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
-		calendar_fd = list_add_temp_file(&files_to_put, OPIE_CALENDAR_FILE, tmpfilemode);
+		calendar_fd = list_add_temp_file(&files_to_put, OPIE_CALENDAR_FILE, OPIE_OBJECT_TYPE_CALENDAR, tmpfilemode);
 		if(opie_xml_save_to_fd(env->calendar_doc, calendar_fd) == -1) {
 			osync_trace(TRACE_EXIT_ERROR, "failed to write events to temporary file");
 			goto error;
@@ -541,7 +562,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 
 	/* always fetch the categories file */
-	categories_fd = list_add_temp_file(&files_to_put, OPIE_CATEGORY_FILE, tmpfilemode);
+	categories_fd = list_add_temp_file(&files_to_put, OPIE_CATEGORY_FILE, OPIE_OBJECT_TYPE_CATEGORIES, tmpfilemode);
 	if(opie_xml_save_to_fd(env->categories_doc, categories_fd) == -1) {
 		osync_trace(TRACE_EXIT_ERROR, "failed to write categories to temporary file");
 		goto error;

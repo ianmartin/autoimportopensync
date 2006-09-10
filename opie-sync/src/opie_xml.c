@@ -449,3 +449,60 @@ void opie_xml_set_categories(xmlNode *item_node, const char *value) {
 	
 	xmlSetProp(item_node, attr_name, value);
 }
+
+xmlDoc *opie_xml_create_contacts_doc(void) {
+
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	if(!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
+		return FALSE;
+	}
+	
+	xmlNode *root = xmlNewNode(NULL, "Addressbook");
+	xmlDocSetRootElement(doc, root);
+	xmlNode *cur = xmlNewNode(NULL, "Contacts");
+	xmlAddChild(root, cur);
+	
+	return doc;
+}
+
+xmlDoc *opie_xml_create_todos_doc(void) {
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	if(!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
+		return FALSE;
+	}
+	
+	xmlNode *root = xmlNewNode(NULL, "Tasks");
+	xmlDocSetRootElement(doc, root);
+	
+	return doc;
+}
+
+xmlDoc *opie_xml_create_calendar_doc(void) {
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	if(!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
+		return FALSE;
+	}
+	
+	xmlNode *root = xmlNewNode(NULL, "DATEBOOK");
+	xmlDocSetRootElement(doc, root);
+	xmlNode *cur = xmlNewNode(NULL, "events");
+	xmlAddChild(root, cur);
+	
+	return doc;
+}
+
+xmlDoc *opie_xml_create_categories_doc(void) {
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	if(!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
+		return FALSE;
+	}
+	
+	xmlNode *root = xmlNewNode(NULL, "Categories");
+	xmlDocSetRootElement(doc, root);
+	
+	return doc;
+}
