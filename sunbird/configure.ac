@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 m4_include([macros/neon.m4])
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Sunbird Plugin], 0.01, [], sunbird_sync)
+AC_INIT([OpenSync Sunbird Plugin], 0.19, [], sunbird_sync)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/sunbird_sync.c)
 AM_CONFIG_HEADER(config.h)
