@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Google Calendar Plugin], 0.0.1, [], [libopensync-plugin-gcalendar])
+AC_INIT([OpenSync Google Calendar Plugin], 0.19, [], [libopensync-plugin-gcalendar])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/gcalendar.c)
 AM_CONFIG_HEADER(config.h)
