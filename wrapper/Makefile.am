@@ -1,7 +1,7 @@
 
 AM_CFLAGS = -Werror
 
-INCLUDES= @PACKAGE_CFLAGS@ $(PYTHON_INCLUDES) -I$(top_srcdir) -I$(top_srcdir)/opensync
+INCLUDES= @PACKAGE_CFLAGS@ $(PYTHON_INCLUDES) -I$(top_srcdir) -I$(top_srcdir)/opensync @XML_CFLAGS@
 
 opensync_wrap.c: $(srcdir)/opensync.i
 	$(SWIG) -Werror -python -modern -I$(top_srcdir)/opensync $(PYTHON_INCLUDES) -o opensync_wrap.c $(srcdir)/opensync.i
