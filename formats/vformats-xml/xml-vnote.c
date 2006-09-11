@@ -530,7 +530,7 @@ static void *init_xml_to_vnote(void)
 
 static void fin_xml_to_vnote(void *data)
 {
-	OSyncHookTables *hooks = (OSyncHookTables *)hooks;
+	OSyncHookTables *hooks = (OSyncHookTables *)data;
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
 	g_free(hooks);

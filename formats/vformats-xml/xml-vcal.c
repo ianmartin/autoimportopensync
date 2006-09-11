@@ -1396,7 +1396,7 @@ static void *init_vcal_to_xml(void)
 
 static void fin_vcal_to_xml(void *data)
 {
-	OSyncHooksTable *hooks = (OSyncHooksTable *)hooks;
+	OSyncHooksTable *hooks = (OSyncHooksTable *)data;
 	g_hash_table_destroy(hooks->table);
 	g_free(hooks);
 }
@@ -2274,7 +2274,7 @@ static void *init_xml_to_vcal(void)
 
 static void fin_xml_to_vcal(void *data)
 {
-	OSyncHooksTable *hooks = (OSyncHooksTable *)hooks;
+	OSyncHooksTable *hooks = (OSyncHooksTable *)data;
 	g_hash_table_destroy(hooks->table);
 	g_free(hooks);
 }
