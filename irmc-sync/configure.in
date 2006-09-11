@@ -61,7 +61,7 @@ if test "x${HAVE_OPENOBEX}" = "xyes"; then
 		ENABLE_OBEX=no
 	else
 		dnl AC_CHECK_LIB(openobex,BtOBEX_TransportConnect,BT_OBEX=1,BT_OBEX=0)
-		AC_CHECK_HEADER([openobex/obex.h], ENABLE_OBEX=yes, ENABLE_OBEX=yes)
+		AC_CHECK_HEADER([openobex/obex.h], ENABLE_OBEX="yes", ENABLE_OBEX="no")
 		if test $ENABLE_OBEX = "yes" ; then
 		    AC_SUBST(ENABLE_OBEX)
 		    AC_DEFINE(ENABLE_OBEX,1,[Obex Transport])
