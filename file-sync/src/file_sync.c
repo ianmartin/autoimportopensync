@@ -346,7 +346,7 @@ static osync_bool __fs_access(OSyncContext *ctx, OSyncChange *change)
 			 * This has some problems: we cannot compare the filename correctly if its a strange
 			 * charset like utf16. Another problem appears if we have filesystems which supports
 			 * different characters in filenames */
-			if (!_fs_filename_is_valid(filename)) {
+			if (!_fs_filename_is_valid(osync_change_get_uid(change))) {
 				g_free(filename);
 				osync_change_set_uid(change, osync_rand_str(15));
 				filename = g_strdup_printf("%s/%s", fsinfo->path, osync_change_get_uid(change));
