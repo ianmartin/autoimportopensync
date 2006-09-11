@@ -61,9 +61,14 @@ if test "x${HAVE_OPENOBEX}" = "xyes"; then
 		ENABLE_OBEX=no
 	else
 		dnl AC_CHECK_LIB(openobex,BtOBEX_TransportConnect,BT_OBEX=1,BT_OBEX=0)
-		ENABLE_OBEX=yes
-		AC_SUBST(ENABLE_OBEX)
-		AC_DEFINE(ENABLE_OBEX,1,[Obex Transport])
+		AC_CHECK_HEADER([openobex/obex.h], ENABLE_OBEX=yes, ENABLE_OBEX=yes)
+		if test $ENABLE_OBEX = "yes" ; then
+		    AC_SUBST(ENABLE_OBEX)
+		    AC_DEFINE(ENABLE_OBEX,1,[Obex Transport])
+		else
+		    echo "Openobex not found!" 
+		    echo "maybe you need openobex-devel or libopenobex-dev ."
+		fi
 	fi
 else
 	if test "x${WANT_OBEX}" = "xyes"; then
