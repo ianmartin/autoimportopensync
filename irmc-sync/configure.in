@@ -29,6 +29,30 @@ AC_SUBST(OPENSYNC_PLUGINDIR) ## This is the dir where you plugin will be install
 AC_SUBST(OPENSYNC_FORMATSDIR) ## Here are format plugins installed (if any)
 AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may need (if any)
 
+
+#### Check for openobex ####
+if $(pkg-config --exists openobex); then
+	PKG_CHECK_MODULES(OPENOBEX, [openobex])
+	AC_SUBST(OPENOBEX_CFLAGS)
+	AC_SUBST(OPENOBEX_LIBS)
+else	
+	AM_PATH_OPENOBEX
+fi	
+
+if test -n "${OPENOBEX_LIBS}"; then
+    AC_CHECK_HEADER([openobex/obex.h], ENABLE_OBEX="yes", ENABLE_OBEX="no")
+    if test $ENABLE_OBEX = "yes" ; then
+	AC_SUBST(ENABLE_OBEX)
+	AC_DEFINE(ENABLE_OBEX,1,[Obex Transport])
+    else
+        AC_MSG_ERROR(You must have openobex 0.9.8 or openobex >= 1.0.0 installed.)
+	AC_MSG_ERROR(Openobex not found!)
+        AC_MSG_ERROR(You need to install openobex-devel or libopenobex-dev.)
+	exit 1
+    fi
+fi
+
+#### Check for bluez ####
 SDP=0
 AC_CHECK_HEADER(bluetooth/bluetooth.h, BLUETOOTH=1, BLUETOOTH=0)
 AC_CHECK_LIB(bluetooth, hci_open_dev,,BLUETOOTH=0)
@@ -41,42 +65,6 @@ if test "x${BLUETOOTH}" = "x0"; then
 fi
 AC_DEFINE_UNQUOTED(HAVE_BLUETOOTH, ${BLUETOOTH},Defined if Bluetooth is enabled.)
 
-#### Check for openobex ####
-AC_ARG_ENABLE(obex,
-  AS_HELP_STRING([--enable-obex], [enable obex transports]),
-  WANT_OBEX=$enableval)
-if $(pkg-config --exists openobex); then
-	PKG_CHECK_MODULES(OPENOBEX, [openobex])
-	AC_SUBST(OPENOBEX_CFLAGS)
-	AC_SUBST(OPENOBEX_LIBS)
-else	
-	AM_PATH_OPENOBEX
-fi	
-
-if test -n "${OPENOBEX_LIBS}"; then
-	HAVE_OPENOBEX=yes
-fi
-if test "x${HAVE_OPENOBEX}" = "xyes"; then
-	if test "x${WANT_OBEX}" = "xno"; then
-		ENABLE_OBEX=no
-	else
-		dnl AC_CHECK_LIB(openobex,BtOBEX_TransportConnect,BT_OBEX=1,BT_OBEX=0)
-		AC_CHECK_HEADER([openobex/obex.h], ENABLE_OBEX="yes", ENABLE_OBEX="no")
-		if test $ENABLE_OBEX = "yes" ; then
-		    AC_SUBST(ENABLE_OBEX)
-		    AC_DEFINE(ENABLE_OBEX,1,[Obex Transport])
-		else
-		    echo "Openobex not found!" 
-		    echo "maybe you need openobex-devel or libopenobex-dev ."
-		fi
-	fi
-else
-	if test "x${WANT_OBEX}" = "xyes"; then
-		AC_MSG_ERROR(You must have openobex 0.9.8 or openobex >= 1.0.0 installed.)
-	else
-		ENABLE_OBEX=no
-	fi
-fi
 
 #### Check for irda ####
 AC_MSG_CHECKING(for IrDA support)
