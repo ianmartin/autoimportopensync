@@ -50,6 +50,11 @@ if test -n "${OPENOBEX_LIBS}"; then
         AC_MSG_ERROR(You need to install openobex-devel or libopenobex-dev.)
 	exit 1
     fi
+else
+    AC_MSG_ERROR(You must have openobex 0.9.8 or openobex >= 1.0.0 installed.)
+    AC_MSG_ERROR(Openobex not found!)
+    AC_MSG_ERROR(You need to install openobex-devel or libopenobex-dev.)
+    exit 1
 fi
 
 #### Check for bluez ####
