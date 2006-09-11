@@ -244,8 +244,8 @@ char *osync_time_unix2vtime(const time_t *timestamp) {
 	char *vtime;
 	struct tm *utc;
 
-//	utc = gmtime(timestamp);
-	utc = localtime(timestamp);
+	utc = gmtime(timestamp);
+//	utc = localtime(timestamp);
 	vtime = osync_time_tm2vtime(utc, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
@@ -592,3 +592,368 @@ int osync_time_alarmdu2sec(char *alarm) {
         return secs;
 }
 
+/*
+ * Timezone ID helper
+ */
+
+/*! @brief Function converts a week day string to the struct tm wday integer. 
+ *
+ * @param weekday string of the week day
+ * @returns integer of the weekday (Sunday = 0) 
+ */ 
+int osync_time_str2wday(const char *swday) {
+
+	int weekday = -1;
+
+	if (!strcmp(swday, "SU"))
+		weekday = 0;
+	else if (!strcmp(swday, "MO"))
+		weekday = 1;
+	else if (!strcmp(swday, "TU"))
+		weekday = 2;
+	else if (!strcmp(swday, "WE"))
+		weekday = 3;
+	else if (!strcmp(swday, "TH"))
+		weekday = 4;
+	else if (!strcmp(swday, "FR"))
+		weekday = 5;
+	else if (!strcmp(swday, "SA"))
+		weekday = 6;
+
+	return weekday; 
+}
+
+/*! @brief Function determines the exactly date of relative information 
+ *         It is used for example to determine the last sunday of a month (-1SU) 
+ *         in a specific year. 
+ *
+ * @param byday string of the relative day of month modifier
+ * @param bymonth calendar number of the monath (January = 1)
+ * @param year calendar year (year = 1970) 
+ * @returns struct tm of the relative information date with 00:00:00 timestamp.
+ *	    (Caller is responsible for freeing)
+ */ 
+struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year) {
+
+		struct tm *datestamp = g_malloc0(sizeof(struct tm));
+		char weekday[3];
+		int first_wday = 0, last_wday = 0;
+		int daymod, mday, searched_wday;
+
+		sscanf(byday, "%d%s", &daymod, weekday); 
+		weekday[2] = '\0';
+
+		searched_wday = osync_time_str2wday(weekday);
+
+		datestamp->tm_year = year - 1900; 
+		datestamp->tm_mon = bymonth - 1;
+		datestamp->tm_mday = 0; 
+		datestamp->tm_hour = 0; 
+		datestamp->tm_min = 0; 
+		datestamp->tm_sec = 0;
+		datestamp->tm_isdst = -1;
+
+		for (mday = 0; mday <= 31; mday++) {
+			datestamp->tm_mday = mday; 
+			mktime(datestamp);
+
+			if (datestamp->tm_wday == searched_wday) { 
+				if (!first_wday)
+					first_wday = searched_wday;
+
+				last_wday = searched_wday;
+			}
+		}
+
+		if (daymod > 0)
+			datestamp->tm_mday = first_wday + (7 * (daymod - 1));
+		else
+			datestamp->tm_mday = last_wday - (7 * (daymod - 1));
+
+		mktime(datestamp);
+
+		return datestamp;
+}
+
+/*! @brief Function converts UTC offset string in offset in seconds
+ *
+ * @param offset The offset string of the form a timezone field (Example +0200) 
+ * @returns seconds of UTC offset 
+ */ 
+int osync_time_utcoffset2sec(const char *offset) {
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset);
+
+	char csign = 0;
+	int seconds = 0, sign = 1;
+	int hours = 0, minutes = 0;
+
+	sscanf(offset, "%c%2d%2d", &csign, &hours, &minutes);
+
+	if (csign == '-')
+		sign = -1;
+
+	seconds = (hours * 3600 + minutes * 60) * sign; 
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, seconds);
+	return seconds;
+}
+
+/*! @brief Functions determines the change timestamp of daylight saving of the given
+ * 	   XML Timezone from dstNode. 
+ * 
+ * @param dstNode daylight saving or standard XML information of a timezone.
+ * @returns struct tm of exactly date-timestamp of the change from/to daylight saving time.
+ *          (Caller is responsible for freeing!)
+ */ 
+struct tm *osync_time_dstchange(xmlNode *dstNode) {
+
+	int month;
+	struct tm *dst_change = NULL, *tm_started = NULL;
+	char *started = NULL, *rule = NULL, *byday = NULL;
+
+	xmlNode *current = osxml_get_node(dstNode, "DateStarted");
+	started = (char*) xmlNodeGetContent(current);
+	tm_started = osync_time_vtime2tm(started);
+	
+	g_free(started);
+
+	current = osxml_get_node(dstNode, "RecurrenceRule");
+	current = current->children;
+
+	while (current) {
+		rule = (char *) xmlNodeGetContent(current);
+
+		if (strstr(rule, "BYDAY="))
+			byday = g_strdup(rule + 6);
+		else if (strstr(rule, "BYMONTH="))
+			sscanf(rule, "BYMONTH=%d", &month);
+		
+		g_free(rule);
+
+		current = current->next;
+	}
+
+	dst_change = osync_time_relative2tm(byday, month, tm_started->tm_year + 1900);
+
+	g_free(byday);
+
+	dst_change->tm_hour = tm_started->tm_hour;
+	dst_change->tm_min = tm_started->tm_min;
+
+	g_free(tm_started);
+
+	return dst_change;
+}
+
+/*! @brief Functions determines if parameter vtime is Daylight Saving time in given Timezone ID (tzid) 
+ * 
+ * @param vtime Timestamp of time which should be determined 
+ * @param tzid Timezone ID of timestamp 
+ * @returns TRUE if vtime is daylight saving time of tzid
+ */ 
+osync_bool osync_time_isdst(const char *vtime, xmlNode *tzid) {
+
+	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime, tzid);
+
+	int year;
+	char *newyear = NULL;
+	time_t newyear_t, timestamp;
+	struct tm *std_changetime, *dst_changetime;
+	time_t dstStamp, stdStamp;
+	xmlNode *current = NULL;
+
+	sscanf(vtime, "%4d%*2d%*2dT%*2d%*d%*2d%*c", &year);
+
+	newyear = g_strdup_printf("%4d0101T000000", year);
+	newyear_t = osync_time_vtime2unix(newyear);
+	timestamp = osync_time_vtime2unix(vtime);
+
+	/* Handle XML Timezone field */
+	current = osxml_get_node(tzid, "Standard");
+	std_changetime = osync_time_dstchange(current);
+
+	current = osxml_get_node(tzid, "DaylightSavings");
+	dst_changetime = osync_time_dstchange(current);
+
+	/* determine in which timezone is vtime */
+	dstStamp = osync_time_tm2unix(dst_changetime); 
+	stdStamp = osync_time_tm2unix(std_changetime);
+
+	if (timestamp > stdStamp && timestamp < dstStamp) {
+		osync_trace(TRACE_EXIT, "%s: FALSE (Standard Timezone)", __func__);
+		return FALSE;
+
+	}	
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE (Daylight Saving Timezone)", __func__);
+	return TRUE; 
+}
+
+/*! @brief Functions returns the current UTC offset of the given vtime and interprets
+ * 	   the Timezone XML information tz.
+ * 
+ * @param vtime Timestamp of given Timezone information
+ * @param tz Timezone information in XML 
+ * @returns seconds seconds of current DST state and timezone 
+ */ 
+int osync_time_tzoffset(const char *vtime, xmlNode *tz) {
+
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, vtime, tz);
+
+	int seconds;
+        char *offset = NULL; 
+	xmlNode *current = NULL;
+
+	if (osync_time_isdst(vtime, tz))
+		current = osxml_get_node(tz, "DaylightSavings");
+	else
+		current = osxml_get_node(tz, "Standard");
+
+	offset = osxml_find_node(current, "TZOffsetTo");
+	seconds = osync_time_utcoffset2sec(offset);
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, seconds);
+	return seconds;
+}
+
+/*! @brief Functions returns the Timezone id of the Timezone information XML.
+ * 
+ * @param tz Timezone information in XML 
+ * @returns Timezone ID (Caller is responsible for freeing!) 
+ */ 
+char *osync_time_tzid(xmlNode *tz) {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, tz);
+
+	char *id = NULL; 
+
+	id = osxml_find_node(tz, "TimezoneID");
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, id);
+	return id;
+}
+
+/*! @brief Functions returns the Timezone location of the Timezone information XML.
+ * 
+ * @param tz Timezone information in XML 
+ * @returns Timezone location (Caller is responsible for freeing!) 
+ */ 
+char *osync_time_tzlocation(xmlNode *tz) {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, tz);
+
+	char *location = NULL; 
+
+	location = osxml_find_node(tz, "TimezoneLocation");
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, location);
+	return location;
+}
+
+/*! @brief Function search for the matching Timezode node of tzid. 
+ * 
+ * @param root XML of entry 
+ * @param tzid The TimezoneID which should match 
+ * @returns *xmlNode Node of the matching Timezone 
+ */ 
+xmlNode *osync_time_tzinfo(xmlNode *root, const char *tzid) {
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, root, tzid);
+
+	int numnodes, i;
+	char *tzinfo_tzid = NULL;
+
+	xmlNode *tz = NULL;
+	xmlNodeSet *nodes = NULL;
+	xmlXPathObject *xobj = NULL;
+
+	/* search matching Timezone information */
+	osync_trace(TRACE_INTERNAL, "DOC: %s\n", osxml_write_to_string(root->doc));
+	xobj = osxml_get_nodeset(root->doc, "/vcal/Timezone");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	osync_trace(TRACE_INTERNAL, "Found %i Timezone field(s)", numnodes);
+
+	if (!numnodes)
+		goto noresult;
+
+
+	for (i=0; i < numnodes; i++) {
+		tz = nodes->nodeTab[i];
+		tzinfo_tzid = osync_time_tzid(tz);
+
+		if (!tzinfo_tzid) {
+			g_free(tzinfo_tzid);
+			tz = NULL;
+			continue;
+		}
+
+		if (!strcmp(tzinfo_tzid, tzid))
+			break;
+	}
+
+	g_free(tzinfo_tzid);
+
+	if (!tz)
+		goto noresult;
+		
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, tz);
+	return tz;
+
+noresult:	
+	osync_trace(TRACE_EXIT, "%s: No matching Timezone node found. Seems to be a be a floating timestamp.", __func__);
+	return NULL;
+}
+
+/*! @brief Functions converts a field with localtime with timezone information to UTC timestamp.  
+ * 
+ * @param root XML of entry 
+ * @param field Name of field node with timestamp and timezone information 
+ * @returns UTC timestamp, or NULL when TZ information is missing (floating time) or field is not found 
+ */ 
+char *osync_time_tzlocal2utc(xmlNode *root, const char *field) {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, root, field);
+
+	int offset;
+	time_t timestamp;
+	char *utc = NULL, *field_tzid = NULL, *vtime = NULL;
+	xmlNode *tz = NULL;
+
+	/*
+	node = osxml_get_node(root, field);
+	if (!node) {
+		osync_trace(TRACE_EXIT, "%s: field \"%s\" not found", __func__, field);
+		return NULL;
+	}
+	*/
+
+	field_tzid = osync_time_tzid(root);
+	if (!field_tzid) {
+		g_free(field_tzid);
+		goto noresult;
+	}
+
+	tz = osync_time_tzinfo(root, field_tzid);
+	g_free(field_tzid);
+
+	if (!tz)
+		goto noresult;
+
+	vtime = osxml_find_node(root, "Content");
+
+	offset = osync_time_tzoffset(vtime, tz);
+
+	timestamp = osync_time_vtime2unix(vtime);
+	timestamp += offset;
+
+	utc = osync_time_unix2vtime(&timestamp);
+
+	g_free(vtime);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc);
+	return utc;
+
+noresult:
+	osync_trace(TRACE_EXIT, "%s: No matching Timezone node is found.", __func__);	
+	return NULL;
+}

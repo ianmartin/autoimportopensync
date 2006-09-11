@@ -7,12 +7,12 @@ opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
 EXTRA_DIST = \
 	vformat.h \
-	opensync-xml.h \
+	xml-support.h \
 	xml-vcard.h \
 	xml-vcal.h \
 	xml-vnote.h
 
-opensyncheader_HEADERS = opensync-xml.h opensync-xml-contact.h
+opensyncheader_HEADERS = xml-support.h opensync-xml-contact.h
 
 INCLUDES = -I$(top_srcdir) @PACKAGE_CFLAGS@
 

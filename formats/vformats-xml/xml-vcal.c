@@ -18,7 +18,7 @@
  * 
  */
  
-#include "opensync-xml.h"
+#include "xml-support.h"
 #include "vformat.h"
 #include "vcalical.h"
 #include "xml-vcal.h"
@@ -267,7 +267,46 @@ static xmlNode *handle_vcal_rrule_attribute(xmlNode *root, VFormatAttribute *att
 static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
+
+	GList *field = NULL;
+	xmlNode *current = NULL, *alarm = NULL;
+	char *dtstart = NULL, *tmp = NULL;
+
+	// Avoid double reminders in PIM and check if only reminder time is set
+	if (g_list_nth(attr->values, 1) || g_list_nth(attr->values, 2) || g_list_nth(attr->values, 3)) {
+		osync_trace(TRACE_INTERNAL, "AALARM only contains reminder time - skipped");
+		return NULL;
+	}
+		
+
+	alarm = xmlNewTextChild(root, NULL, (xmlChar *) "Alarm", NULL);
+	xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmAction", (xmlChar *) "AUDIO");
+
+	dtstart = osxml_find_node(root, "DateStarted");
+	if (!dtstart)
+		return NULL;
+
+	field = g_list_nth(attr->values, 0);
+	time_t dtstart_t = osync_time_vtime2unix(dtstart);
+	time_t dalarm_t = osync_time_vtime2unix((const char *) field->data);
+
+	// calculate duration
+	tmp = osync_time_sec2alarmdu(dtstart_t - dalarm_t);
+	current = xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmTrigger", NULL);
+	xmlNewTextChild(current, NULL, (xmlChar *) "Content", (xmlChar *) tmp);
+	xmlNewTextChild(current, NULL, (xmlChar *) "Value", (xmlChar *) "DURATION");
+	// TODO: handle field <Related> and what about field 0 (TRIGGER): 
+	// TODO: "[...] The value for the display reminder consists of the Run Time,
+        //        or the date and time that the reminder is to be executed[...]"
+	g_free(tmp);
+
+	field = g_list_nth(attr->values, 2);
+	if (field)
+		xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmRepeat", (xmlChar *) field->data);
+
+	field = g_list_nth(attr->values, 3);
+	if (field)
+		xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmAttach", (xmlChar *) field->data);
 
 	return current;
 }
@@ -276,26 +315,38 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
 
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
-
-	GList *v = NULL;
+	GList *field = NULL;
+	xmlNode *current = NULL, *alarm = NULL;
 	char *dtstart = NULL, *tmp = NULL;
+
+	alarm = xmlNewTextChild(root, NULL, (xmlChar *) "Alarm", NULL);
+	xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmAction", (xmlChar *) "DISPLAY");
 	
 	dtstart = osxml_find_node(root, "DateStarted");
 	if (!dtstart)
 		return NULL;
 
-	v = g_list_nth(attr->values, 0);
+	field = g_list_nth(attr->values, 0);
 	time_t dtstart_t = osync_time_vtime2unix(dtstart);
-	time_t dalarm_t = osync_time_vtime2unix((const char *) v->data);
+	time_t dalarm_t = osync_time_vtime2unix((const char *) field->data);
 
+	// calculate duration
 	tmp = osync_time_sec2alarmdu(dtstart_t - dalarm_t);
-	
-	current = osxml_node_add(current, "AlarmTrigger", NULL);
-	osxml_node_add(current, "Content", tmp);
-	osxml_node_add(current, "Value", "DURATION");
-
+	current = xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmTrigger", NULL);
+	xmlNewTextChild(current, NULL, (xmlChar *) "Content", (xmlChar *) tmp);
+	xmlNewTextChild(current, NULL, (xmlChar *) "Value", (xmlChar *) "DURATION");
+	// TODO: handle field <Related> and what about field 0 (TRIGGER): 
+	// TODO: "[...] The value for the display reminder consists of the Run Time,
+        //        or the date and time that the reminder is to be executed[...]"
 	g_free(tmp);
+
+	field = g_list_nth(attr->values, 2);
+	if (field)
+		xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmRepeat", (xmlChar *) field->data);
+
+	field = g_list_nth(attr->values, 3);
+	if (field)
+		xmlNewTextChild(alarm, NULL, (xmlChar *) "AlarmDescription", (xmlChar *) field->data);
 
 	return current;
 }
@@ -1167,7 +1218,7 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{0, "/vcal/Event/Priority"},
 	{0, "/vcal/Event/Transparency[Content = \"OPAQUE\"]"},
 	{0, "/vcal/Method"},
-	{0, "/vcal/Timezone"},
+//	{0, "/vcal/Timezone"},
 	{0, NULL}
 	};
 	
@@ -1195,7 +1246,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/Priority"},
 	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
 	{0, "/vcal/Method"},
-	{0, "/vcal/Timezone"},
+//	{0, "/vcal/Timezone"},
 	{0, NULL}
 	};
 	
@@ -1513,6 +1564,8 @@ static VFormatAttribute *handle_vcal_xml_rrule_attribute(VFormat *vcard, xmlNode
 
 	vformat_attribute_add_value(attr, vcalrrule);
 
+	g_free(vcalrrule);
+
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -1609,9 +1662,35 @@ static VFormatAttribute *handle_xml_exdate_attribute(VFormat *vcard, xmlNode *ro
 /* vcal */
 static VFormatAttribute *handle_vcal_xml_exdate_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "EXDATE");
-	add_value(attr, root, "Content", encoding);
-	vformat_add_attribute(vcard, attr);
+	VFormatAttribute *attr = NULL;
+	char *dtstart = NULL, *exdate = NULL, *timestamp = NULL;
+	GString *stamp = g_string_new("");
+
+	if (!(attr = vformat_find_attribute(vcard, "EXDATE"))) {
+       		attr = vformat_attribute_new(NULL, "EXDATE");
+		vformat_add_attribute(vcard, attr);
+	}
+
+	exdate = (char *) xmlNodeGetContent(root);
+	stamp = g_string_append(stamp, exdate);
+
+
+	if (osync_time_isdate(exdate)) {
+		dtstart = osxml_find_node(root->parent->parent, "DateStarted");
+
+		osync_trace(TRACE_INTERNAL, "DateStarted: %s (parent: %s)", dtstart, root->parent->parent->name);
+
+		timestamp = strstr(dtstart, "T");
+		stamp = g_string_append(stamp, timestamp);
+
+		g_free(dtstart);
+	}
+
+	vformat_attribute_add_value(attr, stamp->str);
+	g_string_free(stamp, TRUE);
+
+	g_free(exdate);
+
 	return attr;
 }
 /* end of vcal */
@@ -1858,7 +1937,7 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 static VFormatAttribute *handle_vcal_xml_atrigger_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s)", __func__, vcard, root, encoding);
-	char *stamp = NULL, *diff = NULL;
+	char *dtstart = NULL, *duration = NULL;
 	VFormatAttribute *attr = NULL;
 	time_t timestamp;
 	int secs;
@@ -1872,22 +1951,25 @@ static VFormatAttribute *handle_vcal_xml_atrigger_attribute(VFormat *vcard, xmlN
 		vformat_add_attribute(vcard, attr);
 	}
 
-	stamp = osxml_find_node(root->parent->parent, "DateStarted");
-	diff = osxml_find_node(root, "Content");
+	dtstart = osxml_find_node(root->parent->parent, "DateStarted");
+	duration = osxml_find_node(root, "Content");
 
-	secs = osync_time_alarmdu2sec(diff);
+	secs = osync_time_alarmdu2sec(duration);
 
-	timestamp = osync_time_vtime2unix(stamp);
-
+	timestamp = osync_time_vtime2unix(dtstart);
 	timestamp += secs;
 
-	g_free(stamp);
-	g_free(diff);
-
-	stamp = osync_time_unix2vtime(&timestamp);
+	g_free(dtstart);
+	dtstart = osync_time_unix2vtime(&timestamp);
 	
-	vformat_attribute_set_value(attr, 0, stamp);
-	g_free(stamp);
+	vformat_attribute_set_value(attr, 0, dtstart);
+
+// TODO: vcal spec allows to handle *Runtime*;*Duration before/after Alarm*; 	
+//	vformat_attribute_set_value(attr, 1, duration);
+//	vformat_attribute_add_param_with_value(attr, "VALUE", "DURATION");
+
+	g_free(dtstart);
+	g_free(duration);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return attr;

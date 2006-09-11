@@ -1,5 +1,8 @@
-#ifndef _OPENSYNC_FORMAT_H_
-#define _OPENSYNC_FORMAT_H_
+
+#ifndef _OPENSYNC_TIME_H_
+#define _OPENSYNC_TIME_H_
+
+#include "opensync_xml.h"
 
 /* Timeformat helper */
 char *osync_time_timestamp(const char *vtime);
@@ -27,5 +30,17 @@ char *osync_time_vtime2localtime(const char* utc);
 char *osync_time_sec2alarmdu(int seconds);
 int osync_time_alarmdu2sec(char *alarm);
 
-#endif // _OPENSYNC_FORMAT_H_
+/* Timezone ID helper */
+int osync_time_str2wday(const char *weekday);
+struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year);
+int osync_time_utcoffset2sec(const char *offset);
+struct tm *osync_time_dstchange(xmlNode *dstNode);
+osync_bool osync_time_isdst(const char *vtime, xmlNode *tzid);
+int osync_time_tzoffset(const char *vtime, xmlNode *tz);
+char *osync_time_tzid(xmlNode *tz);
+char *osync_time_tzlocation(xmlNode *tz);
+xmlNode *osync_time_tzinfo(xmlNode *root, const char *tzid);
+char *osync_time_tzlocal2utc(xmlNode *root, const char *field);
+
+#endif // _OPENSYNC_TIME_H_
 

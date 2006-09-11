@@ -18,7 +18,7 @@
  *
  */
 
-#include "opensync-xml.h"
+#include "xml-support.h"
 
 static osync_bool from_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
