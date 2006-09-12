@@ -160,9 +160,10 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_NUMBER_Work:
 				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "WORK");
 				break;
+			case GN_PHONEBOOK_NUMBER_None:	
 			case GN_PHONEBOOK_NUMBER_Common:	
 			case GN_PHONEBOOK_NUMBER_General:
-				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "GENERAL");
+				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "VOICE");
 				break;
 			default:
 				break;	
