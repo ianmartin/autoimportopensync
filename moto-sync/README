@@ -3,9 +3,8 @@ INTRODUCTION
 This is a VERY EXPERIMENTAL plugin for syncing with Motorola phones 
 using the AT command set. It supports syncing phonebook and calendar 
 entries. It will most likely mess up the data on your phone and any 
-other members of the sync group. To make it write any changes to the 
-phone, you'll need to change WRITE_ENABLED from False to True (near the 
-top of the file).
+other members of the sync group. To prevent it writing any changes
+to the phone, set WRITE_ENABLED to False (near the top of the file).
 
 Also see KNOWN PROBLEMS below.
 
@@ -26,9 +25,9 @@ you, by emailing andrewb AT cse DOT unsw DOT edu DOT au.
 REQUIREMENTS
 
  * OpenSync from svn HEAD with the python bindings and python-module plugin
- * The icalendar python library (at least version 0.11),
-   from http://codespeak.net/icalendar/
  * Python 2.4
+ * The python-dateutil library (at least version 1.1),
+   from http://labix.org/python-dateutil
 
 
 INSTALLATION
@@ -100,7 +99,7 @@ also other problems maintaining consistent UIDs for events.
 TODO
 
  * Better error/exception handling (see all the FIXMEs in the code)
- * Handle exceptions on incoming/outgoing events
  * Do something with "mailing list" entries in the phonebook
  * Add support for reading/writing the SIM phonebook
  * Test with other hardware
+ * Wrap osync_member_objtype_enabled, only report enabled objtypes
