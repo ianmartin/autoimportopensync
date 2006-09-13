@@ -274,8 +274,11 @@ osync_bool osync_change_copy_data(OSyncChange *source, OSyncChange *target, OSyn
 	
 	if (!format || !format->copy_func) {
 		osync_trace(TRACE_INTERNAL, "We cannot copy the change, falling back to memcpy");
-		target->data = g_malloc0(sizeof(char) * source->size);
+		target->data = g_malloc0(sizeof(char) * (source->size + 1));
 		memcpy(target->data, source->data, source->size);
+
+		/* Make sure that its null terminated */
+		target->data[source->size] = 0;
 		target->size = source->size;
 	} else {
 		if (!format->copy_func(source->data, source->size, &(target->data), &(target->size))) {
