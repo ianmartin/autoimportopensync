@@ -19,15 +19,17 @@
  * 
  */
 
-#include "vformat.h"
-#include "xml-vcard.h"
-
 #include <opensync/opensync.h>
-#include <opensync/opensync-error.h>
 #include <opensync/opensync-merger.h>
+#include <opensync/opensync-serializer.h>
 #include <opensync/opensync-format.h>
+#include <opensync/opensync-time.h>
+
 #include <string.h> /* strcmp and strlen */
 #include <stdio.h> /* printf  */
+
+#include "vformat.h"
+#include "xmlformat-vcard.h"
 
 static void handle_assistant_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
@@ -220,9 +222,9 @@ static OSyncXMLField *handle_birthday_attribute(OSyncXMLFormat *xmlformat, VForm
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
-//	char * datestamp = osync_time_datestamp(vformat_attribute_get_nth_value(attr, 0));
-//	osync_xmlfield_set_key_value(xmlfield, "Content", datestamp);
-//	free(datestamp);
+	char * datestamp = osync_time_datestamp(vformat_attribute_get_nth_value(attr, 0));
+	osync_xmlfield_set_key_value(xmlfield, "Content", datestamp);
+	g_free(datestamp);
 	return xmlfield;
 }
 
@@ -600,7 +602,7 @@ static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, V
 	for (; values; values = values->next) {
 		GString *retstr = (GString *)values->data;
 		g_assert(retstr);
-		osync_xmlfield_set_key_value(xmlfield, "Unit", retstr->str);
+		osync_xmlfield_add_key_value(xmlfield, "Unit", retstr->str);
 	}
 	return xmlfield;
 }
@@ -637,9 +639,9 @@ static OSyncXMLField *handle_revision_attribute(OSyncXMLFormat *xmlformat, VForm
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
-//	char *revision = osync_time_timestamp(vformat_attribute_get_nth_value(attr, 0));
-//	osync_xmlfield_set_key_value(xmlfield, "Content", revision);
-//	free(revision);
+	char *revision = osync_time_timestamp(vformat_attribute_get_nth_value(attr, 0));
+	osync_xmlfield_set_key_value(xmlfield, "Content", revision);
+	g_free(revision);
 	return xmlfield;
 }
 
@@ -1031,16 +1033,21 @@ has_value:;
 //	}
 //	
 //	osync_trace(TRACE_INTERNAL, "Handling formattedname attribute");
-////	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-////	osxml_node_add(current, "Content", fnentry->str);
+//	
+//	if (fnentry->len != 0) {
+////xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+////osxml_node_add(current, "Content", fnentry->str);
 //OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
 //osync_xmlfield_set_key_value(xmlfield, "Content", fnentry->str);
-//	
+//	} else {
+//		osync_trace(TRACE_INTERNAL, "FN is empty!");
+//	}
+//			
 //	g_string_free(fnentry,TRUE);
 //	osync_trace(TRACE_EXIT, "%s", __func__);
 //	return;
 //}
-
+//
 //static void _generate_name_from_fn(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
 //{
 //	/*
@@ -1054,10 +1061,15 @@ has_value:;
 //	char *fn = vformat_attribute_get_value(n);
 //
 //	osync_trace(TRACE_INTERNAL, "Handling name attribute");
+//
+//	if (strlen(fn) != 0) {
 ////xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
 ////	osxml_node_add(current, "LastName", fn);
 //OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
 //osync_xmlfield_set_key_value(xmlfield, "LastName", fn);
+//	} else {
+//		osync_trace(TRACE_INTERNAL, "Name is empty");
+//	}
 //
 //	osync_trace(TRACE_EXIT, "%s", __func__);
 //	return;
@@ -1139,6 +1151,8 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	*free_input = TRUE;
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
+
+	osync_xmlformat_sort(xmlformat);
 	
 	unsigned int size;
 	char *str;
@@ -1204,6 +1218,34 @@ static void add_values(VFormatAttribute *attr, OSyncXMLField *xmlfield, const ch
 {
 	int i, c = osync_xmlfield_get_key_count(xmlfield);
 	for(i=0; i<c; i++)
+	{
+		const char *tmp = osync_xmlfield_get_nth_key_value(xmlfield, i);
+
+		if (!tmp) {
+			/* If there is no node with the given name, add an empty value to the list.
+			 * This is necessary because some fields (N and ADR, for example) need
+			 * a specific order of the values
+			 */
+			tmp = "";
+		}
+	
+		if (needs_charset((unsigned char*)tmp))
+			if (!vformat_attribute_has_param (attr, "CHARSET"))
+				vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
+	
+		if (needs_encoding((unsigned char*)tmp, encoding)) {
+			if (!vformat_attribute_has_param (attr, "ENCODING"))
+				vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
+			vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
+		} else
+			vformat_attribute_add_value(attr, tmp);
+	}
+}
+
+static void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding, int nth)
+{
+	int i, c = osync_xmlfield_get_key_count(xmlfield);
+	for(i=nth; i<c; i++)
 	{
 		const char *tmp = osync_xmlfield_get_nth_key_value(xmlfield, i);
 
@@ -1700,6 +1742,7 @@ static VFormatAttribute *handle_xml_organization_attribute(VFormat *vcard, OSync
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "ORG");
 	add_value(attr, xmlfield, "Name", encoding);
 	add_value(attr, xmlfield, "Department", encoding);
+	add_values_from_nth_field_on(attr, xmlfield, encoding, 2);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -2266,27 +2309,37 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 	return time;
 }
 
-/** TODO: */
-static osync_bool marshal_contact(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
+static osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
-//	if(osync_xmlformat_assemble((OSyncXMLFormat *)input, output, (int *)outpsize) == TRUE)
-//		return TRUE;
-//	else
+	char *buffer;
+	unsigned int size;
+	
+	if(!osync_xmlformat_assemble((OSyncXMLFormat *)input, &buffer, &size))
 		return FALSE;
+
+	osync_message_write_buffer(message, buffer, (int)size);
+	
+	return TRUE;
 }
 
-/** TODO: */
-static osync_bool demarshal_contact(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
+static osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	osync_bool res = TRUE;
-//	*output = (char *)osync_xmlformat_parse(input, inpsize, error);
-//	*outpsize = 0;
-//	if(error)
-		res = FALSE;
-	return res;
+	char *buffer = NULL;
+	unsigned int size = 0;
+	osync_message_read_buffer(message, (void **)&buffer, (int *)&size);
+	
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse((char *)buffer, size, error);
+	if (!xmlformat) {
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	*output = (char*)xmlformat;
+	*outpsize = 0; /* TODO: the compiler do not know the size of OSyncXMLFormat : 0 is ok? */
+	return TRUE;
 }
 
-static void get_format_info(OSyncFormatEnv *env)
+void get_format_info(OSyncFormatEnv *env)
 {
 	OSyncError *error = NULL;
 	
@@ -2303,9 +2356,11 @@ static void get_format_info(OSyncFormatEnv *env)
 	osync_objformat_set_copy_func(format, copy_contact);
 	osync_objformat_set_create_func(format, create_contact);
 	
+	osync_objformat_set_revision_func(format, get_revision);
+	
 	osync_objformat_must_marshal(format);
-	osync_objformat_set_marshal_func(format, marshal_contact);
-	osync_objformat_set_demarshal_func(format, demarshal_contact);
+	osync_objformat_set_marshal_func(format, marshal_xmlformat);
+	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
 	
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
@@ -2331,7 +2386,7 @@ static void get_format_info(OSyncFormatEnv *env)
 	osync_objformat_unref(format);	
 }
 
-static void get_conversion_info(OSyncFormatEnv *env)
+void get_conversion_info(OSyncFormatEnv *env)
 {
 	OSyncFormatConverter *conv;
 	OSyncError *error = NULL;
@@ -2379,13 +2434,7 @@ static void get_conversion_info(OSyncFormatEnv *env)
 	osync_converter_unref(conv);
 }
 
-static int get_version(void)
+int get_version(void)
 {
 	return 1;
-	/* the never used functions */
-	/* TODO: remove this lines */
-	get_revision(NULL, 0, NULL);
-	get_format_info(NULL);
-	get_conversion_info(NULL);
-	get_version();
 }

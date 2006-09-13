@@ -1,5 +1,5 @@
-#ifndef OPENSYNC_MERGER_INTERNALS_H_
-#define OPENSYNC_MERGER_INTERNALS_H_
+#ifndef OPENSYNCMERGER_INTERNALS_H_
+#define OPENSYNCMERGER_INTERNALS_H_
 
 #include <sqlite3.h>
 #include <libxml/parser.h>
@@ -10,5 +10,7 @@
 #include "opensync_xmlformat_internals.h"
 #include "opensync_xmlfield_internals.h"
 #include "opensync_xmlfieldlist_internals.h"
+#include "opensync_merger_internals.h"
+#include "opensync_version_internals.h"
 
-#endif /*OPENSYNC_MERGER_INTERNALS_H_*/
+#endif /*OPENSYNCMERGER_INTERNALS_H_*/

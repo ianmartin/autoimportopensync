@@ -2,6 +2,9 @@
 
 #include <opensync/opensync-merger.h>
 
+#include "formats/vformats-xml/vformat.c"
+#include "formats/vformats-xml/xmlformat-vcard.c"
+
 START_TEST (xmlformat_new)
 {
 	char *testbed = setup_testbed("merger");
@@ -79,6 +82,64 @@ START_TEST (xmlformat_sort)
 }
 END_TEST
 
+START_TEST (xmlformat_search_field)
+{
+	char *command = g_strdup_printf("cp %s/../opensync/merger/xmlformat.xsd .", g_get_current_dir());
+	char *testbed = setup_testbed("merger");
+	system(command);
+	g_free(command);
+
+	char *buffer;
+	unsigned int size;
+	OSyncError *error = NULL;
+
+	fail_unless(osync_file_read("contact.xml", &buffer, (unsigned int *)(&size), &error), NULL);
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	g_free(buffer);
+	osync_xmlformat_sort(xmlformat);
+	
+	OSyncXMLFieldList *xmlfieldlist = osync_xmlformat_search_field(xmlformat, "Name", NULL);
+	fail_unless(xmlfieldlist != NULL, NULL);
+	
+	fail_unless(size != osync_xmlfieldlist_get_length(xmlfieldlist), NULL);
+
+	osync_xmlfieldlist_free(xmlfieldlist);
+	osync_xmlformat_unref(xmlformat);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (xmlformat_validate)
+{
+	char *command = g_strdup_printf("cp %s/../opensync/merger/xmlformat.xsd .", g_get_current_dir());
+	char *testbed = setup_testbed("vcards");
+	system(command);
+	g_free(command);
+
+	char *buffer;
+	unsigned int size;
+	osync_bool free_input, ret;
+	OSyncError *error = NULL;
+	OSyncXMLFormat *xmlformat;
+
+	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
+	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(ret == TRUE, NULL);
+	fail_unless(error == NULL, NULL);
+	if(free_input)
+		g_free(buffer);
+
+	fail_unless(osync_xmlformat_validate(xmlformat) != FALSE, NULL);
+
+	osync_xmlformat_unref(xmlformat);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 Suite *xmlformat_suite(void)
 {
 	Suite *s = suite_create("XMLFormat");
@@ -86,6 +147,8 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlfield_new", xmlfield_new);
 	create_case(s, "xmlformat_parse", xmlformat_parse);
 	create_case(s, "xmlformat_sort", xmlformat_sort);
+	create_case(s, "xmlformat_search_field", xmlformat_search_field);
+	create_case(s, "xmlformat_validate", xmlformat_validate);
 	return s;
 }
 

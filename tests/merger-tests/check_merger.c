@@ -5,145 +5,109 @@
 #include "formats/vformats-xml/vformat.c"
 #include "formats/vformats-xml/xmlformat-vcard.c"
 
-START_TEST (merger_setup)
+START_TEST (merger_new)
 {
 	char *testbed = setup_testbed("merger");
-	printf("\n");
 
-	char *buffer;
-	int i;
-	unsigned int size;
 	OSyncError *error = NULL;
-	OSyncXMLFormat *xmlformat, *xmlformat_full;
-	OSyncXMLField *cur;
-	OSyncCapabilities *capabilities;
-printf("---------------------------\n");
-	fail_unless(osync_file_read("contact.xml", &buffer, &size, &error), NULL);
-	xmlformat = osync_xmlformat_parse(buffer, size, &error);
-	fail_unless(xmlformat != NULL, NULL);
-	osync_xmlformat_sort(xmlformat);
-	osync_xmlformat_assemble(xmlformat, &buffer, &size);
-	printf("%s", buffer);
-printf("---------------------------\n");
-	fail_unless(osync_file_read("contact-full.xml", &buffer, &size, &error), NULL);
-	xmlformat_full = osync_xmlformat_parse(buffer, size, &error);
-	fail_unless(xmlformat != NULL, NULL);
-	osync_xmlformat_sort(xmlformat_full);
-	osync_xmlformat_assemble(xmlformat_full, &buffer, &size);
-	printf("%s", buffer);
-printf("---------------------------\n");
-	fail_unless(osync_file_read("capabilities.xml", &buffer, &size, &error), NULL);
-	printf("%s", buffer);
-	capabilities = osync_capabilities_parse(buffer, size, &error);
-	printf("---------------------------\n");
+	OSyncCapabilities *capabilities = osync_capabilities_new(&error);
 	fail_unless(capabilities != NULL, NULL);
-	printf("---------------------------\n");
-	osync_capabilities_sort(capabilities);
-	printf("%s", buffer);
-printf("---------------------------\n");
-	osync_xmlformat_merge(xmlformat, capabilities, xmlformat_full);
-
+	fail_unless(error == NULL, NULL);
 	
-//	cur = osync_xmlformat_get_first_field(xmlformat);
-//	while(cur != NULL)
-//	{
-//		int keys, i;
-//		printf("%s\n", osync_xmlfield_get_name(cur));
-//		keys = osync_xmlfield_get_key_count(cur);
-//		for(i=0; i < keys; i++)
-//		{
-//			printf("\t%s\n", osync_xmlfield_get_nth_key_value(cur, i));
-//		}
-//		cur = osync_xmlfield_get_next(cur);
-//	}
-	osync_xmlformat_assemble(xmlformat, &buffer, &size);
-	printf("\n%s\n", buffer);
+	OSyncMerger *merger = osync_merger_new(capabilities, &error);
+	fail_unless(merger != NULL, NULL);
+	fail_unless(error == NULL, NULL);
 	
-	printf("search for \"Name\"\n");
-	OSyncXMLFieldList *res = osync_xmlformat_search_field(xmlformat, "Name", NULL);
-	size = osync_xmlfieldlist_get_length(res);
-	for(i=0; i < size; i++)
-	{
-		cur = osync_xmlfieldlist_item(res, i);
-		printf("found %s :)\n", osync_xmlfield_get_name(cur));
-	}
-	printf("\n\n");
+	osync_merger_ref(merger);
+	osync_merger_unref(merger);
+	
+	osync_merger_unref(merger);
 
 	destroy_testbed(testbed);
 }
 END_TEST
 
-
-START_TEST (merger_conv_vcard)
+START_TEST (merger_merge)
 {
-	char *command = g_strdup_printf("cp %s/../opensync/merger/xmlformat.xsd .", g_get_current_dir());
+	char *testbed = setup_testbed("merger");
+
+	char *buffer;
+	unsigned int size;
+	OSyncError *error = NULL;
+	OSyncXMLFormat *xmlformat, *xmlformat_entire;
+	OSyncCapabilities *capabilities;
+
+	fail_unless(osync_file_read("contact.xml", &buffer, &size, &error), NULL);
+	xmlformat = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	g_free(buffer);
+	osync_xmlformat_sort(xmlformat);
+	
+	fail_unless(osync_file_read("contact-full.xml", &buffer, &size, &error), NULL);
+	xmlformat_entire = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat_entire != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	g_free(buffer);
+	osync_xmlformat_sort(xmlformat_entire);
+	
+	fail_unless(osync_file_read("capabilities.xml", &buffer, &size, &error), NULL);
+	capabilities = osync_capabilities_parse(buffer, size, &error);
+	fail_unless(capabilities != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	g_free(buffer);
+	osync_capabilities_sort(capabilities);
+	
+	OSyncMerger *merger = osync_merger_new(capabilities, &error);
+	fail_unless(merger != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	osync_merger_merge(merger, xmlformat, xmlformat_entire);
+	osync_merger_unref(merger);
+	
+	osync_capabilities_unref(capabilities);
+	osync_xmlformat_unref(xmlformat);
+	osync_xmlformat_unref(xmlformat_entire);
+	
+	destroy_testbed(testbed);
+}
+END_TEST
+
+
+START_TEST (conv_vcard)
+{
 	char *testbed = setup_testbed("vcards");
-	printf("\n");
-	system(command);
-	g_free(command);
 	
 	char *buffer;
 	unsigned int size;
+	osync_bool ret, free_input;
 	OSyncError *error = NULL;
 	OSyncXMLFormat *xmlformat = NULL;
 
 	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
-	printf("%s\n\n", buffer);
-	
-	osync_bool booollllllll;
-	conv_vcard_to_xmlformat(buffer, size,
-							(char **)&xmlformat,  (unsigned int *) &size,
-							&booollllllll, "VCARD_EXTENSION=Evolution", &error);
-	osync_xmlformat_sort(xmlformat);
-	osync_xmlformat_assemble(xmlformat, &buffer, &size);
-	printf("%s", buffer);
-//	printf("\nChecking against Schema....");
-//	fail_unless(osync_xmlformat_validate(xmlformat), NULL);
-//	printf("is valid :-)\n");
+	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(ret == TRUE, NULL);
+	fail_unless(error == NULL, NULL);
+	if(free_input)
+		g_free(buffer);
 
-	conv_xmlformat_to_vcard((char*)xmlformat, size,
-							&buffer, (unsigned int *)&size,
-							&booollllllll, "VCARD_EXTENSION=Evolution",	&error, VFORMAT_CARD_30);
-	printf("%s", buffer);
-	
+	ret = conv_xmlformat_to_vcard((char*)xmlformat, size, &buffer, (unsigned int *)&size, &free_input, "VCARD_EXTENSION=Evolution", &error, VFORMAT_CARD_30);
+	fail_unless(ret == TRUE, NULL);
+	fail_unless(error == NULL, NULL);
+	//printf("%s", buffer);
+	if(free_input)
+		g_free(buffer);
+		
 	destroy_testbed(testbed);
 }
 END_TEST
 
-START_TEST (merger_validate)
-{
-	char *command = g_strdup_printf("cp %s/../opensync/merger/xmlformat.xsd .", g_get_current_dir());
-	char *testbed = setup_testbed("merger");
-	printf("\n");
-	system(command);
-	g_free(command);
-
-	char *buffer;
-	unsigned int size;
-	OSyncError *error = NULL;
-	OSyncXMLFormat *xmlformat;
-
-	fail_unless(osync_file_read("contact.xml", &buffer, (unsigned int *)(&size), &error), NULL);
-	xmlformat = osync_xmlformat_parse(buffer, size, &error);
-	osync_xmlformat_assemble(xmlformat, &buffer, &size);
-	printf("%s", buffer);
-	
-	printf("\nChecking unsorted contact against Schema....\n");
-	fail_unless(!osync_xmlformat_validate(xmlformat), NULL);
-	printf("is not valid\n");
-	
-
-
-	destroy_testbed(testbed);
-}
-END_TEST
 
 Suite *filter_suite(void)
 {
 	Suite *s = suite_create("Merger");
-	create_case(s, "merger_setup", merger_setup);
-	create_case(s, "merger_conv_vcard", merger_conv_vcard);
-	create_case(s, "merger_validate", merger_validate);
+	create_case(s, "merger_new", merger_new);
+	create_case(s, "merger_merge", merger_merge);
+	create_case(s, "conv_vcard", conv_vcard);
 	return s;
 }
 

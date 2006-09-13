@@ -103,7 +103,9 @@ void _osync_xmlfield_link_before_field(OSyncXMLField *xmlfield, OSyncXMLField *t
 	osync_assert(xmlfield);
 	osync_assert(to_link);
 
+	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
 	xmlAddPrevSibling(xmlfield->node, to_link->node);
+	
 	to_link->next = xmlfield;
 	to_link->prev = xmlfield->prev;
 	
@@ -125,7 +127,9 @@ void _osync_xmlfield_link_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to
 	osync_assert(xmlfield);
 	osync_assert(to_link);
 
+	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
 	xmlAddNextSibling(xmlfield->node, to_link->node);
+	
 	to_link->next = xmlfield->next;
 	to_link->prev = xmlfield;
 	
