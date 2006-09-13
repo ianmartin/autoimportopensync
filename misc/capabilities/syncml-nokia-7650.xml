@@ -9,7 +9,7 @@
 		<Name />
 		<Note />
 		<Organisation />
-<!--	<Photo /> do not work -->
+<!--	<Photo /> do not work currently -->
 		<Revision />
 		<Sound />
 		<Telephone />
