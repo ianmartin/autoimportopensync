@@ -255,22 +255,28 @@ static osync_bool needs_charset(const unsigned char *tmp)
 	return FALSE;
 }
 
+static void add_value_decoded(VFormatAttribute *attr, const char *value, const char *encoding)
+{
+	if (needs_charset((unsigned char*)value))
+		if (!vformat_attribute_has_param (attr, "CHARSET"))
+			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
+	
+	if (needs_encoding((unsigned char*)value, encoding)) {
+		if (!vformat_attribute_has_param (attr, "ENCODING"))
+			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
+		vformat_attribute_add_value_decoded(attr, value, strlen(value) + 1);
+	} else
+		vformat_attribute_add_value(attr, value);
+}
+
 static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name, const char *encoding)
 {
 	char *tmp = osxml_find_node(parent, name);
 	if (!tmp)
 		return;
-	
-	if (needs_charset((unsigned char*)tmp))
-		if (!vformat_attribute_has_param (attr, "CHARSET"))
-			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
-	
-	if (needs_encoding((unsigned char*)tmp, encoding)) {
-		if (!vformat_attribute_has_param (attr, "ENCODING"))
-			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
-		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
-	} else
-		vformat_attribute_add_value(attr, tmp);
+
+	add_value_decoded(attr, tmp, encoding);	
+
 	g_free(tmp);
 }
 
@@ -377,7 +383,7 @@ static VFormatAttribute *handle_xml_organization_attribute(VFormat *vcard, xmlNo
 		char *content = (char*)xmlNodeGetContent(root);
 		if (!strcmp((char*)root->name, "Name")) {
 			org = vformat_attribute_new(NULL, "ORG");
-			vformat_attribute_add_value(org, content);
+			add_value_decoded(org, content, encoding);
 			vformat_add_attribute(vcard, org);
 		}
 		
