@@ -38,6 +38,8 @@ merger/opensync_capability.c
 merger/opensync_xmlformat.c
 merger/opensync_xmlfield.c
 merger/opensync_xmlfieldlist.c
+merger/opensync_merger.c
+merger/opensync_version.c
 mapping/opensync_mapping_table.c
 mapping/opensync_mapping_view.c
 mapping/opensync_mapping_entry.c
@@ -102,6 +104,8 @@ merger/opensync_capability.h
 merger/opensync_xmlformat.h
 merger/opensync_xmlfield.h
 merger/opensync_xmlfieldlist.h
+merger/opensync_merger.h
+merger/opensync_version.h
 """
 
 helper_headers = """
