@@ -440,9 +440,7 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 	GList *new_rrule = NULL; 
 
 	new_rrule = g_list_append(new_rrule, g_strdup_printf("FREQ=%s", frequency));
-
-	if (interval > 1)
-		new_rrule = g_list_append(new_rrule, g_strdup_printf("INTERVAL=%d", interval));
+	new_rrule = g_list_append(new_rrule, g_strdup_printf("INTERVAL=%d", interval));
 
 	if (duration_number > 0)
 		new_rrule = g_list_append(new_rrule, g_strdup_printf("COUNT=%d", duration_number));
