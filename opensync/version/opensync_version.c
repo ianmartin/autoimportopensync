@@ -23,10 +23,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include "opensync-merger.h"
-#include "opensync-merger_internals.h"
-
-#include "regex.h"
+#include "opensync-version.h"
+#include "opensync-version_internals.h"
 
 /**
  * @defgroup OSyncVersionPrivateAPI OpenSync Version Internals
@@ -60,10 +58,8 @@ int _osync_version_match(char *pattern, char* string, OSyncError **error)
 	ret = regexec(preg, string, 0, NULL, 0);
 	regfree(preg);
 	if(ret != 0) { 
-		if(ret == REG_NOMATCH) {
+		if(ret == REG_NOMATCH)
 			return 0;
-		}
-		
 		errbuf_size = regerror(ret, preg, NULL, 0);
 		errbuf = osync_try_malloc0(errbuf_size, error);
 		if(!errbuf)
@@ -246,7 +242,7 @@ int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncErr
 	ret = _osync_version_match(osync_version_get_plugin(pattern), osync_version_get_plugin(version), error);
 	if(ret <= 0)
 		goto error;
-		
+	
 	ret = _osync_version_match(osync_version_get_modelversion(pattern), osync_version_get_modelversion(version), error);
 	if(ret <= 0)
 		goto error;
@@ -254,11 +250,11 @@ int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncErr
 	ret = _osync_version_match(osync_version_get_firmwareversion(pattern), osync_version_get_firmwareversion(version), error);
 	if(ret <= 0)
 		goto error;
-		
+	
 	ret = _osync_version_match(osync_version_get_softwareversion(pattern), osync_version_get_softwareversion(version), error);
 	if(ret <= 0)
 		goto error;
-		
+	
 	ret = _osync_version_match(osync_version_get_hardwareversion(pattern), osync_version_get_hardwareversion(version), error);
 	if(ret <= 0)
 		goto error;
@@ -273,5 +269,105 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 	return -1;
 };
+
+
+OSyncList *osync_load_versions_from_descriptions(OSyncError **error)
+{
+	GDir *dir = NULL;
+	GError *gerror = NULL;
+	const char *path = OPENSYNC_DESCRIPTIONSDIR; 
+	char *filename = NULL;
+	const gchar *de = NULL;
+	OSyncList *versions = NULL;
+	OSyncVersion *version = NULL;
+	xmlDocPtr doc;
+	xmlNodePtr root;
+	xmlNodePtr cur;
+	xmlNodePtr child;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+	
+	dir = g_dir_open(path, 0, &gerror);
+	if (!dir) {
+		osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to open directory %s: %s", path, gerror->message);
+		g_error_free(gerror);
+		goto error;
+	}
+	
+	while ((de = g_dir_read_name(dir))) {
+		filename = g_strdup_printf ("%s/%s", path, de);
+		
+		if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR) || g_file_test(filename, G_FILE_TEST_IS_SYMLINK) || !g_pattern_match_simple("*.xml", filename)) {
+			g_free(filename);
+			continue;
+		}
+		
+		doc = xmlReadFile(filename, NULL, XML_PARSE_NOBLANKS);
+		if(!doc) {
+			g_free(filename);
+			continue;
+		}
+		
+		g_free(filename);
+		
+		root = xmlDocGetRootElement(doc);
+		if(!root || !xmlStrEqual(root->name, BAD_CAST "versions")) {
+			xmlFreeDoc(doc);
+			continue;
+		}
+
+		char *schemafilepath = g_strdup_printf("%s%c%s", OPENSYNC_SCHEMASDIR, G_DIR_SEPARATOR, "descriptions.xsd");
+ 		osync_bool res = osxml_validate_document(doc, schemafilepath);
+ 		g_free(schemafilepath);
+
+		if(res == FALSE) {
+			xmlFreeDoc(doc);
+			continue;
+		}
+		
+		cur = root->children;
+		for(; cur != NULL; cur = cur->next) {
+		
+			version = osync_version_new(error);
+			if(!version) {
+				xmlFreeDoc(doc);
+				OSyncList *cur = osync_list_first(versions);
+				while(cur) {
+					osync_version_unref(cur->data);
+					cur = cur->next;	
+				}
+				goto error;
+			}
+				
+			child = cur->children;
+			osync_version_set_plugin(version, (char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_priority(version, (char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_modelversion(version, (char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_firmwareversion(version, (char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_softwareversion(version, (char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_hardwareversion(version, (char *)osxml_node_get_content(child));
+			child = child->next;
+			osync_version_set_identifier(version, (char *)osxml_node_get_content(child));
+			
+			versions = osync_list_append(versions, version);
+		}
+		
+		xmlFreeDoc(doc);
+	}
+	
+	g_dir_close(dir);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, versions);
+	return versions;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
 
 /*@}*/

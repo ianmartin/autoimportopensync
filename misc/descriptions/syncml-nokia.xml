@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<versions>
+<versions version="0.1">
 	<version>
 		<PlugIn>SyncML</PlugIn>
-		<Priority>1</Priority>
+		<Priority>100</Priority>
 		<ModelVersion>7650</ModelVersion>
-		<FirmwareVersion>*</FirmwareVersion>
-		<SoftwareVersion>*</SoftwareVersion>
-		<HardwareVersion>*</HardwareVersion>
+		<FirmwareVersion></FirmwareVersion>
+		<SoftwareVersion></SoftwareVersion>
+		<HardwareVersion></HardwareVersion>
 		<Identifier>syncml-nokia-7650.xml</Identifier>
 	</version>
 </versions>

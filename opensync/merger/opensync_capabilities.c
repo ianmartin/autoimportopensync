@@ -27,8 +27,6 @@
 
 #include "opensync-group.h"
 
-#define OSYNC_CAPABILITIES_DIRECTORY "/usr/share/opensync/capabilities"
-
 /**
  * @defgroup OSyncCapabilitiesPrivateAPI OpenSync Capabilities Internals
  * @ingroup OSyncPrivate
@@ -326,7 +324,7 @@ OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
 	char *buffer, *filename;
 	OSyncCapabilities *capabilities;
 	
-	filename = g_strdup_printf("%s%c%s", OSYNC_CAPABILITIES_DIRECTORY, G_DIR_SEPARATOR, file);
+	filename = g_strdup_printf("%s%c%s", OPENSYNC_CAPABILITIESDIR, G_DIR_SEPARATOR, file);
 	
 	osync_bool b = osync_file_read(filename, &buffer, &size, error);
 	g_free(filename);
@@ -429,28 +427,5 @@ osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSync
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
 	return res;
 }
-
-//void osync_algorithm_quicksort(void * array[], int left, int right, const char *(*getString)(void *))
-//{
-//  register int i, j;
-//  void *x, *temp;
-//
-//  i = left; j = right;
-//  x = array[(left+right)/2];
-//
-//  do {
-//    while((strcmp(getString(array[i]), getString(x)) < 0) && (i < right)) i++;
-//    while((strcmp(getString(array[j]), getString(x)) > 0) && (j > left)) j--;
-//    if(i <= j) {
-//      temp = array[i];
-//      array[i] = array[j];
-//      array[j] = temp;
-//      i++; j--;
-//   }
-//  } while(i <= j);
-//
-//  if(left < j) osync_algorithm_quicksort(array, left, j, getString);
-//  if(i < right) osync_algorithm_quicksort(array, i, right, getString);
-//}
 
 /*@}*/

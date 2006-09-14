@@ -4,6 +4,7 @@
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
+#include <libxml/xmlschemas.h>
 
 #include <opensync/opensync.h>
 #include <string.h>
@@ -62,6 +63,11 @@ osync_bool osxml_copy(const char *input, unsigned int inpsize, char **output, un
 
 osync_bool osxml_marshal(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
 osync_bool osxml_demarshal(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
+
+osync_bool osxml_validate_document(xmlDocPtr doc, char *schemafilepath);
+
+xmlChar *osxml_node_get_content(xmlNodePtr node);
+xmlChar *osxml_attr_get_content(xmlAttrPtr node);
 
 #ifdef __cplusplus
 }

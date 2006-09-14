@@ -8,6 +8,7 @@ opensync_error.c
 opensync_context.c
 opensync_support.c
 opensync_time.c
+opensync_xml.c
 helper/opensync_hashtable.c
 helper/opensync_anchor.c
 module/opensync_module.c
@@ -39,7 +40,7 @@ merger/opensync_xmlformat.c
 merger/opensync_xmlfield.c
 merger/opensync_xmlfieldlist.c
 merger/opensync_merger.c
-merger/opensync_version.c
+version/opensync_version.c
 mapping/opensync_mapping_table.c
 mapping/opensync_mapping_view.c
 mapping/opensync_mapping_entry.c
@@ -50,6 +51,7 @@ archive/opensync_archive.c
 headers = """
 opensync.h
 opensync_list.h
+opensync_xml.h
 opensync-context.h
 opensync-data.h
 opensync-engine.h
@@ -63,6 +65,7 @@ opensync-plugin.h
 opensync-support.h
 opensync-client.h
 opensync-merger.h
+opensync-version.h
 opensync-time.h
 opensync-serializer.h
 """
@@ -105,7 +108,14 @@ merger/opensync_xmlformat.h
 merger/opensync_xmlfield.h
 merger/opensync_xmlfieldlist.h
 merger/opensync_merger.h
-merger/opensync_version.h
+"""
+
+version_headers = """
+version/opensync_version.h
+"""
+
+archive_headers = """
+archive/opensync_archive.h
 """
 
 helper_headers = """
@@ -139,6 +149,8 @@ env.Install(install_inc + '/opensync-1.0/opensync/format', Split(format_headers)
 env.Install(install_inc + '/opensync-1.0/opensync/data', Split(data_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/ipc', Split(ipc_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/merger', Split(merger_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/version', Split(version_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/archive', Split(archive_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/helper', Split(helper_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/engine', Split(engine_headers))
 env.Alias('install', install_prefix)

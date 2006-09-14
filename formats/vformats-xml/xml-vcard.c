@@ -21,11 +21,11 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-data.h>
- 
-#include "opensync-xml.h"
-#include "vformat.h"
-#include "xml-vcard.h"
+#include <opensync/opensync_xml.h> 
 #include <glib.h>
+
+#include "xml-vcard.h"
+#include "vformat.h"
 
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {

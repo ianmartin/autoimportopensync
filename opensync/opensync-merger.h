@@ -7,6 +7,5 @@
 #include "merger/opensync_xmlfield.h"
 #include "merger/opensync_xmlfieldlist.h"
 #include "merger/opensync_merger.h"
-#include "merger/opensync_version.h"
 
 #endif /*OPENSYNCMERGER_H_*/

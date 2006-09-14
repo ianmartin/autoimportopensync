@@ -308,29 +308,16 @@ osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
 {
 	osync_assert(xmlformat);
 	
-	int res;
- 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
- 	xmlSchemaPtr xmlSchema;
- 	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt;
+	char *schemafilepath = g_strdup_printf("%s%c%s%s%s",
+		OPENSYNC_SCHEMASDIR,
+		G_DIR_SEPARATOR,
+		"xmlformat-",
+		osync_xmlformat_get_objtype(xmlformat),
+		".xsd");
+ 	osync_bool res = osxml_validate_document(xmlformat->doc, schemafilepath);
+ 	g_free(schemafilepath);
 	
- 	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt("xmlformat.xsd");
- 	xmlSchema = xmlSchemaParse(xmlSchemaParserCtxt);
- 	xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt);
-
- 	xmlSchemaValidCtxt = xmlSchemaNewValidCtxt(xmlSchema);
- 	if (xmlSchemaValidCtxt == NULL) {
- 		xmlSchemaFree(xmlSchema);
-   		res = 1;
- 	}else{
- 		/* Validate the document */
- 		res = xmlSchemaValidateDoc(xmlSchemaValidCtxt, xmlformat->doc);
-	 	xmlSchemaFree(xmlSchema);
-		xmlSchemaFreeValidCtxt(xmlSchemaValidCtxt);
- 	}
-
-	if(res != 0)
- 		return FALSE;
-	return TRUE;
+	return res;
 }
 
 /**

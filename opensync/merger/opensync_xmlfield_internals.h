@@ -23,9 +23,4 @@ void _osync_xmlfield_link_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to
 
 int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2);
 
-xmlChar *_osync_xmlfield_node_get_content(xmlNodePtr node);
-xmlChar *_osync_xmlfield_attr_get_content(xmlAttrPtr node);
-
-//OSyncXMLField *osync_xmlfield_insert_copy_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_copy);
-
 #endif /*OPENSYNC_XMLFIELD_INTERNALS_H_*/

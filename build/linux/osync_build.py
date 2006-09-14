@@ -36,6 +36,9 @@ def check(env, config):
 	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINDIR="\"' + config.plugindir + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"' + config.formatdir + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_CONFIGDIR="\"' + config.configdir + r'\""')
+	env.Append(CCFLAGS = r'-DOPENSYNC_CAPABILITIESDIR="\"' + config.capabilitiesdir + r'\""')
+	env.Append(CCFLAGS = r'-DOPENSYNC_DESCRIPTIONSDIR="\"' + config.descriptionsdir + r'\""')
+	env.Append(CCFLAGS = r'-DOPENSYNC_SCHEMASDIR="\"' + config.descriptionsdir + r'\""')
 	env.Append(CCFLAGS = r'-DVERSION="\"' + config.version + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINVERSION=' + str(config.plugin_version) + '')
 	

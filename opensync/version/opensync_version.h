@@ -22,5 +22,6 @@ OSYNC_EXPORT void osync_version_set_hardwareversion(OSyncVersion *version, char 
 OSYNC_EXPORT void osync_version_set_identifier(OSyncVersion *version, char *identifier);
 
 OSYNC_EXPORT int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error);
+OSYNC_EXPORT OSyncList *osync_load_versions_from_descriptions(OSyncError **error);
 
 #endif /*OPENSYNC_VERSION_H_*/

@@ -151,32 +151,6 @@ int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 	return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
 }
 
-/**
- * @brief Help method which return the content of a xmlNode
- * @param node The pointer to a xmlNode
- * @return The value of the xmlNode or a empty string
- */
-xmlChar *_osync_xmlfield_node_get_content(xmlNodePtr node)
-{
-	if(node->children && node->children->content)
-		return node->children->content;
-		
-	return (xmlChar *)"";
-}
-
-/**
- * @brief Help method which return the content of a xmlAttr
- * @param node The pointer to a xmlAttr
- * @return The value of the xmlAttr or a empty string
- */
-xmlChar *_osync_xmlfield_attr_get_content(xmlAttrPtr node)
-{
-	if(node->children && node->children->content)
-		return node->children->content;
-		
-	return (xmlChar *)"";
-}
-
 /*@}*/
 
 /**
@@ -254,7 +228,7 @@ const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
     prop = xmlHasProp(xmlfield->node, BAD_CAST attr);
     if(prop == NULL)
     	return NULL;
-	return (const char *)_osync_xmlfield_attr_get_content(prop);
+	return (const char *)osxml_attr_get_content(prop);
 //	return (const char *)prop->children->content;
 //	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
 }
@@ -327,7 +301,7 @@ const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 	
 	for(count=0; attr != NULL; count++) {
 		if(count == nth)
-			return (const char *)_osync_xmlfield_attr_get_content(attr);
+			return (const char *)osxml_attr_get_content(attr);
 //			return (const char *)attr->children->content;
 //			return (const char *)xmlNodeGetContent((xmlNodePtr)attr);
 		attr = attr->next;
@@ -349,7 +323,7 @@ const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *ke
 	xmlNodePtr cur = xmlfield->node->children;
 	for(; cur != NULL; cur = cur->next) {
 		if(!xmlStrcmp(cur->name, BAD_CAST key))
-				return (const char *)_osync_xmlfield_node_get_content(cur);
+				return (const char *)osxml_node_get_content(cur);
 //				return (const char *)cur->children->content;
 //				return (const char *)xmlNodeGetContent(cur);
 	}
@@ -449,7 +423,7 @@ const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 	
 	for(count=0; child != NULL; count++) {
 		if(count == nth)
-			return (const char *)_osync_xmlfield_node_get_content(child);
+			return (const char *)osxml_node_get_content(child);
 //			return (const char *)child->children->content;
 //			return (const char *)xmlNodeGetContent(child);
 		child = child->next;
@@ -551,7 +525,7 @@ osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfi
 				cur_list2 = keylist2;
 	
 				do {
-					if(!xmlStrcmp(_osync_xmlfield_node_get_content(cur_list1->data), _osync_xmlfield_node_get_content(cur_list2->data)))
+					if(!xmlStrcmp(osxml_node_get_content(cur_list1->data), osxml_node_get_content(cur_list2->data)))
 						break;
 					cur_list2 = g_slist_next(cur_list2);
 					if(cur_list2 == NULL) {
@@ -654,8 +628,8 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 				break;	
 			}
 			
-			while(!xmlStrcmp(_osync_xmlfield_node_get_content((xmlNodePtr)cur_list1->data),
-							 _osync_xmlfield_node_get_content((xmlNodePtr)cur_list2->data))) {		
+			while(!xmlStrcmp(osxml_node_get_content((xmlNodePtr)cur_list1->data),
+							 osxml_node_get_content((xmlNodePtr)cur_list2->data))) {		
 //			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
 //						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {
 				cur_list2 = g_slist_next(cur_list2);
@@ -684,31 +658,5 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
 	return res;
 }
-
-//OSyncXMLField *osync_xmlfield_insert_copy_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_copy)
-//{
-//	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
-//	osync_assert(xmlfield);
-//	osync_assert(to_copy);
-//	
-//	OSyncXMLField *newxmlfield = g_malloc0(sizeof(OSyncXMLField));
-//	xmlNodePtr node = xmlCopyNode(to_copy->node, 1);
-//
-//	node = xmlAddPrevSibling(xmlfield->node, node);
-//	
-//	newxmlfield->next = xmlfield;
-//	newxmlfield->node = node;
-//	newxmlfield->prev = xmlfield->prev;
-//	node->_private = newxmlfield;
-//
-//	if(xmlfield->prev)
-//		xmlfield->prev->next = newxmlfield;
-//	else
-//		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = newxmlfield;
-//	xmlfield->prev = newxmlfield;
-//	
-//	osync_trace(TRACE_EXIT, "%s");
-//	return newxmlfield;
-//}
 
 /*@}*/

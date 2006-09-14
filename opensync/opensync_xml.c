@@ -18,7 +18,7 @@
  * 
  */
  
-#include "opensync-xml.h"
+#include "opensync_xml.h"
 #include <opensync/opensync-serializer.h>
 #include <glib.h>
 
@@ -422,4 +422,58 @@ error:
 	return FALSE;
 }
 
+osync_bool osxml_validate_document(xmlDocPtr doc, char *schemafilepath)
+{
+	g_assert(doc);
+	g_assert(schemafilepath);
+	
+	int rc = 0;
+ 	xmlSchemaParserCtxtPtr xmlSchemaParserCtxt;
+ 	xmlSchemaPtr xmlSchema;
+ 	xmlSchemaValidCtxtPtr xmlSchemaValidCtxt;
+	
+ 	xmlSchemaParserCtxt = xmlSchemaNewParserCtxt(schemafilepath);
+ 	xmlSchema = xmlSchemaParse(xmlSchemaParserCtxt);
+ 	xmlSchemaFreeParserCtxt(xmlSchemaParserCtxt);
 
+ 	xmlSchemaValidCtxt = xmlSchemaNewValidCtxt(xmlSchema);
+ 	if (xmlSchemaValidCtxt == NULL) {
+ 		xmlSchemaFree(xmlSchema);
+   		rc = 1;
+ 	}else{
+ 		/* Validate the document */
+ 		rc = xmlSchemaValidateDoc(xmlSchemaValidCtxt, doc);
+	 	xmlSchemaFree(xmlSchema);
+		xmlSchemaFreeValidCtxt(xmlSchemaValidCtxt);
+ 	}
+
+	if(rc != 0)
+ 		return FALSE;
+	return TRUE;
+}
+
+/**
+ * @brief Help method which return the content of a xmlNode
+ * @param node The pointer to a xmlNode
+ * @return The value of the xmlNode or a empty string
+ */
+xmlChar *osxml_node_get_content(xmlNodePtr node)
+{
+	if(node->children && node->children->content)
+		return node->children->content;
+		
+	return (xmlChar *)"";
+}
+
+/**
+ * @brief Help method which return the content of a xmlAttr
+ * @param node The pointer to a xmlAttr
+ * @return The value of the xmlAttr or a empty string
+ */
+xmlChar *osxml_attr_get_content(xmlAttrPtr node)
+{
+	if(node->children && node->children->content)
+		return node->children->content;
+		
+	return (xmlChar *)"";
+}
