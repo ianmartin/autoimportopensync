@@ -1,9 +1,8 @@
 Notes:
 ------
-- Syncronisation of notes doesn't work with newer Sony Ericsson cell phones like
-  the K750i. You will receive a "OBEX RSP unsuccessful" error. Please use
-  "msynctool --sync $GROUP --filter-objtype note" to deactivate syncronisation
-  of notes.
+- Syncronisation of notes doesn't work with newer Sony Ericsson cell phones.
+  If your phone is crashing or if you receive an error like "Request failed"
+  please try "--filter-objtype note".
 
 
 
@@ -26,7 +25,7 @@ Scanning ...
         00:16:20:33:33:33    K750i <--- $MAC
 
 
-Now we need to find out the channel of the IrMC Server. Try "sdptool browse $MAC"
+Now we need to find out the channel of the IrMC Server. Try "sdptool browse $MAC".
 We hopefully get a output like this:
 
 
@@ -82,5 +81,3 @@ In this case $IDENTIFIER is "Sony Ericss". Your config should now look like this
   <connectmedium>ir</connectmedium>
   <irname>Sony Ericss</irname>
 </config>
-
-

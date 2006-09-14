@@ -181,7 +181,6 @@ void get_client_done(obex_t *handle, obex_object_t *object, gint obex_rsp) {
 
   if(obex_rsp != OBEX_RSP_SUCCESS) {
     ud->state = IRMC_OBEX_REQFAILED;
-    osync_error_set(ud->error, OSYNC_ERROR_GENERIC, "OBEX RSP unsuccessful");
     return;
   }
   
@@ -674,6 +673,11 @@ char* irmc_obex_get_serial(obex_t* handle) {
 gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
 		 char *body, gint body_size, char *rspbuf, int *rspbuflen,
 		 char *apparam, int apparamlen, OSyncError **error) {
+  
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %i, %p, %p, %s, %i, %p)",
+	__func__, handle, name, type, body, body_size, rspbuf, rspbuflen,
+	apparam, apparamlen, error);
+
   obex_object_t *object; 
   obex_headerdata_t hd; 
   char unicodename[1024];
@@ -708,6 +712,7 @@ gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
     userdata->busy = 1;
     if(OBEX_Request(handle, object) < 0) {
       osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot put a item on mobile device");
+      osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
       return FALSE;
     }
     userdata->state = IRMC_OBEX_PUTTING;
@@ -716,22 +721,30 @@ gboolean irmc_obex_put(obex_t* handle, char* name, char *type,
     while ( userdata->busy ) {
       irmc_obex_handleinput(handle, 30);
     }
-    if (userdata->state == IRMC_OBEX_REQDONE)
+    if (userdata->state == IRMC_OBEX_REQDONE) {
+      osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
       return TRUE;
+    }
 
     if ( userdata->error ) {
       error = userdata->error;
+      osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
       return FALSE;
-    } else
+    } else {
+      osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
       return TRUE;
+    }
   }
 
   osync_error_set(error, OSYNC_ERROR_GENERIC, "Request failed");
+  osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
   return FALSE;
 }
 
 gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OSyncError **error)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, handle, name, buffer, buflen, error);
+
   obex_object_t *object;
   obex_headerdata_t hd;
   char unicodename[1024];
@@ -748,24 +761,28 @@ gboolean irmc_obex_get(obex_t *handle, char* name, char* buffer, int *buflen, OS
     userdata->databuf = buffer;
     userdata->databuflen = buflen;
     userdata->busy = 1;
-    userdata->error = error;
+    //FIXME - ignore errors here - 09/14/2006 cstender
+    //userdata->error = error;
     OBEX_Request(handle, object);
     userdata->state = IRMC_OBEX_GETTING;
     while ( userdata->busy ) {
       irmc_obex_handleinput(handle, 30);
     }
     if (userdata->state == IRMC_OBEX_REQDONE) {
+      osync_trace(TRACE_EXIT, "%s : TRUE", __func__);
       return TRUE;
     }
 
     if (userdata->error) {
       error = userdata->error;
-      return FALSE;
+      goto error;
     } else
+      osync_trace(TRACE_EXIT, "%s : TRUE", __func__);
       return TRUE;
   }
-
+error:
   osync_error_set(error, OSYNC_ERROR_GENERIC, "Request failed");
+  osync_trace(TRACE_EXIT, "%s: FALSE", __func__);
   return FALSE;
 }
 

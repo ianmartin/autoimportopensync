@@ -829,17 +829,20 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
 
         memset(data, 0, data_size);
 
-        // retrieve data for the specific change log entry
-        filename = g_strdup_printf("telecom/%s/luid/%s.%s", info->path_identifier, luid, info->path_extension);
-        if (!irmc_obex_get(config->obexhandle, filename, data, &data_size, error)){
-          g_free(buffer);
-          g_free(filename);
-          g_free(data);
-          goto error;
-        } else {
-          g_free(filename);
-          data[data_size] = '\0';
-        }
+	// Don't try do get removed entries!
+	if (type != 'H') {
+		// retrieve data for the specific change log entry
+		filename = g_strdup_printf("telecom/%s/luid/%s.%s", info->path_identifier, luid, info->path_extension);
+		if (!irmc_obex_get(config->obexhandle, filename, data, &data_size, error)){
+		  g_free(buffer);
+		  g_free(filename);
+		  g_free(data);
+		  goto error;
+		} else {
+		  g_free(filename);
+		  data[data_size] = '\0';
+		}
+	}
 
         // handle object specific part
         if ( strcmp( info->identifier, "event" ) == 0 )
