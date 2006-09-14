@@ -31,6 +31,10 @@ typedef struct {} OSyncHashTable;
 	void set_slow_sync(const char *objtype, osync_bool set) {
 		osync_member_set_slow_sync(self, objtype, set);
 	}
+
+	osync_bool objtype_enabled(const char *objtype) {
+		return osync_member_objtype_enabled(self, objtype);
+	}
 	
 	const char *get_configdir() {
 		return osync_member_get_configdir(self);
