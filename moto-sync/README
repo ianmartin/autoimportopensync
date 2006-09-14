@@ -2,11 +2,15 @@ INTRODUCTION
 
 This is a VERY EXPERIMENTAL plugin for syncing with Motorola phones 
 using the AT command set. It supports syncing phonebook and calendar 
-entries. It will most likely mess up the data on your phone and any 
-other members of the sync group. To prevent it writing any changes
-to the phone, set WRITE_ENABLED to False (near the top of the file).
+entries (ie. the contact and event object types). It will most likely
+mess up the data on your phone and any other members of the sync group,
+due to the limited data that can be stored on the phone. Use with caution
+and make backups!
 
-Also see KNOWN PROBLEMS below.
+To prevent it writing any changes to the phone, set WRITE_ENABLED to False
+(near the top of the file). Note that this will still allow it to send data
+back to the other members of the sync group, so you probably want to have
+backups of everything anyway. See TESTING/BACKUP below.
 
 
 SUPPORTED HARDWARE
@@ -44,18 +48,24 @@ file, an example of which is included as moto-sync.conf.
 Devices you're likely to use are:
  * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
    that channel to bind with your phone, by doing something like:
-	rfcomm bind rfcomm0 00:11:22:33:44:55 1
+        rfcomm bind rfcomm0 00:11:22:33:44:55 1
  * /dev/ttyACM0 for a USB modem connection (or whatever other device the
    phone shows up on, see dmesg).
 
 The only way I have tested or used the plugin so far is in a sync group 
-with file-sync:
-	msynctool --addgroup phone
-	msynctool --addmember phone moto-sync
-	msynctool --addmember phone file-sync
-	msynctool --configure phone 1 # configure moto-sync, as above
-	msynctool --configure phone 2 # configure file-sync, set the path
-	msynctool --sync phone # cross your fingers!
+with file-sync. To configure and use this, do:
+        msynctool --addgroup phone
+        msynctool --addmember phone moto-sync
+        msynctool --addmember phone file-sync
+        msynctool --configure phone 1 # configure moto-sync, as above
+        msynctool --configure phone 2 # configure file-sync, set the path
+        msynctool --sync phone # cross your fingers!
+
+NB: make sure your file-sync directory has only events and contacts in 
+it, no TODO or other data. Otherwise OpenSync will mysteriously 
+deadlock, because there were changes from the file-sync that couldn't be 
+converted. I'm told that this bug is already fixed by the development 
+branch of OpenSync.
 
 
 TESTING/BACKUP
@@ -63,43 +73,59 @@ TESTING/BACKUP
 Before doing anything with write enabled, it is probably a good idea to
 backup the data from your phone. You can use the mototest.py script to
 do this, to delete entries on the phone, or to examine the data that
-moto-sync would send to opensync. Run 'mototest.py --help' for details.
+moto-sync would send to opensync. Run 'mototest.py --help' for details
+or, for the impatient, try:
+    ./mototest.py -v -d /dev/whatever -f myphone.backup --backup
 
 
-KNOWN PROBLEMS
+LIMITATIONS AND KNOWN PROBLEMS
 
-A common problem happens early on when talking to a phone for the first 
-time, some init strings get echoed multiple times and fail with an ERROR 
-message. I'm not sure what causes this, but a workaround seems to be to 
-open the phone device in minicom (use the -o flag to stop it sending 
-init strings) and then immediately exit it again. I have now added some
-code in the initialisation routine to attempt to fix this, so if you
-have errors that go away after opening the device in minicom, let me know.
+Unfortunately the functionality offered by the phone is extremely 
+limited. I'd love to know how well it works with SyncML, especially for 
+complex calendar events, but I'm guessing the answer is "not very". The 
+phone books and calendar work in basically the same way:
+ * entries are stored in memory "positions"
+ * there are AT commands to read and write the data at a certain position
 
-Unfortunately the functionality offered by the phone is very limited, it
-basically comes down to (for the calendar, the phonebook is similar):
- * events are stored in memory "positions"
- * each event has a name, date/time, duration, alarm date/time, repeat type, 
-   and list of exceptions
- * there are commands to list the events on the phone or write a new event in 
-   a certain slot
+This means that if an event changes position (which you can do for the 
+phone book, for example if you want to change speed dial numbers) we 
+don't have any way of detecting that it's the same event. Similarly, if 
+an entry is deleted and a new one created in its place, we can't 
+distinguish that from a (large) change to the original entry.
 
-Obviously there's no way to express or store the full vcal event data in 
-the phone. The way opensync works at the moment, this means that if an 
-event is synced to the phone, then modified in some way on the phone 
-(eg. the duration is changed), all the data in the other members is 
-replaced by the small amount of data that we can return from the phone.
+For the phone book, each entry has a name, number, contact type 
+(home/work/mobile/email address etc.), nickname, address, category 
+number, birthday, and some other fields for things like ringer ID that 
+we don't handle very well yet. A contact with multiple phone numbers is 
+actually just multiple entries in the phone book, so when we read 
+entries we have to merge any with the same name into a single contact, 
+and split them up again on write. This leads to all sorts of problems in 
+maintaining consistent UIDs for a contact, when our only real handle on 
+which entry is which is the positions it occupies.
 
-What we really need is a way to "diff" the changes to the event, so we 
-can detect that the duration field has been changed, and apply that 
-"patch" to the full data in the other members of the sync. There are 
-also other problems maintaining consistent UIDs for events.
+For the calendar, each event has a name, date/time, duration, alarm 
+date/time, repeat type, and list of exceptions. The repeat type in 
+particular is very limited, many recurring events can't be represented 
+on the phone. At the moment the plugin detects this and just refuses to 
+write them. The same holds for events that cross multiple days. A better 
+solution would be to split them up into multiple events, but this will 
+confuse OpenSync when we sync up again.
+
+The main overriding problem is that there's no way to store the full 
+data for an event or contact in the phone. The way opensync works at the 
+moment, this means that if an entry is synced to the phone, then 
+modified in any way on the phone, all the data in the other sync group 
+members is replaced by the small amount of data that we can return from 
+the phone. Your big flashy PIM application is limited by the 
+functionality of your phone's crappy software. Luckily the OpenSync 
+developers are working on code to merge change, so hopefully this 
+problem will soon be solved.
 
 
 TODO
 
- * Better error/exception handling (see all the FIXMEs in the code)
+ * Better error/exception handling
+ * See all the FIXMEs in the code
  * Do something with "mailing list" entries in the phonebook
  * Add support for reading/writing the SIM phonebook
  * Test with other hardware
- * Wrap osync_member_objtype_enabled, only report enabled objtypes

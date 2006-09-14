@@ -619,7 +619,8 @@ class PhoneComms:
                         # parse a range string like '(1-10,45,50-60)'
                         assert(part[-1] == ')')
                         subparts = part[1:-1].split(',')
-                        ranges = map(lambda s: map(int, s.split('-', 1)), subparts)
+                        ranges = map(lambda s: map(int, s.split('-', 1)),
+                                     subparts)
                         if len(ranges) == 1:
                             ranges = ranges[0]
                         valparts.append(ranges)
@@ -675,12 +676,16 @@ class PhoneEntry:
         """Set the positions occupied by this entry."""
         raise NotImplementedError
 
-    def to_xml(self, arg):
+    def to_xml(self):
         """return the opensync XML representation of this entry"""
         raise NotImplementedError
 
     def write(self, comms):
         """given an instance of PhoneComms, write this entry to the phone"""
+        raise NotImplementedError
+
+    def hash_data(self):
+        """return a list of entry data in a predictable format, for hashing"""
         raise NotImplementedError
 
     class UnsupportedDataError(Exception):
@@ -735,6 +740,9 @@ class PhoneEvent(PhoneEntry):
 
     def write(self, comms):
         comms.write_event(self.__to_moto())
+
+    def hash_data(self):
+        return self.__to_moto()
 
     def __from_moto(self, data):
         """grab stuff out of the list of values from the phone"""
@@ -848,7 +856,7 @@ class PhoneEvent(PhoneEntry):
                 duration, alarmtimestr, alarmdatestr, self.repeat_type,
                 self.exceptions)
 
-    def to_xml(self, ignored):
+    def to_xml(self):
         impl = xml.dom.minidom.getDOMImplementation()
         doc = impl.createDocument(None, 'vcal', None)
         top = doc.createElement('Event')
@@ -1004,6 +1012,12 @@ class PhoneContactBase(PhoneEntry):
     def write(self, comms):
         for child in self.children:
             comms.write_contact(child._to_moto())
+
+    def hash_data(self):
+        ret = []
+        for child in self.children:
+            ret.append(list(child._to_moto()))
+        return ret
 
     def __from_moto(self, data):
         """grab stuff out of the list of values from the phone"""
@@ -1359,41 +1373,48 @@ class PhoneAccess:
             print "Phone time is " + time.strftime('%d/%m/%Y %H:%M', phone_now)
             # FIXME: maybe we should refuse to continue?
 
-    def list_changes(self):
-        """Return a list of OSyncChange objects for all events."""
+    def list_changes(self, objtype):
+        """Return a list of change objects for all entries of the given type."""
+
+        if objtype == 'contact':
+            self.__init_categories()
+
+            # XXX FIXME, nasty hack:
+            # fill in positions_used so that none < minpos are allocated
+            # XXX FIXME, even nastier hack:
+            # also make sure positions < 10 aren't allocated by us, as these
+            # are used for the quick-dial feature the phone
+            (minpos, maxpos, _, _) = self.comms.read_contact_params()
+            self.positions_used['contact'] = set(range(0, max(minpos, 10)))
+
+            # sort contacts by name, and attempt to merge adjacent ones
+            entries = map(lambda d: PhoneContact(d, 'moto-contact',
+                                                 self.revcategories),
+                          self.comms.read_contacts())
+            entries.sort(key=lambda c: (c.name, c.pos))
+            i = 0
+            while i < (len(entries) - 1):
+                if entries[i].parent.merge(entries[i + 1].parent):
+                    del entries[i + 1]
+                else:
+                    i += 1
+        elif objtype == 'event':
+            entries = map(lambda d: PhoneEvent(d, 'moto-event'),
+                          self.comms.read_events())
+        else:
+            assert(False, 'Unknown objtype %s' % objtype)
+
         ret = []
-        self.__init_categories()
-
-        # XXX FIXME, nasty hack:
-        # fill in the positions_used so that no positions < minpos are allocated
-        # XXX FIXME, even nastier hack:
-        # also make sure positions < 10 aren't allocated by us, as these are
-        # used for the quick-dial feature the phone
-        (minpos, maxpos, _, _) = self.comms.read_contact_params()
-        self.positions_used['contact'] = set(range(0, max(minpos, 10)))
-
-        # sort contacts by name, and attempt to merge adjacent ones
-        contacts = map(lambda d: PhoneContact(d, 'moto-contact',
-                                              self.revcategories),
-                       self.comms.read_contacts())
-        contacts.sort(key=lambda c: (c.name, c.pos))
-        i = 0
-        while i < (len(contacts) - 1):
-            if contacts[i].parent.merge(contacts[i + 1].parent):
-                del contacts[i + 1]
-            else:
-                i += 1
-
-        events = map(lambda d: PhoneEvent(d, 'moto-event'),
-                     self.comms.read_events())
-
-        for entry in contacts + events:
+        for entry in entries:
             change = opensync.OSyncChange()
-            change.objtype = objtype = entry.get_objtype()
+            change.objtype = objtype
             change.uid = self.__generate_uid(entry)
             change.format = "xml-%s-doc" % objtype
-            change.data = entry.to_xml(self.categories)
-            change.hash = self.__gen_hash(change.data)
+            if objtype == 'contact':
+                change.data = entry.to_xml(self.categories)
+            else:
+                change.data = entry.to_xml()
+            change.hash = self.__gen_hash(entry)
             ret.append(change)
             self.positions_used[objtype].update(set(entry.get_pos()))
         return ret
@@ -1444,7 +1465,7 @@ class PhoneAccess:
             _, positions = self.__uid_to_pos(change.uid)
             entry.set_pos(positions)
         
-        change.hash = self.__gen_hash(entry.to_xml(self.categories))
+        change.hash = self.__gen_hash(entry)
         entry.write(self.comms)
         
         return True
@@ -1460,10 +1481,11 @@ class PhoneAccess:
             self.categories[catid] = catname
             self.revcategories[catname.lower()] = catid
 
-    def __gen_hash(self, data):
+    def __gen_hash(self, entry):
         """generate hash for the opensync hashtable, md5 of all the data"""
         m = md5.new()
-        m.update(data)
+        for item in entry.hash_data():
+            m.update(str(item))
         return m.hexdigest()
 
     def __generate_uid(self, entry):
@@ -1555,17 +1577,17 @@ class SyncClass:
     @stdexceptions
     def get_changeinfo(self, ctx):
         for objtype in SUPPORTED_OBJTYPES:
-            if self.member.get_slow_sync(objtype):
-                self.hashtable.set_slow_sync(objtype)
+            if self.member.objtype_enabled(objtype):
+                if self.member.get_slow_sync(objtype):
+                    self.hashtable.set_slow_sync(objtype)
 
-        for change in self.access.list_changes():
-            self.hashtable.detect_change(change)
-            if change.changetype != opensync.CHANGE_UNMODIFIED:
-                change.report(ctx)
-                self.hashtable.update_hash(change)
+                for change in self.access.list_changes(objtype):
+                    self.hashtable.detect_change(change)
+                    if change.changetype != opensync.CHANGE_UNMODIFIED:
+                        change.report(ctx)
+                        self.hashtable.update_hash(change)
 
-        for objtype in SUPPORTED_OBJTYPES:
-            self.hashtable.report_deleted(ctx, objtype)
+                self.hashtable.report_deleted(ctx, objtype)
 
     @stdexceptions
     def commit_change(self, ctx, change):

@@ -98,11 +98,11 @@ def main():
     pc = motosync.PhoneComms(options.device)
 
     if options.mode == 'list':
-        # FIXME: doesn't respect objtype argument
         pa = motosync.PhoneAccess(pc)
-        for change in pa.list_changes():
-            print change.uid
-            print change.data
+        for objtype in options.objtype:
+            for change in pa.list_changes(objtype):
+                print change.uid
+                print change.data
 
     if options.mode == 'delete' or options.mode == 'restore':
         if 'event' in options.objtype:
