@@ -257,13 +257,28 @@ typedef struct {} OSyncHashTable;
 	void set_name(const char *name) {
 		self->name = g_strdup(name);
 	}
-	
 	const char *get_name() {
 		return self->name;
 	}
 	
+	void set_longname(const char *name) {
+		self->longname = g_strdup(name);
+	}
+	const char *get_longname() {
+		return self->longname;
+	}
+	
+	void set_description(const char *desc) {
+		self->description = g_strdup(desc);
+	}
+	const char *get_description() {
+		return self->description;
+	}
+	
 	%pythoncode %{
 	name = property(get_name, set_name)
+	longname = property(get_longname, set_longname)
+	description = property(get_description, set_description)
 	%}
 };
 
