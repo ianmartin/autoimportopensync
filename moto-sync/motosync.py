@@ -1640,6 +1640,9 @@ def initialize(member):
 
 def get_info(info):
     info.name = "moto-sync"
+    info.longname = "Motorola synchronisation plugin"
+    info.description = ("Plugin to synchronise phone book and calendar entries "
+                        + "on a Motorola mobile phone using extended AT commands")
     for objtype in SUPPORTED_OBJTYPES:
         info.accept_objtype(objtype)
         info.accept_objformat(objtype, "xml-%s-doc" % objtype)
