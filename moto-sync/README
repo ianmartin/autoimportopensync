@@ -36,14 +36,16 @@ REQUIREMENTS
 
 INSTALLATION
 
-Copy motosync.py to $PREFIX/lib/opensync/python-plugins
+cp motosync.py $PREFIX/lib/opensync/python-plugins
+cp moto-sync $PREFIX/share/opensync/defaults
 
 
 CONFIGURATION
 
 For now, the only configuration option to moto-sync is the device it 
 should use to talk to the phone. This is specified in a small XML 
-file, an example of which is included as moto-sync.conf.
+file, the contents of which should look like:
+        <config><device>/dev/whatever</device></config>
 
 Devices you're likely to use are:
  * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
