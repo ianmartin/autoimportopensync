@@ -236,13 +236,13 @@ static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 		retstr = (GString *)values->data;
 		g_assert(retstr);
 
-		if (strstr(retstr->str, "FREQ"))
-			prev_is_freq = TRUE;
-
 		if (prev_is_freq && !strstr(retstr->str, "INTERVAL")) {
 			osxml_node_add(current, "Rule", "INTERVAL=1");
 			prev_is_freq = FALSE;
 		}
+
+		if (strstr(retstr->str, "FREQ"))
+			prev_is_freq = TRUE;
 
 		osxml_node_add(current, "Rule", retstr->str);
 	}
@@ -523,8 +523,27 @@ static xmlNode *handle_contact_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_exdate_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"ExclusionDate", NULL);
-	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
+	xmlNode *current = NULL;
+	char *datestamp = NULL;
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = (GString *)values->data;
+		g_assert(retstr);
+		current = xmlNewTextChild(root, NULL, (xmlChar*)"ExclusionDate", NULL);
+		if (!osync_time_isdate(retstr->str)) {
+			datestamp = osync_time_datestamp(retstr->str);
+		} else {
+			datestamp = g_strdup(retstr->str);
+		}
+		osxml_node_add(current, "Content", datestamp);
+
+		if (!osync_time_isdate(retstr->str))
+			osxml_node_add(current, "Value", "DATE");
+
+		g_free(datestamp);
+		g_string_free(retstr, TRUE);
+	}
+
 	return current;
 }
 
@@ -1644,9 +1663,37 @@ static VFormatAttribute *handle_xml_exdate_attribute(VFormat *vcard, xmlNode *ro
 /* vcal */
 static VFormatAttribute *handle_vcal_xml_exdate_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "EXDATE");
-	add_value(attr, root, "Content", encoding);
-	vformat_add_attribute(vcard, attr);
+
+	xmlNode *dtstartNode = NULL;
+	char *dtstart = NULL, *timestamp = NULL, *origex = NULL;
+	GString *exdate = g_string_new("");
+	VFormatAttribute *attr = NULL;
+
+	if (!(attr = vformat_find_attribute(vcard, "EXDATE")))
+		attr = vformat_attribute_new(NULL, "EXDATE");
+
+//	add_value(attr, root, NULL, encoding);
+
+	origex = (char *) xmlNodeGetContent(root);
+
+	exdate = g_string_append(exdate, origex);
+
+	if (!strstr(origex, "T")) {
+		dtstartNode = osxml_get_node(root->parent->parent, "DateStarted"); 
+		osync_trace(TRACE_INTERNAL, "dtstartNode pointer: %p", dtstartNode);
+		dtstart = osxml_find_node(dtstartNode, "Content");
+		timestamp = strstr(dtstart, "T");
+		osync_trace(TRACE_INTERNAL, "append timestamp: %s", timestamp);
+		exdate = g_string_append(exdate, timestamp); 
+		g_free(dtstart);
+	}
+	
+	vformat_attribute_add_value(attr, exdate->str);
+
+	g_string_free(exdate, TRUE);
+
+	if (!vformat_find_attribute(vcard, "EXDATE"))
+		vformat_add_attribute(vcard, attr);
 	return attr;
 }
 /* end of vcal */
