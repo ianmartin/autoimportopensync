@@ -239,7 +239,7 @@ static xmlNode *handle_rrule_attribute(xmlNode *root, VFormatAttribute *attr)
 		if (strstr(retstr->str, "FREQ"))
 			prev_is_freq = TRUE;
 
-		if (freq_isset && !strstr(retstr->str, "INTERVAL")) {
+		if (prev_is_freq && !strstr(retstr->str, "INTERVAL")) {
 			osxml_node_add(current, "Rule", "INTERVAL=1");
 			prev_is_freq = FALSE;
 		}
@@ -303,7 +303,7 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 }
 
 static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
-
+{
 	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
 
 	time_t started, alarm;
