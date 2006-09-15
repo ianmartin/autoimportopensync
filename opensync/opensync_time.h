@@ -25,7 +25,7 @@ char *osync_time_vtime2localtime(const char* utc);
 
 /* Alarm Duration Timeformat helper  */
 char *osync_time_sec2alarmdu(int seconds);
-int osync_time_alarmdu2sec(char *alarm);
+int osync_time_alarmdu2sec(const char *alarm);
 
 #endif // _OPENSYNC_FORMAT_H_
 

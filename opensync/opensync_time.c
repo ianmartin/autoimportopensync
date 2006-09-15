@@ -476,9 +476,9 @@ char *osync_time_sec2alarmdu(int seconds) {
 	}
 
 	if (seconds > 0) { 
-		prefix = g_strdup("-P");
-	} else {
 		prefix = g_strdup("P");
+	} else {
+		prefix = g_strdup("-P");
 		seconds *= -1;
 	}
 
@@ -497,6 +497,12 @@ char *osync_time_sec2alarmdu(int seconds) {
 	// Minutes
         if (!(seconds % 60) && seconds < 3600) {
                 tmp = g_strdup_printf("%sT%iM", prefix, seconds / 60);
+		goto end;
+	}
+
+	// Seconds
+	if (seconds < 60) { 
+		tmp = g_strdup_printf("%sT%iS", prefix, seconds);
 		goto end;
 	}
 
@@ -527,7 +533,7 @@ end:
  * @returns seconds of alarm and duration
  */ 
 
-int osync_time_alarmdu2sec(char *alarm) {
+int osync_time_alarmdu2sec(const char *alarm) {
 
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
 
