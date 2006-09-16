@@ -1,12 +1,24 @@
 #!/usr/bin/env python2.4
 
 """
-Test code for moto-sync plugin, independent of opensync
+Test/utility code for moto-sync plugin, independent of opensync
 """
 
-import sys, types
+import sys, types, os.path, popen2
 from optparse import OptionParser
-import motosync
+
+try:
+    import motosync
+except ImportError:
+    # motosync wasn't in our standard import path
+    # try looking in the opensync python plugin dir for it
+    child = popen2.Popen3('pkg-config opensync-1.0 --variable=prefix')
+    libdir = child.fromchild.readline().rstrip('\n')
+    if child.wait() != 0 or not os.path.isdir(libdir):
+        sys.stderr.write("Error: couldn't locate OpenSync library directory\n")
+        sys.exit(1)
+    sys.path.append(os.path.join(libdir, 'opensync', 'python-plugins'))
+    import motosync
 
 DEFAULT_DEVICE = '/dev/rfcomm0'
 
