@@ -12,7 +12,7 @@ try:
 except ImportError:
     # motosync wasn't in our standard import path
     # try looking in the opensync python plugin dir for it
-    child = popen2.Popen3('pkg-config opensync-1.0 --variable=prefix')
+    child = popen2.Popen3('pkg-config opensync-1.0 --variable=libdir')
     libdir = child.fromchild.readline().rstrip('\n')
     if child.wait() != 0 or not os.path.isdir(libdir):
         sys.stderr.write("Error: couldn't locate OpenSync library directory\n")
