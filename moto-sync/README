@@ -73,11 +73,11 @@ branch of OpenSync.
 TESTING/BACKUP
 
 Before doing anything with write enabled, it is probably a good idea to
-backup the data from your phone. You can use the mototest.py script to
+backup the data from your phone. You can use the mototool script to
 do this, to delete entries on the phone, or to examine the data that
-moto-sync would send to opensync. Run 'mototest.py --help' for details
+moto-sync would send to opensync. Run 'mototool --help' for details
 or, for the impatient, try:
-    ./mototest.py -v -d /dev/whatever -f myphone.backup --backup
+    mototool -v -d /dev/whatever -f myphone.backup --backup
 
 
 LIMITATIONS AND KNOWN PROBLEMS
