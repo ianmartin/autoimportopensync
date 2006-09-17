@@ -65,13 +65,14 @@
 }
 
 /**
- * @brief Frees a xmlfield object 
+ * @brief Frees a already unlinked xmlfield object
  * @param xmlfield The pointer to a xmlfield object
  */
 void _osync_xmlfield_free(OSyncXMLField *xmlfield)
 {
 	osync_assert(xmlfield);
 	
+	xmlFreeNode(xmlfield->node);
 	g_free(xmlfield);
 }
 
@@ -84,6 +85,8 @@ void _osync_xmlfield_unlink(OSyncXMLField *xmlfield)
 	osync_assert(xmlfield);
 	
 	xmlUnlinkNode(xmlfield->node);
+	if(!xmlfield->prev)
+		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = xmlfield->next;
 	if(xmlfield->prev)
 		xmlfield->prev->next = xmlfield->next;
 	if(xmlfield->next)
@@ -91,54 +94,6 @@ void _osync_xmlfield_unlink(OSyncXMLField *xmlfield)
 	xmlfield->next = NULL;
 	xmlfield->prev = NULL;
 	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count--;
-}
-
-/**
- * @brief Links a xmlfield object, which was already unlinked, before a other xmlfield object  
- * @param xmlfield The pointer to a xmlfield object
- * @param to_link The pointer to a xmlfield object
- */
-void _osync_xmlfield_link_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
-{
-	osync_assert(xmlfield);
-	osync_assert(to_link);
-
-	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-	xmlAddPrevSibling(xmlfield->node, to_link->node);
-	
-	to_link->next = xmlfield;
-	to_link->prev = xmlfield->prev;
-	
-	if(xmlfield->prev)
-		xmlfield->prev->next = to_link;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
-	xmlfield->prev = to_link;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
-}
-
-/**
- * @brief Links a xmlfield object, which was already unlinked, after a other xmlfield object  
- * @param xmlfield The pointer to a xmlfield object
- * @param to_link The pointer to a xmlfield object
- */
-void _osync_xmlfield_link_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
-{
-	osync_assert(xmlfield);
-	osync_assert(to_link);
-
-	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
-	xmlAddNextSibling(xmlfield->node, to_link->node);
-	
-	to_link->next = xmlfield->next;
-	to_link->prev = xmlfield;
-	
-	if(xmlfield->next)
-		xmlfield->next->prev = to_link;
-	else
-		((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
-	xmlfield->next = to_link;
-	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
 /**
@@ -187,6 +142,70 @@ OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, O
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfield);
 	return xmlfield;
+}
+
+/** 
+ * @brief Unlink a xmlfield from its context and frees it
+ * @param xmlfield The pointer to a xmlfield object
+ */
+void osync_xmlfield_delete(OSyncXMLField *xmlfield)
+{
+	osync_assert(xmlfield);
+	
+	_osync_xmlfield_unlink(xmlfield);
+	_osync_xmlfield_free(xmlfield);	
+}
+
+/**
+ * @brief Links a xmlfield object from a xmlformat object before a other xmlfield object of a other xmlformat object  
+ * @param xmlfield The pointer to a xmlfield object
+ * @param to_link The pointer to a xmlfield object
+ */
+void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
+{
+	osync_assert(xmlfield);
+	osync_assert(to_link);
+
+	_osync_xmlfield_unlink(to_link);
+
+	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+	xmlAddPrevSibling(xmlfield->node, to_link->node);
+	
+	to_link->next = xmlfield;
+	to_link->prev = xmlfield->prev;
+	
+	if(xmlfield->prev)
+		xmlfield->prev->next = to_link;
+	else
+		((OSyncXMLFormat *)xmlfield->node->doc->_private)->first_child = to_link;
+	xmlfield->prev = to_link;
+	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
+}
+
+/**
+ * @brief Links a xmlfield object from a xmlformat object after a other xmlfield object of a other xmlformat object
+ * @param xmlfield The pointer to a xmlfield object
+ * @param to_link The pointer to a xmlfield object
+ */
+void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link)
+{
+	osync_assert(xmlfield);
+	osync_assert(to_link);
+	
+	_osync_xmlfield_unlink(to_link);
+	
+	xmlDOMWrapAdoptNode(NULL, to_link->node->doc, to_link->node, xmlfield->node->doc, xmlfield->node, 0);
+	xmlAddNextSibling(xmlfield->node, to_link->node);
+	
+	to_link->next = xmlfield->next;
+	to_link->prev = xmlfield;
+	
+	if(xmlfield->next)
+		xmlfield->next->prev = to_link;
+	else
+		((OSyncXMLFormat *)xmlfield->node->doc->_private)->last_child = to_link;
+	xmlfield->next = to_link;
+	((OSyncXMLFormat *)xmlfield->node->doc->_private)->child_count++;
 }
 
 /**
@@ -395,7 +414,6 @@ int osync_xmlfield_get_key_count(OSyncXMLField *xmlfield)
 const char *osync_xmlfield_get_nth_key_name(OSyncXMLField *xmlfield, int nth)
 {
 	osync_assert(xmlfield);
-	osync_assert(nth);
 	
 	int count;
 	xmlNodePtr child = xmlfield->node->children;

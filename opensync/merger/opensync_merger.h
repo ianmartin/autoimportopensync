@@ -6,5 +6,6 @@ OSYNC_EXPORT void osync_merger_ref(OSyncMerger *merger);
 OSYNC_EXPORT void osync_merger_unref(OSyncMerger *merger);
 
 OSYNC_EXPORT void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXMLFormat *entire);
+OSYNC_EXPORT void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat);
 
 #endif /*OPENSYNC_MERGER_H_*/

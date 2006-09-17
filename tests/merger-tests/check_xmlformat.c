@@ -84,10 +84,7 @@ END_TEST
 
 START_TEST (xmlformat_search_field)
 {
-	char *command = g_strdup_printf("cp %s/../opensync/merger/xmlformat.xsd .", g_get_current_dir());
 	char *testbed = setup_testbed("merger");
-	system(command);
-	g_free(command);
 
 	char *buffer;
 	unsigned int size;
@@ -114,10 +111,7 @@ END_TEST
 
 START_TEST (xmlformat_validate)
 {
-	char *command = g_strdup_printf("cp %s/../opensync/merger/xmlformat.xsd .", g_get_current_dir());
 	char *testbed = setup_testbed("vcards");
-	system(command);
-	g_free(command);
 
 	char *buffer;
 	unsigned int size;

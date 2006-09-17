@@ -166,7 +166,7 @@ void osync_xmlformat_unref(OSyncXMLFormat *xmlformat)
 		while(cur != NULL)
 		{
 			tmp = osync_xmlfield_get_next(cur);
-			_osync_xmlfield_free(cur);
+			osync_xmlfield_delete(cur);
 			cur = tmp;
 		}
 		xmlFreeDoc(xmlformat->doc);

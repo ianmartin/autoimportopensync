@@ -2,6 +2,10 @@
 #define OPENSYNC_XMLFIELD_H_
 
 OSYNC_EXPORT OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error);
+OSYNC_EXPORT void osync_xmlfield_delete(OSyncXMLField *xmlfield);
+
+OSYNC_EXPORT void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
+OSYNC_EXPORT void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
 
 OSYNC_EXPORT const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield);
 OSYNC_EXPORT OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield);
