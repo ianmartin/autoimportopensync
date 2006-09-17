@@ -1,7 +1,6 @@
 /*
  * libopensync - A synchronization framework
  * Copyright (C) 2006  NetNix Finland Ltd <netnix@netnix.fi>
- * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,8 +16,10 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
+ * Author: Daniel Friedrich <daniel.friedrich@opensync.org>
+ * 
  */
- 
+  
 #include "opensync.h"
 #include "opensync_internals.h"
 
