@@ -1016,7 +1016,7 @@ class PhoneContactBase(PhoneEntry):
     def hash_data(self):
         ret = []
         for child in self.children:
-            ret.append(list(child._to_moto()))
+            ret.extend(list(child._to_moto()))
         return ret
 
     def __from_moto(self, data):
@@ -1150,6 +1150,29 @@ class PhoneContactBase(PhoneEntry):
                 is_pref = False
                 moto_type = MOTO_CONTACT_EMAIL
             contacts.append((moto_type, content, is_pref))
+
+        # make sure exactly one of the contacts is preferred
+        preferred_list = map(lambda (moto_type, content, pref): pref, contacts)
+        num_preferred = preferred_list.count(True)
+        if num_preferred == 0:
+            # arbitrarily mark the first non-email contact as preferred
+            found = False
+            for i in range(len(contacts)):
+                (moto_type, content, _) = contacts[i]
+                if moto_type != MOTO_CONTACT_EMAIL:
+                    contacts[i] = (moto_type, content, True)
+                    found = True
+                    break
+            # no non-email contacts, so just make the first email preferred
+            if not found:
+                (moto_type, content, _) = contacts[0]
+                contacts[0] = (moto_type, content, True)
+        elif num_preferred > 1:
+            # mark all but the first preferred contact as not preferred
+            firstpref = preferred_list.index(True)
+            for i in range(firstpref + 1, len(contacts)):
+                (moto_type, content, _) = contacts[i]
+                contacts[i] = (moto_type, content, False)
 
         # process addresses, create a hash from contacttype to address
         # FIXME: addresses that don't map to moto contact types are dropped
