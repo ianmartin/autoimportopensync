@@ -394,7 +394,24 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	
 	xmlNodeSet *lnodes = leftxobj->nodesetval;
 	xmlNodeSet *rnodes = rightxobj->nodesetval;
-	
+
+	// if nodeTab[0] is an Event or Todo we need a new node structure (/*/*/*)
+	if ((!strcmp((char*)lnodes->nodeTab[0]->name, "Event") && \
+		!strcmp((char*)rnodes->nodeTab[0]->name, "Event")) || \
+	    (!strcmp((char*)lnodes->nodeTab[0]->name, "Todo") && \
+		!strcmp((char*)rnodes->nodeTab[0]->name, "Todo"))) {
+
+		xmlXPathFreeObject(leftxobj);
+		xmlXPathFreeObject(rightxobj);
+
+		leftxobj = osxml_get_nodeset(leftdoc, "/*/*/*");
+		rightxobj = osxml_get_nodeset(rightdoc, "/*/*/*");
+
+		lnodes = leftxobj->nodesetval;
+		rnodes = rightxobj->nodesetval;
+
+	}
+
 	int lsize = (lnodes) ? lnodes->nodeNr : 0;
 	int rsize = (rnodes) ? rnodes->nodeNr : 0;
 	
