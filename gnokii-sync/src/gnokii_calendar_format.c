@@ -372,6 +372,8 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 		/* TODO XXX - free struct tm - run tm2localtime.... */
 		endtm = osync_time_vtime2tm(tmp);
+		endtm = osync_time_tm2localtime(starttm);
+
 		g_free(tmp);
 
 		calnote->end_time = gnokii_util_tm2timestamp(endtm);
