@@ -11,16 +11,17 @@
 
 __revision__ = "$Id$"
 
-import sys, os, types, traceback, md5, time, calendar, re
+import os, types, traceback, md5, time, calendar, re
 import xml.dom.minidom
-from datetime import date, datetime, timedelta, tzinfo
+from datetime import date, datetime, timedelta
 import dateutil.parser, dateutil.rrule, dateutil.tz
 import opensync
 
 try:
     import tty # this module is only present on Unix
+    USE_TTY_MODULE = True
 except ImportError:
-    pass
+    USE_TTY_MODULE = False
 
 # debug options:
 DEBUG_OUTPUT = True # if enabled, prints interaction with the phone to stdout
@@ -154,10 +155,9 @@ def getXMLField(doc, tagname, subtag=None):
         elt = children[0]
     return getXMLText(elt)
 
-def getXMLText(elt):
+def getXMLText(el):
     """Returns all text within a given XML node."""
-    textnodes = filter(lambda n: n.nodeType == n.TEXT_NODE, elt.childNodes)
-    return ''.join(map(lambda n: n.data, textnodes))
+    return ''.join([n.data for n in el.childNodes if n.nodeType == n.TEXT_NODE])
 
 def appendXMLChild(doc, parent, tag, text):
     """Append a child tag with supplied text content to the parent node."""
@@ -178,7 +178,6 @@ def parse_moto_time(datestr, timestr=None):
 
 # this duration-parsing code lifted from the python-icalendar library
 # http://codespeak.net/icalendar/
-
 DATE_PART = r'(\d+)D'
 TIME_PART = r'T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
 DATETIME_PART = '(?:%s)?(?:%s)?' % (DATE_PART, TIME_PART)
@@ -186,34 +185,33 @@ WEEKS_PART = r'(\d+)W'
 DURATION_REGEX = re.compile(r'([-+]?)P(?:%s|%s)$'
                             % (WEEKS_PART, DATETIME_PART))
 
-def parse_ical_duration(s):
+def parse_ical_duration(duratstr):
     """Parse an ical duration string, returning a timedelta object."""
     try:
-        match = DURATION_REGEX.match(s)
+        match = DURATION_REGEX.match(duratstr)
         sign, weeks, days, hours, minutes, seconds = match.groups()
-        if weeks:
-            value = timedelta(weeks=int(weeks))
-        else:
-            value = timedelta(days=int(days or 0),
-                                hours=int(hours or 0),
-                                minutes=int(minutes or 0),
-                                seconds=int(seconds or 0))
-        if sign == '-':
-            value = -value
-        return value
-    except:
-        raise ValueError('Invalid iCalendar duration: %s' % s)
+    except (AttributeError, ValueError):
+        raise ValueError('Invalid iCalendar duration: %s' % duratstr)
+    if weeks:
+        value = timedelta(weeks=int(weeks))
+    else:
+        value = timedelta(days=int(days or 0), hours=int(hours or 0),
+                          minutes=int(minutes or 0), seconds=int(seconds or 0))
+    if sign == '-':
+        value = -value
+    return value
 
-def parse_ical_time(s):
-    d = dateutil.parser.parse(s)
-    if len(s) == 8: # just a date
+def parse_ical_time(timestr):
+    """Parse an ical time string, return either a datetime or date object."""
+    d = dateutil.parser.parse(timestr)
+    if len(timestr) == 8: # just a date
         assert(d.hour == d.minute == d.second == 0)
         return d.date()
     else:
         return d
 
 def format_time(dt, format):
-    """convert datetime object into local time and format as a string"""
+    """Convert datetime object into local time and format as a string"""
     if isinstance(dt, datetime) and dt.utcoffset() == timedelta(0):
         # FIXME: assumes local timezone
         t = time.localtime(calendar.timegm(dt.utctimetuple()))
@@ -277,7 +275,7 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     byallmonths = set(range(1, 12))
 
     # now test if the rule matches what we can represent
-    if (freq == 'daily' and (not byday or byday == set(VCAL_DAYS))
+    if (freq == 'daily' and (not byday or byday == byalldays)
         and not bymonthday and not byyearday and not byweekno
         and not bymonth):
         moto_type = MOTO_REPEAT_DAILY
@@ -347,12 +345,23 @@ class OpenSyncError(Exception):
     on SyncClass methods.
     """
     def __init__(self, msg, errnum=opensync.ERROR_GENERIC):
+        Exception.__init__(self)
         self.msg = msg
         self.num = errnum
     def __str__(self):
         return self.msg
     def report(self, context):
+        """Report myself as an error to the given OSyncContext object."""
         context.report_error(self.num, self.msg)
+
+
+class UnsupportedDataError(Exception):
+    """Exception raised by PhoneEntry classes when the data cannot be stored."""
+    def __init__(self, msg):
+        Exception.__init__(self)
+        self.msg = msg
+    def __str__(self):
+        return self.msg
 
 
 class PhoneComms:
@@ -361,9 +370,9 @@ class PhoneComms:
         self.__calendar_open = False
         self.__fd = os.open(device, os.O_RDWR)
 
-        try:
+        if USE_TTY_MODULE:
             tty.setraw(self.__fd)
-        except NameError:
+        else:
             print 'Warning: tty module not present, unable to set raw mode'
 
         # reset the phone and send it a bunch of init strings
@@ -375,11 +384,15 @@ class PhoneComms:
         # FIXME: change to UCS2?
         self.__do_cmd('AT+CSCS="8859-1"')
 
+        (minpos, maxpos, _, _) = self.read_contact_params()
+        self.min_contact_pos = minpos
+        self.max_contact_pos = maxpos
+
     def __del__(self):
+        self.close_calendar()
         try:
-            self.close_calendar()
             os.close(self.__fd)
-        except: # we might not have successfully opened this
+        except AttributeError: # we might not have successfully opened this
             pass
 
     def read_serial(self):
@@ -496,9 +509,9 @@ class PhoneComms:
 
         # read parameters
         data = self.__do_cmd('AT+CPBR=?')
-        res = self.__parse_results('CPBR', data)[0]
-        ((self.min_contact_pos, self.max_contact_pos), numberlen, namelen) = res
-        return (self.min_contact_pos, self.max_contact_pos, numberlen, namelen)
+        results = self.__parse_results('CPBR', data)[0]
+        ((minpos, maxpos), numberlen, namelen) = results
+        return (minpos, maxpos, numberlen, namelen)
 
     def read_contacts(self):
         """read a list of all contacts in the phonebook"""
@@ -619,8 +632,7 @@ class PhoneComms:
                         # parse a range string like '(1-10,45,50-60)'
                         assert(part[-1] == ')')
                         subparts = part[1:-1].split(',')
-                        ranges = map(lambda s: map(int, s.split('-', 1)),
-                                     subparts)
+                        ranges = [map(int, s.split('-', 1)) for s in subparts]
                         if len(ranges) == 1:
                             ranges = ranges[0]
                         valparts.append(ranges)
@@ -634,8 +646,9 @@ class PhoneComms:
         return ret
 
     def __make_placeholders(self, vals):
-        """make the placeholder values ("%s",%d etc) for a write command"""
+        """Return string expandion placeholders ("%s",%d etc) for a write."""
         def make_placeholder(val):
+            """Return a single placeholder based on the given value's type."""
             t = type(val)
             if t == types.IntType:
                 return '%d'
@@ -653,9 +666,9 @@ class PhoneEntry:
     
     data is kept roughly as it is stored in the phone
     """
-    def __init__(self, data, format):
-        raise NotImplementedError
-
+    def __init__(self):
+        pass
+    
     def get_objtype(self):
         """return the opensync object type string"""
         raise NotImplementedError
@@ -676,10 +689,6 @@ class PhoneEntry:
         """Set the positions occupied by this entry."""
         raise NotImplementedError
 
-    def to_xml(self):
-        """return the opensync XML representation of this entry"""
-        raise NotImplementedError
-
     def write(self, comms):
         """given an instance of PhoneComms, write this entry to the phone"""
         raise NotImplementedError
@@ -688,16 +697,11 @@ class PhoneEntry:
         """return a list of entry data in a predictable format, for hashing"""
         raise NotImplementedError
 
-    class UnsupportedDataError(Exception):
-        """Exception raised by __init__ when the data cannot be stored."""
-        def __init__(self, msg):
-            self.msg = msg
-        def __str__(self):
-            return self.msg
-
 
 class PhoneEvent(PhoneEntry):
     """Class representing the events roughly as stored in the phone.
+    This class should not be instantiated directly, use one of PhoneEventMoto
+    or PhoneEventXML depending on the data format.
 
     class members:
        pos:         integer position/slot in phone memory
@@ -708,19 +712,19 @@ class PhoneEvent(PhoneEntry):
        repeat_type: integer 0-5 for repeating events
        exceptions:  list of occurrences (0-based) which do not actually happen
     """
-    def __init__(self, data, format):
-        if format == "moto-event":
-            self.__from_moto(data)
-        elif format == "xml-event-doc":
-            self.__from_xml(data)
-        else:
-            raise OpenSyncError("unhandled data format %s" % format,
-                                opensync.ERROR_NOT_SUPPORTED)
+    def __init__(self):
+        PhoneEntry.__init__(self)
+        self.pos = self.name = self.eventdt = self.duration = None
+        self.alarmdt = None
+        self.repeat_type = MOTO_REPEAT_NONE
+        self.exceptions = []
 
     def get_objtype(self):
+        """return the opensync object type string"""
         return "event"
 
     def generate_uid(self):
+        """Return (part of) a UID that holds the positions used by this entry"""
         return str(self.pos)
 
     @staticmethod
@@ -729,107 +733,25 @@ class PhoneEvent(PhoneEntry):
         return [int(uid)]
 
     def num_pos(self):
+        """Return the number of positions occupied by this entry."""
         return 1
 
     def get_pos(self):
+        """Return the positions occupied by this entry."""
         return [self.pos]
 
     def set_pos(self, positions):
+        """Set the positions occupied by this entry."""
         assert(len(positions) == 1)
         self.pos = positions[0]
 
     def write(self, comms):
+        """given an instance of PhoneComms, write this entry to the phone"""
         comms.write_event(self.__to_moto())
 
     def hash_data(self):
+        """return a list of entry data in a predictable format, for hashing"""
         return self.__to_moto()
-
-    def __from_moto(self, data):
-        """grab stuff out of the list of values from the phone"""
-        assert(type(data) == list and len(data) == 11)
-        self.pos = data[0]
-        self.name = data[1]
-        timeflag = data[2]
-        alarmflag = data[3]
-        time = data[4]
-        date = data[5]
-        self.duration = timedelta(0, 0, 0, 0, data[6])
-        alarmtime = data[7]
-        alarmdate = data[8]
-        self.repeat_type = data[9]
-        self.exceptions = data[10]
-        self.exceptions.sort() # just in case
-
-        if timeflag:
-            self.eventdt = parse_moto_time(date, time)
-        else:
-            self.eventdt = parse_moto_time(date)
-
-        if alarmflag:
-            self.alarmdt = parse_moto_time(alarmdate, alarmtime)
-        else:
-            self.alarmdt = None
-
-    def __from_xml(self, data):
-        """Parse XML event data.
-        
-        This function raises UnsupportedDataError for:
-         * events that recur but can't be represented on the phone
-         * events lasting past the end of a day (FIXME: split these up)
-         * events before year 2000 (my phone doesn't allow them)
-        """
-        doc = xml.dom.minidom.parseString(data)
-        event = doc.getElementsByTagName('Event')[0]
-
-        # utility function for the XML processing below
-        def getField(tagname, subtag='Content'):
-            return getXMLField(event, tagname, subtag)
-
-        self.pos = None
-        self.name = getField('Summary')
-
-        self.eventdt = parse_ical_time(getField('DateStarted'))
-        durationstr = getField('Duration')
-        if durationstr != '':
-            self.duration = parse_ical_duration(durationstr)
-            enddt = self.eventdt + self.duration
-        else:
-            enddt = parse_ical_time(getField('DateEnd'))
-            self.duration = enddt - self.eventdt
-
-        def get_date(dt):
-            """Return the date that a datetime or date object falls on."""
-            if isinstance(dt, datetime):
-                return dt.date()
-            else:
-                assert(isinstance(dt, date))
-                return dt
-
-        # check if event crosses a day or is too old
-        if self.eventdt.year < 2000:
-            raise PhoneEvent.UnsupportedDataError('Event is too old')
-        if get_date(self.eventdt) != get_date(enddt):
-            raise PhoneEvent.UnsupportedDataError('Event crosses a day')
-
-        triggerstr = getField('Alarm', 'AlarmTrigger')
-        if triggerstr == '':
-            self.alarmdt = None
-        else:
-            if triggerstr.startswith('-P') or triggerstr.startswith('P'):
-                offset = parse_ical_duration(triggerstr)
-                self.alarmdt = self.eventdt + offset
-            else:
-                self.alarmdt = parse_ical_time(triggerstr)
-
-        rrules = event.getElementsByTagName('RecurrenceRule')
-        exdates = event.getElementsByTagName('ExclusionDate')
-        exrules = event.getElementsByTagName('ExclusionRule')
-        (self.repeat_type, self.exceptions) = convert_rrule(rrules, exdates,
-                                                          exrules, self.eventdt)
-
-        if len(rrules) > 0 and self.repeat_type == MOTO_REPEAT_NONE:
-            raise PhoneEvent.UnsupportedDataError('Unhandled recursion rule')
-
 
     def __to_moto(self):
         """generate motorola event-data list"""
@@ -857,6 +779,7 @@ class PhoneEvent(PhoneEntry):
                 self.exceptions)
 
     def to_xml(self):
+        """Returns OpenSync XML representation of this event."""
         impl = xml.dom.minidom.getDOMImplementation()
         doc = impl.createDocument(None, 'vcal', None)
         top = doc.createElement('Event')
@@ -920,7 +843,7 @@ class PhoneEvent(PhoneEntry):
 
         if self.exceptions != []:
             assert(self.repeat_type != MOTO_REPEAT_NONE)
-            
+
             # create an rrule object for this recurrence
             if self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
                 rrule = dateutil.rrule.rrule(dateutil.rrule.MONTHLY,
@@ -952,16 +875,110 @@ class PhoneEvent(PhoneEntry):
 
         return doc.toxml()
 
-class PhoneContactBase(PhoneEntry):
+
+class PhoneEventMoto(PhoneEvent):
+    """Constructor for the PhoneEvent object with data in Motorola format"""
+    def __init__(self, data):
+        """grab stuff out of the list of values from the phone"""
+        PhoneEvent.__init__(self)
+        assert(type(data) == list and len(data) == 11)
+        self.pos = data[0]
+        self.name = data[1]
+        timeflag = data[2]
+        alarmflag = data[3]
+        timestr = data[4]
+        datestr = data[5]
+        self.duration = timedelta(0, 0, 0, 0, data[6])
+        alarmtime = data[7]
+        alarmdate = data[8]
+        self.repeat_type = data[9]
+        self.exceptions = data[10]
+        self.exceptions.sort() # just in case
+
+        if timeflag:
+            self.eventdt = parse_moto_time(datestr, timestr)
+        else:
+            self.eventdt = parse_moto_time(datestr)
+
+        if alarmflag:
+            self.alarmdt = parse_moto_time(alarmdate, alarmtime)
+        else:
+            self.alarmdt = None
+
+
+class PhoneEventXML(PhoneEvent):
+    """Constructor for the PhoneEvent object with data in OpenSync XML format"""
+    def __init__(self, data):
+        """Parse XML event data.
+        
+        This function raises UnsupportedDataError for:
+         * events that recur but can't be represented on the phone
+         * events lasting past the end of a day (FIXME: split these up)
+         * events before year 2000 (my phone doesn't allow them)
+        """
+        PhoneEvent.__init__(self)
+        doc = xml.dom.minidom.parseString(data)
+        event = doc.getElementsByTagName('Event')[0]
+
+        def getField(tagname, subtag='Content'):
+            """utility function for the XML processing below"""
+            return getXMLField(event, tagname, subtag)
+
+        self.pos = None
+        self.name = getField('Summary')
+
+        self.eventdt = parse_ical_time(getField('DateStarted'))
+        durationstr = getField('Duration')
+        if durationstr != '':
+            self.duration = parse_ical_duration(durationstr)
+            enddt = self.eventdt + self.duration
+        else:
+            enddt = parse_ical_time(getField('DateEnd'))
+            self.duration = enddt - self.eventdt
+
+        def get_date(dt):
+            """Return the date that a datetime or date object falls on."""
+            if isinstance(dt, datetime):
+                return dt.date()
+            else:
+                assert(isinstance(dt, date))
+                return dt
+
+        # check if event crosses a day or is too old
+        if self.eventdt.year < 2000:
+            raise UnsupportedDataError('Event is too old')
+        if get_date(self.eventdt) != get_date(enddt):
+            raise UnsupportedDataError('Event crosses a day')
+
+        triggerstr = getField('Alarm', 'AlarmTrigger')
+        if triggerstr == '':
+            self.alarmdt = None
+        else:
+            if triggerstr.startswith('-P') or triggerstr.startswith('P'):
+                offset = parse_ical_duration(triggerstr)
+                self.alarmdt = self.eventdt + offset
+            else:
+                self.alarmdt = parse_ical_time(triggerstr)
+
+        rrules = event.getElementsByTagName('RecurrenceRule')
+        exdates = event.getElementsByTagName('ExclusionDate')
+        exrules = event.getElementsByTagName('ExclusionRule')
+        (self.repeat_type, self.exceptions) = convert_rrule(rrules, exdates,
+                                                          exrules, self.eventdt)
+
+        if len(rrules) > 0 and self.repeat_type == MOTO_REPEAT_NONE:
+            raise UnsupportedDataError('Unhandled recursion rule')
+
+
+class PhoneContact(PhoneEntry):
     """Class representing the contacts roughly as stored in the phone.
 
-    PhoneContactBase represents the common fields of a logical identity that
-    may be split across several entries in the phone book for different contact
-    types.
+    PhoneContact represents the common fields of a logical identity that may be
+    split across several entries in the phone book for different contact types.
 
     class members:
-       children:        list of PhoneContact objects, that contain attributes
-                        unique to each entry
+       children:        list of PhoneContactChild objects, that contain
+                        attributes unique to each entry
        name:            name of this entry
        categorynum:     category to which this entry belongs
        firstlast_enabled/
@@ -974,22 +991,21 @@ class PhoneContactBase(PhoneEntry):
        birthday:        date object for birthday
        nickname:        nickname
     """
-    def __init__(self, child, data, format, revcategories):
-        """This init method should ONLY be called from within PhoneContact."""
-        self.children = [child]
-        if format == "moto-contact":
-            self.__from_moto(data)
-        elif format == "xml-contact-doc":
-            self.__from_xml(data, revcategories)
-        else:
-            raise OpenSyncError("unhandled data format %s" % format,
-                                opensync.ERROR_NOT_SUPPORTED)
+    def __init__(self):
+        PhoneEntry.__init__(self)
+        self.children = []
+        self.name = self.categorynum = None
+        self.firstlast_enabled = MOTO_INVALID
+        self.firstlast_index = 0
+        self.birthday = self.nickname = None
 
     def get_objtype(self):
+        """return the opensync object type string"""
         return "contact"
 
     def generate_uid(self):
-        return ','.join(map(lambda c: str(c.pos), self.children))
+        """Return (part of) a UID that holds the positions used by this entry"""
+        return ','.join([str(c.pos) for c in self.children])
 
     @staticmethod
     def unpack_uid(uid):
@@ -997,12 +1013,15 @@ class PhoneContactBase(PhoneEntry):
         return map(int, uid.split(','))
 
     def num_pos(self):
+        """Return the number of positions occupied by this entry."""
         return len(self.children)
 
     def get_pos(self):
-        return map(lambda c: c.pos, self.children)
+        """Return the positions occupied by this entry."""
+        return [c.pos for c in self.children]
 
     def set_pos(self, positions):
+        """Set the positions occupied by this entry."""
         # FIXME: if numbers/emails are added to an existing contact, the
         #        number of positions required as well as the UID might change
         assert(len(positions) == len(self.children))
@@ -1010,27 +1029,16 @@ class PhoneContactBase(PhoneEntry):
             c.pos = p
 
     def write(self, comms):
+        """given an instance of PhoneComms, write this entry to the phone"""
         for child in self.children:
-            comms.write_contact(child._to_moto())
+            comms.write_contact(child.to_moto())
 
     def hash_data(self):
+        """return a list of entry data in a predictable format, for hashing"""
         ret = []
         for child in self.children:
-            ret.extend(list(child._to_moto()))
+            ret.extend(list(child.to_moto()))
         return ret
-
-    def __from_moto(self, data):
-        """grab stuff out of the list of values from the phone"""
-        assert(type(data) == list and len(data) >= 24)
-        self.name = data[3]
-        self.categorynum = data[9]
-        self.firstlast_enabled = data[11]
-        self.firstlast_index = data[12]
-        self.nickname = data[22]
-        if data[23] == '':
-            self.birthday = None
-        else:
-            self.birthday = parse_moto_time(data[23])
 
     def merge(self, other):
         """(Try to) merge this contact with another, adding it to our children.
@@ -1069,137 +1077,8 @@ class PhoneContactBase(PhoneEntry):
 
         return False
 
-    def __from_xml(self, xmldata, revcategories):
-        doc = xml.dom.minidom.parseString(xmldata)
-
-        # utility function for the XML processing below
-        def getField(tagname, subtag='Content'):
-            return getXMLField(doc, tagname, subtag)
-
-        # set defaults that will be overwritten by the XML data if possible
-        self.firstlast_enabled = MOTO_INVALID
-        self.firstlast_index = 0
-
-        # handle the name and formatted name fields
-        self.name = getField('FormattedName')
-        if self.name != '':
-            # FIXME: cheesy attempt at taking apart the FormattedName
-            last = getField('Name', 'LastName')
-            if last != '':
-                lastidx = self.name.find(last)
-                if lastidx == 0:
-                    first = getField('Name', 'FirstName')
-                    if first != '':
-                        firstidx = self.name.find(first)
-                        if firstidx != -1:
-                            self.firstlast_enabled = 1
-                            self.firstlast_index = firstidx
-                elif lastidx != -1:
-                    self.firstlast_enabled = 0
-                    self.firstlast_index = lastidx
-        else:
-            # compute FormattedName from Name
-            nameparts = map(lambda p: getField('Name', p), XML_NAME_PARTS)
-            nameparts = filter(lambda x: x != '', nameparts)
-            self.name = ' '.join(nameparts)
-            self.firstlast_enabled = 0
-            self.firstlast_index = self.name.index(getField('Name', 'LastName'))
-
-        catname = getField('Categories', 'Category').lower()
-        self.categorynum = revcategories.get(catname, MOTO_CATEGORY_DEFAULT)
-        self.nickname = getField('Nickname')
-        bdaystr = getField('Birthday')
-        if bdaystr != '':
-            self.birthday = parse_ical_time(bdaystr)
-        else:
-            self.birthday = None
-
-        # NOW WE PROCESS ALL THE CONTACT INFO AND CREATE CHILDREN
-
-        # we always have one (uninitialised) child to start with, use it first
-        assert(len(self.children) == 1)
-        self.firstchild_used = False
-
-        # utility function for creating children
-        def makeChild(contact, contacttype, is_pref=False, address=None):
-            args = (self, contact, contacttype, int(is_pref), address)
-            if self.firstchild_used:
-                child = PhoneContact(args, "XXX-parentcontact-hack")
-                self.children.append(child)
-            else:
-                self.children[0]._from_parent(args)
-                self.firstchild_used = True
-
-        # process telephone numbers and email addresses
-        # create a list [(contacttype, contact, is_pref)]
-        contacts = []
-        for elt in getElementsByTagNames(doc, set(['Telephone', 'EMail']), []):
-            content = getXMLField(elt, 'Content')
-            if elt.tagName == 'Telephone':
-                # filter out any illegal characters from the phone number
-                content = filter(lambda c: c in TEL_NUM_DIGITS, content)
-                types = map(lambda e: getXMLText(e).lower(),
-                            elt.getElementsByTagName('Type'))
-                is_pref = 'pref' in types
-                moto_type = MOTO_CONTACT_DEFAULT
-                for t in types:
-                    if VCARD_CONTACT_TYPES.has_key(t):
-                        moto_type = VCARD_CONTACT_TYPES[t]
-                        break
-            else: # email
-                is_pref = False
-                moto_type = MOTO_CONTACT_EMAIL
-            contacts.append((moto_type, content, is_pref))
-
-        # make sure exactly one of the contacts is preferred
-        preferred_list = map(lambda (moto_type, content, pref): pref, contacts)
-        num_preferred = preferred_list.count(True)
-        if num_preferred == 0:
-            # arbitrarily mark the first non-email contact as preferred
-            found = False
-            for i in range(len(contacts)):
-                (moto_type, content, _) = contacts[i]
-                if moto_type != MOTO_CONTACT_EMAIL:
-                    contacts[i] = (moto_type, content, True)
-                    found = True
-                    break
-            # no non-email contacts, so just make the first email preferred
-            if not found:
-                (moto_type, content, _) = contacts[0]
-                contacts[0] = (moto_type, content, True)
-        elif num_preferred > 1:
-            # mark all but the first preferred contact as not preferred
-            firstpref = preferred_list.index(True)
-            for i in range(firstpref + 1, len(contacts)):
-                (moto_type, content, _) = contacts[i]
-                contacts[i] = (moto_type, content, False)
-
-        # process addresses, create a hash from contacttype to address
-        # FIXME: addresses that don't map to moto contact types are dropped
-        addresses = {}
-        for adr in doc.getElementsByTagName('Address'):
-            address = map(lambda p: getXMLField(adr, p), XML_ADDRESS_PARTS)
-            types = map(lambda e: getXMLText(e).lower(),
-                        adr.getElementsByTagName('Type'))
-            for t in types:
-                if VCARD_ADDRESS_TYPES.has_key(t):
-                    moto_type = VCARD_ADDRESS_TYPES[t]
-                    addresses[moto_type] = address
-                    break
-
-        # create a child for each telephone/address pair or email
-        for (moto_type, contact, is_pref) in contacts:
-            if moto_type == MOTO_CONTACT_EMAIL:
-                addr = None
-            else:
-                addr = addresses.get(moto_type)
-            makeChild(contact, moto_type, is_pref, addr)
-
-        if not self.firstchild_used:
-            # this entry has no contact data
-            raise PhoneEvent.UnsupportedDataError('No telephone or email data')
-
     def to_xml(self, categories):
+        """Returns OpenSync XML representation of this contact."""
         impl = xml.dom.minidom.getDOMImplementation()
         doc = impl.createDocument(None, 'contact', None)
         top = doc.documentElement
@@ -1239,84 +1118,204 @@ class PhoneContactBase(PhoneEntry):
         top.appendChild(e)
 
         for child in self.children:
-            for node in child._child_xml(doc):
+            for node in child.child_xml(doc):
                 top.appendChild(node)
 
         return doc.toxml()
 
 
-class PhoneContact:
+class PhoneContactMoto(PhoneContact):
+    """PhoneContact object for contacts created from phone data.
+    
+    Creates a contact with a single child."""
+    def __init__(self, data):
+        """grab stuff out of the list of values from the phone"""
+        PhoneContact.__init__(self)
+        assert(type(data) == list and len(data) >= 24)
+        self.name = data[3]
+        assert(data[7] == 0) # backlight flag?
+        self.categorynum = data[9]
+        self.firstlast_enabled = data[11]
+        self.firstlast_index = data[12]
+        assert(data[14] == 0) # unknown?
+        assert(data[15] == 0) # unknown?
+        self.nickname = data[22]
+        if data[23] == '':
+            self.birthday = None
+        else:
+            self.birthday = parse_moto_time(data[23])
+        if len(data) >= 25:
+            assert(data[24] == '') # unknown? old phones don't have it
+
+        self.children.append(PhoneContactChildMoto(self, data))
+
+
+class PhoneContactXML(PhoneContact):
+    """PhoneContact object for contacts created from XML data."""
+    def __init__(self, data, revcategories):
+        PhoneContact.__init__(self)
+        doc = xml.dom.minidom.parseString(data)
+
+        def getField(tagname, subtag='Content'):
+            """utility function for the XML processing below"""
+            return getXMLField(doc, tagname, subtag)
+
+        # handle the name and formatted name fields
+        self.name = getField('FormattedName')
+        if self.name != '':
+            # FIXME: cheesy attempt at taking apart the FormattedName
+            last = getField('Name', 'LastName')
+            if last != '':
+                lastidx = self.name.find(last)
+                if lastidx == 0:
+                    first = getField('Name', 'FirstName')
+                    if first != '':
+                        firstidx = self.name.find(first)
+                        if firstidx != -1:
+                            self.firstlast_enabled = 1
+                            self.firstlast_index = firstidx
+                elif lastidx != -1:
+                    self.firstlast_enabled = 0
+                    self.firstlast_index = lastidx
+        else:
+            # compute FormattedName from Name
+            nameparts = [getField('Name', p) for p in XML_NAME_PARTS]
+            nameparts = [p != '' for p in nameparts]
+            self.name = ' '.join(nameparts)
+            self.firstlast_enabled = 0
+            self.firstlast_index = self.name.index(getField('Name', 'LastName'))
+
+        catname = getField('Categories', 'Category').lower()
+        self.categorynum = revcategories.get(catname, MOTO_CATEGORY_DEFAULT)
+        self.nickname = getField('Nickname')
+        bdaystr = getField('Birthday')
+        if bdaystr != '':
+            self.birthday = parse_ical_time(bdaystr)
+        else:
+            self.birthday = None
+
+        # NOW WE PROCESS ALL THE CONTACT INFO AND CREATE CHILDREN
+
+        # process telephone numbers and email addresses
+        # create a list [(contacttype, contact, is_pref)]
+        contacts = []
+        seen_pref = False # have we already seen a preferred contact?
+        for elt in getElementsByTagNames(doc, set(['Telephone', 'EMail']), []):
+            content = getXMLField(elt, 'Content')
+            if elt.tagName == 'Telephone':
+                # filter out any illegal characters from the phone number
+                content = filter(lambda c: c in TEL_NUM_DIGITS, content)
+                ical_types = [getXMLText(e).lower()
+                              for e in elt.getElementsByTagName('Type')]
+                is_pref = 'pref' in ical_types
+                moto_type = MOTO_CONTACT_DEFAULT
+                for t in ical_types:
+                    if VCARD_CONTACT_TYPES.has_key(t):
+                        moto_type = VCARD_CONTACT_TYPES[t]
+                        break
+            else: # email
+                is_pref = False
+                moto_type = MOTO_CONTACT_EMAIL
+            contacts.append((moto_type, content, is_pref and not seen_pref))
+            seen_pref = seen_pref or is_pref
+
+        # if none of the contacts were preffered, make one so
+        if not seen_pref:
+            # arbitrarily mark the first non-email contact as preferred
+            for i in range(len(contacts)):
+                (moto_type, content, _) = contacts[i]
+                if moto_type != MOTO_CONTACT_EMAIL:
+                    contacts[i] = (moto_type, content, True)
+                    break
+            else:
+                # no non-email contacts, so just make the first email preferred
+                (moto_type, content, _) = contacts[0]
+                contacts[0] = (moto_type, content, True)
+
+        # process addresses, create a hash from contacttype to address
+        # FIXME: addresses that don't map to moto contact types are dropped
+        addresses = {}
+        for adr in doc.getElementsByTagName('Address'):
+            address = [getXMLField(adr, p) for p in XML_ADDRESS_PARTS]
+            ical_types = [getXMLText(e).lower() for e in 
+                          adr.getElementsByTagName('Type')]
+            for t in ical_types:
+                if VCARD_ADDRESS_TYPES.has_key(t):
+                    moto_type = VCARD_ADDRESS_TYPES[t]
+                    addresses[moto_type] = address
+                    break
+
+        # create a child for each telephone/address pair or email
+        for (moto_type, contact, is_pref) in contacts:
+            if moto_type == MOTO_CONTACT_EMAIL:
+                addr = None
+            else:
+                addr = addresses.get(moto_type)
+            child = PhoneContactChild(self, contact, moto_type, is_pref, addr)
+            self.children.append(child)
+
+        if self.children == []:
+            # this entry has no contact data
+            raise UnsupportedDataError('No telephone or email data')
+
+
+class PhoneContactChild:
     """Class representing the contacts roughly as stored in the phone.
 
-    Data common to multiple entries is stored in PhoneContactBase.
+    This class stores data unique to each entry in the phone, and not
+    shared between "linked" entries. That data is in the parent PhoneContact.
 
     class members:
-       parent:          parent PhoneContactBase object
+       parent:          parent PhoneContact object
        pos:             position of this entry in the phone book
        contact:         contact data (number or email address)
        contacttype:     integer representing contact type (home/work/etc, email)
        numtype:         one of MOTO_NUMTYPE_*
        voicetag:        flag if voice-dial tag is set for this entry
        ringerid:        ringer ID for this entry
-       primaryflag:    flag set on the "primary" contact for a given identity
+       primaryflag:     flag set on the "primary" contact for a given identity
        profile_icon:    profile icon number
        picture_path:    path to picture for this entry (on the phone's VFS)
        address:         None, or list of address parts
     """
-    def __init__(self, data, format, revcategories=None):
-        if format == "XXX-parentcontact-hack":
-            self._from_parent(data)
+    def __init__(self, parent, contact, contacttype, primary, address):
+        self.parent = parent
+        self.pos = None
+        self.voicetag = 0
+        self.ringerid = MOTO_INVALID
+        self.profile_icon = MOTO_INVALID
+        self.picture_path = ''
+        self.contact = contact
+        self.contacttype = contacttype
+        self.primaryflag = primary
+        if contacttype in [MOTO_CONTACT_EMAIL, MOTO_CONTACT_MAILINGLIST]:
+            self.numtype = MOTO_NUMTYPE_UNKNOWN
+        elif contact[0] == '+':
+            self.numtype = MOTO_NUMTYPE_INTL
         else:
-            if format == "moto-contact":
-                self.__from_moto(data)
-            parent = PhoneContactBase(self, data, format, revcategories)
-            self.parent = parent
+            self.numtype = MOTO_NUMTYPE_LOCAL
+        self.address = address
 
-    def __getattr__(self, name):
-        """If we don't have an attribute, return the parent's version that
-        is common to all of its children.
-        """
-        assert(hasattr(self, 'parent'))
-        return getattr(self.parent, name)
-
-    def _to_moto(self):
+    def to_moto(self):
         """Generate motorola contact-data list."""
-        if self.birthday:
-            birthdaystr = format_time(self.birthday, PHONE_DATE)
+        if self.parent.birthday:
+            birthdaystr = format_time(self.parent.birthday, PHONE_DATE)
         else:
             birthdaystr = ''
         if self.address:
             (street1, street2, city, state, postcode, country) = self.address
         else:
             street1 = street2 = city = state = postcode = country = ''
-        return (self.pos, self.contact, self.numtype, self.name,
+        return (self.pos, self.contact, self.numtype, self.parent.name,
                 self.contacttype, self.voicetag, self.ringerid, 0,
-                self.primaryflag, self.categorynum, self.profile_icon,
-                self.firstlast_enabled, self.firstlast_index, self.picture_path,
+                int(self.primaryflag), self.parent.categorynum, 
+                self.profile_icon, self.parent.firstlast_enabled,
+                self.parent.firstlast_index, self.picture_path,
                 0, 0, street2, street1, city, state, postcode, country,
-                self.nickname, birthdaystr)
+                self.parent.nickname, birthdaystr)
 
-    def __from_moto(self, data):
-        """grab stuff out of the list of values from the phone"""
-        assert(type(data) == list and len(data) >= 24)
-        self.pos = data[0]
-        self.contact = data[1]
-        self.numtype = data[2]
-        self.contacttype = data[4]
-        self.voicetag = data[5]
-        self.ringerid = data[6]
-        assert(data[7] == 0) # backlight flag?
-        self.primaryflag = data[8]
-        self.profile_icon = data[10]
-        self.picture_path = data[13]
-        assert(data[14] == 0) # unknown?
-        assert(data[15] == 0) # unknown?
-        self.address = (data[17], data[16], data[18],
-                        data[19], data[20], data[21])
-        if len(data) >= 25:
-            assert(data[24] == '') # unknown? old phones don't have it
-
-    def _child_xml(self, doc):
+    def child_xml(self, doc):
+        """Return XML nodes for this child's data."""
         ret = []
 
         if self.contacttype == MOTO_CONTACT_EMAIL:
@@ -1345,25 +1344,19 @@ class PhoneContact:
 
         return ret
 
-    def _from_parent(self, data):
-        """Initialise a child, should only be called by its parent."""
-        (parent, contact, contacttype, primary, address) = data
-        self.parent = parent
-        self.pos = None
-        self.voicetag = 0
-        self.ringerid = MOTO_INVALID
-        self.profile_icon = MOTO_INVALID
-        self.picture_path = ''
-        self.contact = contact
-        self.contacttype = contacttype
-        self.primaryflag = primary
-        if contacttype in [MOTO_CONTACT_EMAIL, MOTO_CONTACT_MAILINGLIST]:
-            self.numtype = MOTO_NUMTYPE_UNKNOWN
-        elif contact[0] == '+':
-            self.numtype = MOTO_NUMTYPE_INTL
-        else:
-            self.numtype = MOTO_NUMTYPE_LOCAL
-        self.address = address
+
+class PhoneContactChildMoto(PhoneContactChild):
+    """Phone contact child object for children created from phone data."""
+    def __init__(self, parent, data):
+        assert(type(data) == list and len(data) >= 24)
+        adr = (data[17], data[16], data[18], data[19], data[20], data[21])
+        PhoneContactChild.__init__(self, parent, data[1], data[4], data[8], adr)
+        self.pos = data[0]
+        self.numtype = data[2]
+        self.voicetag = data[5]
+        self.ringerid = data[6]
+        self.profile_icon = data[10]
+        self.picture_path = data[13]
 
 
 class PhoneAccess:
@@ -1373,7 +1366,7 @@ class PhoneAccess:
      """
     def __init__(self, comms):
         self.comms = comms
-        self.sn = comms.read_serial()
+        self.serial = comms.read_serial()
         self.positions_used = {}
         for objtype in SUPPORTED_OBJTYPES:
             self.positions_used[objtype] = set([])
@@ -1385,45 +1378,43 @@ class PhoneAccess:
                 raise OpenSyncError(desc + ' feature not present',
                                     opensync.ERROR_NOT_SUPPORTED)
 
-        # read current time on the phone, check if it matches our time
-        # if not, print a warning about timezones
-        # FIXME: use these times to guess the phone's UTC offset and timezone
+        self.categories = {}
+        self.revcategories = {}
+        self.__init_categories()
+
+        # read current time on the phone, check if it matches our local time
+        # FIXME: allow the user to configure a different timezone for the phone
         timestr = comms.read_time()[:-3]
         phone_now = time.strptime(timestr, '%y/%m/%d,%H:%M:%S')
         local_now = time.localtime()
         if abs(time.mktime(phone_now) - time.mktime(local_now)) > 60 * 30:
-            print "WARNING: Phone appears to be in a different timezone!"
-            print "Phone time is " + time.strftime('%d/%m/%Y %H:%M', phone_now)
-            # FIXME: maybe we should refuse to continue?
+            msg = ("ERROR: Phone appears to be in a different timezone!\n"
+                   + "Phone time is %s" % time.strftime('%c', phone_now))
+            raise OpenSyncError(msg)
 
     def list_changes(self, objtype):
         """Return a list of change objects for all entries of the given type."""
 
         if objtype == 'contact':
-            self.__init_categories()
-
             # XXX FIXME, nasty hack:
             # fill in positions_used so that none < minpos are allocated
             # XXX FIXME, even nastier hack:
             # also make sure positions < 10 aren't allocated by us, as these
             # are used for the quick-dial feature the phone
-            (minpos, maxpos, _, _) = self.comms.read_contact_params()
+            minpos = self.comms.read_contact_params()[0]
             self.positions_used['contact'] = set(range(0, max(minpos, 10)))
 
             # sort contacts by name, and attempt to merge adjacent ones
-            entries = map(lambda d: PhoneContact(d, 'moto-contact',
-                                                 self.revcategories),
-                          self.comms.read_contacts())
-            entries.sort(key=lambda c: (c.name, c.pos))
+            entries = [PhoneContactMoto(d) for d in self.comms.read_contacts()]
+            entries.sort(key=lambda c: (c.name, c.get_pos()))
             i = 0
             while i < (len(entries) - 1):
-                if entries[i].parent.merge(entries[i + 1].parent):
+                if entries[i].merge(entries[i + 1]):
                     del entries[i + 1]
                 else:
                     i += 1
         elif objtype == 'event':
-            entries = map(lambda d: PhoneEvent(d, 'moto-event'),
-                          self.comms.read_events())
+            entries = [PhoneEventMoto(d) for d in self.comms.read_events()]
         else:
             assert(False, 'Unknown objtype %s' % objtype)
 
@@ -1461,20 +1452,22 @@ class PhoneAccess:
         
         Returns True on success, False otherwise.
         """
+        if change.format != 'xml-%s-doc' % change.objtype:
+            raise OpenSyncError("unhandled data format %s" % change.format,
+                                opensync.ERROR_NOT_SUPPORTED)
         try:
             if change.objtype == 'event':
-                entry = PhoneEvent(change.data, change.format)
+                entry = PhoneEventXML(change.data)
             elif change.objtype == 'contact':
-                entry = PhoneContact(change.data, change.format,
-                                     self.revcategories)
-        except PhoneEntry.UnsupportedDataError, e:
+                entry = PhoneContactXML(change.data, self.revcategories)
+        except UnsupportedDataError, e:
             print ("Warning: %s is unsupported by moto-sync (%s), ignored"
                    % (change.uid, str(e)))
             # we have an entry that can't be stored on the phone
             # if its modified and we've seen it before, delete it
             # otherwise just ignore it
             if (change.changetype == opensync.CHANGE_MODIFIED
-                and PhoneAccess.uid_seen(change.uid)):
+                and self.uid_seen(change.uid)):
                 change.changetype = opensync.CHANGE_DELETED
                 change.data = None
                 return self.delete_entry(change.uid)
@@ -1495,8 +1488,6 @@ class PhoneAccess:
 
     def __init_categories(self):
         """Initialise a hash and reverse hash of category IDs."""
-        self.categories = {}
-        self.revcategories = {}
 
         # for each category we get: pos,name,other junk
         for data in self.comms.read_categories():
@@ -1517,16 +1508,19 @@ class PhoneAccess:
         Uses the last 8 digit's of the phone's IMEI to do so.
         """
         return ("moto-%s-%s@%s"
-                % (entry.get_objtype(), entry.generate_uid(), self.sn[-8:]))
+                % (entry.get_objtype(), entry.generate_uid(), self.serial[-8:]))
 
-    @staticmethod
-    def uid_seen(uid):
+    def uid_seen(self, uid):
         """Returns true iff the given UID is one of ours.
         
         Can't check the serial number because this is static, so we just
         check if it's a moto-sync UID and hope that's good enough.
         """
-        return uid.startswith("moto-")
+        try:
+            self.__uid_to_pos(uid)
+            return True
+        except (AssertionError, ValueError, TypeError):
+            return False
 
     def __uid_to_pos(self, uid):
         """Reverse the generate_uid function above.
@@ -1537,13 +1531,13 @@ class PhoneAccess:
         assert(moto == "moto" and objtype in SUPPORTED_OBJTYPES,
                'Invalid UID: %s' % uid)
         lastpos = lastpart.rindex('@')
-        assert(lastpart[lastpos + 1:] == self.sn[-8:],
+        assert(lastpart[lastpos + 1:] == self.serial[-8:],
                'Entry not created on this phone')
         
         if objtype == "event":
             positions = PhoneEvent.unpack_uid(lastpart[:lastpos])
         elif objtype == "contact":
-            positions = PhoneContactBase.unpack_uid(lastpart[:lastpos])
+            positions = PhoneContact.unpack_uid(lastpart[:lastpos])
         return objtype, positions
 
     # FIXME: check for minimum/maximum number of events in the phone
@@ -1563,9 +1557,11 @@ class PhoneAccess:
 
 def stdexceptions(func):
     """Decorator used to wrap every method in SyncClass with the same
-    exception handlers. Reports any exception back to opensync as an error.
+    exception handlers. Reports any exception back to opensync as an error,
+    otherwise reports success.
     """
     def new_func(*args, **kwds):
+        """Invoke func, report success, otherwise report an error."""
         context = args[1] # context is always the first argument after 'self'
         try:
             func(*args, **kwds)
@@ -1585,20 +1581,23 @@ class SyncClass:
 
     def __init__(self, member):
         self.member = member
-
-    @stdexceptions
-    def connect(self, ctx):
-        self.config = self.__parse_config(self.member.config)
+        self.comms = self.access = None
+        self.config = {}
+        self.__parse_config(self.member.config)
         self.hashtable = opensync.OSyncHashTable()
         if not self.hashtable.load(self.member):
             raise OpenSyncError('hashtable load failed',
                                 opensync.ERROR_INITIALIZATION)
 
-        self.comms = PhoneComms(self.config.device)
+    @stdexceptions
+    def connect(self, ctx):
+        """Connect to the phone."""
+        self.comms = PhoneComms(self.config['device'])
         self.access = PhoneAccess(self.comms)
 
     @stdexceptions
     def get_changeinfo(self, ctx):
+        """Report all OSyncChange objects for entries on the phone."""
         for objtype in SUPPORTED_OBJTYPES:
             if self.member.objtype_enabled(objtype):
                 if self.member.get_slow_sync(objtype):
@@ -1614,11 +1613,12 @@ class SyncClass:
 
     @stdexceptions
     def commit_change(self, ctx, change):
+        """Write a change to the phone."""
         if change.objtype not in SUPPORTED_OBJTYPES:
             raise OpenSyncError('unsupported objtype %s' % change.objtype,
                                 opensync.ERROR_NOT_SUPPORTED)
         if change.changetype == opensync.CHANGE_DELETED:
-            success = (PhoneAccess.uid_seen(change.uid)
+            success = (self.access.uid_seen(change.uid)
                        and self.access.delete_entry(change.uid))
         else:
             success = self.access.update_entry(change)
@@ -1627,45 +1627,46 @@ class SyncClass:
 
     @stdexceptions
     def sync_done(self, ctx):
+        """Called when the sync is complete."""
         self.hashtable.forget()
 
     @stdexceptions
     def disconnect(self, ctx):
+        """Called to disconnect from the phone."""
         del self.access
         del self.comms
-        self.hashtable.close()
-        del self.hashtable
 
     def finalize(self):
+        """Called just before we are cleaned up."""
+        self.hashtable.close()
+        del self.hashtable
         del self.member
 
     def __parse_config(self, configstr):
+        """Parse the config data and return a hash of config values."""
         try:
             doc = xml.dom.minidom.parseString(configstr)
         except:
             raise OpenSyncError('failed to parse config data',
                                 opensync.ERROR_MISCONFIGURATION)
 
-        class Config:
-            pass
-        ret = Config()
-        ret.device = getXMLField(doc, 'device')
-        if ret.device == '':
+        self.config['device'] = getXMLField(doc, 'device')
+        if self.config['device'] == '':
             raise OpenSyncError('device not specified in config file',
                                 opensync.ERROR_MISCONFIGURATION)
 
-        return ret
-
 
 def initialize(member):
+    """Called by python-module plugin wrapper, returns instance of SyncClass."""
     return SyncClass(member)
 
 
 def get_info(info):
+    """Called by python-module plugin wrapper, returns plugin metadata."""
     info.name = "moto-sync"
     info.longname = "Motorola synchronisation plugin"
     info.description = ("Plugin to synchronise phone book and calendar entries "
-                        + "on a Motorola mobile phone using extended AT commands")
+                      + "on a Motorola mobile phone using extended AT commands")
     for objtype in SUPPORTED_OBJTYPES:
         info.accept_objtype(objtype)
         info.accept_objformat(objtype, "xml-%s-doc" % objtype)
