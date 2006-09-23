@@ -115,6 +115,9 @@ MOTO_NUMTYPE_UNKNOWN = 128
 # various fields use 255 as an invalid value
 MOTO_INVALID = 255
 
+# number of quick-dial entries in the phonebook; we avoid allocating these
+MOTO_QUICKDIAL_ENTRIES = 10
+
 # logical order of the fields in structured XML data
 XML_NAME_PARTS = 'Prefix FirstName Additional LastName Suffix'.split()
 XML_ADDRESS_PARTS = ('Street ExtendedAddress'
@@ -326,8 +329,7 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
         return (MOTO_REPEAT_NONE, [])
 
     # what events will happen with exceptions
-    # use a set for better searching properties (FIXME: could be smarter)
-    excepted_occurrences = set(ruleset.between(now, now + RRULE_FUTURE))
+    excepted_occurrences = frozenset(ruleset.between(now, now + RRULE_FUTURE))
 
     # work out which events don't happen
     exceptions = []
@@ -384,6 +386,8 @@ class PhoneComms:
         # FIXME: change to UCS2?
         self.__do_cmd('AT+CSCS="8859-1"')
 
+        (self.max_events, self.num_events, _, _, _) = self.read_event_params()
+
         (minpos, maxpos, _, _) = self.read_contact_params()
         self.min_contact_pos = minpos
         self.max_contact_pos = maxpos
@@ -425,20 +429,28 @@ class PhoneComms:
             self.__do_cmd('AT+MDBL=0')
             self.__calendar_open = False
 
+    def read_event_params(self):
+        """Read calendar/datebook parameters.
+        
+        Returns: maximum number of events,
+                 number of events currently stored,
+                 length of title/name field,
+                 maximum number of event exceptions
+                 maximum number of event exception types (?)
+        """
+        self.open_calendar()
+        data = self.__do_cmd('AT+MDBR=?') # read event parameters
+        return self.__parse_results('MDBR', data)[0]
+
     def read_events(self):
         """read the list of all events on the phone"""
         self.open_calendar()
 
-        # read calendar/event parameters
-        data = self.__do_cmd('AT+MDBR=?') # read event parameters
-        res = self.__parse_results('MDBR', data)[0]
-        (maxevents, numevents, titlelen, exmax, extypemax) = res
-
         # read entries from the phone until we've seen all of them
         ret = []
         pos = 0
-        while pos < maxevents and len(ret) < numevents:
-            end = min(pos + ENTRIES_PER_READ - 1, maxevents - 1)
+        while pos < self.max_events and len(ret) < self.num_events:
+            end = min(pos + ENTRIES_PER_READ - 1, self.max_events - 1)
             data = self.__do_cmd('AT+MDBR=%d,%d' % (pos, end))
 
             # first parse all the exceptions for each event
@@ -1022,7 +1034,7 @@ class PhoneContact(PhoneEntry):
 
     def set_pos(self, positions):
         """Set the positions occupied by this entry."""
-        # FIXME: if numbers/emails are added to an existing contact, the
+        # BIG FIXME: if numbers/emails are added to an existing contact, the
         #        number of positions required as well as the UID might change
         assert(len(positions) == len(self.children))
         for (p, c) in zip(positions, self.children):
@@ -1359,6 +1371,43 @@ class PhoneContactChildMoto(PhoneContactChild):
         self.picture_path = data[13]
 
 
+class PosAllocator:
+    """Position-allocator class.
+    
+    Remembers which positions in a set are used/free, and allocates new ones.
+    """
+    def __init__(self, objtype, minpos, maxpos):
+        self.objtype = objtype
+        self.minpos = minpos
+        self.maxpos = maxpos
+        self.used = set([])
+
+    def mark_used(self, positions):
+        """Mark all the positions in the given list as used."""
+        for pos in positions:
+            if pos in range(self.minpos, self.maxpos + 1):
+                self.used.add(pos)
+
+    def mark_free(self, positions):
+        """Mark all the positions in the given list as free."""
+        for pos in positions:
+            if pos in range(self.minpos, self.maxpos + 1):
+                self.used.remove(pos)
+
+    def alloc(self, num_required=1):
+        """Allocate free positions for a new entry."""
+        ret = []
+        i = self.minpos
+        while len(ret) < num_required:
+            while i in self.used:
+                i += 1
+            if i > self.maxpos:
+                raise OpenSyncError('No %s positions free' % self.objtype)
+            self.used.add(i)
+            ret.append(i)
+        return ret
+
+
 class PhoneAccess:
     """Grab-bag class of utility functions.
      
@@ -1367,9 +1416,6 @@ class PhoneAccess:
     def __init__(self, comms):
         self.comms = comms
         self.serial = comms.read_serial()
-        self.positions_used = {}
-        for objtype in SUPPORTED_OBJTYPES:
-            self.positions_used[objtype] = set([])
 
         # check that the phone supports the features we need
         features = comms.read_features()
@@ -1377,10 +1423,6 @@ class PhoneAccess:
             if not features[bit]:
                 raise OpenSyncError(desc + ' feature not present',
                                     opensync.ERROR_NOT_SUPPORTED)
-
-        self.categories = {}
-        self.revcategories = {}
-        self.__init_categories()
 
         # read current time on the phone, check if it matches our local time
         # FIXME: allow the user to configure a different timezone for the phone
@@ -1392,18 +1434,23 @@ class PhoneAccess:
                    + "Phone time is %s" % time.strftime('%c', phone_now))
             raise OpenSyncError(msg)
 
+        # initialise the position allocators
+        self.positions = {}
+        self.positions['event'] = PosAllocator('event', 0,
+                                               self.comms.max_events - 1)
+        min_contact = max(self.comms.min_contact_pos, MOTO_QUICKDIAL_ENTRIES)
+        self.positions['contact'] = PosAllocator('contact', min_contact,
+                                                 self.comms.max_contact_pos)
+
+        # initialise the category mappings
+        self.categories = {}
+        self.revcategories = {}
+        self.__init_categories()
+
     def list_changes(self, objtype):
         """Return a list of change objects for all entries of the given type."""
 
         if objtype == 'contact':
-            # XXX FIXME, nasty hack:
-            # fill in positions_used so that none < minpos are allocated
-            # XXX FIXME, even nastier hack:
-            # also make sure positions < 10 aren't allocated by us, as these
-            # are used for the quick-dial feature the phone
-            minpos = self.comms.read_contact_params()[0]
-            self.positions_used['contact'] = set(range(0, max(minpos, 10)))
-
             # sort contacts by name, and attempt to merge adjacent ones
             entries = [PhoneContactMoto(d) for d in self.comms.read_contacts()]
             entries.sort(key=lambda c: (c.name, c.get_pos()))
@@ -1430,7 +1477,7 @@ class PhoneAccess:
                 change.data = entry.to_xml()
             change.hash = self.__gen_hash(entry)
             ret.append(change)
-            self.positions_used[objtype].update(set(entry.get_pos()))
+            self.positions[objtype].mark_used(entry.get_pos())
         return ret
 
     def delete_entry(self, uid):
@@ -1444,7 +1491,7 @@ class PhoneAccess:
                 self.comms.delete_event(pos)
             elif objtype == 'contact':
                 self.comms.delete_contact(pos)
-            self.positions_used[objtype].remove(pos)
+        self.positions[objtype].mark_free(positions)
         return True
 
     def update_entry(self, change):
@@ -1475,7 +1522,8 @@ class PhoneAccess:
                 return False
         
         if change.changetype == opensync.CHANGE_ADDED:
-            self.__get_free_positions(entry)
+            positions = self.positions[change.objtype].alloc(entry.num_pos())
+            entry.set_pos(positions)
             change.uid = self.__generate_uid(entry)
         else:
             _, positions = self.__uid_to_pos(change.uid)
@@ -1486,9 +1534,16 @@ class PhoneAccess:
         
         return True
 
+    def uid_seen(self, uid):
+        """Returns true iff the given UID is one of ours."""
+        try:
+            self.__uid_to_pos(uid)
+            return True
+        except (AssertionError, ValueError, TypeError):
+            return False
+
     def __init_categories(self):
         """Initialise a hash and reverse hash of category IDs."""
-
         # for each category we get: pos,name,other junk
         for data in self.comms.read_categories():
             catid, catname = data[:2]
@@ -1510,18 +1565,6 @@ class PhoneAccess:
         return ("moto-%s-%s@%s"
                 % (entry.get_objtype(), entry.generate_uid(), self.serial[-8:]))
 
-    def uid_seen(self, uid):
-        """Returns true iff the given UID is one of ours.
-        
-        Can't check the serial number because this is static, so we just
-        check if it's a moto-sync UID and hope that's good enough.
-        """
-        try:
-            self.__uid_to_pos(uid)
-            return True
-        except (AssertionError, ValueError, TypeError):
-            return False
-
     def __uid_to_pos(self, uid):
         """Reverse the generate_uid function above.
         
@@ -1539,20 +1582,6 @@ class PhoneAccess:
         elif objtype == "contact":
             positions = PhoneContact.unpack_uid(lastpart[:lastpos])
         return objtype, positions
-
-    # FIXME: check for minimum/maximum number of events in the phone
-    def __get_free_positions(self, entry):
-        """Allocate free positions for a new entry."""
-        i = 0
-        newposns = []
-        used = self.positions_used[entry.get_objtype()]
-        num_pos = entry.num_pos()
-        while len(newposns) < num_pos:
-            while i < len(used) and i in used:
-                i += 1
-            used.add(i)
-            newposns.append(i)
-        entry.set_pos(newposns)
 
 
 def stdexceptions(func):
@@ -1659,7 +1688,6 @@ class SyncClass:
 def initialize(member):
     """Called by python-module plugin wrapper, returns instance of SyncClass."""
     return SyncClass(member)
-
 
 def get_info(info):
     """Called by python-module plugin wrapper, returns plugin metadata."""
