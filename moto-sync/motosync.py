@@ -11,7 +11,7 @@
 
 __revision__ = "$Id$"
 
-import os, types, traceback, md5, time, calendar, re
+import sys, os, types, traceback, md5, time, calendar, re
 import xml.dom.minidom
 from datetime import date, datetime, timedelta
 import dateutil.parser, dateutil.rrule, dateutil.tz
@@ -23,8 +23,9 @@ try:
 except ImportError:
     USE_TTY_MODULE = False
 
-# debug options:
-DEBUG_OUTPUT = True # if enabled, prints interaction with the phone to stdout
+# debug/test options:
+DEBUG_OUTPUT = False # if enabled, logs all interaction with the phone to stdout
+WARNING_OUTPUT = True # if enabled, prints warnings to stderr (reccommended)
 WRITE_ENABLED = True # if disabled, prevents changes from being made to phone
 
 # object types supported by this plugin
@@ -129,6 +130,16 @@ TEL_NUM_DIGITS = set('+0123456789')
 # how far into the future to process exceptions for recurring events
 RRULE_FUTURE = timedelta(365) # 1 year
 
+
+def debug(msg):
+    """Print a debug message, if enabled."""
+    if DEBUG_OUTPUT:
+        sys.stdout.write("moto-sync: " + msg + "\n")
+
+def warning(msg):
+    """Print a warning message, if enabled."""
+    if WARNING_OUTPUT:
+        sys.stderr.write("moto-sync: Warning: " + msg + "\n")
 
 def getElementsByTagNames(parent, tagnames, ret):
     """Like DOM's getElementsByTagName, but allow multiple tag names."""
@@ -375,7 +386,7 @@ class PhoneComms:
         if USE_TTY_MODULE:
             tty.setraw(self.__fd)
         else:
-            print 'Warning: tty module not present, unable to set raw mode'
+            warning('tty module not present, unable to set raw mode')
 
         # reset the phone and send it a bunch of init strings
         self.__do_cmd('AT&F')      # reset to factory defaults
@@ -577,8 +588,7 @@ class PhoneComms:
         while c != '\r' and c != '\n' and c != '':
             ret += c
             c = os.read(self.__fd, 1)
-        if DEBUG_OUTPUT:
-            print ('<-- ' + ret)
+        debug('<-- ' + ret)
         if c == '': # EOF, shouldn't happen
             raise OpenSyncError('Unexpected EOF talking to phone',
                                 opensync.ERROR_IO_ERROR)
@@ -590,8 +600,7 @@ class PhoneComms:
         If it succeeds, return lines as a list; otherwise raise an exception.
         """
         cmd = cmd.encode('iso_8859_1')
-        if DEBUG_OUTPUT:
-            print ('--> ' + cmd)
+        debug('--> ' + cmd)
         ret = []
         if reallydoit:
             os.write(self.__fd, cmd + "\r")
@@ -1508,8 +1517,7 @@ class PhoneAccess:
             elif change.objtype == 'contact':
                 entry = PhoneContactXML(change.data, self.revcategories)
         except UnsupportedDataError, e:
-            print ("Warning: %s is unsupported by moto-sync (%s), ignored"
-                   % (change.uid, str(e)))
+            warning("%s is unsupported (%s), ignored" % (change.uid, str(e)))
             # we have an entry that can't be stored on the phone
             # if its modified and we've seen it before, delete it
             # otherwise just ignore it
