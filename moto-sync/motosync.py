@@ -1043,8 +1043,6 @@ class PhoneContact(PhoneEntry):
 
     def set_pos(self, positions):
         """Set the positions occupied by this entry."""
-        # BIG FIXME: if numbers/emails are added to an existing contact, the
-        #        number of positions required as well as the UID might change
         assert(len(positions) == len(self.children))
         for (p, c) in zip(positions, self.children):
             c.pos = p
@@ -1508,13 +1506,14 @@ class PhoneAccess:
         
         Returns True on success, False otherwise.
         """
-        if change.format != 'xml-%s-doc' % change.objtype:
+        objtype = change.objtype
+        if change.format != 'xml-%s-doc' % objtype:
             raise OpenSyncError("unhandled data format %s" % change.format,
                                 opensync.ERROR_NOT_SUPPORTED)
         try:
-            if change.objtype == 'event':
+            if objtype == 'event':
                 entry = PhoneEventXML(change.data)
-            elif change.objtype == 'contact':
+            elif objtype == 'contact':
                 entry = PhoneContactXML(change.data, self.revcategories)
         except UnsupportedDataError, e:
             warning("%s is unsupported (%s), ignored" % (change.uid, str(e)))
@@ -1530,13 +1529,28 @@ class PhoneAccess:
                 return False
         
         if change.changetype == opensync.CHANGE_ADDED:
-            positions = self.positions[change.objtype].alloc(entry.num_pos())
+            # allocate positions for the new entry
+            positions = self.positions[objtype].alloc(entry.num_pos())
             entry.set_pos(positions)
-            change.uid = self.__generate_uid(entry)
         else:
             _, positions = self.__uid_to_pos(change.uid)
+            # check if the number of positions required has changed
+            pos_diff = entry.num_pos() - len(positions)
+            if pos_diff > 0:
+                # need to allocate more positions
+                positions.extend(self.positions[objtype].alloc(pos_diff))
+                positions.sort()
+            elif pos_diff < 0:
+                # need to free some positions
+                free_positions = positions[pos_diff:]
+                positions = positions[:pos_diff]
+                for pos in free_positions:
+                    assert(objtype == 'contact')
+                    self.comms.delete_contact(pos)
+                self.positions[objtype].mark_free(free_positions)
             entry.set_pos(positions)
         
+        change.uid = self.__generate_uid(entry)
         change.hash = self.__gen_hash(entry)
         entry.write(self.comms)
         
@@ -1657,6 +1671,16 @@ class SyncClass:
         if change.changetype == opensync.CHANGE_DELETED:
             success = (self.access.uid_seen(change.uid)
                        and self.access.delete_entry(change.uid))
+        elif change.changetype == opensync.CHANGE_MODIFIED:
+            old_uid = change.uid
+            success = self.access.update_entry(change)
+            # if the UID has changed, we need to tell our hashtable that
+            # the old one was deleted, to keep it consistent
+            if (success and old_uid != change.uid):
+                fake_change = opensync.OSyncChange()
+                fake_change.uid = old_uid
+                fake_change.changetype = opensync.CHANGE_DELETED
+                self.hashtable.update_hash(fake_change)
         else:
             success = self.access.update_entry(change)
         if success:
