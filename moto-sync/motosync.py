@@ -397,11 +397,17 @@ class PhoneComms:
         # FIXME: change to UCS2?
         self.__do_cmd('AT+CSCS="8859-1"')
 
-        (self.max_events, self.num_events, _, _, _) = self.read_event_params()
+        (maxevs, numevs, namelen, max_except, _) = self.read_event_params()
+        self.max_events = maxevs
+        self.num_events = numevs
+        self.event_name_len = namelen
+        self.event_max_exceptions = max_except
 
-        (minpos, maxpos, _, _) = self.read_contact_params()
+        (minpos, maxpos, contactlen, namelen) = self.read_contact_params()
         self.min_contact_pos = minpos
         self.max_contact_pos = maxpos
+        self.contact_data_len = contactlen
+        self.contact_name_len = namelen
 
     def __del__(self):
         self.close_calendar()
@@ -768,11 +774,17 @@ class PhoneEvent(PhoneEntry):
 
     def write(self, comms):
         """given an instance of PhoneComms, write this entry to the phone"""
+        self.__truncate_fields(comms)
         comms.write_event(self.__to_moto())
 
     def hash_data(self):
         """return a list of entry data in a predictable format, for hashing"""
         return self.__to_moto()
+
+    def __truncate_fields(self, comms):
+        """enforce length limits by truncating data"""
+        self.name = self.name[:comms.event_name_len]
+        self.exceptions = self.exceptions[:comms.event_max_exceptions]
 
     def __to_moto(self):
         """generate motorola event-data list"""
@@ -1049,7 +1061,9 @@ class PhoneContact(PhoneEntry):
 
     def write(self, comms):
         """given an instance of PhoneComms, write this entry to the phone"""
+        self.__truncate_fields(comms)
         for child in self.children:
+            child.truncate_fields(comms)
             comms.write_contact(child.to_moto())
 
     def hash_data(self):
@@ -1141,6 +1155,10 @@ class PhoneContact(PhoneEntry):
                 top.appendChild(node)
 
         return doc.toxml()
+
+    def __truncate_fields(self, comms):
+        """enforce field length limits by truncating data"""
+        self.name = self.name[:comms.contact_name_len]
 
 
 class PhoneContactMoto(PhoneContact):
@@ -1314,6 +1332,11 @@ class PhoneContactChild:
         else:
             self.numtype = MOTO_NUMTYPE_LOCAL
         self.address = address
+
+    def truncate_fields(self, comms):
+        """enforce length limits by truncating data"""
+        self.contact = self.contact[:comms.contact_data_len]
+        # FIXME: address parts need truncating
 
     def to_moto(self):
         """Generate motorola contact-data list."""
@@ -1550,9 +1573,9 @@ class PhoneAccess:
                 self.positions[objtype].mark_free(free_positions)
             entry.set_pos(positions)
         
+        entry.write(self.comms)
         change.uid = self.__generate_uid(entry)
         change.hash = self.__gen_hash(entry)
-        entry.write(self.comms)
         
         return True
 
