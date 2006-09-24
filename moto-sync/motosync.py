@@ -13,7 +13,7 @@ __revision__ = "$Id$"
 
 import sys, os, types, traceback, md5, time, calendar, re
 import xml.dom.minidom
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time as datetime_time
 import dateutil.parser, dateutil.rrule, dateutil.tz
 import opensync
 
@@ -37,7 +37,7 @@ ENTRIES_PER_READ = 15
 # time and date formats
 PHONE_TIME = '%H:%M'
 PHONE_DATE = '%m-%d-%Y' # yuck!
-VCAL_DATETIME = '%Y%m%dT%H%M%S'
+VCAL_DATETIME = '%Y%m%dT%H%M%SZ'
 VCAL_DATE = '%Y%m%d'
 
 # days of the week in vcal parlance
@@ -946,7 +946,6 @@ class PhoneEventXML(PhoneEvent):
         
         This function raises UnsupportedDataError for:
          * events that recur but can't be represented on the phone
-         * events lasting past the end of a day (FIXME: split these up)
          * events before year 2000 (my phone doesn't allow them)
         """
         PhoneEvent.__init__(self)
@@ -961,6 +960,9 @@ class PhoneEventXML(PhoneEvent):
         self.name = getField('Summary')
 
         self.eventdt = parse_ical_time(getField('DateStarted'))
+        if self.eventdt.year < 2000:
+            raise UnsupportedDataError('Event is too old')
+
         durationstr = getField('Duration')
         if durationstr != '':
             self.duration = parse_ical_duration(durationstr)
@@ -969,19 +971,12 @@ class PhoneEventXML(PhoneEvent):
             enddt = parse_ical_time(getField('DateEnd'))
             self.duration = enddt - self.eventdt
 
-        def get_date(dt):
-            """Return the date that a datetime or date object falls on."""
-            if isinstance(dt, datetime):
-                return dt.date()
-            else:
-                assert(isinstance(dt, date))
-                return dt
-
-        # check if event crosses a day or is too old
-        if self.eventdt.year < 2000:
-            raise UnsupportedDataError('Event is too old')
-        if get_date(self.eventdt) != get_date(enddt):
-            raise UnsupportedDataError('Event crosses a day')
+        # for some reason I don't understand, the phone only allows events
+        # longer than a day if the time flag is set. pander to this by forcing 
+        # such events to start at midnight local time
+        if isinstance(self.eventdt, date) and self.duration > timedelta(1):
+            local_midnight = datetime_time(0, 0, 0, 0, dateutil.tz.tzlocal())
+            self.eventdt = datetime.combine(self.eventdt, local_midnight)
 
         triggerstr = getField('Alarm', 'AlarmTrigger')
         if triggerstr == '':

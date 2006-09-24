@@ -109,9 +109,8 @@ For the calendar, each event has a name, date/time, duration, alarm
 date/time, repeat type, and list of exceptions. The repeat type in 
 particular is very limited, many recurring events can't be represented 
 on the phone. At the moment the plugin detects this and just refuses to 
-write them. The same holds for events that cross multiple days. A better 
-solution would be to split them up into multiple events, but this will 
-confuse OpenSync when we sync up again.
+write them. A better solution would be to split them up into multiple 
+events, but this will confuse OpenSync when we sync up again.
 
 The main overriding problem is that there's no way to store the full 
 data for an event or contact in the phone. The way opensync works at the 
