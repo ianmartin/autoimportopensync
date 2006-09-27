@@ -504,7 +504,7 @@ synce_file_getdata(OSyncContext *ctx, OSyncChange *change)
         }
 
 	/* Send its contents */
-	osync_change_set_data(change, (char *)ff, sizeof(ff), TRUE);
+	osync_change_set_data(change, (char *)ff, sizeof(fileFormat), TRUE);
 	CeCloseHandle(h);
 
 	wstr_free_string(wfn);
