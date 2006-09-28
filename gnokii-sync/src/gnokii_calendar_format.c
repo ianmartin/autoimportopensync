@@ -281,7 +281,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
 	char *tmp;
-	struct tm *starttm = NULL, *endtm = NULL;
+	struct tm *starttm = NULL, *endtm = NULL, *tmptm = NULL;
 	osync_bool alldayevent = 0;
 	xmlNode *cur = NULL;
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -335,7 +335,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 	cur = osxml_get_node(root, "DateStarted");
 	if (cur) {
 
-		tmp = (char *) xmlNodeGetContent(cur);
+		tmp = osxml_find_node(cur, "Content");
 
 		/*
 		ret = sscanf(tmp, "%04u%02u%02uT%02u%02u%02u",
@@ -348,7 +348,12 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		*/		
 
 		starttm = osync_time_vtime2tm(tmp);
-		starttm = osync_time_tm2localtime(starttm);
+
+		if (!osync_time_isdate(tmp) && osync_time_isutc(tmp)) {
+			tmptm = starttm;
+			starttm = osync_time_tm2localtime(tmptm);
+			g_free(tmptm);
+		}
 
 		calnote->time = gnokii_util_tm2timestamp(starttm);
 
@@ -370,11 +375,14 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 	cur = osxml_get_node(root, "DateEnd");
 	if (cur) {
 
-		tmp = (char *) xmlNodeGetContent(cur);
+		tmp = osxml_find_node(cur, "Content");
 
-		/* TODO XXX - free struct tm - run tm2localtime.... */
 		endtm = osync_time_vtime2tm(tmp);
-		endtm = osync_time_tm2localtime(endtm);
+		if (!osync_time_isdate(tmp) && osync_time_isutc(tmp)) {
+			tmptm = endtm;
+			endtm = osync_time_tm2localtime(tmptm);
+			g_free(tmptm);
+		}
 
 		g_free(tmp);
 
@@ -411,9 +419,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		xmlNode *sub = osxml_get_node(cur, "AlarmTrigger");
 
 		// get node with iCal duration
-		sub = osxml_get_node(sub, "Content");
-
-		tmp = (char *) xmlNodeGetContent(sub);
+		tmp = osxml_find_node(sub, "Content");
 
 		// convert iCal duration string into seconds (before event)
 		seconds_before = gnokii_util_alarmevent2secs(tmp);
