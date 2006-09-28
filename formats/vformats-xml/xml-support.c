@@ -395,6 +395,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	xmlNodeSet *lnodes = leftxobj->nodesetval;
 	xmlNodeSet *rnodes = rightxobj->nodesetval;
 
+	// WORKAROUND - FIXME
 	// if nodeTab[0] is an Event or Todo we need a new node structure (/*/*/*)
 	if ((!strcmp((char*)lnodes->nodeTab[0]->name, "Event") && \
 		!strcmp((char*)rnodes->nodeTab[0]->name, "Event")) || \
