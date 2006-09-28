@@ -352,6 +352,8 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 		calnote->time = gnokii_util_tm2timestamp(starttm);
 
+		g_free(starttm);
+
 		// Only 3 matches (=date) means all day event 
 		if (osync_time_isdate(tmp))
 			alldayevent = 1;
@@ -372,11 +374,13 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 		/* TODO XXX - free struct tm - run tm2localtime.... */
 		endtm = osync_time_vtime2tm(tmp);
-		endtm = osync_time_tm2localtime(starttm);
+		endtm = osync_time_tm2localtime(endtm);
 
 		g_free(tmp);
 
 		calnote->end_time = gnokii_util_tm2timestamp(endtm);
+
+		g_free(endtm);
 
 		// Nokia cellphones cannot handle seconds in calendar so set it to ZERO
 		calnote->end_time.second = 0;

@@ -23,4 +23,4 @@ formats_LTLIBRARIES = gnokii.la
 
 gnokii_la_SOURCES = gnokii_calendar_format.c gnokii_calendar_utils.c gnokii_contact_format.c gnokii_contact_utils.c gnokii_format.c
 gnokii_la_LDFLAGS = -avoid-version -export-dynamic -module
-gnokii_la_LIBADD = @PACKAGE_LIBS@ -lopensync-xml @LIBS@
+gnokii_la_LIBADD = -lopensync-xml @LIBS@
