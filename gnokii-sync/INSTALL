@@ -148,10 +148,9 @@ TROUBLESHOOTING
 		
 		* check for permisson for your user. If `gnokii --identify` works as root user
 		  then it seems to be a permission problem. Could be solved with additional udev-rules:
-
-		  SUBSYSTEM=="usb_device",  SYSFS{manufacturer}=="Nokia", SYSFS{product}=="Nokia [0-9]*", MODE="660", GROUP="users"
-		  				                                                                         ^^^^^^^^^
-														Group of your user(s)
+		  BUS=="usb", SYSFS{manufacturer}=="Nokia*", SYSFS{product}=="Nokia [0-9]*", MODE="0660", GROUP="users"
+		  				                                                               ^^^^^^^^^
+													Group of your user(s)
 		  
 		  
 		

@@ -42,6 +42,9 @@ BUGS/KNOWN PROBLEMS:
   with --filter-objtype:
   	msynctool --sync gnokii-kdepim --filter-objtype note --filter-objtype todo
 
+  !!! Otherwise gnokii-sync hangs (deadlock!) while syncing !!!
+  !!! It is really really really recommended to make use filter todo and note out !!!
+
 TODO:
 ^^^^^
 	# print function (written, but never tested)
