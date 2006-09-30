@@ -3,7 +3,7 @@ configdir=@OPENSYNC_CONFIGDIR@
 formatsdir=@OPENSYNC_FORMATSDIR@
 opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
-AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall -Werror -Wno-pointer-sign
+AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall -Werror
 
 EXTRA_DIST = 	  \
 	opie-sync \
