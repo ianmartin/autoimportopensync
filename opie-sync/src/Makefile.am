@@ -7,8 +7,8 @@ AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall #-Werror
 
 EXTRA_DIST = 	  \
 	opie-sync \
-	opie-commons.h \
-	opie-debug.h \
+	opie_comms.h \
+	opie_debug.h \
 	opie_format.h \
 	opie_qcop.h \
 	opie_sync.h \
