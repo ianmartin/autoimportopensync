@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Opie Plugin], 0.01, [], opiesyncplugin)
+AC_INIT([OpenSync Opie Plugin], 0.19, [], [libopensync-plugin-opie])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/opie_sync.c)
 AC_CONFIG_HEADER(config.h)
