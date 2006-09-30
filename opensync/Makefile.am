@@ -34,7 +34,9 @@ EXTRA_DIST = \
 	opensync_db_internals.h \
 	opensync_format_internals.h \
 	opensync_member_internals.h \
+	opensync_message_internals.h \
 	opensync_plugin_internals.h \
+	opensync_queue_internals.h \
 	opensync_env_internals.h \
 	opensync_error_internals.h \
 	opensync_filter_internals.h \
@@ -42,6 +44,7 @@ EXTRA_DIST = \
 	opensync_context_internals.h \
 	opensync_group_internals.h \
 	opensync_hashtable_internals.h \
+	opensync_support.h \
 	opensync_user_internals.h
 
 libopensync_la_SOURCES = \
