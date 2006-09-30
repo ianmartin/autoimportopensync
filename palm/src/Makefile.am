@@ -10,7 +10,7 @@ EXTRA_DIST = \
 
 config_DATA = palm-sync
 
-opensyncheader_HEADERS = palm_sync.h palm_format.h
+opensyncheader_HEADERS = palm_sync.h palm_format.h palm_contact.h palm_event.h palm_note.h palm_todo.h
 
 formats_LTLIBRARIES = palm.la
 

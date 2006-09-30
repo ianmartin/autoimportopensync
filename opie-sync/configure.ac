@@ -9,9 +9,21 @@ AC_CONFIG_HEADER(config.h)
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconfig:/usr/local/lib/pkgconfig
 pkg_modules="opensync-1.0 glib-2.0 libxml-2.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+
+CFLAGS="-Wno-pointer-sign"
+AC_MSG_CHECKING(if gcc supports $CFLAGS compiler option)
+AC_TRY_COMPILE( [], [ int main() { return 0; } ],
+    ac_cv_have_no_pointer_sign=yes,
+    ac_cv_have_no_pointer_sign=no)
+AC_MSG_RESULT($ac_cv_have_no_pointer_sign)
+if test $ac_cv_have_no_pointer_sign = yes; then
+    PACKAGE_CFLAGS="$PACKAGE_CFLAGS -Wno-pointer-sign"
+fi
+
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
-
+CFLAGS=""
+					     
 AC_CHECK_LIB(curl,curl_global_init,,AC_MSG_ERROR(You must have libcurl installed.))
 
 AC_ISC_POSIX

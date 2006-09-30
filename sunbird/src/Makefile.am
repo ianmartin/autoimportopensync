@@ -10,7 +10,9 @@ AM_CFLAGS = -Wall -Werror
 
 EXTRA_DIST = \
 	sunbird-sync \
-	sunbird_sync.h
+	sunbird_sync.h \
+	tools.h \
+	webdav.h
 
 config_DATA = sunbird-sync
 

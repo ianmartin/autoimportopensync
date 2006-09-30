@@ -7,7 +7,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall -Werror -O2 @PACKAGE_CFLAGS@
 
-EXTRA_DIST = gnokii-sync gnokii_sync.h gnokii_calendar.h gnokii_calendar_utils.h gnokii_contact_utils.h gnokii_comm.h gnokii_config.h 
+EXTRA_DIST = gnokii-sync gnokii_sync.h gnokii_calendar.h gnokii_calendar_format.h gnokii_calendar_utils.h gnokii_contact.h gnokii_contact_format.h  gnokii_contact_utils.h gnokii_comm.h gnokii_config.h 
 
 config_DATA = gnokii-sync
 
