@@ -3,10 +3,19 @@ configdir=@OPENSYNC_CONFIGDIR@
 formatsdir=@OPENSYNC_FORMATSDIR@
 opensyncheaderdir=@OPENSYNC_HEADERDIR@
 
-AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall -Werror
+AM_CFLAGS = @PACKAGE_CFLAGS@ -Wall #-Werror
 
-EXTRA_DIST = \
-	opie-sync
+EXTRA_DIST = 	  \
+	opie-sync \
+	opie-commons.h \
+	opie-debug.h \
+	opie_format.h \
+	opie_qcop.h \
+	opie_sync.h \
+	opie_xml.h
+
+
+
 
 config_DATA = opie-sync
 
