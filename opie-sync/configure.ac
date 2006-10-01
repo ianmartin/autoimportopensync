@@ -10,7 +10,9 @@ export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconf
 pkg_modules="opensync-1.0 glib-2.0 libxml-2.0"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 
-CFLAGS="-Wno-pointer-sign"
+#save old cflags
+OLD_CFLAGS=$CFLAGS
+CFLAGS="$OLD_CFLAGS -Wno-pointer-sign"
 AC_MSG_CHECKING(if gcc supports $CFLAGS compiler option)
 AC_TRY_COMPILE( [], [ int main() { return 0; } ],
     ac_cv_have_no_pointer_sign=yes,
@@ -22,7 +24,8 @@ fi
 
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
-CFLAGS=""
+#restore old cflags
+CFLAGS=$OLD_CFLAGS
 					     
 AC_CHECK_LIB(curl,curl_global_init,,AC_MSG_ERROR(You must have libcurl installed.))
 
