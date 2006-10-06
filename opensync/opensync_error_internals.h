@@ -29,6 +29,7 @@ struct OSyncError {
 	/** The message */
 	char *message;
 	int ref_count;
+	OSyncError *child;
 };
 
 #endif //OPENSYNC_ERROR_INTERNALS_H_

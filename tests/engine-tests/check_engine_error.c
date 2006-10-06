@@ -931,6 +931,12 @@ START_TEST (dual_connect_error)
 	fail_unless(error == NULL, NULL);
 	osync_engine_set_plugindir(engine, testbed);
 	
+	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, GINT_TO_POINTER(1));
+	osync_engine_set_changestatus_callback(engine, entry_status, GINT_TO_POINTER(1));
+	osync_engine_set_mappingstatus_callback(engine, mapping_status, GINT_TO_POINTER(1));
+	osync_engine_set_enginestatus_callback(engine, engine_status, GINT_TO_POINTER(1));
+	osync_engine_set_memberstatus_callback(engine, member_status, GINT_TO_POINTER(1));
+	
 	fail_unless(osync_engine_initialize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -941,19 +947,13 @@ START_TEST (dual_connect_error)
 	fail_unless(osync_engine_finalize(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	osync_engine_set_conflict_callback(engine, conflict_handler_choose_first, NULL);
-	osync_engine_set_changestatus_callback(engine, entry_status, NULL);
-	osync_engine_set_mappingstatus_callback(engine, mapping_status, NULL);
-	osync_engine_set_enginestatus_callback(engine, engine_status, NULL);
-	osync_engine_set_memberstatus_callback(engine, member_status, NULL);
-	
 	fail_unless(num_connect == 2, NULL);
 	fail_unless(num_disconnect == 0, NULL);
 	fail_unless(num_get_changes == 0, NULL);
 	
 	/* Client checks */
 	fail_unless(num_client_connected == 0, NULL);
-	fail_unless(num_client_main_connected == 0, NULL);
+	fail_unless(num_client_main_connected == 2, NULL);
 	fail_unless(num_client_read == 0, NULL);
 	fail_unless(num_client_main_read == 0, NULL);
 	fail_unless(num_client_written == 0, NULL);
@@ -967,7 +967,7 @@ START_TEST (dual_connect_error)
 	
 	/* Client checks */
 	fail_unless(num_engine_connected == 0, NULL);
-	fail_unless(num_engine_errors == 0, NULL);
+	fail_unless(num_engine_errors == 1, NULL);
 	fail_unless(num_engine_read == 0, NULL);
 	fail_unless(num_engine_written == 0, NULL);
 	fail_unless(num_engine_sync_done == 0, NULL);

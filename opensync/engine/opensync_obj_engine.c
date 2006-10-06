@@ -709,6 +709,7 @@ static void _obj_engine_connect_callback(OSyncClientProxy *proxy, void *userdata
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, error);
 	
 	if (error) {
+		osync_trace(TRACE_INTERNAL, "Obj Engine received connect error: %s", osync_error_print(&error));
 		osync_obj_engine_set_error(engine, error);
 		engine->sink_errors = engine->sink_errors | (0x1 << sinkengine->position);
 		osync_status_update_member(engine->parent, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, engine->objtype, error);
@@ -1410,8 +1411,10 @@ void osync_obj_engine_set_callback(OSyncObjEngine *engine, OSyncObjEngineEventCa
 void osync_obj_engine_set_error(OSyncObjEngine *engine, OSyncError *error)
 {
 	osync_assert(engine);
-	if (engine->error)
+	if (engine->error) {
+		osync_error_stack(&error, &engine->error);
 		osync_error_unref(&engine->error);
+	}
 	engine->error = error;
 	osync_error_ref(&error);
 }

@@ -78,8 +78,8 @@ static void osync_engine_set_error(OSyncEngine *engine, OSyncError *error)
 {
 	osync_assert(engine);
 	if (engine->error) {
-		osync_trace(TRACE_ERROR, "Not overwriting error");
-		return;
+		osync_error_stack(&error, &engine->error);
+		osync_error_unref(&engine->error);
 	}
 	
 	engine->error = error;
@@ -121,12 +121,16 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command);
 OSyncObjFormat *_osync_engine_get_internal_format(OSyncEngine *engine, const char *objtype)
 {
 	char *format = g_hash_table_lookup(engine->internalFormats, objtype);
+	if (!format)
+		return NULL;
 	return osync_format_env_find_objformat(engine->formatenv, format);
 }
 
 void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype, OSyncObjFormat *format)
 {
 	osync_trace(TRACE_INTERNAL, "Setting internal format of %s to %p", objtype, format);
+	if (!format)
+		return;
 	g_hash_table_insert(engine->internalFormats, g_strdup(objtype), g_strdup(osync_objformat_get_name(format)));
 }
 
@@ -411,6 +415,8 @@ void osync_engine_unref(OSyncEngine *engine)
 	osync_assert(engine);
 		
 	if (g_atomic_int_dec_and_test(&(engine->ref_count))) {
+		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	
 		if (engine->internalFormats)
 			g_hash_table_destroy(engine->internalFormats);
 		
@@ -456,7 +462,11 @@ void osync_engine_unref(OSyncEngine *engine)
 		if (engine->archive)
 			osync_archive_unref(engine->archive);
 		
+		if (engine->error)
+			osync_error_unref(&(engine->error));
+		
 		g_free(engine);
+		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
 }
 
@@ -739,8 +749,18 @@ static osync_bool _generate_connected_event(OSyncEngine *engine)
 		return FALSE;
 	
 	if (BitCount(engine->obj_errors | engine->obj_connects) == g_list_length(engine->object_engines)) {
-		osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_CONNECTED, NULL);
-		osync_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
+		if (BitCount(engine->obj_errors) == g_list_length(engine->object_engines)) {
+			OSyncError *locerror = NULL;
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "No objtypes left without error. Aborting");
+			osync_trace(TRACE_ERROR, "%s", osync_error_print(&locerror));
+			osync_engine_set_error(engine, locerror);
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_ERROR, locerror);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
+			osync_error_unref(&locerror);
+		} else {
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_CONNECTED, NULL);
+			osync_engine_event(engine, OSYNC_ENGINE_EVENT_CONNECTED);
+		}
 		return TRUE;
 	}
 	
@@ -971,6 +991,8 @@ static void _engine_event_callback(OSyncObjEngine *objengine, OSyncEngineEvent e
 			_generate_connected_event(engine);
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
+			osync_trace(TRACE_ERROR, "Engine received an error: %s", osync_error_print(&error));
+			osync_engine_set_error(engine, error);
 			engine->obj_errors = engine->obj_errors | (0x1 << i);
 			break;
 		case OSYNC_ENGINE_EVENT_READ:
@@ -1209,6 +1231,11 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			g_mutex_unlock(engine->syncing_mutex);
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
+			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)));
+			
+			g_mutex_lock(engine->syncing_mutex);
+			g_cond_signal(engine->syncing);
+			g_mutex_unlock(engine->syncing_mutex);
 			break;
 		case OSYNC_ENGINE_EVENT_SUCCESSFUL:
 		case OSYNC_ENGINE_EVENT_END_CONFLICTS:
@@ -1288,6 +1315,9 @@ osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **
 	g_mutex_unlock(engine->syncing_mutex);
 	
 	if (engine->error) {
+		char *msg = osync_error_print_stack(&(engine->error));
+		osync_trace(TRACE_ERROR, "error while synchronizing: %s", msg);
+		g_free(msg);
 		osync_error_set_from_error(error, &(engine->error));
 		osync_error_unref(&(engine->error));
 		engine->error = NULL;

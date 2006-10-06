@@ -102,37 +102,71 @@ START_TEST (error_check2)
 }
 END_TEST
 
-START_TEST (error_update_null)
+START_TEST (error_stack_null)
 {
-	osync_error_update(NULL, NULL);
+	osync_error_stack(NULL, NULL);
 
 }
 END_TEST
 
-START_TEST (error_update_null2)
-{
-	OSyncError *error = NULL;
-	osync_error_update(&error, NULL);
-}
-END_TEST
-
-START_TEST (error_update)
+START_TEST (error_stack_null2)
 {
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_GENERIC, "test");
-	osync_error_update(&error, "test2%i", 1);
-	fail_unless(!strcmp(osync_error_print(&error), "test21"), NULL);
+	
+	char *msg = osync_error_print_stack(&error);
+	fail_unless(msg != NULL, NULL);
+	g_free(msg);
+	
+	osync_error_stack(&error, NULL);
 	osync_error_unref(&error);
 }
 END_TEST
 
-START_TEST (error_update2)
+START_TEST (error_stack)
 {
 	OSyncError *error = NULL;
 	osync_error_set(&error, OSYNC_ERROR_GENERIC, "test");
-	osync_error_update(&error, "test2%s", osync_error_print(&error));
-	fail_unless(!strcmp(osync_error_print(&error), "test2test"), NULL);
+	OSyncError *error2 = NULL;
+	osync_error_set(&error2, OSYNC_ERROR_GENERIC, "test2");
+	osync_error_stack(&error, &error2);
+	fail_unless(!strcmp(osync_error_print(&error), "test"), NULL);
+	OSyncError *error3 = osync_error_get_child(&error);
+	fail_unless(!strcmp(osync_error_print(&error3), "test2"), NULL);
+	error3 = osync_error_get_child(&error2);
+	fail_unless(error3 == NULL, NULL);
+	
+	osync_error_unref(&error2);
 	osync_error_unref(&error);
+}
+END_TEST
+
+START_TEST (error_stack2)
+{
+	OSyncError *error1 = NULL;
+	osync_error_set(&error1, OSYNC_ERROR_GENERIC, "test1");
+	OSyncError *error2 = NULL;
+	osync_error_set(&error2, OSYNC_ERROR_GENERIC, "test2");
+	OSyncError *error3 = NULL;
+	osync_error_set(&error3, OSYNC_ERROR_GENERIC, "test3");
+	
+	osync_error_stack(&error1, &error2);
+	osync_error_stack(&error2, &error3);
+	
+	osync_error_unref(&error2);
+	osync_error_unref(&error3);
+	
+	fail_unless(!strcmp(osync_error_print(&error1), "test1"), NULL);
+	OSyncError *error = osync_error_get_child(&error1);
+	fail_unless(!strcmp(osync_error_print(&error), "test2"), NULL);
+	error = osync_error_get_child(&error);
+	fail_unless(!strcmp(osync_error_print(&error), "test3"), NULL);
+	
+	char *msg = osync_error_print_stack(&error1);
+	fail_unless(msg != NULL, NULL);
+	g_free(msg);
+	
+	osync_error_unref(&error1);
 }
 END_TEST
 
@@ -140,14 +174,6 @@ START_TEST (error_set_null)
 {
 	osync_error_set(NULL, OSYNC_NO_ERROR, NULL);
 
-}
-END_TEST
-
-START_TEST (error_set_null2)
-{
-	OSyncError *error = NULL;
-	osync_error_update(&error, OSYNC_NO_ERROR, NULL);
-	osync_error_unref(&error);
 }
 END_TEST
 
@@ -192,12 +218,11 @@ Suite *error_suite(void)
 	create_case(s, "error_check_null2", error_check_null2);
 	create_case(s, "error_check", error_check);
 	create_case(s, "error_check2", error_check2);
-	create_case(s, "error_update_null", error_update_null);
-	create_case(s, "error_update_null2", error_update_null2);
-	create_case(s, "error_update", error_update);
-	create_case(s, "error_update2", error_update2);
+	create_case(s, "error_stack_null", error_stack_null);
+	create_case(s, "error_stack_null2", error_stack_null2);
+	create_case(s, "error_stack", error_stack);
+	create_case(s, "error_stack2", error_stack2);
 	create_case(s, "error_set_null", error_set_null);
-	create_case(s, "error_set_null2", error_set_null2);
 	create_case(s, "error_duplicate_null", error_duplicate_null);
 	create_case(s, "error_duplicate", error_duplicate);
 	

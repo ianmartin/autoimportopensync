@@ -124,7 +124,10 @@ void osync_error_unref(OSyncError **error)
 	if (g_atomic_int_dec_and_test(&(*error)->ref_count)) {
 		if ((*error)->message)
 			g_free ((*error)->message);
-			
+		
+		if ((*error)->child)
+			osync_error_unref(&((*error)->child));
+		
 		g_free(*error);
 	}
 	
@@ -177,28 +180,23 @@ const char *osync_error_print(OSyncError **error)
 	return (*error)->message;
 }
 
-/*! @brief Updates the error message
- * 
- * You can use this function to update the error message on
- * a error. You can use the old error->message as a parameter
- * for this function.
- * 
- * @param error A pointer to a error struct to update
- * @param format The new message
- * 
- */
-void osync_error_update(OSyncError **error, const char *format, ...)
+char *osync_error_print_stack(OSyncError **error)
 {
-	va_list args;
-	char *buffer;
-	osync_return_if_fail(error != NULL);
-	osync_return_if_fail(*error != NULL);
-
-	va_start(args, format);
-	buffer = g_strdup_vprintf(format, args);
-	g_free((*error)->message);
-	(*error)->message = buffer;
-	va_end (args);
+	if (!osync_error_is_set(error))
+		return NULL;
+		
+	char *submessage = NULL;
+	if ((*error)->child)
+		submessage = osync_error_print_stack(&((*error)->child));
+	
+	char *message = NULL;
+	if (submessage) {
+		message = g_strdup_printf("NEXT ERROR: \"%s\"; %s", (*error)->message, submessage);
+		g_free(submessage);
+	} else
+		message = g_strdup_printf("ROOT CAUSE: \"%s\"", (*error)->message);
+	
+	return message;
 }
 
 /*! @brief Duplicates the error into the target
@@ -237,6 +235,29 @@ void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format
 	va_start(args, format);
 	osync_error_set_vargs(error, type, format, args);
 	va_end (args);
+}
+
+void osync_error_stack(OSyncError **parent, OSyncError **child)
+{
+	if (!parent || !*parent)
+		return;
+	
+	if (!child || !*child)
+		return;
+	
+	if ((*parent)->child)
+		osync_error_unref(&((*parent)->child));
+	
+	(*parent)->child = *child;
+	osync_error_ref(child);
+}
+
+OSyncError *osync_error_get_child(OSyncError **parent)
+{
+	if (!parent || !*parent)
+		return NULL;
+	
+	return (*parent)->child;
 }
 
 /*! @brief Sets the type of an error

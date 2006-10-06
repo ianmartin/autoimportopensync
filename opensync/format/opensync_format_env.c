@@ -118,8 +118,10 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	/* Load the converters, filters, etc */
 	for (m = env->modules; m; m = m->next) {
 		module = m->data;
-		if (!osync_module_get_conversion_info(module, env, error))
-			goto error;
+		if (!osync_module_get_conversion_info(module, env, error)) {
+			osync_trace(TRACE_INTERNAL, "Module get conversion error %s", osync_error_print(error));
+			osync_error_unref(error);
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

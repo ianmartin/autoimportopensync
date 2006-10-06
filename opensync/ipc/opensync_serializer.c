@@ -283,6 +283,5 @@ void osync_demarshal_error(OSyncMessage *message, OSyncError **error)
 		
 		osync_error_set(error, (OSyncErrorType)error_type, msg);
 		g_free(msg);
-	} else
-		osync_error_unref(error);
+	}
 }
