@@ -25,6 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_comms.h"
 #include "opie_xml.h"
 #include "opie_format.h"
+#include "config.h"
 
 #include <opensync/opensync-xml.h>
 
@@ -1067,7 +1068,13 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 					g_free(startvtime);
 					/* Record the start date for use later */
 					startdate = g_date_new();
+#ifdef NEW_GLIB_VER
 					g_date_set_time_t(startdate, starttime);
+#else
+					/* This is deprecated */
+					GTime g_starttime = (GTime)starttime;					
+					g_date_set_time(startdate, g_starttime);
+#endif /* NEW_GLIB_VER */
 				}
 				else if(!strcasecmp(iprop->name, "end")) 
 				{
