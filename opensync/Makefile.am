@@ -23,6 +23,7 @@ opensyncinclude_HEADERS = \
 	opensync_anchor.h \
 	opensync_filter.h \
 	opensync_time.h \
+	opensync_xml.h \
 	opensync_debug.h \
 	opensync_changecmds.h \
 	opensync_serializer.h
@@ -64,6 +65,7 @@ libopensync_la_SOURCES = \
 	opensync_convreg.c \
 	opensync_anchor.c \
 	opensync_time.c \
+	opensync_xml.c \
 	opensync_filter.c \
 	opensync_queue.c \
 	opensync_message.c \

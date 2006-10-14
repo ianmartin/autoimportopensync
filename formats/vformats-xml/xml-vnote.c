@@ -19,7 +19,7 @@
  * 
  */
  
-#include "opensync-xml.h"
+#include "xml-support.h"
 #include "vformat.h"
 #include "xml-vnote.h"
 #include <glib.h>

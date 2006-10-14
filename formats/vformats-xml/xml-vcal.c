@@ -18,7 +18,7 @@
  * 
  */
  
-#include "opensync-xml.h"
+#include "xml-support.h"
 #include "vformat.h"
 #include "vcalical.h"
 #include "xml-vcal.h"

@@ -18,9 +18,10 @@
  * 
  */
  
-#include "opensync-xml.h"
+#include "xml-support.h"
 #include "vformat.h"
 #include "xml-vcard.h"
+#include <opensync/opensync_xml.h>
 #include <glib.h>
 
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
