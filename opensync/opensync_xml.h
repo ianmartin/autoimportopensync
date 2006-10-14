@@ -5,10 +5,6 @@
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 
-#include <opensync/opensync.h>
-#include <string.h>
-#include <stdio.h>
-
 #ifdef __cplusplus
 extern "C"
 {
