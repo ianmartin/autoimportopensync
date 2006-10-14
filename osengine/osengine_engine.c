@@ -906,9 +906,18 @@ void osengine_finalize(OSyncEngine *engine)
 	
 	osengine_mappingtable_close(engine->maptable);
 	
-	if (engine->error)
-		osync_group_unlock(engine->group, FALSE);
-	else
+	if (engine->error) {
+		/* If the error occured during connect, we
+		 * dont want to trigger a slow-sync the next
+		 * time. In the case the we have a slow-sync
+		 * right in the beginning, we also dont remove
+		 * the lockfile to trigger a slow-sync again
+		 * next time */
+		if (!osync_flag_is_set(engine->cmb_connected) && !engine->slowsync)
+			osync_group_unlock(engine->group, TRUE);
+		else
+			osync_group_unlock(engine->group, FALSE);
+	} else
 		osync_group_unlock(engine->group, TRUE);
 	
 	engine->is_initialized = FALSE;
@@ -934,6 +943,15 @@ osync_bool osengine_synchronize(OSyncEngine *engine, OSyncError **error)
 	if (!engine->is_initialized) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "osengine_synchronize: Not initialized");
 		goto error;
+	}
+	
+	/* We now remember if slow-sync is set right from the start.
+	 * If it is, we dont remove the lock file in the case of
+	 * a error during connect. */
+	if (osync_group_get_slow_sync(engine->group, "data")) {
+		engine->slowsync = TRUE;
+	} else {
+		engine->slowsync = FALSE;
 	}
 	
 	engine->wasted = 0;

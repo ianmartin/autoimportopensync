@@ -762,12 +762,10 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 
 			osync_env_export_loaded_modules(osync_group_get_env(engine->group));
 
-			osync_trace(TRACE_INTERNAL, "About to exec osplugin");
 			char *memberstring = g_strdup_printf("%lli", osync_member_get_id(client->member));
 			execlp(OSPLUGIN, OSPLUGIN, osync_group_get_configdir(engine->group), memberstring, NULL);
 			
 			if (errno == ENOENT) {
-				osync_trace(TRACE_INTERNAL, "Unable to find osplugin. Trying local path.");
 				execlp("./osplugin", "osplugin", osync_group_get_configdir(engine->group), memberstring, NULL);
 			}
 			

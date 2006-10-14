@@ -61,6 +61,8 @@ struct OSyncEngine {
 	
 	int wasted;
 	int alldeciders;
+	
+	osync_bool slowsync;
 };
 #endif
 

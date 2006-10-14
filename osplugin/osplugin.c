@@ -454,6 +454,7 @@ void message_handler(OSyncMessage *message, void *user_data)
 	case OSYNC_MESSAGE_QUEUE_HUP:
 		osync_trace(TRACE_INTERNAL, "%s: ERROR: Queue hangup", __func__);
 		fprintf(stderr, "Pipe closed! Exiting.\n");
+		osync_trace(TRACE_EXIT, "%s: Exiting application. Goodbye.", __func__);
 		exit(1);
 		break;
 	default:

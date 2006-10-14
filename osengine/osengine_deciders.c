@@ -175,7 +175,6 @@ void osengine_client_decider(OSyncEngine *engine, OSyncClient *client)
 		return;
 	}
 	
-	//FIXME Remove cmb_connected once we fix the all conect "bug"
 	if (osync_flag_is_set(engine->fl_running) \
 	&& osync_flag_is_not_set(engine->fl_stop) \
 	&& osync_flag_is_not_set(client->fl_done) \

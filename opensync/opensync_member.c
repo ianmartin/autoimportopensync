@@ -252,7 +252,6 @@ osync_bool osync_member_instance_plugin(OSyncMember *member, const char *pluginn
 		return FALSE;
 	}
 	
-	osync_debug("OSMEM", 3, "Instancing plugin %s for member %i", plugin->info.name, member->id);
 	osync_member_unload_plugin(member);
 	
 	//For now we disable the threadsafety feature since dlopen doesnt like it

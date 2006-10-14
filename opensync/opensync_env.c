@@ -82,8 +82,6 @@ static osync_bool osync_env_query_option_bool(OSyncEnv *env, const char *name)
  */
 void osync_env_export_loaded_modules(OSyncEnv *env)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
-
 	int num_modules = g_list_length(env->modules);
 
 	/* build an array for g_strjoinv() */
@@ -92,7 +90,6 @@ void osync_env_export_loaded_modules(OSyncEnv *env)
 	for (i = 0; i < num_modules; i++) {
 		GModule *module = g_list_nth_data(env->modules, i);
 		const gchar *path = g_module_name(module);
-		osync_trace(TRACE_INTERNAL, "Path being exported: %s", path);
 		/*XXX: casting to non-const, here. Ugly.
 		 *
 		 * We know the elements pointed by path_array won't
@@ -104,11 +101,8 @@ void osync_env_export_loaded_modules(OSyncEnv *env)
 
 	/* Build a ':'-separated list */
 	gchar *list_str = g_strjoinv(":", path_array);
-	osync_trace(TRACE_INTERNAL, "FORMAT_LIST: %s", list_str);
 	setenv("OSYNC_FORMAT_LIST", list_str, 1);
 	g_free(list_str);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void export_option_to_env(gpointer key, gpointer data, gpointer user_data)

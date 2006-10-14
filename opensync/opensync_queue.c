@@ -581,16 +581,12 @@ osync_bool osync_queue_exists(OSyncQueue *queue)
 }
 
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
-	
+{	
 	if (mkfifo(queue->name, 0600) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create fifo");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
 
@@ -610,7 +606,6 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 
 static osync_bool __osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, osync_bool nonblocking, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, queue, type, error);
 	osync_assert(queue);
 	osync_assert(queue->connected == FALSE);
 	OSyncQueue **queueptr = NULL;
@@ -674,13 +669,11 @@ static osync_bool __osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, 
 	
 	osync_thread_start(queue->thread);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error_close:
 	close(queue->fd);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -901,26 +894,21 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 
 osync_bool osync_queue_is_alive(OSyncQueue *queue)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
 	if (!osync_queue_try_connect(queue, OSYNC_QUEUE_SENDER, NULL)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
 		return FALSE;
 	}
 	
 	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_NOOP, 0, NULL);
 	if (!message) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to create new message", __func__);
 		return FALSE;
 	}
 	
 	if (!osync_queue_send_message(queue, NULL, message, NULL)) {
-		osync_trace(TRACE_EXIT, "%s: Not alive", __func__);
 		return FALSE;
 	}
 	
 	osync_queue_disconnect(queue, NULL);
 	
-	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
