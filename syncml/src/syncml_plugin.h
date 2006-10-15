@@ -67,6 +67,7 @@ typedef struct SmlPluginEnv {
 	
 	SmlBool gotFinal;
 	SmlBool gotDisconnect;
+	SmlBool tryDisconnect;
 	
 	unsigned int recvLimit;
 	unsigned int maxObjSize;

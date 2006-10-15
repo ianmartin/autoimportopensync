@@ -245,6 +245,20 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 			}
 			break;
 		case SML_MANAGER_TRANSPORT_ERROR:
+			osync_trace(TRACE_INTERNAL, "There was an error in the transport: %s", smlErrorPrint(&error));
+			if (!env->gotDisconnect) {
+				if (env->tryDisconnect == FALSE) {
+					env->tryDisconnect = TRUE;
+					smlTransportDisconnect(env->tsp, NULL, NULL);
+					while (!env->gotDisconnect) {
+						smlManagerDispatch(manager);
+					}
+				} else {
+					env->gotDisconnect = TRUE;
+					osync_trace(TRACE_EXIT_ERROR, "%s: error while disconnecting: %s", __func__, smlErrorPrint(&error));
+					return;
+				}
+			}
 			goto error;
 			break;
 		case SML_MANAGER_SESSION_NEW:
@@ -1000,6 +1014,7 @@ static void client_connect(OSyncContext *ctx)
 	OSyncError *oserror = NULL;
 	SmlNotification *san = NULL;
 	
+	env->tryDisconnect = FALSE;
 	if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
 		/* For the obex client, we will store the context at this point since
 		 * we can only answer it as soon as the device returned an answer to our san */
