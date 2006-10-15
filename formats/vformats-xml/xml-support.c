@@ -260,22 +260,26 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	xmlNodeSet *lnodes = leftxobj->nodesetval;
 	xmlNodeSet *rnodes = rightxobj->nodesetval;
 
-	// WORKAROUND - FIXME
-	// if nodeTab[0] is an Event or Todo we need a new node structure (/*/*/*)
-	if ((!strcmp((char*)lnodes->nodeTab[0]->name, "Event") && \
-		!strcmp((char*)rnodes->nodeTab[0]->name, "Event")) || \
-	    (!strcmp((char*)lnodes->nodeTab[0]->name, "Todo") && \
-		!strcmp((char*)rnodes->nodeTab[0]->name, "Todo"))) {
+	// Check if nodeTab actually exists (for example vnote stuff would crash otherwise...)
+	if (lnodes->nodeTab && rnodes->nodeTab) {
+		// WORKAROUND - FIXME
+		// if nodeTab[0] is an Event or Todo we need a new node structure (/*/*/*)
 
-		xmlXPathFreeObject(leftxobj);
-		xmlXPathFreeObject(rightxobj);
+		if ((!strcmp((char*)lnodes->nodeTab[0]->name, "Event") && \
+			!strcmp((char*)rnodes->nodeTab[0]->name, "Event")) || \
+		    (!strcmp((char*)lnodes->nodeTab[0]->name, "Todo") && \
+			!strcmp((char*)rnodes->nodeTab[0]->name, "Todo"))) {
 
-		leftxobj = osxml_get_nodeset(leftdoc, "/*/*/*");
-		rightxobj = osxml_get_nodeset(rightdoc, "/*/*/*");
+			xmlXPathFreeObject(leftxobj);
+			xmlXPathFreeObject(rightxobj);
 
-		lnodes = leftxobj->nodesetval;
-		rnodes = rightxobj->nodesetval;
+			leftxobj = osxml_get_nodeset(leftdoc, "/*/*/*");
+			rightxobj = osxml_get_nodeset(rightdoc, "/*/*/*");
 
+			lnodes = leftxobj->nodesetval;
+			rnodes = rightxobj->nodesetval;
+
+		}
 	}
 
 	int lsize = (lnodes) ? lnodes->nodeNr : 0;
