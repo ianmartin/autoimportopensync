@@ -14,5 +14,5 @@
   <maxObjSize>0</maxObjSize>
   <contact_db>addressbook</contact_db>
   <calendar_db>calendar</calendar_db>
-  <note_db>tasks</note_db>
+  <note_db>notes</note_db>
 </config>
