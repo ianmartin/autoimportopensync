@@ -27,7 +27,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_format.h"
 #include "config.h"
 
-#include <opensync/opensync-xml.h>
+#include <opensync/opensync_xml.h>
 
 enum OpieTodoState {
 	OPIE_TODO_STATE_STARTED     = 0,
