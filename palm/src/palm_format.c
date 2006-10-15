@@ -2061,8 +2061,11 @@ static osync_bool conv_xml_to_palm_note(void *user_data, char *input, int inpsiz
 	
 	// Body
 	cur = osxml_get_node(root, "Body"); 
-	if (cur)
+	if (cur) {
+    		if (memo->len > 0)
+	    		memo = g_string_append(memo, "\n");
 		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
+	}
 
 	entry->memo.text = (char *) g_string_free(memo, FALSE);
 
