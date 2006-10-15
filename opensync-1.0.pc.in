@@ -13,4 +13,4 @@ Description: OpenSync synchronization framework
 Version: @VERSION@
 Requires: libxml-2.0
 Libs: -L${libdir} -lopensync
-Cflags: -I${includedir}/opensync-1.0 @XML_CFLAGS@
+Cflags: -I${includedir}/opensync-1.0
