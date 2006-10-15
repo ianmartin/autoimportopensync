@@ -276,9 +276,13 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 
 	sub = xmlNewTextChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
 
-	// get timestamp of DateStarted
-	dtstartNode = osxml_get_node(root, "DateStarted");
-	dtstarted = osxml_find_node(dtstartNode, "Content");
+	// get timestamp of DateStarted or DateDue (for todos)
+	if ((dtstartNode = osxml_get_node(root, "DateDue"))) {
+		dtstarted = osxml_find_node(dtstartNode, "Content");
+	} else {	
+		dtstartNode = osxml_get_node(root, "DateStarted");
+		dtstarted = osxml_find_node(dtstartNode, "Content");
+	}
 	started = osync_time_vtime2unix(dtstarted);
 	g_free(dtstarted);
 
@@ -309,9 +313,14 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 
 	sub = xmlNewTextChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
 
-	// get timestamp of DateStarted
-	dtstartNode = osxml_get_node(root, "DateStarted");
-	dtstarted = osxml_find_node(dtstartNode, "Content");
+	// get timestamp of DateStarted or DateDue (for todos)
+	if ((dtstartNode = osxml_get_node(root, "DateDue"))) {
+		dtstarted = osxml_find_node(dtstartNode, "Content");
+	} else {	
+		dtstartNode = osxml_get_node(root, "DateStarted");
+		dtstarted = osxml_find_node(dtstartNode, "Content");
+	}
+
 	started = osync_time_vtime2unix(dtstarted);
 	g_free(dtstarted);
 
