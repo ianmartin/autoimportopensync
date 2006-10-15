@@ -6,6 +6,7 @@
 #include <libxml/xpath.h>
 
 #include <opensync/opensync.h>
+#include <opensync/opensync_xml.h>
 #include <string.h>
 #include <stdio.h>
 

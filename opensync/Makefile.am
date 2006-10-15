@@ -46,7 +46,8 @@ EXTRA_DIST = \
 	opensync_group_internals.h \
 	opensync_hashtable_internals.h \
 	opensync_support.h \
-	opensync_user_internals.h
+	opensync_user_internals.h \
+	opensync_time_internals.h
 
 libopensync_la_SOURCES = \
 	opensync_debug.c \

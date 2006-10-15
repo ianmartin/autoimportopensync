@@ -35,4 +35,7 @@ void get_info(OSyncEnv *env)
 	osync_env_register_detector(env, "plain", "vnote11", detect_plain_as_vnote);
 	osync_env_format_set_create_func(env, "vnote11", create_vnote11);
 	osync_env_format_set_compare_func(env, "vnote11", compare_vnote);
+	
+	osync_env_register_objtype(env, "note");
+	osync_env_register_objformat(env, "note", "memo");
 }

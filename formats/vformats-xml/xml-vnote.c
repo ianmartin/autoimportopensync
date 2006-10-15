@@ -223,6 +223,43 @@ static osync_bool conv_vnote_to_xml(void *conv_data, char *input, int inpsize, c
 	return TRUE;
 }
 
+static osync_bool conv_memo_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
+	
+	osync_trace(TRACE_SENSITIVE, "Input memo is:\n%s", input);
+	
+	xmlNode *current = NULL;
+
+    //Create a new xml document
+    xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+    xmlNode *root = osxml_node_add_root(doc, "Note");
+
+    // Summary & Body
+    if (input) {
+        gchar **splitMemo = g_strsplit(input, "\n", 2);
+
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
+        xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
+
+        current = xmlNewTextChild(root, NULL, (xmlChar*)"Body", NULL);
+        xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
+
+        g_strfreev(splitMemo);
+    }
+	
+	xmlChar *str = osxml_write_to_string(doc);
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", str);
+	xmlFree(str);
+	
+	*free_input = TRUE;
+	*output = (char *)doc;
+	*outpsize = sizeof(doc);
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+}
+
 static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
 {
 	int i = 0;
@@ -438,6 +475,46 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	return TRUE;
 }
 
+static osync_bool conv_xml_to_memo(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	
+	xmlChar *str = osxml_write_to_string((xmlDoc *)input);
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", str);
+	xmlFree(str);
+	
+	//Get the root node of the input document
+	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "Note", error);
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-note");
+		goto error;
+	}
+
+	GString *memo = g_string_new("");
+
+    // Summary
+    xmlNode *cur = osxml_get_node(root, "Summary");
+    if (cur)
+		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
+
+	// Body
+    cur = osxml_get_node(root, "Body");
+    if (cur)
+        memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
+	
+	*free_input = TRUE;
+	*output = g_string_free(memo, FALSE);
+	osync_trace(TRACE_SENSITIVE, "memo output is: \n%s", *output);
+	*outpsize = strlen(*output);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
 static OSyncConvCmpResult compare_notes(OSyncChange *leftchange, OSyncChange *rightchange)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
@@ -579,4 +656,7 @@ void get_info(OSyncEnv *env)
 	osync_env_converter_set_init(env, "vnote11", "xml-note", init_vnote_to_xml, fin_vnote_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "vnote11", conv_xml_to_vnote);
 	osync_env_converter_set_init(env, "xml-note", "vnote11", init_xml_to_vnote, fin_xml_to_vnote);
+	
+	osync_env_register_converter(env, CONVERTER_CONV, "memo", "xml-note", conv_memo_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "memo", conv_xml_to_memo);
 }

@@ -17,7 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  * 
  */
- 
+
+#include "opensync/opensync.h" 
+#include "opensync/opensync_time_internals.h"
 #include "xml-support.h"
 #include <glib.h>
 
