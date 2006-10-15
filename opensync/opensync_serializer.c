@@ -57,8 +57,13 @@ void osync_marshal_changedata(OSyncMessage *message, OSyncChange *change)
 		/*FIXME: Handle errors on marshall_func */
 		free_data = 1;
 	} else {
+		/* If the format is a plain format, then we have to add
+		 * one byte for \0 to the datasize. This extra byte will
+		 * be removed by the osync_demarshal_changedata funciton.
+		 */
 		data = change->data;
 		datasize = change->size;
+		datasize++;
 	}
 
 	if (!data)
@@ -114,6 +119,12 @@ void osync_demarshal_changedata(OSyncMessage *message, OSyncChange *change)
 			free(data);
 			data = newdata;
 			datasize = newsize;
+		} else {
+			/* If the format is a plain, then we have to remove
+			 * one from the datasize, since once one was added by 
+		       	 * osync_marshall_changedata() for trailing newline.
+			 */
+			datasize--;
 		}
 	} else {
 		data = NULL;
