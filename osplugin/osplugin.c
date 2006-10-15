@@ -128,6 +128,16 @@ void osync_client_changes_sink(OSyncMember *member, OSyncChange *change, void *u
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static void usage (char *name)
+{
+  fprintf (stderr, "\nUsage: %s <group path> <memberid>\n\n", name);
+  fprintf (stderr, "<group path> is the path to the directory\n");
+  fprintf (stderr, "\tof the group to synchronize\n");
+  fprintf (stderr, "<memberid> is the id of the member to debug\n\n");
+  fprintf (stderr, "Example: %s /home/joe/.opensync/group1 1\n", name);
+  exit (1);
+}
+
 int main( int argc, char **argv )
 {
 	osync_trace(TRACE_ENTRY, "%s(%i, %p)", __func__, argc, argv);
@@ -135,7 +145,9 @@ int main( int argc, char **argv )
 	GMainContext *context;
 	OSyncError *error = NULL;
 	PluginProcess pp;
-	assert(argc == 3);
+	
+	if (argc != 3)
+		usage(argv[0]);
 
 	memset(&pp, 0, sizeof(pp));
 
