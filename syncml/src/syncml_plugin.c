@@ -101,12 +101,20 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 		osync_change_set_uid(change, uid);
 		
 		if (contenttype != NULL) {
+			/* We specify the objformat plain for vcard and vcal
+			 * since we cannot be really sure what the device sends
+			 * us, without looking at the devinf. Since we dont use
+			 * the devinf yet, we let the opensync detector decide
+			 * what format the item is.
+			 * 
+			 * For text/plain (notes) we specify the memo format, 
+			 * so that it does not get detected */
 			if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD))
-				osync_change_set_objformat_string(change, "vcard21");
+				osync_change_set_objformat_string(change, "plain");
 			else if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL))
 				osync_change_set_objformat_string(change, "plain");
 			else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
-				osync_change_set_objformat_string(change, "plain");
+				osync_change_set_objformat_string(change, "memo");
 		}
 		
 		osync_change_set_data(change, data, size, TRUE);
@@ -1574,8 +1582,8 @@ void get_info(OSyncEnv *env)
 	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo20", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "note");
-	osync_plugin_accept_objformat(info, "note", "plain", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "note", "plain", batch_commit);
+	osync_plugin_accept_objformat(info, "note", "memo", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "note", "memo", batch_commit);
 	
 	info = osync_plugin_new_info(env);
 	
@@ -1609,6 +1617,6 @@ void get_info(OSyncEnv *env)
 	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo10", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "note");
-	osync_plugin_accept_objformat(info, "note", "plain", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "note", "plain", batch_commit);
+	osync_plugin_accept_objformat(info, "note", "memo", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "note", "memo", batch_commit);
 }
