@@ -496,12 +496,14 @@ static osync_bool conv_xml_to_memo(void *user_data, char *input, int inpsize, ch
     xmlNode *cur = osxml_get_node(root, "Summary");
     if (cur)
 		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
-
+    
 	// Body
     cur = osxml_get_node(root, "Body");
-    if (cur)
+    if (cur) {
+    	if (memo->len > 0)
+    		memo = g_string_append(memo, "\n");
         memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
-	
+    }
 	*free_input = TRUE;
 	*output = g_string_free(memo, FALSE);
 	osync_trace(TRACE_SENSITIVE, "memo output is: \n%s", *output);
