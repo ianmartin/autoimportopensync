@@ -21,7 +21,7 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-#include <opensync/opensync-xml.h>
+#include <opensync/opensync_xml.h>
 
 char *conv_enc_palm_to_xml(const char *text) {
 	char *ret;
