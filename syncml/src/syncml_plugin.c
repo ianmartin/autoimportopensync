@@ -100,12 +100,14 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 		osync_change_set_member(change, env->member);
 		osync_change_set_uid(change, uid);
 		
-		if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD))
-			osync_change_set_objformat_string(change, "vcard21");
-		else if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL))
-			osync_change_set_objformat_string(change, "plain");
-		else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
-			osync_change_set_objformat_string(change, "plain");
+		if (contenttype != NULL) {
+			if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD))
+				osync_change_set_objformat_string(change, "vcard21");
+			else if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL))
+				osync_change_set_objformat_string(change, "plain");
+			else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
+				osync_change_set_objformat_string(change, "plain");
+		}
 		
 		osync_change_set_data(change, data, size, TRUE);
 		osync_change_set_changetype(change, _to_osync_changetype(type));
