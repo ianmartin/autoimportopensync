@@ -1068,13 +1068,15 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 					g_free(startvtime);
 					/* Record the start date for use later */
 					startdate = g_date_new();
-#ifdef NEW_GLIB_VER
-					g_date_set_time_t(startdate, starttime);
-#else
+
+#ifdef OLD_GLIB_VER
 					/* This is deprecated */
 					GTime g_starttime = (GTime)starttime;					
 					g_date_set_time(startdate, g_starttime);
-#endif /* NEW_GLIB_VER */
+#else
+					g_date_set_time_t(startdate, starttime);
+#endif /* OLD_GLIB_VER */
+
 				}
 				else if(!strcasecmp(iprop->name, "end")) 
 				{

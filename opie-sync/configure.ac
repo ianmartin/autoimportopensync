@@ -47,8 +47,8 @@ AC_SUBST(OPENSYNC_FORMATSDIR) ## Here are format plugins installed (if any)
 AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may need (if any)
 
 #### check for glib2-devel >= 2.10 ####
-pkg-config --atleast-version=2.10 glib-2.0 && AC_DEFINE([NEW_GLIB_VER],1,[Define to 1 if glib2-devel >= 2.10])
-
+pkg-config --exists 'glib-2.0 < 2.10' && AC_DEFINE([OLD_GLIB_VER],1,[Define to 1 if glib2-devel < 2.10])
+	
 AC_OUTPUT([
 Makefile
 src/Makefile
