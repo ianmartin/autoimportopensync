@@ -21,7 +21,7 @@
 #include "gnokii_sync.h"
 #include "gnokii_contact_utils.h"
 #include "gnokii_contact_format.h"
-#include <opensync/opensync-xml.h>
+#include <opensync/opensync_xml.h>
 
 /*
  * Converts the gnokii contact object type (gn_phonebook_entry) into XML.

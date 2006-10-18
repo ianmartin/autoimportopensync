@@ -21,7 +21,7 @@
 #include "gnokii_sync.h"
 #include "gnokii_calendar_utils.h"
 #include "gnokii_calendar_format.h"
-#include <opensync/opensync-xml.h>
+#include <opensync/opensync_xml.h>
 
 /*
  * Converts the gnokii event object type (gn_calnote) into XML.
