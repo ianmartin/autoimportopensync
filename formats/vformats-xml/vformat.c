@@ -194,6 +194,12 @@ static void _skip_until (char **p, char *s)
 
 static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GString *charset)
 {
+	/* don't convert empty strings */
+	if (str->len == 0) {
+		vformat_attribute_add_value(attr, str->str);
+		return;
+	}      	
+
 	char *inbuf, *outbuf, *p;
 	size_t inbytesleft, outbytesleft;
 
