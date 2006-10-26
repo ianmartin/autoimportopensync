@@ -966,10 +966,16 @@ class PhoneEventXML(PhoneEvent):
         durationstr = getField('Duration')
         if durationstr != '':
             self.duration = parse_ical_duration(durationstr)
-            enddt = self.eventdt + self.duration
         else:
-            enddt = parse_ical_time(getField('DateEnd'))
-            self.duration = enddt - self.eventdt
+            endstr = getField('DateEnd')
+            if endstr != '':
+                self.duration = parse_ical_time(endstr) - self.eventdt
+            else:
+                # no duration or end specified, assume whole-day or no duration
+                if isinstance(self.eventdt, date):
+                    self.duration = timedelta(1)
+                else:
+                    self.duration = timedelta(0)
 
         # for some reason I don't understand, the phone only allows events
         # longer than a day if the time flag is set. pander to this by forcing 
