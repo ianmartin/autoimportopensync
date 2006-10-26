@@ -369,7 +369,12 @@ osync_bool synchronize_once(OSyncEngine *engine, OSyncError **error)
 	return osengine_sync_and_block(engine, error);
 }
 
+/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 void create_case(Suite *s, const char *name, void (*function)(void))
+#else /*CHECK_VERSION > 903*/
+void create_case(Suite *s, const char *name, void (*function)(int))
+#endif /*CHECK_VERSION*/
 {
 	TCase *tc_new = tcase_create(name);
 	tcase_set_timeout(tc_new, 0);

@@ -2094,7 +2094,12 @@ END_TEST
 START_TEST(multisync_easy_new_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_easy_new();
+#else /*CHECK_VERSION > 903*/
+	multisync_easy_new(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2102,7 +2107,12 @@ END_TEST
 START_TEST(multisync_triple_del_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_triple_del();
+#else /*CHECK_VERSION > 903*/
+	multisync_triple_del(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2110,7 +2120,12 @@ END_TEST
 START_TEST(multisync_conflict_hybrid_choose2_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_conflict_hybrid_choose2();
+#else /*CHECK_VERSION > 903*/
+	multisync_conflict_hybrid_choose2(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2118,7 +2133,12 @@ END_TEST
 START_TEST(multisync_delayed_conflict_handler_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_delayed_conflict_handler();
+#else /*CHECK_VERSION > 903*/
+	multisync_delayed_conflict_handler(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2126,7 +2146,12 @@ END_TEST
 START_TEST(multisync_delayed_slow_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_delayed_slow();
+#else /*CHECK_VERSION > 903*/
+	multisync_delayed_slow(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2134,7 +2159,12 @@ END_TEST
 START_TEST(multisync_conflict_ignore_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_conflict_ignore();
+#else /*CHECK_VERSION > 903*/
+	multisync_conflict_ignore(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2143,7 +2173,12 @@ START_TEST(multisync_conflict_ignore2_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
 	setenv("NO_TIMEOUTS", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_conflict_ignore2();
+#else /*CHECK_VERSION > 903*/
+	multisync_conflict_ignore2(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 	unsetenv("NO_TIMEOUTS");
 }
@@ -2152,7 +2187,12 @@ END_TEST
 START_TEST(multisync_conflict_hybrid_duplicate_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_conflict_hybrid_duplicate();
+#else /*CHECK_VERSION > 903*/
+	multisync_conflict_hybrid_duplicate(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2160,7 +2200,12 @@ END_TEST
 START_TEST(multisync_multi_conflict_b)
 {
 	setenv("BATCH_COMMIT", "7", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_multi_conflict();
+#else /*CHECK_VERSION > 903*/
+	multisync_multi_conflict(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2252,7 +2297,12 @@ END_TEST
 START_TEST(multisync_conflict_hybrid_choose2_b2)
 {
 	setenv("BATCH_COMMIT", "2", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_conflict_hybrid_choose2();
+#else /*CHECK_VERSION > 903*/
+	multisync_conflict_hybrid_choose2(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2260,7 +2310,12 @@ END_TEST
 START_TEST(multisync_delayed_conflict_handler_b2)
 {
 	setenv("BATCH_COMMIT", "2", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_delayed_conflict_handler();
+#else /*CHECK_VERSION > 903*/
+	multisync_delayed_conflict_handler(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2268,7 +2323,12 @@ END_TEST
 START_TEST(multisync_conflict_ignore_b2)
 {
 	setenv("BATCH_COMMIT", "2", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_conflict_ignore();
+#else /*CHECK_VERSION > 903*/
+	multisync_conflict_ignore(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
@@ -2276,7 +2336,12 @@ END_TEST
 START_TEST(multisync_multi_conflict_b2)
 {
 	setenv("BATCH_COMMIT", "2", TRUE);
+	/*needed because of an incompatible API change in 0.94*/
+#if CHECK_VERSION <= 903
 	multisync_multi_conflict();
+#else /*CHECK_VERSION > 903*/
+	multisync_multi_conflict(0);
+#endif /*CHECK_VERSION*/
 	unsetenv("BATCH_COMMIT");
 }
 END_TEST
