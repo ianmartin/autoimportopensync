@@ -142,6 +142,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_ENTRY_LogoSwitch:	
 			case GN_PHONEBOOK_ENTRY_RingtoneAdv:	
 			// TODO support new CVS entries
+			/*	
 			case GN_PHONEBOOK_ENTRY_Location:
 			case GN_PHONEBOOK_ENTRY_Image:
 			case GN_PHONEBOOK_ENTRY_UserID:
@@ -160,6 +161,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_ENTRY_Company:
 			case GN_PHONEBOOK_ENTRY_Nickname:
 			case GN_PHONEBOOK_ENTRY_Birthday:
+			*/
 				break;
 		}
 
