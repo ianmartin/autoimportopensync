@@ -225,8 +225,6 @@ time_t osync_time_vtime2unix(const char *vtime, int offset) {
 	utc = osync_time_vtime2utc(vtime, offset);
 	utime = osync_time_vtime2tm(utc);
 
-	osync_trace(TRACE_INTERNAL, "ASC time: %s", asctime(utime));
-
 	timestamp = osync_time_tm2unix(utime);
 
 	g_free(utc);
