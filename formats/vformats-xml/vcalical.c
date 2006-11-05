@@ -311,6 +311,7 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 
 	gchar** blocks = g_strsplit(vcal, " ", 256);
 	int end_block;
+	int offset = 0;
 
 	// variables for frequency
 	int frequency_state = 0;
@@ -428,7 +429,19 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 	if (sscanf(duration_block, "#%d", &duration_number) < 1) {
 		if (strstr(duration_block,"T")) {
 
-			duration_timestamp = osync_time_vtime2utc(duration_block);
+			/* Check if this duration_block is a localtime timestamp.
+			   If it is not UTC change the offset from 0 to the system UTC offset. 
+			   vcal doesn't store any TZ information. This means the device have to be
+			   in the same Timezone as the host.
+			 */
+			if (!osync_time_isutc(duration_block)) {
+				struct tm *ttm = osync_time_vtime2tm(duration_block);
+				offset = osync_time_timezone_diff(ttm); 
+				g_free(ttm);
+			}
+
+			duration_timestamp = osync_time_vtime2utc(duration_block, offset);
+
 
 		}
 	}		

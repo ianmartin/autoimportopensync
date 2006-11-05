@@ -11,17 +11,20 @@ osync_bool osync_time_isutc(const char *vformat);
 /* Timetype helper */
 struct tm *osync_time_vtime2tm(const char *vtime);
 char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc);
-time_t osync_time_vtime2unix(const char *vtime);
+time_t osync_time_vtime2unix(const char *vtime, int offset);
 char *osync_time_unix2vtime(const time_t *timestamp);
 time_t osync_time_tm2unix(const struct tm *tmtime);
 struct tm *osync_time_unix2tm(const time_t *timestamp);
 
 /* Timezone helper */
+/* System Timezone-Reliable Helpers */
 int osync_time_timezone_diff(const struct tm *time);
-struct tm *osync_time_tm2utc(const struct tm *ltime);
-struct tm *osync_time_tm2localtime(const struct tm *utime);
-char *osync_time_vtime2utc(const char* localtime);
-char *osync_time_vtime2localtime(const char* utc);
+struct tm *osync_time_tm2utc(const struct tm *ltime, int offset);
+struct tm *osync_time_tm2localtime(const struct tm *utime, int offset);
+char *osync_time_vtime2utc(const char* localtime, int offset);
+char *osync_time_vtime2localtime(const char* utc, int offset);
+/* Smart Timezone Helpers */
+// TODO
 
 /* Alarm Duration Timeformat helper  */
 char *osync_time_sec2alarmdu(int seconds);

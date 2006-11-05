@@ -283,10 +283,15 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 		dtstartNode = osxml_get_node(root, "DateStarted");
 		dtstarted = osxml_find_node(dtstartNode, "Content");
 	}
-	started = osync_time_vtime2unix(dtstarted);
+
+	/* TODO: This breaks the case if a localtime stamp + tzid
+	   get synced to a vcal. This means that the alarm duration
+	   _CAN_ be wrong when dtstarted is localtime and alarm is not localtime.
+	   FIXME */  
+	started = osync_time_vtime2unix(dtstarted, 0);
 	g_free(dtstarted);
 
-	alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0));
+	alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0), 0);
 
 	// convert offset in seconds to alarm duration
 	duration = osync_time_sec2alarmdu(alarm - started);
@@ -321,10 +326,14 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 		dtstarted = osxml_find_node(dtstartNode, "Content");
 	}
 
-	started = osync_time_vtime2unix(dtstarted);
+	/* TODO: This breaks the case if a localtime stamp + tzid
+	   get synced to a vcal. This means that the alarm duration
+	   _CAN_ be wrong when dtstarted is localtime and alarm is not localtime.
+	   FIXME */  
+	started = osync_time_vtime2unix(dtstarted, 0);
 	g_free(dtstarted);
 
-	alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0));
+	alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0), 0);
 
 	// convert offset in seconds to alarm duration
 	duration = osync_time_sec2alarmdu(alarm - started);
@@ -1209,7 +1218,7 @@ static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *r
 	{0, "/vcal/Event/Priority"},
 	{0, "/vcal/Event/Transparency[Content = \"OPAQUE\"]"},
 	{0, "/vcal/Method"},
-	{0, "/vcal/Timezone"},
+//	{0, "/vcal/Timezone"},
 	{0, NULL}
 	};
 	
@@ -1236,7 +1245,7 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/Priority"},
 	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
 	{0, "/vcal/Method"},
-	{0, "/vcal/Timezone"},
+//	{0, "/vcal/Timezone"},
 	{0, NULL}
 	};
 	
@@ -1886,7 +1895,9 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 		g_free(tmp);
 
 		tmp = osxml_find_node(dtstart, "Content");
-		dtstarted = osync_time_vtime2unix(tmp);
+		/* AlarmTrigger MUST be UTC (see rfc2445).
+		   So there is an offset to UTC of 0 seconds. */
+		dtstarted = osync_time_vtime2unix(tmp, 0);
 		g_free(tmp);
 
 		dtstarted += duration;

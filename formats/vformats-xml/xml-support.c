@@ -30,9 +30,13 @@ static osync_bool osxml_compare_time(xmlNode *leftnode, xmlNode *rightnode) {
 	char *left = NULL, *right = NULL;
 	char *leftcontent = osxml_find_node(leftnode, "Content");
 	char *rightcontent = osxml_find_node(rightnode, "Content");
+
+	/*
+	char *leftcontent = (char *) xmlNodeGetContent(leftnode);
+	char *rightcontent = (char *) xmlNodeGetContent(rightnode);
+	*/
 	
 	osync_trace(TRACE_SENSITIVE, "time compare - left: %s right: %s", leftcontent, rightcontent);
-
 
 	if (!osync_time_isutc(leftcontent))
 		left = osync_time_tzlocal2utc(leftnode, (char *) leftnode->name); 
@@ -229,6 +233,11 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 					osync_trace(TRACE_SENSITIVE, "cmp %i:%s (%s), %i:%s (%s)\n", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], 
 							"Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
 
+					/*
+					if ((!strcmp("DateStarted", lnodes->nodeTab[i]->name) && !strcmp("DateStarted", rnodes->nodeTab[n]->name))
+							|| (!strcmp("DateEnd", lnodes->nodeTab[i]->name) && !strcmp("DateEnd", rnodes->nodeTab[n]->name))) {
+					*/		
+
 					if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 						osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
 						res_score += score->value;
@@ -297,6 +306,22 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 							n, rnodes->nodeTab[n]->name);
 			osync_trace(TRACE_SENSITIVE, "cmp %i:%s (%s), %i:%s (%s)\n", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i],
 					"Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+
+			if ((!strcmp("DateStarted", (char *) lnodes->nodeTab[i]->name) && !strcmp("DateStarted", (char *) rnodes->nodeTab[n]->name))
+					|| (!strcmp("DateEnd", (char *) lnodes->nodeTab[i]->name) && !strcmp("DateEnd", (char *) rnodes->nodeTab[n]->name))) {
+
+				if (osxml_compare_time(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
+					xmlUnlinkNode(lnodes->nodeTab[i]);
+					xmlFreeNode(lnodes->nodeTab[i]);
+					lnodes->nodeTab[i] = NULL;
+					xmlUnlinkNode(rnodes->nodeTab[n]);
+					xmlFreeNode(rnodes->nodeTab[n]);
+					rnodes->nodeTab[n] = NULL;
+					osync_trace(TRACE_INTERNAL, "Adding %i", default_score);
+					res_score += default_score;
+					goto next2;
+				}
+			}
 
 			if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 				xmlUnlinkNode(lnodes->nodeTab[i]);
