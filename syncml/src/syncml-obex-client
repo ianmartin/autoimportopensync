@@ -1,18 +1,49 @@
+<?xml version="1.0"?>
 <config>
+  <!-- (Only for blue) The bluetooth address if the bluetooth mode is selected -->
   <bluetooth_address></bluetooth_address>
+  
+  <!-- (Only for blue) The bluetooth channel to use (usualy the 11) [x] -->
   <bluetooth_channel></bluetooth_channel>
+  
+  <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (as root!) to find it. -->
   <interface>0</interface>
+  
+  <!-- The string that the plugin will use to identify itself. Some devices need a special string here. -->
   <identifier></identifier>
+  
+  <!-- The syncml version to use: 0 for 1.0, 1 for 1.1 and 2 for 1.2 -->
   <version>1</version>
+  
+  <!-- if the plugin should use wbxml -->
   <wbxml>0</wbxml>
+  
+  <!-- The username to use. Leave empty to not require a username -->
   <username></username>
+  
+  <!-- the password for the username -->
   <password></password>
+  
+  <!-- sets the connection type to use. 5 means obex over usb, 2 means obex over bluetooth -->
   <type>5</type>
+  
+  <!-- If wbxml is enabled, defines wether the wbxml should use string tables -->
   <usestringtable>0</usestringtable>
+  
+  <!-- Never send ADD command, but send REPLACE (not needed normally) -->
   <onlyreplace>0</onlyreplace>
+  
+  <!-- Sets the maximum allowed size in bytes of incoming messages (some device need this option set). Example: 10000 -->
   <recvLimit>0</recvLimit>
+  
   <maxObjSize>0</maxObjSize>
+  
+  <!-- The name of the contacts db. Must be the same as the phones sends -->
   <contact_db>addressbook</contact_db>
+  
+  <!-- The name of the calendar db. Must be the same as the phones sends -->
   <calendar_db>calendar</calendar_db>
+  
+  <!-- The name of the note db. Must be the same as the phones sends -->
   <note_db>notes</note_db>
 </config>
