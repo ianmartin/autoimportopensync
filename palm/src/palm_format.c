@@ -50,6 +50,8 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	PSyncEventEntry *entry = (PSyncEventEntry *)input;
 	char *tmp = NULL;
 	char *vtime = NULL;
+	int i;
+	int utcoffset = 0;
 	xmlNode *current = NULL;
 	
 	if (inpsize != sizeof(PSyncEventEntry)) {
@@ -89,7 +91,9 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	osync_trace(TRACE_SENSITIVE, "execptions: %i\n tm_exception: NULL\n description: %s\n note: %s\n",
 		       entry->appointment.exceptions, entry->appointment.description, entry->appointment.note);	
 
-	int i;
+	utcoffset = osync_time_timezone_diff(&(entry->appointment.begin));
+	osync_trace(TRACE_INTERNAL, "timezone offset to UTC: %i", utcoffset);
+
 	for (i=0; i < entry->appointment.exceptions; i++) {
 		osync_trace(TRACE_SENSITIVE, "exception[%i]: %04d-%02d-%02d", i,
 				entry->appointment.exception[i].tm_year + 1900,
@@ -163,7 +167,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		
 		// Start
 		tmp = osync_time_tm2vtime(&(entry->appointment.begin), FALSE);
-		vtime = osync_time_vtime2utc(tmp);
+		vtime = osync_time_vtime2utc(tmp, utcoffset);
 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateStarted", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
@@ -175,7 +179,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		
 		// End
 		tmp = osync_time_tm2vtime(&(entry->appointment.end), FALSE);
-		vtime = osync_time_vtime2utc(tmp);
+		vtime = osync_time_vtime2utc(tmp, utcoffset);
 
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateEnd", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
@@ -393,6 +397,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	int i = 0;
 	char *tmp = NULL;
 	char *vtime = NULL;
+	int utcoffset = 0;
 
 	struct tm *start = NULL;
 	struct tm *end = NULL;
@@ -459,14 +464,20 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	if (cur) {
 		cur = osxml_get_node(cur, "Content");
 		tmp = (char *)xmlNodeGetContent(cur);
-		vtime = osync_time_vtime2localtime(tmp);	
+
+		start = osync_time_vtime2tm(tmp);
+		utcoffset = osync_time_timezone_diff(start);
+		osync_trace(TRACE_INTERNAL, "timezone offset to UTC: %i", utcoffset);
+		g_free(start);
+
+		vtime = osync_time_vtime2localtime(tmp, utcoffset);	
 		g_free(tmp);
 
 		start = osync_time_vtime2tm(vtime);
 
 		if (!osync_time_isdate(vtime)) {
 			if (osync_time_isutc(vtime)) {
-				tmptm = osync_time_tm2localtime(start);
+				tmptm = osync_time_tm2localtime(start, utcoffset);
 				g_free(start);
 				start = tmptm;
 			}
@@ -495,7 +506,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		cur = osxml_get_node(cur, "Content");
 
 		tmp = (char *)xmlNodeGetContent(cur);
-		vtime = osync_time_vtime2localtime(tmp);	
+		vtime = osync_time_vtime2localtime(tmp, utcoffset);	
 		g_free(tmp);
 
 		end = osync_time_vtime2tm(vtime);
@@ -503,7 +514,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 		if (!osync_time_isdate(vtime)) {
 
 			if (osync_time_isutc(vtime)) {
-				tmptm = osync_time_tm2localtime(end);
+				tmptm = osync_time_tm2localtime(end, utcoffset);
 				g_free(end);
 				end = tmptm;
 			}
