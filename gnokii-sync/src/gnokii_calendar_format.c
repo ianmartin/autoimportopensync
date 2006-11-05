@@ -35,6 +35,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 	time_t start_timet = 0;
 	char *tmp = NULL, *vtime = NULL, *wday = NULL;
 	int secs_before_event = 0;
+	int offset = 0;
 
 	gn_calnote *cal = (gn_calnote *) input;
 
@@ -91,7 +92,13 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		} else {
 			tmp = osync_time_timestamp(vtime);
 			g_free(vtime);
-			vtime = osync_time_vtime2utc(tmp);
+
+			// determine system UTC offset
+			struct tm *ttm = osync_time_vtime2tm(tmp);
+			offset = osync_time_timezone_diff(ttm);
+			g_free(ttm);
+
+			vtime = osync_time_vtime2utc(tmp, offset);
 			g_free(tmp);
 		}
 
@@ -130,7 +137,7 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 
 			tmp = osync_time_timestamp(vtime);
 			g_free(vtime);
-			vtime = osync_time_vtime2utc(tmp);
+			vtime = osync_time_vtime2utc(tmp, offset);
 		}
 
 		current = xmlNewTextChild(root, NULL, (xmlChar *) "DateEnd", NULL);
@@ -282,6 +289,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 	char *tmp;
 	struct tm *starttm = NULL, *endtm = NULL, *tmptm = NULL;
+	int offset = 0;
 	osync_bool alldayevent = 0;
 	xmlNode *cur = NULL;
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -351,7 +359,8 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 
 		if (!osync_time_isdate(tmp) && osync_time_isutc(tmp)) {
 			tmptm = starttm;
-			starttm = osync_time_tm2localtime(tmptm);
+			offset = osync_time_timezone_diff(tmptm);
+			starttm = osync_time_tm2localtime(tmptm, offset);
 			g_free(tmptm);
 		}
 
@@ -380,7 +389,7 @@ static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inp
 		endtm = osync_time_vtime2tm(tmp);
 		if (!osync_time_isdate(tmp) && osync_time_isutc(tmp)) {
 			tmptm = endtm;
-			endtm = osync_time_tm2localtime(tmptm);
+			endtm = osync_time_tm2localtime(tmptm, offset);
 			g_free(tmptm);
 		}
 
