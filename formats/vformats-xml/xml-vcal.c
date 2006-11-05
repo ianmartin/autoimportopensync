@@ -1870,6 +1870,7 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 	xmlNode *dtstart = NULL;
 	xmlNode *trigger = osxml_get_node(root, "AlarmTrigger");
 	char *action = NULL, *tmp = NULL, *value = NULL, *runtime = NULL;
+	char *startvtime = NULL;
 	time_t dtstarted;
 	int duration;
 	osync_bool isruntime = FALSE;
@@ -1885,9 +1886,11 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 		}
 	}
 
+	startvtime = osxml_find_node(dtstart, "Content");
+
 	/* Runtime */
 	if (isruntime) {
-		runtime = osxml_find_node(dtstart, "Content");
+		runtime = startvtime; 
 	/* Duration */	
 	} else {
 		tmp = osxml_find_node(trigger, "Content");
@@ -1901,6 +1904,15 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 		g_free(tmp);
 
 		dtstarted += duration;
+
+		if (osync_time_isdate(startvtime) || !osync_time_isutc(startvtime)) {
+			/* TODO Also handle localtime + tzid stamps */
+			struct tm *ttm = osync_time_vtime2tm(startvtime);
+			int offset = osync_time_timezone_diff(ttm); 
+			dtstarted -= offset;
+			g_free(ttm);
+		}
+
 		runtime = osync_time_unix2vtime(&dtstarted);
 	}
 
