@@ -540,6 +540,7 @@ static gboolean _psyncPing(gpointer data)
 
 static void psyncThreadStart(PSyncEnv *env)
 {
+	return;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 	
 	GMainContext *context = osync_member_get_loop(env->member);

@@ -33,6 +33,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Define to 1 if glib2-devel < 2.10 */
+#undef OLD_GLIB_VER
+
 /* Name of package */
 #undef PACKAGE
 

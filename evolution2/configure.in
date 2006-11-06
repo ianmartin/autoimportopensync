@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Evolution 2 Plugin], 0.19, [], [libopensync-plugin-evolution2])
+AC_INIT([OpenSync Evolution 2 Plugin], 0.20, [], [libopensync-plugin-evolution2])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/evolution2_sync.c)
 AM_CONFIG_HEADER(config.h)

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Gpe Plugin], 0.19, [], [libopensync-plugin-gpe])
+AC_INIT([OpenSync Gpe Plugin], 0.20, [], [libopensync-plugin-gpe])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/gpe_sync.c)
 AC_CONFIG_HEADER(config.h)
