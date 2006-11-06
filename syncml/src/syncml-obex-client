@@ -39,7 +39,7 @@
   <maxObjSize>0</maxObjSize>
   
   <!-- The name of the contacts db. Must be the same as the phones sends -->
-  <contact_db>addressbook</contact_db>
+  <contact_db>contacts</contact_db>
   
   <!-- The name of the calendar db. Must be the same as the phones sends -->
   <calendar_db>calendar</calendar_db>

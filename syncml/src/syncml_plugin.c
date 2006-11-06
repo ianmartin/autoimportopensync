@@ -1554,6 +1554,7 @@ void get_info(OSyncEnv *env)
 	
 	info->name = "syncml-http-server";
 	info->longname = "SyncML over HTTP Server";
+	info->description = "Plugin to synchronize with SyncML over HTTP";
 	
 	info->functions.initialize = syncml_http_server_init;
 	info->functions.connect = client_connect;
@@ -1574,12 +1575,12 @@ void get_info(OSyncEnv *env)
 	osync_plugin_set_batch_commit_objformat(info, "contact", "vcard21", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "event");
-	osync_plugin_accept_objformat(info, "event", "vevent20", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "event", "vevent20", batch_commit);
+	osync_plugin_accept_objformat(info, "event", "vevent10", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "event", "vevent10", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "todo");
-	osync_plugin_accept_objformat(info, "todo", "vtodo20", "clean");
-	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo20", batch_commit);
+	osync_plugin_accept_objformat(info, "todo", "vtodo10", "clean");
+	osync_plugin_set_batch_commit_objformat(info, "todo", "vtodo10", batch_commit);
 	
 	osync_plugin_accept_objtype(info, "note");
 	osync_plugin_accept_objformat(info, "note", "memo", "clean");
@@ -1589,6 +1590,7 @@ void get_info(OSyncEnv *env)
 	
 	info->name = "syncml-obex-client";
 	info->longname = "SyncML over OBEX Client";
+	info->description = "Plugin to synchronize with SyncML over OBEX";
 	
 	info->functions.initialize = syncml_obex_client_init;
 	info->functions.connect = client_connect;
