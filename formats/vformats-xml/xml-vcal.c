@@ -270,7 +270,7 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
 
 	time_t started, alarm;
-	char *dtstarted, *duration;
+	char *dtstarted = NULL, *duration = NULL;
 	xmlNode *dtstartNode = NULL, *sub = NULL;
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
 
@@ -279,30 +279,40 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	// get timestamp of DateStarted or DateDue (for todos)
 	if ((dtstartNode = osxml_get_node(root, "DateDue"))) {
 		dtstarted = osxml_find_node(dtstartNode, "Content");
-	} else {	
-		dtstartNode = osxml_get_node(root, "DateStarted");
+	} else if (( dtstartNode = osxml_get_node(root, "DateStarted"))) {
 		dtstarted = osxml_find_node(dtstartNode, "Content");
 	}
 
 	/* TODO: This breaks the case if a localtime stamp + tzid
 	   get synced to a vcal. This means that the alarm duration
 	   _CAN_ be wrong when dtstarted is localtime and alarm is not localtime.
+
 	   FIXME */  
-	started = osync_time_vtime2unix(dtstarted, 0);
-	g_free(dtstarted);
 
-	alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0), 0);
+	if (dtstarted) {
+		started = osync_time_vtime2unix(dtstarted, 0);
+		g_free(dtstarted);
 
-	// convert offset in seconds to alarm duration
-	duration = osync_time_sec2alarmdu(alarm - started);
-	osxml_node_add(sub, "Content", duration);
-	osxml_node_add(sub, "Value", "DURATION");
-	g_free(duration);
+		alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0), 0);
 
-	osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
-	osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
-	osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
-	osxml_node_add(current, "AlarmAction", "AUDIO");
+		// convert offset in seconds to alarm duration
+		duration = osync_time_sec2alarmdu(alarm - started);
+		osxml_node_add(sub, "Content", duration);
+		osxml_node_add(sub, "Value", "DURATION");
+		g_free(duration);
+
+		osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
+		osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
+		osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
+		osxml_node_add(current, "AlarmAction", "AUDIO");
+
+	/* This happens only if a todo has a AALARM without any DateDue and DateStarted field.
+    	   (This was found on a old SE mobile phone and is illegal.) */ 
+	} else {
+		osxml_node_add(sub, "Content", vformat_attribute_get_nth_value(attr, 0));
+		osxml_node_add(sub, "Value", "DATE-TIME");
+		osxml_node_add(current, "AlarmAction", "AUDIO");
+	}
 
 	return current;
 }
@@ -312,7 +322,7 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
 
 	time_t started, alarm;
-	char *dtstarted, *duration;
+	char *dtstarted = NULL, *duration = NULL;
 	xmlNode *dtstartNode = NULL, *sub = NULL;
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
 
@@ -321,30 +331,40 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	// get timestamp of DateStarted or DateDue (for todos)
 	if ((dtstartNode = osxml_get_node(root, "DateDue"))) {
 		dtstarted = osxml_find_node(dtstartNode, "Content");
-	} else {	
-		dtstartNode = osxml_get_node(root, "DateStarted");
+	} else if (( dtstartNode = osxml_get_node(root, "DateStarted"))) {
 		dtstarted = osxml_find_node(dtstartNode, "Content");
 	}
 
 	/* TODO: This breaks the case if a localtime stamp + tzid
 	   get synced to a vcal. This means that the alarm duration
 	   _CAN_ be wrong when dtstarted is localtime and alarm is not localtime.
+
 	   FIXME */  
-	started = osync_time_vtime2unix(dtstarted, 0);
-	g_free(dtstarted);
 
-	alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0), 0);
+	if (dtstarted) {
+		started = osync_time_vtime2unix(dtstarted, 0);
+		g_free(dtstarted);
 
-	// convert offset in seconds to alarm duration
-	duration = osync_time_sec2alarmdu(alarm - started);
-	osxml_node_add(sub, "Content", duration);
-	osxml_node_add(sub, "Value", "DURATION");
-	g_free(duration);
+		alarm = osync_time_vtime2unix(vformat_attribute_get_nth_value(attr, 0), 0);
 
-	osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
-	osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
-	osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
-	osxml_node_add(current, "AlarmAction", "DISPLAY");
+		// convert offset in seconds to alarm duration
+		duration = osync_time_sec2alarmdu(alarm - started);
+		osxml_node_add(sub, "Content", duration);
+		osxml_node_add(sub, "Value", "DURATION");
+		g_free(duration);
+
+		osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
+		osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
+		osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
+		osxml_node_add(current, "AlarmAction", "DISPLAY");
+
+	/* This happens only if a todo has a AALARM without any DateDue and DateStarted field.
+    	   (This was found on a old SE mobile phone and is illegal.) */ 
+	} else {
+		osxml_node_add(sub, "Content", vformat_attribute_get_nth_value(attr, 0));
+		osxml_node_add(sub, "Value", "DATE-TIME");
+		osxml_node_add(current, "AlarmAction", "DISPLAY");
+	}
 
 	return current;
 }
