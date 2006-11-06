@@ -1385,7 +1385,7 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 				rfreq = g_strdup(rule[1]);
 			}
 			else if (!strcasecmp(rule[0], "UNTIL")) {
-				time_t utime = osync_time_vtime2unix(rule[1]);
+				time_t utime = osync_time_vtime2unix(rule[1], 0);
 				enddt = g_strdup_printf("%d", (int)utime);
 			}
 			xmlFree(rulestr);
@@ -1517,7 +1517,7 @@ void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to
 
 time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
 	char *vtime = osxml_find_node(node_from, nodename);
-	time_t utime = osync_time_vtime2unix(vtime);
+	time_t utime = osync_time_vtime2unix(vtime, 0);
 	char *timestr = g_strdup_printf("%d", (int)utime);
 	xmlSetProp(node_to, attrname, timestr);
 	g_free(timestr);
