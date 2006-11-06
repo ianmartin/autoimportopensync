@@ -1,4 +1,3 @@
-
 /*
  * xml-vnote - A plugin for parsing vnote objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
@@ -484,26 +483,35 @@ static osync_bool conv_xml_to_memo(void *user_data, char *input, int inpsize, ch
 	xmlFree(str);
 	
 	//Get the root node of the input document
-	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "Note", error);
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+
 	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-note");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
+	}
+	
+	if (xmlStrcmp(root->name, (const xmlChar *)"Note")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
 		goto error;
 	}
 
 	GString *memo = g_string_new("");
 
-    // Summary
-    xmlNode *cur = osxml_get_node(root, "Summary");
-    if (cur)
-		memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
-    
+	// Summary
+	xmlNode *cur = osxml_get_node(root, "Summary");
+
+	if (cur)
+		memo = g_string_append(memo, osxml_find_node(cur, "Content"));
+
 	// Body
-    cur = osxml_get_node(root, "Body");
-    if (cur) {
-    	if (memo->len > 0)
-    		memo = g_string_append(memo, "\n");
-        memo = g_string_append(memo, (char *)xmlNodeGetContent(cur));
-    }
+	cur = osxml_get_node(root, "Body");
+	if (cur) {
+		if (memo->len > 0)
+			memo = g_string_append(memo, "\n");
+
+		memo = g_string_append(memo, osxml_find_node(cur, "Content"));
+	}
+
 	*free_input = TRUE;
 	*output = g_string_free(memo, FALSE);
 	osync_trace(TRACE_SENSITIVE, "memo output is: \n%s", *output);
