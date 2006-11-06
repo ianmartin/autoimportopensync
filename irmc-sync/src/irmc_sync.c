@@ -933,7 +933,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
         if (objtype == SYNC_OBJECT_TYPE_CALENDAR)
           osync_change_set_objformat_string(change, "vevent10");
         else if (objtype == SYNC_OBJECT_TYPE_TODO)
-          osync_change_set_objformat_string(change, "vtodo20");
+          osync_change_set_objformat_string(change, "vtodo10");
 
         event_start = strstr(event, "X-IRMC-LUID:");
         if (event_start) {
@@ -1413,8 +1413,8 @@ void get_info(OSyncEnv *env)
   osync_plugin_set_commit_objformat(info, "event", "vevent10", irmcCalendarCommitChange);
 
   osync_plugin_accept_objtype(info, "todo");
-  osync_plugin_accept_objformat(info, "todo", "vtodo20", NULL);
-  osync_plugin_set_commit_objformat(info, "todo", "vtodo20", irmcCalendarCommitChange);
+  osync_plugin_accept_objformat(info, "todo", "vtodo10", NULL);
+  osync_plugin_set_commit_objformat(info, "todo", "vtodo10", irmcCalendarCommitChange);
 
   osync_plugin_accept_objtype(info, "note");
   osync_plugin_accept_objformat(info, "note", "vnote11", NULL);
