@@ -349,7 +349,13 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		}
 		osync_trace(TRACE_INTERNAL, "Subtracting %i", default_score);
 		res_score -= default_score;
-		same = FALSE;
+
+		// XXX Find a better way to workaroudn the problem of ignoring without unlinking nodes.
+		if (!strcmp("Timezone", (char *) lnodes->nodeTab[i]->name))
+			osync_trace(TRACE_INTERNAL, "Workaround for Timezone field. We ignore it but don't unlink it from XML");
+		else
+			same = FALSE;
+
 		//goto out;
 		next2:;
 	}
@@ -358,7 +364,13 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		if (!lnodes->nodeTab[i])
 			continue;
 		osync_trace(TRACE_INTERNAL, "left remaining: %s", lnodes->nodeTab[i]->name);
-		same = FALSE;
+
+		// XXX Find a better way to workaroudn the problem of ignoring without unlinking nodes.
+		if (!strcmp("Timezone", (char *) lnodes->nodeTab[i]->name))
+			osync_trace(TRACE_INTERNAL, "Workaround for Timezone field. We ignore it but don't unlink it from XML");
+		else
+			same = FALSE;
+
 		goto out;
 	}
 	
@@ -366,7 +378,13 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		if (!rnodes->nodeTab[i])
 			continue;
 		osync_trace(TRACE_INTERNAL, "right remaining: %s", rnodes->nodeTab[i]->name);
-		same = FALSE;
+
+		// XXX Find a better way to workaroudn the problem of ignoring without unlinking nodes.
+		if (!strcmp("Timezone", (char *) rnodes->nodeTab[i]->name))
+			osync_trace(TRACE_INTERNAL, "Workaround for Timezone field. We ignore it but don't unlink it from XML");
+		else
+			same = FALSE;
+
 		goto out;
 	}
 	out:
