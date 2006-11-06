@@ -23,6 +23,32 @@
 #include "xml-support.h"
 #include <glib.h>
 
+static char *osxml_prepare_time(const char *content, xmlNode *node) {
+
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, content, node);
+
+	int tzoffset = 0;
+	char *time = NULL;
+	struct tm *ttm = NULL;
+
+
+	if (!osync_time_isutc(content)) {
+		time = osync_time_tzlocal2utc(node, (char *) node->name); 
+		if (!time) {
+			ttm = osync_time_vtime2tm(content);
+			tzoffset = osync_time_timezone_diff(ttm); 
+			time = osync_time_vtime2utc(content, tzoffset);
+			g_free(ttm);
+		}
+	}
+
+	if (!time)
+		time = g_strdup(content);
+
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, time);
+	return time;
+}
+
 static osync_bool osxml_compare_time(xmlNode *leftnode, xmlNode *rightnode) {
 
 	osync_trace(TRACE_ENTRY, "%s(%s(%p), %s(%p))", __func__, leftnode->name, leftnode, rightnode->name, rightnode);
@@ -31,24 +57,10 @@ static osync_bool osxml_compare_time(xmlNode *leftnode, xmlNode *rightnode) {
 	char *leftcontent = osxml_find_node(leftnode, "Content");
 	char *rightcontent = osxml_find_node(rightnode, "Content");
 
-	/*
-	char *leftcontent = (char *) xmlNodeGetContent(leftnode);
-	char *rightcontent = (char *) xmlNodeGetContent(rightnode);
-	*/
-	
 	osync_trace(TRACE_SENSITIVE, "time compare - left: %s right: %s", leftcontent, rightcontent);
 
-	if (!osync_time_isutc(leftcontent))
-		left = osync_time_tzlocal2utc(leftnode, (char *) leftnode->name); 
-
-	if (!left)
-		left = g_strdup(leftcontent);
-
-	if (!osync_time_isutc(rightcontent))
-		right = osync_time_tzlocal2utc(rightnode, (char *) rightnode->name); 
-
-	if (!right)
-		right = g_strdup(rightcontent);
+	left = osxml_prepare_time(leftcontent, leftnode);
+	right = osxml_prepare_time(rightcontent, rightnode);
 
 	g_free(leftcontent);
 	g_free(rightcontent);

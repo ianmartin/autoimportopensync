@@ -818,7 +818,7 @@ int osync_time_tzoffset(const char *vtime, xmlNode *tz) {
 	else
 		current = osxml_get_node(tz, "Standard");
 
-	offset = osxml_find_node(current, "TZOffsetTo");
+	offset = osxml_find_node(current, "TZOffsetFrom");
 	seconds = osync_time_utcoffset2sec(offset);
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, seconds);
@@ -951,8 +951,8 @@ char *osync_time_tzlocal2utc(xmlNode *root, const char *field) {
 	/* Handle UTC offset like 13.5h */
 	offset = osync_time_tzoffset(vtime, tz);
 	struct tm *ttm = osync_time_vtime2tm(vtime);
-	ttm->tm_hour += offset / 3600;
-	ttm->tm_min += (offset % 3600) / 60;
+	ttm->tm_hour -= offset / 3600;
+	ttm->tm_min -= (offset % 3600) / 60;
 	mktime(ttm);
 	utc = osync_time_tm2vtime(ttm, TRUE);
 
