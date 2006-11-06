@@ -421,17 +421,15 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   char serial[256];
   char did[256] = "";
   char *filename;
-  //int foo;
   int ret;
 
   data = g_malloc(DATABUFSIZE);
   datap = data;
 
-  len = DATABUFSIZE;
   filename = g_strdup_printf("telecom/%s/luid/%d.log", object, changecounter);
 
   memset(data, 0, DATABUFSIZE);
-  len = DATABUFSIZE;
+  len = DATABUFSIZE - 1;
   if (!irmc_obex_get(obexhandle, filename, data, &len, error)) {
     g_free(filename);
     g_free(data);
@@ -763,7 +761,7 @@ gboolean get_generic_changeinfo(OSyncContext *ctx, data_type_information *info, 
     else if ( strcmp( info->identifier, "contact" ) == 0 )
       create_addressbook_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
     else if ( strcmp( info->identifier, "note" ) == 0 )
-      create_notebook_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
+     create_notebook_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
 
   } else {
     osync_trace(TRACE_INTERNAL, "fastsync %s\n", info->name );
@@ -967,7 +965,8 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
       event_size = 0;
     }
 
-    if (type == 'H')
+    /* H stands for hard delte. D stands for delete. */
+    if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || event_size == 0) {
       osync_change_set_data(change, data, event_size, TRUE);
@@ -1042,7 +1041,8 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
       vcard_size = 0;
     }
 
-    if (type == 'H')
+    /* H stands for hard delte. D stands for delete. */
+    if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || vcard_size == 0) {
       osync_change_set_changetype(change, CHANGE_MODIFIED);
@@ -1119,7 +1119,8 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
       vnote_size = 0;
     }
 
-    if (type == 'H')
+    /* H stands for hard delte. D stands for delete. */
+    if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || vnote_size == 0) {
       osync_change_set_changetype(change, CHANGE_MODIFIED);
