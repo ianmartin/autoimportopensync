@@ -1,5 +1,4 @@
 <config>
-  <donttellsync>false</donttellsync>
   <connectmedium>bluetooth</connectmedium>
   <btunit></btunit>
   <btchannel></btchannel>
