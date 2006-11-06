@@ -965,7 +965,7 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
       event_size = 0;
     }
 
-    /* H stands for hard delte. D stands for delete. */
+    /* H stands for hard delete. D stands for delete. */
     if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || event_size == 0) {
@@ -1041,7 +1041,7 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
       vcard_size = 0;
     }
 
-    /* H stands for hard delte. D stands for delete. */
+    /* H stands for hard delete. D stands for delete. */
     if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || vcard_size == 0) {
@@ -1119,7 +1119,7 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
       vnote_size = 0;
     }
 
-    /* H stands for hard delte. D stands for delete. */
+    /* H stands for hard delete. D stands for delete. */
     if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, CHANGE_DELETED);
     else if (type == 'M' || vnote_size == 0) {
