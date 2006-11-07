@@ -32,6 +32,8 @@ void parse_connection_type(char *str, gn_config *config) {
 		config->connection_type = GN_CT_DKU2;
 	else if (!strcasecmp(str, "dau9p"))
 		config->connection_type = GN_CT_DAU9P;
+	else if (!strcasecmp(str, "dlr3p"))
+		config->connection_type = GN_CT_DLR3P;
 	else if (!strcasecmp(str, "serial"))
 		config->connection_type = GN_CT_Serial;
 	else if (!strcasecmp(str, "infrared"))
