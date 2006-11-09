@@ -14,7 +14,6 @@ Notes:
 bluetooth example configuration:
 --------------------------------
 <config>
-  <donttellsync>false</donttellsync>
   <connectmedium>bluetooth</connectmedium>
   <btunit>$MAC</btunit>
   <btchannel>$CHANNEL</btchannel>
@@ -64,7 +63,6 @@ Replace $CHANNEL with "8" and your config should now look like this:
 ir example configuration:
 -------------------------
 <config>
-  <donttellsync>false</donttellsync>
   <connectmedium>ir</connectmedium>
   <irname>$IDENTIFIER</irname>
 </config>
