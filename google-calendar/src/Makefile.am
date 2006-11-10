@@ -6,7 +6,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall
 
-EXTRA_DIST = google-calendar.cfg
+EXTRA_DIST = google-calendar.cfg google-cal-helper.py
 
 config_DATA = google-calendar
 
