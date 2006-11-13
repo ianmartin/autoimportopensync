@@ -144,9 +144,12 @@ GList *find_bt_units() {
 	  }
 	}
 	sdp_close(sess);
-      } else {
       }
+
+      if (access && irbt->channel != -1) {
       unitlist = g_list_append(unitlist, irbt);
+      }
+
     }
   }
   return(unitlist);
