@@ -1263,7 +1263,8 @@ static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *ri
 	{0, "/vcal/Todo/Sequence"},
 	{0, "/vcal/Todo/Class[Content = \"PUBLIC\"]"},
 	{0, "/vcal/Todo/Priority"},
-	{0, "/vcal/Todo/PercentComplete[Content = 0]"},
+	// ignore 'PercentComplete', because we aren't able to handle this at the moment
+	{0, "/vcal/Todo/PercentComplete"},
 	{0, "/vcal/Method"},
 //	{0, "/vcal/Timezone"},
 	{0, NULL}

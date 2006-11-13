@@ -310,38 +310,30 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vcal);
 
 	gchar** blocks = g_strsplit(vcal, " ", 256);
-	int end_block;
 	int offset = 0;
 
-	// variables for frequency
 	int frequency_state = 0;
 	char *frequency = NULL;
 	char *frequency_block = NULL;
 
-	// variables for interval
 	int interval;
 
-	// variables for duration
 	int duration_number = -1;
 	char *duration_timestamp = NULL;
 	char *duration_block;
 
-	// variables for frequency modifier
 	char* freq_mod = NULL;	
 
 
-	// count blocks
+	/* count blocks */
 	int counter; 
 	for(counter=0; blocks[counter]; counter++);
 
-	
-	// for easier access to frequency and duration define frequency_block and duration_block
 	frequency_block = blocks[0];
-	end_block = counter -1;
-	duration_block = blocks[end_block];
+	duration_block = blocks[counter-1];
 
 		
-	// get frequency: only D(1), W(2), MP(3), MD(4), YD(5) and YM(6) is allowed
+	/* get frequency: only D(1), W(2), MP(3), MD(4), YD(5) and YM(6) is allowed */
 	switch (*frequency_block++) {
 		case 'D': frequency_state = 1; frequency = "DAILY"; break;
 		case 'W': frequency_state = 2; frequency = "WEEKLY"; break;
@@ -366,7 +358,7 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 	}
 
 
-	// get interval (integer)	
+	/* get interval (integer) */
 	char* e;
 	interval = strtol(frequency_block, &e, 3);
 	if (e == frequency_block) {
@@ -377,35 +369,31 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 	}
 
 
-	// get frequency modifier if more than two blocks exist
-	if (end_block > 1) {
+	/* get frequency modifier if there are more than two blocks */
+	if (counter > 2) {
 
 		GString *fm_buffer = g_string_new("");
 		int i;
 	
-		// for each modifier do...	
-		for(i=1; i < end_block; i++) {
+		/* for each modifier do... */
+		for(i=1; i < counter-1; i++) {
 
 			int count;
 			char sign;
 
-			// if more than one modifier exist, separate them by a comma	
-			if(fm_buffer->len != 0)
+			if(fm_buffer->len > 0)
 				g_string_append(fm_buffer, ",");
 
-			// check frequency modifier 
+			/* check frequency modifier */
 			if (sscanf(blocks[i], "%d%c" , &count, &sign) == 2) {
 				
-				// we need to convert $COUNT- to -$COUNT  ->RFC2445
+				/* we need to convert $COUNT- to -$COUNT -> RFC2445 */
 				if (sign == '-')
 					count = -count;
 
 				g_string_append_printf(fm_buffer, "%d", count);
 
-				// if the next sign is a char, it should be a day.
-				// now we need a whitespace to separate this one from
-				// the previous modifier
-				if (blocks[i+1] && !sscanf(blocks[i+1], "%d", &count)) {
+				if (i < counter-2 && !sscanf(blocks[i+1], "%d", &count)) {
 					
 					g_string_append_printf(fm_buffer, " %s", blocks[i+1]);
 					i++;
@@ -414,7 +402,7 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 				
 			} else {
 				
-				/* e.g. Day or LD (Last day) */
+				/* e.g. Day or 'LD' (Last day) */
 				g_string_append(fm_buffer, blocks[i]);
 				
 			}
@@ -430,9 +418,9 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 		if (strstr(duration_block,"T")) {
 
 			/* Check if this duration_block is a localtime timestamp.
-			   If it is not UTC change the offset from 0 to the system UTC offset. 
-			   vcal doesn't store any TZ information. This means the device have to be
-			   in the same Timezone as the host.
+			 * If it is not UTC change the offset from 0 to the system UTC offset. 
+			 * vcal doesn't store any TZ information. This means the device have to be
+			 * in the same Timezone as the host.
 			 */
 			if (!osync_time_isutc(duration_block)) {
 				struct tm *ttm = osync_time_vtime2tm(duration_block);
