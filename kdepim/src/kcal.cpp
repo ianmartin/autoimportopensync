@@ -129,6 +129,14 @@ bool KCalDataSource::get_changeinfo_events(OSyncContext *ctx)
 	}
 	
     for (KCal::Event::List::ConstIterator i = events.begin(); i != events.end(); i++) {
+
+	/* Skip entries from birthday resource. This is just a workaround.
+	 * patch by rhuitl
+	 * FIXME: todo: add a list of resources to kdepim-sync.conf
+	 */
+        if ( (*i)->uid().contains("KABC_Birthday") )
+	    continue;    
+
         if (!report_incidence(ctx, *i, "event", "vevent20"))
             return false;
     }
