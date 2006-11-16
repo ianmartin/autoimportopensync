@@ -628,8 +628,10 @@ static void irmcGetChangeinfo(OSyncContext *ctx)
   strcpy(info.path_extension, "vcs");
   info.change_counter = &(config->calendar_changecounter);
 
-  if (osync_member_objtype_enabled(env->member, "event") && !get_generic_changeinfo(ctx, &info, &error))
-    goto error;
+  if (osync_member_objtype_enabled(env->member, "event")) {
+    if (!get_generic_changeinfo(ctx, &info, &error))
+      goto error;
+  }
 
   memset(&info, 0, sizeof(info));
   strcpy(info.name, "addressbook");
@@ -638,8 +640,10 @@ static void irmcGetChangeinfo(OSyncContext *ctx)
   strcpy(info.path_extension, "vcf");
   info.change_counter = &(config->addressbook_changecounter);
 
-  if (osync_member_objtype_enabled(env->member, "contact") && !get_generic_changeinfo(ctx, &info, &error))
-    goto error;
+  if (osync_member_objtype_enabled(env->member, "contact")) {
+    if (!get_generic_changeinfo(ctx, &info, &error))
+      goto error;
+  }
 
   memset(&info, 0, sizeof(info));
   strcpy(info.name, "notebook");
@@ -648,8 +652,10 @@ static void irmcGetChangeinfo(OSyncContext *ctx)
   strcpy(info.path_extension, "vnt");
   info.change_counter = &(config->notebook_changecounter);
 
-  if (osync_member_objtype_enabled(env->member, "note") && !get_generic_changeinfo(ctx, &info, &error))
-    goto error;
+  if (osync_member_objtype_enabled(env->member, "note")) {
+    if (!get_generic_changeinfo(ctx, &info, &error))
+      goto error;
+  }
 
   osync_context_report_success(ctx);
   osync_trace(TRACE_EXIT, "%s", __func__);
