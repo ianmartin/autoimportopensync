@@ -134,7 +134,7 @@ bool KCalDataSource::get_changeinfo_events(OSyncContext *ctx)
 	 * patch by rhuitl
 	 * FIXME: todo: add a list of resources to kdepim-sync.conf
 	 */
-        if ( (*i)->uid().contains("KABC_Birthday") )
+        if ( (*i)->uid().contains("KABC_Birthday") || (*i)->uid().contains("KABC_Anniversary") )
 	    continue;    
 
         if (!report_incidence(ctx, *i, "event", "vevent20"))
