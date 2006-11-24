@@ -360,7 +360,7 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 
 	/* get interval (integer) */
 	char* e;
-	interval = strtol(frequency_block, &e, 3);
+	interval = strtol(frequency_block, &e, 10);
 	if (e == frequency_block) {
 		osync_trace(TRACE_INTERNAL, "interval is missing.");
 	}
