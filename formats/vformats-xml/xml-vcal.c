@@ -1921,18 +1921,14 @@ static VFormatAttribute *handle_vcal_xml_alarm_attribute(VFormat *vcard, xmlNode
 		tmp = osxml_find_node(dtstart, "Content");
 		/* AlarmTrigger MUST be UTC (see rfc2445).
 		   So there is an offset to UTC of 0 seconds. */
+		if (osync_time_isutc(tmp))
+			osync_trace(TRACE_INTERNAL, "WARNNING: timestamp is not UTC: %s", tmp);
+
 		dtstarted = osync_time_vtime2unix(tmp, 0);
+
 		g_free(tmp);
 
 		dtstarted += duration;
-
-		if (osync_time_isdate(startvtime) || !osync_time_isutc(startvtime)) {
-			/* TODO Also handle localtime + tzid stamps */
-			struct tm *ttm = osync_time_vtime2tm(startvtime);
-			int offset = osync_time_timezone_diff(ttm); 
-			dtstarted -= offset;
-			g_free(ttm);
-		}
 
 		runtime = osync_time_unix2vtime(&dtstarted);
 	}
