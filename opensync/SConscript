@@ -138,7 +138,9 @@ sqlite3
 """
 
 libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries))
-osplugin = env.Program('osplugin', 'client/osplugin.c', LIBS = 'opensync', LIBPATH='#opensync')
+
+env.Append(LIBPATH = '#opensync')
+osplugin = env.Program('osplugin', 'client/osplugin.c', LIBS = Split(Libraries) + Split('opensync'))
 
 env.Install(install_lib, libopensync)
 env.Install(install_bin, osplugin)

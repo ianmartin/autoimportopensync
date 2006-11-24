@@ -2,6 +2,8 @@ import sys
 import os
 sys.path.append('build')
 from osync_support import *
+from substin import *
+
 
 
 #Define the default values for some variables. Take note, that they might
@@ -18,11 +20,13 @@ class BuildConfig:
 	capabilitiesdir = r"$prefix/share/opensync/capabilities"
 	descriptionsdir = r"$prefix/share/opensync/descriptions"
 	schemasdir = r"$prefix/share/opensync/schemas"
+        headerdir= r"$prefix/include/opensync-1.0/opensync"
+
 
 config = BuildConfig()
 
 # Get our configuration options:
-env = Environment()
+env = Environment(ENV = os.environ, tools=('default', TOOL_SUBST)) 
 opts = Options('libopensync.conf')
 opts.Add(BoolOption('debug', 'Should debugging be enabled?', 1))
 opts.Add(BoolOption('enable_trace', 'Should tracing be enabled?', 1))
@@ -44,6 +48,26 @@ env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
 env.Append(CCFLAGS = r'-DENABLE_TESTS=$enable_tests')
 env.Append(CCFLAGS = r'-DENABLE_TOOLS=$enable_tools')
 env.Append(CCFLAGS = r'-DENABLE_PROFILING=$enable_profiling')
+
+
+# pkg config files
+subst_dict={'@prefix@': '$prefix',
+	    '@exec_prefix@': '${prefix}',
+	    '@libdir@': '${prefix}/lib',
+	    '@includedir@': '${prefix}/include',
+	    '@OPENSYNC_PLUGINDIR@': config.plugindir,
+	    '@OPENSYNC_CONFIGDIR@': config.configdir,
+	    '@OPENSYNC_FORMATSDIR@': config.formatdir,
+	    '@OPENSYNC_HEADERDIR@': config.headerdir,
+            '@VERSION@': '$version'
+}
+
+env.SubstInFile('opensync-1.0.pc', 'opensync-1.0.pc.in', SUBST_DICT=subst_dict)
+env.SubstInFile('osengine-1.0.pc', 'osengine-1.0.pc.in', SUBST_DICT=subst_dict)
+
+env.Install('$prefix/lib/pkgconfig', 'opensync-1.0.pc') 
+env.Install('$prefix/lib/pkgconfig', 'osengine-1.0.pc') 
+
 
 Help("""
 ++++++++++++++++++++++++++++++++++++
