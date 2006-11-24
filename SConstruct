@@ -59,7 +59,7 @@ subst_dict={'@prefix@': '$prefix',
 	    '@OPENSYNC_CONFIGDIR@': config.configdir,
 	    '@OPENSYNC_FORMATSDIR@': config.formatdir,
 	    '@OPENSYNC_HEADERDIR@': config.headerdir,
-            '@VERSION@': '$version'
+            '@VERSION@': config.version
 }
 
 env.SubstInFile('opensync-1.0.pc', 'opensync-1.0.pc.in', SUBST_DICT=subst_dict)
