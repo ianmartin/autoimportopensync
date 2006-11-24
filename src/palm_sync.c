@@ -125,7 +125,7 @@ PSyncDatabase *psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error)
 	//open it
 	int ret = dlp_OpenDB(env->socket, 0, dlpOpenReadWrite, name, &(db->handle));
 	if (_psyncCheckReturn(env->socket, ret, error) != PSYNC_NO_ERROR) {
-		osync_error_update(error, "Unable to open %s: %s", name, osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open %s: %s", name, osync_error_print(error));
 		goto error_free_db;
 	}
 
@@ -186,7 +186,7 @@ PSyncEntry *psyncDBGetEntryByID(PSyncDatabase *db, unsigned long id, OSyncError 
 #endif
 	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
 	if (err == PSYNC_ERROR_OTHER) {
-		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get next entry: %s", osync_error_print(error));
 		goto error_free_buffer;
 	} else if (err == PSYNC_ERROR_NOT_FOUND) {
 		osync_error_unref(error);
@@ -236,7 +236,7 @@ PSyncEntry *psyncDBGetNthEntry(PSyncDatabase *db, int nth, OSyncError **error)
 #endif
 	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
 	if (err == PSYNC_ERROR_OTHER) {
-		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get next entry: %s", osync_error_print(error));
 		goto error_free_buffer;
 	} else if (err == PSYNC_ERROR_NOT_FOUND) {
 		osync_error_unref(error);
@@ -287,7 +287,7 @@ PSyncEntry *psyncDBGetNextModified(PSyncDatabase *db, OSyncError **error)
 
 	PSyncError err = _psyncCheckReturn(db->env->socket, ret, error);
 	if (err == PSYNC_ERROR_OTHER) {
-		osync_error_update(error, "Unable to get next entry: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get next entry: %s", osync_error_print(error));
 		goto error_free_buffer;
 	} else if (err == PSYNC_ERROR_NOT_FOUND) {
 		osync_error_unref(error);
@@ -317,7 +317,7 @@ osync_bool psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
 	
 	int ret = dlp_DeleteRecord(db->env->socket, db->handle, 0,  id);
 	if (_psyncCheckReturn(db->env->socket, ret, error) != PSYNC_NO_ERROR) {
-		osync_error_update(error, "Unable to delete file: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to delete file: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -343,7 +343,7 @@ osync_bool psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError **error
 	int ret = dlp_WriteRecord(db->env->socket, db->handle, entry->attr, entry->id, entry->category, entry->buffer, entry->size, 0);
 #endif
 	if (_psyncCheckReturn(db->env->socket, ret, error) != PSYNC_NO_ERROR) {
-		osync_error_update(error, "Unable to write file: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to write file: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -376,7 +376,7 @@ osync_bool psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned long *id, O
 	ret = dlp_WriteRecord(db->env->socket, db->handle, 0, 0, entry->category, ((pi_buffer_t*)entry->buffer)->data, ((pi_buffer_t*)entry->buffer)->used, id);
 #endif
 	if (_psyncCheckReturn(db->env->socket, ret, error) != PSYNC_NO_ERROR) {
-		osync_error_update(error, "Unable to add file: %s", osync_error_print(error));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to add file: %s", osync_error_print(error));
 		goto error;
 	}
 	
@@ -676,7 +676,7 @@ static void psyncConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	ret = dlp_ReadUserInfo(env->socket, &env->user);
 	osync_trace(TRACE_INTERNAL, "test %i", ret);
 	if (_psyncCheckReturn(env->socket, ret, &error) != PSYNC_NO_ERROR) {
-		osync_error_update(&error, "Unable to read UserInfo: %s", osync_error_print(&error));
+		//osync_error_update(&error, "Unable to read UserInfo: %s", osync_error_print(&error));
 		goto error;
 	}
 	

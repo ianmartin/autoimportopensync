@@ -21,7 +21,7 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-#include <opensync/opensync-xml.h>
+#include <opensync/opensync_xml.h>
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-serializer.h>
