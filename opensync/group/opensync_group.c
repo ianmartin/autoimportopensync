@@ -54,25 +54,23 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 	GList *ret = NULL;
 	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
     
-    int num_data = 0;
-    int i = 0;
+	int num_data = 0;
+	int i;
     
 	/* Loop over all members... */
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
-		int num = osync_member_num_objtypes(member);
-		int i = 0;
+		int num_member = osync_member_num_objtypes(member);
 		/* ... and get the objtype from each of the members. */
-		for (i = 0; i < num; i++) {
+		for (i = 0; i < num_member; i++) {
 			const char *objtype = osync_member_nth_objtype(member, i);
 			/* For each objtype, add 1 to the hashtable. If the objtype is
 			 * the special objtype "data", add 1 to all objtypes */
-			if (!strcmp(objtype, "data")) {
+			if (!strcmp(objtype, "data"))
 				num_data++;
-			} else {
-				int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
-				g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
-			}
+
+			int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
+			g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
 		}
 	}
 	
