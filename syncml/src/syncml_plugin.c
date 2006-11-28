@@ -116,10 +116,20 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 			else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
 				osync_change_set_objformat_string(change, "memo");
 		}
+
+		/* XXX Workaround for mobiles which only handle localtime! */
+		char *_data = g_strdup(data);
+		if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL) && env->onlyLocaltime) {
+			g_free(_data);
+			_data = osync_time_vcal2utc(data);
+
+		}
 		
-		osync_change_set_data(change, data, size, TRUE);
+		osync_change_set_data(change, _data, size, TRUE);
 		osync_change_set_changetype(change, _to_osync_changetype(type));
 		osync_context_report_change((OSyncContext *)userdata, change);
+		g_free(_data);
+
 	} else
 		osync_context_report_success((OSyncContext *)userdata);
 		
@@ -456,7 +466,12 @@ static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char 
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"usestringtable")) {
 				env->useStringtable = atoi(str);
 			}
-			
+
+			/* XXX Workaround for mobiles which only handle localtime! */
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyLocaltime")) {
+				env->onlyLocaltime = atoi(str);
+			}
+		
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyreplace")) {
 				env->onlyReplace = atoi(str);
 			}
@@ -776,6 +791,11 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"maxObjSize")) {
 				env->maxObjSize = atoi(str);
+			}
+
+			/* XXX Workaround for mobiles which only handle localtime! */
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"onlyLocaltime")) {
+				env->onlyLocaltime = atoi(str);
 			}
 			
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"contact_db")) {
@@ -1211,11 +1231,22 @@ static void batch_commit(OSyncContext *ctx, OSyncContext **contexts, OSyncChange
 				
 				tracer->change = change;
 				tracer->context = context;
+
+				/* XXX Workaround for mobiles which only handle localtime! */
+				char *calentry = g_strdup(osync_change_get_data(change));
+				if (env->onlyLocaltime) {
+					g_free(calentry);
+					const char *orig_stamp = osync_change_get_data(change);
+					calentry = osync_time_vcal2localtime(orig_stamp);
+				}
 	
-			
-				if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(change), osync_change_get_uid(change), osync_change_get_data(change), osync_change_get_datasize(change), _format_to_contenttype(change), _recv_change_reply, tracer, &error))
+				if (!smlDsSessionQueueChange(env->calendarSession, _get_changetype(change), osync_change_get_uid(change), calentry, strlen(calentry), _format_to_contenttype(change), _recv_change_reply, tracer, &error)) {
+					g_free(calentry);
 					goto error;
+				}
 				contexts[i] = NULL;
+				g_free(calentry);
+
 			}
 		}
 		

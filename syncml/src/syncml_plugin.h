@@ -61,6 +61,7 @@ typedef struct SmlPluginEnv {
 	char *password;
 	SmlBool useStringtable;
 	SmlBool onlyReplace;
+	SmlBool onlyLocaltime;
 	SmlTransportObexClientType type;
 	unsigned int port;
 	char *url;
