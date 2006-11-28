@@ -461,6 +461,98 @@ char *osync_time_vtime2localtime(const char* utc, int offset) {
 }
 
 
+
+/* XXX This functions should only be used as workaround for plugins which
+   only supports localtime without any timezone information. */
+
+/*! List of vcal fields which have should be converted by following
+ *  workaround functions. 
+ */
+const char *_time_attr[] = {
+	"DTSTART:",
+	"DTEND:",
+	"DTSTAMP:",
+	"AALARM:",
+	"DALARM:",
+	"DUE:",
+	NULL
+};
+
+/*! @brief Functions converts a UTC vtime stamp to a localtime vtime stamp
+ * 
+ * @param entry The whole vcal entry as GString which gets modified. 
+ * @param field The field name which should be modified. 
+ * @param toUTC The toggle in which direction we convert. TRUE = convert to UTC
+ */ 
+static void _convert_time_field(GString *entry, const char *field, osync_bool toUTC) {
+
+	int i, tzdiff;
+	char *res = NULL;
+	char *new_stamp = NULL;
+
+	GString *stamp = g_string_new("");
+
+	if ((res = strstr(entry->str, field))) {
+		res += strlen(field);
+
+		for (i=0; res[i] != '\n' && res[i] != '\r'; i++)
+			stamp = g_string_append_c(stamp, res[i]);
+
+		gssize pos = res - entry->str; 
+		entry = g_string_erase(entry, pos, i);
+
+		// Get System offset to UTC
+		struct tm *tm_stamp = osync_time_vtime2tm(stamp->str);
+		tzdiff = osync_time_timezone_diff(tm_stamp);
+		g_free(tm_stamp);
+
+		if (toUTC)
+			new_stamp = osync_time_vtime2utc(stamp->str, tzdiff);
+		else
+			new_stamp = osync_time_vtime2localtime(stamp->str, tzdiff); 
+
+		entry = g_string_insert(entry, pos, new_stamp);
+		g_free(new_stamp);
+	}
+}
+
+/*! @brief Functions converts timestamps of vcal in localtime or UTC. 
+ * 
+ * @param vcal The vcalendar which has to be converted.
+ * @param toUTC If TRUE conversion from localtime to UTC.
+ * @return timestamp modified vcalendar 
+ */ 
+char *_convert_entry(const char *vcal, osync_bool toUTC) {
+
+	int i = 0;
+	GString *new_entry = g_string_new(vcal);
+
+	for (i=0; _time_attr[i] != NULL; i++) 
+		_convert_time_field(new_entry, _time_attr[i], toUTC);
+
+	return g_string_free(new_entry, FALSE);
+}
+
+/*! @brief Functions converts timestamps of vcal to localtime
+ * 
+ * @param vcal The vcalendar which has to be converted.
+ * @return modified vcalendar with local timestamps (related to system time) 
+ */ 
+char *osync_time_vcal2localtime(const char *vcal) {
+
+	return _convert_entry(vcal, FALSE);
+}
+
+/*! @brief Functions converts timestamps of vcal to UTC
+ * 
+ * @param vcal The vcalendar which has to be converted.
+ * @return modified vcalendar with UTC timestamps (related to system time) 
+ */ 
+char *osync_time_vcal2utc(const char *vcal) {
+
+	return _convert_entry(vcal, TRUE);
+}
+
 /*! @brief Functions converts seconds in duration before or after alarm event 
  * 
  * @param seconds 

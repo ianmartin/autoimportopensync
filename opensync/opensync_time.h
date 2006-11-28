@@ -23,6 +23,12 @@ struct tm *osync_time_tm2utc(const struct tm *ltime, int offset);
 struct tm *osync_time_tm2localtime(const struct tm *utime, int offset);
 char *osync_time_vtime2utc(const char* localtime, int offset);
 char *osync_time_vtime2localtime(const char* utc, int offset);
+
+/* XXX This functions should only be used as workaround for plugins which
+   only supports localtime without any timezone information. */
+char *osync_time_vcal2localtime(const char *vcal);
+char *osync_time_vcal2utc(const char *vcal);
+
 /* Smart Timezone Helpers */
 // TODO
 
