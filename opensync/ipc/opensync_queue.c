@@ -713,8 +713,8 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 	
 	//g_source_unref(queue->write_source);
 	
-	if (queue->write_functions)
-		g_free(queue->write_functions);
+//	if (queue->write_functions)
+//		g_free(queue->write_functions);
 		
 	//g_source_unref(queue->read_source);
 	
