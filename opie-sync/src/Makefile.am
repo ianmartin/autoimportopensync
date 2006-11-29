@@ -23,7 +23,7 @@ opensyncheader_HEADER = opie_sync.h
 
 formats_LTLIBRARIES = opie.la
 
-opie_la_SOURCES = opie_format.c
+opie_la_SOURCES = opie_format.c opie_xml.c
 opie_la_LDFLAGS = -avoid-version -export-dynamic -module
 opie_la_LIBADD = @PACKAGE_LIBS@ @LIBS@
 
