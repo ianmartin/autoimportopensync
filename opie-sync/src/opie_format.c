@@ -827,12 +827,19 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 		goto error;
 	}
 	
-	if (xmlStrcmp(root->name, (const xmlChar *)"Todo")) {
+	if (xmlStrcmp(root->name, (const xmlChar *)"vcal")) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, 
 										"Wrong xml root element");
 		goto error;
 	}
 
+	root = osxml_get_node(root, "Todo");
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, 
+										"Unable to find Todo node inside vcal node");
+		goto error;
+	}
+	
 	/* Create a new output xml document */
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *on_todo = osxml_node_add_root(odoc, "Task");
@@ -1282,12 +1289,19 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 		goto error;
 	}
 	
-	if (xmlStrcmp(root->name, (const xmlChar *)"Event")) {
+	if (xmlStrcmp(root->name, (const xmlChar *)"vcal")) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, 
 										"Wrong xml root element");
 		goto error;
 	}
 
+	root = osxml_get_node(root, "Event");
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, 
+										"Unable to find Event node inside vcal node");
+		goto error;
+	}
+	
 	/* Create a new output xml document */
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *on_event = osxml_node_add_root(odoc, "event");
