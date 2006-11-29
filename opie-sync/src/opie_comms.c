@@ -459,9 +459,10 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			/* perform the transfer */
 			res = curl_easy_perform(curl);
 
-			if(res == CURLE_FTP_COULDNT_RETR_FILE) 
+			if(res == CURLE_FTP_COULDNT_RETR_FILE || res == CURLE_FTP_ACCESS_DENIED)
 			{
-				/* This is not unlikely (eg. blank device) */
+				/* This is not unlikely (eg. blank device). Note that Opie's FTP
+				 server returns "access denied" on non-existent directory. */
 				OPIE_DEBUG("FTP file doesn't exist, ignoring\n");
 				/* Close the fd and set it to 0 to indicate the file wasn't there */
 				pair->local_fd = 0;
@@ -469,7 +470,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			else if(res != CURLE_OK) 
 			{
 				/* could not get the file */
-				OPIE_DEBUG("FTP transfer failed\n");
+				fprintf(stderr, "FTP download failed (error %d)\n", res);
 				rc = FALSE;
 				break;
 			}
@@ -670,6 +671,7 @@ gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put)
 				curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
 				curl_easy_setopt(curl, CURLOPT_INFILE, hd_src);
 				curl_easy_setopt(curl, CURLOPT_INFILESIZE, file_info.st_size);
+				curl_easy_setopt(curl, CURLOPT_FTP_CREATE_MISSING_DIRS, 1);
 				
 #ifdef _OPIE_PRINT_DEBUG
 				curl_easy_setopt(curl, CURLOPT_VERBOSE, TRUE);
@@ -677,15 +679,15 @@ gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put)
 				
 				res = curl_easy_perform(curl);
 				
-				if(CURLE_OK != res) 
+				if(res != CURLE_OK) 
 				{
+					fprintf(stderr, "FTP upload failed (error %d)\n", res);
 					rc = FALSE;
-					OPIE_DEBUG("FTP upload failed\n");
 				} 
 				else
 				{
-					rc = TRUE;
 					OPIE_DEBUG("FTP upload ok\n");
+					rc = TRUE;
 				}
 				
 				/* cleanup */
