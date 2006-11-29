@@ -33,7 +33,7 @@ device
     qtopia2 - Qtopia 2.0 or compatible OS (eg. Zaurus with original ROM).
 
 port
-  TCP port to use for file transfers. Default is 4242.
+  TCP port on the device to use for file transfers. Default is 4242.
 
 conntype
   Connection type to use:
@@ -54,3 +54,23 @@ backupdir
   Files will also be written to this directory in the event that uploading to 
   the device fails.
   Note that old backups are not purged - you will need to do this yourself.
+
+
+
+Troubleshooting
+---------------
+
+I see the error "Failed to log in to server"
+
+  This is most likely because you have not set the security options properly
+  on the Opie side. Go to Settings->Security->Sync and set the
+  "Accept sync from network" option to an appropriate value for your network
+  setup.
+
+
+Syncing freezes at a particular point
+
+  An error is probably occurring during the sync which is not being shown in
+  the output - please report this problem to the OpenSync mailing list 
+  (opensync-users@lists.sourceforge.net). If you can, enable the OpenSync 
+  tracing feature and look through for any messages that include "ERROR".
