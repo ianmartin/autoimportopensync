@@ -1,7 +1,10 @@
-Ported by Holger Hans Peter Freyther <freyther@handhelds.org>
+Opie plugin for OpenSync Credits
+================================
 
-Additional code by Paul Eggleton <paule@handhelds.org> and 
-Paul Rensing <paulrensing@verizon.net>
+Current maintainer: Paul Eggleton <bluelightning@bluelightning.org>
+
+Original port by Holger Hans Peter Freyther <freyther@handhelds.org>
+Additional code by Paul Rensing <paulrensing@verizon.net>
 
 Based on the MultiSync Plugin
 Written by: Tom Foottit <tom@foottit.com>
