@@ -77,6 +77,11 @@ static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
 	for (i = 0; i < num_data; i++)
 		g_hash_table_foreach(table, _add_one, table);
 	
+	if (g_hash_table_size(table) == 0 && num_data >= 2) {
+		osync_trace(TRACE_INTERNAL, "No objtype found yet, but data available");
+		g_hash_table_replace(table, "data", GINT_TO_POINTER(num_data));
+	}
+	
 	g_hash_table_foreach(table, _build_list, &ret);
 	g_hash_table_destroy(table);
 	return ret;

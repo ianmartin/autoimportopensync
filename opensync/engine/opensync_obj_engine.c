@@ -316,7 +316,10 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		
 		/* We have to use the uid of the entry, so that the member
 		 * can correctly identify the entry */
-		osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
+		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED)
+			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
+		else
+			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
 		osync_change_set_data(existChange, newData);
 		osync_change_set_changetype(existChange, osync_change_get_changetype(masterChange));
 		
