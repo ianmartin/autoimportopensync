@@ -517,8 +517,11 @@ const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *ob
 {
 	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
 	if (!sink) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
-		return NULL;
+		sink = _osync_member_find_objtype(member, "data");
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
+			return NULL;
+		}
 	}
 	
 	return osync_objtype_sink_get_objformats(sink);

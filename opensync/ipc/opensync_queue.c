@@ -713,8 +713,10 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 	
 	//g_source_unref(queue->write_source);
 	
-	if (queue->write_functions)
+	if (queue->write_functions) {
 		g_free(queue->write_functions);
+		queue->write_functions = NULL;
+	}
 		
 	//g_source_unref(queue->read_source);
 	
@@ -727,7 +729,7 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 		osync_message_unref(message);
 	}
 	
-	if (close(queue->fd) != 0) {
+	if (queue->fd != -1 && close(queue->fd) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to close queue");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
