@@ -20,3 +20,5 @@ jescs_la_CFLAGS = -DWCAPTOOL=\"$(libexecdir)/wcaptool\"
 jescs_la_LDFLAGS = -avoid-version -export-dynamic -module
 jescs_la_LIBADD = @PACKAGE_LIBS@ @LIBS@ -lopensync-xml
 
+wcaptool: $(srcdir)/wcaptool.pl
+	cp $(srcdir)/wcaptool.pl wcaptool 
