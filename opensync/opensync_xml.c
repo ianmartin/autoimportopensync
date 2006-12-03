@@ -373,6 +373,11 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
+/**
+ * @brief Dumps the XML tree to a string 
+ * @param doc the XML doc value 
+ * @return String of XML the tree (the caller is responsible for freeing) 
+ */
 char *osxml_write_to_string(xmlDoc *doc)
 {
 	xmlKeepBlanksDefault(0);

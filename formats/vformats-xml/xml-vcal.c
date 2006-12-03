@@ -733,8 +733,9 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	//For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vcal);
 	vcal_parse_attributes(hooks, hooks->table, hooks->table, &attributes, root);
-	
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string(doc));
+	char *vcal_xml = osxml_write_to_string(doc);
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", vcal_xml);
+	g_free(vcal_xml);
 	
 	*free_input = TRUE;
 	*output = (char *)doc;
@@ -1132,8 +1133,9 @@ void xml_parse_attribute(OSyncHooksTable *hooks, GHashTable *table, xmlNode **cu
 static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error, VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	char *vcal_xml = osxml_write_to_string((xmlDoc *)input);
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", vcal_xml);
+	g_free(vcal_xml);
 	
 	//Get the root node of the input document
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "vcal", error);

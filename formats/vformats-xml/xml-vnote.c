@@ -199,7 +199,9 @@ static osync_bool conv_vnote_to_xml(void *conv_data, char *input, int inpsize, c
 		vnote_handle_attribute(hooks, root, attr);
 	}
 	
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string(doc));
+	char *xml_vnote = osxml_write_to_string(doc);
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", xml_vnote);
+	g_free(xml_vnote);
 	
 	*free_input = TRUE;
 	*output = (char *)doc;
@@ -392,8 +394,10 @@ static void xml_vnote_handle_attribute(OSyncHookTables *hooks, VFormat *vnote, x
 static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+
+	char *xml_vnote = osxml_write_to_string((xmlDoc *)input);
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", xml_note);
+	g_free(xml_vnote);
 	
 	//Get the root node of the input document
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "Note", error);
