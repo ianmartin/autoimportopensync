@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include <opensync/opensync.h>
-#include <opensync/opensync-xml.h>
 
 #include <glib.h>
 
