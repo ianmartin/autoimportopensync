@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config>
+   <!-- Server URL or IP with optional port (<server_url>[:<port>]) -->
+   <url></url>
+
+   <!-- Authentication data
+	Special strings <username>*</username> and <password>*</password> means,
+	that data should be taken from syncml-http-server plugin, if present in
+	group.
+     -->
+   <username></username>
+   <password></password>
+
+   <!-- Notify attendees about event/task deletion ( 0 = no, 1 = yes ) -->
+   <del_notify>1</del_notify>
+</config>
