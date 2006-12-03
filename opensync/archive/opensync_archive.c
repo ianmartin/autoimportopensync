@@ -122,6 +122,16 @@ void osync_archive_unref(OSyncArchive *archive)
 	}
 }
 
+/**
+ * @brief Store data of a entry in the group archive database (blob).
+ *
+ * @param archive The group archive
+ * @param uid UID of requested entry
+ * @param data The data to store 
+ * @param size Total size of data 
+ * @param error Pointer to a error struct
+ * @return Returns TRUE on success otherwise FALSE
+ */ 
 osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error)
 {
 	char *query = NULL;
@@ -134,6 +144,7 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const
 	osync_assert(size);
 	
 	char *escaped_uid = _osync_archive_sql_escape(uid);
+	// TODO: question marks stands for?
 	query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s'", escaped_uid);
 	g_free(escaped_uid);
 	
@@ -171,6 +182,16 @@ error:
 	return FALSE;
 }
 
+/**
+ * @brief Load data of a entry which is stored in the group archive database (blob).
+ *
+ * @param archive The group archive
+ * @param uid UID of requested entry
+ * @param data Pointer to store the requested data 
+ * @param size Pointer to store the size of requested data
+ * @param error Pointer to a error struct
+ * @return Returns TRUE on success otherwise FALSE
+ */ 
 osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error)
 {
 	sqlite3_stmt *sqlite_stmt = NULL;
@@ -229,6 +250,18 @@ error:
 	return FALSE;
 }
 
+/**
+ * @brief Save a entry in the group archive. 
+ *
+ * @param archive The group archive
+ * @param id Arhive (database) id of entry which gets deleted
+ * @param uid Reported UID of entry
+ * @param objtype Reported object type of entry
+ * @param mappingid Mapped ID of entry 
+ * @param memberid ID of member which reported entry 
+ * @param error Pointer to a error struct
+ * @return Returns number of entries in archive group database. 0 on error. 
+ */ 
 long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error)
 {
 	char *query = NULL;
@@ -262,6 +295,14 @@ error:
 	return 0;
 }
 
+/**
+ * @brief Delete certain entry form group archive. 
+ *
+ * @param archive The group archive
+ * @param id Archive (database) id of entry which gets deleted
+ * @param error Pointer to a error struct
+ * @return TRUE on when all changes successfully loaded otherwise FALSE
+ */ 
 osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %p)", __func__, archive, id, error);
@@ -280,12 +321,24 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
 	return TRUE;
 }
 
+/**
+ * @brief Load all changes from group archive for a certain object type.
+ *
+ * @param archive The group archive
+ * @param objtype Requested object type 
+ * @param ids List to store the archive (database) ids of each entry
+ * @param uids List to store uids of each entry
+ * @param mappingids List to store mappingids for each entry
+ * @param error Pointer to a error struct
+ * @return TRUE on when all changes successfully loaded otherwise FALSE
+ */ 
 osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p, %p, %p)", __func__, archive, objtype, ids, uids, mappingids, memberids, error);
 	
+	/* TODO Check if table already exist and don't CREATE TABLE when it exists. Better error handling! FALSE on Error! */
 	if (sqlite3_exec(archive->db, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER, data BLOB)", NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable create changes table! %s", sqlite3_errmsg(archive->db));
+		osync_trace(TRACE_INTERNAL, "Unable to create changes table! %s", sqlite3_errmsg(archive->db));
 	
 	sqlite3_stmt *ppStmt = NULL;
 	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", objtype);
@@ -311,6 +364,14 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	return TRUE;
 }
 
+/**
+ * @brief Get the object type for a entry of the group archive.
+ *
+ * @param archive The group archive
+ * @param uid The uid of the entry
+ * @param error Pointer to a error struct 
+ * @return Returns object type of entry. NULL if entry doesn't exit. 
+ */
 char *osync_archive_get_objtype(OSyncArchive *archive, const char *uid, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, uid, error);
