@@ -52,12 +52,7 @@ char *setup_testbed(char *fkt_name)
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp -R ../formats/.libs/*.so %s", testbed);
-	if (system(command))
-		abort();
-	g_free(command);
-	
-	command = g_strdup_printf("cp -R ../formats/vformats-xml/.libs/*.so %s", testbed);
+	command = g_strdup_printf("cp -R ../formats/*.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
