@@ -300,10 +300,9 @@ void opie_xml_set_uid(xmlNode *node, const char *uid) {
 }
 
 int opie_xml_save_to_fd(xmlDoc *doc, int fd) {
-
-        if (!ftruncate(fd, 0)) {
-                perror("ftruncate");
-        }
+	if (ftruncate(fd, 0) == -1) {
+		perror("ftruncate");
+	}
 
 	xmlOutputBuffer *buf = xmlOutputBufferCreateFd(fd, NULL);
 	/* Prevent the fd from being closed after writing */
