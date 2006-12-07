@@ -82,9 +82,22 @@ Syncing freezes at a particular point
   tracing feature and look through for any messages that include "ERROR".
 
 
+Items keep getting duplicated
+
+  This is a known issue - UID mapping doesn't work very well at the moment,
+  particularly if you create an entry outside of Opie and then update any
+  data on the Opie side.
+
+
 
 Todo list
 ---------
+
+UID mapping
+
+  The plugin doesn't understand how to deal with the same item that has a 
+  different UID. This results in items sometimes being duplicated or changes
+  not being synchronised.
 
 Missing fields on todo list items
 
