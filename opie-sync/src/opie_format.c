@@ -99,7 +99,7 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 					|| (!strcasecmp(iprop->name, "Office")) )
 				{
 					if (!on_organisation)
-						on_organisation = xmlNewTextChild(on_root, NULL, (xmlChar*)"Organisation", NULL);
+						on_organisation = xmlNewTextChild(on_root, NULL, (xmlChar*)"Organization", NULL);
 					
 					if (!strcasecmp(iprop->name, "Company"))
 						osxml_node_add(on_organisation, "Name", iprop->children->content);
@@ -390,7 +390,7 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	/* Company */
 	cur = osxml_get_node(root, "Organization");
 	if (cur) {
-		xml_node_to_attr(cur, "Organisation", on_contact, "Company");
+		xml_node_to_attr(cur, "Name",         on_contact, "Company");
 		xml_node_to_attr(cur, "Department",   on_contact, "Department");
 		xml_node_to_attr(cur, "Unit",         on_contact, "Office");
 	}
@@ -440,24 +440,22 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 			xmlSetProp(on_contact, "BusinessPager", number);
 		}
 		else if ( type & PT_WORK ) {
-			if ( type & PT_VOICE )
-				xmlSetProp(on_contact, "BusinessPhone", number);
-			else if ( type & PT_FAX ) 
+			if ( type & PT_FAX ) 
 				xmlSetProp(on_contact, "BusinessFax", number);
 			else if ( type & PT_CELL ) 
 				xmlSetProp(on_contact, "BusinessMobile", number);
 			else {
-				// ???
+				/* PT_VOICE or anything else */
+				xmlSetProp(on_contact, "BusinessPhone", number);
 			}
 		}
-		else if ( type & PT_VOICE )
-			xmlSetProp(on_contact, "HomePhone", number);
 		else if ( type & PT_FAX ) 
 			xmlSetProp(on_contact, "HomeFax", number);
 		else if ( type & PT_CELL ) 
 			xmlSetProp(on_contact, "HomeMobile", number);
 		else {
-			// ???
+			/* PT_VOICE or anything else */
+			xmlSetProp(on_contact, "HomePhone", number);
 		}
 	}
 	xmlXPathFreeObject(xobj);
@@ -471,7 +469,6 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	for ( i = 0; i < numnodes; i++ ) {
 		cur = nodes->nodeTab[i];
 		emailaddr = osxml_find_node(cur, "Content");
-		xmlFree(emailaddr);
 		g_string_append(emails, emailaddr);
 		if(i < numnodes - 1)
 			g_string_append_c(emails, ' ');
@@ -486,15 +483,14 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 			char *type = (char*)xmlNodeGetContent(cur2);
 			if ( type != NULL ) {
 				if( strcasecmp( type, "PREF" ) == 0 ) {
-					char *emailaddr = (char*)xmlNodeGetContent(cur); 
 					xmlSetProp(on_contact, "DefaultEmail", emailaddr);
-					xmlFree(emailaddr);
 					break;
 				}
 				xmlFree(type);
 			}
 		}
 		xmlXPathFreeObject(xobj2);
+		xmlFree(emailaddr);
 	}
 	xmlXPathFreeObject(xobj);
 	xmlSetProp(on_contact, "Emails", emails->str);
@@ -596,7 +592,6 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 // TODO: Entries to be handled
 /*   unsigned int rid; */
 /*   unsigned int rinfo; */
-/*   char* home_webpage; */
 /*   char* business_webpage; */
 /*   int gender; */
 /*   char* children; */
@@ -1525,7 +1520,8 @@ void get_info(OSyncEnv *env)
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
 	char *value = osxml_find_node(node_from, nodename);
-	xmlSetProp(node_to, attrname, value);
+	if(value && (strlen(value) > 0))
+		xmlSetProp(node_to, attrname, value);
 	xmlFree(value);
 }
 
