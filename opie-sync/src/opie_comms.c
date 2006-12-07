@@ -55,7 +55,8 @@ typedef struct {
 enum temp_file_type {
 	TT_STANDARD = 1,
 	TT_VISIBLE = 2,
-	TT_DEBUG = 3
+	TT_DEBUG = 3,
+	TT_DEBUG_CREATE = 4
 };
 
 const char *OPIE_ADDRESS_FILE  = "Applications/addressbook/addressbook.xml";
@@ -98,15 +99,17 @@ int list_add_temp_file(GList **file_list, const char *remote_file, int resource_
 	fetch_pair *pair = g_malloc(sizeof(fetch_pair));
 	pair->remote_filename = g_strdup(remote_file);
 	pair->resource_type = resource_type;
-	if(tmpfilemode == TT_DEBUG) {
+	if(tmpfilemode == TT_DEBUG || tmpfilemode == TT_DEBUG_CREATE) {
 		/* Bypass normal temporary file handling (for debugging purposes) */
 		char *basename = g_path_get_basename(remote_file);
 		pair->local_filename = g_strdup_printf("/tmp/%s", basename);
 		g_free(basename);
-		pair->local_fd = open(pair->local_filename, O_RDWR | O_EXCL);
+		if(tmpfilemode == TT_DEBUG_CREATE)
+			pair->local_fd = open(pair->local_filename, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+		else
+			pair->local_fd = open(pair->local_filename, O_RDWR | O_EXCL);
 		if(pair->local_fd == -1) {
-			osync_trace( TRACE_INTERNAL, "failed to open temporary file" );
-			return -1;
+			osync_trace( TRACE_INTERNAL, "failed to open file" );
 		}
 	}
 	else {
@@ -161,7 +164,7 @@ void cleanup_temp_files(GList* file_list, int tmpfilemode) {
 				osync_trace( TRACE_INTERNAL, "failed to unlink temporary file" );
 			}
 		}
-		if(pair->local_fd)
+		if(pair->local_fd > 0)
 			close(pair->local_fd);
 	}
 }
@@ -244,7 +247,7 @@ int backup_files(const char *backupdir, GList* file_list) {
 	
 	for(t = 0; t < len; ++t) {
 		fetch_pair* pair = g_list_nth_data(file_list, t);
-		if(pair->local_fd) {
+		if(pair->local_fd > 0) {
 			/* Build full path to file */
 			char *basename = g_path_get_basename(pair->remote_filename);
 			char *backupfile = g_build_filename(backuppath, basename, NULL);
@@ -350,22 +353,22 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 				switch(pair->resource_type) {
 					case OPIE_OBJECT_TYPE_PHONEBOOK:
 						doc = &env->contacts_doc;
-						if(!pair->local_fd)
+						if(pair->local_fd <= 0)
 							*doc = opie_xml_create_contacts_doc(); 
 						break;
 					case OPIE_OBJECT_TYPE_TODO:
 						doc = &env->todos_doc;
-						if(!pair->local_fd)
+						if(pair->local_fd <= 0)
 							*doc = opie_xml_create_todos_doc(); 
 						break;
 					case OPIE_OBJECT_TYPE_CALENDAR:
 						doc = &env->calendar_doc;
-						if(!pair->local_fd)
+						if(pair->local_fd <= 0)
 							*doc = opie_xml_create_calendar_doc(); 
 						break;
 					case OPIE_OBJECT_TYPE_CATEGORIES:
 						doc = &env->categories_doc;
-						if(!pair->local_fd)
+						if(pair->local_fd <= 0)
 							*doc = opie_xml_create_categories_doc(); 
 						break;
 					default:
@@ -373,10 +376,10 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 						return FALSE;
 				}
 				
-				if(pair->local_fd) {
+				if(pair->local_fd > 0) {
 					*doc = opie_xml_fd_open(pair->local_fd);
 					close(pair->local_fd);
-					pair->local_fd = 0;
+					pair->local_fd = -1;
 				}
 				
 				if(!*doc)
@@ -464,8 +467,8 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 				/* This is not unlikely (eg. blank device). Note that Opie's FTP
 				 server returns "access denied" on non-existent directory. */
 				OPIE_DEBUG("FTP file doesn't exist, ignoring\n");
-				/* Close the fd and set it to 0 to indicate the file wasn't there */
-				pair->local_fd = 0;
+				/* Close the fd and set it to -1 to indicate the file wasn't there */
+				pair->local_fd = -1;
 			}
 			else if(res != CURLE_OK) 
 			{
@@ -480,7 +483,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			}
 
 			fflush(fd);
-			if(pair->local_fd) {
+			if(pair->local_fd > 0) {
 				free(fd);   /* don't fclose, we still need it */
 				lseek(pair->local_fd, 0, SEEK_SET);
 			}
@@ -523,7 +526,7 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	if ( !env ) return FALSE;
 
 	if(env->conn_type == OPIE_CONN_NONE) {
-		tmpfilemode = TT_DEBUG;
+		tmpfilemode = TT_DEBUG_CREATE;
 	}
 	else if (env->conn_type == OPIE_CONN_SCP) {
 		tmpfilemode = TT_VISIBLE;
