@@ -38,7 +38,7 @@ port
 conntype
   Connection type to use:
     ftp  - use FTP (default)
-    scp  - use SFTP
+    scp  - use SFTP - currently broken
     none - don't connect. Useful for debugging only - will expect the device 
            files to sync with to be in /tmp.
 
@@ -70,7 +70,47 @@ I see the error "Failed to log in to server"
 
 Syncing freezes at a particular point
 
-  An error is probably occurring during the sync which is not being shown in
-  the output - please report this problem to the OpenSync mailing list 
+  This is most likely caused by attempting to sync with another plugin that
+  supports object types that the opie-sync plugin does not support (eg. notes).
+  These types should be disabled in your syncing frontend or the sync will not
+  complete successfully. (This issue will be addressed in a future version of
+  OpenSync).
+
+  Alternatively, an error may be occurring during the sync which is not being 
+  shown in the output - please report this problem to the OpenSync mailing list 
   (opensync-users@lists.sourceforge.net). If you can, enable the OpenSync 
   tracing feature and look through for any messages that include "ERROR".
+
+
+
+Todo list
+---------
+
+Missing fields on todo list items
+
+  "Business web page", "Gender" and "Children" fields from the Opie side are
+  not currently handled.
+
+Alarms
+
+  Alarms are not currently synchronised for calendar events.
+
+Timezone handling
+
+  The plugin does not do any time zone conversion yet.
+
+SCP support
+
+  SCP support is currently broken.
+
+Qtopia testing / support
+
+  No testing has yet been done with Qtopia on Zaurus devices.
+
+Notes syncing support
+
+  This would probably be done by reading and writing text files from a set
+  location on the handheld (eg. the home directory) as Opie has a text editor
+  instead of a traditional notes application.
+
+
