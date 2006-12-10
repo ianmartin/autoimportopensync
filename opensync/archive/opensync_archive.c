@@ -372,12 +372,12 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
  * @param error Pointer to a error struct 
  * @return Returns object type of entry. NULL if entry doesn't exit. 
  */
-char *osync_archive_get_objtype(OSyncArchive *archive, const char *uid, OSyncError **error)
+char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, const char *uid, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, uid, error);
 	
 	sqlite3_stmt *ppStmt = NULL;
-	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE uid='%s'", uid);
+	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE memberid='%lli', uid='%s'", memberid, uid);
 	sqlite3_prepare(archive->db, query, -1, &ppStmt, NULL);
 	g_free(query);
 	
