@@ -11,6 +11,7 @@ opensync_time.c
 opensync_xml.c
 helper/opensync_hashtable.c
 helper/opensync_anchor.c
+db/opensync_db.c
 module/opensync_module.c
 plugin/opensync_plugin.c
 plugin/opensync_plugin_info.c
@@ -116,6 +117,10 @@ version/opensync_version.h
 
 archive_headers = """
 archive/opensync_archive.h
+"""
+
+db_headers = """
+db/opensync_db.h
 """
 
 helper_headers = """
