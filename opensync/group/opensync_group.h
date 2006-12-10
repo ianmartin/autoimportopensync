@@ -50,6 +50,7 @@ OSYNC_EXPORT const char *osync_group_get_name(OSyncGroup *group);
 
 OSYNC_EXPORT osync_bool osync_group_save(OSyncGroup *group, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **error);
 
 OSYNC_EXPORT void osync_group_add_member(OSyncGroup *group, OSyncMember *member);

@@ -111,7 +111,7 @@ static void dump_hash(OSyncGroupEnv *env, const char *objtype, const char *group
 	char *hash;
 	for (i = 0; i < osync_hashtable_num_entries(table); i++) {
 		osync_hashtable_nth_entry(table, i, &uid, &hash);
-    	printf("UID: %s HASH: %s\n", uid, hash);
+	    	printf("UID: %s HASH: %s\n", uid, hash);
 		g_free(hash);
 		g_free(uid);
 	}
@@ -125,19 +125,17 @@ error:
 	osync_error_unref(&error);
 }
 
-#if 0
-static void reset(OSyncEnv *osync, char *groupname)
+static void reset(OSyncGroupEnv *osync, char *groupname)
 {
-	OSyncGroup *group = osync_env_find_group(osync, groupname);
+	OSyncGroup *group = osync_group_env_find_group(osync, groupname);
 	
 	if (!group) {
 		printf("Unable to find group with name \"%s\"\n", groupname);
 		return;
 	}
 	
-	osync_group_reset(group);
+	osync_group_reset(group, NULL);
 }
-#endif
 
 int main (int argc, char *argv[])
 {
@@ -202,7 +200,7 @@ int main (int argc, char *argv[])
 			dump_hash(env, objtype, groupname, membername);
 			break;
 		case RESET:
-			//reset(osync, groupname);
+			reset(env, groupname);
 			break;
 	}
 	

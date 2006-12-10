@@ -24,6 +24,8 @@
 #include "opensync-format.h"
 #include "opensync-group.h"
 #include "opensync_group_internals.h"
+#include "opensync-db.h"
+
 
 #include "opensync_xml.h"
 
@@ -543,6 +545,74 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+}
+
+/*! @brief Reset all databases of a group (anchor, hashtable and archieve) 
+ * 
+ * @param group The group
+ * @param error Pointer to a error struct
+ * @returns TRUE on success, FALSE otherwise
+ * 
+ */
+osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, group, error);
+
+	OSyncDB *db = NULL;
+	GList *m = NULL;
+	char *path = NULL;
+
+	osync_assert(group);
+
+	/* Loop over all members... */
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+
+		// flush hashtable...
+		path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
+		if (!(db = osync_db_new(error)))
+			goto error_and_free;
+
+		if (!osync_db_open(db, path, error))
+			goto error_and_free;
+
+		osync_db_reset_full(db, error);
+
+		g_free(path);
+
+		// flush anchor db ... 
+		path = g_strdup_printf("%s/anchor.db", osync_member_get_configdir(member));
+		if (!(db = osync_db_new(error)))
+			goto error_and_free;
+
+		if (!osync_db_open(db, path, error))
+			goto error_and_free;
+
+		osync_db_reset_full(db, error);
+
+		g_free(path);
+
+	}
+
+	path = g_strdup_printf("%s/archive.db", osync_group_get_configdir(group));
+	if (!(db = osync_db_new(error)))
+		goto error_and_free;
+
+	if (!osync_db_open(db, path, error))
+		goto error_and_free;
+
+	osync_db_reset_full(db, error);
+
+	g_free(path);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_and_free:
+	g_free(path);	
+//error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*! @brief Loads a group from a directory
