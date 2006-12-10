@@ -21,28 +21,48 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
-#include <sqlite3.h>
-
 #include "opensync-helper.h"
-#include "opensync_anchor_internals.h"
+#include "opensync-db.h"
 
-static OSyncAnchorDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
+static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
+
+	char *query = g_strdup("CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)");
+
+	if (!osync_db_query(db, query, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
+		return FALSE;
+	}
+
+	g_free(query);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}	
+
+static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
 	
-	OSyncAnchorDB *db = osync_try_malloc0(sizeof(OSyncAnchorDB), error);
+	OSyncDB *db = osync_db_new(error); 
 	if (!db)
 		goto error;
 	
-	int rc = sqlite3_open(filename, &(db->sdb));
-	if (rc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(db->sdb));
+	if (!osync_db_open(db, filename, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		goto error_free_db;
 	}
 	
-	if (sqlite3_exec(db->sdb, "CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)", NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable create anchor table! %s", sqlite3_errmsg(db->sdb));
-	
+	if (osync_db_exists(db, "tbl_anchor", error)) {
+		osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
+		return db;
+	}	
+
+	if (!_osync_anchor_db_create(db, error))
+		goto error_free_db;
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
 	return db;
 
@@ -53,47 +73,45 @@ error:
 	return NULL;
 }
 
-static void _osync_anchor_db_free(OSyncAnchorDB *db)
+static void _osync_anchor_db_free(OSyncDB *db)
 {
 	osync_assert(db);
-	
-	int ret = sqlite3_close(db->sdb);
-	if (ret)
-		osync_trace(TRACE_INTERNAL, "Can't close database: %s", sqlite3_errmsg(db->sdb));
+
+	if (!osync_db_close(db, NULL))
+		osync_trace(TRACE_INTERNAL, "Can't close database");
+
 	g_free(db);
 }
 
-static char *_osync_anchor_db_retrieve(OSyncAnchorDB *db, const char *key)
+static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key);
 	osync_assert(db);
 	osync_assert(key);
+
+	char *retanchor = NULL;
 	
-	sqlite3_stmt *ppStmt = NULL;
 	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", key);
-	if (sqlite3_prepare(db->sdb, query, -1, &ppStmt, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable prepare anchor! %s", sqlite3_errmsg(db->sdb));
-	sqlite3_step(ppStmt);
-	
-	char *retanchor = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
-	sqlite3_finalize(ppStmt);
+	retanchor = osync_db_query_single_string(db, query, NULL); 
 	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, retanchor);
 	return retanchor;
 }
 
-static void _osync_anchor_db_update(OSyncAnchorDB *db, const char *key, const char *anchor)
+static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *anchor)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
 	osync_assert(db);
 	osync_assert(key);
 	
 	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", key, anchor);
-	if (sqlite3_exec(db->sdb, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable put anchor! %s", sqlite3_errmsg(db->sdb));
-
+	/* TODO: Add Error handling in this funciton for osync_db_query() */
+	if (!osync_db_query(db, query, NULL)) {
+		osync_trace(TRACE_INTERNAL, "Unable put anchor!");
+	}
 	g_free(query);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -102,7 +120,7 @@ osync_bool osync_anchor_compare(const char *anchordb, const char *key, const cha
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
 	osync_assert(anchordb);
 	
-	OSyncAnchorDB *db = _osync_anchor_db_new(anchordb, NULL);
+	OSyncDB *db = _osync_anchor_db_new(anchordb, NULL);
 	if (!db)
 		return FALSE;
 	
@@ -129,7 +147,7 @@ void osync_anchor_update(const char *anchordb, const char *key, const char *new_
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
 	osync_assert(anchordb);
 	
-	OSyncAnchorDB *db = _osync_anchor_db_new(anchordb, NULL);
+	OSyncDB *db = _osync_anchor_db_new(anchordb, NULL);
 	if (!db)
 		return;
 	
@@ -146,7 +164,7 @@ char *osync_anchor_retrieve(const char *anchordb, const char *key)
 	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb, key);
 	osync_assert(anchordb);
 	
-	OSyncAnchorDB *db = _osync_anchor_db_new(anchordb, NULL);
+	OSyncDB *db = _osync_anchor_db_new(anchordb, NULL);
 	if (!db)
 		return NULL;
 	

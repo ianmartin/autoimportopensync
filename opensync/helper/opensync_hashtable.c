@@ -23,38 +23,8 @@
 
 #include "opensync-data.h"
 #include "opensync-helper.h"
-#include "opensync_hashtable_internals.h"
+#include "opensync-db.h"
 
-/**
- * @defgroup OSyncHashtablePrivateAPI OpenSync Hashtable Internals
- * @ingroup OSyncPrivate
- * @brief The private API of the Hashtables
- * 
- * This gives you an insight in the private API of the Hashtables
- * 
- */
-/*@{*/
-
-static int _osync_db_count(sqlite3 *db, char *query)
-{
-	int ret = 0;
-
-	sqlite3_stmt *ppStmt = NULL;
-	if (sqlite3_prepare(db, query, -1, &ppStmt, NULL) != SQLITE_OK)
-		osync_trace(TRACE_ERROR, "Unable prepare count! %s", sqlite3_errmsg(db));
-	sqlite3_step(ppStmt);
-	
-	ret = sqlite3_column_int64(ppStmt, 0);
-	sqlite3_finalize(ppStmt);
-	return ret;
-}
-
-/*@}*/
-
-void _osync_hashtable_trace(void *data, const char *query)
-{
-	osync_trace(TRACE_INTERNAL, "hashtable query executed: %s", query);
-}
 
 /**
  * @defgroup OSyncHashtableAPI OpenSync Hashtables
@@ -82,7 +52,6 @@ void _osync_hashtable_trace(void *data, const char *query)
  * osync_hashtable_get_deleted() or osync_hashtable_report_deleted()
  * 
  * After you are done call:
- * - osync_hashtable_close()
  * - osync_hashtable_free()
  * 
  * The hashtable works like this:
@@ -98,6 +67,22 @@ void _osync_hashtable_trace(void *data, const char *query)
  * 
  */
 /*@{*/
+
+osync_bool osync_hashtable_create(OSyncHashTable *table, const char *objtype, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, objtype, error);
+
+	char *query = g_strdup_printf("CREATE TABLE tbl_hash_%s (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", objtype);
+	if (!osync_db_query(table->dbhandle, query, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
+		return FALSE;
+	}
+
+	g_free(query);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
 
 /*! @brief Creates a new hashtable
  * 
@@ -118,28 +103,30 @@ OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSync
 	}
 	
 	table->used_entries = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
-	
-	int rc = sqlite3_open(path, &(table->dbhandle));
-	if (rc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(table->dbhandle));
+
+	table->dbhandle = osync_db_new(error);
+
+	if (!osync_db_open(table->dbhandle, path, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
-	sqlite3_trace(table->dbhandle, _osync_hashtable_trace, NULL);
-	
+
 	table->tablename = g_strdup_printf("tbl_hash_%s", objtype);
-	
-	char *query = g_strdup_printf("CREATE TABLE tbl_hash_%s (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", objtype);
-	if (sqlite3_exec(table->dbhandle, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable create hash table! %s", sqlite3_errmsg(table->dbhandle));
-	g_free(query);
-	
+
+	if (osync_db_exists(table->dbhandle, table->tablename, error))
+		goto end;
+
+	if (!osync_hashtable_create(table, objtype, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+end:
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
 	return table;
 }
 
 /*! @brief Frees a hashtable
- * 
  * 
  * @param table The hashtable to free
  * 
@@ -149,14 +136,16 @@ void osync_hashtable_free(OSyncHashTable *table)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 	osync_assert(table);
 	
-	int ret = sqlite3_close(table->dbhandle);
-	if (ret)
-		osync_trace(TRACE_INTERNAL, "Can't close database: %s", sqlite3_errmsg(table->dbhandle));
+	/* TODO: Add error handling in this function for osync_db_close(). */
+	int ret = osync_db_close(table->dbhandle, NULL);
+	if (!ret)
+		osync_trace(TRACE_INTERNAL, "Can't close database");
+
 		
 	g_hash_table_destroy(table->used_entries);
 
 	g_free(table->tablename);
-
+	g_free(table->dbhandle);
 	g_free(table);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -178,11 +167,8 @@ void osync_hashtable_reset(OSyncHashTable *table)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
-	
-	char *query = g_strdup_printf("DELETE FROM %s", table->tablename);
-	if (sqlite3_exec(table->dbhandle, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable to reset hash! %s", sqlite3_errmsg(table->dbhandle));
-	g_free(query);
+
+	osync_db_reset(table->dbhandle, table->tablename, NULL);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -199,8 +185,9 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 	
-	char *query = g_strdup_printf("SELECT count(*) FROM %s", table->tablename);
-	int ret = _osync_db_count(table->dbhandle, query);
+	char *query = g_strdup_printf("SELECT * FROM %s", table->tablename);
+	/* TODO: Add error handling for osync_db_count() function */
+	int ret = osync_db_count(table->dbhandle, query, NULL);
 	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
@@ -223,17 +210,19 @@ osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, c
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 	
-	sqlite3_stmt *ppStmt = NULL;
+	GList *list = NULL;
+
 	char *query = g_strdup_printf("SELECT uid, hash FROM %s LIMIT 1 OFFSET %i", table->tablename, i);
-	sqlite3_prepare(table->dbhandle, query, -1, &ppStmt, NULL);
-	sqlite3_step(ppStmt);
-	
-	*uid = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
-	*hash = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
-	
-	sqlite3_finalize(ppStmt);
+	list = osync_db_query_table(table->dbhandle, query, NULL);
 	g_free(query);
+		
+	GList *column = list->data; 
+
+	*uid = g_strdup((char*)g_list_nth_data(column, 0));
+	*hash = g_strdup((char*)g_list_nth_data(column, 1));
 	
+	osync_db_free_list(list);
+
 	return TRUE;
 }
 
@@ -244,8 +233,7 @@ void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *h
 	osync_assert(table->dbhandle);
 	
 	char *query = g_strdup_printf("REPLACE INTO %s ('uid', 'hash') VALUES('%s', '%s')", table->tablename, uid, hash);
-	if (sqlite3_exec(table->dbhandle, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable to insert hash! %s", sqlite3_errmsg(table->dbhandle));
+	osync_db_query(table->dbhandle, query, NULL);
 	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -258,8 +246,7 @@ void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
 	osync_assert(table->dbhandle);
 	
 	char *query = g_strdup_printf("DELETE FROM %s WHERE uid='%s'", table->tablename, uid);
-	if (sqlite3_exec(table->dbhandle, query, NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable to delete hash! %s", sqlite3_errmsg(table->dbhandle));
+	osync_db_query(table->dbhandle, query, NULL);
 	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -326,32 +313,31 @@ void osync_hashtable_report(OSyncHashTable *table, const char *uid)
 char **osync_hashtable_get_deleted(OSyncHashTable *table)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
+
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
-	char **azResult = NULL;
-	int numrows = 0;
-	
-	char *query = g_strdup_printf("SELECT uid, hash FROM %s", table->tablename);
-	sqlite3_get_table(table->dbhandle, query, &azResult, &numrows, NULL, NULL);
+	GList *row = NULL, *result = NULL;
+
+	char *query = g_strdup_printf("SELECT uid FROM %s", table->tablename);
+	result = osync_db_query_table(table->dbhandle, query, NULL); 
 	g_free(query);
-	
+
+	int numrows = g_list_length(result);
 	char **ret = g_malloc0((numrows + 1) * sizeof(char *));
 	
-	int i;
-	int ccell = 2;
 	int num = 0;
-	for (i = 0; i < numrows; i++) {
-		char *uid = azResult[ccell];
-		ccell += 2;
-		
-		if (!g_hash_table_lookup(table->used_entries, uid)) {
-			ret[num] = g_strdup(uid);
-			num++;
-		}
+	for (row = result; row; row = row->next) {
+		GList *column = row->data;
+
+		const char *uid = (const char *) g_list_nth_data(column, 0);
+
+		if (!g_hash_table_lookup(table->used_entries, uid))
+			ret[num++] = g_strdup(uid);
 	}
-	sqlite3_free_table(azResult);
-	
+
+	osync_db_free_list(result);
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, ret);
 	return ret;
 }
@@ -376,26 +362,21 @@ OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char
 	
 	OSyncChangeType retval = OSYNC_CHANGE_TYPE_UNMODIFIED;
 
-	sqlite3_stmt *ppStmt = NULL;
 	char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid='%s'", table->tablename, uid);
-	if (sqlite3_prepare(table->dbhandle, query, -1, &ppStmt, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable prepare get hash! %s", sqlite3_errmsg(table->dbhandle));
-	if (sqlite3_step(ppStmt) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable step get hash! %s", sqlite3_errmsg(table->dbhandle));
-	const char *orighash = (const char *)sqlite3_column_text(ppStmt, 0);
+	char *orighash = osync_db_query_single_string(table->dbhandle, query, NULL); 
 	
 	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash, orighash);
 	
 	if (orighash) {
-		if (strcmp(hash, orighash) == 0)
+		if (!strcmp(hash, orighash))
 			retval = OSYNC_CHANGE_TYPE_UNMODIFIED;
 		else
-			retval =OSYNC_CHANGE_TYPE_MODIFIED;
+			retval = OSYNC_CHANGE_TYPE_MODIFIED;
 	} else
 		retval = OSYNC_CHANGE_TYPE_ADDED;
 
-	sqlite3_finalize(ppStmt);
 	g_free(query);
+	g_free(orighash);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, retval);
 	return retval;
