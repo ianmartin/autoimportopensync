@@ -141,14 +141,17 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	osync_bool found = FALSE;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(proxy)));
+
+	int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
+	const char *uid = osync_change_get_uid(change);		
+	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s , objtype %s from member %lli", uid, osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), memberid);
 	
 	OSyncData *data = osync_change_get_data(change);
 	
 	/* First, check if we already know this change. This should be the case,
 	 * if the change is modified or deleted, and not the case if it is added */
 	if (engine->archive) {
-		char *knownObjType = osync_archive_get_objtype(engine->archive, osync_change_get_uid(change), &error);
+		char *knownObjType = osync_archive_get_objtype(engine->archive, memberid, uid, &error);
 		if (osync_error_is_set(&error))
 			goto error;
 	
