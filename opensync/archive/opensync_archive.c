@@ -317,7 +317,7 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	for (row = result; row; row = row->next) { 
 		GList *column = row->data;
 
-		long long int id = atoll(g_list_nth_data(column->data, 0));
+		long long int id = atoll(g_list_nth_data(column, 0));
 		const char *uid = g_list_nth_data(column, 1); 
 		long long int mappingid = atoll(g_list_nth_data(column, 2));
 		long long int memberid = atoll(g_list_nth_data(column, 3)); 
