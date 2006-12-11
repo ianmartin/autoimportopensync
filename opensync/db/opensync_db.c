@@ -375,3 +375,103 @@ osync_bool osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **erro
 	return TRUE;
 }
 
+osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %u, %p)", __func__, db, query, data, size, error);
+
+	sqlite3_stmt *sqlite_stmt = NULL;
+
+        int rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
+        if(rc != SQLITE_OK)
+                goto error_msg;
+
+	rc = sqlite3_bind_blob(sqlite_stmt, 1, data, size, SQLITE_TRANSIENT);
+	if(rc != SQLITE_OK)
+		goto error_msg;
+	
+	rc = sqlite3_step(sqlite_stmt);
+	if (rc != SQLITE_DONE) {
+		if(rc != SQLITE_ERROR)
+			goto error_msg;
+		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! %s", sqlite3_errmsg(db->sqlite3db));
+		goto error;
+	}
+	
+	sqlite3_reset(sqlite_stmt);
+	sqlite3_finalize(sqlite_stmt);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_msg:
+	osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! sqlite rc: %i", rc);
+error:
+	if(sqlite_stmt) {
+		sqlite3_reset(sqlite_stmt);
+		sqlite3_finalize(sqlite_stmt);	
+	}
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+osync_bool osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, db, query, data, size, error);
+
+	sqlite3_stmt *sqlite_stmt = NULL;
+
+	int rc = sqlite3_prepare(db->sqlite3db, query, -1, &sqlite_stmt, NULL);
+	if(rc != SQLITE_OK)
+		goto error_msg;
+	
+	rc = sqlite3_step(sqlite_stmt);
+	if(rc != SQLITE_ROW) {
+		if(rc == SQLITE_ROW) {
+			osync_error_set(error, OSYNC_ERROR_PARAMETER, "UID not found!");
+			goto error;
+		}
+		if(rc == SQLITE_ERROR) {
+			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! %s", sqlite3_errmsg(db->sqlite3db));
+			goto error;
+		}
+		goto error_msg;		
+	}
+	
+	const char *tmp = sqlite3_column_blob(sqlite_stmt, 0);
+	*size = sqlite3_column_bytes(sqlite_stmt, 0);
+	*data = osync_try_malloc0(*size, error);
+
+	if(!*data)
+		goto error;
+
+	memcpy(*data, tmp, *size);
+	
+	if (sqlite3_step(sqlite_stmt) == SQLITE_ROW) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Returned more than one result for a uid");
+		goto error;
+	}
+	
+	sqlite3_reset(sqlite_stmt);
+	sqlite3_finalize(sqlite_stmt);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error_msg:
+	osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! sqlite rc: %i", rc);	
+error:
+	if(sqlite_stmt) {
+		sqlite3_reset(sqlite_stmt);
+		sqlite3_finalize(sqlite_stmt);	
+	}
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+long long int osync_db_last_rowid(OSyncDB *db) {
+
+	return sqlite3_last_insert_rowid(db->sqlite3db);
+
+}	
+
+

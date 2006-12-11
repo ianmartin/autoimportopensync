@@ -39,5 +39,10 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error);
 GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
 void osync_db_free_list(GList *list);
 
+osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error);
+osync_bool osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
+
+long long int osync_db_last_rowid(OSyncDB *db);
+
 #endif //_OPENSYNC_DB_H_
 
