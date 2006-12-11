@@ -27,6 +27,7 @@
 
 #include "opensync-archive.h"
 #include "opensync_archive_internals.h"
+#include "opensync-db.h"
 
 /**
  * @defgroup OSyncArchivePrivateAPI OpenSync Archive Internals
@@ -56,6 +57,23 @@ char *_osync_archive_sql_escape(const char *s)
  */
 /*@{*/
 
+osync_bool osync_archive_create(OSyncDB *db, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
+
+	char *query = g_strdup("CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER, data BLOB)");
+	if (!osync_db_query(db, query, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
+		return FALSE;
+	}
+
+	g_free(query);
+
+	osync_trace(TRACE_EXIT, "%s", __func__); 
+	return TRUE;
+}
+
 /**
  * @brief Creates a new archive object
  * @param
@@ -68,20 +86,33 @@ OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 	OSyncArchive *archive = osync_try_malloc0(sizeof(OSyncArchive), error);
 	if (!archive)
 		goto error;
+
 	archive->ref_count = 1;
 	
-	int rc = sqlite3_open(filename, &(archive->db));
-	if (rc) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(archive->db));
-		goto error_free;
+	archive->db = osync_db_new(error);
+	if (!archive->db)
+		goto error_and_free;
+
+	if (!osync_db_open(archive->db, filename, error)) {
+		g_free(archive->db);
+		goto error_and_free;
 	}
-	sqlite3_trace(archive->db, _osync_archive_trace, NULL);
-	
+
+	if (osync_db_exists(archive->db, "tbl_changes", error))
+		goto end;
+
+	if (!osync_archive_create(archive->db, error)) {
+		g_free(archive->db);
+		goto error_and_free;
+	}
+
+end:
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, archive);
 	return archive;
 
-error_free:
+error_and_free:	
 	g_free(archive);
+
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
@@ -111,9 +142,8 @@ void osync_archive_unref(OSyncArchive *archive)
 		osync_trace(TRACE_ENTRY, "%s(%p)", __func__, archive);
 		
 		if (archive->db) {
-			int ret = sqlite3_close(archive->db);
-			if (ret)
-				osync_trace(TRACE_INTERNAL, "Can't close database: %s", sqlite3_errmsg(archive->db));
+			if (!osync_db_close(archive->db, NULL))	
+				osync_trace(TRACE_INTERNAL, "Can't close database");
 		}
 		
 		g_free(archive);
@@ -134,50 +164,25 @@ void osync_archive_unref(OSyncArchive *archive)
  */ 
 osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error)
 {
-	char *query = NULL;
-	sqlite3_stmt *sqlite_stmt = NULL;
-		
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %u, %p)", __func__, archive, uid, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(data);
 	osync_assert(size);
-	
+
 	char *escaped_uid = _osync_archive_sql_escape(uid);
-	// TODO: question marks stands for?
-	query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s'", escaped_uid);
+	char *query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s'", escaped_uid);
 	g_free(escaped_uid);
 	
-	int rc = sqlite3_prepare(archive->db, query, -1, &sqlite_stmt, NULL);
-	g_free(query);
-	if(rc != SQLITE_OK)
-		goto error_msg;
-	
-	rc = sqlite3_bind_blob(sqlite_stmt, 1, data, size, SQLITE_TRANSIENT);
-	if(rc != SQLITE_OK)
-		goto error_msg;
-	
-	rc = sqlite3_step(sqlite_stmt);
-	if (rc != SQLITE_DONE) {
-		if(rc != SQLITE_ERROR)
-			goto error_msg;
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! %s", sqlite3_errmsg(archive->db));
+	if (!osync_db_bind_blob(archive->db, query, data, size, error))
 		goto error;
-	}
-	
-	sqlite3_reset(sqlite_stmt);
-	sqlite3_finalize(sqlite_stmt);
 
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
+	g_free(query);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_msg:
-	osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! sqlite rc: %i", rc);
 error:
-	if(sqlite_stmt) {
-		sqlite3_reset(sqlite_stmt);
-		sqlite3_finalize(sqlite_stmt);	
-	}
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
@@ -194,8 +199,6 @@ error:
  */ 
 osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error)
 {
-	sqlite3_stmt *sqlite_stmt = NULL;
-	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, archive, uid, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
@@ -203,49 +206,16 @@ osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, char 
 	osync_assert(size);
 	
 	char *query = g_strdup_printf("SELECT data FROM tbl_changes WHERE uid='%s'", uid);
-	int rc = sqlite3_prepare(archive->db, query, -1, &sqlite_stmt, NULL);
-	g_free(query);
-	if(rc != SQLITE_OK)
-		goto error_msg;
-	
-	rc = sqlite3_step(sqlite_stmt);
-	if(rc != SQLITE_ROW) {
-		if(rc == SQLITE_ROW) {
-			osync_error_set(error, OSYNC_ERROR_PARAMETER, "UID not found!");
-			goto error;
-		}
-		if(rc == SQLITE_ERROR) {
-			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! %s", sqlite3_errmsg(archive->db));
-			goto error;
-		}
-		goto error_msg;		
-	}
-	
-	const char *tmp = sqlite3_column_blob(sqlite_stmt, 0);
-	*size = sqlite3_column_bytes(sqlite_stmt, 0);
-	*data = osync_try_malloc0(*size, error);
-	if(!*data)
+	if (!osync_db_get_blob(archive->db, query, data, size, error))
 		goto error;
-	memcpy(*data, tmp, *size);
-	
-	if (sqlite3_step(sqlite_stmt) == SQLITE_ROW) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Returned more than one result for a uid");
-		goto error;
-	}
-	
-	sqlite3_reset(sqlite_stmt);
-	sqlite3_finalize(sqlite_stmt);
 
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, TRUE);
+	g_free(query);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 	
-error_msg:
-	osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! sqlite rc: %i", rc);	
 error:
-	if(sqlite_stmt) {
-		sqlite3_reset(sqlite_stmt);
-		sqlite3_finalize(sqlite_stmt);	
-	}
+	g_free(query);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
@@ -277,15 +247,15 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 	}
 	g_free(escaped_uid);
 	
-	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK) {
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert change! %s", sqlite3_errmsg(archive->db));
+	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
 		goto error;
 	}
+
 	g_free(query);
 	
 	if (!id)
-		id = sqlite3_last_insert_rowid(archive->db);
+		id = osync_db_last_rowid(archive->db);
 	
 	osync_trace(TRACE_EXIT, "%s: %lli", __func__, id);
 	return id;
@@ -309,12 +279,12 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
 	osync_assert(archive);
 	
 	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE id=%lli", id);
-	if (sqlite3_exec(archive->db, query, NULL, NULL, NULL) != SQLITE_OK) {
-		osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to delete change! %s", sqlite3_errmsg(archive->db));
-		g_free(query);
+	if (!osync_db_query(archive->db, query, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
 		return FALSE;
 	}
+
 	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -335,33 +305,36 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
 osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p, %p, %p)", __func__, archive, objtype, ids, uids, mappingids, memberids, error);
-	
-	/* TODO Check if table already exist and don't CREATE TABLE when it exists. Better error handling! FALSE on Error! */
-	if (sqlite3_exec(archive->db, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER, data BLOB)", NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable to create changes table! %s", sqlite3_errmsg(archive->db));
-	
-	sqlite3_stmt *ppStmt = NULL;
+
+	GList *result = NULL, *row = NULL;
+
 	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", objtype);
-	sqlite3_prepare(archive->db, query, -1, &ppStmt, NULL);
+	if (!(result = osync_db_query_table(archive->db, query, error)))
+		goto error;
+
 	g_free(query);
 	
-	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
-		long long int id = sqlite3_column_int64(ppStmt, 0);
-		const char *uid = (const char *)sqlite3_column_text(ppStmt, 1);
-		long long int mappingid = sqlite3_column_int64(ppStmt, 2);
-		long long int memberid = sqlite3_column_int64(ppStmt, 3);
+	for (row = result; row; row = row->next) { 
+		GList *column = row->data;
+
+		long long int id = atoll(g_list_nth_data(column->data, 0));
+		const char *uid = g_list_nth_data(column, 1); 
+		long long int mappingid = atoll(g_list_nth_data(column, 2));
+		long long int memberid = atoll(g_list_nth_data(column, 3)); 
 		
 		*ids = osync_list_append((*ids), GINT_TO_POINTER((int)id));
 		*uids = osync_list_append((*uids), g_strdup(uid));
 		*mappingids = osync_list_append((*mappingids), GINT_TO_POINTER((int)mappingid));
 		*memberids = osync_list_append((*memberids), GINT_TO_POINTER((int)memberid));
 		
-    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
+	    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
 	}
-	sqlite3_finalize(ppStmt);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;	
 }
 
 /**
@@ -376,31 +349,19 @@ char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, c
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, uid, error);
 	
-	sqlite3_stmt *ppStmt = NULL;
+	char *objtype = NULL;
+
 	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE memberid='%lli', uid='%s'", memberid, uid);
-	sqlite3_prepare(archive->db, query, -1, &ppStmt, NULL);
-	g_free(query);
-	
-	if (sqlite3_step(ppStmt) != SQLITE_ROW) {
-		osync_trace(TRACE_EXIT, "%s: uid not found", __func__);
-		return NULL;
-	}
-	
-	char *objtype = g_strdup((const char *)sqlite3_column_text(ppStmt, 0));
-	
-	if (sqlite3_step(ppStmt) == SQLITE_ROW) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Returned more than one result for a uid");
+	if (!(objtype = osync_db_query_single_string(archive->db, query, error)))
 		goto error;
-	}
-	
-	sqlite3_finalize(ppStmt);
+
+	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, objtype);
 	return objtype;
 	
 error:
 	g_free(objtype);
-	sqlite3_finalize(ppStmt);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }

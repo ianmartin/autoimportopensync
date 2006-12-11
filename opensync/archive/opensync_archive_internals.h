@@ -25,8 +25,6 @@
 #ifndef OPENSYNC_ARCHIVE_INTERNALS_H_
 #define OPENSYNC_ARCHIVE_INTERNALS_H_
 
-#include <sqlite3.h>
-
 /**
  * @brief Represent a Archive object
  * @ingroup OSyncArchivePrivateAPI
@@ -35,7 +33,7 @@ struct OSyncArchive {
 	/** The reference counter for this object */
 	int ref_count;
 	/**  */
-	sqlite3 *db;
+	OSyncDB *db;
 	/**  */
 };
 
