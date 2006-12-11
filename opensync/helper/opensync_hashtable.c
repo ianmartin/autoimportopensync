@@ -105,25 +105,31 @@ OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSync
 	table->used_entries = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
 	table->dbhandle = osync_db_new(error);
+	if (!table->dbhandle)
+		goto error;
 
-	if (!osync_db_open(table->dbhandle, path, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
+	if (!osync_db_open(table->dbhandle, path, error))
+		goto error_and_free;
 
 	table->tablename = g_strdup_printf("tbl_hash_%s", objtype);
 
 	if (osync_db_exists(table->dbhandle, table->tablename, error))
 		goto end;
 
-	if (!osync_hashtable_create(table, objtype, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
+	if (!osync_hashtable_create(table, objtype, error))
+		goto error_and_free;
 
 end:
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, table);
 	return table;
+
+error_and_free:	
+	g_free(table->dbhandle);
+	g_free(table);
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+
 }
 
 /*! @brief Frees a hashtable
