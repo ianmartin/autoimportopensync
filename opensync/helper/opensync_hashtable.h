@@ -21,13 +21,6 @@
 #ifndef OPENSYNC_HASHTABLE_H_
 #define OPENSYNC_HASHTABLE_H_
 
-/*! @brief Represent a hashtable which can be used to check if changes have been modifed or deleted */
-struct OSyncHashTable {
-	OSyncDB *dbhandle;
-	GHashTable *used_entries;
-	char *tablename;
-};
-
 OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSyncError **error);
 void osync_hashtable_free(OSyncHashTable *table);
 

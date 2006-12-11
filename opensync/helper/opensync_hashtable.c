@@ -20,6 +20,7 @@
  
 #include "opensync.h"
 #include "opensync_internals.h"
+#include "opensync_hashtable_internals.h"
 
 #include "opensync-data.h"
 #include "opensync-helper.h"
