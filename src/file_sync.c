@@ -371,6 +371,7 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
 				g_free(hash);
 				g_free(filename);
+				g_free(relative_filename);
 				continue;
 			}
 			osync_hashtable_update_hash(directory->hashtable, type, relative_filename, hash);
@@ -380,29 +381,39 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 			if (!change) {
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
+				g_free(hash);
+				g_free(filename);
+				g_free(relative_filename);
 				continue;
 			}
 			
 			osync_change_set_uid(change, relative_filename);
 			osync_change_set_hash(change, hash);
 			osync_change_set_changetype(change, type);
+
+			g_free(hash);
 			
 			OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
 			if (!file) {
 				osync_change_unref(change);
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
+				g_free(filename);
+				g_free(relative_filename);
 				continue;
 			}
 			file->path = g_strdup(relative_filename);
+			g_free(relative_filename);
 			
 			OSyncError *error = NULL;
 			if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
 				osync_change_unref(change);
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
+				g_free(filename);
 				continue;
 			}
+			g_free(filename);
 			
 			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
 			if (!odata) {
@@ -419,12 +430,9 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 			osync_context_report_change(ctx, change);
 			
 			osync_change_unref(change);
-			g_free(hash);
 		}
-
-		g_free(relative_filename);
-		g_free(filename);
 	}
+
 	g_dir_close(dir);
 
 	g_free(path);
