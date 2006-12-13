@@ -65,6 +65,8 @@ struct OpieSyncEnv {
 	xmlDoc*           todos_doc;
 	xmlDoc*           categories_doc;
 
+	GTree*            uid_map;
+	
 	OSyncHashTable*   hashtable;
 };
 
