@@ -337,7 +337,9 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 		
 	    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
 	}
-	
+
+	osync_db_free_list(result);	
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 error:

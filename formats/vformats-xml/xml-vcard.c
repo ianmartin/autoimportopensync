@@ -425,6 +425,8 @@ static osync_bool conv_vcard_to_xml(char *input, unsigned int inpsize, char **ou
 		vcard_handle_attribute(table, root, attr);
 	}
 
+	g_hash_table_destroy(table);
+
 	/* Attributes no longer needed */
 	vformat_free(vcard);
 	g_free(vcard);
@@ -924,6 +926,9 @@ static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **ou
 		xml_vcard_handle_attribute(hooks, vcard, root, std_encoding);
 		root = root->next;
 	}
+
+	g_hash_table_destroy(hooks->parameters);
+	g_hash_table_destroy(hooks->attributes);
 
 	g_free(hooks);
 	

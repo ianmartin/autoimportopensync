@@ -192,8 +192,10 @@ void osync_db_free_list(GList *list) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, list);
 
 	GList *row;
-	for (row = list; row; row = row->next)
+	for (row = list; row; row = row->next) {
 		g_list_foreach((GList *) row->data, (GFunc) g_free, NULL);
+		g_list_free((GList *) row->data);
+	}
 
 	g_list_free(list);
 
