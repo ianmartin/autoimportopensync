@@ -20,6 +20,8 @@
  * 
  */
 
+#include <opensync/opensync.h>
+
 #include "vformat.h"
 #include <string.h>
 #include <stdio.h>
@@ -221,7 +223,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 				case '\\': str = g_string_append_c (str, '\\'); break;
 				case '"': str = g_string_append_c (str, '"'); break;
 				default:
-					g_warning ("invalid escape, passing it through. escaped char was %i", *lp);
+					osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %i", *lp);
 					str = g_string_append_c (str, '\\');
 					str = g_string_append_unichar (str, g_utf8_get_char(lp));
 					break;
@@ -380,7 +382,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 				break;
 		}
 		else {
-			g_warning ("invalid character found in parameter spec: \"%c\" String so far: %s", lp[0], str->str);
+			osync_trace(TRACE_INTERNAL, "invalid character found in parameter spec: \"%c\" String so far: %s", lp[0], str->str);
 			g_string_assign (str, "");
 			_skip_until (&lp, ":;");
 		}
@@ -396,10 +398,11 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
    at the start of the next line (past the \r\n) */
 static VFormatAttribute *_read_attribute (char **p)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, p);
 	char *attr_group = NULL;
 	char *attr_name = NULL;
 	VFormatAttribute *attr = NULL;
-	GString *str;
+	GString *str = NULL;
 	char *lp = *p;
 	
 	gboolean is_qp = FALSE;
@@ -429,8 +432,7 @@ static VFormatAttribute *_read_attribute (char **p)
 		}
 		else if (*lp == '.') {
 			if (attr_group) {
-				g_warning ("extra `.' in attribute specification.  ignoring extra group `%s'",
-					   str->str);
+				osync_trace(TRACE_INTERNAL, "extra `.' in attribute specification.  ignoring extra group `%s'", str->str);
 				g_string_free (str, TRUE);
 				str = g_string_new ("");
 			}
@@ -443,7 +445,7 @@ static VFormatAttribute *_read_attribute (char **p)
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 		}
 		else {
-			g_warning ("invalid character found in attribute group/name: %c", lp[0]);
+			osync_trace(TRACE_INTERNAL, "invalid character found in attribute group/name: %c", lp[0]);
 			g_string_free (str, TRUE);
 			*p = lp;
 			_skip_to_next_line(p);
@@ -452,7 +454,7 @@ static VFormatAttribute *_read_attribute (char **p)
 
 		lp = g_utf8_next_char(lp);
 	}
-
+	
 	if (!attr_name) {
 		_skip_to_next_line (p);
 		goto lose;
@@ -478,10 +480,13 @@ static VFormatAttribute *_read_attribute (char **p)
 	if (!attr->values)
 		goto lose;
 
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, attr);
 	return attr;
  lose:
 	if (attr)
 		vformat_attribute_free (attr);
+
+	osync_trace(TRACE_EXIT, "%s: NULL", __func__);
 	return NULL;
 }
 
@@ -498,7 +503,7 @@ static void _parse(VFormat *evc, const char *str)
 	/* first validate the string is valid utf8 */
 	if (!g_utf8_validate (buf, -1, (const char **)&end)) {
 		/* if the string isn't valid, we parse as much as we can from it */
-		g_warning ("invalid utf8 passed to VFormat.  Limping along.");
+		osync_trace(TRACE_INTERNAL, "invalid utf8 passed to VFormat.  Limping along.");
 		*end = '\0';
 	}
 	
@@ -508,7 +513,7 @@ static void _parse(VFormat *evc, const char *str)
 
 	attr = _read_attribute (&p);
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "begin")) {
-		g_warning ("vcard began without a BEGIN:VCARD\n");
+		osync_trace(TRACE_INTERNAL, "vcard began without a BEGIN:VCARD\n");
 	}
 	if (attr && !g_ascii_strcasecmp (attr->name, "begin"))
 		vformat_attribute_free (attr);
@@ -526,7 +531,7 @@ static void _parse(VFormat *evc, const char *str)
 	}
 
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "end")) {
-		g_warning ("vcard ended without END:VCARD\n");
+		osync_trace(TRACE_INTERNAL, "vcard ended without END:VCARD\n");
 	}
 
 	g_free (buf);
@@ -597,7 +602,7 @@ vformat_unescape_string (const char *s)
 			case '\\': str = g_string_append_c (str, '\\'); break;
 			case '"': str = g_string_append_c (str, '"'); break;
 			default:
-				g_warning ("invalid escape, passing it through. escaped char was %i", *p);
+				osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %i", *p);
 				str = g_string_append_c (str, '\\');
 				str = g_string_append_unichar (str, g_utf8_get_char(p));
 				break;
@@ -958,7 +963,7 @@ vformat_attribute_add_value_decoded (VFormatAttribute *attr, const char *value, 
 
 	switch (attr->encoding) {
 		case VF_ENCODING_RAW:
-			g_warning ("can't add_value_decoded with an attribute using RAW encoding.  you must set the ENCODING parameter first");
+			osync_trace(TRACE_INTERNAL, "can't add_value_decoded with an attribute using RAW encoding.  you must set the ENCODING parameter first");
 			break;
 		case VF_ENCODING_BASE64: {
 			char *b64_data = base64_encode_simple (value, len);
@@ -1098,7 +1103,7 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 
 	if (!g_ascii_strcasecmp (param->name, "ENCODING")) {
 		if (attr->encoding_set) {
-			g_warning ("ENCODING specified twice");
+			osync_trace(TRACE_INTERNAL, "ENCODING specified twice");
 			return;
 		}
 
@@ -1110,14 +1115,14 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 			else if (!g_ascii_strcasecmp ((char *)param->values->data, "8BIT"))
 				attr->encoding = VF_ENCODING_8BIT;
 			else {
-				g_warning ("Unknown value `%s' for ENCODING parameter.  values will be treated as raw",
+				osync_trace(TRACE_INTERNAL, "Unknown value `%s' for ENCODING parameter.  values will be treated as raw",
 					   (char*)param->values->data);
 			}
 
 			attr->encoding_set = TRUE;
 		}
 		else {
-			g_warning ("ENCODING parameter added with no value");
+			osync_trace(TRACE_INTERNAL, "ENCODING parameter added with no value");
 		}
 	}
 }
@@ -1297,7 +1302,7 @@ vformat_attribute_get_value (VFormatAttribute *attr)
 	values = vformat_attribute_get_values (attr);
 
 	if (!vformat_attribute_is_single_valued (attr))
-		g_warning ("vformat_attribute_get_value called on multivalued attribute");
+		osync_trace(TRACE_INTERNAL, "vformat_attribute_get_value called on multivalued attribute");
 
 	return values ? g_strdup ((char*)values->data) : NULL;
 }
@@ -1313,7 +1318,7 @@ vformat_attribute_get_value_decoded (VFormatAttribute *attr)
 	values = vformat_attribute_get_values_decoded (attr);
 
 	if (!vformat_attribute_is_single_valued (attr))
-		g_warning ("vformat_attribute_get_value_decoded called on multivalued attribute");
+		osync_trace(TRACE_INTERNAL, "vformat_attribute_get_value_decoded called on multivalued attribute");
 
 	if (values)
 		str = values->data;
