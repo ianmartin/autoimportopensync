@@ -249,7 +249,9 @@ void osync_module_unload(OSyncModule *module)
 	osync_assert(module->module);
 	
 	if (!osync_module_get_function(module, "dont_free", NULL))
+#ifndef DEBUG_MODULES	
 		g_module_close(module->module);
+#endif	
 	module->module = NULL;
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

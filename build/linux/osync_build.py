@@ -21,6 +21,8 @@ def check(env, config):
 	
 	if env['debug'] == 1:
 		env.Append(CCFLAGS = r'-g')
+	if env['debug_modules'] == 1:
+		env.Append(CCFLAGS = r'-DDEBUG_MODULES')
 	
 	env.ParseConfig('pkg-config --cflags --libs glib-2.0')
 	env.ParseConfig('pkg-config --cflags --libs libxml-2.0')

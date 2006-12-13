@@ -33,6 +33,7 @@ opts.Add(BoolOption('enable_trace', 'Should tracing be enabled?', 1))
 opts.Add(BoolOption('enable_tests', 'Should the unit tests be enabled', 1))
 opts.Add(BoolOption('enable_tools', 'Should the developer tools be build', 1))
 opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled', 0))
+opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
 
 target_dir = SelectBuildDir('build')
 sys.path.append(target_dir)
