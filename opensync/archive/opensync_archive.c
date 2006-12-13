@@ -146,8 +146,9 @@ void osync_archive_unref(OSyncArchive *archive)
 				osync_trace(TRACE_INTERNAL, "Can't close database");
 		}
 		
+		g_free(archive->db);
 		g_free(archive);
-		
+
 		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
 }
@@ -174,8 +175,10 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const
 	char *query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s'", escaped_uid);
 	g_free(escaped_uid);
 	
-	if (!osync_db_bind_blob(archive->db, query, data, size, error))
+	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
+		g_free(query);
 		goto error;
+	}
 
 	g_free(query);
 
@@ -206,8 +209,10 @@ osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, char 
 	osync_assert(size);
 	
 	char *query = g_strdup_printf("SELECT data FROM tbl_changes WHERE uid='%s'", uid);
-	if (!osync_db_get_blob(archive->db, query, data, size, error))
+	if (!osync_db_get_blob(archive->db, query, data, size, error)) {
+		g_free(query);
 		goto error;
+	}
 
 	g_free(query);
 
@@ -309,11 +314,14 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	GList *result = NULL, *row = NULL;
 
 	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", objtype);
-	if (!(result = osync_db_query_table(archive->db, query, error)))
-		goto error;
+	result = osync_db_query_table(archive->db, query, error);
 
 	g_free(query);
 	
+	/* Check for error of osync_db_query_table() call. */
+	if (osync_error_is_set(error))
+		goto error;
+
 	for (row = result; row; row = row->next) { 
 		GList *column = row->data;
 
@@ -343,7 +351,7 @@ error:
  * @param archive The group archive
  * @param uid The uid of the entry
  * @param error Pointer to a error struct 
- * @return Returns object type of entry. NULL if entry doesn't exit. 
+ * @return Returns object type of entry. NULL if entry doesn't exit. (the caller is responsible for freeing) 
  */
 char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, const char *uid, OSyncError **error)
 {
@@ -351,11 +359,15 @@ char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, c
 	
 	char *objtype = NULL;
 
-	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE memberid='%lli', uid='%s'", memberid, uid);
-	if (!(objtype = osync_db_query_single_string(archive->db, query, error)))
-		goto error;
-
+	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE memberid='%lli' AND uid='%s'", memberid, uid);
+	objtype = osync_db_query_single_string(archive->db, query, error);
 	g_free(query);
+
+	/* TODO imporive error hanlding... */
+	if (osync_error_is_set(error)) {
+		goto error;
+	}
+
 	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, objtype);
 	return objtype;
