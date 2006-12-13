@@ -418,11 +418,16 @@ static osync_bool conv_vcard_to_xml(char *input, unsigned int inpsize, char **ou
 	
 	//For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vcard);
+
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
 		vcard_handle_attribute(table, root, attr);
 	}
+
+	/* Attributes no longer needed */
+	vformat_free(vcard);
+	g_free(vcard);
 	
 	char *vcard_xml = osxml_write_to_string(doc);
 	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", vcard_xml);
@@ -560,6 +565,7 @@ static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vcard, xmlNode *r
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", root->name);
 	char *name = osxml_find_node(root, "NodeName");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	g_free(name);
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
@@ -630,7 +636,9 @@ static VFormatAttribute *handle_xml_photo_attribute(VFormat *vcard, xmlNode *roo
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	char *type = osxml_find_node(root, "Type");
+	vformat_attribute_add_param_with_value(attr, "TYPE", type);
+	g_free(type);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -738,7 +746,9 @@ static VFormatAttribute *handle_xml_logo_attribute(VFormat *vcard, xmlNode *root
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "LOGO");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	char *type = osxml_find_node(root, "Type");
+	vformat_attribute_add_param_with_value(attr, "TYPE", type);
+	g_free(type);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -777,7 +787,9 @@ static VFormatAttribute *handle_xml_sound_attribute(VFormat *vcard, xmlNode *roo
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "SOUND");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	char *type = osxml_find_node(root, "Type");
+	vformat_attribute_add_param_with_value(attr, "TYPE", type);
+	g_free(type);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -912,11 +924,17 @@ static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **ou
 		xml_vcard_handle_attribute(hooks, vcard, root, std_encoding);
 		root = root->next;
 	}
+
+	g_free(hooks);
 	
 	*free_input = TRUE;
 	*output = vformat_to_string(vcard, target);
 	osync_trace(TRACE_INTERNAL, "vcard output is: \n%s", *output);
 	*outpsize = strlen(*output) + 1;
+
+	vformat_free(vcard);
+	g_free(vcard);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;

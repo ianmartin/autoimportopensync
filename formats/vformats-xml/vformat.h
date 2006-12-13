@@ -88,6 +88,7 @@ VFormat *vtodo_new_from_string(const char *str);*/
 /* mostly for debugging */
 VFormat *vformat_new(void);
 VFormat *vformat_new_from_string(const char *str);
+void vformat_free(VFormat *format);
 void vformat_dump_structure(VFormat *format);
 char *vformat_to_string(VFormat *evc, VFormatType type);
 time_t vformat_time_to_unix(const char *inptime);

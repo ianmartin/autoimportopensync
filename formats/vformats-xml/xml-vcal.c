@@ -933,6 +933,7 @@ static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vcard, xmlNode *r
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", root->name);
 	char *name = osxml_find_node(root, "NodeName");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	g_free(name);
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
@@ -1441,7 +1442,9 @@ static VFormatAttribute *handle_xml_due_attribute(VFormat *vcard, xmlNode *root,
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DUE");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "TZID", osxml_find_node(root, "TimezoneID"));
+	char *tzid = osxml_find_node(root, "TimezoneID")
+	vformat_attribute_add_param_with_value(attr, "TZID", tzid);
+	g_free(tzid);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -1450,7 +1453,9 @@ static VFormatAttribute *handle_xml_dtstart_attribute(VFormat *vcard, xmlNode *r
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTSTART");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "TZID", osxml_find_node(root, "TimezoneID"));
+	char *tzid = osxml_find_node(root, "TimezoneID")
+	vformat_attribute_add_param_with_value(attr, "TZID", tzid);
+	g_free(tzid);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -1626,7 +1631,9 @@ static VFormatAttribute *handle_xml_dtend_attribute(VFormat *vcard, xmlNode *roo
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTEND");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "TZID", osxml_find_node(root, "TimezoneID"));
+	char *tzid = osxml_find_node(root, "TimezoneID")
+	vformat_attribute_add_param_with_value(attr, "TZID", tzid);
+	g_free(tzid);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }

@@ -358,6 +358,7 @@ static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vnote, xmlNode *r
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", root->name);
 	char *name = osxml_find_node(root, "NodeName");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	g_free(name);
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vnote, attr);
 	return attr;

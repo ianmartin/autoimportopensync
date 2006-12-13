@@ -427,7 +427,9 @@ static VFormatAttribute *handle_xml_sms_attribute(VFormat *vcard, xmlNode *root,
 static VFormatAttribute *handle_xml_x_kde_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling msn xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, osxml_find_node(root, "ExtName"));
+	char *extname = osxml_find_node(root, "ExtName");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, extname);
+	g_free(extname);
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
 	return attr;
