@@ -334,6 +334,8 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		}
 		
 		osync_change_unref(existChange);
+		/* Also unref newData. Otherwise this cannot be freed when it is written. */
+		osync_data_unref(newData);
 			
 		osync_entry_engine_set_dirty(entry_engine, TRUE);
 	}
