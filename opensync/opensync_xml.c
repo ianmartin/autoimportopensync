@@ -278,7 +278,12 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 				for (n = 0; n < rsize; n++) {
 					if (!rnodes->nodeTab[n])
 						continue;
-					osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+					char *lcontent = osxml_find_node(lnodes->nodeTab[i], "Content");
+					char *rcontent = osxml_find_node(rnodes->nodeTab[n], "Content"); 
+					osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, lcontent, n, rnodes->nodeTab[n]->name, rcontent);
+					g_free(lcontent);
+					g_free(rcontent);
+
 					if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 						osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
 						res_score += score->value;
@@ -321,7 +326,15 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		for (n = 0; n < rsize; n++) {
 			if (!rnodes->nodeTab[n])
 				continue;
-			osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, osxml_find_node(lnodes->nodeTab[i], "Content"), n, rnodes->nodeTab[n]->name, osxml_find_node(rnodes->nodeTab[n], "Content"));
+
+			char *lcontent = osxml_find_node(lnodes->nodeTab[i], "Content");
+			char *rcontent = osxml_find_node(rnodes->nodeTab[n], "Content"); 
+
+			osync_trace(TRACE_INTERNAL, "cmp %i:%s (%s), %i:%s (%s)", i, lnodes->nodeTab[i]->name, lcontent, n, rnodes->nodeTab[n]->name, rcontent);
+
+			g_free(lcontent);
+			g_free(rcontent);
+
 			if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
 				xmlUnlinkNode(lnodes->nodeTab[i]);
 				xmlFreeNode(lnodes->nodeTab[i]);
@@ -359,6 +372,9 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 	out:
 	xmlXPathFreeObject(leftxobj);
 	xmlXPathFreeObject(rightxobj);
+
+	xmlFreeDoc(leftdoc);
+	xmlFreeDoc(rightdoc);	
 
 	osync_trace(TRACE_INTERNAL, "Result is: %i, Treshold is: %i", res_score, treshold);
 	if (same) {
