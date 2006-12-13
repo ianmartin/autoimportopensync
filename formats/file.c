@@ -63,13 +63,14 @@ static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **o
 	
 	*free_input = TRUE;
 	OSyncFileFormat *file = (OSyncFileFormat *)input;
-	
-	*output = file->data;
-	*outpsize = file->size;
-	
-	file->data = NULL;
-	file->size = 0;
-	
+
+	/* Add a \0 to make a usable plain (text) format. input gets freed by destroy_func() */
+	char *plaindata = osync_try_malloc0(file->size + 1, error);
+	memcpy(plaindata, file->data, file->size);
+
+	*output = plaindata; 
+	*outpsize = file->size + 1;
+
 	return TRUE;
 }
 
@@ -84,7 +85,7 @@ static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **o
 	file->path = osync_rand_str(g_random_int_range(1, 100));
 	
 	file->data = input;
-	file->size = inpsize;
+	file->size = inpsize - 1;
 	
 	*output = (char *)file;
 	*outpsize = sizeof(OSyncFileFormat);
