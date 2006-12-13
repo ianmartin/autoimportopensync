@@ -142,9 +142,13 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 
-	int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
+	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
 	const char *uid = osync_change_get_uid(change);		
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s , objtype %s from member %lli", uid, osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), memberid);
+	int changetype = osync_change_get_changetype(change);
+       	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
+	const char *objtype = osync_change_get_objtype(change);
+
+	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
 	
 	OSyncData *data = osync_change_get_data(change);
 	
@@ -152,8 +156,10 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	 * if the change is modified or deleted, and not the case if it is added */
 	if (engine->archive) {
 		char *knownObjType = osync_archive_get_objtype(engine->archive, memberid, uid, &error);
-		if (osync_error_is_set(&error))
+		if (osync_error_is_set(&error)) {
+			g_free(knownObjType);
 			goto error;
+		}
 	
 		/* We update the object type with the stored object type. This is needed, since
 		 * a deleted change does not carry any information from which we could detect
@@ -163,6 +169,8 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 			osync_trace(TRACE_INTERNAL, "Setting loaded objtype %s", knownObjType);
 			osync_change_set_objtype(change, knownObjType);
 		}
+
+		g_free(knownObjType);
 	}
 	
 	/* If objtype == "data", detect the objtype */
