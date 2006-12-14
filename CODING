@@ -1,0 +1,211 @@
+INTRODUCTION
+---------------------------------------------------------------------
+Here will you find coding standards to the project. Requirements are
+listed in their respective files and can be considered an adendum to
+this document.
+
+
+CODING STYLE
+---------------------------------------------------------------------
+See linux/Documentation/CodingStyle.
+
+Some highlights:
+
+- Outside of comments and documentation, never
+  use spaces. Identation is done using tabs only.
+
+- Do not use tabs to align text documentation. Changing tab
+  width should not interfere with the layout/alignment of code,
+  only indentation.
+
+- functions are declared like this:
+   char *function(const char *test)
+   {
+
+   }
+
+- if you use brackets INSIDE a function put them on the same line
+
+    Wrong:
+    if (condition)
+    {
+        do_something;
+    }
+
+    Right:
+    if (condition) {
+        do_something;
+    }
+
+- Do not put actions in the same line of conditions:
+
+    Wrong:
+    if (condition) do_this;
+
+    Right:
+    if (condition)
+        do_this;
+
+- Variables are always in lower case (like tmp_buf)
+- New defined types are capitalized (like OSyncEngine)
+- Never use typedefs just to hide pointers
+
+- External APIs, used for integration between components may
+  look like this:
+
+	osync_engine_init()
+
+- Always add the osync_ prefix to your functions
+
+- Do not return function calls, like "return do_something();",
+  instead, use a auxiliar variable (rationale: easy trace).
+
+- When doing error checking, use goto to help creating a single
+  return point. Do not abuse goto usage though... never goto up,
+  never create more than one label and do not "gotoo far".
+
+
+CODE DOCUMENTATION
+---------------------------------------------------------------------
+
+* Add FIXME, TODO and XXX comments appropriately.
+
+* Doxygen
+
+* Add simple READMEs and pictures as needed, but concentrate
+  on doxygen.
+
+CODE INSTRUMENTATION
+-----------------------------------------------------------------
+
+Always:
+    * Use const;
+    * Use static for internal functions;
+    * Use safe glib functions where possible;
+    * Check validity of all received parameters;
+    * Use assert() while developing;
+    * Do not use alloca() or other non-recommended functions;
+    * Check for return errors even from malloc() and other
+      standard system calls;
+
+Regularly:
+    * Use valgrind to profile you application and find memleaks
+
+About header files:
+    * Source code has to be split into modules, which are defined as
+      a collection of implementation files (.c) with an interface
+      exported through a header file (.h).
+    * The inclusion (#include) of headers must reflect the dependencies
+      between modules in the implementation. The most important
+      implications from this statement are:
+
+        . implementation files (.c) *must* include *all* headers it
+          directly depends;
+        . implementation files (.c) *must not* include headers it
+          doesn't directly depend;
+        . headers should include headers only when needing a
+          definition or declaration;
+        . headers should never include other headers just to create a
+          "single point of inclusion".
+
+      These rules may sound obvious, but they're actually hard to
+      follow.
+
+
+COMMITS AND CHANGELOGS
+---------------------------------------------------------------------
+Descriptive and small.
+
+General rules:
+   - *Always* do a svn diff and a svn status before a commit and
+     document the diff(s) in the changelogs;
+   - What matters is not what but why;
+   - Several commits are usually better than a big one;
+   - Do not commit unrelated modifications at once unless they're
+     really trivial;
+   - Commit ASAP.
+
+BUILD-SYSTEM
+---------------------------------------------------------------------
+Standard instructions:
+
+  Code should compile with no warnings, using the following GCC
+  options:
+
+    -Wall
+    -Werror
+
+    Recomended but not mandatory (for now):
+    -W
+    -Wmissing-declarations
+    -Wmissing-prototypes
+    -Wredundant-decls
+    -Wshadow
+    -Wbad-function-cast
+    -Wcast-qual
+    -std=iso9899:1990
+
+LOGS and TRACES
+---------------------------------------------------------------------
+There are two types of logs that must be handled by almost all
+applications:
+
+ * HIGH-LEVEL LOGS: these are standard, high-level logs usually
+   enabled by default. Useful to advanced users, support-centers and
+   alike. Should include basic information, including but not limited
+   to:
+     - start/end of application
+     - errors
+     - complex operations
+
+   The requirements document specifies if logs are needed or not.
+
+ * TRACES: traces are a particular kind of log used to debug the
+   application. They're used mostly by black-box testers to submit
+   failure reports.
+
+   Traces should be enabled in a per-application basis using an
+   envinronment variable or at compile time, to be yet defined.
+
+UNIT TESTS
+-----------------------------------------------------------------
+
+* All code should be written together with unit-tests. The tool
+  used to implement the tests is "check", available on
+  http://check.sourceforge.net/.
+
+  The build-system infra-structure provides a configure option to
+  allow check usage.
+
+  The tests must be implemented inside a sub-directory called test
+  with the following modules:
+
+  check_<component name> --> the test-manager
+  check_<unit name>      --> implements tests for interfaces
+                             exported by unit
+  check_<...>
+
+  Just to remember, an unit, or module, is a collection of
+  souce-code files (.c) with an interface exported through
+  a header file (.h).
+
+  All interfaces exported by units must be tested (that is,
+  all non-static functions). The tests should implement at
+  least the following test cases:
+
+    - standard usage
+    - upper and bottom limits of buffers and variables as
+      needed
+    - error conditions
+    - critical paths
+
+  Use incremental tests, that is, test functions before using them in
+  other test-cases (for example, if you need to call function A to
+  prepare the environment to test function B, test function A first).
+
+  Try to write the test-case before the unit or function itself.
+
+  If the test needs an external entity to work (for example, it needs
+  a device connected on a specific port), put the test inside a
+  condition for an environemnt variable and document it in a README
+  file.
