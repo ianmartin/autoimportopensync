@@ -18,11 +18,11 @@
  * 
  */
  
-#ifndef _OPENSYNC_ANCHOR_H_
-#define _OPENSYNC_ANCHOR_H_
+#ifndef OPENSYNC_ANCHOR_H_
+#define OPENSYNC_ANCHOR_H_
 
 osync_bool osync_anchor_compare(const char *anchordb, const char *key, const char *new_anchor);
 void osync_anchor_update(const char *anchordb, const char *key, const char *new_anchor);
 char *osync_anchor_retrieve(const char *anchordb, const char *key);
 
-#endif //_OPENSYNC_ANCHOR_H_
+#endif /* OPENSYNC_ANCHOR_H_ */

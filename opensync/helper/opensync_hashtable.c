@@ -143,9 +143,7 @@ void osync_hashtable_free(OSyncHashTable *table)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, table);
 	osync_assert(table);
 	
-	/* TODO: Add error handling in this function for osync_db_close(). */
-	int ret = osync_db_close(table->dbhandle, NULL);
-	if (!ret)
+	if (!osync_db_close(table->dbhandle, NULL))
 		osync_trace(TRACE_INTERNAL, "Can't close database");
 
 		
@@ -193,7 +191,6 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
 	osync_assert(table->dbhandle);
 	
 	char *query = g_strdup_printf("SELECT * FROM %s", table->tablename);
-	/* TODO: Add error handling for osync_db_count() function */
 	int ret = osync_db_count(table->dbhandle, query, NULL);
 	g_free(query);
 	
@@ -211,30 +208,30 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
  * This is mainly usefull for debugging or special purposes
  * 
  * @param table The hashtable
- * @param i The number of the entry to return
+ * @param nth The number of the entry to return
  * @param uid A pointer to a char * that will hold the uid. The caller is responible for freeing
  * @param hash A pointer to a char * that will hold the hash. The caller is responible for freeing
  * @returns TRUE if successful, FALSE otherwise
  * 
  */
-osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int i, char **uid, char **hash)
+osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int nth, char **uid, char **hash)
 {
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 	
 	GList *list = NULL;
+	OSyncError *error = NULL;
+	
 
-	char *query = g_strdup_printf("SELECT uid, hash FROM %s LIMIT 1 OFFSET %i", table->tablename, i);
-	list = osync_db_query_table(table->dbhandle, query, NULL);
+	char *query = g_strdup_printf("SELECT uid, hash FROM %s LIMIT 1 OFFSET %i", table->tablename, nth);
+	list = osync_db_query_table(table->dbhandle, query, &error);
 	g_free(query);
 
-	/* TODO: Add OSyncError struct in osync_hashtable_ object... and change oync_db_query_table function 
-	   for handling errors without OSyncError :(
-	if (osync_error_is_set(error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get #%i entry from hashtable.", __func__);
+	if (osync_error_is_set(&error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get #%i entry from hashtable: %s", __func__, nth, osync_error_print(&error));
+		osync_error_unref(&error);
 		return FALSE;
 	}
-	*/
 		
 	GList *column = list->data; 
 
@@ -351,14 +348,6 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table)
 	result = osync_db_query_table(table->dbhandle, query, NULL); 
 	g_free(query);
 
-	/* TODO: change osync_db_Query_table for error handling without OSyncError struct...
-	if (!result) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get list of deleted entries", __func__);
-		return NULL;
-	}
-	*/
-
-
 	int numrows = g_list_length(result);
 	char **ret = g_malloc0((numrows + 1) * sizeof(char *));
 	
@@ -403,13 +392,6 @@ OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char
 	char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid='%s'", table->tablename, uid);
 	orighash = osync_db_query_single_string(table->dbhandle, query, NULL); 
 	g_free(query);
-
-	/* TODO: change osync_db_query_single_string() to check for errors without OSyncError...
-	if (!orighash) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot query hash of entry.", __func__);
-		return OSYNC_CHANGE_TYPE_UNKNOWN;
-	}
-	*/
 	
 	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash, orighash);
 	
