@@ -143,7 +143,6 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 	return TRUE;
 }
 
-/* TODO */
 /**
  * @brief Exectues a SQL query and fill all requested data in a GList. 
  *        Check error with osync_error_is_set().
@@ -188,6 +187,11 @@ GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 	return table; 
 }
 
+/**
+ * @brief Frees the full result of osync_db_query_table().
+ *
+ * @param list Result GList pointer of osync_db_query_table()
+ */
 void osync_db_free_list(GList *list) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, list);
 
@@ -374,7 +378,7 @@ error:
 
 
 /**
- * @brief Checks if requted table exists in database
+ * @brief Checks if requested table exists in database
  *
  * @param db Pointer to database struct
  * @param tablename Name of table which gets reseted
@@ -412,6 +416,17 @@ osync_bool osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **erro
 	return TRUE;
 }
 
+
+/**
+ * @brief Insert a data (blob) in database. 
+ *
+ * @param db Pointer to database struct
+ * @param query SQL query to bind the data blob
+ * @param data Pointer to the data
+ * @param size The size of the data which should be binded
+ * @param error Pointer to a error struct 
+ * @return TRUE on success otherwise FALSE
+ */
 osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %u, %p)", __func__, db, query, data, size, error);
@@ -452,6 +467,16 @@ error:
 	return FALSE;
 }
 
+/**
+ * @brief Get a data (blob) from the database. 
+ *
+ * @param db Pointer to database struct
+ * @param query SQL query to get the data blob
+ * @param data Pointer where to store the data
+ * @param size Pointer to store the size of data
+ * @param error Pointer to a error struct 
+ * @return TRUE on success otherwise FALSE
+ */
 osync_bool osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, db, query, data, size, error);
@@ -502,14 +527,11 @@ error:
 		sqlite3_reset(sqlite_stmt);
 		sqlite3_finalize(sqlite_stmt);	
 	}
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db));
 	return FALSE;
 }
 
 long long int osync_db_last_rowid(OSyncDB *db) {
-
 	return sqlite3_last_insert_rowid(db->sqlite3db);
-
 }	
-
 
