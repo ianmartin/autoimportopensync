@@ -7,7 +7,6 @@ opensync_list.c
 opensync_error.c
 opensync_context.c
 opensync_support.c
-opensync_time.c
 opensync_xml.c
 helper/opensync_hashtable.c
 helper/opensync_anchor.c
@@ -25,6 +24,7 @@ format/opensync_converter.c
 format/opensync_filter.c
 format/opensync_format_env.c
 format/opensync_objformat.c
+format/opensync_time.c
 data/opensync_data.c
 data/opensync_change.c
 ipc/opensync_queue.c

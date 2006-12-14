@@ -22,6 +22,8 @@
 #include <time.h>
 
 #include "opensync.h"
+#include "opensync_time.h"
+#include "opensync_xml.h"
 #include "opensync_internals.h"
 
 /* Floating Timestamps...... (handle tzid!) */
