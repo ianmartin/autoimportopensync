@@ -146,7 +146,9 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
 					osxml_node_add(on_phone, "Content", iprop->children->content );
 					osxml_node_add(on_phone, "Type", "HOME" );
-					osxml_node_add(on_phone, "Type", "VOICE" );
+					/* Removed the VOICE tags for the moment as they are assumed if not present, 
+					   and if they are KDEPIM shows them up as "Other" */
+					/* osxml_node_add(on_phone, "Type", "VOICE" ); */
 				}
 				else if(!strcasecmp(iprop->name, "HomeFax"))
 				{
@@ -167,7 +169,9 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
 					osxml_node_add(on_phone, "Content", iprop->children->content );
 					osxml_node_add(on_phone, "Type", "WORK" );
-					osxml_node_add(on_phone, "Type", "VOICE" );
+					/* Removed the VOICE tags for the moment as they are assumed if not present, 
+					   and if they are KDEPIM shows them up as "Other" */
+					/* osxml_node_add(on_phone, "Type", "VOICE" ); */
 				}
 				else if(!strcasecmp(iprop->name, "BusinessFax"))
 				{
