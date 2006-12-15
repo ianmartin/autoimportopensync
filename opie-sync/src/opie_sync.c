@@ -119,6 +119,9 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
 				if(strlen(str) > 0)
 					env->backupdir = g_strdup(str);
+			} else {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file option \"%s\"", cur->name);
+				goto error_free_doc;
 			}
 			xmlFree(str);
 		}
