@@ -304,7 +304,7 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *in
 				}
 				else if(!strcasecmp(iprop->name, "JobTitle"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Title", NULL );
+					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Role", NULL );
 					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
 				}
 				else
@@ -525,7 +525,7 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	}
 
 	/* Title */
-	cur = osxml_get_node(root, "Title");
+	cur = osxml_get_node(root, "Role");
 	if (cur)
 		xml_node_to_attr(cur, "Content", on_contact, "JobTitle");
 
