@@ -251,7 +251,7 @@ char *opie_xml_strip_uid(const char *ext_uid, const char *node_name) {
 char *opie_xml_set_ext_uid(xmlNode *node, xmlDoc *doc, const char *listelement,
 																				const char *itemelement, const char *tagged_uid) {
 	char *uid = opie_xml_strip_uid(tagged_uid, node->name);	
-	if(strlen(uid) < 2 || atoi(uid+1) > 1999999999) {
+	if(strlen(uid) < 6 || atoi(uid+1) > 1999999999) {
 		g_free(uid);
 		uid = opie_xml_generate_uid(doc, listelement, itemelement);
 	}
