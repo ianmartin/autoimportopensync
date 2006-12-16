@@ -223,7 +223,6 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 
 error:
 	osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
-	osync_change_unref(change);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 	osync_error_unref(&error);
 }
