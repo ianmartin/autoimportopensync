@@ -178,9 +178,29 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
 		if (!detectedFormat)
 			goto error;
+
+		/* To avoid problems with unsupported object types in groups. Check if object type of 
+		   detectedFormat is supported by the object engines... */
+		const char *detected_objtype = osync_objformat_get_objtype(detectedFormat);
+		osync_bool supported_objtype = FALSE;
+
+		GList *objengine = NULL;
+		for (objengine = engine->object_engines; objengine; objengine = objengine->next) {
+			const char *objtype = osync_obj_engine_get_objtype(objengine->data);
+			if (!strcmp(detected_objtype, objtype)) {
+				supported_objtype = TRUE;
+				break;
+			}
+		}
+
+		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), detected_objtype);
+
+		/* ... only if the objtype is supported by one of the object engines we change the objtype of the change-entry (change). */
+		if (supported_objtype)
+			osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
+		else
+			osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype);
 		
-		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), osync_objformat_get_objtype(detectedFormat));
-		osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
 	}
 	
 	/* Convert the format to the internal format */

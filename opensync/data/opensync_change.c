@@ -144,6 +144,8 @@ const char *osync_change_get_hash(OSyncChange *change)
 void osync_change_set_uid(OSyncChange *change, const char *uid)
 {
 	osync_assert(change);
+	osync_assert(uid);
+
 	if (change->uid)
 		g_free(change->uid);
 	change->uid = g_strdup(uid);
