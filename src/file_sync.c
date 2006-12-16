@@ -403,7 +403,6 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 				continue;
 			}
 			file->path = g_strdup(relative_filename);
-			g_free(relative_filename);
 			
 			OSyncError *error = NULL;
 			if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
@@ -413,7 +412,6 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 				g_free(filename);
 				continue;
 			}
-			g_free(filename);
 			
 			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
 			if (!odata) {
@@ -431,6 +429,10 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 			
 			osync_change_unref(change);
 		}
+
+		g_free(filename);
+		g_free(relative_filename);
+
 	}
 
 	g_dir_close(dir);
