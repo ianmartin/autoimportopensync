@@ -163,9 +163,11 @@ static void osync_filesync_connect(void *data, OSyncPluginInfo *info, OSyncConte
 		goto error;
 
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-	if (!osync_anchor_compare(anchorpath, "path", dir->path))
+	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
+	if (!osync_anchor_compare(anchorpath, path_field, dir->path))
 		osync_objtype_sink_set_slowsync(dir->sink, TRUE);
 	g_free(anchorpath);
+	g_free(path_field);
 	
 	if (!g_file_test(dir->path, G_FILE_TEST_IS_DIR)) {
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, "%s is not a directory", dir->path);
@@ -536,8 +538,10 @@ static void osync_filesync_sync_done(void *data, OSyncPluginInfo *info, OSyncCon
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 
 	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-	osync_anchor_update(anchorpath, "path", dir->path);
+	char *path_field = g_strdup_printf("path_%s", osync_objtype_sink_get_name(sink));
+	osync_anchor_update(anchorpath, path_field, dir->path);
 	g_free(anchorpath);
+	g_free(path_field);
 	
 	osync_context_report_success(ctx);
 	
