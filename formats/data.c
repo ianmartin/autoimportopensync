@@ -54,6 +54,11 @@ static osync_bool copy_plain(const char *input, unsigned int inpsize, char **out
 	return TRUE;
 }
 
+static void destroy_plain(char *input, size_t inpsize)
+{
+	g_free(input);
+}
+
 osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
 	OSyncObjFormat *format = osync_objformat_new("plain", "data", error);
@@ -62,7 +67,8 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	
 	osync_objformat_set_compare_func(format, compare_plain);
 	osync_objformat_set_copy_func(format, copy_plain);
-	
+	osync_objformat_set_destroy_func(format, destroy_plain);
+
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 	return TRUE;
