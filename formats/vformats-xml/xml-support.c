@@ -124,7 +124,7 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 		       /* Compare only nodes with same name. Skip if
 			* the names are different
 			*/
-		       if (strcmp(leftnode->name, rightnode->name))
+		       if (xmlStrcmp(leftnode->name, rightnode->name))
 			       continue;
 
 			char *rightcontent = (char*)xmlNodeGetContent(rightnode);
