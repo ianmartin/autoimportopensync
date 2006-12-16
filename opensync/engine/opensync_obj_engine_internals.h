@@ -25,6 +25,7 @@ struct OSyncObjEngine {
 	int ref_count;
 	OSyncEngine *parent;
 	char *objtype;
+	int slowsync;
 	OSyncArchive *archive;
 	
 	OSyncMappingTable *mapping_table;

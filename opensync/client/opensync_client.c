@@ -570,9 +570,11 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, message, error);
 
 	char *objtype = NULL;
+	int slowsync;
 	OSyncMessage *reply = NULL;
 	
 	osync_message_read_string(message, &objtype);
+	osync_message_read_int(message, &slowsync);
 	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
 	
 	OSyncObjTypeSink *sink = NULL;
@@ -599,15 +601,20 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		
 		osync_message_unref(reply);
 	} else {
+		/* set slowsync */ 
+		if (slowsync)
+			osync_objtype_sink_set_slowsync(sink, TRUE);
+
 		OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, NULL, error);
 		if (!context)
 			goto error;
 		
 		osync_plugin_info_set_sink(client->plugin_info, sink);
 		osync_objtype_sink_connect(sink, client->plugin_data, client->plugin_info, context);
-	
+
 		osync_context_unref(context);
 	}
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 

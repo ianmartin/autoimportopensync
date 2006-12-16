@@ -1124,6 +1124,7 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
+	engine->slowsync = FALSE;
 	
 	/* we dont reference the parent to avoid circular dependencies. This object is completely
 	 * dependent on the engine anyways */
@@ -1216,6 +1217,12 @@ const char *osync_obj_engine_get_objtype(OSyncObjEngine *engine)
 	return engine->objtype;
 }
 
+void osync_obj_engine_set_slowsync(OSyncObjEngine *engine, osync_bool slowsync)
+{
+	osync_assert(engine);
+	engine->slowsync = slowsync;
+}
+
 static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProxy *proxy, const char *objtype, OSyncError **error)
 {
 	OSyncMember *member = osync_client_proxy_get_member(proxy);
@@ -1267,7 +1274,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 		case OSYNC_ENGINE_COMMAND_CONNECT:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
-				if (!osync_client_proxy_connect(sinkengine->proxy, _obj_engine_connect_callback, sinkengine, engine->objtype, error))
+				if (!osync_client_proxy_connect(sinkengine->proxy, _obj_engine_connect_callback, sinkengine, engine->objtype, engine->slowsync, error))
 					goto error;
 			}
 			break;
@@ -1423,3 +1430,4 @@ void osync_obj_engine_set_error(OSyncObjEngine *engine, OSyncError *error)
 	engine->error = error;
 	osync_error_ref(&error);
 }
+

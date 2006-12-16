@@ -348,6 +348,8 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
+
+	engine->objtype_slowsync = NULL;
 	
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
@@ -737,8 +739,12 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 	
 	if (engine->pluginenv)
 		osync_plugin_env_free(engine->pluginenv);
+
+	g_list_foreach((GList *) engine->objtype_slowsync, (GFunc) g_free, NULL);
+	g_list_free(engine->objtype_slowsync);
 	
 	osync_group_unlock(engine->group);
+
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
@@ -1051,6 +1057,11 @@ static void _engine_discover_callback(OSyncClientProxy *proxy, void *userdata, O
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+void osync_engine_slowsync_objtype(OSyncEngine *engine, const char *objtype)
+{
+	engine->objtype_slowsync = g_list_append(engine->objtype_slowsync, g_strdup(objtype));
+}
+
 void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 {
 	GList *o = NULL;
@@ -1058,6 +1069,7 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 	int i;
 	GList *p = NULL;
 	OSyncClientProxy *proxy = NULL;
+	OSyncObjEngine *objengine = NULL;
 			
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, command);
 	osync_assert(engine);
@@ -1070,14 +1082,21 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 				osync_error_set(&engine->error, OSYNC_ERROR_GENERIC, "No synchronizable objtype");
 				goto error;
 			}
-			
+
 			for (i = 0; i < num; i++) {
 				const char *objtype = osync_group_nth_objtype(engine->group, i);
-				OSyncObjEngine *objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
+				objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
 				if (!objengine)
 					goto error;
 				osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
 				engine->object_engines = g_list_append(engine->object_engines, objengine);
+				
+
+				for (o = engine->objtype_slowsync; o; o = o->next) {
+					if (!strcmp(objtype, o->data))
+				                osync_obj_engine_set_slowsync(objengine, TRUE);
+				}
+
 			}
 		
 			/* We first tell all object engines to connect */
@@ -1090,7 +1109,7 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 			/* Then we connect ourselves */
 			for (o = engine->proxies; o; o = o->next) {
 				OSyncClientProxy *proxy = o->data;
-				if (!osync_client_proxy_connect(proxy, _engine_connect_callback, engine, NULL, &engine->error))
+				if (!osync_client_proxy_connect(proxy, _engine_connect_callback, engine, NULL, FALSE, &engine->error))
 					goto error;
 			}
 			break;

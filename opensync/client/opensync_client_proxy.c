@@ -943,7 +943,7 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 	return g_list_nth_data(proxy->objtypes, nth);
 }
 
-osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, OSyncError **error)
+osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	
@@ -962,6 +962,7 @@ osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callba
 	osync_message_set_handler(message, _osync_client_proxy_connect_handler, ctx);
 
 	osync_message_write_string(message, objtype);
+	osync_message_write_int(message, slowsync);
 	
 	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
 		goto error_free_message;
