@@ -38,6 +38,9 @@ struct OSyncMember {
 	int ref_count;
 	
 	OSyncStartType starttype;
+	
+	OSyncCapabilities *capabilities;
+	OSyncMerger *merger;
 };
 
 #endif /* _OPENSYNC_MEMBER_INTERNALS_H_ */

@@ -133,6 +133,9 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error);
 void osync_engine_ref(OSyncEngine *engine);
 void osync_engine_unref(OSyncEngine *engine);
 
+osync_bool osync_engine_get_use_merger(OSyncEngine *engine);
+void osync_engine_set_use_merger(OSyncEngine *engine, osync_bool use_merger);
+
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir);
 void osync_engine_set_formatdir(OSyncEngine *engine, const char *dir);
 

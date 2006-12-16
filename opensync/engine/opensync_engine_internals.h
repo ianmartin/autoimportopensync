@@ -90,6 +90,7 @@ struct OSyncEngine {
 	
 	osync_bool man_dispatch;
 	osync_bool allow_sync_alert;
+	osync_bool use_merger;
 	
 	OSyncError *error;
 	

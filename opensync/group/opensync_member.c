@@ -23,6 +23,7 @@
 
 #include "opensync-plugin.h"
 #include "opensync-group.h"
+#include "opensync-merger.h"
 #include "opensync_member_internals.h"
 
 #include "opensync_xml.h"
@@ -379,6 +380,15 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	}
 	xmlFreeDoc(doc);
 	
+	if(osync_capabilities_member_has_capabilities(member))
+	{
+		OSyncCapabilities* capabilities = osync_capabilities_member_get_capabilities(member, error);
+		if(!capabilities)
+			goto error;
+		osync_member_set_capabilities(member, capabilities);
+		osync_capabilities_unref(capabilities);
+	}
+	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 	
@@ -452,6 +462,12 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		
 		g_free(member->configdata);
 		member->configdata = NULL;
+	}
+	
+	OSyncCapabilities* capabilities = osync_member_get_capabilities(member);
+	if(capabilities) {
+		if(!osync_capabilities_member_set_capabilities(member, capabilities, error))
+			goto error;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -608,6 +624,40 @@ OSyncStartType osync_member_get_start_type(OSyncMember *member)
 {
 	osync_assert(member);
 	return member->starttype;
+}
+
+OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member)
+{
+	osync_assert(member);
+	return member->capabilities;
+}
+
+void osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities)
+{
+	osync_assert(member);
+	
+	if (member->capabilities)
+		osync_capabilities_unref(member->capabilities);
+	member->capabilities = capabilities;
+	if(capabilities)	
+		osync_capabilities_ref(member->capabilities);
+}
+
+OSyncMerger *osync_member_get_merger(OSyncMember *member)
+{
+	osync_assert(member);
+	return member->merger;
+}
+
+void osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
+{
+	osync_assert(member);
+	
+	if (member->merger)
+		osync_merger_unref(member->merger);
+	member->merger = merger;
+	if(merger)
+		osync_merger_ref(member->merger);
 }
 
 /*@}*/

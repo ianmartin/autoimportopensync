@@ -28,6 +28,7 @@
 #include "opensync-data.h"
 #include "opensync-plugin.h"
 #include "opensync-archive.h"
+#include "opensync-merger.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_engine_internals.h"
@@ -500,6 +501,18 @@ void osync_engine_unref(OSyncEngine *engine)
 		g_free(engine);
 		osync_trace(TRACE_EXIT, "%s", __func__);
 	}
+}
+
+osync_bool osync_engine_get_use_merger(OSyncEngine *engine)
+{
+	osync_assert(engine);
+	return engine->use_merger;
+}
+
+void osync_engine_set_use_merger(OSyncEngine *engine, osync_bool use_merger)
+{
+	osync_assert(engine);
+	engine->use_merger = use_merger;
 }
 
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir)

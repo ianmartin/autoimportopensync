@@ -55,4 +55,10 @@ OSYNC_EXPORT OSyncStartType osync_member_get_start_type(OSyncMember *member);
 OSYNC_EXPORT const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error);
 OSYNC_EXPORT void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format);
 
+OSYNC_EXPORT OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member);
+OSYNC_EXPORT void osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities);
+
+OSYNC_EXPORT OSyncMerger *osync_member_get_merger(OSyncMember *member);
+OSYNC_EXPORT void osync_member_set_merger(OSyncMember *member, OSyncMerger *merger);
+
 #endif /* _OPENSYNC_MEMBER_H_ */
