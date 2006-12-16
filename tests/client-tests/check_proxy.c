@@ -199,7 +199,7 @@ START_TEST (proxy_connect)
 	
 	while (init_replies != 1) { usleep(100); }
 	
-	fail_unless(osync_client_proxy_connect(proxy, connect_callback, GINT_TO_POINTER(1), "file", &error), NULL);
+	fail_unless(osync_client_proxy_connect(proxy, connect_callback, GINT_TO_POINTER(1), "file", FALSE, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
 	while (connect_replies != 1) { usleep(100); }
