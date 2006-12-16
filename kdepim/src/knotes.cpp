@@ -31,7 +31,7 @@ SOFTWARE IS DISCLAIMED.
 
 
 #include "knotes.h"
-
+#include <glib.h>
 
 KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
     :member(m), hashtable(h)
@@ -228,9 +228,20 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 			return false;
         }
 
-        osync_trace(TRACE_INTERNAL, "Getting note %s and %s\n", osync_change_get_printable(chg), osxml_find_node(root, "Summary"));
-        QString summary = QString(osxml_find_node(root, "Summary"));
-        QString body = osxml_find_node(root, "Body");
+        xmlChar *xmlStr;
+        char * tmpStr;
+
+        tmpStr = osync_change_get_printable(chg);
+        xmlStr = (xmlChar*) osxml_find_node(root, "Summary");
+        osync_trace(TRACE_INTERNAL, "Getting note %s and %s\n", tmpStr, xmlStr);
+
+        QString summary = (char*)xmlStr;
+        xmlFree(xmlStr);
+        g_free(tmpStr);
+
+        xmlStr = (xmlChar*) osxml_find_node(root, "Body");
+        QString body = (char*)xmlStr;
+        xmlFree(xmlStr);
 
         QString hash;
         switch (type) {
