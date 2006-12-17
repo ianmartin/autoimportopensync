@@ -86,44 +86,46 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	cur = cur->xmlChildrenNode;
 
 	while (cur != NULL) {
-		char *str = (char *)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
-				g_free(env->username);
-				env->username = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
-				g_free(env->password);
-				env->password = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {
-				g_free(env->url);
-				env->url = g_strdup(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
-				env->device_port = atoi(str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"device")) {
-			  if (!strcasecmp(str, "qtopia2"))
-					env->device_type = OPIE_SYNC_QTOPIA_2;
-			  else
-					env->device_type = OPIE_SYNC_OPIE;
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"conntype")) {
-			  if (!strcasecmp(str, "scp"))
-					env->conn_type = OPIE_CONN_SCP;
-			  else if ( strcasecmp(str, "none") == 0 )
-					env->conn_type = OPIE_CONN_NONE;
-			  else
-					env->conn_type = OPIE_CONN_FTP;
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"use_qcop")) {
-			  if ( strcasecmp(str, "false") == 0 )
-					env->use_qcop = FALSE;
-			  else 
-					env->use_qcop = TRUE;
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
-				if(strlen(str) > 0)
-					env->backupdir = g_strdup(str);
-			} else {
-				osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file option \"%s\"", cur->name);
-				goto error_free_doc;
+		if(cur->type == XML_ELEMENT_NODE) {
+			char *str = (char *)xmlNodeGetContent(cur);
+			if (str) {
+				if (!xmlStrcmp(cur->name, (const xmlChar *)"username")) {
+					g_free(env->username);
+					env->username = g_strdup(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"password")) {
+					g_free(env->password);
+					env->password = g_strdup(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"url")) {
+					g_free(env->url);
+					env->url = g_strdup(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"port")) {
+					env->device_port = atoi(str);
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"device")) {
+					if (!strcasecmp(str, "qtopia2"))
+						env->device_type = OPIE_SYNC_QTOPIA_2;
+					else
+						env->device_type = OPIE_SYNC_OPIE;
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"conntype")) {
+					if (!strcasecmp(str, "scp"))
+						env->conn_type = OPIE_CONN_SCP;
+					else if ( strcasecmp(str, "none") == 0 )
+						env->conn_type = OPIE_CONN_NONE;
+					else
+						env->conn_type = OPIE_CONN_FTP;
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"use_qcop")) {
+					if ( strcasecmp(str, "false") == 0 )
+						env->use_qcop = FALSE;
+					else 
+						env->use_qcop = TRUE;
+				} else if (!xmlStrcmp(cur->name, (const xmlChar *)"backupdir")) {
+					if(strlen(str) > 0)
+						env->backupdir = g_strdup(str);
+				} else {
+					osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration file option \"%s\"", cur->name);
+					goto error_free_doc;
+				}
+				xmlFree(str);
 			}
-			xmlFree(str);
 		}
 		cur = cur->next;
 	}
