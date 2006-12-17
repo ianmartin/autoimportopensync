@@ -91,6 +91,12 @@ void osync_member_unref(OSyncMember *member)
 		
 		if (member->configdata)
 			g_free(member->configdata);
+			
+		if (osync_member_get_capabilities(member))
+			osync_capabilities_unref(osync_member_get_capabilities(member));
+			
+		if (osync_member_get_merger(member))
+			osync_merger_unref(osync_member_get_merger(member));
 		
 		while (member->objtypes) {
 			OSyncObjTypeSink *sink = member->objtypes->data;
@@ -385,7 +391,8 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 		OSyncCapabilities* capabilities = osync_capabilities_member_get_capabilities(member, error);
 		if(!capabilities)
 			goto error;
-		osync_member_set_capabilities(member, capabilities);
+		if(!osync_member_set_capabilities(member, capabilities, error))
+			goto error;
 		osync_capabilities_unref(capabilities);
 	}
 	
@@ -466,8 +473,9 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	
 	OSyncCapabilities* capabilities = osync_member_get_capabilities(member);
 	if(capabilities) {
-		if(!osync_capabilities_member_set_capabilities(member, capabilities, error))
+		if(!osync_capabilities_member_set_capabilities(member, capabilities, error)) {
 			goto error;
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -632,15 +640,22 @@ OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member)
 	return member->capabilities;
 }
 
-void osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities)
+osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities, OSyncError **error)
 {
 	osync_assert(member);
 	
 	if (member->capabilities)
 		osync_capabilities_unref(member->capabilities);
 	member->capabilities = capabilities;
-	if(capabilities)	
+	if(capabilities) {
 		osync_capabilities_ref(member->capabilities);
+		OSyncMerger* merger = osync_merger_new(member->capabilities, error);
+		if(!merger)
+			return FALSE;
+		_osync_member_set_merger(member, merger);
+		osync_merger_unref(merger);
+	}
+	return TRUE;
 }
 
 OSyncMerger *osync_member_get_merger(OSyncMember *member)
@@ -649,7 +664,7 @@ OSyncMerger *osync_member_get_merger(OSyncMember *member)
 	return member->merger;
 }
 
-void osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
+void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
 {
 	osync_assert(member);
 	

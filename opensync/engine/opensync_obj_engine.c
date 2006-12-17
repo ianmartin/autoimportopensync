@@ -1430,4 +1430,3 @@ void osync_obj_engine_set_error(OSyncObjEngine *engine, OSyncError *error)
 	engine->error = error;
 	osync_error_ref(&error);
 }
-

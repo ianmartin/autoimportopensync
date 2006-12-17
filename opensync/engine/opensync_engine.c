@@ -222,6 +222,30 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		osync_converter_path_unref(path);
 	}
 	
+	/* Merger - Merge lost information to the change */
+	if(osync_engine_get_use_merger(engine))
+	{
+		char *buffer = NULL;
+		unsigned int size = 0;
+		OSyncXMLFormat *xmlformat = NULL;
+		OSyncXMLFormat *xmlformat_entire = NULL;
+		
+		OSyncMember *member = osync_client_proxy_get_member(proxy);
+		OSyncMerger *merger = osync_member_get_merger(member);
+		if(merger) {
+			if(!osync_archive_load_data(engine->archive, osync_change_get_uid(change), &buffer, &size, &error)) {
+				goto error; /* TODO: no error? we only have nothing to merge or not? */
+			}
+			xmlformat_entire = osync_xmlformat_parse(buffer, size, &error);
+			free(buffer);
+			if(!xmlformat_entire)
+				goto error;
+			osync_data_get_data(osync_change_get_data(change), (char **) &xmlformat, &size);
+			osync_merger_merge(merger, xmlformat, xmlformat_entire);
+			osync_xmlformat_unref(xmlformat_entire);
+		}
+	}
+	
 	/* Search for the correct objengine */
 	GList * o = NULL;
 	for (o = engine->object_engines; o; o = o->next) {
