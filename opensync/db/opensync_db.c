@@ -489,7 +489,10 @@ osync_bool osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsign
 	
 	rc = sqlite3_step(sqlite_stmt);
 	if(rc != SQLITE_ROW) {
-		goto error_msg;
+		sqlite3_reset(sqlite_stmt);
+		sqlite3_finalize(sqlite_stmt);
+		osync_trace(TRACE_EXIT, "%s: no result!", __func__);
+		return TRUE;
 	}
 	
 	const char *tmp = sqlite3_column_blob(sqlite_stmt, 0);
