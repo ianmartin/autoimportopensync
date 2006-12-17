@@ -27,6 +27,8 @@
 #include "opensync-client.h"
 #include "opensync-group.h"
 #include "opensync-plugin.h"
+#include "opensync-merger.h"
+#include "opensync-version.h"
  
 #include "opensync_client_proxy.h"
 #include "opensync_client_proxy_internals.h"
@@ -276,7 +278,45 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			if (!osync_demarshal_objtype_sink(message, &sink, &locerror))
 				goto error;
 			osync_trace(TRACE_INTERNAL, "Received sink: %s", osync_objtype_sink_get_name(sink));
-			
+	
+			/* Merger - Set the capabilities */
+//			OSyncVersion *version;
+//			OSyncCapabilities *capabilities;
+//			OSyncMember *member = osync_client_proxy_get_member(proxy);
+//		
+//			/* we take our own capabilities rather then from the client */ 
+//		 	OSyncList *versions = osync_load_versions_from_descriptions(&error);
+//			int priority = -1;
+//			OSyncVersion *winner = NULL;
+//			OSyncList *cur = osync_list_first(versions);
+//			while(cur) {
+//				int curpriority = osync_version_matches(cur->data, version, &error);
+//				if( curpriority > 0 && curpriority > priority) {
+//					if(winner)
+//						osync_version_unref(winner);
+//					winner = cur->data;
+//					osync_version_ref(winner);
+//					priority = curpriority;
+//				}
+//				osync_version_unref(cur->data);
+//				cur = cur->next;
+//			}
+//			osync_list_free(versions);
+//		
+//			/* we found or own capabilities */
+//		 	if(priority > 0)
+//		 	{
+//		 	  	capabilities = osync_capabilities_load((const char*)osync_version_get_identifier(winner), &error);
+//		 		osync_version_unref(winner);
+//		 	}
+//		 	else
+//		 	{
+//		 		/* TODO: use capabilities which returned with the disocver call */
+//		 	}
+// 	 
+// 	 		osync_member_set_capabilities(member, capabilities, &error);
+// 	 		//osync_member_save(member); /* TODO: we have to save? */
+ 	 
 			proxy->objtypes = g_list_append(proxy->objtypes, sink);
 			
 			if (proxy->member) {

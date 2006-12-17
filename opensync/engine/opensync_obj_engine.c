@@ -28,6 +28,7 @@
 #include "opensync-data.h"
 #include "opensync-mapping.h"
 #include "opensync-format.h"
+#include "opensync-merger.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_obj_engine_internals.h"
@@ -1315,6 +1316,33 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					osync_assert(entry_engine);
 					
 					osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_mapping_entry_get_uid(entry_engine->entry), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)), osync_entry_engine_is_dirty(entry_engine));
+
+					/* Merger - Save the entire xml and demerge */
+					/* TODO: is here the right place to save the xml???? */
+//					if(osync_engine_get_use_merger(engine->parent))
+//					{
+//						char *buffer = NULL;
+//						unsigned int size = 0;
+//						OSyncXMLFormat *xmlformat = NULL;
+//						
+//						osync_data_get_data(osync_change_get_data(entry_engine->change), (char **) &xmlformat, &size);
+//						
+//						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
+//							osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not assamble the xmlformat");
+//							goto error;	
+//						}
+//				
+//						if(!osync_archive_save_data(engine->archive, osync_change_get_uid(entry_engine->change), buffer, size, error)) {
+//							g_free(buffer);	
+//							goto error;			
+//						}
+//						g_free(buffer);		
+//					
+//						OSyncMerger *merger = NULL;// = osync_group_get_merger(engine->parent); 
+//						merger = osync_member_get_merger(osync_client_proxy_get_member(sinkengine->proxy));
+//						osync_merger_demerge(merger, xmlformat);
+//					}
+
 					if (osync_entry_engine_is_dirty(entry_engine)) {
 						osync_assert(entry_engine->change);
 						OSyncChange *change = entry_engine->change;
