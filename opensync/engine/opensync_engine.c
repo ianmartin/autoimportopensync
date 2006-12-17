@@ -234,15 +234,18 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
 			if(!osync_archive_load_data(engine->archive, osync_change_get_uid(change), &buffer, &size, &error)) {
-				goto error; /* TODO: no error? we only have nothing to merge or not? */
+				goto error; /* osync_archive_load_data() return FALSE if an error appears... */ 
 			}
-			xmlformat_entire = osync_xmlformat_parse(buffer, size, &error);
-			free(buffer);
-			if(!xmlformat_entire)
-				goto error;
-			osync_data_get_data(osync_change_get_data(change), (char **) &xmlformat, &size);
-			osync_merger_merge(merger, xmlformat, xmlformat_entire);
-			osync_xmlformat_unref(xmlformat_entire);
+			/* .. but we have to check if the buffer (buffer size) is empty or 0. */
+			if (size) {
+				xmlformat_entire = osync_xmlformat_parse(buffer, size, &error);
+				free(buffer);
+				if(!xmlformat_entire)
+					goto error;
+				osync_data_get_data(osync_change_get_data(change), (char **) &xmlformat, &size);
+				osync_merger_merge(merger, xmlformat, xmlformat_entire);
+				osync_xmlformat_unref(xmlformat_entire);
+			}
 		}
 	}
 	

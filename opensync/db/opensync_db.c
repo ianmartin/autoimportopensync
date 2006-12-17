@@ -489,19 +489,18 @@ osync_bool osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsign
 	
 	rc = sqlite3_step(sqlite_stmt);
 	if(rc != SQLITE_ROW) {
-		if(rc == SQLITE_ROW) {
-			osync_error_set(error, OSYNC_ERROR_PARAMETER, "UID not found!");
-			goto error;
-		}
-		if(rc == SQLITE_ERROR) {
-			osync_error_set(error, OSYNC_ERROR_PARAMETER, "Unable to insert data! %s", sqlite3_errmsg(db->sqlite3db));
-			goto error;
-		}
-		goto error_msg;		
+		goto error_msg;
 	}
 	
 	const char *tmp = sqlite3_column_blob(sqlite_stmt, 0);
 	*size = sqlite3_column_bytes(sqlite_stmt, 0);
+	if (*size == 0) {
+		sqlite3_reset(sqlite_stmt);
+		sqlite3_finalize(sqlite_stmt);
+		osync_trace(TRACE_EXIT, "%s: no data!", __func__);
+		return TRUE;
+	}
+
 	*data = osync_try_malloc0(*size, error);
 
 	if(!*data)
@@ -527,7 +526,7 @@ error:
 		sqlite3_reset(sqlite_stmt);
 		sqlite3_finalize(sqlite_stmt);	
 	}
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
