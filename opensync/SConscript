@@ -89,6 +89,7 @@ format/opensync_converter.h
 format/opensync_filter.h
 format/opensync_format_env.h
 format/opensync_objformat.h
+format/opensync_time.h
 """
 
 data_headers = """
