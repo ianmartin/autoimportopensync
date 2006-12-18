@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<config>
+   <!-- Server address and port -->
+   <servername></servername>
+   <serverport>389</serverport>
+
+   <!-- Authentication data -->
+   <binddn></binddn>
+   <password></password>
+   <!-- Anonymous bind -->
+   <anonymous>0</anonymous>
+
+   <!-- BaseDN for searching contacts -->
+   <searchbase></searchbase>
+
+   <!-- Filter for searching contacts -->
+   <searchfilter></searchfilter>
+
+   <!-- BaseDN for storing contacts (using searchbase, if leaved blank) -->
+   <storebase></storebase>
+
+   <!-- Key attribute for identifying/storing contacts -->
+   <keyattr>uid</keyattr>
+
+   <!-- Search scope (base, one, sub) -->
+   <scope>sub</scope>
+
+   <!-- Authentication mechanism -->
+   <authmech>SIMPLE</authmech>
+
+   <!-- Encrypted communication with LDAP server -->
+   <encryption>0</encryption>
+
+   <!-- Allow read/write contacts to/from LDAP -->
+   <ldap_read>1</ldap_read>
+   <ldap_write>1</ldap_write>
+</config>
