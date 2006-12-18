@@ -143,7 +143,8 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 
-	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
+	OSyncMember *member = osync_client_proxy_get_member(proxy);
+	long long int memberid = osync_member_get_id(member);
 	const char *uid = osync_change_get_uid(change);		
 	int changetype = osync_change_get_changetype(change);
        	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
@@ -222,8 +223,10 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		osync_converter_path_unref(path);
 	}
 	
-	/* Merger - Merge lost information to the change */
-	if(osync_engine_get_use_merger(engine))
+	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
+	if(osync_engine_get_use_merger(engine) 
+			&& osync_capabilities_member_has_capabilities(member)
+			&& (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED))
 	{
 		char *buffer = NULL;
 		unsigned int size = 0;
@@ -233,7 +236,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncMember *member = osync_client_proxy_get_member(proxy);
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
-			if(!osync_archive_load_data(engine->archive, osync_change_get_uid(change), &buffer, &size, &error)) {
+			if(!osync_archive_load_data(engine->archive, osync_change_get_uid(change), memberid, &buffer, &size, &error)) {
 				goto error; /* osync_archive_load_data() return FALSE if an error appears... */ 
 			}
 			/* .. but we have to check if the buffer (buffer size) is empty or 0. */
@@ -748,7 +751,8 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	if (!osync_format_env_load_plugins(engine->formatenv, engine->format_dir, error))
 		goto error_finalize;
 	
-	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xml-contact"));
+	/* XXX The internal formats XXX */
+	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
 	
 	osync_trace(TRACE_INTERNAL, "Running the main loop");
 	if (!_osync_engine_start(engine, error))
