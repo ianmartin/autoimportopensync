@@ -163,7 +163,7 @@ void osync_archive_unref(OSyncArchive *archive)
  * @param error Pointer to a error struct
  * @return Returns TRUE on success otherwise FALSE
  */ 
-osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error)
+osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, long long int memberid, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %u, %p)", __func__, archive, uid, data, size, error);
 	osync_assert(archive);
@@ -172,7 +172,7 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const
 	osync_assert(size);
 
 	char *escaped_uid = _osync_archive_sql_escape(uid);
-	char *query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s'", escaped_uid);
+	char *query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s' AND memberid='%lli'", escaped_uid, memberid);
 	g_free(escaped_uid);
 	
 	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
@@ -200,7 +200,7 @@ error:
  * @param error Pointer to a error struct
  * @return Returns TRUE on success otherwise FALSE
  */ 
-osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error)
+osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, long long int memberid, char **data, unsigned int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, archive, uid, data, size, error);
 	osync_assert(archive);
@@ -208,7 +208,7 @@ osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, char 
 	osync_assert(data);
 	osync_assert(size);
 	
-	char *query = g_strdup_printf("SELECT data FROM tbl_changes WHERE uid='%s'", uid);
+	char *query = g_strdup_printf("SELECT data FROM tbl_changes WHERE uid='%s' AND memberid='%lli'", uid, memberid);
 	if (!osync_db_get_blob(archive->db, query, data, size, error)) {
 		g_free(query);
 		goto error;
