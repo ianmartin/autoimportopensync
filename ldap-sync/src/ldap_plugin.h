@@ -2,7 +2,7 @@
 #define LDAP_PLUGIN_H
 
 #include <opensync/opensync.h>
-#include <opensync/opensync-xml.h>
+#include <opensync/opensync_xml.h>
 #include <ldap.h>
 
 /*****************************************************************************/
