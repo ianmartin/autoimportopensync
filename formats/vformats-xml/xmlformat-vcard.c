@@ -595,10 +595,10 @@ static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, V
 		return NULL;
 	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
-	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1));
+//	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1)); // FIXME: is this correct? RFC2426 says #1 company name further fields are all units (no dpearmtent?!)
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
-	values = g_list_nth(values, 2);
+	values = g_list_nth(values, 1);
 	for (; values; values = values->next) {
 		GString *retstr = (GString *)values->data;
 		g_assert(retstr);
@@ -1077,44 +1077,47 @@ has_value:;
 
 static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
 	OSyncHookTables *hooks = init_vcard_to_xmlformat();
 	
 	int i = 0;
-	gchar** config_array = g_strsplit_set(config, "=;", 0);
-	for(i=0; config_array[i]; i+=2)
-	{
-		if(!config_array[i+1]) {
-			osync_trace(TRACE_ERROR, "Error in the converter configuration.");
-			g_hash_table_destroy(hooks->attributes);
-			g_hash_table_destroy(hooks->parameters);
-			g_free(hooks);
-			g_strfreev(config_array);
-			return FALSE;
-		}
-		
-		if(strcmp(config_array[i], "VCARD_EXTENSION") == 0) {
 
-			if(strcmp(config_array[i+1], "KDE") == 0)
-				init_kde_to_xmlformat(hooks);
-			else if(strcmp(config_array[i+1], "Evolution") == 0)
-				init_evolution_to_xmlformat(hooks);	
-				
-		}else if(strcmp(config_array[i], "REMOVE_SINGLE_WHITESPACES")) {
-			
-			if(strcmp(config_array[i+1], "TRUE") == 0) {
-				/* TODO: */	
+	if (config) {
+		gchar** config_array = g_strsplit_set(config, "=;", 0);
+		for(i=0; config_array[i]; i+=2)
+		{
+			if(!config_array[i+1]) {
+				osync_trace(TRACE_ERROR, "Error in the converter configuration.");
+				g_hash_table_destroy(hooks->attributes);
+				g_hash_table_destroy(hooks->parameters);
+				g_free(hooks);
+				g_strfreev(config_array);
+				return FALSE;
 			}
 			
-		}else if(strcmp(config_array[i], "VCARD_ENCODING")) {
-			
-			if(strcmp(config_array[i+1], "UTF-16") == 0)
-				;
-			/* TODO: what to do? :) */
+			if(strcmp(config_array[i], "VCARD_EXTENSION") == 0) {
+
+				if(strcmp(config_array[i+1], "KDE") == 0)
+					init_kde_to_xmlformat(hooks);
+				else if(strcmp(config_array[i+1], "Evolution") == 0)
+					init_evolution_to_xmlformat(hooks);	
+					
+			}else if(strcmp(config_array[i], "REMOVE_SINGLE_WHITESPACES")) {
+				
+				if(strcmp(config_array[i+1], "TRUE") == 0) {
+					/* TODO: */	
+				}
+				
+			}else if(strcmp(config_array[i], "VCARD_ENCODING")) {
+				
+				if(strcmp(config_array[i+1], "UTF-16") == 0)
+					;
+				/* TODO: what to do? :) */
+			}
 		}
+		g_strfreev(config_array);
 	}
-	g_strfreev(config_array);
 	
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
@@ -1159,6 +1162,8 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	osync_xmlformat_assemble(xmlformat, &str, &size);
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
 	g_free(str);
+
+	vformat_free(vcard);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
@@ -2150,6 +2155,7 @@ static void xml_vcard_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, O
 	for(i=0; i<c; i++) {
 		xml_vcard_handle_parameter(hooks, attr, xmlfield, i);
 	}
+
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 }
 
@@ -2160,33 +2166,35 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	OSyncHookTables *hooks = init_xmlformat_to_vcard();
 
 	int i = 0;
-	gchar** config_array = g_strsplit_set(config, "=;", 0);
-	for(i=0; config_array[i]; i+=2)
-	{
-		if(!config_array[i+1]) {
-			osync_trace(TRACE_ERROR, "Error in the converter configuration.");
-			g_hash_table_destroy(hooks->attributes);
-			g_hash_table_destroy(hooks->parameters);
-			g_free(hooks);
-			g_strfreev(config_array);
-			return FALSE;
-		}
-		
-		if(strcmp(config_array[i], "VCARD_EXTENSION") == 0) {
-
-			if(strcmp(config_array[i+1], "KDE") == 0)
-				init_xmlformat_to_kde(hooks);
-			else if(strcmp(config_array[i+1], "Evolution") == 0)
-				init_xmlformat_to_evolution(hooks);
-				
-		}else if(strcmp(config_array[i], "VCARD_ENCODING")) {
+	if (config) {
+		gchar** config_array = g_strsplit_set(config, "=;", 0);
+		for(i=0; config_array[i]; i+=2)
+		{
+			if(!config_array[i+1]) {
+				osync_trace(TRACE_ERROR, "Error in the converter configuration.");
+				g_hash_table_destroy(hooks->attributes);
+				g_hash_table_destroy(hooks->parameters);
+				g_free(hooks);
+				g_strfreev(config_array);
+				return FALSE;
+			}
 			
-			if(strcmp(config_array[i+1], "UTF-16") == 0)
-				;
-			/* TODO: what to do? :) */
+			if(strcmp(config_array[i], "VCARD_EXTENSION") == 0) {
+
+				if(strcmp(config_array[i+1], "KDE") == 0)
+					init_xmlformat_to_kde(hooks);
+				else if(strcmp(config_array[i+1], "Evolution") == 0)
+					init_xmlformat_to_evolution(hooks);
+					
+			}else if(strcmp(config_array[i], "VCARD_ENCODING")) {
+				
+				if(strcmp(config_array[i+1], "UTF-16") == 0)
+					;
+				/* TODO: what to do? :) */
+			}
 		}
+		g_strfreev(config_array);
 	}
-	g_strfreev(config_array);
 
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
 	unsigned int size;
@@ -2217,6 +2225,8 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	*free_input = TRUE;
 	*output = vformat_to_string(vcard, target);
 	*outpsize = strlen(*output) + 1;
+
+	vformat_free(vcard);
 
 	osync_trace(TRACE_INTERNAL, "Output vcard is: \n%s", *output);
 
@@ -2262,8 +2272,26 @@ static void destroy_contact(char *input, size_t inpsize)
 
 static osync_bool copy_contact(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	/* TODO: */
-	return FALSE;
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, input, inpsize, output, outpsize, error);
+	OSyncXMLFormat *xmlformat = NULL;
+
+	char *buffer = NULL;
+	unsigned int size;
+	
+	osync_xmlformat_assemble((OSyncXMLFormat *) input, &buffer, &size);
+	xmlformat = osync_xmlformat_parse(buffer, size, error);
+	if (!xmlformat) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	*output = (char *) xmlformat;
+	*outpsize = size;
+
+	g_free(buffer);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 }
 
 static void create_contact(char **data, unsigned int *size)
