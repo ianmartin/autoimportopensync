@@ -1,5 +1,5 @@
 #include "ldap_connect.h"
-
+#include <string.h>
 #include <sasl/sasl.h>
 
 /*********************/

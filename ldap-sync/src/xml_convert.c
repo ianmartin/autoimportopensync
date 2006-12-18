@@ -1,5 +1,5 @@
 #include <ldap_plugin.h>
-
+#include <string.h>
 #include <glib.h>
 
 #define LDAPATTR  0		/* Name of LDAP attribute */
