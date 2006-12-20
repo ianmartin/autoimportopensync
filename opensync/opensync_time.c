@@ -245,10 +245,7 @@ char *osync_time_unix2vtime(const time_t *timestamp) {
 	char *vtime;
 	struct tm utc;
 
-	/* FIXME Find conversion problem from vtime to unixtime and change then to gmtime_r().
-	   (There is a probelm when converting from vtime to unixstamp and back. The result will be a wrong offset) */
-//	gmtime_r(timestamp, &utc);
-	localtime_r(timestamp, &utc);
+	gmtime_r(timestamp, &utc);
 	vtime = osync_time_tm2vtime(&utc, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
@@ -267,7 +264,7 @@ time_t osync_time_tm2unix(const struct tm *tmtime) {
 
 	memcpy(tmp, tmtime, sizeof(struct tm));
 
-	timestamp = mktime(tmp);
+	timestamp = timegm(tmp);
 
 	g_free(tmp);
 
