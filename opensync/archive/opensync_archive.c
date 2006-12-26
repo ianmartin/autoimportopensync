@@ -57,17 +57,33 @@ char *_osync_archive_sql_escape(const char *s)
  */
 /*@{*/
 
-osync_bool osync_archive_create(OSyncDB *db, OSyncError **error)
+osync_bool osync_archive_create_changes(OSyncDB *db, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
 
-	char *query = g_strdup("CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER, data BLOB)");
+	char *query = NULL;
+	query = g_strdup("CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER)");
 	if (!osync_db_query(db, query, error)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		g_free(query);
 		return FALSE;
 	}
+	g_free(query);
 
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool osync_archive_create(OSyncDB *db, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
+
+	char *query = g_strdup("CREATE TABLE tbl_archive (mappingid INTEGER PRIMARY KEY, data BLOB)");
+	if (!osync_db_query(db, query, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
+		return FALSE;
+	}
 	g_free(query);
 
 	osync_trace(TRACE_EXIT, "%s", __func__); 
@@ -98,15 +114,31 @@ OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 		goto error_and_free;
 	}
 
-	if (osync_db_exists(archive->db, "tbl_changes", error))
-		goto end;
+	/* tbl_archive */
+	int ret = osync_db_exists(archive->db, "tbl_archive", error);
 
-	if (!osync_archive_create(archive->db, error)) {
+	/* error if ret -1 */
+	if (ret < 0)
+		goto error_and_free;
+	/* if ret == 0 table does not exist. continue and create it */
+	if (ret == 0 && !osync_archive_create(archive->db, error)) {
 		g_free(archive->db);
 		goto error_and_free;
 	}
 
-end:
+	/* tbl_changes */
+	ret = osync_db_exists(archive->db, "tbl_changes", error);
+
+	/* error if ret -1 */
+	if (ret < 0)
+		goto error_and_free;
+	/* if ret == 0 table does not exist. continue and create it */
+
+	if (ret == 0 && !osync_archive_create_changes(archive->db, error)) {
+		g_free(archive->db);
+		goto error_and_free;
+	}
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, archive);
 	return archive;
 
@@ -163,7 +195,7 @@ void osync_archive_unref(OSyncArchive *archive)
  * @param error Pointer to a error struct
  * @return Returns TRUE on success otherwise FALSE
  */ 
-osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, long long int memberid, const char *data, unsigned int size, OSyncError **error)
+osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %u, %p)", __func__, archive, uid, data, size, error);
 	osync_assert(archive);
@@ -171,8 +203,9 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, long 
 	osync_assert(data);
 	osync_assert(size);
 
+
 	char *escaped_uid = _osync_archive_sql_escape(uid);
-	char *query = g_strdup_printf("UPDATE tbl_changes SET data=? WHERE uid='%s' AND memberid='%lli'", escaped_uid, memberid);
+	char *query = g_strdup_printf("REPLACE INTO tbl_archive (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes WHERE uid='%s' LIMIT 1), ?)", uid);
 	g_free(escaped_uid);
 	
 	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
@@ -194,35 +227,37 @@ error:
  * @brief Load data of a entry which is stored in the group archive database (blob).
  *
  * @param archive The group archive
- * @param uid UID of requested entry
+ * @param uid UID of requestd entry
  * @param data Pointer to store the requested data 
  * @param size Pointer to store the size of requested data
  * @param error Pointer to a error struct
- * @return Returns TRUE on success otherwise FALSE
+ * @return Returns 0 if no data is present else 1. On error -1.
  */ 
-osync_bool osync_archive_load_data(OSyncArchive *archive, const char *uid, long long int memberid, char **data, unsigned int *size, OSyncError **error)
+int osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, archive, uid, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(data);
 	osync_assert(size);
-	
-	char *query = g_strdup_printf("SELECT data FROM tbl_changes WHERE uid='%s' AND memberid='%lli'", uid, memberid);
-	if (!osync_db_get_blob(archive->db, query, data, size, error)) {
-		g_free(query);
+
+	char *query = g_strdup_printf("SELECT data FROM tbl_archive WHERE mappingid=(SELECT mappingid FROM tbl_changes WHERE uid='%s' LIMIT 1)", uid);
+	int ret = osync_db_get_blob(archive->db, query, data, size, error);
+	g_free(query);
+
+	if (ret < 0) {
 		goto error;
+	} else if (ret == 0) {
+		osync_trace(TRACE_EXIT, "%s: no data stored in archive.", __func__); 
+		return 0;
 	}
 
-	g_free(query);
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	return 1;
 	
 error:
-	g_free(query);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
+	return -1;
 }
 
 /**
@@ -246,9 +281,9 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 	
 	char *escaped_uid = _osync_archive_sql_escape(uid);
 	if (!id) {
-		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, memberid, mappingid) VALUES('%s', '%s', '%lli', '%lli')", escaped_uid, objtype, memberid, mappingid);
+		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, mappingid, memberid) VALUES('%s', '%s', '%lli', '%lli')", escaped_uid, objtype, mappingid, memberid);
 	} else {
-		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', memberid='%lli', mappingid='%lli' WHERE id=%lli", escaped_uid, objtype, memberid, mappingid, id);
+		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', mappingid='%lli', memberid='%lli' WHERE id=%lli", escaped_uid, objtype, mappingid, memberid, id);
 	}
 	g_free(escaped_uid);
 	
@@ -304,6 +339,7 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
  * @param ids List to store the archive (database) ids of each entry
  * @param uids List to store uids of each entry
  * @param mappingids List to store mappingids for each entry
+ * @param memberids List to store member IDs for each entry 
  * @param error Pointer to a error struct
  * @return TRUE on when all changes successfully loaded otherwise FALSE
  */ 
