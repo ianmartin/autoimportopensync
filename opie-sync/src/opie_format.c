@@ -539,9 +539,7 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 		xml_node_to_attr(cur, "Content", on_contact, "Notes");
 	
 	/* Categories */
-	cur = osxml_get_node(root, "Categories");
-	if (cur)
-		xml_categories_to_attr(cur, on_contact, "Categories");
+	xml_categories_to_attr(root, on_contact, "Categories");
 
 	/* Spouse */
 	cur = osxml_get_node(root, "Spouse");
@@ -970,9 +968,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 	}
 	
 	/* Categories */
-	icur = osxml_get_node(root, "Categories");
-	if (icur)
-		xml_categories_to_attr(icur, on_todo, "Categories");
+	xml_categories_to_attr(root, on_todo, "Categories");
 
 	/* UID */
 	icur = osxml_get_node(root, "Uid");
@@ -1479,9 +1475,7 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 	}
 	
 	/* Categories */
-	icur = osxml_get_node(root, "Categories");
-	if (icur)
-		xml_categories_to_attr(icur, on_event, "categories");
+	xml_categories_to_attr(root, on_event, "categories");
 
 	/* UID */
 	icur = osxml_get_node(root, "Uid");
@@ -1539,16 +1533,29 @@ time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, x
 	return utime;
 }
 
-void xml_categories_to_attr(xmlNode *categories_node, xmlNode *node_to, const char *category_attr) {
+void xml_categories_to_attr(xmlNode *item_node, xmlNode *node_to, const char *category_attr) {
 	xmlNode *cur;
+	xmlNode *categories_node;
+	int i, numnodes;
+	xmlXPathObject *xobj;
+	xmlNodeSet *nodes;
+	
 	GString *categories = g_string_new("");
-	for (cur = categories_node->children; cur; cur = cur->next) {
-		if(!strcmp(cur->name, "Category")) {
-			char *cat_name = xmlNodeGetContent(cur);
-			g_string_append_printf(categories, "%s|", cat_name);
-			xmlFree(cat_name);
+	xobj = osxml_get_nodeset((xmlDoc *)item_node, "/Categories" );
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+	for ( i = 0; i < numnodes; i++ ) {
+		categories_node = nodes->nodeTab[i];
+		
+		for (cur = categories_node->children; cur; cur = cur->next) {
+			if(!strcmp(cur->name, "Category")) {
+				char *cat_name = xmlNodeGetContent(cur);
+				g_string_append_printf(categories, "%s|", cat_name);
+				xmlFree(cat_name);
+			}
 		}
 	}
+	
 	if(categories->len > 0) {
 		g_string_truncate(categories, categories->len - 1);
 		xmlSetProp(node_to, category_attr, categories->str);
