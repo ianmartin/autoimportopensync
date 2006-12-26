@@ -1388,7 +1388,8 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 				weekdaysrule = g_strdup(rule[1]);
 			}
 			else if (!strcasecmp(rule[0], "BYMONTHDAY")) {
-				rectype = RECUR_TYPE_MONTHLY_DATE;
+				if(rectype != RECUR_TYPE_YEARLY)
+					rectype = RECUR_TYPE_MONTHLY_DATE;
 			}
 			else if (!strcasecmp(rule[0], "INTERVAL")) {
 				rfreq = g_strdup(rule[1]);
