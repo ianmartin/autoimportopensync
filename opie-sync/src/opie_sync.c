@@ -476,6 +476,7 @@ static OSyncChange *opie_sync_item_change_create(OpieSyncEnv *env, xmlDoc *doc, 
 	g_free(opie_uid);
 	
 	char *nodetext = xml_node_to_text(doc, node);
+	printf("OPIE: uid %s\n", osync_change_get_uid(change)); 
 	printf("OPIE: change xml = %s\n", nodetext); 
 	
 	unsigned char *hash = hash_str(nodetext);
@@ -541,7 +542,7 @@ static osync_bool opie_sync_item_get_changeinfo(OSyncContext *ctx, OSyncError **
 	}
 	
 	/* Use the hashtable to report deletions */
-	osync_hashtable_report_deleted(env->hashtable, ctx, "contact");
+	osync_hashtable_report_deleted(env->hashtable, ctx, objtype);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
