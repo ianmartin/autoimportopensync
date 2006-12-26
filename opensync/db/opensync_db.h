@@ -26,7 +26,7 @@ OSyncDB *osync_db_new(OSyncError **error);
 osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error);
 osync_bool osync_db_close(OSyncDB *db, OSyncError **error);
 
-osync_bool osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error);
+int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error);
 
 osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error);
 osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error);
@@ -40,7 +40,7 @@ GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error);
 void osync_db_free_list(GList *list);
 
 osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error);
-osync_bool osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
+int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error);
 
 long long int osync_db_last_rowid(OSyncDB *db);
 
