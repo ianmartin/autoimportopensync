@@ -1368,7 +1368,7 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 		for ( i = 0; i < numnodes; i++ ) {
 			icur = nodes->nodeTab[i];
 			char *rulestr = (char*)xmlNodeGetContent(icur);
-			gchar **rule = g_strsplit(rulestr, "=", 1);
+			gchar **rule = g_strsplit(rulestr, "=", 2);
 			if (!strcasecmp(rule[0], "FREQ")) {
 				if (!strcasecmp(rule[1], "DAILY")) {
 					rectype = RECUR_TYPE_DAILY;
