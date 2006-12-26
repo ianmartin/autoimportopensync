@@ -378,6 +378,8 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 				
 				if(pair->local_fd > 0) {
 					*doc = opie_xml_fd_open(pair->local_fd);
+					/* Flag document as unchanged */
+					(*doc)->_private = (void *)1;
 					close(pair->local_fd);
 					pair->local_fd = -1;
 				}
@@ -536,81 +538,94 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 	
 	if ( object_types & OPIE_OBJECT_TYPE_PHONEBOOK) {
-		contacts_fd = list_add_temp_file(&files_to_put, OPIE_ADDRESS_FILE, OPIE_OBJECT_TYPE_PHONEBOOK, tmpfilemode);
-		if(opie_xml_save_to_fd(env->contacts_doc, contacts_fd) == -1) {
-			osync_trace(TRACE_EXIT_ERROR, "failed to write contacts to temporary file");
-			goto error;
+		if(env->contacts_doc && env->contacts_doc->_private == 0) {
+			contacts_fd = list_add_temp_file(&files_to_put, OPIE_ADDRESS_FILE, OPIE_OBJECT_TYPE_PHONEBOOK, tmpfilemode);
+			if(opie_xml_save_to_fd(env->contacts_doc, contacts_fd) == -1) {
+				osync_trace(TRACE_EXIT_ERROR, "failed to write contacts to temporary file");
+				goto error;
+			}
+			fsync(contacts_fd);
+			lseek(contacts_fd, 0, SEEK_SET);
 		}
-		fsync(contacts_fd);
-		lseek(contacts_fd, 0, SEEK_SET);
 	}
 
 	if(object_types & OPIE_OBJECT_TYPE_TODO) {
-		todos_fd = list_add_temp_file(&files_to_put, OPIE_TODO_FILE, OPIE_OBJECT_TYPE_TODO, tmpfilemode);
-		if(opie_xml_save_to_fd(env->todos_doc, todos_fd) == -1) {
-			osync_trace(TRACE_EXIT_ERROR, "failed to write todos to temporary file");
-			goto error;
+		if(env->todos_doc && env->todos_doc->_private == 0) {
+			todos_fd = list_add_temp_file(&files_to_put, OPIE_TODO_FILE, OPIE_OBJECT_TYPE_TODO, tmpfilemode);
+			if(opie_xml_save_to_fd(env->todos_doc, todos_fd) == -1) {
+				osync_trace(TRACE_EXIT_ERROR, "failed to write todos to temporary file");
+				goto error;
+			}
+			fsync(todos_fd);
+			lseek(todos_fd, 0, SEEK_SET);
 		}
-		fsync(todos_fd);
-		lseek(todos_fd, 0, SEEK_SET);
 	}
 	
 	if(object_types & OPIE_OBJECT_TYPE_CALENDAR) {
-		calendar_fd = list_add_temp_file(&files_to_put, OPIE_CALENDAR_FILE, OPIE_OBJECT_TYPE_CALENDAR, tmpfilemode);
-		if(opie_xml_save_to_fd(env->calendar_doc, calendar_fd) == -1) {
-			osync_trace(TRACE_EXIT_ERROR, "failed to write events to temporary file");
+		if(env->calendar_doc && env->calendar_doc->_private == 0) {
+			calendar_fd = list_add_temp_file(&files_to_put, OPIE_CALENDAR_FILE, OPIE_OBJECT_TYPE_CALENDAR, tmpfilemode);
+			if(opie_xml_save_to_fd(env->calendar_doc, calendar_fd) == -1) {
+				osync_trace(TRACE_EXIT_ERROR, "failed to write events to temporary file");
+				goto error;
+			}
+			fsync(calendar_fd);
+			lseek(calendar_fd, 0, SEEK_SET);
+		}
+	}
+
+	if(env->categories_doc && env->categories_doc->_private == 0) {
+		/* always write the categories file */
+		categories_fd = list_add_temp_file(&files_to_put, OPIE_CATEGORY_FILE, OPIE_OBJECT_TYPE_CATEGORIES, tmpfilemode);
+		if(opie_xml_save_to_fd(env->categories_doc, categories_fd) == -1) {
+			osync_trace(TRACE_EXIT_ERROR, "failed to write categories to temporary file");
 			goto error;
 		}
-		fsync(calendar_fd);
-		lseek(calendar_fd, 0, SEEK_SET);
+		fsync(categories_fd);
+		lseek(categories_fd, 0, SEEK_SET);
 	}
 
-	/* always fetch the categories file */
-	categories_fd = list_add_temp_file(&files_to_put, OPIE_CATEGORY_FILE, OPIE_OBJECT_TYPE_CATEGORIES, tmpfilemode);
-	if(opie_xml_save_to_fd(env->categories_doc, categories_fd) == -1) {
-		osync_trace(TRACE_EXIT_ERROR, "failed to write categories to temporary file");
-		goto error;
-	}
-	fsync(categories_fd);
-	lseek(categories_fd, 0, SEEK_SET);
-
-	/* check which connection method was requested */
-	switch (env->conn_type)
-	{
-		case OPIE_CONN_NONE:
-			/* Do nothing */
-			osync_trace(TRACE_INTERNAL, "Skipping Put" );
-			break;
+	if(files_to_put) {
+		/* check which connection method was requested */
+		switch (env->conn_type)
+		{
+			case OPIE_CONN_NONE:
+				/* Do nothing */
+				osync_trace(TRACE_INTERNAL, "Skipping Put" );
+				break;
+			
+			case OPIE_CONN_FTP:
+				/* attempt an FTP connection */
+				OPIE_DEBUG("Attempting FTP Put File.\n");
+				rc = ftp_put_files(env, files_to_put);
+				break;
+				
+			case OPIE_CONN_SCP:
+				/* attempt and scp connection */
+				OPIE_DEBUG("Attempting scp Put File.\n");
+				rc = scp_put_files(env, files_to_put);
+				break;
+				
+			default:
+				/* unknown connection type */
+				rc = FALSE;
+				break;
+		}
 		
-		case OPIE_CONN_FTP:
-			/* attempt an FTP connection */
-			OPIE_DEBUG("Attempting FTP Put File.\n");
-			rc = ftp_put_files(env, files_to_put);
-			break;
-			
-		case OPIE_CONN_SCP:
-			/* attempt and scp connection */
-			OPIE_DEBUG("Attempting scp Put File.\n");
-			rc = scp_put_files(env, files_to_put);
-			break;
-			
-		default:
-			/* unknown connection type */
-			rc = FALSE;
-			break;
-  }
-	
-	if((!rc) && (env->conn_type != OPIE_CONN_NONE) && env->backupdir) {
-		/* If something went wrong and the user has a backup directory set,
-		   we write the files to their backups dir to avoid possible data loss */ 
-		char *backupdir = g_build_filename(env->backupdir, "upload_failures", NULL);
-		fprintf(stderr, "Error during upload to device, writing files to %s", backupdir); 
-		backup_files(backupdir, files_to_put);
-		g_free(backupdir);
+		if((!rc) && (env->conn_type != OPIE_CONN_NONE) && env->backupdir) {
+			/* If something went wrong and the user has a backup directory set,
+				we write the files to their backups dir to avoid possible data loss */ 
+			char *backupdir = g_build_filename(env->backupdir, "upload_failures", NULL);
+			fprintf(stderr, "Error during upload to device, writing files to %s", backupdir); 
+			backup_files(backupdir, files_to_put);
+			g_free(backupdir);
+		}
+		
+		cleanup_temp_files(files_to_put, tmpfilemode);
+		list_cleanup(files_to_put);
 	}
-	
-	cleanup_temp_files(files_to_put, tmpfilemode);
-	list_cleanup(files_to_put);
+	else {
+		OPIE_DEBUG("No changes to write\n");
+	}
 	
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
 	return rc;

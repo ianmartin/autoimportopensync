@@ -39,7 +39,7 @@ xmlDoc *opie_xml_fd_open(int fd) {
 		osync_trace(TRACE_INTERNAL, "Unable to parse XML data");
 		goto error;
 	}
-
+	
 	return doc;
 	
 error:
@@ -296,6 +296,9 @@ char *opie_xml_get_uid(xmlNode *node) {
 	if(!strcasecmp(node->name, "event")) {
 		uidattr = "uid";
 	}
+	else if(!strcasecmp(node->name, "Category")) {
+		uidattr = "id";
+	}
 	else {
 		uidattr = "Uid";
 	}
@@ -307,6 +310,9 @@ void opie_xml_set_uid(xmlNode *node, const char *uid) {
 	char *uidattr;
 	if(!strcasecmp(node->name, "event")) {
 		uidattr = "uid";
+	}
+	else if(!strcasecmp(node->name, "Category")) {
+		uidattr = "id";
 	}
 	else {
 		uidattr = "Uid";
@@ -327,7 +333,7 @@ int opie_xml_save_to_fd(xmlDoc *doc, int fd) {
 	return bytes;
 }
 
-char *opie_xml_category_name_to_id(xmlNode *categories_node, const char *name) {
+char *opie_xml_category_name_to_id(xmlDoc *categories_doc, xmlNode *categories_node, const char *name) {
 	xmlNode *category_node = categories_node->xmlChildrenNode;
 	int count = 0;
 	
@@ -355,7 +361,8 @@ char *opie_xml_category_name_to_id(xmlNode *categories_node, const char *name) {
 	if(!category_id) {
 		/* Need to add a new category */
 		xmlNode *new_node = xmlNewNode(NULL, "Category");
-		category_id = g_strdup_printf("-%d", count);
+		category_id = opie_xml_generate_uid(categories_doc, "Categories", "Category");
+		
 		if(!new_node) {
 			osync_trace(TRACE_INTERNAL, "Unable to create new category node");
 			return NULL;
@@ -367,6 +374,8 @@ char *opie_xml_category_name_to_id(xmlNode *categories_node, const char *name) {
 			xmlFreeNode(new_node);
 			return NULL;
 		}
+		/* Flag categories document as modified */
+		categories_node->doc->_private = 0;
 	}
 	
 	return category_id;
@@ -378,7 +387,7 @@ void opie_xml_category_ids_to_names(xmlDoc *categories_doc, xmlNode *change_node
 	char *attr_value = opie_xml_get_categories(change_node);
 	if(attr_value) {
 		GString *cat_names = g_string_new(""); 
-		gchar **categories = g_strsplit(attr_value, ",", 0);
+		gchar **categories = g_strsplit(attr_value, ";", 0);
 		xmlNode *category_node = opie_xml_get_first(categories_doc, "Categories", "Category");
 		while(category_node) {
 			char *cid = xmlGetProp(category_node, "id");
@@ -415,14 +424,13 @@ void opie_xml_category_names_to_ids(xmlDoc *categories_doc, xmlNode *change_node
 	if(attr_value) {
 		xmlNode *categories_node = opie_xml_get_collection(categories_doc, "Categories");
 		
-		GString *cat_ids = g_string_new(""); 
+		GString *cat_ids = g_string_new("");
 		gchar **categories = g_strsplit(attr_value, "|", 0);
 		for(i=0; categories[i] != NULL; i++) {
-			char *cid = opie_xml_category_name_to_id(categories_node, categories[i]);
+			char *cid = opie_xml_category_name_to_id(categories_doc, categories_node, categories[i]);
 			if(cid) {
-				g_string_append_printf(cat_ids, "%s,", cid);
+				g_string_append_printf(cat_ids, "%s;", cid);
 				g_free(cid);
-				break;
 			}
 		}
 		

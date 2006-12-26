@@ -391,6 +391,9 @@ static osync_bool opie_sync_item_commit(OSyncContext *ctx, OSyncChange *change,
 			goto error;
 	}
 	
+	/* Flag document as changed */
+	doc->_private = 0;
+	
 	if(change_doc)
 		xmlFreeDoc(change_doc);
 	
