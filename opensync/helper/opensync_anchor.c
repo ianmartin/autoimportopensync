@@ -55,10 +55,15 @@ static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 		goto error_free_db;
 	}
 	
-	if (osync_db_exists(db, "tbl_anchor", error)) {
+	int ret = osync_db_exists(db, "tbl_anchor", error);
+	if (ret > 0) {
 		osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
 		return db;
+	/* error if ret == -1 */	
+	} else if (ret < 0) {
+		goto error_free_db;
 	}	
+	/* ret equal 0 means table does not exist yet. continue and create one. */
 
 	if (!_osync_anchor_db_create(db, error))
 		goto error_free_db;

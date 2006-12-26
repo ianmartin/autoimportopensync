@@ -114,8 +114,13 @@ OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSync
 
 	table->tablename = g_strdup_printf("tbl_hash_%s", objtype);
 
-	if (osync_db_exists(table->dbhandle, table->tablename, error))
+	int ret = osync_db_exists(table->dbhandle, table->tablename, error);
+	if (ret > 0) {
 		goto end;
+	} else if (ret < 0) {
+		goto error_and_free;
+	}
+	/* if ret == 0 then table does not exist yet. contiune and create one. */
 
 	if (!osync_hashtable_create(table, objtype, error))
 		goto error_and_free;
