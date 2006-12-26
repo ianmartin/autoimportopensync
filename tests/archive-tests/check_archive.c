@@ -89,7 +89,7 @@ START_TEST (archive_save_data)
 	
 	const char *testdata = "testdata";
 	unsigned int testsize = strlen(testdata);
-	fail_unless(osync_archive_save_data(archive, "uid", 1, testdata, testsize, &error) == TRUE, NULL);
+	fail_unless(osync_archive_save_data(archive, "uid", testdata, testsize, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 		
 	osync_archive_unref(archive);
@@ -119,12 +119,12 @@ START_TEST (archive_load_data)
 	
 	const char *testdata = "testdata";
 	unsigned int testsize = strlen(testdata);
-	fail_unless(osync_archive_save_data(archive, "uid", 1, testdata, testsize, &error) == TRUE, NULL);
+	fail_unless(osync_archive_save_data(archive, "uid", testdata, testsize, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	
 	char *buffer;
 	unsigned int size;
-	fail_unless(osync_archive_load_data(archive, "uid", 1, &buffer, &size, &error) == TRUE, NULL);
+	fail_unless(osync_archive_load_data(archive, "uid", &buffer, &size, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	fail_unless(size == testsize);
 	fail_unless(memcmp(buffer, testdata, testsize) == 0);
@@ -156,7 +156,7 @@ START_TEST (archive_load_data_with_closing_db)
 	
 	const char *testdata = "testdata";
 	unsigned int testsize = strlen(testdata);
-	fail_unless(osync_archive_save_data(archive, "uid", 1, testdata, testsize, &error) == TRUE, NULL);
+	fail_unless(osync_archive_save_data(archive, "uid", testdata, testsize, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	
 	osync_archive_unref(archive);
@@ -166,7 +166,7 @@ START_TEST (archive_load_data_with_closing_db)
 	
 	char *buffer;
 	unsigned int size;
-	fail_unless(osync_archive_load_data(archive, "uid", 1, &buffer, &size, &error) == TRUE, NULL);
+	fail_unless(osync_archive_load_data(archive, "uid", &buffer, &size, &error) == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	fail_unless(size == testsize);
 	fail_unless(memcmp(buffer, testdata, testsize) == 0);
