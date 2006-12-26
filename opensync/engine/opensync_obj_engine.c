@@ -279,7 +279,7 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		if (entry_engine == engine->master)
 			continue;
 		
-		osync_trace(TRACE_INTERNAL, "Propagating change %s to %p from %p", __func__, osync_mapping_entry_get_uid(entry_engine->entry), entry_engine, engine->master);
+		osync_trace(TRACE_INTERNAL, "Propagating change %s to %p from %p", osync_mapping_entry_get_uid(entry_engine->entry), entry_engine, engine->master);
 		
 		/* Input is:
 		 * masterChange -> change that solved the mapping
@@ -1337,9 +1337,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							goto error;	
 						}
 
-						osync_trace(TRACE_INTERNAL, "everything is fine...");
-				
-						if(!osync_archive_save_data(engine->archive, osync_change_get_uid(entry_engine->change), memberid, buffer, size, error)) {
+						if(!osync_archive_save_data(engine->archive, osync_change_get_uid(entry_engine->change), buffer, size, error)) {
 							g_free(buffer);	
 							goto error;			
 						}

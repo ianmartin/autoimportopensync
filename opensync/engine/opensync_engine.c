@@ -236,11 +236,13 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncMember *member = osync_client_proxy_get_member(proxy);
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
-			if(!osync_archive_load_data(engine->archive, osync_change_get_uid(change), memberid, &buffer, &size, &error)) {
-				goto error; /* osync_archive_load_data() return FALSE if an error appears... */ 
+
+			int ret = osync_archive_load_data(engine->archive, uid, &buffer, &size, &error);
+			if (ret < 0) {
+				goto error; 
 			}
-			/* .. but we have to check if the buffer (buffer size) is empty or 0. */
-			if (size) {
+
+			if (ret > 0) {
 				xmlformat_entire = osync_xmlformat_parse(buffer, size, &error);
 				free(buffer);
 				if(!xmlformat_entire)
