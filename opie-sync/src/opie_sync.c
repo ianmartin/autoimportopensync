@@ -74,12 +74,12 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	cur = xmlDocGetRootElement(doc);
 
 	if (!cur) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get settings root element");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get configuration XML root element");
 		goto error_free_doc;
 	}
 
 	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Configuration file is invalid");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Configuration file root node name is invalid");
 		goto error_free_doc;
 	}
 
