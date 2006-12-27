@@ -764,27 +764,38 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, i
 		}
 		
 		/* Due date */
+		GDate *duedate = NULL;
 		char *hasDate = xmlGetProp(icur, "HasDate");
 		if(hasDate) { 
 			if(!strcmp(hasDate, "1")) {
-				char *dateday   = xmlGetProp(icur, "DateDay");
-				char *datemonth = xmlGetProp(icur, "DateMonth");
-				char *dateyear  = xmlGetProp(icur, "DateYear");
-				if(dateday && datemonth && dateyear) {
-					char *duedate = g_strdup_printf("%04d%02d%02d", atoi(dateyear), atoi(datemonth), atoi(dateday));
+				char *datedaystr   = xmlGetProp(icur, "DateDay");
+				char *datemonthstr = xmlGetProp(icur, "DateMonth");
+				char *dateyearstr  = xmlGetProp(icur, "DateYear");
+				if(datedaystr && datemonthstr && dateyearstr) {
+					int dateyear = atoi(dateyearstr);
+					int datemonth = atoi(datemonthstr);
+					int dateday = atoi(datedaystr);
+					char *duedatestr = g_strdup_printf("%04d%02d%02d", dateyear, datemonth, dateday);
+					duedate = g_date_new_dmy(dateday, datemonth, dateyear);
 					on_curr = xmlNewTextChild(on_root, NULL, (xmlChar*)"DateDue", NULL);
-					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)duedate);
-					g_free(duedate);
+					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)duedatestr);
+					g_free(duedatestr);
 					// RFC2445 says the default value type is DATE-TIME. But Opie only
 					// stores DATE as due date => alter VALUE to DATE
 					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
 				}
-				if(dateday)   xmlFree(dateday);
-				if(datemonth) xmlFree(datemonth);
-				if(dateyear)  xmlFree(dateyear);
+				if(datedaystr)   xmlFree(datedaystr);
+				if(datemonthstr) xmlFree(datemonthstr);
+				if(dateyearstr)  xmlFree(dateyearstr);
 			}
 			xmlFree(hasDate);
 		}
+	
+		/* Recurrence */
+		xml_recur_attr_to_node(icur, on_root, duedate);
+		
+		if(duedate)
+			g_date_free(duedate);
 	}
 
 	*free_input = TRUE;
@@ -967,6 +978,9 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 		}
 	}
 	
+	/* Recurrence */
+	xml_recur_node_to_attr(root, on_todo);
+	
 	/* Categories */
 	xml_categories_to_attr(root, on_todo, "Categories");
 
@@ -1114,133 +1128,7 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 		}
 		
 		/* Recurrence */
-		char *recurType = xmlGetProp(icur, "rtype");
-		if(recurType) {
-			xmlNode *on_recur = xmlNewTextChild(on_root, NULL, (xmlChar*) "RecurrenceRule", NULL);
-			
-			/* Frequency */
-			if(!strcmp(recurType, "Daily")) {
-				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=DAILY");
-			}
-			else if(!strcmp(recurType, "Weekly")) {
-				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=WEEKLY");
-				
-				/* Weekdays */
-				char *weekdays = xmlGetProp(icur, "rweekdays");
-				if(weekdays) {
-					int weekdaysnum = atoi(weekdays);
-					if(weekdaysnum > 0) {
-						GString *byday = g_string_new("");
-						g_string_append(byday, "BYDAY=");
-						if(weekdaysnum & 1)
-							g_string_append(byday, "MO,");
-						if(weekdaysnum & 2)
-							g_string_append(byday, "TU,");
-						if(weekdaysnum & 4)
-							g_string_append(byday, "WE,");
-						if(weekdaysnum & 8)
-							g_string_append(byday, "TH,");
-						if(weekdaysnum & 16)
-							g_string_append(byday, "FR,");
-						if(weekdaysnum & 32)
-							g_string_append(byday, "SA,");
-						if(weekdaysnum & 64)
-							g_string_append(byday, "SU,");
-					
-						/* Remove the trailing comma */
-						g_string_truncate(byday, strlen(byday->str) - 1);
-					
-						xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) byday->str);
-						g_string_free(byday, TRUE);
-					}
-					xmlFree(weekdays);
-				}
-			}
-			else if(!strcmp(recurType, "MonthlyDate")) {
-				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=MONTHLY");
-				if(startdate) {
-					char *bymonthday = g_strdup_printf("BYMONTHDAY=%i", (int)g_date_get_day(startdate));
-					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) bymonthday);
-					g_free(bymonthday);
-				}
-			}
-			else if(!strcmp(recurType, "MonthlyDay")) {
-				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=MONTHLY");
-				if(startdate) {
-					int weekno;
-					char *weeknostr = xmlGetProp(icur, "rposition");
-					if(weeknostr) {
-						weekno = atoi(weeknostr);
-						xmlFree(weeknostr);
-					}
-					else {
-						weekno = -1;
-					}
-					
-					char *byday = NULL;
-					GDateWeekday weekday = g_date_get_weekday(startdate);
-					switch (weekday) {
-						case G_DATE_MONDAY:
-							byday = g_strdup_printf("BYDAY=%iMO", weekno);
-							break;
-						case G_DATE_TUESDAY:
-							byday = g_strdup_printf("BYDAY=%iTU", weekno);
-							break;
-						case G_DATE_WEDNESDAY:
-							byday = g_strdup_printf("BYDAY=%iWE", weekno);
-							break;
-						case G_DATE_THURSDAY:
-							byday = g_strdup_printf("BYDAY=%iTH", weekno);
-							break;
-						case G_DATE_FRIDAY:
-							byday = g_strdup_printf("BYDAY=%iFR", weekno);
-							break;
-						case G_DATE_SATURDAY:
-							byday = g_strdup_printf("BYDAY=%iSA", weekno);
-							break;
-						case G_DATE_SUNDAY:
-							byday = g_strdup_printf("BYDAY=%iSU", weekno);
-							break;
-						case G_DATE_BAD_WEEKDAY:
-							break;
-					}
-					if(byday) {
-						xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) byday);
-						g_free(byday);
-					}
-				}
-			}
-			else if(!strcmp(recurType, "Yearly")) {
-				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=YEARLY");
-			}
-
-			/* Interval */
-			char *interval = xmlGetProp(icur, "rfreq");
-			if(interval) {
-				char *intervalstr = g_strdup_printf("INTERVAL=%s", interval);
-				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*)intervalstr);
-				xmlFree(interval);
-				g_free(intervalstr);
-			}
-			
-			/* End date */
-			char *hasEndDate = xmlGetProp(icur, "rhasenddate");
-			if(hasEndDate) {
-				char *recurendstr = xmlGetProp(icur, "enddt");
-				if(recurendstr) {
-					time_t recurendtime = (time_t)atoi(recurendstr);
-					char *recurendvtime = osync_time_unix2vtime(&recurendtime); 
-					char *until = g_strdup_printf("UNTIL=%s", recurendvtime);
-					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) until);
-					g_free(recurendvtime);
-					g_free(until);
-					xmlFree(recurendstr);
-				}
-			}
-			
-			xmlFree(recurType);
-		}
-		
+		xml_recur_attr_to_node(icur, on_root, startdate);
 	}
 
 	*free_input = TRUE;
@@ -1343,137 +1231,7 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 	}
 	
 	/* Recurrence */
-	icur = osxml_get_node(root, "RecurrenceRule");
-	if (icur) {
-		char *enddt = NULL;
-		char *weekdaysrule = NULL;
-		char *rfreq = NULL;
-		int i;
-		
-		enum 
-		{
-			RECUR_TYPE_NONE         = 0,
-			RECUR_TYPE_DAILY        = 1,
-			RECUR_TYPE_WEEKLY       = 2,
-			RECUR_TYPE_MONTHLY_DAY  = 3,
-			RECUR_TYPE_MONTHLY_DATE = 4,
-			RECUR_TYPE_YEARLY       = 5
-		} rectype;
-		rectype = RECUR_TYPE_NONE;
-		
-		/* read recurrence rules */
-		xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)icur, "/Rule" );
-		xmlNodeSet *nodes = xobj->nodesetval;
-		int numnodes = (nodes) ? nodes->nodeNr : 0;
-		for ( i = 0; i < numnodes; i++ ) {
-			icur = nodes->nodeTab[i];
-			char *rulestr = (char*)xmlNodeGetContent(icur);
-			gchar **rule = g_strsplit(rulestr, "=", 2);
-			if (!strcasecmp(rule[0], "FREQ")) {
-				if (!strcasecmp(rule[1], "DAILY")) {
-					rectype = RECUR_TYPE_DAILY;
-				}
-				else if (!strcasecmp(rule[1], "WEEKLY")) {
-					rectype = RECUR_TYPE_WEEKLY;
-				}
-				else if (!strcasecmp(rule[1], "MONTHLY")) {
-					if(rectype != RECUR_TYPE_MONTHLY_DATE)
-						rectype = RECUR_TYPE_MONTHLY_DAY;
-				}
-				else if (!strcasecmp(rule[1], "YEARLY")) {
-					rectype = RECUR_TYPE_YEARLY;
-				}
-			}
-			else if (!strcasecmp(rule[0], "BYDAY")) {
-				weekdaysrule = g_strdup(rule[1]);
-			}
-			else if (!strcasecmp(rule[0], "BYMONTHDAY")) {
-				if(rectype != RECUR_TYPE_YEARLY)
-					rectype = RECUR_TYPE_MONTHLY_DATE;
-			}
-			else if (!strcasecmp(rule[0], "INTERVAL")) {
-				rfreq = g_strdup(rule[1]);
-			}
-			else if (!strcasecmp(rule[0], "UNTIL")) {
-				time_t utime = osync_time_vtime2unix(rule[1], 0);
-				enddt = g_strdup_printf("%d", (int)utime);
-			}
-			xmlFree(rulestr);
-			g_strfreev(rule);
-		}
-		xmlXPathFreeObject(xobj);
-	
-		switch(rectype) {
-			case RECUR_TYPE_NONE:
-				break;
-			case RECUR_TYPE_DAILY:
-				xmlSetProp(on_event, "rtype", "Daily");
-				break;
-			case RECUR_TYPE_WEEKLY:
-				xmlSetProp(on_event, "rtype", "Weekly");
-				break;
-			case RECUR_TYPE_MONTHLY_DAY:
-				xmlSetProp(on_event, "rtype", "MonthlyDay");
-				break;
-			case RECUR_TYPE_MONTHLY_DATE:
-				xmlSetProp(on_event, "rtype", "MonthlyDate");
-				break;
-			case RECUR_TYPE_YEARLY:
-				xmlSetProp(on_event, "rtype", "Yearly");
-				break;
-		}
-		
-		if(weekdaysrule) {
-			if(rectype == RECUR_TYPE_WEEKLY) {
-				/* Weekly recurrence */
-				int weekdays = 0;
-				int i;
-				gchar** weekdaystokens = g_strsplit(weekdaysrule, ",", 7);
-				for (i=0; weekdaystokens[i] != NULL; i++) {
-					if (strstr(weekdaystokens[i], "MO"))
-						weekdays |= 1;
-					else if (strstr(weekdaystokens[i], "TU"))
-						weekdays |= 2;
-					else if (strstr(weekdaystokens[i], "WE"))
-						weekdays |= 4;
-					else if (strstr(weekdaystokens[i], "TH"))
-						weekdays |= 8;
-					else if (strstr(weekdaystokens[i], "FR"))
-						weekdays |= 16;
-					else if (strstr(weekdaystokens[i], "SA"))
-						weekdays |= 32;
-					else if (strstr(weekdaystokens[i], "SU"))
-						weekdays |= 64;
-				}
-				char *rweekdays = g_strdup_printf("%d", weekdays);
-				xmlSetProp(on_event, "rweekdays", rweekdays);
-				g_free(rweekdays);
-			}
-			else {
-				/* MonthlyDate recurrence */
-				int weekno = 0;
-				char *tmp_wday = g_strdup("XX");
-				sscanf(weekdaysrule, "%d%2s", &weekno, tmp_wday);
-				g_free(tmp_wday);
-				char *rposition = g_strdup_printf("%d", weekno);
-				xmlSetProp(on_event, "rposition", rposition);
-				g_free(rposition);
-			}
-			g_free(weekdaysrule);
-		}
-		if(rfreq) {
-			xmlSetProp(on_event, "rfreq", rfreq);
-			g_free(rfreq);
-		}
-		if(enddt) {
-			xmlSetProp(on_event, "rhasenddate", "1");
-			xmlSetProp(on_event, "enddt", enddt);
-			g_free(enddt);
-		}
-		else {
-			xmlSetProp(on_event, "rhasenddate", "0");
-		}
-	}
+	xml_recur_node_to_attr(root, on_event);
 	
 	/* Categories */
 	xml_categories_to_attr(root, on_event, "categories");
@@ -1563,3 +1321,269 @@ void xml_categories_to_attr(xmlNode *item_node, xmlNode *node_to, const char *ca
 	}
 	g_string_free(categories, TRUE);
 }
+
+void xml_recur_attr_to_node(xmlNode *item_node, xmlNode *node_to, GDate *startdate) {
+	/* Recurrence for todos and events */
+	char *recurType = xmlGetProp(item_node, "rtype");
+	if(recurType) {
+		xmlNode *on_recur = xmlNewTextChild(node_to, NULL, (xmlChar*) "RecurrenceRule", NULL);
+		
+		/* Frequency */
+		if(!strcmp(recurType, "Daily")) {
+			xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=DAILY");
+		}
+		else if(!strcmp(recurType, "Weekly")) {
+			xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=WEEKLY");
+			
+			/* Weekdays */
+			char *weekdays = xmlGetProp(item_node, "rweekdays");
+			if(weekdays) {
+				int weekdaysnum = atoi(weekdays);
+				if(weekdaysnum > 0) {
+					GString *byday = g_string_new("");
+					g_string_append(byday, "BYDAY=");
+					if(weekdaysnum & 1)
+						g_string_append(byday, "MO,");
+					if(weekdaysnum & 2)
+						g_string_append(byday, "TU,");
+					if(weekdaysnum & 4)
+						g_string_append(byday, "WE,");
+					if(weekdaysnum & 8)
+						g_string_append(byday, "TH,");
+					if(weekdaysnum & 16)
+						g_string_append(byday, "FR,");
+					if(weekdaysnum & 32)
+						g_string_append(byday, "SA,");
+					if(weekdaysnum & 64)
+						g_string_append(byday, "SU,");
+				
+					/* Remove the trailing comma */
+					g_string_truncate(byday, strlen(byday->str) - 1);
+				
+					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) byday->str);
+					g_string_free(byday, TRUE);
+				}
+				xmlFree(weekdays);
+			}
+		}
+		else if(!strcmp(recurType, "MonthlyDate")) {
+			xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=MONTHLY");
+			if(startdate) {
+				char *bymonthday = g_strdup_printf("BYMONTHDAY=%i", (int)g_date_get_day(startdate));
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) bymonthday);
+				g_free(bymonthday);
+			}
+		}
+		else if(!strcmp(recurType, "MonthlyDay")) {
+			xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=MONTHLY");
+			if(startdate) {
+				int weekno;
+				char *weeknostr = xmlGetProp(item_node, "rposition");
+				if(weeknostr) {
+					weekno = atoi(weeknostr);
+					xmlFree(weeknostr);
+				}
+				else {
+					weekno = -1;
+				}
+				
+				char *byday = NULL;
+				GDateWeekday weekday = g_date_get_weekday(startdate);
+				switch (weekday) {
+					case G_DATE_MONDAY:
+						byday = g_strdup_printf("BYDAY=%iMO", weekno);
+						break;
+					case G_DATE_TUESDAY:
+						byday = g_strdup_printf("BYDAY=%iTU", weekno);
+						break;
+					case G_DATE_WEDNESDAY:
+						byday = g_strdup_printf("BYDAY=%iWE", weekno);
+						break;
+					case G_DATE_THURSDAY:
+						byday = g_strdup_printf("BYDAY=%iTH", weekno);
+						break;
+					case G_DATE_FRIDAY:
+						byday = g_strdup_printf("BYDAY=%iFR", weekno);
+						break;
+					case G_DATE_SATURDAY:
+						byday = g_strdup_printf("BYDAY=%iSA", weekno);
+						break;
+					case G_DATE_SUNDAY:
+						byday = g_strdup_printf("BYDAY=%iSU", weekno);
+						break;
+					case G_DATE_BAD_WEEKDAY:
+						break;
+				}
+				if(byday) {
+					xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) byday);
+					g_free(byday);
+				}
+			}
+		}
+		else if(!strcmp(recurType, "Yearly")) {
+			xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) "FREQ=YEARLY");
+		}
+
+		/* Interval */
+		char *interval = xmlGetProp(item_node, "rfreq");
+		if(interval) {
+			char *intervalstr = g_strdup_printf("INTERVAL=%s", interval);
+			xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*)intervalstr);
+			xmlFree(interval);
+			g_free(intervalstr);
+		}
+		
+		/* End date */
+		char *hasEndDate = xmlGetProp(item_node, "rhasenddate");
+		if(hasEndDate) {
+			char *recurendstr = xmlGetProp(item_node, "enddt");
+			if(recurendstr) {
+				time_t recurendtime = (time_t)atoi(recurendstr);
+				char *recurendvtime = osync_time_unix2vtime(&recurendtime); 
+				char *until = g_strdup_printf("UNTIL=%s", recurendvtime);
+				xmlNewTextChild(on_recur, NULL, (xmlChar*)"Rule", (xmlChar*) until);
+				g_free(recurendvtime);
+				g_free(until);
+				xmlFree(recurendstr);
+			}
+		}
+		
+		xmlFree(recurType);
+	}
+}
+
+void xml_recur_node_to_attr(xmlNode *item_node, xmlNode *node_to) {
+	/* Recurrence for todos and events */
+	xmlNode *icur = osxml_get_node(item_node, "RecurrenceRule");
+	if (icur) {
+		char *enddt = NULL;
+		char *weekdaysrule = NULL;
+		char *rfreq = NULL;
+		int i;
+		
+		enum 
+		{
+			RECUR_TYPE_NONE         = 0,
+			RECUR_TYPE_DAILY        = 1,
+			RECUR_TYPE_WEEKLY       = 2,
+			RECUR_TYPE_MONTHLY_DAY  = 3,
+			RECUR_TYPE_MONTHLY_DATE = 4,
+			RECUR_TYPE_YEARLY       = 5
+		} rectype;
+		rectype = RECUR_TYPE_NONE;
+		
+		/* read recurrence rules */
+		xmlXPathObject *xobj = osxml_get_nodeset((xmlDoc *)icur, "/Rule" );
+		xmlNodeSet *nodes = xobj->nodesetval;
+		int numnodes = (nodes) ? nodes->nodeNr : 0;
+		for ( i = 0; i < numnodes; i++ ) {
+			icur = nodes->nodeTab[i];
+			char *rulestr = (char*)xmlNodeGetContent(icur);
+			gchar **rule = g_strsplit(rulestr, "=", 2);
+			if (!strcasecmp(rule[0], "FREQ")) {
+				if (!strcasecmp(rule[1], "DAILY")) {
+					rectype = RECUR_TYPE_DAILY;
+				}
+				else if (!strcasecmp(rule[1], "WEEKLY")) {
+					rectype = RECUR_TYPE_WEEKLY;
+				}
+				else if (!strcasecmp(rule[1], "MONTHLY")) {
+					if(rectype != RECUR_TYPE_MONTHLY_DATE)
+						rectype = RECUR_TYPE_MONTHLY_DAY;
+				}
+				else if (!strcasecmp(rule[1], "YEARLY")) {
+					rectype = RECUR_TYPE_YEARLY;
+				}
+			}
+			else if (!strcasecmp(rule[0], "BYDAY")) {
+				weekdaysrule = g_strdup(rule[1]);
+			}
+			else if (!strcasecmp(rule[0], "BYMONTHDAY")) {
+				if(rectype != RECUR_TYPE_YEARLY)
+					rectype = RECUR_TYPE_MONTHLY_DATE;
+			}
+			else if (!strcasecmp(rule[0], "INTERVAL")) {
+				rfreq = g_strdup(rule[1]);
+			}
+			else if (!strcasecmp(rule[0], "UNTIL")) {
+				time_t utime = osync_time_vtime2unix(rule[1], 0);
+				enddt = g_strdup_printf("%d", (int)utime);
+			}
+			xmlFree(rulestr);
+			g_strfreev(rule);
+		}
+		xmlXPathFreeObject(xobj);
+	
+		switch(rectype) {
+			case RECUR_TYPE_NONE:
+				break;
+			case RECUR_TYPE_DAILY:
+				xmlSetProp(node_to, "rtype", "Daily");
+				break;
+			case RECUR_TYPE_WEEKLY:
+				xmlSetProp(node_to, "rtype", "Weekly");
+				break;
+			case RECUR_TYPE_MONTHLY_DAY:
+				xmlSetProp(node_to, "rtype", "MonthlyDay");
+				break;
+			case RECUR_TYPE_MONTHLY_DATE:
+				xmlSetProp(node_to, "rtype", "MonthlyDate");
+				break;
+			case RECUR_TYPE_YEARLY:
+				xmlSetProp(node_to, "rtype", "Yearly");
+				break;
+		}
+		
+		if(weekdaysrule) {
+			if(rectype == RECUR_TYPE_WEEKLY) {
+				/* Weekly recurrence */
+				int weekdays = 0;
+				int i;
+				gchar** weekdaystokens = g_strsplit(weekdaysrule, ",", 7);
+				for (i=0; weekdaystokens[i] != NULL; i++) {
+					if (strstr(weekdaystokens[i], "MO"))
+						weekdays |= 1;
+					else if (strstr(weekdaystokens[i], "TU"))
+						weekdays |= 2;
+					else if (strstr(weekdaystokens[i], "WE"))
+						weekdays |= 4;
+					else if (strstr(weekdaystokens[i], "TH"))
+						weekdays |= 8;
+					else if (strstr(weekdaystokens[i], "FR"))
+						weekdays |= 16;
+					else if (strstr(weekdaystokens[i], "SA"))
+						weekdays |= 32;
+					else if (strstr(weekdaystokens[i], "SU"))
+						weekdays |= 64;
+				}
+				char *rweekdays = g_strdup_printf("%d", weekdays);
+				xmlSetProp(node_to, "rweekdays", rweekdays);
+				g_free(rweekdays);
+			}
+			else {
+				/* MonthlyDate recurrence */
+				int weekno = 0;
+				char *tmp_wday = g_strdup("XX");
+				sscanf(weekdaysrule, "%d%2s", &weekno, tmp_wday);
+				g_free(tmp_wday);
+				char *rposition = g_strdup_printf("%d", weekno);
+				xmlSetProp(node_to, "rposition", rposition);
+				g_free(rposition);
+			}
+			g_free(weekdaysrule);
+		}
+		if(rfreq) {
+			xmlSetProp(node_to, "rfreq", rfreq);
+			g_free(rfreq);
+		}
+		if(enddt) {
+			xmlSetProp(node_to, "rhasenddate", "1");
+			xmlSetProp(node_to, "enddt", enddt);
+			g_free(enddt);
+		}
+		else {
+			xmlSetProp(node_to, "rhasenddate", "0");
+		}
+	}
+}
+

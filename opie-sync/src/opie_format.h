@@ -28,6 +28,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
 time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
 void xml_categories_to_attr(xmlNode *item_node, xmlNode *node_to, const char *category_attr);
+void xml_recur_attr_to_node(xmlNode *item_node, xmlNode *node_to, GDate *startdate);
+void xml_recur_node_to_attr(xmlNode *item_node, xmlNode *node_to);
 
 #endif /* _OPIE_FORMAT_H */
 
