@@ -76,19 +76,29 @@ Syncing freezes at a particular point
   complete successfully. (This issue will be addressed in a future version of
   OpenSync).
 
-  Alternatively, an error may be occurring during the sync which is not being 
-  shown in the output - please report this problem to the OpenSync mailing list 
-  (opensync-users@lists.sourceforge.net). If you can, enable the OpenSync 
+  Alternatively, an error may be occurring during the sync which is not being
+  shown in the output - please report this problem to the OpenSync mailing list
+  (opensync-users@lists.sourceforge.net). If you can, enable the OpenSync
   tracing feature and look through for any messages that include "ERROR".
 
 
 Calendar events are several hours out
 
-  You may not have set the time zone correctly on the handheld - please check
-  the documentation for your handheld OS (if you are using Familiar please see
-  the Familiar release notes). Essentially you need to make sure that 
-  /etc/localtime is the correct timezone file for your locale (or it is a
-  symlink that points to the correct file).
+  Firstly if you are not using OpenSync newer than 0.20 (eg. svn) then please
+  upgrade - older versions have a bug the time conversion code. Secondly, you
+  may not have set the time zone correctly on the handheld - please check the
+  documentation for your handheld OS (if you are using Familiar please see the
+  Familiar release notes). Essentially you need to make sure that
+  /etc/localtime is the correct timezone file for your locale, or a symlink
+  that points to the correct file.
+
+
+After syncing with KDEPIM, the KDE address book shows phone numbers as "Other"
+
+  This is a problem with the KDE KAddressBook application - it does not know
+  how to show the type for phone numbers that have more than one type tag (eg.
+  both Work and Mobile). If you don't like this then please comment/vote on
+  KDE bug #102466 (http://bugs.kde.org/show_bug.cgi?id=102466).
 
 
 
@@ -99,7 +109,8 @@ Todo list
 Missing fields on contacts
 
   "Business web page", "Gender" and "Children" fields from the Opie side are
-  not currently handled.
+  not currently handled since OpenSync's internal XML format does not
+  currently support them.
 
 Alarms
 
