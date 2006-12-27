@@ -101,6 +101,14 @@ After syncing with KDEPIM, the KDE address book shows phone numbers as "Other"
   KDE bug #102466 (http://bugs.kde.org/show_bug.cgi?id=102466).
 
 
+Todo alarms don't seem to syncronize properly when syncing with KDEPIM
+
+  Opie's support for todos is not as comprehensive as KDEPIM's - most of the
+  trouble comes from Opie not supporting a due time (only a due date). In the
+  reverse direction, KDEPIM does not support specific date/time value for
+  alarms on todos which Opie uses.
+
+
 
 
 Todo list
@@ -111,11 +119,6 @@ Missing fields on contacts
   "Business web page", "Gender" and "Children" fields from the Opie side are
   not currently handled since OpenSync's internal XML format does not
   currently support them.
-
-Alarms
-
-  Alarms are not currently synchronised for calendar events or todo list 
-  items.
 
 SCP support
 
