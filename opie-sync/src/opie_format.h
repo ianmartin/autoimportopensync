@@ -30,6 +30,9 @@ time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, x
 void xml_categories_to_attr(xmlNode *item_node, xmlNode *node_to, const char *category_attr);
 void xml_recur_attr_to_node(xmlNode *item_node, xmlNode *node_to, GDate *startdate);
 void xml_recur_node_to_attr(xmlNode *item_node, xmlNode *node_to);
+void xml_todo_alarm_attr_to_node(const char *alarmstr, xmlNode *node_to, time_t *starttime);
+void xml_todo_alarm_node_to_attr(xmlNode *item_node, xmlNode *node_to);
+void xml_cal_alarm_node_to_attr(xmlNode *item_node, xmlNode *node_to, time_t *starttime);
 
 #endif /* _OPIE_FORMAT_H */
 
