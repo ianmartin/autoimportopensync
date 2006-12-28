@@ -20,6 +20,7 @@
 
 #include "file_sync.h"
 #include <opensync/file.h>
+#include <opensync/opensync-version.h>
 #include <stdlib.h>
 
 static void free_dir(OSyncFileDir *dir)
@@ -629,6 +630,18 @@ static osync_bool osync_filesync_discover(void *data, OSyncPluginInfo *info, OSy
 		osync_objtype_sink_set_available(dir->sink, TRUE);
 	}
 	
+	OSyncVersion *version = osync_version_new(error);
+	osync_version_set_plugin(version, "file-sync");
+	//osync_version_set_modelversion(version, "version");
+	//osync_version_set_firmwareversion(version, "firmwareversion");
+	//osync_version_set_softwareversion(version, "softwareversion");
+	//osync_version_set_hardwareversion(version, "hardwareversion");
+	osync_plugin_info_set_version(info, version);
+	osync_version_unref(version);
+
+	/* we can set here the capabilities, but for the file-sync
+	 * plugin they are static and shipped with opensync */
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
