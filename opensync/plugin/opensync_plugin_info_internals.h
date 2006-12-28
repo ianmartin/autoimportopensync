@@ -12,6 +12,8 @@ struct OSyncPluginInfo {
 	//devinfo
 	int ref_count;
 	char *groupname;
+	OSyncVersion *version;
+	OSyncCapabilities *capabilities;
 };
 
 #endif /*OPENSYNC_PLUGIN_INFO_INTERNALS_H_*/

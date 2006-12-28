@@ -36,6 +36,8 @@
 
 int _osync_version_match(char *pattern, char* string, OSyncError **error)
 {
+	osync_assert(pattern);
+	osync_assert(string);
 	regex_t *preg = osync_try_malloc0(sizeof(regex_t), error);
 	if(!preg)
 		return -1;
@@ -98,13 +100,13 @@ OSyncVersion *osync_version_new(OSyncError **error)
 	}
 	
 	version->ref_count = 1;
-	version->plugin = NULL;
-	version->priority = NULL;
-	version->modelversion = NULL;
-	version->firmwareversion = NULL;
-	version->softwareversion = NULL;
-	version->hardwareversion = NULL;
-	version->identifier = NULL;
+	version->plugin = g_strdup("");
+	version->priority = g_strdup("");
+	version->modelversion = g_strdup("");
+	version->firmwareversion = g_strdup("");
+	version->softwareversion = g_strdup("");
+	version->hardwareversion = g_strdup("");
+	version->identifier = g_strdup("");
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, version);
 	return version;
@@ -188,49 +190,70 @@ void osync_version_set_plugin(OSyncVersion *version, char *plugin)
 {
 	if(version->plugin)
 		g_free(version->plugin);
-	version->plugin = g_strdup(plugin);
+	if(!plugin)
+		version->plugin = g_strdup("");
+	else
+		version->plugin = g_strdup(plugin);
 };
 
 void osync_version_set_priority(OSyncVersion *version, char *priority)
 {
 	if(version->priority)
 		g_free(version->priority);
-	version->priority =  g_strdup(priority);
+	if(!priority)
+		version->priority = g_strdup("");
+	else
+		version->priority =  g_strdup(priority);
 };
 
 void osync_version_set_modelversion(OSyncVersion *version, char *modelversion)
 {
 	if(version->modelversion)
 		g_free(version->modelversion);
-	version->modelversion =  g_strdup(modelversion);
+	if(!modelversion)
+		version->modelversion = g_strdup("");
+	else
+		version->modelversion =  g_strdup(modelversion);
 };
 
 void osync_version_set_firmwareversion(OSyncVersion *version, char *firmwareversion)
 {
 	if(version->firmwareversion)
 		g_free(version->firmwareversion);
-	version->firmwareversion =  g_strdup(firmwareversion);
+	if(!firmwareversion)
+		version->firmwareversion = g_strdup("");
+	else
+		version->firmwareversion =  g_strdup(firmwareversion);
 };
 
 void osync_version_set_softwareversion(OSyncVersion *version, char *softwareversion)
 {
 	if(version->softwareversion)
 		g_free(version->softwareversion);
-	version->softwareversion =  g_strdup(softwareversion);
+	if(!softwareversion)
+		version->softwareversion = g_strdup("");
+	else
+		version->softwareversion =  g_strdup(softwareversion);
 	
 };
 void osync_version_set_hardwareversion(OSyncVersion *version, char *hardwareversion)
 {
 	if(version->hardwareversion)
 		g_free(version->hardwareversion);
-	version->hardwareversion =  g_strdup(hardwareversion);
+	if(!hardwareversion)
+		version->hardwareversion = g_strdup("");
+	else
+		version->hardwareversion =  g_strdup(hardwareversion);
 };
 
 void osync_version_set_identifier(OSyncVersion *version, char *identifier)
 {
 	if(version->identifier)
 		g_free(version->identifier);
-	version->identifier =  g_strdup(identifier);
+	if(!identifier)
+		version->identifier = g_strdup("");
+	else
+		version->identifier =  g_strdup(identifier);
 };
 
 int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error)

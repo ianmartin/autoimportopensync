@@ -25,6 +25,8 @@
 #include "opensync-plugin.h"
 #include "opensync_plugin_info_internals.h"
 
+#include "opensync-merger.h"
+#include "opensync-version.h"
 
 OSyncPluginInfo *osync_plugin_info_new(OSyncError **error)
 {
@@ -66,6 +68,12 @@ void osync_plugin_info_unref(OSyncPluginInfo *info)
 		
 		if (info->sink)
 			osync_objtype_sink_unref(info->sink);
+			
+		if (info->version)
+			osync_version_unref(info->version);
+			
+		if (info->capabilities)
+			osync_capabilities_unref(info->capabilities);
 		
 		g_free(info);
 	}
@@ -203,4 +211,40 @@ void osync_plugin_info_set_format_env(OSyncPluginInfo *info, OSyncFormatEnv *env
 	osync_assert(info);
 	osync_assert(env);
 	info->formatenv = env;
+}
+
+void osync_plugin_info_set_version(OSyncPluginInfo *info, OSyncVersion *version)
+{
+	osync_assert(info);
+	osync_assert(version);
+	
+	if(info->version)
+		osync_version_unref(info->version);
+	
+	osync_version_ref(version);
+	info->version = version;
+}
+
+OSyncVersion *osync_plugin_info_get_version(OSyncPluginInfo *info)
+{
+	osync_assert(info);
+	return info->version;
+}
+
+void osync_plugin_info_set_capabilities(OSyncPluginInfo *info, OSyncCapabilities *capabilities)
+{
+	osync_assert(info);
+	osync_assert(capabilities);
+	
+	if(info->capabilities)
+		osync_capabilities_unref(info->capabilities);
+	
+	osync_capabilities_ref(capabilities);
+	info->capabilities = capabilities;
+}
+
+OSyncCapabilities *osync_plugin_info_get_capabilities(OSyncPluginInfo *info)
+{
+	osync_assert(info);
+	return info->capabilities;
 }

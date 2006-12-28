@@ -143,8 +143,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 
-	OSyncMember *member = osync_client_proxy_get_member(proxy);
-	long long int memberid = osync_member_get_id(member);
+	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
 	const char *uid = osync_change_get_uid(change);		
 	int changetype = osync_change_get_changetype(change);
        	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
@@ -224,9 +223,8 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	}
 	
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
-	if(osync_engine_get_use_merger(engine) 
-			&& osync_capabilities_member_has_capabilities(member)
-			&& (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED))
+	if( osync_engine_get_use_merger(engine) 
+		&& (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED))
 	{
 		char *buffer = NULL;
 		unsigned int size = 0;
@@ -236,7 +234,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncMember *member = osync_client_proxy_get_member(proxy);
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
-
+			/* TODO: Merger save the archive data with the member so we have to load it only for one time*/
 			int ret = osync_archive_load_data(engine->archive, uid, &buffer, &size, &error);
 			if (ret < 0) {
 				goto error; 

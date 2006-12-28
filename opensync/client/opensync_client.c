@@ -28,6 +28,8 @@
 #include "opensync-format.h"
 #include "opensync-client.h"
 #include "opensync_client_internals.h"
+#include "opensync-version.h"
+#include "opensync-merger.h"
 
 typedef struct callContext {
 	OSyncClient *client;
@@ -549,6 +551,31 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 				goto error_free_message;
 		}
 	}
+
+	OSyncVersion *version = osync_plugin_info_get_version(client->plugin_info);
+	if (version) {
+		osync_message_write_int(reply, 1);
+		osync_message_write_string(reply, osync_version_get_plugin(version));
+		osync_message_write_string(reply, osync_version_get_priority(version));
+		osync_message_write_string(reply, osync_version_get_modelversion(version));
+		osync_message_write_string(reply, osync_version_get_firmwareversion(version));
+		osync_message_write_string(reply, osync_version_get_softwareversion(version));
+		osync_message_write_string(reply, osync_version_get_hardwareversion(version));
+		osync_message_write_string(reply, osync_version_get_identifier(version));
+	}else
+		osync_message_write_int(reply, 0);
+	
+	OSyncCapabilities *capabilities = osync_plugin_info_get_capabilities(client->plugin_info);
+	if (capabilities) {
+		char* buffer;
+		int size;
+		osync_message_write_int(reply, 1);
+		if(!osync_capabilities_assemble(capabilities, &buffer, &size))
+			goto error_free_message;
+		osync_message_write_string(reply, buffer);
+		g_free(buffer);
+	}else
+		osync_message_write_int(reply, 0);
 
 	if (!osync_queue_send_message(client->outgoing, NULL, reply, error))
 		goto error_free_message;

@@ -260,6 +260,8 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 	OSyncClientProxy *proxy = ctx->proxy;
 	OSyncError *error = NULL;
 	OSyncError *locerror = NULL;
+	OSyncVersion *version = NULL;
+	OSyncCapabilities *capabilities = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
 	
@@ -279,44 +281,6 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 				goto error;
 			osync_trace(TRACE_INTERNAL, "Received sink: %s", osync_objtype_sink_get_name(sink));
 	
-			/* Merger - Set the capabilities */
-//			OSyncVersion *version;
-//			OSyncCapabilities *capabilities;
-//			OSyncMember *member = osync_client_proxy_get_member(proxy);
-//		
-//			/* we take our own capabilities rather then from the client */ 
-//		 	OSyncList *versions = osync_load_versions_from_descriptions(&error);
-//			int priority = -1;
-//			OSyncVersion *winner = NULL;
-//			OSyncList *cur = osync_list_first(versions);
-//			while(cur) {
-//				int curpriority = osync_version_matches(cur->data, version, &error);
-//				if( curpriority > 0 && curpriority > priority) {
-//					if(winner)
-//						osync_version_unref(winner);
-//					winner = cur->data;
-//					osync_version_ref(winner);
-//					priority = curpriority;
-//				}
-//				osync_version_unref(cur->data);
-//				cur = cur->next;
-//			}
-//			osync_list_free(versions);
-//		
-//			/* we found or own capabilities */
-//		 	if(priority > 0)
-//		 	{
-//		 	  	capabilities = osync_capabilities_load((const char*)osync_version_get_identifier(winner), &error);
-//		 		osync_version_unref(winner);
-//		 	}
-//		 	else
-//		 	{
-//		 		/* TODO: use capabilities which returned with the disocver call */
-//		 	}
-// 	 
-// 	 		osync_member_set_capabilities(member, capabilities, &error);
-// 	 		//osync_member_save(member); /* TODO: we have to save? */
- 	 
 			proxy->objtypes = g_list_append(proxy->objtypes, sink);
 			
 			if (proxy->member) {
@@ -328,6 +292,112 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 				}
 			}
 		}
+		
+		/* Merger - Set the capabilities */
+		int sent_version;
+		osync_message_read_int(message, &sent_version);
+		if (sent_version) {
+			char* str;
+			version = osync_version_new(&locerror);
+			if(!version) {
+				goto error;
+			}
+			
+			osync_message_read_string(message, &str);
+			osync_version_set_plugin(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
+			osync_version_set_priority(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
+			osync_version_set_modelversion(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
+			osync_version_set_firmwareversion(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
+			osync_version_set_softwareversion(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
+			osync_version_set_hardwareversion(version, str);
+			g_free(str);
+			osync_message_read_string(message, &str);
+			osync_version_set_identifier(version, str);
+			g_free(str);	
+		}
+				
+		int sent_capabilities;
+		osync_message_read_int(message, &sent_capabilities);
+		if (sent_capabilities) {
+			char* str;
+			osync_message_read_string(message, &str);
+			capabilities = osync_capabilities_parse(str, strlen(str), &locerror);
+			g_free(str);
+			if(!capabilities) {
+				goto error_free_version;
+			}
+		}
+		
+		/* we set the capabilities for the member only if they are not set yet */
+ 		OSyncMember *member = osync_client_proxy_get_member(proxy);
+ 		if (osync_member_get_capabilities(member) == NULL)
+ 		{
+			osync_trace(TRACE_INTERNAL, "No capabilities set for the member right now. version: %p capabilities: %p\n", version, capabilities);
+			/* we take our own capabilities rather then from the client */ 
+		 	if (version)
+		 	{
+			 	OSyncList *versions = osync_load_versions_from_descriptions(&locerror);
+			 	if (locerror) /* versions can be null */
+			 		goto error_free_capabilities;
+				int priority = -1;
+				OSyncVersion *winner = NULL;
+				OSyncList *cur = osync_list_first(versions);
+				while(cur) {
+					int curpriority = osync_version_matches(cur->data, version, &locerror);
+					if (curpriority == -1) {
+						if (versions)
+							osync_list_free(versions);
+						if (winner)
+							osync_version_unref(winner);
+						goto error_free_capabilities;
+					}
+					if( curpriority > 0 && curpriority > priority) {
+						if(winner)
+							osync_version_unref(winner);
+						winner = cur->data;
+						osync_version_ref(winner);
+						priority = curpriority;
+					}
+					osync_version_unref(cur->data);
+					cur = cur->next;
+				}
+				osync_list_free(versions);
+				
+				/* we found or own capabilities */
+			 	if(priority > 0)
+			 	{
+			 	  	osync_trace(TRACE_INTERNAL, "Found capabilities file by version: %s ", (const char*)osync_version_get_identifier(winner));
+			 	  	if (capabilities)
+			 	  		osync_capabilities_unref(capabilities);
+			 	  	capabilities = osync_capabilities_load((const char*)osync_version_get_identifier(winner), &locerror);
+			 	  	osync_version_unref(winner);
+			 	  	if (!capabilities)
+						goto error_free_version;
+			 	}
+			 	else
+			 	{
+			 		/* use capabilities which returned with the disocver call */
+			 		/* (capabilites variable already set if the plugin send such information) */
+			 	}
+		 	}
+		 	
+ 			if (capabilities) {
+				if (!osync_member_set_capabilities(member, capabilities, &locerror))
+					goto error_free_capabilities; 
+ 				if (!osync_member_save(member, &locerror)) /* TODO: Merger we have to save? */
+ 					goto error_free_capabilities;
+ 			}
+ 		}
 		
 		ctx->discover_callback(proxy, ctx->discover_callback_data, NULL);
 	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
@@ -343,7 +413,13 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
-	
+
+error_free_capabilities:
+	if (capabilities)
+		osync_capabilities_unref(capabilities);
+error_free_version:
+	if (version)
+		osync_version_unref(version);
 error:
 	g_free(ctx);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(&locerror));

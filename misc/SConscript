@@ -3,10 +3,12 @@ Import('*')
 env.Append( CPPPATH = '.' )
 
 capabilities = """
+capabilities/file-sync.xml
 capabilities/syncml-nokia-7650.xml
 """
 
 descriptions = """
+descriptions/miscellaneous.xml
 descriptions/syncml-nokia.xml
 """
 

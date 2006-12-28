@@ -595,10 +595,10 @@ static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, V
 		return NULL;
 	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
-//	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1)); // FIXME: is this correct? RFC2426 says #1 company name further fields are all units (no dpearmtent?!)
+	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1)); // FIXME: is this correct? RFC2426 says #1 company name further fields are all units (no dpearmtent?!)
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
-	values = g_list_nth(values, 1);
+	values = g_list_nth(values, 2);
 	for (; values; values = values->next) {
 		GString *retstr = (GString *)values->data;
 		g_assert(retstr);
@@ -2272,6 +2272,7 @@ static void destroy_contact(char *input, size_t inpsize)
 
 static osync_bool copy_contact(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
+	/* TODO: we can do that faster with a osync_xmlformat_copy() function */
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, input, inpsize, output, outpsize, error);
 	OSyncXMLFormat *xmlformat = NULL;
 
