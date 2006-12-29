@@ -360,10 +360,11 @@ void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, cons
 {
 	osync_assert(xmlfield);
 	osync_assert(key);
-/*      osync_assert(value); If value is empty (this happen of for exmaple not full filled address field) just skip the argument. */
+	//If value is empty (this happen of for exmaple not full filled address field) just skip the argument.
+	//TODO: it should be parsed a empty string instead of null so we can revert this patch
+	//osync_assert(value);
 	if (!value)
 		return;
-
 
 	xmlNodePtr cur = xmlfield->node->children;
 	for(; cur != NULL; cur = cur->next) {
