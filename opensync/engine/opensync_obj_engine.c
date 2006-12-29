@@ -1322,16 +1322,17 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 
 					/* Merger - Save the entire xml and demerge */
 					/* TODO: is here the right place to save the xml???? */
-					if(entry_engine->change && (osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) 
-							&& osync_capabilities_member_has_capabilities(member)
-							&& osync_engine_get_use_merger(engine->parent))
+					if (osync_engine_get_use_merger(engine->parent) &&
+						entry_engine->change &&
+						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
+						(strcmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-contact") == 0))
 					{
+						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
 						char *buffer = NULL;
 						unsigned int size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
 						
 						osync_data_get_data(osync_change_get_data(entry_engine->change), (char **) &xmlformat, &size);
-						
 						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
 							osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not assamble the xmlformat");
 							goto error;	
@@ -1341,11 +1342,12 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							g_free(buffer);	
 							goto error;			
 						}
-						g_free(buffer);		
-					
-						OSyncMerger *merger = NULL;// = osync_group_get_merger(engine->parent); 
+						g_free(buffer);
+						
+						OSyncMerger *merger = NULL; 
 						merger = osync_member_get_merger(osync_client_proxy_get_member(sinkengine->proxy));
-						osync_merger_demerge(merger, xmlformat);
+						if(merger)
+							osync_merger_demerge(merger, xmlformat);
 					}
 
 					if (osync_entry_engine_is_dirty(entry_engine)) {

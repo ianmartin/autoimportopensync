@@ -146,7 +146,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
 	const char *uid = osync_change_get_uid(change);		
 	int changetype = osync_change_get_changetype(change);
-       	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
+    const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
 	const char *objtype = osync_change_get_objtype(change);
 
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
@@ -223,9 +223,11 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	}
 	
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
-	if( osync_engine_get_use_merger(engine) 
-		&& (osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED))
+	if( osync_engine_get_use_merger(engine) &&
+		(osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) &&
+		(strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-contact") == 0))
 	{
+		osync_trace(TRACE_INTERNAL, "Merge the XMLFormat.");
 		char *buffer = NULL;
 		unsigned int size = 0;
 		OSyncXMLFormat *xmlformat = NULL;
@@ -235,16 +237,18 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
 			/* TODO: Merger save the archive data with the member so we have to load it only for one time*/
+			// osync_archive_load_data() is fetching the mappingid by uid in the db
 			int ret = osync_archive_load_data(engine->archive, uid, &buffer, &size, &error);
 			if (ret < 0) {
 				goto error; 
 			}
-
+			
 			if (ret > 0) {
 				xmlformat_entire = osync_xmlformat_parse(buffer, size, &error);
 				free(buffer);
 				if(!xmlformat_entire)
 					goto error;
+					
 				osync_data_get_data(osync_change_get_data(change), (char **) &xmlformat, &size);
 				osync_merger_merge(merger, xmlformat, xmlformat_entire);
 				osync_xmlformat_unref(xmlformat_entire);
