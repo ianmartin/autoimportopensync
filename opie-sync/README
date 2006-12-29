@@ -74,7 +74,8 @@ Syncing freezes at a particular point
   supports object types that the opie-sync plugin does not support (eg. notes).
   These types should be disabled in your syncing frontend or the sync will not
   complete successfully. (This issue will be addressed in a future version of
-  OpenSync).
+  OpenSync). For msynctool, just add "--filter-objtype note" to the end of the
+  command line (without quotes).
 
   Alternatively, an error may be occurring during the sync which is not being
   shown in the output - please report this problem to the OpenSync mailing list
@@ -101,7 +102,7 @@ After syncing with KDEPIM, the KDE address book shows phone numbers as "Other"
   KDE bug #102466 (http://bugs.kde.org/show_bug.cgi?id=102466).
 
 
-Todo alarms don't seem to syncronize properly when syncing with KDEPIM
+Todo alarms don't seem to synchronize properly when syncing with KDEPIM
 
   Opie's support for todos is not as comprehensive as KDEPIM's - most of the
   trouble comes from Opie not supporting a due time (only a due date). In the
