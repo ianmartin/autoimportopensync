@@ -1775,53 +1775,55 @@ void xml_cal_alarm_node_to_attr(xmlNode *item_node, xmlNode *node_to, time_t *st
 	int alarmseconds = 15 * 60; /* Default 15 minutes */
 		
 	xmlNode *alarm_node = osxml_get_node(alarm_node, "Alarm");
-	xmlNode *trigger_node = osxml_get_node(alarm_node, "AlarmTrigger");
-	if(trigger_node) {
-		char *typestr = NULL;
-		char *contentstr = NULL;
-		cur = osxml_get_node(trigger_node, "Value");
-		if(cur)
-			typestr = xmlNodeGetContent(cur);
-		cur = osxml_get_node(trigger_node, "Content");
-		if(cur)
-			contentstr = xmlNodeGetContent(cur);
-		
-		if(contentstr && typestr) {
-			if(!strcmp(typestr, "DATE-TIME")) {
-				if(starttime) {
-					struct tm *alarmtm = osync_time_vtime2tm(contentstr);
-					time_t alarmtime = timegm(alarmtm);
-					alarmseconds = (int)difftime(alarmtime, *starttime);
+	if(alarm_node) {
+		xmlNode *trigger_node = osxml_get_node(alarm_node, "AlarmTrigger");
+		if(trigger_node) {
+			char *typestr = NULL;
+			char *contentstr = NULL;
+			cur = osxml_get_node(trigger_node, "Value");
+			if(cur)
+				typestr = xmlNodeGetContent(cur);
+			cur = osxml_get_node(trigger_node, "Content");
+			if(cur)
+				contentstr = xmlNodeGetContent(cur);
+			
+			if(contentstr && typestr) {
+				if(!strcmp(typestr, "DATE-TIME")) {
+					if(starttime) {
+						struct tm *alarmtm = osync_time_vtime2tm(contentstr);
+						time_t alarmtime = timegm(alarmtm);
+						alarmseconds = (int)difftime(alarmtime, *starttime);
+					}
+				}
+				else if (!strcmp(typestr, "DURATION")) {
+					alarmseconds = osync_time_alarmdu2sec(contentstr);
 				}
 			}
-			else if (!strcmp(typestr, "DURATION")) {
-				alarmseconds = osync_time_alarmdu2sec(contentstr);
+			
+			if(contentstr)
+				xmlFree(contentstr);
+			if(typestr)
+				xmlFree(typestr);
+		
+			char *alarmstr = g_strdup_printf("%d", alarmseconds / 60);
+			xmlSetProp(node_to, "alarm", alarmstr);
+			g_free(alarmstr);
+			
+			cur = osxml_get_node(alarm_node, "AlarmAction");
+			int alarmsound = 0;
+			if(cur) {
+				char *alarmaction = xmlNodeGetContent(cur);
+				if(alarmaction) {
+					if(!strcmp(alarmaction, "AUDIO"))
+						alarmsound = 1;
+					xmlFree(alarmaction);
+				}
 			}
+			
+			if(alarmsound == 1)
+				xmlSetProp(node_to, "sound", "loud");
+			else
+				xmlSetProp(node_to, "sound", "silent");
 		}
-		
-		if(contentstr)
-			xmlFree(contentstr);
-		if(typestr)
-			xmlFree(typestr);
-	
-		char *alarmstr = g_strdup_printf("%d", alarmseconds / 60);
-		xmlSetProp(node_to, "alarm", alarmstr);
-		g_free(alarmstr);
-		
-		cur = osxml_get_node(alarm_node, "AlarmAction");
-		int alarmsound = 0;
-		if(cur) {
-			char *alarmaction = xmlNodeGetContent(cur);
-			if(alarmaction) {
-				if(!strcmp(alarmaction, "AUDIO"))
-					alarmsound = 1;
-				xmlFree(alarmaction);
-			}
-		}
-		
-		if(alarmsound == 1)
-			xmlSetProp(node_to, "sound", "loud");
-		else
-			xmlSetProp(node_to, "sound", "silent");
 	}
 }
