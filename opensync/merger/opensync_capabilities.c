@@ -167,6 +167,10 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 		
 		xmlNodePtr tmp = cur->children;
 		for(; tmp != NULL; tmp = tmp->next) {
+			/* Skip nodes which are comments to keep the capabilities sorted. */
+			if (!strcmp((const char *) tmp->name, "comment"))
+				continue;
+
 			OSyncCapability *capability = _osync_capability_new(capabilitiesobjtype, tmp, error);
 			if(!capability) {
 				osync_capabilities_unref(capabilities);

@@ -159,17 +159,9 @@ const char *osync_capability_get_name(OSyncCapability *capability)
  */
 OSyncCapability *osync_capability_get_next(OSyncCapability *capability)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p:%s)", __func__, capability, osync_capability_get_name(capability));
 	osync_assert(capability);
 	
-	capability = capability->next;
-	if (capability && !strcmp(osync_capability_get_name(capability), "comment")) {
-		osync_trace(TRACE_INTERNAL, "comment found...");
-		capability = osync_capability_get_next(capability);
-	}
-	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, capability);
-	return capability;
+	return capability->next;
 }
 
 /**
