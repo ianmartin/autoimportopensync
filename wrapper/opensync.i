@@ -284,16 +284,13 @@ typedef struct {} OSyncHashTable;
 
 %extend OSyncEnv {
 	OSyncEnv(PyObject *obj) {
-		osync_trace(TRACE_INTERNAL, "env!: %p", obj);
-		if (obj) {
-			OSyncEnv *exenv = (OSyncEnv *)PyCObject_AsVoidPtr(obj);
-			osync_trace(TRACE_INTERNAL, "exenv!: %p", exenv);
-			return exenv;
-		}
-		OSyncEnv *env = osync_env_new();
-		return env;
+		return (OSyncEnv *)PyCObject_AsVoidPtr(obj);
 	}
-	
+
+	OSyncEnv() {
+		return osync_env_new();
+	}
+
 	~OSyncEnv() {
 		osync_env_free(self);
 	}
