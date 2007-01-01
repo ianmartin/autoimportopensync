@@ -55,7 +55,7 @@
 void monitor_thread_main(qcop_monitor_data* data);
 char* receive_all(qcop_conn* qconn);
 gboolean send_allof(qcop_conn* qconn, char* str);
-gboolean expect(qcop_conn* qconn, char* str, char* errmsg);
+gboolean expect(qcop_conn* qconn, char* str, char *failstr, char* errmsg);
 
 /* globals */
 pthread_t monitor_thd = 0;    
@@ -142,12 +142,13 @@ gboolean send_allof(qcop_conn* qconn, char* str)
  * Helper that waits for a line from the qcop server which contains the
  * substring str.
  * We assume that either the string will occur eventually or the remote
- * host will close the connection.
+ * host will close the connection. If failstr is specified and it is found
+ * then the function will return immediately.
  * Will set the resultmsg component of the qcop_conn struct to the 
  * value of the errmsg parameter.
  */
 
-gboolean expect(qcop_conn* qconn, char* str, char* errmsg)
+gboolean expect(qcop_conn* qconn, char* str, char* failstr, char* errmsg)
 {
   char* pc;
 
@@ -161,7 +162,12 @@ gboolean expect(qcop_conn* qconn, char* str, char* errmsg)
     }
     else
     {
-      if (strstr(pc,"cancelSync"))
+      if (failstr && (strlen(failstr) > 0) && (strstr(pc, failstr))) {
+				qconn->resultmsg = g_strdup(errmsg);
+				return FALSE;
+			}
+      
+			if (strstr(pc,"cancelSync"))
       {
 	g_free(pc);
 	qconn->resultmsg = g_strdup("User cancelled sync");
@@ -170,7 +176,7 @@ gboolean expect(qcop_conn* qconn, char* str, char* errmsg)
       else
       {
 	g_free(pc);
-	return expect(qconn, str, errmsg);
+	return expect(qconn, str, failstr, errmsg);
       }
     }
   }
@@ -197,7 +203,7 @@ gboolean expect_special(qcop_conn* qconn, char* errmsg, gboolean flushing)
       if(strstr(pc,"200") && flushing)
       {
 	g_free(pc);
-	return expect(qconn,"flushDone",errmsg);
+	return expect(qconn, "flushDone", NULL, errmsg);
       }
       else
       {
@@ -254,7 +260,7 @@ qcop_conn* qcop_connect(gchar* addr, gchar* username, gchar* password)
   if (connect(qconn->socket, (struct sockaddr *)&host_addr, sizeof(host_addr)) != -1) 
   {
     
-    if (expect(qconn,"220","Failed to log in to server")) 
+    if (expect(qconn, "220", NULL, "Failed to log into server - please check sync security settings on device"))
     {
       send_allof(qconn, "USER ");
       send_allof(qconn, username);
@@ -263,7 +269,7 @@ qcop_conn* qcop_connect(gchar* addr, gchar* username, gchar* password)
     else
       return qconn;
 
-    if(expect(qconn,"331","Failed to log in to server"))
+    if(expect(qconn, "331", "530", "Failed to log into server - please check username"))
     {
       send_allof(qconn, "PASS ");
       send_allof(qconn, password);
@@ -272,7 +278,7 @@ qcop_conn* qcop_connect(gchar* addr, gchar* username, gchar* password)
     else
       return qconn;
     
-    if(!expect(qconn,"230","Failed to log in to server"))
+    if(!expect(qconn, "230", "530", "Failed to log into server - please check username / password"))
       return qconn;
     
     /* connected OK */
@@ -328,11 +334,12 @@ char* qcop_get_root(qcop_conn* qconn)
   
   send_allof(qconn, "CALL QPE/System sendHandshakeInfo()\n");
   
-  if (!expect(qconn,"200","Failed to obtain HandshakeInfo"))
+  if (!expect(qconn, "200", NULL, "Failed to obtain HandshakeInfo"))
     return NULL;
   pc = get_line(qconn);
   if(!strstr(pc, "handshakeInfo(QString,bool)"))
   {
+    qconn->resultmsg = g_strdup_printf("Unrecognised response: %s", pc);
     g_free(pc);
     return NULL;
   }
@@ -359,7 +366,7 @@ void qcop_start_sync(qcop_conn* qconn, void (*cancel_routine)())
 
    /* first lock the UI */
   send_allof(qconn, "CALL QPE/System startSync(QString) OpenSync\n");
-  if(!expect(qconn,"200","Failed to bring up sync screen!"))
+  if(!expect(qconn, "200", NULL, "Failed to bring up sync screen!"))
     return;
   /* Flush addressbook to storage */   
   send_allof(qconn, "CALL QPE/Application/addressbook flush()\n");
@@ -421,7 +428,7 @@ void qcop_stop_sync(qcop_conn* qconn)
       return;
     /* unlock the GUI */
     send_allof(qconn, "CALL QPE/System stopSync()\n");
-    if(!expect(qconn,"200","Failed to close sync screen"))
+    if(!expect(qconn, "200", NULL, "Failed to close sync screen"))
       return;
     qconn->result = TRUE;
   }

@@ -415,11 +415,13 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 		char* separator_path;
 		if ( env->use_qcop ) 
 		{
-			qcop_conn *qc_conn   = qcop_connect(env->url, env->username, env->password);
-			char* root_path      = qcop_get_root(qc_conn);
+			char* root_path = qcop_get_root(env->qcopconn);
+			if(!root_path) {
+				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+				return FALSE;
+			}
 			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
 			separator_path = g_strdup_printf("%s/", root_path);
-			qcop_disconnect(qc_conn);
 			g_free(root_path);
 		} else {
 			separator_path = g_strdup( "/" );
@@ -654,11 +656,13 @@ gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put)
 	{
 		if ( env->use_qcop ) 
 		{
-			qcop_conn *qc_conn   = qcop_connect(env->url, env->username, env->password);
-			char* root_path      = qcop_get_root(qc_conn);
+			char* root_path = qcop_get_root(env->qcopconn);
+			if(!root_path) {
+				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+				return FALSE;
+			}
 			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
 			separator_path = g_strdup_printf("%s/", root_path);
-			qcop_disconnect(qc_conn);
 			g_free(root_path);
 		} else {
 			separator_path = g_strdup( "/" );
