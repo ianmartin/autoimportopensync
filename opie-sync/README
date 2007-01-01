@@ -60,12 +60,12 @@ backupdir
 Troubleshooting
 ---------------
 
-I see the error "Failed to log in to server"
+I see the error "Failed to log into server"
 
-  This is most likely because you have not set the security options properly
-  on the Opie side. Go to Settings->Security->Sync and set the
-  "Accept sync from network" option to an appropriate value for your network
-  setup.
+  Make sure you have set the security options properly on the Opie side - go
+  to Settings->Security->Sync and set the "Accept sync from network" option to
+  an appropriate value for your network setup. You should also check the
+  username and password set in the configuration for the plugin.
 
 
 Syncing freezes at a particular point
@@ -128,6 +128,10 @@ SCP support
 Qtopia testing / support
 
   No testing has yet been done with Qtopia on Zaurus devices.
+
+Opie SQLite PIM backend support
+
+  Only Opie's XML (default) backend is currently supported.
 
 Note (memo) syncing support
 
