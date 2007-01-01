@@ -1774,7 +1774,7 @@ void xml_cal_alarm_node_to_attr(xmlNode *item_node, xmlNode *node_to, time_t *st
 	xmlNode *cur;
 	int alarmseconds = 15 * 60; /* Default 15 minutes */
 		
-	xmlNode *alarm_node = osxml_get_node(alarm_node, "Alarm");
+	xmlNode *alarm_node = osxml_get_node(item_node, "Alarm");
 	if(alarm_node) {
 		xmlNode *trigger_node = osxml_get_node(alarm_node, "AlarmTrigger");
 		if(trigger_node) {
