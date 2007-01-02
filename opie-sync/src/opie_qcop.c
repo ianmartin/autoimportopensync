@@ -349,6 +349,8 @@ char* qcop_get_root(qcop_conn* qconn)
     /* caller responsible for free()ing temp */
     temp = g_strndup(start,strstr(start," ")-start); /* from slash to blank is our path */
   }
+  else
+    qconn->resultmsg = g_strdup_printf("Unrecognised response: %s", pc);
 
   g_free(pc);  
   return temp;
