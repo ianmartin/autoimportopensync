@@ -1171,7 +1171,6 @@ class PhoneContactMoto(PhoneContact):
         PhoneContact.__init__(self)
         assert(type(data) == list and len(data) >= 24)
         self.name = data[3]
-        assert(data[7] == 0) # backlight flag?
         self.categorynum = data[9]
         self.firstlast_enabled = data[11]
         self.firstlast_index = data[12]
@@ -1600,7 +1599,7 @@ class PhoneAccess:
         """generate hash for the opensync hashtable, md5 of all the data"""
         m = md5.new()
         for item in entry.hash_data():
-            m.update(str(item))
+            m.update(unicode(item).encode('utf7'))
         return m.hexdigest()
 
     def __generate_uid(self, entry):
