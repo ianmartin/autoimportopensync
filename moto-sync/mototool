@@ -71,7 +71,7 @@ def pack_backup(typestr, edata):
         if type(val) == types.IntType:
             strings.append(str(val))
         else:
-            strings.append('"%s"' % val)
+            strings.append('"%s"' % val.encode('utf7'))
             assert('"' not in val)
     return ','.join([typestr] + strings) + '\n'
 
@@ -95,9 +95,10 @@ def unpack_backup(line):
             inquote = not inquote
         else:
             nextpart = nextpart + c
-    if not wasquote:
-        nextpart = int(nextpart)
-    parts.append(nextpart)
+    if wasquote:
+        parts.append(nextpart.decode('utf7'))
+    else:
+        parts.append(int(nextpart))
     return parts[0], parts[1:]
 
 def main():
