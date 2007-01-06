@@ -1,4 +1,5 @@
-#include <ldap_plugin.h>
+#include "ldap_plugin.h"
+
 #include <string.h>
 #include <glib.h>
 

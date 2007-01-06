@@ -1,4 +1,5 @@
 #include "ldap_connect.h"
+
 #include <string.h>
 #include <sasl/sasl.h>
 
@@ -238,7 +239,10 @@ GList *os_load_ldap_entries (OSyncContext *ctx, ldap_plgdata *plgdata)
 	char **id_values;
 
 	/* Search all entries that apply to the filter */
-	filter = g_strdup_printf("(&(%s=*)%s)", plgdata->keyattr, plgdata->searchfilter);
+	if (!plgdata->searchfilter)
+		filter = g_strdup_printf("(%s=*)", plgdata->keyattr);
+	else
+		filter = g_strdup_printf("(&(%s=*)%s)", plgdata->keyattr, plgdata->searchfilter);
 	if (ldap_search_s(plgdata->ld, plgdata->searchbase, plgdata->scope, filter, plgdata->attrs, 0, &all_results)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to search on %s with filter %s", plgdata->searchbase, filter);
 		g_free(filter);

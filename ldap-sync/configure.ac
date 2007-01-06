@@ -21,12 +21,21 @@ AC_SUBST(PACKAGE_LIBS)
 
 AC_CHECK_HEADER(ldap.h, [], AC_ERROR(ldap.h not found))
 AC_CHECK_LIB(ldap, ldap_open, [], AC_ERROR(could not link to ldap))
+AC_CHECK_HEADER(sasl/sasl.h, [], AC_ERROR(sasl/sasl.h not found))
 AM_PATH_LIBGCRYPT(1.1.91, 
 		[CFLAGS="$CFLAGS $LIBGCRYPT_CFLAGS"
                  TESTS_ENVIRONMENT="LD_LIBRARY_PATH=`$LIBGCRYPT_CONFIG --prefix`/lib"
                  AC_CHECK_HEADERS(gcrypt.h)], 
 		AC_ERROR(libgcrypt not found))
 AC_SUBST(LIBGCRYPT_LIBS)
+
+## Check for libgcrypt api version ##
+GCRYPT_VERSION=$(/usr/bin/libgcrypt-config --api-version 2>/dev/null || echo 0)
+if test "$GCRYPT_VERSION" -eq 0; then
+	AC_DEFINE(OLD_GCRYPT, 1, [Use old gcrypt API])
+	AC_SUBST(OLD_GCRYPT)
+fi	
+
 ## Defaults ##
 CRASH_TEST=no
 STRESS_TEST=no

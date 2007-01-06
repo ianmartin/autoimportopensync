@@ -528,9 +528,6 @@ static osync_bool _ldap_parse_config (	ldap_plgdata *plgdata, char *cfg,
 	}
 
 	/* Set defaults, if no configuration values found */
-	if (!plgdata->searchfilter)
-		plgdata->searchfilter = g_strdup("(cn=*)");
-
 	if (!plgdata->searchbase)
 		plgdata->searchbase = g_strdup("");
 
