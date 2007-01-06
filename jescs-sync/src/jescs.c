@@ -37,9 +37,6 @@
 /*****************************************************************************/
 /*  Global variables                                                         */
 
-#define UNAME_SPEC	"*"	/* Special username needed in configuration for gaining username from syncml plugin */
-#define PASWD_SPEC	"*"	/* Special password needed in configuration for gaining password from syncml plugin */
-
 typedef struct jescs_plgdata
 {
 	OSyncMember *member;
@@ -50,8 +47,6 @@ typedef struct jescs_plgdata
 	char *password;
 	osync_bool del_notify;
 
-	char *ext_username;
-	char *ext_password;
 } jescs_plgdata;
 
 /*****************************************************************************/
@@ -100,8 +95,6 @@ static void *jescs_initialize(OSyncMember *member, OSyncError **error)
 	/* Set values in plugin data structure */
 	plgdata->member = member;
 	plgdata->hashtable = osync_hashtable_new();
-	plgdata->ext_username = g_strdup("");
-	plgdata->ext_password = g_strdup("");
 
 out_freecfg:
 	g_free(cfg);
@@ -120,9 +113,6 @@ static void jescs_finalize(void *data)
 	jescs_plgdata *plgdata = (jescs_plgdata*)data;
 
 	/* Free all stuff that have been allocated at initialization */
-
-	g_free(plgdata->ext_username);
-	g_free(plgdata->ext_password);
 
 	xmlFree(plgdata->url);
 	xmlFree(plgdata->username);
@@ -214,30 +204,6 @@ void get_info(OSyncEnv *env)
 	osync_plugin_accept_objtype(info, "todo");
 	osync_plugin_accept_objformat(info, "todo", "vtodo20", "clean");
 	osync_plugin_set_commit_objformat(info, "todo", "vtodo20", jescs_commit_change_task);
-}
-
-
-/*****************************************************************************/
-/*  Plugin external functions (may be called by other plugins)               */
-
-void external_set_username (void *p_data, void *data, OSyncError **error)
-{
-	jescs_plgdata *plgdata = (jescs_plgdata*)p_data;
-
-	fprintf(stderr, "JESCS-SYNC: Got username: %s\n", (gchar*)data);
-
-	g_free(plgdata->ext_username);
-	plgdata->ext_username = g_strdup((gchar*)data);
-}
-
-void external_set_password (void *p_data, void *data, OSyncError **error)
-{
-	jescs_plgdata *plgdata = (jescs_plgdata*)p_data;
-
-	fprintf(stderr, "JESCS-SYNC: Got password: %s\n", (gchar*)data);
-
-	g_free(plgdata->ext_password);
-	plgdata->ext_password = g_strdup((gchar*)data);
 }
 
 
@@ -542,14 +508,9 @@ osync_bool run_wcaptool (	jescs_plgdata *plgdata, const char *operation, char *a
 	}
 
 	if (!pid) {
-		fprintf(stderr, "Calling wcaptool with username=%s password=%s\n",
-				(strcmp(plgdata->username, UNAME_SPEC) == 0) ? plgdata->ext_username : plgdata->username,
-				(strcmp(plgdata->password, PASWD_SPEC) == 0) ? plgdata->ext_password : plgdata->password);
-
 		extern char **environ;
 		/* Set environment variable for child process */
-		gchar *envvar = g_strdup_printf("JESCS_OSYNC_PWD=%s",
-						(strcmp(plgdata->password, PASWD_SPEC) == 0) ? plgdata->ext_password : plgdata->password);
+		gchar *envvar = g_strdup_printf("JESCS_OSYNC_PWD=%s", plgdata->password);
 		putenv(envvar);
 		/* child process */
 		close(fdin[1]);
@@ -561,7 +522,7 @@ osync_bool run_wcaptool (	jescs_plgdata *plgdata, const char *operation, char *a
 
 		char *const argv[] = {	WCAPTOOL,
 					"-s", plgdata->url,
-					"-u", (strcmp(plgdata->username, UNAME_SPEC) == 0) ? plgdata->ext_username : plgdata->username,
+					"-u", plgdata->username,
 					strdup(operation),
 					arg, NULL
 				     };
@@ -732,19 +693,16 @@ osync_bool jescs_parse_config (	jescs_plgdata *plgdata, char *cfg,
 		goto out_freedoc;
 	}
 
-	/*TODO: Make this more user-friendly: allow the URL to be omitted
-	 *      by the user and build it automatically from the username
-	 */
+	/* Server URL */
 	plgdata->url = jescs_get_cfgvalue(node, "url");
-	plgdata->username = jescs_get_cfgvalue(node, "username");
 
+	/* Username and password */
+	plgdata->username = jescs_get_cfgvalue(node, "username");
+	plgdata->password = jescs_get_cfgvalue(node, "password");
+
+	/* Deletion notify */
 	tmp = jescs_get_cfgvalue(node, "del_notify");
 	plgdata->del_notify = ((tmp != NULL) && (strcmp(tmp, "0") != 0)) ? TRUE : FALSE;
-
-	/*FIXME: We need an opensync API for getting info from the user,
-	 *       such as password
-	 */
-	plgdata->password = jescs_get_cfgvalue(node, "password");
 
 	if (!plgdata->url || !plgdata->username || !plgdata->password) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Invalid configuration");
