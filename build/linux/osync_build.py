@@ -31,6 +31,9 @@ def check(env, config):
 	
 	testenv = env.Copy()
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')
+	testenv.Append(CCFLAGS = r'-I$with_check/include')
+	testenv.Append(LINKFLAGS = r' -L$with_check/lib')
+	testenv.Append(LINKFLAGS = r' -Wl,--rpath -Wl,$with_check/lib')
 	testenv.Append(LINKFLAGS = r' -Wl,--rpath -Wl,' + testenv.GetLaunchDir() + r'/opensync/')
 	testenv.Append(CCFLAGS = r'-DOPENSYNC_TESTDATA="\"' + env.GetLaunchDir() + r'/tests/data\""')
 	

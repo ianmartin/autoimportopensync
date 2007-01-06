@@ -6,7 +6,7 @@
 
 char *setup_testbed(char *fkt_name);
 void destroy_testbed(char *path);
-void create_case(Suite *s, const char *name, void (*function)(void));
+void create_case(Suite *s, const char *name, TFun function);
 
 /*void conflict_handler_choose_first(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);
 void conflict_handler_choose_modified(OSyncEngine *engine, OSyncMapping *mapping, void *user_data);

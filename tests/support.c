@@ -115,7 +115,7 @@ void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *u
 	osengine_mapping_ignore_conflict(engine, mapping);
 }*/
 
-void create_case(Suite *s, const char *name, void (*function)(void))
+void create_case(Suite *s, const char *name, TFun function)
 {
 	TCase *tc_new = tcase_create(name);
 	tcase_set_timeout(tc_new, 0);
