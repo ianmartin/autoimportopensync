@@ -501,22 +501,24 @@ error:
 
 static gboolean _psyncPoll(gpointer data)
 {
+	gboolean poll_still_required = TRUE;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	PSyncEnv *env = (PSyncEnv *)data;
 	
 	if (env->socket > 0) {
 		osync_trace(TRACE_EXIT, "%s: Already have a socket", __func__);
-		return TRUE;
+		return FALSE;
 	}
 
 	OSyncError *error = NULL;
-	if (_connectDevice(env, 1, &error))
+	if (_connectDevice(env, 1, &error)) {
 		osync_member_request_synchronization(env->member);
-	else
+		poll_still_required = FALSE;
+	} else
 		osync_error_free(&error);
 		
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	return poll_still_required;
 }
 
 static gboolean _psyncPing(gpointer data)
@@ -546,13 +548,13 @@ static void psyncThreadStart(PSyncEnv *env)
 	
 	GSource *source = g_timeout_source_new(5000);
 	g_source_set_callback(source, _psyncPing, env, NULL);
-	g_source_attach(source, context);
-	
+	env->sourceTags->ping = g_source_attach(source, context);
+	g_source_unref (source);
 
-//FIXME also polls at the end of a hot sync ... 
 	source = g_timeout_source_new(1000);
 	g_source_set_callback(source, _psyncPoll, env, NULL);
-	g_source_attach(source, context);
+	env->sourceTags->poll = g_source_attach(source, context);
+	g_source_unref (source);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -649,6 +651,10 @@ static void *psyncInitialize(OSyncMember *member, OSyncError **error)
 	PSyncEnv *env = osync_try_malloc0(sizeof(PSyncEnv), error);
 	if (!env)
 		goto error;
+	env->sourceTags = NULL;
+	env->sourceTags = osync_try_malloc0(sizeof(PSyncSourceTags), error);
+	if (!env)
+		goto error;
 		
 	char *configdata = NULL;
 	int configsize = 0;
@@ -671,6 +677,8 @@ static void *psyncInitialize(OSyncMember *member, OSyncError **error)
 error_free_config:
 	g_free(configdata);
 error_free_env:
+	if (env->sourceTags)
+		g_free(env->sourceTags);
 	g_free(env);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -684,6 +692,7 @@ static void psyncConnect(OSyncContext *ctx)
 	OSyncError *error = NULL;
 	int ret;
 	struct SysInfo sys_info;
+	char anchor[25];
 
 	//now connect with the palm
 	if (!_connectDevice(env, env->timeout, &error))
@@ -728,11 +737,14 @@ static void psyncConnect(OSyncContext *ctx)
 		}
 	}*/
 	
-	// TODO set anchor of lastSyncPC and check if got synced somewhere else in meantime....
 	if (env->user.lastSyncPC == 0) {
-		//Device has been reseted
+		//Device has been reset
 		osync_trace(TRACE_INTERNAL, "Detected that the Device has been reset");
 		osync_member_set_slow_sync(env->member, "data", TRUE);
+	} else {
+	  snprintf(anchor, 24, "%li", env->user.lastSyncPC);
+	  if (!osync_anchor_compare(env->member, "lastSyncPC", anchor))
+	    osync_member_set_slow_sync(env->member, "data", TRUE);
 	}
 	
 	osync_context_report_success(ctx);
@@ -805,11 +817,18 @@ error:
 
 static void psyncDone(OSyncContext *ctx)
 {
+	char *anchor;
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	PSyncEnv *env = (PSyncEnv *)osync_context_get_plugin_data(ctx);
 
 	PSyncDatabase *db = NULL;
 	OSyncError *error = NULL;
+
+	osync_trace(TRACE_INTERNAL, "Removing Palm sync timer, ping: %i",
+		    g_source_remove(env->sourceTags->ping));
+	//Just in case it's still running
+	osync_trace(TRACE_INTERNAL, "Removing Palm sync timer, poll: %i",
+		    g_source_remove(env->sourceTags->poll));
 
 	if ((db = psyncDBOpen(env, "AddressDB", &error))) {
 		osync_trace(TRACE_INTERNAL, "Reseting Sync Flags for AddressDB");
@@ -840,11 +859,30 @@ static void psyncDone(OSyncContext *ctx)
 	}
 
 	//Set the log and sync entries on the palm
-	dlp_AddSyncLogEntry(env->socket, "Sync Successfull\n");
+	dlp_AddSyncLogEntry(env->socket, "Sync Successful\n");
 	dlp_AddSyncLogEntry(env->socket, "Thank you for using\n");
 	dlp_AddSyncLogEntry(env->socket, "OpenSync");
 
-	env->user.lastSyncPC = 1;
+	
+	anchor = osync_anchor_retrieve(env->member, "lastSyncPC");
+	if ((anchor == NULL) || (env->user.lastSyncPC == 0)) {
+	  srandom(time(NULL));
+	  // Stolen from jpilot (jpilot.org), complete with comment:
+	  /* RAND_MAX is 32768 on Solaris machines for some reason.
+	   * If someone knows how to fix this, let me know.
+	   */
+	  if (RAND_MAX==32768) {
+	    env->user.lastSyncPC = 1+(2000000000.0*random()/(2147483647+1.0));
+	  } else {
+	    env->user.lastSyncPC = 1+(2000000000.0*random()/(RAND_MAX+1.0));
+	  }
+	  anchor = malloc(25);
+	  snprintf(anchor, 24, "%li", env->user.lastSyncPC);
+	  osync_trace(TRACE_INTERNAL, "Made a new lastSyncPC of %s", anchor);
+	  osync_anchor_update(env->member, "lastSyncPC", anchor);
+	  free(anchor);
+	}
+
 	env->user.lastSyncDate = time(NULL);
 	env->user.successfulSyncDate = time(NULL);
 	
@@ -883,6 +921,8 @@ static void psyncFinalize(void *data)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	PSyncEnv *env = (PSyncEnv *)data;
 
+	if (env->sourceTags)
+		g_free(env->sourceTags);
 	g_free(env);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

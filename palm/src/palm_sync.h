@@ -89,6 +89,11 @@ typedef struct PSyncEntry {
 	int index;
 } PSyncEntry;
 
+typedef struct PSyncSourceTags {
+	guint ping;
+	guint poll;
+} PSyncSourceTags;
+
 struct PSyncEnv {
 	OSyncMember *member;
 	
@@ -107,6 +112,8 @@ struct PSyncEnv {
 	struct PilotUser user;
 	
 	char *codepage;
+
+	PSyncSourceTags *sourceTags;
 };
 
 void psyncDBClose(PSyncDatabase *db);
