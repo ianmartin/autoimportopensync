@@ -903,6 +903,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			xmlSetProp(on_todo, "Completed", "1");
 			xmlSetProp(on_todo, "CompletedDate", completedstr);
 			g_free(completedstr);
+			g_free(completed);
 		}
 	}
 	else {
@@ -920,6 +921,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			startedstr = g_strdup_printf("%04d%02d%02d", (started->tm_year + 1900), (started->tm_mon + 1), started->tm_mday);
 			xmlSetProp(on_todo, "StartDate", startedstr);
 			g_free(startedstr);
+			g_free(started);
 		}
 	}
 	else {
@@ -944,6 +946,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 			g_free(dueyear);
 			g_free(duemonth);
 			g_free(dueday);
+			g_free(due);
 		}
 	}
 	else {
@@ -1082,19 +1085,28 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 				}
 				else if(!strcasecmp(iprop->name, "start")) 
 				{
-					time_t starttime = (time_t)atoi(iprop->children->content);
-					char *startvtime = osync_time_unix2vtime(&starttime); 
 					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateStarted", NULL);
-					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)startvtime);
-					if(allday)
+					time_t starttime = (time_t)atoi(iprop->children->content);
+					if(allday) {
+						struct tm *localtm = g_malloc0(sizeof(struct tm));
+						localtime_r(&starttime, localtm);
+						char *startvdate = g_strdup_printf("%04d%02d%02d", localtm->tm_year + 1900, (localtm->tm_mon + 1), localtm->tm_mday);
+						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)startvdate);
 						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
-					g_free(startvtime);
+						g_free(startvdate);
+						g_free(localtm);
+					}
+					else {
+						char *startvtime = osync_time_unix2vtime(&starttime); 
+						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)startvtime);
+						g_free(startvtime);
+					}
 					/* Record the start date for use later */
 					startdate = g_date_new();
 
 #ifdef OLD_GLIB_VER
 					/* This is deprecated */
-					GTime g_starttime = (GTime)starttime;					
+					GTime g_starttime = (GTime)starttime;
 					g_date_set_time(startdate, g_starttime);
 #else
 					g_date_set_time_t(startdate, starttime);
@@ -1103,13 +1115,23 @@ static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input,
 				}
 				else if(!strcasecmp(iprop->name, "end")) 
 				{
-					time_t endtime = (time_t)atoi(iprop->children->content);
-					char *endvtime = osync_time_unix2vtime(&endtime); 
 					on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"DateEnd", NULL);
-					xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)endvtime);
-					if(allday)
+					time_t endtime = (time_t)atoi(iprop->children->content);
+					if(allday) {
+						struct tm *localtm = g_malloc0(sizeof(struct tm));
+						endtime += 1;
+						localtime_r(&endtime, localtm);
+						char *endvdate = g_strdup_printf("%04d%02d%02d", localtm->tm_year + 1900, (localtm->tm_mon + 1), localtm->tm_mday);
+						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)endvdate);
 						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Value", (xmlChar*)"DATE");
-					g_free(endvtime);
+						g_free(endvdate);
+						g_free(localtm);
+					}
+					else {
+						char *endvtime = osync_time_unix2vtime(&endtime); 
+						xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)endvtime);
+						g_free(endvtime);
+					}
 				}
 				else if(!strcasecmp(iprop->name, "categories"))
 				{
@@ -1240,24 +1262,35 @@ static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input,
 	/* Creation Date */
 	icur = osxml_get_node(root, "DateCreated");
 	if (icur) {
-		xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "created");
+		xml_node_vtime_to_attr_time_t(icur, on_event, "created");
 	}
 	
 	/* Start */
 	icur = osxml_get_node(root, "DateStarted");
 	if (icur) {
-		start_time = xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "start");
+		start_time = xml_node_vtime_to_attr_time_t(icur, on_event, "start");
 	}
 	
 	/* End */
 	icur = osxml_get_node(root, "DateEnd");
 	if (icur) {
-		end_time = xml_node_vtime_to_attr_time_t(icur, "Content", on_event, "end");
+		end_time = xml_node_vtime_to_attr_time_t(icur, on_event, "end");
 	}
 	
 	/* Check for all-day event */
-	if(start_time - end_time == 86399) {
+	int timediff = end_time - start_time;
+	if((timediff == 86399) || (timediff == 86400)) {
 		xmlSetProp(on_event, "type", "AllDay");
+		if(timediff == 86400) {
+			/* Opie expects end to be start + 86399 */
+			char *endtimestr = xmlGetProp(on_event, "end");
+			int endtime = atoi(endtimestr) - 1;
+			xmlFree(endtimestr);
+			endtimestr = g_strdup_printf("%d", endtime);
+			xmlSetProp(on_event, "end", endtimestr);
+			g_free(endtimestr);
+			xmlSetProp(on_event, "type", "AllDay");
+		}
 	}
 	
 	/* Alarm */
@@ -1315,13 +1348,25 @@ void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to
 	xmlFree(value);
 }
 
-time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
-	char *vtime = osxml_find_node(node_from, nodename);
-	time_t utime = osync_time_vtime2unix(vtime, 0);
-	char *timestr = g_strdup_printf("%d", (int)utime);
-	xmlSetProp(node_to, attrname, timestr);
-	g_free(timestr);
-	xmlFree(vtime);
+time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, xmlNode *node_to, const char *attrname) {
+	char *vtime = osxml_find_node(node_from, "Content");
+	time_t utime = 0;
+	if(vtime) {
+		char *vtimetype = osxml_find_node(node_from, "Value");
+		if(vtimetype && !strcasecmp(vtimetype, "DATE")) {
+			/* vtime has date but no time, so we treat it as midnight local time */
+			struct tm *localtm = osync_time_vtime2tm(vtime);
+			utime = mktime(localtm);
+			g_free(localtm);
+		}
+		else
+			utime = osync_time_vtime2unix(vtime, 0);
+				
+		char *timestr = g_strdup_printf("%d", (int)utime);
+		xmlSetProp(node_to, attrname, timestr);
+		g_free(timestr);
+		xmlFree(vtime);
+	}
 	return utime;
 }
 
@@ -1793,6 +1838,7 @@ void xml_cal_alarm_node_to_attr(xmlNode *item_node, xmlNode *node_to, time_t *st
 						struct tm *alarmtm = osync_time_vtime2tm(contentstr);
 						time_t alarmtime = timegm(alarmtm);
 						alarmseconds = (int)difftime(alarmtime, *starttime);
+						g_free(alarmtm);
 					}
 				}
 				else if (!strcmp(typestr, "DURATION")) {
