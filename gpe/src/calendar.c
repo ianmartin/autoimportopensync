@@ -73,7 +73,7 @@ osync_bool gpe_calendar_commit_change (OSyncContext *ctx, OSyncChange *change)
 				char *uid = NULL;
 				char buf[25];
 				parse_value_modified (modified, &modified, &uid);
-				sprintf (buf, "gpe-calendar-%s", uid);
+				sprintf (buf, "gpe-event-%s", uid);
 				osync_change_set_uid (change, g_strdup (buf));
 			}
 			osync_change_set_hash (change, modified);
@@ -119,7 +119,7 @@ osync_bool gpe_calendar_get_changes(OSyncContext *ctx)
 
 	gchar *errmsg = NULL;
 	GSList *uid_list = NULL, *iter;
-	osync_debug ("GPE_SYNC", 3, "Getting uidlists for vevens:");
+	osync_debug ("GPE_SYNC", 3, "Getting uidlists for vevents:");
 	gpesync_client_exec (env->client, "uidlist vevent", client_callback_list, &uid_list, &errmsg);
 
 
