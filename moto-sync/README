@@ -28,10 +28,12 @@ you, by emailing andrewb AT cse DOT unsw DOT edu DOT au.
 
 REQUIREMENTS
 
- * OpenSync from svn HEAD with the python bindings and python-module plugin
- * Python 2.4
+ * OpenSync 0.20 or later with the python bindings and python-module plugin
+ * Python 2.4 or newer
  * The python-dateutil library (at least version 1.1),
    from http://labix.org/python-dateutil
+ * Optionally, the pybluez library (at least version 0.9)
+   from http://org.csail.mit.edu/pybluez/
 
 
 INSTALLATION
@@ -42,17 +44,24 @@ cp moto-sync $PREFIX/share/opensync/defaults
 
 CONFIGURATION
 
-For now, the only configuration option to moto-sync is the device it 
-should use to talk to the phone. This is specified in a small XML 
+For now, there is only one configuration option to moto-sync: the device 
+string to communicate with the phone. This is specified in a small XML 
 file, the contents of which should look like:
-        <config><device>/dev/whatever</device></config>
+        <config><device>your device string here</device></config>
 
-Devices you're likely to use are:
- * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
-   that channel to bind with your phone, by doing something like:
-        rfcomm bind rfcomm0 00:11:22:33:44:55 1
- * /dev/ttyACM0 for a USB modem connection (or whatever other device the
-   phone shows up on, see dmesg).
+There are two options for specifying the device string:
+ 1. If your phone is connected by bluetooth, and you have the pybluez 
+    package installed (see REQUIREMENTS above), you can use its MAC 
+    address (eg. 00:11:22:33:44:55) as the device string.
+
+ 2. Otherwise, you have to specify the full path to a device node on the 
+    local file system that can be used to communicate with the phone.
+    Devices you're likely to use in this case are:
+  * /dev/ttyACM0 for a USB modem connection (or whatever other device the
+    phone shows up on, see dmesg)
+  * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
+    that channel to bind with your phone, by doing something like:
+         rfcomm bind rfcomm0 00:11:22:33:44:55 1
 
 The only way I have tested or used the plugin so far is in a sync group 
 with file-sync. To configure and use this, do:
@@ -77,7 +86,7 @@ backup the data from your phone. You can use the mototool script to
 do this, to delete entries on the phone, or to examine the data that
 moto-sync would send to opensync. Run 'mototool --help' for details
 or, for the impatient, try:
-    mototool -v -d /dev/whatever -f myphone.backup --backup
+    mototool -v -d (device string) -f myphone.backup --backup
 
 
 LIMITATIONS AND KNOWN PROBLEMS
@@ -130,3 +139,4 @@ TODO
  * Do something with "mailing list" entries in the phonebook
  * Add support for reading/writing the SIM phonebook
  * Test with other hardware
+ * Switch to use AT+MDBRE and clean up the contact reading/merging code

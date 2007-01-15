@@ -17,16 +17,32 @@ from datetime import date, datetime, timedelta, time as datetime_time
 import dateutil.parser, dateutil.rrule, dateutil.tz
 import opensync
 
+# optionally use the 'tty' module that is only present on Unix
 try:
-    import tty # this module is only present on Unix
+    import tty
     USE_TTY_MODULE = True
 except ImportError:
     USE_TTY_MODULE = False
+
+# optionally use the 'bluetooth' module from pybluez
+try:
+    import bluetooth
+    USE_BLUETOOTH_MODULE = True
+except ImportError:
+    USE_BLUETOOTH_MODULE = False
 
 # debug/test options:
 DEBUG_OUTPUT = False # if enabled, logs all interaction with the phone to stdout
 WARNING_OUTPUT = True # if enabled, prints warnings to stderr (reccommended)
 WRITE_ENABLED = True # if disabled, prevents changes from being made to phone
+
+# Regular expression for a Bluetooth MAC address
+BT_MAC_RE = re.compile(r'^([0-9a-f]{2}:){5}[0-9a-f]{2}$', re.IGNORECASE)
+
+# name of the SDP service to use with Bluetooth
+BT_SERVICE_NAME = 'Dial-up networking Gateway'
+# name of the channel to try if we don't find the above service
+BT_DEFAULT_CHANNEL = 1
 
 # object types supported by this plugin
 SUPPORTED_OBJTYPES = ['event', 'contact']
@@ -378,15 +394,32 @@ class UnsupportedDataError(Exception):
 
 
 class PhoneComms:
-    """Functions for directly accessing the phone."""
+    """Functions for directly accessing the phone.
+    
+    "device" may be either a path to a local device node, or a bluetooth MAC.
+    """
     def __init__(self, device):
         self.__calendar_open = False
-        self.__fd = os.open(device, os.O_RDWR)
+        self.__fd = self.__btsock = None
 
-        if USE_TTY_MODULE:
-            tty.setraw(self.__fd)
+        if BT_MAC_RE.match(device):
+            assert(USE_BLUETOOTH_MODULE,
+                   "MAC address specified, but pybluez module is not available")
+            
+            # search for the port to use on the device
+            port = BT_DEFAULT_CHANNEL
+            found = bluetooth.find_service(name=BT_SERVICE_NAME, address=device)
+            if found:
+                assert(found[0]['protocol'] == 'RFCOMM')
+                port = found[0]['port']
+            self.__btsock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+            self.__btsock.connect((device, port))
         else:
-            warning('tty module not present, unable to set raw mode')
+            self.__fd = os.open(device, os.O_RDWR)
+            if USE_TTY_MODULE:
+                tty.setraw(self.__fd)
+            else:
+                warning('tty module not present, unable to set raw mode')
 
         # reset the phone and send it a bunch of init strings
         self.__do_cmd('AT&F')      # reset to factory defaults
@@ -411,10 +444,10 @@ class PhoneComms:
 
     def __del__(self):
         self.close_calendar()
-        try:
+        if self.__fd:
             os.close(self.__fd)
-        except AttributeError: # we might not have successfully opened this
-            pass
+        if self.__btsock:
+            self.__btsock.close()
 
     def read_serial(self):
         """read the phone's serial number (IMEI)"""
@@ -585,15 +618,22 @@ class PhoneComms:
         self.close_calendar()
         self.__do_cmd('AT+MPBW=%d' % pos, WRITE_ENABLED)
 
+    def __readchar(self):
+        """read a single character from the phone device"""
+        if self.__fd:
+            return os.read(self.__fd, 1)
+        elif self.__btsock:
+            return self.__btsock.recv(1)
+
     def __readline(self):
         """read the next line of text from the phone"""
         ret = ''
-        c = os.read(self.__fd, 1)
+        c = self.__readchar()
         while c == '\r' or c == '\n':
-            c = os.read(self.__fd, 1)
+            c = self.__readchar()
         while c != '\r' and c != '\n' and c != '':
             ret += c
-            c = os.read(self.__fd, 1)
+            c = self.__readchar()
         debug('<-- ' + ret)
         if c == '': # EOF, shouldn't happen
             raise OpenSyncError('Unexpected EOF talking to phone',
@@ -609,7 +649,11 @@ class PhoneComms:
         debug('--> ' + cmd)
         ret = []
         if reallydoit:
-            os.write(self.__fd, cmd + "\r")
+            cmd = cmd + '\r'
+            if self.__fd:
+                os.write(self.__fd, cmd)
+            elif self.__btsock:
+                self.__btsock.send(cmd)
             line = self.__readline()
         else:
             line = 'OK'
@@ -1636,13 +1680,21 @@ def stdexceptions(func):
     """
     def new_func(*args, **kwds):
         """Invoke func, report success, otherwise report an error."""
+
         context = args[1] # context is always the first argument after 'self'
+
+        # if the bluetooth module is present, handle its exceptions as IO errors
+        if USE_BLUETOOTH_MODULE:
+            ioerrors = (IOError, OSError, bluetooth.BluetoothError)
+        else:
+            ioerrors = (IOError, OSError)
+
         try:
             func(*args, **kwds)
             context.report_success()
         except OpenSyncError, e:
             e.report(context)
-        except (IOError, OSError), e:
+        except ioerrors, e:
             context.report_error(opensync.ERROR_IO_ERROR, str(e))
         except:
             context.report_error(opensync.ERROR_GENERIC, traceback.format_exc())
@@ -1734,7 +1786,7 @@ class SyncClass:
             raise OpenSyncError('failed to parse config data',
                                 opensync.ERROR_MISCONFIGURATION)
 
-        self.config['device'] = getXMLField(doc, 'device')
+        self.config['device'] = getXMLField(doc, 'device').strip()
         if self.config['device'] == '':
             raise OpenSyncError('device not specified in config file',
                                 opensync.ERROR_MISCONFIGURATION)
