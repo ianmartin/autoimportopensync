@@ -15,15 +15,21 @@ backups of everything anyway. See TESTING/BACKUP below.
 
 SUPPORTED HARDWARE
 
-This plugin has been developed on a Motorola L7 ("SLVR").
+Known working models:
+ * L7 SLVR
 
-It has also been (lightly) tested on the following models:
- * RAZR V3x (read only)
- * RAZR V3i (read only)
- * V635 (read only)
+Possibly working, but only lightly tested:
+ * V3x RAZR (tested reading only)
+ * V3i RAZR (tested reading only)
+ * V635 (tested reading only)
 
-If your phone isn't listed above, please let me know if it works for
-you, by emailing andrewb AT cse DOT unsw DOT edu DOT au.
+Models known not to work:
+ * K1 KRZR (phone book works fine, but any calendar command fails)
+ * A780 (doesn't seem to respond to AT commands, except with ERROR)
+
+If your phone isn't listed above, or if your results differ, please let 
+me know how it works for you, by emailing andrewb AT cse DOT unsw DOT 
+edu DOT au.
 
 
 REQUIREMENTS
