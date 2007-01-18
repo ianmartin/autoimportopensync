@@ -12,3 +12,4 @@ void osync_hashtable_set_slow_sync(OSyncHashTable *table, const char *objtype);
 void osync_hashtable_report(OSyncHashTable *table, const char *uid);
 void osync_hashtable_get_hash(OSyncHashTable *table, OSyncChange *chg);
 OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *hash);
+char **osync_hashtable_get_deleted(OSyncHashTable *table, const char *objtype);
