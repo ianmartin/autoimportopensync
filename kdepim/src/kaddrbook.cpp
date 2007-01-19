@@ -72,7 +72,7 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 	//check if kaddressbook is running, and return an error if it
 	//is running
 	if (dcopc->isApplicationRegistered("kaddressbook")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_APP_RUNNING, "KAddressBook is running. Please finish it");
+		osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, "KAddressBook is running. Please finish it");
 		osync_trace(TRACE_EXIT_ERROR, "%s: KAddressBook is running", __func__);
 		return false;
 	}

@@ -49,7 +49,7 @@ bool KCalDataSource::connect(OSyncContext *ctx)
 	//check if korganizer running, and return an error if it
 	//is running
 	if (dcopc->isApplicationRegistered("korganizer")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_APP_RUNNING, "KOrganizer is running. Please finish it");
+		osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, "KOrganizer is running. Please finish it");
 		osync_trace(TRACE_EXIT_ERROR, "%s: KOrganizer is running", __func__);
 		return false;
 	}

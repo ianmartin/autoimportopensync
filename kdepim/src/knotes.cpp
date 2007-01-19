@@ -62,7 +62,7 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 	//check if kontact is running, and return an error if it
 	//is running
 	if (kn_dcop->isApplicationRegistered("kontact")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_APP_RUNNING, "Kontact is running. Please finish it");
+		osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, "Kontact is running. Please finish it");
 		osync_trace(TRACE_EXIT_ERROR, "%s: Kontact is running", __func__);
 		return false;
 	}
