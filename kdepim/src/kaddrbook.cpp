@@ -26,6 +26,8 @@ SOFTWARE IS DISCLAIMED.
  */
 
 #include "kaddrbook.h"
+#include <kapplication.h>
+#include <dcopclient.h>
 #include <qdeepcopy.h>
 
 KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) 
@@ -58,6 +60,23 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	
+	DCOPClient *dcopc = KApplication::kApplication()->dcopClient();
+	if (!dcopc) {
+		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to initialize dcop client");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to initialize dcop client", __func__);
+		return false;
+	}
+
+	QString appId = dcopc->registerAs("opensync-kaddrbook");
+
+	//check if kaddressbook is running, and return an error if it
+	//is running
+	if (dcopc->isApplicationRegistered("kaddressbook")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_APP_RUNNING, "KAddressBook is running. Please finish it");
+		osync_trace(TRACE_EXIT_ERROR, "%s: KAddressBook is running", __func__);
+		return false;
+	}
+
 	//get a handle to the standard KDE addressbook
 	addressbookptr = KABC::StdAddressBook::self();
 	

@@ -59,6 +59,14 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 	
 	QString appId = kn_dcop->registerAs("opensync");
 	
+	//check if kontact is running, and return an error if it
+	//is running
+	if (kn_dcop->isApplicationRegistered("kontact")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_APP_RUNNING, "Kontact is running. Please finish it");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Kontact is running", __func__);
+		return false;
+	}
+
 	//check knotes running
 	QCStringList apps = kn_dcop->registeredApplications();
 	if (!apps.contains("knotes")) {

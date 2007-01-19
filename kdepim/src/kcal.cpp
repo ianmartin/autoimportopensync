@@ -25,6 +25,9 @@ SOFTWARE IS DISCLAIMED.
 
 #include "kcal.h"
 
+#include <kapplication.h>
+#include <dcopclient.h>
+
 KCalDataSource::KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable)
     : hashtable(hashtable), member(member)
 {
@@ -33,6 +36,24 @@ KCalDataSource::KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable)
 
 bool KCalDataSource::connect(OSyncContext *ctx)
 {
+
+	DCOPClient *dcopc = KApplication::kApplication()->dcopClient();
+	if (!dcopc) {
+		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to initialize dcop client");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to initialize dcop client", __func__);
+		return false;
+	}
+
+	QString appId = dcopc->registerAs("opensync-kcal");
+
+	//check if korganizer running, and return an error if it
+	//is running
+	if (dcopc->isApplicationRegistered("korganizer")) {
+		osync_context_report_error(ctx, OSYNC_ERROR_APP_RUNNING, "KOrganizer is running. Please finish it");
+		osync_trace(TRACE_EXIT_ERROR, "%s: KOrganizer is running", __func__);
+		return false;
+	}
+
     calendar = new KCal::CalendarResources(QString::fromLatin1( "UTC" ));
     if (!calendar) {
         osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Can't open KDE calendar");
