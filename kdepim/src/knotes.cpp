@@ -1,11 +1,11 @@
-/*********************************************************************** 
+/***********************************************************************
 KNotes support for OpenSync kdepim-sync plugin
 Copyright (C) 2004 Conectiva S. A.
-
+ 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation;
-
+ 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
@@ -14,7 +14,7 @@ CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF 
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
+ 
 ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS, 
 COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS 
 SOFTWARE IS DISCLAIMED.
@@ -34,7 +34,7 @@ SOFTWARE IS DISCLAIMED.
 #include <glib.h>
 
 KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
-    :member(m), hashtable(h)
+		:member(m), hashtable(h)
 {
 	connected = false;
 }
@@ -42,7 +42,7 @@ KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
 bool KNotesDataSource::connect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	
+
 	//connect to dcop
 	kn_dcop = KApplication::kApplication()->dcopClient();
 	if (!kn_dcop) {
@@ -50,15 +50,15 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to make new dcop for knotes", __func__);
 		return FALSE;
 	}
-	
+
 	/*if (!kn_dcop->attach()) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to attach dcop for knotes");
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to attach dcop for knotes", __func__);
 		return FALSE;
 	}*/
-	
+
 	QString appId = kn_dcop->registerAs("opensync");
-	
+
 	//check if kontact is running, and return an error if it
 	//is running
 	if (kn_dcop->isApplicationRegistered("kontact")) {
@@ -71,11 +71,11 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 	QCStringList apps = kn_dcop->registeredApplications();
 	if (!apps.contains("knotes")) {
 		//start knotes if not running
-        knotesWasRunning = false;
-        system("knotes");
+		knotesWasRunning = false;
+		system("knotes");
 		system("dcop knotes KNotesIface hideAllNotes");
 	} else
-        knotesWasRunning = true;
+		knotesWasRunning = true;
 
 	kn_iface = new KNotesIface_stub("knotes", "KNotesIface");
 
@@ -87,12 +87,12 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 bool KNotesDataSource::disconnect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	
+
 	// FIXME: ugly, but necessary
 	if (!knotesWasRunning) {
 		system("dcop knotes MainApplication-Interface quit");
 	}
-	
+
 	//detach dcop
 	/*if (!kn_dcop->detach()) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to detach dcop for knotes");
@@ -104,7 +104,7 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 	kn_iface = NULL;
 	//delete kn_dcop;
 	//kn_dcop = NULL;
-	
+
 	connected = false;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
@@ -222,111 +222,112 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
-    OSyncChangeType type = osync_change_get_changetype(chg);
+	OSyncChangeType type = osync_change_get_changetype(chg);
 
-    QString uid = osync_change_get_uid(chg);
+	QString uid = osync_change_get_uid(chg);
 
-    if (type != CHANGE_DELETED) {
+	if (type != CHANGE_DELETED) {
 
-        // Get osxml data
-        xmlDoc *doc = (xmlDoc*)osync_change_get_data(chg);
-        
-        xmlNode *root = xmlDocGetRootElement(doc);
+		// Get osxml data
+		xmlDoc *doc = (xmlDoc*)osync_change_get_data(chg);
+
+		xmlNode *root = xmlDocGetRootElement(doc);
 		if (!root) {
-            osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
-            osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data", __func__);
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+			osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data", __func__);
 			return false;
-        }
-		
+		}
+
 		if (xmlStrcmp((root)->name, (const xmlChar *) "Note")) {
-            osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Wrong root element");
-            osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data2", __func__);
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Wrong root element");
+			osync_trace(TRACE_EXIT_ERROR, "%s: Invalid data2", __func__);
 			return false;
-        }
+		}
 
-        xmlChar *xmlStr;
-        char * tmpStr;
+		xmlChar *xmlStr;
+		char * tmpStr;
 
-        tmpStr = osync_change_get_printable(chg);
-        xmlStr = (xmlChar*) osxml_find_node(root, "Summary");
-        osync_trace(TRACE_INTERNAL, "Getting note %s and %s\n", tmpStr, xmlStr);
+		tmpStr = osync_change_get_printable(chg);
+		xmlStr = (xmlChar*) osxml_find_node(root, "Summary");
+		osync_trace(TRACE_INTERNAL, "Getting note %s and %s\n", tmpStr, xmlStr);
 
-        QString summary = (char*)xmlStr;
-        xmlFree(xmlStr);
-        g_free(tmpStr);
+		QString summary = (char*)xmlStr;
+		xmlFree(xmlStr);
+		g_free(tmpStr);
 
-        xmlStr = (xmlChar*) osxml_find_node(root, "Body");
-        QString body = (char*)xmlStr;
-        xmlFree(xmlStr);
+		xmlStr = (xmlChar*) osxml_find_node(root, "Body");
+		QString body = (char*)xmlStr;
+		xmlFree(xmlStr);
 
-        QString hash;
-        switch (type) {
-            case CHANGE_ADDED:
-            	osync_trace(TRACE_INTERNAL, "addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
-            	uid = kn_iface->newNote(summary, body);
+		QString hash;
+		switch (type) {
+			case CHANGE_ADDED:
+				osync_trace(TRACE_INTERNAL, "addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
+				uid = kn_iface->newNote(summary, body);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
 					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to add new note");
-            		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to add new note", __func__);
+					osync_trace(TRACE_EXIT_ERROR, "%s: Unable to add new note", __func__);
 					return false;
 				}
-				
+
 				kn_iface->hideNote(uid);
 				if (kn_iface->status() != DCOPStub::CallSucceeded)
 					osync_trace(TRACE_INTERNAL, "ERROR: Unable to hide note");
-				
-                osync_change_set_uid(chg, uid);
-                osync_change_set_hash(chg, hash);
+
+				hash = summary + body;
+				osync_change_set_uid(chg, uid);
+				osync_change_set_hash(chg, hash);
 				break;
-            case CHANGE_MODIFIED:
+			case CHANGE_MODIFIED:
 				kn_iface->setName(uid, summary);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
 					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to set name");
 					osync_trace(TRACE_EXIT_ERROR, "%s: Unable to set name", __func__);
 					return false;
 				}
-				
+
 				kn_iface->setText(uid, body);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
 					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to set text");
 					osync_trace(TRACE_EXIT_ERROR, "%s: Unable to set text", __func__);
 					return false;
 				}
-                hash = summary + body;
-                osync_change_set_hash(chg, hash);
+				hash = summary + body;
+				osync_change_set_hash(chg, hash);
 				break;
-            default:
-                osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Invalid change type");
-                osync_trace(TRACE_EXIT_ERROR, "%s: Invalid change type", __func__);
+			default:
+				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Invalid change type");
+				osync_trace(TRACE_EXIT_ERROR, "%s: Invalid change type", __func__);
 				return false;
-        }
-    } else {
+		}
+	} else {
 		system("dcop knotes KNotesIface hideAllNotes");
 		QString asdasd = "dcop knotes KNotesIface killNote " + uid + " true";
 		system((const char*)asdasd.local8Bit());
-        osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
+		osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
 		/*kn_iface->killNote(uid, true);
 		if (kn_iface->status() != DCOPStub::CallSucceeded) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete note");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
 			return false;
 		}*/
-    }
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return true;
+	return true;
 }
 
 bool KNotesDataSource::commit_change(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
-    if (!__access(ctx, chg)) {
-        osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
+	if (!__access(ctx, chg)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
 		return false;
-    }
-    osync_hashtable_update_hash(hashtable, chg);
+	}
+	osync_hashtable_update_hash(hashtable, chg);
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return true;
+	return true;
 }
 
 bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
@@ -335,7 +336,7 @@ bool KNotesDataSource::access(OSyncContext *ctx, OSyncChange *chg)
 	if (!__access(ctx, chg)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to delete note", __func__);
 		return false;
-    }
+	}
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
