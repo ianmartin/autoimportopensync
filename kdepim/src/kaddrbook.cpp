@@ -1,12 +1,12 @@
-/*********************************************************************** 
+/***********************************************************************
 KAddressbook support for OpenSync kdepim-sync plugin
 Copyright (C) 2004 Conectiva S. A.
 Copyright (C) 2005 Armin Bauer
-
+ 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
 published by the Free Software Foundation;
-
+ 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
@@ -15,7 +15,7 @@ CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN 
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF 
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
+ 
 ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS, 
 COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS 
 SOFTWARE IS DISCLAIMED.
@@ -30,8 +30,7 @@ SOFTWARE IS DISCLAIMED.
 #include <dcopclient.h>
 #include <qdeepcopy.h>
 
-KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) 
-    : hashtable(hashtable), member(member)
+KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) : hashtable(hashtable), member(member)
 {
 	connected = false;
 }
@@ -43,23 +42,22 @@ KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hash
  */
 QString KContactDataSource::calc_hash(KABC::Addressee &e)
 {
-    //Get the revision date of the KDE addressbook entry.
-    //Regard entries with invalid revision dates as having just been changed.
-    QDateTime revdate = e.revision();
-    osync_debug("kde", 3, "Getting hash: %s", revdate.toString().data());
-    if (!revdate.isValid())
-    {
-    	revdate = QDateTime::currentDateTime();
-    	e.setRevision(revdate);
-    }
+	//Get the revision date of the KDE addressbook entry.
+	//Regard entries with invalid revision dates as having just been changed.
+	QDateTime revdate = e.revision();
+	osync_debug("kde", 3, "Getting hash: %s", revdate.toString().data());
+	if (!revdate.isValid()) {
+		revdate = QDateTime::currentDateTime();
+		e.setRevision(revdate);
+	}
 
-    return revdate.toString();
+	return revdate.toString();
 }
 
 bool KContactDataSource::connect(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	
+
 	DCOPClient *dcopc = KApplication::kApplication()->dcopClient();
 	if (!dcopc) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to initialize dcop client");
@@ -79,7 +77,7 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 
 	//get a handle to the standard KDE addressbook
 	addressbookptr = KABC::StdAddressBook::self();
-	
+
 	//Detection mechanismn if this is the first sync
 	if (!osync_anchor_compare(member, "synced", "true")) {
 		osync_trace(TRACE_INTERNAL, "Setting slow-sync");
@@ -118,12 +116,12 @@ bool KContactDataSource::disconnect(OSyncContext *ctx)
 bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	
+
 	if (osync_member_get_slow_sync(member, "contact")) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
 		osync_hashtable_set_slow_sync(hashtable, "contact");
 	}
-	
+
 	// We must reload the KDE addressbook in order to retrieve the latest changes.
 	if (!addressbookptr->load()) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't reload KDE addressbook");
@@ -134,14 +132,14 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 	KABC::VCardConverter converter;
 	for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
 		QString uid = it->uid();
-		
+
 		OSyncChange *chg = osync_change_new();
-		
+
 		osync_change_set_member(chg, member);
 		osync_change_set_uid(chg, uid.local8Bit());
-		
+
 		QString hash = calc_hash(*it);
-			
+
 		// Convert the VCARD data into a string
 		// only vcard3.0 exports Categories
 		QString tmp = converter.createVCard(*it, KABC::VCardConverter::v3_0);
@@ -149,13 +147,13 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 		char *data = strdup((const char *)tmp.utf8());
 
 		osync_trace(TRACE_SENSITIVE,"\n%s", data);
-		
+
 		osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
-		
+
 		// object type and format
 		osync_change_set_objtype_string(chg, "contact");
 		osync_change_set_objformat_string(chg, "vcard30");
-		
+
 		// Use the hash table to check if the object
 		// needs to be reported
 		osync_change_set_hash(chg, hash.data());
@@ -164,11 +162,11 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 			osync_hashtable_update_hash(hashtable, chg);
 		}
 	}
-	
+
 	// Use the hashtable to report deletions
 	osync_hashtable_report_deleted(hashtable, ctx, "contact");
 
-    osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
 }
 
@@ -183,41 +181,41 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
 	KABC::VCardConverter converter;
-	
+
 	// convert VCARD string from obj->comp into an Addresse object.
 	char *data = osync_change_get_data(chg);
 	size_t data_size = osync_change_get_datasize(chg);
 	QString uid = osync_change_get_uid(chg);
-	
+
 	OSyncChangeType chtype = osync_change_get_changetype(chg);
 	switch(chtype) {
 		case CHANGE_MODIFIED: {
 			KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
-			
+
 			// ensure it has the correct UID and revision
 			addressee.setUid(uid);
 			addressee.setRevision(QDateTime::currentDateTime());
-			
+
 			// replace the current addressbook entry (if any) with the new one
-			
+
 			addressbookptr->insertAddressee(addressee);
-			
+
 			QString hash = calc_hash(addressee);
 			osync_change_set_hash(chg, hash);
-			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit()); 
+			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit());
 			break;
 		}
 		case CHANGE_ADDED: {
 			KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
-			
+
 			// ensure it has the correct revision
 			addressee.setRevision(QDateTime::currentDateTime());
-			
+
 			// add the new address to the addressbook
 			addressbookptr->insertAddressee(addressee);
-			
+
 			osync_change_set_uid(chg, addressee.uid().local8Bit());
-			
+
 			QString hash = calc_hash(addressee);
 			osync_change_set_hash(chg, hash);
 			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", (const char *)addressee.uid().local8Bit());
@@ -229,22 +227,23 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 				osync_trace(TRACE_EXIT_ERROR, "%s: Trying to delete but uid is empty", __func__);
 				return FALSE;
 			}
-			
+
 			//find addressbook entry with matching UID and delete it
 			KABC::Addressee addressee = addressbookptr->findByUid(uid);
 			if(!addressee.isEmpty())
 				addressbookptr->removeAddressee(addressee);
-			
+
 			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY DELETED (UID=%s)", (const char*)uid.local8Bit());
-			
+
 			break;
 		}
-		default:
+		default: {
 			osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Operation not supported", __func__);
 			return FALSE;
+		}
 	}
-	
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 }
@@ -260,10 +259,10 @@ bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
 
 bool KContactDataSource::vcard_commit_change(OSyncContext *ctx, OSyncChange *chg)
 {
-    if ( !__vcard_access(ctx, chg) )
-        return false;
+	if ( !__vcard_access(ctx, chg) )
+		return false;
 
-    osync_hashtable_update_hash(hashtable, chg);
-    osync_context_report_success(ctx);
-    return true;
+	osync_hashtable_update_hash(hashtable, chg);
+	osync_context_report_success(ctx);
+	return true;
 }

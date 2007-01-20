@@ -261,7 +261,7 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 
 		QString hash;
 		switch (type) {
-			case CHANGE_ADDED:
+			case CHANGE_ADDED: {
 				osync_trace(TRACE_INTERNAL, "addding new \"%s\" and \"%s\"\n", (const char*)summary.local8Bit(), (const char*)body.local8Bit());
 				uid = kn_iface->newNote(summary, body);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
@@ -278,7 +278,8 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 				osync_change_set_uid(chg, uid);
 				osync_change_set_hash(chg, hash);
 				break;
-			case CHANGE_MODIFIED:
+			}
+			case CHANGE_MODIFIED: {
 				kn_iface->setName(uid, summary);
 				if (kn_iface->status() != DCOPStub::CallSucceeded) {
 					osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to set name");
@@ -295,10 +296,12 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 				hash = summary + body;
 				osync_change_set_hash(chg, hash);
 				break;
-			default:
+			}
+			default: {
 				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Invalid change type");
 				osync_trace(TRACE_EXIT_ERROR, "%s: Invalid change type", __func__);
 				return false;
+			}
 		}
 	} else {
 		system("dcop knotes KNotesIface hideAllNotes");
