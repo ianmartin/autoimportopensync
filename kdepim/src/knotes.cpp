@@ -135,73 +135,81 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	QMap <KNoteID_t,QString> fNotes;
-	
+
 	fNotes = kn_iface->notes();
 	if (kn_iface->status() != DCOPStub::CallSucceeded) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to get changed notes");
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to get changed notes", __func__);
 		return FALSE;
 	}
-	
+
 	if (osync_member_get_slow_sync(member, "note")) {
 		osync_debug("kcal", 3, "Setting slow-sync for notes");
 		osync_hashtable_set_slow_sync(hashtable, "note");
 	}
-	
+
 	QMap<KNoteID_t,QString>::ConstIterator i;
 	for (i = fNotes.begin(); i != fNotes.end(); i++) {
+		/* XXX: don't report empty notes, knotes always
+		 * "keeps" at least one
+		 */
+		if (kn_iface->text(i.key()) == "") {
+			osync_debug("knotes", 4, "Skipping empty note");
+			continue;
+		}
+
 		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
-        osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
+		osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
 		osync_trace(TRACE_INTERNAL, "reporting notes %s\n", (const char*)i.key().local8Bit());
-		
-        QString uid = i.key();
+
+		QString uid = i.key();
 		QString hash = NULL;
-        // Create osxml doc containing the note
-        xmlDoc *doc = xmlNewDoc((const xmlChar*)"1.0");
-        xmlNode *root = osxml_node_add_root(doc, "Note");
+		// Create osxml doc containing the note
+		xmlDoc *doc = xmlNewDoc((const xmlChar*)"1.0");
+		xmlNode *root = osxml_node_add_root(doc, "Note");
 
-        OSyncXMLEncoding enc;
-        enc.encoding = OSXML_8BIT;
-        enc.charset = OSXML_UTF8;
+		OSyncXMLEncoding enc;
+		enc.encoding = OSXML_8BIT;
+		enc.charset = OSXML_UTF8;
 
-        // Set the right attributes
-        xmlNode *sum = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
-        QCString utf8str = i.data().utf8();
-        hash = utf8str;
-        osxml_node_set(sum, "Summary", utf8str, enc);
+		// Set the right attributes
+		xmlNode *sum = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
+		QCString utf8str = i.data().utf8();
+		hash = utf8str;
+		osxml_node_set(sum, "Summary", utf8str, enc);
 
-        utf8str = strip_html(kn_iface->text(i.key())).utf8();
-        hash += utf8str;
-	if (utf8str && !utf8str.isEmpty()) {
-        	xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
-        	osxml_node_set(body, "Body", utf8str, enc);
-	}
-		
-        // initialize the change object
-        OSyncChange *chg = osync_change_new();
-        osync_change_set_uid(chg, uid.local8Bit());
-        osync_change_set_member(chg, member);
+		utf8str = strip_html(kn_iface->text(i.key())).utf8();
+		hash += utf8str;
+		if (utf8str && !utf8str.isEmpty()) {
+			xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
+			osxml_node_set(body, "Body", utf8str, enc);
+		}
 
-        // object type and format
-        osync_change_set_objtype_string(chg, "note");
-        osync_change_set_objformat_string(chg, "xml-note");
-        osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
+		// initialize the change object
+		OSyncChange *chg = osync_change_new();
+		osync_change_set_uid(chg, uid.local8Bit());
+		osync_change_set_member(chg, member);
+
+		// object type and format
+		osync_change_set_objtype_string(chg, "note");
+		osync_change_set_objformat_string(chg, "xml-note");
+		osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
 
 		osync_debug("knotes", 4, "Reporting note:\%s", osync_change_get_printable(chg));
 
-        // Use the hash table to check if the object
-        // needs to be reported
-        osync_change_set_hash(chg, hash.data());
-        if (osync_hashtable_detect_change(hashtable, chg)) {
-            osync_context_report_change(ctx, chg);
-            osync_hashtable_update_hash(hashtable, chg);
-        }
-    }
+		// Use the hash table to check if the object
+		// needs to be reported
+		osync_change_set_hash(chg, hash.data());
+		if (osync_hashtable_detect_change(hashtable, chg)) {
+			osync_context_report_change(ctx, chg);
+			osync_hashtable_update_hash(hashtable, chg);
+		}
+	}
 
-    osync_hashtable_report_deleted(hashtable, ctx, "note");
+	osync_hashtable_report_deleted(hashtable, ctx, "note");
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
-    return true;
+	return true;
 }
 
 /** basic access method
