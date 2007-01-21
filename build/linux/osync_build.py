@@ -1,5 +1,6 @@
 from osync_support import *
 from SCons.Options import *
+import distutils.sysconfig
 
 def configure(opts):
 	opts.Add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
@@ -43,6 +44,7 @@ def check(env, config):
 	testenv.Append(CCFLAGS = r'-DOPENSYNC_TESTDATA="\"' + env.GetLaunchDir() + r'/tests/data\""')
 	
 	env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/lib'])
+	env.Append(CCFLAGS = r'-I' + distutils.sysconfig.get_python_inc()) 
 	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINDIR="\"' + config.plugindir + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"' + config.formatdir + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_CONFIGDIR="\"' + config.configdir + r'\""')

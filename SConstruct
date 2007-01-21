@@ -33,6 +33,7 @@ opts.Add(BoolOption('enable_trace', 'Should tracing be enabled?', 1))
 opts.Add(BoolOption('enable_tests', 'Should the unit tests be enabled', 1))
 opts.Add(BoolOption('enable_tools', 'Should the developer tools be build', 1))
 opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled', 0))
+opts.Add(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
 opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
 
 target_dir = SelectBuildDir('build')
@@ -93,5 +94,5 @@ install_schemas = '$prefix/share/opensync/schemas'
 
 Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas')
 
-SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript', 'formats/SConscript', 'misc/SConscript'])
+SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript', 'formats/SConscript', 'misc/SConscript', 'wrapper/SConscript'])
 BuildDir(target_dir, 'opensync', duplicate=0)
