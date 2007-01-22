@@ -7,8 +7,9 @@ support some versions of Qtopia as found on the Sharp Zaurus, but no testing
 of this has been done.
 
 This plugin is a work in progress but should be able to sync contacts, 
-calendar events and todo list entries, minus a few fields. However, use 
-is entirely at your own risk - back up your data on both sides first!
+calendar events and todo list entries, minus a few fields. Basic support for 
+notes is also provided by syncing with .txt files on the handheld. However, 
+use is entirely at your own risk - back up your data on both sides first!
 
 If you'd like to help, please try the plugin and send any questions, patches 
 or corrections to the opensync users list 
@@ -70,15 +71,8 @@ I see the error "Failed to log into server"
 
 Syncing freezes at a particular point
 
-  This is most likely caused by attempting to sync with another plugin that
-  supports object types that the opie-sync plugin does not support (eg. notes).
-  These types should be disabled in your syncing frontend or the sync will not
-  complete successfully. (This issue will be addressed in a future version of
-  OpenSync). For msynctool, just add "--filter-objtype note" to the end of the
-  command line (without quotes).
-
-  Alternatively, an error may be occurring during the sync which is not being
-  shown in the output - please report this problem to the OpenSync mailing list
+  An error may be occurring during the sync which is not being shown in the 
+  output - please report this problem to the OpenSync mailing list 
   (opensync-users@lists.sourceforge.net). If you can, enable the OpenSync
   tracing feature and look through for any messages that include "ERROR".
 
@@ -132,12 +126,6 @@ Qtopia testing / support
 Opie SQLite PIM backend support
 
   Only Opie's XML (default) backend is currently supported.
-
-Note (memo) syncing support
-
-  This would probably be done by reading and writing text files from a set
-  location on the handheld (eg. the home directory) as Opie has a text editor
-  instead of a traditional notes application.
 
 UID mapping
 

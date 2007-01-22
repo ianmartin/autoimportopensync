@@ -1322,6 +1322,133 @@ error:
 }
 
 
+/** Convert Opie XML note (which is internal to the plugin, see opie_comms.c) to OpenSync XML note
+ * 
+ **/
+static osync_bool conv_opie_xml_note_to_xml_note(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+		
+	/* Get the root node of the input document */
+	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
+	if (!idoc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to read xml note");
+		goto error;
+	}
+	
+	xmlNode *icur = xmlDocGetRootElement(idoc);
+	if (!icur) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+		goto error;
+	}
+	
+	/* Create a new output xml document */
+	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *on_root = osxml_node_add_root(odoc, "Note");
+	
+	if(!strcasecmp(icur->name, "note"))
+	{
+		// Summary
+		char *value = xmlGetProp(icur, "name");
+		if(value) {
+			xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Summary", NULL);
+			xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)value);
+			xmlFree(value);
+		}
+		// Body
+		value = osxml_find_node(icur, "content");
+		if(value) {
+			xmlNode *on_curr = xmlNewTextChild( on_root, NULL, (xmlChar*)"Body", NULL);
+			xmlNewTextChild(on_curr, NULL, (xmlChar*)"Content", (xmlChar*)value);
+			xmlFree(value);
+		}
+	}
+
+	*free_input = TRUE;
+	*output = (char *)odoc;
+	*outpsize = sizeof(odoc);
+	
+	xmlFreeDoc(idoc);
+
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)odoc));
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+
+/** Convert OpenSync XML note to Opie XML note (which is internal to the plugin)
+ * 
+ **/
+static osync_bool conv_xml_note_to_opie_xml_note(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+{
+	xmlNode *icur;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
+							__func__, user_data, input, inpsize, output, 
+							outpsize, free_input, error);
+
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
+							osxml_write_to_string((xmlDoc *)input));
+	
+	/* Get the root node of the input document */
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, 
+										"Unable to get xml root element");
+		goto error;
+	}
+	
+	if (xmlStrcmp(root->name, (const xmlChar *)"Note")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, 
+										"Wrong xml root element");
+		goto error;
+	}
+
+	/* Create a new output xml document */
+	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
+	xmlNode *on_note = osxml_node_add_root(odoc, "note");
+	
+	/* Summary */
+	icur = osxml_get_node(root, "Summary");
+	if (icur) {
+		char *value = osxml_find_node(icur, "Content");
+		if(value) {
+			xmlSetProp(on_note, "name", value);
+			xmlFree(value);
+		}
+	}
+
+	/* Body */
+	icur = osxml_get_node(root, "Body");
+	if (icur) {
+		char *value = osxml_find_node(icur, "Content");
+		if(value) {
+			osxml_node_add(on_note, "content", value);
+			xmlFree(value);
+		}
+	}
+
+	*free_input = TRUE;
+	*output = xml_node_to_text(odoc, on_note);
+	*outpsize = strlen(*output);
+	
+	xmlFree(odoc);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+
+
 
 void get_info(OSyncEnv *env)
 {
@@ -1332,6 +1459,8 @@ void get_info(OSyncEnv *env)
 	osync_env_register_objformat(env, "todo", "opie-xml-todo");
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "opie-xml-event");
+	osync_env_register_objtype(env, "note");
+	osync_env_register_objformat(env, "note", "opie-xml-note");
 
 	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-contact", "xml-contact",      conv_opie_xml_contact_to_xml_contact);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact",      "opie-xml-contact", conv_xml_contact_to_opie_xml_contact);
@@ -1339,6 +1468,8 @@ void get_info(OSyncEnv *env)
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo",         "opie-xml-todo",    conv_xml_todo_to_opie_xml_todo);
 	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-event",   "xml-event",        conv_opie_xml_event_to_xml_event);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event",        "opie-xml-event",   conv_xml_event_to_opie_xml_event);
+	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-note",    "xml-note",         conv_opie_xml_note_to_xml_note);
+	osync_env_register_converter(env, CONVERTER_CONV, "xml-note",         "opie-xml-note",    conv_xml_note_to_opie_xml_note);
 }
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {

@@ -65,11 +65,16 @@ const char *OPIE_CALENDAR_FILE = "Applications/datebook/datebook.xml";
 const char *OPIE_CATEGORY_FILE = "Settings/Categories.xml";
 
 int opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
+int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream);
+int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream);
+int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream);
 gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch);
 gboolean scp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch);
 gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put);
 gboolean scp_put_files(OpieSyncEnv* env, GList* files_to_put);
+gboolean ftp_fetch_notes(OpieSyncEnv* env);
 
+int m_totalwritten;
 
 
 /* FIXME we aren't calling comms_init or comms_shutdown anywhere! */
@@ -393,6 +398,11 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 	cleanup_temp_files(files_to_fetch, tmpfilemode);
 	list_cleanup(files_to_fetch);
 	
+	if(object_types & OPIE_OBJECT_TYPE_NOTES) {
+		env->notes_doc = opie_xml_create_notes_doc();
+		ftp_fetch_notes(env);
+	}
+	
 	return rc;
 }
 
@@ -453,7 +463,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 			curl = curl_easy_init();
 			
 			curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
-			curl_easy_setopt(curl, CURLOPT_FILE, fd);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fd);
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_fwrite);
 			
 #ifdef _OPIE_PRINT_DEBUG
@@ -507,6 +517,219 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 	}
 	
   return rc; 
+}
+
+gboolean ftp_fetch_notes(OpieSyncEnv* env)
+{
+	gboolean rc = TRUE;
+	char* ftpurl = NULL;
+	CURL *curl = NULL;
+	CURLcode res;
+	int i;
+	gchar **direntries;
+
+	if (env->url && env->username && env->password )
+	{
+		char* separator_path;
+		if ( env->use_qcop ) 
+		{
+			char* root_path = qcop_get_root(env->qcopconn);
+			if(!root_path) {
+				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+				return FALSE;
+			}
+			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
+			separator_path = g_strdup_printf("%s/", root_path);
+			g_free(root_path);
+		} else {
+			separator_path = g_strdup( "/" );
+		}
+
+    ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s",
+			                         env->username,
+			                         env->password,
+			                         env->url,
+			                         env->device_port,
+			                         separator_path);
+			
+		/* curl init */
+		curl = curl_easy_init();
+		
+		GString *bufstr = g_string_new("");
+		curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, bufstr);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_strwrite);
+		
+		/* get the dir listing */
+		res = curl_easy_perform(curl);
+
+		/* Go through directory listing and find matching entries */
+		GPatternSpec *pspec = g_pattern_spec_new("*.txt");
+		direntries = g_strsplit(bufstr->str, "\n", 0);
+		g_string_free(bufstr, TRUE);
+		for(i=0; direntries[i] != NULL; i++) {
+			if(strlen(direntries[i]) > 20) { /* fairly arbitrary, but works to skip "total XXX" line without worrying about i18n */
+				if(direntries[i][0] == '-') { /* files only! */
+					char *ptr = g_strrstr(direntries[i], " ");
+					if(ptr) {
+						ptr++;
+						if(g_pattern_match_string(pspec, ptr)) {
+							GString *bufstr = g_string_new("");
+							char *ftpfileurl = g_strdup_printf("%s/%s", ftpurl, ptr);
+							curl_easy_setopt(curl, CURLOPT_URL, ftpfileurl);
+							curl_easy_setopt(curl, CURLOPT_WRITEDATA, bufstr);
+							res = curl_easy_perform(curl);
+							g_free(ftpfileurl);
+							/* Remove .txt from end of file name */
+							int len = strlen(ptr);
+							if(len > 4)
+								ptr[len-4] = 0;
+							opie_xml_add_note_node(env->notes_doc, ptr, direntries[i], bufstr->str);
+							g_string_free(bufstr, TRUE);
+						}
+					}
+				}
+			}
+		}
+		g_pattern_spec_free(pspec);
+		g_strfreev(direntries);
+		
+		if(res == CURLE_FTP_COULDNT_RETR_FILE || res == CURLE_FTP_ACCESS_DENIED)
+		{
+			/* This is not unlikely (eg. blank device). Note that Opie's FTP
+				server returns "access denied" on non-existent directory. */
+		}
+		else if(res != CURLE_OK) 
+		{
+			/* could not get the file */
+			fprintf(stderr, "FTP download failed (error %d)\n", res);
+			rc = FALSE;
+		}
+		else
+		{
+			OPIE_DEBUG("FTP ok\n");
+		}
+
+		g_free(ftpurl);
+		curl_easy_cleanup(curl);
+		g_free(separator_path);
+	}
+	else
+	{
+		/* not enough data provided to do the connection */
+		rc = FALSE; 
+	}
+	
+  return rc; 
+}
+
+gboolean ftp_put_notes(OpieSyncEnv* env)
+{
+	gboolean rc = TRUE;
+	CURL *curl;
+	CURLcode res;
+	char* separator_path;
+	char *ftpurl;
+	
+	if (env->url && env->username && env->password )
+	{
+		if ( env->use_qcop ) 
+		{
+			char* root_path = qcop_get_root(env->qcopconn);
+			if(!root_path) {
+				fprintf(stderr, "qcop_get_root: %s\n", env->qcopconn->resultmsg);
+				return FALSE;
+			}
+			osync_trace( TRACE_INTERNAL, "QCop root path = %s", root_path );
+			separator_path = g_strdup_printf("%s/", root_path);
+			g_free(root_path);
+		} else {
+			separator_path = g_strdup( "/" );
+		}
+		
+		xmlNode *node = opie_xml_get_first(env->notes_doc, "notes", "note");
+		while(node) {
+			char *changedflag = xmlGetProp(node, "changed");
+			if(changedflag) {
+				xmlFree(changedflag);
+				
+				char *notename = xmlGetProp(node, "name");
+				char *content = xmlNodeGetContent(node);
+				if(notename && content) {
+					curl = curl_easy_init();
+					
+					char *deletedflag = xmlGetProp(node, "deleted");
+					if(deletedflag) {
+						/* This note has been marked deleted, so delete it from the device */
+						xmlFree(deletedflag);
+						ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s",
+																		env->username,
+																		env->password,
+																		env->url,
+																		env->device_port,
+																		separator_path);
+						
+						struct curl_slist *cmdlist = NULL;
+						char *command = g_strdup_printf("DELE %s%s.txt", separator_path, notename);
+						cmdlist = curl_slist_append(cmdlist, command);
+						curl_easy_setopt(curl, CURLOPT_QUOTE, cmdlist);
+						curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, opie_curl_nullwrite);
+					}
+					else {
+						/* Changed note, upload it */
+						ftpurl = g_strdup_printf("ftp://%s:%s@%s:%u%s%s.txt",
+																		env->username,
+																		env->password,
+																		env->url,
+																		env->device_port,
+																		separator_path,
+																		notename);
+						
+						curl_easy_setopt(curl, CURLOPT_UPLOAD, TRUE);
+						curl_easy_setopt(curl, CURLOPT_READDATA, content);
+						curl_easy_setopt(curl, CURLOPT_READFUNCTION, opie_curl_strread);
+						m_totalwritten = 0;
+					}
+					
+					curl_easy_setopt(curl, CURLOPT_URL, ftpurl);
+#ifdef _OPIE_PRINT_DEBUG
+					curl_easy_setopt(curl, CURLOPT_VERBOSE, TRUE);
+#endif
+					res = curl_easy_perform(curl);
+					if(res != CURLE_OK) 
+					{
+						fprintf(stderr, "FTP notes upload failed (error %d)\n", res);
+						rc = FALSE;
+					}
+					else
+					{
+						OPIE_DEBUG("FTP notes upload ok\n");
+						rc = TRUE;
+					}
+					
+					/* cleanup */
+					curl_easy_cleanup(curl);
+					
+					g_free(ftpurl);
+					xmlFree(notename);
+					xmlFree(content);
+					
+					if(!rc)
+						break;
+				}
+			}
+			node = opie_xml_get_next(node);
+		}
+		
+		g_free(separator_path);
+	}
+	else
+	{
+		/* not enough data provided to do the connection */
+		rc = FALSE; 
+	}
+	
+	return rc; 
 }
 
 
@@ -626,7 +849,11 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 		list_cleanup(files_to_put);
 	}
 	else {
-		OPIE_DEBUG("No changes to write\n");
+		OPIE_DEBUG("OPIE: No address/todo/calendar changes to write\n");
+	}
+	
+	if(object_types & OPIE_OBJECT_TYPE_NOTES) {
+		ftp_put_notes(env);
 	}
 	
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
@@ -892,4 +1119,37 @@ int opie_curl_fwrite(void *buffer, size_t size, size_t nmemb, void *stream)
 	return written; 
 }
 
+/*
+ * opie_curl_strwrite
+ */
+int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream)
+{
+	g_string_append_len((GString *)stream, buffer, size * nmemb);
+	return size * nmemb;
+}
 
+/*
+ * opie_curl_nullwrite
+ */
+int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream)
+{
+	return size * nmemb;
+}
+
+/*
+ * opie_curl_strread
+ */
+int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream)
+{
+	char *str = ((char *)stream) + m_totalwritten;
+	if(str[0] == '\0')
+		return 0;
+	
+	int numbytes = strlen(str);
+	if(numbytes >= (nmemb * size))
+		numbytes = (nmemb * size);
+	memcpy(buffer, str, numbytes);
+	
+	m_totalwritten += numbytes;
+	return numbytes;
+}

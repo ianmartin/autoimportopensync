@@ -64,6 +64,7 @@ struct OpieSyncEnv {
 	xmlDoc*           contacts_doc;
 	xmlDoc*           todos_doc;
 	xmlDoc*           categories_doc;
+	xmlDoc*           notes_doc;
 
 	GTree*            uid_map;
 	

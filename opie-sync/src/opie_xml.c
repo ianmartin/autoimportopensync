@@ -136,6 +136,10 @@ xmlNode *opie_xml_add_node(xmlDoc *doc, const char *listelement, xmlNode *new_no
 		goto error;
 	}
 	
+	if(!strcasecmp("note", new_copy->name)) {
+		xmlSetProp(new_copy, "changed", "1");
+	}
+	
 	if(!xmlAddChild(collection_node, new_copy)) {
 		osync_trace(TRACE_INTERNAL, "Unable to add node to document");
 		xmlFreeNode(new_copy);
@@ -163,6 +167,10 @@ xmlNode *opie_xml_update_node(xmlDoc *doc, const char *listelement, xmlNode *new
 		goto error;
 	}
 	
+	if(!strcasecmp("note", new_copy->name)) {
+		xmlSetProp(new_copy, "changed", "1");
+	}
+	
 	xmlReplaceNode(node, new_copy);
 	
 	return new_copy;
@@ -178,8 +186,15 @@ void opie_xml_remove_by_uid(xmlDoc *doc, const char *listelement, const char *it
 		return;
 	}
 	
-	xmlUnlinkNode(node);
-	xmlFreeNode(node);
+	if(!strcasecmp("note", itemelement)) {
+		/* We just mark notes as deleted and then delete them later */
+		xmlSetProp(node, "changed", "1");
+		xmlSetProp(node, "deleted", "1");
+	}
+	else {	
+		xmlUnlinkNode(node);
+		xmlFreeNode(node);
+	}
 }
 
 xmlDoc *opie_xml_change_parse(const char *change_data, xmlNode **node) {
@@ -296,6 +311,10 @@ char *opie_xml_get_uid(xmlNode *node) {
 	if(!strcasecmp(node->name, "event")) {
 		uidattr = "uid";
 	}
+	else if(!strcasecmp(node->name, "note")) {
+		/* Notes don't have a UID on the Opie side, but the name should be unique */
+		uidattr = "name";
+	}
 	else if(!strcasecmp(node->name, "Category")) {
 		uidattr = "id";
 	}
@@ -310,6 +329,10 @@ void opie_xml_set_uid(xmlNode *node, const char *uid) {
 	char *uidattr;
 	if(!strcasecmp(node->name, "event")) {
 		uidattr = "uid";
+	}
+	else if(!strcasecmp(node->name, "note")) {
+		/* Notes don't have a UID on the Opie side, but the name should be unique */
+		uidattr = "name";
 	}
 	else if(!strcasecmp(node->name, "Category")) {
 		uidattr = "id";
@@ -531,4 +554,58 @@ xmlDoc *opie_xml_create_categories_doc(void) {
 	xmlDocSetRootElement(doc, root);
 	
 	return doc;
+}
+
+xmlDoc *opie_xml_create_notes_doc(void) {
+	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
+	if(!doc) {
+		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
+		return FALSE;
+	}
+	
+	xmlNode *root = xmlNewNode(NULL, "notes");
+	xmlDocSetRootElement(doc, root);
+	
+	return doc;
+}
+
+xmlNode *opie_xml_add_note_node(xmlDoc *doc, char *name, char *direntry, char *content) {
+	xmlNode *notes_node = opie_xml_get_collection(doc, "notes");
+	if(!notes_node) {
+		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
+		return FALSE;
+	}
+	xmlNode *note_node = xmlNewTextChild(notes_node, NULL, (xmlChar*)"note", NULL);
+	
+/* FIXME this needs implementing
+		
+	char *month = NULL;
+	char *time = NULL;
+	int year = 0;
+	
+	// Compress out extra whitespace
+	GString *buffer = g_string_new("");
+	char *ptr;
+	int spacecount = 0;
+	int fieldcount = 0;
+	for(ptr=direntry; *ptr != 0; ptr++) {
+		if(g_ascii_isspace(ptr)) {
+			if(spacecount == 0) {
+				if(fieldcount == 5)
+					
+				g_string_truncate(buffer, 0);
+				fieldcount++;
+			}
+			spacecount++;
+		}
+		else {
+			spacecount = 0;
+			g_string_append_c(buffer, *ptr);
+		}
+	}
+*/	
+	xmlSetProp(note_node, (xmlChar*)"name", name);
+	xmlNewTextChild(note_node, NULL, (xmlChar*)"content", content);
+	
+	return note_node;
 }

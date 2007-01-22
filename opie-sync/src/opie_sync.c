@@ -26,7 +26,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_comms.h"
 #include "opie_xml.h"
 
-
 void uidmap_read(OpieSyncEnv *env);
 void uidmap_write(OpieSyncEnv *env);
 void uidmap_free(OpieSyncEnv *env);
@@ -380,6 +379,8 @@ static osync_bool opie_sync_item_commit(OSyncContext *ctx, OSyncChange *change,
 				const char *uidentry = uidmap_get_mapped_uid(env, ext_uid);
 				if(uidentry)
 					opie_uid = g_strdup(uidentry);
+				else if(!strcmp(itemelement, "note"))
+					opie_uid = g_strdup(ext_uid);
 				else
 					opie_uid = opie_xml_strip_uid(ext_uid, itemelement);
 			}
@@ -427,6 +428,12 @@ static osync_bool opie_sync_event_commit(OSyncContext *ctx, OSyncChange *change)
 	return opie_sync_item_commit(ctx, change, env->calendar_doc, "events", "event");
 }
 
+static osync_bool opie_sync_note_commit(OSyncContext *ctx, OSyncChange *change)
+{
+	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
+	return opie_sync_item_commit(ctx, change, env->notes_doc, "notes", "note");
+}
+
 
 static void opie_sync_disconnect( OSyncContext* ctx)
 {
@@ -460,20 +467,23 @@ static OSyncChange *opie_sync_item_change_create(OpieSyncEnv *env, xmlDoc *doc, 
 	
 	const char *uidentry = NULL;
 	char *opie_uid = opie_xml_get_uid(node);
-	if(opie_uid)
+	if(opie_uid) {
 		uidentry = uidmap_get_mapped_uid(env, opie_uid);
-	if(uidentry)
-		osync_change_set_uid(change, uidentry);
-	else {
-		char *full_uid = opie_xml_get_tagged_uid(node);
-		if(opie_uid) {
-			uidmap_addmapping(env, opie_uid, full_uid);
-			uidmap_addmapping(env, full_uid, opie_uid);
+		if(uidentry)
+			osync_change_set_uid(change, uidentry);
+		else if(!strcasecmp(node->name, "note"))
+			osync_change_set_uid(change, opie_uid);
+		else {
+			char *full_uid = opie_xml_get_tagged_uid(node);
+			if(opie_uid) {
+				uidmap_addmapping(env, opie_uid, full_uid);
+				uidmap_addmapping(env, full_uid, opie_uid);
+			}
+			osync_change_set_uid(change, full_uid);
+			g_free(full_uid);
 		}
-		osync_change_set_uid(change, full_uid);
-		g_free(full_uid);
+		g_free(opie_uid);
 	}
-	g_free(opie_uid);
 	
 	char *nodetext = xml_node_to_text(doc, node);
 	printf("OPIE: uid %s\n", osync_change_get_uid(change)); 
@@ -494,6 +504,8 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
+
+
 
 static osync_bool opie_sync_item_get_changeinfo(OSyncContext *ctx, OSyncError **error, 
 		const char *objtype, const char *objformat, 
@@ -565,6 +577,8 @@ static void opie_sync_get_changeinfo( OSyncContext* ctx )
 		goto error;
 	if (!opie_sync_item_get_changeinfo(ctx, &error, "event",   "opie-xml-event",   env->calendar_doc, "events",   "event"))
 		goto error;
+	if (!opie_sync_item_get_changeinfo(ctx, &error, "note",    "opie-xml-note",    env->notes_doc,    "notes",    "note"))
+		goto error;
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -600,9 +614,14 @@ char *uidmap_set_node_uid(OpieSyncEnv *env, xmlNode *node, xmlDoc *doc,
 		opie_uid = g_strdup(uidentry);
 	}
 	else {
-		opie_uid = opie_xml_set_ext_uid(node, doc, listelement, itemelement, ext_uid);
-		uidmap_addmapping(env, opie_uid, ext_uid);
-		uidmap_addmapping(env, ext_uid, opie_uid);
+		if(!strcmp(node->name,"note")) {
+			opie_uid = g_strdup(ext_uid);
+		}
+		else {
+			opie_uid = opie_xml_set_ext_uid(node, doc, listelement, itemelement, ext_uid);
+			uidmap_addmapping(env, opie_uid, ext_uid);
+			uidmap_addmapping(env, ext_uid, opie_uid);
+		}
 	}
 	return opie_uid;
 }
@@ -711,4 +730,7 @@ void get_info(OSyncEnv* env )
 	osync_plugin_accept_objtype(info, "event");
 	osync_plugin_accept_objformat(info, "event", "opie-xml-event", NULL);
 	osync_plugin_set_commit_objformat(info, "event",   "opie-xml-event",   opie_sync_event_commit);
+	osync_plugin_accept_objtype(info, "note");
+	osync_plugin_accept_objformat(info, "note", "opie-xml-note", NULL);
+	osync_plugin_set_commit_objformat(info, "note",   "opie-xml-note",     opie_sync_note_commit);
 }
