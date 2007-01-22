@@ -26,7 +26,7 @@ username
   User name to log into the device as (default root).
 
 password
-  Password to log into the device with (default Qtopia).
+  Password to log into the device with (default rootme).
 
 device
   Device type being connected to:
