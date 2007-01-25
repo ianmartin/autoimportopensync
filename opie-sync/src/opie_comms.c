@@ -358,23 +358,29 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 				switch(pair->resource_type) {
 					case OPIE_OBJECT_TYPE_PHONEBOOK:
 						doc = &env->contacts_doc;
-						if(pair->local_fd <= 0)
-							*doc = opie_xml_create_contacts_doc(); 
+						if(pair->local_fd <= 0) {
+							osync_member_set_slow_sync(env->member, "contact", TRUE);
+							*doc = opie_xml_create_contacts_doc();
+						}
 						break;
 					case OPIE_OBJECT_TYPE_TODO:
 						doc = &env->todos_doc;
-						if(pair->local_fd <= 0)
-							*doc = opie_xml_create_todos_doc(); 
+						if(pair->local_fd <= 0) {
+							osync_member_set_slow_sync(env->member, "todo", TRUE);
+							*doc = opie_xml_create_todos_doc();
+						}
 						break;
 					case OPIE_OBJECT_TYPE_CALENDAR:
 						doc = &env->calendar_doc;
-						if(pair->local_fd <= 0)
-							*doc = opie_xml_create_calendar_doc(); 
+						if(pair->local_fd <= 0) {
+							osync_member_set_slow_sync(env->member, "event", TRUE);
+							*doc = opie_xml_create_calendar_doc();
+						}
 						break;
 					case OPIE_OBJECT_TYPE_CATEGORIES:
 						doc = &env->categories_doc;
 						if(pair->local_fd <= 0)
-							*doc = opie_xml_create_categories_doc(); 
+							*doc = opie_xml_create_categories_doc();
 						break;
 					default:
 						osync_trace( TRACE_INTERNAL, "unrecognised resource type %d", pair->resource_type );
@@ -398,9 +404,23 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 	cleanup_temp_files(files_to_fetch, tmpfilemode);
 	list_cleanup(files_to_fetch);
 	
+	/* Notes */
 	if(object_types & OPIE_OBJECT_TYPE_NOTES) {
 		env->notes_doc = opie_xml_create_notes_doc();
-		ftp_fetch_notes(env);
+		switch (env->conn_type)
+		{
+			case OPIE_CONN_NONE:
+				/* FIXME to be implemented */
+				break;
+				
+			case OPIE_CONN_FTP:
+				rc = ftp_fetch_notes(env);
+				break;
+				
+			case OPIE_CONN_SCP:
+				/* FIXME to be implemented */
+				break;
+		}
 	}
 	
 	return rc;
@@ -853,7 +873,20 @@ gboolean opie_connect_and_put( OpieSyncEnv* env,
 	}
 	
 	if(object_types & OPIE_OBJECT_TYPE_NOTES) {
-		ftp_put_notes(env);
+		switch (env->conn_type)
+		{
+			case OPIE_CONN_NONE:
+				/* FIXME to be implemented */
+				break;
+				
+			case OPIE_CONN_FTP:
+				rc = ftp_put_notes(env);
+				break;
+				
+			case OPIE_CONN_SCP:
+				/* FIXME to be implemented */
+				break;
+		}
 	}
 	
 	osync_trace(TRACE_EXIT, "%s(%d)", __func__, rc );
