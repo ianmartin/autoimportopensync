@@ -489,7 +489,7 @@ static OSyncChange *opie_sync_item_change_create(OpieSyncEnv *env, xmlDoc *doc, 
 	printf("OPIE: uid %s\n", osync_change_get_uid(change)); 
 	printf("OPIE: change xml = %s\n", nodetext); 
 	
-	unsigned char *hash = hash_str(nodetext);
+	unsigned char *hash = hash_xml_node(doc, node);
 	osync_change_set_hash(change, hash);
 	g_free(hash);
 	

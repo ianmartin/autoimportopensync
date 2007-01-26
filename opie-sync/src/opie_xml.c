@@ -32,6 +32,17 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <string.h>
 
+gint gslist_sort_attr(gconstpointer a, gconstpointer b) {
+	if(a && b)
+		return strcmp(((const struct _xmlAttr *)a)->name, ((const struct _xmlAttr *)b)->name);
+	else if(a)
+		return 1;
+	else if(b)
+		return -1;
+	else
+		return 0;
+}
+
 
 xmlDoc *opie_xml_fd_open(int fd) {
 	xmlDoc *doc = xmlReadFd(fd, "/", NULL, 0);
@@ -223,12 +234,73 @@ char *hash_str(const char *str) {
 char *hash_xml_node(xmlDoc *doc, xmlNode *node) {
 	unsigned char* t_hash;
 	xmlBufferPtr bufptr;
+	char *uidattrname;
+	struct _xmlAttr *iprop;
+	int iscontact;
 	
-	bufptr = xmlBufferCreate();
-	xmlNodeDump(bufptr, doc, node, 0, 0);
-	const char *bufstr = xmlBufferContent(bufptr);
-	t_hash = hash_str(bufstr);
-	xmlBufferFree(bufptr);
+	if(!strcasecmp(node->name, "note")) {
+		/* For notes we just hash the content only */
+		char *content = (char*)xmlNodeGetContent(node);
+		if(content) {
+			t_hash = hash_str(content);
+			xmlFree(content);
+		}
+		else
+			t_hash = hash_str("");
+	}
+	else {
+		/* Copy the attributes into a list, inserting them in sort order.
+		   we also discard some attributes we don't want */
+		
+		GSList *attrlist = NULL;
+		GSList *attrlistptr = NULL;
+		
+		uidattrname = opie_xml_get_uidattr(node);
+		iscontact = !strcasecmp(node->name, "Contact");
+		for (iprop = node->properties; iprop; iprop=iprop->next) {
+			if (iprop->children && iprop->children->content) {
+				if((!iscontact || strcasecmp(iprop->name, "opie-contactfield-order"))
+								 && strcasecmp(iprop->name, uidattrname)) {
+					attrlist = g_slist_insert_sorted(attrlist, iprop, gslist_sort_attr);
+				}
+			}
+		}
+		
+		if(attrlist) {
+			/* List is sorted, now create a node and put them into it.
+			  Clearly this is a lot of effort to go to, but I wanted to produce
+			  the same results as if the node was produced by libxml2, and what
+			  better way than just doing exactly that? */
+			xmlDoc *dummydoc = xmlNewDoc((xmlChar*)"1.0");
+			xmlNode *dummyroot = xmlNewNode(NULL, "Temp");
+			xmlDocSetRootElement(dummydoc, dummyroot);
+			xmlNode *dupnode = xmlNewTextChild( dummyroot, NULL, node->name, NULL);
+			
+			attrlistptr = attrlist;
+			while(attrlistptr) {
+				iprop = (struct _xmlAttr *)(attrlistptr->data);
+				xmlSetProp(dupnode, iprop->name, iprop->children->content);
+				attrlistptr = g_slist_next(attrlistptr);
+			}
+			g_slist_free(attrlist);
+			
+			/* Put the node into a buffer in order to get it as a string */
+			bufptr = xmlBufferCreate();
+			if(!bufptr) {
+				osync_trace(TRACE_INTERNAL, "hash_xml_node: unable to create buffer");
+				return NULL;
+			}
+			xmlNodeDump(bufptr, doc, dupnode, 0, 0);
+			const char *bufstr = xmlBufferContent(bufptr);
+			/* Calculate the hash */
+			t_hash = hash_str(bufstr);
+			xmlBufferFree(bufptr);
+			
+			xmlFreeDoc(dummydoc);
+		}
+		else
+			t_hash = hash_str("");
+	}
 
 	return t_hash;
 }
@@ -306,8 +378,9 @@ char *opie_xml_get_tagged_uid(xmlNode *node) {
 	}
 }
 
-char *opie_xml_get_uid(xmlNode *node) {
+char *opie_xml_get_uidattr(xmlNode *node) {
 	char *uidattr;
+	
 	if(!strcasecmp(node->name, "event")) {
 		uidattr = "uid";
 	}
@@ -321,25 +394,16 @@ char *opie_xml_get_uid(xmlNode *node) {
 	else {
 		uidattr = "Uid";
 	}
-	
+	return uidattr;
+}
+
+char *opie_xml_get_uid(xmlNode *node) {
+	char *uidattr = opie_xml_get_uidattr(node);
 	return xmlGetProp(node, uidattr);
 }
 
 void opie_xml_set_uid(xmlNode *node, const char *uid) {
-	char *uidattr;
-	if(!strcasecmp(node->name, "event")) {
-		uidattr = "uid";
-	}
-	else if(!strcasecmp(node->name, "note")) {
-		/* Notes don't have a UID on the Opie side, but the name should be unique */
-		uidattr = "name";
-	}
-	else if(!strcasecmp(node->name, "Category")) {
-		uidattr = "id";
-	}
-	else {
-		uidattr = "Uid";
-	}
+	char *uidattr = opie_xml_get_uidattr(node);
 	xmlSetProp(node, uidattr, uid);
 }
 
