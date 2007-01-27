@@ -394,6 +394,18 @@ START_TEST (conv_test_crash)
 }
 END_TEST
 
+START_TEST (conv_test_utf8_wrap)
+{
+	conv_vcal("data/vevents/utf8_wrap");
+}
+END_TEST
+
+START_TEST (conv_test_qp_wrap)
+{
+	conv_vcal("data/vevents/qp_wrap");
+}
+END_TEST
+
 Suite *vcal_suite(void)
 {
 	Suite *s = suite_create("VCal");
@@ -441,6 +453,8 @@ Suite *vcal_suite(void)
 	create_case(s, "todo_get_revision3", todo_get_revision3);
 	create_case(s, "todo_no_revision", todo_no_revision);
 	create_case(s, "conv_test_crash", conv_test_crash);
+	create_case(s, "conv_test_utf8_wrap", conv_test_utf8_wrap);
+	create_case(s, "conv_test_qp_wrap", conv_test_qp_wrap);
 	
 	
 	
