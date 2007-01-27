@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <config>
-  <!-- (Only for blue) The bluetooth address if the bluetooth mode is selected -->
+  <!-- (Only for bluetooth) The bluetooth address if the bluetooth mode is selected -->
   <bluetooth_address></bluetooth_address>
   
-  <!-- (Only for blue) The bluetooth channel to use (usualy the 11) [x] -->
+  <!-- (Only for bluetooth) The bluetooth channel to use. `sdptool browse $MAC` to search for the correct channel -->
   <bluetooth_channel></bluetooth_channel>
   
-  <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (as root!) to find it. -->
+  <!-- (Only for USB) The usb interface number of the SYNCML-SYNC target. use syncml-obex-client -u (you will need access to the USB raw device) to find it. -->
   <interface>0</interface>
   
   <!-- The string that the plugin will use to identify itself. Some devices need a special string here. -->
@@ -16,7 +16,7 @@
   <version>1</version>
   
   <!-- if the plugin should use wbxml -->
-  <wbxml>0</wbxml>
+  <wbxml>1</wbxml>
   
   <!-- The username to use. Leave empty to not require a username -->
   <username></username>
@@ -25,7 +25,7 @@
   <password></password>
   
   <!-- sets the connection type to use. 5 means obex over usb, 2 means obex over bluetooth -->
-  <type>5</type>
+  <type>2</type>
   
   <!-- If wbxml is enabled, defines wether the wbxml should use string tables -->
   <usestringtable>0</usestringtable>
@@ -42,11 +42,11 @@
   <maxObjSize>0</maxObjSize>
   
   <!-- The name of the contacts db. Must be the same as the phones sends -->
-  <contact_db>contacts</contact_db>
+  <contact_db>Contacts</contact_db>
   
   <!-- The name of the calendar db. Must be the same as the phones sends -->
-  <calendar_db>calendar</calendar_db>
+  <calendar_db>Calendar</calendar_db>
   
   <!-- The name of the note db. Must be the same as the phones sends -->
-  <note_db>notes</note_db>
+  <note_db>Notes</note_db>
 </config>
