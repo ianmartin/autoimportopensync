@@ -75,6 +75,8 @@ START_TEST (capabilities_sort)
 	
 	osync_capabilities_unref(capabilities);
 
+	g_free(buffer);
+
 	destroy_testbed(testbed);
 }
 END_TEST

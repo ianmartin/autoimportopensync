@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<event>
+  <Alarm Value="DATE-TIME">
+    <AlarmAction>DISPLAY</AlarmAction>
+    <AlarmRepeat>2</AlarmRepeat>
+    <AlarmTrigger>20070120T230000Z</AlarmTrigger>
+  </Alarm>
+  <Attendee>
+    <Content>MAILTO:nobody@localhost</Content>
+  </Attendee>
+  <Categories>
+    <Category>BLUBB</Category>
+    <Category>BLOBB</Category>
+  </Categories>
+  <Class>
+    <Content>PUBLIC</Content>
+  </Class> 
+  <Comment>
+    <Content>No Comment!</Content>
+  </Comment>  
+  <Contact>
+    <Content>Maxfeldstr. 5, Nueremberg</Content>
+  </Contact>  
+  <Created>
+    <Content>20070120T155900Z</Content>
+  </Created>
+  <DateEnd>
+    <Content>20060120T155800Z</Content>
+  </DateEnd>  
+  <DateCalendarCreated>
+    <Content>20070120T130000Z</Content>
+  </DateCalendarCreated>
+  <DateStarted TimezoneID="Europe/Berlin">
+    <Content>20070101T100000Z</Content>
+  </DateStarted>
+  <Description>
+    <Content>Nothing to describe....</Content>
+  </Description>
+  <Duration>
+    <Weeks>2</Weeks>
+    <Days>1</Days>
+    <Hours>2</Hours>
+    <Minutes>15</Minutes>
+    <Seconds>30</Seconds>
+  </Duration>
+  <Geo>
+    <Latitude>90</Latitude>
+    <Longitude>-179.12</Longitude>
+  </Geo>
+  <Resources>
+    <Content>N-SX 324</Content>
+  </Resources>
+  <RecurrenceRule>
+    <Content>WEEKLY</Content>
+  </RecurrenceRule>
+  <RStatus>
+    <StatusCode>1.1</StatusCode>
+    <StatusDescription>Nearly Ready</StatusDescription>
+    <ExceptionData>alsdjfkaj</ExceptionData>
+  </RStatus>
+  <Sequence>
+    <Content>1</Content>
+  </Sequence>
+  <Status>
+    <Content>CONFIRMED</Content>
+  </Status>
+  <Summary>
+    <Content>Pure evil test</Content>
+  </Summary>  
+  <TimeTransparency>
+    <Content>OPAQUE</Content>
+  </TimeTransparency>
+  <Uid>
+    <Content>23kj4lkj8fdu</Content>
+  </Uid>
+  <Url>
+    <Content>http://www.opensync.org</Content>
+  </Url>
+</event>

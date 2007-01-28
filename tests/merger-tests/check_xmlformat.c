@@ -3,6 +3,7 @@
 #include <opensync/opensync-merger.h>
 
 #include "formats/vformats-xml/vformat.c"
+#include "formats/vformats-xml/xmlformat.c"
 #include "formats/vformats-xml/xmlformat-vcard.c"
 
 START_TEST (xmlformat_new)
@@ -134,6 +135,69 @@ START_TEST (xmlformat_validate)
 }
 END_TEST
 
+START_TEST (xmlformat_compare)
+{
+	char *testbed = setup_testbed("vcards");
+
+	char *buffer;
+	unsigned int size;
+	osync_bool free_input, ret;
+	OSyncError *error = NULL;
+	OSyncXMLFormat *xmlformat;
+	OSyncXMLFormat *xmlformat2;
+
+
+	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
+	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(ret == TRUE, NULL);
+	fail_unless(error == NULL, NULL);
+
+	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat2, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(ret == TRUE, NULL);
+	fail_unless(error == NULL, NULL);
+
+	if(free_input)
+		g_free(buffer);
+
+        char* keys_content[] =  {"Content", NULL};
+        char* keys_name[] = {"FirstName", "LastName", NULL};
+        OSyncXMLPoints points[] = {
+                {"Name",                90,     keys_name},
+                {"Telephone",   10,     keys_content},
+                {"EMail",               10,     keys_content},
+                {NULL}
+        };
+
+        osync_xmlformat_compare(xmlformat, xmlformat2, points, 0, 100);
+
+	osync_xmlformat_unref(xmlformat);
+	osync_xmlformat_unref(xmlformat2);
+
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (xmlformat_event_schema)
+{
+	char *testbed = setup_testbed("xmlformats");
+	char *buffer;
+	unsigned int size;
+	OSyncError *error = NULL;
+
+	fail_unless(osync_file_read("event.xml", &buffer, (unsigned int *)&size, &error), NULL);
+	fail_unless(error == NULL, NULL);
+
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_xmlformat_validate(xmlformat) != FALSE, NULL);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+
 Suite *xmlformat_suite(void)
 {
 	Suite *s = suite_create("XMLFormat");
@@ -143,6 +207,10 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlformat_sort", xmlformat_sort);
 	create_case(s, "xmlformat_search_field", xmlformat_search_field);
 	create_case(s, "xmlformat_validate", xmlformat_validate);
+	create_case(s, "xmlformat_compare", xmlformat_compare);
+	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);
+
+
 	return s;
 }
 
