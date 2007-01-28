@@ -85,6 +85,41 @@ OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute 
 	return handle_attribute_simple_content(xmlformat, attr, "Url", error);
 }
 
+/**** XML Attributes ****/
+VFormatAttribute *handle_xml_attribute_simple_content(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding)
+{
+	osync_assert(vformat);
+	osync_assert(xmlfield);
+	osync_assert(name);
+
+	osync_trace(TRACE_INTERNAL, "Handling \"%s\" xml attribute", name);
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	add_values(attr, xmlfield, encoding);
+	vformat_add_attribute(vformat, attr);
+	return attr;
+}
+
+VFormatAttribute *handle_xml_categories_attribute(VFormat *vformat, OSyncXMLField *xmlfield, const char *encoding)
+{
+	return handle_xml_attribute_simple_content(vformat, xmlfield, "CATEGORIES", encoding);
+}
+
+VFormatAttribute *handle_xml_class_attribute(VFormat *vformat, OSyncXMLField *xmlfield, const char *encoding)
+{
+	return handle_xml_attribute_simple_content(vformat, xmlfield, "CLASS", encoding);
+}
+
+VFormatAttribute *handle_xml_uid_attribute(VFormat *vformat, OSyncXMLField *xmlfield, const char *encoding)
+{
+	return handle_xml_attribute_simple_content(vformat, xmlfield, "UID", encoding);
+}
+
+VFormatAttribute *handle_xml_url_attribute(VFormat *vformat, OSyncXMLField *xmlfield, const char *encoding)
+{
+	return handle_xml_attribute_simple_content(vformat, xmlfield, "URL", encoding);
+}
+
+/*** Encoding helpers ************/
 osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
 {
 	int i = 0;
@@ -111,6 +146,7 @@ osync_bool needs_charset(const unsigned char *tmp)
 	return FALSE;
 }
 
+/* Attribute helpers */
 void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name, const char *encoding)
 {
 	osync_assert(xmlfield);
@@ -361,21 +397,21 @@ void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncX
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
+void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLField *xmlfield, const char *encoding)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vcard, xmlfield, xmlfield ? osync_xmlfield_get_name(xmlfield) : "None");
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vformat, xmlfield, xmlfield ? osync_xmlfield_get_name(xmlfield) : "None");
 	
 	VFormatAttribute *attr = NULL;
 	
 	//We need to find the handler for this attribute
-	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, OSyncXMLField *xmlfield, const char *) = g_hash_table_lookup(hooks->attributes, osync_xmlfield_get_name(xmlfield));
+	VFormatAttribute *(* xml_attr_handler)(VFormat *vformat, OSyncXMLField *xmlfield, const char *) = g_hash_table_lookup(hooks->attributes, osync_xmlfield_get_name(xmlfield));
 	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
 	if (xml_attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
 		return;
 	}
 	if (xml_attr_handler)
-		attr = xml_attr_handler(vcard, xmlfield, encoding);
+		attr = xml_attr_handler(vformat, xmlfield, encoding);
 	else {
 		osync_trace(TRACE_EXIT, "%s: Ignored2", __func__);
 		return;

@@ -45,11 +45,19 @@ typedef struct OSyncHookTables {
 /*** PARAMETER ***/
 void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
+/** VFormat Attributes **/
 OSyncXMLField *handle_attribute_simple_content(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error); 
 OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_uid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
+
+/** XML Attributes **/
+VFormatAttribute *handle_xml_attribute_simple_content(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding);
+VFormatAttribute *handle_xml_categories_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
+VFormatAttribute *handle_xml_class_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
+VFormatAttribute *handle_xml_uid_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
+VFormatAttribute *handle_xml_url_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
 
 osync_bool needs_encoding(const unsigned char *tmp, const char *encoding);
 osync_bool needs_charset(const unsigned char *tmp);

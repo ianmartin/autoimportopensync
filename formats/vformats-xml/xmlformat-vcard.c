@@ -1276,24 +1276,6 @@ static VFormatAttribute *handle_xml_blog_url_x_evolution_attribute(VFormat *vcar
 	return attr;
 }
 
-static VFormatAttribute *handle_xml_categories_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling categories xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "CATEGORIES");
-	add_values(attr, xmlfield, encoding);
-	vformat_add_attribute(vcard, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_class_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling class xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "CLASS");
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vcard, attr);
-	return attr;
-}
-
 static VFormatAttribute *handle_xml_calendar_url_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling calendar_url xml attribute");
@@ -1672,15 +1654,6 @@ static VFormatAttribute *handle_xml_title_attribute(VFormat *vcard, OSyncXMLFiel
 	return attr;
 }
 
-static VFormatAttribute *handle_xml_uid_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling uid xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "UID");
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vcard, attr);
-	return attr;
-}
-
 //static VFormatAttribute *handle_xml_unknown_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
 //{
 //	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", osync_xmlfield_get_name(xmlfield));
@@ -1690,15 +1663,6 @@ static VFormatAttribute *handle_xml_uid_attribute(VFormat *vcard, OSyncXMLField 
 //	vformat_add_attribute(vcard, attr);
 //	return attr;
 //}
-
-static VFormatAttribute *handle_xml_url_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling url xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "URL");
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vcard, attr);
-	return attr;
-}
 
 static VFormatAttribute *handle_xml_video_url_x_evolution_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
 {
