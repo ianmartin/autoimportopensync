@@ -113,6 +113,9 @@ osync_bool needs_charset(const unsigned char *tmp)
 
 void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name, const char *encoding)
 {
+	osync_assert(xmlfield);
+	osync_assert(name);
+
 	const char *tmp = osync_xmlfield_get_key_value(xmlfield, name);
 	
 	if (!tmp) {
