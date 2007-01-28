@@ -29,7 +29,72 @@ AC_SUBST(OPENSYNC_PLUGINDIR) ## This is the dir where you plugin will be install
 AC_SUBST(OPENSYNC_FORMATSDIR) ## Here are format plugins installed (if any)
 AC_SUBST(OPENSYNC_HEADERDIR) ## Here are the headers that a user interface may need (if any)
 
+
+#### Check for libsoup ####
+AC_ARG_ENABLE(http, AC_HELP_STRING([--disable-http],[disable http support]),enable_http=$enableval, enable_http=auto)
+
+if test x$enable_http != xno; then
+	PKG_CHECK_MODULES(LIBSOUP, libsoup-2.2 >= 2.2.91, HAVE_LIBSOUP=yes, HAVE_LIBSOUP=no)
+	if test "x${HAVE_LIBSOUP}" = "xyes"; then
+		AC_SUBST(LIBSOUP_CFLAGS)
+		AC_SUBST(LIBSOUP_LIBS)
+		ENABLE_HTTP=yes
+		AC_SUBST(ENABLE_HTTP)
+		AC_DEFINE(ENABLE_HTTP,1,[Http support])
+	else
+		AC_MSG_ERROR("Libsoup not found")
+	fi
+else
+	ENABLE_HTP=no
+fi
+AM_CONDITIONAL(ENABLE_HTTP, test x$HAVE_LIBSOUP = xyes)
+
+
+#### Check for openobex ####
+AC_ARG_ENABLE(obex, AS_HELP_STRING([--disable-obex],[diable obex support]),enable_obex=$enableval, enable_obex=auto)
+
+if test x$enable_obex != xno; then
+	PKG_CHECK_MODULES(LIBOPENOBEX, openobex >= 1.1, HAVE_OPENOBEX=yes, HAVE_OPENOBEX=no)
+	if test "x${HAVE_OPENOBEX}" = "xyes"; then
+                AC_SUBST(LIBOPENOBEX_CFLAGS)
+                AC_SUBST(LIBOPENOBEX_LIBS)
+                ENABLE_OBEX=yes
+                AC_SUBST(ENABLE_OBEX)
+                AC_DEFINE(ENABLE_OBEX,1,[Obex support])
+	else
+                AC_MSG_ERROR("OpenObex not found")
+	fi
+else
+	ENABLE_OBEX=no
+fi
+AM_CONDITIONAL(ENABLE_OBEX, test x$HAVE_OPENOBEX = xyes)
+
+
+#### plausibility check ####
+if test "x$ENABLE_HTTP" != "xyes"; then
+	if test "x$ENABLE_OBEX" != "xyes"; then
+		AC_MSG_ERROR("No transport protocol activated. Please enable http and/or obex support.")
+	fi
+fi
+
+
 AC_OUTPUT([
 Makefile
 src/Makefile
 ])
+
+
+echo
+echo =========================
+echo supported transports:
+if test "x$ENABLE_HTTP" = "xyes"; then
+    echo http support is ENABLED.
+else
+    echo http support is DISABLED.
+fi
+if test "x$ENABLE_OBEX" = "xyes"; then
+    echo obex support is ENABLED.
+else
+    echo obex support is DISABLED.
+fi
+echo =========================
