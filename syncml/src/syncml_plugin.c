@@ -405,7 +405,7 @@ static void _verify_user(SmlAuthenticator *auth, const char *username, const cha
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, *reply);
 }
 
-#if ENABLE_HTTP
+#ifdef ENABLE_HTTP
 static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, env, config, size, error);
@@ -700,9 +700,9 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
-#endif
+#endif // ENABLE_HTTP
 
-#if ENABLE_OBEX
+#ifdef ENABLE_OBEX
 static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, unsigned int size, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %p)", __func__, env, config, size, error);
@@ -1035,7 +1035,7 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
-#endif
+#endif // ENABLE_OBEX
 
 static void client_connect(OSyncContext *ctx)
 {
@@ -1581,9 +1581,12 @@ static void finalize(void *data)
 
 void get_info(OSyncEnv *env)
 {
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	OSyncPluginInfo *info = NULL;
 	
-#if ENABLE_HTTP	
+#ifdef ENABLE_HTTP	
+
+	info = osync_plugin_new_info(env);
+
 	info->name = "syncml-http-server";
 	info->longname = "SyncML over HTTP Server";
 	info->description = "Plugin to synchronize with SyncML over HTTP";
@@ -1618,13 +1621,11 @@ void get_info(OSyncEnv *env)
 	osync_plugin_accept_objformat(info, "note", "memo", "clean");
 	osync_plugin_set_batch_commit_objformat(info, "note", "memo", batch_commit);
 	
-#endif
+#endif // ENABLE_HTTP
 
-#if ENABLE_HTTP && ENABLE_OBEX
+#ifdef ENABLE_OBEX	
 	info = osync_plugin_new_info(env);
-#endif
 
-#if ENABLE_OBEX	
 	info->name = "syncml-obex-client";
 	info->longname = "SyncML over OBEX Client";
 	info->description = "Plugin to synchronize with SyncML over OBEX";
@@ -1658,5 +1659,7 @@ void get_info(OSyncEnv *env)
 	osync_plugin_accept_objtype(info, "note");
 	osync_plugin_accept_objformat(info, "note", "memo", "clean");
 	osync_plugin_set_batch_commit_objformat(info, "note", "memo", batch_commit);
-#endif
+#endif // ENABLE_OBEX
+
 }
+
