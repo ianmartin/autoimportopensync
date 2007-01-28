@@ -1,32 +1,32 @@
 /*
  * Copyright (C) 2003 Ximian, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of version 2 of the GNU Lesser General Public
- * License as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
+ * Lesser General Public License for more details.
+ * 
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  *
  * Author: Chris Toshok (toshok@ximian.com)
  * Author: Armin Bauer (armin.bauer@opensync.org)
  * 
  */
 
-#include <opensync/opensync.h>
-
 #include "vformat.h"
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <iconv.h>
+#include <opensync/opensync.h>
 
 static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save);
 static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
@@ -83,32 +83,59 @@ time_t vformat_time_to_unix(const char *inptime)
 static char *_fold_lines (char *buf)
 {
 	GString *str = g_string_new ("");
+	GString *line = g_string_new ("");
 	char *p = buf;
-	char *next, *next2;
-
-	/* we're pretty liberal with line folding here.  We handle
-	   lines folded with \r\n<WS>... and \n\r<WS>... and
-	   \n<WS>... We also turn single \r's and \n's not followed by
-	   WS into \r\n's. */
+	char *next, *next2, *q;
+	gboolean newline = TRUE;
+	gboolean quotedprintable = FALSE;
+	
+	/* 
+	 *  We're pretty liberal with line folding here. We handle
+	 *  lines folded with \r\n<WS>, \n\r<WS>, \n<WS>, =\r\n and =\n\r. 
+	 *  We also turn single \r's and \n's not followed by <WS> into \r\n's.
+	 */
+	
 	while (*p) {
-		if (*p == '\r' || *p == '\n') {
+
+		/* search new lines for quoted printable encoding */
+		if (newline) {
+			for (q=p; *q != '\n' && *q != '\0'; q++)
+				line = g_string_append_unichar (line, g_utf8_get_char (q));
+		
+			if (strstr(line->str, "ENCODING=QUOTED-PRINTABLE"))
+				quotedprintable = TRUE;
+			
+			line = g_string_new ("");
+			newline = FALSE;
+		}
+
+				
+		if ((quotedprintable && *p == '=') || *p == '\r' || *p == '\n') {
 			next = g_utf8_next_char (p);
 			if (*next == '\n' || *next == '\r') {
 				next2 = g_utf8_next_char (next);
-				if (*next2 == ' ' || *next2 == '\t') {
+				if (*next2 == '\n' || *next2 == '\r' || *next2 == ' ' || *next2 == '\t') {
 					p = g_utf8_next_char (next2);
 				}
 				else {
 					str = g_string_append (str, CRLF);
 					p = g_utf8_next_char (next);
+					newline = TRUE;
+					quotedprintable = FALSE;
 				}
 			}
+			else if (*p == '=') {
+				str = g_string_append_unichar (str, g_utf8_get_char (p));
+				p = g_utf8_next_char (p);
+			}	
 			else if (*next == ' ' || *next == '\t') {
 				p = g_utf8_next_char (next);
 			}
 			else {
 				str = g_string_append (str, CRLF);
 				p = g_utf8_next_char (p);
+				newline = TRUE;
+				quotedprintable = FALSE;
 			}
 		}
 		else {
@@ -118,6 +145,7 @@ static char *_fold_lines (char *buf)
 	}
 
 	g_free (buf);
+	g_string_free(line, TRUE);
 
 	return g_string_free (str, FALSE);
 }
@@ -165,7 +193,75 @@ static void _skip_until (char **p, char *s)
 	*p = lp;
 }
 
-static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable)
+static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GString *charset)
+{
+	/* don't convert empty strings */
+	if (str->len == 0) {
+		vformat_attribute_add_value(attr, str->str);
+		return;
+	}      	
+
+	char *inbuf, *outbuf, *p;
+	size_t inbytesleft, outbytesleft;
+
+	inbuf = str->str;
+	p = outbuf = malloc(str->len*2);
+	inbytesleft = str->len;
+	outbytesleft = str->len*2;
+
+	iconv_t cd;
+
+	/* if a CHARSET was given, let's try to convert inbuf to UTF-8 */
+	if (charset) {
+
+		cd = iconv_open("UTF-8", charset->str);
+                if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+
+                        *p = 0;
+                        vformat_attribute_add_value(attr, outbuf);
+
+                } else {
+
+                        /* hmm, should not happen */
+                        vformat_attribute_add_value(attr, str->str);
+
+                }
+	
+		iconv_close(cd);
+
+	} else {
+
+		/* no CHARSET was given, if inbuf is already UTF-8 we add str->str */
+		if (g_utf8_validate (inbuf, -1, NULL)) {
+
+			vformat_attribute_add_value (attr, str->str);	
+
+                } else {
+
+			/* because inbuf is not UTF-8, we think it is ISO-8859-1 */
+                        cd = iconv_open("UTF-8", "ISO-8859-1");
+                        if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+
+                                *p = 0;
+                                vformat_attribute_add_value (attr, outbuf);
+
+                        } else {
+
+                                vformat_attribute_add_value (attr, str->str);
+
+                        }
+		
+			iconv_close(cd);
+
+		}
+
+	}
+
+	free(outbuf);
+
+}
+
+static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable, GString *charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -174,30 +270,76 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	str = g_string_new ("");
 	while (*lp != '\r' && *lp != '\0') {
 		if (*lp == '=' && quoted_printable) {
-			char a, b;
+			char a, b, x1=0, x2=0;
+		
 			if ((a = *(++lp)) == '\0') break;
 			if ((b = *(++lp)) == '\0') break;
-			if (a == '\r' && b == '\n') {
-				/* it was a = at the end of the line,
-				 * just ignore this and continue
-				 * parsing on the next line.  yay for
-				 * 2 kinds of line folding
-				 */
+			
+			if (isalnum(a)) {
+				if (isalnum(b)) {
+					/* e.g. ...N=C3=BCrnberg\r\n
+					 *          ^^^
+			       		 */
+					x1=a;
+					x2=b;
+				}
+				else if (b == '=') {
+					/* e.g. ...N=C=\r\n
+					 *          ^^^
+					 * 3=BCrnberg...
+					 * ^
+					 */
+					char *tmplp = lp;
+					if (*(++tmplp) == '\r' && *(++tmplp) == '\n' && isalnum(*(++tmplp))) {
+						x1 = a;
+						x2 = *tmplp;
+						lp = tmplp;	
+					}	
+				}
+				else {
+					/* append malformed input, and
+				   	   continue parsing */
+					str = g_string_append_c(str, a);
+					str = g_string_append_c(str, b);
+				}	
+			}	
+			else if (a == '=') {
+				char *tmplp = lp;
+				char c, d, e;
+				c = *(++tmplp);
+				d = *(++tmplp);
+				e = *(++tmplp);
+				if (b == '\r' && c == '\n' && isalnum(d) && isalnum(e)) {
+					x1 = d;
+					x2 = e;
+					lp = tmplp;
+				}
+				else {
+					/* append malformed input, and
+				   	   continue parsing */
+					str = g_string_append_c(str, a);
+					str = g_string_append_c(str, b);
+				}	
 			}
-			else if (isalnum(a) && isalnum (b)) {
+			else {
+				/* append malformed input, and
+				   continue parsing */
+				str = g_string_append_c(str, a);
+				str = g_string_append_c(str, b);
+			}
+			if (x1 && x2) {
 				char c;
 
-				a = tolower (a);
-				b = tolower (b);
+				a = tolower (x1);
+				b = tolower (x2);
 
 				c = (((a>='a'?a-'a'+10:a-'0')&0x0f) << 4)
 					| ((b>='a'?b-'a'+10:b-'0')&0x0f);
-
+				
 				str = g_string_append_c (str, c);
-			}
-			/* silently consume malformed input, and
-			   continue parsing */
+			}	
 			lp++;
+			x1 = x2 = 0;
 		}
 		else if (*lp == '\\') {
 			/* convert back to the non-escaped version of
@@ -215,13 +357,15 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 					if (!strcmp (attr->name, "CATEGORIES")) {
 						//We need to handle categories here to work
 						//aroung a bug in evo2
-						vformat_attribute_add_value (attr, str->str);
+						_read_attribute_value_add (attr, str, charset);
 						g_string_assign (str, "");
 					} else
 						str = g_string_append_c (str, ',');
 					break;
 				case '\\': str = g_string_append_c (str, '\\'); break;
 				case '"': str = g_string_append_c (str, '"'); break;
+				  /* \t is (incorrectly) used by kOrganizer, so handle it here */
+				case 't': str = g_string_append_c (str, '\t'); break;
 				default:
 					osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %i", *lp);
 					str = g_string_append_c (str, '\\');
@@ -232,7 +376,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 		}
 		else if ((*lp == ';') ||
 			 (*lp == ',' && !strcmp (attr->name, "CATEGORIES"))) {
-			vformat_attribute_add_value (attr, str->str);
+			_read_attribute_value_add (attr, str, charset);
 			g_string_assign (str, "");
 			lp = g_utf8_next_char(lp);
 		}
@@ -242,7 +386,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 		}
 	}
 	if (str) {
-		vformat_attribute_add_value (attr, str->str);
+		_read_attribute_value_add (attr, str, charset);
 		g_string_free (str, TRUE);
 	}
 
@@ -254,7 +398,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	*p = lp;
 }
 
-static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable)
+static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable, GString **charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -328,7 +472,11 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 					*quoted_printable = TRUE;
 					vformat_attribute_param_free (param);
 					param = NULL;
-				}
+				} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
+					*charset = g_string_new(param->values->data);
+					vformat_attribute_param_free (param);	
+					param = NULL;
+				}	
 			}
 			else {
 				if (str->len > 0) {
@@ -382,7 +530,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 				break;
 		}
 		else {
-			osync_trace(TRACE_INTERNAL, "invalid character found in parameter spec: \"%c\" String so far: %s", lp[0], str->str);
+			osync_trace(TRACE_INTERNAL, "invalid character found in parameter spec: \"%i\" String so far: %s", lp[0], str->str);
 			g_string_assign (str, "");
 			_skip_until (&lp, ":;");
 		}
@@ -398,11 +546,10 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
    at the start of the next line (past the \r\n) */
 static VFormatAttribute *_read_attribute (char **p)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, p);
 	char *attr_group = NULL;
 	char *attr_name = NULL;
 	VFormatAttribute *attr = NULL;
-	GString *str = NULL;
+	GString *str, *charset = NULL;
 	char *lp = *p;
 	
 	gboolean is_qp = FALSE;
@@ -432,7 +579,8 @@ static VFormatAttribute *_read_attribute (char **p)
 		}
 		else if (*lp == '.') {
 			if (attr_group) {
-				osync_trace(TRACE_INTERNAL, "extra `.' in attribute specification.  ignoring extra group `%s'", str->str);
+				osync_trace(TRACE_INTERNAL, "extra `.' in attribute specification.  ignoring extra group `%s'",
+					   str->str);
 				g_string_free (str, TRUE);
 				str = g_string_new ("");
 			}
@@ -445,7 +593,7 @@ static VFormatAttribute *_read_attribute (char **p)
 			str = g_string_append_unichar (str, g_utf8_get_char (lp));
 		}
 		else {
-			osync_trace(TRACE_INTERNAL, "invalid character found in attribute group/name: %c", lp[0]);
+			osync_trace(TRACE_INTERNAL, "invalid character found in attribute group/name: \"%i\" String so far: %s", lp[0], str->str);
 			g_string_free (str, TRUE);
 			*p = lp;
 			_skip_to_next_line(p);
@@ -454,7 +602,7 @@ static VFormatAttribute *_read_attribute (char **p)
 
 		lp = g_utf8_next_char(lp);
 	}
-	
+
 	if (!attr_name) {
 		_skip_to_next_line (p);
 		goto lose;
@@ -467,26 +615,24 @@ static VFormatAttribute *_read_attribute (char **p)
 	if (*lp == ';') {
 		/* skip past the ';' */
 		lp = g_utf8_next_char(lp);
-		_read_attribute_params (attr, &lp, &is_qp);
+		_read_attribute_params (attr, &lp, &is_qp, &charset);
 	}
 	if (*lp == ':') {
 		/* skip past the ':' */
 		lp = g_utf8_next_char(lp);
-		_read_attribute_value (attr, &lp, is_qp);
+		_read_attribute_value (attr, &lp, is_qp, charset);
 	}
 
+	if (charset) g_string_free(charset, TRUE);
 	*p = lp;
 
 	if (!attr->values)
 		goto lose;
 
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, attr);
 	return attr;
  lose:
 	if (attr)
 		vformat_attribute_free (attr);
-
-	osync_trace(TRACE_EXIT, "%s: NULL", __func__);
 	return NULL;
 }
 
@@ -512,8 +658,11 @@ static void _parse(VFormat *evc, const char *str)
 	p = buf;
 
 	attr = _read_attribute (&p);
+	if (!attr)
+		attr = _read_attribute (&p);
+	
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "begin")) {
-		osync_trace(TRACE_INTERNAL, "vcard began without a BEGIN:VCARD\n");
+		osync_trace(TRACE_INTERNAL, "vformat began without a BEGIN\n");
 	}
 	if (attr && !g_ascii_strcasecmp (attr->name, "begin"))
 		vformat_attribute_free (attr);
@@ -531,7 +680,7 @@ static void _parse(VFormat *evc, const char *str)
 	}
 
 	if (!attr || attr->group || g_ascii_strcasecmp (attr->name, "end")) {
-		osync_trace(TRACE_INTERNAL, "vcard ended without END:VCARD\n");
+		osync_trace(TRACE_INTERNAL, "vformat ended without END");
 	}
 
 	g_free (buf);
@@ -586,7 +735,7 @@ vformat_unescape_string (const char *s)
 
 	str = g_string_new ("");
 
-	/* Unescape a string as described in RFC2426, section 5 */
+	/* Unescape a string as described in RFC2426, section 4 (Formal Grammar) */
 	for (p = s; *p; p++) {
 		if (*p == '\\') {
 			p++;
@@ -601,6 +750,8 @@ vformat_unescape_string (const char *s)
 			case ',':  str = g_string_append_c (str, ','); break;
 			case '\\': str = g_string_append_c (str, '\\'); break;
 			case '"': str = g_string_append_c (str, '"'); break;
+			  /* \t is (incorrectly) used by kOrganizer, so handle it here */
+			case 't': str = g_string_append_c (str, '\t'); break;
 			default:
 				osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %i", *p);
 				str = g_string_append_c (str, '\\');
@@ -626,7 +777,6 @@ void vformat_free(VFormat *format)
 {
 	g_list_foreach (format->attributes, (GFunc)vformat_attribute_free, NULL);
 	g_list_free (format->attributes);
-	g_free(format);
 }
 
 VFormat *vformat_new_from_string (const char *str)
@@ -643,6 +793,19 @@ VFormat *vformat_new(void)
 {
 	return vformat_new_from_string ("");
 }
+
+VFormatAttribute *vformat_find_attribute(VFormat *vcard, const char *name)
+{
+	GList *attributes = vformat_get_attributes(vcard);
+	GList *a = NULL;
+	for (a = attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
+		if (!strcmp(vformat_attribute_get_name(attr), name)) {
+			return attr;
+		}	
+	}
+	return NULL;
+}	
 
 char *vformat_to_string (VFormat *evc, VFormatType type)
 {
@@ -676,6 +839,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		VFormatAttribute *attr = l->data;
 		GString *attr_str;
 		int l;
+		gboolean quoted_printable = FALSE;
 
 		attr_str = g_string_new ("");
 
@@ -705,23 +869,14 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 				if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
 					attr_str = g_string_append_c (attr_str, '=');
 				for (v = param->values; v; v = v->next) {
-					char *value = v->data;
-					char *p = value;
-					gboolean quotes = FALSE;
-					while (*p) {
-						if (!g_unichar_isalnum (g_utf8_get_char (p))) {
-							quotes = TRUE;
-							break;
-						}
-						p = g_utf8_next_char (p);
-					}
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
-					attr_str = g_string_append (attr_str, value);
-					if (quotes)
-						attr_str = g_string_append_c (attr_str, '"');
+					attr_str = g_string_append (attr_str, v->data);
+
 					if (v->next)
 						attr_str = g_string_append_c (attr_str, ',');
+
+					// check for quoted-printable encoding
+					if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE"))
+						quoted_printable = TRUE;
 				}
 			}
 		}
@@ -736,6 +891,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 
 			attr_str = g_string_append (attr_str, escaped_value);
 			if (v->next) {
+
 				/* XXX toshok - i hate you, rfc 2426.
 				   why doesn't CATEGORIES use a ; like
 				   a normal list attribute? */
@@ -748,19 +904,68 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			g_free (escaped_value);
 		}
 
-		/* 5.8.2:
-		 * When generating a content line, lines longer than 75
-		 * characters SHOULD be folded
-		 */
+		/* Folding lines:
+		 * ^^^^^^^^^^^^^^
+		 *
+		 * rfc 2426 (vCard), 2.6 Line Delimiting and Folding:
+		 * After generating a content line,
+		 * lines longer than 75 characters SHOULD be folded according to the
+		 * folding procedure described in [MIME-DIR].
+		 *
+		 * rfc 2445 (iCalendar), 4.1 Content Lines:
+		 * Lines of text SHOULD NOT be longer than 75 octets, excluding the line
+		 * break. Long content lines SHOULD be split into a multiple line
+		 * representations using a line "folding" technique. That is, a long
+		 * line can be split between any two characters by inserting a CRLF
+		 * immediately followed by a single linear white space character (i.e.,
+		 * SPACE, US-ASCII decimal 32 or HTAB, US-ASCII decimal 9). Any sequence
+		 * of CRLF followed immediately by a single linear white space character
+		 *  is ignored (i.e., removed) when processing the content type.
+		 *
+		 * SUMMARY: When generating a content line, lines longer then 75 characters SHOULD be folded!
+		 * ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		 *
+		 * Differences between encodings:
+		 * ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		 *
+		 * rfc 2425 [MIME-DIR], 5.8.1:
+		 * A logical line MAY be continued on the next physical line anywhere
+		 * between two characters by inserting a CRLF immediately followed by a
+		 * single <WS> (white space) character.
+		 *
+		 * rfc 2045, 6.7, chapter 5:
+		 * The quoted-printable specs says that softbreaks should be generated by inserting a =\r\n
+		 * without follwing <WS>
+		 *
+		 * UTF-8
+		 * ^^^^^
+		 *
+		 * Note that all the line folding above is described in terms of characters
+		 * not bytes.  In particular, it would be an error to put a line break
+		 * within a UTF-8 character.
+		*/
+		
 		l = 0;
 		do {
-			if (attr_str->len - l > 75) {
+			if (g_utf8_strlen(attr_str->str, attr_str->len) - l > 75) {
 				l += 75;
-				attr_str = g_string_insert_len (attr_str, l, CRLF " ", sizeof (CRLF " ") - 1);
+
+				/* If using QP, must be sure that we do not fold within a quote sequence */
+				if (quoted_printable) {
+				  if (g_utf8_get_char(g_utf8_offset_to_pointer(attr_str->str, l-1)) == '=') l--;
+				  else if (g_utf8_get_char(g_utf8_offset_to_pointer(attr_str->str, l-2)) == '=') l -= 2;
+				}
+
+				char *p = g_utf8_offset_to_pointer(attr_str->str, l);
+
+				if (quoted_printable)
+					attr_str = g_string_insert_len (attr_str, p - attr_str->str, "=" CRLF "", sizeof ("=" CRLF "") - 1);
+				else
+					attr_str = g_string_insert_len (attr_str, p - attr_str->str, CRLF " ", sizeof (CRLF " ") - 1);
 			}
 			else
 				break;
-		} while (l < attr_str->len);
+		} while (l < g_utf8_strlen(attr_str->str, attr_str->len));
 
 		attr_str = g_string_append (attr_str, CRLF);
 
