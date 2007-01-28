@@ -1325,7 +1325,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					if (osync_engine_get_use_merger(engine->parent) &&
 						entry_engine->change &&
 						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
-						(strcmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-contact") == 0))
+						(strcmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-contact") == 0) &&
+						(strcmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-event") == 0))
 					{
 						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
 						char *buffer = NULL;
