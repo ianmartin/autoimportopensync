@@ -18,7 +18,7 @@
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Comment" type="MultiText"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Contact" type="MultiText"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Created" type="DateTimeContent"/>
-        <xsd:element maxOccurs="1" minOccurs="1" name="DateTimeEnd" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="1" name="DateEnd" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="DateCalendarCreated" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="1" name="DateStarted" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="MultiText"/>
@@ -96,12 +96,13 @@
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
       <!-- TODO only allow Attachment element if Action is SOUND or PROCEDURE --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="Attachment"/>
+      <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="MultiText"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="AlarmTrigger"/>
-      <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
-      <xsd:element minOccurs="1" maxOccurs="1" name="Value" type="TriggerType"/>
     </xsd:sequence>
+
+    <xsd:attribute name="Value" type="TriggerType"/>
 
   </xsd:complexType>
  
