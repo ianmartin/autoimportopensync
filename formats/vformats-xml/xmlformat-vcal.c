@@ -388,6 +388,36 @@ static OSyncXMLField *handle_tzrdate_attribute(OSyncXMLField *root, VFormatAttri
 }
 */
 
+/* VCALENDAR ONLY */
+static OSyncXMLField *handle_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
+
+	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
+	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
+	return xmlfield; 
+}
+
+/* VCALENDAR ONLY */
+static OSyncXMLField *handle_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
+
+	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
+	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
+	return xmlfield; 
+}
+
 static OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmTrigger", error);
@@ -443,9 +473,11 @@ static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSy
 	for (a = *attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
 
+		osync_trace(TRACE_INTERNAL, "attribute: \"%s\"", vformat_attribute_get_name(attr));
+
 		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
 			//Handling supcomponent
-			a = a->next;
+	//		a = a->next;
 			/*
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
 				OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Timezone", NULL);
@@ -798,7 +830,7 @@ static void insert_attr_handler(GHashTable *table, const char *attrname, void* h
 	g_hash_table_insert(table, (gpointer)attrname, handler);
 }
 
-static void *init_ical_to_xmlformat(void)
+static void *init_vcalendar_to_xmlformat(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 
@@ -928,14 +960,19 @@ static void *init_ical_to_xmlformat(void)
 	insert_attr_handler(hooks->parameters, "X-LIC-ERROR", HANDLE_IGNORE);
 	
 	//VAlarm component
-	insert_attr_handler(hooks->attributes, "TRIGGER", handle_atrigger_attribute);
-	insert_attr_handler(hooks->attributes, "REPEAT", handle_arepeat_attribute);
-	insert_attr_handler(hooks->attributes, "DURATION", handle_aduration_attribute);
-	insert_attr_handler(hooks->attributes, "ACTION", handle_aaction_attribute);
-	insert_attr_handler(hooks->attributes, "ATTACH", handle_aattach_attribute);
-	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_adescription_attribute);
-	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_aattendee_attribute);
-	insert_attr_handler(hooks->attributes, "SUMMARY", handle_asummary_attribute);
+	if (target == VFORMAT_EVENT_20) {
+		insert_attr_handler(hooks->attributes, "TRIGGER", handle_atrigger_attribute);
+		insert_attr_handler(hooks->attributes, "REPEAT", handle_arepeat_attribute);
+		insert_attr_handler(hooks->attributes, "DURATION", handle_aduration_attribute);
+		insert_attr_handler(hooks->attributes, "ACTION", handle_aaction_attribute);
+		insert_attr_handler(hooks->attributes, "ATTACH", handle_aattach_attribute);
+		insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_adescription_attribute);
+		insert_attr_handler(hooks->attributes, "ATTENDEE", handle_aattendee_attribute);
+		insert_attr_handler(hooks->attributes, "SUMMARY", handle_asummary_attribute);
+	} else if (target == VFORMAT_EVENT_10) {
+		insert_attr_handler(hooks->attributes, "AALARM", handle_aalarm_attribute);
+		insert_attr_handler(hooks->attributes, "DALARM", handle_dalarm_attribute);
+	}
 
 	// FIXME: The functions below shoudn't be on alarmtable, but on another hash table
 	insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter);
@@ -967,7 +1004,60 @@ static osync_bool conv_ical_to_xmlformat(char *input, unsigned int inpsize, char
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
-	OSyncHookTables *hooks = init_ical_to_xmlformat(); 
+	OSyncHookTables *hooks = init_vcalendar_to_xmlformat(VFORMAT_EVENT_20); 
+
+	
+	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
+	
+	//Parse the vevent
+	VFormat *vcal = vformat_new_from_string(input);
+	
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
+
+	
+	osync_trace(TRACE_INTERNAL, "parsing attributes");
+	
+	//For every attribute we have call the handling hook
+	GList *attributes = vformat_get_attributes(vcal);
+	vcal_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
+//static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
+
+
+
+	// TODO free more members...
+	g_hash_table_destroy(hooks->attributes);
+	g_hash_table_destroy(hooks->parameters);
+	g_free(hooks);
+
+	*free_input = TRUE;
+	*output = (char *)xmlformat;
+	*outpsize = sizeof(xmlformat);
+
+	// XXX: remove this later?
+	osync_xmlformat_sort(xmlformat);
+	
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(xmlformat, &str, &size);
+	osync_trace(TRACE_INTERNAL, "....Output XMLFormat is:\n%s", str);
+	g_free(str);
+
+	if (osync_xmlformat_validate(xmlformat) == FALSE)
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
+	else
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
+
+	vformat_free(vcal);
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+}
+
+static osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+	
+	OSyncHookTables *hooks = init_vcalendar_to_xmlformat(VFORMAT_EVENT_10); 
 	
 	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
 	
@@ -1003,6 +1093,12 @@ static osync_bool conv_ical_to_xmlformat(char *input, unsigned int inpsize, char
 	osync_xmlformat_assemble(xmlformat, &str, &size);
 	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
 	g_free(str);
+
+	if (osync_xmlformat_validate(xmlformat) == FALSE)
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
+	else
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
+
 
 	vformat_free(vcal);
 	
@@ -1251,6 +1347,7 @@ static VFormatAttribute *handle_xml_calscale_attribute(VFormat *vevent, OSyncXML
 	return attr;
 }
 
+/*
 static VFormatAttribute *handle_xml_tzid_attribute(VFormat *vevent, OSyncXMLField *root, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZID");
@@ -1329,6 +1426,7 @@ static VFormatAttribute *handle_xml_tzrdate_attribute(VFormat *vevent, OSyncXMLF
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
+*/
 
 static VFormatAttribute *handle_xml_atrigger_attribute(VFormat *vevent, OSyncXMLField *root, const char *encoding)
 {
@@ -1453,7 +1551,6 @@ static OSyncHookTables *init_xmlformat_to_ical(void)
 
 
 	/*
-	//FIXME: The functions below shouldn't be on comptable, but on other hash table
 	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
@@ -1481,6 +1578,7 @@ static OSyncHookTables *init_xmlformat_to_ical(void)
 //	insert_xml_attr_handler(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
 //	insert_xml_attr_handler(hooks->attributes, "UnknownParameter", xml_handle_unknown_parameter);
 	
+	/*
 	//Timezone
 	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tzid_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_tz_location_attribute);
@@ -1492,9 +1590,9 @@ static OSyncHookTables *init_xmlformat_to_ical(void)
 	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_tz_last_modified_attribute);
 	insert_xml_attr_handler(hooks->attributes, "TimezoneUrl", handle_xml_tzurl_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tzrdate_attribute);
+	*/
 
 	/*
-	//FIXME: The functions below shouldn't be on tztable, but on other hash table
 //	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
 //	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
@@ -1758,8 +1856,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 	
-//	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_vcal_to_xmlformat, &error);
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_ical_to_xmlformat, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_vcal_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
