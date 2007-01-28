@@ -4,12 +4,23 @@
 %include "typemaps.i"
 
 %{
-#include "opensync.h"
+#include <opensync/opensync.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-helper.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-context.h>
 #include <glib.h>
 %}
 
-%include "opensync.h"
-typedef struct {} OSyncEnv;
+%include <opensync/opensync.h>
+%include <opensync/opensync-plugin.h>
+%include <opensync/opensync-helper.h>
+%include <opensync/opensync-data.h>
+%include <opensync/opensync-format.h>
+%include <opensync/opensync-context.h>
+
+typedef struct {} OSyncPluginEnv;
 typedef struct {} OSyncPlugin;
 typedef struct {} OSyncPluginInfo;
 typedef struct {} OSyncContext;
@@ -85,26 +96,32 @@ typedef struct {} OSyncHashTable;
 		if (obj)
 			change = (OSyncChange *)PyCObject_AsVoidPtr(obj);
 		else
-			change = osync_change_new();
+			change = osync_change_new(NULL);
 		return change;
 	}
 	
 	~OSyncChange() {
 		osync_trace(TRACE_INTERNAL, "Deleting change %p", self);
 	}
-	
-	%cstring_input_binary(char *data, int datasize);
-	void __set_data(char *data, int datasize) {
-		osync_change_set_data(self, data, datasize, TRUE);
+        /* FIXME
+                New OSyncData struct needs to be implemeted...
+               osync_data_new(NULL, 0, env->contact_format, error);          
+	%cstring_input_binary(OSyncChange *data);
+	void __set_data(OSyncChange *data) {
+		osync_change_set_data(self, data);
 	}
+        */
 	
 	void *__get_data() {
 		return osync_change_get_data(self);
 	}
 	
+        /* FIXME
+           Deperecated because of new osyncData sturct?
 	int __get_datasize() {
 		return osync_change_get_datasize(self);
 	}
+        */
 	
 	%pythoncode %{
 	def get_data(self):
@@ -130,11 +147,15 @@ typedef struct {} OSyncHashTable;
 		/* take a copy of the data, so python does not try to reclaim it
 		 * this memory should be freed by opensync after the change is written
 		 */
-		if (osync_change_has_data(self)) {
-			void *data = osync_change_get_data(self);
-			int datasize = osync_change_get_datasize(self);
-			void *copy = memcpy(malloc(datasize), data, datasize);
-			osync_change_set_data(self, copy, datasize, TRUE);
+                OSyncData *data = osync_change_get_data(self);
+		if (osync_data_has_data(data)) {
+                        unsigned int datasize;
+                        char *buf;
+
+			osync_data_get_data(data, &buf, &datasize);
+			void *copy = memcpy(malloc(datasize), buf, datasize);
+			osync_data_set_data(data, copy, datasize);
+                        osync_change_set_data(self, data);
 		}
 		osync_context_report_change(ctx, self);
 	}
@@ -222,30 +243,12 @@ typedef struct {} OSyncHashTable;
 };
 
 %extend OSyncPlugin {
-	OSyncPlugin(OSyncEnv *env) {
-		OSyncPlugin *plugin = osync_plugin_new(env);
-		return plugin;
-	}
-	
-	~OSyncPlugin() {
-		osync_plugin_free(self);
-	}
-	
-	const char *get_name() {
-		return osync_plugin_get_name(self);
-	}
-	
-	%pythoncode %{
-	name = property(get_name)
-	%}
-};
-
-%extend OSyncPluginInfo {
-	OSyncPluginInfo(PyObject *obj) {
-		OSyncPluginInfo *exinfo = (OSyncPluginInfo *)PyCObject_AsVoidPtr(obj);
+	OSyncPlugin(PyObject *obj) {
+		OSyncPlugin *exinfo = (OSyncPlugin *)PyCObject_AsVoidPtr(obj);
 		return exinfo;
 	}
 	
+        /* TODO ... discover stuff 
 	void accept_objtype(const char *objtype) {
 		osync_plugin_accept_objtype(self, objtype);
 	}
@@ -253,26 +256,27 @@ typedef struct {} OSyncHashTable;
 	void accept_objformat(const char *objtype, const char *objformat, const char *extension = NULL) {
 		osync_plugin_accept_objformat(self, objtype, objformat, extension);
 	}
+        */
 	
 	void set_name(const char *name) {
-		self->name = g_strdup(name);
+                osync_plugin_set_name(self, name);
 	}
 	const char *get_name() {
-		return self->name;
+                return osync_plugin_get_name(self);
 	}
 	
 	void set_longname(const char *name) {
-		self->longname = g_strdup(name);
+                osync_plugin_set_longname(self, name);
 	}
 	const char *get_longname() {
-		return self->longname;
+                return osync_plugin_get_longname(self);
 	}
 	
 	void set_description(const char *desc) {
-		self->description = g_strdup(desc);
+                osync_plugin_set_description(self, desc);
 	}
 	const char *get_description() {
-		return self->description;
+                return osync_plugin_get_description(self);
 	}
 	
 	%pythoncode %{
@@ -282,33 +286,29 @@ typedef struct {} OSyncHashTable;
 	%}
 };
 
-%extend OSyncEnv {
-	OSyncEnv(PyObject *obj) {
-		return (OSyncEnv *)PyCObject_AsVoidPtr(obj);
+%extend OSyncPluginEnv {
+	OSyncPluginEnv(PyObject *obj) {
+		return (OSyncPluginEnv *)PyCObject_AsVoidPtr(obj);
 	}
 
-	OSyncEnv() {
-		return osync_env_new();
+	OSyncPluginEnv() {
+		return osync_plugin_env_new(NULL);
 	}
 
-	~OSyncEnv() {
-		osync_env_free(self);
+	~OSyncPluginEnv() {
+		osync_plugin_env_free(self);
 	}
 	
 	int initialize() {
-		return osync_env_initialize(self, NULL);
-	}
-	
-	int finalize() {
-		return osync_env_finalize(self, NULL);
+		return osync_plugin_env_load(self, NULL, NULL);
 	}
 	
 	int num_plugins() {
-		return osync_env_num_plugins(self);
+		return osync_plugin_env_num_plugins(self);
 	}
 
 	OSyncPlugin *get_nth_plugin(int nth) {
-		OSyncPlugin *plugin = osync_env_nth_plugin(self, nth);
+		OSyncPlugin *plugin = osync_plugin_env_nth_plugin(self, nth);
 		return plugin;
 	}
 };
