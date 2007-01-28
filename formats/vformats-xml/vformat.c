@@ -105,7 +105,9 @@ static char *_fold_lines (char *buf)
 			if (strstr(line->str, "ENCODING=QUOTED-PRINTABLE"))
 				quotedprintable = TRUE;
 			
+			g_string_free(line, TRUE);
 			line = g_string_new ("");
+
 			newline = FALSE;
 		}
 
@@ -777,6 +779,7 @@ void vformat_free(VFormat *format)
 {
 	g_list_foreach (format->attributes, (GFunc)vformat_attribute_free, NULL);
 	g_list_free (format->attributes);
+	g_free(format);
 }
 
 VFormat *vformat_new_from_string (const char *str)
