@@ -15,6 +15,7 @@ descriptions/syncml-nokia.xml
 schemas = """
 schemas/descriptions.xsd
 schemas/xmlformat-contact.xsd
+schemas/xmlformat-event.xsd
 """
 
 env.Install(install_capabilities, Split(capabilities))
