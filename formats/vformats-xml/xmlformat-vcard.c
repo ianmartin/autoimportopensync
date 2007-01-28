@@ -1,7 +1,8 @@
 /*
- * xml-vcard - A plugin for parsing vcard objects for the opensync framework
+ * xmlformat-vcard - A plugin for parsing vcard objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
+ * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de> 
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,6 +30,7 @@
 #include <stdio.h> /* printf  */
 
 #include "vformat.h"
+#include "xmlformat.h"
 #include "xmlformat-vcard.h"
 
 static void handle_assistant_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -124,13 +126,6 @@ static void handle_type_voice_parameter(OSyncXMLField *xmlfield, VFormatParam *p
 {
 	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Type", "Voice");
-}
-
-static void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	
-	osync_trace(TRACE_INTERNAL, "Handling Value parameter %s\n", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Value", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static void handle_uislot_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -244,37 +239,6 @@ static OSyncXMLField *handle_calendar_url_attribute(OSyncXMLFormat *xmlformat, V
 {
 	osync_trace(TRACE_INTERNAL, "Handling CalendarUrl attribute");
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "CalendarUrl", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
-	return xmlfield;
-}
-
-static OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	
-	GList *values = vformat_attribute_get_values_decoded(attr);
-	for (; values; values = values->next) {
-		GString *retstr = (GString *)values->data;
-		g_assert(retstr);
-		osync_xmlfield_add_key_value(xmlfield, "Category", retstr->str);
-	}
-	
-	return xmlfield;
-}
-
-static OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Class", error);
 	if(!xmlfield) {
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
@@ -729,18 +693,7 @@ static OSyncXMLField *handle_title_attribute(OSyncXMLFormat *xmlformat, VFormatA
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_uid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Uid attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Uid", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
-	return xmlfield;
-}
-
+/*
 static OSyncXMLField *handle_unknown_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
@@ -758,18 +711,7 @@ static OSyncXMLField *handle_unknown_attribute(OSyncXMLFormat *xmlformat, VForma
 	}
 	return xmlfield;
 }
-
-static OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Url attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Url", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	osync_xmlfield_set_key_value(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
-	return xmlfield;
-}
+*/
 
 static OSyncXMLField *handle_video_chat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
@@ -944,72 +886,6 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 	return (void *)hooks;
 }
 
-static void vcard_handle_parameter(OSyncHookTables *hooks, OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, hooks, xmlfield, param);
-	
-	//Find the handler for this parameter
-	void (* param_handler)(OSyncXMLField *, VFormatParam *);
-	char *paramname = g_strdup_printf("%s=%s", vformat_attribute_param_get_name(param), vformat_attribute_param_get_nth_value(param, 0));
-	param_handler = g_hash_table_lookup(hooks->parameters, paramname);
-	g_free(paramname);
-
-	if (!param_handler)
-		param_handler = g_hash_table_lookup(hooks->parameters, vformat_attribute_param_get_name(param));
-	
-	if (param_handler == HANDLE_IGNORE) {
-		printf("Ignored\n");
-		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
-		return;
-	}
-	
-	if (param_handler)
-		param_handler(xmlfield, param);
-//	else 
-//		handle_unknown_parameter(current, param);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-static void vcard_handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %p)", __func__, hooks, xmlformat, attr, attr ? vformat_attribute_get_name(attr) : "None", error);
-	OSyncXMLField *xmlfield = NULL;
-
-	//Dont add empty stuff
-	GList *v;
-	for (v = vformat_attribute_get_values(attr); v; v = v->next) {
-		char *value = v->data;
-		if (strlen(value) != 0)
-			goto has_value;
-	}
-	osync_trace(TRACE_EXIT, "%s: No values", __func__);
-	return;
-	
-has_value:;
-	
-	//We need to find the handler for this attribute
-	OSyncXMLField *(* attr_handler)(OSyncXMLFormat *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(hooks->attributes, vformat_attribute_get_name(attr));
-	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
-	if (attr_handler == HANDLE_IGNORE) {
-		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
-		return;
-	}
-	if (attr_handler)
-		xmlfield = attr_handler(xmlformat, attr, error);
-	else
-		xmlfield = handle_unknown_attribute(xmlformat, attr, error);
-
-	//Handle all parameters of this attribute
-	GList *params = vformat_attribute_get_params(attr);
-	GList *p = NULL;
-	for (p = params; p; p = p->next) {
-		VFormatParam *param = p->data;
-		vcard_handle_parameter(hooks, xmlfield, param);
-	}
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
 //static void _generate_formatted_name(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
 //{
 //	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
@@ -1125,7 +1001,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	VFormat *vcard = vformat_new_from_string(input);
 
 	osync_trace(TRACE_INTERNAL, "Creating xmlformat object");
-OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 
@@ -1134,7 +1010,7 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
-		vcard_handle_attribute(hooks, xmlformat, attr, error);
+		handle_attribute(hooks, xmlformat, attr, error);
 	}
 
 //	//Generate FormattedName from Name if it doesn't exist
@@ -1155,6 +1031,7 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
 
+	// XXX: remove this later?
 	osync_xmlformat_sort(xmlformat);
 	
 	unsigned int size;
@@ -1167,112 +1044,6 @@ OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
-}
-
-static osync_bool needs_encoding(const unsigned char *tmp, const char *encoding)
-{
-	int i = 0;
-	if (!strcmp(encoding, "QUOTED-PRINTABLE")) {
-		while (tmp[i] != 0) {
-			if (tmp[i] > 127 || tmp[i] == 10 || tmp[i] == 13)
-				return TRUE;
-			i++;
-		}
-	} else {
-		return !g_utf8_validate((gchar*)tmp, -1, NULL);
-	}
-	return FALSE;
-}
-
-static osync_bool needs_charset(const unsigned char *tmp)
-{
-	int i = 0;
-	while (tmp[i] != 0) {
-		if (tmp[i] > 127)
-			return TRUE;
-		i++;
-	}
-	return FALSE;
-}
-
-static void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name, const char *encoding)
-{
-	const char *tmp = osync_xmlfield_get_key_value(xmlfield, name);
-	
-	if (!tmp) {
-		/* If there is no node with the given name, add an empty value to the list.
-		 * This is necessary because some fields (N and ADR, for example) need
-		 * a specific order of the values
-		 */
-		tmp = "";
-	}
-	
-	if (needs_charset((unsigned char*)tmp))
-		if (!vformat_attribute_has_param (attr, "CHARSET"))
-			vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
-	
-	if (needs_encoding((unsigned char*)tmp, encoding)) {
-		if (!vformat_attribute_has_param (attr, "ENCODING"))
-			vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
-		vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
-	} else
-		vformat_attribute_add_value(attr, tmp);
-}
-
-static void add_values(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding)
-{
-	int i, c = osync_xmlfield_get_key_count(xmlfield);
-	for(i=0; i<c; i++)
-	{
-		const char *tmp = osync_xmlfield_get_nth_key_value(xmlfield, i);
-
-		if (!tmp) {
-			/* If there is no node with the given name, add an empty value to the list.
-			 * This is necessary because some fields (N and ADR, for example) need
-			 * a specific order of the values
-			 */
-			tmp = "";
-		}
-	
-		if (needs_charset((unsigned char*)tmp))
-			if (!vformat_attribute_has_param (attr, "CHARSET"))
-				vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
-	
-		if (needs_encoding((unsigned char*)tmp, encoding)) {
-			if (!vformat_attribute_has_param (attr, "ENCODING"))
-				vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
-			vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
-		} else
-			vformat_attribute_add_value(attr, tmp);
-	}
-}
-
-static void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding, int nth)
-{
-	int i, c = osync_xmlfield_get_key_count(xmlfield);
-	for(i=nth; i<c; i++)
-	{
-		const char *tmp = osync_xmlfield_get_nth_key_value(xmlfield, i);
-
-		if (!tmp) {
-			/* If there is no node with the given name, add an empty value to the list.
-			 * This is necessary because some fields (N and ADR, for example) need
-			 * a specific order of the values
-			 */
-			tmp = "";
-		}
-	
-		if (needs_charset((unsigned char*)tmp))
-			if (!vformat_attribute_has_param (attr, "CHARSET"))
-				vformat_attribute_add_param_with_value(attr, "CHARSET", "UTF-8");
-	
-		if (needs_encoding((unsigned char*)tmp, encoding)) {
-			if (!vformat_attribute_has_param (attr, "ENCODING"))
-				vformat_attribute_add_param_with_value(attr, "ENCODING", encoding);
-			vformat_attribute_add_value_decoded(attr, tmp, strlen(tmp) + 1);
-		} else
-			vformat_attribute_add_value(attr, tmp);
-	}
 }
 
 static void handle_xml_assistant_x_evolution_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
@@ -2101,64 +1872,6 @@ static OSyncHookTables *init_xmlformat_to_vcard(void)
 	return hooks;
 }
 
-static void xml_vcard_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %i)", __func__, hooks, attr, xmlfield, xmlfield ? osync_xmlfield_get_name(xmlfield) : "None", attr_nr);
-	
-	//Find the handler for this parameter
-	const char* par_name = osync_xmlfield_get_nth_attr_name(xmlfield, attr_nr);
-	const char* par_value = osync_xmlfield_get_nth_attr_value(xmlfield, attr_nr);
-	
-	void (* xml_param_handler)(VFormatAttribute *attr, OSyncXMLField *);
-	char *paramname = g_strdup_printf("%s=%s", par_name, par_value);
-	xml_param_handler = g_hash_table_lookup(hooks->parameters, paramname);
-	g_free(paramname);
-	
-	if (!xml_param_handler)
-		xml_param_handler = g_hash_table_lookup(hooks->parameters, par_name);
-	
-	if (xml_param_handler == HANDLE_IGNORE) {
-		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
-		return;
-	}
-
-	if (xml_param_handler)
-		xml_param_handler(attr, xmlfield);
-	else 
-		printf("No handler found!!!\n");
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-static void xml_vcard_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vcard, xmlfield, xmlfield ? osync_xmlfield_get_name(xmlfield) : "None");
-	
-	VFormatAttribute *attr = NULL;
-	
-	//We need to find the handler for this attribute
-	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, OSyncXMLField *xmlfield, const char *) = g_hash_table_lookup(hooks->attributes, osync_xmlfield_get_name(xmlfield));
-	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
-	if (xml_attr_handler == HANDLE_IGNORE) {
-		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
-		return;
-	}
-	if (xml_attr_handler)
-		attr = xml_attr_handler(vcard, xmlfield, encoding);
-	else {
-		osync_trace(TRACE_EXIT, "%s: Ignored2", __func__);
-		return;
-	}
-	
-	//Handle all parameters of this attribute
-	int i, c = osync_xmlfield_get_attr_count(xmlfield);
-	for(i=0; i<c; i++) {
-		xml_vcard_handle_parameter(hooks, attr, xmlfield, i);
-	}
-
-	osync_trace(TRACE_EXIT, "%s", __func__);	
-}
-
 static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
@@ -2215,7 +1928,7 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
-		xml_vcard_handle_attribute(hooks, vcard, xmlfield, std_encoding);
+		xml_handle_attribute(hooks, vcard, xmlfield, std_encoding);
 	}
 	
 	g_hash_table_destroy(hooks->attributes);
@@ -2265,52 +1978,12 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 	return ret;
 }
 
-static void destroy_contact(char *input, size_t inpsize)
-{
-	osync_xmlformat_unref((OSyncXMLFormat *)input);
-}
-
-static osync_bool copy_contact(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
-{
-	/* TODO: we can do that faster with a osync_xmlformat_copy() function */
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p)", __func__, input, inpsize, output, outpsize, error);
-	OSyncXMLFormat *xmlformat = NULL;
-
-	char *buffer = NULL;
-	unsigned int size;
-	
-	osync_xmlformat_assemble((OSyncXMLFormat *) input, &buffer, &size);
-	xmlformat = osync_xmlformat_parse(buffer, size, error);
-	if (!xmlformat) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-
-	*output = (char *) xmlformat;
-	*outpsize = size;
-
-	g_free(buffer);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-}
-
 static void create_contact(char **data, unsigned int *size)
 {
 	OSyncError *error = NULL;
 	*data = (char *)osync_xmlformat_new("contact", &error);
 	if (!*data)
 		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static char *print_contact(const char *data, unsigned int size)
-{
-	char *buffer;
-	unsigned int i;
-	if(osync_xmlformat_assemble((OSyncXMLFormat *)data, &buffer, &i) == TRUE)
-		return buffer;
-	else
-		return NULL;
 }
 
 static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
@@ -2337,37 +2010,6 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
 	return time;
 }
-
-static osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
-{
-	char *buffer;
-	unsigned int size;
-	
-	if(!osync_xmlformat_assemble((OSyncXMLFormat *)input, &buffer, &size))
-		return FALSE;
-
-	osync_message_write_buffer(message, buffer, (int)size);
-	
-	return TRUE;
-}
-
-static osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
-{
-	char *buffer = NULL;
-	unsigned int size = 0;
-	osync_message_read_buffer(message, (void **)&buffer, (int *)&size);
-	
-	OSyncXMLFormat *xmlformat = osync_xmlformat_parse((char *)buffer, size, error);
-	if (!xmlformat) {
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return FALSE;
-	}
-
-	*output = (char*)xmlformat;
-	*outpsize = 0; /* TODO: the compiler do not know the size of OSyncXMLFormat : 0 is ok? */
-	return TRUE;
-}
-
 void get_format_info(OSyncFormatEnv *env)
 {
 	OSyncError *error = NULL;
@@ -2380,9 +2022,9 @@ void get_format_info(OSyncFormatEnv *env)
 	}
 	
 	osync_objformat_set_compare_func(format, compare_contact);
-	osync_objformat_set_destroy_func(format, destroy_contact);
-	osync_objformat_set_print_func(format, print_contact);
-	osync_objformat_set_copy_func(format, copy_contact);
+	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_print_func(format, print_xmlformat);
+	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_contact);
 	
 	osync_objformat_set_revision_func(format, get_revision);
