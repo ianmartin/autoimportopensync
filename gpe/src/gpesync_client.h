@@ -47,7 +47,7 @@ typedef struct
  *
  */
 gpesync_client *gpesync_client_open_ssh(const char *addr, char **errmsg);
-
+gpesync_client *gpesync_client_open_local(char **errmsg);
 gpesync_client *gpesync_client_open(const char *addr, int port,  char **errmsg);
 
 /*! \brief Closes an exisiting connection and frees the memory.

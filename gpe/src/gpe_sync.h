@@ -45,6 +45,7 @@ typedef struct {
 	char *username; // The user on the handheld
 	int device_port;
 	int use_ssh;
+  	int use_local;
 	
 	int debuglevel;
 } gpe_environment;

@@ -71,6 +71,9 @@ osync_bool gpe_parse_settings(gpe_environment *env, char *data, int size)
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"use_ssh")) {
 				env->use_ssh = atoi(str);
 			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"use_local")) {
+				env->use_local = atoi(str);
+			}
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"handheld_user")) {
 				env->username = g_strdup(str);
 			}

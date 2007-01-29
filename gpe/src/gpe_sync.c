@@ -77,7 +77,10 @@ static void gpe_connect(OSyncContext *ctx)
 	OSyncError *error = NULL;
 
 	char *client_err;
-	if (env->use_ssh)
+	if (env->use_local) {
+	  env->client = gpesync_client_open_local(&client_err);
+	}
+	else if (env->use_ssh)
 	{
 		gchar *path = g_strdup_printf ("%s@%s", env->username, env->device_addr);
 		env->client = gpesync_client_open_ssh (path, &client_err);

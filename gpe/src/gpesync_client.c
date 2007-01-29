@@ -96,7 +96,7 @@ read_lines (struct gpesync_client_query_context *query_ctx, char *data)
   if (!query_ctx->aborting)
     {
       if (verbose)
-	fprintf (stderr, "[gpesync_client lines_lines] \n<%s>\n", data);
+	fprintf (stderr, "[gpesync_client read_lines] \n<%s>\n", data);
       GSList *lines = NULL, *iter;
 
       int argc, i;
@@ -179,6 +179,8 @@ read_response (struct gpesync_client_query_context *query_ctx)
 	        len = atoi (buf->str);
 	        have_len = TRUE;
 	        g_string_assign (buf, "");
+		if (verbose)
+		  fprintf (stderr, "[gpesync_client read_response] length:%d\n", len);
 	        continue;
 	      }
           }
@@ -282,6 +284,45 @@ gpesync_client_open_ssh (const char *addr, gchar **errmsg)
  
   g_free (str);
   
+  return ctx;
+}
+
+gpesync_client *
+gpesync_client_open_local (gchar **errmsg)
+{
+  gpesync_client *ctx;
+
+  int in_fds[2], out_fds[2];
+  pid_t pid;
+
+  ctx = g_malloc0 (sizeof (gpesync_client));
+
+  if (pipe (in_fds) && verbose)
+     fprintf(stderr, "[gpsyncclient %s]: pipe failed.\n", __func__);
+
+  if (pipe (out_fds) && verbose)
+     fprintf(stderr, "[gpsyncclinet %s]: pipe fialed.\n", __func__);
+
+  pid = fork ();
+  if (pid == 0)
+    {
+      dup2 (out_fds[0], 0);
+      dup2 (in_fds[1], 1);
+      close (out_fds[1]);
+      close (in_fds[0]);
+      if (verbose)
+        fprintf (stderr, "connecting to gpesyncd locally");
+      execlp ("gpesyncd", "gpesyncd", "--remote",
+	      NULL);
+      perror ("exec");
+    }
+
+  close (out_fds[0]);
+  close (in_fds[1]);
+
+  ctx->outfd = out_fds[1];
+  ctx->infd = in_fds[0];
+
   return ctx;
 }
 
