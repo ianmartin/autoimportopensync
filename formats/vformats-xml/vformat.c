@@ -948,6 +948,13 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		do {
 			if (g_utf8_strlen(attr_str->str, attr_str->len) - l > 75) {
 				l += 75;
+
+				/* If using QP, must be sure that we do not fold within a quote sequence */
+				if (quoted_printable) {
+				  if (g_utf8_get_char(g_utf8_offset_to_pointer(attr_str->str, l-1)) == '=') l--;
+				  else if (g_utf8_get_char(g_utf8_offset_to_pointer(attr_str->str, l-2)) == '=') l -= 2;
+				}
+
 				char *p = g_utf8_offset_to_pointer(attr_str->str, l);
 
 				if (quoted_printable)
