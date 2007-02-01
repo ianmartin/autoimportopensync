@@ -145,4 +145,3 @@ TODO
  * Do something with "mailing list" entries in the phonebook
  * Add support for reading/writing the SIM phonebook
  * Test with other hardware
- * Switch to use AT+MDBRE and clean up the contact reading/merging code
