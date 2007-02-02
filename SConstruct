@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append('build')
 from osync_support import *
-from substin import *
+from substin import TOOL_SUBST
 
 
 

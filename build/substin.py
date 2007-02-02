@@ -1,5 +1,6 @@
 import re
 from SCons.Script import *
+from SCons.Builder import *
 
 # http://www.scons.org/wiki/SubstInFileBuilder
 
@@ -64,8 +65,8 @@ def TOOL_SUBST(env):
                 d[k] = env.subst(v())
             elif SCons.Util.is_String(v):
                 d[k]=env.subst(v)
-        Depends(target, SCons.Node.Python.Value(d))
+        env.Depends(target, SCons.Node.Python.Value(d))
         return target, source
 
     subst_action=SCons.Action.Action(subst_in_file, subst_in_file_string)
-    env['BUILDERS']['SubstInFile'] = Builder(action=subst_action, emitter=subst_emitter)
+    env['BUILDERS']['SubstInFile'] = env.Builder(action=subst_action, emitter=subst_emitter)
