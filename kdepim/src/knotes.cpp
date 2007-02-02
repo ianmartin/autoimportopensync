@@ -112,7 +112,7 @@ bool KNotesDataSource::disconnect(OSyncContext *ctx)
 
 static QString strip_html(QString input)
 {
-	osync_trace(TRACE_INTERNAL, "input is %s\n", (const char*)input.local8Bit());
+	osync_trace(TRACE_SENSITIVE, "input is %s\n", (const char*)input.local8Bit());
 	QString output = NULL;
 	unsigned int i = 0;
 	int inbraces = 0;
@@ -127,7 +127,7 @@ static QString strip_html(QString input)
 		if (!inbraces)
 			output += input[i];
 	}
-	osync_trace(TRACE_INTERNAL, "output is %s\n", (const char*)output.stripWhiteSpace().local8Bit());
+	osync_trace(TRACE_SENSITIVE, "output is %s\n", (const char*)output.stripWhiteSpace().local8Bit());
 	return output.stripWhiteSpace();
 }
 
