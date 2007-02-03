@@ -303,7 +303,7 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table, const char *objtype)
 void osync_hashtable_get_hash(OSyncHashTable *table, OSyncChange *chg)
 {
 	char *orighash = NULL;
-	osync_db_get_hash(table, chg->uid, chg->objtype_name, &orighash);
+	osync_db_get_hash(table, chg->uid, osync_change_get_objtype(chg)->name, &orighash);
 	osync_change_set_hash(chg, orighash);
 	g_free(orighash);
 }
