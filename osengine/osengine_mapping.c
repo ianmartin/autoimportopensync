@@ -90,6 +90,8 @@ OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, co
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, objtype ? objtype : "None");
 	GList *v;
+	int count_of_entries = 0; /*must not be more the one for objtype=NULL*/
+	OSyncMappingEntry *ret_entry = NULL;
 	for (v = table->views; v; v = v->next) {
 		OSyncMappingView *view = v->data;
 		GList *c;
@@ -108,19 +110,31 @@ OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, co
 						osync_change_get_objtype(entry->change))
 					, objtype))
 				) {
-					osync_trace(TRACE_EXIT, "%s: %p", __func__,
-						 entry);
-					return entry;
+					ret_entry = entry;
+					count_of_entries++;
 				}
-			} else {
+			} else { /**objtype is NULL ... try to find a entry based on uid*/
 				if (!strcmp(osync_change_get_uid(entry->change), uid)) {
-					osync_trace(TRACE_EXIT, "%s: %p", __func__,
-						 entry);
-					return entry;
+					ret_entry = entry;
+					count_of_entries++;
 				}
 			}
 		}
 	}
+	if(count_of_entries == 1 && ret_entry){
+		osync_trace(TRACE_EXIT, "%s: %p", __func__, ret_entry);
+		return ret_entry;
+	}
+	if(count_of_entries >1){
+		if (!objtype)
+		{
+			osync_trace(TRACE_EXIT_ERROR, "%s: possible dataloss", __func__ );
+		} else {
+			osync_trace(TRACE_EXIT_ERROR, "%s: changes.db corrupted", __func__ );
+		}
+		return NULL;
+	}
+
 	osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
 	return NULL;
 }

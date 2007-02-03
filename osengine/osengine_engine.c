@@ -127,9 +127,12 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 					engine->maptable, uid, NULL,
 					osync_member_get_id(client->member)
 				);
-			osync_change_set_objtype(change,
+			if (entry)
+			{
+				osync_change_set_objtype(change,
 					 osync_change_get_objtype(entry->change));
-			objtype=osync_change_get_objtype(change);
+				objtype=osync_change_get_objtype(change);
+			}
 		}
 		osync_trace(TRACE_INTERNAL, "Change has no data!");
 	}
