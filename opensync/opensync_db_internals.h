@@ -33,6 +33,6 @@ char **osync_db_get_deleted_hash(OSyncHashTable *table, const char *objtype);
 osync_bool osync_db_reset_member(OSyncMember *member, OSyncError **error);
 osync_bool osync_db_reset_group(OSyncGroup *group, OSyncError **error);
 
-osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error);
+osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, char ***objtype, long long int **memberids, int **changetypes, OSyncError **error);
 osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);
 osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSyncError **error);

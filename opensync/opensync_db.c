@@ -92,12 +92,12 @@ OSyncDB *_open_changelog(OSyncGroup *group, OSyncError **error)
 	
 	sqlite3 *sdb = log_db->db;
 	
-	if (sqlite3_exec(sdb, "CREATE TABLE tbl_log (uid VARCHAR, memberid INTEGER, changetype INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
+	if (sqlite3_exec(sdb, "CREATE TABLE tbl_log (uid VARCHAR, objtype VARCHAR, memberid INTEGER, changetype INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 2, "Unable create log table! %s", sqlite3_errmsg(sdb));
 	return log_db;
 }
 
-osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error)
+osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, char ***objtype, long long int **memberids, int **changetypes, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, group, uids, changetypes, error);
 	
@@ -110,19 +110,22 @@ osync_bool osync_db_open_changelog(OSyncGroup *group, char ***uids, long long in
 	int count = osync_db_count(log_db, "SELECT count(*) FROM tbl_log");
 
 	*uids = g_malloc0(sizeof(char *) * (count + 1));
+	*objtype = g_malloc0(sizeof(char *) * (count + 1));
 	*memberids = g_malloc0(sizeof(long long int) * (count + 1));
 	*changetypes = g_malloc0(sizeof(int) * (count + 1));
 
 	sqlite3_stmt *ppStmt = NULL;
-	sqlite3_prepare(sdb, "SELECT uid, memberid, changetype FROM tbl_log", -1, &ppStmt, NULL);
+	sqlite3_prepare(sdb, "SELECT uid, objtype, memberid, changetype FROM tbl_log", -1, &ppStmt, NULL);
 	int i = 0;
 	while (sqlite3_step(ppStmt) == SQLITE_ROW) {
 		(*uids)[i] = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
-		(*memberids)[i] = sqlite3_column_int64(ppStmt, 1);
-		(*changetypes)[i] = sqlite3_column_int(ppStmt, 2);
+		(*objtype)[i] = g_strdup((gchar*)sqlite3_column_text(ppStmt, 1));
+		(*memberids)[i] = sqlite3_column_int64(ppStmt, 2);
+		(*changetypes)[i] = sqlite3_column_int(ppStmt, 3);
 		i++;
 	}
 	(*uids)[i] = NULL;
+	(*objtype)[i] = NULL;
 	(*memberids)[i] = 0;
 	(*changetypes)[i] = 0;
 	sqlite3_finalize(ppStmt);
@@ -158,7 +161,7 @@ osync_bool osync_db_save_changelog(OSyncGroup *group, OSyncChange *change, OSync
 	sqlite3 *sdb = log_db->db;
 	
 	char *escaped_uid = osync_db_sql_escape(change->uid);
-	char *query = g_strdup_printf("INSERT INTO tbl_log (uid, memberid, changetype) VALUES('%s', '%lli', '%i')", escaped_uid, change->member->id, change->changetype);
+	char *query = g_strdup_printf("INSERT INTO tbl_log (uid, objtype, memberid, changetype) VALUES('%s', '%s', '%lli', '%i')", escaped_uid, osync_change_get_objtype(change)->name, change->member->id, change->changetype);
 	g_free(escaped_uid);
 	
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
@@ -192,7 +195,8 @@ osync_bool osync_db_remove_changelog(OSyncGroup *group, OSyncChange *change, OSy
 	sqlite3 *sdb = log_db->db;
 	
 	char *escaped_uid = osync_db_sql_escape(change->uid);
-	char *query = g_strdup_printf("DELETE FROM tbl_log WHERE uid='%s' AND memberid='%lli'", escaped_uid, change->member->id);
+	char *query = g_strdup_printf("DELETE FROM tbl_log WHERE uid='%s' AND memberid='%lli' AND objtype='%s'", 
+	escaped_uid, change->member->id, osync_change_get_objtype(change)->name);
 	g_free(escaped_uid);
 	
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK) {
