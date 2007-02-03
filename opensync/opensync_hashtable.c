@@ -269,7 +269,7 @@ void osync_hashtable_report_deleted(OSyncHashTable *table, OSyncContext *context
 		char *uid = uidarr[i];
 		OSyncChange *change = osync_change_new();
 		change->changetype = CHANGE_DELETED;
-		
+		osync_change_set_objtype_string(change, objtype);
 		osync_change_set_uid(change, uid);
 		osync_context_report_change(context, change);
 		osync_hashtable_update_hash(table, change);
