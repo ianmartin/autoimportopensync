@@ -29,6 +29,7 @@
 #include <opensync/opensync_support.h>
 #include "opensync/opensync_message_internals.h"
 #include "opensync/opensync_queue_internals.h"
+#include "opensync/opensync_format_internals.h"
 
 #include "engine_internals.h"
 #include <opensync/opensync_user_internals.h>
@@ -65,17 +66,30 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 
 	osync_change_set_member(change, client->member);
 
+
 	/**
 	 * first we need to detect the objtype because we use
 	 * uid + objtype as identifier for an entry.
-	 * TODO: check what happens if delete is used and therefore
-	 *	no detection could happen
+	 * Special case is file as objformat... we must not change 
+	 * the objtype with format file
 	 **/
-	if ( change_type != CHANGE_DELETED && osync_change_has_data(change)) {
+	if ( (change_type != CHANGE_DELETED) &&
+	     (osync_change_has_data(change))) {
+
+		OSyncObjFormat *objformat = osync_change_get_objformat(change);
+		osync_bool is_file_objformat = FALSE;
+		if(objformat)
+			is_file_objformat = 
+				((!strcmp(objformat->name, "file"))?(TRUE):(FALSE));
+
 		objtype = osync_change_detect_objtype_full(format_env, change, &error);
 		if (objtype) {
 			osync_trace(TRACE_INTERNAL, "Detected the object to be of type %s", osync_objtype_get_name(objtype));
-			osync_change_set_objtype(change, objtype);
+			/**we must not change with file as format*/
+			if(!is_file_objformat)
+			{
+				osync_change_set_objtype(change, objtype);
+			}
 			/**
 			 * do not use CHANGE_MODIFIED if slowsync
 			 **/
@@ -130,7 +144,6 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	}
 	
 	osync_group_remove_changelog(engine->group, change, &error);
-	
 	
 	//We convert to the common format here to make sure we always pass it
 	osync_change_convert_to_common(change, NULL);
