@@ -544,6 +544,34 @@ void osync_db_close_hashtable(OSyncHashTable *table)
 	osync_db_close(table->dbhandle);
 }
 
+int exists_hashtable_id(OSyncHashTable *table, const char *uid, const char *objtype)
+{
+	g_assert(table->dbhandle);
+	sqlite3 *sdb = table->dbhandle->db;
+	
+	int id = -1;
+
+	char *exist = g_strdup_printf("SELECT id FROM tbl_hash WHERE uid='%s' AND objtype='%s'",uid, objtype);
+
+	sqlite3_stmt *ppStmt = NULL;
+	if (sqlite3_prepare(sdb, exist, -1, &ppStmt, NULL) != SQLITE_OK)
+	{
+		osync_debug("OSDB", 3, "Unable prepare get id! %s", sqlite3_errmsg(sdb));
+		return (id);
+	}
+	int ret = sqlite3_step(ppStmt);
+	if (ret != SQLITE_DONE && ret != SQLITE_ROW)
+		return (id);
+	if (ret == SQLITE_DONE)
+		return (id);
+	
+	id = sqlite3_column_int64(ppStmt, 0);
+	sqlite3_finalize(ppStmt);
+	g_free(exist);
+
+	return(id);
+}
+
 void osync_db_save_hash(OSyncHashTable *table, const char *uid, const char *hash, const char *objtype)
 {
 	g_assert(table->dbhandle);
@@ -551,13 +579,25 @@ void osync_db_save_hash(OSyncHashTable *table, const char *uid, const char *hash
 	
 	char *escaped_uid = osync_db_sql_escape(uid);
 	char *escaped_hash = osync_db_sql_escape(hash);
-	char *query = g_strdup_printf("REPLACE INTO tbl_hash ('uid', 'hash', 'objtype') VALUES('%s', '%s', '%s')", escaped_uid, escaped_hash, objtype);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	int id = exists_hashtable_id(table, escaped_uid, escaped_objtype);
+	char *query = NULL;
+	if(id < 0){
+		query = g_strdup_printf(
+			"REPLACE INTO tbl_hash ('uid', 'hash', 'objtype') VALUES('%s', '%s', '%s')", 
+			escaped_uid, escaped_hash, escaped_objtype);
+	}else{
+		query = g_strdup_printf(
+			"REPLACE INTO tbl_hash ('id', 'uid', 'hash', 'objtype') VALUES('%i', '%s', '%s', '%s')", 
+			id, escaped_uid, escaped_hash, escaped_objtype);
+	}
 	
 	if (sqlite3_exec(sdb, query, NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 1, "Unable to insert hash! uid = %s, hash = %s, error = %s", escaped_uid, escaped_hash, sqlite3_errmsg(sdb));
 		
 	g_free(escaped_uid);
 	g_free(escaped_hash);
+	g_free(escaped_objtype);
 	g_free(query);
 }
 
@@ -619,7 +659,8 @@ void osync_db_get_hash(OSyncHashTable *table, const char *uid, const char *objty
 	char *escaped_objtype = osync_db_sql_escape(objtype);
 	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid='%s' AND objtype='%s'", escaped_uid, escaped_objtype);
 	g_free(escaped_uid);
-	
+	g_free(escaped_objtype);
+
 	if (sqlite3_prepare(sdb, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
 	int ret = sqlite3_step(ppStmt);
