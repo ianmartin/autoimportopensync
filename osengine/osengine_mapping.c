@@ -467,7 +467,10 @@ OSyncMappingEntry *osengine_mappingview_store_change(OSyncMappingView *view, OSy
 	for (c = view->changes; c; c = c->next) {
 		OSyncMappingEntry *entry = c->data;
 		g_assert(entry->change);
-		if (!strcmp(osync_change_get_uid(entry->change), osync_change_get_uid(change))) {
+		if (
+			(!strcmp(osync_change_get_uid(entry->change), osync_change_get_uid(change))) &&
+			(osync_change_get_objtype(entry->change) == osync_change_get_objtype(change))
+		) {
 			osengine_mappingentry_update(entry, change);
 			osync_trace(TRACE_EXIT, "osengine_mappingview_store_change: %p", entry);
 			return entry;
