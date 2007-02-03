@@ -86,9 +86,9 @@ void osengine_mappingtable_free(OSyncMappingTable *table)
 	osync_trace(TRACE_EXIT, "osengine_mappingtable_free");
 }
 
-OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, const char *uid, long long int memberid)
+OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, const char *uid, const char *objtype, long long int memberid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, objtype);
 	GList *v;
 	for (v = table->views; v; v = v->next) {
 		OSyncMappingView *view = v->data;
@@ -100,7 +100,9 @@ OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, co
 		for (c = view->changes; c; c = c->next) {
 			OSyncMappingEntry *entry = c->data;
 			g_assert(entry->change);
-			if (!strcmp(osync_change_get_uid(entry->change), uid)) {
+			if ( 	(!strcmp(osync_change_get_uid(entry->change), uid)) &&
+				(!strcmp(osync_objtype_get_name(osync_change_get_objtype(entry->change)), objtype))
+			) {
 				osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
 				return entry;
 			}
@@ -218,18 +220,21 @@ void osengine_mappingtable_inject_changes(OSyncMappingTable *table)
 	//OSyncEngine *engine = table->engine;
 
 	char **uids = NULL;
+	char **objtypes = NULL;
 	long long int *memberids = NULL;
 	int *types = NULL;
 	char *uid = NULL;
+	char *objtype = NULL;
 	int type = 0;
 	int i = 0;
 	OSyncError *error = NULL;
-	osync_group_open_changelog(table->engine->group, &uids, &memberids, &types, &error);	
+	osync_group_open_changelog(table->engine->group, &uids, &objtypes, &memberids, &types, &error);	
 	
 	for (i = 0; (uid = uids[i]) ; i++) {
 		type = types[i];
+		objtype = objtypes[i];
 		long long int memberid = memberids[i];
-		OSyncMappingEntry *entry = osengine_mappingtable_find_entry(table, uid, memberid);
+		OSyncMappingEntry *entry = osengine_mappingtable_find_entry(table, uid, objtype, memberid);
 
 		if (!entry) {
 			osync_trace(TRACE_INTERNAL, "Mappingtable and changelog inconsistent: no entry with uid %s", uid);

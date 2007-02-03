@@ -928,14 +928,15 @@ void osync_group_flush_filters(OSyncGroup *group)
  * 
  * @param group The group for which to load the log
  * @param uids Place to return an array with the saved uids
+ * @param objtype Place to return an array with the saved objtypes
  * @param memberids Place to return an array with the saved memberids
  * @param changetypes Place to return an array with the saved changetypes. Same size as uids
  * @param error Place to return the error
  * @returns TRUE if successfull, FALSE otherwise
  */
-osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, long long int **memberids, int **changetypes, OSyncError **error)
+osync_bool osync_group_open_changelog(OSyncGroup *group, char ***uids, char ***objtype, long long int **memberids, int **changetypes, OSyncError **error)
 {
-	return osync_db_open_changelog(group, uids, memberids, changetypes, error);
+	return osync_db_open_changelog(group, uids, objtype, memberids, changetypes, error);
 }
 
 /*! @brief Saves a change to the changelog.
