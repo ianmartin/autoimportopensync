@@ -32,6 +32,8 @@
 
 #include "engine_internals.h"
 #include <opensync/opensync_user_internals.h>
+
+OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, const char *uid, const char *objtype, long long int memberid);
 /**
  * @defgroup OSEnginePrivate OpenSync Engine Private API
  * @ingroup PrivateAPI
@@ -54,10 +56,69 @@
 void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, client, change);
-	osync_change_set_member(change, client->member);
-	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_change_get_datasize(change), osync_change_get_objtype(change) ? osync_objtype_get_name(osync_change_get_objtype(change)) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
-	
+
 	OSyncError *error = NULL;
+	OSyncChangeType change_type = osync_change_get_changetype(change);
+	OSyncFormatEnv *format_env = osync_group_get_format_env(engine->group);
+	OSyncObjType *objtype = osync_change_get_objtype(change);
+	const char* uid = osync_change_get_uid(change);
+
+	osync_change_set_member(change, client->member);
+
+	/**
+	 * first we need to detect the objtype because we use
+	 * uid + objtype as identifier for an entry.
+	 * TODO: check what happens if delete is used and therefore
+	 *	no detection could happen
+	 **/
+	if ( change_type != CHANGE_DELETED && osync_change_has_data(change)) {
+		objtype = osync_change_detect_objtype_full(format_env, change, &error);
+		if (objtype) {
+			osync_trace(TRACE_INTERNAL, "Detected the object to be of type %s", osync_objtype_get_name(objtype));
+			osync_change_set_objtype(change, objtype);
+			/**
+			 * do not use CHANGE_MODIFIED if slowsync
+			 **/
+			if ((osync_group_get_slow_sync(engine->group,
+				 osync_objtype_get_name(objtype))) &&
+			    (change_type == CHANGE_MODIFIED))
+			{
+				osync_change_set_changetype(change, CHANGE_ADDED);
+				change_type = osync_change_get_changetype(change);
+			}
+		}
+	} else
+	{
+		/**
+		 * we need to handle the special delete case where objtype is data
+		 * and no uid with objtype data exists from this member	
+		 **/
+		if (( !strcmp(osync_objtype_get_name(objtype), "data") ) &&
+		    ( !osengine_mappingtable_find_entry(
+			engine->maptable, uid, osync_objtype_get_name(objtype),
+			osync_member_get_id(client->member)) ))
+		{
+			/**
+			 * TODO: check if there is more than one entry 
+			 * from this member with this uid.
+			 * if yes we have to throw an error and stop here.
+			 * else we just use its objtype
+			 **/
+			OSyncMappingEntry *entry = 
+				osengine_mappingtable_find_entry(
+					engine->maptable, uid, NULL,
+					osync_member_get_id(client->member)
+				);
+			osync_change_set_objtype(change,
+					 osync_change_get_objtype(entry->change));
+			objtype=osync_change_get_objtype(change);
+		}
+		osync_trace(TRACE_INTERNAL, "Change has no data!");
+	}
+
+
+	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", uid, change_type, osync_change_get_data(change), osync_change_get_datasize(change), objtype ? osync_objtype_get_name(objtype) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
+	
 	OSyncMappingEntry *entry = osengine_mappingtable_store_change(engine->maptable, change);
 	change = entry->change;
 	if (!osync_change_save(change, TRUE, &error)) {
@@ -70,15 +131,6 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	
 	osync_group_remove_changelog(engine->group, change, &error);
 	
-	if (osync_change_get_changetype(change) != CHANGE_DELETED && osync_change_has_data(change)) {
-		OSyncFormatEnv *env = osync_group_get_format_env(engine->group);
-		OSyncObjType *objtype = osync_change_detect_objtype_full(env, change, &error);
-		if (objtype) {
-			osync_trace(TRACE_INTERNAL, "Detected the object to be of type %s", osync_objtype_get_name(objtype));
-			osync_change_set_objtype(change, objtype);
-		}
-	} else
-		osync_trace(TRACE_INTERNAL, "Change has no data!");
 	
 	//We convert to the common format here to make sure we always pass it
 	osync_change_convert_to_common(change, NULL);

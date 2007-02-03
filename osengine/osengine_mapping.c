@@ -88,7 +88,7 @@ void osengine_mappingtable_free(OSyncMappingTable *table)
 
 OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, const char *uid, const char *objtype, long long int memberid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, objtype);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, objtype ? objtype : "None");
 	GList *v;
 	for (v = table->views; v; v = v->next) {
 		OSyncMappingView *view = v->data;
@@ -100,11 +100,24 @@ OSyncMappingEntry *osengine_mappingtable_find_entry(OSyncMappingTable *table, co
 		for (c = view->changes; c; c = c->next) {
 			OSyncMappingEntry *entry = c->data;
 			g_assert(entry->change);
-			if ( 	(!strcmp(osync_change_get_uid(entry->change), uid)) &&
-				(!strcmp(osync_objtype_get_name(osync_change_get_objtype(entry->change)), objtype))
-			) {
-				osync_trace(TRACE_EXIT, "%s: %p", __func__, entry);
-				return entry;
+			if(objtype){
+				if ( (!strcmp(
+					osync_change_get_uid(entry->change), uid)) &&
+				   (!strcmp(
+					osync_objtype_get_name(
+						osync_change_get_objtype(entry->change))
+					, objtype))
+				) {
+					osync_trace(TRACE_EXIT, "%s: %p", __func__,
+						 entry);
+					return entry;
+				}
+			} else {
+				if (!strcmp(osync_change_get_uid(entry->change), uid)) {
+					osync_trace(TRACE_EXIT, "%s: %p", __func__,
+						 entry);
+					return entry;
+				}
 			}
 		}
 	}
