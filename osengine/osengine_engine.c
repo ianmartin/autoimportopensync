@@ -107,11 +107,11 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		 * we need to handle the special delete case where objtype is data
 		 * and no uid with objtype data exists from this member	
 		 **/
-		if ( objtype &&
-		     ( !strcmp(osync_objtype_get_name(objtype), "data") ) &&
+		if ( !objtype ||
+		     (( !strcmp(osync_objtype_get_name(objtype), "data") ) &&
 		     ( !osengine_mappingtable_find_entry(
 				engine->maptable, uid, osync_objtype_get_name(objtype),
-				osync_member_get_id(client->member)) )){
+				osync_member_get_id(client->member)) )) ){
 			/**
 			 * TODO: check if there is more than one entry 
 			 * from this member with this uid.
