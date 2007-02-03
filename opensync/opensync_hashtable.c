@@ -212,11 +212,14 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChange *change)
 	osync_assert_msg(change, "Change was NULL. Bug in a plugin");
 	osync_assert_msg(change->uid, "No uid was set on change. Bug in a plugin");
 
-	osync_trace(TRACE_INTERNAL, "Updating hashtable with hash \"%s\" and changetype %i", change->hash, osync_change_get_changetype(change));
+	osync_trace(TRACE_INTERNAL, "Updating hashtable with hash \"%s\" and changetype %i",
+			change->hash, osync_change_get_changetype(change));
+
 	switch (osync_change_get_changetype(change)) {
 		case CHANGE_MODIFIED:
 		case CHANGE_ADDED:
-			osync_db_save_hash(table, change->uid, change->hash, osync_change_get_objtype(change) ? osync_change_get_objtype(change)->name : NULL);
+			osync_db_save_hash(table, change->uid, change->hash,
+					osync_change_get_objtype(change) ? osync_change_get_objtype(change)->name : NULL);
 			break;
 		case CHANGE_DELETED:
 			osync_db_delete_hash(table, change->uid);
@@ -300,7 +303,7 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table, const char *objtype)
 void osync_hashtable_get_hash(OSyncHashTable *table, OSyncChange *chg)
 {
 	char *orighash = NULL;
-	osync_db_get_hash(table, chg->uid, &orighash);
+	osync_db_get_hash(table, chg->uid, chg->objtype_name, &orighash);
 	osync_change_set_hash(chg, orighash);
 	g_free(orighash);
 }
@@ -317,14 +320,14 @@ void osync_hashtable_get_hash(OSyncHashTable *table, OSyncChange *chg)
  * @returns The changetype
  * 
  */
-OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *hash)
+OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *objtype, const char *hash)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, hash);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %s)", __func__, table, uid, objtype, hash);
 	osync_hashtable_assert_loaded(table);
 	OSyncChangeType retval = CHANGE_UNMODIFIED;
 
 	char *orighash = NULL;
-	osync_db_get_hash(table, uid, &orighash);
+	osync_db_get_hash(table, uid, objtype, &orighash);
 	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash, orighash);
 	
 	if (orighash) {
@@ -353,7 +356,7 @@ osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *cha
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, change);
 	osync_bool retval = FALSE;
 
-	change->changetype = osync_hashtable_get_changetype(table, change->uid, change->hash);
+	change->changetype = osync_hashtable_get_changetype(table, change->uid, change->objtype_name, change->hash);
 	if (change->changetype != CHANGE_UNMODIFIED)
 		retval = TRUE;
 	

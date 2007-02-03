@@ -529,7 +529,7 @@ osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member, O
 	
 	sqlite3 *db = table->dbhandle->db;
 	
-	if (sqlite3_exec(db, "CREATE TABLE tbl_hash (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR, objtype VARCHAR)", NULL, NULL, NULL) != SQLITE_OK)
+	if (sqlite3_exec(db, "CREATE TABLE tbl_hash (id INTEGER PRIMARY KEY, uid VARCHAR, hash VARCHAR, objtype VARCHAR)", NULL, NULL, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable create hash table! %s", sqlite3_errmsg(db));
 	
 	return TRUE; //FIXME
@@ -607,18 +607,22 @@ char **osync_db_get_deleted_hash(OSyncHashTable *table, const char *objtype)
 	return ret;
 }	
 
-void osync_db_get_hash(OSyncHashTable *table, const char *uid, char **rethash)
+void osync_db_get_hash(OSyncHashTable *table, const char *uid, const char *objtype, char **rethash)
 {
 	sqlite3 *sdb = table->dbhandle->db;
 	sqlite3_stmt *ppStmt = NULL;
 	char *escaped_uid = osync_db_sql_escape(uid);
-	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid='%s'", escaped_uid);
+	char *escaped_objtype = osync_db_sql_escape(objtype);
+	char *query = g_strdup_printf("SELECT hash FROM tbl_hash WHERE uid='%s' AND objtype='%s'", escaped_uid, escaped_objtype);
 	g_free(escaped_uid);
 	
 	if (sqlite3_prepare(sdb, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare get hash! %s", sqlite3_errmsg(sdb));
-	if (sqlite3_step(ppStmt) != SQLITE_OK)
+	int ret = sqlite3_step(ppStmt);
+	if (ret != SQLITE_DONE && ret != SQLITE_ROW)
 		osync_debug("OSDB", 3, "Unable step get hash! %s", sqlite3_errmsg(sdb));
+	if (ret == SQLITE_DONE)
+		osync_debug("OSDB", 3, "No row found!");
 	*rethash = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);

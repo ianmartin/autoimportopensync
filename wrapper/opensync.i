@@ -348,8 +348,8 @@ typedef struct {} OSyncHashTable;
 		osync_hashtable_report_deleted(self, context, objtype);
 	}
 
-	OSyncChangeType get_changetype(const char *uid, const char *hash) {
-		return osync_hashtable_get_changetype(self, uid, hash);
+	OSyncChangeType get_changetype(const char *uid, const char *hash, const char *objtype) {
+		return osync_hashtable_get_changetype(self, uid, hash, objtype);
 	}
 
 	osync_bool detect_change(OSyncChange *change) {
