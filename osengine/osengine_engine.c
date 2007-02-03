@@ -91,16 +91,17 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 				osync_change_set_objtype(change, objtype);
 			}
 			/**
-			 * do not use CHANGE_MODIFIED if slowsync or change not
-			 * exist before
+			 * do not use CHANGE_MODIFIED if slowsync or (change not
+			 * exist before if not filesync)
 			 **/
 			if ( ( (osync_group_get_slow_sync(engine->group,
 				 osync_objtype_get_name(objtype))) || 
-			       (!osengine_mappingtable_find_entry(
-				engine->maptable, uid, osync_objtype_get_name(objtype),
-				osync_member_get_id(client->member))) ) &&
-			    (change_type == CHANGE_MODIFIED) )
-			{
+			       ( (!is_file_objformat) &&
+				 (!osengine_mappingtable_find_entry(
+					engine->maptable, uid,
+					osync_objtype_get_name(objtype),
+					osync_member_get_id(client->member))) ) 
+			      ) && (change_type == CHANGE_MODIFIED) ){
 				osync_change_set_changetype(change, CHANGE_ADDED);
 				change_type = osync_change_get_changetype(change);
 			}
