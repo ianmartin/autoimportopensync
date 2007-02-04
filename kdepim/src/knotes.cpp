@@ -32,6 +32,8 @@ SOFTWARE IS DISCLAIMED.
 
 #include "knotes.h"
 #include <glib.h>
+/*An adapted C++ implementation of RSA Data Securities MD5 algorithm.*/
+#include <kmdcodec.h>
 
 KNotesDataSource::KNotesDataSource(OSyncMember *m, OSyncHashTable *h)
 		:member(m), hashtable(h)
@@ -140,6 +142,9 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	QMap <KNoteID_t,QString> fNotes;
+	//set Digest to rawResult
+	KMD5::Digest rawResult;
+	KMD5 hash_value;
 
 	fNotes = kn_iface->notes();
 	if (kn_iface->status() != DCOPStub::CallSucceeded) {
@@ -180,11 +185,12 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 		// Set the right attributes
 		xmlNode *sum = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
 		QCString utf8str = i.data().utf8();
-		hash = utf8str;
+		hash_value.update(utf8str);
 		osxml_node_set(sum, "Summary", utf8str, enc);
 
 		utf8str = strip_html(kn_iface->text(i.key())).utf8();
-		hash += utf8str;
+		hash_value.update(utf8str);
+		hash = hash_value.base64Digest ();
 		if (utf8str && !utf8str.isEmpty()) {
 			xmlNode *body = xmlNewChild(root, NULL, (const xmlChar*)"", NULL);
 			osxml_node_set(body, "Body", utf8str, enc);
@@ -209,6 +215,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 			osync_context_report_change(ctx, chg);
 			osync_hashtable_update_hash(hashtable, chg);
 		}
+		hash_value.reset();
 	}
 
 	osync_hashtable_report_deleted(hashtable, ctx, "note");
@@ -230,6 +237,10 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 	OSyncChangeType type = osync_change_get_changetype(chg);
 
 	QString uid = osync_change_get_uid(chg);
+
+	//set Digest to rawResult
+	KMD5::Digest rawResult;
+	KMD5 hash_value;
 
 	if (type != CHANGE_DELETED) {
 
@@ -278,8 +289,9 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 				kn_iface->hideNote(uid);
 				if (kn_iface->status() != DCOPStub::CallSucceeded)
 					osync_trace(TRACE_INTERNAL, "ERROR: Unable to hide note");
-
-				hash = summary + body;
+				hash_value.update(summary);
+				hash_value.update(body);
+				hash = hash_value.base64Digest();
 				osync_change_set_uid(chg, uid);
 				osync_change_set_hash(chg, hash);
 				break;
@@ -298,7 +310,9 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 					osync_trace(TRACE_EXIT_ERROR, "%s: Unable to set text", __func__);
 					return false;
 				}
-				hash = summary + body;
+				hash_value.update(summary);
+				hash_value.update(body);
+				hash = hash_value.base64Digest();
 				osync_change_set_hash(chg, hash);
 				break;
 			}
