@@ -19,6 +19,8 @@ class KdePluginImplementationBase
 
 		virtual void get_changeinfo(OSyncContext *ctx) = 0;
 
+		virtual void sync_done(OSyncContext *ctx) = 0;
+
 		virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg) = 0;
 		virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
 

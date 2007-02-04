@@ -79,10 +79,9 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 	addressbookptr = KABC::StdAddressBook::self();
 
 	//Detection mechanismn if this is the first sync
-	if (!osync_anchor_compare(member, "synced", "true")) {
-		osync_trace(TRACE_INTERNAL, "Setting slow-sync");
+	if (!osync_anchor_compare(member, "contact", "true")) {
+		osync_trace(TRACE_INTERNAL, "Setting slow-sync contact");
 		osync_member_set_slow_sync(member, "contact", TRUE);
-		osync_anchor_update(member, "synced", "true");
 	}
 
 	connected = true;

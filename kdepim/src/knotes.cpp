@@ -79,6 +79,11 @@ bool KNotesDataSource::connect(OSyncContext *ctx)
 
 	kn_iface = new KNotesIface_stub("knotes", "KNotesIface");
 
+	if (!osync_anchor_compare(member, "note", "true")) {
+		osync_trace(TRACE_INTERNAL, "Setting slow-sync for note");
+		osync_member_set_slow_sync(member, "note", TRUE);
+	}
+
 	connected = true;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;

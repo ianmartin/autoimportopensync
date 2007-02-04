@@ -165,6 +165,34 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			osync_context_report_success(ctx);
 		}
 
+
+		virtual void sync_done(OSyncContext *ctx)
+		{
+			if (mKaddrbook && mKaddrbook->connected)
+			{
+				osync_anchor_update(mMember, "contact", "true");
+			}
+
+			if (mKcal && mKcal->connected &&
+				 osync_member_objtype_enabled(mMember, "event"))
+			{
+				osync_anchor_update(mMember, "event", "true");
+			}
+
+			if (mKcal && mKcal->connected &&
+				 osync_member_objtype_enabled(mMember, "todo"))
+			{
+				osync_anchor_update(mMember, "todo", "true");
+			}
+
+			if (mKnotes && mKnotes->connected)
+			{
+				osync_anchor_update(mMember, "note", "true");
+			}
+
+			osync_context_report_success(ctx);
+		}
+
 		virtual void get_changeinfo(OSyncContext *ctx)
 		{
 			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(ctx))

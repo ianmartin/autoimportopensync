@@ -36,7 +36,6 @@ KCalDataSource::KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable)
 
 bool KCalDataSource::connect(OSyncContext *ctx)
 {
-
 	DCOPClient *dcopc = KApplication::kApplication()->dcopClient();
 	if (!dcopc) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to initialize dcop client");
@@ -66,6 +65,20 @@ bool KCalDataSource::connect(OSyncContext *ctx)
 	calendar->readConfig();
 	calendar->load();
 #endif
+
+	//Detection mechanismn if this is the first sync
+	if (osync_member_objtype_enabled(member, "event")
+	    && !osync_anchor_compare(member, "event", "true")) {
+		osync_trace(TRACE_INTERNAL, "Setting slow-sync for event");
+		osync_member_set_slow_sync(member, "event", TRUE);
+	}
+
+	if (osync_member_objtype_enabled(member, "todo")
+	    && !osync_anchor_compare(member, "todo", "true")) {
+		osync_trace(TRACE_INTERNAL, "Setting slow-sync for todo");
+		osync_member_set_slow_sync(member, "todo", TRUE);
+	}
+
 	osync_debug("kcal", 3, "Calendar: %d events", calendar->events().size());
 
 	connected = true;
@@ -74,7 +87,6 @@ bool KCalDataSource::connect(OSyncContext *ctx)
 
 bool KCalDataSource::disconnect(OSyncContext *)
 {
-
 	/* Save the changes */
 	calendar->save();
 
