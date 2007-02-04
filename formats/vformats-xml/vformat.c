@@ -886,9 +886,14 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			char *value = v->data;
 			char *escaped_value = NULL;
 
-			escaped_value = vformat_escape_string (value, type);
+			if (!strcmp (attr->name, "RRULE") && 
+				  strstr (value, "BYDAY") == v->data) {
+				attr_str = g_string_append (attr_str, value);
+			} else {
+				escaped_value = vformat_escape_string (value, type);
+				attr_str = g_string_append (attr_str, escaped_value);
+			}
 
-			attr_str = g_string_append (attr_str, escaped_value);
 			if (v->next) {
 
 				/* XXX toshok - i hate you, rfc 2426.
