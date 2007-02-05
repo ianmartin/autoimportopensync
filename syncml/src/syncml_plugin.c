@@ -100,6 +100,13 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 		osync_change_set_member(change, env->member);
 		osync_change_set_uid(change, uid);
 		
+		if (_to_osync_changetype(type) == CHANGE_DELETED) {
+			osync_change_set_objtype_string(
+				change,
+				_contenttype_to_format(contenttype)
+			);
+		}
+		
 		if (contenttype != NULL) {
 			/* We specify the objformat plain for vcard and vcal
 			 * since we cannot be really sure what the device sends
@@ -674,6 +681,8 @@ static void *syncml_http_server_init(OSyncMember *member, OSyncError **error)
 	config.port = env->port;
 	config.url = env->url;
 	config.interface = NULL;
+	config.ssl_key = NULL;
+	config.ssl_crt = NULL;
 	
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
