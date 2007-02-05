@@ -356,7 +356,7 @@ osync_bool osync_hashtable_detect_change(OSyncHashTable *table, OSyncChange *cha
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, table, change);
 	osync_bool retval = FALSE;
 
-	change->changetype = osync_hashtable_get_changetype(table, change->uid, change->objtype_name, change->hash);
+	change->changetype = osync_hashtable_get_changetype(table, change->uid, osync_objtype_get_name(osync_change_get_objtype(change)), change->hash);
 	if (change->changetype != CHANGE_UNMODIFIED)
 		retval = TRUE;
 	

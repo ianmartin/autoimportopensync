@@ -63,8 +63,13 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	OSyncFormatEnv *format_env = osync_group_get_format_env(engine->group);
 	OSyncObjType *objtype = osync_change_get_objtype(change);
 	const char* uid = osync_change_get_uid(change);
+	OSyncObjFormat *objformat = osync_change_get_objformat(change);
 
 	osync_change_set_member(change, client->member);
+
+	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, objtype %s and format %s from member %lli", uid, change_type, 
+	objtype ? osync_objtype_get_name(objtype) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None",
+	osync_member_get_id(client->member));
 
 
 	/**
@@ -75,14 +80,15 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	 **/
 	if ( (change_type != CHANGE_DELETED) &&
 	     (osync_change_has_data(change))) {
-
-		OSyncObjFormat *objformat = osync_change_get_objformat(change);
 		osync_bool is_file_objformat = FALSE;
 		if(objformat)
 			is_file_objformat = 
 				((!strcmp(objformat->name, "file"))?(TRUE):(FALSE));
-
-		objtype = osync_change_detect_objtype_full(format_env, change, &error);
+		if ( (!objtype) || (!objformat) ||
+		     (!strcmp(osync_objtype_get_name(objtype), "data")) ||
+		     (!strcmp(objformat->name, "plain"))) {
+			objtype = osync_change_detect_objtype_full(format_env, change, &error);
+		}
 		if (objtype) {
 			osync_trace(TRACE_INTERNAL, "Detected the object to be of type %s", osync_objtype_get_name(objtype));
 			/**we must not change with file as format*/
