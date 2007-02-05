@@ -198,10 +198,14 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(ctx))
 				return;
 
-			if (mKcal && mKcal->connected && !mKcal->get_changeinfo_events(ctx))
+			if (mKcal && mKcal->connected &&
+				osync_member_objtype_enabled(mMember, "event") &&
+				 !mKcal->get_changeinfo_events(ctx))
 				return;
 
-			if (mKcal && mKcal->connected && !mKcal->get_changeinfo_todos(ctx))
+			if (mKcal && mKcal->connected &&
+				 osync_member_objtype_enabled(mMember, "todo") &&
+				 !mKcal->get_changeinfo_todos(ctx))
 				return;
 
 			if (mKnotes && mKnotes->connected && !mKnotes->get_changeinfo(ctx))
