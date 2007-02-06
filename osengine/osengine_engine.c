@@ -112,40 +112,48 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 				change_type = osync_change_get_changetype(change);
 			}
 		}
-	} else
-	{
-		/**
-		 * we need to handle the special delete case where objtype is data
-		 * and no uid with objtype data exists from this member	
-		 **/
-		if ( !objtype ||
-		     (( !strcmp(osync_objtype_get_name(objtype), "data") ) &&
-		     ( !osengine_mappingtable_find_entry(
-				engine->maptable, uid, osync_objtype_get_name(objtype),
-				osync_member_get_id(client->member)) )) ){
+	} else 
+		if (change_type == CHANGE_DELETED){
 			/**
-			 * TODO: check if there is more than one entry 
-			 * from this member with this uid.
-			 * if yes we have to throw an error and stop here.
-			 * else we just use its objtype
+			 * we need to handle the special delete case where objtype 
+			 * is data and no uid with objtype data exists from this
+			 * member	
 			 **/
-			OSyncMappingEntry *entry = 
-				osengine_mappingtable_find_entry(
-					engine->maptable, uid, NULL,
-					osync_member_get_id(client->member)
-				);
-			if (entry)
-			{
-				osync_change_set_objtype(change,
-					 osync_change_get_objtype(entry->change));
-				objtype=osync_change_get_objtype(change);
+			if ( !objtype ||
+			     (( !strcmp(osync_objtype_get_name(objtype), "data") ) &&
+			     ( !osengine_mappingtable_find_entry(
+					engine->maptable, uid,
+				 osync_objtype_get_name(objtype),
+				osync_member_get_id(client->member)) )) ){
+
+				OSyncMappingEntry *entry = 
+					osengine_mappingtable_find_entry(
+						engine->maptable, uid, NULL,
+						osync_member_get_id(client->member)
+					);
+				if (entry) {
+					osync_change_set_objtype(change,
+						 osync_change_get_objtype(
+							entry->change));
+					objtype=osync_change_get_objtype(change);
+				} else {
+					osync_error_set(&error, OSYNC_ERROR_GENERIC,
+						 "Could not find one entry with UID=%s to delete.", uid);
+					goto error;
+				}
 			}
+		} else {
+			osync_trace(TRACE_INTERNAL, "Change has no data!");
 		}
-		osync_trace(TRACE_INTERNAL, "Change has no data!");
-	}
-
-
+	
 	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", uid, change_type, osync_change_get_data(change), osync_change_get_datasize(change), objtype ? osync_objtype_get_name(objtype) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
+
+	if (!objtype){
+		osync_error_set(&error, OSYNC_ERROR_GENERIC,
+			"ObjType not set for uid %s.", uid);
+		goto error;
+	}
+	
 	
 	OSyncMappingEntry *entry = osengine_mappingtable_store_change(engine->maptable, change);
 	change = entry->change;
