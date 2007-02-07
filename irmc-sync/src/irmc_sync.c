@@ -331,41 +331,6 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
   osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-#if HAVE_BLUETOOTH
-/**
- * Scan for available bluetooth devices and return a list of
- * found devices in xml structure.
- */
-void *scan_devices( void *foo, const char *query, void *bar )
-{
-  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, foo, query, bar);			
-  xmlDoc *doc;
-  xmlNode *node, *devices;
-  xmlChar *data;
-  int size;
-
-  doc = xmlNewDoc((const xmlChar*)"1.0");
-  devices = xmlNewDocNode(doc, NULL, (const xmlChar*)"devices", NULL);
-  xmlDocSetRootElement(doc, devices);
-
-  GList *unit_list = find_bt_units();
-  for (; unit_list; unit_list = unit_list->next) {
-    irmc_bt_unit *unit = unit_list->data;
-    node = xmlNewTextChild(devices, NULL, (const xmlChar*)"device", NULL);
-    xmlNewProp(node, (const xmlChar*)"address", (const xmlChar*)(unit->address));
-    char *number = g_strdup_printf("%d", unit->channel);
-    xmlNewProp(node, (const xmlChar*)"channel", (const xmlChar*)number);
-    g_free(number);
-    xmlNewProp(node, (const xmlChar*)"name", (const xmlChar*)(unit->name));
-  }
-
-  xmlDocDumpFormatMemory( doc, &data, &size, 0 );
-
-  osync_trace(TRACE_EXIT, "%s: %p", __func__, data);
-  return data;
-}
-#endif
-
 /**
  * Tests whether a connection to a device with the given configuration can
  * be established.
