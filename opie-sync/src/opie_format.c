@@ -879,7 +879,8 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, i
 				int priority = atoi(prio);
 				xmlFree(prio);
 				if (priority < 1) {
-					priority = 1;
+					/* Invalid or (more likely) unspecified priority */
+					priority = 3;
 				}
 				else if (priority > 5) {
 					priority = 5;
