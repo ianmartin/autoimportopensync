@@ -444,7 +444,7 @@ synce_file_getdata(OSyncContext *ctx, OSyncChange *change)
 	SyncePluginPtr	*env;
 	fileFormat			*ff;
 	HANDLE				h;
-	LPDWORD				rsz;
+	uint32_t			rsz;
 	WCHAR				*wfn;
 	int				r;
         char       *lfn;
