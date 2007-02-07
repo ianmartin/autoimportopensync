@@ -9,3 +9,4 @@ osync_bool osengine_mapping_solve_latest(OSyncEngine *engine, OSyncMapping *mapp
 
 osync_bool osengine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMapping *mapping, OSyncError **error);
 osync_bool osengine_mapping_ignore_supported(OSyncEngine *engine, OSyncMapping *mapping);
+osync_bool osengine_mapping_check_timestamps(OSyncEngine *engine, OSyncMapping *mapping, OSyncError **error);
