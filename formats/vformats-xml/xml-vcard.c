@@ -686,6 +686,17 @@ static VFormatAttribute *handle_xml_photo_attribute(VFormat *vcard, xmlNode *roo
 	return attr;
 }
 
+static VFormatAttribute *handle_xml_photo_base64_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling photo xml attribute");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
+	add_value(attr, root, "Content", encoding);
+	vformat_attribute_add_param_with_value(attr, "ENCODING", "BASE64");
+	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
+	vformat_add_attribute(vcard, attr);
+	return attr;
+}
+
 static VFormatAttribute *handle_xml_birthday_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	osync_trace(TRACE_INTERNAL, "Handling birthday xml attribute");
@@ -917,11 +928,19 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 		std_encoding = "QUOTED-PRINTABLE";
 	else
 		std_encoding = "B";
-	
+
+	OSyncHookTables *hooks = (OSyncHookTables *)user_data;
+	/*  vcard21 / vcard30  */
+	if (target == VFORMAT_CARD_21) {
+		g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_base64_attribute);
+	} else {
+		g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_attribute);
+	}
+
 	if (root)
 		root = root->children;
 	while (root) {
-		xml_vcard_handle_attribute((OSyncHookTables *)user_data, vcard, root, std_encoding);
+		xml_vcard_handle_attribute(hooks, vcard, root, std_encoding);
 		root = root->next;
 	}
 	
@@ -1047,7 +1066,6 @@ static void *init_xml_to_vcard(void)
 	g_hash_table_insert(hooks->attributes, "FormattedName", handle_xml_formatted_name_attribute);
 	g_hash_table_insert(hooks->attributes, "Name", handle_xml_name_attribute);
 	g_hash_table_insert(hooks->attributes, "Agent", handle_xml_agent_attribute);
-	g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_attribute);
 	g_hash_table_insert(hooks->attributes, "Birthday", handle_xml_birthday_attribute);
 	g_hash_table_insert(hooks->attributes, "Address", handle_xml_address_attribute);
 	g_hash_table_insert(hooks->attributes, "AddressLabel", handle_xml_label_attribute);

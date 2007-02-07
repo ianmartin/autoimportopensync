@@ -1320,6 +1320,8 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 		if (param->values && param->values->data) {
 			if (!g_ascii_strcasecmp ((char*)param->values->data, "b"))
 				attr->encoding = VF_ENCODING_BASE64;
+			else if (!g_ascii_strcasecmp ((char*)param->values->data, "BASE64"))
+				attr->encoding = VF_ENCODING_BASE64;
 			else if (!g_ascii_strcasecmp ((char*)param->values->data, "QUOTED-PRINTABLE"))
 				attr->encoding = VF_ENCODING_QP;
 			else if (!g_ascii_strcasecmp ((char *)param->values->data, "8BIT"))
