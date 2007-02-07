@@ -16,5 +16,7 @@ if env.has_key('enable_python') and env['enable_python'] == 1:
 	env.Append(SCANNERS=[SWIGScanner])
 	env.Append(SWIGFLAGS = [r'-Werror', r'-Wall', r'-python', r'-modern', r'-I' + distutils.sysconfig.get_python_inc()])
 
-	env.SharedLibrary('opensync', ['opensync.i'], LIBS = ['opensync'], LIBPATH = '#opensync')
+	t = env.SharedLibrary('_opensync.so', ['opensync.i'], SHLIBPREFIX = '', LIBS = ['opensync'], LIBPATH = '#opensync')
 
+	# FIXME: hack hack hack
+	env.AddPostAction(t, Action('mv ${TARGET.dir}/opensync.py ${TARGET.dir}/opensync.py.tmp && sed "s/^class OSyncError(object):/class OSyncError(Exception):/" ${TARGET.dir}/opensync.py.tmp > ${TARGET.dir}/opensync.py && rm -f ${TARGET.dir}/opensync.py.tmp'))
