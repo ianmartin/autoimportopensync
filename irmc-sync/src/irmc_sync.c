@@ -293,15 +293,39 @@ void save_sync_anchors( OSyncMember *member, const irmc_config *config )
   osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, config);			
   char anchor[ 1024 ];
 
-  snprintf( anchor, sizeof( anchor ), "%d:%s", config->calendar_changecounter, config->calendar_dbid );
-  osync_anchor_update( member, "event", anchor );
+  if (osync_member_objtype_enabled(member, "event")) {
+	if (config->calendar_changecounter >= 0 && strcmp(config->calendar_dbid, "FFFFFF")) {
+		snprintf( anchor, sizeof( anchor ), "%d:%s", config->calendar_changecounter, config->calendar_dbid );
+  		osync_anchor_update( member, "event", anchor );
+	} else {
+  		osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for event anchor detected.");
+	}
+  } else {
+  	osync_trace(TRACE_INTERNAL, "WARNING: Synchronization of events was disabled.");
+  }
+ 
+  if (osync_member_objtype_enabled(member, "contact")) {
+	if (config->addressbook_changecounter >= 0 && strcmp(config->addressbook_dbid, "FFFFFF")) {
+		snprintf( anchor, sizeof( anchor ), "%d:%s", config->addressbook_changecounter, config->addressbook_dbid );
+  		osync_anchor_update( member, "contact", anchor );
+	} else {
+  		osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for contact anchor detected.");
+	}
+  } else {
+  	osync_trace(TRACE_INTERNAL, "WARNING: Synchronization of contacts was disabled.");
+  }
 
-  snprintf( anchor, sizeof( anchor ), "%d:%s", config->addressbook_changecounter, config->addressbook_dbid );
-  osync_anchor_update( member, "contact", anchor );
-
-  snprintf( anchor, sizeof( anchor ), "%d:%s", config->notebook_changecounter, config->notebook_dbid );
-  osync_anchor_update( member, "note", anchor );
-
+  if (osync_member_objtype_enabled(member, "note")) {
+	if (config->notebook_changecounter >= 0 && strcmp(config->notebook_dbid, "FFFFFF")) {
+		snprintf( anchor, sizeof( anchor ), "%d:%s", config->notebook_changecounter, config->notebook_dbid );
+  		osync_anchor_update( member, "note", anchor );
+	} else {
+  		osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for note anchor detected.");
+	}
+  } else {
+  	osync_trace(TRACE_INTERNAL, "WARNING: Synchronization of notes was disabled.");
+  }
+   
   snprintf( anchor, sizeof( anchor ), "%s", config->serial_number );
   osync_anchor_update( member, "general", anchor );
   osync_trace(TRACE_EXIT, "%s", __func__);
