@@ -149,8 +149,13 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 	osync_trace(TRACE_INTERNAL, "Handling new change with uid %s, changetype %i, data %p, size %i, objtype %s and format %s from member %lli", uid, change_type, osync_change_get_data(change), osync_change_get_datasize(change), objtype ? osync_objtype_get_name(objtype) : "None", osync_change_get_objformat(change) ? osync_objformat_get_name(osync_change_get_objformat(change)) : "None", osync_member_get_id(client->member));
 
 	if (!objtype){
-		osync_error_set(&error, OSYNC_ERROR_GENERIC,
-			"ObjType not set for uid %s.", uid);
+		if (!osync_error_is_set(&error)) {
+			osync_error_set(&error, OSYNC_ERROR_GENERIC,
+				"ObjType not set for uid %s.", uid);
+		} else {
+			osync_error_update(&error,
+				"ObjType not set for uid %s.", uid);
+		}
 		goto error;
 	}
 	
