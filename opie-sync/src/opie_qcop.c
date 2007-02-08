@@ -349,7 +349,34 @@ char* qcop_get_root(qcop_conn* qconn)
     /* caller responsible for free()ing temp */
     temp = g_strndup(start,strstr(start," ")-start); /* from slash to blank is our path */
   }
-  else
+  else if((start=strstr(pc,") ")+2))
+  {
+    /* Qtopia sends back a base64 encoded utf-16 (big-endian) string */
+    guchar *decoded;
+    char *startc;
+    gsize len = 0;
+    gsize len2 = 0;
+    GError *err = NULL;
+
+    decoded = g_base64_decode(start, &len);
+    if(len > 0) {
+      /* first four bytes seem to be \0 \0 \0 (string length) */
+      len = decoded[3];
+      startc = decoded + 4;
+      temp = g_convert(startc, len, "UTF8", "UTF16BE", NULL, &len2, &err);
+      if (err != NULL) {
+        fprintf(stderr, "UTF16 convert error: %s\n", err->message);
+        g_error_free(err);
+        if(temp) {
+          /* Don't accept partial conversions */
+          g_free(temp);
+          temp = NULL;
+        }
+      }
+    }
+  }
+
+  if(!temp)
     qconn->resultmsg = g_strdup_printf("Unrecognised response: %s", pc);
 
   g_free(pc);  
