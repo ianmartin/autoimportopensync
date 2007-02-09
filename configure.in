@@ -10,7 +10,7 @@ AM_CONFIG_HEADER(config.h)
 WITH_DEBUG=yes
 WITH_TRACE=yes
 ENABLE_ENGINE=yes
-ENABLE_TESTS=yes
+ENABLE_TESTS=no
 WITH_TOOLS=yes
 WITH_PROF=no
 
@@ -100,6 +100,7 @@ if test "x${ENABLE_TESTS}" = "xyes"; then
 	if test "x${HAVE_CHECK}" = "x1"; then
 		AM_PATH_CHECK(0.9.0)
 	fi
+
 fi
 AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
 
@@ -199,7 +200,7 @@ fi
 echo ""
 echo "========================================"
 AC_OPENSYNC_ISENABLED([Python Bindings], have_python)
-AC_OPENSYNC_ISENABLED([Unit Tests], HAVE_CHECK, 1)
+AC_OPENSYNC_ISENABLED([Unit Tests], ENABLE_TESTS)
 AC_OPENSYNC_ISENABLED([Debug messages], WITH_DEBUG)
 AC_OPENSYNC_ISENABLED([Tracing], WITH_TRACE)
 AC_OPENSYNC_ISENABLED([Profiling], WITH_PROF)
