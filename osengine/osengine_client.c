@@ -743,6 +743,8 @@ out_free_path:
 osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, client, engine, error);
+
+	int waiting = 0;
 	
 	if (!osync_client_kill_old_osplugin(client, error))
 		goto error;
@@ -775,10 +777,12 @@ osync_bool osync_client_spawn(OSyncClient *client, OSyncEngine *engine, OSyncErr
 
 		client->child_pid = cpid;
 		
-		while (!osync_queue_exists(client->commands_to_osplugin)) {
+		/* We are going to wait 5 seconds for plugin */
+		while (!osync_queue_exists(client->commands_to_osplugin) && waiting <= 5) {
 			osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
-			/*FIXME: Magic numbers are evil */
-			usleep(500000);
+
+			sleep(1);
+			waiting++;
 		}
 		
 		osync_trace(TRACE_INTERNAL, "Queue was created");
