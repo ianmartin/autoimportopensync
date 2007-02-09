@@ -71,7 +71,8 @@ void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *
 {
 	if (!error || !format)
 		return;
-	
+	if (osync_error_is_set(error))
+		osync_error_free(error);
 	osync_assert(osync_error_is_set(error) == FALSE);
 	
 	char buffer[1024];
