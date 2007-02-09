@@ -9,7 +9,7 @@ my $progname = $0;
 $progname = $1 if $progname =~ /([^\/]*)$/;
 
 my %opts;
-getopts('s:u:p:xn', \%opts);
+getopts('s:u:p:xncd', \%opts);
 
 my $cmd = shift @ARGV;
 
@@ -21,10 +21,19 @@ unless ($opts{s} && (defined $cmd)) {
                "        -p  User password\n",
                "        -x  XML output instead of iCal\n",
                "        -n  Notify attendees about deletion\n",
-               "        <cmd> is command to execute on calendar server\n";
+	       "        -c  Cut off header contents (leave only VERSION)\n",
+	       "        -d  Debug messages\n",
+               "        <cmd> is command to execute on calendar server\n",
+               "              (get-all, get-events, get-event <id>[,<id>],\n",
+	       "               get-tasks, get-task <id>[,<id>], export,\n",
+	       "               import, delevent <id>[,<id>],\n",
+	       "               deltask <id>[,<id>], list)\n";
   exit 1;
 }
 $cmd = lc $cmd;
+
+my $debug  = ($opts{d}) ? 1 : 0;
+my $cutoff = ($opts{c}) ? 1 : 0;
 
 # Get username from environment, if not specified
 unless ($opts{u}) {
@@ -52,7 +61,7 @@ my $wa = WCAP::new($opts{s}, $opts{x} ? 'xml' : 'ical');
 # Login user to calendar server
 if ($wa->login($opts{u}, $pwd) || (not defined $wa->{session_id})) {
   print "Login unsuccessfull\n";
-  goto exit_wcaptool_error;;
+  goto exit_wcaptool_error;
 }
 
 ################################################
@@ -88,10 +97,56 @@ elsif ($cmd eq 'get-events') {
 }
 
 #######################################
-## Command GET-TODOS
+## Command GET-EVENT <id1> <id2> ...
+elsif ($cmd eq 'get-event') {
+  my %arghash = ( entry => 'event' );
+  # Get entry IDs from argumentlist, or from STDIN
+  if (not scalar @ARGV) {
+    # Entry IDs not specified, read input from STDIN
+    $arghash{ids} = &read_stdin();
+  }
+  else {
+    $arghash{ids} = \@ARGV;
+  }
+  # Fetch tasks (get calendar contents)
+  $errdesc = $wa->fetch(%arghash);
+  if (defined $errdesc) {
+    print "ERROR: $errdesc\n";
+    goto exit_wcaptool_error;
+  } else {
+    print &parse_wcapbuffer($wa->{response}, 'event');
+    goto exit_wcaptool_ok;
+  }
+}
+
+#######################################
+## Command GET-TASKS
 elsif ($cmd eq 'get-tasks') {
   # Export calendar (get calendar contents)
   $errdesc = $wa->export;
+  if (defined $errdesc) {
+    print "ERROR: $errdesc\n";
+    goto exit_wcaptool_error;
+  } else {
+    print &parse_wcapbuffer($wa->{response}, 'todo');
+    goto exit_wcaptool_ok;
+  }
+}
+
+#######################################
+## Command GET-TASK <id1> <id2> ...
+elsif ($cmd eq 'get-task') {
+  my %arghash = ( entry => 'task' );
+  # Get entry IDs from argumentlist, or from STDIN
+  if (not scalar @ARGV) {
+    # Entry IDs not specified, read input from STDIN
+    $arghash{ids} = &read_stdin();
+  }
+  else {
+    $arghash{ids} = \@ARGV;
+  }
+  # Fetch tasks (get calendar contents)
+  $errdesc = $wa->fetch(%arghash);
   if (defined $errdesc) {
     print "ERROR: $errdesc\n";
     goto exit_wcaptool_error;
@@ -244,12 +299,23 @@ sub parse_wcapbuffer {
   my $entitybuf;
   my $out = '';
 
+  # Check newline
+  my $NL;
+  if($buffer =~ /\r\n/) { $NL = "\r\n"; }
+  elsif($buffer =~ /\n\r/) { $NL = "\n\r"; }
+  else { $NL = "\n"; }
+
   # Parse leading buffer VCALENDAR
-  chomp(my $header = ($buffer =~ /(BEGIN:VCALENDAR.*?)BEGIN/s) ? $1 : '');
-  chomp(my $tail   = ($buffer =~ /.*END:.*?\n(.*END:VCALENDAR)/s) ? $1 : '');
+  my $header  = ($buffer =~ /(BEGIN:VCALENDAR.*?)BEGIN/s) ? $1 : '';
+  my $version = ($buffer =~ /BEGIN:VCALENDAR.*?(VERSION:[0-9\.]*)/s) ? $1 : '';
+  my $tail    = ($buffer =~ /.*END:.*?([\r\n]+.*END:VCALENDAR)/s) ? $1 : '';
 
   while ($buffer =~ /(BEGIN:V$type.*?END:V$type)(.*)$/s) {
-    $entitybuf = "$header\n$1\n$tail";
+    if($cutoff) {
+      $entitybuf = "BEGIN:VCALENDAR$NL$version$NL$1$NL"."END:VCALENDAR";
+    } else {
+      $entitybuf = "$header$1$tail";
+    }
     $out .= length($entitybuf)."\n$entitybuf\n";
     $buffer = $2;
   }
@@ -285,6 +351,7 @@ sub new {
                          );
   my $out_format = ((defined $format) && (defined $response_formats{$format})) ? $response_formats{$format} : $response_formats{ical};
 
+  print STDERR "Create Connection Agent\n" if $debug;
   my $ua = LWP::UserAgent->new;
   $ua->agent('OpenSync_JESCS/0.1');
   # Enable connection cache (use same socket for all connections - speeds up connection)
@@ -322,6 +389,7 @@ sub login {
   # Compose login URL
   my $req_url = "http://".$self->{url}."/login.wcap?user=$user&password=$password&fmt-out=".$self->{formats}->{ical};
   # Send login request
+  print STDERR "Send login request for user $user to $self->{url}\n" if $debug;
   my $response = $self->{ua}->get($req_url);
   if ($response->is_success) {
     # Login response
@@ -332,8 +400,10 @@ sub login {
     ($self->{calendar_id}) = $content =~ /WCAP-CALENDAR-ID:(\w+)/;
     ($self->{session_id})  = $content =~ /WCAP-SESSION-ID:(\w+)/;
     ($errno) = $content =~ /WCAP-ERRNO:(\d+)/;
+    print STDERR "Login performed with ".(($errno) ? "errno: $errno\n" : "no error\n") if $debug;
   } else {
     $self->{response} = $response->status_line;
+    print STDERR "Login error: ".$response->status_line."\n" if $debug;
   }
   return $errno;
 }
@@ -350,6 +420,7 @@ sub logout {
   # Compose logout URL
   my $req_url = "http://".$self->{url}."/logout.wcap?id=".$self->{session_id}."&fmt-out=".$self->{formats}->{ical};
   # Send logout request
+  print STDERR "Send logout request to $self->{url}\n" if $debug;
   my $response = $self->{ua}->get($req_url);
   if ($response->is_success) {
     # Logout response
@@ -362,8 +433,10 @@ sub logout {
       $self->{calendar_id} = undef;
       $self->{session_id}  = undef;
     }
+    print STDERR "Logout performed with ".(($errno) ? "errno: $errno\n" : "no error\n") if $debug;
   } else {
     $self->{response} = $response->status_line;
+    print STDERR "Logout error: ".$response->status_line."\n" if $debug;
   }
   return $errno;
 }
@@ -409,6 +482,7 @@ sub import {
     $data{fname} = 'ical.ics';
   }
   # Compose requesting URL
+  print STDERR "Send import request to $self->{url}\n" if $debug;
   my $import_url = "http://".$self->{url}."/import.wcap?id=".$self->{session_id}.         # Session ID
                    "&calid=".(join(';',@{$data{calendars}})).                             # Calendar(s) ID
                    "&content-in=".$self->{format}.                                        # Contents format
@@ -425,7 +499,12 @@ sub import {
                                                                  ]
                                                      ]
                                   );
-  return $response->status_line unless $response->is_success;
+  if($response->is_success) {
+    print STDERR "Import OK\n" if $debug;
+  } else {
+    print STDERR "Import error: ".$response->status_line."\n" if $debug;
+    return $response->status_line;
+  }
 
   # Import response
   my $content = $response->content;
@@ -450,6 +529,7 @@ sub export {
     $data{calendars} = [ $data{calendars} ];
   }
   # Compose requesting URL
+  print STDERR "Send export request to $self->{url}\n" if $debug;
   my $export_url = "http://".$self->{url}."/export.wcap?id=".$self->{session_id}.         # Session ID
                    "&calid=".(join(';',@{$data{calendars}})).                             # Calendar(s) ID
                    "&content-out=".$self->{format}.                                       # Contents format
@@ -466,11 +546,70 @@ sub export {
                                                                    ]
                                                      ]
                                   );
-  return $response->status_line unless $response->is_success;
+  if($response->is_success) {
+    print STDERR "Export OK\n" if $debug;
+  } else {
+    print STDERR "Export error: ".$response->status_line."\n" if $debug;
+    return $response->status_line;
+  }
 
   # Export response
   my $content = $response->content;
   $self->{response} = $content;
+  return undef;
+}
+
+# Fetch entry from calendar
+# Arguments:  entry     => <entry>                  'event' or 'task'
+#             ids       => [ <id1>, <id2>, ... ]    entry/todo ID
+#             calendars => [ <cal1>, <cal2>, ... ]  calendar ID's
+# Returns error description on error
+#         or undef on success (response in $object->{response})
+sub fetch {
+  my ($self, %data) = @_;
+  my $command;
+  # Return if no entry specified
+  return "No entry type specified" unless defined $data{entry};
+  if (lc($data{entry}) eq 'event') {
+    $command = 'fetchevents_by_id';
+  } elsif (lc($data{entry}) eq 'task') {
+    $command = 'fetchtodos_by_id';
+  } else {
+    return "Unknown entry type '$data{entry}'";
+  }
+  # Return if no entry ID specified
+  return "No data to fetch" unless defined $data{ids};
+  # Return, if session not logged in
+  return "No logged in session present" unless defined $self->{session_id};
+  # Correct calendar arrayref parameter
+  if (not defined $data{calendars}) {
+    $data{calendars} = [ $self->{calendar_id} ];
+  } elsif (ref($data{calendars}) ne 'ARRAY') {
+    $data{calendars} = [ $data{calendars} ];
+  }
+  # Correct entry IDs parameter
+  if (ref($data{ids}) ne 'ARRAY') {
+    $data{ids} = [ $data{ids} ];
+  }
+
+  my $errstr;
+  my $output = '';
+  foreach my $fullid (@{$data{ids}}) {
+    my ($id, $rid) = split /:/, $fullid, 2;
+    $rid = 0 unless defined $rid;
+    $errstr = $self->do_request($command, "calid=".(join(';',@{$data{calendars}})),
+					  "uid=$id",
+					  "rid=$rid",
+					  "mod=1",
+					  "compressed=".(($rid) ? 0 : 1),
+					  "recurring=".(($rid) ? 0 : 1)
+			       );
+    return $errstr if defined $errstr;
+
+    $output .= $self->{response};
+  }
+  $self->{response} = $output;
+
   return undef;
 }
 
@@ -542,13 +681,21 @@ sub do_request {
     return "No command specified";
   }
   # Do the request
+  print STDERR "Send command $command to $self->{url}\n" if $debug;
   my $req_url = "http://".$self->{url}."/${command}.wcap?fmt-out=".$self->{format};
   $req_url .= "&id=".$self->{session_id} if defined $self->{session_id};
   if (@args) {
     $req_url .= '&'.join('&', @args);
   }
   my $response = $self->{ua}->get($req_url);
-  return $response->status_line unless $response->is_success;
+
+  if($response->is_success) {
+    print STDERR "Command $command OK\n" if $debug;
+  } else {
+    print STDERR "Command $command error: ".$response->status_line."\n" if $debug;
+    return $response->status_line;
+  }
+
 
   $self->{response} = $response->content;
   return undef;
