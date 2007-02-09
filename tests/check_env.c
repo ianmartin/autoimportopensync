@@ -100,7 +100,7 @@ START_TEST (env_sync_false)
 	fail_unless(!synchronize_once(engine, NULL), NULL);
 	osengine_finalize(engine);
 	osengine_free(engine);
-	
+	group = NULL;
 	osync_env_finalize(env, NULL);
 	osync_env_free(env);
 	
@@ -199,7 +199,8 @@ int main(void)
 	SRunner *sr;
 	sr = srunner_create(s);
 
-	srunner_run_all(sr, CK_NORMAL);
+	srunner_set_fork_status (sr, CK_NOFORK);
+	srunner_run_all(sr, CK_VERBOSE);
 	nf = srunner_ntests_failed(sr);
 	srunner_free(sr);
 	return (nf == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
