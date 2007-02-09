@@ -65,8 +65,8 @@ osync_bool jescs_parse_config ( jescs_plgdata *plgdata, char *cfg,
 char *generate_random_number (short digits);
 
 char *get_value_for_key (char *buffer, char *key);
-char *change_value_for_key (char *buffer, char *key, char *new_value);
-char *add_key_to_entry (char *buffer, char *entry_type, char *key, char *value);
+gboolean change_value_for_key (char **buffer, char *key, char *new_value);
+gboolean add_key_to_entry (char **buffer, char *entry_type, char *key, char *value);
 
 /*****************************************************************************/
 /*  Plugin API functions                                                     */
@@ -222,20 +222,20 @@ osync_bool get_entry_changeinfo (OSyncContext *ctx, char *entry)
 	int    output, bytes;
 	int    pid, status;
 	gchar *wcapout;
-	gchar *command, *format;
+	char  *command, *format;
 
 	if (strcmp(entry, "event") == 0) {
-		command = g_strdup("get-events");
-		format  = g_strdup("vevent20");
+		command = "get-events";
+		format  = "vevent20";
 	}
 	else if (strcmp(entry, "todo") == 0) {
-		command = g_strdup("get-tasks");
-		format  = g_strdup("vtodo20");
+		command = "get-tasks";
+		format  = "vtodo20";
 	}
 	else {
-		format = g_strdup_printf("Requesting changes on unsupported entry: %s", entry);
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, format);
-		g_free(format);
+		wcapout = g_strdup_printf("Requesting changes on unsupported entry: %s", entry);
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, wcapout);
+		g_free(wcapout);
 		return FALSE;
 	}
 
@@ -249,18 +249,18 @@ osync_bool get_entry_changeinfo (OSyncContext *ctx, char *entry)
 		osync_context_report_osyncerror(ctx, &error);
 		goto exit_command;
 	}
-	/* Wait, while process ends */
-	waitpid(pid, &status, 0);
 
-	/* Read output from process */
+	/* Read output from wcaptool process */
 	{
-		char line[256];
+		char   line[256];
 		GString *outstr = g_string_new("");
 
-		/* Read output */
-		while ((bytes = read(output, line, sizeof(line)-1)) > 0) {
-			outstr = g_string_append_len(outstr, line, bytes);
-		}
+		/* Read output from process (read while process ends) */
+		do {
+			while ((bytes = read(output, line, sizeof(line)-1)) > 0) {
+				outstr = g_string_append_len(outstr, line, bytes);
+			}
+		} while(!waitpid(pid, &status, WNOHANG));
 		close(output);
 
 		/* Get the output buffer */
@@ -281,6 +281,7 @@ osync_bool get_entry_changeinfo (OSyncContext *ctx, char *entry)
 		goto exit_wcapout;
 	}
 
+	/* Parse output - Register received entries as CHANGE objects */
 	{
 		OSyncChange *chg;
 		gchar *chbuf, *ptr, *uid, *mod;
@@ -338,8 +339,6 @@ osync_bool get_entry_changeinfo (OSyncContext *ctx, char *entry)
 exit_wcapout:
 	g_free(wcapout);
 exit_command:
-	g_free(command);
-	g_free(format);
 	return FALSE;
 }
 
@@ -352,7 +351,7 @@ static osync_bool commit_change (OSyncContext *ctx, OSyncChange *change, char *e
 	jescs_plgdata *plgdata = (jescs_plgdata*)osync_context_get_plugin_data(ctx);
 	OSyncChangeType chtype = osync_change_get_changetype(change);
 
-	char *cmd, *data, *uid, *new_data, *arg = NULL, *wcapout;
+	char *cmd, *data, *uid, *arg = NULL, *wcapout;
 	pid_t pid;
 	int input, output;
 	OSyncError *error = NULL;
@@ -364,13 +363,9 @@ static osync_bool commit_change (OSyncContext *ctx, OSyncChange *change, char *e
 	uid = (char*)osync_change_get_uid(change);
 
 	/* Add/Change UID LINE in data buffer */
-	new_data = change_value_for_key (data, "UID", uid);
-	if (new_data == NULL)
-		new_data = add_key_to_entry(data, entry, "UID", uid);
-	if (new_data != NULL) {
-		osync_change_set_data(change, new_data, strlen(new_data), TRUE);
-		g_free(data);
-		data = new_data;
+	if(data) {
+		if(change_value_for_key (&data, "UID", uid) || add_key_to_entry(&data, entry, "UID", uid))
+			osync_change_set_data(change, data, strlen(new_data), TRUE);
 	}
 
 	switch (chtype) {
@@ -420,19 +415,19 @@ static osync_bool commit_change (OSyncContext *ctx, OSyncChange *change, char *e
 		}
 	}
 
-	/* Wait, while process ends */
-	waitpid(pid, &status, 0);
-
 	/* Read output from wcaptool process */
 	{
 		char line[256];
 		int bytes;
 		GString *outstr = g_string_new("");
 
-		/* Read output */
-		while ((bytes = read(output, line, sizeof(line)-1)) > 0) {
-			outstr = g_string_append_len(outstr, line, bytes);
-		}
+		/* Read output from process (read while process ends) */
+		do {
+			while ((bytes = read(output, line, sizeof(line)-1)) > 0) {
+				outstr = g_string_append_len(outstr, line, bytes);
+			}
+		} while(!waitpid(pid, &status, WNOHANG));
+		close(output);
 
 		/* Get the output buffer */
 		wcapout = outstr->str;
@@ -511,7 +506,10 @@ osync_bool run_wcaptool (	jescs_plgdata *plgdata, const char *operation, char *a
 		extern char **environ;
 		/* Set environment variable for child process */
 		gchar *envvar = g_strdup_printf("JESCS_OSYNC_PWD=%s", plgdata->password);
-		putenv(envvar);
+		if(putenv(envvar) != 0) {
+			printf("Couldn't set pwd environment variable for %s\n", WCAPTOOL);
+			exit(1);
+		}
 		/* child process */
 		close(fdin[1]);
 		close(fdout[0]);
@@ -523,6 +521,7 @@ osync_bool run_wcaptool (	jescs_plgdata *plgdata, const char *operation, char *a
 		char *const argv[] = {	WCAPTOOL,
 					"-s", plgdata->url,
 					"-u", plgdata->username,
+					"-c",
 					strdup(operation),
 					arg, NULL
 				     };
@@ -604,32 +603,33 @@ char *get_value_for_key (char *buffer, char *key)
  * Changes value of key in buffer
  * Awaited format of lines in buffer: "KEY:value"
  */
-char *change_value_for_key (char *buffer, char *key, char *new_value)
+gboolean change_value_for_key (char **buffer, char *key, char *new_value)
 {
 	char *needle = (char*)g_strdup_printf("%s:", key);
-	char *ptr = strstr(buffer, needle);
+	char *ptr = strstr(*buffer, needle);
 	char *ptrend;
 	GString *result;
-	char *result_str;
 
+	/* Return if needle not found */
 	if (ptr == NULL) {
 		g_free((gchar*)needle);
-		return NULL;
+		return FALSE;
 	}
 
 	ptr += strlen(needle);
 	g_free((gchar*)needle);
 
-	result = g_string_new_len(buffer, (gssize)(ptr - buffer));
+	result = g_string_new_len(*buffer, (gssize)(ptr - *buffer));
 	result = g_string_append(result, new_value);
 
 	ptrend = strstr(ptr, "\n");
 	if (ptrend != NULL)
 		result = g_string_append(result, ptrend);
 
-	result_str = result->str;
+	g_free(*buffer);
+	*buffer = result->str;
 	g_string_free(result, FALSE);
-	return result_str;
+	return TRUE;
 }
 
 /*
@@ -638,29 +638,31 @@ char *change_value_for_key (char *buffer, char *key, char *new_value)
  *                                            END:V<entry_type>
  * entry_type should be "event" or "todo"
  */
-char *add_key_to_entry (char *buffer, char *entry_type, char *key, char *value)
+gboolean add_key_to_entry (char **buffer, char *entry_type, char *key, char *value)
 {
 	char *needle = (char*)g_strdup_printf("BEGIN:V%s", g_ascii_strup(entry_type, -1));
-        char *ptr, *result_str;
+        char *ptr;
         GString *result;
 
-        ptr = strstr(buffer, needle);
+        ptr = strstr(*buffer, needle);
 
+	/* Return if needle not found */
         if (ptr == NULL) {
                 g_free((gchar*)needle);
-                return NULL;
+                return FALSE;
         }
 
         ptr += strlen(needle);
         g_free((gchar*)needle);
 
-        result = g_string_new_len(buffer, (gssize)(ptr - buffer));
+        result = g_string_new_len(*buffer, (gssize)(ptr - *buffer));
         g_string_append_printf(result, "\n%s:%s", g_ascii_strup(key, -1), value);
         result = g_string_append(result, ptr);
 
-        result_str = result->str;
+	g_free(*buffer);
+        *buffer = result->str;
         g_string_free(result, FALSE);
-        return result_str;
+        return TRUE;
 }
 
 char *jescs_get_cfgvalue (xmlNode *cfg, const char *name)
