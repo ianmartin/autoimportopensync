@@ -13,8 +13,18 @@
 #include <errno.h>
 extern int errno;
 
-#define osync_assert(x) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: Assertion \"" #x "\" failed\n", __FILE__, __LINE__, __FUNCTION__); abort();}
-#define osync_assert_msg(x, msg) if (!(x)) { fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg); abort();}
+#define osync_assert(x) do {								\
+  if (!(x)) { 										\
+    fprintf(stderr, "%s:%i:E:%s: Assertion \"" #x "\" failed\n", __FILE__, __LINE__, __FUNCTION__); \
+    abort();										\
+  } } while (0)
+
+#define osync_assert_msg(x, msg) do {							\
+  if (!(x)) { 										\
+    fprintf(stderr, "%s:%i:E:%s: %s\n", __FILE__, __LINE__, __FUNCTION__, msg);		\
+    abort();										\
+  } } while (0)
+
 #define segfault_me char **blablabla = NULL; *blablabla = "test";
 
 #define osync_return_if_fail(condition) do {                                            \
