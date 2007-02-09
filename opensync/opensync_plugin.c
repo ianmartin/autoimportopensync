@@ -447,10 +447,13 @@ void *osync_plugin_get_plugin_data(OSyncPlugin *plugin)
 	return plugin->info.plugin_data;
 }
 
+/*! @brief Get full path for plugin module 
+ *
+ * @param plugin Pointer to the plugin
+ * @returns full path of plugin module 
+ */
 const char *osync_plugin_get_path(OSyncPlugin *plugin)
 {
-	if (!plugin)
-		return (NULL);
 	g_assert(plugin);
 	return g_module_name(plugin->real_plugin);
 }
