@@ -129,6 +129,7 @@ START_TEST (multi_unlock)
 }
 END_TEST
 
+#if 0
 START_TEST (dual_sync_engine_lock)
 {
 	char *testbed = setup_testbed("multisync_easy_new");
@@ -237,6 +238,7 @@ START_TEST (dual_sync_engine_unclean)
 	destroy_testbed(testbed);
 }
 END_TEST
+#endif
 
 Suite *lock_suite(void)
 {
@@ -249,8 +251,8 @@ Suite *lock_suite(void)
 	create_case(s, "dual_lock", dual_lock);
 	create_case(s, "dual_lock2", dual_lock2);
 	create_case(s, "multi_unlock", multi_unlock);
-	create_case(s, "dual_sync_engine_lock", dual_sync_engine_lock);
-	create_case(s, "dual_sync_engine_unclean", dual_sync_engine_unclean);
+/*	create_case(s, "dual_sync_engine_lock", dual_sync_engine_lock);
+	create_case(s, "dual_sync_engine_unclean", dual_sync_engine_unclean);*/
 	
 
 	return s;
@@ -266,7 +268,7 @@ int main(void)
 	sr = srunner_create(s);
 
 	srunner_set_fork_status (sr, CK_NOFORK);
-	srunner_run_all(sr, CK_VERBOSE);
+	srunner_run_all(sr, CK_NORMAL);
 	nf = srunner_ntests_failed(sr);
 	srunner_free(sr);
 	return (nf == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
