@@ -1521,7 +1521,7 @@ class PhoneAccess:
         self.revcategories = {}
         self.__init_categories()
 
-    def list_changes(self, objtype):
+    def list_changes(self, objtype, member):
         """Return a list of change objects for all entries of the given type."""
 
         if objtype == 'contact':
@@ -1542,6 +1542,7 @@ class PhoneAccess:
         ret = []
         for entry in entries:
             change = opensync.OSyncChange()
+            change.member = member
             change.objtype = objtype
             change.uid = self.__generate_uid(entry)
             change.format = "xml-%s-doc" % objtype
@@ -1729,7 +1730,7 @@ class SyncClass:
                 if self.member.get_slow_sync(objtype):
                     self.hashtable.set_slow_sync(objtype)
 
-                for change in self.access.list_changes(objtype):
+                for change in self.access.list_changes(objtype, self.member):
                     self.hashtable.detect_change(change)
                     if change.changetype != opensync.CHANGE_UNMODIFIED:
                         change.report(ctx)
