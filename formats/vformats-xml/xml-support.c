@@ -59,13 +59,18 @@ static osync_bool osxml_compare_time(xmlNode *leftnode, xmlNode *rightnode) {
 
 	osync_trace(TRACE_SENSITIVE, "time compare - left: %s right: %s", leftcontent, rightcontent);
 
-	left = osxml_prepare_time(leftcontent, leftnode);
-	right = osxml_prepare_time(rightcontent, rightnode);
+	if (osync_time_isutc(leftcontent) != osync_time_isutc(rightcontent)) {
+		left = osxml_prepare_time(leftcontent, leftnode);
+		right = osxml_prepare_time(rightcontent, rightnode);
 
-	g_free(leftcontent);
-	g_free(rightcontent);
+		g_free(leftcontent);
+		g_free(rightcontent);
 
-	osync_trace(TRACE_SENSITIVE, "AFTER convert - left: %s right: %s", left, right);
+		osync_trace(TRACE_SENSITIVE, "AFTER convert - left: %s right: %s", left, right);
+	} else {
+		left = leftcontent;
+		right = rightcontent;
+	}
 
 	ret = strcmp(left, right);
 
@@ -85,8 +90,6 @@ static osync_bool osxml_compare_time(xmlNode *leftnode, xmlNode *rightnode) {
 static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p:%s, %p:%s)", __func__, leftnode, leftnode->name, rightnode, rightnode->name);
-
-	char *left, *right;
 
 	if (strcmp((char*)leftnode->name, (char*)rightnode->name)) {
 		osync_trace(TRACE_EXIT, "%s: FALSE: Different Name", __func__);
@@ -160,26 +163,6 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 			if (!strcmp("Completed", (char*)rightnode->name) && !strcmp("Completed",(char*)leftnode->name)) {
 				if ((leftcontent && rightcontent) || (!leftcontent && !rightcontent)) {
 					osync_trace(TRACE_INTERNAL, "PALM-SYNC workaround active!");
-					g_free(rightcontent);
-					goto next;
-				}
-			}
-
-			/* Workaround for kdepim-sync. kdepim-sync always creates a AlarmTrigger with DISPLAY also when DESCRIPTION is empty */ 
-			if (!strcmp("Alarm", (char*)rightnode->name) && !strcmp("Alarm",(char*)leftnode->name)) {
-
-				left = leftcontent;
-				right = rightcontent;
-
-				if (strstr(leftcontent, "DISPLAY"))
-					left += 7;
-
-				if (strstr(rightcontent, "DISPLAY"))
-					right += 7; 
-
-				osync_trace(TRACE_SENSITIVE, "Alarm Display Workaround - left: %s right: %s", left, right);
-				if (!strcmp(left, right)) {
-					osync_trace(TRACE_INTERNAL, "KDEPIM-SYNC (ALARM trigger) workaround active!");
 					g_free(rightcontent);
 					goto next;
 				}
