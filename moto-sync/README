@@ -17,14 +17,15 @@ SUPPORTED HARDWARE
 
 Known working models:
  * L7 SLVR
+ * V3i RAZR
 
 Possibly working, but only lightly tested:
  * V3x RAZR (tested reading only)
- * V3i RAZR (tested reading only)
  * V635 (tested reading only)
 
 Models known not to work:
  * K1 KRZR (phone book works fine, but any calendar command fails)
+ * V3xx RAZR (same as above)
  * A780 (doesn't seem to respond to AT commands, except with ERROR)
 
 If your phone isn't listed above, or if your results differ, please let 
