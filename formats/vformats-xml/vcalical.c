@@ -319,7 +319,6 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 	int interval;
 
 	int duration_number = -1;
-	char *duration_timestamp = NULL;
 	char *duration_block;
 
 	char* freq_mod = NULL;	
@@ -412,10 +411,11 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 		g_string_free(fm_buffer, FALSE);
 	}
 
+	char *until = NULL;
 
 	/* get duration (number OR timestamp, but nothing is required) */
 	if (sscanf(duration_block, "#%d", &duration_number) < 1) {
-		if (strstr(duration_block,"T")) {
+		if (!osync_time_isdate(duration_block)) {
 
 			/* Check if this duration_block is a localtime timestamp.
 			 * If it is not UTC change the offset from 0 to the system UTC offset. 
@@ -428,9 +428,9 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 				g_free(ttm);
 			}
 
-			duration_timestamp = osync_time_vtime2utc(duration_block, offset);
-
-
+			until = osync_time_vtime2utc(duration_block, offset);
+		} else {
+			until = g_strdup(duration_block);
 		}
 	}		
 
@@ -445,9 +445,6 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 
 	if (duration_number > 0)
 		new_rrule = g_list_append(new_rrule, g_strdup_printf("COUNT=%d", duration_number));
-	else if (duration_timestamp != NULL)
-		new_rrule = g_list_append(new_rrule, g_strdup_printf("UNTIL=%s", duration_timestamp));	
-
 
 	if(freq_mod != NULL) {
 		switch(frequency_state) {
@@ -459,6 +456,11 @@ GList *conv_vcal2ical_rrule(const char *vcal) {
 			default:
 				break;	
 		}
+	}
+
+	if (until != NULL) {
+		new_rrule = g_list_append(new_rrule, g_strdup_printf("UNTIL=%s", until));	
+		g_free(until);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
