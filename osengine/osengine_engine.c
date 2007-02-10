@@ -87,7 +87,8 @@ void _new_change_receiver(OSyncEngine *engine, OSyncClient *client, OSyncChange 
 		if ( (!objtype) || (!objformat) ||
 		     (!strcmp(osync_objtype_get_name(objtype), "data")) ||
 		     (!strcmp(objformat->name, "plain"))) {
-			objtype = osync_change_detect_objtype_full(format_env, change, &error);
+			OSyncObjType *objtype_test = osync_change_detect_objtype_full(format_env, change, &error);
+			objtype = (objtype_test)?(objtype_test):(objtype);
 		}
 		if (objtype) {
 			osync_trace(TRACE_INTERNAL, "Detected the object to be of type %s", osync_objtype_get_name(objtype));
