@@ -365,7 +365,7 @@ static osync_bool commit_change (OSyncContext *ctx, OSyncChange *change, char *e
 	/* Add/Change UID LINE in data buffer */
 	if(data) {
 		if(change_value_for_key (&data, "UID", uid) || add_key_to_entry(&data, entry, "UID", uid))
-			osync_change_set_data(change, data, strlen(new_data), TRUE);
+			osync_change_set_data(change, data, strlen(data), TRUE);
 	}
 
 	switch (chtype) {
