@@ -204,6 +204,18 @@ typedef struct {} OSyncHashTable;
 	%pythoncode %{
 	hash = property(get_hash, set_hash)
 	%}
+
+	void set_member(OSyncMember *member) {
+		osync_change_set_member(self, member);
+	}
+
+	OSyncMember *get_member() {
+		return osync_change_get_member(self);
+	}
+
+	%pythoncode %{
+	member = property(get_member, set_member);
+	%}
 };
 
 %extend OSyncContext {
