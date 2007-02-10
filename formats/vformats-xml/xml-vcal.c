@@ -265,6 +265,22 @@ static xmlNode *handle_vcal_rrule_attribute(xmlNode *root, VFormatAttribute *att
 	return current;
 }
 
+static xmlNode *handle_vcal_transp_attribute(xmlNode *root, VFormatAttribute *attr)
+{
+	osync_trace(TRACE_INTERNAL, "Handling transp attribute");
+	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Transparency", NULL);
+
+	const char *transp = vformat_attribute_get_nth_value(attr, 0);
+
+	if (atoi(transp) > 0)
+		osxml_node_add(current, "Content", "OPAQUE");
+	else
+		osxml_node_add(current, "Content", "TRANSPARENT");
+
+
+	return current;
+}
+
 static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
@@ -1467,6 +1483,7 @@ static void *init_vcal_to_xml(void)
 	
 	//vcal (event10) only
 	insert_attr_handler(hooks->comptable, "RRULE", handle_vcal_rrule_attribute);
+	insert_attr_handler(hooks->comptable, "TRANSP", handle_vcal_transp_attribute);
 	insert_attr_handler(hooks->comptable, "AALARM", handle_aalarm_attribute);
 	insert_attr_handler(hooks->comptable, "DALARM", handle_dalarm_attribute);
 
@@ -1793,6 +1810,28 @@ static VFormatAttribute *handle_vcal_xml_dtend_attribute(VFormat *vcard, xmlNode
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTEND");
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vcard, attr);
+	return attr;
+}
+
+static VFormatAttribute *handle_vcal_xml_transp_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
+{
+	VFormatAttribute *attr = vformat_attribute_new(NULL, "TRANSP");
+
+	char *val = osxml_find_node(root, "Content");
+
+	// Default: TRANSPARENT
+	int block = 0;
+
+	if (!strcmp("OPAQUE", val))
+		block = 1;
+
+	g_free(val);
+
+	char *transp = g_strdup_printf("%i", block);
+	vformat_attribute_add_value(attr, transp);
+	vformat_add_attribute(vcard, attr);
+	g_free(transp);
+
 	return attr;
 }
 /* end vcal only */
@@ -2162,6 +2201,9 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 		insert_xml_attr_handler(hooks->comptable, "Alarm", handle_vcal_xml_alarm_attribute);
 		g_hash_table_insert(hooks->comptable, "Rule", HANDLE_IGNORE);
 
+		/* TRANSP */
+		insert_xml_attr_handler(hooks->comptable, "Transparency", handle_vcal_xml_transp_attribute);
+
 		/* vcal attributes */
 		insert_xml_attr_handler(hooks->comptable, "DateEnd", handle_vcal_xml_dtend_attribute);
 		insert_xml_attr_handler(hooks->comptable, "DateDue", handle_vcal_xml_due_attribute);
@@ -2173,6 +2215,9 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 		insert_xml_attr_handler(hooks->comptable, "RecurrenceRule", handle_xml_rrule_attribute);
 		insert_xml_attr_handler(hooks->comptable, "ExclusionDate", handle_xml_exdate_attribute);
 		g_hash_table_insert(hooks->comptable, "Rule", handle_xml_rule_parameter);
+
+		/* TRANSP */
+		insert_xml_attr_handler(hooks->comptable, "Transparency", handle_xml_transp_attribute);
 
 		/* ical attributes */
 		g_hash_table_insert(hooks->table, "Method", handle_xml_method_attribute);
@@ -2274,7 +2319,6 @@ static void *init_xml_to_vcal(void)
 	insert_xml_attr_handler(hooks->comptable, "RStatus", handle_xml_rstatus_attribute);
 	insert_xml_attr_handler(hooks->comptable, "Related", handle_xml_related_attribute);
 	insert_xml_attr_handler(hooks->comptable, "Resources", handle_xml_resources_attribute);
-	insert_xml_attr_handler(hooks->comptable, "Transparency", handle_xml_transp_attribute);
 
 
 	/*FIXME: The functions below shouldn't be on comptable, but on other hash table */
