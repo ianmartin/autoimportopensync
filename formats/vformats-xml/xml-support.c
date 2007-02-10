@@ -168,6 +168,7 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 				}
 			}
 
+
 			g_free(rightcontent);
 
 			if ((!strcmp("DateStarted", (char*)rightnode->name) && !strcmp("DateStarted", (char*)leftnode->name))
@@ -176,6 +177,11 @@ static osync_bool osxml_compare_node(xmlNode *leftnode, xmlNode *rightnode)
 				if (osxml_compare_time(leftnode, rightnode))
 					goto next;
 			}
+
+			/* compare child nodes again .... */
+			if (rightnode->type == XML_ELEMENT_NODE && osxml_compare_node(rightnode, leftnode))
+					goto next;
+
 
 		} while ((rightnode = rightnode->next));
 		osync_trace(TRACE_EXIT, "%s: Could not match one", __func__);
