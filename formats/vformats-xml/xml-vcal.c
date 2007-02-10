@@ -274,6 +274,14 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	xmlNode *dtstartNode = NULL, *sub = NULL;
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
 
+	osxml_node_add(current, "AlarmAction", "AUDIO");
+	osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 1));
+
+	/*
+	osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
+	osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
+	*/
+
 	sub = xmlNewTextChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
 
 	// get timestamp of DateStarted or DateDue (for todos)
@@ -299,19 +307,15 @@ static xmlNode *handle_aalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 		duration = osync_time_sec2alarmdu(alarm - started);
 		osxml_node_add(sub, "Content", duration);
 		osxml_node_add(sub, "Value", "DURATION");
+		osxml_node_add(sub, "Related", "START");
 		g_free(duration);
 
-		osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
-		osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
-		osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
-		osxml_node_add(current, "AlarmAction", "AUDIO");
 
 	/* This happens only if a todo has a AALARM without any DateDue and DateStarted field.
     	   (This was found on a old SE mobile phone and is illegal.) */ 
 	} else {
 		osxml_node_add(sub, "Content", vformat_attribute_get_nth_value(attr, 0));
 		osxml_node_add(sub, "Value", "DATE-TIME");
-		osxml_node_add(current, "AlarmAction", "AUDIO");
 	}
 
 	return current;
@@ -326,6 +330,14 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 	xmlNode *dtstartNode = NULL, *sub = NULL;
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Alarm", NULL);
 
+	osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 1));
+	/*
+	osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
+	osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
+	*/
+
+	osxml_node_add(current, "AlarmAction", "DISPLAY");
+
 	sub = xmlNewTextChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
 
 	// get timestamp of DateStarted or DateDue (for todos)
@@ -351,20 +363,17 @@ static xmlNode *handle_dalarm_attribute(xmlNode *root, VFormatAttribute *attr)
 		duration = osync_time_sec2alarmdu(alarm - started);
 		osxml_node_add(sub, "Content", duration);
 		osxml_node_add(sub, "Value", "DURATION");
+		osxml_node_add(sub, "Related", "START");
 		g_free(duration);
 
-		osxml_node_add(current, "AlarmDuration", vformat_attribute_get_nth_value(attr, 1));
-		osxml_node_add(current, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 2));
-		osxml_node_add(current, "AlarmDescription", vformat_attribute_get_nth_value(attr, 3));
-		osxml_node_add(current, "AlarmAction", "DISPLAY");
 
 	/* This happens only if a todo has a AALARM without any DateDue and DateStarted field.
     	   (This was found on a old SE mobile phone and is illegal.) */ 
 	} else {
 		osxml_node_add(sub, "Content", vformat_attribute_get_nth_value(attr, 0));
 		osxml_node_add(sub, "Value", "DATE-TIME");
-		osxml_node_add(current, "AlarmAction", "DISPLAY");
 	}
+
 
 	return current;
 }
