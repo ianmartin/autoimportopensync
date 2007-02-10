@@ -317,6 +317,12 @@ START_TEST (conv_vcard_kde_30_umlaute)
 }
 END_TEST
 
+START_TEST (conv_vcard_malformed)
+{
+	conv_vcard("data/vcards/malformed.vcf", "kde");
+}
+END_TEST
+
 START_TEST (compare_vformat_mismatch1)
 {
 	compare_vcard("data/vcards/evolution2/compare/1-different.vcf", "data/vcards/kdepim/compare/1-different.vcf", CONV_DATA_MISMATCH);
@@ -417,7 +423,7 @@ Suite *vcard_suite(void)
 	create_case(s, "conv_vcard_kde_30_special", conv_vcard_kde_30_special);
 	create_case(s, "conv_vcard_kde_21_umlaute", conv_vcard_kde_21_umlaute);
 	create_case(s, "conv_vcard_kde_30_umlaute", conv_vcard_kde_30_umlaute);
-
+	create_case(s, "conv_vcard_malformed", conv_vcard_malformed);
 	create_case(s, "compare_vformat_mismatch1", compare_vformat_mismatch1);
 	create_case(s, "compare_vformat_mismatch2", compare_vformat_mismatch2);
 	create_case(s, "compare_vformat_similar1", compare_vformat_similar1);
@@ -439,11 +445,10 @@ int main(void)
 	int nf;
 
 	Suite *s = vcard_suite();
-	
 	SRunner *sr;
 	sr = srunner_create(s);
 
-	srunner_set_fork_status (sr, CK_NOFORK);
+//	srunner_set_fork_status (sr, CK_NOFORK);
 	srunner_run_all(sr, CK_NORMAL);
 	nf = srunner_ntests_failed(sr);
 	srunner_free(sr);

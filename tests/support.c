@@ -63,8 +63,10 @@ char *setup_testbed(char *fkt_name)
 		abort();
 	
 	osync_trace(TRACE_INTERNAL, "Seting up %s at %s", fkt_name, testbed);
-	printf(".");
-	fflush(NULL);
+
+//	printf(".");
+//	fflush(NULL);
+//	fflush(stderr);
 	reset_env();
 	return testbed;
 }
@@ -377,7 +379,7 @@ void create_case(Suite *s, const char *name, void (*function)(int))
 #endif /*CHECK_VERSION*/
 {
 	TCase *tc_new = tcase_create(name);
-	tcase_set_timeout(tc_new, 0);
+	tcase_set_timeout(tc_new, 30);
 	suite_add_tcase (s, tc_new);
 	tcase_add_test(tc_new, function);
 }
