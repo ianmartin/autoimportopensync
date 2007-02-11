@@ -45,7 +45,7 @@ if test x$enable_http != xno; then
 		AC_MSG_ERROR("Libsoup not found")
 	fi
 else
-	ENABLE_HTP=no
+	ENABLE_HTTP=no
 fi
 AM_CONDITIONAL(ENABLE_HTTP, test x$HAVE_LIBSOUP = xyes)
 
