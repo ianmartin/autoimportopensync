@@ -59,23 +59,41 @@ END_TEST
 
 START_TEST (filter_sync_deny_all)
 {
+	OSyncError *error = NULL;
 	char *testbed = setup_testbed("filter_sync_deny_all");
 	OSyncEnv *osync = init_env();
 	OSyncGroup *group = osync_group_load(osync, "configs/group", NULL);
 	fail_unless(group != NULL, NULL);
 	mark_point();
 	
+	/* add filter and save the group */
 	OSyncMember *leftmember = osync_group_nth_member(group, 0);
 	
 	osync_filter_add(group, leftmember, NULL, NULL, NULL, NULL, OSYNC_FILTER_DENY);
 	osync_filter_add(group, NULL, leftmember, NULL, NULL, NULL, OSYNC_FILTER_DENY);
+
+	fail_unless(osync_group_save(group, &error), NULL);
+	
+	fail_unless(osync_env_finalize(osync, NULL), NULL);
+	osync_env_free(osync);
+	
+	/* ... unload and load the group again ... to parse the filter config (also for the members) .. */
+	osync = init_env();
 	
 	mark_point();
-	OSyncError *error = NULL;
+
+	group = osync_group_load(osync, "configs/group", NULL);
+	fail_unless(group != NULL, NULL);
+	
+	/* do the evil sync stuff.. */
+	mark_point();
   	OSyncEngine *engine = osengine_new(group, &error);
+
   	mark_point();
   	fail_unless(engine != NULL, NULL);
 	fail_unless(osengine_init(engine, &error), NULL);
+	fail_unless(osync_group_num_filters(group) == 2, NULL);
+
 	synchronize_once(engine, NULL);
 	osengine_finalize(engine);
 
