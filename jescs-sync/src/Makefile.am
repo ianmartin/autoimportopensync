@@ -5,7 +5,7 @@ INCLUDES = @PACKAGE_CFLAGS@
 
 AM_CFLAGS = -Wall
 
-EXTRA_DIST = jescs
+EXTRA_DIST = jescs.c jescs-sync wcaptool.pl
 
 config_DATA = jescs-sync
 
@@ -13,7 +13,7 @@ plugin_LTLIBRARIES = jescs.la
 
 libexec_PROGRAMS = wcaptool
 
-wcaptool_SOURCES = wcaptool
+wcaptool_SOURCES = wcaptool.pl
 
 jescs_la_SOURCES = jescs.c
 jescs_la_CFLAGS = -DWCAPTOOL=\"$(libexecdir)/wcaptool\"
