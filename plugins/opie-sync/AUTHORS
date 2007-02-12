@@ -1,0 +1,16 @@
+Opie plugin for OpenSync Credits
+================================
+
+Current maintainer: Paul Eggleton <bluelightning@bluelightning.org>
+
+Original port by Holger Hans Peter Freyther <freyther@handhelds.org>
+Additional code by Paul Rensing <paulrensing@verizon.net>
+
+Based on the MultiSync Plugin
+Written by: Tom Foottit <tom@foottit.com>
+QCop support added by: Eike Lang <mail@elang.de>
+
+Many thanks to other people who have provided patches or
+helped debug problems with the Opie plugin. This plugin
+would not exist without your help!
+

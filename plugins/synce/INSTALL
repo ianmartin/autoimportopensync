@@ -1,0 +1,5 @@
+Install Notes:
+
+In order to successifully compile and install this you need a full installation of opensync from www.opensync.org and synce from synce.sourceforge.net.
+
+next simply give the usual configure/make/make install and that's all ;)

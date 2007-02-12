@@ -1,0 +1,103 @@
+2006-08-15  Daniel Gollub  <dgollub@suse.de>
+	* modified hash functions (update leads to different hash results!)
+	* fixed serveral memory leaks 
+	* replaced privacy function with TRACE_SENSITIVE
+
+2006-05-26  Daniel Gollub  <dgollub@suse.de>
+	* added configure parameters 
+       		--disable-event
+		--disable-contact
+
+2006-05-20  Daniel Gollub  <dgollub@suse.de>
+
+	* gnokii_contact_utils.c
+	  gnokii_contact_utils.h
+	  	- helper funcitons for gnokii-format contact 
+		
+	* contact fixes
+		- categories in gnokii-format contact
+		- clean telephone numbers (only +*#pw[0-9] allowed) 
+		- evo2-sync workaround for name
+
+2006-05-19  Daniel Gollub  <dgollub@suse.de>
+
+	* updated README / INSTALL
+
+	* gnokii-sync contact support is actived by default!!!
+		- EXPERIMENTAL. Don't forget your backup!
+
+2006-05-01  Daniel Gollub  <dgollub@suse.de>
+	
+	* gnokii_format.c
+		- stores gnokii-format information
+	
+	* gnokii_contact.c
+	  gnokii_contact.h
+	  	- write/modify/delete/hash contact notes
+		- commit contact changes
+		- get contact changes
+
+  	* gnokii_contact_format.c
+	  gnokii_contact_format.h
+	  	- format gnokii-contact
+
+	* extended sync/disconnect/get_changeinfo/get_data/commit/read
+	  timeout to 10000. (Thanks to mmeyer!)	
+
+2006-03-12  Daniel Gollub  <dgollub@suse.de>
+
+	* fixed several memory leaks
+
+	* fixed alarm/reminder of all day events
+
+	* src/gnokii_calendar_format.c
+		- fixed alarm time of all day events in gnokii event format
+
+	* configure.in
+		- added --enable-privacy which let disappear the sensitive data
+		  in the trace log files
+
+	* src/Makefile.am 
+		- avoid linking problems with -lopensync-xml for gnokii-format
+	
+	* added destroy function for event format (calendar)
+
+2006-02-27  Daniel Gollub  <dgollub@suse.de>
+
+	* Initial version of gnokii-sync 
+
+	* gnokii_calendar.c  
+	  gnokii_calendar.h
+	  	- write event notes
+		- delete event notes
+		- modify event notes
+		- hash event notes
+		- ...
+	  
+	* gnokii_calendar_utils.c  
+	  gnokii_calendar_utils.h
+	  	- helper functions for object type event
+		- time converting
+		- ...
+
+	* gnokii_calendar_format.c
+		- format gnokii-event  
+		- converts xml to gnokii-event
+		- converts gnokii-event to xml
+	  
+	* gnokii_comm.c  
+	  gnokii_comm.h
+	  	- handles connection to the cell phone
+		- connect/disconnect
+	  
+	* gnokii_config.c  
+	  gnokii_config.h
+	  	- config parser
+	  
+	* gnokii_sync.c
+	  gnokii_sync.h
+	  	- main code of gnokii-sync plugin
+
+	* gnokii-sync
+		- config file template for gnokii-sync plugin
+		

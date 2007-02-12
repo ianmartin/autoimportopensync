@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config>
+   <!-- Server address with optional port (<server_url>[:<port>]) -->
+   <url></url>
+
+   <!-- Authentication data -->
+   <username></username>
+   <password></password>
+
+   <!-- Notify attendees about event/task deletion ( 0 = no, 1 = yes ) -->
+   <del_notify>1</del_notify>
+</config>

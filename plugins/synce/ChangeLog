@@ -1,0 +1,90 @@
+version 0.01: initial version, only contact sync working... very buggy ;)
+version 0.02: added appointment and todo handling, but still very buggy.. ;)
+
+* Add preliminary support for configuration (as outlined by OpenSync).
+* Add a source file to support synchronizing files on the WinCE device,
+  hook it up to the main plugin source.
+
+version 0.03: bugfixes: connection hangup after commit // calendar report wrong object type
+
+* Make the configuration work for file sync (allows specifying more than one
+  directory to synchronize).
+* Add some test code to learn how to work with SynCE. There's also a simple
+  test program hidden in src/synce_file.c that currently lists all the files
+  it finds on the WinCE device.
+* More of the necessary hookups between SynCE's file access and OpenSync are
+  now in place but the implementation is still incomplete and crashes.
+
+* Strip some functionality from the XML based configuration. Only one
+  directory can be specified, and the other stuff is meant to disappear too - 
+  only the mechanism for enabling/disabling stuff from the GUI is to remain.
+  This is as Armin suggested.
+
+* Rename the structure in synce_plugin.h so it has "synce" in its name. Make
+  the include file safe against multiple inclusion, add a copyright.
+* Add a function (synce_list_directories) that needs to be linked into the
+  configuration GUI.
+* Clean up the code to use the new fileFormat structure in <opensync/file.h>.
+* Don't use %c format in strftime, it causes warnings about two digit year
+  format on some systems.
+
+* Use Armin's suggestions about what was wrong. Blush.
+* Add basic function to add a file to the CE device, probably not completely foolproof yet.
+* remove the initial part of the path (the directory in which the whole sync
+  is rooted) to remove confusion caused by that
+* Handle creation of subdirectories, and files in them.
+
+TODO
+- debug situation with a professionally used agenda (hundreds of meetings) ->
+  crashes at present when synchronizing
+- debug situation with e.g. both files "cc" and "cc.txt" present on the
+  device -> OpenSync appears to tell file-sync to delete "cc", I guess
+  it gets mixed up somehow. Is SynCE confusing OpenSync ?
+- Debug situation in which a file has been synchronized, but is then deleted
+  at both ends (but is still in the OpenSync database).
+- Debug the GUI.
+
+
+
+
+
+
+This is one example of the CeReadFile failure :
+dell: {47} msynctool --sync f
+Synchronizing group "f" 
+Member 1 of type file-sync just connected
+Member 2 of type synce-plugin just connected
+All clients connected or error
+Member 1 of type file-sync just sent all changes
+FilesReportFileChange(\My Documents\foto\txt)
+Received a entry \My Documents\foto\txt without data from member 2. Changetype ADDED
+FilesReportFileChange(\My Documents\foto\txt\Voetbal 14.psw)
+FilesReportFileChange(\My Documents\foto\passwd.txt)
+Received a entry \My Documents\foto\txt\Voetbal 14.psw without data from member 2. Changetype ADDED
+FilesReportFileChange(\My Documents\foto\kristof.gif)
+Received a entry \My Documents\foto\passwd.txt without data from member 2.  Changetype MODIFIED
+FilesReportFileChange(\My Documents\foto\inge.gif)
+FilesReportFileChange(\My Documents\foto\tux068d.gif)
+Received a entry \My Documents\foto\Voetbal 14.psw with data of size 0 from member 2. Changetype DELETED
+Member 2 of type synce-plugin just sent all changes
+All clients sent changes or error
+Error reading entry \My Documents\foto\txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+Error reading entry \My Documents\foto\txt\Voetbal 14.psw from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\passwd.txt from member 2: Error from CeReadFile (Unknown error)
+Error reading entry \My Documents\foto\txt from member 2: synceFileGetData: NULL values
+

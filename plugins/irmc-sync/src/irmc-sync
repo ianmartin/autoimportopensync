@@ -1,0 +1,5 @@
+<config>
+  <connectmedium>bluetooth</connectmedium>
+  <btunit></btunit>
+  <btchannel></btchannel>
+</config>

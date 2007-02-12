@@ -1,0 +1,148 @@
+INTRODUCTION
+
+This is a VERY EXPERIMENTAL plugin for syncing with Motorola phones 
+using the AT command set. It supports syncing phonebook and calendar 
+entries (ie. the contact and event object types). It will most likely
+mess up the data on your phone and any other members of the sync group,
+due to the limited data that can be stored on the phone. Use with caution
+and make backups!
+
+To prevent it writing any changes to the phone, set WRITE_ENABLED to False
+(near the top of the file). Note that this will still allow it to send data
+back to the other members of the sync group, so you probably want to have
+backups of everything anyway. See TESTING/BACKUP below.
+
+
+SUPPORTED HARDWARE
+
+Known working models:
+ * L7 SLVR
+ * V3i RAZR
+
+Possibly working, but only lightly tested:
+ * V3x RAZR (tested reading only)
+ * V635 (tested reading only)
+
+Models known not to work:
+ * K1 KRZR (phone book works fine, but any calendar command fails)
+ * V3xx RAZR (same as above)
+ * A780 (doesn't seem to respond to AT commands, except with ERROR)
+
+If your phone isn't listed above, or if your results differ, please let 
+me know how it works for you, by emailing andrewb AT cse DOT unsw DOT 
+edu DOT au.
+
+
+REQUIREMENTS
+
+ * OpenSync 0.20 or later with the python bindings and python-module plugin
+ * Python 2.4 or newer
+ * The python-dateutil library (at least version 1.1),
+   from http://labix.org/python-dateutil
+ * Optionally, the pybluez library (at least version 0.9)
+   from http://org.csail.mit.edu/pybluez/
+
+
+INSTALLATION
+
+cp motosync.py $PREFIX/lib/opensync/python-plugins
+cp moto-sync $PREFIX/share/opensync/defaults
+
+
+CONFIGURATION
+
+For now, there is only one configuration option to moto-sync: the device 
+string to communicate with the phone. This is specified in a small XML 
+file, the contents of which should look like:
+        <config><device>your device string here</device></config>
+
+There are two options for specifying the device string:
+ 1. If your phone is connected by bluetooth, and you have the pybluez 
+    package installed (see REQUIREMENTS above), you can use its MAC 
+    address (eg. 00:11:22:33:44:55) as the device string.
+
+ 2. Otherwise, you have to specify the full path to a device node on the 
+    local file system that can be used to communicate with the phone.
+    Devices you're likely to use in this case are:
+  * /dev/ttyACM0 for a USB modem connection (or whatever other device the
+    phone shows up on, see dmesg)
+  * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
+    that channel to bind with your phone, by doing something like:
+         rfcomm bind rfcomm0 00:11:22:33:44:55 1
+
+The only way I have tested or used the plugin so far is in a sync group 
+with file-sync. To configure and use this, do:
+        msynctool --addgroup phone
+        msynctool --addmember phone moto-sync
+        msynctool --addmember phone file-sync
+        msynctool --configure phone 1 # configure moto-sync, as above
+        msynctool --configure phone 2 # configure file-sync, set the path
+        msynctool --sync phone # cross your fingers!
+
+NB: make sure your file-sync directory has only events and contacts in 
+it, no TODO or other data. Otherwise OpenSync will mysteriously 
+deadlock, because there were changes from the file-sync that couldn't be 
+converted. I'm told that this bug is already fixed by the development 
+branch of OpenSync.
+
+
+TESTING/BACKUP
+
+Before doing anything with write enabled, it is probably a good idea to
+backup the data from your phone. You can use the mototool script to
+do this, to delete entries on the phone, or to examine the data that
+moto-sync would send to opensync. Run 'mototool --help' for details
+or, for the impatient, try:
+    mototool -v -d (device string) -f myphone.backup --backup
+
+
+LIMITATIONS AND KNOWN PROBLEMS
+
+Unfortunately the functionality offered by the phone is extremely 
+limited. I'd love to know how well it works with SyncML, especially for 
+complex calendar events, but I'm guessing the answer is "not very". The 
+phone books and calendar work in basically the same way:
+ * entries are stored in memory "positions"
+ * there are AT commands to read and write the data at a certain position
+
+This means that if an event changes position (which you can do for the 
+phone book, for example if you want to change speed dial numbers) we 
+don't have any way of detecting that it's the same event. Similarly, if 
+an entry is deleted and a new one created in its place, we can't 
+distinguish that from a (large) change to the original entry.
+
+For the phone book, each entry has a name, number, contact type 
+(home/work/mobile/email address etc.), nickname, address, category 
+number, birthday, and some other fields for things like ringer ID that 
+we don't handle very well yet. A contact with multiple phone numbers is 
+actually just multiple entries in the phone book, so when we read 
+entries we have to merge any with the same name into a single contact, 
+and split them up again on write. This leads to all sorts of problems in 
+maintaining consistent UIDs for a contact, when our only real handle on 
+which entry is which is the positions it occupies.
+
+For the calendar, each event has a name, date/time, duration, alarm 
+date/time, repeat type, and list of exceptions. The repeat type in 
+particular is very limited, many recurring events can't be represented 
+on the phone. At the moment the plugin detects this and just refuses to 
+write them. A better solution would be to split them up into multiple 
+events, but this will confuse OpenSync when we sync up again.
+
+The main overriding problem is that there's no way to store the full 
+data for an event or contact in the phone. The way opensync works at the 
+moment, this means that if an entry is synced to the phone, then 
+modified in any way on the phone, all the data in the other sync group 
+members is replaced by the small amount of data that we can return from 
+the phone. Your big flashy PIM application is limited by the 
+functionality of your phone's crappy software. Luckily the OpenSync 
+developers are working on code to merge change, so hopefully this 
+problem will soon be solved.
+
+
+TODO
+
+ * Better error/exception handling
+ * See all the FIXMEs in the code
+ * Do something with "mailing list" entries in the phonebook
+ * Add support for reading/writing the SIM phonebook
+ * Test with other hardware
