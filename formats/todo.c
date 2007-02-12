@@ -20,7 +20,6 @@
  
 #include "opensync/opensync.h"
 #include <glib.h>
-#include <opensync/opensync_support.h>
 #include <string.h>
 
 static OSyncConvCmpResult compare_vtodo(OSyncChange *leftchange, OSyncChange *rightchange)
@@ -32,14 +31,14 @@ static osync_bool detect_plain_as_vtodo10(OSyncFormatEnv *env, const char *data,
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
 
-	return osync_pattern_match("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VTODO*", data, size);
+	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VTODO*", data);
 }
 
 static osync_bool detect_plain_as_vtodo20(OSyncFormatEnv *env, const char *data, int size)
 {
 	osync_debug("VCAL", 3, "start: %s", __func__);
 
-	return osync_pattern_match("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VTODO*", data, size);
+	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VTODO*", data);
 }
 
 static void create_todo10(OSyncChange *change)

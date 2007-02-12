@@ -158,7 +158,7 @@ static void sync_done(OSyncContext *ctx)
 	plugin_environment *env = (plugin_environment *)osync_context_get_plugin_data(ctx);
 	
 	/*
-	 * This function will only be called if the sync was successfull
+	 * This function will only be called if the sync was successful
 	 */
 	
 	//If we have a hashtable we can now forget the already reported changes

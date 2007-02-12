@@ -110,10 +110,10 @@ int main (int argc, char *argv[])
 	printf("input %s output %s\n", input, output);
 	
 	char *buffer = NULL;
-	int size = 0;
+	unsigned int size = 0;
 	if (!osync_file_read(input, &buffer, &size, &error)) {
 		fprintf(stderr, "%s\n", osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return 1;
 	}
 	
@@ -139,7 +139,7 @@ int main (int argc, char *argv[])
 	
 	if (!osync_file_write(output, outbuffer, outsize, 0644, &error)) {
 		fprintf(stderr, "Unable to write file %s: %s", output, osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return 1;
 	}
 

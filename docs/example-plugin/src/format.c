@@ -43,7 +43,7 @@ static osync_bool conv_format1_to_format2(void *conv_data, char *input, int inps
 {
 	/*
 	 * This function can be used to convert your format to another format.
-	 * Return TRUE if the conversion was successfull or return FALSE and set
+	 * Return TRUE if the conversion was successful or return FALSE and set
 	 * the error if something bad has happend.
 	 * 
 	 */
@@ -83,7 +83,7 @@ static osync_bool conv_format2_to_format1(void *conv_data, char *input, int inps
 {
 	/*
 	 * This function can be used to convert another format to your format.
-	 * Return TRUE if the conversion was successfull or return FALSE and set
+	 * Return TRUE if the conversion was successful or return FALSE and set
 	 * the error if something bad has happend.
 	 * 
 	 */

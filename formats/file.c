@@ -19,285 +19,246 @@
  */
  
 #include <opensync/opensync.h>
-
-#include "file.h"
-#include <string.h>
+#include <opensync/opensync_internals.h>
+#include <opensync/opensync-support.h>
+#include <opensync/opensync-serializer.h>
+#include <opensync/opensync-format.h>
 #include <glib.h>
+#include "file.h"
 
-static OSyncConvCmpResult compare_file(OSyncChange *leftchange, OSyncChange *rightchange)
+static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftchange, rightchange);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %i)", __func__, leftdata, leftsize, rightdata, rightsize);
+	osync_assert(leftdata);
+	osync_assert(rightdata);
 	
-	fileFormat *leftfile = (fileFormat *)osync_change_get_data(leftchange);
-	fileFormat *rightfile = (fileFormat *)osync_change_get_data(rightchange);
+	OSyncFileFormat *leftfile = (OSyncFileFormat *)leftdata;
+	OSyncFileFormat *rightfile = (OSyncFileFormat *)rightdata;
 	
-	osync_bool data_same = FALSE;
-	osync_bool path_same = FALSE;
+	osync_assert(rightfile->path);
+	osync_assert(leftfile->path);
 	
-	if (!strcmp(osync_change_get_uid(leftchange), osync_change_get_uid(rightchange)))
-		path_same = TRUE;
+	osync_trace(TRACE_INTERNAL, "Comparing %s and %s", leftfile->path, rightfile->path);
+			
 	
-	osync_trace(TRACE_INTERNAL, "%i %i", leftfile->size, rightfile->size);
-	
-	if (leftfile->size == rightfile->size) {
-		if (leftfile->data == rightfile->data) {
-			data_same = TRUE;
-		} else {
-			if (!memcmp(leftfile->data, rightfile->data, leftfile->size))
-				data_same = TRUE;
+	if (!strcmp(leftfile->path, rightfile->path)) {
+		if (leftfile->size == rightfile->size) {
+			if (leftfile->size == 0 || !memcmp(leftfile->data, rightfile->data, rightfile->size)) {
+				osync_trace(TRACE_EXIT, "%s: Same", __func__);
+				return OSYNC_CONV_DATA_SAME;
+			}
 		}
-	}
-	
-	if (data_same && path_same) {
-		osync_trace(TRACE_EXIT, "%s: Same", __func__);
-		return CONV_DATA_SAME;
-	}
-	if (path_same) {
+		
 		osync_trace(TRACE_EXIT, "%s: Similar", __func__);
-		return CONV_DATA_SIMILAR;
+		return OSYNC_CONV_DATA_SIMILAR;
 	}
 	
 	osync_trace(TRACE_EXIT, "%s: Mismatch", __func__);
-	return CONV_DATA_MISMATCH;
+	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-#ifdef STRESS_TEST
-static void create_file(OSyncChange *change)
+static osync_bool conv_file_to_plain(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_debug("FILE", 4, "start: %s", __func__);
-	fileFormat *file_info = g_malloc0(sizeof(fileFormat));
-	int file_size = g_random_int_range(0, 1000);
-	osync_change_set_data(change, (char *)file_info, sizeof(fileFormat), TRUE);
+	osync_trace(TRACE_INTERNAL, "Converting file to plain");
 	
-	file_info->data = g_malloc0(file_size * 105 * sizeof(char));
-	file_info->size = file_size * 100 * sizeof(char);
-	
-	char *datap  = file_info->data;
-	FILE *fd = fopen("/dev/urandom", "r");
-	if (fd) {
-		for (; file_size > 5; file_size--) {
-			fread(datap, 100, 1, fd);
-			datap += 100 * sizeof(char);
-		}
-	}
-	fclose(fd);
-	osync_change_set_uid(change, osync_rand_str(6));
-}
-#endif
+	*free_input = TRUE;
+	OSyncFileFormat *file = (OSyncFileFormat *)input;
 
-static osync_bool conv_file_to_plain(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	g_assert(inpsize == sizeof(fileFormat));
-	fileFormat *file = (fileFormat *)input;
-	
-	*free_input = FALSE;
-	*output = file->data;
-	*outpsize = file->size;
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	/* Add a \0 to make a usable plain (text) format. input gets freed by destroy_func() */
+	char *plaindata = osync_try_malloc0(file->size + 1, error);
+	memcpy(plaindata, file->data, file->size);
+
+	*output = plaindata; 
+	*outpsize = file->size + 1;
+
 	return TRUE;
 }
 
-static osync_bool conv_plain_to_file(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	fileFormat *file = osync_try_malloc0(sizeof(fileFormat), error);
+	osync_trace(TRACE_INTERNAL, "Converting plain to file");
+	
+	*free_input = FALSE;
+	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
 	if (!file)
-		goto error;
-
+		return FALSE;
+	file->path = osync_rand_str(g_random_int_range(1, 100));
+	
 	file->data = input;
-	file->size = inpsize;
+	file->size = inpsize - 1;
 	
-	*free_input = FALSE;
 	*output = (char *)file;
-	*outpsize = sizeof(*file);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	*outpsize = sizeof(OSyncFileFormat);
 	return TRUE;
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
-}
-
-static osync_bool marshall_file(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
-{
-	/* The marshall block will be a fileFormat struct, followed by the file data
-	 *
-	 * the 'data' field on fileFormat will be set to NULL
-	 */
-
-	/* Get our input file struct */
-	g_assert(inpsize == sizeof(fileFormat));
-	fileFormat *file = (fileFormat*)input;
-
-	/* Allocate our block */
-	int osize = sizeof(fileFormat) + file->size;
-	char *out = osync_try_malloc0(osize, error);
-	if (!out)
-		goto error;
-
-
-	/* Get the pointers to the output data: */
-	/* fileFormat struct in the beginning */
-	fileFormat *outfile = (fileFormat*)out;
-	/* file data immediately after outfile */
-	char *outdata = ((char*)outfile) + sizeof(fileFormat);
-
-	/* Copy the data: */
-	/* file struct */
-	memcpy(outfile, file, sizeof(fileFormat));
-	outfile->data = NULL;
-
-	/* file data */
-	if (file->size > 0)
-		memcpy(outdata, file->data, file->size);
-
-	*output = out;
-	*outpsize = osize;
-	return TRUE;
-
-error:
-	return FALSE;
-}
-
-static osync_bool demarshall_file(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error)
-{
-	/* Get file struct */
-	g_assert(inpsize >= sizeof(fileFormat));
-	fileFormat *file = (fileFormat*)input;
-
-	/* get file data */
-	g_assert(inpsize == sizeof(fileFormat) + file->size);
-	const char *filedata = input + sizeof(fileFormat);
-
-	fileFormat *newfile = osync_try_malloc0(sizeof(fileFormat), error);
-	if (!newfile)
-		goto error;
-
-	memcpy(newfile, file, sizeof(fileFormat));
-
-	if (file->size > 0) {
-		newfile->data = osync_try_malloc0(file->size, error);
-		if (!newfile->data)
-			goto error_free_file;
-
-		memcpy(newfile->data, filedata, file->size);
-	} else
-		newfile->data = NULL;
-
-	*output = (char*)newfile;
-	*outpsize = sizeof(fileFormat);
-	return TRUE;
-
-error_free_file:
-	g_free(newfile);
-error:
-	return FALSE;
 }
 
 static void destroy_file(char *input, size_t inpsize)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
-	g_assert(inpsize == sizeof(fileFormat));
-	fileFormat *file = (fileFormat *)input;
+	OSyncFileFormat *file = (OSyncFileFormat *)input;
 	
-	g_free(file->data);
+	if (file->data)
+		g_free(file->data);
+		
+	if (file->path)
+		g_free(file->path);
+	
 	g_free(file);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void duplicate_file(OSyncChange *change)
+static osync_bool duplicate_file(const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, change);
+	OSyncFileFormat *file = (OSyncFileFormat *)input;
 	
-	char *newuid = g_strdup_printf ("%s-dupe", osync_change_get_uid(change));
-	osync_change_set_uid(change, newuid);
-	g_free(newuid);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-static osync_bool copy_file(const char *input, int inpsize, char **output, int *outpsize)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, input, inpsize, output, outpsize);
-	
-	fileFormat *oldfile = (fileFormat *)input;
-	fileFormat *newfile = g_malloc0(sizeof(fileFormat));
-
-	newfile->groupid = oldfile->groupid;
-	newfile->mode = oldfile->mode;
-	newfile->userid = oldfile->userid;
-	newfile->size = oldfile->size;
-	newfile->last_mod = oldfile->last_mod;
-	
-	if (oldfile->size) {
-		newfile->data = g_malloc0(oldfile->size);
-		memcpy(newfile->data, oldfile->data, oldfile->size);
-	}
-	
-	*output = (char *)newfile;
-	*outpsize = inpsize;
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	char *newpath = g_strdup_printf ("%s-dupe", file->path);
+	g_free(file->path);
+	file->path = newpath;
+	*newuid = g_strdup(file->path);
+	*dirty = TRUE;
 	return TRUE;
 }
 
-static void create_file(OSyncChange *change)
+static osync_bool copy_file(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	osync_debug("FILE", 4, "start: %s", __func__);
+	OSyncFileFormat *inpfile = (OSyncFileFormat *)input;
 	
-	fileFormat *newfile = g_malloc0(sizeof(fileFormat));
-
-	char *data = osync_rand_str(g_random_int_range(1, 100));
-	newfile->data = data;
-	newfile->size = strlen(data) + 1;
+	OSyncFileFormat *outfile = osync_try_malloc0(sizeof(OSyncFileFormat), error);
+	if (!outfile)
+		return FALSE;
 	
-	osync_change_set_data(change, (char *)newfile, sizeof(newfile), TRUE);
-	if (!osync_change_get_uid(change))
-		osync_change_set_uid(change, osync_rand_str(6));
+	if (inpfile->data) {
+		outfile->data = g_malloc0(inpfile->size);
+		memcpy(outfile->data, inpfile->data, inpfile->size);
+		outfile->size = inpfile->size;
+	}
+	
+	outfile->path = g_strdup(inpfile->path);
+	
+	*output = (char *)outfile;
+	*outpsize = sizeof(OSyncFileFormat);
+	return TRUE;
 }
 
-static time_t revision_file(OSyncChange *change, OSyncError **error)
+static void create_file(char **buffer, unsigned int *size)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, change, error);
+	OSyncFileFormat *outfile = osync_try_malloc0(sizeof(OSyncFileFormat), NULL);
 	
-	fileFormat *filechange = (fileFormat *)osync_change_get_data(change);
-	time_t lastmod = filechange->last_mod;
+	outfile->path = osync_rand_str(g_random_int_range(1, 100));
+	
+	outfile->data = osync_rand_str(g_random_int_range(1, 100));
+	outfile->size = strlen(outfile->data);
+	
+	*buffer = (char *)outfile;
+	*size = sizeof(OSyncFileFormat);
+}
+
+static time_t revision_file(const char *input, unsigned int inpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, input, inpsize, error);
+	
+	OSyncFileFormat *file = (OSyncFileFormat *)input;
+	time_t lastmod = file->last_mod;
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, lastmod);
 	return lastmod;
 }
 
-static char *print_file(OSyncChange *change)
+static char *print_file(const char *data, unsigned int size)
 {
-	osync_debug("FILE", 4, "start: %s", __func__);
-	fileFormat *file = (fileFormat *)osync_change_get_data(change);
-
-	char *printable = g_strdup_printf ("File: %s\nSize: %i", osync_change_get_uid(change), file ? file->size : 0);
+	OSyncFileFormat *file = (OSyncFileFormat *)data;
+	
+	char *printable = g_strdup_printf ("File %s: size: %i", file->path, file->size);
 	return printable;
 }
 
-void get_info(OSyncEnv *env)
+static osync_bool marshal_file(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
 {
-	osync_env_register_objtype(env, "data");
-	osync_env_register_objformat(env, "data", "file");
-	osync_env_format_set_compare_func(env, "file", compare_file);
-	osync_env_format_set_duplicate_func(env, "file", duplicate_file);
-	osync_env_format_set_destroy_func(env, "file", destroy_file);
-	osync_env_format_set_print_func(env, "file", print_file);
-	osync_env_format_set_copy_func(env, "file", copy_file);
-	osync_env_format_set_create_func(env, "file", create_file);
-	osync_env_format_set_revision_func(env, "file", revision_file);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p)", __func__, input, inpsize, message, error);
+	
+	OSyncFileFormat *file = (OSyncFileFormat *)input;
+	
+	osync_message_write_string(message, file->path);
+	osync_message_write_buffer(message, file->data, file->size);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
 
-	osync_env_format_set_marshall_func(env, "file", marshall_file);
-	osync_env_format_set_demarshall_func(env, "file", demarshall_file);
+static osync_bool demarshal_file(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, message, output, outpsize, error);
+	
+	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), error);
+	if (!file)
+		goto error;
+	
+	osync_message_read_string(message, &(file->path));
+	osync_message_read_buffer(message, (void *)&(file->data), (int *)&(file->size));
+	
+	*output = (char *)file;
+	*outpsize = sizeof(OSyncFileFormat);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
 
-#ifdef STRESS_TEST
-	osync_env_format_set_create_func(env, "file", create_file);
-#endif
-	osync_env_register_converter(env, CONVERTER_DECAP, "file", "plain", conv_file_to_plain);
-	osync_env_register_converter(env, CONVERTER_ENCAP, "plain", "file", conv_plain_to_file);
+error:
+	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *format = osync_objformat_new("file", "file", error);
+	if (!format)
+		return FALSE;
+	
+	osync_objformat_set_compare_func(format, compare_file);
+	osync_objformat_set_destroy_func(format, destroy_file);
+	osync_objformat_set_duplicate_func(format, duplicate_file);
+	osync_objformat_set_print_func(format, print_file);
+	osync_objformat_set_revision_func(format, revision_file);
+	osync_objformat_set_copy_func(format, copy_file);
+	osync_objformat_set_create_func(format, create_file);
+	
+	osync_objformat_set_marshal_func(format, marshal_file);
+	osync_objformat_set_demarshal_func(format, demarshal_file);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	return TRUE;
+}
+
+osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *file = osync_format_env_find_objformat(env, "file");
+	if (!file) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find file format");
+		return FALSE;
+	}
+	
+	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
+	if (!plain) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plain format");
+		return FALSE;
+	}
+	
+	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_DECAP, file, plain, conv_file_to_plain, error);
+	if (!conv)
+		return FALSE;
+	
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_ENCAP, plain, file, conv_plain_to_file, error);
+	if (!conv)
+		return FALSE;
+	
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	return TRUE;
+}
+
+int get_version(void)
+{
+	return 1;
 }

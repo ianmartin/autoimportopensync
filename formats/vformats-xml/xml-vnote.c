@@ -1,3 +1,4 @@
+
 /*
  * xml-vnote - A plugin for parsing vnote objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
@@ -18,7 +19,7 @@
  * 
  */
  
-#include "xml-support.h"
+#include "opensync-xml.h"
 #include "vformat.h"
 #include "xml-vnote.h"
 #include <glib.h>
@@ -26,29 +27,23 @@
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
-	xmlNode *property = xmlNewTextChild(current, NULL, (xmlChar*)"UnknownParam",
+	xmlNode *property = xmlNewChild(current, NULL, (xmlChar*)"UnknownParam",
 		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 }
 
 static xmlNode *handle_created_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	char *timestamp;
-	const char *tmp;
-
 	osync_trace(TRACE_INTERNAL, "Handling created attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"DateCreated", NULL);
-	tmp = vformat_attribute_get_nth_value(attr, 0); 
-	timestamp = osync_time_timestamp(tmp);
-	osxml_node_add(current, "Content", timestamp);
-	g_free(timestamp);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"DateCreated", NULL);
+	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
 
 static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"LastModified", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"LastModified", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -56,7 +51,7 @@ static xmlNode *handle_last_modified_attribute(xmlNode *root, VFormatAttribute *
 static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling summary attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Summary", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -64,7 +59,7 @@ static xmlNode *handle_summary_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Categories attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Categories", NULL);
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -79,7 +74,7 @@ static xmlNode *handle_categories_attribute(xmlNode *root, VFormatAttribute *att
 static xmlNode *handle_body_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling body attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Body", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Body", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -87,7 +82,7 @@ static xmlNode *handle_body_attribute(xmlNode *root, VFormatAttribute *attr)
 static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Class attribute");
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Class", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Class", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
 }
@@ -95,14 +90,14 @@ static xmlNode *handle_class_attribute(xmlNode *root, VFormatAttribute *attr)
 static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
-	xmlNewTextChild(current, NULL, (xmlChar*)"Type",
+	xmlNewChild(current, NULL, (xmlChar*)"Type",
 		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 }
 
 static xmlNode *handle_unknown_attribute(xmlNode *root, VFormatAttribute *attr)
 {
 	osync_trace(TRACE_INTERNAL, "Handling unknown attribute %s", vformat_attribute_get_name(attr));
-	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"UnknownNode", NULL);
+	xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"UnknownNode", NULL);
 	osxml_node_add(current, "NodeName", vformat_attribute_get_name(attr));
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -183,17 +178,10 @@ static osync_bool conv_vnote_to_xml(void *conv_data, char *input, int inpsize, c
 	
 	GHashTable *hooks = (GHashTable *)conv_data;
 	
-	osync_trace(TRACE_SENSITIVE, "Input vnote is:\n%s", input);
+	osync_trace(TRACE_INTERNAL, "Input vnote is:\n%s", input);
 	
-	/* The input is not null-terminated, but vformat_new_from_string() expects a null-terminated string */
-	char *input_str = g_malloc(inpsize + 1);
-	memcpy(input_str, input, inpsize);
-	input_str[inpsize] = '\0';
-
 	//Parse the vnote
-	VFormat *vnote = vformat_new_from_string(input_str);
-
-	g_free(input_str);
+	VFormat *vnote = vformat_new_from_string(input);
 	
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
@@ -211,50 +199,13 @@ static osync_bool conv_vnote_to_xml(void *conv_data, char *input, int inpsize, c
 		vnote_handle_attribute(hooks, root, attr);
 	}
 	
-	xmlChar *str = osxml_write_to_string(doc);
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", str);
-	xmlFree(str);
+	char *xml_vnote = osxml_write_to_string(doc);
+	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", xml_vnote);
+	g_free(xml_vnote);
 	
 	*free_input = TRUE;
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
-	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
-	return TRUE;
-}
-
-static osync_bool conv_memo_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
-	
-	osync_trace(TRACE_SENSITIVE, "Input memo is:\n%s", input);
-	
-	xmlNode *current = NULL;
-
-    //Create a new xml document
-    xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
-    xmlNode *root = osxml_node_add_root(doc, "Note");
-
-    // Summary & Body
-    if (input) {
-        gchar **splitMemo = g_strsplit(input, "\n", 2);
-
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Summary", NULL);
-        xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[0]);
-
-        current = xmlNewTextChild(root, NULL, (xmlChar*)"Body", NULL);
-        xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)splitMemo[1]);
-
-        g_strfreev(splitMemo);
-    }
-	
-	xmlChar *str = osxml_write_to_string(doc);
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", str);
-	xmlFree(str);
-	
-	*free_input = TRUE;
-	*output = (char *)doc;
-	*outpsize = sizeof(doc);
-	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
 }
@@ -407,6 +358,7 @@ static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vnote, xmlNode *r
 	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", root->name);
 	char *name = osxml_find_node(root, "NodeName");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	g_free(name);
 	add_value(attr, root, "Content", encoding);
 	vformat_add_attribute(vnote, attr);
 	return attr;
@@ -443,10 +395,10 @@ static void xml_vnote_handle_attribute(OSyncHookTables *hooks, VFormat *vnote, x
 static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	
-	xmlChar *str = osxml_write_to_string((xmlDoc *)input);
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", str);
-	xmlFree(str);
+
+	char *xml_vnote = osxml_write_to_string((xmlDoc *)input);
+	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", xml_note);
+	g_free(xml_vnote);
 	
 	//Get the root node of the input document
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "Note", error);
@@ -467,62 +419,11 @@ static osync_bool conv_xml_to_vnote(void *user_data, char *input, int inpsize, c
 	
 	*free_input = TRUE;
 	*output = vformat_to_string(vnote, VFORMAT_NOTE);
-	osync_trace(TRACE_SENSITIVE, "vnote output is: \n%s", *output);
-	*outpsize = strlen(*output);
+	osync_trace(TRACE_INTERNAL, "vnote output is: \n%s", *output);
+	*outpsize = strlen(*output) + 1;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
-}
-
-static osync_bool conv_xml_to_memo(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
-	
-	xmlChar *str = osxml_write_to_string((xmlDoc *)input);
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", str);
-	xmlFree(str);
-	
-	//Get the root node of the input document
-	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
-
-	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
-		goto error;
-	}
-	
-	if (xmlStrcmp(root->name, (const xmlChar *)"Note")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xml root element");
-		goto error;
-	}
-
-	GString *memo = g_string_new("");
-
-	// Summary
-	xmlNode *cur = osxml_get_node(root, "Summary");
-
-	if (cur)
-		memo = g_string_append(memo, osxml_find_node(cur, "Content"));
-
-	// Body
-	cur = osxml_get_node(root, "Body");
-	if (cur) {
-		if (memo->len > 0)
-			memo = g_string_append(memo, "\n");
-
-		memo = g_string_append(memo, osxml_find_node(cur, "Content"));
-	}
-
-	*free_input = TRUE;
-	*output = g_string_free(memo, FALSE);
-	osync_trace(TRACE_SENSITIVE, "memo output is: \n%s", *output);
-	*outpsize = strlen(*output);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
 }
 
 static OSyncConvCmpResult compare_notes(OSyncChange *leftchange, OSyncChange *rightchange)
@@ -550,7 +451,7 @@ static char *print_note(OSyncChange *change)
 {
 	xmlDoc *doc = (xmlDoc *)osync_change_get_data(change);
 	
-	return (char *)osxml_write_to_string(doc);
+	return osxml_write_to_string(doc);
 }
 
 static void destroy_xml(char *data, size_t size)
@@ -617,7 +518,7 @@ static void *init_xml_to_vnote(void)
 
 static void fin_xml_to_vnote(void *data)
 {
-	OSyncHookTables *hooks = (OSyncHookTables *)data;
+	OSyncHookTables *hooks = (OSyncHookTables *)hooks;
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
 	g_free(hooks);
@@ -666,7 +567,4 @@ void get_info(OSyncEnv *env)
 	osync_env_converter_set_init(env, "vnote11", "xml-note", init_vnote_to_xml, fin_vnote_to_xml);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "vnote11", conv_xml_to_vnote);
 	osync_env_converter_set_init(env, "xml-note", "vnote11", init_xml_to_vnote, fin_xml_to_vnote);
-	
-	osync_env_register_converter(env, CONVERTER_CONV, "memo", "xml-note", conv_memo_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-note", "memo", conv_xml_to_memo);
 }

@@ -1,46 +1,4 @@
-Hi everyone!
+OpenSync Framework
+==================
 
-Here is what you have to do (atm) to test 0.90:
-
-./configure
-notice that dbus-dev is missing
-install dbus-dev
-make
-
-At the moment 0.90 requires some hand tweaking to start
-mainly since the install routines are not finished.
-
-start multisyncd from src:
-cd src
-./multisyncd
-
-multisyncd knows the following command line switches atm:
-
---config /path/to/config	(self explanatory)
---plugin plugin_name		(explained below)
-some more you dont need to know atm and might disappaer
-
-so... to start the multisyncd in server mode do the following
-( in the src directory )
-./multisyncd --config ../data/config/multisyncd.conf
-
-If it doesnt start do: export MSYNC_DEBUG=1 to see the debugging
-messages
-
-to start a plugin (this is for example how plugins that always listen
-in the background for a palm for example are started) do:
-./multisyncd --config ../data/config/multisyncd.conf --plugin libpalm_sync
-the plugin_name has to be either
-- a name of a library where the path is in the ldconfig without a ending (.so)
-- a name of a lib with a ending
-- the complete path
-
-to start the cli go to interfaces/cli
-do: export PYTHONPATH=../../python/.libs
-and do ./test.py for a shell script
-and ./command.py for a interactive curses based version
-in the curses version press c to get it to read the 
-syncgroups and syncmembers installed on the server
-(in the data/datadir directory if you used the above config)
-
-I have a .cdtproject and a .project file for the fans of eclipse ready to use :)
+TODO

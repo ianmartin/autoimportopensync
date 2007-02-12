@@ -21,6 +21,8 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include "opensync_error_internals.h"
+
 /**
  * @defgroup OSyncErrorPrivateAPI OpenSync Error Internals
  * @ingroup OSyncPrivate
@@ -69,19 +71,15 @@ static const char *osync_error_name_from_type(OSyncErrorType type)
  */
 void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args)
 {
-	if (!error || !format)
-		return;
-	if (osync_error_is_set(error))
-		osync_error_free(error);
-	osync_assert(osync_error_is_set(error) == FALSE);
-	
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
+	osync_return_if_fail(error);
+	osync_return_if_fail(osync_error_is_set(error) == FALSE);
+	osync_return_if_fail(format);
+
 	*error = g_malloc0(sizeof(OSyncError));
-	g_vsnprintf(buffer, 1024, format, args);
-	
-	(*error)->message = g_strdup(buffer);
+	(*error)->message = g_strdup_vprintf(format, args);
 	(*error)->type = type;
+	(*error)->ref_count = 1;
+	
 	return;
 }
 
@@ -110,21 +108,29 @@ const char *osync_error_get_name(OSyncError **error)
 	return osync_error_name_from_type((*error)->type);
 }
 
-/*! @brief Frees the error so it can be reused
- * 
- * @param error A pointer to a error struct to free
- * 
- */
-void osync_error_free(OSyncError **error)
+void osync_error_ref(OSyncError **error)
 {
-	osync_return_if_fail(error != NULL);
-	if (*error == NULL)
+	if (!osync_error_is_set(error))
 		return;
+	
+	g_atomic_int_inc(&(*error)->ref_count);
+}
 
-	if ((*error)->message)
-		g_free ((*error)->message);
+void osync_error_unref(OSyncError **error)
+{
+	if (!osync_error_is_set(error))
+		return;
 		
-	g_free(*error);
+	if (g_atomic_int_dec_and_test(&(*error)->ref_count)) {
+		if ((*error)->message)
+			g_free ((*error)->message);
+		
+		if ((*error)->child)
+			osync_error_unref(&((*error)->child));
+		
+		g_free(*error);
+	}
+	
 	*error = NULL;
 }
 
@@ -174,32 +180,23 @@ const char *osync_error_print(OSyncError **error)
 	return (*error)->message;
 }
 
-/*! @brief Updates the error message
- * 
- * You can use this function to update the error message on
- * a error. You can use the old error->message as a parameter
- * for this function.
- * 
- * @param error A pointer to a error struct to update
- * @param format The new message
- * 
- */
-void osync_error_update(OSyncError **error, const char *format, ...)
+char *osync_error_print_stack(OSyncError **error)
 {
-	osync_return_if_fail(error != NULL);
-	osync_return_if_fail(*error != NULL);
-
-	va_list args;
-	va_start(args, format);
+	if (!osync_error_is_set(error))
+		return NULL;
+		
+	char *submessage = NULL;
+	if ((*error)->child)
+		submessage = osync_error_print_stack(&((*error)->child));
 	
-	char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	g_vsnprintf(buffer, 1024, format, args);
+	char *message = NULL;
+	if (submessage) {
+		message = g_strdup_printf("NEXT ERROR: \"%s\"; %s", (*error)->message, submessage);
+		g_free(submessage);
+	} else
+		message = g_strdup_printf("ROOT CAUSE: \"%s\"", (*error)->message);
 	
-	g_free((*error)->message);
-	(*error)->message = g_strdup(buffer);
-	
-	va_end (args);
+	return message;
 }
 
 /*! @brief Duplicates the error into the target
@@ -209,21 +206,18 @@ void osync_error_update(OSyncError **error, const char *format, ...)
  * @param source The source error which to duplicate
  * 
  */
-void osync_error_duplicate(OSyncError **target, OSyncError **source)
+void osync_error_set_from_error(OSyncError **target, OSyncError **source)
 {
-	if (!target)
+	if (!target || osync_error_is_set(target))
 		return;
-	
-	osync_return_if_fail(osync_error_is_set(source));
 	
 	if (!osync_error_is_set(source)) {
 		*target = NULL;
 		return;
 	}
 	
-	*target = g_malloc0(sizeof(OSyncError));
-	(*target)->message = g_strdup((*source)->message);
-	(*target)->type = (*source)->type;
+	*target = *source;
+	osync_error_ref(target);
 }
 
 /*! @brief Sets the error
@@ -241,6 +235,29 @@ void osync_error_set(OSyncError **error, OSyncErrorType type, const char *format
 	va_start(args, format);
 	osync_error_set_vargs(error, type, format, args);
 	va_end (args);
+}
+
+void osync_error_stack(OSyncError **parent, OSyncError **child)
+{
+	if (!parent || !*parent)
+		return;
+	
+	if (!child || !*child)
+		return;
+	
+	if ((*parent)->child)
+		osync_error_unref(&((*parent)->child));
+	
+	(*parent)->child = *child;
+	osync_error_ref(child);
+}
+
+OSyncError *osync_error_get_child(OSyncError **parent)
+{
+	if (!parent || !*parent)
+		return NULL;
+	
+	return (*parent)->child;
 }
 
 /*! @brief Sets the type of an error

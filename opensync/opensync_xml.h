@@ -1,9 +1,14 @@
-#ifndef _OPENSYNC_XML_H
-#define _OPENSYNC_XML_H
+#ifndef HAVE_OPENSYNC_XML_H
+#define HAVE_OPENSYNC_XML_H
 
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
+#include <libxml/xmlschemas.h>
+
+#include <opensync/opensync.h>
+#include <string.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -27,6 +32,11 @@ struct OSyncXMLEncoding {
 	osxmlCharset charset;
 };
 
+typedef struct OSyncXMLScore {
+	int value;
+	const char *path;
+} OSyncXMLScore;
+
 xmlNode *osxml_node_add_root(xmlDoc *doc, const char *name);
 xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error);
 xmlNode *osxml_get_node(xmlNode *parent, const char *name);
@@ -47,14 +57,20 @@ void osxml_map_unknown_param(xmlNode *node, const char *paramname, const char *n
 void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLEncoding encoding);
 xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression);
 xmlXPathObject *osxml_get_unknown_nodes(xmlDoc *doc);
-xmlChar *osxml_write_to_string(xmlDoc *doc);
-osync_bool osxml_copy(const char *input, int inpsize, char **output, int *outpsize);
+OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncXMLScore *scores, int default_score, int treshold);
+char *osxml_write_to_string(xmlDoc *doc);
+osync_bool osxml_copy(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 
-osync_bool osxml_marshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error);
-osync_bool osxml_demarshall(const char *input, int inpsize, char **output, int *outpsize, OSyncError **error);
+osync_bool osxml_marshal(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
+osync_bool osxml_demarshal(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
+
+osync_bool osxml_validate_document(xmlDocPtr doc, char *schemafilepath);
+
+xmlChar *osxml_node_get_content(xmlNodePtr node);
+xmlChar *osxml_attr_get_content(xmlAttrPtr node);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // _OPENSYNC_XML_H
+#endif

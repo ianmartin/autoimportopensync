@@ -19,6 +19,7 @@
  */
  
 #include "mock_sync.h"
+#include "mock_format.h"
 
 #define fail(x) abort()
 
@@ -26,6 +27,7 @@
 		if (!condition) fail(msg);       \
 	} while (0)
 
+#if 0
 int mock_custom_function(mock_env *env, int input, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, env, input, error);
@@ -169,7 +171,7 @@ static void mock_connect(OSyncContext *ctx)
 	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
 		osync_context_report_osyncerror(ctx, &error);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-		osync_error_free(&error);
+		osync_error_unref(&error);
 		return;
 	}
 	
@@ -200,19 +202,8 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 {
 	mock_env *env = (mock_env *)osync_context_get_plugin_data(ctx);
 	
-	if (mock_get_error(env->member, "GET_CHANGES_ERROR")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_EXPECTED, "Triggering GET_CHANGES_ERROR error");
-		return;
-	}
-	if (mock_get_error(env->member, "GET_CHANGES_TIMEOUT"))
-		return;
-	if (mock_get_error(env->member, "GET_CHANGES_TIMEOUT2"))
-		sleep(8);
-	
-	if (osync_member_get_slow_sync(env->member, "data")) {
-		osync_debug("FILE-SYNC", 3, "Slow sync requested");
+	if (osync_member_get_slow_sync(env->member, "data"))
 		osync_hashtable_set_slow_sync(env->hashtable, "data");
-	}
 
 	GDir *dir;
 	GError *gerror = NULL;
@@ -223,6 +214,7 @@ static void mock_get_changeinfo(OSyncContext *ctx)
 		osync_trace(TRACE_EXIT_ERROR, "mock_report_dir: Unable to open directory %s: %s", env->path, gerror ? gerror->message : "None");
 		return;
 	}
+	
 	while ((de = g_dir_read_name(dir))) {
 		char *filename = g_build_filename(env->path, de, NULL);
 		if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
@@ -556,4 +548,505 @@ void get_info(OSyncEnv *env)
 	osync_plugin_set_batch_commit_objformat(info, "data", "mockformat", mock_batch_commit);
 	osync_plugin_set_commit_objformat(info, "data", "mockformat", mock_commit_change);
 	osync_plugin_set_committed_all_objformat(info, "data", "mockformat", mock_committed_all);
+}
+#endif
+
+static void free_dir(mock_dir *dir)
+{
+	if (dir->path)
+		g_free(dir->path);
+		
+	if (dir->objtype)
+		g_free(dir->objtype);
+	
+	g_free(dir);
+}
+
+static void free_env(mock_env *env)
+{
+	while (env->directories) {
+		free_dir(env->directories->data);
+		env->directories = g_list_remove(env->directories, env->directories->data);
+	}
+	
+	g_free(env);
+}
+
+static osync_bool mock_parse_directory(mock_env *env, xmlNode *cur, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
+
+	mock_dir *dir = osync_try_malloc0(sizeof(mock_dir), error);
+	if (!dir)
+		goto error;
+
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"path")) {
+				dir->path = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
+				dir->objtype = g_strdup(str);
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+
+	if (!dir->path) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Path not set");
+		goto error_free_dir;
+	}
+
+	osync_trace(TRACE_INTERNAL, "Got directory %s with objtype %s", dir->path, dir->objtype);
+
+	env->directories = g_list_append(env->directories, dir);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_dir:
+	free_dir(dir);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+/*Load the state from a xml file and return it in the conn struct*/
+static osync_bool mock_parse_settings(mock_env *env, const char *data, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data, error);
+	xmlDoc *doc = NULL;
+	xmlNode *cur = NULL;
+
+	doc = xmlParseMemory(data, strlen(data) + 1);
+	if (!doc) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
+		goto error;
+	}
+
+	cur = xmlDocGetRootElement(doc);
+
+	if (!cur) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of the settings");
+		goto error_free_doc;
+	}
+
+	if (xmlStrcmp(cur->name, (xmlChar*)"config")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Config valid is not valid");
+		goto error_free_doc;
+	}
+
+	cur = cur->xmlChildrenNode;
+
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"directory")) {
+				if (!mock_parse_directory(env, cur->xmlChildrenNode, error))
+					goto error_free_doc;
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+
+	xmlFreeDoc(doc);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error_free_doc:
+	xmlFreeDoc(doc);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static char *mock_generate_hash(struct stat *buf)
+{
+	char *hash = g_strdup_printf("%i-%i", (int)buf->st_mtime, (int)buf->st_ctime);
+	return hash;
+}
+
+/* Here we actually tell opensync which sinks are available. For this plugin, we
+ * go through the list of directories and enable all that are configured */
+static osync_bool discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	
+	mock_env *env = (mock_env *)data;
+	GList *o = env->directories;
+	for (; o; o = o->next) {
+		mock_dir *dir = o->data;
+		OSyncObjTypeSink *sink = osync_plugin_info_find_objtype(info, dir->objtype);
+		if (!sink) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find sink for file");
+			goto error;
+		}
+		osync_objtype_sink_set_available(sink, TRUE);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	GError *direrror = NULL;
+	OSyncError *error = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	mock_dir *dir = osync_objtype_sink_get_userdata(sink);
+	
+	osync_trace(TRACE_INTERNAL, "The configdir: %s", osync_plugin_info_get_configdir(info));
+	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+	dir->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
+	g_free(tablepath);
+	
+	if (!dir->hashtable)
+		goto error;
+
+	dir->dir = g_dir_open(dir->path, 0, &direrror);
+	if (direrror) {
+		//Unable to open directory
+		osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to open directory %s", dir->path);
+		g_error_free(direrror);
+	} else {
+		osync_context_report_success(ctx);
+	}
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	mock_dir *dir = osync_objtype_sink_get_userdata(sink);
+	
+	g_dir_close(dir->dir);
+	dir->dir = NULL;
+	
+	osync_hashtable_free(dir->hashtable);
+	dir->hashtable = NULL;
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	mock_dir *dir = osync_objtype_sink_get_userdata(sink);
+
+	OSyncError *error = NULL;
+	const char *de = NULL;
+	int i = 0;
+	
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	osync_assert(formatenv);
+	
+	osync_trace(TRACE_INTERNAL, "get_changes for %s", osync_objtype_sink_get_name(sink));
+	
+	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "mockformat1");
+	osync_assert(objformat);
+	
+	
+	while ((de = g_dir_read_name(dir->dir))) {
+		char *filename = g_build_filename(dir->path, de, NULL);
+		osync_hashtable_report(dir->hashtable, de);
+		
+		if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
+			
+			struct stat buf;
+			stat(filename, &buf);
+			char *hash = mock_generate_hash(&buf);
+			
+			OSyncChangeType type = osync_hashtable_get_changetype(dir->hashtable, de, hash);
+			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
+				g_free(hash);
+				g_free(filename);
+				continue;
+			}
+			osync_hashtable_update_hash(dir->hashtable, type, de, hash);
+			
+			/* Report normal files */
+			OSyncChange *change = osync_change_new(&error);
+			if (!change)
+				goto error;
+			
+			osync_change_set_uid(change, de);
+			osync_change_set_hash(change, hash);
+			osync_change_set_changetype(change, type);
+			
+			OSyncFile *file = osync_try_malloc0(sizeof(OSyncFile), &error);
+			if (!file) {
+				g_free(filename);
+				goto error;
+			}
+			file->path = g_strdup(de);
+			
+			OSyncError *error = NULL;
+			if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
+				g_free(filename);
+				goto error;
+			}
+			
+			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFile), objformat, &error);
+			if (!odata)
+				goto error;
+			
+			osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+			osync_change_set_data(change, odata);
+			osync_data_unref(odata);
+	
+			osync_context_report_change(ctx, change);
+			
+			osync_change_unref(change);
+			g_free(hash);
+			
+		}
+		g_free(filename);
+	}
+	
+	char **uids = osync_hashtable_get_deleted(dir->hashtable);
+	for (i = 0; uids[i]; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		if (!change)
+			goto error;
+		
+		osync_change_set_uid(change, uids[i]);
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+		
+		OSyncData *odata = osync_data_new(NULL, 0, objformat, &error);
+		if (!odata)
+			goto error;
+		
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
+		
+		osync_context_report_change(ctx, change);
+		
+		osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+	
+		osync_change_unref(change);
+		g_free(uids[i]);
+	}
+	g_free(uids);
+	
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+static void commit_change(void *data, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s", __func__);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	mock_dir *dir = osync_objtype_sink_get_userdata(sink);
+	OSyncData *odata = NULL;
+	
+	char *filename = NULL;
+	OSyncError *error = NULL;
+	filename = g_strdup_printf ("%s/%s", dir->path, osync_change_get_uid(change));
+	char *hash = NULL;
+			
+	switch (osync_change_get_changetype(change)) {
+		case OSYNC_CHANGE_TYPE_DELETED:
+			if (!remove(filename) == 0) {
+				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Unable to write");
+				g_free(filename);
+				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to write", __func__);
+				return;
+			}
+			break;
+		case OSYNC_CHANGE_TYPE_ADDED:
+			if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+				osync_context_report_error(ctx, OSYNC_ERROR_EXISTS, "Entry already exists");
+				g_free(filename);
+				osync_trace(TRACE_EXIT_ERROR, "%s: Entry already exists", __func__);
+				return;
+			}
+			/* No break. Continue below */
+		case OSYNC_CHANGE_TYPE_MODIFIED:
+			//FIXME add permission and ownership for file-sync
+			odata = osync_change_get_data(change);
+			
+			char *buffer = NULL;
+			unsigned int size = 0;
+			osync_data_get_data(odata, &buffer, &size);
+			
+			OSyncFile *file = (OSyncFile *)buffer;
+			
+			if (!osync_file_write(filename, file->data, file->size, 0700, &error)) {
+				osync_context_report_osyncerror(ctx, error);
+				g_free(filename);
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+				return;
+			}
+			
+			struct stat buf;
+			stat(filename, &buf);
+			hash = mock_generate_hash(&buf);
+			break;
+		default:
+			fail("no changetype given");
+	}
+	g_free(filename);
+
+	osync_hashtable_update_hash(dir->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), hash);
+	g_free(hash);
+	
+	osync_context_report_success(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static mock_dir *find_dir(mock_env *env, const char *objtype)
+{
+	GList *o = env->directories;
+	for (; o; o = o->next) {
+		mock_dir *dir = o->data;
+		if (!strcmp(dir->objtype, objtype))
+			return dir;
+	}
+	return NULL;
+}
+
+/* In initialize, we get the config for the plugin. Here we also must register
+ * all _possible_ objtype sinks. */
+static void *initialize(OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
+
+	mock_env *env = osync_try_malloc0(sizeof(mock_env), error);
+	if (!env)
+		goto error;
+	
+	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
+	
+	if (!mock_parse_settings(env, osync_plugin_info_get_config(info), error))
+		goto error_free_env;
+	
+	
+	
+	OSyncObjTypeSink *sink = osync_objtype_sink_new("mockobjtype1", error);
+	if (!sink)
+		goto error_free_env;
+	
+	osync_objtype_sink_add_objformat(sink, "mockformat1");
+	
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect;
+	functions.disconnect = disconnect;
+	functions.get_changes = get_changes;
+	functions.commit = commit_change;
+	
+	osync_objtype_sink_set_functions(sink, functions, find_dir(env, osync_objtype_sink_get_name(sink)));
+	osync_plugin_info_add_objtype(info, sink);
+	osync_objtype_sink_unref(sink);
+	
+	
+	
+	sink = osync_objtype_sink_new("mockobjtype2", error);
+	if (!sink)
+		goto error_free_env;
+	
+	osync_objtype_sink_add_objformat(sink, "mockformat2");
+	
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect;
+	functions.disconnect = disconnect;
+	functions.get_changes = get_changes;
+	functions.commit = commit_change;
+	
+	osync_objtype_sink_set_functions(sink, functions, find_dir(env, osync_objtype_sink_get_name(sink)));
+	osync_plugin_info_add_objtype(info, sink);
+	osync_objtype_sink_unref(sink);
+
+
+
+	sink = osync_objtype_sink_new("mockobjtype3", error);
+	if (!sink)
+		goto error_free_env;
+	
+	osync_objtype_sink_add_objformat(sink, "mockformat3");
+	
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect;
+	functions.disconnect = disconnect;
+	functions.get_changes = get_changes;
+	functions.commit = commit_change;
+	
+	osync_objtype_sink_set_functions(sink, functions, find_dir(env, osync_objtype_sink_get_name(sink)));
+	osync_plugin_info_add_objtype(info, sink);
+	osync_objtype_sink_unref(sink);
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+	return (void *)env;
+
+error_free_env:
+	free_env(env);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static void finalize(void *data)
+{
+	mock_env *env = data;
+
+	free_env(env);
+}
+
+void get_sync_info(OSyncPluginEnv *env)
+{
+	OSyncError *error = NULL;
+	OSyncPlugin *plugin = osync_plugin_new(&error);
+	if (!plugin)
+		goto error;
+	
+	
+	osync_plugin_set_name(plugin, "mock-sync");
+	osync_plugin_set_longname(plugin, "Mock Sync Plugin");
+	osync_plugin_set_description(plugin, "This is a pseudo plugin");
+	
+	osync_plugin_set_initialize(plugin, initialize);
+	osync_plugin_set_finalize(plugin, finalize);
+	osync_plugin_set_discover(plugin, discover);
+	
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	
+	return;
+	
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+int get_version(void)
+{
+	return 1;
 }

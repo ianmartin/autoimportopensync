@@ -1,0 +1,651 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{ucs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{acronym}
+\usepackage{url}
+\usepackage{listings}
+
+\title{Definition of the Capabilities and the XML Format}
+\author{Daniel Friedrich \\
+	Martin Schunk}
+\date{17.05.2006}
+
+%\textless contact \textgreater \\
+%$<$contact$<$ \\
+%\verb|<xml>|
+%\begin{abstract}
+%\end{abstract}
+%\newpage
+%\begin{itemize}
+%  \item Diese Liste...
+%  \item ...hat anstatt der normalen schwarzen Punkte...
+%  \item ...Buchstaben als Marker.
+%\end{itemize}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{General}
+This document will describe the internal xml format of opensync.
+The format based on a valid and wellformed xml 1.0 document.
+All elements are case sensitve.
+
+Contact -> Object level
+"Name" -> Field level
+"FirstName" -> Key level
+"joe" -> Value level
+
+\subsection{Predefined Attributes}
+\subsubsection{TelephoneLocation}
+\begin{itemize}
+  \item values:
+  \subitem Home
+  \subitem Work
+\end{itemize}
+
+\subsubsection{TelephoneType}
+\begin{itemize}
+  \item values:
+  \subitem Voice
+  \subitem Cellular
+  \subitem Fax
+  \subitem Message
+  \subitem Pager
+  \subitem Modem
+  \subitem Isdn
+  \subitem Assistant
+  \subitem Callback
+  \subitem Company
+  \subitem Car
+  \subitem Radio
+  \subitem Telex
+  \subitem TtyYtdd
+  \subitem Bbs
+  \subitem Video
+\end{itemize}
+
+\subsubsection{EmailLocation}
+\begin{itemize}
+  \item values:
+  \subitem Home
+  \subitem Work
+  \subitem Other
+\end{itemize}
+
+\subsubsection{EMailType}
+\begin{itemize}
+  \item values:
+  \subitem Internet
+  \subitem IbmMail
+  \subitem Aol
+  \subitem AppleLink
+  \subitem AttMail
+  \subitem Cis
+  \subitem eWorld
+  \subitem MciMail
+  \subitem Powershare
+  \subitem Prodigy
+  \subitem Tlx
+  \subitem X400
+\end{itemize}
+
+\subsubsection{AddressLocation}
+\begin{itemize}
+  \item values:
+  \subitem Home
+  \subitem Work
+  \subitem Domestic
+  \subitem International
+  \subitem Postal
+  \subitem Parcel
+\end{itemize}
+
+\subsubsection{PhotoFormat}
+\begin{itemize}
+  \item values:
+  \subitem Bmp
+  \subitem Gif
+  \subitem Cgm
+  \subitem Wmf
+  \subitem Met
+  \subitem Pmb
+  \subitem Dib
+  \subitem Pict
+  \subitem Tiff
+  \subitem Ps
+  \subitem Pdf
+  \subitem Jpeg
+  \subitem Mpeg
+  \subitem Mpeg2
+  \subitem Avi
+  \subitem Qtime
+\end{itemize}
+
+\subsubsection{PhotoEncode}
+\begin{itemize}
+  \item values:
+  \subitem b
+\end{itemize}
+
+\subsubsection{SoundFormat}
+\begin{itemize}
+  \item values:
+  \subitem Wave
+  \subitem Pcm
+  \subitem Aiff
+\end{itemize}
+
+\subsubsection{Messaging}
+\begin{itemize}
+  \item values:
+  \subitem Home
+\end{itemize}
+
+\subsubsection{Class}
+\begin{itemize}
+  \item values:
+  \subitem Public
+  \subitem Private
+  \subitem Confidential
+\end{itemize}
+
+\subsubsection{KeyType}
+\begin{itemize}
+  \item values:
+  \subitem X509
+  \subitem Pgp
+\end{itemize}
+
+\subsubsection{Bool}
+\begin{itemize}
+  \item values:
+  \subitem True
+  \subitem False
+\end{itemize}
+
+\subsubsection{Preferred}
+\begin{itemize}
+  \item values:
+  \subitem 0
+  \subitem 1
+\end{itemize}
+
+\section{XML Format}
+The root element will be named "xmlformat" and has a version attribute.
+It can contain one or more of the following pim types:
+\begin{itemize}
+  \item Contact
+  \item Event
+  \item Todo
+  \item Note
+\end{itemize}
+the subelements of a pim type have to be one of the following types: \\
+\textbf{container} or \textbf{sequence} \\
+If it is from type container than the order of the subelements are equal.
+If it is from type sequence than the order of the subelements have to be in this order as they are listed.
+
+
+
+\subsection{Contact}
+
+A contact consists of 0 up to $n$ of the following elements.
+
+\subsubsection{Name}
+\begin{itemize}
+  \item type: sequence
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item subnodes:
+  \subitem LastName
+  \subitem FirstName
+  \subitem Additional
+  \subitem Prefix
+  \subitem Suffix
+\end{itemize}
+
+\subsubsection{FormattedName}
+\begin{itemize}
+  \item type: container
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Title}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{NickName}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Birthday}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Anniversary}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Spouse}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Manager}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Organization}
+\begin{itemize}
+  \item type: sequenz
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Name
+  \subitem Department
+  \subitem Unit
+\end{itemize}
+
+\subsubitem{Assistant}
+\begin{itemize}
+  \item type: sequenz
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Role}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Address}
+\begin{itemize}
+  \item type: sequence
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: AddressLocation, Preferred
+  \item subnodes:
+  \subitem PostOfficeBox
+  \subitem ExtendedAddress
+  \subitem Street
+  \subitem Locality (e.g., city)
+  \subitem Region (e.g., state or province)
+  \subitem PostalCode
+  \subitem Country
+\end{itemize}
+
+\subsubsection{AddressLabel}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes: AddressLocation
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Location}
+\begin{itemize}
+  \item type: sequenz
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Latitude
+  \subitem Longitude
+\end{itemize}
+
+\subsubsection{Telephone}
+\begin{itemize}
+  \item type: container
+  \item attributes: Preferred, TelphoneType, TelephoneLocation
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{EMail}
+\begin{itemize}
+  \item type: container
+  \item attributes: EmailLocation, EmailType, Preferred
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Photo}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes: PhotoFormat, PhotoEncode
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{PhotoUrl}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Url}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Catagories}
+\begin{itemize}
+  \item type: sequenz
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Catagory
+\end{itemize}
+
+\subsubsection{Note}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Icq}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: Messaging
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Msn}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: Messaging
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Aim}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: Messaging
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{GroupWise}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: Messaging
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Yahoo}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: Messaging
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Yabber}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: n
+  \item attributes: Messaging
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Class}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{WantsHTML}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes: Bool 
+\end{itemize}
+
+\subsubsection{VideoUrl}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{BlogUrl}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{CalUri}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{FbUrl}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Sound}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes: SoundFormat
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Version}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Uid}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Rev}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{Key}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes: KeyType
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\subsubsection{UserDefined}
+\begin{itemize}
+  \item type: container
+  \item minOccurs: 0
+  \item maxOccurs: 1
+  \item attributes:
+  \item subnodes:
+  \subitem Content
+\end{itemize}
+
+\begin{lstlisting}
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xmlformat>
+  <contact version="1">
+    <name>
+      <FirstName>John</FirstName>
+      <LastName>Doe</LastName>
+    </Name>
+    <Telephone type="Cellular">
+      <Content>123</Content>
+    </Telephone>
+  </contact>
+</xmlformat>
+\end{lstlisting}
+
+\subsection{Todo}
+\subsection{Event}
+\subsection{Note}
+
+\section{Capabilities}
+
+The capabilities will be used by the merging problem. The problem is that no
+existing format like vcard or so have defined some id for each field of a record.
+So there is no way to find out which field has changed or not.
+The minimal solution is to add or don't to add fields generaly.
+The xmlformat should be easily extensible in the future by adding some id attribut.
+If a subelement of a pim type have a occurs of max. 1 than it is allowed to
+specify the subelements of this element in the capabilities.
+
+It can contain one or more of the following object type elements:
+\begin{itemize}
+  \item Contact
+  \item Event
+  \item Todo
+  \item Note
+\end{itemize}
+
+
+
+\begin{lstlisting}
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<capabilities>
+  <contact>
+    <name>
+      <firstname />
+      <lastname />
+    </name>
+    <telephone />
+  </contact>
+</capabilities>
+\end{lstlisting}
+
+%\appendix
+
+%\begin{acronym}
+%\acro{XML}  {Extensible Markup Language}
+%\end{acronym}
+
+%\begin{thebibliography}{99}
+%\bibitem{W3C} \url{http://www.w3.org/}, Definition of XML
+%\end{thebibliography}
+
+\end{document}

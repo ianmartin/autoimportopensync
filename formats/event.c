@@ -19,9 +19,11 @@
  */
  
 #include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
+#include <opensync/opensync-support.h>
+#include <opensync/opensync-serializer.h>
+#include <opensync/opensync-format.h>
 #include <glib.h>
-#include <opensync/opensync_support.h>
-#include <string.h>
 
 /** @defgroup event_vevent event/vevent data format
  *
@@ -32,55 +34,137 @@
  * osync_env_format_set_like().
  */
 
-static OSyncConvCmpResult compare_vevent(OSyncChange *leftchange, OSyncChange *rightchange)
+static OSyncConvCmpResult compare_vevent(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	/*FIXME: Implement me */
-	return CONV_DATA_MISMATCH;
-}
-
-static osync_bool detect_plain_as_vevent10(OSyncFormatEnv *env, const char *data, int size)
-{
-	osync_debug("VCAL", 3, "start: %s", __func__);
-
-	return osync_pattern_match("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VEVENT*", data, size);
-}
-
-static osync_bool detect_plain_as_vevent20(OSyncFormatEnv *env, const char *data, int size)
-{
-	osync_debug("VCAL", 3, "start: %s", __func__);
-
-	return osync_pattern_match("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VEVENT*", data, size);
-}
-
-static void create_event10(OSyncChange *change)
-{
-	char *vevent = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:1.0\r\nBEGIN:VEVENT\r\nDTSTART:20050307T124500Z\r\nDTEND:20050307T130000Z\r\nSEQUENCE:0\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR", osync_rand_str(20));
+	/* Consider empty block equal NULL pointers */
+	if (!leftsize) leftdata = NULL;
+	if (!rightsize) rightdata = NULL;
 	
-	osync_change_set_data(change, vevent, strlen(vevent) + 1, TRUE);
-	if (!osync_change_get_uid(change))
-		osync_change_set_uid(change, osync_rand_str(8));
+	if (!leftdata && !rightdata)
+		return OSYNC_CONV_DATA_SAME;
+		
+	if (leftdata && rightdata && (leftsize == rightsize)) {
+		if (!memcmp(leftdata, rightdata, leftsize))
+			return OSYNC_CONV_DATA_SAME;
+		else
+			return OSYNC_CONV_DATA_MISMATCH;
+	}
+	
+	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static void create_event20(OSyncChange *change)
+static osync_bool detect_plain_as_vevent10(const char *data, int size)
 {
-	char *vevent = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART:20050307T124500Z\r\nDTEND:20050307T130000Z\r\nSEQUENCE:0\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR", osync_rand_str(20));
-	
-	osync_change_set_data(change, vevent, strlen(vevent) + 1, TRUE);
-	if (!osync_change_get_uid(change))
-		osync_change_set_uid(change, osync_rand_str(8));
+	osync_trace(TRACE_INTERNAL, "start: %s", __func__);
+
+	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:1.0*BEGIN:VEVENT*", data);
 }
 
-void get_info(OSyncEnv *env)
+static osync_bool detect_plain_as_vevent20(const char *data, int size)
 {
-	osync_env_register_objtype(env, "event");
+	osync_trace(TRACE_INTERNAL, "start: %s", __func__);
+
+	return g_pattern_match_simple("*BEGIN:VCALENDAR*VERSION:2.0*BEGIN:VEVENT*", data);
+}
+
+static void create_vevent10(char **data, unsigned int *size)
+{
+	*data = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:1.0\r\nBEGIN:VEVENT\r\nDTSTART:20050307T124500Z\r\nDTEND:20050307T130000Z\r\nSEQUENCE:0\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR", osync_rand_str(20));
+	*size = strlen(*data);
+}
+
+static void create_vevent20(char **data, unsigned int *size)
+{
+	*data = g_strdup_printf("BEGIN:VCALENDAR\r\nPRODID:-//OpenSync//NONSGML OpenSync TestGenerator//EN\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nDTSTART:20050307T124500Z\r\nDTEND:20050307T130000Z\r\nSEQUENCE:0\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR", osync_rand_str(20));
+	*size = strlen(*data);
+}
+
+static void destroy_vevent(char *input, size_t inpsize)
+{
+	g_free(input);
+}
+
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *format = osync_objformat_new("vevent10", "event", error);
+	if (!format)
+		return FALSE;
 	
-	osync_env_register_objformat(env, "event", "vevent10");
-	osync_env_format_set_compare_func(env, "vevent10", compare_vevent);
-	osync_env_format_set_create_func(env, "vevent10", create_event10);
-	osync_env_register_detector(env, "plain", "vevent10", detect_plain_as_vevent10);
+	osync_objformat_set_compare_func(format, compare_vevent);
+	osync_objformat_set_create_func(format, create_vevent10);
+	osync_objformat_set_destroy_func(format, destroy_vevent);
 	
-	osync_env_register_objformat(env, "event", "vevent20");
-	osync_env_format_set_compare_func(env, "vevent20", compare_vevent);
-	osync_env_format_set_create_func(env, "vevent20", create_event20);
-	osync_env_register_detector(env, "plain", "vevent20", detect_plain_as_vevent20);
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	
+	
+	format = osync_objformat_new("vevent20", "event", error);
+	if (!format)
+		return FALSE;
+	
+	osync_objformat_set_compare_func(format, compare_vevent);
+	osync_objformat_set_create_func(format, create_vevent20);
+	osync_objformat_set_destroy_func(format, destroy_vevent);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	
+	
+	/* TODO
+	OSyncCustomFilter *filter = osync_custom_filter_new("contact", "vcard21", "vcard_categories_filter", vcard_categories_filter, error);
+	if (!filter)
+		return FALSE;
+	
+	osync_format_env_register_filter(env, filter);
+	osync_custom_filter_unref(filter);
+	
+	filter = osync_custom_filter_new("contact", "vcard30", "vcard_categories_filter", vcard_categories_filter, error);
+	if (!filter)
+		return FALSE;
+	
+	osync_format_env_register_filter(env, filter);
+	osync_custom_filter_unref(filter);
+	*/
+	
+	return TRUE;
+}
+
+osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
+	if (!plain) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plain format");
+		return FALSE;
+	}
+	
+	OSyncObjFormat *vevent10 = osync_format_env_find_objformat(env, "vevent10");
+	if (!vevent10) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vevent10 format");
+		return FALSE;
+	}
+	
+	OSyncObjFormat *vevent20 = osync_format_env_find_objformat(env, "vevent20");
+	if (!vevent20) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vevent20 format");
+		return FALSE;
+	}
+	
+	OSyncFormatConverter *conv = osync_converter_new_detector(plain, vevent10, detect_plain_as_vevent10, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new_detector(plain, vevent20, detect_plain_as_vevent20, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	return TRUE;
+}
+
+int get_version(void)
+{
+	return 1;
 }

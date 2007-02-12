@@ -19,46 +19,32 @@
  */
  
 #include <opensync/opensync.h>
-#include <string.h>
-#include <stdlib.h>
+#include <opensync/opensync_internals.h>
+#include <opensync/opensync-support.h>
+#include <opensync/opensync-serializer.h>
+#include <opensync/opensync-format.h>
 #include <glib.h>
 
-/** @defgroup data_plain data/plain format
- *
- * Definition: pointer to a malloc()ed block of data, or a NULL
- * pointer.
- */
-
-/** data/plain comparison function
- *
- * The comparison function is a memcpy() on the data.
- *
- * @ingroup data_plain
- */
-static OSyncConvCmpResult compare_plain(OSyncChange *a, OSyncChange *b)
+static OSyncConvCmpResult compare_plain(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	const char *d1 = osync_change_get_data(a);
-	const char *d2 = osync_change_get_data(b);
-	size_t s1 = osync_change_get_datasize(a);
-	size_t s2 = osync_change_get_datasize(b);
-
 	/* Consider empty block equal NULL pointers */
-	if (!s1) d1 = NULL;
-	if (!s2) d2 = NULL;
-
-	if (d1 && d2) {
-		int r = memcmp(d1, d2, s1 < s2 ? s1 : s2);
-		if (!r && s1 == s2)
-			return CONV_DATA_SAME;
+	if (!leftsize) leftdata = NULL;
+	if (!rightsize) rightdata = NULL;
+	
+	if (!leftdata && !rightdata)
+		return OSYNC_CONV_DATA_SAME;
+		
+	if (leftdata && rightdata && (leftsize == rightsize)) {
+		if (!memcmp(leftdata, rightdata, leftsize))
+			return OSYNC_CONV_DATA_SAME;
 		else
-			return CONV_DATA_MISMATCH;
-	} else if (!d1 && !d2)
-		return CONV_DATA_SAME;
-	else
-		return CONV_DATA_MISMATCH;
+			return OSYNC_CONV_DATA_MISMATCH;
+	}
+	
+	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static osync_bool copy_plain(const char *input, int inpsize, char **output, int *outpsize)
+static osync_bool copy_plain(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
 	char *r = g_malloc0(inpsize);
 
@@ -68,10 +54,27 @@ static osync_bool copy_plain(const char *input, int inpsize, char **output, int 
 	return TRUE;
 }
 
-void get_info(OSyncEnv *env)
+static void destroy_plain(char *input, size_t inpsize)
 {
-	osync_env_register_objtype(env, "data");
-	osync_env_register_objformat(env, "data", "plain");
-	osync_env_format_set_compare_func(env, "plain", compare_plain);
-	osync_env_format_set_copy_func(env, "plain", copy_plain);
+	g_free(input);
+}
+
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *format = osync_objformat_new("plain", "data", error);
+	if (!format)
+		return FALSE;
+	
+	osync_objformat_set_compare_func(format, compare_plain);
+	osync_objformat_set_copy_func(format, copy_plain);
+	osync_objformat_set_destroy_func(format, destroy_plain);
+
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	return TRUE;
+}
+
+int get_version(void)
+{
+	return 1;
 }

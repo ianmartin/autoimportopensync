@@ -1,6 +1,5 @@
 #include <opensync/opensync.h>
 #include <glib.h>
-#include <opensync/opensync_support.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,7 +10,7 @@ static osync_bool detect_plain_as_vnote(OSyncFormatEnv *env, const char *data, i
 	if (!data)
 		return FALSE;
 
-	return osync_pattern_match("*BEGIN:VNOTE*VERSION:1.1*", data, size);
+	return g_pattern_match_simple("*BEGIN:VNOTE*VERSION:1.1*", data);
 }
 
 static OSyncConvCmpResult compare_vnote(OSyncChange *leftchange, OSyncChange *rightchange)
@@ -35,7 +34,4 @@ void get_info(OSyncEnv *env)
 	osync_env_register_detector(env, "plain", "vnote11", detect_plain_as_vnote);
 	osync_env_format_set_create_func(env, "vnote11", create_vnote11);
 	osync_env_format_set_compare_func(env, "vnote11", compare_vnote);
-	
-	osync_env_register_objtype(env, "note");
-	osync_env_register_objformat(env, "note", "memo");
 }

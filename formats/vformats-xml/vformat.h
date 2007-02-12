@@ -88,6 +88,7 @@ VFormat *vtodo_new_from_string(const char *str);*/
 /* mostly for debugging */
 VFormat *vformat_new(void);
 VFormat *vformat_new_from_string(const char *str);
+void vformat_free(VFormat *format);
 void vformat_dump_structure(VFormat *format);
 char *vformat_to_string(VFormat *evc, VFormatType type);
 time_t vformat_time_to_unix(const char *inptime);
@@ -102,12 +103,10 @@ void             vformat_add_attribute               (VFormat *vformat, VFormatA
 void             vformat_add_attribute_with_value    (VFormat *vformat, VFormatAttribute *attr, const char *value);
 void             vformat_add_attribute_with_values   (VFormat *vformat, VFormatAttribute *attr, ...);
 void             vformat_attribute_add_value         (VFormatAttribute *attr, const char *value);
-void             vformat_attribute_set_value         (VFormatAttribute *attr, int nth, const char *value);
 void             vformat_attribute_add_value_decoded (VFormatAttribute *attr, const char *value, int len);
 void             vformat_attribute_add_values        (VFormatAttribute *attr, ...);
 void             vformat_attribute_remove_values     (VFormatAttribute *attr);
 void             vformat_attribute_remove_params     (VFormatAttribute *attr);
-VFormatAttribute *vformat_find_attribute             (VFormat *evc, const char *name);
 
 /* attribute parameters */
 VFormatParam* vformat_attribute_param_new             (const char *param_name);

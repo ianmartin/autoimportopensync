@@ -1,0 +1,24 @@
+Import('*')
+
+env.Append( CPPPATH = '.' )
+
+capabilities = """
+capabilities/file-sync.xml
+capabilities/syncml-nokia-7650.xml
+"""
+
+descriptions = """
+descriptions/miscellaneous.xml
+descriptions/syncml-nokia.xml
+"""
+
+schemas = """
+schemas/descriptions.xsd
+schemas/xmlformat-contact.xsd
+schemas/xmlformat-event.xsd
+"""
+
+env.Install(install_capabilities, Split(capabilities))
+env.Install(install_descriptions, Split(descriptions))
+env.Install(install_descriptions, Split(schemas))
+env.Alias('install', install_prefix)

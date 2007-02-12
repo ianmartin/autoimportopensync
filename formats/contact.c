@@ -19,84 +19,149 @@
  */
  
 #include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
+#include <opensync/opensync-support.h>
+#include <opensync/opensync-serializer.h>
+#include <opensync/opensync-format.h>
 #include <glib.h>
-#include <opensync/opensync_support.h>
-#include <string.h>
-#include <stdio.h>
 
-static OSyncConvCmpResult compare_vcard(OSyncChange *leftchange, OSyncChange *rightchange)
+static OSyncConvCmpResult compare_vcard(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
-	int leftinpsize = osync_change_get_datasize(leftchange);
-	char *leftinput = osync_change_get_data(leftchange);
-	int rightinpsize = osync_change_get_datasize(rightchange);
-	char *rightinput = osync_change_get_data(rightchange);
+	/* Consider empty block equal NULL pointers */
+	if (!leftsize) leftdata = NULL;
+	if (!rightsize) rightdata = NULL;
 	
-	if (leftinpsize == rightinpsize) {
-		if (!memcmp(leftinput, rightinput, leftinpsize))
-			return CONV_DATA_SAME;
+	if (!leftdata && !rightdata)
+		return OSYNC_CONV_DATA_SAME;
+		
+	if (leftdata && rightdata && (leftsize == rightsize)) {
+		if (!memcmp(leftdata, rightdata, leftsize))
+			return OSYNC_CONV_DATA_SAME;
+		else
+			return OSYNC_CONV_DATA_MISMATCH;
 	}
 	
-	//Get the name of the contact and compare
-	//If the same, return SIMILAR
-	
-	return CONV_DATA_MISMATCH;
+	return OSYNC_CONV_DATA_MISMATCH;
 }
 
-static osync_bool detect_plain_as_vcard21(OSyncFormatEnv *env, const char *data, int size)
+static osync_bool detect_plain_as_vcard21(const char *data, int size)
 {
-	osync_debug("VCARD21", 3, "start: %s", __func__);
-	
 	if (!data)
 		return FALSE;
 		
-	return osync_pattern_match("*BEGIN:VCARD*VERSION:2.1*", data, size);
+	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:2.1*", data);
 }
 
-static osync_bool detect_plain_as_vcard30(OSyncFormatEnv *env, const char *data, int size)
+static osync_bool detect_plain_as_vcard30(const char *data, int size)
 {
-	osync_debug("VCARD30", 3, "start: %s", __func__);
-	
 	if (!data)
 		return FALSE;
 
-	return osync_pattern_match("*BEGIN:VCARD*VERSION:3.0*", data, size);
+	return g_pattern_match_simple("*BEGIN:VCARD*VERSION:3.0*", data);
 }
 
-static void create_vcard21(OSyncChange *change)
+static void create_vcard21(char **data, unsigned int *size)
 {
-	char *vcard = g_strdup_printf("BEGIN:VCARD\r\nVERSION:2.1\r\nN:%s;%s;;;\r\nEND:VCARD\r\n", osync_rand_str(10), osync_rand_str(10));
-	osync_change_set_data(change, vcard, strlen(vcard) + 1, TRUE);
-	if (!osync_change_get_uid(change))
-		osync_change_set_uid(change, osync_rand_str(6));
+	*data = g_strdup_printf("BEGIN:VCARD\r\nVERSION:2.1\r\nN:%s;%s;;;\r\nEND:VCARD\r\n", osync_rand_str(10), osync_rand_str(10));
+	*size = strlen(*data);
 }
 
-static void create_vcard30(OSyncChange *change)
+static void create_vcard30(char **data, unsigned int *size)
 {
-	char *vcard = g_strdup_printf("BEGIN:VCARD\r\nVERSION:3.0\r\nN:%s;%s;;;\r\nEND:VCARD\r\n", osync_rand_str(10), osync_rand_str(10));
-	osync_change_set_data(change, vcard, strlen(vcard) + 1, TRUE);
-	if (!osync_change_get_uid(change))
-		osync_change_set_uid(change, osync_rand_str(6));
+	*data = g_strdup_printf("BEGIN:VCARD\r\nVERSION:3.0\r\nN:%s;%s;;;\r\nEND:VCARD\r\n", osync_rand_str(10), osync_rand_str(10));
+	*size = strlen(*data);
 }
 
-static OSyncFilterAction vcard_categories_filter(OSyncChange *change, char *config)
+static osync_bool vcard_categories_filter(OSyncData *data, const char *config)
 {
 	//Check what categories are supported here.
-	return OSYNC_FILTER_IGNORE;
+	return FALSE;
 }
 
-void get_info(OSyncEnv *env)
+static void destroy_vcard(char *input, size_t inpsize)
 {
-	osync_env_register_objtype(env, "contact");
-	
-	osync_env_register_objformat(env, "contact", "vcard21");
-	osync_env_format_set_compare_func(env, "vcard21", compare_vcard);
-	osync_env_format_set_create_func(env, "vcard21", create_vcard21);
-	osync_env_register_detector(env, "plain", "vcard21", detect_plain_as_vcard21);
-	osync_env_register_filter_function(env, "vcard_categories_filter", "contact", "vcard21", vcard_categories_filter);
+	g_free(input);
+}
 
-	osync_env_register_objformat(env, "contact", "vcard30");
-	osync_env_format_set_compare_func(env, "vcard30", compare_vcard);
-	osync_env_format_set_create_func(env, "vcard30", create_vcard30);
-	osync_env_register_detector(env, "plain", "vcard30", detect_plain_as_vcard30);
-	osync_env_register_filter_function(env, "vcard_categories_filter", "contact", "vcard30", vcard_categories_filter);
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *format = osync_objformat_new("vcard21", "contact", error);
+	if (!format)
+		return FALSE;
+	
+	osync_objformat_set_compare_func(format, compare_vcard);
+	osync_objformat_set_create_func(format, create_vcard21);
+	osync_objformat_set_destroy_func(format, destroy_vcard);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	
+	
+	format = osync_objformat_new("vcard30", "contact", error);
+	if (!format)
+		return FALSE;
+	
+	osync_objformat_set_compare_func(format, compare_vcard);
+	osync_objformat_set_create_func(format, create_vcard30);
+	osync_objformat_set_destroy_func(format, destroy_vcard);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	
+	
+	OSyncCustomFilter *filter = osync_custom_filter_new("contact", "vcard21", "vcard_categories_filter", vcard_categories_filter, error);
+	if (!filter)
+		return FALSE;
+	
+	osync_format_env_register_filter(env, filter);
+	osync_custom_filter_unref(filter);
+	
+	filter = osync_custom_filter_new("contact", "vcard30", "vcard_categories_filter", vcard_categories_filter, error);
+	if (!filter)
+		return FALSE;
+	
+	osync_format_env_register_filter(env, filter);
+	osync_custom_filter_unref(filter);
+	
+	return TRUE;
+}
+
+osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
+	if (!plain) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plain format");
+		return FALSE;
+	}
+	
+	OSyncObjFormat *vcard21 = osync_format_env_find_objformat(env, "vcard21");
+	if (!vcard21) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard21 format");
+		return FALSE;
+	}
+	
+	OSyncObjFormat *vcard30 = osync_format_env_find_objformat(env, "vcard30");
+	if (!vcard30) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard30 format");
+		return FALSE;
+	}
+	
+	OSyncFormatConverter *conv = osync_converter_new_detector(plain, vcard21, detect_plain_as_vcard21, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new_detector(plain, vcard30, detect_plain_as_vcard30, error);
+	if (!conv)
+		return FALSE;
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	return TRUE;
+}
+
+int get_version(void)
+{
+	return 1;
 }
