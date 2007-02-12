@@ -1,0 +1,26 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Titleö Firstä Middleü Lastß Suffixö
+N:Lastß;Firstä;Middleü;Titleö;Suffixö
+ORG:organization;department;office
+REV:2005-02-26T10:41:24Z
+ROLE:profession
+TITLE:title
+UID:pas-id-421A5F6100000014
+URL:homepage
+X-EVOLUTION-FILE-AS:Lastß\, Firstä
+X-EVOLUTION-MANAGER:manager
+X-EVOLUTION-ASSISTANT:assistant
+NICKNAME:nicknameü
+BDAY:2005-02-10
+X-EVOLUTION-ANNIVERSARY:2005-02-08
+X-EVOLUTION-SPOUSE:spouse
+NOTE:This is a multiline note with special chars\n!"§$%&/()=?`'*+~'#-_:.\;
+ \,^°@€¹²³¼½½¬{[[]}\\¸¨þø→←→€ł@æßðjđŋĸjħł	
+ 	<-tab
+X-EVOLUTION-BLOG-URL:
+CALURI:
+FBURL:
+X-EVOLUTION-VIDEO-URL:
+X-MOZILLA-HTML:FALSE
+END:VCARD

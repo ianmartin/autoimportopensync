@@ -1,0 +1,15 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+datarootdir=@datarootdir@
+plugindir=@OPENSYNC_PLUGINDIR@
+configdir=@OPENSYNC_CONFIGDIR@
+headerdir=@OPENSYNC_HEADERDIR@
+formatsdir=@OPENSYNC_FORMATSDIR@
+
+Name: opensync
+Description: OpenSync synchronization framework
+Version: @VERSION@
+Libs: -L${libdir} -lopensync
+Cflags: -I${includedir}/opensync-1.0
