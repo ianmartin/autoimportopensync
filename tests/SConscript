@@ -24,6 +24,9 @@ if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
 	testenv.Program('engine-error', ['engine-tests/check_engine_error.c'], LIBS = ['opensync', 'check', 'support'])
 	
 	testenv.Program('sync', ['sync-tests/check_sync.c'], LIBS = ['opensync', 'check', 'support'])
-	
-	testenv.SharedLibrary('mockformat', ['mock-plugin/mock_format.c'], LIBS = ['opensync', 'check', 'support'])
-	testenv.SharedLibrary('mocksync', ['mock-plugin/mock_sync.c'], LIBS = ['opensync', 'check', 'support'])
+
+	mocksync = testenv.SharedLibrary('mock-sync', ['mock-plugin/mock_sync.c'], LIBS = ['opensync'])
+	mockformat = testenv.SharedLibrary('mock-format', ['mock-plugin/mock_format.c'], LIBS = ['opensync'])
+
+	testenv.Install(install_plugin, mocksync)
+	testenv.Install(install_format, mockformat)
