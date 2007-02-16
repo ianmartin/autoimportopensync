@@ -51,3 +51,4 @@ static PyObject *osynclist_to_pylist(const OSyncList *elt, swig_type_info *type)
 %include "opensync-group.i"
 %include "opensync-helper.i"
 %include "opensync-plugin.i"
+%include "opensync-version.i"
