@@ -1,11 +1,11 @@
 Import('*')
 
+import sys
 import SCons.Script
 import distutils.sysconfig
 
 
-if env.has_key('enable_python') and env['enable_python'] == 1:
-
+if env.has_key('enable_python') and env['enable_python'] and 'swig' in env['TOOLS']:
 	SWIGScanner = SCons.Scanner.ClassicCPP(
 	    "SWIGScan",
 	    ".i",
@@ -14,9 +14,12 @@ if env.has_key('enable_python') and env['enable_python'] == 1:
 	)
 
 	env.Append(SCANNERS=[SWIGScanner])
-	env.Append(SWIGFLAGS = [r'-Werror', r'-Wall', r'-python', r'-modern', r'-I' + distutils.sysconfig.get_python_inc()])
+	env.Append(SWIGFLAGS = ['-Werror', '-Wall', '-python', '-modern', '-I' + distutils.sysconfig.get_python_inc()])
 
-	t = env.SharedLibrary('_opensync.so', ['opensync.i'], SHLIBPREFIX = '', LIBS = ['opensync'], LIBPATH = '#opensync')
+	wrap_mod = env.SharedLibrary('opensync', 'opensync.i', SHLIBPREFIX = '_', LIBS=['opensync'], LIBPATH='#opensync')
 
 	# FIXME: hack hack hack
-	env.AddPostAction(t, Action('mv ${TARGET.dir}/opensync.py ${TARGET.dir}/opensync.py.tmp && sed "s/^class OSyncError(object):/class OSyncError(Exception):/" ${TARGET.dir}/opensync.py.tmp > ${TARGET.dir}/opensync.py && rm -f ${TARGET.dir}/opensync.py.tmp'))
+	env.AddPostAction(wrap_mod, Action('mv ${TARGET.dir}/opensync.py ${TARGET.dir}/opensync.py.tmp && sed "s/^class OSyncError(object):/class OSyncError(Exception):/" ${TARGET.dir}/opensync.py.tmp > ${TARGET.dir}/opensync.py && rm -f ${TARGET.dir}/opensync.py.tmp'))
+
+	env.Install(install_pythonlib, [wrap_mod, 'opensync.py'])
+	env.Alias('install', install_prefix)

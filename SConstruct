@@ -91,8 +91,9 @@ install_config    = '$prefix/share/opensync/defaults'
 install_capabilities = '$prefix/share/opensync/capabilities'
 install_descriptions = '$prefix/share/opensync/descriptions'
 install_schemas = '$prefix/share/opensync/schemas'
+install_pythonlib = '$prefix/lib/python%d.%d/site-packages' % sys.version_info[:2]
 
-Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas')
+Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas install_pythonlib')
 
 SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript', 'formats/SConscript', 'misc/SConscript', 'wrapper/SConscript'])
 BuildDir(target_dir, 'opensync', duplicate=0)
