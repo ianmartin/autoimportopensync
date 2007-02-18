@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <iconv.h>
+#include <opensync/opensync.h>
 
 static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save);
 static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
@@ -808,6 +809,7 @@ VFormatAttribute *vformat_find_attribute(VFormat *vcard, const char *name)
 
 char *vformat_to_string (VFormat *evc, VFormatType type)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, type);
 	GList *l;
 	GList *v;
 
@@ -852,7 +854,6 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			attr_str = g_string_append_c (attr_str, '.');
 		}
 		attr_str = g_string_append (attr_str, attr->name);
-
 		/* handle the parameters */
 		for (p = attr->params; p; p = p->next) {
 			VFormatParam *param = p->data;
@@ -862,10 +863,22 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			if (!g_ascii_strcasecmp (param->name, "CHARSET") && (type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20))
 				continue;
 			attr_str = g_string_append_c (attr_str, ';');
-			if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
+			if (
+				g_ascii_strcasecmp (param->name, "TYPE") ||
+				(!g_ascii_strcasecmp (param->name, "TYPE") &&
+				 !g_ascii_strcasecmp (attr->name, "PHOTO"))||
+				type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 ||
+				type == VFORMAT_EVENT_20
+			)
 				attr_str = g_string_append (attr_str, param->name);
 			if (param->values) {
-				if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
+				if (
+					g_ascii_strcasecmp (param->name, "TYPE") ||
+					(!g_ascii_strcasecmp (param->name, "TYPE") &&
+					 !g_ascii_strcasecmp (attr->name, "PHOTO"))||
+					type == VFORMAT_CARD_30 || type ==
+					VFORMAT_TODO_20 || type == VFORMAT_EVENT_20
+				)
 					attr_str = g_string_append_c (attr_str, '=');
 				for (v = param->values; v; v = v->next) {
 					attr_str = g_string_append (attr_str, v->data);
@@ -997,6 +1010,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			break;
 	}
 	
+	osync_trace(TRACE_EXIT, "%s(%p, %i)", __func__, type);
 	return g_string_free (str, FALSE);
 }
 

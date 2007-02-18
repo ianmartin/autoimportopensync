@@ -83,7 +83,7 @@ static xmlNode *handle_agent_attribute(xmlNode *root, VFormatAttribute *attr)
 
 static xmlNode *handle_photo_attribute(xmlNode *root, VFormatAttribute *attr)
 {
-	osync_trace(TRACE_INTERNAL, "Handling photo attribute");
+	osync_trace(TRACE_INTERNAL, "%s:Handling photo attribute", __func__);
 	xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Photo", NULL);
 	osxml_node_add(current, "Content", vformat_attribute_get_nth_value(attr, 0));
 	return current;
@@ -677,22 +677,20 @@ static void xml_vcard_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, x
 
 static VFormatAttribute *handle_xml_photo_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
-	osync_trace(TRACE_INTERNAL, "Handling photo xml attribute");
+	osync_trace(TRACE_INTERNAL, "%s:Handling photo xml attribute", __func__);
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
 
 static VFormatAttribute *handle_xml_photo_base64_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
-	osync_trace(TRACE_INTERNAL, "Handling photo xml attribute");
+	osync_trace(TRACE_INTERNAL, "%s:Handling photo xml attribute", __func__);
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "BASE64");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -800,7 +798,6 @@ static VFormatAttribute *handle_xml_logo_attribute(VFormat *vcard, xmlNode *root
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "LOGO");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -839,7 +836,6 @@ static VFormatAttribute *handle_xml_sound_attribute(VFormat *vcard, xmlNode *roo
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "SOUND");
 	add_value(attr, root, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(root, "Type"));
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
