@@ -60,4 +60,6 @@ OSYNC_EXPORT osync_bool osync_member_set_capabilities(OSyncMember *member, OSync
 
 OSYNC_EXPORT OSyncMerger *osync_member_get_merger(OSyncMember *member);
 
+OSYNC_EXPORT void osync_member_flush_objtypes(OSyncMember *member);
+
 #endif /* _OPENSYNC_MEMBER_H_ */

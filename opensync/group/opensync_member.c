@@ -675,4 +675,24 @@ void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
 		osync_merger_ref(member->merger);
 }
 
+
+/** @brief Remove all object types from member. 
+ * 
+ * @param member The member
+ *
+ * Note: this function should be called to flush the member before discovering.
+ *
+ */
+void osync_member_flush_objtypes(OSyncMember *member)
+{
+	osync_assert(member);
+
+	while (member->objtypes) {
+		OSyncObjTypeSink *sink = member->objtypes->data;
+		osync_objtype_sink_unref(sink);
+		member->objtypes = g_list_remove(member->objtypes, member->objtypes->data);
+	}
+
+}
+
 /*@}*/

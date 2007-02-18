@@ -1466,6 +1466,11 @@ osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSync
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd)
 		goto error;
+
+	/* Flush all object types of member before discovering.
+	   Otherwise "old" object types get discovered again. */
+	osync_member_flush_objtypes(member);
+
 	cmd->cmd = OSYNC_ENGINE_COMMAND_DISCOVER;
 	cmd->member = member;
 	
