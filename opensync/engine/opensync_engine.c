@@ -758,7 +758,6 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		goto error_finalize;
 	
 	/* XXX The internal formats XXX */
-	_osync_engine_set_internal_format(engine, "data", osync_format_env_find_objformat(engine->formatenv, "plain"));
 	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
 	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
 
