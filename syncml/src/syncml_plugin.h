@@ -24,6 +24,14 @@
 
 #include <opensync/opensync.h>
 
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-helper.h>
+#include <opensync/opensync-group.h>
+#include <opensync/opensync-version.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,14 +75,16 @@ typedef struct SmlPluginEnv {
 	unsigned int port;
 	char *url;
 	
+	unsigned int recvLimit;
+	unsigned int maxObjSize;
+
 	SmlBool gotFinal;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
 	
-	unsigned int recvLimit;
-	unsigned int maxObjSize;
-	
 	OSyncMember *member;
+	char *anchor_path;
+
 	GMainContext *context;
 	GMainLoop *loop;
 	
@@ -82,32 +92,29 @@ typedef struct SmlPluginEnv {
 	SmlAuthenticator *auth;
 	SmlDevInfAgent *agent;
 	SmlManager *manager;
-	
-	SmlDsSession *contactSession;
-	SmlDsSession *calendarSession;
-	SmlDsSession *noteSession;
 	SmlSession *session;
-	
-	SmlDsServer *contactserver;
-	char *contact_url;
-	
-	SmlDsServer *calendarserver;
-	char *calendar_url;
-	
-	SmlDsServer *noteserver;
-	char *note_url;
 	
 	OSyncContext *connectCtx;
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
-	/*OSyncContext *commitContactCtx;
-	OSyncContext *commitCalendarCtx;
-	OSyncContext *commitTodoCtx;
-	OSyncContext *commitNoteCtx;*/
 	OSyncContext *disconnectCtx;
+
+	GList *databases;
 	
 	GList *eventEntries;
 	unsigned int numEventEntries;
 } SmlPluginEnv;
+
+typedef struct SmlDatabase {
+	SmlPluginEnv *env;
+	SmlDsSession *session;
+	SmlDsServer *server;
+	OSyncObjFormat *objformat;
+	OSyncObjTypeSink *sink;
+	char *objtype;	
+	char *url;
+} SmlDatabase;
+
+
 
 #endif //_SYNCML_PLUGIN_H
