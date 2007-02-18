@@ -146,7 +146,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
 	const char *uid = osync_change_get_uid(change);		
 	int changetype = osync_change_get_changetype(change);
-    const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
+	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
 	const char *objtype = osync_change_get_objtype(change);
 
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
@@ -758,6 +758,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 		goto error_finalize;
 	
 	/* XXX The internal formats XXX */
+	_osync_engine_set_internal_format(engine, "data", osync_format_env_find_objformat(engine->formatenv, "plain"));
 	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
 	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
 
