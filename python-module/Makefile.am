@@ -3,8 +3,6 @@ pythonplgdir=@OPENSYNC_PYTHONPLG_DIR@
 
 INCLUDES = -I$(top_srcdir)
 
-EXTRA_DIST = src/sample.py
-
 OPENSYNC_LIBS=-lopensync
 
 plugin_LTLIBRARIES = python_module.la
@@ -15,4 +13,6 @@ python_module_la_CFLAGS = -Wall -Werror $(OSYNC_CFLAGS)
 python_module_la_CPPFLAGS = @PYTHON_CFLAGS@ -DOPENSYNC_PYTHONPLG_DIR=\"$(pythonplgdir)\"
 python_module_la_LIBADD = @PYTHON_LIBS@
 
-pythonplg_DATA = src/sample.py
+# uncomment these to install the sample plugin
+#EXTRA_DIST = src/sample.py
+#pythonplg_DATA = src/sample.py
