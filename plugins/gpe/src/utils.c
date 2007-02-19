@@ -82,6 +82,7 @@ osync_bool report_change (OSyncContext *ctx, gchar *type, gchar *uid, gchar *has
 	gpe_environment *env = (gpe_environment *)osync_context_get_plugin_data (ctx);
 	OSyncChange *change;
 	change = osync_change_new ();
+	osync_change_set_member(change, env->member);
 
 	/* We report the uids as
 	 * gpe-contacts-0123, gpe-todo-0123, etc. so that file-sync
