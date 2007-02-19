@@ -774,7 +774,7 @@ static void psyncDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	return;
 }
 
-static void *psyncInitialize(OSyncPluginInfo *info, OSyncError **error)
+static void *psyncInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
