@@ -33,21 +33,20 @@ class KContactDataSource
 {
 	private:
 		KABC::AddressBook* addressbookptr;
-
 		OSyncHashTable *hashtable;
-		OSyncMember *member;
 
 		bool __vcard_access(OSyncContext *ctx, OSyncChange *chg);
 
+
 	public:
-		KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable);
+		KContactDataSource(OSyncHashTable *hashtable);
 
 		QString calc_hash(KABC::Addressee &e);
-		bool connect(OSyncContext *ctx);
-		bool disconnect(OSyncContext *ctx);
-		bool contact_get_changeinfo(OSyncContext *ctx);
-		bool vcard_access(OSyncContext *ctx, OSyncChange *chg);
-		bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg);
+		bool connect(OSyncPluginInfo *info, OSyncContext *ctx);
+		bool disconnect(OSyncPluginInfo *info, OSyncContext *ctx);
+		bool contact_get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx);
+		bool vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg);
+		bool vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg);
 		bool connected;
 };
 

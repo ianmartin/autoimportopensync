@@ -8,6 +8,7 @@ extern "C"
 #include <opensync/opensync-context.h>
 #include <opensync/opensync-data.h>
 #include <opensync/opensync-helper.h>
+#include <opensync/opensync-format.h>	
 }
 
 typedef struct OSyncKDEEnv {

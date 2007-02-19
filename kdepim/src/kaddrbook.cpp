@@ -30,7 +30,7 @@ SOFTWARE IS DISCLAIMED.
 #include <dcopclient.h>
 #include <qdeepcopy.h>
 
-KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) : hashtable(hashtable), member(member)
+KContactDataSource::KContactDataSource(OSyncHashTable *hashtable) : hashtable(hashtable)
 {
 	connected = false;
 }
@@ -54,9 +54,9 @@ QString KContactDataSource::calc_hash(KABC::Addressee &e)
 	return revdate.toString();
 }
 
-bool KContactDataSource::connect(OSyncContext *ctx)
+bool KContactDataSource::connect(OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, ctx);
 
 	DCOPClient *dcopc = KApplication::kApplication()->dcopClient();
 	if (!dcopc) {
@@ -78,10 +78,13 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 	//get a handle to the standard KDE addressbook
 	addressbookptr = KABC::StdAddressBook::self();
 
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+
 	//Detection mechanismn if this is the first sync
-	if (!osync_anchor_compare(member, "contact", "true")) {
+	QString anchorpath = QString("%1/anchor.db").arg(osync_plugin_info_get_configdir(info));
+	if (!osync_anchor_compare(anchorpath, "contact", "true")) {
 		osync_trace(TRACE_INTERNAL, "Setting slow-sync contact");
-		osync_member_set_slow_sync(member, "contact", TRUE);
+		osync_objtype_sink_set_slowsync(sink, TRUE);
 	}
 
 	connected = true;
@@ -89,9 +92,9 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 	return TRUE;
 }
 
-bool KContactDataSource::disconnect(OSyncContext *ctx)
+bool KContactDataSource::disconnect(OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, ctx);
 
 	KABC::Ticket *ticket = addressbookptr->requestSaveTicket();
 	if ( !ticket ) {
@@ -112,13 +115,16 @@ bool KContactDataSource::disconnect(OSyncContext *ctx)
 }
 
 
-bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
+bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, ctx);
 
-	if (osync_member_get_slow_sync(member, "contact")) {
+	OSyncError *error = NULL;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+
+	if (osync_objtype_sink_get_slowsync(sink)) {
 		osync_trace(TRACE_INTERNAL, "Got slow-sync");
-		osync_hashtable_set_slow_sync(hashtable, "contact");
+		osync_hashtable_reset(hashtable);
 	}
 
 	// We must reload the KDE addressbook in order to retrieve the latest changes.
@@ -128,14 +134,16 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 		return false;
 	}
 
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	OSyncObjFormat *objformat = osync_format_env_find_objformat(formatenv, "vcard30");
+
 	KABC::VCardConverter converter;
 	for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
 		QString uid = it->uid();
 
-		OSyncChange *chg = osync_change_new();
+		OSyncChange *change = osync_change_new(&error);
 
-		osync_change_set_member(chg, member);
-		osync_change_set_uid(chg, uid.local8Bit());
+		osync_change_set_uid(change, uid.local8Bit());
 
 		QString hash = calc_hash(*it);
 
@@ -147,23 +155,65 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 
 		osync_trace(TRACE_SENSITIVE,"\n%s", data);
 
-		osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
+		OSyncData *odata = osync_data_new(data, strlen(data), objformat, &error);
+		if (!odata) {
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
 
-		// object type and format
-		osync_change_set_objtype_string(chg, "contact");
-		osync_change_set_objformat_string(chg, "vcard30");
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+
+		//Now you can set the data for the object
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
 
 		// Use the hash table to check if the object
 		// needs to be reported
-		osync_change_set_hash(chg, hash.data());
-		if (osync_hashtable_detect_change(hashtable, chg)) {
-			osync_context_report_change(ctx, chg);
-			osync_hashtable_update_hash(hashtable, chg);
+		osync_change_set_hash(change, hash.data());
+		OSyncChangeType changetype = osync_hashtable_get_changetype(hashtable, uid.local8Bit(), hash.data());
+		if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype) {
+			osync_context_report_change(ctx, change);
+			osync_hashtable_update_hash(hashtable, changetype, uid, hash.data());
 		}
 	}
 
-	// Use the hashtable to report deletions
-	osync_hashtable_report_deleted(hashtable, ctx, "contact");
+	int i;
+	char **uids = osync_hashtable_get_deleted(hashtable);
+	for (i=0; uids[i]; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		if (!change) {
+			g_free(uids[i]);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+
+		osync_change_set_uid(change, uids[i]);
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+
+		OSyncData *odata = osync_data_new(NULL, 0, objformat, &error);
+		if (!odata) {
+			g_free(uids[i]);
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
+
+		osync_context_report_change(ctx, change);
+
+		osync_hashtable_update_hash(hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+
+		osync_change_unref(change);
+		g_free(uids[i]);
+	}
+	g_free(uids);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
@@ -182,8 +232,13 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 	KABC::VCardConverter converter;
 
 	// convert VCARD string from obj->comp into an Addresse object.
-	char *data = osync_change_get_data(chg);
-	size_t data_size = osync_change_get_datasize(chg);
+	OSyncData *odata = osync_change_get_data(chg);
+
+	char *data;
+	size_t data_size; 
+
+	osync_data_get_data(odata, &data, &data_size);
+
 	QString uid = osync_change_get_uid(chg);
 
 	OSyncChangeType chtype = osync_change_get_changetype(chg);
@@ -247,7 +302,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 	return TRUE;
 }
 
-bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
+bool KContactDataSource::vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
 {
 	if (!__vcard_access(ctx, chg))
 		return false;
@@ -256,12 +311,11 @@ bool KContactDataSource::vcard_access(OSyncContext *ctx, OSyncChange *chg)
 	return true;
 }
 
-bool KContactDataSource::vcard_commit_change(OSyncContext *ctx, OSyncChange *chg)
+bool KContactDataSource::vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
 {
 	if ( !__vcard_access(ctx, chg) )
 		return false;
 
-	osync_hashtable_update_hash(hashtable, chg);
 	osync_context_report_success(ctx);
 	return true;
 }

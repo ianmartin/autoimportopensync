@@ -92,7 +92,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			QString tablepath = QString("%1/hashtable.db").arg(osync_plugin_info_get_configdir(info));
 			mHashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
 
-			mKaddrbook = new KContactDataSource(mMember, mHashtable);
+			mKaddrbook = new KContactDataSource(mHashtable);
 
 			osync_trace(TRACE_EXIT, "%s", __func__);
 			return true;
@@ -109,14 +109,14 @@ class KdePluginImplementation: public KdePluginImplementationBase
 				osync_hashtable_free(mHashtable);
 		}
 
-		virtual void connect(OSyncPluginInfo * /*info*/, OSyncContext *ctx)
+		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx)
 		{
 			osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
 //			OSyncError *error = NULL;
 
 			if (mKaddrbook && \
-			        !mKaddrbook->connect(ctx)) {
+			        !mKaddrbook->connect(info, ctx)) {
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open addressbook", __func__);
 				return;
 			}
@@ -125,9 +125,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			osync_trace(TRACE_EXIT, "%s", __func__);
 		}
 
-		virtual void disconnect(OSyncPluginInfo * /*info*/, OSyncContext *ctx)
+		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx)
 		{
-			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->disconnect(ctx))
+			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->disconnect(info, ctx))
 				return;
 
 			osync_context_report_success(ctx);
@@ -144,17 +144,17 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			osync_context_report_success(ctx);
 		}
 
-		virtual void get_changeinfo(OSyncPluginInfo * /*info*/, OSyncContext *ctx)
+		virtual void get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx)
 		{
-			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(ctx))
+			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(info, ctx))
 				return;
 			osync_context_report_success(ctx);
 		}
 
-		virtual bool vcard_access(OSyncPluginInfo * /*info*/, OSyncContext *ctx, OSyncChange *chg)
+		virtual bool vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
 		{
 			if (mKaddrbook)
-				return mKaddrbook->vcard_access(ctx, chg);
+				return mKaddrbook->vcard_access(info, ctx, chg);
 			else {
 				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
 				return false;
@@ -162,10 +162,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			return true;
 		}
 
-		virtual bool vcard_commit_change(OSyncPluginInfo * /*info*/, OSyncContext *ctx, OSyncChange *chg)
+		virtual bool vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
 		{
 			if (mKaddrbook)
-				return mKaddrbook->vcard_commit_change(ctx, chg);
+				return mKaddrbook->vcard_commit_change(info, ctx, chg);
 			else {
 				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
 				return false;
