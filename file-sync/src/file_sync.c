@@ -551,7 +551,7 @@ static void osync_filesync_sync_done(void *data, OSyncPluginInfo *info, OSyncCon
 
 /* In initialize, we get the config for the plugin. Here we also must register
  * all _possible_ objtype sinks. */
-static void *osync_filesync_initialize(OSyncPluginInfo *info, OSyncError **error)
+static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
