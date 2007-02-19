@@ -104,6 +104,9 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 		//Now get the data of this change
 		char *data = NULL;
 
+		// Report every entry .. every unreported entry got deleted.
+		osync_hashtable_report(env->hashtable, uid);
+
 		OSyncChangeType changetype = osync_hashtable_get_changetype(env->hashtable, uid, hash);
 
 		if (changetype == OSYNC_CHANGE_TYPE_UNMODIFIED) {
