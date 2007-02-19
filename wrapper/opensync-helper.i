@@ -1,9 +1,5 @@
-%{
-#include <opensync/opensync-helper.h>
-%}
-
 %inline %{
-	static osync_bool anchor_compare(const char *anchordb, const char *key, const char *new_anchor) {
+	static bool anchor_compare(const char *anchordb, const char *key, const char *new_anchor) {
 		return osync_anchor_compare(anchordb, key, new_anchor);
 	}
 
@@ -17,24 +13,24 @@
 %}
 
 
-typedef struct {} OSyncHashTable;
-
-%extend OSyncHashTable {
-	OSyncHashTable(PyObject *obj) {
+typedef struct {} HashTable;
+%extend HashTable {
+	HashTable(PyObject *obj) {
 		return PyCObject_AsVoidPtr(obj);
 	}
 
-	OSyncHashTable(const char *path, const char *objtype) {
-		OSyncError *err = NULL;
-		OSyncHashTable *hashtable = osync_hashtable_new(path, objtype, &err);
+	HashTable(const char *path, const char *objtype) {
+		Error *err = NULL;
+		HashTable *hashtable = osync_hashtable_new(path, objtype, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return hashtable;
 	}
 
-	~OSyncHashTable() {
-		osync_hashtable_free(self);
+	~HashTable() {
+		/* FIXME: need to free here, but only if we created it! */
+		/* osync_hashtable_free(self); */
 	}
 
 	void reset() {
@@ -65,7 +61,7 @@ typedef struct {} OSyncHashTable;
 		osync_hashtable_delete(self, uid);
 	}
 
-	void update_hash(OSyncChangeType type, const char *uid, const char *hash) {
+	void update_hash(ChangeType type, const char *uid, const char *hash) {
 		osync_hashtable_update_hash(self, type, uid, hash);
 	}
 
@@ -99,7 +95,7 @@ typedef struct {} OSyncHashTable;
 		return ret;
 	}
 
-	OSyncChangeType get_changetype(const char *uid, const char *hash) {
+	ChangeType get_changetype(const char *uid, const char *hash) {
 		return osync_hashtable_get_changetype(self, uid, hash);
 	}
 

@@ -1,0 +1,28 @@
+Python binding/wrapper for OpenSync API
+=======================================
+
+These are the Python bindings for the OpenSync library. They should be a 
+fairly direct map to the C API functions.
+
+Some quick notes:
+
+ * data types (structs) OSyncStructName are bound as python classes 
+   named StructName
+ * functions operating on classes are bound as methods of the above classes,
+   for example osync_plugin_set_name(plugin, name) is replaced by the
+   python method set_name(name) on an object of the Plugin class
+ * constants such as OSYNC_ERROR_GENERIC have the OSYNC_ prefix 
+   stripped, ie. they are defined in the module as 
+   opensync.ERROR_GENERIC
+ * apart from functions with function pointer arguments, the binding 
+   should be complete, ie. everything in the C API should be callable 
+   from Python
+ * some python convenience code has been added, for example the Plugin 
+   object has a name attribute, so you can call plugin.name = "Foo" 
+   instead of plugin.set_name("Foo")
+ * errors returned by OpenSync functions are automatically raised as 
+   exceptions of the opensync.Error class, which carries the relevant 
+   data about the error
+
+For further details, please see the SWIG source in the *.i files, and 
+feel free to improve this documentation!

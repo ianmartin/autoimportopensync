@@ -1,7 +1,3 @@
-%{
-#include <opensync/opensync-format.h>
-%}
-
 typedef enum {} ConverterType;
 
 %constant int CONVERTER_CONV = OSYNC_CONVERTER_CONV;
@@ -9,21 +5,23 @@ typedef enum {} ConverterType;
 %constant int CONVERTER_DECAP = OSYNC_CONVERTER_DECAP;
 %constant int CONVERTER_DETECTOR = OSYNC_CONVERTER_DETECTOR;
 
-typedef struct {} OSyncFormatConverter;
-
-%feature("ref")   OSyncFormatConverter "osync_converter_ref($this);"
-%feature("unref") OSyncFormatConverter "osync_converter_unref($this);"
-
-%extend OSyncFormatConverter {
-	OSyncFormatConverter(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} FormatConverter;
+%extend FormatConverter {
+	FormatConverter(PyObject *obj) {
+		FormatConverter *conv = PyCObject_AsVoidPtr(obj);
+		osync_converter_ref(conv);
+		return conv;
 	}
 
-	OSyncObjFormat *get_sourceformat() {
+	~FormatConverter() {
+		osync_converter_unref(self);
+	}
+
+	ObjFormat *get_sourceformat() {
 		return osync_converter_get_sourceformat(self);
 	}
 
-	OSyncObjFormat *get_targetformat() {
+	ObjFormat *get_targetformat() {
 		return osync_converter_get_targetformat(self);
 	}
 
@@ -31,18 +29,18 @@ typedef struct {} OSyncFormatConverter;
 		return osync_converter_get_type(self);
 	}
 
-	OSyncObjFormat *detect(OSyncData *data) {
+	ObjFormat *detect(Data *data) {
 		return osync_converter_detect(self, data);
 	}
 
-	void invoke(OSyncData *data, const char *config) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_converter_invoke(self, data, config, &err);
+	void invoke(Data *data, const char *config) {
+		Error *err = NULL;
+		bool ret = osync_converter_invoke(self, data, config, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_converter_invoke failed but did not set error code");
 	}
 
-	osync_bool matches(OSyncData *data) {
+	bool matches(Data *data) {
 		return osync_converter_matches(self, data);
 	}
 
@@ -54,26 +52,28 @@ typedef struct {} OSyncFormatConverter;
 }
 
 
-typedef struct {} OSyncFormatConverterPath;
-
-%feature("ref")   OSyncFormatConverterPath "osync_converter_path_ref($this);"
-%feature("unref") OSyncFormatConverterPath "osync_converter_path_unref($this);"
-
-%extend OSyncFormatConverterPath {
-	OSyncFormatConverterPath(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} FormatConverterPath;
+%extend FormatConverterPath {
+	FormatConverterPath(PyObject *obj) {
+		FormatConverterPath *conv_path = PyCObject_AsVoidPtr(obj);
+		osync_converter_path_ref(conv_path);
+		return conv_path;
 	}
 
-	OSyncFormatConverterPath() {
-		OSyncError *err = NULL;
-		OSyncFormatConverterPath *ret = osync_converter_path_new(&err);
+	FormatConverterPath() {
+		Error *err = NULL;
+		FormatConverterPath *ret = osync_converter_path_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return ret;
 	}
 
-	void add_edge(OSyncFormatConverter *edge) {
+	~FormatConverterPath() {
+		osync_converter_path_unref(self);
+	}
+
+	void add_edge(FormatConverter *edge) {
 		osync_converter_path_add_edge(self, edge);
 	}
 
@@ -81,7 +81,7 @@ typedef struct {} OSyncFormatConverterPath;
 		return osync_converter_path_num_edges(self);
 	}
 
-	OSyncFormatConverter *nth_edge(unsigned int nth) {
+	FormatConverter *nth_edge(unsigned int nth) {
 		return osync_converter_path_nth_edge(self, nth);
 	}
 
@@ -100,29 +100,31 @@ typedef struct {} OSyncFormatConverterPath;
 }
 
 
-typedef enum {} OSyncFilterAction;
+typedef enum {} FilterAction;
 
 %constant int FILTER_IGNORE = OSYNC_FILTER_IGNORE;
 %constant int FILTER_ALLOW = OSYNC_FILTER_ALLOW;
 %constant int FILTER_DENY = OSYNC_FILTER_DENY;
 
-typedef struct {} OSyncFilter;
-
-%feature("ref")   OSyncFilter "osync_filter_ref($this);"
-%feature("unref") OSyncFilter "osync_filter_unref($this);"
-
-%extend OSyncFilter {
-	OSyncFilter(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} Filter;
+%extend Filter {
+	Filter(PyObject *obj) {
+		Filter *filter = PyCObject_AsVoidPtr(obj);
+		osync_filter_ref(filter);
+		return filter;
 	}
 
-	OSyncFilter(const char *objtype, OSyncFilterAction action) {
-		OSyncError *err = NULL;
-		OSyncFilter *filter = osync_filter_new(objtype, action, &err);
+	Filter(const char *objtype, FilterAction action) {
+		Error *err = NULL;
+		Filter *filter = osync_filter_new(objtype, action, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return filter;
+	}
+
+	~Filter() {
+		osync_filter_unref(self);
 	}
 
 	void set_config(const char *config) {
@@ -133,7 +135,7 @@ typedef struct {} OSyncFilter;
 		return osync_filter_get_config(self);
 	}
 
-	OSyncFilterAction invoke(OSyncData *data) {
+	FilterAction invoke(Data *data) {
 		return osync_filter_invoke(self, data);
 	}
 
@@ -148,38 +150,38 @@ typedef struct {} OSyncFilter;
 }
 
 
-typedef struct {} OSyncFormatEnv;
-
-%extend OSyncFormatEnv {
-	OSyncFormatEnv(PyObject *obj) {
+typedef struct {} FormatEnv;
+%extend FormatEnv {
+	FormatEnv(PyObject *obj) {
 		return PyCObject_AsVoidPtr(obj);
 	}
 
-	OSyncFormatEnv() {
-		OSyncError *err = NULL;
-		OSyncFormatEnv *env = osync_format_env_new(&err);
+	FormatEnv() {
+		Error *err = NULL;
+		FormatEnv *env = osync_format_env_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return env;
 	}
 
-	~OSyncFormatEnv() {
-		osync_format_env_free(self);
+	~FormatEnv() {
+		/* FIXME: need to free here, but only if we created it! */
+		/* osync_format_env_free(self); */
 	}
 
 	void load_plugins(const char *path) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_format_env_load_plugins(self, path, &err);
+		Error *err = NULL;
+		bool ret = osync_format_env_load_plugins(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_load_plugins failed but did not set error code");
 	}
 
-	void register_objformat(OSyncObjFormat *format) {
+	void register_objformat(ObjFormat *format) {
 		osync_format_env_register_objformat(self, format);
 	}
 
-	OSyncObjFormat *find_objformat(const char *name) {
+	ObjFormat *find_objformat(const char *name) {
 		return osync_format_env_find_objformat(self, name);
 	}
 
@@ -187,15 +189,15 @@ typedef struct {} OSyncFormatEnv;
 		return osync_format_env_num_objformats(self);
 	}
 
-	OSyncObjFormat *nth_objformat(int nth) {
+	ObjFormat *nth_objformat(int nth) {
 		return osync_format_env_nth_objformat(self, nth);
 	}
 
-	void register_converter(OSyncFormatConverter *converter) {
+	void register_converter(FormatConverter *converter) {
 		osync_format_env_register_converter(self, converter);
 	}
 
-	OSyncFormatConverter *find_converter(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat) {
+	FormatConverter *find_converter(ObjFormat *sourceformat, ObjFormat *targetformat) {
 		return osync_format_env_find_converter(self, sourceformat, targetformat);
 	}
 
@@ -203,11 +205,11 @@ typedef struct {} OSyncFormatEnv;
 		return osync_format_env_num_converters(self);
 	}
 
-	OSyncFormatConverter *nth_converter(int nth) {
+	FormatConverter *nth_converter(int nth) {
 		return osync_format_env_nth_converter(self, nth);
 	}
 
-	void register_filter(OSyncCustomFilter *filter) {
+	void register_filter(CustomFilter *filter) {
 		osync_format_env_register_filter(self, filter);
 	}
 
@@ -215,38 +217,38 @@ typedef struct {} OSyncFormatEnv;
 		return osync_format_env_num_filters(self);
 	}
 
-	OSyncCustomFilter *nth_filter(int nth) {
+	CustomFilter *nth_filter(int nth) {
 		return osync_format_env_nth_filter(self, nth);
 	}
 
-	OSyncObjFormat *detect_objformat(OSyncData *data) {
+	ObjFormat *detect_objformat(Data *data) {
 		return osync_format_env_detect_objformat(self, data);
 	}
 
-	OSyncObjFormat *detect_objformat_full(OSyncData *input) {
-		OSyncError *err = NULL;
-		OSyncObjFormat *ret = osync_format_env_detect_objformat_full(self, input, &err);
+	ObjFormat *detect_objformat_full(Data *input) {
+		Error *err = NULL;
+		ObjFormat *ret = osync_format_env_detect_objformat_full(self, input, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_detect_objformat_full failed but did not set error code");
 		return ret;
 	}
 
-	void convert(OSyncFormatConverterPath *path, OSyncData *data) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_format_env_convert(self, path, data, &err);
+	void convert(FormatConverterPath *path, Data *data) {
+		Error *err = NULL;
+		bool ret = osync_format_env_convert(self, path, data, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_convert failed but did not set error code");
 	}
 
-	OSyncFormatConverterPath *find_path(OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat) {
-		OSyncError *err = NULL;
-		OSyncFormatConverterPath *ret = osync_format_env_find_path(self, sourceformat, targetformat, &err);
+	FormatConverterPath *find_path(ObjFormat *sourceformat, ObjFormat *targetformat) {
+		Error *err = NULL;
+		FormatConverterPath *ret = osync_format_env_find_path(self, sourceformat, targetformat, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_find_path failed but did not set error code");
 		return ret;
 	}
 
-	OSyncFormatConverterPath *find_path_formats(OSyncObjFormat *sourceformat, PyObject *targets) {
+	FormatConverterPath *find_path_formats(ObjFormat *sourceformat, PyObject *targets) {
 		/* convert second argument from a python list to a NULL-terminated array of ObjFormat pointers */
 		if (!PyList_Check(targets)) {
 			PyErr_SetString(PyExc_TypeError, "wrapper error: argument is not a list");
@@ -254,17 +256,17 @@ typedef struct {} OSyncFormatEnv;
 		}
 
 		int i, len = PyList_Size(targets);
-		OSyncObjFormat *real_targets[len + 1];
+		ObjFormat *real_targets[len + 1];
 
 		for (i = 0; i < len; i++) {
 			PyObject *o = PyList_GetItem(targets, i);
-			if (SWIG_ConvertPtr(o, (void **) &real_targets[i], SWIGTYPE_p_OSyncObjFormat, SWIG_POINTER_EXCEPTION) != 0)
+			if (SWIG_ConvertPtr(o, (void **) &real_targets[i], SWIGTYPE_p_ObjFormat, SWIG_POINTER_EXCEPTION) != 0)
 				return NULL;
 		}
 		real_targets[len] = NULL;
 
-		OSyncError *err = NULL;
-		OSyncFormatConverterPath *ret = osync_format_env_find_path_formats(self, sourceformat, real_targets, &err);
+		Error *err = NULL;
+		FormatConverterPath *ret = osync_format_env_find_path_formats(self, sourceformat, real_targets, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_find_path_formats failed but did not set error code");
 		return ret;
@@ -278,23 +280,25 @@ typedef struct {} OSyncFormatEnv;
 }
 
 
-typedef struct {} OSyncObjFormat;
-
-%feature("ref")   OSyncObjFormat "osync_objformat_ref($this);"
-%feature("unref") OSyncObjFormat "osync_objformat_unref($this);"
-
-%extend OSyncObjFormat {
-	OSyncObjFormat(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} ObjFormat;
+%extend ObjFormat {
+	ObjFormat(PyObject *obj) {
+		ObjFormat *objformat = PyCObject_AsVoidPtr(obj);
+		osync_objformat_ref(objformat);
+		return objformat;
 	}
 
-	OSyncObjFormat(const char *name, const char *objtype_name) {
-		OSyncError *err = NULL;
-		OSyncObjFormat *format = osync_objformat_new(name, objtype_name, &err);
+	ObjFormat(const char *name, const char *objtype_name) {
+		Error *err = NULL;
+		ObjFormat *format = osync_objformat_new(name, objtype_name, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return format;
+	}
+
+	~ObjFormat() {
+		osync_objformat_unref(self);
 	}
 
 	const char *get_name() {
@@ -307,11 +311,11 @@ typedef struct {} OSyncObjFormat;
 
 	/* TODO: compare, duplicate, create, print, get_revision, destroy, copy */
 
-	osync_bool is_equal(OSyncObjFormat *rightformat) {
+	bool is_equal(ObjFormat *rightformat) {
 		return osync_objformat_is_equal(self, rightformat);
 	}
 
-	osync_bool must_marshal() {
+	bool must_marshal() {
 		return osync_objformat_must_marshal(self);
 	}
 

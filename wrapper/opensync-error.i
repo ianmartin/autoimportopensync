@@ -1,38 +1,35 @@
-%{
-#include <opensync/opensync-error.h>
-%}
-
-typedef struct {} OSyncError;
-
-%feature("ref")   OSyncError "osync_error_ref($this);"
-%feature("unref") OSyncError "osync_error_unref($this);"
-%feature("exceptionclass") OSyncError;
-
-%extend OSyncError {
-	OSyncError(PyObject *obj) {
-		OSyncError *error = PyCObject_AsVoidPtr(obj);
+typedef struct {} Error;
+%feature("exceptionclass") Error;
+%extend Error {
+	Error(PyObject *obj) {
+		Error *error = PyCObject_AsVoidPtr(obj);
+		osync_error_ref(&error);
 		return error;
 	}
 
-	OSyncError(const char *msg, OSyncErrorType type=OSYNC_ERROR_GENERIC) {
-		OSyncError *error = NULL;
+	Error(const char *msg, ErrorType type=OSYNC_ERROR_GENERIC) {
+		Error *error = NULL;
 		osync_error_set(&error, type, "%s", msg);
 		return error;
+	}
+
+	~Error() {
+		osync_error_unref(&self);
 	}
 
 	const char *get_name() {
 		return osync_error_get_name(&self);
 	}
 
-	osync_bool is_set() {
+	bool is_set() {
 		return osync_error_is_set(&self);
 	}
 
-	OSyncErrorType get_type() {
+	ErrorType get_type() {
 		return osync_error_get_type(&self);
 	}
 
-	void set_type(OSyncErrorType type) {
+	void set_type(ErrorType type) {
 		osync_error_set_type(&self, type);
 	}
 
@@ -44,19 +41,19 @@ typedef struct {} OSyncError;
 		return osync_error_print_stack(&self);
 	}
 
-	void set_from_error(OSyncError *source) {
+	void set_from_error(Error *source) {
 		osync_error_set_from_error(&self, &source);
 	}
 
-	void set(OSyncErrorType type, const char *msg) {
+	void set(ErrorType type, const char *msg) {
 		osync_error_set(&self, type, "%s", msg);
 	}
 
-	void stack(OSyncError *child) {
+	void stack(Error *child) {
 		osync_error_stack(&self, &child);
 	}
 
-	OSyncError *get_child() {
+	Error *get_child() {
 		return osync_error_get_child(&self);
 	}
 
@@ -69,7 +66,7 @@ typedef struct {} OSyncError;
 		return self.get_name() + ": " + self.get_msg()
 
 	def report(self, context):
-		"""Report myself as an error to the given OSyncContext object."""
+		"""Report myself as an error to the given Context object."""
 		context.report_osyncerror(self)
 
 	name = property(get_name)
@@ -82,15 +79,15 @@ typedef struct {} OSyncError;
 %{
 /* If the given opensync error is set, raise a matching exception.
  * Returns TRUE iff an exception was raised. */
-static osync_bool
-raise_exception_on_error(OSyncError *oserr)
+static bool
+raise_exception_on_error(Error *oserr)
 {
 	if (!osync_error_is_set(&oserr)) {
 		return FALSE;
 	}
 
-	PyObject *obj = SWIG_NewPointerObj(oserr, SWIGTYPE_p_OSyncError, 0);
-	PyErr_SetObject(SWIG_Python_ExceptionType(SWIGTYPE_p_OSyncError), obj);
+	PyObject *obj = SWIG_NewPointerObj(oserr, SWIGTYPE_p_Error, 0);
+	PyErr_SetObject(SWIG_Python_ExceptionType(SWIGTYPE_p_Error), obj);
 	Py_DECREF(obj);
 
 	return TRUE;
@@ -99,14 +96,14 @@ raise_exception_on_error(OSyncError *oserr)
 static void
 wrapper_exception(const char *msg)
 {
-	OSyncError *err = NULL;
+	Error *err = NULL;
 	osync_error_set(&err, OSYNC_ERROR_GENERIC, "internal wrapper error: %s", msg);
 	raise_exception_on_error(err);
 }
 %}
 
 
-typedef enum {} OSyncErrorType;
+typedef enum {} ErrorType;
 
 /* pull in constants from opensync_error.h without all the functions */
 %constant int NO_ERROR = OSYNC_NO_ERROR;

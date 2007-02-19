@@ -1,37 +1,35 @@
-%{
-#include <opensync/opensync-version.h>
-%}
-
 %inline %{
 	static PyObject *load_versions_from_descriptions() {
-		OSyncError *err = NULL;
+		Error *err = NULL;
 		OSyncList *list = osync_load_versions_from_descriptions(&err);
 		if (!list) {
 			if (!raise_exception_on_error(err))
 				wrapper_exception("osync_load_versions_from_descriptions failed but did not set error code");
 			return NULL;
 		}
-		return osynclist_to_pylist(list, SWIGTYPE_p_OSyncVersion);
+		return osynclist_to_pylist(list, SWIGTYPE_p_Version);
 	}
 %}
 
-typedef struct {} OSyncVersion;
-
-%feature("ref")   OSyncVersion "osync_version_ref($this);"
-%feature("unref") OSyncVersion "osync_version_unref($this);"
-
-%extend OSyncVersion {
-	OSyncVersion(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} Version;
+%extend Version {
+	Version(PyObject *obj) {
+		Version *ver = PyCObject_AsVoidPtr(obj);
+		osync_version_ref(ver);
+		return ver;
 	}
 
-	OSyncVersion() {
-		OSyncError *err = NULL;
-		OSyncVersion *version = osync_version_new(&err);
+	Version() {
+		Error *err = NULL;
+		Version *version = osync_version_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return version;
+	}
+
+	~Version() {
+		osync_version_unref(self);
 	}
 
 	char *get_plugin() {
@@ -90,8 +88,8 @@ typedef struct {} OSyncVersion;
 		osync_version_set_identifier(self, identifier);
 	}
 
-	int matches(OSyncVersion *pattern) {
-		OSyncError *err = NULL;
+	int matches(Version *pattern) {
+		Error *err = NULL;
 		int ret = osync_version_matches(pattern, self, &err);
 		if (!raise_exception_on_error(err) && ret == -1)
 			wrapper_exception("osync_version_matches failed but did not set error code");

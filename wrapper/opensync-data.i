@@ -1,15 +1,17 @@
-%{
-#include <opensync/opensync-data.h>
-%}
+typedef enum {} ConvCmpResult;
 
-typedef struct {} OSyncData;
+%constant int CONV_DATA_UNKNOWN = OSYNC_CONV_DATA_UNKNOWN;
+%constant int CONV_DATA_MISMATCH = OSYNC_CONV_DATA_MISMATCH;
+%constant int CONV_DATA_SIMILAR = OSYNC_CONV_DATA_SIMILAR;
+%constant int CONV_DATA_SAME = OSYNC_CONV_DATA_SAME;
 
-%feature("ref")   OSyncData "osync_data_ref($this);"
-%feature("unref") OSyncData "osync_data_unref($this);"
 
-%extend OSyncData {
-	OSyncData(PyObject *obj) {
-		return (OSyncData *)PyCObject_AsVoidPtr(obj);
+typedef struct {} Data;
+%extend Data {
+	Data(PyObject *obj) {
+		Data *data = PyCObject_AsVoidPtr(obj);
+		osync_data_ref(data);
+		return data;
 	}
 
 	/* FIXME: cstring_input_binary is broken in my version of swig, so I've recreated it here */
@@ -20,20 +22,24 @@ typedef struct {} OSyncData;
 			%argument_fail(res, "(char *buf, unsigned int size)", $symname, $argnum);
 		}
 	}
-	OSyncData(char *buf, unsigned int size, OSyncObjFormat *format) {
-		OSyncError *err = NULL;
-		OSyncData *data = osync_data_new(buf, size, format, &err);
+	Data(char *buf, unsigned int size, ObjFormat *format) {
+		Error *err = NULL;
+		Data *data = osync_data_new(buf, size, format, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return data;
 	}
 
-	OSyncObjFormat *get_objformat() {
+	~Data() {
+		osync_data_unref(self);
+	}
+
+	ObjFormat *get_objformat() {
 		return osync_data_get_objformat(self);
 	}
 
-	void set_objformat(OSyncObjFormat *objformat) {
+	void set_objformat(ObjFormat *objformat) {
 		osync_data_set_objformat(self, objformat);
 	}
 
@@ -60,20 +66,20 @@ typedef struct {} OSyncData;
 		osync_data_set_data(self, buffer, size);
 	}
 
-	osync_bool has_data() {
+	bool has_data() {
 		return osync_data_has_data(self);
 	}
 
-	OSyncData *clone() {
-		OSyncError *err = NULL;
-		OSyncData *data = osync_data_clone(self, &err);
+	Data *clone() {
+		Error *err = NULL;
+		Data *data = osync_data_clone(self, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return data;
 	}
 
-	OSyncConvCmpResult compare(OSyncData *data) {
+	ConvCmpResult compare(Data *data) {
 		return osync_data_compare(self, data);
 	}
 
@@ -82,7 +88,7 @@ typedef struct {} OSyncData;
 	}
 
 	time_t get_revision() {
-		OSyncError *err = NULL;
+		Error *err = NULL;
 		time_t ret = osync_data_get_revision(self, &err);
 		if (raise_exception_on_error(err))
 			return -1;
@@ -99,23 +105,34 @@ typedef struct {} OSyncData;
 };
 
 
-typedef struct {} OSyncChange;
+typedef enum {} ChangeType;
 
-%feature("ref")   OSyncChange "osync_change_ref($this);"
-%feature("unref") OSyncChange "osync_change_unref($this);"
+%constant int CHANGE_TYPE_UNKNOWN = OSYNC_CHANGE_TYPE_UNKNOWN;
+%constant int CHANGE_TYPE_ADDED = OSYNC_CHANGE_TYPE_ADDED;
+%constant int CHANGE_TYPE_UNMODIFIED = OSYNC_CHANGE_TYPE_UNMODIFIED;
+%constant int CHANGE_TYPE_DELETED = OSYNC_CHANGE_TYPE_DELETED;
+%constant int CHANGE_TYPE_MODIFIED = OSYNC_CHANGE_TYPE_MODIFIED;
 
-%extend OSyncChange {
-	OSyncChange(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+
+typedef struct {} Change;
+%extend Change {
+	Change(PyObject *obj) {
+		Change *change = PyCObject_AsVoidPtr(obj);
+		osync_change_ref(change);
+		return change;
 	}
 
-	OSyncChange() {
-		OSyncError *err = NULL;
-		OSyncChange *change = osync_change_new(&err);
+	Change() {
+		Error *err = NULL;
+		Change *change = osync_change_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return change;
+	}
+
+	~Change() {
+		osync_change_unref(self);
 	}
 
 	void set_hash(const char *hash) {
@@ -134,36 +151,36 @@ typedef struct {} OSyncChange;
 		return osync_change_get_uid(self);
 	}
 	
-	void set_changetype(OSyncChangeType changetype) {
+	void set_changetype(ChangeType changetype) {
 		osync_change_set_changetype(self, changetype);
 	}
 	
-	OSyncChangeType get_changetype() {
+	ChangeType get_changetype() {
 		return osync_change_get_changetype(self);
 	}
 
-	void set_data(OSyncData *data) {
+	void set_data(Data *data) {
 		osync_change_set_data(self, data);
 	}
 
-	OSyncData *get_data() {
+	Data *get_data() {
 		return osync_change_get_data(self);
 	}
 
-	OSyncConvCmpResult compare(OSyncChange *change) {
+	ConvCmpResult compare(Change *change) {
 		return osync_change_compare(self, change);
 	}
 
-	osync_bool duplicate() {
-		OSyncError *err = NULL;
-		osync_bool dirty = FALSE;
-		osync_bool ret = osync_change_duplicate(self, &dirty, &err);
+	bool duplicate() {
+		Error *err = NULL;
+		bool dirty = FALSE;
+		bool ret = osync_change_duplicate(self, &dirty, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_change_duplicate failed but did not set error code");
 		return dirty;
 	}
 
-	OSyncObjFormat *get_objformat() {
+	ObjFormat *get_objformat() {
 		return osync_change_get_objformat(self);
 	}
 

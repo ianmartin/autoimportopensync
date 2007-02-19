@@ -1,31 +1,27 @@
-%{
-#include <opensync/opensync-context.h>
-%}
-
-typedef struct {} OSyncContext;
-
-%feature("ref")   OSyncContext "osync_context_ref($this);"
-%feature("unref") OSyncContext "osync_context_unref($this);"
-
-%extend OSyncContext {
-	OSyncContext(PyObject *obj) {
-		OSyncContext *context = PyCObject_AsVoidPtr(obj);
+typedef struct {} Context;
+%extend Context {
+	Context(PyObject *obj) {
+		Context *context = PyCObject_AsVoidPtr(obj);
 		osync_context_ref(context);
 		return context;
 	}
 
-	OSyncContext() {
-		OSyncError *err = NULL;
-		OSyncContext *context = osync_context_new(&err);
+	Context() {
+		Error *err = NULL;
+		Context *context = osync_context_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return context;
 	}
 
+	~Context() {
+		osync_context_unref(self);
+	}
+
 	/* TODO: set_{,changes,warning}_callback */
 
-	void report_error(OSyncErrorType type, const char *msg) {
+	void report_error(ErrorType type, const char *msg) {
 		osync_context_report_error(self, type, "%s", msg);
 	}
 
@@ -33,15 +29,15 @@ typedef struct {} OSyncContext;
 		osync_context_report_success(self);
 	}
 
-	void report_osyncerror(OSyncError *error) {
+	void report_osyncerror(Error *error) {
 		osync_context_report_osyncerror(self, error);
 	}
 
-	void report_osyncwarning(OSyncError *error) {
+	void report_osyncwarning(Error *error) {
 		osync_context_report_osyncwarning(self, error);
 	}
 
-	void report_change(OSyncChange *change) {
+	void report_change(Change *change) {
 		osync_context_report_change(self, change);
 	}
 };

@@ -1,32 +1,30 @@
-%{
-#include <opensync/opensync-plugin.h>
-%}
-
-typedef enum {} OSyncConfigurationType;
+typedef enum {} ConfigurationType;
 
 %constant int PLUGIN_NO_CONFIGURATION = OSYNC_PLUGIN_NO_CONFIGURATION;
 %constant int PLUGIN_OPTIONAL_CONFIGURATION = OSYNC_PLUGIN_OPTIONAL_CONFIGURATION;
 %constant int PLUGIN_NEEDS_CONFIGURATION = OSYNC_PLUGIN_NEEDS_CONFIGURATION;
 
 
-typedef struct {} OSyncPlugin;
-
-%feature("ref")   OSyncPlugin "osync_plugin_ref($this);"
-%feature("unref") OSyncPlugin "osync_plugin_unref($this);"
-
-%extend OSyncPlugin {
-	OSyncPlugin(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} Plugin;
+%extend Plugin {
+	Plugin(PyObject *obj) {
+		Plugin *plugin = PyCObject_AsVoidPtr(obj);
+		osync_plugin_ref(plugin);
+		return plugin;
 	}
 
-	OSyncPlugin() {
-		OSyncError *err = NULL;
-		OSyncPlugin *plugin = osync_plugin_new(&err);
+	Plugin() {
+		Error *err = NULL;
+		Plugin *plugin = osync_plugin_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return plugin;
 		}
+
+	~Plugin() {
+		osync_plugin_unref(self);
+	}
 
 	const char *get_name() {
 		return osync_plugin_get_name(self);
@@ -52,16 +50,16 @@ typedef struct {} OSyncPlugin;
 		osync_plugin_set_description(self, description);
 	}
 
-	OSyncConfigurationType get_config_type() {
+	ConfigurationType get_config_type() {
 		return osync_plugin_get_config_type(self);
 	}
 
-	void set_config_type(OSyncConfigurationType config_type) {
+	void set_config_type(ConfigurationType config_type) {
 		osync_plugin_set_config_type(self, config_type);
 	}
 
-	void *initialize(OSyncPluginInfo *info) {
-		OSyncError *err = NULL;
+	void *initialize(PluginInfo *info) {
+		Error *err = NULL;
 		void *ret = osync_plugin_initialize(self, info, &err);
 		raise_exception_on_error(err);
 		return ret;
@@ -71,16 +69,16 @@ typedef struct {} OSyncPlugin;
 		osync_plugin_finalize(self, data);
 	}
 
-	void discover(void *data, OSyncPluginInfo *info) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_plugin_discover(self, data, info, &err);
+	void discover(void *data, PluginInfo *info) {
+		Error *err = NULL;
+		bool ret = osync_plugin_discover(self, data, info, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_plugin_discover failed but did not set error code");
 	}
 
-	osync_bool is_usable() {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_plugin_is_usable(self, &err);
+	bool is_usable() {
+		Error *err = NULL;
+		bool ret = osync_plugin_is_usable(self, &err);
 		raise_exception_on_error(err);
 		return ret;
 	}
@@ -95,45 +93,45 @@ typedef struct {} OSyncPlugin;
 };
 
 
-typedef struct {} OSyncPluginEnv;
-
-%extend OSyncPluginEnv {
-	OSyncPluginEnv(PyObject *obj) {
+typedef struct {} PluginEnv;
+%extend PluginEnv {
+	PluginEnv(PyObject *obj) {
 		return PyCObject_AsVoidPtr(obj);
 	}
 
-	OSyncPluginEnv() {
-		OSyncError *err = NULL;
-		OSyncPluginEnv *env = osync_plugin_env_new(&err);
+	PluginEnv() {
+		Error *err = NULL;
+		PluginEnv *env = osync_plugin_env_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return env;
 	}
 
-	~OSyncPluginEnv() {
-		osync_plugin_env_free(self);
+	~PluginEnv() {
+		/* FIXME: need to free here, but only if we created it! */
+		/* osync_plugin_env_free(self); */
 	}
 	
 	void load(const char *path) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_plugin_env_load(self, path, &err);
+		Error *err = NULL;
+		bool ret = osync_plugin_env_load(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_plugin_env_load failed but did not set error code");
 	}
 
-	void register_plugin(OSyncPlugin *plugin) {
+	void register_plugin(Plugin *plugin) {
 		osync_plugin_env_register_plugin(self, plugin);
 	}
 	
 	void load_module(const char *filename) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_plugin_env_load_module(self, filename, &err);
+		Error *err = NULL;
+		bool ret = osync_plugin_env_load_module(self, filename, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_plugin_env_load_module failed but did not set error code");
 	}
 
-	OSyncPlugin *find_plugin(const char *name) {
+	Plugin *find_plugin(const char *name) {
 		return osync_plugin_env_find_plugin(self, name);
 	}
 	
@@ -141,40 +139,46 @@ typedef struct {} OSyncPluginEnv;
 		return osync_plugin_env_num_plugins(self);
 	}
 
-	OSyncPlugin *nth_plugin(int nth) {
+	Plugin *nth_plugin(int nth) {
 		return osync_plugin_env_nth_plugin(self, nth);
 	}
 
-	osync_bool plugin_is_usable(const char *pluginname) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_plugin_env_plugin_is_usable(self, pluginname, &err);
+	bool plugin_is_usable(const char *pluginname) {
+		Error *err = NULL;
+		bool ret = osync_plugin_env_plugin_is_usable(self, pluginname, &err);
 		raise_exception_on_error(err);
 		return ret;
 	}
 
 %pythoncode %{
-	num_plugins = property(num_plugins)
+	# map the nth_plugin() function to a list of all plugins
+	# FIXME: ideally, this should be an iterator, and should allow appending etc.
+	def plugins(self):
+		return [self.nth_plugin(n) for n in range(self.num_plugins())]
+	plugins = property(plugins)
 %}
 };
 
 
-typedef struct {} OSyncPluginInfo;
-
-%feature("ref")   OSyncPlugin "osync_plugin_info_ref($this);"
-%feature("unref") OSyncPlugin "osync_plugin_info_unref($this);"
-
-%extend OSyncPluginInfo {
-	OSyncPluginInfo(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} PluginInfo;
+%extend PluginInfo {
+	PluginInfo(PyObject *obj) {
+		PluginInfo *info = PyCObject_AsVoidPtr(obj);
+		osync_plugin_info_ref(info);
+		return info;
 	}
 
-	OSyncPluginInfo() {
-		OSyncError *err = NULL;
-		OSyncPluginInfo *info = osync_plugin_info_new(&err);
+	PluginInfo() {
+		Error *err = NULL;
+		PluginInfo *info = osync_plugin_info_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return info;
+	}
+
+	~PluginInfo() {
+		osync_plugin_info_unref(self);
 	}
 
 	void set_loop(void *loop) {
@@ -201,11 +205,11 @@ typedef struct {} OSyncPluginInfo;
 		return osync_plugin_info_get_configdir(self);
 	}
 
-	OSyncObjTypeSink *find_objtype(const char *name) {
+	ObjTypeSink *find_objtype(const char *name) {
 		return osync_plugin_info_find_objtype(self, name);
 	}
 
-	void add_objtype(OSyncObjTypeSink *sink) {
+	void add_objtype(ObjTypeSink *sink) {
 		osync_plugin_info_add_objtype(self, sink);
 	}
 
@@ -213,31 +217,31 @@ typedef struct {} OSyncPluginInfo;
 		return osync_plugin_info_num_objtypes(self);
 	}
 
-	OSyncObjTypeSink *nth_objtype(int nth) {
+	ObjTypeSink *nth_objtype(int nth) {
 		return osync_plugin_info_nth_objtype(self, nth);
 	}
 
-	OSyncObjTypeSink *get_main_sink() {
+	ObjTypeSink *get_main_sink() {
 		return osync_plugin_info_get_main_sink(self);
 	}
 
-	void set_main_sink(OSyncObjTypeSink *sink) {
+	void set_main_sink(ObjTypeSink *sink) {
 		osync_plugin_info_set_main_sink(self, sink);
 	}
 
-	OSyncFormatEnv *get_format_env() {
+	FormatEnv *get_format_env() {
 		return osync_plugin_info_get_format_env(self);
 	}
 
-	void set_format_env(OSyncFormatEnv *env) {
+	void set_format_env(FormatEnv *env) {
 		osync_plugin_info_set_format_env(self, env);
 	}
 
-	OSyncObjTypeSink *get_sink() {
+	ObjTypeSink *get_sink() {
 		return osync_plugin_info_get_sink(self);
 	}
 
-	void set_sink(OSyncObjTypeSink *sink) {
+	void set_sink(ObjTypeSink *sink) {
 		osync_plugin_info_set_sink(self, sink);
 	}
 
@@ -249,19 +253,19 @@ typedef struct {} OSyncPluginInfo;
 		return osync_plugin_info_get_groupname(self);
 	}
 
-	void set_version(OSyncVersion *version) {
+	void set_version(Version *version) {
 		osync_plugin_info_set_version(self, version);
 	}
 
-	OSyncVersion *get_version() {
+	Version *get_version() {
 		return osync_plugin_info_get_version(self);
 	}
 
-	void set_capabilities(OSyncCapabilities *capabilities) {
+	void set_capabilities(Capabilities *capabilities) {
 		osync_plugin_info_set_capabilities(self, capabilities);
 	}
 
-	OSyncCapabilities *get_capabilities() {
+	Capabilities *get_capabilities() {
 		return osync_plugin_info_get_capabilities(self);
 	}
 
@@ -269,34 +273,56 @@ typedef struct {} OSyncPluginInfo;
 	loop = property(get_loop, set_loop)
 	config = property(get_config, set_config)
 	configdir = property(get_configdir, set_configdir)
-	num_objtypes = property(num_objtypes)
 	main_sink = property(get_main_sink, set_main_sink)
 	format_env = property(get_format_env, set_format_env)
 	sink = property(get_sink, set_sink)
 	groupname = property(get_groupname, set_groupname)
 	version = property(get_version, set_version)
 	capabilities = property(get_capabilities, set_capabilities)
+
+	# map the nth_objtype() function to a list of all objtypes
+	# FIXME: ideally, this should be an iterator, and should allow appending etc.
+	def objtypes(self):
+		return [self.nth_objtype(n) for n in range(self.num_objtypes())]
+	objtypes = property(objtypes)
 %}
 }
 
 
-typedef struct {} OSyncObjTypeSink;
-
-%feature("ref")   OSyncObjTypeSink "osync_objtype_sink_ref($this);"
-%feature("unref") OSyncObjTypeSink "osync_objtype_sink_unref($this);"
-
-%extend OSyncObjTypeSink {
-	OSyncObjTypeSink(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
+typedef struct {} ObjTypeSink;
+%extend ObjTypeSink {
+	ObjTypeSink(PyObject *obj) {
+		ObjTypeSink *sink = PyCObject_AsVoidPtr(obj);
+		osync_objtype_sink_ref(sink);
+		return sink;
 	}
 
-	OSyncObjTypeSink(const char *objtype) {
-		OSyncError *err = NULL;
-		OSyncObjTypeSink *sink = osync_objtype_sink_new(objtype, &err);
+	/* create new sink object
+	 * when using the python-module plugin, the second argument is 
+	 * the python object that will get callbacks for this sink */
+	ObjTypeSink(const char *objtype, PyObject *wrapper = NULL) {
+		Error *err = NULL;
+		ObjTypeSink *sink = osync_objtype_sink_new(objtype, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
-		else
-			return sink;
+
+		/* set userdata pointer to supplied python wrapper object */
+		if (wrapper) {
+			OSyncObjTypeSinkFunctions functions;
+			Py_INCREF(wrapper);
+			memset(&functions, 0, sizeof(functions));
+			osync_objtype_sink_set_functions(sink, functions, wrapper);
+		}
+
+		return sink;
+	}
+
+	~ObjTypeSink() {
+		PyObject *wrapper = osync_objtype_sink_get_userdata(self);
+		if (wrapper) {
+			Py_DECREF(wrapper);
+		}
+		osync_objtype_sink_unref(self);
 	}
 
 	const char *get_name() {
@@ -329,71 +355,71 @@ typedef struct {} OSyncObjTypeSink;
 		return osync_objtype_sink_get_userdata(self);
 	}
 
-	void get_changes(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx) {
+	void get_changes(void *plugindata, PluginInfo *info, Context *ctx) {
 		osync_objtype_sink_get_changes(self, plugindata, info, ctx);
 	}
 
-	void read_change(void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx) {
+	void read_change(void *plugindata, PluginInfo *info, Change *change, Context *ctx) {
 		osync_objtype_sink_read_change(self, plugindata, info, change, ctx);
 	}
 
-	void connect(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx) {
+	void connect(void *plugindata, PluginInfo *info, Context *ctx) {
 		osync_objtype_sink_connect(self, plugindata, info, ctx);
 	}
 
-	void disconnect(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx) {
+	void disconnect(void *plugindata, PluginInfo *info, Context *ctx) {
 		osync_objtype_sink_disconnect(self, plugindata, info, ctx);
 	}
 
-	void sync_done(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx) {
+	void sync_done(void *plugindata, PluginInfo *info, Context *ctx) {
 		osync_objtype_sink_sync_done(self, plugindata, info, ctx);
 	}
 
-	void commit_change(void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx) {
+	void commit_change(void *plugindata, PluginInfo *info, Change *change, Context *ctx) {
 		osync_objtype_sink_commit_change(self, plugindata, info, change, ctx);
 	}
 
-	void committed_all(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx) {
+	void committed_all(void *plugindata, PluginInfo *info, Context *ctx) {
 		osync_objtype_sink_committed_all(self, plugindata, info, ctx);
 	}
 
-	osync_bool is_enabled() {
+	bool is_enabled() {
 		return osync_objtype_sink_is_enabled(self);
 	}
 
-	void set_enabled(osync_bool enabled) {
+	void set_enabled(bool enabled) {
 		osync_objtype_sink_set_enabled(self, enabled);
 	}
 
-	osync_bool is_available() {
+	bool is_available() {
 		return osync_objtype_sink_is_available(self);
 	}
 
-	void set_available(osync_bool available) {
+	void set_available(bool available) {
 		osync_objtype_sink_set_available(self, available);
 	}
 
-	osync_bool get_write() {
+	bool get_write() {
 		return osync_objtype_sink_get_write(self);
 	}
 
-	void set_write(osync_bool write) {
+	void set_write(bool write) {
 		osync_objtype_sink_set_write(self, write);
 	}
 
-	osync_bool get_read() {
+	bool get_read() {
 		return osync_objtype_sink_get_read(self);
 	}
 
-	void set_read(osync_bool read) {
+	void set_read(bool read) {
 		osync_objtype_sink_set_read(self, read);
 	}
 
-	osync_bool get_slowsync() {
+	bool get_slowsync() {
 		return osync_objtype_sink_get_slowsync(self);
 	}
 
-	void set_slowsync(osync_bool slowsync) {
+	void set_slowsync(bool slowsync) {
 		osync_objtype_sink_set_slowsync(self, slowsync);
 	}
 

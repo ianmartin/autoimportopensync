@@ -1,43 +1,39 @@
-%{
-#include <opensync/opensync-group.h>
-%}
-
-typedef struct {} OSyncGroupEnv;
-
-%extend OSyncGroupEnv {
-	OSyncGroupEnv(PyObject *obj) {
+typedef struct {} GroupEnv;
+%extend GroupEnv {
+	GroupEnv(PyObject *obj) {
 		return PyCObject_AsVoidPtr(obj);
 	}
 
-	OSyncGroupEnv() {
-		OSyncError *err = NULL;
-		OSyncGroupEnv *env = osync_group_env_new(&err);
+	GroupEnv() {
+		Error *err = NULL;
+		GroupEnv *env = osync_group_env_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return env;
 	}
 
-	~OSyncGroupEnv() {
-		osync_group_env_free(self);
+	~GroupEnv() {
+		/* FIXME: need to free here, but only if we created it! */
+		/* osync_group_env_free(self); */
 	}
 
 	void load_groups(const char *path) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_group_env_load_groups(self, path, &err);
+		Error *err = NULL;
+		bool ret = osync_group_env_load_groups(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_group_env_load_groups failed but did not set error code");
 	}
 
-	OSyncGroup *find_group(const char *name) {
+	Group *find_group(const char *name) {
 		return osync_group_env_find_group(self, name);
 	}
 
-	void add_group(OSyncGroup *group) {
+	void add_group(Group *group) {
 		osync_group_env_add_group(self, group);
 	}
 
-	void remove_group(OSyncGroup *group) {
+	void remove_group(Group *group) {
 		osync_group_env_remove_group(self, group);
 	}
 
@@ -45,7 +41,7 @@ typedef struct {} OSyncGroupEnv;
 		return osync_group_env_num_groups(self);
 	}
 
-	OSyncGroup *nth_group(int nth) {
+	Group *nth_group(int nth) {
 		return osync_group_env_nth_group(self, nth);
 	}
 
@@ -54,32 +50,40 @@ typedef struct {} OSyncGroupEnv;
 %}
 }
 
-enum OSyncLockState {};
+enum LockState {};
 %constant int LOCK_OK = OSYNC_LOCK_OK;
 %constant int LOCKED = OSYNC_LOCKED;
 %constant int LOCK_STALE = OSYNC_LOCK_STALE;
 
-typedef struct {} OSyncGroup;
+enum ConflictResolution ();
+%constant int CONFLICT_RESOLUTION_UNKNOWN = OSYNC_CONFLICT_RESOLUTION_UNKNOWN;
+%constant int CONFLICT_RESOLUTION_DUPLICATE = OSYNC_CONFLICT_RESOLUTION_DUPLICATE;
+%constant int CONFLICT_RESOLUTION_IGNORE = OSYNC_CONFLICT_RESOLUTION_IGNORE;
+%constant int CONFLICT_RESOLUTION_NEWER = OSYNC_CONFLICT_RESOLUTION_NEWER;
+%constant int CONFLICT_RESOLUTION_SELECT = OSYNC_CONFLICT_RESOLUTION_SELECT;
 
-%feature("ref")   OSyncGroup "osync_group_ref($this);"
-%feature("unref") OSyncGroup "osync_group_unref($this);"
-
-%extend OSyncGroup {
-	OSyncGroup(PyObject *obj) {
-		OSyncGroup *group = PyCObject_AsVoidPtr(obj);
+typedef struct {} Group;
+%extend Group {
+	Group(PyObject *obj) {
+		Group *group = PyCObject_AsVoidPtr(obj);
+		osync_group_ref(group);
 		return group;
 	}
 
-	OSyncGroup() {
-		OSyncError *err = NULL;
-		OSyncGroup *group = osync_group_new(&err);
+	Group() {
+		Error *err = NULL;
+		Group *group = osync_group_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return group;
 	}
 
-	OSyncLockState lock() {
+	~Group() {
+		osync_group_unref(self);
+	}
+
+	LockState lock() {
 		return osync_group_lock(self);
 	}
 
@@ -96,46 +100,46 @@ typedef struct {} OSyncGroup;
 	}
 
 	void save() {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_group_save(self, &err);
+		Error *err = NULL;
+		bool ret = osync_group_save(self, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_group_save failed but did not set error code");
 	}
 
 	void delete() {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_group_delete(self, &err);
+		Error *err = NULL;
+		bool ret = osync_group_delete(self, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_group_delete failed but did not set error code");
 	}
 
 	void reset() {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_group_reset(self, &err);
+		Error *err = NULL;
+		bool ret = osync_group_reset(self, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_group_reset failed but did not set error code");
 	}
 
 	void load(const char *path) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_group_load(self, path, &err);
+		Error *err = NULL;
+		bool ret = osync_group_load(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_group_load failed but did not set error code");
 	}
 
-	void add_member(OSyncMember *member) {
+	void add_member(Member *member) {
 		osync_group_add_member(self, member);
 	}
 
-	void remove_member(OSyncMember *member) {
+	void remove_member(Member *member) {
 		osync_group_remove_member(self, member);
 	}
 
-	OSyncMember *find_member(int id) {
+	Member *find_member(int id) {
 		return osync_group_find_member(self, id);
 	}
 
-	OSyncMember *nth_member(int nth) {
+	Member *nth_member(int nth) {
 		return osync_group_nth_member(self, nth);
 	}
 
@@ -159,7 +163,7 @@ typedef struct {} OSyncGroup;
 		return osync_group_nth_objtype(self, nth);
 	}
 
-	void set_objtype_enabled(const char *objtype, osync_bool enabled) {
+	void set_objtype_enabled(const char *objtype, bool enabled) {
 		osync_group_set_objtype_enabled(self, objtype, enabled);
 	}
 
@@ -167,11 +171,11 @@ typedef struct {} OSyncGroup;
 		return osync_group_objtype_enabled(self, objtype);
 	}
 
-	void add_filter(OSyncFilter *filter) {
+	void add_filter(Filter *filter) {
 		osync_group_add_filter(self, filter);
 	}
 
-	void remove_filter(OSyncFilter *filter) {
+	void remove_filter(Filter *filter) {
 		osync_group_remove_filter(self, filter);
 	}
 
@@ -179,7 +183,7 @@ typedef struct {} OSyncGroup;
 		return osync_group_num_filters(self);
 	}
 
-	OSyncFilter *nth_filter(int nth) {
+	Filter *nth_filter(int nth) {
 		return osync_group_nth_filter(self, nth);
 	}
 
@@ -191,13 +195,13 @@ typedef struct {} OSyncGroup;
 		return osync_group_get_last_synchronization(self);
 	}
 
-	void set_conflict_resolution(OSyncConflictResolution res, int num) {
+	void set_conflict_resolution(ConflictResolution res, int num) {
 		osync_group_set_conflict_resolution(self, res, num);
 	}
 
-	%apply OSyncConflictResolution *OUTPUT { OSyncConflictResolution *res, int *num };
-	%apply int *OUTPUT { OSyncConflictResolution *res, int *num };
-	void get_conflict_resolution(OSyncConflictResolution *res, int *num) {
+	%apply ConflictResolution *OUTPUT { ConflictResolution *res, int *num };
+	%apply int *OUTPUT { ConflictResolution *res, int *num };
+	void get_conflict_resolution(ConflictResolution *res, int *num) {
 		osync_group_get_conflict_resolution(self, res, num);
 	}
 
@@ -211,24 +215,34 @@ typedef struct {} OSyncGroup;
 %}
 }
 
-typedef struct {} OSyncMember;
 
-%feature("ref")   OSyncMember "osync_member_ref($this);"
-%feature("unref") OSyncMember "osync_member_unref($this);"
+typedef enum {} StartType;
 
-%extend OSyncMember {
-	OSyncMember(PyObject *obj) {
-		OSyncMember *member = PyCObject_AsVoidPtr(obj);
+%constant int START_TYPE_UNKNOWN = OSYNC_START_TYPE_UNKNOWN;
+%constant int START_TYPE_PROCESS = OSYNC_START_TYPE_PROCESS;
+%constant int START_TYPE_THREAD = OSYNC_START_TYPE_THREAD;
+%constant int START_TYPE_EXTERNAL = OSYNC_START_TYPE_EXTERNAL;
+
+
+typedef struct {} Member;
+%extend Member {
+	Member(PyObject *obj) {
+		Member *member = PyCObject_AsVoidPtr(obj);
+		osync_member_ref(member);
 		return member;
 	}
 
-	OSyncMember() {
-		OSyncError *err = NULL;
-		OSyncMember *member = osync_member_new(&err);
+	Member() {
+		Error *err = NULL;
+		Member *member = osync_member_new(&err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
 			return member;
+	}
+	
+	~Member() {
+		osync_member_unref(self);
 	}
 
 	const char *get_pluginname() {
@@ -248,7 +262,7 @@ typedef struct {} OSyncMember;
 	}
 
 	const char *get_config_or_default() {
-		OSyncError *err = NULL;
+		Error *err = NULL;
 		const char *ret = osync_member_get_config_or_default(self, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
@@ -256,12 +270,12 @@ typedef struct {} OSyncMember;
 			return ret;
 	}
 
-	osync_bool has_config() {
+	bool has_config() {
 		return osync_member_has_config(self);
 	}
 
 	const char *get_config() {
-		OSyncError *err = NULL;
+		Error *err = NULL;
 		const char *ret = osync_member_get_config(self, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
@@ -274,22 +288,22 @@ typedef struct {} OSyncMember;
 	}
 
 	void load(const char *path) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_member_load(self, path, &err);
+		Error *err = NULL;
+		bool ret = osync_member_load(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_member_load failed but did not set error code");
 	}
 
 	void save() {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_member_save(self, &err);
+		Error *err = NULL;
+		bool ret = osync_member_save(self, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_member_save failed but did not set error code");
 	}
 
 	void delete() {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_member_delete(self, &err);
+		Error *err = NULL;
+		bool ret = osync_member_delete(self, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_member_delete failed but did not set error code");
 	}
@@ -304,7 +318,7 @@ typedef struct {} OSyncMember;
 
 	/* returns a list of strings */
 	PyObject *get_objformats(const char *objtype) {
-		OSyncError *err = NULL;
+		Error *err = NULL;
 		const OSyncList *list = osync_member_get_objformats(self, objtype, &err);
 		if (raise_exception_on_error(err) || list == NULL)
 			return NULL;
@@ -324,35 +338,39 @@ typedef struct {} OSyncMember;
 		return osync_member_nth_objtype(self, nth);
 	}
 
-	osync_bool objtype_enabled(const char *objtype) {
+	bool objtype_enabled(const char *objtype) {
 		return osync_member_objtype_enabled(self, objtype);
 	}
 
-	void set_objtype_enabled(const char *objtype, osync_bool enabled) {
+	void set_objtype_enabled(const char *objtype, bool enabled) {
 		osync_member_set_objtype_enabled(self, objtype, enabled);
 	}
 
-	void set_start_type(OSyncStartType type) {
+	void set_start_type(StartType type) {
 		osync_member_set_start_type(self, type);
 	}
 
-	OSyncStartType get_start_type() {
+	StartType get_start_type() {
 		return osync_member_get_start_type(self);
 	}
 
-	OSyncCapabilities *get_capabilities() {
+	Capabilities *get_capabilities() {
 		return osync_member_get_capabilities(self);
 	}
 
-	void set_capabilities(OSyncCapabilities *capabilities) {
-		OSyncError *err = NULL;
-		osync_bool ret = osync_member_set_capabilities(self, capabilities, &err);
+	void set_capabilities(Capabilities *capabilities) {
+		Error *err = NULL;
+		bool ret = osync_member_set_capabilities(self, capabilities, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_member_set_capabilities failed but did not set error code");
 	}
 
-	OSyncMerger *get_merger() {
+	Merger *get_merger() {
 		return osync_member_get_merger(self);
+	}
+
+	void flush_objtypes() {
+		osync_member_flush_objtypes(self);
 	}
 
 	%pythoncode %{
