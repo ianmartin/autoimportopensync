@@ -25,12 +25,65 @@ SOFTWARE IS DISCLAIMED.
  */
 
 #include <dlfcn.h>
+#include <string.h>
 
 #include "osyncbase.h"
 
-static KdePluginImplementationBase *impl_object_for_context(OSyncContext *ctx)
+
+static void kde_finalize(void *userdata)
 {
-	return (KdePluginImplementationBase *)osync_context_get_plugin_data(ctx);
+//	osync_debug("kde", 3, "%s()", __FUNCTION__);
+
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata;
+	delete impl_object;
+}
+
+static void kde_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase*)userdata;
+	impl_object->connect(info, ctx);
+}
+
+
+static void kde_disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata;
+	impl_object->disconnect(info, ctx);
+}
+
+static void kde_get_changeinfo(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase*)userdata;
+//	osync_debug("kde", 3, "%s",__FUNCTION__);
+
+	impl_object->get_changeinfo(info, ctx);
+}
+
+static void kde_sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata;
+
+//	osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+	impl_object->sync_done(info, ctx);
+}
+
+static void kde_vcard_commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata; 
+
+//	osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+	impl_object->vcard_commit_change(info, ctx, change);
+}
+
+static osync_bool kde_vcard_access(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata;
+
+//	osync_debug("kde", 3, "%s()",__FUNCTION__);
+
+	impl_object->vcard_access(info, ctx, change);
 }
 
 /** Load actual plugin implementation
@@ -68,66 +121,34 @@ static void *kde_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
 	if (!impl_object)
 		goto error;
 
+	do {
+		OSyncObjTypeSink *sink = osync_objtype_sink_new("contact", error);
+		if (!sink)
+			goto error;
+
+		osync_objtype_sink_add_objformat(sink, "vcard30");
+
+		/* Every sink can have different functions ... */
+		OSyncObjTypeSinkFunctions functions;
+		memset(&functions, 0, sizeof(functions));
+		functions.connect = kde_connect;
+		functions.disconnect = kde_disconnect;
+		functions.get_changes = kde_get_changeinfo;
+		functions.commit = kde_vcard_commit_change;
+		functions.sync_done = kde_sync_done;
+
+		/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
+		 * again once the functions are called */
+		osync_objtype_sink_set_functions(sink, functions, impl_object);
+		osync_plugin_info_add_objtype(info, sink);
+
+	} while(0);
+
+
 	/* Return the created object to the sync engine */
 	return (void*)impl_object;
 error:
 	return NULL;
-}
-
-static void kde_finalize(void *data)
-{
-//	osync_debug("kde", 3, "%s()", __FUNCTION__);
-
-	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)data;
-	delete impl_object;
-}
-
-static void kde_connect(OSyncContext *ctx)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-	impl_object->connect(ctx);
-}
-
-
-static void kde_disconnect(OSyncContext *ctx)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-	impl_object->disconnect(ctx);
-}
-
-static void kde_get_changeinfo(OSyncContext *ctx)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-//	osync_debug("kde", 3, "%s",__FUNCTION__);
-
-	impl_object->get_changeinfo(ctx);
-}
-
-static void kde_sync_done(OSyncContext *ctx)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-//	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	impl_object->sync_done(ctx);
-}
-
-static osync_bool kde_vcard_commit_change(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-//	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->vcard_commit_change(ctx, change);
-}
-
-static osync_bool kde_vcard_access(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-//	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->vcard_access(ctx, change);
 }
 
 extern "C"
@@ -147,40 +168,22 @@ static osync_bool kde_discover(void *data, OSyncPluginInfo *info, OSyncError **e
 	return TRUE;
 }
 
-osync_bool get_sync_info(OSyncEnv *env, OSyncError **error) {
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error) {
 
-	//OSyncPluginInfo *info = osync_plugin_new_info(env);
 	OSyncPlugin *plugin = osync_plugin_new(error);
 	if (!plugin)
 		goto error;
 
-	//info->version = 1;
-	//now in int get_version(void);
-
-	//info->name = "kdepim-sync";
 	osync_plugin_set_name(plugin, "kdepim-sync");
-	//info->longname = "KDE Desktop";
 	osync_plugin_set_longname(plugin, "KDE Desktop");
-	//info->description = "Plugin for the KDE 3.5 Desktop";
 	osync_plugin_set_description(plugin, "Plugin for the KDE 3.5 Desktop");
 
-	//info->config_type = NO_CONFIGURATION;
 	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_NO_CONFIGURATION);
 
-	//info->functions.initialize = kde_initialize;
 	osync_plugin_set_initialize(plugin, kde_initialize);
-	
-	//info->functions.connect = kde_connect;
-	//now in initialize
-	//info->functions.disconnect = kde_disconnect;
-	//now in finalize
-
-	//info->functions.finalize = kde_finalize;
 	osync_plugin_set_finalize(plugin, kde_finalize);
 	osync_plugin_set_discover(plugin, kde_discover);
-	
-	info->functions.get_changeinfo = kde_get_changeinfo;
-	info->functions.sync_done = kde_sync_done;
+
 
 	osync_plugin_env_register_plugin(env, plugin);
 	osync_plugin_unref(plugin);

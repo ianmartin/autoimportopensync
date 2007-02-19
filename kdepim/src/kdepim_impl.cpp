@@ -42,16 +42,15 @@ SOFTWARE IS DISCLAIMED.
 
 #include "osyncbase.h"
 #include "kaddrbook.h"
-#include "kcal.h"
-#include "knotes.h"
+//#include "kcal.h"
+//#include "knotes.h"
 static bool sentinal = false;
 
 class KdePluginImplementation: public KdePluginImplementationBase
 {
 	public:
-		KdePluginImplementation( OSyncMember *member )
-				: mMember( member ),
-				mApplication( 0 ),
+		KdePluginImplementation(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+				: mApplication( 0 ),
 				mNewApplication( false )
 		{}
 
@@ -83,13 +82,15 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			sentinal = true;
 		}
 
-		bool init(OSyncError **error)
+		bool init(OSyncPluginInfo *info, OSyncError **error)
 		{
 			osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
 
 			initKDE();
 
-			mHashtable = osync_hashtable_new();
+			OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+			QString tablepath = QString("%1/hashtable.db").arg(osync_plugin_info_get_configdir(info));
+			mHashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
 
 			mKaddrbook = new KContactDataSource(mMember, mHashtable);
 
@@ -108,19 +109,13 @@ class KdePluginImplementation: public KdePluginImplementationBase
 				osync_hashtable_free(mHashtable);
 		}
 
-		virtual void connect(OSyncContext *ctx)
+		virtual void connect(OSyncPluginInfo * /*info*/, OSyncContext *ctx)
 		{
 			osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 
-			OSyncError *error = NULL;
-			if ( !osync_hashtable_load(mHashtable, mMember, &error) ) {
-				osync_context_report_osyncerror(ctx, &error);
-				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-				osync_error_free(&error);
-				return;
-			}
+//			OSyncError *error = NULL;
 
-			if (mKaddrbook && osync_member_objtype_enabled(mMember, "contact") && \
+			if (mKaddrbook && \
 			        !mKaddrbook->connect(ctx)) {
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open addressbook", __func__);
 				return;
@@ -130,10 +125,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			osync_trace(TRACE_EXIT, "%s", __func__);
 		}
 
-		virtual void disconnect(OSyncContext *ctx)
+		virtual void disconnect(OSyncPluginInfo * /*info*/, OSyncContext *ctx)
 		{
-			osync_hashtable_close(mHashtable);
-
 			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->disconnect(ctx))
 				return;
 
@@ -141,23 +134,24 @@ class KdePluginImplementation: public KdePluginImplementationBase
 		}
 
 
-		virtual void sync_done(OSyncContext *ctx)
+		virtual void sync_done(OSyncPluginInfo *info, OSyncContext *ctx)
 		{
 			if (mKaddrbook && mKaddrbook->connected)
 			{
-				osync_anchor_update(mMember, "contact", "true");
+				QString anchorpath = QString("%1/anchor.db").arg(osync_plugin_info_get_configdir(info));
+				osync_anchor_update(anchorpath, "contact", "true");
 			}
 			osync_context_report_success(ctx);
 		}
 
-		virtual void get_changeinfo(OSyncContext *ctx)
+		virtual void get_changeinfo(OSyncPluginInfo * /*info*/, OSyncContext *ctx)
 		{
 			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(ctx))
 				return;
 			osync_context_report_success(ctx);
 		}
 
-		virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg)
+		virtual bool vcard_access(OSyncPluginInfo * /*info*/, OSyncContext *ctx, OSyncChange *chg)
 		{
 			if (mKaddrbook)
 				return mKaddrbook->vcard_access(ctx, chg);
@@ -168,7 +162,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			return true;
 		}
 
-		virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg)
+		virtual bool vcard_commit_change(OSyncPluginInfo * /*info*/, OSyncContext *ctx, OSyncChange *chg)
 		{
 			if (mKaddrbook)
 				return mKaddrbook->vcard_commit_change(ctx, chg);
@@ -194,7 +188,7 @@ extern "C"
 
 	KdePluginImplementationBase *new_KdePluginImplementation(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error) {
 		KdePluginImplementation *imp = new KdePluginImplementation(plugin, info, error);
-		if (!imp->init(error)) {
+		if (!imp->init(info, error)) {
 			delete imp;
 			return 0;
 		}

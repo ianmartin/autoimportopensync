@@ -23,15 +23,15 @@ typedef struct OSyncKDEEnv {
 class KdePluginImplementationBase
 {
 	public:
-		virtual void connect(OSyncContext *ctx) = 0;
-		virtual void disconnect(OSyncContext *ctx) = 0;
+		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
+		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
 
-		virtual void get_changeinfo(OSyncContext *ctx) = 0;
+		virtual void get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
 
-		virtual void sync_done(OSyncContext *ctx) = 0;
+		virtual void sync_done(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
 
-		virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg) = 0;
-		virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
+		virtual bool vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg) = 0;
+		virtual bool vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg) = 0;
 
 
 		/* The declaration above seemed to be necessary just because the
