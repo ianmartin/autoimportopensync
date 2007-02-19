@@ -32,16 +32,18 @@ SOFTWARE IS DISCLAIMED.
 
 static void kde_finalize(void *userdata)
 {
-//	osync_debug("kde", 3, "%s()", __FUNCTION__);
-
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, userdata);
 	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata;
 	delete impl_object;
+	osync_trace(TRACE_EXIT, "%s(%p)", __func__, userdata);
 }
 
 static void kde_connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
 	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase*)userdata;
 	impl_object->connect(info, ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 
@@ -96,6 +98,8 @@ static osync_bool kde_vcard_access(void *userdata, OSyncPluginInfo *info, OSyncC
  */
 static void *kde_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
+
 	KdeImplInitFunc init_func;
 	KdePluginImplementationBase *impl_object;
 	void *module;
@@ -122,11 +126,11 @@ static void *kde_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
 		goto error;
 
 	do {
-		OSyncObjTypeSink *sink = osync_objtype_sink_new("contact", error);
-		if (!sink)
+		impl_object->contact_sink = osync_objtype_sink_new("contact", error);
+		if (!impl_object->contact_sink)
 			goto error;
 
-		osync_objtype_sink_add_objformat(sink, "vcard30");
+		osync_objtype_sink_add_objformat(impl_object->contact_sink, "vcard30");
 
 		/* Every sink can have different functions ... */
 		OSyncObjTypeSinkFunctions functions;
@@ -139,15 +143,18 @@ static void *kde_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
 
 		/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
 		 * again once the functions are called */
-		osync_objtype_sink_set_functions(sink, functions, impl_object);
-		osync_plugin_info_add_objtype(info, sink);
+		osync_objtype_sink_set_functions(impl_object->contact_sink, functions, impl_object);
+		osync_plugin_info_add_objtype(info, impl_object->contact_sink);
 
 	} while(0);
 
 
 	/* Return the created object to the sync engine */
 	return (void*)impl_object;
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, impl_object);
+
 error:
+	osync_trace(TRACE_EXIT_ERROR,  "%s: NULL", __func__);
 	return NULL;
 }
 
@@ -156,13 +163,13 @@ extern "C"
 
 /* Here we actually tell opensync which sinks are available. For this plugin, we
  * go through the list of directories and enable all, since all have been configured */
-static osync_bool kde_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+static osync_bool kde_discover(void *userdata, OSyncPluginInfo *info, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, error);
 	
-	OSyncKDEEnv *env = (OSyncKDEEnv *)data;
+	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)userdata;
 
-	osync_objtype_sink_set_available(env->contact_sink, TRUE);
+	osync_objtype_sink_set_available(impl_object->contact_sink, TRUE);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;

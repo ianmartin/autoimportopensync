@@ -88,9 +88,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 			initKDE();
 
-			OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+			contact_sink = osync_objtype_sink_new("contact", error);
+
 			QString tablepath = QString("%1/hashtable.db").arg(osync_plugin_info_get_configdir(info));
-			mHashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), error);
+			mHashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(contact_sink), error);
 
 			mKaddrbook = new KContactDataSource(mHashtable);
 
