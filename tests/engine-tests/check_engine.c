@@ -136,7 +136,7 @@ static void get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -398,7 +398,7 @@ static void main_get_changes2(void *data, OSyncPluginInfo *info, OSyncContext *c
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize_multi(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize_multi(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -777,7 +777,7 @@ static void main_sync_done3(void *data, OSyncPluginInfo *info, OSyncContext *ctx
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize_order(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize_order(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -1003,7 +1003,7 @@ static void main_disconnect4(void *data, OSyncPluginInfo *info, OSyncContext *ct
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize_reuse(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize_reuse(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -1298,7 +1298,7 @@ static void commit_change5(void *data, OSyncPluginInfo *info, OSyncContext *ctx,
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize5(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize5(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -1483,7 +1483,7 @@ static void get_changes6(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize6(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize6(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -1671,7 +1671,7 @@ static void get_changes7(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize7(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize7(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 

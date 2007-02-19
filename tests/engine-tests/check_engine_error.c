@@ -300,7 +300,7 @@ static void get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void *initialize_error(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize_error(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -310,7 +310,7 @@ static void *initialize_error(OSyncPluginInfo *info, OSyncError **error)
 	return NULL;
 }
 
-static void *initialize(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
@@ -342,7 +342,7 @@ error:
 	return NULL;
 }
 
-static void *initialize_connect_error(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize_connect_error(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
