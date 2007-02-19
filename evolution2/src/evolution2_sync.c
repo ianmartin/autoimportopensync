@@ -202,7 +202,7 @@ static osync_bool evo2_parse_settings(OSyncEvoEnv *env, const char *data, OSyncE
 
 /* In initialize, we get the config for the plugin. Here we also must register
  * all _possible_ objtype sinks. */
-static void *evo2_initialize(OSyncPluginInfo *info, OSyncError **error)
+static void *evo2_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 
