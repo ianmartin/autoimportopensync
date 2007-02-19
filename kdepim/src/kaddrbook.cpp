@@ -188,7 +188,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 
 	OSyncChangeType chtype = osync_change_get_changetype(chg);
 	switch(chtype) {
-		case CHANGE_MODIFIED: {
+		case OSYNC_CHANGE_TYPE_MODIFIED: {
 			KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
 
 			// ensure it has the correct UID and revision
@@ -204,7 +204,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit());
 			break;
 		}
-		case CHANGE_ADDED: {
+		case OSYNC_CHANGE_TYPE_ADDED: {
 			KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
 
 			// ensure it has the correct revision
@@ -220,7 +220,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", (const char *)addressee.uid().local8Bit());
 			break;
 		}
-		case CHANGE_DELETED: {
+		case OSYNC_CHANGE_TYPE_DELETED: {
 			if (uid.isEmpty()) {
 				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Trying to delete entry with empty UID");
 				osync_trace(TRACE_EXIT_ERROR, "%s: Trying to delete but uid is empty", __func__);

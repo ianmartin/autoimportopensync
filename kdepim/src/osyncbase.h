@@ -24,14 +24,6 @@ class KdePluginImplementationBase
 		virtual bool vcard_access(OSyncContext *ctx, OSyncChange *chg) = 0;
 		virtual bool vcard_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
 
-		virtual bool event_access(OSyncContext *ctx, OSyncChange *chg) = 0;
-		virtual bool event_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
-
-		virtual bool todo_access(OSyncContext *ctx, OSyncChange *chg) = 0;
-		virtual bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
-
-		virtual bool note_access(OSyncContext *ctx, OSyncChange *chg) = 0;
-		virtual bool note_commit_change(OSyncContext *ctx, OSyncChange *chg) = 0;
 
 		/* The declaration above seemed to be necessary just because the
 		 * KdePluginImplementation destructor wasn't being called

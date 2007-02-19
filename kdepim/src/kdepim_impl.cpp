@@ -63,10 +63,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			KAboutData aboutData(
 			    "libopensync-kdepim-plugin",         // internal program name
 			    "OpenSync-KDE-plugin",               // displayable program name.
-			    "0.1",                               // version string
+			    "0.2",                               // version string
 			    "OpenSync KDEPIM plugin",            // short porgram description
 			    KAboutData::License_GPL,             // license type
-			    "(c) 2005, Eduardo Pereira Habkost", // copyright statement
+			    "(c) 2005, Eduardo Pereira Habkost, (c)", // copyright statement
 			    0,                                   // any free form text
 			    "http://www.opensync.org",           // program home page address
 			    "http://www.opensync.org/newticket"  // bug report email address
@@ -91,8 +91,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 			mHashtable = osync_hashtable_new();
 
-			mKcal = new KCalDataSource(mMember, mHashtable);
-			mKnotes = new KNotesDataSource(mMember, mHashtable);
 			mKaddrbook = new KContactDataSource(mMember, mHashtable);
 
 			osync_trace(TRACE_EXIT, "%s", __func__);
@@ -101,12 +99,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 		virtual ~KdePluginImplementation()
 		{
-			delete mKcal;
-			mKcal = 0;
-
-			delete mKnotes;
-			mKnotes = 0;
-
 			if ( mNewApplication ) {
 				delete mApplication;
 				mApplication = 0;
@@ -128,19 +120,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 				return;
 			}
 
-
-			if (mKcal && (osync_member_objtype_enabled(mMember, "todo") ||
-			              osync_member_objtype_enabled(mMember, "event")) && !mKcal->connect(ctx)) {
-				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open calendar", __func__);
-				return;
-			}
-
-			if (mKnotes && osync_member_objtype_enabled(mMember, "note") && \
-			        !mKnotes->connect(ctx)) {
-				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open notes", __func__);
-				return;
-			}
-
 			if (mKaddrbook && osync_member_objtype_enabled(mMember, "contact") && \
 			        !mKaddrbook->connect(ctx)) {
 				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open addressbook", __func__);
@@ -155,10 +134,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 		{
 			osync_hashtable_close(mHashtable);
 
-			if (mKcal && mKcal->connected && !mKcal->disconnect(ctx))
-				return;
-			if (mKnotes && mKnotes->connected && !mKnotes->disconnect(ctx))
-				return;
 			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->disconnect(ctx))
 				return;
 
@@ -172,24 +147,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			{
 				osync_anchor_update(mMember, "contact", "true");
 			}
-
-			if (mKcal && mKcal->connected &&
-				 osync_member_objtype_enabled(mMember, "event"))
-			{
-				osync_anchor_update(mMember, "event", "true");
-			}
-
-			if (mKcal && mKcal->connected &&
-				 osync_member_objtype_enabled(mMember, "todo"))
-			{
-				osync_anchor_update(mMember, "todo", "true");
-			}
-
-			if (mKnotes && mKnotes->connected)
-			{
-				osync_anchor_update(mMember, "note", "true");
-			}
-
 			osync_context_report_success(ctx);
 		}
 
@@ -197,20 +154,6 @@ class KdePluginImplementation: public KdePluginImplementationBase
 		{
 			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(ctx))
 				return;
-
-			if (mKcal && mKcal->connected &&
-				osync_member_objtype_enabled(mMember, "event") &&
-				 !mKcal->get_changeinfo_events(ctx))
-				return;
-
-			if (mKcal && mKcal->connected &&
-				 osync_member_objtype_enabled(mMember, "todo") &&
-				 !mKcal->get_changeinfo_todos(ctx))
-				return;
-
-			if (mKnotes && mKnotes->connected && !mKnotes->get_changeinfo(ctx))
-				return;
-
 			osync_context_report_success(ctx);
 		}
 
@@ -235,76 +178,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			}
 			return true;
 		}
-
-		virtual bool event_access(OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKcal)
-				return mKcal->event_access(ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
-				return false;
-			}
-			return true;
-		}
-
-		virtual bool event_commit_change(OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKcal)
-				return mKcal->event_commit_change(ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
-				return false;
-			}
-			return true;
-		}
-
-		virtual bool todo_access(OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKcal)
-				return mKcal->todo_access(ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
-				return false;
-			}
-			return true;
-		}
-
-		virtual bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKcal)
-				return mKcal->todo_commit_change(ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No calendar loaded");
-				return false;
-			}
-			return true;
-		}
-
-		virtual bool note_access(OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKnotes)
-				return mKnotes->access(ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No notes loaded");
-				return false;
-			}
-			return true;
-		}
-
-		virtual bool note_commit_change(OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKnotes)
-				return mKnotes->commit_change(ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No notes loaded");
-				return false;
-			}
-			return true;
-		}
-
 	private:
-		KCalDataSource *mKcal;
-		KNotesDataSource *mKnotes;
 		KContactDataSource *mKaddrbook;
 
 		OSyncHashTable *mHashtable;
@@ -318,8 +192,8 @@ class KdePluginImplementation: public KdePluginImplementationBase
 extern "C"
 {
 
-	KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **error) {
-		KdePluginImplementation *imp = new KdePluginImplementation(member);
+	KdePluginImplementationBase *new_KdePluginImplementation(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error) {
+		KdePluginImplementation *imp = new KdePluginImplementation(plugin, info, error);
 		if (!imp->init(error)) {
 			delete imp;
 			return 0;

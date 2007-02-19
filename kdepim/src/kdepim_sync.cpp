@@ -21,6 +21,7 @@ SOFTWARE IS DISCLAIMED.
 *************************************************************************/
 /**
  * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * edit Matthias Jahn <jahn.matthias@freenet.de>
  */
 
 #include <dlfcn.h>
@@ -40,7 +41,7 @@ static KdePluginImplementationBase *impl_object_for_context(OSyncContext *ctx)
  *
  * @see KdePluginImplementationBase
  */
-static void *kde_initialize(OSyncMember *member, OSyncError **e)
+static void *kde_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	KdeImplInitFunc init_func;
 	KdePluginImplementationBase *impl_object;
@@ -129,100 +130,71 @@ static osync_bool kde_vcard_access(OSyncContext *ctx, OSyncChange *change)
 	return impl_object->vcard_access(ctx, change);
 }
 
-static osync_bool kde_event_commit_change(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->event_commit_change(ctx, change);
-}
-
-static osync_bool kde_event_access(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->event_access(ctx, change);
-}
-
-static osync_bool kde_todo_commit_change(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->todo_commit_change(ctx, change);
-}
-
-static osync_bool kde_todo_access(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->todo_access(ctx, change);
-}
-
-static osync_bool kde_note_commit_change(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->note_commit_change(ctx, change);
-}
-
-static osync_bool kde_note_access(OSyncContext *ctx, OSyncChange *change)
-{
-	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
-
-	return impl_object->note_access(ctx, change);
-}
-
 extern "C"
 {
-	void get_info(OSyncEnv *env) {
-		OSyncPluginInfo *info = osync_plugin_new_info(env);
-		info->version = 1;
-		info->name = "kdepim-sync";
-		/*FIXME: i18n */
-		info->longname = "KDE Desktop";
-		info->description = "Plugin for the KDE 3.5 Desktop";
-		info->config_type = NO_CONFIGURATION;
 
-		info->functions.initialize = kde_initialize;
-		info->functions.connect = kde_connect;
-		info->functions.disconnect = kde_disconnect;
-		info->functions.finalize = kde_finalize;
-		info->functions.get_changeinfo = kde_get_changeinfo;
-		info->functions.sync_done = kde_sync_done;
+/* Here we actually tell opensync which sinks are available. For this plugin, we
+ * go through the list of directories and enable all, since all have been configured */
+static osync_bool kde_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	
+	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
 
-		osync_plugin_accept_objtype(info, "contact");
-		osync_plugin_accept_objformat(info, "contact", "vcard30", "kde");
-		osync_plugin_set_commit_objformat(info, "contact", "vcard30", kde_vcard_commit_change);
-		osync_plugin_set_access_objformat(info, "contact", "vcard30", kde_vcard_access);
-		osync_plugin_accept_objformat(info, "contact", "vcard21", "kde");
-		osync_plugin_set_commit_objformat(info, "contact", "vcard21", kde_vcard_commit_change);
-		osync_plugin_set_access_objformat(info, "contact", "vcard21", kde_vcard_access);
+	osync_objtype_sink_set_available(env->contact_sink, TRUE);
 
-		osync_plugin_accept_objtype(info, "event");
-		osync_plugin_accept_objformat(info, "event", "vevent20", "kde");
-		osync_plugin_set_commit_objformat(info, "event", "vevent20", kde_event_commit_change);
-		osync_plugin_set_access_objformat(info, "event", "vevent20", kde_event_access);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
 
-		osync_plugin_accept_objtype(info, "todo");
-		osync_plugin_accept_objformat(info, "todo", "vtodo20", "kde");
-		osync_plugin_set_commit_objformat(info, "todo", "vtodo20", kde_todo_commit_change);
-		osync_plugin_set_access_objformat(info, "todo", "vtodo20", kde_todo_access);
+osync_bool get_sync_info(OSyncEnv *env, OSyncError **error) {
 
-		osync_plugin_accept_objtype(info, "note");
-		osync_plugin_accept_objformat(info, "note", "xml-note", NULL);
-		osync_plugin_set_commit_objformat(info, "note", "xml-note", kde_note_commit_change);
-		osync_plugin_set_access_objformat(info, "note", "xml-note", kde_note_access);
-	}
+	//OSyncPluginInfo *info = osync_plugin_new_info(env);
+	OSyncPlugin *plugin = osync_plugin_new(error);
+	if (!plugin)
+		goto error;
+
+	//info->version = 1;
+	//now in int get_version(void);
+
+	//info->name = "kdepim-sync";
+	osync_plugin_set_name(plugin, "kdepim-sync");
+	//info->longname = "KDE Desktop";
+	osync_plugin_set_longname(plugin, "KDE Desktop");
+	//info->description = "Plugin for the KDE 3.5 Desktop";
+	osync_plugin_set_description(plugin, "Plugin for the KDE 3.5 Desktop");
+
+	//info->config_type = NO_CONFIGURATION;
+	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_NO_CONFIGURATION);
+
+	//info->functions.initialize = kde_initialize;
+	osync_plugin_set_initialize(plugin, kde_initialize);
+	
+	//info->functions.connect = kde_connect;
+	//now in initialize
+	//info->functions.disconnect = kde_disconnect;
+	//now in finalize
+
+	//info->functions.finalize = kde_finalize;
+	osync_plugin_set_finalize(plugin, kde_finalize);
+	osync_plugin_set_discover(plugin, kde_discover);
+	
+	info->functions.get_changeinfo = kde_get_changeinfo;
+	info->functions.sync_done = kde_sync_done;
+
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
+}
+
+int get_version(void)
+{
+	return 1;
+}
 
 }// extern "C"

@@ -215,7 +215,7 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 	OSyncChangeType type = osync_change_get_changetype(chg);
 	osync_debug("kcal", 3, "%s", __FUNCTION__);
 	switch (type) {
-		case CHANGE_DELETED: {
+		case OSYNC_CHANGE_TYPE_DELETED: {
 			KCal::Incidence *e = calendar->incidence(osync_change_get_uid(chg));
 			if (!e) {
 				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Event not found while deleting");
@@ -224,8 +224,8 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 			calendar->deleteIncidence(e);
 			break;
 		}
-		case CHANGE_ADDED:
-		case CHANGE_MODIFIED: {
+		case OSYNC_CHANGE_TYPE_ADDED:
+		case OSYNC_CHANGE_TYPE_MODIFIED: {
 			KCal::ICalFormat format;
 
 			/* First, parse to a temporary calendar, because
@@ -257,7 +257,7 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 			KCal::Incidence::List evts = cal.incidences();
 			for (KCal::Incidence::List::ConstIterator i = evts.begin(); i != evts.end(); i++) {
 				KCal::Incidence *e = (*i)->clone();
-				if (type == CHANGE_MODIFIED)
+				if (type == OSYNC_CHANGE_TYPE_MODIFIED)
 					e->setUid(osync_change_get_uid(chg));
 
 				osync_debug("kcal", 3, "Writing incidence: uid: %s, summary: %s",
