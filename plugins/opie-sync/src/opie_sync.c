@@ -464,6 +464,7 @@ static OSyncChange *opie_sync_item_change_create(OpieSyncEnv *env, xmlDoc *doc, 
 	OSyncChange *change = osync_change_new();
 	if (!change)
 		goto error;
+	osync_change_set_member(change, env->member);
 	
 	const char *uidentry = NULL;
 	char *opie_uid = opie_xml_get_uid(node);
