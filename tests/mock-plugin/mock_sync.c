@@ -935,7 +935,7 @@ static mock_dir *find_dir(mock_env *env, const char *objtype)
 
 /* In initialize, we get the config for the plugin. Here we also must register
  * all _possible_ objtype sinks. */
-static void *initialize(OSyncPluginInfo *info, OSyncError **error)
+static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 

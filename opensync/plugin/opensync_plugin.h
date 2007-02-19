@@ -21,7 +21,7 @@
 #ifndef _OPENSYNC_PLUGIN_H_
 #define _OPENSYNC_PLUGIN_H_
 
-typedef void * (* initialize_fn) (OSyncPluginInfo *, OSyncError **);
+typedef void * (* initialize_fn) (OSyncPlugin *, OSyncPluginInfo *, OSyncError **);
 typedef void (* finalize_fn) (void *);
 typedef osync_bool (* discover_fn) (void *, OSyncPluginInfo *, OSyncError **);
 typedef osync_bool (* usable_fn) (OSyncError **);
@@ -59,6 +59,9 @@ OSYNC_EXPORT void osync_plugin_set_description(OSyncPlugin *plugin, const char *
 OSYNC_EXPORT void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init);
 OSYNC_EXPORT void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin);
 OSYNC_EXPORT void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn discover);
+
+OSYNC_EXPORT void *osync_plugin_get_data(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_set_data(OSyncPlugin *plugin, void *data);
 
 OSYNC_EXPORT void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
 OSYNC_EXPORT void osync_plugin_finalize(OSyncPlugin *plugin, void *data);

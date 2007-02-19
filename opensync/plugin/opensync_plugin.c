@@ -196,7 +196,7 @@ void osync_plugin_set_objtypes(OSyncPlugin *plugin, finalize_fn fin)
 void *osync_plugin_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_assert(plugin);
-	return plugin->initialize(info, error);
+	return plugin->initialize(plugin, info, error);
 }
 
 void osync_plugin_finalize(OSyncPlugin *plugin, void *data)
