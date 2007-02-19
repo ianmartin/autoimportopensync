@@ -47,24 +47,24 @@ static void *kde_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
 	KdePluginImplementationBase *impl_object;
 	void *module;
 
-	osync_debug("kde", 3, "%s", __FUNCTION__);
+//	osync_debug("kde", 3, "%s", __FUNCTION__);
 
-	osync_debug("kde", 3, "Loading implementation module");
+//	osync_debug("kde", 3, "Loading implementation module");
 	module = dlopen(KDEPIM_LIBDIR"/kdepim_lib.so", RTLD_NOW);
 	if (!module) {
-		osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module from %s: %s",
+		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "Can't load plugin implementation module from %s: %s",
 		                KDEPIM_LIBDIR"/kdepim_lib.so", dlerror());
 		goto error;
 	}
-	osync_debug("kde", 3, "Getting initialization function");
+//	osync_debug("kde", 3, "Getting initialization function");
 	init_func = (KdeImplInitFunc)dlsym(module, "new_KdePluginImplementation");
 	if (!init_func) {
-		osync_error_set(e, OSYNC_ERROR_INITIALIZATION, "Invalid plugin implementation module");
+		osync_error_set(error, OSYNC_ERROR_INITIALIZATION, "Invalid plugin implementation module");
 		goto error;
 	}
 
-	osync_debug("kde", 3, "Initializing implementation module");
-	impl_object = init_func(member, e);
+//	osync_debug("kde", 3, "Initializing implementation module");
+	impl_object = init_func(plugin, info, error);
 	if (!impl_object)
 		goto error;
 
@@ -76,7 +76,7 @@ error:
 
 static void kde_finalize(void *data)
 {
-	osync_debug("kde", 3, "%s()", __FUNCTION__);
+//	osync_debug("kde", 3, "%s()", __FUNCTION__);
 
 	KdePluginImplementationBase *impl_object = (KdePluginImplementationBase *)data;
 	delete impl_object;
@@ -98,7 +98,7 @@ static void kde_disconnect(OSyncContext *ctx)
 static void kde_get_changeinfo(OSyncContext *ctx)
 {
 	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
-	osync_debug("kde", 3, "%s",__FUNCTION__);
+//	osync_debug("kde", 3, "%s",__FUNCTION__);
 
 	impl_object->get_changeinfo(ctx);
 }
@@ -107,7 +107,7 @@ static void kde_sync_done(OSyncContext *ctx)
 {
 	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
 
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
+//	osync_debug("kde", 3, "%s()",__FUNCTION__);
 
 	impl_object->sync_done(ctx);
 }
@@ -116,7 +116,7 @@ static osync_bool kde_vcard_commit_change(OSyncContext *ctx, OSyncChange *change
 {
 	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
 
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
+//	osync_debug("kde", 3, "%s()",__FUNCTION__);
 
 	return impl_object->vcard_commit_change(ctx, change);
 }
@@ -125,7 +125,7 @@ static osync_bool kde_vcard_access(OSyncContext *ctx, OSyncChange *change)
 {
 	KdePluginImplementationBase *impl_object = impl_object_for_context(ctx);
 
-	osync_debug("kde", 3, "%s()",__FUNCTION__);
+//	osync_debug("kde", 3, "%s()",__FUNCTION__);
 
 	return impl_object->vcard_access(ctx, change);
 }
@@ -139,7 +139,7 @@ static osync_bool kde_discover(void *data, OSyncPluginInfo *info, OSyncError **e
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
-	OSyncEvoEnv *env = (OSyncEvoEnv *)data;
+	OSyncKDEEnv *env = (OSyncKDEEnv *)data;
 
 	osync_objtype_sink_set_available(env->contact_sink, TRUE);
 

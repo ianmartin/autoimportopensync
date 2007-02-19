@@ -79,7 +79,7 @@ bool KCalDataSource::connect(OSyncContext *ctx)
 		osync_member_set_slow_sync(member, "todo", TRUE);
 	}
 
-	osync_debug("kcal", 3, "Calendar: %d events", calendar->events().size());
+//	osync_debug("kcal", 3, "Calendar: %d events", calendar->events().size());
 
 	connected = true;
 	return true;
@@ -115,14 +115,14 @@ static QString calc_hash(const KCal::Incidence *e)
  */
 bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, const char *objtype, const char *objformat)
 {
-	osync_debug("kcal", 3, "One calendar incidence (%s)", objtype);
+//	osync_debug("kcal", 3, "One calendar incidence (%s)", objtype);
 	QString hash = calc_hash(e);
 
 	QString uid = e->uid();
 
 	/* Build a local calendar for the incidence data */
 	KCal::CalendarLocal cal(calendar->timeZoneId());
-	osync_debug("kcal", 3, "timezoneid: %s\n", (const char*)cal.timeZoneId().local8Bit());
+//	osync_debug("kcal", 3, "timezoneid: %s\n", (const char*)cal.timeZoneId().local8Bit());
 	cal.addIncidence(e->clone());
 
 	/* Convert the data to vcalendar */
@@ -130,7 +130,7 @@ bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, con
 	QCString datastr = format.toString(&cal).utf8();
 	const char *data = datastr;
 
-	osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
+//	osync_debug("kcal", 3, "UID: %s\n", (const char*)uid.local8Bit());
 	OSyncChange *chg = osync_change_new();
 	osync_change_set_uid(chg, uid.local8Bit());
 	osync_change_set_member(chg, member);
@@ -154,10 +154,10 @@ bool KCalDataSource::report_incidence(OSyncContext *ctx, KCal::Incidence *e, con
 bool KCalDataSource::get_changeinfo_events(OSyncContext *ctx)
 {
 	KCal::Event::List events = calendar->events();
-	osync_debug("kcal", 3, "Number of events: %d", events.size());
+//	osync_debug("kcal", 3, "Number of events: %d", events.size());
 
 	if (osync_member_get_slow_sync(member, "event")) {
-		osync_debug("kcal", 3, "Setting slow-sync for events");
+//		osync_debug("kcal", 3, "Setting slow-sync for events");
 		osync_hashtable_set_slow_sync(hashtable, "event");
 	}
 
@@ -183,15 +183,15 @@ bool KCalDataSource::get_changeinfo_todos(OSyncContext *ctx)
 {
 	KCal::Todo::List todos = calendar->todos();
 
-	osync_debug("kcal", 3, "Number of to-dos: %d", todos.size());
+//	osync_debug("kcal", 3, "Number of to-dos: %d", todos.size());
 
 	if (osync_member_get_slow_sync(member, "todo")) {
-		osync_debug("kcal", 3, "Setting slow-sync for todos");
+//		osync_debug("kcal", 3, "Setting slow-sync for todos");
 		osync_hashtable_set_slow_sync(hashtable, "todo");
 	}
 
 	for (KCal::Todo::List::ConstIterator i = todos.begin(); i != todos.end(); i++) {
-		osync_debug("kcal", 3, "%p: doesFloat: %d", *i, (*i)->doesFloat());
+//		osync_debug("kcal", 3, "%p: doesFloat: %d", *i, (*i)->doesFloat());
 		if (!report_incidence(ctx, *i, "todo", "vtodo20"))
 			return false;
 	}
@@ -213,7 +213,7 @@ void KCalDataSource::get_data(OSyncContext *ctx, OSyncChange *)
 bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 {
 	OSyncChangeType type = osync_change_get_changetype(chg);
-	osync_debug("kcal", 3, "%s", __FUNCTION__);
+//	osync_debug("kcal", 3, "%s", __FUNCTION__);
 	switch (type) {
 		case OSYNC_CHANGE_TYPE_DELETED: {
 			KCal::Incidence *e = calendar->incidence(osync_change_get_uid(chg));
@@ -260,7 +260,7 @@ bool KCalDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 				if (type == OSYNC_CHANGE_TYPE_MODIFIED)
 					e->setUid(osync_change_get_uid(chg));
 
-				osync_debug("kcal", 3, "Writing incidence: uid: %s, summary: %s",
+//				osync_debug("kcal", 3, "Writing incidence: uid: %s, summary: %s",
 						(const char*)e->uid().local8Bit(), (const char*)e->summary().local8Bit());
 
 				QString c_uid = e->uid().utf8();

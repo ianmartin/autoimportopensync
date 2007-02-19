@@ -45,7 +45,7 @@ QString KContactDataSource::calc_hash(KABC::Addressee &e)
 	//Get the revision date of the KDE addressbook entry.
 	//Regard entries with invalid revision dates as having just been changed.
 	QDateTime revdate = e.revision();
-	osync_debug("kde", 3, "Getting hash: %s", revdate.toString().data());
+//	osync_debug("kde", 3, "Getting hash: %s", revdate.toString().data());
 	if (!revdate.isValid()) {
 		revdate = QDateTime::currentDateTime();
 		e.setRevision(revdate);
@@ -201,7 +201,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 
 			QString hash = calc_hash(addressee);
 			osync_change_set_hash(chg, hash);
-			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit());
+//			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY UPDATED (UID=%s)", (const char *)uid.local8Bit());
 			break;
 		}
 		case OSYNC_CHANGE_TYPE_ADDED: {
@@ -217,7 +217,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 
 			QString hash = calc_hash(addressee);
 			osync_change_set_hash(chg, hash);
-			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", (const char *)addressee.uid().local8Bit());
+//			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY ADDED (UID=%s)", (const char *)addressee.uid().local8Bit());
 			break;
 		}
 		case OSYNC_CHANGE_TYPE_DELETED: {
@@ -232,7 +232,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			if(!addressee.isEmpty())
 				addressbookptr->removeAddressee(addressee);
 
-			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY DELETED (UID=%s)", (const char*)uid.local8Bit());
+//			osync_debug("kde", 3, "KDE ADDRESSBOOK ENTRY DELETED (UID=%s)", (const char*)uid.local8Bit());
 
 			break;
 		}

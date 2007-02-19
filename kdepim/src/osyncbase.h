@@ -4,7 +4,16 @@
 extern "C"
 {
 #include <opensync/opensync.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-helper.h>
 }
+
+typedef struct OSyncKDEEnv {
+	char *change_id;
+	OSyncObjTypeSink *contact_sink;
+} OSyncKDEEnv;
 /** Base class to OpenSync plugin.
  *
  * This class is used mainly for avoid loading the KDE libraries only
@@ -31,6 +40,6 @@ class KdePluginImplementationBase
 		virtual ~KdePluginImplementationBase() { };
 };
 
-typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncMember *m, OSyncError **e);
+typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
 
 #endif // KDEPIM_OSYNC_BASE_H

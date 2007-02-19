@@ -154,7 +154,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 	}
 
 	if (osync_member_get_slow_sync(member, "note")) {
-		osync_debug("kcal", 3, "Setting slow-sync for notes");
+//		osync_debug("kcal", 3, "Setting slow-sync for notes");
 		osync_hashtable_set_slow_sync(hashtable, "note");
 	}
 
@@ -164,12 +164,12 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 		 * "keeps" at least one
 		 */
 		if (kn_iface->text(i.key()) == "") {
-			osync_debug("knotes", 4, "Skipping empty note");
+//			osync_debug("knotes", 4, "Skipping empty note");
 			continue;
 		}
 
-		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
-		osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
+//		osync_debug("knotes", 4, "Note key: %s", (const char*)i.key().local8Bit());
+//		osync_debug("knotes", 4, "Note summary: %s", (const char*)i.data().local8Bit());
 		osync_trace(TRACE_INTERNAL, "reporting notes %s\n", (const char*)i.key().local8Bit());
 
 		QString uid = i.key();
@@ -206,7 +206,7 @@ bool KNotesDataSource::get_changeinfo(OSyncContext *ctx)
 		osync_change_set_objformat_string(chg, "xml-note");
 		osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
 
-		osync_debug("knotes", 4, "Reporting note:\%s", osync_change_get_printable(chg));
+//		osync_debug("knotes", 4, "Reporting note:\%s", osync_change_get_printable(chg));
 
 		// Use the hash table to check if the object
 		// needs to be reported
@@ -326,7 +326,7 @@ bool KNotesDataSource::__access(OSyncContext *ctx, OSyncChange *chg)
 		system("dcop knotes KNotesIface hideAllNotes");
 		QString asdasd = "dcop knotes KNotesIface killNote " + uid + " true";
 		system((const char*)asdasd.local8Bit());
-		osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
+//		osync_debug("knotes", 4, "Deleting note %s", (const char*)uid.local8Bit());
 		/*kn_iface->killNote(uid, true);
 		if (kn_iface->status() != DCOPStub::CallSucceeded) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Unable to delete note");
