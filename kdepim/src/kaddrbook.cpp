@@ -172,16 +172,22 @@ bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncCont
 		// Use the hash table to check if the object
 		// needs to be reported
 		osync_change_set_hash(change, hash.data());
+
 		OSyncChangeType changetype = osync_hashtable_get_changetype(hashtable, uid.local8Bit(), hash.data());
+		osync_change_set_changetype(change, changetype);
 		if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype) {
 			osync_context_report_change(ctx, change);
 			osync_hashtable_update_hash(hashtable, changetype, uid, hash.data());
 		}
 	}
 
+	// FIXME: the osync_hashtable_get_deleted reports _EVERYTHING_
+	// ... so really everything got deleted... i wonder how this worked for the file-sync plugin.
+	/*
 	int i;
 	char **uids = osync_hashtable_get_deleted(hashtable);
 	for (i=0; uids[i]; i++) {
+		osync_trace(TRACE_INTERNAL, "going to delete entry with uid: %s", uids[i]);
 		OSyncChange *change = osync_change_new(&error);
 		if (!change) {
 			g_free(uids[i]);
@@ -214,6 +220,7 @@ bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncCont
 		g_free(uids[i]);
 	}
 	g_free(uids);
+	*/
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return true;
