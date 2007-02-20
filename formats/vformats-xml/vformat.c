@@ -992,6 +992,15 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		} while (l < g_utf8_strlen(attr_str->str, attr_str->len));
 
 		attr_str = g_string_append (attr_str, CRLF);
+		/**
+		 * base64= <MIME RFC 1521 base64 text>
+		 * ; the end of the text is marked with two CRLF sequences
+		 * ; this results in one blank line before the start of the 
+		 *   next property
+		**/
+		if((!g_ascii_strcasecmp (attr->name, "PHOTO")) 
+		   && (type == VFORMAT_CARD_21))
+			attr_str = g_string_append (attr_str, CRLF);
 
 		str = g_string_append (str, attr_str->str);
 		g_string_free (attr_str, TRUE);
