@@ -3,7 +3,7 @@
  HIGHLY EXPERIMENTAL, USE AT YOUR OWN RISK!
 """
 
-# Copyright (C) 2006  Andrew Baumann <andrewb@cse.unsw.edu.au>
+# Copyright (C) 2006-2007  Andrew Baumann <andrewb@cse.unsw.edu.au>
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of version 2 of the GNU General Public License
@@ -367,23 +367,6 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     return (moto_type, exceptions)
 
 
-class OpenSyncError(Exception):
-    """Simple exception class carrying a message and an opensync error number.
-
-    These errors are reported back to opensync by the stdexceptions decorator
-    on SyncClass methods.
-    """
-    def __init__(self, msg, errnum=opensync.ERROR_GENERIC):
-        Exception.__init__(self)
-        self.msg = msg
-        self.num = errnum
-    def __str__(self):
-        return self.msg
-    def report(self, context):
-        """Report myself as an error to the given OSyncContext object."""
-        context.report_error(self.num, self.msg)
-
-
 class UnsupportedDataError(Exception):
     """Exception raised by PhoneEntry classes when the data cannot be stored."""
     def __init__(self, msg):
@@ -399,23 +382,33 @@ class PhoneComms:
     "device" may be either a path to a local device node, or a bluetooth MAC.
     """
     def __init__(self, device):
+        self.devstr = device
         self.__calendar_open = False
         self.__fd = self.__btsock = None
+        self.max_events = None
+        self.num_events = None
+        self.event_name_len = None
+        self.event_max_exceptions = None
+        self.min_contact_pos = None
+        self.max_contact_pos = None
+        self.contact_data_len = None
+        self.contact_name_len = None
 
-        if BT_MAC_RE.match(device):
+    def connect(self):
+        if BT_MAC_RE.match(self.devstr):
             assert(USE_BLUETOOTH_MODULE,
                    "MAC address specified, but pybluez module is not available")
             
             # search for the port to use on the device
             port = BT_DEFAULT_CHANNEL
-            found = bluetooth.find_service(name=BT_SERVICE_NAME, address=device)
+            found = bluetooth.find_service(name=BT_SERVICE_NAME, address=self.devstr)
             if found:
                 assert(found[0]['protocol'] == 'RFCOMM')
                 port = found[0]['port']
             self.__btsock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-            self.__btsock.connect((device, port))
+            self.__btsock.connect((self.devstr, port))
         else:
-            self.__fd = os.open(device, os.O_RDWR)
+            self.__fd = os.open(self.devstr, os.O_RDWR)
             if USE_TTY_MODULE:
                 tty.setraw(self.__fd)
             else:
@@ -442,12 +435,14 @@ class PhoneComms:
         self.contact_data_len = contactlen
         self.contact_name_len = namelen
 
-    def __del__(self):
+    def disconnect(self):
         self.close_calendar()
         if self.__fd:
             os.close(self.__fd)
+            self.__fd = None
         if self.__btsock:
             self.__btsock.close()
+            self.__btsock = None
 
     def read_serial(self):
         """read the phone's serial number (IMEI)"""
@@ -507,7 +502,7 @@ class PhoneComms:
             exceptions = {}
             for (expos, exnum, extype) in self.__parse_results('MDBRE', data):
                 if extype != 1: # haven't seen anything else
-                    raise OpenSyncError('unexpected exception type %d' % extype)
+                    raise opensync.Error('unexpected exception type %d' % extype)
                 if not exceptions.has_key(expos):
                     exceptions[expos] = []
                 exceptions[expos].append(exnum)
@@ -636,8 +631,8 @@ class PhoneComms:
             c = self.__readchar()
         debug('<-- ' + ret)
         if c == '': # EOF, shouldn't happen
-            raise OpenSyncError('Unexpected EOF talking to phone',
-                                opensync.ERROR_IO_ERROR)
+            raise opensync.Error('Unexpected EOF talking to phone',
+                                 opensync.ERROR_IO_ERROR)
         return ret
 
     def __do_cmd(self, cmd, reallydoit=True):
@@ -663,8 +658,8 @@ class PhoneComms:
         if line == 'OK':
             return ret
         else:
-            raise OpenSyncError("Error in phone command '%s'" % cmd,
-                                opensync.ERROR_IO_ERROR)
+            raise opensync.Error("Error in phone command '%s'" % cmd,
+                                 opensync.ERROR_IO_ERROR)
 
     def __parse_results(self, restype, lines):
         """extract results from a list of reply lines"""
@@ -1476,7 +1471,7 @@ class PosAllocator:
             while i in self.used:
                 i += 1
             if i > self.maxpos:
-                raise OpenSyncError('No %s positions free' % self.objtype)
+                raise opensync.Error('No %s positions free' % self.objtype)
             self.used.add(i)
             ret.append(i)
         return ret
@@ -1489,14 +1484,21 @@ class PhoneAccess:
      """
     def __init__(self, comms):
         self.comms = comms
+        self.serial = None
+        self.positions = {}
+        self.categories = {}
+        self.revcategories = {}
+
+    def connect(self):
+        self.comms.connect()
         self.serial = comms.read_serial()
 
         # check that the phone supports the features we need
         features = comms.read_features()
         for (bit, desc) in REQUIRED_FEATURES:
             if not features[bit]:
-                raise OpenSyncError(desc + ' feature not present',
-                                    opensync.ERROR_NOT_SUPPORTED)
+                raise opensync.Error(desc + ' feature not present',
+                                     opensync.ERROR_NOT_SUPPORTED)
 
         # read current time on the phone, check if it matches our local time
         # FIXME: allow the user to configure a different timezone for the phone
@@ -1506,10 +1508,9 @@ class PhoneAccess:
         if abs(time.mktime(phone_now) - time.mktime(local_now)) > 60 * 30:
             msg = ("ERROR: Phone appears to be in a different timezone!\n"
                    + "Phone time is %s" % time.strftime('%c', phone_now))
-            raise OpenSyncError(msg)
+            raise opensync.Error(msg)
 
         # initialise the position allocators
-        self.positions = {}
         self.positions['event'] = PosAllocator('event', 0,
                                                self.comms.max_events - 1)
         min_contact = max(self.comms.min_contact_pos, MOTO_QUICKDIAL_ENTRIES)
@@ -1517,11 +1518,12 @@ class PhoneAccess:
                                                  self.comms.max_contact_pos)
 
         # initialise the category mappings
-        self.categories = {}
-        self.revcategories = {}
         self.__init_categories()
 
-    def list_changes(self, objtype, member):
+    def disconnect(self):
+        self.comms.disconnect()
+
+    def list_changes(self, objtype, info):
         """Return a list of change objects for all entries of the given type."""
 
         if objtype == 'contact':
@@ -1541,7 +1543,7 @@ class PhoneAccess:
 
         ret = []
         for entry in entries:
-            change = opensync.OSyncChange()
+            change = opensync.Change()
             change.member = member
             change.objtype = objtype
             change.uid = self.__generate_uid(entry)
@@ -1576,8 +1578,8 @@ class PhoneAccess:
         """
         objtype = change.objtype
         if change.format != 'xml-%s-doc' % objtype:
-            raise OpenSyncError("unhandled data format %s" % change.format,
-                                opensync.ERROR_NOT_SUPPORTED)
+            raise opensync.Error("unhandled data format %s" % change.format,
+                                 opensync.ERROR_NOT_SUPPORTED)
         try:
             if objtype == 'event':
                 entry = PhoneEventXML(change.data)
@@ -1674,76 +1676,43 @@ class PhoneAccess:
         return objtype, positions
 
 
-def stdexceptions(func):
-    """Decorator used to wrap every method in SyncClass with the same
-    exception handlers. Reports any exception back to opensync as an error,
-    otherwise reports success.
-    """
-    def new_func(*args, **kwds):
-        """Invoke func, report success, otherwise report an error."""
+class MotoSink(opensync.ObjTypeSink):
+    """Event synchronisation class used by OpenSync."""
 
-        context = args[1] # context is always the first argument after 'self'
+    def __init__(self, objtype, info, access):
+        opensync.ObjTypeSink.__init__(self, objtype, self)
+        self.objtype = objtype
+        self.add_objformat("xml-%s-doc" % objtype)
+        self.access = access
+        hashpath = os.path.join(info.configdir, "%s-hash.db" % objtype)
+        self.hashtable = opensync.HashTable(hashpath, objtype)
 
-        # if the bluetooth module is present, handle its exceptions as IO errors
-        if USE_BLUETOOTH_MODULE:
-            ioerrors = (IOError, OSError, bluetooth.BluetoothError)
-        else:
-            ioerrors = (IOError, OSError)
-
-        try:
-            func(*args, **kwds)
-            context.report_success()
-        except OpenSyncError, e:
-            e.report(context)
-        except ioerrors, e:
-            context.report_error(opensync.ERROR_IO_ERROR, str(e))
-        except:
-            context.report_error(opensync.ERROR_GENERIC, traceback.format_exc())
-    new_func.func_name = func.func_name
-    return new_func
-
-
-class SyncClass:
-    """Synchronisation class used by OpenSync."""
-
-    def __init__(self, member):
-        self.member = member
-        self.comms = self.access = None
-        self.config = {}
-        self.__parse_config(self.member.config)
-        self.hashtable = opensync.OSyncHashTable()
-        if not self.hashtable.load(self.member):
-            raise OpenSyncError('hashtable load failed',
-                                opensync.ERROR_INITIALIZATION)
-
-    @stdexceptions
-    def connect(self, ctx):
+    def connect(self, info, ctx):
         """Connect to the phone."""
-        self.comms = PhoneComms(self.config['device'])
-        self.access = PhoneAccess(self.comms)
+        self.access.connect()
 
-    @stdexceptions
-    def get_changeinfo(self, ctx):
+    def get_changes(self, info, ctx):
         """Report all OSyncChange objects for entries on the phone."""
-        for objtype in SUPPORTED_OBJTYPES:
-            if self.member.objtype_enabled(objtype):
-                if self.member.get_slow_sync(objtype):
-                    self.hashtable.set_slow_sync(objtype)
+        if self.slowsink:
+            self.hashtable.reset()
+        for change in self.access.list_changes(self.objtype, info):
+            self.hashtable.report(change.uid)
+            change.changetype = self.hashtable.get_changetype(change.uid, change.hash)
+            if change.changetype != opensync.CHANGE_UNMODIFIED:
+                self.hashtable.update_hash(change.changetype, change.uid, change.hash)
+                ctx.report_change(change)
+        for uid in self.hashtable.get_deleted():
+            change = opensync.Change()
+            change.uid = uid
+            change.changetype = opensync.CHANGE_DELETED
+            ctx.report_change(change)
+            hashtable.update_hash(opensync.CHANGE_DELETED, uid, None)
 
-                for change in self.access.list_changes(objtype, self.member):
-                    self.hashtable.detect_change(change)
-                    if change.changetype != opensync.CHANGE_UNMODIFIED:
-                        change.report(ctx)
-                        self.hashtable.update_hash(change)
-
-                self.hashtable.report_deleted(ctx, objtype)
-
-    @stdexceptions
-    def commit_change(self, ctx, change):
+    def commit(self, info, ctx, change):
         """Write a change to the phone."""
-        if change.objtype not in SUPPORTED_OBJTYPES:
-            raise OpenSyncError('unsupported objtype %s' % change.objtype,
-                                opensync.ERROR_NOT_SUPPORTED)
+        if change.objtype != self.objtype:
+            raise opensync.Error('unsupported objtype %s' % change.objtype,
+                                 opensync.ERROR_NOT_SUPPORTED)
         if change.changetype == opensync.CHANGE_DELETED:
             success = (self.access.uid_seen(change.uid)
                        and self.access.delete_entry(change.uid))
@@ -1753,56 +1722,56 @@ class SyncClass:
             # if the UID has changed, we need to tell our hashtable that
             # the old one was deleted, to keep it consistent
             if (success and old_uid != change.uid):
-                fake_change = opensync.OSyncChange()
-                fake_change.uid = old_uid
-                fake_change.changetype = opensync.CHANGE_DELETED
-                self.hashtable.update_hash(fake_change)
+                self.hashtable.update_hash(opensync.CHANGE_DELETED, old_uid, None)
         else:
             success = self.access.update_entry(change)
         if success:
-            self.hashtable.update_hash(change)
+            self.hashtable.update_hash(change.changetype, change.uid, change.hash)
 
-    @stdexceptions
-    def sync_done(self, ctx):
+    def sync_done(self, info, ctx):
         """Called when the sync is complete."""
         self.hashtable.forget()
-
-    @stdexceptions
-    def disconnect(self, ctx):
-        """Called to disconnect from the phone."""
-        del self.access
-        del self.comms
-
-    def finalize(self):
-        """Called just before we are cleaned up."""
         self.hashtable.close()
-        del self.hashtable
-        del self.member
 
-    def __parse_config(self, configstr):
-        """Parse the config data and return a hash of config values."""
-        try:
-            doc = xml.dom.minidom.parseString(configstr)
-        except:
-            raise OpenSyncError('failed to parse config data',
-                                opensync.ERROR_MISCONFIGURATION)
-
-        self.config['device'] = getXMLField(doc, 'device').strip()
-        if self.config['device'] == '':
-            raise OpenSyncError('device not specified in config file',
-                                opensync.ERROR_MISCONFIGURATION)
+    def disconnect(self, info, ctx):
+        """Called to disconnect from the phone."""
+        self.access.disconnect()
 
 
-def initialize(member):
-    """Called by python-module plugin wrapper, returns instance of SyncClass."""
-    return SyncClass(member)
+def parse_config(configstr):
+    """Parse the config data and return the device string."""
+    try:
+        doc = xml.dom.minidom.parseString(configstr)
+    except:
+        raise opensync.Error('failed to parse config data',
+                             opensync.ERROR_MISCONFIGURATION)
 
-def get_info(info):
-    """Called by python-module plugin wrapper, returns plugin metadata."""
-    info.name = "moto-sync"
-    info.longname = "Motorola synchronisation plugin"
-    info.description = ("Plugin to synchronise phone book and calendar entries "
-                      + "on a Motorola mobile phone using extended AT commands")
+    ret = getXMLField(doc, 'device').strip()
+    if ret == '':
+        raise opensync.Error('device not specified in config file',
+                             opensync.ERROR_MISCONFIGURATION)
+    return ret
+
+def initialize(info):
+    """Called by python-module plugin wrapper, registers sync classes."""
+    comms = PhoneComms(parse_config(info.config))
+    access = PhoneAccess(comms)
     for objtype in SUPPORTED_OBJTYPES:
-        info.accept_objtype(objtype)
-        info.accept_objformat(objtype, "xml-%s-doc" % objtype)
+        info.add_objtype(MotoSink(objtype, info, access))
+
+def discover(info):
+    """Called by python-module plugin wrapper, discovers capabilities of device."""
+    for sink in info.objtypes:
+        sink.available = True
+    info.version = opensync.Version()
+    info.version.plugin = "moto-sync"
+
+def get_sync_info(plugin):
+    """Called by python-module plugin wrapper, returns plugin metadata."""
+    plugin.name = "moto-sync"
+    plugin.longname = "Motorola synchronisation plugin"
+    plugin.description = ("OpenSync plugin to synchronise phone book and"
+        " calendar entries on a locally-connected Motorola mobile phone using"
+        " extended AT commands. Please see the README file for configuration"
+        " instructions and a list of supported models.")
+    plugin.config_type = opensync.PLUGIN_NEEDS_CONFIGURATION
