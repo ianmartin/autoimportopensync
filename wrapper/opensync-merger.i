@@ -81,8 +81,16 @@ typedef struct {} Capabilities;
 	}
 }
 
+/* FIXME: cstring_input_binary is broken in my version of swig, so I've recreated it here */
+%typemap(in) (const char *buffer, unsigned int size) {
+	int alloc = 0;
+	int res = SWIG_AsCharPtrAndSize($input, &$1, &$2, &alloc);
+	if (!SWIG_IsOK(res)) {
+		%argument_fail(res, "(char *buf, unsigned int size)", $symname, $argnum);
+	}
+}
+
 %inline %{
-	/* %cstring_input_binary(const char *buffer, unsigned int size); */
 	Capabilities *capabilities_parse(const char *buffer, unsigned int size) {
 		Error *err = NULL;
 		Capabilities *caps = osync_capabilities_parse(buffer, size, &err);
@@ -210,7 +218,6 @@ typedef struct {} XMLFormat;
 }
 
 %inline %{
-	/* %cstring_input_binary(const char *buffer, unsigned int size); */
 	XMLFormat *xmlformat_parse(const char *buffer, unsigned int size) {
 		Error *err = NULL;
 		XMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &err);
