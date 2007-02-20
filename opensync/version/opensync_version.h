@@ -45,5 +45,6 @@ OSYNC_EXPORT void osync_version_set_identifier(OSyncVersion *version, char *iden
 
 OSYNC_EXPORT int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error);
 OSYNC_EXPORT OSyncList *osync_version_load_from_descriptions(OSyncError **error);
+OSYNC_EXPORT OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncError **error);
 
 #endif /*OPENSYNC_VERSION_H_*/

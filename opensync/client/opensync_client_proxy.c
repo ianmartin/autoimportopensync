@@ -343,54 +343,20 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
  		if (osync_member_get_capabilities(member) == NULL)
  		{
 			osync_trace(TRACE_INTERNAL, "No capabilities set for the member right now. version: %p capabilities: %p\n", version, capabilities);
+
 			/* we take our own capabilities rather then from the client */ 
-		 	if (version)
-		 	{
-			 	OSyncList *versions = osync_version_load_from_descriptions(&locerror);
-			 	if (locerror) /* versions can be null */
-			 		goto error_free_capabilities;
-				int priority = -1;
-				OSyncVersion *winner = NULL;
-				OSyncList *cur = osync_list_first(versions);
-				while(cur) {
-					int curpriority = osync_version_matches(cur->data, version, &locerror);
-					if (curpriority == -1) {
-						if (versions)
-							osync_list_free(versions);
-						if (winner)
-							osync_version_unref(winner);
-						goto error_free_capabilities;
-					}
-					if( curpriority > 0 && curpriority > priority) {
-						if(winner)
-							osync_version_unref(winner);
-						winner = cur->data;
-						osync_version_ref(winner);
-						priority = curpriority;
-					}
-					osync_version_unref(cur->data);
-					cur = cur->next;
-				}
-				osync_list_free(versions);
-				
-				/* we found or own capabilities */
-			 	if(priority > 0)
-			 	{
-			 	  	osync_trace(TRACE_INTERNAL, "Found capabilities file by version: %s ", (const char*)osync_version_get_identifier(winner));
-			 	  	if (capabilities)
-			 	  		osync_capabilities_unref(capabilities);
-			 	  	capabilities = osync_capabilities_load((const char*)osync_version_get_identifier(winner), &locerror);
-			 	  	osync_version_unref(winner);
-			 	  	if (!capabilities)
-						goto error_free_version;
-			 	}
-			 	else
-			 	{
-			 		/* use capabilities which returned with the disocver call */
-			 		/* (capabilites variable already set if the plugin send such information) */
-			 	}
-		 	}
-		 	
+			OSyncCapabilities *version_cap = NULL; 
+			if (version)
+				version_cap = osync_version_find_capabilities(version, &locerror);
+
+			if (locerror)
+				goto error_free_capabilities;
+
+			if (version_cap) {
+				osync_capabilities_unref(capabilities);
+				capabilities = version_cap;
+			}
+
  			if (capabilities) {
 				if (!osync_member_set_capabilities(member, capabilities, &locerror))
 					goto error_free_capabilities; 

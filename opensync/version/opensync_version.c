@@ -23,6 +23,7 @@
 #include "opensync.h"
 #include "opensync_internals.h"
 
+#include "opensync-merger.h"
 #include "opensync-version.h"
 #include "opensync-version_internals.h"
 
@@ -259,6 +260,9 @@ void osync_version_set_identifier(OSyncVersion *version, char *identifier)
 int osync_version_matches(OSyncVersion *pattern, OSyncVersion *version, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, pattern, version, error);
+
+	osync_assert(pattern);
+	osync_assert(version);
 	
 	int ret;
 	
@@ -389,6 +393,72 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 	return versions;
 
 error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, version, error);
+
+	osync_assert(version);
+
+	int priority = -1;
+	OSyncVersion *winner = NULL;
+	OSyncCapabilities *capabilities = NULL;
+
+
+	OSyncList *versions = osync_version_load_from_descriptions(error);
+	if (*error) /* versions can be null */
+		goto error_free_version;
+
+	OSyncList *cur = osync_list_first(versions);
+	while(cur) {
+		int curpriority = osync_version_matches(cur->data, version, error);
+		if (curpriority == -1) {
+			if (versions)
+				osync_list_free(versions);
+
+			if (winner)
+				osync_version_unref(winner);
+
+			goto error_free_version;
+		}
+
+		if( curpriority > 0 && curpriority > priority) {
+			if(winner)
+				osync_version_unref(winner);
+
+			winner = cur->data;
+			osync_version_ref(winner);
+			priority = curpriority;
+		}
+		osync_version_unref(cur->data);
+		cur = cur->next;
+	}
+	osync_list_free(versions);
+	
+	/* we found or own capabilities */
+	if(priority > 0)
+	{
+		osync_trace(TRACE_INTERNAL, "Found capabilities file by version: %s ", (const char*)osync_version_get_identifier(winner));
+		if (capabilities)
+			osync_capabilities_unref(capabilities);
+
+		capabilities = osync_capabilities_load((const char*)osync_version_get_identifier(winner), error);
+		osync_version_unref(winner);
+
+		if (!capabilities)
+			goto error_free_version;
+	}
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, capabilities);
+	return capabilities;
+
+error_free_version:
+	if (version)
+		osync_version_unref(version);
+
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
