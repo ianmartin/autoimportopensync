@@ -56,12 +56,12 @@ START_TEST (version_matches)
 }
 END_TEST
 
-START_TEST (version_load_versions_from_descriptions)
+START_TEST (version_load_from_descriptions)
 {
 	char *testbed = setup_testbed("merger");
 
 	OSyncError *error = NULL;
-	OSyncList *versions = osync_load_versions_from_descriptions(&error);
+	OSyncList *versions = osync_version_load_from_descriptions(&error);
 	//fail_unless(versions != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
@@ -81,7 +81,7 @@ Suite *version_suite(void)
 	Suite *s = suite_create("Version");
 	create_case(s, "version_new", version_new);
 	create_case(s, "version_matches", version_matches);
-	create_case(s, "version_load_versions_from_descriptions", version_load_versions_from_descriptions);
+	create_case(s, "version_load_from_descriptions", version_load_from_descriptions);
 	return s;
 }
 

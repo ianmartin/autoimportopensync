@@ -346,7 +346,7 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			/* we take our own capabilities rather then from the client */ 
 		 	if (version)
 		 	{
-			 	OSyncList *versions = osync_load_versions_from_descriptions(&locerror);
+			 	OSyncList *versions = osync_version_load_from_descriptions(&locerror);
 			 	if (locerror) /* versions can be null */
 			 		goto error_free_capabilities;
 				int priority = -1;

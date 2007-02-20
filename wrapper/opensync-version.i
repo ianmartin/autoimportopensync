@@ -1,10 +1,10 @@
 %inline %{
 	static PyObject *load_versions_from_descriptions() {
 		Error *err = NULL;
-		OSyncList *list = osync_load_versions_from_descriptions(&err);
+		OSyncList *list = osync_version_load_from_descriptions(&err);
 		if (!list) {
 			if (!raise_exception_on_error(err))
-				wrapper_exception("osync_load_versions_from_descriptions failed but did not set error code");
+				wrapper_exception("osync_version_load_from_descriptions failed but did not set error code");
 			return NULL;
 		}
 		return osynclist_to_pylist(list, SWIGTYPE_p_Version);

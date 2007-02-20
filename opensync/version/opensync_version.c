@@ -294,7 +294,7 @@ error:
 };
 
 
-OSyncList *osync_load_versions_from_descriptions(OSyncError **error)
+OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 {
 	GDir *dir = NULL;
 	GError *gerror = NULL;
