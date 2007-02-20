@@ -32,13 +32,134 @@ static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
 }
 
+static const char * rewrite_mime_type(const char * source_format, int use_iana)
+{
+	osync_trace(TRACE_INTERNAL, "%s: source_format = %s", __func__, source_format);
+	char * iana_format = NULL;
+	char * not_iana_format = NULL;
+
+	if ( (!g_ascii_strcasecmp (source_format, "JPEG")) ||
+	     (!g_ascii_strcasecmp (source_format, "image/jpeg")) ) {
+		iana_format = "image/jpeg";
+		not_iana_format = "JPEG";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "TIFF")) ||
+	     (!g_ascii_strcasecmp (source_format, "image/tiff")) ) {
+		iana_format = "image/tiff";
+		not_iana_format = "TIFF";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "GIF")) ||
+	     (!g_ascii_strcasecmp (source_format, "image/gif")) ) {
+		iana_format = "image/gif";
+		not_iana_format = "GIF";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "CGM")) ||
+	     (!g_ascii_strcasecmp (source_format, "image/cgm")) ) {
+		iana_format = "image/cgm";
+		not_iana_format = "CGM";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "BMP")) ||
+	     (!g_ascii_strcasecmp (source_format, "image/x-ms-bmp")) ) {
+		iana_format = "image/x-ms-bmp";
+		not_iana_format = "BMP";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "PS")) ||
+	     (!g_ascii_strcasecmp (source_format, "application/postscript")) ) {
+		iana_format = "application/postscript";
+		not_iana_format = "PS";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "PDF")) ||
+	     (!g_ascii_strcasecmp (source_format, "application/pdf")) ) {
+		iana_format = "application/pdf";
+		not_iana_format = "PDF";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "MPEG")) ||
+	     (!g_ascii_strcasecmp (source_format, "video/mpeg")) ) {
+		iana_format = "video/mpeg";
+		not_iana_format = "MPEG";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "MPEG2")) ||
+	     (!g_ascii_strcasecmp (source_format, "video/mpeg")) ) {
+		iana_format = "video/mpeg";
+		not_iana_format = "MPEG2";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "AVI")) ||
+	     (!g_ascii_strcasecmp (source_format, "video/x-msvideo")) ) {
+		iana_format = "video/x-msvideo";
+		not_iana_format = "AVI";
+		goto NORMAL_EXIT;
+	}
+	if ( (!g_ascii_strcasecmp (source_format, "QTIME")) ||
+	     (!g_ascii_strcasecmp (source_format, "video/quicktime")) ) {
+		iana_format = "video/quicktime";
+		not_iana_format = "QTIME";
+		goto NORMAL_EXIT;
+	}
+	
+	/*vcard 2.1 only no iana typ*/
+	if ( !g_ascii_strcasecmp (source_format, "WMF") ) {
+		goto NO_IANA;
+	}
+	if ( !g_ascii_strcasecmp (source_format, "MET") ) {
+		goto NO_IANA;
+	}
+	if ( !g_ascii_strcasecmp (source_format, "PMB") ) {
+		goto NO_IANA;
+	}
+	if ( !g_ascii_strcasecmp (source_format, "DIB") ) {
+		goto NO_IANA;
+	}
+	if ( !g_ascii_strcasecmp (source_format, "PICT") ) {
+		goto NO_IANA;
+	}
+
+/*NO_MATCH:*/
+	osync_trace(TRACE_INTERNAL, "%s:[NO_MATCH] output = NULL ", __func__);
+	return(NULL);
+
+NO_IANA:
+	osync_trace(TRACE_INTERNAL, "%s:[NO_IANA] output = %s ", __func__, source_format);
+	if (!use_iana)
+		return(source_format);
+	return(NULL);
+
+NORMAL_EXIT:
+	if (use_iana)
+	{
+		osync_trace(TRACE_INTERNAL, "%s:[NORMAL_EXIT] output = %s ", __func__, iana_format);
+		return (iana_format);
+	}
+	osync_trace(TRACE_INTERNAL, "%s:[NORMAL_EXIT] output = %s ", __func__, not_iana_format);
+	return(not_iana_format);
+}
+
 static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 {
-	osync_trace(TRACE_INTERNAL, "Handling type parameter %s", vformat_attribute_param_get_name(param));
-	
+	osync_trace(TRACE_INTERNAL, "%s: xmlNodeName=%s, param=%s", __func__,
+		(char *)current->name,
+		vformat_attribute_param_get_name(param));
 	GList *v = vformat_attribute_param_get_values(param);
-	for (; v; v = v->next) {
-		xmlNewTextChild(current, NULL, (xmlChar*)"Type", (xmlChar*)v->data);
+	if ( xmlStrcmp(current->name, (const xmlChar *)"Photo") ) {
+		for (; v; v = v->next) {
+			xmlNewTextChild(current, NULL, 
+				(xmlChar*)"Type", (xmlChar*)v->data);
+		}
+	} else {
+		for (; v; v = v->next) {
+			const char * tmp = rewrite_mime_type(v->data, 1);
+			if (tmp)
+				xmlNewTextChild(current, NULL, 	(xmlChar*)"Type",
+				(xmlChar*)tmp);
+		}
 	}
 	
 }
@@ -539,12 +660,32 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 
 static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 {
-	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
+	osync_trace(TRACE_INTERNAL, "%s: nodename=%s", 
+		__func__, (char *)current->parent->name);
 	char *content = (char*)xmlNodeGetContent(current);
+	if(!xmlStrcmp(current->parent->name, (const xmlChar *)"Photo")) {
+		content = (char *)rewrite_mime_type((const char *)content, 1);
+		if(!content)
+			return;
+	}
 	VFormatParam *param = vformat_attribute_param_new("TYPE");
 	vformat_attribute_param_add_value(param, content);
 	vformat_attribute_add_param (attr, param);
-	g_free(content);
+}
+
+static void handle_xml_type_no_iana_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	osync_trace(TRACE_INTERNAL, "%s: nodename=%s", 
+		__func__, (char *)current->parent->name);
+	char *content = (char*)xmlNodeGetContent(current);
+	if(!xmlStrcmp(current->parent->name, (const xmlChar *)"Photo")) {
+		content = (char *)rewrite_mime_type((const char *)content, 0);
+		if(!content)
+			return;
+	}
+	VFormatParam *param = vformat_attribute_param_new("TYPE");
+	vformat_attribute_param_add_value(param, content);
+	vformat_attribute_add_param (attr, param);
 }
 
 static void handle_xml_value_parameter(VFormatAttribute *attr, xmlNode *current)
@@ -929,8 +1070,10 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	/*  vcard21 / vcard30  */
 	if (target == VFORMAT_CARD_21) {
 		g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_base64_attribute);
+		g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_no_iana_parameter);
 	} else {
 		g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_attribute);
+		g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
 	}
 
 	if (root)
@@ -1085,7 +1228,7 @@ static void *init_xml_to_vcard(void)
 	g_hash_table_insert(hooks->attributes, "Categories", handle_xml_categories_attribute);
 	g_hash_table_insert(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
 	
-	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
+	//g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
 	g_hash_table_insert(hooks->parameters, "Value", handle_xml_value_parameter);
 	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
 	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
