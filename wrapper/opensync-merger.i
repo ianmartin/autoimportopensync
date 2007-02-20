@@ -245,7 +245,137 @@ typedef struct {} XMLField;
 		osync_xmlfield_delete(self);
 	}
 
-	/* TODO: lots of methods */
+	void adopt_xmlfield_before_field(XMLField *to_link) {
+		osync_xmlfield_adopt_xmlfield_before_field(self, to_link);
+	}
+
+	void adopt_xmlfield_after_field(XMLField *to_link) {
+		osync_xmlfield_adopt_xmlfield_after_field(self, to_link);
+	}
+
+	const char *get_name() {
+		return osync_xmlfield_get_name(self);
+	}
+
+	XMLField *get_next() {
+		return osync_xmlfield_get_next(self);
+	}
+
+	const char *get_attr(const char *attr) {
+		return osync_xmlfield_get_attr(self, attr);
+	}
+
+	void set_attr(const char *attr, const char *value) {
+		osync_xmlfield_set_attr(self, attr, value);
+	}
+
+	int get_attr_count() {
+		return osync_xmlfield_get_attr_count(self);
+	}
+
+	const char *get_nth_attr_name(int nth) {
+		return osync_xmlfield_get_nth_attr_name(self, nth);
+	}
+
+	const char *get_nth_attr_value(int nth) {
+		return osync_xmlfield_get_nth_attr_value(self, nth);
+	}
+
+	const char *get_key_value(const char *key) {
+		return osync_xmlfield_get_key_value(self, key);
+	}
+
+	void set_key_value(const char *key, const char *value) {
+		osync_xmlfield_set_key_value(self, key, value);
+	}
+
+	void add_key_value(const char *key, const char *value) {
+		osync_xmlfield_add_key_value(self, key, value);
+	}
+
+	int get_key_count() {
+		return osync_xmlfield_get_key_count(self);
+	}
+
+	const char *get_nth_key_name(int nth) {
+		return osync_xmlfield_get_nth_key_name(self, nth);
+	}
+
+	const char *get_nth_key_value(int nth) {
+		return osync_xmlfield_get_nth_key_value(self, nth);
+	}
+
+	void set_nth_key_value(int nth, const char *value) {
+		osync_xmlfield_set_nth_key_value(self, nth, value);
+	}
+
+	bool compare(XMLField *xmlfield) {
+		return osync_xmlfield_compare(self, xmlfield);
+	}
+
+	/* TODO: compare_similar (needs list argument conversion) */
+
+%pythoncode %{
+	name = property(get_name)
+	next = property(get_next)
+	__cmp__ = compare
+
+	# map attributes and keys to two properties of the XMLField object
+	class Attrs:
+		def __init__(self, xmlfield):
+			self.xmlfield = xmlfield
+		def __len__(self):
+			return self.xmlfield.get_attr_count()
+		def __getitem__(self, key):
+			return self.xmlfield.get_attr(key)
+		def __setitem__(self, key, value):
+			self.xmlfield.set_attr(key, value)
+		def __iter__(self):
+			class Iter:
+				def __init__(self, xmlfield):
+					self.xmlfield = xmlfield
+					self.pos = 0
+					self.maxpos = self.xmlfield.get_attr_count()
+				def __iter__(self):
+					return self
+				def next(self):
+					if self.pos > self.maxpos:
+						raise StopIteration
+					name = self.xmlfield.get_nth_attr_name(self.pos)
+					value = self.xmlfield.get_nth_attr_value(self.pos)
+					self.pos += 1
+					return (name, value)
+			return Iter(self.xmlfield)
+
+	class Keys:
+		def __init__(self, xmlfield):
+			self.xmlfield = xmlfield
+		def __len__(self):
+			return self.xmlfield.get_key_count()
+		def __getitem__(self, key):
+			return self.xmlfield.get_key_value(key)
+		def __setitem__(self, key, value):
+			self.xmlfield.set_key_value(key, value)
+		def __iter__(self):
+			class Iter:
+				def __init__(self, xmlfield):
+					self.xmlfield = xmlfield
+					self.pos = 0
+					self.maxpos = self.xmlfield.get_key_count()
+				def __iter__(self):
+					return self
+				def next(self):
+					if self.pos > self.maxpos:
+						raise StopIteration
+					name = self.xmlfield.get_nth_key_name(self.pos)
+					value = self.xmlfield.get_nth_key_value(self.pos)
+					self.pos += 1
+					return (name, value)
+			return Iter(self.xmlfield)
+
+	attrs = property(Attrs)
+	keys = property(Keys)
+%}
 }
 
 
