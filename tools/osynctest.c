@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <glib.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 GMutex *working;
 GMutex *working2;
@@ -129,7 +130,8 @@ double check_sync(OSyncEngine *engine, const char *name, int num)
 	fflush(stdout);
 
 	char *tempdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	if (!mkdtemp(tempdir))
+	char *tmpresult = mktemp(tempdir);
+	if ((tmpresult == NULL) || (mkdir(tmpresult, 0700) != 0))
 	{
 		g_free(tempdir);
 		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", strerror(errno));
@@ -453,9 +455,9 @@ int main (int argc, char *argv[])
 	}
 
 	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	char *result = mkdtemp(testdir);
+	char *result = mktemp(testdir);
 
-	if (result == NULL)
+	if ((result == NULL) || (mkdir(result, 0700) != 0))
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", strerror(errno));
 		return 1;
@@ -482,9 +484,9 @@ int main (int argc, char *argv[])
 	OSyncMember *file = osync_member_new(group);
 
 	localdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	result = mkdtemp(localdir);
+	result = mktemp(testdir);
 
-	if (result == NULL)
+	if ((result == NULL) || (mkdir(result, 0700) != 0))
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
 			strerror(errno));

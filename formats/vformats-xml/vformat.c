@@ -21,6 +21,7 @@
  */
 
 #include "vformat.h"
+#include "config.h"
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -215,8 +216,11 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 	if (charset) {
 
 		cd = iconv_open("UTF-8", charset->str);
+#ifdef SOLARIS
+                if (iconv(cd, (const char**)&inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+#else
                 if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
-
+#endif
                         *p = 0;
                         vformat_attribute_add_value(attr, outbuf);
 
@@ -240,8 +244,11 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 
 			/* because inbuf is not UTF-8, we think it is ISO-8859-1 */
                         cd = iconv_open("UTF-8", "ISO-8859-1");
+#ifdef SOLARIS
+                        if (iconv(cd, (const char**)&inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+#else
                         if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
-
+#endif
                                 *p = 0;
                                 vformat_attribute_add_value (attr, outbuf);
 
