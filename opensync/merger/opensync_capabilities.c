@@ -368,7 +368,11 @@ osync_bool osync_capabilities_member_has_capabilities(OSyncMember *member)
 }
 
 /**
- * @brief Get the cached capabilities of a member
+ * @brief Get the cached capabilities of a member. The cache capabilities is stored as
+ *        "capabilities.xml" in the member directory. This function should be only used
+ *        internal. To get the current capabilities of a member please use:
+ *        osync_member_get_capabilities()
+ *
  * @param member The pointer to a member object
  * @param error The error which will hold the info in case of an error
  * @return The objtype of the xmlformat
@@ -403,7 +407,11 @@ OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *membe
 }
 
 /**
- * @brief Set the capabilities of a member
+ * @brief Set the capabilities of a member. The capabilities get cached in the member directory
+ *        as "capabilities.xml". This function should be only used internal. To set member
+ *        capabilities, please use:
+ *        osync_member_set_capabilities()
+ *
  * @param member The pointer to a member object
  * @param capabilities The pointer to a capabilities object
  * @param error The error which will hold the info in case of an error
