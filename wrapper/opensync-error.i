@@ -1,6 +1,7 @@
 typedef struct {} Error;
 %feature("exceptionclass") Error;
 %extend Error {
+	/* called by python-module plugin */
 	Error(PyObject *obj) {
 		Error *error = PyCObject_AsVoidPtr(obj);
 		osync_error_ref(&error);

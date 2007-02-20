@@ -15,10 +15,6 @@
 
 typedef struct {} HashTable;
 %extend HashTable {
-	HashTable(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
-	}
-
 	HashTable(const char *path, const char *objtype) {
 		Error *err = NULL;
 		HashTable *hashtable = osync_hashtable_new(path, objtype, &err);
@@ -29,8 +25,7 @@ typedef struct {} HashTable;
 	}
 
 	~HashTable() {
-		/* FIXME: need to free here, but only if we created it! */
-		/* osync_hashtable_free(self); */
+		osync_hashtable_free(self);
 	}
 
 	void reset() {

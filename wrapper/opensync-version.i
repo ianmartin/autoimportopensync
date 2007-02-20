@@ -1,5 +1,5 @@
 %inline %{
-	static PyObject *load_versions_from_descriptions() {
+	static PyObject *version_load_from_descriptions() {
 		Error *err = NULL;
 		OSyncList *list = osync_version_load_from_descriptions(&err);
 		if (!list) {
@@ -13,12 +13,6 @@
 
 typedef struct {} Version;
 %extend Version {
-	Version(PyObject *obj) {
-		Version *ver = PyCObject_AsVoidPtr(obj);
-		osync_version_ref(ver);
-		return ver;
-	}
-
 	Version() {
 		Error *err = NULL;
 		Version *version = osync_version_new(&err);

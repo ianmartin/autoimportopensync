@@ -1,9 +1,5 @@
 typedef struct {} GroupEnv;
 %extend GroupEnv {
-	GroupEnv(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
-	}
-
 	GroupEnv() {
 		Error *err = NULL;
 		GroupEnv *env = osync_group_env_new(&err);
@@ -14,8 +10,7 @@ typedef struct {} GroupEnv;
 	}
 
 	~GroupEnv() {
-		/* FIXME: need to free here, but only if we created it! */
-		/* osync_group_env_free(self); */
+		osync_group_env_free(self);
 	}
 
 	void load_groups(const char *path) {
@@ -64,12 +59,6 @@ enum ConflictResolution ();
 
 typedef struct {} Group;
 %extend Group {
-	Group(PyObject *obj) {
-		Group *group = PyCObject_AsVoidPtr(obj);
-		osync_group_ref(group);
-		return group;
-	}
-
 	Group() {
 		Error *err = NULL;
 		Group *group = osync_group_new(&err);
@@ -226,12 +215,6 @@ typedef enum {} StartType;
 
 typedef struct {} Member;
 %extend Member {
-	Member(PyObject *obj) {
-		Member *member = PyCObject_AsVoidPtr(obj);
-		osync_member_ref(member);
-		return member;
-	}
-
 	Member() {
 		Error *err = NULL;
 		Member *member = osync_member_new(&err);

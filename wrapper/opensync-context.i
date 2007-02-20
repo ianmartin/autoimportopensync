@@ -1,5 +1,6 @@
 typedef struct {} Context;
 %extend Context {
+	/* called by python-module plugin */
 	Context(PyObject *obj) {
 		Context *context = PyCObject_AsVoidPtr(obj);
 		osync_context_ref(context);

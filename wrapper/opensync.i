@@ -66,7 +66,7 @@ typedef osync_bool bool;
 define_ptr_argout(ConflictResolution);
 
 %{
-/* convert an List linked list to a python list of the given type */
+/* convert an OSyncList linked list to a python list of the given type */
 static PyObject *osynclist_to_pylist(const OSyncList *elt, swig_type_info *type)
 {
 	PyObject *ret = PyList_New(0);

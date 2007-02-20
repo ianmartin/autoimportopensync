@@ -7,12 +7,6 @@ typedef enum {} ConverterType;
 
 typedef struct {} FormatConverter;
 %extend FormatConverter {
-	FormatConverter(PyObject *obj) {
-		FormatConverter *conv = PyCObject_AsVoidPtr(obj);
-		osync_converter_ref(conv);
-		return conv;
-	}
-
 	~FormatConverter() {
 		osync_converter_unref(self);
 	}
@@ -54,12 +48,6 @@ typedef struct {} FormatConverter;
 
 typedef struct {} FormatConverterPath;
 %extend FormatConverterPath {
-	FormatConverterPath(PyObject *obj) {
-		FormatConverterPath *conv_path = PyCObject_AsVoidPtr(obj);
-		osync_converter_path_ref(conv_path);
-		return conv_path;
-	}
-
 	FormatConverterPath() {
 		Error *err = NULL;
 		FormatConverterPath *ret = osync_converter_path_new(&err);
@@ -108,12 +96,6 @@ typedef enum {} FilterAction;
 
 typedef struct {} Filter;
 %extend Filter {
-	Filter(PyObject *obj) {
-		Filter *filter = PyCObject_AsVoidPtr(obj);
-		osync_filter_ref(filter);
-		return filter;
-	}
-
 	Filter(const char *objtype, FilterAction action) {
 		Error *err = NULL;
 		Filter *filter = osync_filter_new(objtype, action, &err);
@@ -152,10 +134,6 @@ typedef struct {} Filter;
 
 typedef struct {} FormatEnv;
 %extend FormatEnv {
-	FormatEnv(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
-	}
-
 	FormatEnv() {
 		Error *err = NULL;
 		FormatEnv *env = osync_format_env_new(&err);
@@ -166,8 +144,7 @@ typedef struct {} FormatEnv;
 	}
 
 	~FormatEnv() {
-		/* FIXME: need to free here, but only if we created it! */
-		/* osync_format_env_free(self); */
+		osync_format_env_free(self);
 	}
 
 	void load_plugins(const char *path) {
@@ -282,12 +259,6 @@ typedef struct {} FormatEnv;
 
 typedef struct {} ObjFormat;
 %extend ObjFormat {
-	ObjFormat(PyObject *obj) {
-		ObjFormat *objformat = PyCObject_AsVoidPtr(obj);
-		osync_objformat_ref(objformat);
-		return objformat;
-	}
-
 	ObjFormat(const char *name, const char *objtype_name) {
 		Error *err = NULL;
 		ObjFormat *format = osync_objformat_new(name, objtype_name, &err);

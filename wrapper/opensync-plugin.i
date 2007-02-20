@@ -7,6 +7,7 @@ typedef enum {} ConfigurationType;
 
 typedef struct {} Plugin;
 %extend Plugin {
+	/* called by python-module plugin */
 	Plugin(PyObject *obj) {
 		Plugin *plugin = PyCObject_AsVoidPtr(obj);
 		osync_plugin_ref(plugin);
@@ -95,10 +96,6 @@ typedef struct {} Plugin;
 
 typedef struct {} PluginEnv;
 %extend PluginEnv {
-	PluginEnv(PyObject *obj) {
-		return PyCObject_AsVoidPtr(obj);
-	}
-
 	PluginEnv() {
 		Error *err = NULL;
 		PluginEnv *env = osync_plugin_env_new(&err);
@@ -109,8 +106,7 @@ typedef struct {} PluginEnv;
 	}
 
 	~PluginEnv() {
-		/* FIXME: need to free here, but only if we created it! */
-		/* osync_plugin_env_free(self); */
+		osync_plugin_env_free(self);
 	}
 	
 	void load(const char *path) {
@@ -162,6 +158,7 @@ typedef struct {} PluginEnv;
 
 typedef struct {} PluginInfo;
 %extend PluginInfo {
+	/* called by python-module plugin */
 	PluginInfo(PyObject *obj) {
 		PluginInfo *info = PyCObject_AsVoidPtr(obj);
 		osync_plugin_info_ref(info);
@@ -291,12 +288,6 @@ typedef struct {} PluginInfo;
 
 typedef struct {} ObjTypeSink;
 %extend ObjTypeSink {
-	ObjTypeSink(PyObject *obj) {
-		ObjTypeSink *sink = PyCObject_AsVoidPtr(obj);
-		osync_objtype_sink_ref(sink);
-		return sink;
-	}
-
 	/* create new sink object
 	 * when using the python-module plugin, the second argument is 
 	 * the python object that will get callbacks for this sink */

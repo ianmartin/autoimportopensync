@@ -8,12 +8,6 @@ typedef enum {} ConvCmpResult;
 
 typedef struct {} Data;
 %extend Data {
-	Data(PyObject *obj) {
-		Data *data = PyCObject_AsVoidPtr(obj);
-		osync_data_ref(data);
-		return data;
-	}
-
 	/* FIXME: cstring_input_binary is broken in my version of swig, so I've recreated it here */
 	%typemap(in) (char *buf, unsigned int size) {
 		int alloc = 0;
@@ -116,6 +110,7 @@ typedef enum {} ChangeType;
 
 typedef struct {} Change;
 %extend Change {
+	/* called by python-module plugin */
 	Change(PyObject *obj) {
 		Change *change = PyCObject_AsVoidPtr(obj);
 		osync_change_ref(change);
