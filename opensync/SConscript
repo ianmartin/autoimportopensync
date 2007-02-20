@@ -69,6 +69,7 @@ opensync-merger.h
 opensync-version.h
 opensync-time.h
 opensync-serializer.h
+opensync-mapping.h
 """
 
 plugin_headers = """
@@ -101,6 +102,13 @@ ipc_headers = """
 ipc/opensync_queue.h
 ipc/opensync_message.h
 ipc/opensync_serializer.h
+"""
+
+mapping_headers = """
+mapping/opensync_mapping.h
+mapping/opensync_mapping_entry.h
+mapping/opensync_mapping_table.h
+mapping/opensync_mapping_view.h
 """
 
 merger_headers = """
@@ -156,6 +164,7 @@ env.Install(install_inc + '/opensync-1.0/opensync/group', Split(group_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/format', Split(format_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/data', Split(data_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/ipc', Split(ipc_headers))
+env.Install(install_inc + '/opensync-1.0/opensync/mapping', Split(mapping_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/merger', Split(merger_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/version', Split(version_headers))
 env.Install(install_inc + '/opensync-1.0/opensync/archive', Split(archive_headers))
