@@ -7,6 +7,11 @@ typedef enum {} ConverterType;
 
 typedef struct {} FormatConverter;
 %extend FormatConverter {
+	FormatConverter() {
+		wrapper_exception("cannot create FormatConverter objects");
+		return NULL;
+	}
+
 	~FormatConverter() {
 		osync_converter_unref(self);
 	}

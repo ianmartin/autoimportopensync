@@ -45,6 +45,9 @@ typedef OSyncPluginInfo PluginInfo;
 typedef OSyncPlugin Plugin;
 typedef OSyncStartType StartType;
 typedef OSyncVersion Version;
+typedef OSyncXMLField XMLField;
+typedef OSyncXMLFieldList XMLFieldList;
+typedef OSyncXMLFormat XMLFormat;
 
 /* make SWIG treat osync_bool as real Python booleans */
 typedef osync_bool bool;

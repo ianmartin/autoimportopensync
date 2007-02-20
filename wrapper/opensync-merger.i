@@ -68,7 +68,7 @@ typedef struct {} Capabilities;
 		int size;
 		osync_bool ret = osync_capabilities_assemble(self, &buf, &size);
 		if (!ret) {
-			wrapper_exception("osync_capabilities_assemble failed\n")
+			wrapper_exception("osync_capabilities_assemble failed\n");
 			return NULL;
 		}
 		PyObject *obj = PyString_FromStringAndSize(buf, size);
@@ -82,7 +82,7 @@ typedef struct {} Capabilities;
 }
 
 %inline %{
-	%cstring_input_binary(const char *buffer, unsigned int size);
+	/* %cstring_input_binary(const char *buffer, unsigned int size); */
 	Capabilities *capabilities_parse(const char *buffer, unsigned int size) {
 		Error *err = NULL;
 		Capabilities *caps = osync_capabilities_parse(buffer, size, &err);
@@ -121,14 +121,14 @@ typedef struct {} Capabilities;
 
 %{
 /* convert an XMLFieldList to a python list */
-static PyObject *xmlfieldlist_to_pylist(const XMLFieldList *list)
+static PyObject *xmlfieldlist_to_pylist(XMLFieldList *list)
 {
 	PyObject *ret = PyList_New(0);
 	if (ret == NULL)
 		return NULL;
 	int n, max = osync_xmlfieldlist_get_length(list);
 	for (n = 0; n < max; n++) {
-		PyObject *obj = SWIG_NewPointerObj(osync_xmlfieldlist_item(list, n), SWIG_XMLField_p, 0);
+		PyObject *obj = SWIG_NewPointerObj(osync_xmlfieldlist_item(list, n), SWIGTYPE_p_XMLField, 0);
 		if (!obj || PyList_Append(ret, obj) != 0) {
 			Py_DECREF(ret);
 			return NULL;
@@ -183,10 +183,10 @@ typedef struct {} XMLFormat;
 	/* returns a python string object */
 	PyObject *assemble() {
 		char *buf;
-		int size;
+		unsigned int size;
 		osync_bool ret = osync_xmlformat_assemble(self, &buf, &size);
 		if (!ret) {
-			wrapper_exception("osync_xmlformat_assemble failed\n")
+			wrapper_exception("osync_xmlformat_assemble failed\n");
 			return NULL;
 		}
 		PyObject *obj = PyString_FromStringAndSize(buf, size);
@@ -210,7 +210,7 @@ typedef struct {} XMLFormat;
 }
 
 %inline %{
-	%cstring_input_binary(const char *buffer, unsigned int size);
+	/* %cstring_input_binary(const char *buffer, unsigned int size); */
 	XMLFormat *xmlformat_parse(const char *buffer, unsigned int size) {
 		Error *err = NULL;
 		XMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &err);
