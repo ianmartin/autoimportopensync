@@ -90,6 +90,14 @@ typedef struct {} Version;
 		return ret;
 	}
 
+	Capabilities *find_capabilities() {
+		Error *err = NULL;
+		Capabilities *ret = osync_version_find_capabilities(self, &err);
+		if (!raise_exception_on_error(err) && !ret)
+			wrapper_exception("osync_version_find_capabilities failed but did not set error");
+		return ret;
+	}
+
 %pythoncode %{
 	plugin = property(get_plugin, set_plugin)
 	priority = property(get_priority, set_priority)
