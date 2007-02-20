@@ -162,6 +162,21 @@ AC_SUBST(PACKAGE_LIBS)
 AC_SUBST(ac_workaround_abs_builddir, $PWD) # builddir is defined as '.'
 AC_SUBST(ac_workaround_abs_srcdir, $PWD/$srcdir)
 
+#### Check for Solaris (SunOS) ####
+OS=`uname|sed -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
+if test "$OS" = "sunos"; then
+	AC_MSG_NOTICE([OS Solaris detected])
+	AC_DEFINE([SOLARIS], [], [Compiling on Solaris])
+else
+	if test "$OS" = "linux"; then
+            AC_MSG_NOTICE([OS Linux detected])
+	    AC_DEFINE([LINUX], [], [Compiling on Linux])
+	else
+            AC_MSG_NOTICE([Unknown OS detected])
+	fi
+fi
+
+
 AC_OUTPUT([
 Makefile
 opensync/Makefile

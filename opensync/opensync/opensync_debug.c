@@ -77,7 +77,7 @@ void osync_trace(OSyncTraceType type, const char *message, ...)
 	
 	unsigned long int id = (unsigned long int)pthread_self();
 	pid_t pid = getpid();
-	char *logfile = g_strdup_printf("%s/Thread%lu-%i.log", trace, id, pid);
+	char *logfile = g_strdup_printf("%s/Thread%lu-%i.log", trace, id, (int)pid);
 	
 	va_start(arglist, message);
 	buffer = g_strdup_vprintf(message, arglist);

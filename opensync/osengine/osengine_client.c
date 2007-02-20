@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
-
+#include <signal.h>
  
 /*! @brief This function can be used to receive GET_ENTRY command replies
  * 

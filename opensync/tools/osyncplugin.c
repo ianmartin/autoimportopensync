@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <glib.h>
 
 GMutex *working;
@@ -505,9 +506,9 @@ int main (int argc, char *argv[])
 	OSyncMember *member = osync_member_new(group);
 	
 	char *testdir = g_strdup_printf("%s/plgtest.XXXXXX", g_get_tmp_dir());
-	char *result = mkdtemp(testdir);
+	char *result = mktemp(testdir);
 	
-	if (result == NULL)
+	if ((result == NULL) || (mkdir(result, 0700) != 0))
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
 			strerror(errno));
