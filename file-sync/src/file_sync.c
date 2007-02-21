@@ -192,8 +192,10 @@ static void osync_filesync_disconnect(void *data, OSyncPluginInfo *info, OSyncCo
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 	
-	osync_hashtable_free(dir->hashtable);
-	dir->hashtable = NULL;
+	if (dir->hashtable) {
+		osync_hashtable_free(dir->hashtable);
+		dir->hashtable = NULL;
+	}
 	
 	osync_context_report_success(ctx);
 	
