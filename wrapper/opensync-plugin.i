@@ -291,27 +291,27 @@ typedef struct {} ObjTypeSink;
 	/* create new sink object
 	 * when using the python-module plugin, the second argument is 
 	 * the python object that will get callbacks for this sink */
-	ObjTypeSink(const char *objtype, PyObject *wrapper = NULL) {
+	ObjTypeSink(const char *objtype, PyObject *callback_obj = NULL) {
 		Error *err = NULL;
 		ObjTypeSink *sink = osync_objtype_sink_new(objtype, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 
 		/* set userdata pointer to supplied python wrapper object */
-		if (wrapper) {
+		if (callback_obj) {
 			OSyncObjTypeSinkFunctions functions;
-			Py_INCREF(wrapper);
+			Py_INCREF(callback_obj);
 			memset(&functions, 0, sizeof(functions));
-			osync_objtype_sink_set_functions(sink, functions, wrapper);
+			osync_objtype_sink_set_functions(sink, functions, callback_obj);
 		}
 
 		return sink;
 	}
 
 	~ObjTypeSink() {
-		PyObject *wrapper = osync_objtype_sink_get_userdata(self);
-		if (wrapper) {
-			Py_DECREF(wrapper);
+		PyObject *callback_obj = osync_objtype_sink_get_userdata(self);
+		if (callback_obj) {
+			Py_DECREF(callback_obj);
 		}
 		osync_objtype_sink_unref(self);
 	}
@@ -431,3 +431,35 @@ typedef struct {} ObjTypeSink;
 	objformats = property(get_objformats)
 %}
 }
+
+%pythoncode %{
+class ObjTypeSinkCallbacks:
+	"""A purely-Python class that should be subclassed by plugins implementing their own sinks."""
+	def __init__(self, objtype):
+		# construct ObjTypeSink object and pass it our reference
+		self.sink = ObjTypeSink(objtype, self)
+
+	def connect(self, info, ctx):
+		pass
+
+	def get_changes(self, info, ctx):
+		pass
+	
+	def commit(self, info, ctx, chg):
+		pass
+	
+	def committed_all(self, info, ctx):
+		pass
+
+	def read(self, info, ctx, chg):
+		pass
+
+	def write(self, info, ctx, chg):
+		pass
+	
+	def disconnect(self, info, ctx):
+		pass
+
+	def sync_done(self, info, ctx):
+		pass
+%}
