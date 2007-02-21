@@ -758,7 +758,7 @@ static void _obj_engine_disconnect_callback(OSyncClientProxy *proxy, void *userd
 			
 	if (BitCount(engine->sink_errors | engine->sink_disconnects) == g_list_length(engine->sink_engines)) {
 		if (BitCount(engine->sink_disconnects) < BitCount(engine->sink_connects)) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Less sink_engines disconnected than connected");
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines disconnected than connected");
 			osync_obj_engine_set_error(engine, locerror);
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else
@@ -897,7 +897,7 @@ static void _obj_engine_read_callback(OSyncClientProxy *proxy, void *userdata, O
 	if (BitCount(engine->sink_errors | engine->sink_get_changes) == g_list_length(engine->sink_engines)) {
 		
 		if (BitCount(engine->sink_get_changes) < BitCount(engine->sink_connects)) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Less sink_engines reported get_changes than connected");
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported get_changes than connected");
 			osync_obj_engine_set_error(engine, locerror);
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else {
@@ -997,7 +997,7 @@ static void _generate_written_event(OSyncObjEngine *engine)
 	/* And that we received the written replies from all sinks */
 	if (BitCount(engine->sink_errors | engine->sink_written) == g_list_length(engine->sink_engines)) {
 		if (BitCount(engine->sink_written) < BitCount(engine->sink_connects)) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Less sink_engines reported committed all than connected");
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported committed all than connected");
 			osync_obj_engine_set_error(engine, locerror);
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else
@@ -1081,7 +1081,7 @@ static void _obj_engine_sync_done_callback(OSyncClientProxy *proxy, void *userda
 			
 	if (BitCount(engine->sink_errors | engine->sink_sync_done) == g_list_length(engine->sink_engines)) {
 		if (BitCount(engine->sink_sync_done) < BitCount(engine->sink_connects)) {
-			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Less sink_engines reported sync_done than connected");
+			osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Fewer sink_engines reported sync_done than connected");
 			osync_obj_engine_set_error(engine, locerror);
 			osync_obj_engine_event(engine, OSYNC_ENGINE_EVENT_ERROR);
 		} else
