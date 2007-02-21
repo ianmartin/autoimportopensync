@@ -395,7 +395,13 @@ class PhoneComms:
         self.contact_name_len = None
 
     def connect(self):
-        """Connect to the phone and initiate communication."""
+        """Connect to the phone and initiate communication.
+        
+        Returns True on success, False if already connected.
+        """
+        if (self.__fd or self.__btsock):
+            return False # already connected
+
         if BT_MAC_RE.match(self.devstr):
             assert(USE_BLUETOOTH_MODULE,
                    "MAC address specified, but pybluez module is not available")
@@ -436,6 +442,8 @@ class PhoneComms:
         self.max_contact_pos = maxpos
         self.contact_data_len = contactlen
         self.contact_name_len = namelen
+        
+        return True
 
     def disconnect(self):
         """Disconnect from the phone."""
@@ -451,6 +459,19 @@ class PhoneComms:
         """read the phone's serial number (IMEI)"""
         data = self.__do_cmd('AT+CGSN')
         return self.__parse_results('CGSN', data)[0][0]
+
+    def read_version(self):
+        """read the phone's software version number"""
+        data = self.__do_cmd('AT+CGMR')
+        return self.__parse_results('CGMR', data)[0][0]
+
+    def read_model(self):
+        """read the phone's hardware model number"""
+        data = self.__do_cmd('AT+CGMM')
+        for s in self.__parse_results('CGMM', data)[0]:
+            if s.startswith("MODEL="):
+                return s.split("=", 1)[1]
+        return None
 
     def read_time(self):
         """read the phone's current date & time"""
@@ -1491,16 +1512,20 @@ class PhoneAccess:
         self.positions = {}
         self.categories = {}
         self.revcategories = {}
+        self.objformats = {}
 
         # find ObjFormat objects for our types
-        self.objformats = {}
         for objtype in SUPPORTED_OBJTYPES:
-            formatstr = "xml-%s-doc" % objtype
-            self.objformats[objtype] = info.format_env.find_objformat(formatstr)
+            formatstr = "xmlformat-%s-doc" % objtype
+            formatobj = info.format_env.find_objformat(formatstr)
+            if not formatobj:
+                raise opensync.Error('object format %s unknown' % formatstr)
+            self.objformats[objtype] = formatobj
 
     def connect(self):
         """Connect to the phone and setup our data structures."""
-        self.comms.connect()
+        if not self.comms.connect():
+            return # already connected
         self.serial = self.comms.read_serial()
 
         # check that the phone supports the features we need
@@ -1693,7 +1718,7 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
     def __init__(self, objtype, info, access):
         opensync.ObjTypeSinkCallbacks.__init__(self, objtype)
         self.objtype = objtype
-        self.sink.add_objformat("xml-%s-doc" % objtype)
+        self.sink.add_objformat("xmlformat-%s-doc" % objtype)
         self.access = access
         hashpath = os.path.join(info.configdir, "%s-hash.db" % objtype)
         self.hashtable = opensync.HashTable(hashpath, objtype)
@@ -1765,16 +1790,27 @@ def parse_config(configstr):
 def initialize(info):
     """Called by python-module plugin wrapper, registers sync classes."""
     comms = PhoneComms(parse_config(info.config))
-    access = PhoneAccess(comms)
+    access = PhoneAccess(comms, info)
     for objtype in SUPPORTED_OBJTYPES:
         info.add_objtype(MotoSink(objtype, info, access).sink)
 
 def discover(info):
     """Called by python-module wrapper, discovers capabilities of device."""
+    # HACK HACK, grab the comms object out of the initialised sink
+    comms = info.nth_objtype(0).callback_obj.access.comms
+    comms.connect()
+    version = opensync.Version()
+    version.plugin = "moto-sync"
+    version.softwareversion = str(comms.read_version())
+    version.modelversion = str(comms.read_model())
+    version.identifier = str(comms.read_serial())
+    # FIXME: discover and set capabilities
+    comms.disconnect()
+    info.version = version
+
+    # for now, all objtypes are supported on all devices
     for sink in info.objtypes:
         sink.available = True
-    info.version = opensync.Version()
-    info.version.plugin = "moto-sync"
 
 def get_sync_info(plugin):
     """Called by python-module plugin wrapper, returns plugin metadata."""
