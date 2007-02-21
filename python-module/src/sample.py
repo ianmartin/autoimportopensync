@@ -1,9 +1,9 @@
 import opensync
 
-class DummySink(opensync.ObjTypeSink):
+class DummySink(opensync.ObjTypeSinkCallbacks):
 	def __init__(self, objtype):
-		opensync.ObjTypeSink.__init__(self, objtype, self)
-		self.add_objformat("file")
+		opensync.ObjTypeSinkCallbacks.__init__(self, objtype)
+		self.sink.add_objformat("file")
 
 	def connect(self, info, ctx):
 		print "Connect called!"
@@ -45,9 +45,8 @@ class DummySink(opensync.ObjTypeSink):
 def initialize(info):
 	print "initialize called!"
 	print "My config is:", info.config
-	newsink = DummySink("data")
 	print "Adding new sink"
-	info.add_objtype(newsink)
+	info.add_objtype(DummySink("data").sink)
 	print "Done"
 
 def discover(info):
