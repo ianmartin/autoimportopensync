@@ -224,7 +224,7 @@ static osync_bool pm_call_module_method(MemberData *data, char *name, OSyncPlugi
 	
 	if (PyErr_GivenExceptionMatches(pytype, osyncerror)) {
 		/* if it's an OSyncError, just report that up on the context object */
-		PyObject *obj = PyObject_CallMethod(pyvalue, "report", "OO", pyvalue, pycontext);
+		PyObject *obj = PyObject_CallMethod(pyvalue, "report", "O", pycontext);
 		if (!obj) {
 			PYERR_CLEAR();
 			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Failed reporting OSyncError");
