@@ -11,7 +11,7 @@
 
 __revision__ = "$Id$"
 
-import sys, os, types, traceback, md5, time, calendar, re
+import sys, os, types, md5, time, calendar, re
 import xml.dom.minidom
 from datetime import date, datetime, timedelta, time as datetime_time
 import dateutil.parser, dateutil.rrule, dateutil.tz
@@ -395,13 +395,15 @@ class PhoneComms:
         self.contact_name_len = None
 
     def connect(self):
+        """Connect to the phone and initiate communication."""
         if BT_MAC_RE.match(self.devstr):
             assert(USE_BLUETOOTH_MODULE,
                    "MAC address specified, but pybluez module is not available")
-            
+
             # search for the port to use on the device
             port = BT_DEFAULT_CHANNEL
-            found = bluetooth.find_service(name=BT_SERVICE_NAME, address=self.devstr)
+            found = bluetooth.find_service(name=BT_SERVICE_NAME,
+                                           address=self.devstr)
             if found:
                 assert(found[0]['protocol'] == 'RFCOMM')
                 port = found[0]['port']
@@ -436,6 +438,7 @@ class PhoneComms:
         self.contact_name_len = namelen
 
     def disconnect(self):
+        """Disconnect from the phone."""
         self.close_calendar()
         if self.__fd:
             os.close(self.__fd)
@@ -502,7 +505,7 @@ class PhoneComms:
             exceptions = {}
             for (expos, exnum, extype) in self.__parse_results('MDBRE', data):
                 if extype != 1: # haven't seen anything else
-                    raise opensync.Error('unexpected exception type %d' % extype)
+                    raise opensync.Error('unexpected exception type %d'%extype)
                 if not exceptions.has_key(expos):
                     exceptions[expos] = []
                 exceptions[expos].append(exnum)
@@ -1482,19 +1485,26 @@ class PhoneAccess:
      
      Interfaces between PhoneComms/PhoneEntry classes and SyncClass below.
      """
-    def __init__(self, comms):
+    def __init__(self, comms, info):
         self.comms = comms
         self.serial = None
         self.positions = {}
         self.categories = {}
         self.revcategories = {}
 
+        # find ObjFormat objects for our types
+        self.objformats = {}
+        for objtype in SUPPORTED_OBJTYPES:
+            formatstr = "xml-%s-doc" % objtype
+            self.objformats[objtype] = info.format_env.find_objformat(formatstr)
+
     def connect(self):
+        """Connect to the phone and setup our data structures."""
         self.comms.connect()
-        self.serial = comms.read_serial()
+        self.serial = self.comms.read_serial()
 
         # check that the phone supports the features we need
-        features = comms.read_features()
+        features = self.comms.read_features()
         for (bit, desc) in REQUIRED_FEATURES:
             if not features[bit]:
                 raise opensync.Error(desc + ' feature not present',
@@ -1502,7 +1512,7 @@ class PhoneAccess:
 
         # read current time on the phone, check if it matches our local time
         # FIXME: allow the user to configure a different timezone for the phone
-        timestr = comms.read_time()[:-3]
+        timestr = self.comms.read_time()[:-3]
         phone_now = time.strptime(timestr, '%y/%m/%d,%H:%M:%S')
         local_now = time.localtime()
         if abs(time.mktime(phone_now) - time.mktime(local_now)) > 60 * 30:
@@ -1521,9 +1531,10 @@ class PhoneAccess:
         self.__init_categories()
 
     def disconnect(self):
+        """Disconnect from the phone."""
         self.comms.disconnect()
 
-    def list_changes(self, objtype, info):
+    def list_changes(self, objtype):
         """Return a list of change objects for all entries of the given type."""
 
         if objtype == 'contact':
@@ -1543,15 +1554,15 @@ class PhoneAccess:
 
         ret = []
         for entry in entries:
-            change = opensync.Change()
-            change.member = member
-            change.objtype = objtype
-            change.uid = self.__generate_uid(entry)
-            change.format = "xml-%s-doc" % objtype
             if objtype == 'contact':
-                change.data = entry.to_xml(self.categories)
+                xmldata = entry.to_xml(self.categories)
             else:
-                change.data = entry.to_xml()
+                xmldata = entry.to_xml()
+            data = opensync.Data(xmldata, self.objformats[objtype])
+            data.objtype = objtype
+            change = opensync.Change()
+            change.data = data
+            change.uid = self.__generate_uid(entry)
             change.hash = self.__gen_hash(entry)
             ret.append(change)
             self.positions[objtype].mark_used(entry.get_pos())
@@ -1577,28 +1588,28 @@ class PhoneAccess:
         Returns True on success, False otherwise.
         """
         objtype = change.objtype
-        if change.format != 'xml-%s-doc' % objtype:
-            raise opensync.Error("unhandled data format %s" % change.format,
+        if change.objformat != self.objformats[objtype]:
+            raise opensync.Error("unhandled data format "+change.objformat.name,
                                  opensync.ERROR_NOT_SUPPORTED)
         try:
             if objtype == 'event':
-                entry = PhoneEventXML(change.data)
+                entry = PhoneEventXML(change.data.data)
             elif objtype == 'contact':
-                entry = PhoneContactXML(change.data, self.revcategories)
+                entry = PhoneContactXML(change.data.data, self.revcategories)
         except UnsupportedDataError, e:
             warning("%s is unsupported (%s), ignored" % (change.uid, str(e)))
             # we have an entry that can't be stored on the phone
             # if its modified and we've seen it before, delete it
             # otherwise just ignore it
-            if (change.changetype == opensync.CHANGE_MODIFIED
+            if (change.changetype == opensync.CHANGE_TYPE_MODIFIED
                 and self.uid_seen(change.uid)):
-                change.changetype = opensync.CHANGE_DELETED
+                change.changetype = opensync.CHANGE_TYPE_DELETED
                 change.data = None
                 return self.delete_entry(change.uid)
             else:
                 return False
         
-        if change.changetype == opensync.CHANGE_ADDED:
+        if change.changetype == opensync.CHANGE_TYPE_ADDED:
             # allocate positions for the new entry
             positions = self.positions[objtype].alloc(entry.num_pos())
             entry.set_pos(positions)
@@ -1676,13 +1687,13 @@ class PhoneAccess:
         return objtype, positions
 
 
-class MotoSink(opensync.ObjTypeSink):
+class MotoSink(opensync.ObjTypeSinkCallbacks):
     """Event synchronisation class used by OpenSync."""
 
     def __init__(self, objtype, info, access):
-        opensync.ObjTypeSink.__init__(self, objtype, self)
+        opensync.ObjTypeSinkCallbacks.__init__(self, objtype)
         self.objtype = objtype
-        self.add_objformat("xml-%s-doc" % objtype)
+        self.sink.add_objformat("xml-%s-doc" % objtype)
         self.access = access
         hashpath = os.path.join(info.configdir, "%s-hash.db" % objtype)
         self.hashtable = opensync.HashTable(hashpath, objtype)
@@ -1693,45 +1704,44 @@ class MotoSink(opensync.ObjTypeSink):
 
     def get_changes(self, info, ctx):
         """Report all OSyncChange objects for entries on the phone."""
-        if self.slowsink:
+        if self.sink.slowsync:
             self.hashtable.reset()
-        for change in self.access.list_changes(self.objtype, info):
+        for change in self.access.list_changes(self.objtype):
             self.hashtable.report(change.uid)
-            change.changetype = self.hashtable.get_changetype(change.uid, change.hash)
-            if change.changetype != opensync.CHANGE_UNMODIFIED:
-                self.hashtable.update_hash(change.changetype, change.uid, change.hash)
+            change.changetype = self.hashtable.get_changetype(change.uid,
+                                                              change.hash)
+            if change.changetype != opensync.CHANGE_TYPE_UNMODIFIED:
+                self.hashtable.update_hash(change.changetype, change.uid,
+                                           change.hash)
                 ctx.report_change(change)
         for uid in self.hashtable.get_deleted():
             change = opensync.Change()
             change.uid = uid
-            change.changetype = opensync.CHANGE_DELETED
+            change.changetype = opensync.CHANGE_TYPE_DELETED
             ctx.report_change(change)
-            hashtable.update_hash(opensync.CHANGE_DELETED, uid, None)
+            self.hashtable.update_hash(opensync.CHANGE_TYPE_DELETED, uid, None)
 
     def commit(self, info, ctx, change):
         """Write a change to the phone."""
         if change.objtype != self.objtype:
             raise opensync.Error('unsupported objtype %s' % change.objtype,
                                  opensync.ERROR_NOT_SUPPORTED)
-        if change.changetype == opensync.CHANGE_DELETED:
+        if change.changetype == opensync.CHANGE_TYPE_DELETED:
             success = (self.access.uid_seen(change.uid)
                        and self.access.delete_entry(change.uid))
-        elif change.changetype == opensync.CHANGE_MODIFIED:
+        elif change.changetype == opensync.CHANGE_TYPE_MODIFIED:
             old_uid = change.uid
             success = self.access.update_entry(change)
             # if the UID has changed, we need to tell our hashtable that
             # the old one was deleted, to keep it consistent
             if (success and old_uid != change.uid):
-                self.hashtable.update_hash(opensync.CHANGE_DELETED, old_uid, None)
+                self.hashtable.update_hash(opensync.CHANGE_TYPE_DELETED,
+                                           old_uid, None)
         else:
             success = self.access.update_entry(change)
         if success:
-            self.hashtable.update_hash(change.changetype, change.uid, change.hash)
-
-    def sync_done(self, info, ctx):
-        """Called when the sync is complete."""
-        self.hashtable.forget()
-        self.hashtable.close()
+            self.hashtable.update_hash(change.changetype, change.uid,
+                                       change.hash)
 
     def disconnect(self, info, ctx):
         """Called to disconnect from the phone."""
@@ -1757,10 +1767,10 @@ def initialize(info):
     comms = PhoneComms(parse_config(info.config))
     access = PhoneAccess(comms)
     for objtype in SUPPORTED_OBJTYPES:
-        info.add_objtype(MotoSink(objtype, info, access))
+        info.add_objtype(MotoSink(objtype, info, access).sink)
 
 def discover(info):
-    """Called by python-module plugin wrapper, discovers capabilities of device."""
+    """Called by python-module wrapper, discovers capabilities of device."""
     for sink in info.objtypes:
         sink.available = True
     info.version = opensync.Version()
