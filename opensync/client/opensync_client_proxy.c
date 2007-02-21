@@ -353,7 +353,8 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 				goto error_free_capabilities;
 
 			if (version_cap) {
-				osync_capabilities_unref(capabilities);
+				if (capabilities)
+					osync_capabilities_unref(capabilities);
 				capabilities = version_cap;
 			}
 
