@@ -35,7 +35,7 @@ edu DOT au.
 
 REQUIREMENTS
 
- * OpenSync 0.20 or later with the python bindings and python-module plugin
+ * OpenSync 0.30 or later with the python bindings and python-module plugin
  * Python 2.4 or newer
  * The python-dateutil library (at least version 1.1),
    from http://labix.org/python-dateutil
@@ -76,23 +76,18 @@ with file-sync. To configure and use this, do:
         msynctool --addmember phone moto-sync
         msynctool --addmember phone file-sync
         msynctool --configure phone 1 # configure moto-sync, as above
-        msynctool --configure phone 2 # configure file-sync, set the path
+        msynctool --configure phone 2 # configure file-sync, set the path(s)
+        msynctool --discover phone 1
+        msynctool --discover phone 2
         msynctool --sync phone # cross your fingers!
-
-NB: make sure your file-sync directory has only events and contacts in 
-it, no TODO or other data. Otherwise OpenSync will mysteriously 
-deadlock, because there were changes from the file-sync that couldn't be 
-converted. I'm told that this bug is already fixed by the development 
-branch of OpenSync.
 
 
 TESTING/BACKUP
 
 Before doing anything with write enabled, it is probably a good idea to
 backup the data from your phone. You can use the mototool script to
-do this, to delete entries on the phone, or to examine the data that
-moto-sync would send to opensync. Run 'mototool --help' for details
-or, for the impatient, try:
+do this, and to delete entries on the phone. Run 'mototool --help' for 
+details, or, for the impatient, try:
     mototool -v -d (device string) -f myphone.backup --backup
 
 
