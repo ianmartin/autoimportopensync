@@ -830,7 +830,7 @@ error:
 	return FALSE;
 }
 
-static void *syncml_http_server_init(OSyncPluginInfo *info, OSyncError **error)
+static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
@@ -1113,7 +1113,7 @@ error:
 	return FALSE;
 }
 
-static void *syncml_obex_client_init(OSyncPluginInfo *info, OSyncError **error)
+static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, error);
 	SmlError *serror = NULL;
