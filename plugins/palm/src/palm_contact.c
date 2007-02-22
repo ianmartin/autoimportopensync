@@ -21,7 +21,7 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-static OSyncChange *psyncContactCreate(PSyncEntry *entry, OSyncError **error)
+static OSyncChange *psyncContactCreate(PSyncEnv *env, PSyncEntry *entry, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
 	PSyncDatabase *db = entry->db;
@@ -29,7 +29,8 @@ static OSyncChange *psyncContactCreate(PSyncEntry *entry, OSyncError **error)
 	OSyncChange *change = osync_change_new();
 	if (!change)
 		goto error;
-	
+	osync_change_set_member(change, env->member);
+
 	char *uid = g_strdup_printf("uid-AddressDB-%ld", entry->id);
 	osync_change_set_uid(change, uid);
 	g_free(uid);
@@ -95,7 +96,7 @@ osync_bool psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 		for (n = 0; (entry = psyncDBGetNthEntry(db, n, error)); n++) {
 			osync_trace(TRACE_INTERNAL, "Got record with id %ld", entry->id);
 			
-			OSyncChange *change = psyncContactCreate(entry, error);
+			OSyncChange *change = psyncContactCreate(env, entry, error);
 			if (!change)
 				goto error;
 			
@@ -107,7 +108,7 @@ osync_bool psyncContactGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 		}
 	} else {
 		while ((entry = psyncDBGetNextModified(db, error))) {
-			OSyncChange *change = psyncContactCreate(entry, error);
+			OSyncChange *change = psyncContactCreate(env, entry, error);
 			if (!change)
 				goto error;
 			

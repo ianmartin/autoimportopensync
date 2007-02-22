@@ -21,7 +21,7 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-static OSyncChange *psyncNoteCreate(PSyncEntry *entry, OSyncError **error)
+static OSyncChange *psyncNoteCreate(PSyncEnv *env, PSyncEntry *entry, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
 	PSyncDatabase *db = entry->db;
@@ -29,6 +29,7 @@ static OSyncChange *psyncNoteCreate(PSyncEntry *entry, OSyncError **error)
 	OSyncChange *change = osync_change_new();
 	if (!change)
 		goto error;
+	osync_change_set_member(change, env->member);
 	
 	char *uid = g_strdup_printf("uid-MemoDB-%ld", entry->id);
 	osync_change_set_uid(change, uid);
@@ -107,7 +108,7 @@ osync_bool psyncNoteGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
-			OSyncChange *change = psyncNoteCreate(entry, error);
+			OSyncChange *change = psyncNoteCreate(env, entry, error);
 			if (!change)
 				goto error;
 			
@@ -125,7 +126,7 @@ osync_bool psyncNoteGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 			if (entry == NULL)
 				continue;
 
-			OSyncChange *change = psyncNoteCreate(entry, error);
+			OSyncChange *change = psyncNoteCreate(env, entry, error);
 			if (!change)
 				goto error;
 			

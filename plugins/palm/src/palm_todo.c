@@ -21,7 +21,7 @@
 #include "palm_sync.h"
 #include "palm_format.h"
 
-static OSyncChange *psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
+static OSyncChange *psyncTodoCreate(PSyncEnv *env, PSyncEntry *entry, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, entry, error);
 	PSyncDatabase *db = entry->db;
@@ -29,6 +29,7 @@ static OSyncChange *psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 	OSyncChange *change = osync_change_new();
 	if (!change)
 		goto error;
+	osync_change_set_member(change, env->member);
 	
 	/* Set the uid */
 	char *uid = g_strdup_printf("uid-ToDoDB-%ld", entry->id);
@@ -106,7 +107,7 @@ osync_bool psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 
 			osync_trace(TRACE_INTERNAL, "Got all recored with id %ld", entry->id);
 			
-			OSyncChange *change = psyncTodoCreate(entry, error);
+			OSyncChange *change = psyncTodoCreate(env, entry, error);
 			if (!change)
 				goto error;
 			
@@ -124,7 +125,7 @@ osync_bool psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 			if (entry == NULL)
 				continue;
 
-			OSyncChange *change = psyncTodoCreate(entry, error);
+			OSyncChange *change = psyncTodoCreate(env, entry, error);
 			if (!change)
 				goto error;
 			
