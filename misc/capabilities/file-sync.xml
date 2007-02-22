@@ -3,18 +3,45 @@
 	<contact>
 		<Address />
 		<AddressLabel />
+		<Anniversary />
+		<Assistant />
 		<Birthday />
+		<BlogUrl />
+		<CalendarUrl />
+		<Categories />
+		<Class />
 		<EMail />
-		<Logo />
+		<FbUrl />
+		<FileAs />
+		<FormattedName />
+		<FreeBusyUrl />
+		<GroupwiseDirectory />
+		<IM-AIM />
+		<IM-ICQ />
+		<IM-Yahoo />
+		<Key />
+		<Location />
+		<Manager />
+		<Msn />
 		<Name />
+		<Nickname />
 		<Note />
-		<Organisation />
-<!--	<Photo /> do not work currently -->
+		<Organization />
+		<Photo />
+		<PhotoUrl />
+		<Profession />
 		<Revision />
+		<Role />
 		<Sound />
+		<Spouse />
 		<Telephone />
 		<Title />
-		<UID />
-		<URL />
+		<Uid />
+		<Url />
+		<UserDefined />
+		<Version />
+		<VideoUrl />
+		<WantsHtml />
+		<Yabber />
 	</contact>
 </capabilities>
