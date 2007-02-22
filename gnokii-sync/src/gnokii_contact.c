@@ -417,6 +417,7 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 				continue;
 
 			OSyncChange *change = osync_change_new();
+			osync_change_set_member(change, env->member);
 
 			// prepare UID with gnokii-contact-<memory type>-<memory location>
 			uid = gnokii_contact_uid(contact);

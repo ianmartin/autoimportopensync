@@ -363,6 +363,7 @@ osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
 			break;
 
 		OSyncChange *change = osync_change_new();
+		osync_change_set_member(change, env->member);
 
 		// prepare UID with gnokii-calendar-<memory location>
 		uid = g_strdup_printf ("gnokii-calendar-%i", calnote->location);
@@ -466,6 +467,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 
 			// fake a delete change to remove the old hash
 			OSyncChange *delete_change = osync_change_new();
+			osync_change_set_member(change, env->member);
 
 			// the old uid will be set for this "fake" change
 			osync_change_set_uid(delete_change, osync_change_get_uid(change));

@@ -212,7 +212,9 @@ static void evo2_connect(OSyncContext *ctx)
 
 void evo2_report_change(OSyncContext *ctx, char *objtypestr, char *objformatstr, char *data, int datasize, const char *uid, OSyncChangeType type)
 {
+	evo_environment *env = (evo_environment *)osync_context_get_plugin_data(ctx);
 	OSyncChange *change = osync_change_new();
+	osync_change_set_member(change, env->member);
 	osync_change_set_uid(change, uid);
 	osync_change_set_objformat_string(change, objformatstr);
 	osync_change_set_changetype(change, type);
