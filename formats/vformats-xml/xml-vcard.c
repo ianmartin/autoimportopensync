@@ -41,10 +41,10 @@ static void handle_type_parameter(xmlNode *current, VFormatParam *param)
 		vformat_attribute_param_get_name(param));
 	GList *v = vformat_attribute_param_get_values(param);
 	/**
-	 * PHOTO TYPE parameter should be rewritten
+	 * PHOTO and LOGO TYPE parameter should be rewritten
 	 * PHOTO;TYPE=JPEG -> PHOTO;TYPE=image/jpeg
 	**/
-	if ( xmlStrcmp(current->name, (const xmlChar *)"Photo") ) {
+	if ( xmlStrcmp(current->name, (const xmlChar *)"Photo") && xmlStrcmp(current->name, (const xmlChar *)"Logo")) {
 		for (; v; v = v->next) {
 			xmlNewTextChild(current, NULL, 
 				(xmlChar*)"Type", (xmlChar*)v->data);
@@ -556,7 +556,7 @@ static void add_value(VFormatAttribute *attr, xmlNode *parent, const char *name,
 
 /**
  * handle_xml_type_parameter:
- * Photo Type will be IANA Mime type or not set
+ * Photo or Logo Type will be IANA Mime type or not set
  * @param attr 
  * @param current 
  */
@@ -565,7 +565,7 @@ static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 	osync_trace(TRACE_INTERNAL, "%s: nodename=%s", 
 		__func__, (char *)current->parent->name);
 	char *content = (char*)xmlNodeGetContent(current);
-	if(!xmlStrcmp(current->parent->name, (const xmlChar *)"Photo")) {
+	if(!xmlStrcmp(current->parent->name, (const xmlChar *)"Photo") || !xmlStrcmp(current->parent->name, (const xmlChar *)"Logo")) {
 		content = (char *)rewrite_mime_type((const char *)content, 1);
 		if(!content)
 			return;
@@ -577,7 +577,7 @@ static void handle_xml_type_parameter(VFormatAttribute *attr, xmlNode *current)
 
 /**
  * handle_xml_type_parameter:
- * Photo Type will be not IANA Mime type or not set
+ * Photo or Logo Type will be not IANA Mime type or not set
  * @param attr 
  * @param current 
  */
@@ -586,7 +586,7 @@ static void handle_xml_type_no_iana_parameter(VFormatAttribute *attr, xmlNode *c
 	osync_trace(TRACE_INTERNAL, "%s: nodename=%s", 
 		__func__, (char *)current->parent->name);
 	char *content = (char*)xmlNodeGetContent(current);
-	if(!xmlStrcmp(current->parent->name, (const xmlChar *)"Photo")) {
+	if(!xmlStrcmp(current->parent->name, (const xmlChar *)"Photo") || !xmlStrcmp(current->parent->name, (const xmlChar *)"Logo")) {
 		content = (char *)rewrite_mime_type((const char *)content, 0);
 		if(!content)
 			return;
