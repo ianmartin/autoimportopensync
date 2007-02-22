@@ -268,7 +268,7 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 
 }
 
-static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable, GString *charset)
+static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_encoding, GString *charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -276,7 +276,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	/* read in the value */
 	str = g_string_new ("");
 	while (*lp != '\r' && *lp != '\0') {
-		if (*lp == '=' && quoted_printable) {
+		if (*lp == '=' && format_encoding == VF_ENCODING_QP) {
 			char a, b, x1=0, x2=0;
 		
 			if ((a = *(++lp)) == '\0') break;
@@ -348,6 +348,11 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 			lp++;
 			x1 = x2 = 0;
 		}
+		else if (format_encoding == VF_ENCODING_BASE64) {
+			if((*lp != ' ') && (*lp != '\t') )
+				str = g_string_append_unichar (str, g_utf8_get_char (lp));
+			lp = g_utf8_next_char(lp);
+		}
 		else if (*lp == '\\') {
 			/* convert back to the non-escaped version of
 			   the characters */
@@ -405,7 +410,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	*p = lp;
 }
 
-static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable, GString **charset)
+static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format_encoding, GString **charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -474,11 +479,16 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 				}
 
 				if (param
-				    && !g_ascii_strcasecmp (param->name, "encoding")
-				    && !g_ascii_strcasecmp (param->values->data, "quoted-printable")) {
-					*quoted_printable = TRUE;
-					vformat_attribute_param_free (param);
-					param = NULL;
+				    && !g_ascii_strcasecmp (param->name, "encoding")) {
+					if (!g_ascii_strcasecmp (param->values->data, "quoted-printable")) {
+						*format_encoding = VF_ENCODING_QP;
+						vformat_attribute_param_free (param);
+						param = NULL;
+					} else if ( !g_ascii_strcasecmp (param->values->data, "BASE64") || !g_ascii_strcasecmp (param->values->data, "b")) { 
+						*format_encoding = VF_ENCODING_BASE64;
+						vformat_attribute_param_free (param);
+						param = NULL;
+					}
 				} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
 					*charset = g_string_new(param->values->data);
 					vformat_attribute_param_free (param);	
@@ -491,7 +501,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 					if (!g_ascii_strcasecmp (str->str,
 								 "quoted-printable")) {
 						param_name = "ENCODING";
-						*quoted_printable = TRUE;
+						*format_encoding = VF_ENCODING_QP;
 					}
 					/* apple's broken addressbook app outputs naked BASE64
 					   parameters, which aren't even vcard 3.0 compliant. */
@@ -499,6 +509,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 								      "base64")) {
 						param_name = "ENCODING";
 						g_string_assign (str, "b");
+						*format_encoding = VF_ENCODING_BASE64;
 					}
 					else {
 						param_name = "TYPE";
@@ -1499,6 +1510,7 @@ vformat_attribute_get_values_decoded (VFormatAttribute *attr)
 {
 	g_return_val_if_fail (attr != NULL, NULL);
 
+	osync_trace(TRACE_INTERNAL, "%s: encoding=%i", __func__, attr->encoding);
 	if (!attr->decoded_values) {
 		GList *l;
 		switch (attr->encoding) {
@@ -1509,7 +1521,8 @@ vformat_attribute_get_values_decoded (VFormatAttribute *attr)
 			break;
 		case VF_ENCODING_BASE64:
 			for (l = attr->values; l; l = l->next) {
-				char *decoded = g_strdup ((char*)l->data);
+				char *decoded = g_strstrip(g_strdup ((char*)l->data));
+				osync_trace(TRACE_INTERNAL, "!!!%s!!!", decoded);
 				int len = base64_decode_simple (decoded, strlen (decoded));
 				attr->decoded_values = g_list_append (attr->decoded_values, g_string_new_len (decoded, len));
 				g_free (decoded);
@@ -1579,6 +1592,7 @@ vformat_attribute_get_value_decoded (VFormatAttribute *attr)
 
 const char *vformat_attribute_get_nth_value(VFormatAttribute *attr, int nth)
 {
+	osync_trace(TRACE_INTERNAL, "%s: %p, %i", __func__, attr, nth);
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	if (!values)
 		return NULL;
