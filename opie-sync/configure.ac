@@ -10,6 +10,8 @@ export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:$prefix/lib/pkgconf
 pkg_modules="opensync-1.0 glib-2.0 libxml-2.0 openssl >= 0.9.5"
 PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
 
+AC_PROG_CC
+
 #save old cflags
 OLD_CFLAGS=$CFLAGS
 CFLAGS="$OLD_CFLAGS -Wno-pointer-sign"
