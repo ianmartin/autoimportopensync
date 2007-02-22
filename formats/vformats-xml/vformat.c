@@ -21,6 +21,11 @@
  */
 
 #include "vformat.h"
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -35,6 +40,20 @@ char  *base64_encode_simple (const char *data, size_t len);
 
 size_t quoted_decode_simple (char *data, size_t len);
 char *quoted_encode_simple (const unsigned char *string, int len);
+
+
+/**
+ * _helper_is_base64 is helper function to check i a string is "b" or "base64"
+ * @param check_string string that should be compared with "b" or "base64"
+ * @return 0 if check_string is not base64  and 1 if it is
+ */
+static int _helper_is_base64(const char *check_string)
+{
+	if(!g_ascii_strcasecmp ((char *) check_string, "BASE64") ||
+	   !g_ascii_strcasecmp ((char *) check_string, "b") )
+		return (1);
+	return (0);
+}
 
 time_t vformat_time_to_unix(const char *inptime)
 {
@@ -217,8 +236,11 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 	if (charset) {
 
 		cd = iconv_open("UTF-8", charset->str);
+#ifdef SOLARIS
+                if (iconv(cd, (const char**)&inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+#else
                 if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
-
+#endif
                         *p = 0;
                         vformat_attribute_add_value(attr, outbuf);
 
@@ -242,8 +264,11 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 
 			/* because inbuf is not UTF-8, we think it is ISO-8859-1 */
                         cd = iconv_open("UTF-8", "ISO-8859-1");
+#ifdef SOLARIS
+                        if (iconv(cd, (const char**)&inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
+#else
                         if (iconv(cd, &inbuf, &inbytesleft, &p, &outbytesleft) != (size_t)(-1)) {
-
+#endif
                                 *p = 0;
                                 vformat_attribute_add_value (attr, outbuf);
 
@@ -263,7 +288,7 @@ static void _read_attribute_value_add (VFormatAttribute *attr, GString *str, GSt
 
 }
 
-static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean quoted_printable, GString *charset)
+static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_encoding, GString *charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -271,7 +296,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	/* read in the value */
 	str = g_string_new ("");
 	while (*lp != '\r' && *lp != '\0') {
-		if (*lp == '=' && quoted_printable) {
+		if (*lp == '=' && format_encoding == VF_ENCODING_QP) {
 			char a, b, x1=0, x2=0;
 
 			if ((a = *(++lp)) == '\0') break;
@@ -343,6 +368,11 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 			lp++;
 			x1 = x2 = 0;
 		}
+		else if (format_encoding == VF_ENCODING_BASE64) {
+			if((*lp != ' ') && (*lp != '\t') )
+				str = g_string_append_unichar (str, g_utf8_get_char (lp));
+			lp = g_utf8_next_char(lp);
+		}
 		else if (*lp == '\\') {
 			/* convert back to the non-escaped version of
 			   the characters */
@@ -400,7 +430,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, gboolean qu
 	*p = lp;
 }
 
-static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *quoted_printable, GString **charset)
+static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format_encoding, GString **charset)
 {
 	char *lp = *p;
 	GString *str;
@@ -469,11 +499,16 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 				}
 
 				if (param
-				    && !g_ascii_strcasecmp (param->name, "encoding")
-				    && !g_ascii_strcasecmp (param->values->data, "quoted-printable")) {
-					*quoted_printable = TRUE;
-					vformat_attribute_param_free (param);
-					param = NULL;
+				    && !g_ascii_strcasecmp (param->name, "encoding")) {
+					if (!g_ascii_strcasecmp (param->values->data, "quoted-printable")) {
+						*format_encoding = VF_ENCODING_QP;
+						vformat_attribute_param_free (param);
+						param = NULL;
+					} else if ( _helper_is_base64(param->values->data)) {
+						*format_encoding = VF_ENCODING_BASE64;
+						vformat_attribute_param_free (param);
+						param = NULL;
+					}
 				} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
 					*charset = g_string_new(param->values->data);
 					vformat_attribute_param_free (param);
@@ -486,7 +521,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 					if (!g_ascii_strcasecmp (str->str,
 								 "quoted-printable")) {
 						param_name = "ENCODING";
-						*quoted_printable = TRUE;
+						*format_encoding = VF_ENCODING_QP;
 					}
 					/* apple's broken addressbook app outputs naked BASE64
 					   parameters, which aren't even vcard 3.0 compliant. */
@@ -494,6 +529,7 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, gboolean *q
 								      "base64")) {
 						param_name = "ENCODING";
 						g_string_assign (str, "b");
+						*format_encoding = VF_ENCODING_BASE64;
 					}
 					else {
 						param_name = "TYPE";
@@ -812,6 +848,7 @@ VFormatAttribute *vformat_find_attribute(VFormat *vcard, const char *name)
 
 char *vformat_to_string (VFormat *evc, VFormatType type)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, type);
 	GList *l;
 	GList *v;
 
@@ -842,7 +879,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		VFormatAttribute *attr = l->data;
 		GString *attr_str;
 		int l;
-		gboolean quoted_printable = FALSE;
+		int format_encoding = VF_ENCODING_RAW;
 
 		attr_str = g_string_new ("");
 
@@ -856,30 +893,72 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			attr_str = g_string_append_c (attr_str, '.');
 		}
 		attr_str = g_string_append (attr_str, attr->name);
-
 		/* handle the parameters */
 		for (p = attr->params; p; p = p->next) {
 			VFormatParam *param = p->data;
 			/* 5.8.2:
 			 * param        = param-name "=" param-value *("," param-value)
 			 */
-			if (!g_ascii_strcasecmp (param->name, "CHARSET") && (type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20))
-				continue;
-			attr_str = g_string_append_c (attr_str, ';');
-			if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
+			if( type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20
+			    || type == VFORMAT_EVENT_20) {
+
+				/**
+				 * Character set can only be specified on the CHARSET
+				 * parameter on the Content-Type MIME header field.
+				**/
+				if (!g_ascii_strcasecmp (param->name, "CHARSET"))
+					continue;
+				attr_str = g_string_append_c (attr_str, ';');
 				attr_str = g_string_append (attr_str, param->name);
-			if (param->values) {
-				if (g_ascii_strcasecmp (param->name, "TYPE") || type == VFORMAT_CARD_30 || type == VFORMAT_TODO_20 || type == VFORMAT_EVENT_20)
+				if (param->values) {
 					attr_str = g_string_append_c (attr_str, '=');
+				}
 				for (v = param->values; v; v = v->next) {
+					if (_helper_is_base64((const char *) v->data)) {
+						format_encoding = VF_ENCODING_BASE64;
+						/*Only the "B" encoding of [RFC 2047] is an allowed*/
+						v->data="B";
+					}
+					/**
+					 * QUOTED-PRINTABLE inline encoding has been
+					 * eliminated.
+					**/
+					if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE")) {
+						osync_trace(TRACE_ERROR, "%s false encoding QUOTED-PRINTABLE is not allowed", __func__);
+						format_encoding = VF_ENCODING_QP;
+					}
 					attr_str = g_string_append (attr_str, v->data);
 
 					if (v->next)
 						attr_str = g_string_append_c (attr_str, ',');
-
+				}
+			}
+			else {
+				attr_str = g_string_append_c (attr_str, ';');
+				/**
+				 * The "TYPE=" is optional skip it.
+				 * LOGO, PHOTO and SOUND multimedia formats MUST
+				 * have a "TYPE=" parameter
+				**/
+				gboolean must_have_type = FALSE;
+				if (!g_ascii_strcasecmp (attr->name, "PHOTO") || !g_ascii_strcasecmp (attr->name, "LOGO") || !g_ascii_strcasecmp (attr->name, "SOUND") )
+					must_have_type = TRUE;
+				if ( must_have_type || g_ascii_strcasecmp (param->name, "TYPE") )
+					attr_str = g_string_append (attr_str, param->name);
+				if ( param->values && (must_have_type || g_ascii_strcasecmp (param->name, "TYPE")) )
+					attr_str = g_string_append_c (attr_str, '=');
+				for (v = param->values; v; v = v->next) {
 					// check for quoted-printable encoding
 					if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE"))
-						quoted_printable = TRUE;
+						format_encoding = VF_ENCODING_QP;
+					// check for base64 encoding
+					if (_helper_is_base64((const char *) v->data)) {
+						format_encoding = VF_ENCODING_BASE64;
+						v->data="BASE64";
+					}
+					attr_str = g_string_append (attr_str, v->data);
+					if (v->next)
+						attr_str = g_string_append_c (attr_str, ',');
 				}
 			}
 		}
@@ -959,14 +1038,14 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 				l += 75;
 
 				/* If using QP, must be sure that we do not fold within a quote sequence */
-				if (quoted_printable) {
+				if (format_encoding == VF_ENCODING_QP) {
 				  if (g_utf8_get_char(g_utf8_offset_to_pointer(attr_str->str, l-1)) == '=') l--;
 				  else if (g_utf8_get_char(g_utf8_offset_to_pointer(attr_str->str, l-2)) == '=') l -= 2;
 				}
 
 				char *p = g_utf8_offset_to_pointer(attr_str->str, l);
 
-				if (quoted_printable)
+				if (format_encoding == VF_ENCODING_QP)
 					attr_str = g_string_insert_len (attr_str, p - attr_str->str, "=" CRLF "", sizeof ("=" CRLF "") - 1);
 				else
 					attr_str = g_string_insert_len (attr_str, p - attr_str->str, CRLF " ", sizeof (CRLF " ") - 1);
@@ -976,6 +1055,15 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 		} while (l < g_utf8_strlen(attr_str->str, attr_str->len));
 
 		attr_str = g_string_append (attr_str, CRLF);
+		/**
+		 * base64= <MIME RFC 1521 base64 text>
+		 * the end of the text is marked with two CRLF sequences
+		 * this results in one blank line before the start of the
+		 * next property
+		**/
+		if( format_encoding == VF_ENCODING_BASE64
+		   && (type == VFORMAT_CARD_21))
+			attr_str = g_string_append (attr_str, CRLF);
 
 		str = g_string_append (str, attr_str->str);
 		g_string_free (attr_str, TRUE);
@@ -1001,6 +1089,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			break;
 	}
 
+	osync_trace(TRACE_EXIT, "%s(%p, %i)", __func__, type);
 	return g_string_free (str, FALSE);
 }
 
@@ -1322,7 +1411,7 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 		}
 
 		if (param->values && param->values->data) {
-			if (!g_ascii_strcasecmp ((char*)param->values->data, "b"))
+			if (_helper_is_base64((const char*)param->values->data))
 				attr->encoding = VF_ENCODING_BASE64;
 			else if (!g_ascii_strcasecmp ((char*)param->values->data, "QUOTED-PRINTABLE"))
 				attr->encoding = VF_ENCODING_QP;
@@ -1351,6 +1440,15 @@ VFormatParam *vformat_attribute_find_param(VFormatAttribute *attr, const char *n
 			return param;
 	}
 	return NULL;
+}
+
+void
+vformat_attribute_set_value (VFormatAttribute *attr,
+				int nth, const char *value)
+{
+	GList *param = g_list_nth(attr->values, nth);
+	g_free(param->data);
+	param->data = g_strdup(value);
 }
 
 void
