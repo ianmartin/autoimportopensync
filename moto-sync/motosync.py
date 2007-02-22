@@ -47,6 +47,30 @@ BT_DEFAULT_CHANNEL = 1
 # object types supported by this plugin
 SUPPORTED_OBJTYPES = ['event', 'contact']
 
+CAPABILITIES = """<?xml version="1.0"?>
+<capabilities>
+    <contact>
+        <Address />
+        <Birthday />
+        <Categories />
+        <EMail />
+        <FormattedName />
+        <Name />
+        <Nickname />
+        <Telephone />
+    </contact>
+    <event>
+        <Summary />
+        <DateStarted />
+        <DateEnd />
+        <Duration />
+        <Alarm />
+        <RecurrenceRule />
+        <ExceptionDateTime />
+    </event>
+</capabilities>
+"""
+
 # my phone doesn't like it if you read more than this many entries at a time
 ENTRIES_PER_READ = 15
 
@@ -78,40 +102,44 @@ REQUIRED_FEATURES = [
     (9, 'distinctive alert in phone book')
 ]
 
-# mapping from phone's contact type to vcard number types
-MOTO_CONTACT_TYPES = {
-    0: 'work',
-    1: 'home',
-    2: 'voice',
-    3: 'cell',
-    4: 'fax',
-    5: 'pager',
-    11: 'voice' # shows up as "other", seen on a RAZR V3x
+# mapping from phone's contact type to XML number types
+MOTO_PHONE_CONTACT_TYPES = {
+    2: 'Voice',
+    3: 'Cellular',
+    4: 'Fax',
+    5: 'Pager',
+    11: 'Voice' # shows up as "other", seen on a RAZR V3x
+}
+
+# as above, but to TelephoneLocation
+MOTO_PHONE_CONTACT_LOCATIONS = {
+    0: 'Work',
+    1: 'Home'
 }
 
 # reverse of the above (almost): mapping from vcard to phone's contact type
 VCARD_CONTACT_TYPES = {
-    'work':  0,
-    'home':  1,
-    'voice': 2,
-    'cell':  3,
-    'car':   3,
-    'pcs':   3,
-    'fax':   4,
-    'pager': 5,
+    'Work':     0,
+    'Home':     1,
+    'Voice':    2,
+    'Cellular': 3,
+    'Car':      3,
+    'Message':  5,
+    'Fax':      4,
+    'Pager':    5,
 }
 
 # (dodgy) mapping from address types to motorola contact types
 # can also have dom/intl/postal/parcel... these don't really make sense here
 VCARD_ADDRESS_TYPES = {
-    'work':  0,
-    'home':  1,
+    'Work':  0,
+    'Home':  1,
 }
 
 # reverse of the above
 MOTO_ADDRESS_TYPES = {
-    0: 'work',
-    1: 'home',
+    0: 'Work',
+    1: 'Home',
 }
 
 # if not one of the above, we use:
@@ -138,7 +166,7 @@ MOTO_QUICKDIAL_ENTRIES = 10
 # logical order of the fields in structured XML data
 XML_NAME_PARTS = 'Prefix FirstName Additional LastName Suffix'.split()
 XML_ADDRESS_PARTS = ('Street ExtendedAddress'
-                     + ' City Region PostalCode Country').split()
+                     + ' Locality Region PostalCode Country').split()
 
 # legal characters in telephone numbers
 TEL_NUM_DIGITS = set('+0123456789')
@@ -263,6 +291,9 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     specifications (such as BYSETPOS)
     """
     
+    # XXX FIXME: whole function needs reworkign for new XML format
+    return (MOTO_REPEAT_NONE, [])
+    
     # can't support multiple rules
     if len(rulenodes) != 1:
         return (MOTO_REPEAT_NONE, [])
@@ -270,16 +301,16 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
 
     # build hash of rule parts
     rules = {}
-    for rule in map(getXMLText, rulenode.getElementsByTagName('Rule')):
-        key, val = rule.split('=', 1)
-        key = key.lower()
+    for node in rulenode.childNodes:
+        key = node.nodeName.lower()
+        val = getXMLText(node).lower()
         if key[:1] == 'by':
             val = set(val.split(','))
         rules[key] = val
 
     # extract the parts
-    assert(rules.has_key('freq')) # required by RFC2445
-    freq = rules['freq'].lower()
+    assert(rules.has_key('content')) # required
+    freq = rules['content'].lower()
     bymonth = rules.get('bymonth')
     byweekno = rules.get('byweekno')
     byyearday = rules.get('byyearday')
@@ -334,8 +365,9 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     # now we need to work out the exceptions and see if this event still occurs
 
     # recombine the rule parts into a single string, and parse into an rruleset
-    rulestr = ';'.join(map(getXMLText, rulenode.getElementsByTagName('Rule')))
-    ruleset = dateutil.rrule.rrulestr(rulestr, dtstart=eventdt, forceset=True)
+    # XXX FIXME: totally different rrule format
+    # rulestr = ';'.join(map(getXMLText, rulenode.getElementsByTagName('Rule')))
+    # ruleset = dateutil.rrule.rrulestr(rulestr, dtstart=eventdt, forceset=True)
 
     # are there any future occurrences of this event?
     now = datetime.now()
@@ -347,9 +379,12 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
 
     # add in the exception dates and rules (if any)
     for node in exdates:
-        ruleset.exdate(dateutil.parser.parse(getXMLField(node, 'Content')))
-    for node in exrules:
-        ruleset.exrule(dateutil.rrule.rrulestr(getXMLField(node, 'Content')))
+        for e in getElementsByTagNames(node, 'Content'):
+            ruleset.exdate(dateutil.parser.parse(getXMLText(e)))
+
+    # XXX FIXME: totally different rrule format
+    #for node in exrules:
+    #    ruleset.exrule(dateutil.rrule.rrulestr(getXMLField(node, 'Content')))
 
     # are there any future occurrences of this event if we consider exceptions?
     if ruleset.after(datetime.now()) == None:
@@ -877,9 +912,8 @@ class PhoneEvent(PhoneEntry):
     def to_xml(self):
         """Returns OpenSync XML representation of this event."""
         impl = xml.dom.minidom.getDOMImplementation()
-        doc = impl.createDocument(None, 'vcal', None)
-        top = doc.createElement('Event')
-        doc.documentElement.appendChild(top)
+        doc = impl.createDocument(None, 'event', None)
+        top = doc.documentElement
 
         e = doc.createElement('Summary')
         appendXMLChild(doc, e, 'Content', self.name)
@@ -890,7 +924,7 @@ class PhoneEvent(PhoneEntry):
             dtstart = self.eventdt.strftime(VCAL_DATETIME)
         else:
             dtstart = self.eventdt.strftime(VCAL_DATE)
-            appendXMLChild(doc, e, 'Value', 'DATE')
+            e.setAttribute('DateValue', 'DATE')
         appendXMLChild(doc, e, 'Content', dtstart)
         top.appendChild(e)
 
@@ -900,39 +934,41 @@ class PhoneEvent(PhoneEntry):
             dtend = endtime.strftime(VCAL_DATETIME)
         else:
             dtend = endtime.strftime(VCAL_DATE)
-            appendXMLChild(doc, e, 'Value', 'DATE')
+            e.setAttribute('DateValue', 'DATE')
         appendXMLChild(doc, e, 'Content', dtend)
         top.appendChild(e)
 
         if self.alarmdt:
             alarm = doc.createElement('Alarm')
             appendXMLChild(doc, alarm, 'AlarmAction', 'DISPLAY')
-            appendXMLChild(doc, alarm, 'AlarmDescription', self.name)
+            e = doc.createElement('AlarmDescription')
+            appendXMLChild(doc, e, 'Content', self.name)
+            alarm.appendChild(e)
             alarmtime = self.alarmdt.strftime(VCAL_DATETIME)
             appendXMLChild(doc, alarm, 'AlarmTrigger', alarmtime)
             top.appendChild(alarm)
 
         e = doc.createElement('RecurrenceRule')
         if self.repeat_type == MOTO_REPEAT_DAILY:
-            appendXMLChild(doc, e, 'Rule', 'FREQ=DAILY')
+            appendXMLChild(doc, e, 'Content', 'DAILY')
         elif self.repeat_type == MOTO_REPEAT_WEEKLY:
-            appendXMLChild(doc, e, 'Rule', 'FREQ=WEEKLY')
+            appendXMLChild(doc, e, 'Content', 'WEEKLY')
         elif self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
-            appendXMLChild(doc, e, 'Rule', 'FREQ=MONTHLY')
-            appendXMLChild(doc, e, 'Rule', 'BYMONTHDAY=%d' % self.eventdt.day)
+            appendXMLChild(doc, e, 'Content', 'MONTHLY')
+            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
         elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
-            appendXMLChild(doc, e, 'Rule', 'FREQ=MONTHLY')
+            appendXMLChild(doc, e, 'Content', 'MONTHLY')
             day = VCAL_DAYS[self.eventdt.weekday()]
             # compute the week number that the event falls in
             if self.eventdt.day % 7 == 0:
                 weeknum = self.eventdt.day / 7
             else:
                 weeknum = self.eventdt.day / 7 + 1
-            appendXMLChild(doc, e, 'Rule', 'BYDAY=%d%s' % (weeknum, day))
+            appendXMLChild(doc, e, 'ByDay', '%d%s' % (weeknum, day))
         elif self.repeat_type == MOTO_REPEAT_YEARLY:
-            appendXMLChild(doc, e, 'Rule', 'FREQ=YEARLY')
-            appendXMLChild(doc, e, 'Rule', 'BYMONTH=%d' % self.eventdt.month)
-            appendXMLChild(doc, e, 'Rule', 'BYMONTHDAY=%d' % self.eventdt.day)
+            appendXMLChild(doc, e, 'Content', 'YEARLY')
+            appendXMLChild(doc, e, 'ByMonth', str(self.eventdt.month))
+            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
 
         if e.hasChildNodes():
             top.appendChild(e)
@@ -962,11 +998,12 @@ class PhoneEvent(PhoneEntry):
 
             # work out which dates the exceptions correspond to and
             # generate ExceptionDate nodes for them
+            e = doc.createElement('ExceptionDateTime')
+            e.setAttribute('DateValue', 'DATE')
             for exnum in self.exceptions:
-                e = doc.createElement('ExclusionDate')
                 appendXMLChild(doc, e, 'Content',
                                format_time(rrule[exnum], VCAL_DATE))
-                appendXMLChild(doc, e, 'Value', 'DATE')
+            if e.hasChildNodes():
                 top.appendChild(e)
 
         return doc.toxml()
@@ -1013,7 +1050,7 @@ class PhoneEventXML(PhoneEvent):
         """
         PhoneEvent.__init__(self)
         doc = xml.dom.minidom.parseString(data)
-        event = doc.getElementsByTagName('Event')[0]
+        event = doc.getElementsByTagName('event')[0]
 
         def getField(tagname, subtag='Content'):
             """utility function for the XML processing below"""
@@ -1026,9 +1063,19 @@ class PhoneEventXML(PhoneEvent):
         if self.eventdt.year < 2000:
             raise UnsupportedDataError('Event is too old')
 
-        durationstr = getField('Duration')
-        if durationstr != '':
-            self.duration = parse_ical_duration(durationstr)
+        if event.getElementsByTagName('Duration') != []:
+            duration = event.getElementsByTagName('Duration')[0]
+            def tryint(s):
+                if s == '':
+                    return 0
+                else:
+                    return int(s)
+            weeks = tryint(getXMLField(duration, 'Weeks'))
+            days = tryint(getXMLField(duration, 'Days'))
+            hours = tryint(getXMLField(duration, 'Hours'))
+            mins = tryint(getXMLField(duration, 'Minutes'))
+            secs = tryint(getXMLField(duration, 'Seconds'))
+            self.duration = datetime.timedelta(weeks * 7 + days, (hours * 60 + mins) * 60 + secs)
         else:
             endstr = getField('DateEnd')
             if endstr != '':
@@ -1058,8 +1105,8 @@ class PhoneEventXML(PhoneEvent):
                 self.alarmdt = parse_ical_time(triggerstr)
 
         rrules = event.getElementsByTagName('RecurrenceRule')
-        exdates = event.getElementsByTagName('ExclusionDate')
-        exrules = event.getElementsByTagName('ExclusionRule')
+        exdates = event.getElementsByTagName('ExceptionDateTime')
+        exrules = event.getElementsByTagName('ExceptionRule')
         (self.repeat_type, self.exceptions) = convert_rrule(rrules, exdates,
                                                           exrules, self.eventdt)
 
@@ -1255,10 +1302,11 @@ class PhoneContactXML(PhoneContact):
     def __init__(self, data, revcategories):
         PhoneContact.__init__(self)
         doc = xml.dom.minidom.parseString(data)
+        contact = doc.getElementsByTagName('contact')[0]
 
         def getField(tagname, subtag='Content'):
             """utility function for the XML processing below"""
-            return getXMLField(doc, tagname, subtag)
+            return getXMLField(contact, tagname, subtag)
 
         # handle the name and formatted name fields
         self.name = getField('FormattedName')
@@ -1305,9 +1353,8 @@ class PhoneContactXML(PhoneContact):
             if elt.tagName == 'Telephone':
                 # filter out any illegal characters from the phone number
                 content = filter(lambda c: c in TEL_NUM_DIGITS, content)
-                ical_types = [getXMLText(e).lower()
-                              for e in elt.getElementsByTagName('Type')]
-                is_pref = 'pref' in ical_types
+                ical_types = elt.getAttribute('Type').split(';')
+                is_pref = elt.hasAttribute('Preferred') and elt.getAttribute('Preferred') in ['1', 'true']
                 moto_type = MOTO_CONTACT_DEFAULT
                 for t in ical_types:
                     if VCARD_CONTACT_TYPES.has_key(t):
@@ -1337,8 +1384,7 @@ class PhoneContactXML(PhoneContact):
         addresses = {}
         for adr in doc.getElementsByTagName('Address'):
             address = [getXMLField(adr, p) for p in XML_ADDRESS_PARTS]
-            ical_types = [getXMLText(e).lower() for e in 
-                          adr.getElementsByTagName('Type')]
+            ical_types = adr.getAttribute('Location').split(';')
             for t in ical_types:
                 if VCARD_ADDRESS_TYPES.has_key(t):
                     moto_type = VCARD_ADDRESS_TYPES[t]
@@ -1430,10 +1476,12 @@ class PhoneContactChild:
             assert(False, "mailing lists aren't handled yet, sorry") # FIXME
         else:
             e = doc.createElement('Telephone')
-            appendXMLChild(doc, e, 'Type',
-                           MOTO_CONTACT_TYPES[self.contacttype].upper())
+            if MOTO_PHONE_CONTACT_TYPES.has_key(self.contacttype):
+                e.setAttribute('Type', MOTO_PHONE_CONTACT_TYPES[self.contacttype])
+            elif MOTO_PHONE_CONTACT_LOCATIONS.has_key(self.contacttype):
+                e.setAttribute('Location', MOTO_PHONE_CONTACT_LOCATIONS[self.contacttype])
             if self.primaryflag:
-                appendXMLChild(doc, e, 'Type', 'PREF')
+                e.setAttribute('Preferred', "1")
         appendXMLChild(doc, e, 'Content', self.contact)
         ret.append(e)
 
@@ -1443,7 +1491,7 @@ class PhoneContactChild:
                 appendXMLChild(doc, e, part, val)
             if e.hasChildNodes():
                 if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
-                    appendXMLChild(doc, e, 'Type',
+                    e.setAttribute('Location',
                                    MOTO_ADDRESS_TYPES[self.contacttype].upper())
                 ret.append(e)
 
@@ -1583,6 +1631,7 @@ class PhoneAccess:
                 xmldata = entry.to_xml(self.categories)
             else:
                 xmldata = entry.to_xml()
+            print xmldata
             data = opensync.Data(xmldata, self.objformats[objtype])
             data.objtype = objtype
             change = opensync.Change()
@@ -1751,6 +1800,8 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
         if change.objtype != self.objtype:
             raise opensync.Error('unsupported objtype %s' % change.objtype,
                                  opensync.ERROR_NOT_SUPPORTED)
+        if change.changetype != opensync.CHANGE_TYPE_DELETED:
+            print "\nOpenSync wants me to write:\n", change.data.data
         if change.changetype == opensync.CHANGE_TYPE_DELETED:
             success = (self.access.uid_seen(change.uid)
                        and self.access.delete_entry(change.uid))
@@ -1804,9 +1855,9 @@ def discover(info):
     version.softwareversion = str(comms.read_version())
     version.modelversion = str(comms.read_model())
     version.identifier = str(comms.read_serial())
-    # FIXME: discover and set capabilities
     comms.disconnect()
     info.version = version
+    info.capabilities = opensync.capabilities_parse(CAPABILITIES)
 
     # for now, all objtypes are supported on all devices
     for sink in info.objtypes:
