@@ -1847,14 +1847,13 @@ def initialize(info):
 
 def discover(info):
     """Called by python-module wrapper, discovers capabilities of device."""
+    version = opensync.Version()
+    version.plugin = "moto-sync"
     # HACK HACK, grab the comms object out of the initialised sink
     comms = info.nth_objtype(0).callback_obj.access.comms
     comms.connect()
-    version = opensync.Version()
-    version.plugin = "moto-sync"
     version.softwareversion = str(comms.read_version())
     version.modelversion = str(comms.read_model())
-    version.identifier = str(comms.read_serial())
     comms.disconnect()
     info.version = version
     info.capabilities = opensync.capabilities_parse(CAPABILITIES)
