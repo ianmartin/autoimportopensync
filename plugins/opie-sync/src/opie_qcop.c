@@ -56,6 +56,7 @@ void monitor_thread_main(qcop_monitor_data* data);
 char* receive_all(qcop_conn* qconn);
 gboolean send_allof(qcop_conn* qconn, char* str);
 gboolean expect(qcop_conn* qconn, char* str, char *failstr, char* errmsg);
+size_t opie_base64_decode_simple (char *data, size_t len);
 
 /* globals */
 pthread_t monitor_thd = 0;    
@@ -358,7 +359,10 @@ char* qcop_get_root(qcop_conn* qconn)
     gsize len2 = 0;
     GError *err = NULL;
 
-    decoded = g_base64_decode(start, &len);
+    /* Can't use the following, requires too new version of glib (see further down) */
+    /* decoded = g_base64_decode(start, &len); */
+    decoded = g_strdup(start);
+    len = opie_base64_decode_simple(decoded, strlen(start));
     if(len > 0) {
       /* first four bytes seem to be \0 \0 \0 (string length) */
       len = decoded[3];
@@ -524,4 +528,97 @@ void monitor_thread_main(qcop_monitor_data* data)
     sleep(1);
   }
  
+}
+
+
+/* The following code has been borrowed from vformat.c in the OpenSync code.
+	Copyright (C) 2003 Ximian Inc.
+
+	We need this in place of glib's base64 functions which aren't in glib <= 2.12 
+	(which is standard in FC5, SLES 10/10.1 and a number of other slightly older 
+	distros).
+*/
+	
+static const char *base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static void opie_base64_init(char *rank)
+{
+	int i;
+
+	memset(rank, 0xff, sizeof(rank));
+	for (i=0;i<64;i++) {
+		rank[(unsigned int)base64_alphabet[i]] = i;
+	}
+	rank['='] = 0;
+}
+
+/**
+ * base64_decode_step: decode a chunk of base64 encoded data
+ * @in: input stream
+ * @len: max length of data to decode
+ * @out: output stream
+ * @state: holds the number of bits that are stored in @save
+ * @save: leftover bits that have not yet been decoded
+ *
+ * Decodes a chunk of base64 encoded data
+ **/
+static size_t opie_base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save)
+{
+	unsigned char base64_rank[256];
+	opie_base64_init((char*)base64_rank);
+	
+	register unsigned char *inptr, *outptr;
+	unsigned char *inend, c;
+	register unsigned int v;
+	int i;
+
+	inend = in+len;
+	outptr = out;
+
+	/* convert 4 base64 bytes to 3 normal bytes */
+	v=*save;
+	i=*state;
+	inptr = in;
+	while (inptr<inend) {
+		c = base64_rank[*inptr++];
+		if (c != 0xff) {
+			v = (v<<6) | c;
+			i++;
+			if (i==4) {
+				*outptr++ = v>>16;
+				*outptr++ = v>>8;
+				*outptr++ = v;
+				i=0;
+			}
+		}
+	}
+
+	*save = v;
+	*state = i;
+
+	/* quick scan back for '=' on the end somewhere */
+	/* fortunately we can drop 1 output char for each trailing = (upto 2) */
+	i=2;
+	while (inptr>in && i) {
+		inptr--;
+		if (base64_rank[*inptr] != 0xff) {
+			if (*inptr == '=' && outptr>out)
+				outptr--;
+			i--;
+		}
+	}
+
+	/* if i!= 0 then there is a truncation error! */
+	return outptr-out;
+}
+
+size_t opie_base64_decode_simple (char *data, size_t len)
+{
+	int state = 0;
+	unsigned int save = 0;
+
+	g_return_val_if_fail (data != NULL, 0);
+
+	return opie_base64_decode_step ((unsigned char *)data, len,
+					(unsigned char *)data, &state, &save);
 }
