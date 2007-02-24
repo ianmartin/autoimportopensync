@@ -12,6 +12,7 @@
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-merger.h>
 #include <opensync/opensync-plugin.h>
+#include <opensync/opensync-support.h>
 #include <opensync/opensync-version.h>
 
 typedef OSyncCapabilities Capabilities;
@@ -44,6 +45,7 @@ typedef OSyncPluginEnv PluginEnv;
 typedef OSyncPluginInfo PluginInfo;
 typedef OSyncPlugin Plugin;
 typedef OSyncStartType StartType;
+typedef OSyncTraceType TraceType;
 typedef OSyncVersion Version;
 typedef OSyncXMLField XMLField;
 typedef OSyncXMLFieldList XMLFieldList;
@@ -101,4 +103,5 @@ static PyObject *osynclist_to_pylist(const OSyncList *elt, swig_type_info *type)
 %include "opensync-helper.i"
 %include "opensync-merger.i"
 %include "opensync-plugin.i"
+%include "opensync-support.i"
 %include "opensync-version.i"
