@@ -165,8 +165,7 @@ MOTO_QUICKDIAL_ENTRIES = 10
 
 # logical order of the fields in structured XML data
 XML_NAME_PARTS = 'Prefix FirstName Additional LastName Suffix'.split()
-XML_ADDRESS_PARTS = ('Street ExtendedAddress'
-                     + ' Locality Region PostalCode Country').split()
+XML_ADDRESS_PARTS = ('Street ExtendedAddress Locality Region PostalCode Country').split()
 
 # legal characters in telephone numbers
 TEL_NUM_DIGITS = set('+0123456789')
@@ -188,8 +187,7 @@ def warning(msg):
 def getElementsByTagNames(parent, tagnames, ret):
     """Like DOM's getElementsByTagName, but allow multiple tag names."""
     for node in parent.childNodes:
-        if (node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE
-            and node.tagName in tagnames):
+        if (node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE and node.tagName in tagnames):
             ret.append(node)
         getElementsByTagNames(node, tagnames, ret)
     return ret
@@ -240,8 +238,7 @@ DATE_PART = r'(\d+)D'
 TIME_PART = r'T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
 DATETIME_PART = '(?:%s)?(?:%s)?' % (DATE_PART, TIME_PART)
 WEEKS_PART = r'(\d+)W'
-DURATION_REGEX = re.compile(r'([-+]?)P(?:%s|%s)$'
-                            % (WEEKS_PART, DATETIME_PART))
+DURATION_REGEX = re.compile(r'([-+]?)P(?:%s|%s)$' % (WEEKS_PART, DATETIME_PART))
 
 def parse_ical_duration(duratstr):
     """Parse an ical duration string, returning a timedelta object."""
@@ -443,8 +440,7 @@ class PhoneComms:
 
             # search for the port to use on the device
             port = BT_DEFAULT_CHANNEL
-            found = bluetooth.find_service(name=BT_SERVICE_NAME,
-                                           address=self.devstr)
+            found = bluetooth.find_service(name=BT_SERVICE_NAME, address=self.devstr)
             if found:
                 assert(found[0]['protocol'] == 'RFCOMM')
                 port = found[0]['port']
@@ -561,7 +557,7 @@ class PhoneComms:
             exceptions = {}
             for (expos, exnum, extype) in self.__parse_results('MDBRE', data):
                 if extype != 1: # haven't seen anything else
-                    raise opensync.Error('unexpected exception type %d'%extype)
+                    raise opensync.Error('unexpected exception type %d' % extype)
                 if not exceptions.has_key(expos):
                     exceptions[expos] = []
                 exceptions[expos].append(exnum)
@@ -690,8 +686,7 @@ class PhoneComms:
             c = self.__readchar()
         debug('<-- ' + ret)
         if c == '': # EOF, shouldn't happen
-            raise opensync.Error('Unexpected EOF talking to phone',
-                                 opensync.ERROR_IO_ERROR)
+            raise opensync.Error('Unexpected EOF talking to phone', opensync.ERROR_IO_ERROR)
         return ret
 
     def __do_cmd(self, cmd, reallydoit=True):
@@ -717,8 +712,7 @@ class PhoneComms:
         if line == 'OK':
             return ret
         else:
-            raise opensync.Error("Error in phone command '%s'" % cmd,
-                                 opensync.ERROR_IO_ERROR)
+            raise opensync.Error("Error in phone command '%s'" % cmd, opensync.ERROR_IO_ERROR)
 
     def __parse_results(self, restype, lines):
         """extract results from a list of reply lines"""
@@ -778,8 +772,7 @@ class PhoneComms:
             if t == types.IntType:
                 return '%d'
             else:
-                assert(t == types.StringType or t == types.UnicodeType,
-                       'unexpected type %s' % str(t))
+                assert(t == types.StringType or t == types.UnicodeType, 'unexpected type %s' % str(t))
                 return '"%s"'
 
         return ','.join(map(make_placeholder, vals))
@@ -1001,8 +994,7 @@ class PhoneEvent(PhoneEntry):
             e = doc.createElement('ExceptionDateTime')
             e.setAttribute('DateValue', 'DATE')
             for exnum in self.exceptions:
-                appendXMLChild(doc, e, 'Content',
-                               format_time(rrule[exnum], VCAL_DATE))
+                appendXMLChild(doc, e, 'Content', format_time(rrule[exnum], VCAL_DATE))
             if e.hasChildNodes():
                 top.appendChild(e)
 
@@ -1065,17 +1057,18 @@ class PhoneEventXML(PhoneEvent):
 
         if event.getElementsByTagName('Duration') != []:
             duration = event.getElementsByTagName('Duration')[0]
-            def tryint(s):
-                if s == '':
+            def toint(numstr):
+                """Convert a string to an integer, unless it's empty, in which case return 0."""
+                if numstr == '':
                     return 0
                 else:
-                    return int(s)
-            weeks = tryint(getXMLField(duration, 'Weeks'))
-            days = tryint(getXMLField(duration, 'Days'))
-            hours = tryint(getXMLField(duration, 'Hours'))
-            mins = tryint(getXMLField(duration, 'Minutes'))
-            secs = tryint(getXMLField(duration, 'Seconds'))
-            self.duration = datetime.timedelta(weeks * 7 + days, (hours * 60 + mins) * 60 + secs)
+                    return int(numstr)
+            weeks = toint(getXMLField(duration, 'Weeks'))
+            days = toint(getXMLField(duration, 'Days'))
+            hours = toint(getXMLField(duration, 'Hours'))
+            mins = toint(getXMLField(duration, 'Minutes'))
+            secs = toint(getXMLField(duration, 'Seconds'))
+            self.duration = timedelta(weeks * 7 + days, (hours * 60 + mins) * 60 + secs)
         else:
             endstr = getField('DateEnd')
             if endstr != '':
@@ -1107,8 +1100,7 @@ class PhoneEventXML(PhoneEvent):
         rrules = event.getElementsByTagName('RecurrenceRule')
         exdates = event.getElementsByTagName('ExceptionDateTime')
         exrules = event.getElementsByTagName('ExceptionRule')
-        (self.repeat_type, self.exceptions) = convert_rrule(rrules, exdates,
-                                                          exrules, self.eventdt)
+        (self.repeat_type, self.exceptions) = convert_rrule(rrules, exdates, exrules, self.eventdt)
 
         if len(rrules) > 0 and self.repeat_type == MOTO_REPEAT_NONE:
             raise UnsupportedDataError('Unhandled recursion rule')
@@ -1473,7 +1465,7 @@ class PhoneContactChild:
             e = doc.createElement('EMail')
         elif self.contacttype == MOTO_CONTACT_MAILINGLIST:
             # the 'contact' is a space-separated list of other contact positions
-            assert(False, "mailing lists aren't handled yet, sorry") # FIXME
+            assert(False, "mailing lists aren't handled yet, sorry") # FIXME: implement mailing lists
         else:
             e = doc.createElement('Telephone')
             if MOTO_PHONE_CONTACT_TYPES.has_key(self.contacttype):
@@ -1491,8 +1483,7 @@ class PhoneContactChild:
                 appendXMLChild(doc, e, part, val)
             if e.hasChildNodes():
                 if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
-                    e.setAttribute('Location',
-                                   MOTO_ADDRESS_TYPES[self.contacttype].upper())
+                    e.setAttribute('Location', MOTO_ADDRESS_TYPES[self.contacttype].upper())
                 ret.append(e)
 
         return ret
@@ -1580,8 +1571,7 @@ class PhoneAccess:
         features = self.comms.read_features()
         for (bit, desc) in REQUIRED_FEATURES:
             if not features[bit]:
-                raise opensync.Error(desc + ' feature not present',
-                                     opensync.ERROR_NOT_SUPPORTED)
+                raise opensync.Error(desc + ' feature not present', opensync.ERROR_NOT_SUPPORTED)
 
         # read current time on the phone, check if it matches our local time
         # FIXME: allow the user to configure a different timezone for the phone
@@ -1594,11 +1584,9 @@ class PhoneAccess:
             raise opensync.Error(msg)
 
         # initialise the position allocators
-        self.positions['event'] = PosAllocator('event', 0,
-                                               self.comms.max_events - 1)
+        self.positions['event'] = PosAllocator('event', 0, self.comms.max_events - 1)
         min_contact = max(self.comms.min_contact_pos, MOTO_QUICKDIAL_ENTRIES)
-        self.positions['contact'] = PosAllocator('contact', min_contact,
-                                                 self.comms.max_contact_pos)
+        self.positions['contact'] = PosAllocator('contact', min_contact, self.comms.max_contact_pos)
 
         # initialise the category mappings
         self.__init_categories()
@@ -1631,7 +1619,6 @@ class PhoneAccess:
                 xmldata = entry.to_xml(self.categories)
             else:
                 xmldata = entry.to_xml()
-            print xmldata
             data = opensync.Data(xmldata, self.objformats[objtype])
             data.objtype = objtype
             change = opensync.Change()
@@ -1662,9 +1649,8 @@ class PhoneAccess:
         Returns True on success, False otherwise.
         """
         objtype = change.objtype
-        if change.objformat != self.objformats[objtype]:
-            raise opensync.Error("unhandled data format "+change.objformat.name,
-                                 opensync.ERROR_NOT_SUPPORTED)
+        if change.objformat.name != self.objformats[objtype].name:
+            raise opensync.Error("unhandled data format " + change.objformat.name, opensync.ERROR_NOT_SUPPORTED)
         try:
             if objtype == 'event':
                 entry = PhoneEventXML(change.data.data)
@@ -1675,14 +1661,12 @@ class PhoneAccess:
             # we have an entry that can't be stored on the phone
             # if its modified and we've seen it before, delete it
             # otherwise just ignore it
-            if (change.changetype == opensync.CHANGE_TYPE_MODIFIED
-                and self.uid_seen(change.uid)):
+            if (change.changetype == opensync.CHANGE_TYPE_MODIFIED and self.uid_seen(change.uid)):
                 change.changetype = opensync.CHANGE_TYPE_DELETED
                 change.data = None
                 return self.delete_entry(change.uid)
             else:
                 return False
-        
         if change.changetype == opensync.CHANGE_TYPE_ADDED:
             # allocate positions for the new entry
             positions = self.positions[objtype].alloc(entry.num_pos())
@@ -1704,7 +1688,6 @@ class PhoneAccess:
                     self.comms.delete_contact(pos)
                 self.positions[objtype].mark_free(free_positions)
             entry.set_pos(positions)
-        
         entry.write(self.comms)
         change.uid = self.__generate_uid(entry)
         change.hash = self.__gen_hash(entry)
@@ -1739,8 +1722,7 @@ class PhoneAccess:
 
         Uses the last 8 digit's of the phone's IMEI to do so.
         """
-        return ("moto-%s-%s@%s"
-                % (entry.get_objtype(), entry.generate_uid(), self.serial[-8:]))
+        return ("moto-%s-%s@%s" % (entry.get_objtype(), entry.generate_uid(), self.serial[-8:]))
 
     def __uid_to_pos(self, uid):
         """Reverse the generate_uid function above.
@@ -1748,11 +1730,9 @@ class PhoneAccess:
         Also checks that it is one of ours.
         """
         moto, objtype, lastpart = uid.split('-', 2)
-        assert(moto == "moto" and objtype in SUPPORTED_OBJTYPES,
-               'Invalid UID: %s' % uid)
+        assert(moto == "moto" and objtype in SUPPORTED_OBJTYPES, 'Invalid UID: %s' % uid)
         lastpos = lastpart.rindex('@')
-        assert(lastpart[lastpos + 1:] == self.serial[-8:],
-               'Entry not created on this phone')
+        assert(lastpart[lastpos + 1:] == self.serial[-8:], 'Entry not created on this phone')
         
         if objtype == "event":
             positions = PhoneEvent.unpack_uid(lastpart[:lastpos])
@@ -1782,11 +1762,9 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
             self.hashtable.reset()
         for change in self.access.list_changes(self.objtype):
             self.hashtable.report(change.uid)
-            change.changetype = self.hashtable.get_changetype(change.uid,
-                                                              change.hash)
+            change.changetype = self.hashtable.get_changetype(change.uid, change.hash)
             if change.changetype != opensync.CHANGE_TYPE_UNMODIFIED:
-                self.hashtable.update_hash(change.changetype, change.uid,
-                                           change.hash)
+                self.hashtable.update_hash(change.changetype, change.uid, change.hash)
                 ctx.report_change(change)
         for uid in self.hashtable.get_deleted():
             change = opensync.Change()
@@ -1798,26 +1776,20 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
     def commit(self, info, ctx, change):
         """Write a change to the phone."""
         if change.objtype != self.objtype:
-            raise opensync.Error('unsupported objtype %s' % change.objtype,
-                                 opensync.ERROR_NOT_SUPPORTED)
-        if change.changetype != opensync.CHANGE_TYPE_DELETED:
-            print "\nOpenSync wants me to write:\n", change.data.data
+            raise opensync.Error('unsupported objtype %s' % change.objtype, opensync.ERROR_NOT_SUPPORTED)
         if change.changetype == opensync.CHANGE_TYPE_DELETED:
-            success = (self.access.uid_seen(change.uid)
-                       and self.access.delete_entry(change.uid))
+            success = (self.access.uid_seen(change.uid) and self.access.delete_entry(change.uid))
         elif change.changetype == opensync.CHANGE_TYPE_MODIFIED:
             old_uid = change.uid
             success = self.access.update_entry(change)
             # if the UID has changed, we need to tell our hashtable that
             # the old one was deleted, to keep it consistent
             if (success and old_uid != change.uid):
-                self.hashtable.update_hash(opensync.CHANGE_TYPE_DELETED,
-                                           old_uid, None)
+                self.hashtable.update_hash(opensync.CHANGE_TYPE_DELETED, old_uid, None)
         else:
             success = self.access.update_entry(change)
         if success:
-            self.hashtable.update_hash(change.changetype, change.uid,
-                                       change.hash)
+            self.hashtable.update_hash(change.changetype, change.uid, change.hash)
 
     def disconnect(self, info, ctx):
         """Called to disconnect from the phone."""
@@ -1829,13 +1801,11 @@ def parse_config(configstr):
     try:
         doc = xml.dom.minidom.parseString(configstr)
     except:
-        raise opensync.Error('failed to parse config data',
-                             opensync.ERROR_MISCONFIGURATION)
+        raise opensync.Error('failed to parse config data', opensync.ERROR_MISCONFIGURATION)
 
     ret = getXMLField(doc, 'device').strip()
     if ret == '':
-        raise opensync.Error('device not specified in config file',
-                             opensync.ERROR_MISCONFIGURATION)
+        raise opensync.Error('device not specified in config file', opensync.ERROR_MISCONFIGURATION)
     return ret
 
 def initialize(info):
