@@ -197,7 +197,8 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 
 
 //		if (_to_osync_changetype(type) == OSYNC_CHANGE_TYPE_DELETED)
-	osync_data_set_objtype(odata, _contenttype_to_format(contenttype));
+	if(contenttype)
+		osync_data_set_objtype(odata, _contenttype_to_format(contenttype));
 
 	osync_change_set_data(change, odata);
 	osync_change_set_changetype(change, _to_osync_changetype(type));
