@@ -5,12 +5,7 @@ using the AT command set. It supports syncing phonebook and calendar
 entries (ie. the contact and event object types). It will most likely
 mess up the data on your phone and any other members of the sync group,
 due to the limited data that can be stored on the phone. Use with caution
-and make backups!
-
-To prevent it writing any changes to the phone, set WRITE_ENABLED to False
-(near the top of the file). Note that this will still allow it to send data
-back to the other members of the sync group, so you probably want to have
-backups of everything anyway. See TESTING/BACKUP below.
+and make backups! See TESTING/BACKUP below.
 
 
 SUPPORTED HARDWARE
@@ -84,11 +79,11 @@ with file-sync. To configure and use this, do:
 
 TESTING/BACKUP
 
-Before doing anything with write enabled, it is probably a good idea to
-backup the data from your phone. You can use the mototool script to
-do this, and to delete entries on the phone. Run 'mototool --help' for 
-details, or, for the impatient, try:
-    mototool -v -d (device string) -f myphone.backup --backup
+Before doing anything, it is probably a good idea to backup the data 
+from your phone. You can use the mototool script to do this, and to 
+delete entries on the phone. Run 'mototool --help' for details, or, for 
+the impatient, try:
+    mototool -d (device string) -f myphone.backup --backup
 
 
 LIMITATIONS AND KNOWN PROBLEMS

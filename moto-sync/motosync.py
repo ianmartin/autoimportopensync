@@ -11,7 +11,7 @@
 
 __revision__ = "$Id$"
 
-import sys, os, types, md5, time, calendar, re
+import os, types, md5, time, calendar, re
 import xml.dom.minidom
 from datetime import date, datetime, timedelta, time as datetime_time
 import dateutil.parser, dateutil.rrule, dateutil.tz
@@ -31,10 +31,6 @@ try:
 except ImportError:
     USE_BLUETOOTH_MODULE = False
 
-# debug/test options:
-DEBUG_OUTPUT = False # if enabled, logs all interaction with the phone to stdout
-WARNING_OUTPUT = True # if enabled, prints warnings to stderr (reccommended)
-WRITE_ENABLED = True # if disabled, prevents changes from being made to phone
 
 # Regular expression for a Bluetooth MAC address
 BT_MAC_RE = re.compile(r'^([0-9a-f]{2}:){5}[0-9a-f]{2}$', re.IGNORECASE)
@@ -173,16 +169,6 @@ TEL_NUM_DIGITS = set('+0123456789')
 # how far into the future to process exceptions for recurring events
 RRULE_FUTURE = timedelta(365) # 1 year
 
-
-def debug(msg):
-    """Print a debug message, if enabled."""
-    if DEBUG_OUTPUT:
-        sys.stdout.write("moto-sync: " + msg + "\n")
-
-def warning(msg):
-    """Print a warning message, if enabled."""
-    if WARNING_OUTPUT:
-        sys.stderr.write("moto-sync: Warning: " + msg + "\n")
 
 def getElementsByTagNames(parent, tagnames, ret):
     """Like DOM's getElementsByTagName, but allow multiple tag names."""
@@ -451,7 +437,7 @@ class PhoneComms:
             if USE_TTY_MODULE:
                 tty.setraw(self.__fd)
             else:
-                warning('tty module not present, unable to set raw mode')
+                opensync.trace(opensync.TRACE_INTERNAL, 'tty module not present, unable to set raw mode')
 
         # reset the phone and send it a bunch of init strings
         self.__do_cmd('AT&F')      # reset to factory defaults
@@ -579,14 +565,14 @@ class PhoneComms:
         exceptions = evdata[-1]
         data = evdata[:-1]
         placeholders = self.__make_placeholders(data)
-        self.__do_cmd(('AT+MDBW=' + placeholders) % tuple(data), WRITE_ENABLED)
+        self.__do_cmd(('AT+MDBW=' + placeholders) % tuple(data))
         for expos in exceptions:
-            self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos), WRITE_ENABLED)
+            self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos))
 
     def delete_event(self, pos):
         """delete the event at a specific position"""
         self.open_calendar()
-        self.__do_cmd('AT+MDBWE=%d,0,0' % pos, WRITE_ENABLED)
+        self.__do_cmd('AT+MDBWE=%d,0,0' % pos)
 
     def read_categories(self):
         """Get list of category IDs/names for the phonebook."""
@@ -661,12 +647,12 @@ class PhoneComms:
         """write a single contact to the position specified in the data list"""
         self.close_calendar()
         placeholders = self.__make_placeholders(data)
-        self.__do_cmd(('AT+MPBW=' + placeholders) % tuple(data), WRITE_ENABLED)
+        self.__do_cmd(('AT+MPBW=' + placeholders) % tuple(data))
 
     def delete_contact(self, pos):
         """delete the contact at a given position"""
         self.close_calendar()
-        self.__do_cmd('AT+MPBW=%d' % pos, WRITE_ENABLED)
+        self.__do_cmd('AT+MPBW=%d' % pos)
 
     def __readchar(self):
         """read a single character from the phone device"""
@@ -684,28 +670,25 @@ class PhoneComms:
         while c != '\r' and c != '\n' and c != '':
             ret += c
             c = self.__readchar()
-        debug('<-- ' + ret)
+        opensync.trace(opensync.TRACE_SENSITIVE, '<-- ' + ret)
         if c == '': # EOF, shouldn't happen
             raise opensync.Error('Unexpected EOF talking to phone', opensync.ERROR_IO_ERROR)
         return ret
 
-    def __do_cmd(self, cmd, reallydoit=True):
+    def __do_cmd(self, cmd):
         """Send a command to the phone and wait for its response.
 
         If it succeeds, return lines as a list; otherwise raise an exception.
         """
         cmd = cmd.encode('iso_8859_1')
-        debug('--> ' + cmd)
+        opensync.trace(opensync.TRACE_SENSITIVE, '--> ' + cmd)
         ret = []
-        if reallydoit:
-            cmd = cmd + '\r'
-            if self.__fd:
-                os.write(self.__fd, cmd)
-            elif self.__btsock:
-                self.__btsock.send(cmd)
-            line = self.__readline()
-        else:
-            line = 'OK'
+        cmd = cmd + '\r'
+        if self.__fd:
+            os.write(self.__fd, cmd)
+        elif self.__btsock:
+            self.__btsock.send(cmd)
+        line = self.__readline()
         while line != 'OK' and line != 'ERROR':
             ret.append(line)
             line = self.__readline()
@@ -1643,7 +1626,7 @@ class PhoneAccess:
         self.positions[objtype].mark_free(positions)
         return True
 
-    def update_entry(self, change):
+    def update_entry(self, change, context):
         """Update an entry or add a new one, from the OSyncChange object.
         
         Returns True on success, False otherwise.
@@ -1657,7 +1640,8 @@ class PhoneAccess:
             elif objtype == 'contact':
                 entry = PhoneContactXML(change.data.data, self.revcategories)
         except UnsupportedDataError, e:
-            warning("%s is unsupported (%s), ignored" % (change.uid, str(e)))
+            err = opensync.Error("%s is unsupported (%s), ignored" % (change.uid, str(e)), opensync.ERROR_NOT_SUPPORTED)
+            context.report_osyncwarning(err)
             # we have an entry that can't be stored on the phone
             # if its modified and we've seen it before, delete it
             # otherwise just ignore it
@@ -1781,13 +1765,13 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
             success = (self.access.uid_seen(change.uid) and self.access.delete_entry(change.uid))
         elif change.changetype == opensync.CHANGE_TYPE_MODIFIED:
             old_uid = change.uid
-            success = self.access.update_entry(change)
+            success = self.access.update_entry(change, ctx)
             # if the UID has changed, we need to tell our hashtable that
             # the old one was deleted, to keep it consistent
             if (success and old_uid != change.uid):
                 self.hashtable.update_hash(opensync.CHANGE_TYPE_DELETED, old_uid, None)
         else:
-            success = self.access.update_entry(change)
+            success = self.access.update_entry(change, ctx)
         if success:
             self.hashtable.update_hash(change.changetype, change.uid, change.hash)
 
