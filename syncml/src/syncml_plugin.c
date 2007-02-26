@@ -57,6 +57,8 @@ static const char *_format_to_contenttype(OSyncChange *change)
 
 static const char *_contenttype_to_format(const char *contenttype)
 {
+	if (contenttype == NULL || !strcmp(contenttype, ""))
+		return "data";
 	if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCARD)) {
 		return "contact";
 	}
@@ -101,13 +103,13 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 		osync_change_set_uid(change, uid);
 
 
+		if (_to_osync_changetype(type) == CHANGE_DELETED) {
+			osync_change_set_objtype_string(
+				change,
+				_contenttype_to_format(contenttype)
+			);
+		}
 		if (contenttype != NULL) {
-			if (_to_osync_changetype(type) == CHANGE_DELETED) {
-				osync_change_set_objtype_string(
-					change,
-					_contenttype_to_format(contenttype)
-				);
-			}
 			/* We specify the objformat plain for vcard and vcal
 			 * since we cannot be really sure what the device sends
 			 * us, without looking at the devinf. Since we dont use
@@ -122,15 +124,16 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 				osync_change_set_objformat_string(change, "plain");
 			else if (!strcmp(contenttype, SML_ELEMENT_TEXT_PLAIN))
 				osync_change_set_objformat_string(change, "memo");
+
+			/* XXX Workaround for mobiles which only handle localtime! */
+			if ( type != SML_CHANGE_DELETE && env->onlyLocaltime && !strcmp(contenttype, SML_ELEMENT_TEXT_VCAL) ) {
+				char *_data = osync_time_vcal2utc(data);
+				g_free(data);
+				data = _data;
+				size = strlen(data);
+			}
 		}
 
-		/* XXX Workaround for mobiles which only handle localtime! */
-		if (!strcmp(contenttype, SML_ELEMENT_TEXT_VCAL) && env->onlyLocaltime && type != SML_CHANGE_DELETE) {
-			char *_data = osync_time_vcal2utc(data);
-			g_free(data);
-			data = _data;
-			size = strlen(data);
-		}
 
 		osync_change_set_data(change, data, size, TRUE);
 		osync_change_set_changetype(change, _to_osync_changetype(type));
