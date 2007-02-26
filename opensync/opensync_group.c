@@ -845,7 +845,7 @@ osync_bool osync_group_get_slow_sync(OSyncGroup *group, const char *objtype)
 	g_assert(env);
 	
 	OSyncObjType *osync_objtype = osync_conv_find_objtype(env, "data");
-	if (osync_objtype->needs_slow_sync) {
+	if (osync_objtype && osync_objtype->needs_slow_sync) {
 		osync_trace(TRACE_EXIT, "%s: Data objtype needs slow-sync", __func__);
 		return TRUE;
 	}
