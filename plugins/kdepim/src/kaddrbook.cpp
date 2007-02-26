@@ -82,6 +82,9 @@ bool KContactDataSource::connect(OSyncContext *ctx)
 	if (!osync_anchor_compare(member, "contact", "true")) {
 		osync_trace(TRACE_INTERNAL, "Setting slow-sync contact");
 		osync_member_set_slow_sync(member, "contact", TRUE);
+	} 
+	else {
+		osync_group_reset_slow_sync(osync_member_get_group(member), "contact");
 	}
 
 	connected = true;
