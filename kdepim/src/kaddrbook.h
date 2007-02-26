@@ -33,14 +33,17 @@ class KContactDataSource
 {
 	private:
 		KABC::AddressBook* addressbookptr;
+		KABC::VCardConverter* converter;
 
 		OSyncHashTable *hashtable;
 		OSyncMember *member;
 
 		bool __vcard_access(OSyncContext *ctx, OSyncChange *chg);
+		OSyncChange *_addressee_to_change(KABC::Addressee *a);
 
 	public:
 		KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable);
+		~KContactDataSource();
 
 		QString calc_hash(KABC::Addressee &e);
 		bool connect(OSyncContext *ctx);

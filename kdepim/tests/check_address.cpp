@@ -149,6 +149,7 @@ START_TEST(check_connection)
 	fail_unless(kcds.connect(ctx),
 		    "Failed connecting addrbook.");
 	fail_unless(kcds.disconnect(ctx), "Failed disconnecting addrbook.");
+	//TODO: start a kaddressbook and check if the start blocker works
 }
 END_TEST
 
@@ -159,35 +160,34 @@ START_TEST(check_anchors)
 	char anchor_path[512 + sizeof("/anchor.db") + 1];
 
 	snprintf(anchor_path, sizeof(anchor_path), "%s/anchor.db", osync_member_get_configdir(member));
-	mark_point();
+
 	KContactDataSource kcds(member, hashtable);
-
+	//cleanup old test db
 	remove(anchor_path);
-
+	//should not match because should not exist
 	fail_unless(!osync_anchor_compare(member, anchor, anchor_value),
 		    "Anchor should not match.");
-	mark_point();
+	//slow sync is set during connect ... so it should not be set yet
 	fail_unless(!osync_member_get_slow_sync(member, "contact"),
 		    "Slow sync should not be set for 'contact'.");
-	mark_point();
+	//will fail if there allready runs a addressbook
 	fail_unless(kcds.connect(ctx),
-		    "Failed connecting addrbook.");
-	mark_point();
+		    "Failed connecting addressbook.");
+	//anchor should still not exist
 	fail_unless(!osync_anchor_compare(member, anchor, anchor_value),
 		    "Anchor should not match.");
+	//but slow sync has to be set now
 	fail_unless(osync_member_get_slow_sync(member, "contact"),
 		    "Slow sync should be set for 'contact'.");
-
-	mark_point();
+	//creates a anchor with "contact = synced"
 	osync_anchor_update(member, anchor, anchor_value);
-	/*osync_group_reset_slow_sync(grp, "contact");
-	fail_unless(!osync_member_get_slow_sync(member, "contact"),
-		    "Slow sync should not be set for 'contact'.");*/
+	
 	fail_unless(kcds.connect(ctx),
-		    "Failed connecting addrbook.");
-
+		    "Failed connecting addressbook.");
+	//well as we created the anchor two lines above it should be unmodified
 	fail_unless(osync_anchor_compare(member, anchor, anchor_value),
 		    "Anchor should match.");
+	//well slow sync is reseted during connect because of the positive anchor match
 	fail_unless(!osync_member_get_slow_sync(member, "contact"),
 		    "Slow sync should not be set for 'contact'.");
 }
@@ -196,8 +196,6 @@ END_TEST
 
 START_TEST(check_contacts)
 {
-/*	const QString bug_vcard = "BEGIN:VCARD\nVERSION:2.1\nFN:A\\, B\nEND:VCARD";
-
 	KContactDataSource kcds(member, hashtable);
 	mark_point();
 
@@ -226,7 +224,19 @@ START_TEST(check_contacts)
 	fail_unless(revision.toString() == kcds.calc_hash(a),
 		    "calc_hash() failed.");
 	fail_unless(a.revision().toString() == kcds.calc_hash(a),
-		    "calc_hash() failed.");*/
+		    "calc_hash() failed.");
+
+	OSyncChange *oc = kcds._addressee_to_change(&a);
+	mark_point();
+
+	KABC::Addressee b = kcds.converter->parseVCard(osync_change_get_data(oc));
+	mark_point();
+
+	fail_unless(a.givenName() == b.givenName());
+	fail_unless(a.familyName() == b.familyName());
+	fail_unless(a.revision().toString() == osync_change_get_hash(oc),
+		    "Wrong hash in OSyncChange.");
+	fail_unless(b.formattedName() == a.formattedName());
 }
 END_TEST
 
@@ -242,9 +252,6 @@ Suite *test_suite(void)
 	tcase_add_test(tcase, check_connection);
 	tcase_add_test(tcase, check_anchors);
         tcase_add_test(tcase, check_contacts);
-//TODO        tcase_add_test(tcase, check_events);
-//TODO        tcase_add_test(tcase, check_todos);
-//TODO        tcase_add_test(tcase, check_notes);
 
         return s;
 }
