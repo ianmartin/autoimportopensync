@@ -135,23 +135,32 @@ const char *osync_plugin_info_get_groupname(OSyncPluginInfo *info)
 
 OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, info, name);
 	GList *p;
 	osync_assert(info);
+
+	OSyncObjTypeSink *sink = NULL;
 	for (p = info->objtypes; p; p = p->next) {
-		OSyncObjTypeSink *sink = p->data;
+		sink = p->data;
 		if (g_ascii_strcasecmp(osync_objtype_sink_get_name(sink), name) == 0)
-			return sink;
+			goto done;
 	}
 	
 	/* If we couldnt find the requested objtype, look if we find a sink
 	 * which accepts any objtype ("data") */
 	for (p = info->objtypes; p; p = p->next) {
-		OSyncObjTypeSink *sink = p->data;
+		sink = p->data;
 		if (g_ascii_strcasecmp(osync_objtype_sink_get_name(sink), "data") == 0)
-			return sink;
+			goto done;
 	}
 	
+	osync_trace(TRACE_EXIT, "%s: NULL", __func__);
 	return NULL;
+
+done:
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, sink);
+	return sink;
+
 }
 
 void osync_plugin_info_add_objtype(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
