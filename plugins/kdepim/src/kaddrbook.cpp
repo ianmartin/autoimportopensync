@@ -30,9 +30,14 @@ SOFTWARE IS DISCLAIMED.
 #include <dcopclient.h>
 #include <qdeepcopy.h>
 
-KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) : hashtable(hashtable), member(member)
+KContactDataSource::KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable) : converter(new KABC::VCardConverter()), hashtable(hashtable), member(member), connected(false)
 {
-	connected = false;
+}
+
+KContactDataSource::~KContactDataSource()
+{
+	delete converter;
+	converter = 0;
 }
 
 /** Calculate the hash value for an Addressee.
@@ -115,6 +120,42 @@ bool KContactDataSource::disconnect(OSyncContext *ctx)
 }
 
 
+/** Converts an @c KABC::Addressee object to an @c OSyncChange.
+ *
+ * @param a The addressee
+ *
+ * @return An Opensync change with data in vcard format
+ */
+OSyncChange *KContactDataSource::_addressee_to_change(KABC::Addressee *a)
+{
+	OSyncChange *chg = osync_change_new();
+
+	QString uid = a->uid();
+
+	osync_change_set_member(chg, member);
+	osync_change_set_uid(chg, uid.local8Bit());
+
+	QString hash = calc_hash(*a);
+
+	// Convert the VCARD data into a string
+	// only vcard3.0 exports Categories
+	QString tmp = converter->createVCard(*a, KABC::VCardConverter::v3_0);
+
+	char *data = strdup((const char *)tmp.utf8());
+
+	osync_trace(TRACE_SENSITIVE,"\n%s", data);
+
+	osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
+
+	// object type and format
+	osync_change_set_objtype_string(chg, "contact");
+	osync_change_set_objformat_string(chg, "vcard30");
+
+	osync_change_set_hash(chg, hash.data());
+
+	return chg;
+}
+
 bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
@@ -131,34 +172,12 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 		return false;
 	}
 
-	KABC::VCardConverter converter;
 	for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
-		QString uid = it->uid();
-
-		OSyncChange *chg = osync_change_new();
-
-		osync_change_set_member(chg, member);
-		osync_change_set_uid(chg, uid.local8Bit());
-
-		QString hash = calc_hash(*it);
-
-		// Convert the VCARD data into a string
-		// only vcard3.0 exports Categories
-		QString tmp = converter.createVCard(*it, KABC::VCardConverter::v3_0);
-
-		char *data = strdup((const char *)tmp.utf8());
-
-		osync_trace(TRACE_SENSITIVE,"\n%s", data);
-
-		osync_change_set_data(chg, data, strlen(data) + 1, TRUE);
-
-		// object type and format
-		osync_change_set_objtype_string(chg, "contact");
-		osync_change_set_objformat_string(chg, "vcard30");
+		OSyncChange *chg = NULL;
+		chg = _addressee_to_change(&*it);
 
 		// Use the hash table to check if the object
 		// needs to be reported
-		osync_change_set_hash(chg, hash.data());
 		if (osync_hashtable_detect_change(hashtable, chg)) {
 			osync_context_report_change(ctx, chg);
 			osync_hashtable_update_hash(hashtable, chg);
@@ -182,7 +201,6 @@ bool KContactDataSource::contact_get_changeinfo(OSyncContext *ctx)
 bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
-	KABC::VCardConverter converter;
 
 	// convert VCARD string from obj->comp into an Addresse object.
 	char *data = osync_change_get_data(chg);
@@ -192,7 +210,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 	OSyncChangeType chtype = osync_change_get_changetype(chg);
 	switch(chtype) {
 		case CHANGE_MODIFIED: {
-			KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
+			KABC::Addressee addressee = converter->parseVCard(QString::fromUtf8(data, data_size));
 
 			// ensure it has the correct UID and revision
 			addressee.setUid(uid);
@@ -208,7 +226,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			break;
 		}
 		case CHANGE_ADDED: {
-			KABC::Addressee addressee = converter.parseVCard(QString::fromUtf8(data, data_size));
+			KABC::Addressee addressee = converter->parseVCard(QString::fromUtf8(data, data_size));
 
 			// ensure it has the correct revision
 			addressee.setRevision(QDateTime::currentDateTime());
