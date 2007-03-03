@@ -2,9 +2,14 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
 AC_INIT([OpenSync Kdepim Plugin], 0.21, [], [libopensync-plugin-kdepim])
-AM_INIT_AUTOMAKE(foreign)
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([aux])
 AC_CONFIG_SRCDIR(src/kdepim_sync.cpp)
+AM_INIT_AUTOMAKE(foreign)
 AM_CONFIG_HEADER(config.h)
+
+# make sure $ACLOCAL_FLAGS are used during a rebuild.
+AC_SUBST([ACLOCAL_AMFLAGS], ["-I $ac_macro_dir \${ACLOCAL_FLAGS}"])
 
 dnl Checks for programs.
 AC_CHECK_COMPILERS
