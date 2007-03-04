@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.append('build')
 from osync_support import *
+from doxygen import *
 from substin import TOOL_SUBST
-
 
 
 #Define the default values for some variables. Take note, that they might
@@ -26,7 +26,7 @@ class BuildConfig:
 config = BuildConfig()
 
 # Get our configuration options:
-env = Environment(ENV = os.environ, tools=('default', TOOL_SUBST)) 
+env = Environment(ENV = os.environ, tools=("default", TOOL_SUBST)) 
 opts = Options('libopensync.conf')
 opts.Add(BoolOption('debug', 'Should debugging be enabled?', 1))
 opts.Add(BoolOption('enable_trace', 'Should tracing be enabled?', 1))
@@ -35,6 +35,8 @@ opts.Add(BoolOption('enable_tools', 'Should the developer tools be build', 1))
 opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled', 0))
 opts.Add(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
 opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
+opts.Add(BoolOption('enable_doxygen', 'Generating OpenSync API with doxygen?', 0))
+
 
 target_dir = SelectBuildDir('build')
 sys.path.append(target_dir)
@@ -66,9 +68,15 @@ subst_dict={'@prefix@': '$prefix',
 
 env.SubstInFile('opensync-1.0.pc', 'opensync-1.0.pc.in', SUBST_DICT=subst_dict)
 env.SubstInFile('osengine-1.0.pc', 'osengine-1.0.pc.in', SUBST_DICT=subst_dict)
+env.SubstInFile('Doxyfile', 'Doxyfile.in', SUBST_DICT=subst_dict)
 
 env.Install('$prefix/lib/pkgconfig', 'opensync-1.0.pc') 
 env.Install('$prefix/lib/pkgconfig', 'osengine-1.0.pc') 
+
+if env['enable_doxygen'] == 1:
+	doxygen = Builder(action = 'doxygen ' + 'Doxyfile')
+	env.Append(BUILDERS = {'DoxygenBuilder' : doxygen})
+	env.DoxygenBuilder(target = 'documentation', source =[])
 
 
 Help("""
