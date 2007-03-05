@@ -503,10 +503,16 @@ OSyncMappingEntry *osengine_mappingview_store_change(OSyncMappingView *view, OSy
 			OSyncObjType * entry_objtype = osync_change_get_objtype(entry->change);
 			OSyncObjType * change_objtype = osync_change_get_objtype(change);
 
-			char * entry_objtype_name = osync_objtype_get_name(entry_objtype);
-			char * change_objtype_name = osync_objtype_get_name(change_objtype);
+			const char * entry_objtype_name = osync_objtype_get_name(entry_objtype);
+			const char * change_objtype_name = osync_objtype_get_name(change_objtype);
 
-			if ( !strcmp(change_objtype_name, entry_objtype_name) ) {
+			if ( 
+				(change_objtype_name == NULL) || 
+				(entry_objtype_name == NULL) ||
+				(!strcmp(change_objtype_name, entry_objtype_name)) ||
+				(!strcmp(change_objtype_name, "data")) ||
+				(!strcmp(entry_objtype_name, "data")) 
+			) {
 				osengine_mappingentry_update(entry, change);
 				osync_trace(TRACE_EXIT, "osengine_mappingview_store_change: %p", entry);
 				return entry;
