@@ -14,5 +14,5 @@ endif
 address_INCLUDES = @CHECK_CFLAGS@
 address_SOURCES = check_address.cpp $(top_srcdir)/src/kaddrbook.cpp
 address_LIBS = @CHECK_LIBS@
-address_LDFLAGS = $(KDE_RPATH) $(LIB_KABC) -lkabc_file -lkaddressbook -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync -lopensync-xml -lcheck -R $(libdir)
+address_LDFLAGS = $(KDE_RPATH) $(LIB_KABC) -lkabc_file -lkaddressbook -L$(libdir)  @OSYNC_LIBS@ -lopensync-xml -lcheck -R $(libdir)
 
