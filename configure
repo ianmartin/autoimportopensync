@@ -74,6 +74,8 @@ checkSCons()
 generateMakefile()
 {
 	cat > Makefile << EOF
+SCONS_DESTDIR += \$(DESTDIR)
+
 all:
 	@$SCONS
 
@@ -81,7 +83,7 @@ all:
 # @$SCONS -j4
 
 install:
-	@$SCONS install
+	@(if test \$(SCONS_DESTDIR) ; then $SCONS DESTDIR=\$(SCONS_DESTDIR) install ; else $SCONS install ; fi)
 
 clean:
 	@$SCONS -c

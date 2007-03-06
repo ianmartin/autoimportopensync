@@ -43,6 +43,7 @@ sys.path.append(target_dir)
 from osync_build import *
 target_dir = '#' + target_dir
 configure(opts)
+opts.Add("DESTDIR", 'Set the root directory to install into ( /path/to/DESTDIR )', "")
 SConsignFile()
 
 opts.Update(env)
@@ -78,8 +79,9 @@ env.SubstInFile('opensync-1.0.pc', 'opensync-1.0.pc.in', SUBST_DICT=subst_dict)
 env.SubstInFile('osengine-1.0.pc', 'osengine-1.0.pc.in', SUBST_DICT=subst_dict)
 env.SubstInFile('Doxyfile', 'Doxyfile.in', SUBST_DICT=subst_dict)
 
-env.Install('$prefix/lib/pkgconfig', 'opensync-1.0.pc') 
-env.Install('$prefix/lib/pkgconfig', 'osengine-1.0.pc') 
+env.Install('${DESTDIR}$prefix/lib/pkgconfig', 'opensync-1.0.pc') 
+env.Install('${DESTDIR}$prefix/lib/pkgconfig', 'osengine-1.0.pc') 
+
 
 if env['enable_doxygen'] == 1:
 	doxygen = Builder(action = 'doxygen ' + 'Doxyfile')
@@ -90,17 +92,17 @@ if env['enable_doxygen'] == 1:
 
 testenv = check(env, config)
 
-install_prefix = '$prefix'
-install_lib    = '$prefix/lib'
-install_bin    = '$prefix/bin'
-install_inc    = '$prefix/include'
-install_format    = '$prefix/lib/opensync/formats'
-install_plugin    = '$prefix/lib/opensync/plugins'
-install_config    = '$prefix/share/opensync/defaults'
-install_capabilities = '$prefix/share/opensync/capabilities'
-install_descriptions = '$prefix/share/opensync/descriptions'
-install_schemas = '$prefix/share/opensync/schemas'
-install_pythonlib = '$prefix/lib/python%d.%d/site-packages' % sys.version_info[:2]
+install_prefix = '${DESTDIR}$prefix'
+install_lib    = '${DESTDIR}$prefix/lib'
+install_bin    = '${DESTDIR}$prefix/bin'
+install_inc    = '${DESTDIR}$prefix/include'
+install_format    = '${DESTDIR}$prefix/lib/opensync/formats'
+install_plugin    = '${DESTDIR}$prefix/lib/opensync/plugins'
+install_config    = '${DESTDIR}$prefix/share/opensync/defaults'
+install_capabilities = '${DESTDIR}$prefix/share/opensync/capabilities'
+install_descriptions = '${DESTDIR}$prefix/share/opensync/descriptions'
+install_schemas = '${DESTDIR}$prefix/share/opensync/schemas'
+install_pythonlib = '${DESTDIR}$prefix/lib/python%d.%d/site-packages' % sys.version_info[:2]
 
 Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas install_pythonlib')
 
