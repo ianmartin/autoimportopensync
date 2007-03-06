@@ -100,6 +100,7 @@ distclean:
 	-@rm -rf cache/
 	-@rm -f config.log
 	-@rm -f .sconsign.dblite
+	-@rm -f libopensync.conf
 	-@rm Makefile
 EOF
 }
