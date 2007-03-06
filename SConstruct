@@ -48,6 +48,14 @@ SConsignFile()
 opts.Update(env)
 opts.Save('libopensync.conf', env)
 
+Help("""
+++++++++++++++++++++++++++++++++++++
+Welcome to the OpenSync Help System!
+
+
+You can set the following options:
+""" + opts.GenerateHelpText(env))
+
 env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
 env.Append(CCFLAGS = r'-DENABLE_TESTS=$enable_tests')
 env.Append(CCFLAGS = r'-DENABLE_TOOLS=$enable_tools')
@@ -79,13 +87,6 @@ if env['enable_doxygen'] == 1:
 	env.DoxygenBuilder(target = 'documentation', source =[])
 
 
-Help("""
-++++++++++++++++++++++++++++++++++++
-Welcome to the OpenSync Help System!
-
-
-You can set the following options:
-""" + opts.GenerateHelpText(env))
 
 testenv = check(env, config)
 

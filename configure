@@ -1,0 +1,116 @@
+#! /bin/sh
+# Fancy colors used to beautify the output a bit.
+#
+# Fancy colors used to beautify the output a bit.
+#
+if [ $NOCOLOR ] ; then
+    NORMAL=""
+    BOLD=""
+    RED=""
+    YELLOW=""
+    GREEN=""
+else
+    NORMAL="\033[0m"
+    BOLD="\033[1m"
+    RED="\033[91m"
+    YELLOW="\033[01;93m"
+    GREEN="\033[92m"
+fi
+
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+EXIT_ERROR=2
+EXIT_BUG=10
+
+
+CUR_DIR=$PWD
+
+#possible relative path
+WORKINGDIR=`dirname $0`
+cd $WORKINGDIR
+#abs path
+WORKINGDIR=`pwd`
+cd $CUR_DIR
+
+# Checks for Python interpreter. Honours $PYTHON if set. Stores path to
+# interpreter in $PYTHON.
+#
+checkPython()
+{
+	if [ -z "$PYTHON" ] ; then
+	    PYTHON=`which python 2>/dev/null`
+	fi
+	printf "Checking for Python\t\t\t:  "
+	if [ ! -x "$PYTHON" ] ; then
+	  printf $RED"not found!"$NORMAL"\n"
+	  echo "Please make sure that the Python interpreter is available in your PATH"
+	  echo "or invoke configure using the PYTHON flag, e.g."
+	  echo "$ PYTHON=/usr/local/bin/python configure"
+	  exit $EXIT_FAILURE
+	fi
+	printf $GREEN"$PYTHON"$NORMAL"\n"
+}
+
+# Checks for SCons. Honours $SCONS if set. Stores path to 'scons' in $SCONS.
+# Requires that $PYTHON is set.
+#
+checkSCons()
+{
+	printf "Checking for SCons\t\t\t:  "
+	if [ -z $SCONS ]; then
+	  SCONS=`which scons 2>/dev/null`
+	fi
+	if [ ! -x "$SCONS" ]; then
+		printf $RED"not found"$NORMAL"\n"
+		exit $EXIT_FAILURE
+	else
+		printf $GREEN"$SCONS"$NORMAL"\n"
+	fi
+	SCONS="$SCONS -Q"
+}
+
+# Generates a Makefile. Requires that $SCONS is set.
+#
+generateMakefile()
+{
+	cat > Makefile << EOF
+all:
+	@$SCONS
+
+# it is also possible to use
+# @$SCONS -j4
+
+install:
+	@$SCONS install
+
+clean:
+	@$SCONS -c
+
+uninstall:
+	@$SCONS -c install
+
+dist:
+	@$SCONS dist
+
+distclean:
+	@$SCONS -c
+	-@rm -rf .sconf_temp
+	-@rm -rf cache/
+	-@rm -f config.log
+	-@rm -f .sconsign.dblite
+	-@rm Makefile
+EOF
+}
+
+checkPython
+checkSCons
+
+if [[ "$1" == "--help" ]]; then
+   $SCONS --help
+   exit $EXIT_SUCCESS
+fi
+
+generateMakefile
+echo "calling scons configure with parameters"
+$SCONS configure $@
+
