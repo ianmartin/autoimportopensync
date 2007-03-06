@@ -65,6 +65,23 @@ if test "x${ENABLE_TESTS}" = "xyes"; then
 fi
 AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
 
+dnl ======================== Set some gcc CFLAGS to reduce build warnings
+if test "x$GCC" = "xyes"; then
+  OLD_CXXFLAGS="$CXXFLAGS"
+
+  CXXFLAGS="-fvisibility=hidden"
+  AC_MSG_CHECKING(if gcc supports $CXXFLAGS compiler option)
+  AC_TRY_COMPILE( [], [ int main() { return 0; } ],
+                ac_cv_have_hidden_visibility=yes,
+                ac_cv_have_hidden_visibility=no)
+  AC_MSG_RESULT($ac_cv_have_hidden_visibility)
+  CXXFLAGS="$OLD_CXXFLAGS"
+  if test $ac_cv_have_hidden_visibility = yes; then
+    CXXFLAGS="$CXXFLAGS -fvisibility=hidden"
+    AC_DEFINE([GCC_HASCLASSVISIBILITY], [], [GCC visibility supported])
+  fi
+fi
+
 dnl PACKAGE set before
 AC_C_BIGENDIAN
 AC_CHECK_KDEMAXPATHLEN
