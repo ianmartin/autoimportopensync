@@ -29,23 +29,37 @@ SOFTWARE IS DISCLAIMED.
 
 #include "osyncbase.h"
 
+namespace KABC
+{
+class Addressee;
+class Address;
+class Ticket;
+}
+
+using namespace KABC;
+
 class KContactDataSource
 {
 	private:
-		KABC::AddressBook* addressbookptr;
+		static AddressBook* addressbookptr;
+		// for a local file, we need to obtain a saveTicket when opening the abook
+		Ticket*ticket;
+		//help to only save when when changed
+		bool abChanged;
+
 		KABC::VCardConverter* converter;
 
 		OSyncHashTable *hashtable;
 		OSyncMember *member;
 
 		bool __vcard_access(OSyncContext *ctx, OSyncChange *chg);
-		OSyncChange *_addressee_to_change(KABC::Addressee *a);
+		OSyncChange *_addressee_to_change(Addressee *a);
 
 	public:
 		KContactDataSource(OSyncMember *member, OSyncHashTable *hashtable);
 		~KContactDataSource();
 
-		QString calc_hash(KABC::Addressee &e);
+		QString calc_hash(Addressee &e);
 		bool connect(OSyncContext *ctx);
 		bool disconnect(OSyncContext *ctx);
 		bool contact_get_changeinfo(OSyncContext *ctx);
