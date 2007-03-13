@@ -31,4 +31,4 @@ OSYNC_EXPORT void osync_group_env_remove_group(OSyncGroupEnv *env, OSyncGroup *g
 OSYNC_EXPORT int osync_group_env_num_groups(OSyncGroupEnv *env);
 OSYNC_EXPORT OSyncGroup *osync_group_env_nth_group(OSyncGroupEnv *env, int nth);
 
-#endif /*_OPENSYNC_GROUP_ENV_H_*/
+#endif //_OPENSYNC_GROUP_ENV_H_

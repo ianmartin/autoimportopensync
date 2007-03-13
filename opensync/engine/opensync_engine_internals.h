@@ -66,8 +66,8 @@ struct OSyncEngine {
 	osync_status_mapping_cb mapstat_callback;
 	void *mapstat_userdata;
 	
-	/*void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
-	void *plgmsg_userdata;*/
+	//void *(* plgmsg_callback) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
+	//void *plgmsg_userdata;
 	
 	/** The g_main_loop of this engine **/
 	OSyncThread *thread;

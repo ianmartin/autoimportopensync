@@ -27,4 +27,4 @@ struct OSyncGroup {
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_GROUP_INTERNALS_H_*/
+#endif //_OPENSYNC_GROUP_INTERNALS_H_

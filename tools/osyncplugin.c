@@ -33,7 +33,7 @@ gboolean busy = FALSE;
 
 static void stress_message_callback(OSyncMember *member, void *user_data, OSyncError *error)
 {
-	/*g_mutex_unlock(working);*/
+	//g_mutex_unlock(working);
 	g_main_loop_quit(loop);
 	busy = FALSE;
 }
@@ -56,11 +56,11 @@ static void changes_sink(OSyncMember *member, OSyncChange *change, void *user_da
 
 static void connect(OSyncMember *member)
 {
-	/*g_mutex_lock(working);*/
+	//g_mutex_lock(working);
 	osync_member_connect(member, (OSyncEngCallback)stress_message_callback, NULL);
 	g_main_loop_run(loop);
-	/*g_mutex_lock(working);
-	g_mutex_unlock(working);*/
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 }
 
 static void disconnect(OSyncMember *member)
@@ -70,7 +70,7 @@ static void disconnect(OSyncMember *member)
 	g_mutex_lock(working);
 	g_mutex_unlock(working);*/
 	
-	/*g_mutex_lock(working);*/
+	//g_mutex_lock(working);
 	busy = TRUE;
 	
 	osync_member_disconnect(member, (OSyncEngCallback)stress_message_callback, NULL);
@@ -78,17 +78,17 @@ static void disconnect(OSyncMember *member)
 	if (busy)
 		g_main_loop_run(loop);
 	
-	/*g_mutex_lock(working);
-	g_mutex_unlock(working);*/
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 }
 
 static void sync_done(OSyncMember *member)
 {
-	/*g_mutex_lock(working);*/
+	//g_mutex_lock(working);
 	osync_member_sync_done(member, (OSyncEngCallback)stress_message_callback, NULL);
 	g_main_loop_run(loop);
-	/*g_mutex_lock(working);
-	g_mutex_unlock(working);*/
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 }
 
 static void committed_all(OSyncMember *member)
@@ -100,11 +100,11 @@ static void committed_all(OSyncMember *member)
 static GList *get_changes(OSyncMember *member)
 {
 	changes = NULL;
-	/*g_mutex_lock(working);*/
+	//g_mutex_lock(working);
 	osync_member_get_changeinfo(member, (OSyncEngCallback)stress_message_callback, NULL);
 	g_main_loop_run(loop);
-	/*g_mutex_lock(working);
-	g_mutex_unlock(working);*/
+	//g_mutex_lock(working);
+	//g_mutex_unlock(working);
 	printf("Number of changes %i\n", g_list_length(changes));
 	return changes;
 }
@@ -338,9 +338,9 @@ static void modify_test1(OSyncMember *member, const char *objtype)
 static void empty_all(OSyncMember *member)
 {
 	printf("Emptying requested sources (Access available: %s)\n", noaccess == TRUE ? "No" : "Yes");
-	/*connect(member);
-	sync_done(member);
-	disconnect(member);*/
+	//connect(member);
+	//sync_done(member);
+	//disconnect(member);
 	
 	osync_member_set_slow_sync(member, "data", TRUE);
 	connect(member);
@@ -530,19 +530,19 @@ int main (int argc, char *argv[])
 	OSyncMemberFunctions *functions = osync_member_get_memberfunctions(member);
 	functions->rf_change = changes_sink;
 	
-	/*started_mutex = g_mutex_new();
-	started = g_cond_new();
-	GMainContext *context = g_main_context_new();*/
+	//started_mutex = g_mutex_new();
+	//started = g_cond_new();
+	//GMainContext *context = g_main_context_new();
 	loop = g_main_loop_new(NULL, TRUE);
-	/*g_mutex_lock(started_mutex);
-	GSource *idle = g_idle_source_new();
-	g_source_set_callback(idle, startupfunc, NULL, NULL);
-	g_source_attach(idle, context);
-	g_thread_create ((GThreadFunc)g_main_loop_run, loop, TRUE, NULL);
-	g_cond_wait(started, started_mutex);
-	g_mutex_unlock(started_mutex);
+	//g_mutex_lock(started_mutex);
+	//GSource *idle = g_idle_source_new();
+	//g_source_set_callback(idle, startupfunc, NULL, NULL);
+   // g_source_attach(idle, context);
+	//g_thread_create ((GThreadFunc)g_main_loop_run, loop, TRUE, NULL);
+	//g_cond_wait(started, started_mutex);
+	//g_mutex_unlock(started_mutex);
 	
-	osync_member_set_loop(member, context);*/
+	//osync_member_set_loop(member, context);
 	
 	if (!osync_member_initialize(member, &error)) {
 		printf("unable to initialize: %s\n", osync_error_print(&error));

@@ -203,7 +203,7 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 							for(tmp=list; tmp != NULL; tmp = g_slist_next(tmp)) {
 								xmlUnlinkNode(tmp->data);
 								xmlDOMWrapAdoptNode(NULL, ((xmlNodePtr)tmp->data)->doc, tmp->data, new_node->doc, new_par_node, 0);
-								/*xmlAddChild(new_par_node, tmp->data);*/
+								//xmlAddChild(new_par_node, tmp->data);
 							}
 						}else{
 							for(tmp=list; tmp != NULL; tmp = g_slist_next(tmp)) {

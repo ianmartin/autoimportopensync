@@ -126,7 +126,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 		must_exist = FALSE;
 	}
 	
-	/*Load all available shared libraries (plugins)*/
+	//Load all available shared libraries (plugins)
 	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
 		if (must_exist) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");

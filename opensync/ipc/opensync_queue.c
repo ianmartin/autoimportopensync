@@ -711,14 +711,14 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 		queue->thread = NULL;
 	}
 	
-	/* g_source_unref(queue->write_source); */
+	//g_source_unref(queue->write_source);
 	
 	if (queue->write_functions) {
 		g_free(queue->write_functions);
 		queue->write_functions = NULL;
 	}
 		
-	/* g_source_unref(queue->read_source); */
+	//g_source_unref(queue->read_source);
 	
 	_osync_queue_stop_incoming(queue);
 	
@@ -793,11 +793,11 @@ void osync_queue_setup_with_gmainloop(OSyncQueue *queue, GMainContext *context)
 	g_source_set_callback(queue->incoming_source, NULL, queue, NULL);
 	g_source_attach(queue->incoming_source, context);
 	queue->incomingContext = context;
-	/* For the source*/
+	// For the source
 	if (context)
 		g_main_context_ref(context);
 	
-	/*To unref it later*/
+	//To unref it later
 	if (context)
 		g_main_context_ref(context);
 	
@@ -852,11 +852,7 @@ OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
 static long long int gen_id()
 {
 	struct timeval tv;
-    	struct timezone {
-     		int tz_minuteswest; /* minutes west of Greenwich */
-     		int tz_dsttime; /* type of dst correction */
- 	};
-	struct timezone tz;
+    struct timezone tz;
 
     gettimeofday(&tv, &tz);
 
@@ -918,7 +914,7 @@ osync_bool osync_queue_is_alive(OSyncQueue *queue)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, queue);
 	
-	/* FIXME*/
+	// FIXME
 	/*if (!osync_queue_connect(queue, O_WRONLY | O_NONBLOCK, NULL)) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to connect", __func__);
 		return FALSE;

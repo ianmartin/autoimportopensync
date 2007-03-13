@@ -26,4 +26,4 @@
 #include "plugin/opensync_plugin_info.h"
 #include "plugin/opensync_sink.h"
 
-#endif /*OPENSYNCPLUGIN_H_*/
+#endif //OPENSYNCPLUGIN_H_

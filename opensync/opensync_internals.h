@@ -28,10 +28,6 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <errno.h>
 extern int errno;
 
@@ -51,4 +47,4 @@ extern int errno;
 
 #include "opensync_support_internals.h"
 
-#endif /*OPENSYNC_INTERNALS_H_*/
+#endif //OPENSYNC_INTERNALS_H_

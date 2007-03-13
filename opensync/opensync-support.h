@@ -55,4 +55,4 @@ char *osync_strreplace(const char *input, const char *delimiter, const char *rep
 
 #include "opensync_list.h"
 
-#endif /*_OPENSYNC_SUPPORT_H*/
+#endif //_OPENSYNC_SUPPORT_H

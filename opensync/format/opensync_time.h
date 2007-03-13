@@ -6,7 +6,7 @@ char *osync_time_timestamp(const char *vtime);
 char *osync_time_datestamp(const char *vtime); 
 osync_bool osync_time_isdate(const char *vformat);
 osync_bool osync_time_isutc(const char *vformat);
-/*char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc);*/
+//char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc);
 
 /* Timetype helper */
 struct tm *osync_time_vtime2tm(const char *vtime);
@@ -30,7 +30,7 @@ char *osync_time_vcal2localtime(const char *vcal);
 char *osync_time_vcal2utc(const char *vcal);
 
 /* Smart Timezone Helpers */
-/* TODO*/
+// TODO
 
 /* Alarm Duration Timeformat helper  */
 char *osync_time_sec2alarmdu(int seconds);
@@ -41,5 +41,5 @@ int osync_time_str2wday(const char *weekday);
 struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year);
 int osync_time_utcoffset2sec(const char *offset);
 
-#endif /* _OPENSYNC_TIME_H_*/
+#endif // _OPENSYNC_TIME_H_
 

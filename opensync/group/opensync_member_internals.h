@@ -32,7 +32,7 @@ struct OSyncMember {
 
 	char *pluginname;
 	
-	/*For the filters*/
+	//For the filters
 	GList *objtypes;
 	GList *filters;
 	int ref_count;

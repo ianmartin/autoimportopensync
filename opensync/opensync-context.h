@@ -39,4 +39,4 @@ void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error);
 void osync_context_report_osyncwarning(OSyncContext *context, OSyncError *error);
 void osync_context_report_change(OSyncContext *context, OSyncChange *change);
 
-#endif /*_OPENSYNC_CONTEXT_H*/
+#endif //_OPENSYNC_CONTEXT_H

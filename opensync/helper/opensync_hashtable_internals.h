@@ -8,5 +8,5 @@ struct OSyncHashTable {
 	char *tablename;
 };
 
-#endif /*_OPENSYNC_HASHTABLE_INTERNALS_H_*/
+#endif //_OPENSYNC_HASHTABLE_INTERNALS_H_
 

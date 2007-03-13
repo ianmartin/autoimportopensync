@@ -463,7 +463,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 	
-	/*The filters*/
+	//The filters
 	/*GList *f;
 	for (f = group->filters; f; f = f->next) {
 		OSyncFilter *filter = f->data;
@@ -569,7 +569,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
 
-		/* flush hashtable...*/
+		// flush hashtable...
 		path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
 		if (!(db = osync_db_new(error)))
 			goto error_and_free;
@@ -581,7 +581,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 
 		g_free(path);
 
-		/* flush anchor db ... */
+		// flush anchor db ... 
 		path = g_strdup_printf("%s/anchor.db", osync_member_get_configdir(member));
 		if (!(db = osync_db_new(error)))
 			goto error_and_free;
@@ -611,7 +611,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 
 error_and_free:
 	g_free(path);	
-/*error:*/
+//error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
@@ -632,7 +632,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	char *real_path = NULL;
 	xmlDocPtr doc;
 	xmlNodePtr cur;
-	/*xmlNodePtr filternode;*/
+	//xmlNodePtr filternode;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
 	osync_assert(group);
@@ -733,7 +733,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	}
 	xmlFreeDoc(doc);
 	
-	/*Check for sanity*/
+	//Check for sanity
 	if (!group->name) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Loaded a group without a name");
 		goto error;
@@ -921,7 +921,7 @@ int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
 		OSyncMember *member = m->data;
 		switch (osync_member_objtype_enabled(member, objtype)) {
 			case -1:
-				/*Do nothing;*/
+				//Do nothing;
 				break;
 			case 0:
 				if (enabled == -1)

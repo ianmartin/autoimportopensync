@@ -44,5 +44,5 @@ int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int 
 
 long long int osync_db_last_rowid(OSyncDB *db);
 
-#endif /*_OPENSYNC_DB_H_*/
+#endif //_OPENSYNC_DB_H_
 

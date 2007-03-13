@@ -27,4 +27,4 @@ typedef struct OSyncFile {
         unsigned int size;
 } OSyncFile;
 
-#endif /*MOCK_FORMAT_H_*/
+#endif //MOCK_FORMAT_H_

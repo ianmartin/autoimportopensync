@@ -49,4 +49,4 @@ const char *osync_queue_get_path(OSyncQueue *queue);
 
 osync_bool osync_queue_is_alive(OSyncQueue *queue);
 
-#endif /*_OPENSYNC_QUEUE_H */
+#endif //_OPENSYNC_QUEUE_H

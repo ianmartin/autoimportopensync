@@ -50,7 +50,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	osync_assert(env);
 	osync_assert(path);
 	
-	/*Load all available shared libraries (plugins)*/
+	//Load all available shared libraries (plugins)
 	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
 		if (must_exist) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");
@@ -322,8 +322,8 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 	osync_assert(source_format);
 	osync_assert(target_fn);
 	
-	/**Vertice = Spitze = Format
-	  *edge = Kante = Converter*/
+	//Vertice = Spitze = Format
+	//edge = Kante = Converter
 
 	/* Optimization: check if the format is already valid */
 	if (target_fn(fndata, source_format)) {

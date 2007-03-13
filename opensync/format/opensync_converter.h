@@ -58,4 +58,4 @@ OSYNC_EXPORT OSyncFormatConverter *osync_converter_path_nth_edge(OSyncFormatConv
 OSYNC_EXPORT const char *osync_converter_path_get_config(OSyncFormatConverterPath *path);
 OSYNC_EXPORT void osync_converter_path_set_config(OSyncFormatConverterPath *path, const char *config);
 
-#endif /*_OPENSYNC_CONVERTER_H_*/
+#endif //_OPENSYNC_CONVERTER_H_

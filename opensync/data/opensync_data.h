@@ -41,4 +41,4 @@ OSYNC_EXPORT OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncDat
 OSYNC_EXPORT char *osync_data_get_printable(OSyncData *data);
 OSYNC_EXPORT time_t osync_data_get_revision(OSyncData *data, OSyncError **error);
 
-#endif /*_OPENSYNC_DATA_H_*/
+#endif //_OPENSYNC_DATA_H_

@@ -89,7 +89,7 @@ static void _osync_client_connect_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
-		/*Send connect specific reply data*/
+		//Send connect specific reply data
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
 	}
@@ -168,7 +168,7 @@ static void _osync_client_get_changes_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
-		/*Send get_changes specific reply data*/
+		//Send get_changes specific reply data
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
 	}
@@ -240,7 +240,7 @@ static void _osync_client_commit_change_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
-		/*Send get_changes specific reply data*/
+		//Send get_changes specific reply data
 		osync_message_write_string(reply, osync_change_get_uid(baton->change));
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
@@ -281,7 +281,7 @@ static void _osync_client_committed_all_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
-		/*Send get_changes specific reply data*/
+		//Send get_changes specific reply data
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
 	}
@@ -321,7 +321,7 @@ static void _osync_client_sync_done_callback(void *data, OSyncError *error)
 	OSyncMessage *reply = NULL;
 	if (!osync_error_is_set(&error)) {
 		reply = osync_message_new_reply(message, &locerror);
-		/*Send get_changes specific reply data*/
+		//Send get_changes specific reply data
 	} else {
 		reply = osync_message_new_errorreply(message, error, &locerror);
 	}
@@ -925,7 +925,7 @@ static void _osync_client_message_handler(OSyncMessage *message, void *user_data
 		case OSYNC_MESSAGE_ENGINE_CHANGED:
 		case OSYNC_MESSAGE_MAPPING_CHANGED:
 		case OSYNC_MESSAGE_MAPPINGENTRY_CHANGED:
-			/*Ignore these. They dont have any meaning to the client*/
+			//Ignore these. They dont have any meaning to the client
 			break;
 		case OSYNC_MESSAGE_QUEUE_ERROR:
 		case OSYNC_MESSAGE_ERROR:

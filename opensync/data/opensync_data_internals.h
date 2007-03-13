@@ -33,4 +33,4 @@ struct OSyncData {
 	int ref_count;
 };
 
-#endif /*_OPENSYNC_DATA_INTERNALS_H_*/
+#endif //_OPENSYNC_DATA_INTERNALS_H_

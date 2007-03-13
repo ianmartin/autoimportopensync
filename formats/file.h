@@ -39,4 +39,4 @@ typedef struct OSyncFileFormat {
     unsigned int size;
 } OSyncFileFormat;
 
-#endif /*_FILE_H*/
+#endif //_FILE_H

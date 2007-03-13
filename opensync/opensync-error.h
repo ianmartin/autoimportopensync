@@ -60,4 +60,4 @@ OSYNC_EXPORT OSyncErrorType osync_error_get_type(OSyncError **error);
 OSYNC_EXPORT void osync_error_set_type(OSyncError **error, OSyncErrorType type);
 OSYNC_EXPORT void osync_error_set_vargs(OSyncError **error, OSyncErrorType type, const char *format, va_list args);
 
-#endif /*OPENSYNC_ERROR_H_*/
+#endif //OPENSYNC_ERROR_H_

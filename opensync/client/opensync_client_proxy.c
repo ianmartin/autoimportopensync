@@ -156,7 +156,7 @@ out_free_str:
 	g_free(pidstr);
 out_free_path:
 	g_free(pidpath);
-/*out:*/
+//out:
 	return ret;
 }
 
@@ -713,11 +713,11 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 	proxy->type = type;
 	
 	if (type != OSYNC_START_TYPE_EXTERNAL) {
-		/* First, create the pipe from the engine to the client*/
+		// First, create the pipe from the engine to the client
 		if (!osync_queue_new_pipes(&read1, &write1, error))
 			goto error;
 			
-		/* Then the pipe from the client to the engine*/
+		// Then the pipe from the client to the engine
 		if (!osync_queue_new_pipes(&read2, &write2, error))
 			goto error_free_pipe1;
 		

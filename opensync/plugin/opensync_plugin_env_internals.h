@@ -29,4 +29,4 @@ struct OSyncPluginEnv {
 	GModule *current_module;
 };
 
-#endif /*_OPENSYNC_PLUGIN_ENV_INTERNALS_H_*/
+#endif //_OPENSYNC_PLUGIN_ENV_INTERNALS_H_

@@ -49,4 +49,4 @@ OSYNC_EXPORT void osync_custom_filter_ref(OSyncCustomFilter *filter);
 OSYNC_EXPORT void osync_custom_filter_unref(OSyncCustomFilter *filter);
 OSYNC_EXPORT osync_bool osync_custom_filter_invoke(OSyncCustomFilter *filter, OSyncData *data, const char *config);
 
-#endif /*_OPENSYNC_FILTER_H_*/
+#endif //_OPENSYNC_FILTER_H_

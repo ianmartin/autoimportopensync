@@ -51,11 +51,11 @@ static void handle_company_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 	osync_xmlfield_set_attr(xmlfield, "Type", "Company");
 }
 
-/*static void handle_location_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "Location", vformat_attribute_param_get_nth_value(param,0));
-}*/
+//static void handle_location_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
+//	osync_xmlfield_set_attr(xmlfield, "Location", vformat_attribute_param_get_nth_value(param,0));
+//}
 
 static void handle_location_home_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
@@ -93,16 +93,16 @@ static void handle_telex_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_xmlfield_set_attr(xmlfield, "Type", "Telex");
 }
 
-/*static void handle_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	
-	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s\n", vformat_attribute_param_get_name(param));
-	
-	GList *v = vformat_attribute_param_get_values(param);
-	for (; v; v = v->next) {
-		osync_xmlfield_set_attr(xmlfield, "Type", v->data);
-	}
-}*/
+//static void handle_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+//{
+//	
+//	osync_trace(TRACE_INTERNAL, "Handling Type parameter %s\n", vformat_attribute_param_get_name(param));
+//	
+//	GList *v = vformat_attribute_param_get_values(param);
+//	for (; v; v = v->next) {
+//		osync_xmlfield_set_attr(xmlfield, "Type", v->data);
+//	}
+//}
 
 static void handle_type_car_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
@@ -135,13 +135,13 @@ static void handle_uislot_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 }
 
 /* TODO: drop unknown parameters? */
-/*static void handle_unknown_parameter(OSyncXMLField *current, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
-	xmlNode *property = xmlNewChild(current, NULL, (xmlChar*)"UnknownParam",
-		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
-	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
-}*/
+//static void handle_unknown_parameter(OSyncXMLField *current, VFormatParam *param)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling unknown parameter %s", vformat_attribute_param_get_name(param));
+//	xmlNode *property = xmlNewChild(current, NULL, (xmlChar*)"UnknownParam",
+//		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
+//	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
+//}
 
 static OSyncXMLField *handle_address_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
@@ -252,7 +252,7 @@ static OSyncXMLField *handle_department_attribute(OSyncXMLFormat *xmlformat, VFo
 	osync_trace(TRACE_INTERNAL, "Handling department attribute");
 	OSyncXMLField *xmlfield = NULL;
 	
-	/*We need to check first if the node already exists.*/
+	//We need to check first if the node already exists.
 	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
@@ -380,7 +380,7 @@ static OSyncXMLField *handle_kde_organization_attribute(OSyncXMLFormat *xmlforma
 	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
 	OSyncXMLField *xmlfield = NULL;
 
-	/*We need to check first if the node already exists.*/
+	//We need to check first if the node already exists.
 	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
@@ -534,7 +534,7 @@ static OSyncXMLField *handle_office_attribute(OSyncXMLFormat *xmlformat, VFormat
 	osync_trace(TRACE_INTERNAL, "Handling office attribute");
 	OSyncXMLField *xmlfield = NULL;
 	
-	/*We need to check first if the node already exists.*/
+	//We need to check first if the node already exists.
 	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
@@ -559,7 +559,7 @@ static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, V
 		return NULL;
 	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
-	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1)); /* FIXME: is this correct? RFC2426 says #1 company name further fields are all units (no dpearmtent?!)*/
+	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1)); // FIXME: is this correct? RFC2426 says #1 company name further fields are all units (no dpearmtent?!)
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	values = g_list_nth(values, 2);
@@ -783,7 +783,7 @@ static osync_bool init_evolution_to_xmlformat(OSyncHookTables *hooks)
 	g_hash_table_insert(hooks->attributes, "X-JABBER", handle_jabber_attribute);
 	g_hash_table_insert(hooks->attributes, "X-MSN", handle_msn_attribute);
 	
-	/*Overwrite the role hook (evo2s role is more like a profession so we map it there)*/
+	//Overwrite the role hook (evo2s role is more like a profession so we map it there)
 	g_hash_table_insert(hooks->attributes, "ROLE", handle_profession_attribute);
 	
 	g_hash_table_insert(hooks->parameters, "X-EVOLUTION-UI-SLOT", handle_uislot_parameter);
@@ -822,7 +822,7 @@ static osync_bool init_kde_to_xmlformat(OSyncHookTables *hooks)
 	g_hash_table_insert(hooks->attributes, "X-messaging/irc-All", handle_irc_attribute);
 	g_hash_table_insert(hooks->attributes, "X-messaging/sms-All", handle_sms_attribute);
 	
-	/*Overwrite the organization hook*/
+	//Overwrite the organization hook
 	g_hash_table_insert(hooks->attributes, "ORG", handle_kde_organization_attribute);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
@@ -871,7 +871,7 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 	g_hash_table_insert(hooks->attributes, "ENCODING", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->attributes, "CHARSET", HANDLE_IGNORE);
 	
-	/*g_hash_table_insert(hooks->parameters, "TYPE", handle_type_parameter);*/
+	//g_hash_table_insert(hooks->parameters, "TYPE", handle_type_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=PREF", handle_preferred_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=HOME", handle_location_home_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=WORK", handle_location_work_parameter);
@@ -886,70 +886,70 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 	return (void *)hooks;
 }
 
-/*static void _generate_formatted_name(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
-	VFormatAttribute *n = vformat_find_attribute(vcard, "N");
-	GList *v = vformat_attribute_get_values(n);
-	GString *fnentry;
-	fnentry = g_string_new("");
-
-	// NAME:LAST;FIRST;ADDITIONAL;PREFIX;SUFFIX
-	// FN:PREFIX FIRST ADDITIONAL LAST SUFFIX
-
-	int order[5] = {3, 1, 2, 0, 4};
-	int i = 0;
-	char *str = NULL;
-	for (i = 0; i < 5; i++) {
-		if ((str = g_list_nth_data(v, order[i])) && str[0]) {
-			if (fnentry->len != 0)
-				g_string_append(fnentry, " ");
-			g_string_append(fnentry, str);
-		}
-	}
-	
-	osync_trace(TRACE_INTERNAL, "Handling formattedname attribute");
-	
-	if (fnentry->len != 0) {
-//xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-//osxml_node_add(current, "Content", fnentry->str);
-OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
-osync_xmlfield_set_key_value(xmlfield, "Content", fnentry->str);
-	} else {
-		osync_trace(TRACE_INTERNAL, "FN is empty!");
-	}
-			
-	g_string_free(fnentry,TRUE);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-}*/
-
-/*static void _generate_name_from_fn(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
-{*/
-	/*
-	 * We copy FN to N:LASTNAME because we don't now how FN was build.
-	 * e.g. we don't know if FN is "PREFIX FIRST LAST" or "FIRST ADDITIONAL LAST"
-	 * With copying FN to N we prevent the vcard from being invalid.
-	 */
-/*
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, root);
-	VFormatAttribute *n = vformat_find_attribute(vcard, "FN");
-	char *fn = vformat_attribute_get_value(n);
-
-	osync_trace(TRACE_INTERNAL, "Handling name attribute");
-
-	if (strlen(fn) != 0) {
-//xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
-//	osxml_node_add(current, "LastName", fn);
-OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
-osync_xmlfield_set_key_value(xmlfield, "LastName", fn);
-	} else {
-		osync_trace(TRACE_INTERNAL, "Name is empty");
-	}
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-}*/
+//static void _generate_formatted_name(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
+//{
+//	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
+//	VFormatAttribute *n = vformat_find_attribute(vcard, "N");
+//	GList *v = vformat_attribute_get_values(n);
+//	GString *fnentry;
+//	fnentry = g_string_new("");
+//
+//	// NAME:LAST;FIRST;ADDITIONAL;PREFIX;SUFFIX
+//	// FN:PREFIX FIRST ADDITIONAL LAST SUFFIX
+//
+//	int order[5] = {3, 1, 2, 0, 4};
+//	int i = 0;
+//	char *str = NULL;
+//	for (i = 0; i < 5; i++) {
+//		if ((str = g_list_nth_data(v, order[i])) && str[0]) {
+//			if (fnentry->len != 0)
+//				g_string_append(fnentry, " ");
+//			g_string_append(fnentry, str);
+//		}
+//	}
+//	
+//	osync_trace(TRACE_INTERNAL, "Handling formattedname attribute");
+//	
+//	if (fnentry->len != 0) {
+////xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
+////osxml_node_add(current, "Content", fnentry->str);
+//OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
+//osync_xmlfield_set_key_value(xmlfield, "Content", fnentry->str);
+//	} else {
+//		osync_trace(TRACE_INTERNAL, "FN is empty!");
+//	}
+//			
+//	g_string_free(fnentry,TRUE);
+//	osync_trace(TRACE_EXIT, "%s", __func__);
+//	return;
+//}
+//
+//static void _generate_name_from_fn(VFormat *vcard, OSyncXMLFormat *xmlformat, OSyncError **error)
+//{
+//	/*
+//	 * We copy FN to N:LASTNAME because we don't now how FN was build.
+//	 * e.g. we don't know if FN is "PREFIX FIRST LAST" or "FIRST ADDITIONAL LAST"
+//	 * With copying FN to N we prevent the vcard from being invalid.
+//	 */
+//
+//	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, root);
+//	VFormatAttribute *n = vformat_find_attribute(vcard, "FN");
+//	char *fn = vformat_attribute_get_value(n);
+//
+//	osync_trace(TRACE_INTERNAL, "Handling name attribute");
+//
+//	if (strlen(fn) != 0) {
+////xmlNode *current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
+////	osxml_node_add(current, "LastName", fn);
+//OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
+//osync_xmlfield_set_key_value(xmlfield, "LastName", fn);
+//	} else {
+//		osync_trace(TRACE_INTERNAL, "Name is empty");
+//	}
+//
+//	osync_trace(TRACE_EXIT, "%s", __func__);
+//	return;
+//}
 
 static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
@@ -997,7 +997,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
-	/*Parse the vcard*/
+	//Parse the vcard
 	VFormat *vcard = vformat_new_from_string(input);
 
 	osync_trace(TRACE_INTERNAL, "Creating xmlformat object");
@@ -1005,7 +1005,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 
-	/*For every attribute we have call the handling hook*/
+	//For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vcard);
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
@@ -1013,15 +1013,15 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 		handle_attribute(hooks, xmlformat, attr, error);
 	}
 
-/*	//Generate FormattedName from Name if it doesn't exist
-	if (!vformat_find_attribute(vcard, "FN") && vformat_find_attribute(vcard, "N")) {
-		_generate_formatted_name(vcard, xmlformat);
-	}
-
-	//Generate Name from FormattedName if it doesn't exist
-	if (!vformat_find_attribute(vcard, "N") && vformat_find_attribute(vcard, "FN")) {
-		_generate_name_from_fn(vcard, xmlformat);
-	}*/	
+//	//Generate FormattedName from Name if it doesn't exist
+//	if (!vformat_find_attribute(vcard, "FN") && vformat_find_attribute(vcard, "N")) {
+//		_generate_formatted_name(vcard, xmlformat);
+//	}
+//
+//	//Generate Name from FormattedName if it doesn't exist
+//	if (!vformat_find_attribute(vcard, "N") && vformat_find_attribute(vcard, "FN")) {
+//		_generate_name_from_fn(vcard, xmlformat);
+//	}	
 
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
@@ -1031,7 +1031,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	*output = (char *)xmlformat;
 	*outpsize = sizeof(xmlformat);
 
-	/* XXX: remove this later?*/
+	// XXX: remove this later?
 	osync_xmlformat_sort(xmlformat);
 	
 	unsigned int size;
@@ -1063,13 +1063,13 @@ static void handle_xml_callback_x_evolution_parameter(VFormatAttribute *attr, OS
 	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-CALLBACK");
 }
 
-/*static void handle_xml_category_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling category xml parameter");
-	char *content = (char*)xmlNodeGetContent(current);
-	vformat_attribute_add_value(attr, content);
-	g_free(content);
-}*/
+//static void handle_xml_category_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling category xml parameter");
+//	char *content = (char*)xmlNodeGetContent(current);
+//	vformat_attribute_add_value(attr, content);
+//	g_free(content);
+//}
 
 static void handle_xml_company_x_evolution_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1077,12 +1077,12 @@ static void handle_xml_company_x_evolution_parameter(VFormatAttribute *attr, OSy
 	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-COMPANY");
 }
 
-/*static void handle_xml_location_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling location xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Location");
-	vformat_attribute_add_param_with_value(attr, "TYPE", content);
-}*/
+//static void handle_xml_location_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling location xml parameter");
+//	const char *content = osync_xmlfield_get_attr(xmlfield, "Location");
+//	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+//}
 
 static void handle_xml_location_home_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1122,11 +1122,11 @@ static void handle_xml_uislot_x_evolution_parameter(VFormatAttribute *attr, OSyn
 	vformat_attribute_add_param_with_value(attr, "X-EVOLUTION-UI-SLOT", osync_xmlfield_get_attr(xmlfield, "UI-Slot"));
 }
 
-/*static void handle_xml_unit_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unit xml parameter");
-	vformat_attribute_add_value(attr, osync_xmlfield_get_attr(xmlfield, "Unit"));
-}*/
+//static void handle_xml_unit_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling unit xml parameter");
+//	vformat_attribute_add_value(attr, osync_xmlfield_get_attr(xmlfield, "Unit"));
+//}
 
 static void handle_xml_telex_x_evolution_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1134,12 +1134,12 @@ static void handle_xml_telex_x_evolution_parameter(VFormatAttribute *attr, OSync
 	vformat_attribute_add_param_with_value(attr, "TYPE", "X-EVOLUTION-TELEX");
 }
 
-/*static void handle_xml_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "Type");
-	vformat_attribute_add_param_with_value(attr, "TYPE", content);
-}*/
+//static void handle_xml_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling type xml parameter");
+//	const char *content = osync_xmlfield_get_attr(xmlfield, "Type");
+//	vformat_attribute_add_param_with_value(attr, "TYPE", content);
+//}
 
 static void handle_xml_type_car_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1172,13 +1172,13 @@ static void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xm
 	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 }
 
-/*static void handle_xml_unknown_parameter(VFormatAttribute *attr, xmlNode *current)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown xml parameter %s", current->name);
-	char *content = (char*)xmlNodeGetContent(current);
-	vformat_attribute_add_param_with_value(attr, (char*)current->name, content);
-	g_free(content);
-}*/
+//static void handle_xml_unknown_parameter(VFormatAttribute *attr, xmlNode *current)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling unknown xml parameter %s", current->name);
+//	char *content = (char*)xmlNodeGetContent(current);
+//	vformat_attribute_add_param_with_value(attr, (char*)current->name, content);
+//	g_free(content);
+//}
 
 static VFormatAttribute *handle_xml_address_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
 {
@@ -1418,7 +1418,7 @@ static VFormatAttribute *handle_xml_logo_attribute(VFormat *vcard, OSyncXMLField
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "LOGO");
 	add_value(attr, xmlfield, "Content", encoding);
 	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
-	/*vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(xmlfield, "Type"));*/
+	//vformat_attribute_add_param_with_value(attr, "TYPE", osxml_find_node(xmlfield, "Type"));
 	vformat_attribute_add_param_with_value(attr, "TYPE", osync_xmlfield_get_attr(xmlfield, "Type"));
 	vformat_add_attribute(vcard, attr);
 	return attr;
@@ -1654,15 +1654,15 @@ static VFormatAttribute *handle_xml_title_attribute(VFormat *vcard, OSyncXMLFiel
 	return attr;
 }
 
-/*static VFormatAttribute *handle_xml_unknown_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", osync_xmlfield_get_name(xmlfield));
-	char *name = osxml_find_node(root, "NodeName");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vcard, attr);
-	return attr;
-}*/
+//static VFormatAttribute *handle_xml_unknown_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
+//{
+//	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", osync_xmlfield_get_name(xmlfield));
+//	char *name = osxml_find_node(root, "NodeName");
+//	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+//	add_value(attr, xmlfield, "Content", encoding);
+//	vformat_add_attribute(vcard, attr);
+//	return attr;
+//}
 
 static VFormatAttribute *handle_xml_video_url_x_evolution_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding)
 {
@@ -1729,7 +1729,7 @@ static osync_bool init_xmlformat_to_evolution(OSyncHookTables *hooks)
 	g_hash_table_insert(hooks->attributes, "IM-Jabber", handle_xml_jabber_x_attribute);
 	g_hash_table_insert(hooks->attributes, "IM-MSN", handle_xml_msn_x_attribute);
 
-	/*Overwrite Profession handler //We map the profession to the ROLE*/
+	//Overwrite Profession handler //We map the profession to the ROLE
 	g_hash_table_insert(hooks->attributes, "Profession", handle_xml_role_attribute);
 	
 	g_hash_table_insert(hooks->parameters, "UI-Slot", handle_xml_uislot_x_evolution_parameter);
@@ -1763,7 +1763,7 @@ static osync_bool init_xmlformat_to_kde(OSyncHookTables *hooks)
 	g_hash_table_insert(hooks->attributes, "SMS", handle_xml_sms_x_messaging_attribute);
 
 	g_hash_table_insert(hooks->attributes, "KDE-Extension", handle_xml_x_kde_attribute);
-	/*Overwrite the uid and revision handler*/
+	//Overwrite the uid and revision handler
 	g_hash_table_insert(hooks->attributes, "Uid", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->attributes, "Revision", HANDLE_IGNORE);
 	
@@ -1809,14 +1809,14 @@ static OSyncHookTables *init_xmlformat_to_vcard(void)
 	g_hash_table_insert(hooks->attributes, "Nickname", handle_xml_nickname_attribute);
 	g_hash_table_insert(hooks->attributes, "Class", handle_xml_class_attribute);
 	g_hash_table_insert(hooks->attributes, "Categories", handle_xml_categories_attribute);
-/*	g_hash_table_insert(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
+//	g_hash_table_insert(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
 	
-	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);*/
+//	g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
 	g_hash_table_insert(hooks->parameters, "Type=Voice", handle_xml_type_voice_parameter);
 	g_hash_table_insert(hooks->parameters, "Type=Cellular", handle_xml_type_cellular_parameter);
 	g_hash_table_insert(hooks->parameters, "Type=Fax", handle_xml_type_fax_parameter);
 	g_hash_table_insert(hooks->parameters, "Type=Car", handle_xml_type_car_parameter);
-/*	g_hash_table_insert(hooks->parameters, "Location", handle_xml_location_parameter);*/
+//	g_hash_table_insert(hooks->parameters, "Location", handle_xml_location_parameter);
 	g_hash_table_insert(hooks->parameters, "Location=Home", handle_xml_location_home_parameter);
 	g_hash_table_insert(hooks->parameters, "Location=Work", handle_xml_location_work_parameter);
 	g_hash_table_insert(hooks->parameters, "Location=Other", handle_xml_location_other_parameter);
@@ -1833,9 +1833,9 @@ static OSyncHookTables *init_xmlformat_to_vcard(void)
 	g_hash_table_insert(hooks->parameters, "TYPE=FAX", handle_type_fax_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=CAR", handle_type_car_parameter);
 	
-/*	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
-	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
-	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);*/
+//	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
+//	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
+//	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return hooks;
@@ -1885,7 +1885,7 @@ static osync_bool conv_xmlformat_to_vcard(char *input, unsigned int inpsize, cha
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
-	/*Make the new vcard*/
+	//Make the new vcard
 	VFormat *vcard = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing cml attributes");

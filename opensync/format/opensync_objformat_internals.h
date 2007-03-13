@@ -55,4 +55,4 @@ struct OSyncObjFormat {
 
 /*@}*/
 
-#endif /*_OPENSYNC_OBJFORMAT_INTERNALS_H_*/
+#endif //_OPENSYNC_OBJFORMAT_INTERNALS_H_

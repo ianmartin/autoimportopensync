@@ -68,4 +68,4 @@ OSYNC_EXPORT void osync_plugin_finalize(OSyncPlugin *plugin, void *data);
 OSYNC_EXPORT osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInfo *info, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error);
 
-#endif /*_OPENSYNC_PLUGIN_H_*/
+#endif //_OPENSYNC_PLUGIN_H_

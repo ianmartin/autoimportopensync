@@ -48,7 +48,7 @@ xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error)
 void osxml_node_set(xmlNode *node, const char *name, const char *data, OSyncXMLEncoding encoding)
 {
 	if (name)
-		xmlNodeSetName(node, (xmlChar*)name); /*FIXME Free previous name?*/
+		xmlNodeSetName(node, (xmlChar*)name); //FIXME Free previous name?
 		
 	if (data)
 		xmlNewTextChild(node, NULL, (xmlChar*)"Content", (xmlChar*)data);
@@ -121,7 +121,7 @@ xmlXPathObject *osxml_get_nodeset(xmlDoc *doc, const char *expression)
 
 	xmlXPathFreeContext(xpathCtx);
 	/* Cleanup of XPath data */
-   /* xmlXPathFreeObject(xpathObj);*/
+   // xmlXPathFreeObject(xpathObj);
    return xpathObj;
 }
 
@@ -350,7 +350,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		osync_trace(TRACE_INTERNAL, "Subtracting %i", default_score);
 		res_score -= default_score;
 		same = FALSE;
-		/*goto out;*/
+		//goto out;
 		next2:;
 	}
 	

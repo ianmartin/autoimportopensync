@@ -239,7 +239,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
 			/* TODO: Merger save the archive data with the member so we have to load it only for one time*/
-			/* osync_archive_load_data() is fetching the mappingid by uid in the db */
+			// osync_archive_load_data() is fetching the mappingid by uid in the db
 			int ret = osync_archive_load_data(engine->archive, uid, &buffer, &size, &error);
 			if (ret < 0) {
 				goto error; 
@@ -618,7 +618,7 @@ static osync_bool _osync_engine_finalize_member(OSyncEngine *engine, OSyncClient
 	if (!osync_client_proxy_finalize(proxy, _finalize_callback, engine, error))
 		goto error;
 	
-	/*FIXME */
+	//FIXME
 	unsigned int i = 2000;
 	while (engine->busy && i > 0) { usleep(1000); g_main_context_iteration(engine->context, FALSE); i--; }
 	osync_trace(TRACE_INTERNAL, "Done waiting");
@@ -687,7 +687,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 	if (!osync_client_proxy_initialize(proxy, _finalize_callback, engine, engine->format_dir, engine->plugin_dir, osync_member_get_pluginname(member), osync_group_get_name(engine->group), osync_member_get_configdir(member), config, error))
 		goto error_shutdown;
 	
-	/*FIXME */
+	//FIXME
 	while (engine->busy) { usleep(100); }
 	
 	engine->proxies = g_list_append(engine->proxies, proxy);
@@ -725,7 +725,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	OSyncGroup *group = engine->group;
 	
 	if (osync_group_num_members(group) < 2) {
-		/*Not enough members! */
+		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
 		goto error;
 	}
@@ -741,8 +741,8 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 			goto error;
 		case OSYNC_LOCK_STALE:
 			osync_trace(TRACE_INTERNAL, "Detected stale lock file. Slow-syncing");
-			/*osync_status_update_engine(engine, ENG_PREV_UNCLEAN, NULL);
-			osync_group_set_slow_sync(engine->group, "data", TRUE);*/
+			//osync_status_update_engine(engine, ENG_PREV_UNCLEAN, NULL);
+			//osync_group_set_slow_sync(engine->group, "data", TRUE);
 			break;
 		case OSYNC_LOCK_OK:
 			break;
