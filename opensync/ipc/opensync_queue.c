@@ -852,7 +852,11 @@ OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
 static long long int gen_id()
 {
 	struct timeval tv;
-    struct timezone tz;
+	struct timezone { 
+		int tz_minuteswest; /* minutes west of Greenwich */
+		int tz_dsttime; /* type of dst correction */ 
+	}; 
+        struct timezone tz;
 
     gettimeofday(&tv, &tz);
 
