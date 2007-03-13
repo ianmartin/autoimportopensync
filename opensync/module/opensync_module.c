@@ -24,6 +24,9 @@
 #include "opensync-module.h"
 #include "opensync_module_internals.h"
 
+typedef osync_bool (* fkt_b_plugenv_error)(OSyncPluginEnv *env, OSyncError **error);
+typedef osync_bool (* fkt_b_fmtenv_error)(OSyncFormatEnv *env, OSyncError **error);
+
 OSyncModule *osync_module_new(OSyncError **error)
 {
 	OSyncModule *module = NULL;
@@ -88,11 +91,11 @@ void *osync_module_get_function(OSyncModule *module, const char *name, OSyncErro
 
 osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, OSyncError **error)
 {
-	osync_bool (* fct_info)(OSyncPluginEnv *env, OSyncError **error) = NULL;
+ 	fkt_b_plugenv_error fct_info = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	fct_info = osync_module_get_function(module, "get_sync_info", NULL);
+	fct_info = (fkt_b_plugenv_error) osync_module_get_function(module, "get_sync_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_sync_info function", __func__);
 		return TRUE;
@@ -112,11 +115,11 @@ error:
 
 osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env, OSyncError **error)
 {
-	osync_bool (* fct_info)(OSyncFormatEnv *env, OSyncError **error) = NULL;
+ 	fkt_b_fmtenv_error fct_info = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	fct_info = osync_module_get_function(module, "get_format_info", NULL);
+	fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_format_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
 		return TRUE;
@@ -136,11 +139,11 @@ error:
 
 osync_bool osync_module_get_conversion_info(OSyncModule *module, OSyncFormatEnv *env, OSyncError **error)
 {
-	osync_bool (* fct_info)(OSyncFormatEnv *env, OSyncError **error) = NULL;
+ 	fkt_b_fmtenv_error fct_info = NULL;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, module, env, error);
 	
 	/* Load the get_info symbol */
-	fct_info = osync_module_get_function(module, "get_conversion_info", NULL);
+	fct_info = (fkt_b_fmtenv_error) osync_module_get_function(module, "get_conversion_info", NULL);
 	if (!fct_info) {
 		osync_trace(TRACE_EXIT, "%s: Not get_format_info function", __func__);
 		return TRUE;
@@ -171,7 +174,7 @@ int osync_module_get_version(OSyncModule *module)
 		return 0;
 	}
 	
-	fct_version = function;
+	fct_version = (int (* )(void)) function;
 	/* Call the get_info function */
 	version = fct_version();
 	
