@@ -85,7 +85,7 @@ time_t vformat_time_to_unix(const char *inptime)
 	}
 
 	if (time && strlen(time) == 8) {
-		//Time
+		/*Time*/
 		btime.tm_hour = time[0] * 10 + time[1] - '0' * 11;
 		btime.tm_min = time[3] * 10 + time[4] - '0' * 11;
 		btime.tm_sec = time[6] * 10 + time[7] - '0' * 11;
@@ -387,8 +387,8 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_
 				case ';': str = g_string_append_c (str, ';'); break;
 				case ',':
 					if (!strcmp (attr->name, "CATEGORIES")) {
-						//We need to handle categories here to work
-						//aroung a bug in evo2
+						/**We need to handle categories here to work
+						aroung a bug in evo2*/
 						_read_attribute_value_add (attr, str, charset);
 						g_string_assign (str, "");
 					} else
@@ -711,7 +711,7 @@ static void _parse(VFormat *evc, const char *str)
 		VFormatAttribute *next_attr = _read_attribute (&p);
 
 		if (next_attr) {
-			//if (g_ascii_strcasecmp (next_attr->name, "end"))
+			/*if (g_ascii_strcasecmp (next_attr->name, "end"))*/
 				vformat_add_attribute (evc, next_attr);
 			attr = next_attr;
 		}
@@ -948,10 +948,10 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 				if ( param->values && (must_have_type || g_ascii_strcasecmp (param->name, "TYPE")) )
 					attr_str = g_string_append_c (attr_str, '=');
 				for (v = param->values; v; v = v->next) {
-					// check for quoted-printable encoding
+					/* check for quoted-printable encoding*/
 					if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE"))
 						format_encoding = VF_ENCODING_QP;
-					// check for base64 encoding
+					/* check for base64 encoding*/
 					if (_helper_is_base64((const char *) v->data)) {
 						format_encoding = VF_ENCODING_BASE64;
 						v->data="BASE64";
@@ -1737,7 +1737,7 @@ const char *vformat_attribute_param_get_nth_value(VFormatParam *param, int nth)
 
 static const char *base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-//static unsigned char _evc_base64_rank[256];
+/*static unsigned char _evc_base64_rank[256];*/
 
 static void base64_init(char *rank)
 {
@@ -1973,7 +1973,7 @@ size_t quoted_decode_simple (char *data, size_t len)
 	hex[4] = 0;
 
 	while (1) {
-		//Get the index of the next encoded char
+		/*Get the index of the next encoded char*/
 		int i = strcspn(string->str, "=");
 		if (i >= strlen(string->str))
 			break;

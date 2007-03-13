@@ -36,4 +36,4 @@ OSYNC_EXPORT osync_bool osync_module_check(OSyncModule *module, OSyncError **err
 
 OSYNC_EXPORT void *osync_module_get_function(OSyncModule *module, const char *name, OSyncError **error);
 
-#endif //_OPENSYNC_MODULE_H_
+#endif /*_OPENSYNC_MODULE_H_*/

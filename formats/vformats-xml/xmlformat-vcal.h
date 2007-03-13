@@ -18,4 +18,4 @@ struct OSyncHookTables {
 
 #define HANDLE_IGNORE (void *)1
 */
-#endif //XMLFORMAT_VCAL_H_
+#endif /*XMLFORMAT_VCAL_H_*/

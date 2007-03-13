@@ -42,7 +42,7 @@ xmlNode *osxml_node_get_root(xmlDoc *doc, const char *name, OSyncError **error);
 xmlNode *osxml_get_node(xmlNode *parent, const char *name);
 
 xmlNode *osxml_node_add(xmlNode *parent, const char *name, const char *data);
-//void osxml_format_dump(OSyncXML *xml, char **data, int *size);
+/*void osxml_format_dump(OSyncXML *xml, char **data, int *size);*/
 xmlNode *osxml_format_parse(const char *input, int size, const char *rootname, OSyncError **error);
 char *osxml_find_node(xmlNode *parent, const char *name);
 void osxml_node_add_property(xmlNode *parent, const char *name, const char *data);

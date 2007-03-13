@@ -72,4 +72,4 @@ typedef struct vertice {
 
 } vertice;
 
-#endif //_OPENSYNC_FORMAT_ENV_INTERNALS_H_
+#endif /*/_OPENSYNC_FORMAT_ENV_INTERNALS_H_*/

@@ -189,10 +189,10 @@ void change_content(OSyncEngine *engine)
 						}
 						break;
 					case 3:
-						//printf("Modifying all for %s\n", osync_change_get_uid(change));
+						/*printf("Modifying all for %s\n", osync_change_get_uid(change));*/
 						break;
 					case 4:
-						//printf("Deleting all for %s\n", osync_change_get_uid(change));
+						/*printf("Deleting all for %s\n", osync_change_get_uid(change));*/
 						break;
 					default:
 						printf("error\n");

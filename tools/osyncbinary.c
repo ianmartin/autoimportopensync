@@ -52,16 +52,16 @@ osync_bool convert_bin(const char *input, unsigned int inpsize, char **output, u
 			return FALSE;
 		}
 		
-		//char string1[2] = "";
-		//char string2[3] = "";
+		/*char string1[2] = "";
+		char string2[3] = "";*/
 		unsigned int character = 0;
-		//int ret = ;
+		/*int ret = ;*/
 		printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
 		printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
 		if (g_pattern_match_simple(" ?? *", input + i) && sscanf(input + i, " %x %*s", &character) == 1) { 
 			printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));
 		
-		//if () { //0-9][0-9]
+		/*if () { //0-9][0-9]*/
 			
 			printf("escaped chars are %.4s %i\n", input + i, sscanf(input + i, " %x %*s", &character)); 
 			printf("returned is %i\n", sscanf(input + i, " %x %*s", &character));

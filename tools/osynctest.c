@@ -384,15 +384,15 @@ static void register_tests(void)
 	register_test("modify_test20", modify_test, 20);
 	register_test("modify_test50", modify_test, 50);*/
 	register_test("modify_test100", modify_test, 100);
-	//register_test("modify_test200", modify_test, 200);
+	/*register_test("modify_test200", modify_test, 200);*/
 
 	/*register_test("delete_test1", delete_test, 1);
 	register_test("delete_test5", delete_test, 5);
 	register_test("delete_test10", delete_test, 10);
 	register_test("delete_test20", delete_test, 20);
-	register_test("delete_test50", delete_test, 50);*/
-	//register_test("delete_test100", delete_test, 100);
-	//register_test("delete_test200", delete_test, 200);
+	register_test("delete_test50", delete_test, 50);
+	register_test("delete_test100", delete_test, 100);
+	register_test("delete_test200", delete_test, 200);*/
 }
 
 void change_content(void)

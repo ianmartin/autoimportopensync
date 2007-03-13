@@ -249,8 +249,8 @@ const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr)
     if(prop == NULL)
     	return NULL;
 	return (const char *)osxml_attr_get_content(prop);
-//	return (const char *)prop->children->content;
-//	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);
+/*	return (const char *)prop->children->content;
+	return (const char *)xmlGetProp(xmlfield->node, BAD_CAST attr);*/
 }
 
 /**
@@ -322,8 +322,8 @@ const char *osync_xmlfield_get_nth_attr_value(OSyncXMLField *xmlfield, int nth)
 	for(count=0; attr != NULL; count++) {
 		if(count == nth)
 			return (const char *)osxml_attr_get_content(attr);
-//			return (const char *)attr->children->content;
-//			return (const char *)xmlNodeGetContent((xmlNodePtr)attr);
+/*			return (const char *)attr->children->content;
+			return (const char *)xmlNodeGetContent((xmlNodePtr)attr);*/
 		attr = attr->next;
 	}
 	return NULL;
@@ -344,8 +344,8 @@ const char *osync_xmlfield_get_key_value(OSyncXMLField *xmlfield, const char *ke
 	for(; cur != NULL; cur = cur->next) {
 		if(!xmlStrcmp(cur->name, BAD_CAST key))
 				return (const char *)osxml_node_get_content(cur);
-//				return (const char *)cur->children->content;
-//				return (const char *)xmlNodeGetContent(cur);
+/*				return (const char *)cur->children->content;
+				return (const char *)xmlNodeGetContent(cur);*/
 	}
 	return NULL;
 }
@@ -360,9 +360,11 @@ void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, cons
 {
 	osync_assert(xmlfield);
 	osync_assert(key);
-	//If value is empty (this happen of for exmaple not full filled address field) just skip the argument.
-	//TODO: it should be parsed a empty string instead of null so we can revert this patch
-	//osync_assert(value);
+	/**If value is empty (this happen of for exmaple not full filled address field)
+	  *just skip the argument.
+	  *TODO: it should be parsed a empty string instead of null so we can revert
+	  * this patch*/
+	/*osync_assert(value);*/
 	if (!value)
 		return;
 
@@ -447,8 +449,8 @@ const char *osync_xmlfield_get_nth_key_value(OSyncXMLField *xmlfield, int nth)
 	for(count=0; child != NULL; count++) {
 		if(count == nth)
 			return (const char *)osxml_node_get_content(child);
-//			return (const char *)child->children->content;
-//			return (const char *)xmlNodeGetContent(child);
+/*			return (const char *)child->children->content;
+			return (const char *)xmlNodeGetContent(child);*/
 		child = child->next;
 	}
 	return NULL;
@@ -653,8 +655,8 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 			
 			while(!xmlStrcmp(osxml_node_get_content((xmlNodePtr)cur_list1->data),
 							 osxml_node_get_content((xmlNodePtr)cur_list2->data))) {		
-//			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
-//						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {
+/*			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
+						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {*/
 				cur_list2 = g_slist_next(cur_list2);
 				if(cur_list2 == NULL) {
 					res = FALSE;	

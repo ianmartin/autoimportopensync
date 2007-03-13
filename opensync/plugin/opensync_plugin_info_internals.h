@@ -9,7 +9,7 @@ struct OSyncPluginInfo {
 	OSyncObjTypeSink *sink;
 	OSyncObjTypeSink *current_sink;
 	OSyncFormatEnv *formatenv;
-	//devinfo
+	/*devinfo*/
 	int ref_count;
 	char *groupname;
 	OSyncVersion *version;

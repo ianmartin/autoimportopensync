@@ -48,4 +48,4 @@ OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv
 OSYNC_EXPORT OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat **targets, OSyncError **error);
 
 
-#endif //_OPENSYNC_FORMAT_ENV_H_
+#endif /*_OPENSYNC_FORMAT_ENV_H_*/

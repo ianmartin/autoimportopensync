@@ -61,4 +61,4 @@ OSYNC_EXPORT osync_bool osync_objformat_must_marshal(OSyncObjFormat *format);
 OSYNC_EXPORT osync_bool osync_objformat_marshal(OSyncObjFormat *format, const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
 
-#endif //_OPENSYNC_OBJFORMAT_H_
+#endif /*_OPENSYNC_OBJFORMAT_H_*/

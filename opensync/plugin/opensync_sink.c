@@ -296,13 +296,13 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, 
 	functions = sink->functions;
 
 	if (functions.batch_commit) {
-		//Append to the stored changes
+		/*Append to the stored changes*/
 		sink->commit_changes = g_list_append(sink->commit_changes, change);
 		sink->commit_contexts = g_list_append(sink->commit_contexts, ctx);
 		osync_trace(TRACE_EXIT, "%s: Waiting for batch processing", __func__);
 		return;
 	} else {
-		// Send the change
+		/* Send the change*/
 		if (!functions.commit) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No commit_change function was given");
 			osync_trace(TRACE_EXIT_ERROR, "%s: No commit_change function was given", __func__);

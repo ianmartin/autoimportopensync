@@ -27,7 +27,7 @@ struct OSyncMappingTable {
 	int ref_count;
 	
 	GList *mappings;
-	//GList *views;
+	/*GList *views;*/
 };
 
 #endif /*OPENSYNC_MAPPING_TABLE_INTERNALS_H_*/

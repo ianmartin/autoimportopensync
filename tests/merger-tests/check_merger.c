@@ -101,20 +101,20 @@ START_TEST (merger_demerge)
 	capabilities = osync_capabilities_parse(buffer, size, &error);
 	fail_unless(capabilities != NULL, NULL);
 	fail_unless(error == NULL, NULL);
-//printf("\n%s", buffer);
+/*printf("\n%s", buffer);*/
 	g_free(buffer);
 	osync_capabilities_sort(capabilities);
 
-//osync_xmlformat_assemble(xmlformat, &buffer, &size); printf("\n%s", buffer); g_free(buffer);
-//osync_xmlformat_assemble(xmlformat_entire, &buffer, &size); printf("\n%s", buffer); g_free(buffer);
+/*osync_xmlformat_assemble(xmlformat, &buffer, &size); printf("\n%s", buffer); g_free(buffer);
+osync_xmlformat_assemble(xmlformat_entire, &buffer, &size); printf("\n%s", buffer); g_free(buffer);*/
 	
 	OSyncMerger *merger = osync_merger_new(capabilities, &error);
 	fail_unless(merger != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_merger_merge(merger, xmlformat, xmlformat_entire);
-//osync_xmlformat_assemble(xmlformat, &buffer, &size); printf("\nMERGED:\n%s", buffer); g_free(buffer);
+/*osync_xmlformat_assemble(xmlformat, &buffer, &size); printf("\nMERGED:\n%s", buffer); g_free(buffer);*/
 	osync_merger_demerge(merger, xmlformat);
-//osync_xmlformat_assemble(xmlformat, &buffer, &size); printf("\nDEMERGED:\n%s", buffer); g_free(buffer);
+/*osync_xmlformat_assemble(xmlformat, &buffer, &size); printf("\nDEMERGED:\n%s", buffer); g_free(buffer);*/
 
 	osync_merger_unref(merger);
 	

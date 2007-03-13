@@ -8,4 +8,4 @@ typedef struct OSyncHookTables {
 
 #define HANDLE_IGNORE (void *)1
 
-#endif //_XMLVNOTE_H_
+#endif /*_XMLVNOTE_H_*/

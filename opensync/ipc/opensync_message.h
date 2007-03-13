@@ -88,4 +88,4 @@ void osync_message_read_const_data(OSyncMessage *message, void **value, int size
 void osync_message_read_const_string(OSyncMessage *message, char **value);
 void osync_message_read_buffer(OSyncMessage *message, void **value, int *size);
 
-#endif //_OPENSYNC_MESSAGES_H
+#endif /*_OPENSYNC_MESSAGES_H */

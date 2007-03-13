@@ -29,4 +29,4 @@ struct OSyncModule {
 	char *path;
 };
 
-#endif //_OPENSYNC_MODULE_INTERNALS_H_
+#endif /*_OPENSYNC_MODULE_INTERNALS_H_*/

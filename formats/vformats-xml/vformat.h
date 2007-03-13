@@ -39,7 +39,7 @@ typedef enum {
 } VFormatType;
 
 typedef struct VFormat {
-	//VFormatType type;
+	/*VFormatType type;*/
 	GList *attributes;
 } VFormat;
 
@@ -70,20 +70,20 @@ typedef struct VFormatParam {
 
 /*VFormat *vcard_new(VFormatType type);
 VFormat *vcard_new_from_string (const char *str, VFormatType type);
-//char *vcard_to_string(VFormat *card, VFormatType format);
+char *vcard_to_string(VFormat *card, VFormatType format);
 
 VFormat *vnote_new(void);
 VFormat *vnote_new_from_string(const char *str);
-//char *vnote_to_string(VFormat *note);
+char *vnote_to_string(VFormat *note);
 
 
 VFormat *vevent_new(void);
 VFormat *vevent_new_from_string(const char *str);
-//char *vevent_to_string(VFormat *event);
+char *vevent_to_string(VFormat *event);
 
 VFormat *vtodo_new(void);
-VFormat *vtodo_new_from_string(const char *str);*/
-//char *vtodo_to_string(VFormat *todo);
+VFormat *vtodo_new_from_string(const char *str);
+char *vtodo_to_string(VFormat *todo);*/
 
 /* mostly for debugging */
 VFormat *vformat_new(void);

@@ -74,7 +74,7 @@ static void create_vcard30(char **data, unsigned int *size)
 
 static osync_bool vcard_categories_filter(OSyncData *data, const char *config)
 {
-	//Check what categories are supported here.
+	/*Check what categories are supported here.*/
 	return FALSE;
 }
 

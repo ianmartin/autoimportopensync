@@ -57,4 +57,4 @@ int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSync
 osync_bool _osync_queue_write_long_long_int(OSyncQueue *queue, const long long int message, OSyncError **error);
 osync_bool _osync_queue_write_int(OSyncQueue *queue, const int message, OSyncError **error);
 
-#endif //_OPENSYNC_QUEUE_INTERNALS_H
+#endif /*_OPENSYNC_QUEUE_INTERNALS_H*/

@@ -71,7 +71,7 @@ typedef enum {
 
 typedef enum {
 	OSYNC_MAPPING_EVENT_SOLVED = 1,
-	//OSYNC_MAPPING_EVENT_WRITTEN = 2,
+	/*OSYNC_MAPPING_EVENT_WRITTEN = 2,*/
 	OSYNC_MAPPING_EVENT_ERROR = 3
 } OSyncMappingEvent;
 
@@ -160,7 +160,7 @@ void osync_engine_flag_manual(OSyncEngine *engine);
 
 typedef struct OSyncMappingEngine OSyncMappingEngine;
 
-//typedef void *(* osync_message_cb) (OSyncEngine *, OSyncClient *, const char *, void *, void *);
+/*typedef void *(* osync_message_cb) (OSyncEngine *, OSyncClient *, const char *, void *, void *); */
 typedef void (* osync_conflict_cb) (OSyncEngine *, OSyncMappingEngine *, void *);
 typedef void (* osync_status_change_cb) (OSyncChangeUpdate *, void *);
 typedef void (* osync_status_mapping_cb) (OSyncMappingUpdate *, void *);

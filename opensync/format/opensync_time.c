@@ -247,9 +247,9 @@ char *osync_time_unix2vtime(const time_t *timestamp) {
 	char *vtime;
 	struct tm utc;
 
-	/* FIXME Find conversion problem from vtime to unixtime and change then to gmtime_r().
+	/** FIXME Find conversion problem from vtime to unixtime and change then to gmtime_r().
 	   (There is a probelm when converting from vtime to unixstamp and back. The result will be a wrong offset) */
-//	gmtime_r(timestamp, &utc);
+/*	gmtime_r(timestamp, &utc);*/
 	localtime_r(timestamp, &utc);
 	vtime = osync_time_tm2vtime(&utc, TRUE);
 
@@ -429,8 +429,8 @@ char *osync_time_vtime2utc(const char* localtime, int offset) {
 	utc = osync_time_tm2vtime(tm_utc, TRUE);
 
 	g_free(tm_local);
-// FIXME is it really a memory leak?
-//	g_free(tm_utc);
+/* FIXME is it really a memory leak?
+	g_free(tm_utc);*/
 	
 end:	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc);
@@ -503,7 +503,7 @@ static void _convert_time_field(GString *entry, const char *field, osync_bool to
 		gssize pos = res - entry->str; 
 		entry = g_string_erase(entry, pos, i);
 
-		// Get System offset to UTC
+		/* Get System offset to UTC*/
 		struct tm *tm_stamp = osync_time_vtime2tm(stamp->str);
 		tzdiff = osync_time_timezone_diff(tm_stamp);
 		g_free(tm_stamp);
@@ -580,25 +580,25 @@ char *osync_time_sec2alarmdu(int seconds) {
 		seconds *= -1;
 	}
 
-	// Days 
+	/* Days */
         if (!(seconds % (3600 * 24))) {
                tmp = g_strdup_printf("%s%iD", prefix, seconds / (3600 * 24));
 	       goto end;
 	}
 
-	// Hours
+	/* Hours */
         if (!(seconds % 3600)) {
                 tmp = g_strdup_printf("%sT%iH", prefix, seconds / 3600);
 		goto end;
 	}
 
-	// Minutes
+	/* Minutes */
         if (!(seconds % 60) && seconds < 3600) {
                 tmp = g_strdup_printf("%sT%iM", prefix, seconds / 60);
 		goto end;
 	}
 
-	// Seconds
+	/* Seconds */
 	if (seconds < 60) { 
 		tmp = g_strdup_printf("%sT%iS", prefix, seconds);
 		goto end;
@@ -637,14 +637,14 @@ int osync_time_alarmdu2sec(const char *alarm) {
 
         int i, secs, digits;
         int is_digit = 0;
-	int sign = 1;	// when ical stamp doesn't start with '-' => seconds after event
+	int sign = 1;	/* when ical stamp doesn't start with '-' => seconds after event*/
         int days = 0, weeks = 0, hours = 0, minutes = 0, seconds = 0;
 
 	        for (i=0; i < (int) strlen(alarm); i++) {
 
                 switch (alarm[i]) {
                         case '-':
-				sign = -1; // seconds before event - change the sign 
+				sign = -1; /* seconds before event - change the sign */
                         case 'P':
                         case 'T':
                                 is_digit = 0;
@@ -690,7 +690,7 @@ int osync_time_alarmdu2sec(const char *alarm) {
 
         secs = (weeks * 7 * 24 * 3600) + (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds;
 
-	secs = secs * sign;	// change sign if the alarm is in seconds before event (leading '-')
+	secs = secs * sign;	/* change sign if the alarm is in seconds before event (leading '-') */
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, secs);
         return secs;

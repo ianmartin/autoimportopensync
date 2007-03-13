@@ -608,7 +608,7 @@ static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, VFormatP
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, hooks, current, param);
 	
-	//Find the handler for this parameter
+	/*Find the handler for this parameter*/
 	void (* param_handler)(xmlNode *, VFormatParam *);
 	char *paramname = g_strdup_printf("%s=%s", vformat_attribute_param_get_name(param), vformat_attribute_param_get_nth_value(param, 0));
 	param_handler = g_hash_table_lookup(hooks, paramname);
@@ -634,7 +634,7 @@ static void vcal_handle_attribute(GHashTable *table, GHashTable *paramtable, xml
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, table, root, attr, attr ? vformat_attribute_get_name(attr) : "None");
 	xmlNode *current = NULL;
 	
-	//Dont add empty stuff
+	/*Dont add empty stuff*/
 	GList *v;
 	for (v = vformat_attribute_get_values(attr); v; v = v->next) {
 		char *value = v->data;
@@ -646,7 +646,7 @@ static void vcal_handle_attribute(GHashTable *table, GHashTable *paramtable, xml
 	
 has_value:;
 	
-	//We need to find the handler for this attribute
+	/*We need to find the handler for this attribute*/
 	vattr_handler_t attr_handler = g_hash_table_lookup(table, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
@@ -658,7 +658,7 @@ has_value:;
 	else
 		current = handle_unknown_attribute(root, attr);
 
-	//Handle all parameters of this attribute
+	/*Handle all parameters of this attribute*/
 	GList *params = vformat_attribute_get_params(attr);
 	GList *p = NULL;
 	for (p = params; p; p = p->next) {
@@ -677,7 +677,7 @@ static void vcal_parse_attributes(OSyncHooksTable *hooks, GHashTable *table, GHa
 		VFormatAttribute *attr = a->data;
 		
 		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-			//Handling supcomponent
+			/*Handling supcomponent*/
 			a = a->next;
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
 				xmlNode *current = xmlNewChild(root, NULL, (xmlChar*)"Timezone", NULL);
@@ -719,18 +719,18 @@ static osync_bool conv_vcal_to_xml(void *conv_data, char *input, int inpsize, ch
 	
 	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
 	
-	//Parse the vcard
+	/*Parse the vcard*/
 	VFormat *vcal = vformat_new_from_string(input);
 	
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
-	//Create a new xml document
+	/*Create a new xml document*/
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "vcal");
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
-	//For every attribute we have call the handling hook
+	/*For every attribute we have call the handling hook*/
 	GList *attributes = vformat_get_attributes(vcal);
 	vcal_parse_attributes(hooks, hooks->table, hooks->table, &attributes, root);
 	char *vcal_xml = osxml_write_to_string(doc);
@@ -1006,7 +1006,7 @@ static void xml_vcard_handle_parameter(GHashTable *table, VFormatAttribute *attr
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, table, attr, current, current ? (char *)current->name : "None");
 	
-	//Find the handler for this parameter
+	/*Find the handler for this parameter*/
 	void (* xml_param_handler)(VFormatAttribute *attr, xmlNode *);
 	char *content = (char*)xmlNodeGetContent(current);
 	char *paramname = g_strdup_printf("%s=%s", current->name, content);
@@ -1032,7 +1032,7 @@ static void xml_vcal_handle_attribute(GHashTable *table, VFormat *vcard, xmlNode
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, table, vcard, root, root ? (char *)root->name : "None");
 	VFormatAttribute *attr = NULL;
 	
-	//We need to find the handler for this attribute
+	/*We need to find the handler for this attribute*/
 	xml_attr_handler_t xml_attr_handler = g_hash_table_lookup(table, root->name);
 	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
 	if (xml_attr_handler == HANDLE_IGNORE) {
@@ -1047,7 +1047,7 @@ static void xml_vcal_handle_attribute(GHashTable *table, VFormat *vcard, xmlNode
 		return;
 	}
 	
-	//Handle all parameters of this attribute
+	/*Handle all parameters of this attribute*/
 	xmlNode *child = root->xmlChildrenNode;
 	while (child) {
 		xml_vcard_handle_parameter(table, attr, child);
@@ -1138,7 +1138,7 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", vcal_xml);
 	g_free(vcal_xml);
 	
-	//Get the root node of the input document
+	/*Get the root node of the input document*/
 	xmlNode *root = osxml_node_get_root((xmlDoc *)input, "vcal", error);
 	if (!root) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get root element of xml-contact");
@@ -1146,7 +1146,7 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 		return FALSE;
 	}
 	
-	//Make the new vcard
+	/*Make the new vcard*/
 	VFormat *vcal = vformat_new();
 	
 	OSyncHooksTable *hooks = (OSyncHooksTable *)user_data;
@@ -1263,7 +1263,7 @@ static void *init_vcal_to_xml(void)
 	hooks->compparamtable = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
 	
-	//todo attributes
+	/*todo attributes*/
 	insert_attr_handler(hooks->comptable, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->comptable, "END", HANDLE_IGNORE);
 	insert_attr_handler(hooks->comptable, "UID", HANDLE_IGNORE);	
@@ -1326,7 +1326,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->compparamtable, "CHARSET", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->compparamtable, "STATUS", handle_status_parameter);
 
-	//vcal attributes
+	/*vcal attributes*/
 	g_hash_table_insert(hooks->table, "PRODID", handle_prodid_attribute);
 	g_hash_table_insert(hooks->table, "PRODID", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->table, "METHOD", handle_method_attribute);
@@ -1338,7 +1338,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->table, "CALSCALE", handle_calscale_attribute);
 	g_hash_table_insert(hooks->table, "X-LIC-ERROR", HANDLE_IGNORE);
 	
-	//Timezone
+	/*Timezone*/
 	g_hash_table_insert(hooks->tztable, "TZID", handle_tzid_attribute);
 	g_hash_table_insert(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
 	g_hash_table_insert(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
@@ -1372,7 +1372,7 @@ static void *init_vcal_to_xml(void)
 	g_hash_table_insert(hooks->tztable, "SENT-BY", handle_sent_by_parameter);
 	g_hash_table_insert(hooks->tztable, "X-LIC-ERROR", HANDLE_IGNORE);
 	
-	//VAlarm component
+	/*VAlarm component*/
 	g_hash_table_insert(hooks->alarmtable, "TRIGGER", handle_atrigger_attribute);
 	g_hash_table_insert(hooks->alarmtable, "REPEAT", handle_arepeat_attribute);
 	g_hash_table_insert(hooks->alarmtable, "DURATION", handle_aduration_attribute);
@@ -1813,7 +1813,7 @@ static void *init_xml_to_vcal(void)
 	hooks->comptable = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
 	
-	//todo attributes
+	/*todo attributes*/
 	insert_xml_attr_handler(hooks->comptable, "Uid", handle_xml_uid_attribute);
 	insert_xml_attr_handler(hooks->comptable, "DateCalendarCreated", handle_xml_dtstamp_attribute);
 	insert_xml_attr_handler(hooks->comptable, "Description", handle_xml_description_attribute);
@@ -1869,14 +1869,14 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->comptable, "RSVP", handle_xml_rsvp_parameter);
 	g_hash_table_insert(hooks->comptable, "SentBy", handle_xml_sent_by_parameter);
 	
-	//vcal attributes
+	/*vcal attributes*/
 	g_hash_table_insert(hooks->table, "CalendarScale", handle_xml_calscale_attribute);
 	g_hash_table_insert(hooks->table, "ProductID", handle_xml_prodid_attribute);
 	g_hash_table_insert(hooks->table, "Method", handle_xml_method_attribute);
 	g_hash_table_insert(hooks->table, "UnknownNode", xml_handle_unknown_attribute);
 	g_hash_table_insert(hooks->table, "UnknownParameter", xml_handle_unknown_parameter);
 	
-	//Timezone
+	/*Timezone*/
 	g_hash_table_insert(hooks->tztable, "TimezoneID", handle_xml_tzid_attribute);
 	g_hash_table_insert(hooks->tztable, "Location", handle_xml_tz_location_attribute);
 	g_hash_table_insert(hooks->tztable, "TZOffsetFrom", handle_xml_tzoffsetfrom_location_attribute);
@@ -1908,7 +1908,7 @@ static void *init_xml_to_vcal(void)
 	g_hash_table_insert(hooks->tztable, "RSVP", handle_xml_rsvp_parameter);
 	g_hash_table_insert(hooks->tztable, "SentBy", handle_xml_sent_by_parameter);
 	
-	//VAlarm component
+	/*VAlarm component*/
 	g_hash_table_insert(hooks->alarmtable, "AlarmTrigger", handle_xml_atrigger_attribute);
 	g_hash_table_insert(hooks->alarmtable, "AlarmRepeat", handle_xml_arepeat_attribute);
 	g_hash_table_insert(hooks->alarmtable, "AlarmDuration", handle_xml_aduration_attribute);
@@ -1987,7 +1987,7 @@ static time_t get_event_revision(OSyncChange *change, OSyncError **error)
 
 void get_info(OSyncEnv *env)
 {
-	//Calendar
+	/*Calendar*/
 	osync_env_register_objtype(env, "event");
 	osync_env_register_objformat(env, "event", "xml-event");
 	osync_env_format_set_compare_func(env, "xml-event", compare_vevent);
@@ -2008,7 +2008,7 @@ void get_info(OSyncEnv *env)
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "vevent20", conv_xml_to_vevent20);
 	osync_env_converter_set_init(env, "xml-event", "vevent20", init_xml_to_vcal, fin_xml_to_vcal);
 	
-	//Todo
+	/*Todo*/
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "xml-todo");
 	osync_env_format_set_compare_func(env, "xml-todo", compare_vtodo);

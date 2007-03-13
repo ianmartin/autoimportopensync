@@ -429,15 +429,15 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		}
 	}
 	
-	//Saving the syncmember.conf
+	/*Saving the syncmember.conf*/
 	filename = g_strdup_printf ("%s/syncmember.conf", member->configdir);
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncmember", NULL);
 	
-	//The plugin name
+	/*The plugin name*/
 	xmlNewChild(doc->children, NULL, (xmlChar*)"pluginname", (xmlChar*)member->pluginname);
 	
-	//The objtypes
+	/*The objtypes*/
 	GList *o = NULL;
 	for (o = member->objtypes; o; o = o->next) {
 		OSyncObjTypeSink *sink = o->data;
@@ -457,7 +457,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	xmlFreeDoc(doc);
 	g_free(filename);
 	
-	//Saving the config if it exists
+	/*Saving the config if it exists*/
 	if (member->configdata) {
 		filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
 		if (!osync_file_write(filename, member->configdata, strlen(member->configdata), 0600, error)) {

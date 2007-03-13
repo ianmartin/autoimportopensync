@@ -32,4 +32,4 @@ struct OSyncError {
 	OSyncError *child;
 };
 
-#endif //OPENSYNC_ERROR_INTERNALS_H_
+#endif /*OPENSYNC_ERROR_INTERNALS_H_*/

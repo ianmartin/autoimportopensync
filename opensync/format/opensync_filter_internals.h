@@ -43,4 +43,4 @@ struct OSyncCustomFilter {
 	int ref_count;
 };
 
-#endif //_OPENSYNC_FILTER_INTERNALS_H_
+#endif /*_OPENSYNC_FILTER_INTERNALS_H_*/

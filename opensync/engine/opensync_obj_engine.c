@@ -420,7 +420,7 @@ void osync_mapping_engine_check_conflict(OSyncMappingEngine *engine)
 	
 	conflict:
 	if (engine->conflict) {
-		//conflict, solve conflict
+		/*conflict, solve conflict */
 		osync_trace(TRACE_INTERNAL, "Got conflict for mapping_engine %p", engine);
 		engine->parent->conflicts = g_list_append(engine->parent->conflicts, engine);
 		osync_status_conflict(engine->parent->parent, engine);
@@ -643,7 +643,7 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 		
 		OSyncChange *change = entry->change;
 		osync_change_ref(change);
-		//osync_entry_engine_update(entry, NULL);
+		/*osync_entry_engine_update(entry, NULL);*/
 		
 		if (!mapping) {
 			/* Unable to find a mapping. We have to create a new one */
@@ -820,7 +820,7 @@ osync_bool osync_obj_engine_map_changes(OSyncObjEngine *engine, OSyncError **err
 	OSyncMappingEngine *mapping_engine = NULL;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
-	//osync_trace_disable();
+	/*osync_trace_disable();*/
 	
 	GList *new_mappings = NULL;
 	
@@ -867,7 +867,7 @@ osync_bool osync_obj_engine_map_changes(OSyncObjEngine *engine, OSyncError **err
 		engine->mapping_engines = g_list_concat(engine->mapping_engines, new_mappings);
 	}
 	
-	//osync_trace_enable();
+	/*osync_trace_enable();*/
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 

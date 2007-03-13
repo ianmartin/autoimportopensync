@@ -34,4 +34,4 @@ void osync_thread_free(OSyncThread *thread);
 void osync_thread_start(OSyncThread *thread);
 void osync_thread_stop(OSyncThread *thread);
 
-#endif //_OPENSYNC_SUPPORT_INTERNALS_H
+#endif /*_OPENSYNC_SUPPORT_INTERNALS_H*/

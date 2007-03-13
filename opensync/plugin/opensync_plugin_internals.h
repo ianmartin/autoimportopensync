@@ -51,4 +51,4 @@ struct OSyncPlugin {
 	int ref_count;
 };
 
-#endif //_OPENSYNC_PLUGIN_INTERNALS_H_
+#endif /*_OPENSYNC_PLUGIN_INTERNALS_H_*/

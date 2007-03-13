@@ -73,7 +73,7 @@ void osync_status_free_mapping_update(OSyncMappingUpdate *update)
 {
 	osync_assert(update);
 	
-	//osync_member_unref(update->member);
+	/*osync_member_unref(update->member);*/
 	
 	if (update->error)
 		osync_error_unref(&update->error);
@@ -160,7 +160,7 @@ void osync_status_update_mapping(OSyncEngine *engine, OSyncMappingEngine *mappin
 		
 		update->type = type;
 		
-		//update->mapping = mapping->mapping;
+		/*update->mapping = mapping->mapping;*/
 		
 		update->error = error;
 		osync_error_ref(&error);

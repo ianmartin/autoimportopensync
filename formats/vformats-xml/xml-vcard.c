@@ -301,7 +301,7 @@ static void vcard_handle_parameter(GHashTable *hooks, xmlNode *current, VFormatP
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, hooks, current, param);
 	
-	//Find the handler for this parameter
+	/*Find the handler for this parameter*/
 	void (* param_handler)(xmlNode *, VFormatParam *);
 	char *paramname = g_strdup_printf("%s=%s", vformat_attribute_param_get_name(param), vformat_attribute_param_get_nth_value(param, 0));
 	param_handler = g_hash_table_lookup(hooks, paramname);
@@ -327,7 +327,7 @@ static void vcard_handle_attribute(GHashTable *hooks, xmlNode *root, VFormatAttr
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, root, attr, attr ? vformat_attribute_get_name(attr) : "None");
 	xmlNode *current = NULL;
 	
-	//Dont add empty stuff
+	/*Dont add empty stuff*/
 	GList *v;
 	for (v = vformat_attribute_get_values(attr); v; v = v->next) {
 		char *value = v->data;
@@ -339,7 +339,7 @@ static void vcard_handle_attribute(GHashTable *hooks, xmlNode *root, VFormatAttr
 	
 has_value:;
 	
-	//We need to find the handler for this attribute
+	/*We need to find the handler for this attribute*/
 	xmlNode *(* attr_handler)(xmlNode *, VFormatAttribute *) = g_hash_table_lookup(hooks, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
@@ -351,7 +351,7 @@ has_value:;
 	else
 		current = handle_unknown_attribute(root, attr);
 
-	//Handle all parameters of this attribute
+	/*Handle all parameters of this attribute*/
 	GList *params = vformat_attribute_get_params(attr);
 	GList *p = NULL;
 	for (p = params; p; p = p->next) {
@@ -405,18 +405,18 @@ static osync_bool conv_vcard_to_xml(char *input, unsigned int inpsize, char **ou
 	
 	osync_trace(TRACE_INTERNAL, "Input Vcard is:\n%s", input);
 	
-	//Parse the vcard
+	/*Parse the vcard*/
 	VFormat *vcard = vformat_new_from_string(input);
 	
 	osync_trace(TRACE_INTERNAL, "Creating xml doc");
 	
-	//Create a new xml document
+	/*Create a new xml document*/
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *root = osxml_node_add_root(doc, "contact");
 	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
-	//For every attribute we have call the handling hook
+	/*For every attribute we have call the handling hook*/
 	GList *attributes = vformat_get_attributes(vcard);
 
 	GList *a = NULL;
@@ -541,7 +541,7 @@ static void xml_vcard_handle_parameter(OSyncHookTables *hooks, VFormatAttribute 
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, attr, current, current ? (char *)current->name : "None");
 	
-	//Find the handler for this parameter
+	/*Find the handler for this parameter*/
 	void (* xml_param_handler)(VFormatAttribute *attr, xmlNode *);
 	char *content = (char*)xmlNodeGetContent(current);
 	char *paramname = g_strdup_printf("%s=%s", current->name, content);
@@ -609,7 +609,7 @@ static void xml_vcard_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, x
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s)", __func__, hooks, vcard, root, root ? (char *)root->name : "None");
 	VFormatAttribute *attr = NULL;
 	
-	//We need to find the handler for this attribute
+	/*We need to find the handler for this attribute*/
 	VFormatAttribute *(* xml_attr_handler)(VFormat *vcard, xmlNode *root, const char *) = g_hash_table_lookup(hooks->attributes, root->name);
 	osync_trace(TRACE_INTERNAL, "xml hook is: %p", xml_attr_handler);
 	if (xml_attr_handler == HANDLE_IGNORE) {
@@ -623,7 +623,7 @@ static void xml_vcard_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, x
 		return;
 	}
 	
-	//Handle all parameters of this attribute
+	/*Handle all parameters of this attribute*/
 	xmlNode *child = root->xmlChildrenNode;
 	while (child) {
 		xml_vcard_handle_parameter(hooks, attr, child);
@@ -857,7 +857,7 @@ static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **ou
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", vcard_xml);
 	g_free(vcard_xml);
 	
-	//Get the root node of the input document
+	/*Get the root node of the input document*/
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 	if (!root) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
@@ -871,7 +871,7 @@ static osync_bool conv_xml_to_vcard(char *input, unsigned int inpsize, char **ou
 		return FALSE;
 	}
 	
-	//Make the new vcard
+	/*Make the new vcard*/
 	VFormat *vcard = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing cml attributes");
@@ -961,11 +961,11 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 	
 	OSyncXMLScore score[] =
 	{
-	//{30, "/contact/FullName"},
+	/*{30, "/contact/FullName"},*/
 	{100, "/contact/Name"},
-	//{20, "/contact/Telephone"},
-	//{20, "/contact/Address"},
-	//{1, "/contact/UnknownNode"},
+	/*{20, "/contact/Telephone"},
+	{20, "/contact/Address"},
+	{1, "/contact/UnknownNode"},*/
 	{0, "/contact/*/Slot"},
 	{0, "/contact/*/Type"},
 	{0, "/contact/WantsHtml"},

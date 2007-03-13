@@ -7,7 +7,7 @@ struct OSyncChange {
 	/** The uid of this change */
 	char *uid;
 	/** The hash of this change*/
-	char *hash; //Hash value to identify changes
+	char *hash; /*Hash value to identify changes*/
 	/** The change type */
 	OSyncChangeType changetype;
 	/** The data reported from the plugin */
@@ -15,4 +15,4 @@ struct OSyncChange {
 	int ref_count;
 };
 
-#endif //_OPENSYNC_CHANGE_INTERNALS_H_
+#endif /*_OPENSYNC_CHANGE_INTERNALS_H_*/

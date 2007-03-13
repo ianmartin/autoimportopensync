@@ -82,5 +82,5 @@ void handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormat
 void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr);
 void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
 
-#endif // XMLFORMAT_H_
+#endif /* XMLFORMAT_H_*/
 

@@ -10,4 +10,4 @@ struct OSyncContext {
 	int ref_count;
 };
 
-#endif //_OPENSYNC_CONTEXT_INTERNALS_H_
+#endif /*_OPENSYNC_CONTEXT_INTERNALS_H_*/

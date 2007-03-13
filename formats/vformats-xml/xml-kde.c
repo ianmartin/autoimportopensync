@@ -101,7 +101,7 @@ static xmlNode *handle_department_attribute(xmlNode *root, VFormatAttribute *att
 	osync_trace(TRACE_INTERNAL, "Handling department attribute");
 	xmlNode *current = NULL;
 	
-	//We need to check first if the node already exists.
+	/*We need to check first if the node already exists.*/
 	if (!(current = osxml_get_node(root, "Organization")))
 		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
 	
@@ -114,7 +114,7 @@ static xmlNode *handle_office_attribute(xmlNode *root, VFormatAttribute *attr)
 	osync_trace(TRACE_INTERNAL, "Handling office attribute");
 	xmlNode *current = NULL;
 	
-	//We need to check first if the node already exists.
+	/*We need to check first if the node already exists.*/
 	if (!(current = osxml_get_node(root, "Organization")))
 		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
 	
@@ -159,7 +159,7 @@ static xmlNode *handle_organization_attribute(xmlNode *root, VFormatAttribute *a
 	osync_trace(TRACE_INTERNAL, "Handling Organization attribute");
 	xmlNode *current = NULL;
 	
-	//We need to check first if the node already exists.
+	/*We need to check first if the node already exists.*/
 	if (!(current = osxml_get_node(root, "Organization")))
 		current = xmlNewChild(root, NULL, (xmlChar*)"Organization", NULL);
 	
@@ -213,7 +213,7 @@ static osync_bool init_kde_to_xml(void *input)
 	g_hash_table_insert(table, "X-messaging/irc-All", handle_irc_attribute);
 	g_hash_table_insert(table, "X-messaging/sms-All", handle_sms_attribute);
 	
-	//Overwrite the organization hook
+	/*Overwrite the organization hook*/
 	g_hash_table_insert(table, "ORG", handle_organization_attribute);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
@@ -457,7 +457,7 @@ static osync_bool init_xml_to_kde(void *input)
 	g_hash_table_insert(hooks->attributes, "SMS", handle_xml_sms_attribute);
 
 	g_hash_table_insert(hooks->attributes, "KDE-Extension", handle_xml_x_kde_attribute);
-	//Overwrite the uid and revision handler
+	/*Overwrite the uid and revision handler*/
 	g_hash_table_insert(hooks->attributes, "Uid", HANDLE_IGNORE);
 	g_hash_table_insert(hooks->attributes, "Revision", HANDLE_IGNORE);
 	
