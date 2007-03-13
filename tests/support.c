@@ -31,7 +31,13 @@ char *setup_testbed(char *fkt_name)
 	
 	char *command = NULL;
 	if (fkt_name) {
-		command = g_strdup_printf("cp -R "OPENSYNC_TESTDATA"/%s/* %s", fkt_name, testbed);
+		char * dirname;
+		dirname = g_strdup_printf(OPENSYNC_TESTDATA"/%s", fkt_name);
+		if (!g_file_test(dirname, G_FILE_TEST_IS_DIR)) {
+			osync_trace(TRACE_INTERNAL, "%s: Path %s not exist.", __func__, dirname);
+			abort();
+		}
+		command = g_strdup_printf("cp -R %s/* %s", dirname, testbed);
 		osync_trace(TRACE_INTERNAL, "tb_cmd: %s", command);
 		if (system(command))
 			abort();
