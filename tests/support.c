@@ -32,6 +32,7 @@ char *setup_testbed(char *fkt_name)
 	char *command = NULL;
 	if (fkt_name) {
 		command = g_strdup_printf("cp -R "OPENSYNC_TESTDATA"/%s/* %s", fkt_name, testbed);
+		osync_trace(TRACE_INTERNAL, "tb_cmd: %s", command);
 		if (system(command))
 			abort();
 		g_free(command);
@@ -42,12 +43,12 @@ char *setup_testbed(char *fkt_name)
 		abort();
 	g_free(command);*/
 	
-	command = g_strdup_printf("cp libmocksync.so %s", testbed);
+	command = g_strdup_printf("cp libmock-sync.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
 	
-	command = g_strdup_printf("cp libmockformat.so %s", testbed);
+	command = g_strdup_printf("cp libmock-format.so %s", testbed);
 	if (system(command))
 		abort();
 	g_free(command);
@@ -67,8 +68,8 @@ char *setup_testbed(char *fkt_name)
 		abort();
 	
 	osync_trace(TRACE_INTERNAL, "Seting up %s at %s", fkt_name, testbed);
-	printf(".");
-	fflush(NULL);
+/*	printf(".");
+	fflush(NULL);*/
 	reset_env();
 	return testbed;
 }
@@ -118,7 +119,7 @@ void conflict_handler_ignore(OSyncEngine *engine, OSyncMapping *mapping, void *u
 void create_case(Suite *s, const char *name, TFun function)
 {
 	TCase *tc_new = tcase_create(name);
-	tcase_set_timeout(tc_new, 0);
+	tcase_set_timeout(tc_new, 30);
 	suite_add_tcase (s, tc_new);
 	tcase_add_test(tc_new, function);
 }
