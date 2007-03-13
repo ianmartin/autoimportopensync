@@ -851,14 +851,9 @@ OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
  * */
 static long long int gen_id()
 {
-	struct timeval tv;
-	struct timezone { 
-		int tz_minuteswest; /* minutes west of Greenwich */
-		int tz_dsttime; /* type of dst correction */ 
-	}; 
-        struct timezone tz;
+    struct timeval tv;
 
-    gettimeofday(&tv, &tz);
+    gettimeofday(&tv, NULL);
 
     long long int now = (tv.tv_sec * 1000000 + tv.tv_usec) << 16;
     long long int rnd = ((long long int)random()) & 0xFFFF;
