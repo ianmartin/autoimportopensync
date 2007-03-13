@@ -1026,6 +1026,8 @@ static OSyncConvCmpResult compare_contact(OSyncChange *leftchange, OSyncChange *
 	{0, "/contact/WantsHtml"},
 	{0, "/contact/Class"},
 	{0, "/contact/FileAs"},
+	{0, "/contact/IM-ICQ"},
+	{0, "/contact/AddressLabel"},
 	{0, "/contact/Uid"},
 	{0, "/contact/Revision"},
 	{0, NULL}
