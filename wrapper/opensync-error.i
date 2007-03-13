@@ -34,7 +34,7 @@ typedef struct {} Error;
 		osync_error_set_type(&self, type);
 	}
 
-	const char *get_msg() { // 'print' is a reserved word
+	const char *get_msg() { /* 'print' is a reserved word */
 		return osync_error_print(&self);
 	}
 
