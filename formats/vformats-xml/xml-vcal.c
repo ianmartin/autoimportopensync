@@ -1557,8 +1557,24 @@ static VFormatAttribute *handle_vcal_xml_due_attribute(VFormat *vcard, xmlNode *
 static VFormatAttribute *handle_vcal_xml_dtstart_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTSTART");
-	add_value(attr, root, "Content", encoding);
+	
+	char *content = NULL;
+	GString *newdate = g_string_new("");
+
+	content = osxml_find_node(root, "Content");
+	newdate = g_string_append(newdate, content);
+
+	if (osync_time_isdate(content)) {
+		newdate = g_string_append(newdate, "T000000");
+	}
+
+	g_free(content);
+
+	vformat_attribute_add_value(attr, newdate->str); 
 	vformat_add_attribute(vcard, attr);
+
+	g_string_free(newdate, TRUE);
+
 	return attr;
 }
 /* end vcal only */
@@ -1808,8 +1824,56 @@ static VFormatAttribute *handle_xml_dtend_attribute(VFormat *vcard, xmlNode *roo
 static VFormatAttribute *handle_vcal_xml_dtend_attribute(VFormat *vcard, xmlNode *root, const char *encoding)
 {
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTEND");
-	add_value(attr, root, "Content", encoding);
+	
+	char *content_dtend = NULL; 
+	GString *new_dtend = g_string_new("");
+
+	content_dtend = osxml_find_node(root, "Content");
+	new_dtend = g_string_append(new_dtend, content_dtend);
+
+
+	/*
+	 * if (DTEND->VALUE == DATE) ==> DTEND = DTEND-60sec + "T000000"
+	 *
+	 * e.g. (SE W880i): 20070313T000000Z -> 20070313T235900Z
+	 *
+	 * this works also for SE K750i, SE D750i
+	 *
+	 */
+        if (osync_time_isdate(content_dtend)) {
+
+		osync_trace(TRACE_INTERNAL, "DTEND (old): %s", content_dtend);               
+	
+		char *tmp1 = NULL, *tmp2 = NULL;
+ 
+		/* append "T000000" */
+		new_dtend = g_string_append(new_dtend, "T000000");
+
+		time_t dtend_unixtime = osync_time_vtime2unix(content_dtend, 0);
+
+		/* DTEND = DTEND - 60 sec */
+		dtend_unixtime -= 60;
+	
+		tmp1 = osync_time_unix2vtime(&dtend_unixtime);
+		tmp2 = osync_time_vtime2localtime(tmp1, 0);
+		
+		g_string_erase(new_dtend, 0, -1);
+		g_string_append(new_dtend, tmp2);
+		
+		osync_trace(TRACE_INTERNAL, "DTEND (new): %s", tmp2);               
+		
+		g_free(tmp1);
+		g_free(tmp2);
+
+	}
+	
+	g_free(content_dtend);
+
+	vformat_attribute_add_value(attr, new_dtend->str);
 	vformat_add_attribute(vcard, attr);
+
+	g_string_free(new_dtend, TRUE);
+
 	return attr;
 }
 
@@ -2208,6 +2272,9 @@ static osync_bool conv_xml_to_vcal(void *user_data, char *input, int inpsize, ch
 		insert_xml_attr_handler(hooks->comptable, "DateEnd", handle_vcal_xml_dtend_attribute);
 		insert_xml_attr_handler(hooks->comptable, "DateDue", handle_vcal_xml_due_attribute);
 		insert_xml_attr_handler(hooks->comptable, "DateStarted", handle_vcal_xml_dtstart_attribute);
+
+		/* vcal parameter */
+		g_hash_table_insert(hooks->comptable, "Value", HANDLE_IGNORE);
 
 
 	} else {
