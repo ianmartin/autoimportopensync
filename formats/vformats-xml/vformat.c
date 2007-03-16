@@ -752,7 +752,19 @@ char *vformat_escape_string (const char *s, VFormatType type)
 				str = g_string_append_c (str, *p);
 			break;
 		case '\\':
+			/** 
+			 * We won't escape backslashes
+			 * on vcard 2.1, unless it is in the end of a value.
+			 * See comments above for a better explanation
+			**/
+			if (*p != '\0' && type == VFORMAT_CARD_21) {
+				osync_trace(TRACE_INTERNAL, "[%s]We won't escape backslashes", __func__);
+				str = g_string_append_c(str, *p);
+			}
+			else {
+				osync_trace(TRACE_INTERNAL, "[%s] escape backslashes!!", __func__);
 			str = g_string_append (str, "\\\\");
+			}
 			break;
 		default:
 			str = g_string_append_c (str, *p);
@@ -791,7 +803,7 @@ vformat_unescape_string (const char *s)
 			  /* \t is (incorrectly) used by kOrganizer, so handle it here */
 			case 't': str = g_string_append_c (str, '\t'); break;
 			default:
-				osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %i", *p);
+				osync_trace(TRACE_INTERNAL, "invalid escape, passing it through. escaped char was %s", *p);
 				str = g_string_append_c (str, '\\');
 				str = g_string_append_unichar (str, g_utf8_get_char(p));
 				break;
