@@ -37,14 +37,16 @@ OSyncDB *osync_db_open(char *filename, OSyncError **error)
 	int rc = sqlite3_open(filename, &(db->db));
 	if (rc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(db->db));
-		goto error_free;
+		goto error_close;
 	}
 	sqlite3_trace(db->db, osync_db_trace, NULL);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, db);
 	return db;
 
-error_free:
+error_close:
+	osync_db_close(db);
+//error_free:
 	g_free(db);
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -56,7 +58,7 @@ void osync_db_close(OSyncDB *db)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, db);
 	
 	int ret = sqlite3_close(db->db);
-	if (ret)
+	if (ret != SQLITE_OK)
 		osync_trace(TRACE_INTERNAL, "Can't close database: %s", sqlite3_errmsg(db->db));
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -69,8 +71,11 @@ int osync_db_count(OSyncDB *db, char *query)
 	sqlite3_stmt *ppStmt = NULL;
 	if (sqlite3_prepare(db->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare count! %s", sqlite3_errmsg(db->db));
-	if (sqlite3_step(ppStmt) != SQLITE_OK)
+	ret = sqlite3_step(ppStmt);
+	if (ret != SQLITE_DONE && ret != SQLITE_ROW)
 		osync_debug("OSDB", 3, "Unable step count! %s", sqlite3_errmsg(db->db));
+	if (ret == SQLITE_DONE)
+		osync_debug("OSDB", 3, "No row found!");
 	ret = sqlite3_column_int64(ppStmt, 0);
 	sqlite3_finalize(ppStmt);
 	return ret;
@@ -84,6 +89,7 @@ OSyncDB *_open_changelog(OSyncGroup *group, OSyncError **error)
 	char *filename = g_strdup_printf("%s/changelog.db", group->configdir);
 	if (!(log_db = osync_db_open(filename, error))) {
 		osync_error_update(error, "Unable to load changelog: %s", osync_error_print(error));
+		g_free(filename);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
@@ -480,6 +486,7 @@ OSyncDB *osync_db_open_anchor(OSyncMember *member, OSyncError **error)
 	OSyncDB *sdb = NULL;
 	char *filename = g_strdup_printf ("%s/anchor.db", member->configdir);
 	if (!(sdb = osync_db_open(filename, error))) {
+		g_free(filename);
 		osync_error_update(error, "Unable to open anchor table: %s", (*error)->message);
 		return NULL;
 	}
@@ -502,7 +509,11 @@ void osync_db_get_anchor(OSyncDB *sdb, const char *objtype, char **retanchor)
 	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", objtype);
 	if (sqlite3_prepare(sdb->db, query, -1, &ppStmt, NULL) != SQLITE_OK)
 		osync_debug("OSDB", 3, "Unable prepare anchor! %s", sqlite3_errmsg(sdb->db));
-	sqlite3_step(ppStmt);
+	int ret = sqlite3_step(ppStmt);
+	if (ret != SQLITE_DONE && ret != SQLITE_ROW)
+		osync_debug("OSDB", 3, "Unable step count! %s", sqlite3_errmsg(sdb->db));
+	if (ret == SQLITE_DONE)
+		osync_debug("OSDB", 3, "No row found!");
 	*retanchor = g_strdup((gchar*)sqlite3_column_text(ppStmt, 0));
 	sqlite3_finalize(ppStmt);
 	g_free(query);
@@ -526,6 +537,7 @@ osync_bool osync_db_open_hashtable(OSyncHashTable *table, OSyncMember *member, O
 	g_assert(member);
 	char *filename = g_strdup_printf ("%s/hash.db", member->configdir);
 	if (!(table->dbhandle = osync_db_open(filename, error))) {
+		g_free(filename);
 		osync_error_update(error, "Unable to open hashtable: %s", (*error)->message);
 		return FALSE;
 	}
