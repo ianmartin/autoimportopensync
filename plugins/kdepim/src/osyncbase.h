@@ -11,23 +11,6 @@ extern "C"
 #include "config.h"
 #endif
 
-#ifdef _MSC_VER
-  #ifdef BUILDING_DLL
-    #define DLLEXPORT __declspec(dllexport)
-  #else
-    #define DLLEXPORT __declspec(dllimport)
-  #endif
-  #define DLLLOCAL
-#else
-  #ifdef GCC_HASCLASSVISIBILITY
-    #define DLLEXPORT __attribute__ ((visibility("default")))
-    #define DLLLOCAL __attribute__ ((visibility("hidden")))
-  #else
-    #define DLLEXPORT
-    #define DLLLOCAL
-  #endif
-#endif
-
 
 /** Base class to OpenSync plugin.
  *
@@ -35,7 +18,7 @@ extern "C"
  * when getting information about a plugin. The library that implements
  * the methods of this class will be loaded only when needed.
  */
-class DLLEXPORT KdePluginImplementationBase
+class KdePluginImplementationBase
 {
 	public:
 		virtual void connect(OSyncContext *ctx) = 0;
