@@ -25,6 +25,7 @@
 #include <glib.h>
 
 static const char * rewrite_mime_type(const char * source_format, int use_iana);
+static int _helper_is_base64(const char *);
 
 static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 {
@@ -32,6 +33,24 @@ static void handle_unknown_parameter(xmlNode *current, VFormatParam *param)
 	xmlNode *property = xmlNewTextChild(current, NULL, (xmlChar*)"UnknownParam",
 		(xmlChar*)vformat_attribute_param_get_nth_value(param, 0));
 	osxml_node_add(property, "ParamName", vformat_attribute_param_get_name(param));
+}
+
+static void handle_encoding_parameter(xmlNode *current, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "%s: xmlNodeName=%s, param=%s", __func__,
+		(char *)current->name,
+		vformat_attribute_param_get_name(param));
+	GList *v = vformat_attribute_param_get_values(param);
+	for (; v; v = v->next) {
+		char * content = g_strdup(v->data);
+		if (_helper_is_base64((const char *)content))
+		{
+			g_free(content);
+			content=g_strdup("B");
+		}
+		xmlNewTextChild(current, NULL, (xmlChar*)"Encoding", (xmlChar*)content);
+		g_free(content);
+	}
 }
 
 static void handle_type_parameter(xmlNode *current, VFormatParam *param)
@@ -596,6 +615,36 @@ static void handle_xml_type_no_iana_parameter(VFormatAttribute *attr, xmlNode *c
 	vformat_attribute_add_param (attr, param);
 }
 
+static void handle_xml_encoding_21_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	osync_trace(TRACE_INTERNAL, "%s()",__func__);
+	char *content = (char*)xmlNodeGetContent(current);
+	if (_helper_is_base64((const char *)content))
+	{
+		g_free(content);
+		content=g_strdup("BASE64");
+	}
+	VFormatParam *param = vformat_attribute_param_new("ENCODING");
+	vformat_attribute_param_add_value(param, content);
+	vformat_attribute_add_param (attr, param);
+	g_free(content);
+}
+
+static void handle_xml_encoding_30_parameter(VFormatAttribute *attr, xmlNode *current)
+{
+	osync_trace(TRACE_INTERNAL, "%s()",__func__);
+	char *content = (char*)xmlNodeGetContent(current);
+	VFormatParam *param = vformat_attribute_param_new("ENCODING");
+	if (_helper_is_base64((const char *)content))
+	{
+		g_free(content);
+		content=g_strdup("B");
+	}
+	vformat_attribute_param_add_value(param, content);
+	vformat_attribute_add_param (attr, param);
+	g_free(content);
+}
+
 static void handle_xml_value_parameter(VFormatAttribute *attr, xmlNode *current)
 {
 	osync_trace(TRACE_INTERNAL, "Handling value xml parameter");
@@ -729,7 +778,7 @@ static VFormatAttribute *handle_xml_photo_attribute(VFormat *vcard, xmlNode *roo
 	osync_trace(TRACE_INTERNAL, "%s:Handling photo xml attribute", __func__);
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+//	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -739,7 +788,7 @@ static VFormatAttribute *handle_xml_photo_base64_attribute(VFormat *vcard, xmlNo
 	osync_trace(TRACE_INTERNAL, "%s:Handling photo xml attribute", __func__);
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "PHOTO");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "ENCODING", "BASE64");
+//	vformat_attribute_add_param_with_value(attr, "ENCODING", "BASE64");
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -846,7 +895,7 @@ static VFormatAttribute *handle_xml_logo_attribute(VFormat *vcard, xmlNode *root
 	osync_trace(TRACE_INTERNAL, "Handling logo xml attribute");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "LOGO");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+	//vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -884,7 +933,7 @@ static VFormatAttribute *handle_xml_sound_attribute(VFormat *vcard, xmlNode *roo
 	osync_trace(TRACE_INTERNAL, "Handling sound xml attribute");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "SOUND");
 	add_value(attr, root, "Content", encoding);
-	vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
+	//vformat_attribute_add_param_with_value(attr, "ENCODING", "b");
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }
@@ -979,9 +1028,11 @@ static osync_bool conv_xml_to_vcard(void *user_data, char *input, int inpsize, c
 	if (target == VFORMAT_CARD_21) {
 		g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_base64_attribute);
 		g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_no_iana_parameter);
+		g_hash_table_insert(hooks->parameters, "Encoding", handle_xml_encoding_21_parameter);
 	} else {
 		g_hash_table_insert(hooks->attributes, "Photo", handle_xml_photo_attribute);
 		g_hash_table_insert(hooks->parameters, "Type", handle_xml_type_parameter);
+		g_hash_table_insert(hooks->parameters, "Encoding", handle_xml_encoding_30_parameter);
 	}
 
 	if (root)
@@ -1086,7 +1137,7 @@ static void *init_vcard_to_xml(void)
 	g_hash_table_insert(table, "BEGIN", HANDLE_IGNORE);
 	g_hash_table_insert(table, "END", HANDLE_IGNORE);
 	
-	g_hash_table_insert(table, "ENCODING", HANDLE_IGNORE);
+	g_hash_table_insert(table, "ENCODING", handle_encoding_parameter);
 	g_hash_table_insert(table, "CHARSET", HANDLE_IGNORE);
 	
 	g_hash_table_insert(table, "TYPE", handle_type_parameter);
@@ -1145,7 +1196,7 @@ static void *init_xml_to_vcard(void)
 	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
 	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
 	
-	g_hash_table_insert(hooks->parameters, "UnknownParameter", xml_handle_unknown_parameter);
+	g_hash_table_insert(hooks->parameters, "UnknownParam", xml_handle_unknown_parameter);
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -1338,4 +1389,17 @@ NORMAL_EXIT:
 	}
 	osync_trace(TRACE_INTERNAL, "%s:[NORMAL_EXIT] output = %s ", __func__, not_iana_format);
 	return(not_iana_format);
+}
+
+/**
+ * _helper_is_base64 is helper function to check i a string is "b" or "base64"
+ * @param check_string string that should be compared with "b" or "base64" 
+ * @return 0 if check_string is not base64  and 1 if it is
+ */
+static int _helper_is_base64(const char *check_string)
+{
+	if(!g_ascii_strcasecmp ((char *) check_string, "BASE64") || 
+	   !g_ascii_strcasecmp ((char *) check_string, "b") )
+		return (1);
+	return (0);
 }
