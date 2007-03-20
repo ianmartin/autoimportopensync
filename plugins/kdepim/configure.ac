@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync Kdepim Plugin], 0.21, [], [libopensync-plugin-kdepim])
+AC_INIT([OpenSync Kdepim Plugin], 0.22rc1, [], [libopensync-plugin-kdepim])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])
 AC_CONFIG_SRCDIR(src/kdepim_sync.cpp)
