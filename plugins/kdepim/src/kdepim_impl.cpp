@@ -318,7 +318,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 extern  "C"
 {
 
-		KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **error) {
+ DLLEXPORT  KdePluginImplementationBase *new_KdePluginImplementation(OSyncMember *member, OSyncError **error) {
 		KdePluginImplementation *imp = new KdePluginImplementation(member);
 		if (!imp->init(error)) {
 			delete imp;
