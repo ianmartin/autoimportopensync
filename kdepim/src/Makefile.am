@@ -32,14 +32,14 @@ kdepim_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 # ugly hack to make the c++ library work
 kdepim_sync_la_LIBADD = -lstdc++ @OSYNC_LIBS@
 
-kdepim_impl.cpp: KNotesIface_stub.h
+$(srcdir)/kdepim_impl.cpp: KNotesIface_stub.h
 KNotesIface_stub.cpp: KNotesIface_stub.h
 
 KNotesIface_stub.cpp:
-	dcopidl $(top_srcdir)/src/KNotesIface.h > KNotesIface.kidl
+	dcopidl $(srcdir)/KNotesIface.h > KNotesIface.kidl
 	dcopidl2cpp KNotesIface.kidl
 KNotesIface_stub.h:
-	dcopidl $(top_srcdir)/src/KNotesIface.h > KNotesIface.kidl
+	dcopidl $(srcdir)/KNotesIface.h > KNotesIface.kidl
 	dcopidl2cpp KNotesIface.kidl
 
 dist_kdepim_lib_la_SOURCES = \
