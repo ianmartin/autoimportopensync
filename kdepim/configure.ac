@@ -67,6 +67,16 @@ if test "x${ENABLE_TESTS}" = "xyes"; then
 fi
 AM_CONDITIONAL(ENABLE_TESTS, test x$HAVE_CHECK = x1)
 
+AC_MSG_CHECKING([whether $CXX supports -fvisibility=hidden]) 
+out=`$CXX --help --verbose 2>&1 | grep fvisibility` 
+if test -n "$out"; then 
+    AC_MSG_RESULT(yes) 
+    AC_DEFINE([CXX_HASCLASSVISIBILITY], [], [CXX visibility supported])
+    CXXFLAGS="$CXXFLAGS -fvisibility=hidden"
+else
+    AC_MSG_RESULT(no)
+fi 
+
 dnl PACKAGE set before
 AC_C_BIGENDIAN
 AC_CHECK_KDEMAXPATHLEN
