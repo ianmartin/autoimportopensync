@@ -24,6 +24,7 @@ SOFTWARE IS DISCLAIMED.
 #define KADDRBOOK_H
 
 #include <kabc/stdaddressbook.h>
+#include <kabc/addressbook.h>
 #include <kabc/vcardconverter.h>
 #include <kabc/resource.h>
 
@@ -41,7 +42,7 @@ using namespace KABC;
 class KContactDataSource
 {
 	private:
-		static AddressBook* addressbookptr;
+		AddressBook* addressbookptr;
 		// for a local file, we need to obtain a saveTicket when opening the abook
 		Ticket*ticket;
 		//help to only save when when changed
