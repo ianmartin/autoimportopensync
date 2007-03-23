@@ -187,7 +187,7 @@ char *osync_version_get_identifier(OSyncVersion *version)
 	return version->identifier;
 }
 
-void osync_version_set_plugin(OSyncVersion *version, char *plugin)
+void osync_version_set_plugin(OSyncVersion *version, const char *plugin)
 {
 	if(version->plugin)
 		g_free(version->plugin);
@@ -197,7 +197,7 @@ void osync_version_set_plugin(OSyncVersion *version, char *plugin)
 		version->plugin = g_strdup(plugin);
 }
 
-void osync_version_set_priority(OSyncVersion *version, char *priority)
+void osync_version_set_priority(OSyncVersion *version, const char *priority)
 {
 	if(version->priority)
 		g_free(version->priority);
@@ -207,7 +207,7 @@ void osync_version_set_priority(OSyncVersion *version, char *priority)
 		version->priority =  g_strdup(priority);
 }
 
-void osync_version_set_modelversion(OSyncVersion *version, char *modelversion)
+void osync_version_set_modelversion(OSyncVersion *version, const char *modelversion)
 {
 	if(version->modelversion)
 		g_free(version->modelversion);
@@ -217,7 +217,7 @@ void osync_version_set_modelversion(OSyncVersion *version, char *modelversion)
 		version->modelversion =  g_strdup(modelversion);
 }
 
-void osync_version_set_firmwareversion(OSyncVersion *version, char *firmwareversion)
+void osync_version_set_firmwareversion(OSyncVersion *version, const char *firmwareversion)
 {
 	if(version->firmwareversion)
 		g_free(version->firmwareversion);
@@ -227,7 +227,7 @@ void osync_version_set_firmwareversion(OSyncVersion *version, char *firmwarevers
 		version->firmwareversion =  g_strdup(firmwareversion);
 }
 
-void osync_version_set_softwareversion(OSyncVersion *version, char *softwareversion)
+void osync_version_set_softwareversion(OSyncVersion *version, const char *softwareversion)
 {
 	if(version->softwareversion)
 		g_free(version->softwareversion);
@@ -238,7 +238,7 @@ void osync_version_set_softwareversion(OSyncVersion *version, char *softwarevers
 	
 }
 
-void osync_version_set_hardwareversion(OSyncVersion *version, char *hardwareversion)
+void osync_version_set_hardwareversion(OSyncVersion *version, const char *hardwareversion)
 {
 	if(version->hardwareversion)
 		g_free(version->hardwareversion);
@@ -248,7 +248,7 @@ void osync_version_set_hardwareversion(OSyncVersion *version, char *hardwarevers
 		version->hardwareversion =  g_strdup(hardwareversion);
 }
 
-void osync_version_set_identifier(OSyncVersion *version, char *identifier)
+void osync_version_set_identifier(OSyncVersion *version, const char *identifier)
 {
 	if(version->identifier)
 		g_free(version->identifier);
@@ -368,19 +368,19 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 			}
 				
 			child = cur->children;
-			osync_version_set_plugin(version, (char *)osxml_node_get_content(child));
+			osync_version_set_plugin(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
-			osync_version_set_priority(version, (char *)osxml_node_get_content(child));
+			osync_version_set_priority(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
-			osync_version_set_modelversion(version, (char *)osxml_node_get_content(child));
+			osync_version_set_modelversion(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
-			osync_version_set_firmwareversion(version, (char *)osxml_node_get_content(child));
+			osync_version_set_firmwareversion(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
-			osync_version_set_softwareversion(version, (char *)osxml_node_get_content(child));
+			osync_version_set_softwareversion(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
-			osync_version_set_hardwareversion(version, (char *)osxml_node_get_content(child));
+			osync_version_set_hardwareversion(version, (const char *)osxml_node_get_content(child));
 			child = child->next;
-			osync_version_set_identifier(version, (char *)osxml_node_get_content(child));
+			osync_version_set_identifier(version, (const char *)osxml_node_get_content(child));
 			
 			versions = osync_list_append(versions, version);
 		}
