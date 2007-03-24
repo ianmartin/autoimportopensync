@@ -24,6 +24,10 @@ def check(env, config):
 		print 'package \'sqlite\' not found. http://sqlite.org'
 		env.Exit(1)
 
+	if not conf.CheckFunc('flock'):
+		conf.env.Append(CCFLAGS = r'-DNOT_HAVE_FLOCK')
+		conf.env.Append('-DNOT_HAVE_FLOCK')
+
 		
 	env = conf.Finish()
 	
