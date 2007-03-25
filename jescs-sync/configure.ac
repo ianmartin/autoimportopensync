@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync JES Calendar Server Plugin], 0.22rc1, [], [libopensync-plugin-jescs])
+AC_INIT([OpenSync JES Calendar Server Plugin], 0.22, [], [libopensync-plugin-jescs])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/jescs.c)
 AM_CONFIG_HEADER(config.h)
