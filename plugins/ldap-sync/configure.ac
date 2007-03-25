@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([LDAP addressbook synchronization plugin], 0.22rc1, [], [libopensync-plugin-ldap])
+AC_INIT([LDAP addressbook synchronization plugin], 0.22, [], [libopensync-plugin-ldap])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/ldap_plugin.c)
 AM_CONFIG_HEADER(config.h)

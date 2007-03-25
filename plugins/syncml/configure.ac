@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT([OpenSync SyncML Plugin], 0.22rc1, [], [libopensync-plugin-syncml])
+AC_INIT([OpenSync SyncML Plugin], 0.22, [], [libopensync-plugin-syncml])
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR(src/syncml_plugin.c)
 AC_CONFIG_HEADER(config.h)
