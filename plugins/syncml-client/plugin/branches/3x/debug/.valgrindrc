@@ -1,6 +1,0 @@
---leak-check=yes
---demangle=yes
---gen-suppressions=all
---suppressions=valgrind-suppressions
---suppressions=wchar-suppressions
---log-file-exactly=valgrind.log
