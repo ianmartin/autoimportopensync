@@ -12,8 +12,8 @@ def check(env, config):
 		print 'pkg-config >= 0.15.0 not found.'
 		env.Exit(1)
 		
-	if not conf.CheckPKG('glib-2.0 >= 2.4'):
-		print 'glib-2.0 >= 2.4 not found.'
+	if not conf.CheckPKG('glib-2.0 >= 2.10'):
+		print 'glib-2.0 >= 2.10 not found.'
 		env.Exit(1)
 
 	if not conf.CheckPKG('check'):
@@ -22,6 +22,10 @@ def check(env, config):
 
 	if not conf.CheckPKG('sqlite3 >= 3.3'):
 		print 'package \'sqlite\' not found. http://sqlite.org'
+		env.Exit(1)
+
+	if not conf.CheckPKG('libxml-2.0 >= 2.6'):
+		print 'package \'libxml2\' not found. Version 2.6 or greater nwwsws. http://xmlsoft.org'
 		env.Exit(1)
 
 	if not conf.CheckFunc('flock'):
@@ -39,6 +43,7 @@ def check(env, config):
 	env.ParseConfig('pkg-config --cflags --libs glib-2.0')
 	env.ParseConfig('pkg-config --cflags --libs libxml-2.0')
 	env.ParseConfig('pkg-config --cflags --libs check')
+	env.ParseConfig('pkg-config --cflags --libs sqlite3')
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror'])
 	
