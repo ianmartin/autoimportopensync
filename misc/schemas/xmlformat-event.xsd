@@ -5,6 +5,7 @@
     <xsd:complexType>
       <xsd:sequence>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Alarm" type="Alarm"/>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="AlarmRelatedEnd" type="AlarmRelatedEnd"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Attach" type="Attachment"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Attendee" type="Attendee"/>
 
@@ -77,16 +78,6 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- RFC2445: 4.2.14 Alarm Trigger Relationship
-  	Not supported by vcalendar....
-  -->
-  <xsd:simpleType name="TriggerRelated">
-    <xsd:restriction base="xsd:string">
-    	<xsd:enumeration value="START"/>
-	<xsd:enumeration value="END"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
   <xsd:simpleType name="TriggerValue">
     <xsd:restriction base="xsd:string">
     <!-- TODO: regular expression to check for DURATION or DATE-TIME -->
@@ -105,8 +96,25 @@
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
     </xsd:sequence>
     <xsd:attribute name="Value" type="TriggerType"/>
-    <xsd:attribute name="Related" type="TriggerRelated"/>
   </xsd:complexType>
+
+  <!-- Use AlarmRelatedEnd if the alarm got triggered related to the end point of the appointment.
+       Example:  5 minutes before or after the _end_ of the appointment.
+       If the alarm got triggered related to start use <Alarm>
+  -->
+  <xsd:complexType name="AlarmRelatedEnd">
+    <xsd:sequence>
+      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
+      <!-- TODO only allow Attachment element if Action is SOUND or PROCEDURE --> 
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="Attachment"/>
+      <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="MultiText"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
+      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
+    </xsd:sequence>
+    <xsd:attribute name="Value" type="TriggerType"/>
+  </xsd:complexType>
+
  
   <xsd:complexType name="Duration">
     <xsd:sequence>
