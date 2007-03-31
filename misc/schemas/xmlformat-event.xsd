@@ -77,14 +77,17 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="Related">
+  <!-- RFC2445: 4.2.14 Alarm Trigger Relationship
+  	Not supported by vcalendar....
+  -->
+  <xsd:simpleType name="TriggerRelated">
     <xsd:restriction base="xsd:string">
     	<xsd:enumeration value="START"/>
 	<xsd:enumeration value="END"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="AlarmTrigger">
+  <xsd:simpleType name="TriggerValue">
     <xsd:restriction base="xsd:string">
     <!-- TODO: regular expression to check for DURATION or DATE-TIME -->
       <xsd:minLength value="3"/>
@@ -99,16 +102,17 @@
       <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="MultiText"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
-      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="AlarmTrigger"/>
+      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
     </xsd:sequence>
-
     <xsd:attribute name="Value" type="TriggerType"/>
-
+    <xsd:attribute name="Related" type="TriggerRelated"/>
   </xsd:complexType>
  
   <xsd:complexType name="Duration">
     <xsd:sequence>
       <!--
+      	     TODO: Evalute if this duration values are compatible to vcalendar as well.
+
 	     dur-value  = (["+"] / "-") "P" (dur-date / dur-time / dur-week)
 
 	     dur-date   = dur-day [dur-time]
