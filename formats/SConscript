@@ -9,7 +9,7 @@ data = env.SharedLibrary('data', ['data.c'], LIBS = ['opensync'], LIBPATH = '#op
 
 contact = env.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 event = env.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-todo = env.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+
 
 # The vformat/xmlformat support libraries
 vformat = env.SharedLibrary('opensync-vformat', ['vformats-xml/vformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
@@ -18,7 +18,6 @@ xmlformat = env.SharedLibrary('opensync-xmlformat', ['vformats-xml/xmlformat.c']
 # The xml formats
 xmlformatvcard = env.SharedLibrary('xmlformat-vcard', ['vformats-xml/xmlformat-vcard.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat'], LIBPATH = ['#opensync', '.'])
 xmlformatvcal = env.SharedLibrary('xmlformat-vcal', ['vformats-xml/xmlformat-vcal.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat'], LIBPATH = ['#opensync', '.'])
-xmlformatvtodo = env.SharedLibrary('xmlformat-vtodo', ['vformats-xml/xmlformat-vtodo.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat'], LIBPATH = ['#opensync', '.'])
 xmlformatdoc = env.SharedLibrary('xmlformat-doc', ['vformats-xml/xmlformat-doc.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
 
@@ -26,10 +25,8 @@ env.Install(install_format, file)
 env.Install(install_format, data)
 env.Install(install_format, contact)
 env.Install(install_format, event)
-env.Install(install_format, todo)
 env.Install(install_format, xmlformatvcard)
 env.Install(install_format, xmlformatvcal)
-env.Install(install_format, xmlformatvtodo)
 env.Install(install_format, xmlformatdoc)
 env.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
 env.Install(install_lib, vformat)
