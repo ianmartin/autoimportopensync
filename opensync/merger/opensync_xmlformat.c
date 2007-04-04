@@ -388,7 +388,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 	collected_points = 0;
 	osync_bool same = TRUE;
 	
-	while(xmlfield1 != NULL && xmlfield2 != NULL)
+	while(xmlfield1 != NULL || xmlfield2 != NULL)
 	{
 		/* subtract points for xmlfield2*/
 		if(xmlfield1 == NULL) {
