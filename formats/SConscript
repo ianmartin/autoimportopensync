@@ -9,6 +9,7 @@ data = env.SharedLibrary('data', ['data.c'], LIBS = ['opensync'], LIBPATH = '#op
 
 contact = env.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 event = env.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+todo = env.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
 
 # The vformat/xmlformat support libraries
@@ -25,6 +26,7 @@ env.Install(install_format, file)
 env.Install(install_format, data)
 env.Install(install_format, contact)
 env.Install(install_format, event)
+env.Install(install_format, todo)
 env.Install(install_format, xmlformatvcard)
 env.Install(install_format, xmlformatvcal)
 env.Install(install_format, xmlformatdoc)
