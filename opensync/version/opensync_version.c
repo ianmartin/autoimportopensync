@@ -37,6 +37,7 @@
 
 int _osync_version_match(char *pattern, char* string, OSyncError **error)
 {
+#ifndef _WIN32
 	osync_assert(pattern);
 	osync_assert(string);
 	regex_t *preg = osync_try_malloc0(sizeof(regex_t), error);
@@ -72,6 +73,9 @@ int _osync_version_match(char *pattern, char* string, OSyncError **error)
 		g_free(errbuf);
 		return -1;
 	}
+#else //_WIN32
+#warning "_osync_version_match will allways match"
+#endif
 	return 1;
 }
 

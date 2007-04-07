@@ -1,6 +1,8 @@
 #! /bin/sh
-# Fancy colors used to beautify the output a bit.
-#
+
+# waf configure wrapper
+# with fallback to scons
+
 # Fancy colors used to beautify the output a bit.
 #
 if [ $NOCOLOR ] ; then
@@ -51,12 +53,80 @@ checkPython()
 	printf $GREEN"$PYTHON"$NORMAL"\n"
 }
 
+# Checks for WAF. Honours $WAF if set. Stores path to 'waf' in $WAF.
+# Requires that $PYTHON is set.
+#
+checkWAF()
+{
+	printf "Checking for WAF\t\t\t:  "
+	#installed miniwaf in sourcedir
+	if [ -z "$WAF" ] ; then
+	    if [ -f "${WORKINGDIR}/waf" ] ; then
+		WAF="${WORKINGDIR}/waf"
+		if [ ! -x $WAF ] ; then
+		    chmod +x $WAF
+		fi
+	    fi
+	fi
+
+	if [ ! -x "$WAF" ] ; then
+	    printf $RED"not found"$NORMAL"\n"
+	    echo "Goto http://www.freehackers.org/~tnagy/bksys.html"
+	    echo "and download a waf version"
+	else
+	  printf $GREEN"$WAF"$NORMAL"\n"
+	fi
+}
+
+# Generates a Makefile. Requires that $WAF is set.
+#
+generateMakefile()
+{
+	cat > Makefile << EOF
+#!/usr/bin/make -f
+
+# Waf Makefile wrapper
+# http://www.freehackers.org/~tnagy/waf.html
+
+all:
+	@$WAF build
+
+all_debug:
+	@$WAF -v build
+
+all_progress:
+	@$WAF -p build
+
+install:
+	@$WAF install
+
+uninstall:
+	@$WAF uninstall
+
+clean:
+	@$WAF clean
+
+distclean:
+	@$WAF distclean
+	@-rm -rf cache/
+	@-rm -rf _build_
+	@-rm -f Makefile
+
+check:
+	@$WAF check
+
+dist:
+	@$WAF dist
+
+EOF
+}
+
 # Checks for SCons. Honours $SCONS if set. Stores path to 'scons' in $SCONS.
 # Requires that $PYTHON is set.
 #
 checkSCons()
 {
-	printf "Checking for SCons\t\t\t:  "
+	printf "Fallback checking for SCons\t\t\t:  "
 	if [ -z $SCONS ]; then
 	  SCONS=`which scons 2>/dev/null`
 	fi
@@ -71,7 +141,7 @@ checkSCons()
 
 # Generates a Makefile. Requires that $SCONS is set.
 #
-generateMakefile()
+generateSconsMakefile()
 {
 	cat > Makefile << EOF
 SCONS_DESTDIR += \$(DESTDIR)
@@ -106,14 +176,28 @@ EOF
 }
 
 checkPython
-checkSCons
+checkWAF
 
-if [[ "$1" == "--help" ]]; then
-   $SCONS --help
-   exit $EXIT_SUCCESS
+if [ -x "$WAF" ] ; then
+	echo "calling waf configure with parameters"
+	$WAF configure $* || exit $EXIT_ERROR
+	#create a Makefile if waf configure succeeds
+	if [ -f "${WORKINGDIR}/.lock-wscript" ] ; then
+		if [ -f "Makefile" ] ; then
+			echo ""
+    		else
+        		generateMakefile
+		fi
+	fi
+else
+	checkSCons
+	if [[ "$1" == "--help" ]]; then
+		$SCONS --help
+		exit $EXIT_SUCCESS
+	fi
+	echo "calling scons configure with parameters"
+	$SCONS configure $@ || exit $EXIT_ERROR
+	generateSconsMakefile
 fi
 
-generateMakefile
-echo "calling scons configure with parameters"
-$SCONS configure $@
-
+exit $EXIT_SUCCESS

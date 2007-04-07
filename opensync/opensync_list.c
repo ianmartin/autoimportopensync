@@ -31,6 +31,7 @@
  */
 
 #include <glib.h>
+#include "opensync.h"
 #include "opensync_list.h"
 
 #define _osync_list_alloc()         g_slice_new (OSyncList)

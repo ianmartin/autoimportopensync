@@ -12,11 +12,7 @@ struct OSyncGroup {
 	/** The last time this group was synchronized successfully */
 	time_t last_sync;
 	/** The lock file of the group */
-#ifdef _WIN32
-	HANDLE lock_fd;
-#else
 	int lock_fd;
-#endif
 	/** The filters of this group */
 	GList *filters;
 	/** The defined resolution for this group */

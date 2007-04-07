@@ -170,8 +170,8 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 		osync_trace(TRACE_INTERNAL, "Default home dir: %s", env->groupsdir);
 		
 		if (!g_file_test(env->groupsdir, G_FILE_TEST_EXISTS)) {
-			if (mkdir(env->groupsdir, 0700) < 0) {
-				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, strerror(errno));
+			if (g_mkdir(env->groupsdir, 0700) < 0) {
+				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, g_strerror(errno));
 				goto error_free_path;
 			}
 			osync_trace(TRACE_INTERNAL, "Created groups configdir %s\n", path);

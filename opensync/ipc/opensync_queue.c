@@ -26,6 +26,7 @@
 
 #include "opensync_queue_internals.h"
 
+
 /**
  * @ingroup OSEngineQueue
  * @brief A Queue used for asynchronous communication between thread
@@ -148,7 +149,7 @@ int _osync_queue_write_data(OSyncQueue *queue, const void *vptr, size_t n, OSync
 			if (errno == EINTR)
 				nwritten = 0;  /* and call write() again */
 			else {
-				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to write IPC data: %i: %s", errno, strerror(errno));
+				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to write IPC data: %i: %s", errno, g_strerror(errno));
 				return (-1);  /* error */
 			}
 		}
@@ -257,7 +258,7 @@ int _osync_queue_read_data(OSyncQueue *queue, void *vptr, size_t n, OSyncError *
 			if (errno == EINTR)
 				nread = 0;  /* and call read() again */
 			else {
-				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to read IPC data: %i: %s", errno, strerror(errno));
+				osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to read IPC data: %i: %s", errno, g_strerror(errno));
 				return (-1);
 			}
 		} else if (nread == 0)
@@ -594,6 +595,10 @@ osync_bool osync_queue_exists(OSyncQueue *queue)
 
 osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 {
+#ifdef _WIN32
+#warning "osync_queue_create(OSyncQueue *queue, OSyncError **error) will not work"
+	return FALSE;
+#else //_WIN32
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, queue, error);
 	
 	if (mkfifo(queue->name, 0600) != 0) {
@@ -606,6 +611,7 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+#endif //_WIN32
 }
 
 osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
@@ -624,6 +630,10 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 
 osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error)
 {
+#ifdef _WIN32
+#warning "osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncError **error) will not work"
+	return FALSE;
+#else //_WIN32
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, queue, type, error);
 	osync_assert(queue);
 	osync_assert(queue->connected == FALSE);
@@ -639,7 +649,6 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 			goto error;
 		}
 		queue->fd = fd;
-	
 		int oldflags = fcntl(queue->fd, F_GETFD);
 		if (oldflags == -1) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get fifo flags");
@@ -698,6 +707,7 @@ error_close:
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
+#endif //_WIN32
 }
 
 osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
@@ -812,6 +822,10 @@ osync_bool osync_queue_dispatch(OSyncQueue *queue, OSyncError **error)
 
 OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 {
+#ifdef _WIN32
+#warning "OSyncQueueEvent osync_queue_poll(OSyncQueue *queue) will not work"
+	return OSYNC_QUEUE_EVENT_ERROR;
+#else //_WIN32
 	struct pollfd pfd;
 	pfd.fd = queue->fd;
 	pfd.events = POLLIN;
@@ -834,6 +848,7 @@ OSyncQueueEvent osync_queue_poll(OSyncQueue *queue)
 		return OSYNC_QUEUE_EVENT_READ;
 		
 	return OSYNC_QUEUE_EVENT_ERROR;
+#endif //_WIN32
 }
 
 /** note that this function is blocking */
@@ -851,12 +866,12 @@ OSyncMessage *osync_queue_get_message(OSyncQueue *queue)
  * */
 static long long int gen_id()
 {
-    struct timeval tv;
+    GTimeVal tv;
 
-    gettimeofday(&tv, NULL);
+    g_get_current_time(&tv);
 
     long long int now = (tv.tv_sec * 1000000 + tv.tv_usec) << 16;
-    long long int rnd = ((long long int)random()) & 0xFFFF;
+    long long int rnd = ((long long int)g_random_int()) & 0xFFFF;
     
     return now | rnd;
 }

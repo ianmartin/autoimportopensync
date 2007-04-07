@@ -25,6 +25,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef _WIN32
+#define uid_t int
+#define gid_t int
+#endif //_WIN32
+
 typedef struct OSyncFileFormat {
 	/** The mode of this file. See man fstat for explanation */
 	mode_t mode;

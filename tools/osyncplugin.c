@@ -510,7 +510,7 @@ int main (int argc, char *argv[])
 	if (result == NULL)
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
-			strerror(errno));
+			g_strerror(errno));
 		return 1;
 	}
 	

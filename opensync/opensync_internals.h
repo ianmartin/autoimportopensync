@@ -25,8 +25,13 @@
 #include <gmodule.h>
 #include <string.h>
 #include <glib/gprintf.h>
+#include <glib/gstdio.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <errno.h>
 extern int errno;

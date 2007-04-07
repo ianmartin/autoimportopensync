@@ -33,7 +33,6 @@ GPrivate* trace_disabled = NULL;
 
 #ifndef _WIN32
 #include <pthread.h>
-#define g_chmod fchmod
 #endif
 
 /**
@@ -292,8 +291,7 @@ osync_bool osync_file_write(const char *filename, const char *data, unsigned int
 		return FALSE;
 	}
 	if (mode) {
-		int fd = g_io_channel_unix_get_fd(chan);
-		if (g_chmod(fd, mode)) {
+		if (g_chmod(filename, mode)) {
 			osync_trace(TRACE_INTERNAL, "Unable to set file permissions %i for file %s", mode, filename);
 			osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to set file permissions %i for file %s", mode, filename);
 			return FALSE;

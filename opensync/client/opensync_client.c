@@ -1227,7 +1227,7 @@ static gboolean osyncClientDisconnectCallback(gpointer data)
 
 	if (client->outgoing) {
 		/* We now wait until the other side disconnect our outgoing queue */
-		while (osync_queue_is_connected(client->outgoing)) { usleep(100); }
+		while (osync_queue_is_connected(client->outgoing)) { g_usleep(100); }
 		
 		/* Now we can safely disconnect our outgoing queue */
 		osync_queue_disconnect(client->outgoing, NULL);

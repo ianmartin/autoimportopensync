@@ -31,7 +31,6 @@
 
 #ifndef _WIN32
 #include <sys/file.h>
-#define g_unlink unlink
 
 #ifdef NOT_HAVE_FLOCK
 #define LOCK_SH 1
@@ -328,23 +327,13 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 		exists = TRUE;
 	}
 
-#ifdef _WIN32
-	group->lock_fd = CreateFile(lockfile, GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (group->lock_fd == INVALID_HANDLE_VALUE) {
-		if (GetLastError() == ERROR_SHARING_VIOLATION) {
-			osync_trace(TRACE_INTERNAL, "locking group: is locked2");
-			locked = TRUE;
-			group->lock_fd = 0;
-		} else
-			osync_trace(TRACE_INTERNAL, "error setting lock: %s", strerror(errno));
-	}
-#else
-	if ((group->lock_fd = open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
+	if ((group->lock_fd = g_open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
 		group->lock_fd = 0;
 		g_free(lockfile);
-		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, strerror(errno));
+		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, g_strerror(errno));
 		return OSYNC_LOCK_STALE;
 	} else {
+#ifndef _WIN32
 		/* Set FD_CLOEXEC flags for the lock file descriptor. We don't want the
 		 * subprocesses created by plugins or the engine to keep holding the lock
 		 */
@@ -366,11 +355,11 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 				close(group->lock_fd);
 				group->lock_fd = 0;
 			} else
-				osync_trace(TRACE_INTERNAL, "error setting lock: %s", strerror(errno));
+				osync_trace(TRACE_INTERNAL, "error setting lock: %s", g_strerror(errno));
 		} else
+#endif
 			osync_trace(TRACE_INTERNAL, "Successfully locked");
 	}
-#endif
 	
 	g_free(lockfile);
 	
@@ -484,7 +473,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
 		osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir);
-		if (mkdir(group->configdir, 0700)) {
+		if (g_mkdir(group->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
 			goto error;
 		}

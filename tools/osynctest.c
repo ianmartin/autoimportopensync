@@ -132,7 +132,7 @@ double check_sync(OSyncEngine *engine, const char *name, int num)
 	if (!mkdtemp(tempdir))
 	{
 		g_free(tempdir);
-		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", strerror(errno));
+		osync_trace(TRACE_INTERNAL, "unable to create temporary dir: %s", g_strerror(errno));
 		abort();
 	}
 	char *command = g_strdup_printf("mv %s/* %s &> /dev/null", localdir, tempdir);
@@ -457,7 +457,7 @@ int main (int argc, char *argv[])
 
 	if (result == NULL)
 	{
-		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", strerror(errno));
+		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", g_strerror(errno));
 		return 1;
 	}
 
@@ -487,7 +487,7 @@ int main (int argc, char *argv[])
 	if (result == NULL)
 	{
 		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
-			strerror(errno));
+			g_strerror(errno));
 		return 1;
 	}
 

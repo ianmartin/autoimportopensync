@@ -196,7 +196,7 @@ START_TEST (ipc_payload)
 		osync_message_unref(message);
 		
 		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(100000);
+			g_usleep(100000);
 		}
 		
 		fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
@@ -207,7 +207,7 @@ START_TEST (ipc_payload)
 		fail_unless(error == NULL, NULL);
 		
 		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10000);
+			g_usleep(10000);
 		}
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
@@ -267,7 +267,7 @@ START_TEST (ipc_payload_wait)
 		fail_unless(error == NULL, NULL);
 		
 		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10000);
+			g_usleep(10000);
 		}
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_INITIALIZE) {
@@ -306,7 +306,7 @@ START_TEST (ipc_payload_wait)
 		osync_queue_free(client_queue);
 	
 		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(10000);
+			g_usleep(10000);
 		}
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
@@ -345,7 +345,7 @@ START_TEST (ipc_payload_wait)
 		osync_message_unref(message);
 		
 		while (!(message = osync_queue_get_message(server_queue))) {
-			usleep(100000);
+			g_usleep(100000);
 		}
 		
 		fail_unless(osync_message_get_command(message) == OSYNC_MESSAGE_REPLY);
@@ -356,7 +356,7 @@ START_TEST (ipc_payload_wait)
 		fail_unless(error == NULL, NULL);
 		
 		while (!(message = osync_queue_get_message(client_queue))) {
-			usleep(10000);
+			g_usleep(10000);
 		}
 		
 		if (osync_message_get_command(message) != OSYNC_MESSAGE_QUEUE_HUP) {
@@ -1621,7 +1621,7 @@ START_TEST (ipc_callback_break)
 		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		while (osync_queue_is_connected(client_queue)) { usleep(100); }
+		while (osync_queue_is_connected(client_queue)) { g_usleep(100); }
 		
 		osync_assert(osync_queue_disconnect(server_queue, &error));
 		osync_assert(error == NULL);
@@ -1675,7 +1675,7 @@ START_TEST (ipc_callback_break)
 		
 		osync_message_unref(message);
 		
-		while (num_msgs < req_msgs) { usleep(100); };
+		while (num_msgs < req_msgs) { g_usleep(100); };
 		
 		osync_queue_disconnect(client_queue, &error);
 		fail_unless(error == NULL, NULL);
@@ -1961,7 +1961,7 @@ START_TEST (ipc_callback_break_pipes)
 		fail_unless(osync_queue_connect(server_queue, OSYNC_QUEUE_SENDER, &error), NULL);
 		fail_unless(error == NULL, NULL);
 		
-		while (osync_queue_is_connected(client_queue)) { usleep(100); }
+		while (osync_queue_is_connected(client_queue)) { g_usleep(100); }
 		
 		osync_assert(osync_queue_disconnect(server_queue, &error));
 		osync_assert(error == NULL);
@@ -2025,7 +2025,7 @@ START_TEST (ipc_callback_break_pipes)
 		
 		osync_message_unref(message);
 		
-		while (num_msgs < req_msgs) { usleep(100); };
+		while (num_msgs < req_msgs) { g_usleep(100); };
 		
 		osync_queue_disconnect(client_queue, &error);
 		fail_unless(error == NULL, NULL);

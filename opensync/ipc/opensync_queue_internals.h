@@ -2,7 +2,9 @@
 #define _OPENSYNC_QUEUE_INTERNALS_H
 
 #include <fcntl.h>
+#ifndef _WIN32
 #include <sys/poll.h>
+#endif //_WIN32
 
 #include <sys/time.h>
 #include <signal.h>

@@ -23,7 +23,10 @@
 #ifndef OPENSYNCVERSION_INTERNALS_H_
 #define OPENSYNCVERSION_INTERNALS_H_
 
+#ifndef _WIN32
 #include <regex.h>
+#endif //_WIN32
+
 #include <libxml/parser.h>
 #include <libxml/xmlschemas.h>
 

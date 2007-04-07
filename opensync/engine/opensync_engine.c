@@ -33,48 +33,6 @@
 #include "opensync_obj_engine.h"
 #include "opensync_engine_internals.h"
 
-/* Implementation of g_mkdir_with_parents()
- *
- * This function overwrite the contents of the 'dir' parameter
- */
-static int __mkdir_with_parents(char *dir, int mode)
-{
-	if (g_file_test(dir, G_FILE_TEST_IS_DIR))
-		return 0;
-
-	char *slash = strrchr(dir, '/');
-	if (slash && slash != dir) {
-		/* Create parent directory if needed */
-
-		/* This is a trick: I don't want to allocate a new string
-		 * for the parent directory. So, just put a NUL char
-		 * in the last slash, and restore it after creating the
-		 * parent directory
-		 */
-		*slash = '\0';
-		if (__mkdir_with_parents(dir, mode) < 0)
-			return -1;
-		*slash = '/';
-	}
-
-	if (mkdir(dir, mode) < 0)
-		return -1;
-
-	return 0;
-}
-
-static int mkdir_with_parents(const char *dir, int mode)
-{
-	int r;
-	char *mydir = strdup(dir);
-	if (!mydir)
-		return -1;
-
-	r = __mkdir_with_parents(mydir, mode);
-	free(mydir);
-	return r;
-}
-
 static void osync_engine_set_error(OSyncEngine *engine, OSyncError *error)
 {
 	osync_assert(engine);
@@ -449,8 +407,8 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	char *enginesdir = g_strdup_printf("%s/.opensync/engines", g_get_home_dir());
 	engine->engine_path = g_strdup_printf("%s/enginepipe", enginesdir);
 	
-	if (mkdir_with_parents(enginesdir, 0755) < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create engines directory: %s", strerror(errno));
+	if (g_mkdir_with_parents(enginesdir, 0755) < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't create engines directory: %s", g_strerror(errno));
 		g_free(enginesdir);
 		goto error_free_engine;
 	}
@@ -620,7 +578,7 @@ static osync_bool _osync_engine_finalize_member(OSyncEngine *engine, OSyncClient
 	
 	//FIXME
 	unsigned int i = 2000;
-	while (engine->busy && i > 0) { usleep(1000); g_main_context_iteration(engine->context, FALSE); i--; }
+	while (engine->busy && i > 0) { g_usleep(1000); g_main_context_iteration(engine->context, FALSE); i--; }
 	osync_trace(TRACE_INTERNAL, "Done waiting");
 	
 	if (!osync_client_proxy_shutdown(proxy, error))
@@ -688,7 +646,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 		goto error_shutdown;
 	
 	//FIXME
-	while (engine->busy) { usleep(100); }
+	while (engine->busy) { g_usleep(100); }
 	
 	engine->proxies = g_list_append(engine->proxies, proxy);
 	

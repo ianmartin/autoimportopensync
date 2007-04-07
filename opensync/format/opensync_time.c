@@ -26,6 +26,42 @@
 #include "opensync_xml.h"
 #include "opensync_internals.h"
 
+#ifdef _WIN32
+inline struct tm* localtime_r (const time_t *clock, struct tm *result) { 
+	static int protector=0;
+ 	protector++;
+ 	while(protector>1){
+ 		protector--;
+ 		g_usleep(10);// sleep for milsec
+ 		protector++;
+ 	}
+	if (!clock || !result){
+		result = NULL;
+	} else {
+		memcpy(result,localtime(clock),sizeof(*result));
+	}
+	protector--;
+	return result; 
+}
+
+inline struct tm* gmtime_r (const time_t *clock, struct tm *result) { 
+	static int protector=0;
+ 	protector++;
+ 	while(protector>1){
+ 		protector--;
+ 		g_usleep(10);// sleep for milsec
+ 		protector++;
+ 	}
+	if (!clock || !result){
+		result = NULL;
+	} else {
+		memcpy(result,gmtime(clock),sizeof(*result));
+	}
+	protector--;
+	return result; 
+}
+#endif
+
 /* Floating Timestamps...... (handle tzid!) */
 
 /* 

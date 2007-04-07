@@ -104,12 +104,12 @@ START_TEST (proxy_init)
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (init_replies != 1) { usleep(100); }
+	while (init_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_finalize(proxy, finalize_callback, GINT_TO_POINTER(1), &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (fin_replies != 1) { usleep(100); }
+	while (fin_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_shutdown(proxy, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -143,14 +143,14 @@ START_TEST (proxy_discover)
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (init_replies != 1) { usleep(100); }
+	while (init_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_num_objtypes(proxy) == 0, NULL);
 	
 	fail_unless(osync_client_proxy_discover(proxy, discover_callback, GINT_TO_POINTER(1), &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (discover_replies != 1) { usleep(100); }
+	while (discover_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_num_objtypes(proxy) == 1, NULL);
 	OSyncObjTypeSink *sink = osync_client_proxy_nth_objtype(proxy, 0);
@@ -163,7 +163,7 @@ START_TEST (proxy_discover)
 	fail_unless(osync_client_proxy_finalize(proxy, finalize_callback, GINT_TO_POINTER(1), &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (fin_replies != 1) { usleep(100); }
+	while (fin_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_shutdown(proxy, &error), NULL);
 	fail_unless(error == NULL, NULL);
@@ -197,22 +197,22 @@ START_TEST (proxy_connect)
 	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (init_replies != 1) { usleep(100); }
+	while (init_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_connect(proxy, connect_callback, GINT_TO_POINTER(1), "file", FALSE, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (connect_replies != 1) { usleep(100); }
+	while (connect_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_disconnect(proxy, disconnect_callback, GINT_TO_POINTER(1), "file", &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (disconnect_replies != 1) { usleep(100); }
+	while (disconnect_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_finalize(proxy, finalize_callback, GINT_TO_POINTER(1), &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	while (fin_replies != 1) { usleep(100); }
+	while (fin_replies != 1) { g_usleep(100); }
 	
 	fail_unless(osync_client_proxy_shutdown(proxy, &error), NULL);
 	fail_unless(error == NULL, NULL);

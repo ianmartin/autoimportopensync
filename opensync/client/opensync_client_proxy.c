@@ -36,6 +36,15 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#ifdef _WIN32
+/* Historical signals specified by POSIX. */
+#define SIGHUP  1       /* Hangup.  */
+#define SIGQUIT 3       /* Quit.  */
+#define SIGKILL 9       /* Kill (cannot be blocked, caught, or ignored).  */
+#define SIGPIPE 13      /* Broken pipe.  */
+#define SIGALRM 14      /* Alarm clock.  */
+#endif //_WIN32
+
 typedef struct callContext {
 	OSyncClientProxy *proxy;
 	
@@ -67,6 +76,17 @@ typedef struct callContext {
 	void *sync_done_callback_data;
 } callContext;
 
+//protable kill pid helper
+static int _osync_kill(pid_t pid, int sig) 
+{
+#ifdef _WIN32
+#warning "kill pid needs to be implemented"
+	return 0; //allways succeed
+#else //_WIN32
+	return (kill(pid, sig));
+#endif //_WIN32
+} 
+
 static char *_osync_client_pid_filename(OSyncClientProxy *proxy)
 {
 	return g_strdup_printf("%s/osplugin.pid", proxy->path);
@@ -77,7 +97,7 @@ static char *_osync_client_pid_filename(OSyncClientProxy *proxy)
 	char *pidpath = _osync_client_pid_filename(proxy);
 
 	if (unlink(pidpath) < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't remove pid file: %s", strerror(errno));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't remove pid file: %s", g_strerror(errno));
 		g_free(pidpath);
 		return FALSE;
 	}
@@ -127,8 +147,8 @@ static osync_bool _osync_client_kill_old_osplugin(OSyncClientProxy *proxy, OSync
 
 	osync_trace(TRACE_INTERNAL, "Killing old osplugin process. PID: %ld", (long)pid);
 
-	if (kill(pid, SIGTERM) < 0) {
-		osync_trace(TRACE_INTERNAL, "Error killing old osplugin: %s. Stale pid file?", strerror(errno));
+	if (_osync_kill(pid, SIGTERM) < 0) {
+		osync_trace(TRACE_INTERNAL, "Error killing old osplugin: %s. Stale pid file?", g_strerror(errno));
 		/* Don't return failure if kill() failed, because it may be a stale pid file */
 	}
 
@@ -136,16 +156,16 @@ static osync_bool _osync_client_kill_old_osplugin(OSyncClientProxy *proxy, OSync
 	while (osync_queue_is_alive(proxy->outgoing)) {
 		if (count++ > 10) {
 			osync_trace(TRACE_INTERNAL, "Killing old osplugin process with SIGKILL");
-			kill(pid, SIGKILL);
+			_osync_kill(pid, SIGKILL);
 			break;
 		}
 		osync_trace(TRACE_INTERNAL, "Waiting for other side to terminate");
 		/*FIXME: Magic numbers are evil */
-		usleep(500000);
+		g_usleep(500000);
 	}
 
 	if (unlink(pidpath) < 0) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't erase PID file: %s", strerror(errno));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't erase PID file: %s", g_strerror(errno));
 		goto out_free_str;
 	}
 
@@ -772,7 +792,7 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 			
 			while (!osync_queue_exists(proxy->outgoing)) {
 				osync_trace(TRACE_INTERNAL, "Waiting for other side to create fifo");
-				usleep(500000);
+				g_usleep(500000);
 			}
 			
 			osync_trace(TRACE_INTERNAL, "Queue was created");
@@ -870,7 +890,7 @@ osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **err
 		/*if (client->child_pid) {
 		int status;
 		if (waitpid(client->child_pid, &status, 0) == -1) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error waiting for osplugin process: %s", strerror(errno));
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Error waiting for osplugin process: %s", g_strerror(errno));
 			goto error;
 		}
 
