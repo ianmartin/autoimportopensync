@@ -1057,9 +1057,9 @@ static osync_bool conv_xmlformat_to_vtodo_both(char *input, unsigned int inpsize
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	const char *std_encoding = NULL;
 	if (target == VFORMAT_TODO_10)
-		std_encoding == "QUOTED-PRINTABLE";
+		std_encoding = "QUOTED-PRINTABLE";
 	else
-		std_encoding == "B";
+		std_encoding = "B";
 	
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
