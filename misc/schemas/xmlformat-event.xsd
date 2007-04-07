@@ -26,6 +26,8 @@
         <xsd:element maxOccurs="1" minOccurs="0" name="Duration" type="Duration"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionDateTime" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionRule" type="RecurrenceRule"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionRuleExtended" type="RecurrenceRuleExtended"/>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="FreeBusy" type="FreeBusy"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Geo" type="GeoValue" />
 	<xsd:element maxOccurs="1" minOccurs="0" name="LastModified" type="DateTimeContent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Location" type="MultiText"/>
@@ -43,6 +45,7 @@
 	<xsd:element maxOccurs="1" minOccurs="0" name="Related" type="RelatedTo"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Resources" type="MultiText"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceRule" type="RecurrenceRule"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceRuleExtended" type="RecurrenceRuleExtended"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="RStatus" type="RequestStatus"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Sequence" type="IntegerContent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Status" type="Status"/>
@@ -382,8 +385,27 @@
     <xsd:list itemType="Weekday"/>
   </xsd:simpleType>
 
-
+  <!-- TODO .. correct this list .. base this element list on the vaclendar 1.0 rrule... -->
   <xsd:complexType name="RecurrenceRule">
+    <xsd:sequence>
+      <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="RecurrenceFreq"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Count" type="OneDigit"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Until" type="xsd:date"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Interval" type="xsd:string"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="BySecond" type="secondInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByMinute" type="minuteInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByHour" type="hourInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByDay" type="wdayList"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByMonthDay" type="monthDayInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByYearDay" type="yearDayInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByWeekNo" type="weekNum"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="ByMonth" type="monthInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="BySetPos" type="setPosDayList"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="WKST" type="Weekday"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="RecurrenceRuleExtended">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="RecurrenceFreq"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Count" type="OneDigit"/>
@@ -470,6 +492,7 @@
     <xsd:attribute name="Value" type="RecurrenceDateTimeValue"/>
   </xsd:complexType>
 
+  <!-- 4.2.15 Relationship Type -->
   <xsd:simpleType name="RelationshipType">
     <xsd:restriction base="xsd:string">
 	<xsd:enumeration value="PARENT"/>
@@ -478,6 +501,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- RFC2445: 4.8.4.5 Related To -->
   <xsd:complexType name="RelatedTo">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="xsd:string"/>
@@ -486,6 +510,7 @@
     <xsd:attribute name="RelationshipType" type="RelationshipType"/>
   </xsd:complexType>
 
+  <!-- RFC2445: 4.8.8.2 Request Status - statcode -->
   <xsd:simpleType name="StatusCode">
     <xsd:restriction base="xsd:decimal">
       <xsd:minInclusive value="1"/>
@@ -494,6 +519,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- RFC2445: 4.8.8.2 Request Status -->
   <xsd:complexType name="RequestStatus">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="StatusCode" type="StatusCode"/>
@@ -504,6 +530,7 @@
     <xsd:attribute name="RelationshipType" type="RelationshipType"/>
   </xsd:complexType>
 
+  <!-- RFC2445: 4.8.1.11 Status - statvalue -->
   <xsd:simpleType name="StatusValue">
     <xsd:restriction base="xsd:string">
 	<xsd:enumeration value="TENTATIVE"/>
@@ -512,6 +539,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- RFC2445: 4.8.1.11 Status -->
   <xsd:complexType name="Status">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="StatusValue"/>
@@ -546,11 +574,12 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- RFC2445: 4.6.5 Time Zone Component - standardc / daylightc -->
   <xsd:complexType name="TimezoneElement">
     <xsd:sequence>
       <xsd:element minOccurs="0" maxOccurs="1" name="Comment" type="MultiText"/>
       <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="RecurrenceRule" type="RecurrenceRule"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="RecurrenceRuleExtended" type="RecurrenceRuleExtended"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="DateTimeStart" type="DateTimeContent"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="TZName" type="TZName"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="TZOffsetTo" type="UtcOffset"/>
@@ -558,13 +587,51 @@
     </xsd:sequence>
   </xsd:complexType>
 
+  <!-- RFC2445: 4.6.5 Time Zone Component -->
   <xsd:complexType name="Timezone">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="unbounded" name="DaylightSavingTime" type="TimezoneElement"/>
       <xsd:element minOccurs="1" maxOccurs="unbounded" name="StandardTime" type="TimezoneElement"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="LastModified" type="DateTimeContent"/> 
+      <xsd:element minOccurs="0" maxOccurs="1" name="LastModified" type="DateTimeContent"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="TimezoneID" type="xsd:string"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="TZUrl" type="xsd:anyURI"/> 
+      <xsd:element minOccurs="0" maxOccurs="1" name="TZUrl" type="xsd:anyURI"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- RFC2445: 4.3.9 Period of Time -->
+  <xsd:complexType name="Period">
+    <xsd:sequence>
+      <xsd:element minOccurs="1" maxOccurs="1" name="Start" type="DateTimeContent"/>
+      <!-- TODO: eihter Duration or End .. but not both at the same time! -->
+      <xsd:element minOccurs="0" maxOccurs="1" name="Duration" type="Duration"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="End" type="DateTimeContent"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- RFC2445: 4.8.2.6 Free/Busy Time -->
+  <xsd:complexType name="FreeBusyElement">
+    <xsd:sequence>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Type" type="RequestStatus"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Period" type="Period"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- RFC2445: 4.6.4 Free/Busy Component -->
+  <xsd:complexType name="FreeBusy">
+    <xsd:sequence>
+      <xsd:element minOccurs="0" maxOccurs="unbounded" name="Attendee" type="Attendee"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Contact" type="MultiText"/>
+      <xsd:element minOccurs="0" maxOccurs="unbounded" name="Comment" type="MultiText"/>
+      <xsd:element minOccurs="0" maxOccurs="unbounded" name="Content" type="FreeBusyElement"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="DateEnd" type="DateTimeContent"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="DateStamp" type="DateTimeContent"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="DateStarted" type="DateTimeContent"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Duration" type="Duration"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Organizer" type="Organizer"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Organizer" type="Organizer"/>
+      <xsd:element minOccurs="0" maxOccurs="unounded" name="RStatus" type="RequestStatus"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Uid" type="StringContent"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Url" type="UrlContent"/>
     </xsd:sequence>
   </xsd:complexType>
 
