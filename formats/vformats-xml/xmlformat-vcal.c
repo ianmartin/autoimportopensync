@@ -923,60 +923,6 @@ static void *init_vcalendar_to_xmlformat(VFormatType target)
 	return (void *)hooks;
 }
 
-
-static osync_bool conv_ical_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
-	
-	OSyncHookTables *hooks = init_vcalendar_to_xmlformat(VFORMAT_EVENT_20); 
-
-	
-	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
-	
-	//Parse the vevent
-	VFormat *vcal = vformat_new_from_string(input);
-	
-	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
-
-	
-	osync_trace(TRACE_INTERNAL, "parsing attributes");
-	
-	//For every attribute we have call the handling hook
-	GList *attributes = vformat_get_attributes(vcal);
-	vcal_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
-//static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
-
-
-
-	// TODO free more members...
-	g_hash_table_destroy(hooks->attributes);
-	g_hash_table_destroy(hooks->parameters);
-	g_free(hooks);
-
-	*free_input = TRUE;
-	*output = (char *)xmlformat;
-	*outpsize = sizeof(xmlformat);
-
-	// XXX: remove this later?
-	osync_xmlformat_sort(xmlformat);
-	
-	unsigned int size;
-	char *str;
-	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "....Output XMLFormat is:\n%s", str);
-	g_free(str);
-
-	if (osync_xmlformat_validate(xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
-
-	vformat_free(vcal);
-	
-	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
-	return TRUE;
-}
-
 static osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
@@ -1390,7 +1336,7 @@ static void insert_xml_attr_handler(GHashTable *table, const char *name, void *h
 	g_hash_table_insert(table, (gpointer)name, handler);
 }
 
-static OSyncHookTables *init_xmlformat_to_ical(void)
+static OSyncHookTables *init_xmlformat_to_vcal(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	
@@ -1546,7 +1492,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
-	OSyncHookTables *hooks = init_xmlformat_to_ical();
+	OSyncHookTables *hooks = init_xmlformat_to_vcal();
 
 	int i = 0;
 	if (config) {
@@ -1620,11 +1566,6 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	return TRUE;
 }
 
-static osync_bool conv_xmlformat_to_ical(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
-{
-	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
-}
-
 static osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
@@ -1689,18 +1630,6 @@ void get_format_info(OSyncFormatEnv *env)
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 	
-	
-	format = osync_objformat_new("ical", "event", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format ical: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_objformat(env, format);
-	osync_objformat_unref(format);
-	
-	
-	/*
 	format = osync_objformat_new("vcal", "event", &error);
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format vcal: %s", osync_error_print(&error));
@@ -1709,7 +1638,6 @@ void get_format_info(OSyncFormatEnv *env)
 	}
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);	
-	*/
 }
 
 void get_conversion_info(OSyncFormatEnv *env)
@@ -1718,27 +1646,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	OSyncError *error = NULL;
 	
 	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
-	OSyncObjFormat *ical = osync_format_env_find_objformat(env, "vevent20");
 	OSyncObjFormat *vcal = osync_format_env_find_objformat(env, "vevent10");
-	
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, ical, conv_xmlformat_to_ical, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, ical, xmlformat, conv_ical_to_xmlformat, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
 	
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcal, conv_xmlformat_to_vcal, &error);
 	if (!conv) {
