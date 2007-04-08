@@ -953,6 +953,7 @@ static OSyncHookTables *init_xmlformat_to_itodo(void)
 	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", (void *)handle_xml_dtstamp_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Description", (void *)handle_xml_description_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", (void *)handle_xml_summary_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateEnd", (void *)handle_xml_dtend_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateDue", (void *)handle_xml_due_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", (void *)handle_xml_dtstart_attribute);
 	insert_xml_attr_handler(hooks->attributes, "PercentComplete", (void *)handle_xml_percent_complete_attribute);
@@ -980,6 +981,9 @@ static OSyncHookTables *init_xmlformat_to_itodo(void)
 	insert_xml_attr_handler(hooks->attributes, "RStatus", (void *)handle_xml_rstatus_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", (void *)handle_xml_related_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Resources", (void *)handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->attributes, "ProductID", (void *)handle_xml_prodid_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Method", (void *)handle_xml_method_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Transparent", (void *)handle_xml_transp_attribute);
 
 	insert_xml_attr_handler(hooks->parameters, "TimezoneID", (void *)handle_xml_tzid_parameter);
 	insert_xml_attr_handler(hooks->parameters, "AlternateRep", (void *)handle_xml_altrep_parameter);
@@ -1006,6 +1010,10 @@ static OSyncHookTables *init_xmlformat_to_itodo(void)
 	insert_xml_attr_handler(hooks->attributes, "AlarmDescription", (void *)handle_xml_adescription_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", (void *)handle_xml_aattendee_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", (void *)handle_xml_asummary_attribute);
+
+        //FreeBusy component
+	insert_xml_attr_handler(hooks->parameters, "Type", (void *)handle_xml_fb_type_parameter);
+
 
 	//FIXME: The functions below shouldn't be on alarmtable, but on other hash table
 	insert_xml_attr_handler(hooks->parameters, "TimezoneID", (void *)handle_xml_tzid_parameter);
