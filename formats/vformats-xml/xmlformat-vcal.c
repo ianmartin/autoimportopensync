@@ -58,7 +58,6 @@ static OSyncXMLField *handle_dtstart_attribute(OSyncXMLFormat *xmlformat, VForma
 	return handle_attribute_simple_content(xmlformat, attr, "DateStarted", error);
 }
 
-// TODO
 static OSyncXMLField *handle_rrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
     return NULL;
@@ -94,15 +93,6 @@ static OSyncXMLField *handle_last_modified_attribute(OSyncXMLFormat *xmlformat, 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "LastModified", error);
 }
-
-/*
-   static OSyncXMLField *handle_rrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	OSyncXMLField *xmlfield = xmlNewChild(xmlfield, NULL, (xmlChar*)"RecurrenceRule", NULL);
-	osxml_node_add(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
-	return xmlfield;
-}*/
 
 static OSyncXMLField *handle_rdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -640,14 +630,15 @@ static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vevent, OSyncXMLF
 }
 */
 
+// TODO
+static VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+    return NULL;
+}
+
 static VFormatAttribute *handle_xml_prodid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "PRODID", encoding);
-}
-
-static VFormatAttribute *handle_xml_method_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "METHOD", encoding);
 }
 
 static VFormatAttribute *handle_xml_geo_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -658,11 +649,6 @@ static VFormatAttribute *handle_xml_geo_attribute(VFormat *vevent, OSyncXMLField
 	add_value(attr, xmlfield, "Longitude", encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
-}
-
-static VFormatAttribute *handle_xml_dtstamp_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "DTSTAMP", encoding);
 }
 
 static VFormatAttribute *handle_xml_description_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -697,11 +683,6 @@ static VFormatAttribute *handle_xml_dtstart_attribute(VFormat *vevent, OSyncXMLF
 //	g_free(tzid);
 	vformat_add_attribute(vevent, attr);
 	return attr;
-}
-
-static VFormatAttribute *handle_xml_percent_complete_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "PERCENT-COMPLETE", encoding);
 }
 
 static VFormatAttribute *handle_xml_priority_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -747,24 +728,9 @@ static VFormatAttribute *handle_xml_completed_attribute(VFormat *vevent, OSyncXM
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "COMPLETED", encoding);
 }
 
-static VFormatAttribute *handle_xml_organizer_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "ORGANIZER", encoding);
-}
-
-static VFormatAttribute *handle_xml_recurid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "RECURRENCE-ID", encoding);
-}
-
 static VFormatAttribute *handle_xml_status_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "STATUS", encoding);
-}
-
-static VFormatAttribute *handle_xml_duration_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "DURATION", encoding);
 }
 
 static VFormatAttribute *handle_xml_attach_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -777,11 +743,6 @@ static VFormatAttribute *handle_xml_attendee_attribute(VFormat *vevent, OSyncXML
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "ATTENDEE", encoding);
 }
 
-static VFormatAttribute *handle_xml_event_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "CONTACT", encoding);
-}
-
 static VFormatAttribute *handle_xml_exdate_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "EXDATE", encoding);
@@ -790,11 +751,6 @@ static VFormatAttribute *handle_xml_exdate_attribute(VFormat *vevent, OSyncXMLFi
 static VFormatAttribute *handle_xml_exrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "EXRULE", encoding);
-}
-
-static VFormatAttribute *handle_xml_rstatus_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "RSTATUS", encoding);
 }
 
 static VFormatAttribute *handle_xml_related_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -825,160 +781,16 @@ static VFormatAttribute *handle_xml_transp_attribute(VFormat *vevent, OSyncXMLFi
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "TRANSP", encoding);
 }
 
-static VFormatAttribute *handle_xml_calscale_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "CALSCALE", encoding);
-}
-
-/*
+// TODO
 static VFormatAttribute *handle_xml_tzid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
+    /*
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZID");
 	add_value(attr, xmlfield, NULL, encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
-}
-
-static VFormatAttribute *handle_xml_tz_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "X-LIC-LOCATION");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzoffsetfrom_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZOFFSETFROM");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzoffsetto_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZOFFSETTO");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzname_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZNAME");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzdtstart_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTSTART");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzrrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "RRULE");
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tz_last_modified_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "LAST-MODIFIED");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzurl_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZURL");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_tzrdate_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "RDATE");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-*/
-
-static VFormatAttribute *handle_xml_atrigger_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vevent, xmlfield, "TRIGGER", encoding);
-}
-
-static VFormatAttribute *handle_xml_arepeat_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "REPEAT");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aduration_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DURATION");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aaction_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ACTION");
-	/* FIXME add_Value() #3 NULL is wrong */
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aattach_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTACH");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_adescription_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DESCRIPTION");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aattendee_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTENDEE");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_asummary_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "SUMMARY");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
+    */
+    return NULL;
 }
 
 static void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
@@ -991,7 +803,6 @@ static OSyncHookTables *init_xmlformat_to_vcal(void)
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	
 	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
-
 	
 	/*
 	hooks->table = g_hash_table_new(g_str_hash, g_str_equal);
@@ -1003,137 +814,58 @@ static OSyncHookTables *init_xmlformat_to_vcal(void)
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 
-	//todo attributes
-	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
-	insert_xml_attr_handler(hooks->attributes, "PercentComplete", handle_xml_percent_complete_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
-	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCreated", handle_xml_created_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_location_attribute);
+        // [vcal-1.0] vcal (same order as in spec! and in the vcal counterpart)
+        // XXX Placeholder for Daylight (needed at all?)
 	insert_xml_attr_handler(hooks->attributes, "Geo", handle_xml_geo_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Organizer", handle_xml_organizer_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceID", handle_xml_recurid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Duration", handle_xml_duration_attribute);
+	insert_xml_attr_handler(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tzid_attribute); // TODO
+	insert_xml_attr_handler(hooks->attributes, "Version", HANDLE_IGNORE); // XXX
+
+        // [vcal-1.0] simprop (same order as in spec! and in the vcal counterpart)
 	insert_xml_attr_handler(hooks->attributes, "Attach", handle_xml_attach_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Attendee", handle_xml_attendee_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Contact", handle_xml_event_attribute);
-	insert_xml_attr_handler(hooks->attributes, "ExclusionDate", handle_xml_exdate_attribute);
-	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RStatus", handle_xml_rstatus_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateCreated", handle_xml_created_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
+	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_location_attribute);
+        // XXX vcal counterpart: RNUM - what is it?
+	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Transparency", handle_xml_transp_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
 
+        // [vcal-1.0] entprop (same order as in spec! and in the vcal counterpart)
+	insert_xml_attr_handler(hooks->attributes, "Alarm", handle_xml_alarm_attribute); // TODO
+	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
+        // XXX vcal counterpart: DALARM ... already handeld by handle_xml_alarm_attribute
+	insert_xml_attr_handler(hooks->attributes, "ExclusionDate", handle_xml_exdate_attribute);
+        // XXX vcal counterpart: MALARM ... already handeld by handle_xml_alarm_attribute
+        // XXX vcal counterpart: PALARM ... already handeld by handle_xml_alarm_attribute
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
 
-	/*
-	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	*/
-	
-	//vcal attributes
-	insert_xml_attr_handler(hooks->attributes, "CalendarScale", handle_xml_calscale_attribute);
-	insert_xml_attr_handler(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Method", handle_xml_method_attribute);
-//	insert_xml_attr_handler(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
-//	insert_xml_attr_handler(hooks->attributes, "UnknownParameter", xml_handle_unknown_parameter);
-	
-	/*
-	//Timezone
-	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tzid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_tz_location_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TZOffsetFrom", handle_xml_tzoffsetfrom_location_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TZOffsetTo", handle_xml_tzoffsetto_location_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TimezoneName", handle_xml_tzname_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_tzdtstart_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_tzrrule_attribute);
-	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_tz_last_modified_attribute);
-	insert_xml_attr_handler(hooks->attributes, "TimezoneUrl", handle_xml_tzurl_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tzrdate_attribute);
-	*/
+        // [vcal-1.0] param (same order as in spec! and in the vcal counterpart)
+        // They are all attributes... handle them as XML attribute.. not as element...
 
-	/*
-//	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-//	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	*/
-	
-	//VAlarm component
-	insert_xml_attr_handler(hooks->attributes, "AlarmTrigger", handle_xml_atrigger_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmRepeat", handle_xml_arepeat_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmDuration", handle_xml_aduration_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmAction", handle_xml_aaction_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmAttach", handle_xml_aattach_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmDescription", handle_xml_adescription_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", handle_xml_aattendee_attribute);
-	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", handle_xml_asummary_attribute);
+	//insert_xml_attr_handler(hooks->parameters, "Type", HANDLE_IGNORE); // TODO - Node correct? 
+	//insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
+        // XXX vcal counterpart: ENCODING ... XMLFormat-event is unify
+        // XXX vcal counterpart: CHARSET ... XMLFormat-event is unify
+        // TODO LANGUAGE is an XML attribute! how to handle attributes...
+        // insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter); //ATTR!
+        // XXX vcal: "STATUS" ... not as attribute! .. this time as attribute/paramter!
 
-	/*
-	//FIXME: The functions below shouldn't be on alarmtable, but on other hash table
-//	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	*/
-	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
 }
