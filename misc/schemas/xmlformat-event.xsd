@@ -451,7 +451,7 @@
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="RecurrenceFreq"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Count" type="OneDigit"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="Until" type="xsd:date"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Until" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Interval" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="BySecond" type="secondInt"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="ByMinute" type="minuteInt"/>
@@ -470,7 +470,7 @@
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="RecurrenceFreq"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Count" type="OneDigit"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="Until" type="xsd:date"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Until" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Interval" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="BySecond" type="secondInt"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="ByMinute" type="minuteInt"/>

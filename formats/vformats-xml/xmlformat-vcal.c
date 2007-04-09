@@ -29,6 +29,175 @@
 #include "xmlformat.h"
 #include "xmlformat-vcal.h"
 
+/* vcal recurrence rule to XMLFormat-event converter */
+
+/* detect FREQUENCY MODIFIED */
+static char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, int size, int freqstate)
+{
+	int i;
+	GString *fm_buffer = g_string_new("");
+
+	/* for each modifier do... */
+	for(i=1; i < size-1; i++) {
+
+		int count;
+		char sign;
+
+		if(fm_buffer->len > 0)
+			g_string_append(fm_buffer, ",");
+
+		/* check frequency modifier */
+		if (sscanf(rule[i], "%d%c" , &count, &sign) == 2) {
+
+			/* we need to convert $COUNT- to -$COUNT -> RFC2445 */
+			if (sign == '-')
+				count = -count;
+
+			g_string_append_printf(fm_buffer, "%d", count);
+
+			if (i < size-2 && !sscanf(rule[i+1], "%d", &count)) {
+				g_string_append_printf(fm_buffer, " %s", rule[i+1]);
+				i++;
+			}
+
+		} else {
+			/* e.g. Day or 'LD' (Last day) */
+			g_string_append(fm_buffer, rule[i]);
+		}
+	}
+
+	return g_string_free(fm_buffer, FALSE);
+}
+
+/* detect the COUNT or UNTIL field */
+static void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *duration_block)
+{
+	int count;
+	char *until = NULL;
+
+	/* COUNT: #20 */
+	if (sscanf(duration_block, "#%d", &count) == 1) {
+		osync_xmlfield_set_key_value(xmlfield, "Count", duration_block+1);
+		return;
+	}
+
+	if (!osync_time_isdate(duration_block)) {
+
+		/* Check if this duration_block is a localtime timestamp.
+		 * If it is not UTC change the offset from 0 to the system UTC offset.·
+		 * vcal doesn't store any TZ information. This means the device have to be
+		 * in the same Timezone as the host.
+		 */
+		int offset;
+
+		if (!osync_time_isutc(duration_block)) {
+			struct tm *ttm = osync_time_vtime2tm(duration_block);
+			offset = osync_time_timezone_diff(ttm);
+			g_free(ttm);
+		}
+
+		until = osync_time_vtime2utc(duration_block, offset);
+	} else {
+		until = g_strdup(duration_block);
+	}
+
+	osync_xmlfield_set_key_value(xmlfield, "Until", until);
+}
+
+/* detect the FREQUENCY field */
+static int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rule)
+{
+
+        int frequency_state = 0;
+	char next = *(rule + 1);
+	char *frequency;
+
+	/* get frequency: only D(1), W(2), MP(3), MD(4), YD(5) and YM(6) is allowed */
+	if (*rule == 'D') {
+        	frequency_state = 1;
+                frequency = "DAILY";
+	} else if (*rule == 'W') {
+                frequency_state = 2;
+                frequency = "WEEKLY";
+	} else if (*rule == 'M' && next == 'P') {
+                frequency_state = 3;
+		frequency = "MONTHLY";
+	} else if (*rule == 'M' && next == 'D') {
+	        frequency_state = 4;
+		frequency = "MONTHLY";
+	} else if (*rule == 'Y' && next == 'D') {
+		frequency_state = 5;
+		frequency = "YEARLY";
+	} else if (*rule == 'Y' && next == 'M') {
+		frequency_state = 6;
+		frequency = "YEARLY";
+	} else {
+		osync_trace(TRACE_INTERNAL, "invalid or missing frequency");
+		return -1;
+	}
+
+	osync_xmlfield_set_key_value(xmlfield, "Content", frequency);
+
+	return frequency_state;
+}
+
+static void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, xmlfield, rule);
+
+	int frequency_state = 0, counter;
+	char  *frequency_block = NULL, *freq_mod = NULL, *duration_block;
+
+	gchar** blocks = g_strsplit(rule, " ", 256);
+
+	/* count blocks */
+	for(counter=0; blocks[counter]; counter++);
+
+	frequency_block = blocks[0];
+	duration_block = blocks[counter-1];
+
+	/* FREQ */
+	frequency_state = convert_vcal_rrule_frequency(xmlfield, frequency_block);
+
+	/* Count/Until */
+	convert_vcal_rrule_countuntil(xmlfield, duration_block);
+
+	/* The interval is at the end of the block */
+	frequency_block++;
+
+	if (frequency_state > 2)
+		frequency_block++;
+
+	/* INTERVAL */
+	osync_xmlfield_set_key_value(xmlfield, "Interval", frequency_block);
+
+	/* Frequency modifier: BYDAY, BYMONTH, .... */
+	if (counter > 2)
+		freq_mod = convert_vcal_rrule_freqmod(xmlfield, blocks, counter, frequency_state);
+
+	// TODO enum
+	switch(frequency_state) {
+		case 2:
+		case 3:
+			osync_xmlfield_set_key_value(xmlfield, "ByDay", freq_mod); 
+			break;
+		case 4:
+			osync_xmlfield_set_key_value(xmlfield, "ByMonthDay", freq_mod);
+			break;
+		case 5:
+			osync_xmlfield_set_key_value(xmlfield, "ByYearDay", freq_mod);
+			break;
+		case 6:
+			osync_xmlfield_set_key_value(xmlfield, "ByMonth", freq_mod);
+			break;
+		default:
+			break;
+	}
+
+	g_strfreev(blocks);
+
+}
+
 /* ******* Paramter ****** */
 
 static void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -58,9 +227,20 @@ static OSyncXMLField *handle_dtstart_attribute(OSyncXMLFormat *xmlformat, VForma
 	return handle_attribute_simple_content(xmlformat, attr, "DateStarted", error);
 }
 
-static OSyncXMLField *handle_rrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+static OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-    return NULL;
+	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
+	const char *rule = vformat_attribute_get_nth_value(attr, 0);
+
+        convert_vcal_rrule_to_xml(xmlfield, rule);
+
+	return xmlfield;
 }
 
 static OSyncXMLField *handle_description_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
