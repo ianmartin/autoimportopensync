@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
 
+  <!-- XMLFormat-event -->
   <xsd:element name="event">
     <xsd:complexType>
       <xsd:sequence>
@@ -19,7 +20,7 @@
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Comment" type="MultiText"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Contact" type="MultiText"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Created" type="DateTimeContent"/>
-        <xsd:element maxOccurs="1" minOccurs="1" name="DateEnd" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="DateEnd" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="DateCalendarCreated" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="1" name="DateStarted" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="MultiText"/>
@@ -61,6 +62,66 @@
       <xsd:attribute name="version" type="xsd:integer"/>
     </xsd:complexType>
   </xsd:element>
+
+  <!-- XMLFormat-todo -->
+  <xsd:element name="todo">
+    <xsd:complexType>
+      <xsd:sequence>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Alarm" type="Alarm"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="Attach" type="Attachment"/>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Attendee" type="Attendee"/>
+
+	<!-- RFC 2445: 4.7.1 Calendar Scale
+	     TODO: Handle value of CalendarScale: GREGORIAN, iana-token(?)
+	-->
+	<xsd:element maxOccurs="1" minOccurs="0" name="CalendarScale" type="StringContent"/>
+
+        <xsd:element maxOccurs="1" minOccurs="0" name="Categories" type="Categories"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Class" type="Class"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="Comment" type="MultiText"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Completed" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Contact" type="MultiText"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Created" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="DateCalendarCreated" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="1" name="DateStarted" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="MultiText"/>
+        <xsd:element maxOccurs="1" minOccurs="1" name="Due" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Duration" type="Duration"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionDateTime" type="DateTimeContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionRule" type="RecurrenceRule"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Geo" type="GeoValue" />
+	<xsd:element maxOccurs="1" minOccurs="0" name="LastModified" type="DateTimeContent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Location" type="MultiText"/>
+
+	<!-- RFC 2445: 4.7.2 Method
+	     TODO: Handle value of Method: "REQUEST", iana-token(?)
+	-->
+	<xsd:element maxOccurs="1" minOccurs="0" name="Method" type="StringContent"/>
+
+        <xsd:element maxOccurs="1" minOccurs="0" name="Organizer" type="Organizer"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Percent" type="Percent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Priority" type="Priority"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="ProductID" type="StringContent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceId" type="RecurrenceId"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Related" type="RelatedTo"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Resources" type="MultiText"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceRule" type="RecurrenceRule"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="RStatus" type="RequestStatus"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Sequence" type="IntegerContent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Status" type="Status"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Summary" type="MultiText"/>
+	<!-- FIXME: Timezone as Root node... like trunk? TOO MANY subnodes...
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Timezone" type="Timezone"/>
+	-->
+        <xsd:element maxOccurs="1" minOccurs="0" name="Uid" type="StringContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Url" type="UrlContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Version" type="StringContent"/>
+      </xsd:sequence>
+      <xsd:attribute name="version" type="xsd:integer"/>
+    </xsd:complexType>
+  </xsd:element>
+
 
   <!-- TODO move general type definitions in a seperate file.. and include it. 
        Needed for objtype: todo and note -->
@@ -431,12 +492,18 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="Priority">
+  <xsd:simpleType name="PriorityValue">
     <xsd:restriction base="xsd:integer">
       <xsd:minInclusive value="0"/>
       <xsd:maxInclusive value="9"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:complexType name="Priority">
+    <xsd:sequence>
+      <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="PriorityValue"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
   <xsd:simpleType name="LatitudeType">
     <xsd:restriction base="xsd:decimal">
@@ -628,11 +695,17 @@
       <xsd:element minOccurs="0" maxOccurs="1" name="DateStarted" type="DateTimeContent"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Duration" type="Duration"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Organizer" type="Organizer"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="Organizer" type="Organizer"/>
-      <xsd:element minOccurs="0" maxOccurs="unounded" name="RStatus" type="RequestStatus"/>
+      <xsd:element minOccurs="0" maxOccurs="unbounded" name="RStatus" type="RequestStatus"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Uid" type="StringContent"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Url" type="UrlContent"/>
     </xsd:sequence>
   </xsd:complexType>
+
+  <xsd:simpleType name="Percent">
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="100"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
 </xsd:schema>
