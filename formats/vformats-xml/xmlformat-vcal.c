@@ -164,7 +164,22 @@ static OSyncXMLField *handle_dtend_attribute(OSyncXMLFormat *xmlformat, VFormatA
 
 static OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "Transparency", error);
+        char *value;
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "TimeTransparency", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
+
+        if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "1")) {
+            value = "OPAQUE";
+        } else {
+            value = "TRANSPARENT";
+        }
+
+	osync_xmlfield_set_key_value(xmlfield, "Content", value); 
+	return xmlfield; 
+
 }
 
 static OSyncXMLField *handle_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -684,7 +699,7 @@ static OSyncHookTables *init_xmlformat_to_vcal(void)
 	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Transparency", handle_xml_transp_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
 
