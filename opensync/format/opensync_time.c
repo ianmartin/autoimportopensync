@@ -465,8 +465,7 @@ char *osync_time_vtime2utc(const char* localtime, int offset) {
 	utc = osync_time_tm2vtime(tm_utc, TRUE);
 
 	g_free(tm_local);
-// FIXME is it really a memory leak?
-//	g_free(tm_utc);
+	g_free(tm_utc);
 	
 end:	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc);
