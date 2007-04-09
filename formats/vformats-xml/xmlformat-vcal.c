@@ -255,11 +255,13 @@ static OSyncXMLField *handle_summary_attribute(OSyncXMLFormat *xmlformat, VForma
 	return handle_attribute_simple_content(xmlformat, attr, "Summary", error);
 }
 
+// XXX: vtodo only?
+#if 0
 static OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "DateDue", error);
+	return handle_attribute_simple_content(xmlformat, attr, "Due", error);
 }
-
+#endif
 
 static OSyncXMLField *handle_priority_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -299,10 +301,13 @@ static OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 	return xmlfield;
 }
 
+// XXX vtodo only?
+#if 0
 static OSyncXMLField *handle_completed_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Completed", error);
 }
+#endif
 
 static OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -572,9 +577,9 @@ static void *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
 	insert_attr_handler(hooks->attributes, "DCREATED", handle_created_attribute);
-	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
+//	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute); // XXX: vtodo ONLY?
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute);
+//	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute); // XXX: vtodo ONLY?
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
@@ -703,6 +708,8 @@ static VFormatAttribute *handle_xml_summary_attribute(VFormat *vevent, OSyncXMLF
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "SUMMARY", encoding);
 }
 
+// XXX todo only?
+#if 0
 static VFormatAttribute *handle_xml_due_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	/*TODO timezone*/
@@ -714,6 +721,7 @@ static VFormatAttribute *handle_xml_due_attribute(VFormat *vevent, OSyncXMLField
 	vformat_add_attribute(vevent, attr);
 	return attr;
 }
+#endif
 
 static VFormatAttribute *handle_xml_dtstart_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
@@ -765,10 +773,13 @@ static VFormatAttribute *handle_xml_location_attribute(VFormat *vevent, OSyncXML
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "LOCATION", encoding);
 }
 
+// XXX: vtodo only?
+#if 0
 static VFormatAttribute *handle_xml_completed_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "COMPLETED", encoding);
 }
+#endif
 
 static VFormatAttribute *handle_xml_status_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
@@ -867,9 +878,9 @@ static OSyncHookTables *init_xmlformat_to_vcal(void)
 	insert_xml_attr_handler(hooks->attributes, "Attach", handle_xml_attach_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Attendee", handle_xml_attendee_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateCreated", handle_xml_created_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute);
+//	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute); // XXX: vtodo ONLY?
 	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
+//	insert_xml_attr_handler(hooks->attributes, "Due", handle_xml_due_attribute); // XXX: vtodo ONLY?
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
 	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
 	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);

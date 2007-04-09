@@ -79,13 +79,11 @@
         <xsd:element maxOccurs="1" minOccurs="0" name="Categories" type="Categories"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Class" type="Class"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Comment" type="MultiText"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="Completed" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Contact" type="MultiText"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Created" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="DateCalendarCreated" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="1" name="DateStarted" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="MultiText"/>
-        <xsd:element maxOccurs="1" minOccurs="1" name="Due" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Duration" type="Duration"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionDateTime" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionRule" type="RecurrenceRule"/>
@@ -99,7 +97,6 @@
 	<xsd:element maxOccurs="1" minOccurs="0" name="Method" type="StringContent"/>
 
         <xsd:element maxOccurs="1" minOccurs="0" name="Organizer" type="Organizer"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="Percent" type="Percent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Priority" type="Priority"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="ProductID" type="StringContent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
@@ -700,12 +697,5 @@
       <xsd:element minOccurs="0" maxOccurs="1" name="Url" type="UrlContent"/>
     </xsd:sequence>
   </xsd:complexType>
-
-  <xsd:simpleType name="Percent">
-    <xsd:restriction base="xsd:integer">
-      <xsd:minInclusive value="0"/>
-      <xsd:maxInclusive value="100"/>
-    </xsd:restriction>
-  </xsd:simpleType>
 
 </xsd:schema>
