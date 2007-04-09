@@ -102,6 +102,8 @@ static void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *d
 	}
 
 	osync_xmlfield_set_key_value(xmlfield, "Until", until);
+
+	g_free(until);
 }
 
 /* detect the FREQUENCY field */
