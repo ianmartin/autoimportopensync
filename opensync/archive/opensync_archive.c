@@ -361,10 +361,10 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	for (row = result; row; row = row->next) { 
 		GList *column = row->data;
 
-		long long int id = atoll(g_list_nth_data(column, 0));
+		long long int id = g_ascii_strtoull(g_list_nth_data(column, 0), NULL, 0);
 		const char *uid = g_list_nth_data(column, 1); 
-		long long int mappingid = atoll(g_list_nth_data(column, 2));
-		long long int memberid = atoll(g_list_nth_data(column, 3)); 
+		long long int mappingid = g_ascii_strtoull(g_list_nth_data(column, 2), NULL, 0);
+		long long int memberid = g_ascii_strtoull(g_list_nth_data(column, 3), NULL, 0);
 		
 		*ids = osync_list_append((*ids), GINT_TO_POINTER((int)id));
 		*uids = osync_list_append((*uids), g_strdup(uid));

@@ -456,7 +456,7 @@ char *osync_time_vtime2utc(const char* localtime, int offset) {
 	struct tm *tm_local = NULL, *tm_utc = NULL;
 
 	if (strstr(localtime, "Z")) {
-		utc = strdup(localtime);
+		utc = g_strdup(localtime);
 		goto end;
 	}
 		
@@ -483,7 +483,7 @@ char *osync_time_vtime2localtime(const char* utc, int offset) {
 	struct tm *tm_local = NULL, *tm_utc = NULL;
 
 	if (!strstr(utc, "Z")) {
-		localtime = strdup(utc);
+		localtime = g_strdup(utc);
 		return localtime;
 	}
 		

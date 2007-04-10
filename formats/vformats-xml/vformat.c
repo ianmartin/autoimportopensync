@@ -1683,12 +1683,12 @@ vformat_attribute_has_type (VFormatAttribute *attr, const char *typestr)
 	for (p = params; p; p = p->next) {
 		VFormatParam *param = p->data;
 
-		if (!strcasecmp (vformat_attribute_param_get_name (param), "TYPE")) {
+		if (!g_strcasecmp (vformat_attribute_param_get_name (param), "TYPE")) {
 			GList *values = vformat_attribute_param_get_values (param);
 			GList *v;
 
 			for (v = values; v; v = v->next) {
-				if (!strcasecmp ((char*)v->data, typestr))
+				if (!g_strcasecmp ((char*)v->data, typestr))
 					return TRUE;
 			}
 		}
@@ -1707,7 +1707,7 @@ gboolean vformat_attribute_has_param(VFormatAttribute *attr, const char *name)
 	GList *p;
 	for (p = params; p; p = p->next) {
 		VFormatParam *param = p->data;
-		if (!strcasecmp(name, vformat_attribute_param_get_name(param)))
+		if (!g_strcasecmp(name, vformat_attribute_param_get_name(param)))
 			return TRUE;
 	}
 	return FALSE;
