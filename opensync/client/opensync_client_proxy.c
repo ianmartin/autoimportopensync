@@ -38,11 +38,8 @@
 
 #ifdef _WIN32
 /* Historical signals specified by POSIX. */
-#define SIGHUP  1       /* Hangup.  */
-#define SIGQUIT 3       /* Quit.  */
 #define SIGKILL 9       /* Kill (cannot be blocked, caught, or ignored).  */
-#define SIGPIPE 13      /* Broken pipe.  */
-#define SIGALRM 14      /* Alarm clock.  */
+#define SIGTERM 15	/* can be caught and interpreted or ignored by the process */
 #endif //_WIN32
 
 typedef struct callContext {
@@ -76,14 +73,33 @@ typedef struct callContext {
 	void *sync_done_callback_data;
 } callContext;
 
-//protable kill pid helper
+//portable kill pid helper
 static int _osync_kill(pid_t pid, int sig) 
 {
-#ifdef _WIN32
-#warning "kill pid needs to be implemented"
-	return 0; //allways succeed
+#ifndef _WIN32
+	return kill(pid, sig);
 #else //_WIN32
-	return (kill(pid, sig));
+	int ret = -1;
+	DWORD dwExitCode = 0;
+
+	HANDLE hProc = OpenProcess(1, 0, pid);
+	GenerateConsoleCtrlEvent(CTRL_C_EVENT, pid);
+	WaitForSingleObject(hProc, 3000);
+	GetExitCodeProcess(hProc, &dwExitCode);
+	
+	if(dwExitCode != STILL_ACTIVE) {
+		ret = 0;
+		goto end;
+	}
+	if (sig == SIGKILL) {
+		if (TerminateProcess(hProc, 0))
+			ret = 0;
+		else
+			ret = -1;
+	}
+end:
+	CloseHandle(hProc);
+	return (ret);
 #endif //_WIN32
 } 
 
