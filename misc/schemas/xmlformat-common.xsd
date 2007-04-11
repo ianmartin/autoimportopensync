@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
+
+	<!-- TODO: move every general type definition in this file 
+	     (from xmlformat-contact.xsd and xmlforamt-calendar.xsd)
+	-->
+
+</xsd:schema>
