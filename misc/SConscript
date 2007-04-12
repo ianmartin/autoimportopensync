@@ -18,6 +18,7 @@ schemas/xmlformat-calendar.xsd
 schemas/xmlformat-common.xsd
 schemas/xmlformat-contact.xsd
 schemas/xmlformat-event.xsd
+schemas/xmlformat-note.xsd
 schemas/xmlformat-todo.xsd
 """
 

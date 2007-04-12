@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
+<xsd:include schemaLocation="xmlformat-common.xsd"/>
+
+  <!-- XMLFormat-note -->
+  <xsd:element name="note">
+    <xsd:complexType>
+      <xsd:sequence>
+	<xsd:element maxOccurs="1" minOccurs="1" name="Body" type="MultiText"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Categories" type="Categories"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Class" type="Class"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="DateCreated" type="DateTimeContent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="LastModified" type="DateTimeContent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Summary" type="MultiText"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="XIrmcLuid" type="StringContent"/>
+      </xsd:sequence>
+      <xsd:attribute name="version" type="xsd:integer"/>
+    </xsd:complexType>
+  </xsd:element>
+
+</xsd:schema>
