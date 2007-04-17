@@ -87,7 +87,7 @@ generateMakefile()
 
 # Waf Makefile wrapper
 # http://www.freehackers.org/~tnagy/waf.html
-
+WAF_HOME=$CUR_DIR
 all:
 	@$WAF build
 
@@ -110,6 +110,7 @@ distclean:
 	@$WAF distclean
 	@-rm -rf cache/
 	@-rm -rf _build_
+	@-rm -rf $CUR_DIR/.wafcache
 	@-rm -f Makefile
 
 check:
@@ -180,6 +181,7 @@ checkWAF
 
 if [ -x "$WAF" ] ; then
 	echo "calling waf configure with parameters"
+	export WAF_HOME=$CUR_DIR
 	$WAF configure $* || exit $EXIT_ERROR
 	#create a Makefile if waf configure succeeds
 	if [ -f "${WORKINGDIR}/.lock-wscript" ] ; then
@@ -196,7 +198,7 @@ else
 		exit $EXIT_SUCCESS
 	fi
 	echo "calling scons configure with parameters"
-	$SCONS configure $@ || exit $EXIT_ERROR
+	$SCONS configure ${@//--/} || exit $EXIT_ERROR
 	generateSconsMakefile
 fi
 
