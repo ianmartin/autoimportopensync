@@ -130,7 +130,7 @@
       <xsd:enumeration value="MciMail"/>
       <xsd:enumeration value="Powershare"/>
       <xsd:enumeration value="Prodigy"/>
-      <xsd:enumeration value="Tix"/>
+      <xsd:enumeration value="Tlx"/>
       <xsd:enumeration value="X400"/>
     </xsd:restriction>
   </xsd:simpleType>
