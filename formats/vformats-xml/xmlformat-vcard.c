@@ -51,6 +51,12 @@ static void handle_company_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 	osync_xmlfield_set_attr(xmlfield, "Type", "Company");
 }
 
+static void handle_emailtype_internet_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Internet EMailType parameter %s", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Type", "Internet");
+}
+
 //static void handle_location_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 //{
 //	osync_trace(TRACE_INTERNAL, "Handling Location parameter %s", vformat_attribute_param_get_name(param));
@@ -871,6 +877,7 @@ static OSyncHookTables *init_vcard_to_xmlformat(void)
 	g_hash_table_insert(hooks->attributes, "CHARSET", HANDLE_IGNORE);
 	
 	//g_hash_table_insert(hooks->parameters, "TYPE", handle_type_parameter);
+	g_hash_table_insert(hooks->parameters, "TYPE=INTERNET", handle_emailtype_internet_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=PREF", handle_preferred_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=HOME", handle_location_home_parameter);
 	g_hash_table_insert(hooks->parameters, "TYPE=WORK", handle_location_work_parameter);
@@ -1082,6 +1089,12 @@ static void handle_xml_company_x_evolution_parameter(VFormatAttribute *attr, OSy
 //	const char *content = osync_xmlfield_get_attr(xmlfield, "Location");
 //	vformat_attribute_add_param_with_value(attr, "TYPE", content);
 //}
+
+static void handle_xml_internet_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Internet xml parameter");
+	vformat_attribute_add_param_with_value(attr, "TYPE", "INTERNET");
+}
 
 static void handle_xml_location_home_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1819,17 +1832,9 @@ static OSyncHookTables *init_xmlformat_to_vcard(void)
 	g_hash_table_insert(hooks->parameters, "Location=Work", handle_xml_location_work_parameter);
 	g_hash_table_insert(hooks->parameters, "Location=Other", handle_xml_location_other_parameter);
 	
+	g_hash_table_insert(hooks->parameters, "Type=Internet", handle_xml_internet_parameter);
 	g_hash_table_insert(hooks->parameters, "Preferred", handle_xml_preferred_parameter);
 	g_hash_table_insert(hooks->parameters, "Value", handle_xml_value_parameter);
-	
-
-	g_hash_table_insert(hooks->parameters, "TYPE=HOME", handle_location_home_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=WORK", handle_location_work_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=OTHER", handle_location_other_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=VOICE", handle_type_voice_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=CELL", handle_type_cellular_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=FAX", handle_type_fax_parameter);
-	g_hash_table_insert(hooks->parameters, "TYPE=CAR", handle_type_car_parameter);
 	
 //	g_hash_table_insert(hooks->parameters, "Category", handle_xml_category_parameter);
 //	g_hash_table_insert(hooks->parameters, "Unit", handle_xml_unit_parameter);
