@@ -559,10 +559,9 @@ static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, V
 		return NULL;
 	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
-	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1)); // FIXME: is this correct? RFC2426 says #1 company name further fields are all units (no dpearmtent?!)
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
-	values = g_list_nth(values, 2);
+	values = g_list_nth(values, 1);
 	for (; values; values = values->next) {
 		GString *retstr = (GString *)values->data;
 		g_assert(retstr);
@@ -1504,8 +1503,7 @@ static VFormatAttribute *handle_xml_organization_attribute(VFormat *vcard, OSync
 	osync_trace(TRACE_INTERNAL, "Handling organization xml attribute");
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "ORG");
 	add_value(attr, xmlfield, "Name", encoding);
-	add_value(attr, xmlfield, "Department", encoding);
-	add_values_from_nth_field_on(attr, xmlfield, encoding, 2);
+	add_values_from_nth_field_on(attr, xmlfield, encoding, 1);
 	vformat_add_attribute(vcard, attr);
 	return attr;
 }

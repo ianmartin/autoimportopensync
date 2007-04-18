@@ -172,8 +172,7 @@
     <xsd:complexType name="Organization">
       <xsd:sequence>
         <xsd:element minOccurs="0" name="Name" type="xsd:string"/>
-        <xsd:element minOccurs="0" name="Department" type="xsd:string"/>
-        <xsd:element minOccurs="0" name="Unit" type="xsd:string"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="Unit" type="xsd:string"/>
      </xsd:sequence>
     </xsd:complexType>
   
