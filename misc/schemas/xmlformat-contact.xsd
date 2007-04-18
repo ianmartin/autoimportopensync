@@ -152,7 +152,7 @@
       <xsd:attribute name="Type" type="EMailType"/>
       <xsd:attribute name="Location" type="EMailLocation"/>
       <xsd:attribute name="UI-Slot" type="xsd:string"/>
-      <xsd:attribute name="Pref" type="Preferred"/>
+      <xsd:attribute name="Preferred" type="Preferred"/>
     </xsd:complexType>
   
 
