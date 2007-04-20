@@ -43,11 +43,12 @@ sys.path.append(target_dir)
 from osync_build import *
 target_dir = '#' + target_dir
 configure(opts)
-opts.Add("DESTDIR", 'Set the root directory to install into ( /path/to/DESTDIR )', "")
 SConsignFile()
 
 opts.Update(env)
 opts.Save('libopensync.conf', env)
+opts.Add("DESTDIR", 'Set the root directory to install into ( /path/to/DESTDIR )', "")
+opts.Update(env)
 
 Help("""
 ++++++++++++++++++++++++++++++++++++
