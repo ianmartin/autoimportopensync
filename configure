@@ -198,7 +198,7 @@ else
 		exit $EXIT_SUCCESS
 	fi
 	echo "calling scons configure with parameters"
-	$SCONS configure ${@//--/} || exit $EXIT_ERROR
+	$SCONS configure $(echo $@ | sed -e 's/\B--//g') || exit $EXIT_ERROR
 	generateSconsMakefile
 fi
 
