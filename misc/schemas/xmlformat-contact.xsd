@@ -118,6 +118,7 @@
   
  
 
+  <!--
   <xsd:simpleType name="EMailType">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="Internet"/>
@@ -134,6 +135,7 @@
       <xsd:enumeration value="X400"/>
     </xsd:restriction>
   </xsd:simpleType>
+  -->
 
   <xsd:simpleType name="EMailLocation">
     <xsd:restriction base="xsd:string">
@@ -149,7 +151,7 @@
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
       </xsd:sequence>
-      <xsd:attribute name="Type" type="EMailType"/>
+      <xsd:attribute name="Type" type="xsd:string"/>
       <xsd:attribute name="Location" type="EMailLocation"/>
       <xsd:attribute name="UI-Slot" type="xsd:string"/>
       <xsd:attribute name="Preferred" type="Preferred"/>
