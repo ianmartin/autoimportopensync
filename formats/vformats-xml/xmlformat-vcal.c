@@ -1,7 +1,8 @@
 /*
- * xmlformat-event - A plugin for parsing vevent objects for the opensync framework
+ * xmlformat-vcal - A plugin for parsing vevent10 objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
+ * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -599,7 +600,7 @@ static void *init_vcalendar_to_xmlformat(VFormatType target)
 	return (void *)hooks;
 }
 
-static osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
@@ -976,39 +977,8 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	return TRUE;
 }
 
-static osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
 }
 
-void get_conversion_info(OSyncFormatEnv *env)
-{
-	OSyncFormatConverter *conv;
-	OSyncError *error = NULL;
-	
-	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
-	OSyncObjFormat *vcal = osync_format_env_find_objformat(env, "vevent10");
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcal, conv_xmlformat_to_vcal, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_vcal_to_xmlformat, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-}
-
-int get_version(void)
-{
-	return 1;
-}

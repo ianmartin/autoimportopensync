@@ -1,5 +1,5 @@
 /*
- * xmlformat-vcal - A plugin for parsing vevent10 objects for the opensync framework
+ * xmlformat-ical - A plugin for parsing vevent20 objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
  * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
@@ -20,12 +20,12 @@
  * 
  */
 
-#ifndef XMLFORMAT_VCAL_H_
-#define XMLFORMAT_VCAL_H_
+#ifndef XMLFORMAT_ICAL_H_
+#define XMLFORMAT_ICAL_H_
 #include "xmlformat-event.h"
 
-osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
-osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+osync_bool conv_xmlformat_to_ical(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+osync_bool conv_ical_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 /*
 typedef struct OSyncHookTables OSyncHookTables;
 
@@ -43,5 +43,5 @@ struct OSyncHookTables {
 
 #define HANDLE_IGNORE (void *)1
 */
-#endif //XMLFORMAT_VCAL_H_
+#endif //XMLFORMAT_ICAL_H_
 

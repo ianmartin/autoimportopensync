@@ -1,7 +1,8 @@
 /*
- * xmlformat-event - A plugin for parsing vevent objects for the opensync framework
+ * xmlformat-ical - A plugin for parsing vevent20 objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
+ * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,17 +20,10 @@
  * 
  */
 
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
-
-#include "vformat.h"
-#include "xmlformat.h"
-#include "xmlformat-vcal.h"
+#include "xmlformat-ical.h"
 
 /* ******* Paramter ****** */
+/*
 static void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "TimezoneID");
@@ -62,7 +56,7 @@ static void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 static void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	/* TODO handle FormatType in XSD */
+	// TODO handle FormatType in XSD //
 	osync_xmlfield_set_attr(xmlfield, "Type", "FormatType");
 }
 
@@ -115,14 +109,14 @@ static void handle_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Status");
 }
-
+*/
 
 /***** Attributes *****/
 static OSyncXMLField *handle_prodid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "ProductID", error);
 }
-
+/*
 static OSyncXMLField *handle_method_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Method", error);
@@ -137,7 +131,7 @@ static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlforma
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
 }
-
+*/
 static OSyncXMLField *handle_created_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "DateCalendarCreated", error);
@@ -221,7 +215,7 @@ static OSyncXMLField *handle_completed_attribute(OSyncXMLFormat *xmlformat, VFor
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Completed", error);
 }
-
+/*
 static OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Organizer", error);
@@ -231,17 +225,18 @@ static OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VForma
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceID", error);
 }
+*/
 
 static OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Status", error);
 }
-
+/*
 static OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Duration", error);
 }
-
+*/
 static OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Attach", error);
@@ -251,12 +246,12 @@ static OSyncXMLField *handle_attendee_attribute(OSyncXMLFormat *xmlformat, VForm
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Attendee", error);
 }
-
+/*
 static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
 }
-
+*/
 static OSyncXMLField *handle_exdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "ExclusionDate", error);
@@ -266,12 +261,12 @@ static OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormat
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "ExclusionRule", error);
 }
-
+/*
 static OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RStatus", error);
 }
-
+*/
 static OSyncXMLField *handle_related_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Related", error);
@@ -291,12 +286,12 @@ static OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormat
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Transparency", error);
 }
-
+/*
 static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
 }
-
+*/
 /* TODO Timezone
 static OSyncXMLField *handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
@@ -406,7 +401,7 @@ static OSyncXMLField *handle_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormat
 	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
 	return xmlfield; 
 }
-
+/*
 static OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmTrigger", error);
@@ -417,8 +412,9 @@ static OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VForma
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmRepeat", error);
 }
-
+*/
 /* FIXME... Duration wrong placed? in XSD */
+/*
 static OSyncXMLField *handle_aduration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Duration", error);
@@ -428,8 +424,9 @@ static OSyncXMLField *handle_aaction_attribute(OSyncXMLFormat *xmlformat, VForma
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmAction", error);
 }
-
+*/
 /* TODO: Add alarm attach to XSD */ 
+/*
 static OSyncXMLField *handle_aattach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmAttach", error);
@@ -439,21 +436,21 @@ static OSyncXMLField *handle_adescription_attribute(OSyncXMLFormat *xmlformat, V
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmDescription", error);
 }
-
+*/
 /* TODO: Add alarm attende to XSD */
-
+/*
 static OSyncXMLField *handle_aattendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmAttendee", error);
 }
-
+*/
 /* TODO: Add alarm summary to XSD */
-
+/*
 static OSyncXMLField *handle_asummary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmSummary", error);
 }
-
+*/
 static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, attributes);
@@ -720,24 +717,6 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
-static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
-	char* keys_content[] =  {"Content", NULL};
-	OSyncXMLPoints points[] = {
-		{"Summary", 		90, 	keys_content},
-		{"DateTimeStart", 	10, 	keys_content},
-		{"DateTimeEnd", 	10, 	keys_content},
-		{NULL}
-	};
-	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-	return ret;
-}
-
 static void insert_attr_handler(GHashTable *table, const char *attrname, void* handler)
 {
 	g_hash_table_insert(table, (gpointer)attrname, handler);
@@ -807,12 +786,12 @@ static void *init_vcalendar_to_xmlformat(VFormatType target)
 
         // [vcal-1.0] param (same order as in sepc!)
 	insert_attr_handler(hooks->parameters, "TYPE", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
+	// insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
 	insert_attr_handler(hooks->parameters, "ENCODING", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->parameters, "CHARSET", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->parameters, "LANGUAGE", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter);
-	insert_attr_handler(hooks->parameters, "STATUS", handle_status_parameter);
+	//insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter);
+	//insert_attr_handler(hooks->parameters, "STATUS", handle_status_parameter);
 
 
 // XXX: not quite sure if RSVP is part of vcal-1.0 .. some traces about in the spec...
@@ -822,16 +801,16 @@ static void *init_vcalendar_to_xmlformat(VFormatType target)
 	return (void *)hooks;
 }
 
-static osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_ical_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 	
-	OSyncHookTables *hooks = init_vcalendar_to_xmlformat(VFORMAT_EVENT_10); 
+	OSyncHookTables *hooks = init_vcalendar_to_xmlformat(VFORMAT_EVENT_20); 
 	
-	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
+	osync_trace(TRACE_INTERNAL, "Input ical is:\n%s", input);
 	
 	//Parse the vevent
-	VFormat *vcal = vformat_new_from_string(input);
+	VFormat *ical = vformat_new_from_string(input);
 	
 	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
 
@@ -839,7 +818,7 @@ static osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
 	//For every attribute we have call the handling hook
-	GList *attributes = vformat_get_attributes(vcal);
+	GList *attributes = vformat_get_attributes(ical);
 	vcal_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
 //static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
 
@@ -869,7 +848,7 @@ static osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char
 		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
 
 
-	vformat_free(vcal);
+	vformat_free(ical);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
@@ -1434,7 +1413,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	g_free(str);
 
 	//Make the new vcal
-	VFormat *vcal = vformat_new();
+	VFormat *ical = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	const char *std_encoding = NULL;
@@ -1445,7 +1424,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
-		xml_handle_attribute(hooks, vcal, xmlfield, std_encoding);
+		xml_handle_attribute(hooks, ical, xmlfield, std_encoding);
 	}
 	
 	g_hash_table_destroy(hooks->attributes);
@@ -1453,111 +1432,20 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	g_free(hooks);
 
 	*free_input = TRUE;
-	*output = vformat_to_string(vcal, target);
+	*output = vformat_to_string(ical, target);
 	*outpsize = strlen(*output) + 1;
 
-	vformat_free(vcal);
+	vformat_free(ical);
 
-	osync_trace(TRACE_INTERNAL, "Output vcalendar is: \n%s", *output);
+	osync_trace(TRACE_INTERNAL, "Output icalendar is: \n%s", *output);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
 }
 
-static osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+osync_bool conv_xmlformat_to_ical(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
 }
 
-static void create_event(char **data, unsigned int *size)
-{
-	OSyncError *error = NULL;
-	*data = (char *)osync_xmlformat_new("event", &error);
-	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
-	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "LastModified", NULL);
-
-	int length = osync_xmlfieldlist_get_length(fieldlist);
-	if (length != 1) {
-		osync_xmlfieldlist_free(fieldlist);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return -1;
-	}
-
-	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
-	osync_xmlfieldlist_free(fieldlist);
-	
-	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
-	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
-	time_t time = vformat_time_to_unix(revision);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
-	return time;
-}
-
-void get_format_info(OSyncFormatEnv *env)
-{
-	OSyncError *error = NULL;
-	
-	OSyncObjFormat *format = osync_objformat_new("xmlformat-event", "event", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	
-	osync_objformat_set_compare_func(format, compare_event);
-	osync_objformat_set_destroy_func(format, destroy_xmlformat);
-	osync_objformat_set_print_func(format, print_xmlformat);
-	osync_objformat_set_copy_func(format, copy_xmlformat);
-	osync_objformat_set_create_func(format, create_event);
-	
-	osync_objformat_set_revision_func(format, get_revision);
-	
-	osync_objformat_must_marshal(format);
-	osync_objformat_set_marshal_func(format, marshal_xmlformat);
-	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
-	
-	osync_format_env_register_objformat(env, format);
-	osync_objformat_unref(format);
-}
-
-void get_conversion_info(OSyncFormatEnv *env)
-{
-	OSyncFormatConverter *conv;
-	OSyncError *error = NULL;
-	
-	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
-	OSyncObjFormat *vcal = osync_format_env_find_objformat(env, "vevent10");
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcal, conv_xmlformat_to_vcal, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_vcal_to_xmlformat, &error);
-	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_converter(env, conv);
-	osync_converter_unref(conv);
-}
-
-int get_version(void)
-{
-	return 1;
-}

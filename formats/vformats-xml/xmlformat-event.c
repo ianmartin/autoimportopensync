@@ -2,6 +2,7 @@
  * xmlformat-event - A plugin for parsing vevent objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
+ * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -98,3 +99,55 @@ void get_format_info(OSyncFormatEnv *env)
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 }
+
+void get_conversion_info(OSyncFormatEnv *env)
+{
+	OSyncFormatConverter *conv;
+	OSyncError *error = NULL;
+	
+	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
+	OSyncObjFormat *vcal = osync_format_env_find_objformat(env, "vevent10");
+	OSyncObjFormat *ical = osync_format_env_find_objformat(env, "vevent20");
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcal, conv_xmlformat_to_vcal, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_vcal_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, ical, conv_xmlformat_to_ical, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, ical, xmlformat, conv_ical_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+}
+
+int get_version(void)
+{
+	return 1;
+}
+
