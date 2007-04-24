@@ -860,7 +860,7 @@ VFormatAttribute *vformat_find_attribute(VFormat *vcard, const char *name)
 
 char *vformat_to_string (VFormat *evc, VFormatType type)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, type);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, evc, type);
 	GList *l;
 	GList *v;
 
