@@ -1,5 +1,6 @@
 #ifndef XMLFORMAT_VCAL_H_
 #define XMLFORMAT_VCAL_H_
+#include "xmlformat-event.h"
 
 /*
 typedef struct OSyncHookTables OSyncHookTables;

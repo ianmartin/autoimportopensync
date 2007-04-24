@@ -19,14 +19,6 @@
  * 
  */
 
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
-
-#include "vformat.h"
-#include "xmlformat.h"
 #include "xmlformat-vcal.h"
 
 /* vcal recurrence rule to XMLFormat-event converter */
@@ -522,23 +514,6 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
-static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
-	char* keys_content[] =  {"Content", NULL};
-	OSyncXMLPoints points[] = {
-		{"Summary", 		90, 	keys_content},
-		{"DateTimeStart", 	10, 	keys_content},
-		{"DateTimeEnd", 	10, 	keys_content},
-		{NULL}
-	};
-	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-	return ret;
-}
 
 static void insert_attr_handler(GHashTable *table, const char *attrname, void* handler)
 {
@@ -1004,66 +979,6 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 static osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
-}
-
-static void create_event(char **data, unsigned int *size)
-{
-	OSyncError *error = NULL;
-	*data = (char *)osync_xmlformat_new("event", &error);
-	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
-	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "LastModified", NULL);
-
-	int length = osync_xmlfieldlist_get_length(fieldlist);
-	if (length != 1) {
-		osync_xmlfieldlist_free(fieldlist);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return -1;
-	}
-
-	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
-	osync_xmlfieldlist_free(fieldlist);
-	
-	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
-	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
-	time_t time = vformat_time_to_unix(revision);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
-	return time;
-}
-
-void get_format_info(OSyncFormatEnv *env)
-{
-	OSyncError *error = NULL;
-	
-	OSyncObjFormat *format = osync_objformat_new("xmlformat-event", "event", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	
-	osync_objformat_set_compare_func(format, compare_event);
-	osync_objformat_set_destroy_func(format, destroy_xmlformat);
-	osync_objformat_set_print_func(format, print_xmlformat);
-	osync_objformat_set_copy_func(format, copy_xmlformat);
-	osync_objformat_set_create_func(format, create_event);
-	
-	osync_objformat_set_revision_func(format, get_revision);
-	
-	osync_objformat_must_marshal(format);
-	osync_objformat_set_marshal_func(format, marshal_xmlformat);
-	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
-	
-	osync_format_env_register_objformat(env, format);
-	osync_objformat_unref(format);
 }
 
 void get_conversion_info(OSyncFormatEnv *env)
