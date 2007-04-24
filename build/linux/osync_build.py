@@ -16,8 +16,9 @@ def check(env, config):
 		print 'glib-2.0 >= 2.10 not found.'
 		env.Exit(1)
 
-	if not conf.CheckPKG('check'):
+	if env['enable_tests'] == 1 and not conf.CheckPKG('check'):
 		print 'package \'check\' not found. http://check.sourceforge.net'
+		print 'This is only needed for unit tests of the OpenSync framework (developing)'
 		env.Exit(1)
 
 	if not conf.CheckPKG('sqlite3 >= 3.3'):
@@ -40,9 +41,11 @@ def check(env, config):
 	if env['debug_modules'] == 1:
 		env.Append(CCFLAGS = r'-DDEBUG_MODULES')
 	
+	if env['enable_tests'] == 1:
+		env.ParseConfig('pkg-config --cflags --libs check')
+
 	env.ParseConfig('pkg-config --cflags --libs glib-2.0')
 	env.ParseConfig('pkg-config --cflags --libs libxml-2.0')
-	env.ParseConfig('pkg-config --cflags --libs check')
 	env.ParseConfig('pkg-config --cflags --libs sqlite3')
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror'])
