@@ -298,7 +298,7 @@ const char *osync_xmlfield_get_nth_attr_name(OSyncXMLField *xmlfield, int nth)
 	int count;
 	xmlAttrPtr attr = xmlfield->node->properties;
 	
-	for(count=0; attribute != NULL; count++) {
+	for(count=0; attr != NULL; count++) {
 		if(count == nth)
 			return (const char *)attr->name;
 		attr = attr->next;
