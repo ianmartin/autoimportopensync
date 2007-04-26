@@ -66,6 +66,7 @@ static char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, i
 static void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *duration_block)
 {
 	int count;
+	int offset = 0; 
 	char *until = NULL;
 
 	/* COUNT: #20 */
@@ -81,7 +82,6 @@ static void convert_vcal_rrule_countuntil(OSyncXMLField *xmlfield, const char *d
 		 * vcal doesn't store any TZ information. This means the device have to be
 		 * in the same Timezone as the host.
 		 */
-		int offset;
 
 		if (!osync_time_isutc(duration_block)) {
 			struct tm *ttm = osync_time_vtime2tm(duration_block);
