@@ -1150,14 +1150,6 @@ void get_format_info(OSyncFormatEnv *env)
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 
-	format = osync_objformat_new("itodo", "todo", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format itodo: %s", osync_error_print(&error));
-		osync_error_unref(&error);
-		return;
-	}
-	osync_format_env_register_objformat(env, format);
-	osync_objformat_unref(format);
 }
 
 void get_conversion_info(OSyncFormatEnv *env)
