@@ -1,82 +1,99 @@
 #include "support.h"
+
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-support.h>
+#include <opensync/opensync-data.h>
 #include <time.h>
 
 static void conv_vcard(const char *filename, const char *extension)
 {
-	char *command = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s .", g_get_current_dir(), filename);
+	char *command = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s .", filename);
 	char *testbed = setup_testbed(NULL);
 	system(command);
 	g_free(command);
 	
 	
+	OSyncData *data = NULL;
 	OSyncError *error = NULL;
-	OSyncEnv *env = init_env();
-	
-	OSyncFormatEnv *conv_env = osync_conv_env_new(env);
-	fail_unless(conv_env != NULL, NULL);
+
+	OSyncFormatEnv *format_env = osync_format_env_new(&error);
+	fail_unless(format_env != NULL, NULL);
 
 	char *buffer;
-	int size;
+	unsigned int size;
 	
 	char *file = g_path_get_basename(filename);
 	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
 	
-	OSyncChange *change = osync_change_new();
+	OSyncChange *change = osync_change_new(&error);
 	osync_change_set_uid(change, file);
 	g_free(file);
-	osync_change_set_data(change, buffer, size + 1, TRUE);
-	osync_change_set_conv_env(change, conv_env);
-	
-	osync_change_set_objformat_string(change, "plain");
 
-	OSyncObjFormat *sourceformat = osync_change_detect_objformat(conv_env, change, &error);
+	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
+
+	data = osync_data_new(buffer, size, sourceformat, &error);
+	fail_unless(data != NULL, NULL);
+
+	osync_change_set_data(change, data);
+
+	sourceformat = osync_format_env_detect_objformat_full(format_env, data, &error);
 	fail_unless(sourceformat != NULL, NULL);
-	osync_change_set_objformat(change, sourceformat);
-	osync_change_set_objtype(change, osync_objformat_get_objtype(sourceformat));
-	
+
+	// FIXME: sourceformat is still plain :(
+
 	OSyncObjFormat *targetformat = NULL;
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard21"))
-		targetformat = osync_conv_find_objformat(conv_env, "vcard30");
-	
+		targetformat = osync_format_env_find_objformat(format_env, "vcard30");
+
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard30"))
-		targetformat = osync_conv_find_objformat(conv_env, "vcard21");
+		targetformat = osync_format_env_find_objformat(format_env, "vcard21");
 
 	fail_unless(targetformat != NULL, NULL);
 	
-	OSyncChange *newchange = osync_change_copy(change, &error);
+	// Create new change .. duplicate and give new uid
+	OSyncChange *newchange = osync_change_new(&error);
+	OSyncData *newdata = osync_data_clone(data, &error);
+	osync_change_set_data(newchange, newdata);
+	char *newuid = g_strdup_printf("%s_original", osync_change_get_uid(change)); 
+	osync_change_set_uid(newchange, newuid);
+	g_free(newuid);
+
 	fail_unless(newchange != NULL, NULL);
-	
+
+
+	// Find converter
+	OSyncFormatConverter *conv_env = osync_format_env_find_converter(format_env, targetformat, sourceformat);
+	fail_unless(conv_env != NULL, NULL);
+
 	//Convert to
-	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, extension, &error), NULL);
+	fail_unless (osync_converter_invoke(conv_env, data, extension, &error), NULL);
 	
 	//Detect the output
-	osync_change_set_objformat_string(change, "plain");
-	fail_unless(osync_change_detect_objformat(conv_env, change, &error) == targetformat, NULL);
+	fail_unless(osync_data_get_objformat(data) == targetformat, NULL);
 	
 	//Compare old to new
-	fail_unless(osync_change_compare(newchange, change) == CONV_DATA_SAME, NULL);
+	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
 	
 	//Convert back
-	fail_unless(osync_change_convert_extension(conv_env, change, sourceformat, extension, &error), NULL);
+	conv_env = osync_format_env_find_converter(format_env, targetformat, sourceformat);
+	fail_unless(conv_env != NULL, NULL);
+	fail_unless (osync_converter_invoke(conv_env, data, extension, &error), NULL);
 	
 	//Detect the output again
-	osync_change_set_objformat_string(change, "plain");
-	fail_unless(osync_change_detect_objformat(conv_env, change, &error) == sourceformat, NULL);
-	
-	//Compare again
-	fail_unless(osync_change_compare(newchange, change) == CONV_DATA_SAME, NULL);
+	fail_unless(osync_data_get_objformat(data) == sourceformat, NULL);
 
-	osync_conv_env_free(conv_env);
-	osync_env_finalize(env, NULL);
-	osync_env_free(env);
+	//Compare again
+	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
+
+	osync_format_env_free(format_env);
 	
 	destroy_testbed(testbed);
 }
 
 static void compare_vcard(const char *lfilename, const char *rfilename, OSyncConvCmpResult result)
 {
-	char *command1 = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s lfile", g_get_current_dir(), lfilename);
-	char *command2 = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s rfile", g_get_current_dir(), rfilename);
+	char *command1 = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s lfile", lfilename);
+	char *command2 = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s rfile", rfilename);
 	char *testbed = setup_testbed(NULL);
 	system(command1);
 	g_free(command1);
@@ -84,90 +101,105 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 	g_free(command2);
 	
 	OSyncError *error = NULL;
-	OSyncEnv *env = init_env();
 	
-	OSyncFormatEnv *conv_env = osync_conv_env_new(env);
-	fail_unless(conv_env != NULL, NULL);
+	OSyncFormatEnv *format_env = osync_format_env_new(&error);
+	fail_unless(format_env != NULL, NULL);
 
 	char *buffer;
-	int size;
+	unsigned int size;
 	
+	// left data
 	fail_unless(osync_file_read("lfile", &buffer, &size, &error), NULL);
 	
-	OSyncChange *lchange = osync_change_new();
+	OSyncChange *lchange = osync_change_new(&error);
 	osync_change_set_uid(lchange, "lfile");
-	osync_change_set_data(lchange, buffer, size + 1, TRUE);
-	osync_change_set_conv_env(lchange, conv_env);
-	osync_change_set_objformat_string(lchange, "plain");
 
-	OSyncObjFormat *sourceformat = osync_change_detect_objformat(conv_env, lchange, &error);
+	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
+
+	OSyncData *ldata = osync_data_new(buffer, size, sourceformat, &error);
+	fail_unless(ldata != NULL, NULL);
+
+	osync_change_set_data(lchange, ldata);
+
+
+	sourceformat = osync_format_env_detect_objformat_full(format_env, ldata, &error);
 	fail_unless(sourceformat != NULL, NULL);
-	osync_change_set_objformat(lchange, sourceformat);
-	osync_change_set_objtype(lchange, osync_objformat_get_objtype(sourceformat));
-	
+
+	// right data
 	fail_unless(osync_file_read("rfile", &buffer, &size, &error), NULL);
 	
-	OSyncChange *rchange = osync_change_new();
+	OSyncChange *rchange = osync_change_new(&error);
 	osync_change_set_uid(rchange, "rfile");
-	osync_change_set_data(rchange, buffer, size + 1, TRUE);
-	osync_change_set_conv_env(rchange, conv_env);
-	osync_change_set_objformat_string(rchange, "plain");
 
-	sourceformat = osync_change_detect_objformat(conv_env, rchange, &error);
+	OSyncData *rdata = osync_data_new(buffer, size, sourceformat, &error);
+	fail_unless(rdata != NULL, NULL);
+
+	osync_change_set_data(lchange, rdata);
+
+
+	sourceformat = osync_format_env_detect_objformat_full(format_env, rdata, &error);
 	fail_unless(sourceformat != NULL, NULL);
-	osync_change_set_objformat(rchange, sourceformat);
-	osync_change_set_objtype(rchange, osync_objformat_get_objtype(sourceformat));
+
 	
+	// compare
 	fail_unless(osync_change_compare(lchange, rchange) == result, NULL);
 	
-	osync_conv_env_free(conv_env);
-	osync_env_finalize(env, NULL);
-	osync_env_free(env);
+	osync_format_env_free(format_env);
 	destroy_testbed(testbed);
 }
 
 static time_t vcard_get_revision(const char *filename)
 {
-	char *command = g_strdup_printf("cp %s/"OPENSYNC_TESTDATA"%s .", g_get_current_dir(), filename);
+	char *command = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s .", filename);
 	char *testbed = setup_testbed(NULL);
 	system(command);
 	g_free(command);
 	
 	
 	OSyncError *error = NULL;
-	OSyncEnv *env = init_env();
 	
-	OSyncFormatEnv *conv_env = osync_conv_env_new(env);
-	fail_unless(conv_env != NULL, NULL);
+	OSyncFormatEnv *format_env = osync_format_env_new(&error);
+	fail_unless(format_env != NULL, NULL);
 
 	char *buffer;
-	int size;
+	unsigned int size;
 	
 	char *file = g_path_get_basename(filename);
 	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
 	
-	OSyncChange *change = osync_change_new();
+	OSyncChange *change = osync_change_new(&error);
 	osync_change_set_uid(change, file);
 	g_free(file);
-	osync_change_set_data(change, buffer, size + 1, TRUE);
-	osync_change_set_conv_env(change, conv_env);
-	
-	osync_change_set_objformat_string(change, "plain");
 
-	OSyncObjFormat *sourceformat = osync_change_detect_objformat(conv_env, change, &error);
+
+	// sourceformat
+	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
+
+	OSyncData *data = osync_data_new(buffer, size, sourceformat, &error);
+	fail_unless(data != NULL, NULL);
+
+	osync_change_set_data(change, data);
+
+	sourceformat = osync_format_env_detect_objformat_full(format_env, data, &error);
 	fail_unless(sourceformat != NULL, NULL);
-	osync_change_set_objformat(change, sourceformat);
-	
-	OSyncObjFormat *targetformat = osync_conv_find_objformat(conv_env, "xml-contact");
+
+	// targetformat
+	OSyncObjFormat *targetformat = osync_format_env_find_objformat(format_env, "xmlformat-contact");
+
 	fail_unless(targetformat != NULL, NULL);
 	
-	fail_unless(osync_change_convert_extension(conv_env, change, targetformat, "evolution", &error), NULL);
+
+	// Find converter
+	OSyncFormatConverter *conv_env = osync_format_env_find_converter(format_env, targetformat, sourceformat);
+	fail_unless(conv_env != NULL, NULL);
+
+	// convert
+	fail_unless (osync_converter_invoke(conv_env, data, "VCARD_EXTENSION=Evolution", &error), NULL);
+
 	
-	time_t time = osync_change_get_revision(change, &error);
+	time_t time = osync_data_get_revision(data, &error);
 	
-	osync_conv_env_free(conv_env);
-	osync_env_finalize(env, NULL);
-	osync_env_free(env);
+	osync_format_env_free(format_env);
 	
 	destroy_testbed(testbed);
 	return time;
@@ -175,215 +207,215 @@ static time_t vcard_get_revision(const char *filename)
 
 START_TEST (conv_vcard_evolution2_full1)
 {
-	conv_vcard("data/vcards/evolution2/evo2-full1.vcf", "evolution");
+	conv_vcard("/vcards/evolution2/evo2-full1.vcf", "VCARD_EXTENSION=Evolution");
 }
 END_TEST
 
 START_TEST (conv_vcard_evolution2_full2)
 {
-	conv_vcard("data/vcards/evolution2/evo2-full2.vcf", "evolution");
+	conv_vcard("/vcards/evolution2/evo2-full2.vcf", "VCARD_EXTENSION=Evolution");
 }
 END_TEST
 
 START_TEST (conv_vcard_evolution2_photo)
 {
-	conv_vcard("data/vcards/evolution2/evo2-photo.vcf", "evolution");
+	conv_vcard("/vcards/evolution2/evo2-photo.vcf", "VCARD_EXTENSION=Evolution");
 }
 END_TEST
 
 START_TEST (conv_vcard_evolution2_multiline)
 {
-	conv_vcard("data/vcards/evolution2/evo2-multiline.vcf", "evolution");
+	conv_vcard("/vcards/evolution2/evo2-multiline.vcf", "VCARD_EXTENSION=Evolution");
 }
 END_TEST
 
 START_TEST (conv_vcard_evolution2_umlaute)
 {
-	conv_vcard("data/vcards/evolution2/evo2-umlaute.vcf", "evolution");
+	conv_vcard("/vcards/evolution2/evo2-umlaute.vcf", "VCARD_EXTENSION=Evolution");
 }
 END_TEST
 
 START_TEST (conv_vcard_evolution2_special)
 {
-	conv_vcard("data/vcards/evolution2/evo2-special.vcf", "evolution");
+	conv_vcard("/vcards/evolution2/evo2-special.vcf", "VCARD_EXTENSION=Evolution");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_full1)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-full1-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-full1-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_full1)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-full1-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-full1-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_full2)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-full2-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-full2-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_full2)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-full2-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-full2-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_multiline)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-multiline-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-multiline-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_multiline)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-multiline-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-multiline-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_photo1)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-photo1-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-photo1-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_photo1)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-photo1-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-photo1-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_photo2)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-photo2-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-photo2-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_photo2)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-photo2-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-photo2-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_sound1)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-sound1-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-sound1-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_sound1)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-sound1-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-sound1-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_sound2)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-sound2-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-sound2-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_sound2)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-sound2-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-sound2-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_special)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-special-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-special-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_special)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-special-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-special-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_21_umlaute)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-umlaute-2.1.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-umlaute-2.1.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (conv_vcard_kde_30_umlaute)
 {
-	conv_vcard("data/vcards/kdepim/kdepim-umlaute-3.0.vcf", "kde");
+	conv_vcard("/vcards/kdepim/kdepim-umlaute-3.0.vcf", "VCARD_EXTENSION=KDE");
 }
 END_TEST
 
 START_TEST (compare_vformat_mismatch1)
 {
-	compare_vcard("data/vcards/evolution2/compare/1-different.vcf", "data/vcards/kdepim/compare/1-different.vcf", CONV_DATA_MISMATCH);
+	compare_vcard("/vcards/evolution2/compare/1-different.vcf", "/vcards/kdepim/compare/1-different.vcf", OSYNC_CONV_DATA_MISMATCH);
 }
 END_TEST
 
 START_TEST (compare_vformat_similar1)
 {
-	compare_vcard("data/vcards/evolution2/compare/1-conflict.vcf", "data/vcards/kdepim/compare/1-conflict.vcf", CONV_DATA_SIMILAR);
+	compare_vcard("/vcards/evolution2/compare/1-conflict.vcf", "/vcards/kdepim/compare/1-conflict.vcf", OSYNC_CONV_DATA_SIMILAR);
 }
 END_TEST
 
 START_TEST (compare_vformat_mismatch2)
 {
-	compare_vcard("data/vcards/evolution2/compare/2-conflict.vcf", "data/vcards/kdepim/compare/2-conflict.vcf", CONV_DATA_MISMATCH);
+	compare_vcard("/vcards/evolution2/compare/2-conflict.vcf", "/vcards/kdepim/compare/2-conflict.vcf", OSYNC_CONV_DATA_MISMATCH);
 }
 END_TEST
 
 START_TEST (compare_vformat_similar2)
 {
-	compare_vcard("data/vcards/evolution2/compare/2-different.vcf", "data/vcards/kdepim/compare/2-different.vcf", CONV_DATA_SIMILAR);
+	compare_vcard("/vcards/evolution2/compare/2-different.vcf", "/vcards/kdepim/compare/2-different.vcf", OSYNC_CONV_DATA_SIMILAR);
 }
 END_TEST
 
 START_TEST (compare_vformat_same1)
 {
-	compare_vcard("data/vcards/evolution2/compare/1-same.vcf", "data/vcards/kdepim/compare/1-same.vcf", CONV_DATA_SAME);
+	compare_vcard("/vcards/evolution2/compare/1-same.vcf", "/vcards/kdepim/compare/1-same.vcf", OSYNC_CONV_DATA_SAME);
 }
 END_TEST
 
 START_TEST (compare_vformat_same2)
 {
-	compare_vcard("data/vcards/evolution2/compare/2-same.vcf", "data/vcards/kdepim/compare/2-same.vcf", CONV_DATA_SAME);
+	compare_vcard("/vcards/evolution2/compare/2-same.vcf", "/vcards/kdepim/compare/2-same.vcf", OSYNC_CONV_DATA_SAME);
 }
 END_TEST
 
 START_TEST (get_revision1)
 {
 	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full1.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full1.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision2)
 {
 	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-full2.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full2.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision3)
 {
 	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-multiline.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-multiline.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision4)
 {
 	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("data/vcards/evolution2/evo2-photo.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-photo.vcf") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_no_revision)
 {
-	fail_unless(vcard_get_revision("data/vcards/evolution2/compare/1-same.vcf") == -1, NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/compare/1-same.vcf") == -1, NULL);
 }
 END_TEST
 
