@@ -118,18 +118,18 @@ START_TEST (xmlformat_validate)
 	unsigned int size;
 	osync_bool free_input, ret;
 	OSyncError *error = NULL;
-	OSyncXMLFormat *xmlformat;
+	char *xmlformat; // (OSyncXMLFormat *)
 
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
-	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
+	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
 	fail_unless(ret == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	if(free_input)
 		g_free(buffer);
 
-	fail_unless(osync_xmlformat_validate(xmlformat) != FALSE, NULL);
+	fail_unless(osync_xmlformat_validate((OSyncXMLFormat *)xmlformat) != FALSE, NULL);
 
-	osync_xmlformat_unref(xmlformat);
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat);
 
 	destroy_testbed(testbed);
 }
@@ -143,16 +143,16 @@ START_TEST (xmlformat_compare)
 	unsigned int size;
 	osync_bool free_input, ret;
 	OSyncError *error = NULL;
-	OSyncXMLFormat *xmlformat;
-	OSyncXMLFormat *xmlformat2;
+	char *xmlformat; // (OSyncXMLFormat*)
+	char *xmlformat2; // (OSyncXMLFormat*)
 
 
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
-	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
+	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
 	fail_unless(ret == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 
-	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat2, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat2, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
 	fail_unless(ret == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 
@@ -168,10 +168,10 @@ START_TEST (xmlformat_compare)
                 {NULL}
         };
 
-        osync_xmlformat_compare(xmlformat, xmlformat2, points, 0, 100);
+        osync_xmlformat_compare((OSyncXMLFormat*)xmlformat, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
 
-	osync_xmlformat_unref(xmlformat);
-	osync_xmlformat_unref(xmlformat2);
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat);
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);
 
 
 	destroy_testbed(testbed);
@@ -185,7 +185,7 @@ START_TEST (xmlformat_event_schema)
 	unsigned int size;
 	OSyncError *error = NULL;
 
-	fail_unless(osync_file_read("event.xml", &buffer, (unsigned int *)&size, &error), NULL);
+	fail_unless(osync_file_read("event.xml", &buffer, &size, &error), NULL);
 	fail_unless(error == NULL, NULL);
 
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);

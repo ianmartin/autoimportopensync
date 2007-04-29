@@ -115,6 +115,12 @@ void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size)
 		*size = data->size;
 }
 
+void *osync_data_get_data_ptr(OSyncData *data)
+{
+	osync_assert(data);
+	return data->data;
+}
+
 void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size)
 {
 	osync_assert(data);

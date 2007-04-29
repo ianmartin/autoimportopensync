@@ -134,16 +134,16 @@ START_TEST (conv_vcard)
 	unsigned int size;
 	osync_bool ret, free_input;
 	OSyncError *error = NULL;
-	OSyncXMLFormat *xmlformat = NULL;
+	char *xmlformat = NULL; // (OSyncXMLFormat*)
 
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, (unsigned int *)(&size), &error), NULL);
-	ret = conv_vcard_to_xmlformat(buffer, size, (char **)&xmlformat, (unsigned int *) &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
+	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
+	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
 	fail_unless(ret == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	if(free_input)
 		g_free(buffer);
 
-	ret = conv_xmlformat_to_vcard((char*)xmlformat, size, &buffer, (unsigned int *)&size, &free_input, "VCARD_EXTENSION=Evolution", &error, VFORMAT_CARD_30);
+	ret = conv_xmlformat_to_vcard(xmlformat, size, &buffer, &size, &free_input, "VCARD_EXTENSION=Evolution", &error, VFORMAT_CARD_30);
 	fail_unless(ret == TRUE, NULL);
 	fail_unless(error == NULL, NULL);
 	//printf("%s", buffer);

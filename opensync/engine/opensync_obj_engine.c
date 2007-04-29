@@ -372,6 +372,8 @@ void osync_mapping_engine_check_conflict(OSyncMappingEngine *engine)
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
 	osync_assert(engine != NULL);
 	
+	int is_same = 0;
+
 	if (engine->master != NULL) {
 		osync_trace(TRACE_EXIT, "%s: Already has a master", __func__);
 		return;
@@ -382,7 +384,6 @@ void osync_mapping_engine_check_conflict(OSyncMappingEngine *engine)
 		goto conflict;
 	}
 	
-	int is_same = 0;
 	GList *e = NULL;
 	for (e = engine->entries; e; e = e->next) {
 		OSyncMappingEntryEngine *leftentry = e->data;
@@ -1333,7 +1334,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						unsigned int size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
 						
-						osync_data_get_data(osync_change_get_data(entry_engine->change), (char **) &xmlformat, &size);
+						xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(entry_engine->change));
 						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
 							osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not assamble the xmlformat");
 							goto error;	

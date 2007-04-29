@@ -209,7 +209,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 				if(!xmlformat_entire)
 					goto error;
 					
-				osync_data_get_data(osync_change_get_data(change), (char **) &xmlformat, &size);
+				xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(change));
 				osync_merger_merge(merger, xmlformat, xmlformat_entire);
 				osync_xmlformat_unref(xmlformat_entire);
 			}
