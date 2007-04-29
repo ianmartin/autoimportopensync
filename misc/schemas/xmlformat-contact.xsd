@@ -27,6 +27,7 @@
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yahoo" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yabber" type="IM"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="IRC" type="StringContent"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="KDE-Extension" type="Extension"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Key" type="Key"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Location" type="Location"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Manager" type="StringContent"/>
@@ -39,6 +40,7 @@
 		<xsd:element maxOccurs="1" minOccurs="0" name="Profession" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Revision" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Role" type="StringContent"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="SMS" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Sound" type="Sound"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Spouse" type="StringContent"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Telephone" type="Telephone"/>
@@ -177,6 +179,7 @@
     <xsd:complexType name="Organization">
       <xsd:sequence>
         <xsd:element minOccurs="0" name="Name" type="xsd:string"/>
+        <xsd:element minOccurs="0" name="Department" type="xsd:string"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Unit" type="xsd:string"/>
      </xsd:sequence>
     </xsd:complexType>
@@ -344,6 +347,13 @@
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="Extension">
+      <xsd:sequence>
+        <xsd:element minOccurs="1" name="ExtName" type="xsd:string"/>
+        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
+      </xsd:sequence>
     </xsd:complexType>
 
 </xsd:schema>
