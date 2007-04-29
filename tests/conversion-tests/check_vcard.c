@@ -125,6 +125,8 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 	OSyncFormatEnv *format_env = osync_format_env_new(&error);
 	fail_unless(format_env != NULL, NULL);
 
+	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
+
 	char *buffer;
 	unsigned int size;
 	
@@ -144,6 +146,7 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 
 	sourceformat = osync_format_env_detect_objformat_full(format_env, ldata, &error);
 	fail_unless(sourceformat != NULL, NULL);
+	osync_data_set_objformat(ldata, sourceformat);
 
 	// right data
 	fail_unless(osync_file_read("rfile", &buffer, &size, &error), NULL);
@@ -151,6 +154,7 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 	OSyncChange *rchange = osync_change_new(&error);
 	osync_change_set_uid(rchange, "rfile");
 
+	sourceformat = osync_objformat_new("plain", "data", &error);
 	OSyncData *rdata = osync_data_new(buffer, size, sourceformat, &error);
 	fail_unless(rdata != NULL, NULL);
 
@@ -159,8 +163,17 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 
 	sourceformat = osync_format_env_detect_objformat_full(format_env, rdata, &error);
 	fail_unless(sourceformat != NULL, NULL);
+	osync_data_set_objformat(rdata, sourceformat);
 
-	
+	// right and left data to XMLFormat-contact
+	OSyncObjFormat *targetformat = osync_format_env_find_objformat(format_env, "xmlformat-contact");
+
+	OSyncFormatConverterPath *path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
+	fail_unless(path != NULL, NULL);
+
+	fail_unless(osync_format_env_convert(format_env, path, rdata, &error), NULL);
+	fail_unless(osync_format_env_convert(format_env, path, ldata, &error), NULL);
+
 	// compare
 	fail_unless(osync_change_compare(lchange, rchange) == result, NULL);
 	
@@ -212,7 +225,7 @@ static time_t vcard_get_revision(const char *filename)
 	
 
 	// Find converter
-	OSyncFormatConverter *conv_env = osync_format_env_find_converter(format_env, targetformat, sourceformat);
+	OSyncFormatConverter *conv_env = osync_format_env_find_converter(format_env, sourceformat, targetformat);
 	fail_unless(conv_env != NULL, NULL);
 
 	// convert
@@ -459,7 +472,6 @@ Suite *vcard_suite(void)
 	create_case(s, "conv_vcard_evolution2_umlaute", conv_vcard_evolution2_umlaute);
 	create_case(s, "conv_vcard_evolution2_special", conv_vcard_evolution2_special);
 	
-
 	create_case(s, "conv_vcard_kde_21_nonuid", conv_vcard_kde_21_nonuid);
 	create_case(s, "conv_vcard_kde_21_full1", conv_vcard_kde_21_full1);
 	create_case(s, "conv_vcard_kde_30_full1", conv_vcard_kde_30_full1);
@@ -486,7 +498,7 @@ Suite *vcard_suite(void)
 	create_case(s, "compare_vformat_similar2", compare_vformat_similar2);
 	create_case(s, "compare_vformat_same1", compare_vformat_same1);
 	create_case(s, "compare_vformat_same2", compare_vformat_same2);
-	
+
 	create_case(s, "get_revision1", get_revision1);
 	create_case(s, "get_revision2", get_revision2);
 	create_case(s, "get_revision3", get_revision3);

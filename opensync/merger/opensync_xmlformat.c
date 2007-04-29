@@ -405,6 +405,8 @@ end:
  */
 OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLFormat *xmlformat2, OSyncXMLPoints points[], int basic_points, int treshold)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %i, %i)", __func__, xmlformat1, xmlformat2, points, basic_points, treshold);
+
 	int res, collected_points, cur_pos;
 	OSyncXMLField *xmlfield1 = osync_xmlformat_get_first_field(xmlformat1);
 	OSyncXMLField *xmlfield2 = osync_xmlformat_get_first_field(xmlformat2);
