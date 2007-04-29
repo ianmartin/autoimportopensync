@@ -91,6 +91,7 @@ void osync_objformat_set_compare_func(OSyncObjFormat *format, OSyncFormatCompare
 OSyncConvCmpResult osync_objformat_compare(OSyncObjFormat *format, const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
 	osync_assert(format);
+	osync_assert(format->cmp_func);
 	return format->cmp_func(leftdata, leftsize, rightdata, rightsize);
 }
 
