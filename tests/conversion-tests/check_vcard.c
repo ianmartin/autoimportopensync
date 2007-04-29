@@ -154,7 +154,7 @@ static void compare_vcard(const char *lfilename, const char *rfilename, OSyncCon
 	OSyncData *rdata = osync_data_new(buffer, size, sourceformat, &error);
 	fail_unless(rdata != NULL, NULL);
 
-	osync_change_set_data(lchange, rdata);
+	osync_change_set_data(rchange, rdata);
 
 
 	sourceformat = osync_format_env_detect_objformat_full(format_env, rdata, &error);
