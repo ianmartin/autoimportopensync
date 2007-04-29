@@ -106,13 +106,13 @@ END_TEST
 
 START_TEST (cmp_vevent_1hour_1)
 {
-	compare_vevent("/vevents/evolution2/1-hour.vcf", "data/vevents/kdepim/1-hour-1.0.vcs", OSYNC_CONV_DATA_SAME);
+	compare_vevent("/vevents/evolution2/1-hour.vcf", "/vevents/kdepim/1-hour-1.0.vcs", OSYNC_CONV_DATA_SAME);
 }
 END_TEST
 
 START_TEST (cmp_vevent_1hour_2)
 {
-	compare_vevent("/vevents/evolution2/1-hour.vcf", "data/vevents/kdepim/1-hour-2.0.ics", OSYNC_CONV_DATA_SAME);
+	compare_vevent("/vevents/evolution2/1-hour.vcf", "/vevents/kdepim/1-hour-2.0.ics", OSYNC_CONV_DATA_SAME);
 }
 END_TEST
 
