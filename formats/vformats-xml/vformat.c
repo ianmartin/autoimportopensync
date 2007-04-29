@@ -1548,14 +1548,6 @@ vformat_attribute_param_remove_values (VFormatParam *param)
 {
 	g_return_if_fail (param != NULL);
 
-	osync_trace(TRACE_INTERNAL, "name: %s", param->name);
-
-	GList *l;
-	for (l = param->values; l; l = l->next) {
-		osync_trace(TRACE_INTERNAL, "param: %s", l->data);
-
-	}
-
 	g_list_foreach (param->values, (GFunc)g_free, NULL);
 	g_list_free (param->values);
 	param->values = NULL;
