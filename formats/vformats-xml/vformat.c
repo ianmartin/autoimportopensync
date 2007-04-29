@@ -1173,7 +1173,6 @@ vformat_attribute_free (VFormatAttribute *attr)
 {
 	g_return_if_fail (attr != NULL);
 
-	osync_trace(TRACE_INTERNAL, "group: %s(%p) name: %s(%p)", attr->group, attr->group, attr->name, attr->name);
 	g_free (attr->group);
 	g_free (attr->name);
 
