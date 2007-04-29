@@ -61,26 +61,16 @@ static void conv_vcard(const char *filename, const char *extension)
 
 	fail_unless(newchange != NULL, NULL);
 
-	printf("%s -> %s\n", osync_objformat_get_name(sourceformat), osync_objformat_get_name(targetformat));
-
 	OSyncFormatConverterPath *path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
 	fail_unless(path != NULL, NULL);
 	osync_converter_path_set_config(path, extension);
 
-	printf("%s -> %s\n", osync_objformat_get_name(sourceformat), osync_objformat_get_name(targetformat));
-
 	//Convert to
 	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
-
-	printf("%s -> %s\n", osync_objformat_get_name(sourceformat), osync_objformat_get_name(targetformat));
-
 
 	//Detect the output
 	fail_unless(osync_data_get_objformat(data) == targetformat, NULL);
 	
-	printf("%s -> %s\n", osync_objformat_get_name(sourceformat), osync_objformat_get_name(targetformat));
-
-
 	//Compare old to new
 //	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
 	
@@ -106,6 +96,11 @@ static void conv_vcard(const char *filename, const char *extension)
 	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
 	fail_unless(osync_format_env_convert(format_env, path, newdata, &error), NULL);
 
+	char *xml1 = osync_data_get_printable(data);
+	char *xml2 = osync_data_get_printable(newdata);
+	osync_trace(TRACE_INTERNAL, "ConvertedXML:\n%s\nOriginal:\n%s\n", xml1, xml2);
+	g_free(xml1);
+	g_free(xml2);
 
 	//Compare again
 	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
@@ -280,6 +275,12 @@ START_TEST (conv_vcard_kde_30_full1)
 }
 END_TEST
 
+START_TEST (conv_vcard_kde_21_nonuid)
+{
+	conv_vcard("/vcards/kdepim/kdepim-nonuid-2.1.vcf", "VCARD_EXTENSION=KDE");
+}
+END_TEST
+
 START_TEST (conv_vcard_kde_21_full2)
 {
 	conv_vcard("/vcards/kdepim/kdepim-full2-2.1.vcf", "VCARD_EXTENSION=KDE");
@@ -451,18 +452,16 @@ Suite *vcard_suite(void)
 	Suite *s = suite_create("Vcard");
 	//Suite *s2 = suite_create("Vcard");
 
-if (0) {	
 	create_case(s, "conv_vcard_evolution2_full1", conv_vcard_evolution2_full1);
 	create_case(s, "conv_vcard_evolution2_full2", conv_vcard_evolution2_full2);
 	create_case(s, "conv_vcard_evolution2_photo", conv_vcard_evolution2_photo);
 	create_case(s, "conv_vcard_evolution2_multiline", conv_vcard_evolution2_multiline);
 	create_case(s, "conv_vcard_evolution2_umlaute", conv_vcard_evolution2_umlaute);
 	create_case(s, "conv_vcard_evolution2_special", conv_vcard_evolution2_special);
-}
 	
-	create_case(s, "conv_vcard_kde_21_full1", conv_vcard_kde_21_full1);
 
-if (0) {	
+	create_case(s, "conv_vcard_kde_21_nonuid", conv_vcard_kde_21_nonuid);
+	create_case(s, "conv_vcard_kde_21_full1", conv_vcard_kde_21_full1);
 	create_case(s, "conv_vcard_kde_30_full1", conv_vcard_kde_30_full1);
 	create_case(s, "conv_vcard_kde_21_full2", conv_vcard_kde_21_full2);
 	create_case(s, "conv_vcard_kde_30_full2", conv_vcard_kde_30_full2);
@@ -493,7 +492,6 @@ if (0) {
 	create_case(s, "get_revision3", get_revision3);
 	create_case(s, "get_revision4", get_revision4);
 	create_case(s, "get_no_revision", get_no_revision);
-}
 
 	return s;
 }
