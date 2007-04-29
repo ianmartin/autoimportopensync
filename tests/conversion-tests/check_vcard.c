@@ -1,243 +1,18 @@
-#include "support.h"
-
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-support.h>
-#include <opensync/opensync-data.h>
-#include <time.h>
+#include "conversion.h"
 
 static void conv_vcard(const char *filename, const char *extension)
 {
-	char *command = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s .", filename);
-	char *testbed = setup_testbed(NULL);
-	system(command);
-	g_free(command);
-	
-	char *buffer;
-	unsigned int size;
-	
-	OSyncData *data = NULL;
-	OSyncError *error = NULL;
-
-	OSyncFormatEnv *format_env = osync_format_env_new(&error);
-	fail_unless(format_env != NULL, NULL);
-
-	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
-
-	char *file = g_path_get_basename(filename);
-	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
-	
-	OSyncChange *change = osync_change_new(&error);
-	osync_change_set_uid(change, file);
-	g_free(file);
-
-	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
-
-	data = osync_data_new(buffer, size, sourceformat, &error);
-	fail_unless(data != NULL, NULL);
-
-	osync_change_set_data(change, data);
-
-	sourceformat = osync_format_env_detect_objformat_full(format_env, data, &error);
-	fail_unless(sourceformat != NULL, NULL);
-
-	OSyncObjFormat *targetformat = NULL;
-	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard21"))
-		targetformat = osync_format_env_find_objformat(format_env, "vcard30");
-
-	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard30"))
-		targetformat = osync_format_env_find_objformat(format_env, "vcard21");
-
-	fail_unless(targetformat != NULL, NULL);
-	
-	// Create new change .. duplicate and give new uid
-	OSyncChange *newchange = osync_change_new(&error);
-	OSyncData *newdata = osync_data_clone(data, &error);
-	osync_data_set_objformat(newdata, osync_format_env_detect_objformat_full(format_env, newdata, &error));
-
-	osync_change_set_data(newchange, newdata);
-	char *newuid = g_strdup_printf("%s_original", osync_change_get_uid(change)); 
-	osync_change_set_uid(newchange, newuid);
-	g_free(newuid);
-
-	fail_unless(newchange != NULL, NULL);
-
-	OSyncFormatConverterPath *path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
-	fail_unless(path != NULL, NULL);
-	osync_converter_path_set_config(path, extension);
-
-	//Convert to
-	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
-
-	//Detect the output
-	fail_unless(osync_data_get_objformat(data) == targetformat, NULL);
-	
-	//Compare old to new
-//	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
-	
-	//Convert back
-	path = osync_format_env_find_path(format_env, targetformat, sourceformat, &error);
-
-	fail_unless(path != NULL, NULL);
-	osync_converter_path_set_config(path, extension);
-
-	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
-
-	
-	//Detect the output again
-	fail_unless(osync_data_get_objformat(data) == sourceformat, NULL);
-
-	// converter old and new to XMLFormat-contact
-	targetformat = osync_format_env_find_objformat(format_env, "xmlformat-contact");
-
-	path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
-	fail_unless(path != NULL, NULL);
-	osync_converter_path_set_config(path, extension);
-
-	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
-	fail_unless(osync_format_env_convert(format_env, path, newdata, &error), NULL);
-
-	char *xml1 = osync_data_get_printable(data);
-	char *xml2 = osync_data_get_printable(newdata);
-	osync_trace(TRACE_INTERNAL, "ConvertedXML:\n%s\nOriginal:\n%s\n", xml1, xml2);
-	g_free(xml1);
-	g_free(xml2);
-
-	//Compare again
-	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
-
-	osync_format_env_free(format_env);
-	
-	destroy_testbed(testbed);
+	conv("contact", filename, extension);
 }
 
 static void compare_vcard(const char *lfilename, const char *rfilename, OSyncConvCmpResult result)
 {
-	char *command1 = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s lfile", lfilename);
-	char *command2 = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s rfile", rfilename);
-	char *testbed = setup_testbed(NULL);
-	system(command1);
-	g_free(command1);
-	system(command2);
-	g_free(command2);
-	
-	OSyncError *error = NULL;
-	
-	OSyncFormatEnv *format_env = osync_format_env_new(&error);
-	fail_unless(format_env != NULL, NULL);
-
-	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
-
-	char *buffer;
-	unsigned int size;
-	
-	// left data
-	fail_unless(osync_file_read("lfile", &buffer, &size, &error), NULL);
-	
-	OSyncChange *lchange = osync_change_new(&error);
-	osync_change_set_uid(lchange, "lfile");
-
-	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
-
-	OSyncData *ldata = osync_data_new(buffer, size, sourceformat, &error);
-	fail_unless(ldata != NULL, NULL);
-
-	osync_change_set_data(lchange, ldata);
-
-
-	sourceformat = osync_format_env_detect_objformat_full(format_env, ldata, &error);
-	fail_unless(sourceformat != NULL, NULL);
-	osync_data_set_objformat(ldata, sourceformat);
-
-	// right data
-	fail_unless(osync_file_read("rfile", &buffer, &size, &error), NULL);
-	
-	OSyncChange *rchange = osync_change_new(&error);
-	osync_change_set_uid(rchange, "rfile");
-
-	sourceformat = osync_objformat_new("plain", "data", &error);
-	OSyncData *rdata = osync_data_new(buffer, size, sourceformat, &error);
-	fail_unless(rdata != NULL, NULL);
-
-	osync_change_set_data(rchange, rdata);
-
-
-	sourceformat = osync_format_env_detect_objformat_full(format_env, rdata, &error);
-	fail_unless(sourceformat != NULL, NULL);
-	osync_data_set_objformat(rdata, sourceformat);
-
-	// right and left data to XMLFormat-contact
-	OSyncObjFormat *targetformat = osync_format_env_find_objformat(format_env, "xmlformat-contact");
-
-	OSyncFormatConverterPath *path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
-	fail_unless(path != NULL, NULL);
-
-	fail_unless(osync_format_env_convert(format_env, path, rdata, &error), NULL);
-	fail_unless(osync_format_env_convert(format_env, path, ldata, &error), NULL);
-
-	// compare
-	fail_unless(osync_change_compare(lchange, rchange) == result, NULL);
-	
-	osync_format_env_free(format_env);
-	destroy_testbed(testbed);
+	compare("contact", lfilename, rfilename, result);
 }
 
-static time_t vcard_get_revision(const char *filename)
+static time_t vcard_get_revision(const char *filename, const char *extension)
 {
-	char *command = g_strdup_printf("cp "OPENSYNC_TESTDATA"%s .", filename);
-	char *testbed = setup_testbed(NULL);
-	system(command);
-	g_free(command);
-	
-	
-	OSyncError *error = NULL;
-	
-	OSyncFormatEnv *format_env = osync_format_env_new(&error);
-	fail_unless(format_env != NULL, NULL);
-
-	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
-
-	char *buffer;
-	unsigned int size;
-	
-	char *file = g_path_get_basename(filename);
-	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
-	
-	OSyncChange *change = osync_change_new(&error);
-	osync_change_set_uid(change, file);
-	g_free(file);
-
-
-	// sourceformat
-	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
-
-	OSyncData *data = osync_data_new(buffer, size, sourceformat, &error);
-	fail_unless(data != NULL, NULL);
-
-	osync_change_set_data(change, data);
-
-	sourceformat = osync_format_env_detect_objformat_full(format_env, data, &error);
-	fail_unless(sourceformat != NULL, NULL);
-
-	// targetformat
-	OSyncObjFormat *targetformat = osync_format_env_find_objformat(format_env, "xmlformat-contact");
-
-	fail_unless(targetformat != NULL, NULL);
-	
-
-	// Find converter
-	OSyncFormatConverter *conv_env = osync_format_env_find_converter(format_env, sourceformat, targetformat);
-	fail_unless(conv_env != NULL, NULL);
-
-	// convert
-	fail_unless (osync_converter_invoke(conv_env, data, "VCARD_EXTENSION=Evolution", &error), NULL);
-
-	
-	time_t time = osync_data_get_revision(data, &error);
-	
-	osync_format_env_free(format_env);
-	
-	destroy_testbed(testbed);
-	return time;
+	return get_revision("contact", filename, extension);
 }
 
 START_TEST (conv_vcard_evolution2_full1)
@@ -429,34 +204,34 @@ END_TEST
 START_TEST (get_revision1)
 {
 	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full1.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full1.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision2)
 {
 	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full2.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-full2.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision3)
 {
 	struct tm testtm = {0, 0, 0, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-multiline.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-multiline.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_revision4)
 {
 	struct tm testtm = {24, 41, 10, 26, 2 - 1, 2005 - 1900, 0, 0, 0};
-	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-photo.vcf") == mktime(&testtm), NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/evo2-photo.vcf", "VCARD_EXTENSION=Evolution") == mktime(&testtm), NULL);
 }
 END_TEST
 
 START_TEST (get_no_revision)
 {
-	fail_unless(vcard_get_revision("/vcards/evolution2/compare/1-same.vcf") == -1, NULL);
+	fail_unless(vcard_get_revision("/vcards/evolution2/compare/1-same.vcf", "VCARD_EXTENSION=Evolution") == -1, NULL);
 }
 END_TEST
 
