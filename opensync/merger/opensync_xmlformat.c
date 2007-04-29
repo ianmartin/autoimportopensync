@@ -258,14 +258,11 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	
 	ret = bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
 
-	xmlFreeNode(key->node);
-	g_free(key);
-	g_free(liste);
-
 	/* no result - return empty xmlfieldlist */
 	if (!ret)
 		goto end;
 
+	/* if ret is valid pointer (not NULL!) - reference it here. avoid segfaults */
 	res = *(OSyncXMLField **) ret;
 
 	/* we set the cur ptr to the first field from the fields with name name because -> bsearch -> more than one field with the same name*/
@@ -291,7 +288,14 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 			_osync_xmlfieldlist_add(xmlfieldlist, cur);
 	}
 
+
+
 end:	
+	/* free lists here (later) - bsearch result is still pointing in liste array */
+	xmlFreeNode(key->node);
+	g_free(key);
+	g_free(liste);
+
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfieldlist);
 	return xmlfieldlist;
 }
