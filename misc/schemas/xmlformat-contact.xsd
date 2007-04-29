@@ -19,13 +19,17 @@
         <xsd:element maxOccurs="1" minOccurs="0" name="FormattedName" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="FreeBusyUrl" type="StringContent"/>
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="GroupwiseDirectory" type="GroupwiseDirectory"/>
-        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-AIM" type="Aim"/>
-        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-ICQ" type="Icq"/>
-        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yahoo" type="Yahoo"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-AIM" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-GaduGadu" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-ICQ" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Jabber" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-MSN" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yahoo" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IM-Yabber" type="IM"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="IRC" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Key" type="Key"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Location" type="Location"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Manager" type="StringContent"/>
-        <xsd:element maxOccurs="unbounded" minOccurs="0" name="Msn" type="Msn"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Name" type="Name"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Nickname" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Note" type="StringContent"/>
@@ -45,7 +49,6 @@
         <xsd:element maxOccurs="1" minOccurs="0" name="Version" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="VideoUrl" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="WantsHtml" type="StringContent"/>
-        <xsd:element maxOccurs="unbounded" minOccurs="0" name="Yabber" type="Yabber"/>
       </xsd:sequence>
       <xsd:attribute name="version" type="xsd:integer"/>
     </xsd:complexType>
@@ -251,7 +254,7 @@
   </xsd:simpleType>
 
   
-    <xsd:complexType name="Icq">
+    <xsd:complexType name="IM">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
@@ -260,52 +263,11 @@
     </xsd:complexType>
   
 
-  
-    <xsd:complexType name="Msn">
-      <xsd:sequence>
-        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
-     </xsd:sequence>
-     <xsd:attribute name="Location" type="Messaging"/>
-     <xsd:attribute name="UI-Slot" type="xsd:integer"/>
-    </xsd:complexType>
-  
-
-  
-    <xsd:complexType name="Aim">
-      <xsd:sequence>
-        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
-     </xsd:sequence>
-     <xsd:attribute name="Location" type="Messaging"/>
-     <xsd:attribute name="UI-Slot" type="xsd:integer"/>
-    </xsd:complexType>
-  
-
-  
     <xsd:complexType name="GroupwiseDirectory">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
      <xsd:attribute name="Location" type="AddressLocation"/>
-     <xsd:attribute name="UI-Slot" type="xsd:integer"/>
-    </xsd:complexType>
-  
-
-  
-    <xsd:complexType name="Yahoo">
-      <xsd:sequence>
-        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
-     </xsd:sequence>
-     <xsd:attribute name="Location" type="Messaging"/>
-     <xsd:attribute name="UI-Slot" type="xsd:integer"/>
-    </xsd:complexType>
-  
-
-  
-    <xsd:complexType name="Yabber">
-      <xsd:sequence>
-        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
-     </xsd:sequence>
-     <xsd:attribute name="Location" type="Messaging"/>
      <xsd:attribute name="UI-Slot" type="xsd:integer"/>
     </xsd:complexType>
   
