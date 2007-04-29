@@ -102,7 +102,6 @@ time_t vformat_time_to_unix(const char *inptime)
 static char *_fold_lines (char *buf)
 {
 	GString *str = g_string_new ("");
-	GString *line = g_string_new ("");
 	char *p = buf;
 	char *next, *next2, *q;
 	gboolean newline = TRUE;
@@ -118,14 +117,24 @@ static char *_fold_lines (char *buf)
 
 		/* search new lines for quoted printable encoding */
 		if (newline) {
-			for (q=p; *q != '\n' && *q != '\0'; q++)
-				line = g_string_append_unichar (line, g_utf8_get_char (q));
 
-			if (strstr(line->str, "ENCODING=QUOTED-PRINTABLE"))
+			GString *line = g_string_new ("");
+
+
+			int num_chars = 0;
+			for (q=p; *q != '\n' && *q != '\0'; q++)
+				num_chars++;
+
+			line = g_string_append_len(line, p, num_chars);
+
+			
+			/* Workaround for case sensitive strcasestr */
+			gchar *upper_line = g_ascii_strup(line->str, -1);
+			if (strstr(upper_line, "ENCODING=QUOTED-PRINTABLE"))
 				quotedprintable = TRUE;
 
+			g_free(upper_line);
 			g_string_free(line, TRUE);
-			line = g_string_new ("");
 
 			newline = FALSE;
 		}
@@ -166,7 +175,6 @@ static char *_fold_lines (char *buf)
 	}
 
 	g_free (buf);
-	g_string_free(line, TRUE);
 
 	return g_string_free (str, FALSE);
 }
@@ -386,7 +394,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_
 				case 'r': str = g_string_append_c (str, '\r'); break;
 				case ';': str = g_string_append_c (str, ';'); break;
 				case ',':
-					if (!strcmp (attr->name, "CATEGORIES")) {
+					if (!g_ascii_strcasecmp(attr->name, "CATEGORIES")) {
 						//We need to handle categories here to work
 						//aroung a bug in evo2
 						_read_attribute_value_add (attr, str, charset);
@@ -407,7 +415,7 @@ static void _read_attribute_value (VFormatAttribute *attr, char **p, int format_
 			lp = g_utf8_next_char(lp);
 		}
 		else if ((*lp == ';') ||
-			 (*lp == ',' && !strcmp (attr->name, "CATEGORIES"))) {
+			 (*lp == ',' && !g_ascii_strcasecmp(attr->name, "CATEGORIES"))) {
 			_read_attribute_value_add (attr, str, charset);
 			g_string_assign (str, "");
 			lp = g_utf8_next_char(lp);
@@ -929,7 +937,10 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 					if (_helper_is_base64((const char *) v->data)) {
 						format_encoding = VF_ENCODING_BASE64;
 						/*Only the "B" encoding of [RFC 2047] is an allowed*/
-						v->data="B";
+						if (v->data)
+							g_free(v->data);
+
+						v->data = g_strdup("B");
 					}
 					/**
 					 * QUOTED-PRINTABLE inline encoding has been
@@ -966,7 +977,11 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 					// check for base64 encoding
 					if (_helper_is_base64((const char *) v->data)) {
 						format_encoding = VF_ENCODING_BASE64;
-						v->data="BASE64";
+
+						if (v->data)
+							g_free(v->data);
+
+						v->data = g_strdup("BASE64");
 					}
 					attr_str = g_string_append (attr_str, v->data);
 					if (v->next)
@@ -981,8 +996,8 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			char *value = v->data;
 			char *escaped_value = NULL;
 
-			if (!strcmp (attr->name, "RRULE") &&
-				  strstr (value, "BYDAY") == v->data) {
+			if (!g_ascii_strcasecmp (attr->name, "RRULE") &&
+				  !g_ascii_strncasecmp (value, "BYDAY", 5)) {
 				attr_str = g_string_append (attr_str, value);
 			} else {
 				escaped_value = vformat_escape_string (value, type);
@@ -994,7 +1009,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 				/* XXX toshok - i hate you, rfc 2426.
 				   why doesn't CATEGORIES use a ; like
 				   a normal list attribute? */
-				if (!strcmp (attr->name, "CATEGORIES"))
+				if (!g_ascii_strcasecmp (attr->name, "CATEGORIES"))
 					attr_str = g_string_append_c (attr_str, ',');
 				else
 					attr_str = g_string_append_c (attr_str, ';');
@@ -1101,7 +1116,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			break;
 	}
 
-	osync_trace(TRACE_EXIT, "%s(%p, %i)", __func__, type);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return g_string_free (str, FALSE);
 }
 
@@ -1158,6 +1173,7 @@ vformat_attribute_free (VFormatAttribute *attr)
 {
 	g_return_if_fail (attr != NULL);
 
+	osync_trace(TRACE_INTERNAL, "group: %s(%p) name: %s(%p)", attr->group, attr->group, attr->name, attr->name);
 	g_free (attr->group);
 	g_free (attr->name);
 
@@ -1532,6 +1548,14 @@ vformat_attribute_param_remove_values (VFormatParam *param)
 {
 	g_return_if_fail (param != NULL);
 
+	osync_trace(TRACE_INTERNAL, "name: %s", param->name);
+
+	GList *l;
+	for (l = param->values; l; l = l->next) {
+		osync_trace(TRACE_INTERNAL, "param: %s", l->data);
+
+	}
+
 	g_list_foreach (param->values, (GFunc)g_free, NULL);
 	g_list_free (param->values);
 	param->values = NULL;
@@ -1707,7 +1731,7 @@ gboolean vformat_attribute_has_param(VFormatAttribute *attr, const char *name)
 	GList *p;
 	for (p = params; p; p = p->next) {
 		VFormatParam *param = p->data;
-		if (!g_strcasecmp(name, vformat_attribute_param_get_name(param)))
+		if (!g_strcasecmp (name, vformat_attribute_param_get_name(param)))
 			return TRUE;
 	}
 	return FALSE;
