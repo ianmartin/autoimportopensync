@@ -259,18 +259,23 @@ static OSyncXMLField *handle_department_attribute(OSyncXMLFormat *xmlformat, VFo
 	OSyncXMLField *xmlfield = NULL;
 	
 	//We need to check first if the node already exists.
-	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
+	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", error, NULL);
+	if (!list)
+		goto error;
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
 	if(xmlfield == NULL) {
 		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
-		if(!xmlfield) {
-			osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-			return NULL;
-		}
+		if(!xmlfield)
+			goto error;
 	}
 	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
+
+error:	
+	osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+	return NULL;
+
 }
 
 static OSyncXMLField *handle_email_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
@@ -387,15 +392,16 @@ static OSyncXMLField *handle_kde_organization_attribute(OSyncXMLFormat *xmlforma
 	OSyncXMLField *xmlfield = NULL;
 
 	//We need to check first if the node already exists.
-	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
+	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", error, NULL);
+	if (!list)
+		goto error;
+
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
 	if(xmlfield == NULL) {
 		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
-		if(!xmlfield) {
-			osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-			return NULL;
-		}
+		if(!xmlfield)
+			goto error;
 	}
 	osync_xmlfield_set_key_value(xmlfield, "Name", vformat_attribute_get_nth_value(attr, 0));
 	osync_xmlfield_set_key_value(xmlfield, "Department", vformat_attribute_get_nth_value(attr, 1));
@@ -408,6 +414,10 @@ static OSyncXMLField *handle_kde_organization_attribute(OSyncXMLFormat *xmlforma
 		osync_xmlfield_add_key_value(xmlfield, "Unit", retstr->str);
 	}
 	return xmlfield;
+
+error:
+	osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+	return NULL;
 }
 
 static OSyncXMLField *handle_key_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
@@ -541,19 +551,24 @@ static OSyncXMLField *handle_office_attribute(OSyncXMLFormat *xmlformat, VFormat
 	OSyncXMLField *xmlfield = NULL;
 	
 	//We need to check first if the node already exists.
-	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", NULL);
+	OSyncXMLFieldList *list = osync_xmlformat_search_field(xmlformat, "Organization", error, NULL);
+	if (!list)
+		goto error;
+
 	xmlfield = osync_xmlfieldlist_item(list, 0);
 	osync_xmlfieldlist_free(list);
 	if(xmlfield == NULL) {
 		xmlfield = osync_xmlfield_new(xmlformat, "Organization", error);
-		if(!xmlfield) {
-			osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-			return NULL;
-		}	
+		if(!xmlfield)
+			goto error;
 	}
 
 	osync_xmlfield_set_key_value(xmlfield, "Unit", vformat_attribute_get_nth_value(attr, 0));
 	return xmlfield;
+
+error:
+	osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+	return NULL;
 }
 
 static OSyncXMLField *handle_organization_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
@@ -1962,14 +1977,15 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 {	
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
 	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "Revision", NULL);
+	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "Revision", error, NULL);
+	if (!fieldlist)
+		goto error;
 
 	int length = osync_xmlfieldlist_get_length(fieldlist);
 	if (length != 1) {
 		osync_xmlfieldlist_free(fieldlist);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return -1;
+		goto error;
 	}
 
 	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
@@ -1981,6 +1997,11 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
 	return time;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return -1;
+
 }
 void get_format_info(OSyncFormatEnv *env)
 {
