@@ -30,6 +30,7 @@
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="KDE-Extension" type="Extension"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Key" type="Key"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Location" type="Location"/>
+        <xsd:element maxOccurs="1" minOccurs="0" name="Logo" type="Logo"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Manager" type="StringContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Name" type="Name"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Nickname" type="StringContent"/>
@@ -248,7 +249,6 @@
         <xsd:element minOccurs="1" name="Longitude" type="xsd:string"/>
      </xsd:sequence>
     </xsd:complexType>
-  
 
   <xsd:simpleType name="Messaging">
     <xsd:restriction base="xsd:string">
@@ -288,7 +288,7 @@
     </xsd:complexType>
   
 
-  <xsd:simpleType name="PhotoFormat">
+  <xsd:simpleType name="ImageFormat">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="Bmp"/>
       <xsd:enumeration value="Gif"/>
@@ -309,19 +309,36 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="PhotoEncode">
+  <xsd:simpleType name="ImageEncode">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="b"/>
     </xsd:restriction>
   </xsd:simpleType>
 
+<!-- TODO: RFC2426 vCard Commonly Used Parameter Definition - simpleType for img-inline-value -->
+  <xsd:simpleType name="ImageValue">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="URI"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
+    <xsd:complexType name="Logo">
+      <xsd:sequence>
+        <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
+     </xsd:sequence>
+     <xsd:attribute name="Type" type="ImageFormat"/>
+     <xsd:attribute name="Encoding" type="ImageEncode"/>
+     <xsd:attribute name="Value" type="ImageValue"/> 
+    </xsd:complexType>
+
+
     <xsd:complexType name="Photo">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
-     <xsd:attribute name="Type" type="PhotoFormat"/>
-     <xsd:attribute name="Encoding" type="PhotoEncode"/>
+     <xsd:attribute name="Type" type="ImageFormat"/>
+     <xsd:attribute name="Encoding" type="ImageEncode"/>
+     <xsd:attribute name="Value" type="ImageValue"/>
     </xsd:complexType>
   
 
@@ -333,12 +350,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  
     <xsd:complexType name="Sound">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
      <xsd:attribute name="Type" type="SoundFormat"/>
+     <!-- TODO: RFC2446 - vCard Type Definition - Create xsd Types for snd-inline-param (e.g. Value, ...) -->
+     <xsd:attribute name="Value" type="xsd:string"/>
     </xsd:complexType>
   
 
