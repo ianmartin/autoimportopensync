@@ -183,8 +183,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
 	if( osync_engine_get_use_merger(engine) &&
 		(osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) &&
-		( !strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-contact")
-		 || !strcmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-event")) )
+		( !strncmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-", 10)))
 
 	{
 		osync_trace(TRACE_INTERNAL, "Merge the XMLFormat.");
@@ -718,7 +717,8 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	/* XXX The internal formats XXX */
 	_osync_engine_set_internal_format(engine, "contact", osync_format_env_find_objformat(engine->formatenv, "xmlformat-contact"));
 	_osync_engine_set_internal_format(engine, "event", osync_format_env_find_objformat(engine->formatenv, "xmlformat-event"));
-
+	_osync_engine_set_internal_format(engine, "todo", osync_format_env_find_objformat(engine->formatenv, "xmlformat-todo"));
+	_osync_engine_set_internal_format(engine, "note", osync_format_env_find_objformat(engine->formatenv, "xmlformat-note"));
 	
 	osync_trace(TRACE_INTERNAL, "Running the main loop");
 	if (!_osync_engine_start(engine, error))
