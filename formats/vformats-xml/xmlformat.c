@@ -286,9 +286,9 @@ osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessa
 
 osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error)
 {
-	char *buffer = NULL;
+	void *buffer = NULL;
 	unsigned int size = 0;
-	osync_message_read_buffer(message, (void **)&buffer, (int *)&size);
+	osync_message_read_buffer(message, &buffer, (int *)&size);
 	
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse((char *)buffer, size, error);
 	if (!xmlformat) {
