@@ -19,7 +19,7 @@
 
   <xsd:complexType name="Class">
     <xsd:sequence>
-      <xsd:element maxOccurs="1" minOccurs="1" name="content" type="ClassValue" default="PUBLIC"/>
+      <xsd:element maxOccurs="1" minOccurs="1" name="Content" type="ClassValue" default="PUBLIC"/>
     </xsd:sequence>
   </xsd:complexType>
 
