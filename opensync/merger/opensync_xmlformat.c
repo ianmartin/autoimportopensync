@@ -87,6 +87,7 @@ OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error)
 	xmlformat->first_child = NULL;
 	xmlformat->last_child = NULL;
 	xmlformat->child_count = 0;
+	xmlformat->sorted = FALSE;
 	xmlformat->doc->_private = xmlformat;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlformat);
@@ -219,8 +220,20 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	osync_assert(name);
 	
 	int index;
+	void *ret;
 	OSyncXMLField *cur, *key, *res;
-	
+
+	/* Searching breaks if the xmlformat is not sorted (bsearch!)
+	   FIXME: get rid of to many search */
+	if (!xmlformat->sorted)
+		osync_xmlformat_sort(xmlformat);
+
+	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new(error);
+	if(!xmlfieldlist) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
 	void **liste = osync_try_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count, error);
 	if(!liste) {
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
@@ -233,31 +246,31 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 		liste[index] = cur;
 		index++;
 	}
-	
+
 	key = osync_try_malloc0(sizeof(OSyncXMLField), error);
 	if(!key) {
 		g_free(liste);
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
+
 	key->node = xmlNewNode(NULL, BAD_CAST name);
 	
-	res = *(OSyncXMLField **)bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
-	
+	ret = bsearch(&key, liste, xmlformat->child_count, sizeof(OSyncXMLField *), _osync_xmlfield_compare_stdlib);
+
 	xmlFreeNode(key->node);
 	g_free(key);
-		
 	g_free(liste);
+
+	/* no result - return empty xmlfieldlist */
+	if (!ret)
+		goto end;
+
+	res = *(OSyncXMLField **) ret;
 
 	/* we set the cur ptr to the first field from the fields with name name because -> bsearch -> more than one field with the same name*/
 	for(cur = res; cur->prev != NULL && !strcmp(osync_xmlfield_get_name(cur->prev), name); cur = cur->prev) ;
-	
-	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new(error);
-	if(!xmlfieldlist) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	
+
 	osync_bool all_attr_equal;
 	for(; cur != NULL && !strcmp(osync_xmlfield_get_name(cur), name); cur = cur->next) {
 		const char *attr, *value;
@@ -278,6 +291,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 			_osync_xmlfieldlist_add(xmlfieldlist, cur);
 	}
 
+end:	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfieldlist);
 	return xmlfieldlist;
 }
@@ -328,13 +342,16 @@ osync_bool osync_xmlformat_validate(OSyncXMLFormat *xmlformat)
  */
 void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlformat);
 	osync_assert(xmlformat);
 	
 	int index;
 	OSyncXMLField *cur;
 	
-	if(xmlformat->child_count <= 1)
-		return;
+	if(xmlformat->child_count <= 1) {
+		osync_trace(TRACE_INTERNAL, "child_count <= 1 - no need to sort");
+		goto end;
+	}
 	
 	void **list = g_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count);
 	
@@ -366,8 +383,11 @@ void osync_xmlformat_sort(OSyncXMLFormat *xmlformat)
 		else
 			cur->prev = NULL;
 	}
-	
 	g_free(list);
+
+end:	
+	xmlformat->sorted = TRUE;
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /**

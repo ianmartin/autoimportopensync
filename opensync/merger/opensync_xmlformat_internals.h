@@ -38,6 +38,9 @@ struct OSyncXMLFormat {
 	int child_count;	
 	/** The wrapped xml document */
 	xmlDocPtr doc;
+	/** sorted status of xmlformat */
+	osync_bool sorted;
+
 };
 
 int _osync_xmlformat_get_points(OSyncXMLPoints points[], int* cur_pos, int basic_points, const char* fieldname);
