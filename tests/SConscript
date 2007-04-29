@@ -20,9 +20,12 @@ if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
 	testenv.Program('proxy', ['client-tests/check_proxy.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('mapping', ['mapping-tests/check_mapping.c'], LIBS = ['opensync', 'check', support])
 
-	testenv.Program('vcard', ['conversion-tests/conversion.c', 'conversion-tests/check_vcard.c'], LIBS = ['opensync', 'check', support])
-	testenv.Program('vcal', ['conversion-tests/conversion.c', 'conversion-tests/check_vcal.c'], LIBS = ['opensync', 'check', support])
-	
+	conversion = testenv.Library('conversion', ['conversion-tests/conversion.c'], LIBS = ['opensync', 'check', support])
+
+	testenv.Program('vcard', ['conversion-tests/check_vcard.c'], LIBS = ['opensync', 'check', support, conversion])
+	testenv.Program('vevent', ['conversion-tests/check_vevent.c'], LIBS = ['opensync', 'check', support, conversion])
+	testenv.Program('vtodo', ['conversion-tests/check_vtodo.c'], LIBS = ['opensync', 'check', support, conversion])
+
 	testenv.Program('engine', ['engine-tests/check_engine.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('engine-error', ['engine-tests/check_engine_error.c'], LIBS = ['opensync', 'check', support])
 	
