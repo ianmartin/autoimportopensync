@@ -12,6 +12,8 @@ static void conv_vcard(const char *filename, const char *extension)
 	system(command);
 	g_free(command);
 	
+	char *buffer;
+	unsigned int size;
 	
 	OSyncData *data = NULL;
 	OSyncError *error = NULL;
@@ -19,9 +21,8 @@ static void conv_vcard(const char *filename, const char *extension)
 	OSyncFormatEnv *format_env = osync_format_env_new(&error);
 	fail_unless(format_env != NULL, NULL);
 
-	char *buffer;
-	unsigned int size;
-	
+	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
+
 	char *file = g_path_get_basename(filename);
 	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
 	
@@ -39,8 +40,6 @@ static void conv_vcard(const char *filename, const char *extension)
 	sourceformat = osync_format_env_detect_objformat_full(format_env, data, &error);
 	fail_unless(sourceformat != NULL, NULL);
 
-	// FIXME: sourceformat is still plain :(
-
 	OSyncObjFormat *targetformat = NULL;
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard21"))
 		targetformat = osync_format_env_find_objformat(format_env, "vcard30");
@@ -53,6 +52,8 @@ static void conv_vcard(const char *filename, const char *extension)
 	// Create new change .. duplicate and give new uid
 	OSyncChange *newchange = osync_change_new(&error);
 	OSyncData *newdata = osync_data_clone(data, &error);
+	osync_data_set_objformat(newdata, osync_format_env_detect_objformat_full(format_env, newdata, &error));
+
 	osync_change_set_data(newchange, newdata);
 	char *newuid = g_strdup_printf("%s_original", osync_change_get_uid(change)); 
 	osync_change_set_uid(newchange, newuid);
@@ -60,27 +61,42 @@ static void conv_vcard(const char *filename, const char *extension)
 
 	fail_unless(newchange != NULL, NULL);
 
-
-	// Find converter
-	OSyncFormatConverter *conv_env = osync_format_env_find_converter(format_env, targetformat, sourceformat);
-	fail_unless(conv_env != NULL, NULL);
+	OSyncFormatConverterPath *path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
+	fail_unless(path != NULL, NULL);
+	osync_converter_path_set_config(path, extension);
 
 	//Convert to
-	fail_unless (osync_converter_invoke(conv_env, data, extension, &error), NULL);
-	
+	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
+
 	//Detect the output
 	fail_unless(osync_data_get_objformat(data) == targetformat, NULL);
 	
+
 	//Compare old to new
-	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
+//	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
 	
 	//Convert back
-	conv_env = osync_format_env_find_converter(format_env, targetformat, sourceformat);
-	fail_unless(conv_env != NULL, NULL);
-	fail_unless (osync_converter_invoke(conv_env, data, extension, &error), NULL);
+	path = osync_format_env_find_path(format_env, targetformat, sourceformat, &error);
+
+	fail_unless(path != NULL, NULL);
+	osync_converter_path_set_config(path, extension);
+
+	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
+
 	
 	//Detect the output again
 	fail_unless(osync_data_get_objformat(data) == sourceformat, NULL);
+
+	// converter old and new to XMLFormat-contact
+	targetformat = osync_format_env_find_objformat(format_env, "xmlformat-contact");
+
+	path = osync_format_env_find_path(format_env, sourceformat, targetformat, &error);
+	fail_unless(path != NULL, NULL);
+	osync_converter_path_set_config(path, extension);
+
+	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
+	fail_unless(osync_format_env_convert(format_env, path, newdata, &error), NULL);
+
 
 	//Compare again
 	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
@@ -160,6 +176,8 @@ static time_t vcard_get_revision(const char *filename)
 	
 	OSyncFormatEnv *format_env = osync_format_env_new(&error);
 	fail_unless(format_env != NULL, NULL);
+
+	fail_unless(osync_format_env_load_plugins(format_env, NULL, &error), NULL);
 
 	char *buffer;
 	unsigned int size;
