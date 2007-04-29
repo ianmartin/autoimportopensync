@@ -427,6 +427,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 		}
 		
 		res = strcmp((const char *)xmlfield1->node->name, (const char *)xmlfield2->node->name);
+		osync_trace(TRACE_INTERNAL, "result of strcmp(): %i (%s || %s)", res, xmlfield1->node->name, xmlfield2->node->name);
 		
 		/* subtract points for xmlfield1*/
 		if(res < 0) {
@@ -481,6 +482,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 					/* both lists must have the same length */	
 					if(g_slist_length(fieldlist1) != g_slist_length(fieldlist2)) {
 						same = FALSE;
+						osync_trace(TRACE_INTERNAL, "both list don't have the same length");
 						break;
 					}
 					
@@ -496,6 +498,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 							cur_list2 = g_slist_next(cur_list2);
 							if(cur_list2 == NULL) {
 								same = FALSE;	
+								osync_trace(TRACE_INTERNAL, "one field is alone: %s", osync_xmlfield_get_name(cur_list1->data));
 								break;
 							}
 						}while(1);
