@@ -33,6 +33,34 @@
 #include <iconv.h>
 #include <opensync/opensync.h>
 
+/**
+ * STRING_IS_BASE64 is helper macro to check i a string is "b" or "base64"
+ * @param check_string string that should be compared with "b" or "base64"
+ * @return false if check_string is not base64 and true if it is
+ */
+#define STRING_IS_BASE64(check_string) \
+	( (check_string != NULL) && \
+	(!g_ascii_strcasecmp ((char *) check_string, "BASE64") || \
+	!g_ascii_strcasecmp ((char *) check_string, "b")) )
+
+/**
+ * STRING_IS_QP is helper macro to check i a string is QUOTED-PRINTABLE
+ * @param check_string string that should be compared 
+ * @return false if check_string is not and true if it is
+ */
+#define STRING_IS_QP(check_string) \
+	( (check_string != NULL) && \
+	!g_ascii_strcasecmp ((char *) check_string, "quoted-printable") )
+
+/**
+ * STRING_IS_8BIT is helper macro to check i a string is 8BIT
+ * @param check_string string that should be compared 
+ * @return false if check_string is not 8BIT and true if it is
+ */
+#define STRING_IS_8BIT(check_string) \
+	( (check_string != NULL) && \
+	 !g_ascii_strcasecmp ((char *)check_string, "8bit") )
+
 static size_t base64_encode_step(unsigned char *in, size_t len, gboolean break_lines, unsigned char *out, int *state, int *save);
 static size_t base64_decode_step(unsigned char *in, size_t len, unsigned char *out, int *state, unsigned int *save);
 size_t base64_decode_simple (char *data, size_t len);
@@ -41,19 +69,6 @@ char  *base64_encode_simple (const char *data, size_t len);
 size_t quoted_decode_simple (char *data, size_t len);
 char *quoted_encode_simple (const unsigned char *string, int len);
 
-
-/**
- * _helper_is_base64 is helper function to check i a string is "b" or "base64"
- * @param check_string string that should be compared with "b" or "base64"
- * @return 0 if check_string is not base64  and 1 if it is
- */
-static int _helper_is_base64(const char *check_string)
-{
-	if(!g_ascii_strcasecmp ((char *) check_string, "BASE64") ||
-	   !g_ascii_strcasecmp ((char *) check_string, "b") )
-		return (1);
-	return (0);
-}
 
 time_t vformat_time_to_unix(const char *inptime)
 {
@@ -508,11 +523,11 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format
 
 				if (param
 				    && !g_ascii_strcasecmp (param->name, "encoding")) {
-					if (!g_ascii_strcasecmp (param->values->data, "quoted-printable")) {
+					if (STRING_IS_QP(param->values->data)) {
 						*format_encoding = VF_ENCODING_QP;
 						vformat_attribute_param_free (param);
 						param = NULL;
-					} else if ( _helper_is_base64(param->values->data)) {
+					} else if ( STRING_IS_BASE64(param->values->data)) {
 						*format_encoding = VF_ENCODING_BASE64;
 						vformat_attribute_param_free (param);
 						param = NULL;
@@ -526,15 +541,13 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format
 			else {
 				if (str->len > 0) {
 					char *param_name;
-					if (!g_ascii_strcasecmp (str->str,
-								 "quoted-printable")) {
+					if (STRING_IS_QP(str->str)) {
 						param_name = "ENCODING";
 						*format_encoding = VF_ENCODING_QP;
 					}
 					/* apple's broken addressbook app outputs naked BASE64
 					   parameters, which aren't even vcard 3.0 compliant. */
-					else if (!g_ascii_strcasecmp (str->str,
-								      "base64")) {
+					else if (STRING_IS_BASE64(str->str)) {
 						param_name = "ENCODING";
 						g_string_assign (str, "b");
 						*format_encoding = VF_ENCODING_BASE64;
@@ -934,7 +947,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 					attr_str = g_string_append_c (attr_str, '=');
 				}
 				for (v = param->values; v; v = v->next) {
-					if (_helper_is_base64((const char *) v->data)) {
+					if (STRING_IS_BASE64(v->data)) {
 						format_encoding = VF_ENCODING_BASE64;
 						/*Only the "B" encoding of [RFC 2047] is an allowed*/
 						if (v->data)
@@ -946,7 +959,7 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 					 * QUOTED-PRINTABLE inline encoding has been
 					 * eliminated.
 					**/
-					if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE")) {
+					if (!g_ascii_strcasecmp (param->name, "ENCODING") && STRING_IS_QP(v->data)) {
 						osync_trace(TRACE_ERROR, "%s false encoding QUOTED-PRINTABLE is not allowed", __func__);
 						format_encoding = VF_ENCODING_QP;
 					}
@@ -972,10 +985,10 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 					attr_str = g_string_append_c (attr_str, '=');
 				for (v = param->values; v; v = v->next) {
 					// check for quoted-printable encoding
-					if (!g_ascii_strcasecmp (param->name, "ENCODING") && !g_ascii_strcasecmp ((char *) v->data, "QUOTED-PRINTABLE"))
+					if (!g_ascii_strcasecmp (param->name, "ENCODING") && STRING_IS_QP(v->data))
 						format_encoding = VF_ENCODING_QP;
 					// check for base64 encoding
-					if (_helper_is_base64((const char *) v->data)) {
+					if (STRING_IS_BASE64(v->data)) {
 						format_encoding = VF_ENCODING_BASE64;
 
 						if (v->data)
@@ -1438,11 +1451,11 @@ vformat_attribute_add_param (VFormatAttribute *attr,
 		}
 
 		if (param->values && param->values->data) {
-			if (_helper_is_base64((const char*)param->values->data))
+			if (STRING_IS_BASE64(param->values->data))
 				attr->encoding = VF_ENCODING_BASE64;
-			else if (!g_ascii_strcasecmp ((char*)param->values->data, "QUOTED-PRINTABLE"))
+			else if (STRING_IS_QP(param->values->data))
 				attr->encoding = VF_ENCODING_QP;
-			else if (!g_ascii_strcasecmp ((char *)param->values->data, "8BIT"))
+			else if (STRING_IS_8BIT(param->values->data))
 				attr->encoding = VF_ENCODING_8BIT;
 			else {
 				osync_trace(TRACE_INTERNAL, "Unknown value `%s' for ENCODING parameter.  values will be treated as raw",
@@ -2018,3 +2031,7 @@ size_t quoted_decode_simple (char *data, size_t len)
 
 	return strlen(data);
 }
+
+#undef STRING_IS_BASE64
+#undef STRING_IS_QP
+#undef STRING_IS_8BIT
