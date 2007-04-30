@@ -21,6 +21,9 @@ void conv(const char *objtype, const char *filename, const char *extension)
 	
 	char *file = g_path_get_basename(filename);
 	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
+
+	char *content = g_strdup(buffer);
+	g_free(buffer);
 	
 	OSyncChange *change = osync_change_new(&error);
 	osync_change_set_uid(change, file);		
@@ -29,8 +32,10 @@ void conv(const char *objtype, const char *filename, const char *extension)
 
 	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
 
-	data = osync_data_new(buffer, size, sourceformat, &error);
+	data = osync_data_new(content, size+1, sourceformat, &error);
 	fail_unless(data != NULL, NULL);
+	osync_objformat_unref(sourceformat);
+
 
 	osync_change_set_data(change, data);
 	
@@ -77,6 +82,7 @@ void conv(const char *objtype, const char *filename, const char *extension)
 
 	//Convert to
 	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
+	osync_converter_path_unref(path);
 
 	//Detect the output
 	fail_unless(osync_data_get_objformat(data) == targetformat, NULL);
@@ -91,7 +97,7 @@ void conv(const char *objtype, const char *filename, const char *extension)
 	osync_converter_path_set_config(path, extension);
 
 	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
-
+	osync_converter_path_unref(path);
 	
 	//Detect the output again
 	fail_unless(osync_data_get_objformat(data) == sourceformat, NULL);
@@ -112,6 +118,8 @@ void conv(const char *objtype, const char *filename, const char *extension)
 	fail_unless(osync_format_env_convert(format_env, path, data, &error), NULL);
 	fail_unless(osync_format_env_convert(format_env, path, newdata, &error), NULL);
 
+	osync_converter_path_unref(path);
+
 	char *xml1 = osync_data_get_printable(data);
 	char *xml2 = osync_data_get_printable(newdata);
 	osync_trace(TRACE_INTERNAL, "ConvertedXML:\n%s\nOriginal:\n%s\n", xml1, xml2);
@@ -122,7 +130,12 @@ void conv(const char *objtype, const char *filename, const char *extension)
 	fail_unless(osync_change_compare(newchange, change) == OSYNC_CONV_DATA_SAME, NULL);
 
 	osync_format_env_free(format_env);
-	
+	osync_data_unref(data);
+	osync_data_unref(newdata);
+
+	osync_change_unref(newchange);
+	osync_change_unref(change);
+
 	destroy_testbed(testbed);
 }
 
@@ -148,34 +161,37 @@ void compare(const char *objtype, const char *lfilename, const char *rfilename, 
 	
 	// left data
 	fail_unless(osync_file_read("lfile", &buffer, &size, &error), NULL);
+	char *content = g_strdup(buffer);
+	g_free(buffer);
 	
 	OSyncChange *lchange = osync_change_new(&error);
 	osync_change_set_uid(lchange, "lfile");
 
-	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
+	OSyncObjFormat *plainformat = osync_objformat_new("plain", "data", &error);
 
-	OSyncData *ldata = osync_data_new(buffer, size, sourceformat, &error);
+	OSyncData *ldata = osync_data_new(content, size+1, plainformat, &error);
 	fail_unless(ldata != NULL, NULL);
 
 	osync_change_set_data(lchange, ldata);
 
 
-	sourceformat = osync_format_env_detect_objformat_full(format_env, ldata, &error);
+	OSyncObjFormat *sourceformat = osync_format_env_detect_objformat_full(format_env, ldata, &error);
 	fail_unless(sourceformat != NULL, NULL);
 	osync_data_set_objformat(ldata, sourceformat);
 
 	// right data
 	fail_unless(osync_file_read("rfile", &buffer, &size, &error), NULL);
+	content = g_strdup(buffer);
+	g_free(buffer);
 	
 	OSyncChange *rchange = osync_change_new(&error);
 	osync_change_set_uid(rchange, "rfile");
 
-	sourceformat = osync_objformat_new("plain", "data", &error);
-	OSyncData *rdata = osync_data_new(buffer, size, sourceformat, &error);
+	OSyncData *rdata = osync_data_new(content, size+1, plainformat, &error);
 	fail_unless(rdata != NULL, NULL);
+	osync_objformat_unref(plainformat);
 
 	osync_change_set_data(rchange, rdata);
-
 
 	sourceformat = osync_format_env_detect_objformat_full(format_env, rdata, &error);
 	fail_unless(sourceformat != NULL, NULL);
@@ -198,10 +214,15 @@ void compare(const char *objtype, const char *lfilename, const char *rfilename, 
 	fail_unless(osync_format_env_convert(format_env, path, rdata, &error), NULL);
 	fail_unless(osync_format_env_convert(format_env, path, ldata, &error), NULL);
 
+	osync_converter_path_unref(path);
+
 	// compare
 	fail_unless(osync_change_compare(lchange, rchange) == result, NULL);
 	
 	osync_format_env_free(format_env);
+	osync_change_unref(lchange);
+	osync_change_unref(rchange);
+
 	destroy_testbed(testbed);
 }
 
@@ -225,6 +246,8 @@ time_t get_revision(const char *objtype, const char *filename, const char *exten
 	
 	char *file = g_path_get_basename(filename);
 	fail_unless(osync_file_read(file, &buffer, &size, &error), NULL);
+	char *content = g_strdup(buffer);
+	g_free(buffer);
 	
 	OSyncChange *change = osync_change_new(&error);
 	osync_change_set_uid(change, file);
@@ -234,8 +257,10 @@ time_t get_revision(const char *objtype, const char *filename, const char *exten
 	// sourceformat
 	OSyncObjFormat *sourceformat = osync_objformat_new("plain", "data", &error);
 
-	OSyncData *data = osync_data_new(buffer, size, sourceformat, &error);
+	OSyncData *data = osync_data_new(content, size+1, sourceformat, &error);
 	fail_unless(data != NULL, NULL);
+
+	osync_objformat_unref(sourceformat);
 
 	osync_change_set_data(change, data);
 
@@ -266,6 +291,7 @@ time_t get_revision(const char *objtype, const char *filename, const char *exten
 	time_t time = osync_data_get_revision(data, &error);
 	
 	osync_format_env_free(format_env);
+	osync_change_unref(change);
 	
 	destroy_testbed(testbed);
 	return time;
