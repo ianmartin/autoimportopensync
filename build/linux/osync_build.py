@@ -5,6 +5,7 @@ import distutils.sysconfig
 def configure(opts):
 	opts.Add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
 	opts.Add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
+	opts.Add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
 	
 def check(env, config):
 	conf = env.Configure(custom_tests = {'CheckPKGConfig' : CheckPKGConfig, 'CheckPKG' : CheckPKG})
@@ -53,10 +54,12 @@ def check(env, config):
 
 	testenv = env.Copy()
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')
-	testenv.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,' + testenv.GetLaunchDir() + r'/opensync/'])
 	testenv.Append(CCFLAGS = r'-DOPENSYNC_TESTDATA="\"' + env.GetLaunchDir() + r'/tests/data\""')
-	
-	env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix'])
+
+	if env['enable_rpath'] == 1:
+		testenv.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,' + testenv.GetLaunchDir() + r'/opensync/'])
+		env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix'])
+
 	env.Append(CCFLAGS = r'-I' + distutils.sysconfig.get_python_inc()) 
 	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINDIR="\"' + config.plugindir + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"' + config.formatdir + r'\""')
