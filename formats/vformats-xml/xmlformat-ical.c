@@ -284,7 +284,7 @@ static OSyncXMLField *handle_dtend_attribute(OSyncXMLFormat *xmlformat, VFormatA
 
 static OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "Transparency", error);
+	return handle_attribute_simple_content(xmlformat, attr, "TimeTransparency", error);
 }
 /*
 static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -1264,7 +1264,7 @@ static OSyncHookTables *init_xmlformat_to_vcal(void)
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Transparency", handle_xml_transp_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
 
 
 	/*
