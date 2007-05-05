@@ -12,10 +12,13 @@ from substin import TOOL_SUBST
 
 class BuildConfig:
 	version = "0.30"
+	major = 1
+	minor = 0	       
+	micro = 0		       
 	plugin_version = 1
 	path_sep = r"/"
-	plugindir = r"$prefix/lib/opensync/plugins"
-	formatdir = r"$prefix/lib/opensync/formats"
+	plugindir = r"$prefix/$libsuffix/opensync/plugins"
+	formatdir = r"$prefix/$libsuffix/opensync/formats"
 	configdir = r"$prefix/share/opensync/defaults"
 	capabilitiesdir = r"$prefix/share/opensync/capabilities"
 	descriptionsdir = r"$prefix/share/opensync/descriptions"
@@ -36,11 +39,11 @@ opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled', 0))
 opts.Add(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
 opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
 opts.Add(BoolOption('enable_doxygen', 'Generating OpenSync API with doxygen?', 0))
-opts.AddOptions(
-('CC', 'Path to Custom c compiler', 'gcc'),
-('CXX', 'Path to Custom c++ compiler flags', 'g++'),
-('LDFLAGS', 'Linker flags', ''),
-)
+opts.Add(('CC', 'Path to Custom c compiler', 'gcc'))
+opts.Add(('CXX', 'Path to Custom c++ compiler flags', 'g++'))
+opts.Add(('APPEND_LDFLAGS', 'Linker flags'))
+opts.Add(('APPEND_CCFLAGS', 'Compiler flags'))
+opts.Add(('DESTDIR', 'Set the root directory to install into ( /path/to/DESTDIR )', ''))
 
 target_dir = SelectBuildDir('build')
 sys.path.append(target_dir)
@@ -51,7 +54,6 @@ SConsignFile()
 
 opts.Update(env)
 opts.Save('libopensync.conf', env)
-opts.Add("DESTDIR", 'Set the root directory to install into ( /path/to/DESTDIR )', "")
 opts.Update(env)
 
 Help("""
@@ -66,17 +68,18 @@ env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
 env.Append(CCFLAGS = r'-DENABLE_TESTS=$enable_tests')
 env.Append(CCFLAGS = r'-DENABLE_TOOLS=$enable_tools')
 env.Append(CCFLAGS = r'-DENABLE_PROFILING=$enable_profiling')
+env.Append(CCFLAGS = Split('$APPEND_CCFLAGS'))
+env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
 
 env.Replace(
        CC = env['CC'],
-       CXX = env['CXX'],
-       LDFLAGS = env['LDFLAGS']
+       CXX = env['CXX']
 )
 
 # pkg config files
 subst_dict={'@prefix@': '$prefix',
 	    '@exec_prefix@': '${prefix}',
-	    '@libdir@': '${prefix}/lib',
+	    '@libdir@': '${prefix}/${libsuffix}',
 	    '@includedir@': '${prefix}/include',
 	    '@OPENSYNC_PLUGINDIR@': config.plugindir,
 	    '@OPENSYNC_CONFIGDIR@': config.configdir,
@@ -89,8 +92,8 @@ env.SubstInFile('opensync-1.0.pc', 'opensync-1.0.pc.in', SUBST_DICT=subst_dict)
 env.SubstInFile('osengine-1.0.pc', 'osengine-1.0.pc.in', SUBST_DICT=subst_dict)
 env.SubstInFile('Doxyfile', 'Doxyfile.in', SUBST_DICT=subst_dict)
 
-env.Install('${DESTDIR}$prefix/lib/pkgconfig', 'opensync-1.0.pc') 
-env.Install('${DESTDIR}$prefix/lib/pkgconfig', 'osengine-1.0.pc') 
+env.Install('${DESTDIR}$prefix/$libsuffix/pkgconfig', 'opensync-1.0.pc') 
+env.Install('${DESTDIR}$prefix/$libsuffix/pkgconfig', 'osengine-1.0.pc') 
 
 
 if env['enable_doxygen'] == 1:
@@ -103,16 +106,16 @@ if env['enable_doxygen'] == 1:
 testenv = check(env, config)
 
 install_prefix = '${DESTDIR}$prefix'
-install_lib    = '${DESTDIR}$prefix/lib'
+install_lib    = '${DESTDIR}$prefix/$libsuffix'
 install_bin    = '${DESTDIR}$prefix/bin'
 install_inc    = '${DESTDIR}$prefix/include'
-install_format    = '${DESTDIR}$prefix/lib/opensync/formats'
-install_plugin    = '${DESTDIR}$prefix/lib/opensync/plugins'
+install_format    = '${DESTDIR}$prefix/$libsuffix/opensync/formats'
+install_plugin    = '${DESTDIR}$prefix/$libsuffix/opensync/plugins'
 install_config    = '${DESTDIR}$prefix/share/opensync/defaults'
 install_capabilities = '${DESTDIR}$prefix/share/opensync/capabilities'
 install_descriptions = '${DESTDIR}$prefix/share/opensync/descriptions'
 install_schemas = '${DESTDIR}$prefix/share/opensync/schemas'
-install_pythonlib = '${DESTDIR}$prefix/lib/python%d.%d/site-packages' % sys.version_info[:2]
+install_pythonlib = '${DESTDIR}$prefix/$libsuffix/python%d.%d/site-packages' % sys.version_info[:2]
 
 Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas install_pythonlib')
 

@@ -4,6 +4,7 @@ import distutils.sysconfig
 
 def configure(opts):
 	opts.Add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
+	opts.Add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
 	
 def check(env, config):
 	conf = env.Configure(custom_tests = {'CheckPKGConfig' : CheckPKGConfig, 'CheckPKG' : CheckPKG})
@@ -36,7 +37,8 @@ def check(env, config):
 	env = conf.Finish()
 	
 	if env['debug'] == 1:
-		env.Append(CCFLAGS = r'-g')
+		env.Append(CCFLAGS = r'-g3')
+
 	if env['debug_modules'] == 1:
 		env.Append(CCFLAGS = r'-DDEBUG_MODULES')
 	
@@ -47,14 +49,14 @@ def check(env, config):
 	env.ParseConfig('pkg-config --cflags --libs libxml-2.0')
 	env.ParseConfig('pkg-config --cflags --libs sqlite3')
 	env.Append(CCFLAGS = r'-I.')
-	env.Append(CCFLAGS = [r'-Wall', r'-Werror'])
-	
+	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
+
 	testenv = env.Copy()
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')
 	testenv.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,' + testenv.GetLaunchDir() + r'/opensync/'])
 	testenv.Append(CCFLAGS = r'-DOPENSYNC_TESTDATA="\"' + env.GetLaunchDir() + r'/tests/data\""')
 	
-	env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/lib'])
+	env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix'])
 	env.Append(CCFLAGS = r'-I' + distutils.sysconfig.get_python_inc()) 
 	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINDIR="\"' + config.plugindir + r'\""')
 	env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"' + config.formatdir + r'\""')
