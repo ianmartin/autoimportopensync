@@ -242,7 +242,18 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	 	}
 		g_assert_not_reached();
 	 }
-	 osync_trace(TRACE_EXIT, "%s: ", __func__);
+
+	 /* FIXME: Merger is broken! After merging xmlformat is not sorted. Sorting is very expensive! Avoid it! */
+	 xmlformat->sorted = FALSE;
+	 osync_xmlformat_sort(xmlformat);
+
+	 /* XXX Debugging only. Fix Merger and remove osync_xmlformat_assemble() */
+	 unsigned int size;
+	 osync_xmlformat_assemble(xmlformat, &buffer, &size);
+
+	 osync_trace(TRACE_EXIT, "%s:\nXML:\n%s ", __func__, buffer);
+
+	 g_free(buffer);
 }
 
 /**
