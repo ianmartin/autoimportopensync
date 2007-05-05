@@ -73,7 +73,7 @@ static void create_vtodo20(char **data, unsigned int *size)
 	*size = strlen(*data);	
 }
 
-static void destroy_vtodo(char *input, size_t inpsize)
+static void destroy_vtodo(char *input, unsigned int inpsize)
 {
 	g_free(input);
 }

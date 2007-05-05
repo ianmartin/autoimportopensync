@@ -62,7 +62,7 @@ static void create_vnote(char **data, unsigned int *size)
 	*size = strlen(*data);	
 }
 
-static void destroy_vnote(char *input, size_t inpsize)
+static void destroy_vnote(char *input, unsigned int inpsize)
 {
 	g_free(input);
 }

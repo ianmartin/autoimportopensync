@@ -78,7 +78,7 @@ static osync_bool vcard_categories_filter(OSyncData *data, const char *config)
 	return FALSE;
 }
 
-static void destroy_vcard(char *input, size_t inpsize)
+static void destroy_vcard(char *input, unsigned int inpsize)
 {
 	g_free(input);
 }

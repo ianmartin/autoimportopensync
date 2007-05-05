@@ -79,7 +79,7 @@ static void create_vevent20(char **data, unsigned int *size)
 	*size = strlen(*data);
 }
 
-static void destroy_vevent(char *input, size_t inpsize)
+static void destroy_vevent(char *input, unsigned int inpsize)
 {
 	g_free(input);
 }

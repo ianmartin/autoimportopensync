@@ -235,7 +235,7 @@ void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfiel
 
 
 
-void destroy_xmlformat(char *input, size_t inpsize)
+void destroy_xmlformat(char *input, unsigned int inpsize)
 {
 	osync_xmlformat_unref((OSyncXMLFormat *)input);
 }

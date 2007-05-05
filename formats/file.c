@@ -92,7 +92,7 @@ static osync_bool conv_plain_to_file(char *input, unsigned int inpsize, char **o
 	return TRUE;
 }
 
-static void destroy_file(char *input, size_t inpsize)
+static void destroy_file(char *input, unsigned int inpsize)
 {
 	OSyncFileFormat *file = (OSyncFileFormat *)input;
 	

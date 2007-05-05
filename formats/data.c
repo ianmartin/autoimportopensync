@@ -54,7 +54,7 @@ static osync_bool copy_plain(const char *input, unsigned int inpsize, char **out
 	return TRUE;
 }
 
-static void destroy_plain(char *input, size_t inpsize)
+static void destroy_plain(char *input, unsigned int inpsize)
 {
 	g_free(input);
 }
