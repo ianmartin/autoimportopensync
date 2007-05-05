@@ -321,6 +321,7 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
 		else
 			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
+
 		osync_change_set_data(existChange, newData);
 		osync_change_set_changetype(existChange, osync_change_get_changetype(masterChange));
 		
@@ -1319,15 +1320,14 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
 					long long int memberid = osync_member_get_id(member);
 					
-					osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_mapping_entry_get_uid(entry_engine->entry), memberid, osync_entry_engine_is_dirty(entry_engine));
+					osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_change_get_uid(entry_engine->change), memberid, osync_entry_engine_is_dirty(entry_engine));
 
 					/* Merger - Save the entire xml and demerge */
 					/* TODO: is here the right place to save the xml???? */
 					if (osync_engine_get_use_merger(engine->parent) &&
 						entry_engine->change &&
 						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
-						( (strcmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-contact") == 0) || 
-						(strcmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-event") == 0)) )
+						!strncmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-", 10) )
 					{
 						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
 						char *buffer = NULL;
