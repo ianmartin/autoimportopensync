@@ -24,12 +24,12 @@
   <Created>
     <Content>20070120T155900Z</Content>
   </Created>
-  <DateEnd>
-    <Content>20060120T155800Z</Content>
-  </DateEnd>  
   <DateCalendarCreated>
     <Content>20070120T130000Z</Content>
   </DateCalendarCreated>
+  <DateEnd>
+    <Content>20060120T155800Z</Content>
+  </DateEnd>  
   <DateStarted TimezoneID="Europe/Berlin">
     <Content>20070101T100000Z</Content>
   </DateStarted>
