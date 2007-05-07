@@ -1,6 +1,6 @@
 Import('*')
 
-if testenv.has_key('enable_tests') and testenv['enable_tests'] == 1:
+if testenv.has_key('enable_tools') and testenv['enable_tools'] == 1:
 	binary = testenv.Program('osyncbinary', ['osyncbinary.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 	dump = testenv.Program('osyncdump', ['osyncdump.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 	#testenv.Program('osyncplugin', ['osyncplugin.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
