@@ -193,19 +193,6 @@ static void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule)
 
 }
 
-/* ******* Paramter ****** */
-
-static void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Role");
-}
-
-static void handle_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Status");
-}
-
-
 /***** Attributes *****/
 OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
@@ -766,7 +753,7 @@ static OSyncXMLField *handle_asummary_attribute(OSyncXMLFormat *xmlformat, VForm
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmSummary", error);
 }
 */
-static void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
+void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, attributes);
 	
@@ -1249,12 +1236,11 @@ VFormatAttribute *handle_xml_calscale_attribute(VFormat *vevent, OSyncXMLField *
 
 VFormatAttribute *handle_xml_tzid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
-/*
+	/* TODO implement XMLFormat TZID handler */
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "TZID");
 	add_value(attr, xmlfield, NULL, encoding);
 	vformat_add_attribute(vevent, attr);
 	return attr;
-*/
 }
 
 VFormatAttribute *handle_xml_tz_location_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)

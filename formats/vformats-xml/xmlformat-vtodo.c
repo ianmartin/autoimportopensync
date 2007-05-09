@@ -509,7 +509,7 @@ static OSyncHookTables *init_xmlformat_to_vtodo(void)
 	return (void *)hooks;
 }
 
-static osync_bool conv_xmlformat_to_vtodo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
+osync_bool conv_xmlformat_to_vtodo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	

@@ -117,6 +117,9 @@ VFormatAttribute *handle_xml_asummary_attribute(VFormat *vevent, OSyncXMLField *
 
 void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler);
 
+void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes);
+
+
 /*
 osync_bool conv_xmlformat_to_ical(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
