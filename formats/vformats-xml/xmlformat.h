@@ -66,7 +66,7 @@ void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name
 void add_values(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding);
 void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding, int nth);
 
-void destroy_xmlformat(char *input, unsigned int inpsize);
+void destroy_xmlformat(char *input, size_t inpsize);
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 char *print_xmlformat(const char *data, unsigned int size);
 

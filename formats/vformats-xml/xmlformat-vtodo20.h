@@ -1,8 +1,8 @@
 /*
- * xmlformat-vcal - A plugin for parsing vevent10 objects for the opensync framework
+ * xmlformat-ical - A plugin for parsing vevent20 objects for the opensync framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
- * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
+ * Copyright (C) 2007  Jerry Yu <jijun.yu@sun.com>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,12 +20,19 @@
  * 
  */
 
-#ifndef XMLFORMAT_VCAL_H_
-#define XMLFORMAT_VCAL_H_
-#include "xmlformat-event.h"
+#ifndef XMLFORMAT_VTODO20_H_
+#define XMLFORMAT_VTODO20_H_
+#include <opensync/opensync.h>
+#include <opensync/opensync-merger.h>
+#include <opensync/opensync-serializer.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-time.h>
 
-osync_bool conv_xmlformat_to_vcal(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
-osync_bool conv_vcal_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+#include "vformat.h"
+#include "xmlformat.h"
+
+osync_bool conv_xmlformat_to_vtodo20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
+osync_bool conv_vtodo20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 /*
 typedef struct OSyncHookTables OSyncHookTables;
 
@@ -43,5 +50,5 @@ struct OSyncHookTables {
 
 #define HANDLE_IGNORE (void *)1
 */
-#endif //XMLFORMAT_VCAL_H_
+#endif //XMLFORMAT_VTODO_20_H_
 

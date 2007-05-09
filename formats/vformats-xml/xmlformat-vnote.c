@@ -18,86 +18,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-#include <opensync/opensync.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync_xml.h>
 
-#include "xmlformat.h"
 #include "xmlformat-vnote.h"
 
 /* ******* Paramter ****** */
-static OSyncXMLField *handle_created_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "DateCreated", error);
-}
-
-
 static OSyncXMLField *handle_body_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Body", error);
-}
-
-static OSyncXMLField *handle_summary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Summary", error);
-}
-
-static OSyncXMLField *handle_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "LastModified", error);
-}
-
-static void vnote_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, attributes);
-	
-	GList *a = NULL;
-	for (a = *attributes; a; a = a->next) {
-		VFormatAttribute *attr = a->data;
-		
-		osync_trace(TRACE_INTERNAL, "attributes:\"%s\"", vformat_attribute_get_name(attr));
-		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-
-			osync_trace(TRACE_INTERNAL, "%s: FOUND BEGIN", __func__);
-		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
-			osync_trace(TRACE_EXIT, "%s: FOUND END", __func__);
-			*attributes = a;
-			return;
-		} else
-			handle_attribute(hooks, xmlformat, attr, NULL);
-	}
-	osync_trace(TRACE_EXIT, "%s: DONE", __func__);
-}
-
-static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
-	char* keys_content[] =  {"Content", NULL};
-	OSyncXMLPoints points[] = {
-		{"Summary", 		90, 	keys_content},
-		{"Body", 	90, 	keys_content},
-		{"DateCreated", 	10, 	keys_content},
-		{NULL}
-	};
-	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-	return ret;
-}
-
-static void create_note(char **data, unsigned int *size)
-{
-	OSyncError *error = NULL;
-	*data = (char *)osync_xmlformat_new("note", &error);
-	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static void insert_attr_handler(GHashTable *table, const char *attrname, void* handler)
-{
-	g_hash_table_insert(table, (gpointer)attrname, handler);
 }
 
 static void *init_vnote_to_xmlformat(VFormatType target)
@@ -139,7 +66,7 @@ static osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, cha
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
 	GList *attributes = vformat_get_attributes(vnote);
-	vnote_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
+	vcalendar_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
 	
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
@@ -170,26 +97,6 @@ static osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, cha
 static VFormatAttribute *handle_xml_body_attribute(VFormat *vnote, OSyncXMLField *xmlfield, const char *encoding)
 {
 	return handle_xml_attribute_simple_content(vnote, xmlfield, "BODY", encoding);
-}
-
-static VFormatAttribute *handle_xml_summary_attribute(VFormat *vnote, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vnote, xmlfield, "SUMMARY", encoding);
-}
-
-static VFormatAttribute *handle_xml_last_modified_attribute(VFormat *vnote, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vnote, xmlfield, "LAST-MODIFIED", encoding);
-}
-
-static VFormatAttribute *handle_xml_created_attribute(VFormat *vnote, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vnote, xmlfield, "CREATED", encoding);
-}
-
-static void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
-{
-	g_hash_table_insert(table, (gpointer)name, handler);
 }
 
 static OSyncHookTables *init_xmlformat_to_vnote(void)
@@ -271,58 +178,6 @@ static osync_bool conv_xmlformat_to_vnotememo(char *input, unsigned int inpsize,
 static osync_bool conv_xmlformat_to_vnote(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	return conv_xmlformat_to_vnotememo(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_NOTE);
-}
-
-
-static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
-	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "LastModified", NULL);
-
-	int length = osync_xmlfieldlist_get_length(fieldlist);
-	if (length != 1) {
-		osync_xmlfieldlist_free(fieldlist);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return -1;
-	}
-
-	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
-	osync_xmlfieldlist_free(fieldlist);
-	
-	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
-	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
-	time_t time = vformat_time_to_unix(revision);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
-	return time;
-}
-
-void get_format_info(OSyncFormatEnv *env)
-{
-	OSyncError *error = NULL;
-	OSyncObjFormat *format = osync_objformat_new("xmlformat-note", "note", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
-		return;
-	}
-
-	osync_objformat_set_compare_func(format, compare_note);
-	osync_objformat_set_destroy_func(format, destroy_xmlformat);
-	osync_objformat_set_print_func(format, print_xmlformat);
-	osync_objformat_set_copy_func(format, copy_xmlformat);
-	osync_objformat_set_create_func(format, create_note);
-
-	osync_objformat_set_revision_func(format, get_revision);
-
-//	osync_objformat_must_marshal(format);
-	osync_objformat_set_marshal_func(format, marshal_xmlformat);
-	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
-	
-	osync_format_env_register_objformat(env, format);
-	osync_objformat_unref(format);
-
 }
 
 void get_conversion_info(OSyncFormatEnv *env)

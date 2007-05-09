@@ -3,6 +3,7 @@
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
+ * Copyright (C) 2007  Jerry Yu <jijun.yu@sun.com>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -235,7 +236,7 @@ void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfiel
 
 
 
-void destroy_xmlformat(char *input, unsigned int inpsize)
+void destroy_xmlformat(char *input, size_t inpsize)
 {
 	osync_xmlformat_unref((OSyncXMLFormat *)input);
 }
@@ -427,5 +428,179 @@ void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLFiel
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);	
+}
+
+OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
+	
+	char* keys_content[] =  {"Content", NULL};
+	OSyncXMLPoints points[] = {
+		{"Summary", 		90, 	keys_content},
+		{"DateTimeStart", 	10, 	keys_content},
+		{"DateTimeEnd", 	10, 	keys_content},
+		{NULL}
+	};
+	
+	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+void create_event(char **data, unsigned int *size)
+{
+	OSyncError *error = NULL;
+	*data = (char *)osync_xmlformat_new("event", &error);
+	if (!*data)
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+}
+
+static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
+	
+	char* keys_content[] =  {"Content", NULL};
+	OSyncXMLPoints points[] = {
+		{"Summary", 		90, 	keys_content},
+		{"DateStarted", 	10, 	keys_content},
+		{"DateDue", 	10, 	keys_content},
+		{NULL}
+	};
+	
+	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+static void create_todo(char **data, unsigned int *size)
+{
+	OSyncError *error = NULL;
+	*data = (char *)osync_xmlformat_new("todo", &error);
+	if (!*data)
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+}
+
+static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
+	
+	char* keys_content[] =  {"Content", NULL};
+	OSyncXMLPoints points[] = {
+		{"Summary", 		90, 	keys_content},
+		{"Body", 	90, 	keys_content},
+		{"DateCreated", 	10, 	keys_content},
+		{NULL}
+	};
+	
+	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
+	return ret;
+}
+
+static void create_note(char **data, unsigned int *size)
+{
+	OSyncError *error = NULL;
+	*data = (char *)osync_xmlformat_new("note", &error);
+	if (!*data)
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+}
+
+
+static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
+{	
+	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
+	
+	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "LastModified", NULL);
+
+	int length = osync_xmlfieldlist_get_length(fieldlist);
+	if (length != 1) {
+		osync_xmlfieldlist_free(fieldlist);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return -1;
+	}
+
+	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
+	osync_xmlfieldlist_free(fieldlist);
+	
+	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
+	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
+	time_t time = vformat_time_to_unix(revision);
+	
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
+	return time;
+}
+
+
+void get_format_info(OSyncFormatEnv *env)
+{
+	OSyncError *error = NULL;
+	
+	OSyncObjFormat *format = osync_objformat_new("xmlformat-event", "event", &error);
+	if (!format) {
+		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	
+	osync_objformat_set_compare_func(format, compare_event);
+	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_print_func(format, print_xmlformat);
+	osync_objformat_set_copy_func(format, copy_xmlformat);
+	osync_objformat_set_create_func(format, create_event);
+	
+	osync_objformat_set_revision_func(format, get_revision);
+	
+	osync_objformat_must_marshal(format);
+	osync_objformat_set_marshal_func(format, marshal_xmlformat);
+	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
+	format = osync_objformat_new("xmlformat-todo", "todo", &error);
+	if (!format) {
+		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
+		return;
+	}
+
+	osync_objformat_set_compare_func(format, compare_todo);
+	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_print_func(format, print_xmlformat);
+	osync_objformat_set_copy_func(format, copy_xmlformat);
+	osync_objformat_set_create_func(format, create_todo);
+
+	osync_objformat_set_revision_func(format, get_revision);
+
+//	osync_objformat_must_marshal(format);
+	osync_objformat_set_marshal_func(format, marshal_xmlformat);
+	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
+	format = osync_objformat_new("xmlformat-note", "note", &error);
+	if (!format) {
+		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
+		return;
+	}
+
+	osync_objformat_set_compare_func(format, compare_note);
+	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_print_func(format, print_xmlformat);
+	osync_objformat_set_copy_func(format, copy_xmlformat);
+	osync_objformat_set_create_func(format, create_note);
+
+	osync_objformat_set_revision_func(format, get_revision);
+
+//	osync_objformat_must_marshal(format);
+	osync_objformat_set_marshal_func(format, marshal_xmlformat);
+	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
+	
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
 }
 

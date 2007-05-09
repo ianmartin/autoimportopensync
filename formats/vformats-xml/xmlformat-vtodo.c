@@ -18,12 +18,9 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-#include <opensync/opensync.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync_xml.h>
-
-#include "xmlformat.h"
 #include "xmlformat-vtodo.h"
+#include "xmlformat-vtodo10.h"
+#include "xmlformat-vtodo20.h"
 
 /* ******* Paramter ****** */
 static void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -118,78 +115,6 @@ static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlforma
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
 }
 
-static OSyncXMLField *handle_created_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "DateCalendarCreated", error);
-}
-
-static OSyncXMLField *handle_dtstart_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "DateStarted", error);
-}
-
-static OSyncXMLField *handle_description_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Description", error);
-}
-
-static OSyncXMLField *handle_summary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Summary", error);
-}
-
-static OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "DateDue", error);
-}
-
-static OSyncXMLField *handle_priority_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Priority", error);
-}
-
-static OSyncXMLField *handle_sequence_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Sequence", error);
-}
-
-static OSyncXMLField *handle_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "LastModified", error);
-}
-
-   static OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceRule", error);
-}
-
-static OSyncXMLField *handle_rdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceDate", error);
-}
-
-static OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Location", error);
-}
-
-static OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling Geo attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Geo", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	osync_xmlfield_set_key_value(xmlfield, "Latitude", vformat_attribute_get_nth_value(attr, 0));
-	osync_xmlfield_set_key_value(xmlfield, "Longitude", vformat_attribute_get_nth_value(attr, 1));
-	return xmlfield;
-}
-
-static OSyncXMLField *handle_completed_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Completed", error);
-}
 
 static OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -201,24 +126,9 @@ static OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VForma
 	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceID", error);
 }
 
-static OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Status", error);
-}
-
 static OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Duration", error);
-}
-
-static OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Attach", error);
-}
-
-static OSyncXMLField *handle_attendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Attendee", error);
 }
 
 static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -226,61 +136,13 @@ static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VForma
 	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
 }
 
-static OSyncXMLField *handle_exdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "ExclusionDate", error);
-}
-
-static OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "ExclusionRule", error);
-}
-
 static OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RStatus", error);
 }
 
-static OSyncXMLField *handle_related_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Related", error);
-}
-
-static OSyncXMLField *handle_resources_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Resources", error);
-}
 
 /* VCALENDAR ONLY */
-static OSyncXMLField *handle_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	} 
-
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
-	return xmlfield; 
-}
-
-/* VCALENDAR ONLY */
-static OSyncXMLField *handle_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	} 
-
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
-	return xmlfield; 
-}
-
 static OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmTrigger", error);
@@ -328,60 +190,7 @@ static OSyncXMLField *handle_asummary_attribute(OSyncXMLFormat *xmlformat, VForm
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmSummary", error);
 }
 
-static void vtodo_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, attributes);
-	
-	GList *a = NULL;
-	for (a = *attributes; a; a = a->next) {
-		VFormatAttribute *attr = a->data;
-		
-		osync_trace(TRACE_INTERNAL, "attributes:\"%s\"", vformat_attribute_get_name(attr));
-		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-
-			osync_trace(TRACE_INTERNAL, "%s: FOUND BEGIN", __func__);
-		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
-			osync_trace(TRACE_EXIT, "%s: FOUND END", __func__);
-			*attributes = a;
-			return;
-		} else
-			handle_attribute(hooks, xmlformat, attr, NULL);
-	}
-	osync_trace(TRACE_EXIT, "%s: DONE", __func__);
-}
-
-static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, leftdata, rightdata);
-	
-	char* keys_content[] =  {"Content", NULL};
-	OSyncXMLPoints points[] = {
-		{"Summary", 		90, 	keys_content},
-		{"DateStarted", 	10, 	keys_content},
-		{"DateDue", 	10, 	keys_content},
-		{NULL}
-	};
-	
-	OSyncConvCmpResult ret = osync_xmlformat_compare((OSyncXMLFormat *)leftdata, (OSyncXMLFormat *)rightdata, points, 0, 100);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, ret);
-	return ret;
-}
-
-static void create_todo(char **data, unsigned int *size)
-{
-	OSyncError *error = NULL;
-	*data = (char *)osync_xmlformat_new("todo", &error);
-	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static void insert_attr_handler(GHashTable *table, const char *attrname, void* handler)
-{
-	g_hash_table_insert(table, (gpointer)attrname, handler);
-}
-
-static void *init_vtodo_to_xmlformat(VFormatType target)
+void *init_vtodo_to_xmlformat(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 
@@ -488,91 +297,6 @@ static void *init_vtodo_to_xmlformat(VFormatType target)
 	return (void *)hooks;
 }
 
-static osync_bool conv_itodo_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
-	
-	OSyncHookTables *hooks = init_vtodo_to_xmlformat(VFORMAT_TODO_20);
-	
-	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
-	//Parse the vtodo
-	VFormat *vtodo = vformat_new_from_string(input);
-
-	OSyncXMLFormat *xmlformat = osync_xmlformat_new("todo", error);
-	
-	osync_trace(TRACE_INTERNAL, "parsing attributes");
-	
-	GList *attributes = vformat_get_attributes(vtodo);
-	vtodo_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
-	
-	g_hash_table_destroy(hooks->attributes);
-	g_hash_table_destroy(hooks->parameters);
-	g_free(hooks);
-	
-	*free_input = TRUE;
-	*output = (char *)xmlformat;
-	*outpsize = sizeof(xmlformat);
-
-	osync_xmlformat_sort(xmlformat);
-	
-	unsigned int size;
-	char *str;
-	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "... Output XMLFormat is: \n%s", str);
-	g_free(str);
-	
-	if (osync_xmlformat_validate(xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Valid!");
-
-	vformat_free(vtodo);
-	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
-	return TRUE;
-}
-	
-static osync_bool conv_vtodo_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
-	
-	OSyncHookTables *hooks = init_vtodo_to_xmlformat(VFORMAT_TODO_10);
-	
-	osync_trace(TRACE_INTERNAL, "Input vcal is:\n%s", input);
-	//Parse the vtodo
-	VFormat *vtodo = vformat_new_from_string(input);
-
-	OSyncXMLFormat *xmlformat = osync_xmlformat_new("todo", error);
-	
-	osync_trace(TRACE_INTERNAL, "parsing attributes");
-	
-	GList *attributes = vformat_get_attributes(vtodo);
-	vtodo_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
-	
-	g_hash_table_destroy(hooks->attributes);
-	g_hash_table_destroy(hooks->parameters);
-	g_free(hooks);
-	
-	*free_input = TRUE;
-	*output = (char *)xmlformat;
-	*outpsize = sizeof(xmlformat);
-
-	osync_xmlformat_sort(xmlformat);
-	
-	unsigned int size;
-	char *str;
-	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "... Output XMLFormat is: \n%s", str);
-	g_free(str);
-	
-	if (osync_xmlformat_validate(xmlformat) == FALSE)
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Not valid!");
-	else
-		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Valid!");
-
-	vformat_free(vtodo);
-	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
-	return TRUE;
-}
 
 //parameters
 static void handle_xml_tzid_parameter(VFormatAttribute *attr, xmlNode *current)
@@ -688,258 +412,7 @@ static void handle_xml_sent_by_parameter(VFormatAttribute *attr, xmlNode *curren
 }
 
 //attributes	
-static VFormatAttribute *handle_xml_prodid_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "PRODID", encoding);
-}
-
-static VFormatAttribute *handle_xml_method_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "METHOD", encoding);
-}
-
-static VFormatAttribute *handle_xml_geo_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling location xml attribute");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "GEO");
-	add_value(attr, xmlfield, "Latitude", encoding);
-	add_value(attr, xmlfield, "Longitude", encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_dtstamp_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "DTSTAMP", encoding);
-}
-
-static VFormatAttribute *handle_xml_description_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "DESCRIPTION", encoding);
-}
-
-static VFormatAttribute *handle_xml_summary_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "SUMMARY", encoding);
-}
-
-static VFormatAttribute *handle_xml_due_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	/*TODO timezone*/
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DUE");
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_dtstart_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	/* TODO timezone */
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTSTART");
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_percent_complete_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "PERCENT-COMPLETE", encoding);
-}
-
-static VFormatAttribute *handle_xml_priority_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "PRIORITY", encoding);
-}
-
-static VFormatAttribute *handle_xml_sequence_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "SEQUENCE", encoding);
-}
-
-static VFormatAttribute *handle_xml_last_modified_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "LAST-MODIFIED", encoding);
-}
-
-static VFormatAttribute *handle_xml_created_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "CREATED", encoding);
-}
-
-static VFormatAttribute *handle_xml_rrule_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	/* TODO */
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "RRULE");
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_rdate_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "RDATE", encoding);
-}
-
-static VFormatAttribute *handle_xml_location_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "LOCATION", encoding);
-}
-
-static VFormatAttribute *handle_xml_completed_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "COMPLETED", encoding);
-}
-
-static VFormatAttribute *handle_xml_organizer_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "ORGANIZER", encoding);
-}
-
-static VFormatAttribute *handle_xml_recurid_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "RECURRENCE-ID", encoding);
-}
-
-static VFormatAttribute *handle_xml_status_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "STATUS", encoding);
-}
-
-static VFormatAttribute *handle_xml_duration_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "DURATION", encoding);
-}
-
-static VFormatAttribute *handle_xml_attach_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "ATTACH", encoding);
-}
-
-static VFormatAttribute *handle_xml_attendee_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "ATTENDEE", encoding);
-}
-
-static VFormatAttribute *handle_xml_event_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "CONTACT", encoding);
-}
-
-static VFormatAttribute *handle_xml_exdate_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "EXDATE", encoding);
-}
-
-static VFormatAttribute *handle_xml_exrule_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "EXRULE", encoding);
-}
-
-static VFormatAttribute *handle_xml_rstatus_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "RSTATUS", encoding);
-}
-
-static VFormatAttribute *handle_xml_related_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "RELATED-TO", encoding);
-}
-
-static VFormatAttribute *handle_xml_resources_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "RESOURCES", encoding);
-}
-
-static VFormatAttribute *handle_xml_dtend_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-
-	/* TODO timezone */
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTEND");
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_transp_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "TRANSP", encoding);
-}
-
-static VFormatAttribute *handle_xml_atrigger_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	return handle_xml_attribute_simple_content(vtodo, xmlfield, "TRIGGER", encoding);
-}
-
-static VFormatAttribute *handle_xml_arepeat_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "REPEAT");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aduration_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DURATION");
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aaction_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ACTION");
-	/* FIXME add_Value() #3 NULL is wrong */
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aattach_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTACH");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_adescription_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "DESCRIPTION");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_aattendee_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "ATTENDEE");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static VFormatAttribute *handle_xml_asummary_attribute(VFormat *vtodo, OSyncXMLField *xmlfield, const char *encoding)
-{
-	VFormatAttribute *attr = vformat_attribute_new(NULL, "SUMMARY");
-	/* FIXME add_Value() #3 NULL is wrong */
-
-	add_value(attr, xmlfield, NULL, encoding);
-	vformat_add_attribute(vtodo, attr);
-	return attr;
-}
-
-static void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
-{
-	g_hash_table_insert(table, (gpointer)name, handler);
-}
-
-static OSyncHookTables *init_xmlformat_to_itodo(void)
+static OSyncHookTables *init_xmlformat_to_vtodo(void)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	
@@ -1036,11 +509,11 @@ static OSyncHookTables *init_xmlformat_to_itodo(void)
 	return (void *)hooks;
 }
 
-static osync_bool conv_xmlformat_to_vtodo_both(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
+static osync_bool conv_xmlformat_to_vtodo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	
-	OSyncHookTables *hooks = init_xmlformat_to_itodo();
+	OSyncHookTables *hooks = init_xmlformat_to_vtodo();
 	
 	int i = 0;
 	if (config) {
@@ -1090,67 +563,6 @@ static osync_bool conv_xmlformat_to_vtodo_both(char *input, unsigned int inpsize
 	return TRUE;
 }
 
-static osync_bool conv_xmlformat_to_itodo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
-{
-	return conv_xmlformat_to_vtodo_both(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
-}
-
-static osync_bool conv_xmlformat_to_vtodo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
-{
-	return conv_xmlformat_to_vtodo_both(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
-}
-
-
-static time_t get_revision(const char *data, unsigned int size, OSyncError **error)
-{	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, data, size, error);
-	
-	OSyncXMLFieldList *fieldlist = osync_xmlformat_search_field((OSyncXMLFormat *)data, "LastModified", NULL);
-
-	int length = osync_xmlfieldlist_get_length(fieldlist);
-	if (length != 1) {
-		osync_xmlfieldlist_free(fieldlist);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find the revision.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return -1;
-	}
-
-	OSyncXMLField *xmlfield = osync_xmlfieldlist_item(fieldlist, 0);
-	osync_xmlfieldlist_free(fieldlist);
-	
-	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
-	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
-	time_t time = vformat_time_to_unix(revision);
-	
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
-	return time;
-}
-
-void get_format_info(OSyncFormatEnv *env)
-{
-	OSyncError *error = NULL;
-	OSyncObjFormat *format = osync_objformat_new("xmlformat-todo", "todo", &error);
-	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
-		return;
-	}
-
-	osync_objformat_set_compare_func(format, compare_todo);
-	osync_objformat_set_destroy_func(format, destroy_xmlformat);
-	osync_objformat_set_print_func(format, print_xmlformat);
-	osync_objformat_set_copy_func(format, copy_xmlformat);
-	osync_objformat_set_create_func(format, create_todo);
-
-	osync_objformat_set_revision_func(format, get_revision);
-
-//	osync_objformat_must_marshal(format);
-	osync_objformat_set_marshal_func(format, marshal_xmlformat);
-	osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
-	
-	osync_format_env_register_objformat(env, format);
-	osync_objformat_unref(format);
-
-}
 
 void get_conversion_info(OSyncFormatEnv *env)
 {
@@ -1161,7 +573,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	OSyncObjFormat *itodo = osync_format_env_find_objformat(env, "vtodo20");
 	OSyncObjFormat *vtodo = osync_format_env_find_objformat(env, "vtodo10");
 
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, itodo, conv_xmlformat_to_itodo, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, itodo, conv_xmlformat_to_vtodo20, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		return;
@@ -1169,7 +581,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, itodo, xmlformat, conv_itodo_to_xmlformat, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, itodo, xmlformat, conv_vtodo20_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		return;
@@ -1177,7 +589,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vtodo, conv_xmlformat_to_vtodo, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vtodo, conv_xmlformat_to_vtodo10, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		return;
@@ -1185,7 +597,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vtodo, xmlformat, conv_vtodo_to_xmlformat, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vtodo, xmlformat, conv_vtodo10_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		return;
