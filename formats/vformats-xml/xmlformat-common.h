@@ -29,9 +29,9 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync_internals.h>
 #include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-time.h>
+#include <opensync/opensync_xml.h>
 
 #include "vformat.h"
 

@@ -23,14 +23,8 @@
 
 #ifndef XMLFORMAT_VEVENT10_H_
 #define XMLFORMAT_VEVENT10_H_
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
 
-#include "vformat.h"
-#include "xmlformat.h"
+#include "xmlformat-vcalendar.h"
 
 osync_bool conv_xmlformat_to_vevent10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 osync_bool conv_vevent10_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);

@@ -18,7 +18,7 @@
  *
  */
 
-#include "xmlformat.h"
+#include "xmlformat-common.h"
 
 static osync_bool from_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {

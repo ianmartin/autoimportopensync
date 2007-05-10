@@ -1,5 +1,7 @@
-#ifndef XMLFORMATVCARD_H_
-#define XMLFORMATVCARD_H_
+#ifndef XMLFORMAT_VCARD_H_
+#define XMLFORMAT_VCARD_H_
+
+#include "xmlformat-common.h"
 
 /*
 typedef struct OSyncHookTables {
@@ -10,4 +12,4 @@ typedef struct OSyncHookTables {
 #define HANDLE_IGNORE (void *)1
 */
 
-#endif /*XMLFORMATVCARD_H_*/
+#endif /*XMLFORMAT_VCARD_H_*/

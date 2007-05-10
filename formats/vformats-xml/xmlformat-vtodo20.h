@@ -22,14 +22,8 @@
 
 #ifndef XMLFORMAT_VTODO20_H_
 #define XMLFORMAT_VTODO20_H_
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
 
-#include "vformat.h"
-#include "xmlformat.h"
+#include "xmlformat-vcalendar.h"
 
 osync_bool conv_xmlformat_to_vtodo20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
 osync_bool conv_vtodo20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);

@@ -20,17 +20,6 @@
  * 
  */
 
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
-
-#include <string.h> /* strcmp and strlen */
-#include <stdio.h> /* printf  */
-
-#include "vformat.h"
-#include "xmlformat.h"
 #include "xmlformat-vcard.h"
 
 static void handle_assistant_parameter(OSyncXMLField *xmlfield, VFormatParam *param)

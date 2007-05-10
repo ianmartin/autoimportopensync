@@ -37,50 +37,12 @@
 
 #define HANDLE_IGNORE (void *)1
 
-typedef struct OSyncHookTables {
-	GHashTable *attributes;
-	GHashTable *parameters;
-} OSyncHookTables;
-
-/*** PARAMETER ***/
-void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-
-/** VFormat Attributes **/
-OSyncXMLField *handle_attribute_simple_content(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, const char *name, OSyncError **error); 
-OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_uid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
-OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
-
-/** XML Attributes **/
-VFormatAttribute *handle_xml_attribute_simple_content(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding);
-VFormatAttribute *handle_xml_categories_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
-VFormatAttribute *handle_xml_class_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
-VFormatAttribute *handle_xml_uid_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
-VFormatAttribute *handle_xml_url_attribute(VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
-
-osync_bool needs_encoding(const unsigned char *tmp, const char *encoding);
-osync_bool needs_charset(const unsigned char *tmp);
-
-void add_value(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *name, const char *encoding);
-void add_values(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding);
-void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding, int nth);
-
 void destroy_xmlformat(char *input, size_t inpsize);
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 char *print_xmlformat(const char *data, unsigned int size);
 
 osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error);
 osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned int *outpsize, OSyncError **error);
-
-
-/* VFormat Handler for Attributes and Parameters */
-void handle_parameter(OSyncHookTables *hooks, OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-
-/* XML Handler for Attributes and Parameters */
-void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr);
-void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
 
 #endif // XMLFORMAT_H_
 

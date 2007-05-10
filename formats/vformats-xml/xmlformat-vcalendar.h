@@ -21,17 +21,10 @@
  * 
  */
 
-#ifndef XMLFORMAT_ICAL_H_
-#define XMLFORMAT_ICAL_H_
+#ifndef XMLFORMAT_VCALENDAR_H_
+#define XMLFORMAT_VCALENDAR_H_
 
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
-
-#include "vformat.h"
-#include "xmlformat.h"
+#include "xmlformat-common.h"
 
 OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_prodid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
@@ -143,5 +136,5 @@ struct OSyncHookTables {
 
 #define HANDLE_IGNORE (void *)1
 */
-#endif //XMLFORMAT_ICAL_H_
+#endif //XMLFORMAT_VCALENDAR_H_
 

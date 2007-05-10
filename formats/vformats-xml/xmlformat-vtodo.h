@@ -20,20 +20,11 @@
  * 
  */
 
-#ifndef XMLFORMAT_TODO_H_
-#define XMLFORMAT_TODO_H_
+#ifndef XMLFORMAT_VTODO_H_
+#define XMLFORMAT_VTODO_H_
 
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
-#include <opensync/opensync_xml.h>
-
-#include "vformat.h"
-#include "xmlformat.h"
 #include "xmlformat-vcalendar.h"
 
 void *init_vtodo_to_xmlformat(VFormatType target);
 osync_bool conv_xmlformat_to_vtodo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target);
-#endif //XMLFORMAT_TODO_H_
+#endif //XMLFORMAT_VTODO_H_

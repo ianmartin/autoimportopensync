@@ -24,14 +24,6 @@
 #ifndef XMLFORMAT_VEVENT_H_
 #define XMLFORMAT_VEVENT_H_
 
-#include <opensync/opensync.h>
-#include <opensync/opensync-merger.h>
-#include <opensync/opensync-serializer.h>
-#include <opensync/opensync-format.h>
-#include <opensync/opensync-time.h>
-
-#include "vformat.h"
-#include "xmlformat.h"
 #include "xmlformat-vcalendar.h"
 
 //OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize);
