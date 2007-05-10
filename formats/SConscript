@@ -1,44 +1,53 @@
 Import('*')
 
-env.Append( CPPPATH = '.' )
+formatenv = env.Copy()
+
+if env['enable_rpath'] == 1:
+	formatenv.Append( LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix/opensync/formats'] )
+
+formatenv.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
+formatenv.Append( CPPPATH = '.' )
 
 # The basic plugins
 
-file = env.SharedLibrary('file', ['file.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-data = env.SharedLibrary('data', ['data.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
-contact = env.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-event = env.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-note = env.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-todo = env.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+file = formatenv.SharedLibrary('file', ['file.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+data = formatenv.SharedLibrary('data', ['data.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
+contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+event = formatenv.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
 # The vformat/xmlformat support libraries
-vformat = env.SharedLibrary('opensync-vformat', ['vformats-xml/vformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-xmlformat = env.SharedLibrary('opensync-xmlformat', ['vformats-xml/xmlformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+vformat = formatenv.SharedLibrary('vformat', ['vformats-xml/vformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['vformats-xml/xmlformat-common.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
-# The xml formats
-xmlformatvcalendar = env.SharedLibrary('xmlformat-vcalendar', ['vformats-xml/xmlformat-vcalendar.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat'], LIBPATH = ['#opensync', '.'])
-xmlformatvcard = env.SharedLibrary('xmlformat-vcard', ['vformats-xml/xmlformat-vcard.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat'], LIBPATH = ['#opensync', '.'])
-xmlformatvevent = env.SharedLibrary('xmlformat-vevent', ['vformats-xml/xmlformat-vevent.c', 'vformats-xml/xmlformat-vevent10.c', 'vformats-xml/xmlformat-vevent20.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat', 'xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
-xmlformatvtodo = env.SharedLibrary('xmlformat-vtodo', ['vformats-xml/xmlformat-vtodo.c', 'vformats-xml/xmlformat-vtodo10.c', 'vformats-xml/xmlformat-vtodo20.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat', 'xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
-xmlformatvnote = env.SharedLibrary('xmlformat-vnote', ['vformats-xml/xmlformat-vnote.c'], LIBS = ['opensync', 'opensync-vformat', 'opensync-xmlformat', 'xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
-xmlformatdoc = env.SharedLibrary('xmlformat-doc', ['vformats-xml/xmlformat-doc.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+# The xmlformat formats
+xmlformat = formatenv.SharedLibrary('xmlformat', ['vformats-xml/xmlformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['vformats-xml/xmlformat-vcalendar.c'], LIBS = ['opensync', 'vformat', 'xmlformat-common'], LIBPATH = ['#opensync', '.'])
+xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['vformats-xml/xmlformat-vcard.c'], LIBS = ['opensync', 'vformat', 'xmlformat-common'], LIBPATH = ['#opensync', '.'])
+xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['vformats-xml/xmlformat-vevent.c', 'vformats-xml/xmlformat-vevent10.c', 'vformats-xml/xmlformat-vevent20.c'], LIBS = ['opensync', 'vformat', 'xmlformat-common', 'xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
+xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['vformats-xml/xmlformat-vtodo.c', 'vformats-xml/xmlformat-vtodo10.c', 'vformats-xml/xmlformat-vtodo20.c'], LIBS = ['opensync', 'vformat', 'xmlformat-common', 'xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
+xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['vformats-xml/xmlformat-vnote.c'], LIBS = ['opensync', 'vformat', 'xmlformat-common', 'xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
+xmlformatdoc = formatenv.SharedLibrary('xmlformat-doc', ['vformats-xml/xmlformat-doc.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
+formatenv.Install(install_format, file)
+formatenv.Install(install_format, data)
+formatenv.Install(install_format, contact)
+formatenv.Install(install_format, event)
+formatenv.Install(install_format, note)
+formatenv.Install(install_format, todo)
+formatenv.Install(install_format, vformat)
+formatenv.Install(install_format, xmlformat)
+formatenv.Install(install_format, xmlformatvcard)
+formatenv.Install(install_format, xmlformatvevent)
+formatenv.Install(install_format, xmlformatvnote)
+formatenv.Install(install_format, xmlformatvtodo)
+formatenv.Install(install_format, xmlformatdoc)
+formatenv.Install(install_format, xmlformatcommon)
+formatenv.Install(install_format, xmlformatvcalendar)
 
-env.Install(install_format, file)
-env.Install(install_format, data)
-env.Install(install_format, contact)
-env.Install(install_format, event)
-env.Install(install_format, note)
-env.Install(install_format, todo)
-env.Install(install_format, xmlformatvcard)
-env.Install(install_format, xmlformatvevent)
-env.Install(install_format, xmlformatvnote)
-env.Install(install_format, xmlformatvtodo)
-env.Install(install_format, xmlformatdoc)
-env.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
-env.Install(install_lib, vformat)
-env.Install(install_lib, xmlformat)
-env.Install(install_lib, xmlformatvcalendar)
-env.Alias('install', install_prefix)
+formatenv.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
+
+formatenv.Alias('install', install_prefix)
