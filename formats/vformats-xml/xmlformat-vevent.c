@@ -25,7 +25,7 @@
 #include "xmlformat-vevent10.h"
 #include "xmlformat-vevent20.h"
 
-void *init_vevent_to_xmlformat(VFormatType target)
+static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 
@@ -105,7 +105,7 @@ void *init_vevent_to_xmlformat(VFormatType target)
 }
 
 
-static OSyncHookTables *init_xmlformat_to_vevent(void)
+static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 	
@@ -257,12 +257,62 @@ static OSyncHookTables *init_xmlformat_to_vevent(void)
 	return (void *)hooks;
 }
 
+osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
+
+	OSyncHookTables *hooks = init_vevent_to_xmlformat(target); 
+
+	osync_trace(TRACE_INTERNAL, "Input vevent is:\n%s", input);
+	
+	//Parse the vevent
+	VFormat *vevent = vformat_new_from_string(input);
+	
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
+
+	
+	osync_trace(TRACE_INTERNAL, "parsing attributes");
+	
+	//For every attribute we have call the handling hook
+	GList *attributes = vformat_get_attributes(vevent);
+	vcalendar_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
+	//static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
+
+	// TODO free more members...
+	g_hash_table_destroy(hooks->attributes);
+	g_hash_table_destroy(hooks->parameters);
+	g_free(hooks);
+
+	*free_input = TRUE;
+	*output = (char *)xmlformat;
+	*outpsize = sizeof(xmlformat);
+
+	// XXX: remove this later?
+	osync_xmlformat_sort(xmlformat);
+	
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(xmlformat, &str, &size);
+	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+	g_free(str);
+
+	if (osync_xmlformat_validate(xmlformat) == FALSE)
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
+	else
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
+
+
+	vformat_free(vevent);
+	
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+}
 
 osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
-	OSyncHookTables *hooks = init_xmlformat_to_vevent();
+	OSyncHookTables *hooks = init_xmlformat_to_vevent(target);
 
 	int i = 0;
 	if (config) {
@@ -305,7 +355,7 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	g_free(str);
 
 	//Make the new vcal
-	VFormat *ical = vformat_new();
+	VFormat *vevent = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	const char *std_encoding = NULL;
@@ -316,7 +366,7 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
-		xml_handle_attribute(hooks, ical, xmlfield, std_encoding);
+		xml_handle_attribute(hooks, vevent, xmlfield, std_encoding);
 	}
 	
 	g_hash_table_destroy(hooks->attributes);
@@ -324,18 +374,37 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	g_free(hooks);
 
 	*free_input = TRUE;
-	*output = vformat_to_string(ical, target);
+	*output = vformat_to_string(vevent, target);
 	*outpsize = strlen(*output) + 1;
 
-	vformat_free(ical);
+	vformat_free(vevent);
 
-	osync_trace(TRACE_INTERNAL, "Output icalendar is: \n%s", *output);
+	osync_trace(TRACE_INTERNAL, "Output vevent is: \n%s", *output);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
 }
 
+osync_bool conv_xmlformat_to_vevent10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
+}
+
+osync_bool conv_xmlformat_to_vevent20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
+}
+
+osync_bool conv_vevent10_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
+}
+
+osync_bool conv_vevent20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
+}
 
 void get_conversion_info(OSyncFormatEnv *env)
 {
@@ -343,10 +412,10 @@ void get_conversion_info(OSyncFormatEnv *env)
 	OSyncError *error = NULL;
 	
 	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
-	OSyncObjFormat *vcal = osync_format_env_find_objformat(env, "vevent10");
-	OSyncObjFormat *ical = osync_format_env_find_objformat(env, "vevent20");
+	OSyncObjFormat *vevent10 = osync_format_env_find_objformat(env, "vevent10");
+	OSyncObjFormat *vevent20 = osync_format_env_find_objformat(env, "vevent20");
 	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vcal, conv_xmlformat_to_vevent10, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vevent10, conv_xmlformat_to_vevent10, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
@@ -355,7 +424,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vcal, xmlformat, conv_vevent10_to_xmlformat, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vevent10, xmlformat, conv_vevent10_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
@@ -364,7 +433,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, ical, conv_xmlformat_to_vevent20, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vevent20, conv_xmlformat_to_vevent20, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
@@ -373,7 +442,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 	
-	conv = osync_converter_new(OSYNC_CONVERTER_CONV, ical, xmlformat, conv_vevent20_to_xmlformat, &error);
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vevent20, xmlformat, conv_vevent20_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);

@@ -26,10 +26,4 @@
 
 #include "xmlformat-vcalendar.h"
 
-//OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize);
-//void create_event(char **data, unsigned int *size);
-//time_t get_revision(const char *data, unsigned int size, OSyncError **error);
-
-void *init_vevent_to_xmlformat(VFormatType target);
-osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target);
 #endif //XMLFORMAT_EVENT_H_

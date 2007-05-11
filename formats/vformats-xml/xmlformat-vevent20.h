@@ -26,24 +26,5 @@
 
 #include "xmlformat-vcalendar.h"
 
-osync_bool conv_xmlformat_to_vevent20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
-osync_bool conv_vevent20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error);
-/*
-typedef struct OSyncHookTables OSyncHookTables;
-
-
-struct OSyncHookTables {
-	GHashTable *table;
-	GHashTable *tztable;
-	GHashTable *comptable;
-	GHashTable *compparamtable;
-	GHashTable *alarmtable;
-
-	GHashTable *parameters;
-	GHashTable *attributes;
-};
-
-#define HANDLE_IGNORE (void *)1
-*/
-#endif //XMLFORMAT_VEVENT_20_H_
+#endif //XMLFORMAT_VEVENT20_H_
 
