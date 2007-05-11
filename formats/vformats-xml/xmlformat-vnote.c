@@ -1,5 +1,5 @@
 /*
- * xmlformat-note - A plugin for parsing vnote objects for the opensync framework
+ * xmlformat-vnote - convert vnote11 to xmlformat-note and backwards
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
  * Copyright (C) 2007  Jerry Yu <jijun.yu@sun.com>
@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ *
  */
 
 #include "xmlformat-vnote.h"

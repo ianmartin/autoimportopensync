@@ -1,5 +1,5 @@
 /*
- * xmlformat-common - Common code base for vformat-xmlformat converters. 
+ * xmlformat-common - common code for all xmlformat converter 
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>

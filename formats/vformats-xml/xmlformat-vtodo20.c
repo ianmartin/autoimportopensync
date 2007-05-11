@@ -1,5 +1,5 @@
 /*
- * xmlformat-todo - A plugin for parsing vtodo objects for the opensync framework
+ * xmlformat-vtodo20 - convert vtodo20 to xmlformat-todo and backwards
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
  * Copyright (C) 2007  Jerry Yu <jijun.yu@sun.com>
@@ -17,7 +17,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ *
  */
+
 #include "xmlformat-vtodo.h"
 #include "xmlformat-vtodo20.h"
 

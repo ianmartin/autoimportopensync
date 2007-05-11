@@ -1,5 +1,5 @@
 /*
- * xmlformat-ical - A plugin for parsing vevent20 objects for the opensync framework
+ * xmlformat-vevent10 - convert vevent10 to xmlformat-event and backwards
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
  * Copyright (C) 2007  Christopher Stender <cstender@suse.de>

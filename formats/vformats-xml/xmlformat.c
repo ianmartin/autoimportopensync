@@ -1,9 +1,10 @@
 /*
- * xmlformat - Common code base for xmlformat-* format plugins. 
+ * xmlformat - registration of xml object formats 
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2006  Daniel Friedrich <daniel.friedrich@opensync.org>
  * Copyright (C) 2007  Daniel Gollub <dgollub@suse.de>
  * Copyright (C) 2007  Jerry Yu <jijun.yu@sun.com>
+ * Copyright (C) 2007  Christopher Stender <cstender@suse.de>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
