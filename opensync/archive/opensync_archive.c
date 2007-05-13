@@ -74,6 +74,23 @@ osync_bool osync_archive_create_changes(OSyncDB *db, OSyncError **error)
 	return TRUE;
 }
 
+osync_bool osync_archive_create_changelog(OSyncDB *db, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
+
+	char *query = NULL;
+	query = g_strdup("CREATE TABLE tbl_changelog (id INTEGER PRIMARY KEY, entryid INTEGER, changetype INTEGER, objtype VARCHAR)");
+	if (!osync_db_query(db, query, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		g_free(query);
+		return FALSE;
+	}
+	g_free(query);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 osync_bool osync_archive_create(OSyncDB *db, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
@@ -135,6 +152,18 @@ OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 	/* if ret == 0 table does not exist. continue and create it */
 
 	if (ret == 0 && !osync_archive_create_changes(archive->db, error)) {
+		g_free(archive->db);
+		goto error_and_free;
+	}
+
+	/* tbl_changelog */
+	ret = osync_db_exists(archive->db, "tbl_changelog", error);
+
+	/* error if ret -1 */
+	if (ret < 0)
+		goto error_and_free;
+	/* if ret == 0 table does not exist. continue and create it */
+	if (ret == 0 && !osync_archive_create_changelog(archive->db, error)) {
 		g_free(archive->db);
 		goto error_and_free;
 	}
@@ -264,7 +293,7 @@ error:
  * @brief Save a entry in the group archive. 
  *
  * @param archive The group archive
- * @param id Arhive (database) id of entry which gets deleted
+ * @param id Archive (database) id of entry which gets deleted
  * @param uid Reported UID of entry
  * @param objtype Reported object type of entry
  * @param mappingid Mapped ID of entry 
@@ -414,6 +443,119 @@ error:
 	g_free(objtype);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
+}
+
+/**
+ * @brief Load all conficting changes which got ignored in previous sync. 
+ *
+ * @param archive The group archive
+ * @param objtype Requested object type 
+ * @param ids List unique databse entry id 
+ * @param changetypes List to store changetypes for each entry
+ * @param error Pointer to a error struct
+ * @return TRUE on when all changes successfully loaded otherwise FALSE
+ */ 
+osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **changetypes, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, archive, objtype, ids, error);
+
+	GList *result = NULL;
+	GList *row = NULL;
+
+	char *query = g_strdup_printf("SELECT entryid, changetype FROM tbl_changelog WHERE objtype='%s' ORDER BY id", objtype);
+	result = osync_db_query_table(archive->db, query, error);
+
+	g_free(query);
+	
+	/* Check for error of osync_db_query_table() call. */
+	if (osync_error_is_set(error))
+		goto error;
+
+	for (row = result; row; row = row->next) { 
+		GList *column = row->data;
+
+		long long int id = g_ascii_strtoull(g_list_nth_data(column, 0), NULL, 0);
+		int changetype = atoi(g_list_nth_data(column, 1));
+		
+		*ids = osync_list_append((*ids), GINT_TO_POINTER((int)id));
+		*changetypes = osync_list_append((*changetypes), GINT_TO_POINTER((int)changetype));
+		
+	    	osync_trace(TRACE_INTERNAL, "Loaded ignored mapping with entryid %lli", id);
+	}
+
+	osync_db_free_list(result);	
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;	
+}
+
+/**
+ * @brief Save an entry in the ignored conflict list.
+ *
+ * @param archive The group archive
+ * @param objtype Reported object type of entry
+ * @param id Mapping Entry ID of entry 
+ * @param changetype Changetype of entry 
+ * @param error Pointer to a error struct
+ * @return Returns TRUE on success, FALSE otherwise 
+ */ 
+osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char *objtype, long long int id, OSyncChangeType changetype, OSyncError **error)
+{
+	char *query = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %lli, %p)", __func__, archive, objtype, id, error);
+	osync_assert(archive);
+	
+	query = g_strdup_printf("INSERT INTO tbl_changelog (entryid, changetype, objtype) VALUES('%lli', '%i', '%s')", id, changetype, objtype);
+	
+	if (!osync_db_query(archive->db, query, error)) {
+		g_free(query);
+		goto error;
+	}
+
+	g_free(query);
+	
+	osync_trace(TRACE_EXIT, "%s: %lli", __func__, id);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+/**
+ * @brief Delete all ignored conflict entries of the changelog with the objtype.
+ *
+ * @param archive The group archive
+ * @param objtype Reported object type of entry
+ * @param error Pointer to a error struct
+ * @return Returns TRUE on success, FALSE otherwise 
+ */ 
+osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const char *objtype, OSyncError **error)
+{
+	char *query = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, objtype, error);
+	osync_assert(archive);
+	
+	query = g_strdup_printf("DELETE FROM tbl_changelog WHERE objtype=\"%s\"", objtype);
+	
+	if (!osync_db_query(archive->db, query, error)) {
+		g_free(query);
+		goto error;
+	}
+
+	g_free(query);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /*@}*/
