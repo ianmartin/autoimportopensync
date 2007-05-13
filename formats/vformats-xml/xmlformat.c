@@ -57,10 +57,14 @@ char *print_xmlformat(const char *data, unsigned int size)
 {
 	char *buffer;
 	unsigned int i;
-	if(osync_xmlformat_assemble((OSyncXMLFormat *)data, &buffer, &i) == TRUE)
-		return buffer;
-	else
+
+	if (!data)
 		return NULL;
+
+	if(!osync_xmlformat_assemble((OSyncXMLFormat *)data, &buffer, &i))
+		return NULL;
+
+	return buffer;
 }
 
 osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessage *message, OSyncError **error)
