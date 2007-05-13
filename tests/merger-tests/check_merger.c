@@ -3,7 +3,7 @@
 #include <opensync/opensync-merger.h>
 
 #include "formats/vformats-xml/vformat.c"
-#include "formats/vformats-xml/xmlformat.c"
+#include "formats/vformats-xml/xmlformat-common.c"
 #include "formats/vformats-xml/xmlformat-vcard.c"
 
 START_TEST (merger_new)
