@@ -36,6 +36,9 @@ osync_bool osync_marshal_data(OSyncMessage *message, OSyncData *data, OSyncError
 	 * objtype
 	 * size
 	 * data */
+
+	osync_assert(message);
+	osync_assert(data);
 	
 	/* Find the format */
 	OSyncObjFormat *objformat = osync_data_get_objformat(data);

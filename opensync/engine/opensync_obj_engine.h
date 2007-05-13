@@ -42,6 +42,7 @@ int osync_mapping_engine_num_changes(OSyncMappingEngine *engine);
 OSyncChange *osync_mapping_engine_nth_change(OSyncMappingEngine *engine, int nth);
 
 osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *change, OSyncError **error);
+osync_bool osync_mapping_engine_ignore(OSyncMappingEngine *engine, OSyncError **error);
 osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, OSyncError **error);
 
 #endif /*OPENSYNC_OBJ_ENGINE_H_*/

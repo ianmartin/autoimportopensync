@@ -1158,7 +1158,11 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 						goto error;
 					break;
 				case OSYNC_ENGINE_SOLVE_IGNORE:
+					if (!osync_mapping_engine_ignore(command->mapping_engine, &engine->error))
+						goto error;
+					break;
 				case OSYNC_ENGINE_SOLVE_USE_LATEST:
+					// TODO
 					break;
 			}
 			break;

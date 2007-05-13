@@ -267,7 +267,7 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		osync_trace(TRACE_EXIT, "%s: No need to multiply. Already synced", __func__);
 		return TRUE;
 	}
-	
+
 	if (!engine->master) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No master set");
 		goto error;
@@ -515,6 +515,42 @@ osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *c
 	OSyncMappingEntryEngine *entry = osync_mapping_engine_find_entry(engine, change);
 	engine->conflict = FALSE;
 	osync_mapping_engine_set_master(engine, entry);
+	osync_status_update_mapping(engine->parent->parent, engine, OSYNC_MAPPING_EVENT_SOLVED, NULL);
+	engine->parent->conflicts = g_list_remove(engine->parent->conflicts, engine);
+	
+	if (osync_engine_check_get_changes(engine->parent->parent) && BitCount(engine->parent->sink_errors | engine->parent->sink_get_changes) == g_list_length(engine->parent->sink_engines)) {
+		OSyncError *error = NULL;
+		if (!osync_obj_engine_command(engine->parent, OSYNC_ENGINE_COMMAND_WRITE, &error))
+			goto error;
+	} else
+		osync_trace(TRACE_INTERNAL, "Not triggering write. didnt receive all reads yet");
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+osync_bool osync_mapping_engine_ignore(OSyncMappingEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	
+	engine->conflict = FALSE;
+	engine->synced = TRUE;
+
+	OSyncObjEngine *objengine = engine->parent;
+	OSyncArchive *archive = objengine->archive;
+	char *objtype = objengine->objtype;
+	long long int id = osync_mapping_get_id(engine->mapping);
+
+	GList *c = NULL;
+	for (c = engine->entries; c; c = c->next) {
+		OSyncMappingEntryEngine *entry = c->data;
+		osync_archive_save_ignored_conflict(archive, objtype, id, osync_change_get_changetype(entry->change), error);
+	}
+
 	osync_status_update_mapping(engine->parent->parent, engine, OSYNC_MAPPING_EVENT_SOLVED, NULL);
 	engine->parent->conflicts = g_list_remove(engine->parent->conflicts, engine);
 	
@@ -879,6 +915,12 @@ error:
 	return FALSE;
 }
 
+static void _obj_engine_read_ignored_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
+{
+	// NOOP	
+}
+
+
 static void _obj_engine_read_callback(OSyncClientProxy *proxy, void *userdata, OSyncError *error)
 {
 	OSyncSinkEngine *sinkengine = userdata;
@@ -1164,6 +1206,53 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 		goto error_free_engine;
 	
 	osync_trace(TRACE_INTERNAL, "Created %i mapping engine", g_list_length(engine->mapping_engines));
+
+	OSyncList *ids = NULL;
+	OSyncList *changetypes = NULL;
+	/* inject ignored conflicts from previous syncs */
+	if (!osync_archive_load_ignored_conflicts(engine->archive, objtype, &ids, &changetypes, error))
+		goto error_free_engine;
+
+	OSyncList *j;
+	OSyncList *t = changetypes;
+	for (j = ids; j; j = j->next) {
+		long long int id = (long long int)GPOINTER_TO_INT(j->data);
+
+		OSyncMapping *ignored_mapping = osync_mapping_table_find_mapping(engine->mapping_table, id);
+
+		GList *e;
+		for (e = engine->mapping_engines; e; e = e->next) {
+			OSyncMappingEngine *mapping_engine = e->data;
+
+			if (mapping_engine->mapping == ignored_mapping) {
+				GList *m;
+				for (m = mapping_engine->entries; m; m = m->next) {
+					OSyncMappingEntryEngine *entry = m->data;
+
+					OSyncChangeType changetype = (OSyncChangeType) t->data;
+
+					OSyncChange *ignored_change = osync_change_new(error);
+					osync_change_set_changetype(ignored_change, changetype); 
+					osync_entry_engine_update(entry, ignored_change);
+
+					OSyncObjFormat *dummyformat = osync_objformat_new("plain", objtype, NULL);
+					OSyncData *data = osync_data_new(NULL, 0, dummyformat, NULL);
+					osync_change_set_data(ignored_change, data);
+					osync_objformat_unref(dummyformat);
+
+					osync_change_set_uid(ignored_change, osync_mapping_entry_get_uid(entry->entry));
+
+					osync_trace(TRACE_INTERNAL, "CHANGE: %p", entry->change);
+				}
+				break;
+			}
+		}
+
+		t = t->next;
+	}
+
+	osync_list_free(ids);
+	osync_list_free(changetypes);
 			
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, engine);
 	return engine;
@@ -1284,9 +1373,28 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 		case OSYNC_ENGINE_COMMAND_READ:
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
+				for (m = sinkengine->entries; m; m = m->next) {
+					OSyncMappingEntryEngine *entry = m->data;
+					OSyncChange *change = entry->change;
+
+					if (!change)
+						continue;
+
+					if (!osync_client_proxy_read(sinkengine->proxy, _obj_engine_read_ignored_callback, sinkengine, change, error))
+						goto error;
+				}
+			}
+
+			/* Flush the changelog - to avoid double entries of ignored entries */
+			if (!osync_archive_flush_ignored_conflict(engine->archive, engine->objtype, error))
+				goto error;
+
+			for (p = engine->sink_engines; p; p = p->next) {
+				sinkengine = p->data;
 				if (!osync_client_proxy_get_changes(sinkengine->proxy, _obj_engine_read_callback, sinkengine, engine->objtype, error))
 					goto error;
 			}
+
 			break;
 		case OSYNC_ENGINE_COMMAND_WRITE:
 			if (engine->conflicts) {
@@ -1320,7 +1428,6 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
 					long long int memberid = osync_member_get_id(member);
 					
-					osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_change_get_uid(entry_engine->change), memberid, osync_entry_engine_is_dirty(entry_engine));
 
 					/* Merger - Save the entire xml and demerge */
 					/* TODO: is here the right place to save the xml???? */
@@ -1329,6 +1436,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
 						!strncmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-", 10) )
 					{
+						osync_trace(TRACE_INTERNAL, "Entry %s for member %lli: Dirty: %i", osync_change_get_uid(entry_engine->change), memberid, osync_entry_engine_is_dirty(entry_engine));
+
 						osync_trace(TRACE_INTERNAL, "Save the entire XMLFormat and demerge.");
 						char *buffer = NULL;
 						unsigned int size = 0;

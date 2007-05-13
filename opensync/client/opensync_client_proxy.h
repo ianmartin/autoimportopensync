@@ -28,6 +28,7 @@ typedef void (* finalize_cb) (OSyncClientProxy *proxy, void *userdata, OSyncErro
 typedef void (* discover_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 typedef void (* connect_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 typedef void (* disconnect_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
+typedef void (* read_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 typedef void (* get_changes_cb) (OSyncClientProxy *proxy, void *userdata, OSyncError *error);
 typedef void (* change_cb) (OSyncClientProxy *proxy, void *userdata, OSyncChange *change);
 typedef void (* commit_change_cb) (OSyncClientProxy *proxy, void *userdata, const char *uid, OSyncError *error);
@@ -55,6 +56,7 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error);
 osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error);
 
+osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
 osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, OSyncError **error);
 osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_change_cb callback, void *userdata, OSyncChange *change, OSyncError **error);
 osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error);

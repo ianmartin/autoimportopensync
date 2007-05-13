@@ -59,6 +59,9 @@ typedef struct callContext {
 	
 	disconnect_cb disconnect_callback;
 	void *disconnect_callback_data;
+
+	read_cb read_callback;
+	void *read_callback_data;
 	
 	get_changes_cb get_changes_callback;
 	void *get_changes_callback_data;
@@ -494,6 +497,38 @@ error:
 	return;
 }
 
+static void _osync_client_proxy_read_handler(OSyncMessage *message, void *user_data)
+{
+	callContext *ctx = user_data;
+	OSyncClientProxy *proxy = ctx->proxy;
+	OSyncError *error = NULL;
+	OSyncError *locerror = NULL;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
+	
+	if (osync_message_get_cmd(message) == OSYNC_MESSAGE_REPLY) {
+		ctx->read_callback(proxy, ctx->read_callback_data, NULL);
+	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
+		osync_demarshal_error(message, &error);
+		ctx->read_callback(proxy, ctx->read_callback_data, error);
+		osync_error_unref(&error);
+	} else {
+		osync_error_set(&locerror, OSYNC_ERROR_GENERIC, "Unexpected reply");
+		goto error;
+	}
+	
+	g_free(ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+	
+error:
+	g_free(ctx);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %p", __func__, osync_error_print(&locerror));
+	osync_error_unref(&locerror);
+	return;
+}
+
 static void _osync_client_proxy_get_changes_handler(OSyncMessage *message, void *user_data)
 {
 	callContext *ctx = user_data;
@@ -629,12 +664,14 @@ static void _osync_client_proxy_message_handler(OSyncMessage *message, void *use
 {
 	OSyncClientProxy *proxy = user_data;
 	OSyncError *error = NULL;
-	
+
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, message, user_data);
 	
 	osync_trace(TRACE_INTERNAL, "proxy received command %i", osync_message_get_command(message));
 	switch (osync_message_get_command(message)) {
 		case OSYNC_MESSAGE_NEW_CHANGE:
+		case OSYNC_MESSAGE_READ_CHANGE:
+
 			osync_assert(proxy->change_callback);
 			OSyncChange *change = NULL;
 			
@@ -645,6 +682,7 @@ static void _osync_client_proxy_message_handler(OSyncMessage *message, void *use
 			
 			osync_change_unref(change);
 			break;
+
 		default:
 			break;
 	}
@@ -1121,6 +1159,42 @@ osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb 
 	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
 		goto error_free_message;
 	
+	osync_message_unref(message);
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+    return TRUE;
+
+error_free_message:
+	osync_message_unref(message);
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+}
+
+osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, void *userdata, OSyncChange *change, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, proxy, callback, userdata, change, error);
+	
+	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
+	if (!ctx)
+		goto error;
+	
+	ctx->proxy = proxy;
+	ctx->read_callback = callback;
+	ctx->read_callback_data = userdata;
+	
+	OSyncMessage *message = osync_message_new(OSYNC_MESSAGE_READ_CHANGE, 0, error);
+	if (!message)
+		goto error;
+	
+	osync_message_set_handler(message, _osync_client_proxy_read_handler, ctx);
+
+	if (!osync_marshal_change(message, change, error))
+		goto error_free_message;
+
+	if (!osync_queue_send_message(proxy->outgoing, proxy->incoming, message, error))
+		goto error_free_message;
+
 	osync_message_unref(message);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
