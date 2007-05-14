@@ -1,7 +1,7 @@
 /*
- * mock-sync - A plugin for the opensync framework
- * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
- * 
+ * opensync - A file format for opensync
+ * Copyright (C) 2005  Armin Bauer <armin.bauer@opensync.org>
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,17 +14,34 @@
  * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301
  * 
  */
 
-#ifndef MOCK_FORMAT_H_
-#define MOCK_FORMAT_H_
+#ifndef _FILE_H
+#define _FILE_H
 
-typedef struct OSyncFile {
-        char *path;
-        char *data;
-        unsigned int size;
-} OSyncFile;
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#endif //MOCK_FORMAT_H_
+#ifdef _WIN32
+#define uid_t int
+#define gid_t int
+#endif //_WIN32
+
+typedef struct OSyncFileFormat {
+	/** The mode of this file. See man fstat for explanation */
+	mode_t mode;
+	/** The id of the user (owner) of this file */
+	uid_t userid;
+	/** The id of the owning group of this file */
+	gid_t groupid;
+	/** Time of the last modification */
+	time_t last_mod;
+    char *path;
+    char *data;
+    unsigned int size;
+} OSyncFileFormat;
+
+#endif //_FILE_H
