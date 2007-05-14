@@ -28,10 +28,9 @@ if 1 == 1:
 	testenv.Program('vevent', ['conversion-tests/check_vevent.c'], LIBS = ['opensync', 'check', support, conversion])
 	testenv.Program('vtodo', ['conversion-tests/check_vtodo.c'], LIBS = ['opensync', 'check', support, conversion])
 
-# TODO: My commit would break the build wihtout adapted mock-sync ( by dgollub - 2007-05-15 )
-#	testenv.Program('proxy', ['client-tests/check_proxy.c'], LIBS = ['opensync', 'check', support])
-#	testenv.Program('engine', ['engine-tests/check_engine.c'], LIBS = ['opensync', 'check', support])
-#	testenv.Program('engine-error', ['engine-tests/check_engine_error.c'], LIBS = ['opensync', 'check', support])
+	testenv.Program('proxy', ['client-tests/check_proxy.c'], LIBS = ['opensync', 'check', support])
+	testenv.Program('engine', ['engine-tests/check_engine.c'], LIBS = ['opensync', 'check', support])
+	testenv.Program('engine-error', ['engine-tests/check_engine_error.c'], LIBS = ['opensync', 'check', support])
 	
 	testenv.Program('sync', ['sync-tests/check_sync.c'], LIBS = ['opensync', 'check', support])
 
