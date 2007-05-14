@@ -379,7 +379,7 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 		
 		/* we set the capabilities for the member only if they are not set yet */
  		OSyncMember *member = osync_client_proxy_get_member(proxy);
- 		if (osync_member_get_capabilities(member) == NULL)
+ 		if (member && osync_member_get_capabilities(member) == NULL)
  		{
 			osync_trace(TRACE_INTERNAL, "No capabilities set for the member right now. version: %p capabilities: %p\n", version, capabilities);
 
