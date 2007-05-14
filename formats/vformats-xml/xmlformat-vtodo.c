@@ -107,10 +107,12 @@ static void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 }
 
 /***** Attributes *****/
+/*
 static OSyncXMLField *handle_dtstamp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "DateCalendarCreated", error);
 }
+*/
 
 static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 

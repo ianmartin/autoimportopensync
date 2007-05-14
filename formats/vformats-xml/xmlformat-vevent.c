@@ -124,7 +124,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "LOCATION", handle_location_attribute);
 	insert_attr_handler(hooks->attributes, "ORGANIZER", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->attributes, "PRIORITY", handle_priority_attribute);
-	insert_attr_handler(hooks->attributes, "DTSTAMP", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "DTSTAMP", handle_dtstamp_attribute);
 	insert_attr_handler(hooks->attributes, "SEQ", handle_sequence_attribute); // TODO - is this right?
 	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);
 	insert_attr_handler(hooks->attributes, "SUMMARY", handle_summary_attribute);
