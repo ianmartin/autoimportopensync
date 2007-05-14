@@ -101,7 +101,10 @@ START_TEST (proxy_init)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, NULL, &error), NULL);
+	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype></directory></config>");
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
+	g_free(config);
+
 	fail_unless(error == NULL, NULL);
 	
 	while (init_replies != 1) { g_usleep(100); }
@@ -140,7 +143,10 @@ START_TEST (proxy_discover)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, NULL, &error), NULL);
+	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype></directory></config>");
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
+	g_free(config);
+
 	fail_unless(error == NULL, NULL);
 	
 	while (init_replies != 1) { g_usleep(100); }
@@ -179,7 +185,7 @@ END_TEST
 
 START_TEST (proxy_connect)
 {
-	char *testbed = setup_testbed(NULL);
+	char *testbed = setup_testbed("sync");
 	
 	OSyncError *error = NULL;
 	OSyncThread *thread = osync_thread_new(NULL, &error);
@@ -194,7 +200,9 @@ START_TEST (proxy_connect)
 	fail_unless(osync_client_proxy_spawn(proxy, OSYNC_START_TYPE_THREAD, NULL, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), NULL, testbed, "mock-sync", NULL, NULL, NULL, &error), NULL);
+	char *config = g_strdup("<config><directory><path>data1</path><objtype>file</objtype></directory></config>");
+	fail_unless(osync_client_proxy_initialize(proxy, initialize_callback, GINT_TO_POINTER(1), testbed, testbed, "mock-sync", "test", testbed, config, &error), NULL);
+	g_free(config);
 	fail_unless(error == NULL, NULL);
 	
 	while (init_replies != 1) { g_usleep(100); }
@@ -229,15 +237,15 @@ END_TEST
 Suite *proxy_suite(void)
 {
 	Suite *s = suite_create("Proxy");
-	Suite *s2 = suite_create("Proxy");
+//	Suite *s2 = suite_create("Proxy");
 	
 	create_case(s, "proxy_new", proxy_new);
 	create_case(s, "proxy_spawn", proxy_spawn);
 	create_case(s, "proxy_init", proxy_init);
 	create_case(s, "proxy_discover", proxy_discover);
-	create_case(s2, "proxy_connect", proxy_connect);
+	create_case(s, "proxy_connect", proxy_connect);
 	
-	return s2;
+	return s;
 }
 
 int main(void)
