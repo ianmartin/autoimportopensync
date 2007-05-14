@@ -138,11 +138,6 @@ static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VForma
 	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
 }
 
-static OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "RStatus", error);
-}
-
 
 /* VCALENDAR ONLY */
 static OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

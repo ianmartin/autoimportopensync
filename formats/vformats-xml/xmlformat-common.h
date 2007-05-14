@@ -40,6 +40,7 @@
 typedef struct OSyncHookTables {
 	GHashTable *attributes;
 	GHashTable *parameters;
+	GHashTable *tztable; // hashtable for timezone information
 } OSyncHookTables;
 
 /*** PARAMETER ***/

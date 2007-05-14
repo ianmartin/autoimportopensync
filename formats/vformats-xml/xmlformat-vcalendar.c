@@ -22,8 +22,9 @@
  */
 
 #include "xmlformat-vcalendar.h"
-/* vcal recurrence rule to XMLFormat-event converter */
 
+
+/* vcal recurrence rule to XMLFormat-event converter */
 /* detect FREQUENCY MODIFIED */
 static char *convert_vcal_rrule_freqmod(OSyncXMLField *xmlfield, gchar **rule, int size, int freqstate)
 {
@@ -193,7 +194,8 @@ static void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule)
 
 }
 
-/***** Attributes *****/
+
+/* Attributes for vCal and iCal */
 OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
@@ -209,15 +211,6 @@ OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 
 	return xmlfield;
 }
-
-
-// XXX: vtodo only?
-#if 0
-static OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Due", error);
-}
-#endif
 
 
 // XXX vtodo only?
@@ -563,12 +556,13 @@ OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "ExclusionRule", error);
 }
-/*
-static OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+
+// ical, vtodo?
+OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RStatus", error);
 }
-*/
+
 OSyncXMLField *handle_related_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Related", error);
@@ -584,6 +578,7 @@ OSyncXMLField *handle_dtend_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 	return handle_attribute_simple_content(xmlformat, attr, "DateEnd", error);
 }
 
+// is this right?
 OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "TimeTransparency", error);
@@ -594,85 +589,72 @@ static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VForm
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
 }
 */
-/* TODO Timezone
-static OSyncXMLField *handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+
+// Timezone: iCal only
+OSyncXMLField *handle_tzid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzid attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"TimezoneID",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "TimezoneID", error);
 }
 
-static OSyncXMLField *handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tz_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tz location attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"Location",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "LastModified", error);
 }
 
-static OSyncXMLField *handle_tzoffsetfrom_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tzurl_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzoffsetfrom attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"TZOffsetFrom",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "TimezoneUrl", error);
 }
 
-static OSyncXMLField *handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tzdtstart_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzoffsetto attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"TZOffsetTo",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "DateStarted", error);
 }
 
-static OSyncXMLField *handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tzoffsetto_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzname attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"TimezoneName",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "TZOffsetTo", error);
 }
 
-static OSyncXMLField *handle_tzdtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tzoffsetfrom_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"DateStarted",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "TZOffsetFrom", error);
 }
 
-static OSyncXMLField *handle_tzrrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tzrdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
+{
+	return handle_attribute_simple_content(xmlformat, attr, "TimezoneDate", error);
+}
+
+OSyncXMLField *handle_tzrrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling tzrrule attribute");
-	OSyncXMLField *xmlfield = xmlNewChild(xmlfield, NULL, (xmlChar*)"RecurrenceRule", NULL);
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
 	
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
 		GString *retstr = (GString *)values->data;
 		g_assert(retstr);
-		osxml_node_add(xmlfield, "Rule", retstr->str);
+		osync_xmlfield_add_key_value(xmlfield, "Rule", retstr->str);
 	}
 	
 	return xmlfield;
 }
 
-static OSyncXMLField *handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tzname_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"LastModified",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "TimezoneName", error);
 }
 
-static OSyncXMLField *handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"TimezoneUrl",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
+	return handle_attribute_simple_content(xmlformat, attr, "Location", error);
 }
-
-static OSyncXMLField *handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	osync_trace(TRACE_INTERNAL, "Handling tzdtstart attribute");
-	return xmlNewChild(xmlfield, NULL, (xmlChar*)"TimezoneDate",
-		(xmlChar*)vformat_attribute_get_nth_value(attr, 0));
-}
-*/
+// END TIMEZONE
 
 /* VCALENDAR ONLY */
 OSyncXMLField *handle_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

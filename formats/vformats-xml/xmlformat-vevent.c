@@ -31,17 +31,20 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
 	
-	/*
-	hooks->table = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->tztable = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->comptable = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->compparamtable = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
-	*/
-
+	// create hashtables for attributes and parameters
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
-	
+	hooks->tztable = g_hash_table_new(g_str_hash, g_str_equal);
+
+
+	if (target == VFORMAT_EVENT_10) {
+
+	/* vCalendar
+	 * ---------
+	 * The following attributes and parameters are described in vcal-10.txt.
+	 * You can download this file from http://www.imc.org/pdi/vcal-10.txt
+	 */
+
         // [vcal-1.0] vcal (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
@@ -51,7 +54,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "GEO", handle_geo_attribute);
 	insert_attr_handler(hooks->attributes, "PRODID", handle_prodid_attribute);
 	insert_attr_handler(hooks->attributes, "TZ", HANDLE_IGNORE);
-	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
+	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE); // Must appear in vCal object!
 
         // [vcal-1.0] simprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
@@ -89,16 +92,95 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
         // [vcal-1.0] param (same order as in sepc!)
 	insert_attr_handler(hooks->parameters, "TYPE", HANDLE_IGNORE); // TODO
-	// insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
+	insert_attr_handler(hooks->parameters, "VALUE", HANDLE_IGNORE); // TODO -> handle_value_parameter
 	insert_attr_handler(hooks->parameters, "ENCODING", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->parameters, "CHARSET", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->parameters, "LANGUAGE", HANDLE_IGNORE); // TODO
-	//insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter);
-	//insert_attr_handler(hooks->parameters, "STATUS", handle_status_parameter);
+	insert_attr_handler(hooks->parameters, "ROLE", HANDLE_IGNORE); // TODO -> handle_role_parameter, (ATTENDEE)
+	insert_attr_handler(hooks->parameters, "STATUS", HANDLE_IGNORE); // TODO -> handle_status_parameter (ATTENDEE)
+	insert_attr_handler(hooks->parameters, "RSVP", HANDLE_IGNORE); // TODO -> handle_rsvp_parameter (ATTENDEE, yes/no allowed, kdepim use TRUE!?)
+
+	} // end of (target == VFORMAT_EVENT_10)
 
 
-// XXX: not quite sure if RSVP is part of vcal-1.0 .. some traces about in the spec...
-//	insert_attr_handler(hooks->parameters, "RSVP", handle_rsvp_parameter);
+	if (target == VFORMAT_EVENT_20) {
+
+	/* iCalendar
+	 * ---------
+	 * The following attributes and parameters are described in RFC 2445
+	 */
+
+        // [RFC 2445] eventc &  (same order as in spec!)
+	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
+	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
+
+	// [RFC 2445] eventprop (same order as in spec!)
+	insert_attr_handler(hooks->attributes, "CLASS", handle_class_attribute);
+	insert_attr_handler(hooks->attributes, "CREATED", handle_created_attribute);
+	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
+	insert_attr_handler(hooks->attributes, "DTSTART", handle_dtstart_attribute);
+	insert_attr_handler(hooks->attributes, "GEO", handle_geo_attribute);
+	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
+	insert_attr_handler(hooks->attributes, "LOCATION", handle_location_attribute);
+	insert_attr_handler(hooks->attributes, "ORGANIZER", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "PRIORITY", handle_priority_attribute);
+	insert_attr_handler(hooks->attributes, "DTSTAMP", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "SEQ", handle_sequence_attribute); // TODO - is this right?
+	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);
+	insert_attr_handler(hooks->attributes, "SUMMARY", handle_summary_attribute);
+	insert_attr_handler(hooks->attributes, "TRANSP", handle_transp_attribute);
+	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
+	insert_attr_handler(hooks->attributes, "URL", handle_url_attribute);
+	insert_attr_handler(hooks->attributes, "RECURID", HANDLE_IGNORE); // TODO
+
+	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
+	insert_attr_handler(hooks->attributes, "DURATION", handle_due_attribute); // TODO - is this right?
+
+	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
+	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
+	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
+	insert_attr_handler(hooks->attributes, "COMMENT", HANDLE_IGNORE);  // TODO
+	insert_attr_handler(hooks->attributes, "CONTACT", HANDLE_IGNORE);  // TODO
+	insert_attr_handler(hooks->attributes, "EXDATE", handle_exdate_attribute);
+	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
+	insert_attr_handler(hooks->attributes, "RSTATUS", handle_rstatus_attribute);
+	insert_attr_handler(hooks->attributes, "RELATED", handle_related_attribute); // TODO - is this right?
+	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
+	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
+	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
+	//TODO: x-props
+
+	// [RFC 2445] timezonec (same order as in spec!)
+	insert_attr_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
+	insert_attr_handler(hooks->tztable, "END", HANDLE_IGNORE);
+
+	insert_attr_handler(hooks->tztable, "TZID", handle_tzid_attribute);
+	insert_attr_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
+	insert_attr_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
+
+	insert_attr_handler(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
+	insert_attr_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
+	insert_attr_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
+
+	// [RFC 2445] tzprop (same order as in spec!)
+	insert_attr_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO - is this right?
+	insert_attr_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
+	insert_attr_handler(hooks->tztable, "RRULE", handle_tzrrule_attribute);
+	insert_attr_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
+	insert_attr_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
+	//TODO: more x-props 
+
+
+	// parameters (non required)
+	//charset // defined in [RFC 2046]
+	//method	// must be the same as METHOD in the iCalendar object
+	//component // must be specified if the iCal object contains more than one component, e.g. VEVENT and VTODO
+	//optinfo // optional information
+
+	
+
+	}
+	
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
@@ -111,14 +193,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	
 	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
 
-	
-	/*
-	hooks->table = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->tztable = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->comptable = g_hash_table_new(g_str_hash, g_str_equal);
-	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
-	*/
-
+	// create hashtables for attributes and parameters
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 
@@ -233,7 +308,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 
 	/*
 	//FIXME: The functions below shouldn't be on alarmtable, but on other hash table
-//	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
 	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
@@ -265,20 +340,15 @@ osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **ou
 
 	osync_trace(TRACE_INTERNAL, "Input vevent is:\n%s", input);
 	
-	//Parse the vevent
+	// Parse the vevent and create a new xmlformat object
 	VFormat *vevent = vformat_new_from_string(input);
-	
 	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
-
-	
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
-	//For every attribute we have call the handling hook
+	// For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vevent);
 	vcalendar_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
-	//static void vcal_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
 
-	// TODO free more members...
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
 	g_free(hooks);
@@ -314,6 +384,8 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 
 	OSyncHookTables *hooks = init_xmlformat_to_vevent(target);
 
+	// TODO register extensions
+	/*
 	int i = 0;
 	if (config) {
 		gchar** config_array = g_strsplit_set(config, "=;", 0);
@@ -330,22 +402,21 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 			
 			if(strcmp(config_array[i], "VCAL_EXTENSION") == 0) {
 
-				/*
-				if(strcmp(config_array[i+1], "KDE") == 0)
-					init_xmlformat_to_kde(hooks);
-				else if(strcmp(config_array[i+1], "Evolution") == 0)
-					init_xmlformat_to_evolution(hooks);
-				*/	
+				//if(strcmp(config_array[i+1], "KDE") == 0)
+				//	init_xmlformat_to_kde(hooks);
+				//else if(strcmp(config_array[i+1], "Evolution") == 0)
+				//	init_xmlformat_to_evolution(hooks);
 					
 			}else if(strcmp(config_array[i], "VCAL_ENCODING")) {
 				
 				if(strcmp(config_array[i+1], "UTF-16") == 0)
 					;
-				/* TODO: what to do? :) */
+				// TODO: what to do? :)
 			}
 		}
 		g_strfreev(config_array);
 	}
+	*/
 
 	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
 	unsigned int size;
@@ -354,7 +425,7 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
-	//Make the new vcal
+	//Make a new vevent
 	VFormat *vevent = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
