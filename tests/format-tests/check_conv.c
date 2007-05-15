@@ -392,9 +392,10 @@ START_TEST (conv_find_path)
 	
 	osync_converter_path_unref(path);
 	
+	// intended to fail
 	path = osync_format_env_find_path(env, format2, format1, &error);
 	fail_unless(path == NULL, NULL);
-	fail_unless(error == NULL, NULL);
+	fail_unless(error != NULL, NULL);
 	
 	osync_format_env_free(env);
 	
@@ -497,9 +498,10 @@ START_TEST (conv_find_path_false)
 	osync_format_env_register_converter(env, converter2);
 	osync_converter_unref(converter2);
 
+	// intended to fail
 	OSyncFormatConverterPath *path = osync_format_env_find_path(env, format1, format3, &error);
 	fail_unless(path == NULL, NULL);
-	fail_unless(error == NULL, NULL);
+	fail_unless(error != NULL, NULL);
 	
 	osync_format_env_free(env);
 	
@@ -632,9 +634,10 @@ START_TEST (conv_find_circular_false)
 	osync_format_env_register_converter(env, converter3);
 	osync_converter_unref(converter3);
 
+	// intended to fail
 	OSyncFormatConverterPath *path = osync_format_env_find_path(env, format1, format4, &error);
 	fail_unless(path == NULL, NULL);
-	fail_unless(error == NULL, NULL);
+	fail_unless(error != NULL, NULL);
 	
 	osync_format_env_free(env);
 	
