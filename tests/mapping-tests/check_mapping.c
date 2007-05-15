@@ -21,7 +21,9 @@ START_TEST (mapping_new)
 }
 END_TEST
 
-/*START_TEST (mapping_table_add_view)
+#if 0
+TODO: port to new 0.30 API   
+START_TEST (mapping_table_add_view)
 {
 	char *testbed = setup_testbed(NULL);
 	
@@ -83,7 +85,8 @@ START_TEST (mapping_view_add_entry)
 	
 	destroy_testbed(testbed);
 }
-END_TEST*/
+END_TEST
+#endif
 
 START_TEST (mapping_compare)
 {
@@ -127,14 +130,15 @@ END_TEST
 Suite *client_suite(void)
 {
 	Suite *s = suite_create("Mapping");
-	Suite *s2 = suite_create("Mapping");
+//	Suite *s2 = suite_create("Mapping");
 	
 	create_case(s, "mapping_new", mapping_new);
-	//create_case(s, "mapping_table_add_view", mapping_table_add_view);
-	//create_case(s, "mapping_view_add_entry", mapping_view_add_entry);
-	create_case(s2, "mapping_compare", mapping_compare);
+// XXX: port to 0.30 API	
+//	create_case(s, "mapping_table_add_view", mapping_table_add_view);
+//	create_case(s, "mapping_view_add_entry", mapping_view_add_entry);
+	create_case(s, "mapping_compare", mapping_compare);
 	
-	return s2;
+	return s;
 }
 
 int main(void)

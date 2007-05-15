@@ -206,12 +206,8 @@ error:
 	return FALSE;
 }
 
-osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+static void _format_set_functions(OSyncObjFormat *format)
 {
-	OSyncObjFormat *format = osync_objformat_new("file", "file", error);
-	if (!format)
-		return FALSE;
-	
 	osync_objformat_set_compare_func(format, compare_file);
 	osync_objformat_set_destroy_func(format, destroy_file);
 	osync_objformat_set_duplicate_func(format, duplicate_file);
@@ -222,39 +218,67 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	
 	osync_objformat_set_marshal_func(format, marshal_file);
 	osync_objformat_set_demarshal_func(format, demarshal_file);
-	
+}
+
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	OSyncObjFormat *format = NULL;
+
+	/* mockformat1 */
+	format = osync_objformat_new("mockformat1", "mockobjtype1", error);
+	if (!format)
+		return FALSE;
+
+	_format_set_functions(format);
+
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
+
+	/* mockformat2 */
+	format = osync_objformat_new("mockformat2", "mockobjtype2", error);
+	if (!format)
+		return FALSE;
+
+	_format_set_functions(format);
+
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
 	return TRUE;
 }
 
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	OSyncObjFormat *file = osync_format_env_find_objformat(env, "file");
-	if (!file) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find file format");
+	OSyncFormatConverter *conv = NULL;
+
+	/* mock converter */
+	OSyncObjFormat *mockformat1 = osync_format_env_find_objformat(env, "mockformat1");
+	if (!mockformat1) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find mockformat1");
 		return FALSE;
 	}
 	
-	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
-	if (!plain) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find plain format");
+	OSyncObjFormat *mockformat2 = osync_format_env_find_objformat(env, "mockformat2");
+	if (!mockformat2) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find mockformat2");
 		return FALSE;
 	}
 	
-	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_DECAP, file, plain, conv_file_to_plain, error);
+	conv = osync_converter_new(OSYNC_CONVERTER_DECAP, mockformat1, mockformat2, conv_file_to_plain, error);
 	if (!conv)
 		return FALSE;
 	
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 	
-	conv = osync_converter_new(OSYNC_CONVERTER_ENCAP, plain, file, conv_plain_to_file, error);
+	conv = osync_converter_new(OSYNC_CONVERTER_ENCAP, mockformat2, mockformat1, conv_plain_to_file, error);
 	if (!conv)
 		return FALSE;
 	
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
+
+
 	return TRUE;
 }
 

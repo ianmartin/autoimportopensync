@@ -566,7 +566,7 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
 	
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	env->objformat = osync_format_env_find_objformat(formatenv, "file");
+	env->objformat = osync_format_env_find_objformat(formatenv, "mockformat1");
 	
 	if (!osync_filesync_parse_settings(env, osync_plugin_info_get_config(info), error))
 		goto error_free_env;
@@ -585,7 +585,7 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		dir->sink = sink;
 		
 		/* The file format is the only one we understand */
-		osync_objtype_sink_add_objformat(sink, "file");
+		osync_objtype_sink_add_objformat(sink, "mockformat1");
 		
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
