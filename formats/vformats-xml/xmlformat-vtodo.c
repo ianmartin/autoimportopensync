@@ -106,14 +106,6 @@ static void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 	osync_xmlfield_set_attr(xmlfield, "Type", "SentBy");
 }
 
-/***** Attributes *****/
-/*
-static OSyncXMLField *handle_dtstamp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "DateCalendarCreated", error);
-}
-*/
-
 static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
@@ -215,7 +207,6 @@ void *init_vtodo_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "SEQUENCE", (void *)handle_sequence_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", (void *)handle_last_modified_attribute);
 	insert_attr_handler(hooks->attributes, "CREATED", (void *)handle_created_attribute);
-	insert_attr_handler(hooks->attributes, "RRULE", (void *)handle_rrule_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", (void *)handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "LOCATION", (void *)handle_location_attribute);
 	insert_attr_handler(hooks->attributes, "GEO", (void *)handle_geo_attribute);
@@ -258,6 +249,7 @@ void *init_vtodo_to_xmlformat(VFormatType target)
 
 	//VAlarm component
 	if (target == VFORMAT_TODO_20) {
+		insert_attr_handler(hooks->attributes, "RRULE", (void *)handle_rrule_attribute);
 		insert_attr_handler(hooks->attributes, "TRIGGER", (void *)handle_atrigger_attribute);
 		insert_attr_handler(hooks->attributes, "REPEAT", (void *)handle_arepeat_attribute);
 		insert_attr_handler(hooks->attributes, "DURATION", (void *)handle_aduration_attribute);
@@ -267,8 +259,9 @@ void *init_vtodo_to_xmlformat(VFormatType target)
 		insert_attr_handler(hooks->attributes, "ATTENDEE", (void *)handle_aattendee_attribute);
 		insert_attr_handler(hooks->attributes, "SUMMARY", (void *)handle_asummary_attribute);
 	} else if (target == VFORMAT_TODO_10) {
-		insert_attr_handler(hooks->attributes, "AALARM", (void *)handle_aalarm_attribute);
-		insert_attr_handler(hooks->attributes, "DALARM", (void *)handle_dalarm_attribute);
+		insert_attr_handler(hooks->attributes, "RRULE", (void *)handle_vcal_rrule_attribute);
+		insert_attr_handler(hooks->attributes, "AALARM", (void *)handle_vcal_aalarm_attribute);
+		insert_attr_handler(hooks->attributes, "DALARM", (void *)handle_vcal_dalarm_attribute);
 	}
 
 	// FIXME: The functions below shoudn't be on alarmtable, but on another hash table

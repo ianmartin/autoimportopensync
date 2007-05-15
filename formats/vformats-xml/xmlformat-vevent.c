@@ -70,7 +70,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RNUM", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->attributes, "PRIORITY", handle_priority_attribute);
 	insert_attr_handler(hooks->attributes, "RELATED-TO", handle_related_attribute);
-	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
+	insert_attr_handler(hooks->attributes, "RRULE", handle_vcal_rrule_attribute);
 	insert_attr_handler(hooks->attributes, "SEQUENCE", handle_sequence_attribute);
 	insert_attr_handler(hooks->attributes, "DTSTART", handle_dtstart_attribute);
 	insert_attr_handler(hooks->attributes, "SUMMARY", handle_summary_attribute);
@@ -79,10 +79,10 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
 
         // [vcal-1.0] entprop (same order as in spec!)
-	insert_attr_handler(hooks->attributes, "AALARM", handle_aalarm_attribute);
+	insert_attr_handler(hooks->attributes, "AALARM", handle_vcal_aalarm_attribute);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
 	insert_attr_handler(hooks->attributes, "CLASS", handle_class_attribute);
-	insert_attr_handler(hooks->attributes, "DALARM", handle_dalarm_attribute);
+	insert_attr_handler(hooks->attributes, "DALARM", handle_vcal_dalarm_attribute);
 	insert_attr_handler(hooks->attributes, "EXDATE", handle_exdate_attribute);
 	insert_attr_handler(hooks->attributes, "MALARM", HANDLE_IGNORE);  // TODO
 	insert_attr_handler(hooks->attributes, "PALARM", HANDLE_IGNORE);  // TODO

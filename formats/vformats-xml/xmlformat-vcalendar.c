@@ -23,6 +23,12 @@
 
 #include "xmlformat-vcalendar.h"
 
+/* general briefing:
+ *
+ * use handle_vcal* for vCalendar handlers
+ * use handle_* for vCalendar and iCalendar handlers
+ *
+ */
 
 /* vcal recurrence rule to XMLFormat-event converter */
 /* detect FREQUENCY MODIFIED */
@@ -195,10 +201,8 @@ static void convert_vcal_rrule_to_xml(OSyncXMLField *xmlfield, const char *rule)
 }
 
 
-/* Attributes */
-
-// vcal only
-OSyncXMLField *handle_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+/* vCal only attributes */
+OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	osync_trace(TRACE_INTERNAL, "Handling aalarm attribute");
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
@@ -212,6 +216,37 @@ OSyncXMLField *handle_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 	return xmlfield; 
 }
 
+OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	} 
+
+	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
+	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
+	return xmlfield; 
+}
+
+OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
+{
+	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
+	const char *rule = vformat_attribute_get_nth_value(attr, 0);
+
+        convert_vcal_rrule_to_xml(xmlfield, rule);
+
+	return xmlfield;
+}
+
+/* vCal and iCal attributes */
 OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "AlarmRepeat", error);
@@ -277,21 +312,6 @@ OSyncXMLField *handle_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormat
 	return handle_attribute_simple_content(xmlformat, attr, "LastModified", error);
 }
 
-// vcal only
-OSyncXMLField *handle_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	osync_trace(TRACE_INTERNAL, "Handling dalarm attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	} 
-
-	osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
-	osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0)); 
-	return xmlfield; 
-}
-
 OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	osync_trace(TRACE_INTERNAL, "Handling Geo attribute");
@@ -308,22 +328,6 @@ OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute 
 OSyncXMLField *handle_prodid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "ProductID", error);
-}
-
-OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
-{
-	osync_trace(TRACE_INTERNAL, "Handling RecurrenceRule attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-
-	const char *rule = vformat_attribute_get_nth_value(attr, 0);
-
-        convert_vcal_rrule_to_xml(xmlfield, rule);
-
-	return xmlfield;
 }
 
 OSyncXMLField *handle_rdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -417,15 +421,12 @@ OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFor
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
 }
 
-/*
-static OSyncXMLField *handle_rrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+//FIXME
+OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_INTERNAL, "Handling last_modified attribute");
-	OSyncXMLField *xmlfield = xmlNewChild(xmlfield, NULL, (xmlChar*)"RecurrenceRule", NULL);
-	osxml_node_add(xmlfield, "Content", vformat_attribute_get_nth_value(attr, 0));
-	return xmlfield;
+	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceRule", error);
 }
-*/
+
 /*
 static OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
