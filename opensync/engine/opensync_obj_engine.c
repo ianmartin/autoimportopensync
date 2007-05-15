@@ -1159,6 +1159,68 @@ error:
 	return FALSE;
 }
 
+static osync_bool _inject_changelog_entries(OSyncObjEngine *engine, const char *objtype, OSyncError **error) {
+
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, engine, objtype);
+
+	osync_assert(engine);
+	osync_assert(engine->archive);
+	osync_assert(objtype);
+	
+	OSyncList *ids = NULL;
+	OSyncList *changetypes = NULL;
+
+	if (!osync_archive_load_ignored_conflicts(engine->archive, objtype, &ids, &changetypes, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	OSyncList *j;
+	OSyncList *t = changetypes;
+	for (j = ids; j; j = j->next) {
+		long long int id = (long long int)GPOINTER_TO_INT(j->data);
+
+		OSyncMapping *ignored_mapping = osync_mapping_table_find_mapping(engine->mapping_table, id);
+
+		GList *e;
+		for (e = engine->mapping_engines; e; e = e->next) {
+			OSyncMappingEngine *mapping_engine = e->data;
+
+			if (mapping_engine->mapping == ignored_mapping) {
+				GList *m;
+				for (m = mapping_engine->entries; m; m = m->next) {
+					OSyncMappingEntryEngine *entry = m->data;
+
+					OSyncChangeType changetype = (OSyncChangeType) t->data;
+
+					OSyncChange *ignored_change = osync_change_new(error);
+					osync_change_set_changetype(ignored_change, changetype); 
+					osync_entry_engine_update(entry, ignored_change);
+
+					OSyncObjFormat *dummyformat = osync_objformat_new("plain", objtype, NULL);
+					OSyncData *data = osync_data_new(NULL, 0, dummyformat, NULL);
+					osync_change_set_data(ignored_change, data);
+					osync_objformat_unref(dummyformat);
+
+					osync_change_set_uid(ignored_change, osync_mapping_entry_get_uid(entry->entry));
+
+					osync_trace(TRACE_INTERNAL, "CHANGE: %p", entry->change);
+				}
+				break;
+			}
+		}
+
+		t = t->next;
+	}
+
+	osync_list_free(ids);
+	osync_list_free(changetypes);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+
 OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, OSyncFormatEnv *formatenv, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, parent, objtype, formatenv, error);
@@ -1207,52 +1269,11 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 	
 	osync_trace(TRACE_INTERNAL, "Created %i mapping engine", g_list_length(engine->mapping_engines));
 
-	OSyncList *ids = NULL;
-	OSyncList *changetypes = NULL;
-	/* inject ignored conflicts from previous syncs */
-	if (!osync_archive_load_ignored_conflicts(engine->archive, objtype, &ids, &changetypes, error))
-		goto error_free_engine;
-
-	OSyncList *j;
-	OSyncList *t = changetypes;
-	for (j = ids; j; j = j->next) {
-		long long int id = (long long int)GPOINTER_TO_INT(j->data);
-
-		OSyncMapping *ignored_mapping = osync_mapping_table_find_mapping(engine->mapping_table, id);
-
-		GList *e;
-		for (e = engine->mapping_engines; e; e = e->next) {
-			OSyncMappingEngine *mapping_engine = e->data;
-
-			if (mapping_engine->mapping == ignored_mapping) {
-				GList *m;
-				for (m = mapping_engine->entries; m; m = m->next) {
-					OSyncMappingEntryEngine *entry = m->data;
-
-					OSyncChangeType changetype = (OSyncChangeType) t->data;
-
-					OSyncChange *ignored_change = osync_change_new(error);
-					osync_change_set_changetype(ignored_change, changetype); 
-					osync_entry_engine_update(entry, ignored_change);
-
-					OSyncObjFormat *dummyformat = osync_objformat_new("plain", objtype, NULL);
-					OSyncData *data = osync_data_new(NULL, 0, dummyformat, NULL);
-					osync_change_set_data(ignored_change, data);
-					osync_objformat_unref(dummyformat);
-
-					osync_change_set_uid(ignored_change, osync_mapping_entry_get_uid(entry->entry));
-
-					osync_trace(TRACE_INTERNAL, "CHANGE: %p", entry->change);
-				}
-				break;
-			}
-		}
-
-		t = t->next;
+	if (engine->archive) {
+		/* inject ignored conflicts from previous syncs */
+		if (!_inject_changelog_entries(engine, objtype, error))
+			goto error_free_engine;
 	}
-
-	osync_list_free(ids);
-	osync_list_free(changetypes);
 			
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, engine);
 	return engine;
@@ -1385,9 +1406,11 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 				}
 			}
 
-			/* Flush the changelog - to avoid double entries of ignored entries */
-			if (!osync_archive_flush_ignored_conflict(engine->archive, engine->objtype, error))
-				goto error;
+			if (engine->archive) {
+				/* Flush the changelog - to avoid double entries of ignored entries */
+				if (!osync_archive_flush_ignored_conflict(engine->archive, engine->objtype, error))
+					goto error;
+			}
 
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
