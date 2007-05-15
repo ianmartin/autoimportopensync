@@ -160,7 +160,20 @@ START_TEST (data_objtype)
 	fail_unless(data != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_data_get_objtype(data) == NULL, NULL);
+	/* Quote from osync_data.c ////////////////////////////
+	 *  
+	 * If no object type is explicitly set, we will just
+	 * return the default objtype for this format
+
+	OSyncObjFormat *format = data->objformat;
+	if (format)
+		return osync_objformat_get_objtype(format);
+         
+         * ////// End of Quote ////////////////////////////////
+		
+ 	// Obsolate!
+	// fail_unless(osync_data_get_objtype(data) == NULL, NULL);
+	*/
 	
 	osync_data_set_objtype(data, "objtype");
 	fail_unless(!strcmp(osync_data_get_objtype(data), "objtype"), NULL);
@@ -179,18 +192,18 @@ END_TEST
 Suite *data_suite(void)
 {
 	Suite *s = suite_create("Data");
-	Suite *s2 = suite_create("Data");
+//	Suite *s2 = suite_create("Data");
 	
 	create_case(s, "data_new", data_new);
 	create_case(s, "data_new_with_data", data_new_with_data);
 	create_case(s, "data_set_data", data_set_data);
-	create_case(s2, "data_set_data2", data_set_data2);
+	create_case(s, "data_set_data2", data_set_data2);
 	create_case(s, "data_objformat", data_objformat);
 	create_case(s, "data_objtype", data_objtype);
 	
 	/* OSyncData *osync_data_clone(OSyncData *data, OSyncError **error); */
 	
-	return s2;
+	return s;
 }
 
 int main(void)

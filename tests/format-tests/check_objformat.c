@@ -316,6 +316,7 @@ START_TEST (objformat_demarshal)
 	fail_unless(format != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_objformat_set_demarshal_func(format, demarshal_format);
+	osync_objformat_set_marshal_func(format, marshal_format);
 	osync_objformat_set_destroy_func(format, destroy_format);
 	
 	OSyncMessage *message = osync_message_new(0, 0, &error);
@@ -344,7 +345,7 @@ END_TEST
 Suite *objformat_suite(void)
 {
 	Suite *s = suite_create("Objformat");
-	//Suite *s2 = suite_create("Objformat");
+//	Suite *s2 = suite_create("Objformat");
 	
 	create_case(s, "objformat_new", objformat_new);
 	create_case(s, "objformat_get", objformat_get);

@@ -1523,7 +1523,7 @@ END_TEST
 Suite *format_env_suite(void)
 {
 	Suite *s = suite_create("Format-Env");
-	Suite *s2 = suite_create("Format-Env");
+//	Suite *s2 = suite_create("Format-Env");
 	
 	create_case(s, "conv_env_create", conv_env_create);
 	
@@ -1549,7 +1549,7 @@ Suite *format_env_suite(void)
 	create_case(s, "conv_find_complex", conv_find_complex);
 	
 	create_case(s, "conv_find_multi_target", conv_find_multi_target);
-	create_case(s2, "conv_find_multi_target2", conv_find_multi_target2);
+	create_case(s, "conv_find_multi_target2", conv_find_multi_target2);
 	
 	
 	/*
@@ -1565,7 +1565,8 @@ Suite *format_env_suite(void)
 	create_case(s, "conv_prefer_not_lossy_objtype_change", conv_prefer_not_lossy_objtype_change);
 	create_case(s, "conv_env_detect_false", conv_env_detect_false);
 	create_case(s, "conv_env_decap_and_detect", conv_env_decap_and_detect);
-	create_case(s, "conv_env_decap_and_detect2", conv_env_decap_and_detect2);*/
+	create_case(s, "conv_env_decap_and_detect2", conv_env_decap_and_detect2);
+	*/
 	
 	/*
 	 * osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, OSyncError **error);
@@ -1580,7 +1581,7 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env
 	 * 
 	 */
 	
-	return s2;
+	return s;
 }
 
 int main(void)

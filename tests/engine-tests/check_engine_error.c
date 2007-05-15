@@ -2779,14 +2779,15 @@ END_TEST
 Suite *error_suite(void)
 {
 	Suite *s = suite_create("Engine Errors");
-	Suite *s2 = suite_create("Engine Errors");
+//	Suite *s2 = suite_create("Engine Errors");
 	
 	create_case(s, "single_init_error", single_init_error);
 	create_case(s, "double_init_error", double_init_error);
 	create_case(s, "no_config_error", no_config_error);
 	create_case(s, "no_objtype_error", no_objtype_error);
-	create_case(s2, "dual_connect_error", dual_connect_error);
-	/*create_case(s, "one_of_two_connect_error", one_of_two_connect_error);
+	create_case(s, "dual_connect_error", dual_connect_error);
+	/*
+	create_case(s, "one_of_two_connect_error", one_of_two_connect_error);
 	create_case(s, "two_of_three_connect_error", two_of_three_connect_error);
 	create_case(s, "two_of_three_connect_error2", two_of_three_connect_error2);
 	create_case(s, "three_of_three_connect_error", three_of_three_connect_error);
@@ -2825,9 +2826,10 @@ Suite *error_suite(void)
 	create_case(s, "single_disconnect_timeout", single_disconnect_timeout);
 	create_case(s, "dual_disconnect_timeout", dual_disconnect_timeout);
 	create_case(s, "disconnect_timeout_and_error", disconnect_timeout_and_error);
-	create_case(s, "get_changes_disconnect_error", get_changes_disconnect_error);*/
+	create_case(s, "get_changes_disconnect_error", get_changes_disconnect_error);
+	*/
 	
-	return s2;
+	return s;
 }
 
 int main(void)
