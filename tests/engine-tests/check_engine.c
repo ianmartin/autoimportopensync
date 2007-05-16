@@ -9,6 +9,7 @@
 #include <opensync/opensync-context.h>
 
 #include "../mock-plugin/mock_sync.h"
+#include "../mock-plugin/mock_format.h"
 
 START_TEST (engine_new)
 {
@@ -43,7 +44,8 @@ END_TEST
 
 START_TEST (engine_init)
 {
-	char *testbed = setup_testbed(NULL);
+	char *path = NULL;
+	char *testbed = setup_testbed("sync_setup");
 	
 	OSyncError *error = NULL;
 	OSyncGroup *group = osync_group_new(&error);
@@ -54,13 +56,21 @@ START_TEST (engine_init)
 	fail_unless(member != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(group, member);
+	osync_member_add_objtype(member, "mockobjtype1");
 	osync_member_set_pluginname(member, "mock-sync");
+	path = g_strdup_printf("%s/configs/group/1", testbed);
+	osync_member_set_configdir(member, path);
+	g_free(path);
 	
 	member = osync_member_new(&error);
 	fail_unless(member != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 	osync_group_add_member(group, member);
+	osync_member_add_objtype(member, "mockobjtype1");
 	osync_member_set_pluginname(member, "mock-sync");
+	path = g_strdup_printf("%s/configs/group/1", testbed);
+	osync_member_set_configdir(member, path);
+	g_free(path);
 	
 	OSyncEngine *engine = osync_engine_new(group, &error);
 	fail_unless(engine != NULL, NULL);
@@ -1210,6 +1220,7 @@ START_TEST (engine_sync_stress)
 	fail_unless(error == NULL, NULL);
 	
 	for (i = 0; i < n; i++) {
+		osync_trace(TRACE_INTERNAL, "Sync #%i", i);
 		fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 		fail_unless(error == NULL, NULL);
 	}
@@ -1463,9 +1474,17 @@ static void get_changes6(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		char *uid = g_strdup_printf("uid%i", i);
 		osync_change_set_uid(change, uid);
 		g_free(uid);
+
+		OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+		osync_assert(file != NULL);
+		file->path = g_strdup(osync_change_get_uid(change));
 		
-		char *string = g_strdup_printf("%p", change);
-		OSyncData *changedata = osync_data_new(string, strlen(string) + 1, format, &error);
+		file->data = g_strdup_printf("%p", change);
+		file->size = strlen(file->data);
+		
+		OSyncData *changedata = osync_data_new((char *)file, sizeof(OSyncFileFormat), format, &error);
+		osync_assert(changedata != NULL);
+
 		osync_data_set_objtype(changedata, "file");
 		
 		osync_assert(changedata != NULL);
@@ -1824,17 +1843,16 @@ Suite *engine_suite(void)
 	create_case(s, "engine_sync_multi_obj", engine_sync_multi_obj);
 	create_case(s, "engine_sync_out_of_order", engine_sync_out_of_order);
 	create_case(s, "engine_sync_reuse", engine_sync_reuse);
-	create_case(s, "engine_sync_stress", engine_sync_stress);
-	
-	create_case(s, "engine_sync_read_write", engine_sync_read_write);
+	create_case(s2, "engine_sync_stress", engine_sync_stress);
+	create_case(s2, "engine_sync_read_write", engine_sync_read_write);
 	create_case(s2, "engine_sync_read_write_stress", engine_sync_read_write_stress);
-	create_case(s, "engine_sync_read_write_stress2", engine_sync_read_write_stress2);
+	create_case(s2, "engine_sync_read_write_stress2", engine_sync_read_write_stress2);
 	
 	//batch commit
 	//connect problem
 	//get_changes problem
 	
-	return s2;
+	return s;
 }
 
 int main(void)
