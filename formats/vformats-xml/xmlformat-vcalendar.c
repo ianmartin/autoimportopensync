@@ -440,76 +440,103 @@ OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFor
 OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Recurrence Rule attribute");
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+	
+	OSyncXMLField *xmlfield = NULL;
+	GString *frequency = NULL;
+	GString *end = NULL;
+	GString *interval = NULL;
+	GString *modifier = NULL;
+	char *modname = NULL;
+	osync_bool set_count = FALSE;
+	osync_bool set_until = FALSE;
+	osync_bool set_extended = FALSE;
+
+	// parse values
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = values->data;
+		osync_assert(retstr);
+
+		if (strstr(retstr->str, "FREQ=")) {
+			frequency = values->data;
+		} else if (strstr(retstr->str, "COUNT=")) {
+			end = values->data;
+			set_count = TRUE;
+		} else if (strstr(end->str, "UNTIL=")) {	
+			end = values->data;
+			set_until = TRUE;
+		} else if (strstr(retstr->str, "INTERVAL=")) {
+			interval = values->data;
+		} else if (strstr(retstr->str, "BYSECOND=")) {
+			modifier = values->data;
+			modname = "BySecond";
+			set_extended = TRUE;
+		} else if (strstr(retstr->str, "BYMINUTE=")) {
+			modifier = values->data;
+			modname = "ByMinute";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "BYHOUR=")) { 
+			modifier = values->data;
+			modname = "ByHour";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "BYDAY=")) { 
+			modifier = values->data;
+			modname = "ByDay";
+		} else if (strstr(retstr->str, "BYMONTHDAY=")) { 
+			modifier = values->data;
+			modname = "ByMonthDay";
+		} else if (strstr(retstr->str, "BYYEARDAY=")) { 
+			modifier = values->data;
+			modname = "ByYearDay";
+		} else if (strstr(retstr->str, "BYWEEKNO=")) { 
+			modifier = values->data;
+			modname = "ByWeekNo";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "BYMONTH=")) { 
+			modifier = values->data;
+			modname = "ByMonth";
+		} else if (strstr(retstr->str, "BYSETPOS=")) { 
+			modifier = values->data;
+			modname = "BySetPos";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "WKST=")) { 
+			modifier = values->data;
+			modname = "WKST";
+			set_extended = TRUE; 
+		}
+	}
+
+	// create new xmlfield
+	if (set_extended) {	
+		xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRuleExtended", error);
+	} else {
+		xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+	}
 	if(!xmlfield) {
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 
-	GList *values = vformat_attribute_get_values_decoded(attr);
-
-	// set frequency
-	GString *frequency = values->data;
-	osync_assert(frequency);
+	// set frequency, count/until, interval and modifier
 	osync_xmlfield_add_key_value(xmlfield, "Frequency", frequency->str + strlen("FREQ="));
-	values = values->next;
-
-	// set count or until
-	GString *end = values->data;
-	osync_assert(end);
-	if (strstr(end->str, "COUNT=")) {
+	if (set_count) {
 		osync_xmlfield_add_key_value(xmlfield, "Count", end->str + strlen("COUNT="));
-		values = values->next;
-	} else if (strstr(end->str, "UNTIL=")) {	
+	} else if (set_until) {
 		osync_xmlfield_add_key_value(xmlfield, "Until", end->str + strlen("UNTIL="));
-		values = values->next;
 	} else {
 		// if neither COUNT nor UNTIL is set the event should be appear forever -> count = 0
 		osync_xmlfield_add_key_value(xmlfield, "Count", "0");
 	}
-
-	// get interval
-	GString *interval = values->data;
-	osync_assert(interval);
-	if (strstr(interval->str, "INTERVAL=")) {
+	if (interval != NULL) {
 		osync_xmlfield_add_key_value(xmlfield, "Interval", interval->str + strlen("INTERVAL="));
-		values = values->next;
 	} else {
 		// the default interval is 1; let us use this if no value was set
 		osync_xmlfield_add_key_value(xmlfield, "Interval", "1");
 	}
-		
-	// get modifiers
-	for (; values; values = values->next) {
-		GString *retstr = values->data;
-		osync_assert(retstr);
-
-		//TODO if BYSECOND, BYMINUTE, BYHOUR, BYWEEKNO, BYSETPOS or WKST we have to switch to ExtendedRecurrenceRule
-		if (strstr(retstr->str, "BYSECOND=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "BySecond", retstr->str + strlen("BYSECOND="));
-		} else if (strstr(retstr->str, "BYMINUTE=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByMinute", retstr->str + strlen("BYMINUTE="));
-		} else if (strstr(retstr->str, "BYHOUR=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByHour", retstr->str + strlen("BYHOUR="));
-		} else if (strstr(retstr->str, "BYDAY=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByDay", retstr->str + strlen("BYDAY="));
-		} else if (strstr(retstr->str, "BYMONTHDAY=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByMonthDay", retstr->str + strlen("BYMONTHDAY="));
-		} else if (strstr(retstr->str, "BYYEARDAY=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByYearDay", retstr->str + strlen("BYYEARDAY="));
-		} else if (strstr(retstr->str, "BYWEEKNO=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByWeekNo", retstr->str + strlen("BYWEEKNO="));
-		} else if (strstr(retstr->str, "BYMONTH=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "ByMonth", retstr->str + strlen("BYMONTH="));
-		} else if (strstr(retstr->str, "BYSETPOS=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "BySetPos", retstr->str + strlen("BYSETPOS="));
-		} else if (strstr(retstr->str, "WKST=")) { 
-			osync_xmlfield_add_key_value(xmlfield, "WKST", retstr->str + strlen("WKST="));
-		} else {
-			printf("DATA: %s\n", retstr->str);
-		}
+	if (modname != NULL) {
+		osync_xmlfield_add_key_value(xmlfield, modname, modifier->str + (strlen(modname)+1));
 	}
-	
+
 	return xmlfield;
 }
 
