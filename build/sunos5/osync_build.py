@@ -7,6 +7,8 @@ def configure(opts):
 	opts.Add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
 	opts.Add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
 
+	opts.Add(('CC', 'Path to Custom c compiler', 'cc'))
+	opts.Add(('CXX', 'Path to Custom c++ compiler flags', 'CC'))
 	
 def check(env, config):
 	conf = env.Configure(custom_tests = {'CheckPKGConfig' : CheckPKGConfig, 'CheckPKG' : CheckPKG})

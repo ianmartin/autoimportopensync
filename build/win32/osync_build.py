@@ -3,6 +3,8 @@ Import('*')
 opts.Add('prefix', 'Directory, where opensync should be installed', '/usr/local')
 opts.Add('with_sqlite', 'Path to location of sqlite', '/usr')
 opts.Add('with_check', 'Path to location of sqlite', '/usr')
+opts.Add(('CC', 'Path to Custom c compiler', 'gcc'))
+opts.Add(('CXX', 'Path to Custom c++ compiler flags', 'g++'))
 
 env.Append(CCFLAGS = '-DOPENSYNC_PLUGINDIR=\"\\"$prefix/libs/opensync/plugins\\"\"')
 env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"$prefix/libs/opensync/formats\""')
