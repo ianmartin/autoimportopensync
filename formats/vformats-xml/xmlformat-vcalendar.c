@@ -398,33 +398,24 @@ OSyncXMLField *handle_dtend_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 	return handle_attribute_simple_content(xmlformat, attr, "DateEnd", error);
 }
 
-// is this right?
 OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "TimeTransparency", error);
-}
-/*
-static OSyncXMLField *handle_transp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-        char *value;
 	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "TimeTransparency", error);
 	if(!xmlfield) {
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	} 
 
-        if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "1")) {
-            value = "OPAQUE";
+	const char *transp = vformat_attribute_get_nth_value(attr, 0);
+        if (!strcmp(transp, "0") || !strcmp(transp, "OPAQUE")) {
+		osync_xmlfield_set_key_value(xmlfield, "Content", "OPAQUE"); 
         } else {
-            value = "TRANSPARENT";
+		osync_xmlfield_set_key_value(xmlfield, "Content", "TRANSPARENT"); 
         }
 
-	osync_xmlfield_set_key_value(xmlfield, "Content", value); 
 	return xmlfield; 
 
 }
-*/
-
 
 OSyncXMLField *handle_method_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -462,7 +453,7 @@ OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 		} else if (strstr(retstr->str, "COUNT=")) {
 			end = values->data;
 			set_count = TRUE;
-		} else if (strstr(end->str, "UNTIL=")) {	
+		} else if (strstr(retstr->str, "UNTIL=")) {	
 			end = values->data;
 			set_until = TRUE;
 		} else if (strstr(retstr->str, "INTERVAL=")) {
@@ -530,7 +521,7 @@ OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 	if (interval != NULL) {
 		osync_xmlfield_add_key_value(xmlfield, "Interval", interval->str + strlen("INTERVAL="));
 	} else {
-		// the default interval is 1; let us use this if no value was set
+		// use "1" if no interval was set
 		osync_xmlfield_add_key_value(xmlfield, "Interval", "1");
 	}
 	if (modname != NULL) {
