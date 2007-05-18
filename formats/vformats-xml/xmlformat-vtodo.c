@@ -35,11 +35,6 @@ static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
 }
 
-static void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "CommonName");
-}
-
 static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedFrom");
@@ -48,11 +43,6 @@ static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatPara
 static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
-}
-
-static void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Directory");
 }
 
 static void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -101,20 +91,9 @@ static void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_xmlfield_set_attr(xmlfield, "Type", "RSVP");
 }
 
-static void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "SentBy");
-}
-
 static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
-}
-
-
-static OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Organizer", error);
 }
 
 static OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

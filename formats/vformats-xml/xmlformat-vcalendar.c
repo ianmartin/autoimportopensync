@@ -50,7 +50,7 @@ static int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rul
 {
         int frequency_state = 0;
 	char next = *(rule + 1);
-	char *frequency;
+	char *frequency = NULL;
 
 	/* get frequency: only D(1), W(2), MP(3), MD(4), YD(5) and YM(6) are allowed */
 	if (*rule == 'D') {
@@ -356,7 +356,6 @@ OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttri
 	return handle_attribute_simple_content(xmlformat, attr, "Location", error);
 }
 
-// todo only?
 OSyncXMLField *handle_completed_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Completed", error);
@@ -377,7 +376,6 @@ OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 	return handle_attribute_simple_content(xmlformat, attr, "ExclusionRule", error);
 }
 
-// ical, vtodo?
 OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RStatus", error);
@@ -422,7 +420,6 @@ OSyncXMLField *handle_method_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 	return handle_attribute_simple_content(xmlformat, attr, "Method", error);
 }
 
-// todo only?
 OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
@@ -531,12 +528,12 @@ OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 	return xmlfield;
 }
 
-/*
-static OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Organizer", error);
 }
 
+/*
 static OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceID", error);
@@ -671,22 +668,23 @@ OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 
 
 /* ******* Paramter ****** */
+
+void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+        osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
+}
+void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_xmlfield_set_attr(xmlfield, "Directory", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_xmlfield_set_attr(xmlfield, "SentBy", vformat_attribute_param_get_nth_value(param, 0));
+}
+
 /*
-static void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "TimezoneID");
-}
-
-static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
-}
-
-static void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "CommonName");
-}
-
 static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedFrom");
@@ -696,12 +694,17 @@ static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam 
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
 }
-
-static void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+static void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_xmlfield_set_attr(xmlfield, "Type", "Directory");
+	osync_xmlfield_set_attr(xmlfield, "Type", "TimezoneID");
 }
 
+static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
+}
+*/
+/*
 static void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	// TODO handle FormatType in XSD //
@@ -747,12 +750,6 @@ static void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "RSVP");
 }
-
-static void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "SentBy");
-}
-
 static void handle_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Status");

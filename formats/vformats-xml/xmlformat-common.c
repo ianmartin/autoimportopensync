@@ -25,10 +25,8 @@
 
 
 /*** PARAMETER ***/
-
 void handle_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	
 	osync_trace(TRACE_INTERNAL, "Handling Value parameter %s\n", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Value", vformat_attribute_param_get_nth_value(param, 0));
 }

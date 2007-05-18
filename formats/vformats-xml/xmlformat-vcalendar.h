@@ -57,6 +57,11 @@ OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 OSyncXMLField *handle_resources_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_dtstamp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+
+void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 // TIMEZONE handler
 OSyncXMLField *handle_tzid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
