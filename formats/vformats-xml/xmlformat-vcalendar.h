@@ -62,6 +62,7 @@ OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttr
 void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 // TIMEZONE handler
 OSyncXMLField *handle_tzid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);

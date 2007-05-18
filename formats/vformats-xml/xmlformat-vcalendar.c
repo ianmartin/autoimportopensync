@@ -43,9 +43,7 @@
  * convert_vcal_rrule_freqmod        get frequency modifier
  * convert_vcal_rrule_countuntil     get count or until value
  * convert_vcal_rrule_to_xml         get interval and call functions above
- *
  */
-
 static int convert_vcal_rrule_frequency(OSyncXMLField *xmlfield, const char *rule)
 {
         int frequency_state = 0;
@@ -667,23 +665,29 @@ OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 // END TIMEZONE
 
 
-/* ******* Paramter ****** */
-
+/* Paramter */
 void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-        osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
 }
 void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Directory", vformat_attribute_param_get_nth_value(param, 0));
 }
 
 void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "SentBy", vformat_attribute_param_get_nth_value(param, 0));
 }
 
+void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Language", vformat_attribute_param_get_nth_value(param, 0));
+}
 /*
 static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
