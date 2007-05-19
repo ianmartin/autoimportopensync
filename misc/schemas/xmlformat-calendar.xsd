@@ -375,6 +375,7 @@
     </xsd:sequence>
     <xsd:attribute name="TimezoneID" type="xsd:string"/>
     <xsd:attribute name="Range" type="RecurrenceIdRange"/>
+    <xsd:attribute name="DateValue" type="DateValueType"/>
   </xsd:complexType>
 
   <xsd:simpleType name="RecurrenceDateTimeValue">

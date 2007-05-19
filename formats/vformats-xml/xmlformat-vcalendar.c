@@ -531,12 +531,12 @@ OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttr
 	return handle_attribute_simple_content(xmlformat, attr, "Organizer", error);
 }
 
-/*
-static OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+
+OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceID", error);
+	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceId", error);
 }
-*/
+
 /*
 static OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -666,6 +666,24 @@ OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 
 
 /* Paramter */
+void handle_date_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "DateValue", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Range", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_param_get_nth_value(param, 0));
+}
+
 void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
@@ -698,11 +716,6 @@ static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam 
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
 }
-static void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "TimezoneID");
-}
-
 static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
@@ -728,11 +741,6 @@ static void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 static void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "PartStat");
-}
-
-static void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Range");
 }
 
 static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)

@@ -135,7 +135,10 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "TRANSP", handle_transp_attribute);
 	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
 	insert_attr_handler(hooks->attributes, "URL", handle_url_attribute);
-	insert_attr_handler(hooks->attributes, "RECURID", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "RECURRENCE-ID", handle_recurid_attribute);
+		insert_attr_handler(hooks->parameters, "VALUE=DATE", handle_date_value_parameter);
+		insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter);
+		insert_attr_handler(hooks->parameters, "RANGE", handle_range_parameter);
 
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "DURATION", handle_due_attribute); // TODO - is this right?

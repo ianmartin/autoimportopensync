@@ -58,7 +58,11 @@ OSyncXMLField *handle_resources_attribute(OSyncXMLFormat *xmlformat, VFormatAttr
 OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_dtstamp_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 
+void handle_date_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param);

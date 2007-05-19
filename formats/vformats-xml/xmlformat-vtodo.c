@@ -25,11 +25,6 @@
 #include "xmlformat-vtodo20.h"
 
 /* ******* Paramter ****** */
-static void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "TimezoneID");
-}
-
 static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
@@ -66,11 +61,6 @@ static void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *par
 	osync_xmlfield_set_attr(xmlfield, "Type", "PartStat");
 }
 
-static void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Range");
-}
-
 static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
@@ -94,11 +84,6 @@ static void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
-}
-
-static OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceID", error);
 }
 
 static OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
