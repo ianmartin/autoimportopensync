@@ -6,6 +6,7 @@ def configure(opts):
 	opts.Add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
 	opts.Add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
 	opts.Add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
+	opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled (GCOV/LCOV, ...)', 0))
 	opts.Add(('CC', 'Path to Custom c compiler', 'gcc'))
 	opts.Add(('CXX', 'Path to Custom c++ compiler flags', 'g++'))
 	
@@ -33,11 +34,10 @@ def check(env, config):
 		print 'package \'libxml2\' not found. Version 2.6 or greater nwwsws. http://xmlsoft.org'
 		env.Exit(1)
 
-	if not conf.CheckFunc('flock'):
-		conf.env.Append(CCFLAGS = r'-DNOT_HAVE_FLOCK')
-
-		
 	env = conf.Finish()
+
+	env.Append(CCFLAGS = r'-I.')
+	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
 	
 	if env['debug'] == 1:
 		env.Append(CCFLAGS = r'-g3')
@@ -48,11 +48,13 @@ def check(env, config):
 	if env['enable_tests'] == 1:
 		env.ParseConfig('pkg-config --cflags --libs check')
 
+	if env['enable_profiling'] == 1:
+		env.Append(CCFLAGS = [r'-O0', r'-fprofile-arcs', r'-ftest-coverage'])
+		env.Append(LINKFLAGS = [r'-fprofile-arcs', r'-ftest-coverage', r'-lgcov'])
+
 	env.ParseConfig('pkg-config --cflags --libs glib-2.0')
 	env.ParseConfig('pkg-config --cflags --libs libxml-2.0')
 	env.ParseConfig('pkg-config --cflags --libs sqlite3')
-	env.Append(CCFLAGS = r'-I.')
-	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
 
 	testenv = env.Copy()
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')

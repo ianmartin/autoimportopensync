@@ -35,7 +35,6 @@ opts.Add('debug', 'Should debugging be enabled?', 1)
 opts.Add('enable_trace', 'Should tracing be enabled?', 1)
 opts.Add(BoolOption('enable_tests', 'Should the unit tests be enabled', 0))
 opts.Add(BoolOption('enable_tools', 'Should the developer tools be build', 1))
-#opts.Add('enable_profiling', 'Should code profiling be enabled', 0)
 opts.Add(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
 opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
 opts.Add(BoolOption('enable_doxygen', 'Generating OpenSync API with doxygen?', 0))
@@ -63,9 +62,6 @@ You can set the following options:
 """ + opts.GenerateHelpText(env))
 
 env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
-env.Append(CCFLAGS = r'-DENABLE_TESTS=$enable_tests')
-env.Append(CCFLAGS = r'-DENABLE_TOOLS=$enable_tools')
-#env.Append(CCFLAGS = r'-DENABLE_PROFILING=$enable_profiling')
 env.Append(CCFLAGS = Split('$APPEND_CCFLAGS'))
 env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
 
@@ -98,8 +94,6 @@ if env['enable_doxygen'] == 1:
 	doxygen = Builder(action = 'doxygen ' + 'Doxyfile')
 	env.Append(BUILDERS = {'DoxygenBuilder' : doxygen})
 	env.DoxygenBuilder(target = 'documentation', source =[])
-
-
 
 testenv = check(env, config)
 
