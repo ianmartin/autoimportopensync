@@ -38,7 +38,7 @@
 
 #define HANDLE_IGNORE (void *)1
 
-void destroy_xmlformat(char *input, size_t inpsize);
+void destroy_xmlformat(char *input, unsigned int inpsize);
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error);
 char *print_xmlformat(const char *data, unsigned int size);
 

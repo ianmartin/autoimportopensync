@@ -24,7 +24,7 @@
 
 #include "xmlformat.h"
 
-void destroy_xmlformat(char *input, size_t inpsize)
+void destroy_xmlformat(char *input, unsigned int inpsize)
 {
 	osync_xmlformat_unref((OSyncXMLFormat *)input);
 }
