@@ -1220,7 +1220,6 @@ START_TEST (engine_sync_stress)
 	fail_unless(error == NULL, NULL);
 	
 	for (i = 0; i < n; i++) {
-		osync_trace(TRACE_INTERNAL, "Sync #%i", i);
 		fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 		fail_unless(error == NULL, NULL);
 	}
@@ -1279,10 +1278,16 @@ static void get_changes5(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
 	osync_change_set_uid(change, "uid");
 	
-	char *string = g_strdup_printf("%p", change);
-	OSyncData *changedata = osync_data_new(string, strlen(string) + 1, format, &error);
+	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+	osync_assert(file != NULL);
+	file->path = g_strdup(osync_change_get_uid(change));
+		
+	file->data = g_strdup_printf("%p", change);
+	file->size = strlen(file->data);
+		
+	OSyncData *changedata = osync_data_new((char *)file, sizeof(OSyncFileFormat), format, &error);
 	osync_data_set_objtype(changedata, "file");
-	
+
 	osync_assert(changedata != NULL);
 	osync_assert(error == NULL);
 	osync_change_set_data(change, changedata);
@@ -1668,8 +1673,16 @@ static void get_changes7(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_change_set_uid(change, uid);
 		g_free(uid);
 		
-		char *string = osync_rand_str(100000);
-		OSyncData *changedata = osync_data_new(string, strlen(string) + 1, format, &error);
+		OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+		osync_assert(file != NULL);
+		file->path = g_strdup(osync_change_get_uid(change));
+		
+		file->data = g_strdup_printf("%p", change);
+		file->size = strlen(file->data);
+		
+		OSyncData *changedata = osync_data_new((char *)file, sizeof(OSyncFileFormat), format, &error);
+		osync_assert(changedata != NULL);
+
 		osync_data_set_objtype(changedata, "file");
 		
 		osync_assert(changedata != NULL);
@@ -1835,7 +1848,7 @@ END_TEST
 Suite *engine_suite(void)
 {
 	Suite *s = suite_create("Engine");
-	Suite *s2 = suite_create("Engine");
+//	Suite *s2 = suite_create("Engine");
 	
 	create_case(s, "engine_new", engine_new);
 	create_case(s, "engine_init", engine_init);
@@ -1843,10 +1856,13 @@ Suite *engine_suite(void)
 	create_case(s, "engine_sync_multi_obj", engine_sync_multi_obj);
 	create_case(s, "engine_sync_out_of_order", engine_sync_out_of_order);
 	create_case(s, "engine_sync_reuse", engine_sync_reuse);
-	create_case(s2, "engine_sync_stress", engine_sync_stress);
-	create_case(s2, "engine_sync_read_write", engine_sync_read_write);
-	create_case(s2, "engine_sync_read_write_stress", engine_sync_read_write_stress);
-	create_case(s2, "engine_sync_read_write_stress2", engine_sync_read_write_stress2);
+	
+	// This test cases would timeout within 30seconds (default timeout) - at least if OSYNC_TRACE is enabled -> higher timeout
+	create_case_timeout(s, "engine_sync_stress", engine_sync_stress, 60);
+
+	create_case(s, "engine_sync_read_write_stress", engine_sync_read_write_stress); // FIXME: Deadlocks 
+	create_case(s, "engine_sync_read_write", engine_sync_read_write); // FIXME: DEADlocks 
+	create_case(s, "engine_sync_read_write_stress2", engine_sync_read_write_stress2); // FIXME: DEADlocks 
 	
 	//batch commit
 	//connect problem

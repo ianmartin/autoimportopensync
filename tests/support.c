@@ -130,6 +130,16 @@ void create_case(Suite *s, const char *name, TFun function)
 	tcase_add_test(tc_new, function);
 }
 
+
+// create_case_timeout() allow to specific a specific timeout - intended for breaking testcases which needs longer then 30seconds (default)
+void create_case_timeout(Suite *s, const char *name, TFun function, int timeout)
+{
+	TCase *tc_new = tcase_create(name);
+	tcase_set_timeout(tc_new, timeout);
+	suite_add_tcase (s, tc_new);
+	tcase_add_test(tc_new, function);
+}
+
 OSyncMappingTable *mappingtable_load(const char *path, const char *objtype, int num_mappings)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %i)", __func__, path, objtype, num_mappings);
