@@ -164,7 +164,7 @@ START_TEST (proxy_discover)
 	fail_unless(!strcmp(osync_objtype_sink_get_name(sink), "file"), NULL);
 	
 	fail_unless(osync_objtype_sink_num_objformats(sink) == 1, NULL);
-	fail_unless(!strcmp(osync_objtype_sink_nth_objformat(sink, 0), "file"), NULL);
+	fail_unless(!strcmp(osync_objtype_sink_nth_objformat(sink, 0), "mockformat1"), NULL);
 	
 	fail_unless(osync_client_proxy_finalize(proxy, finalize_callback, GINT_TO_POINTER(1), &error), NULL);
 	fail_unless(error == NULL, NULL);
