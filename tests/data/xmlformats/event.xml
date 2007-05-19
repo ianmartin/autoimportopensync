@@ -51,7 +51,7 @@
     <Content>N-SX 324</Content>
   </Resources>
   <RecurrenceRule>
-    <Content>WEEKLY</Content>
+    <Frequency>WEEKLY</Frequency>
   </RecurrenceRule>
   <RStatus>
     <StatusCode>1.1</StatusCode>
