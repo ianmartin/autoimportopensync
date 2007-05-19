@@ -65,6 +65,8 @@ static osync_bool osync_filesync_parse_directory(OSyncFileEnv *env, xmlNode *cur
 				dir->path = g_strdup(str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
 				dir->objtype = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"recursive")) {
+				dir->recursive = (g_ascii_strcasecmp(str, "TRUE") == 0);
 			}
 			xmlFree(str);
 		}
