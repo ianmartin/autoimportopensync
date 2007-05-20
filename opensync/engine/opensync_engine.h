@@ -174,6 +174,9 @@ void osync_engine_set_mappingstatus_callback(OSyncEngine *engine, osync_status_m
 void osync_engine_set_enginestatus_callback(OSyncEngine *engine, osync_status_engine_cb callback, void *user_data);
 void osync_engine_set_memberstatus_callback(OSyncEngine *engine, osync_status_member_cb callback, void *user_data);
 
+void osync_engine_set_group_slowsync(OSyncEngine *engine, osync_bool isslowsync);
+osync_bool osync_engine_get_group_slowsync(OSyncEngine *engine);
+
 void osync_engine_slowsync_objtype(OSyncEngine *engine, const char *objtype);
 
 void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event);

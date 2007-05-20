@@ -86,6 +86,7 @@ struct OSyncEngine {
 	GList *proxies;
 	GList *object_engines;
 
+	osync_bool group_slowsync;
 	GList *objtype_slowsync;
 	
 	osync_bool man_dispatch;

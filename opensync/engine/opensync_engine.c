@@ -362,6 +362,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 		goto error;
 	engine->ref_count = 1;
 
+	engine->group_slowsync = FALSE;
 	engine->objtype_slowsync = NULL;
 	
 	if (!g_thread_supported ())
@@ -698,8 +699,8 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 			goto error;
 		case OSYNC_LOCK_STALE:
 			osync_trace(TRACE_INTERNAL, "Detected stale lock file. Slow-syncing");
-			//osync_status_update_engine(engine, ENG_PREV_UNCLEAN, NULL);
-			//osync_group_set_slow_sync(engine->group, "data", TRUE);
+			osync_status_update_engine(engine, OSYNC_ENGINE_EVENT_PREV_UNCLEAN, NULL);
+			osync_engine_set_group_slowsync(engine, TRUE);
 			break;
 		case OSYNC_LOCK_OK:
 			break;
@@ -771,6 +772,7 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 
 	g_list_foreach((GList *) engine->objtype_slowsync, (GFunc) g_free, NULL);
 	g_list_free(engine->objtype_slowsync);
+	engine->group_slowsync = FALSE;
 	
 	osync_group_unlock(engine->group);
 
@@ -1086,6 +1088,16 @@ static void _engine_discover_callback(OSyncClientProxy *proxy, void *userdata, O
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+void osync_engine_set_group_slowsync(OSyncEngine *engine, osync_bool isslowsync)
+{
+	engine->group_slowsync = isslowsync;
+}
+
+osync_bool osync_engine_get_group_slowsync(OSyncEngine *engine)
+{
+	return engine->group_slowsync;
+}
+
 void osync_engine_slowsync_objtype(OSyncEngine *engine, const char *objtype)
 {
 	engine->objtype_slowsync = g_list_append(engine->objtype_slowsync, g_strdup(objtype));
@@ -1120,6 +1132,12 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 				osync_obj_engine_set_callback(objengine, _engine_event_callback, engine);
 				engine->object_engines = g_list_append(engine->object_engines, objengine);
 				
+				/* Set slowsync for this objtype if group_slowsync is requested */
+				if (osync_engine_get_group_slowsync(engine)) {
+					osync_obj_engine_set_slowsync(objengine, TRUE);
+					continue;
+					/* Skip. Already set slowsync for this object type */
+				}
 
 				for (o = engine->objtype_slowsync; o; o = o->next) {
 					if (!strcmp(objtype, o->data))
@@ -1127,6 +1145,10 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 				}
 
 			}
+
+			/* Now it's time to reset the group_slowsync, to avoid slow-sync all the time if the engine get
+			   used again without finalizing */
+			osync_engine_set_group_slowsync(engine, FALSE);
 		
 			/* We first tell all object engines to connect */
 			for (o = engine->object_engines; o; o = o->next) {
