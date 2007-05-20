@@ -151,6 +151,12 @@ void osync_objformat_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDupli
 osync_bool osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
 	osync_assert(format);
+
+	if (!format->duplicate_func) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "No duplicate function set");
+		return;
+	}
+
 	return format->duplicate_func(uid, input, insize, newuid, output, outsize, dirty, error);
 }
 
@@ -163,6 +169,8 @@ void osync_objformat_set_create_func(OSyncObjFormat *format, OSyncFormatCreateFu
 void osync_objformat_create(OSyncObjFormat *format, char **data, unsigned int *size)
 {
 	osync_assert(format);
+	osync_assert(format->create_func);
+
 	format->create_func(data, size);
 }
 
