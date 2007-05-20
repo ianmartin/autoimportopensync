@@ -436,7 +436,7 @@ START_TEST (sync_easy_new)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 1);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, 1, 2, "testdata");
 	check_mapping(maptable, 2, 1, 2, "testdata");
@@ -444,13 +444,13 @@ START_TEST (sync_easy_new)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 1);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
@@ -496,7 +496,7 @@ START_TEST (sync_easy_new_del)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 1);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, 1, 2, "testdata");
 	check_mapping(maptable, 2, 1, 2, "testdata");
@@ -504,20 +504,20 @@ START_TEST (sync_easy_new_del)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 1);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 	
 	reset_counters();
 	system("rm data1/testdata");
-	
+
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
@@ -564,18 +564,18 @@ START_TEST (sync_easy_new_del)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 0);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -664,7 +664,7 @@ START_TEST (sync_easy_conflict)
 	fail_unless(!system("test \"x$(diff -x \".*\" data2 comp_data)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 1);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, 1, 2, "testdata");
 	check_mapping(maptable, 2, 1, 2, "testdata");
@@ -672,13 +672,13 @@ START_TEST (sync_easy_conflict)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 1);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
@@ -760,7 +760,7 @@ START_TEST (sync_easy_new_mapping)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 1);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, 1, 2, "testdata");
 	check_mapping(maptable, 2, 1, 2, "testdata");
@@ -768,13 +768,13 @@ START_TEST (sync_easy_new_mapping)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 1);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
@@ -828,18 +828,18 @@ START_TEST (sync_easy_new_mapping)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 0);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -920,7 +920,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 2);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 2);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "testdata");
 	check_mapping(maptable, 1, -1, 2, "testdata-dupe");
@@ -930,14 +930,14 @@ START_TEST (sync_easy_conflict_duplicate)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 2);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 2);
 	g_free(path);
     check_hash(table, "testdata");
     check_hash(table, "testdata-dupe");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 2);
+    table = hashtable_load(path, "mockobjtype1", 2);
 	g_free(path);
     check_hash(table, "testdata");
     check_hash(table, "testdata-dupe");
@@ -992,7 +992,7 @@ START_TEST (sync_easy_conflict_duplicate)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 1);
+	maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "testdata");
 	check_mapping(maptable, 2, -1, 2, "testdata");
@@ -1000,13 +1000,13 @@ START_TEST (sync_easy_conflict_duplicate)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
@@ -1154,7 +1154,7 @@ START_TEST (sync_conflict_duplicate2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 2);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 2);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "testdata");
 	check_mapping(maptable, 1, -1, 2, "testdata-dupe");
@@ -1164,14 +1164,14 @@ START_TEST (sync_conflict_duplicate2)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 2);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 2);
 	g_free(path);
     check_hash(table, "testdata");
     check_hash(table, "testdata-dupe");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 2);
+    table = hashtable_load(path, "mockobjtype1", 2);
 	g_free(path);
     check_hash(table, "testdata");
     check_hash(table, "testdata-dupe");
@@ -1232,7 +1232,7 @@ START_TEST (sync_conflict_duplicate2)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1/testdata comp_data)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 1);
+	maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "testdata");
 	check_mapping(maptable, 2, -1, 2, "testdata");
@@ -1240,13 +1240,13 @@ START_TEST (sync_conflict_duplicate2)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
@@ -1333,7 +1333,7 @@ START_TEST (sync_conflict_delay)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 3);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 3);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "testdata1");
 	check_mapping(maptable, 2, -1, 2, "testdata1");
@@ -1345,7 +1345,7 @@ START_TEST (sync_conflict_delay)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 3);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 3);
 	g_free(path);
     check_hash(table, "testdata1");
     check_hash(table, "testdata2");
@@ -1353,7 +1353,7 @@ START_TEST (sync_conflict_delay)
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 3);
+    table = hashtable_load(path, "mockobjtype1", 3);
 	g_free(path);
     check_hash(table, "testdata1");
     check_hash(table, "testdata2");
@@ -1411,18 +1411,18 @@ START_TEST (sync_conflict_delay)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 0);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -1515,18 +1515,18 @@ START_TEST (sync_conflict_deldel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 0);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 0);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -1616,7 +1616,7 @@ START_TEST (sync_moddel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 1);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
 	check_mapping(maptable, 1, 1, 2, "testdata");
 	check_mapping(maptable, 2, 1, 2, "testdata");
@@ -1624,13 +1624,13 @@ START_TEST (sync_moddel)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 1);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 1);
+    table = hashtable_load(path, "mockobjtype1", 1);
 	g_free(path);
     check_hash(table, "testdata");
 	osync_hashtable_free(table);
@@ -1684,18 +1684,18 @@ START_TEST (sync_moddel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 0);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -1790,18 +1790,18 @@ START_TEST (sync_conflict_moddel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 0);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 0);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -1884,7 +1884,7 @@ START_TEST (sync_easy_dualdel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 2);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 2);
 	g_free(path);
 	check_mapping(maptable, 1, 1, 2, "testdata");
 	check_mapping(maptable, 2, 1, 2, "testdata");
@@ -1894,14 +1894,14 @@ START_TEST (sync_easy_dualdel)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 2);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 2);
 	g_free(path);
     check_hash(table, "testdata");
     check_hash(table, "testdata2");
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 2);
+    table = hashtable_load(path, "mockobjtype1", 2);
 	g_free(path);
     check_hash(table, "testdata");
     check_hash(table, "testdata2");
@@ -1958,18 +1958,18 @@ START_TEST (sync_easy_dualdel)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 0);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -2066,7 +2066,7 @@ START_TEST (sync_large)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	OSyncMappingTable *maptable = mappingtable_load(path, "file", 10);
+	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 10);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "file1");
 	check_mapping(maptable, 2, -1, 2, "file1");
@@ -2092,7 +2092,7 @@ START_TEST (sync_large)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    OSyncHashTable *table = hashtable_load(path, "file", 10);
+    OSyncHashTable *table = hashtable_load(path, "mockobjtype1", 10);
 	g_free(path);
     check_hash(table, "file1");
     check_hash(table, "file2");
@@ -2107,7 +2107,7 @@ START_TEST (sync_large)
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 10);
+    table = hashtable_load(path, "mockobjtype1", 10);
 	g_free(path);
     check_hash(table, "file1");
     check_hash(table, "file2");
@@ -2199,7 +2199,7 @@ START_TEST (sync_large)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 10);
+	maptable = mappingtable_load(path, "mockobjtype1", 10);
 	g_free(path);
 	check_mapping(maptable, 1, -1, 2, "file1");
 	check_mapping(maptable, 2, -1, 2, "file1");
@@ -2225,7 +2225,7 @@ START_TEST (sync_large)
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 10);
+    table = hashtable_load(path, "mockobjtype1", 10);
 	g_free(path);
     check_hash(table, "file1");
     check_hash(table, "file2");
@@ -2240,7 +2240,7 @@ START_TEST (sync_large)
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 10);
+    table = hashtable_load(path, "mockobjtype1", 10);
 	g_free(path);
     check_hash(table, "file1");
     check_hash(table, "file2");
@@ -2320,18 +2320,18 @@ START_TEST (sync_large)
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
-	maptable = mappingtable_load(path, "file", 0);
+	maptable = mappingtable_load(path, "mockobjtype1", 0);
 	g_free(path);
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
     
 	path = g_strdup_printf("%s/configs/group/1/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 
 	path = g_strdup_printf("%s/configs/group/2/hashtable.db", testbed);
-    table = hashtable_load(path, "file", 0);
+    table = hashtable_load(path, "mockobjtype1", 0);
 	g_free(path);
 	osync_hashtable_free(table);
 	
@@ -2342,7 +2342,7 @@ START_TEST (sync_large)
 }
 END_TEST
 
-/* We want to detect a single objtype "file"
+/* We want to detect a single objtype "mockobjtype1"
  * 
  * - First we send the config to the plugin
  * - Then the plugin will report the objtypes
@@ -2746,12 +2746,14 @@ END_TEST
 Suite *env_suite(void)
 {
 	Suite *s = suite_create("Sync");
-	//Suite *s2 = suite_create("Sync");
+//	Suite *s2 = suite_create("Sync");
+
+	Suite *s3 = suite_create("Sync"); // really broken...
 	
 	create_case(s, "sync_setup_connect", sync_setup_connect);
 	create_case(s, "sync_easy_new", sync_easy_new);
 	create_case(s, "sync_easy_new_del", sync_easy_new_del);
-	create_case(s, "sync_easy_conflict", sync_easy_conflict);
+	create_case(s3, "sync_easy_conflict", sync_easy_conflict);
 	create_case(s, "sync_easy_new_mapping", sync_easy_new_mapping);
 	create_case(s, "sync_easy_conflict_duplicate", sync_easy_conflict_duplicate);
 	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2);
