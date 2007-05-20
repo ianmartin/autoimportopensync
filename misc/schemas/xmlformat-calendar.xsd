@@ -93,6 +93,8 @@
       <xsd:element minOccurs="1" name="Content" type="xsd:anyURI"/>
     </xsd:sequence>
     <xsd:attribute name="Value" type="AttachmentType"/>
+    <xsd:attribute name="FormatType" type="xsd:string"/>
+    <xsd:attribute name="Encoding" type="xsd:string"/>
   </xsd:complexType>
 
   <xsd:simpleType name="CalendarUserType">
