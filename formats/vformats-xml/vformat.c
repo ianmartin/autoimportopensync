@@ -525,17 +525,11 @@ static void _read_attribute_params(VFormatAttribute *attr, char **p, int *format
 				    && !g_ascii_strcasecmp (param->name, "encoding")) {
 					if (STRING_IS_QP(param->values->data)) {
 						*format_encoding = VF_ENCODING_QP;
-						vformat_attribute_param_free (param);
-						param = NULL;
 					} else if ( STRING_IS_BASE64(param->values->data)) {
 						*format_encoding = VF_ENCODING_BASE64;
-						vformat_attribute_param_free (param);
-						param = NULL;
 					}
 				} else if (param && !g_ascii_strcasecmp(param->name, "charset")) {
 					*charset = g_string_new(param->values->data);
-					vformat_attribute_param_free (param);
-					param = NULL;
 				}
 			}
 			else {

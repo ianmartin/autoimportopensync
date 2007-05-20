@@ -292,6 +292,7 @@ has_value:;
 	//Handle all parameters of this attribute
 	GList *params = vformat_attribute_get_params(attr);
 	GList *p = NULL;
+	osync_trace(TRACE_INTERNAL, "Number of parameters: %i", g_list_length(params));
 	for (p = params; p; p = p->next) {
 		VFormatParam *param = p->data;
 		handle_parameter(hooks, xmlfield, param);
