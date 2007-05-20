@@ -706,9 +706,14 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 		
 		osync_message_unref(reply);
 	} else {
-		/* set slowsync */ 
+		/* set slowsync.
+		   otherwise disable slowsync - to avoid slowsyncs every time with the same initiliazed engine
+		   without finalizing the engine the next sync with the same engine would be again a slow-sync.
+		   (unittest: sync - testcases: sync_easy_new_del, sync_easy_new_mapping) */
 		if (slowsync)
 			osync_objtype_sink_set_slowsync(sink, TRUE);
+		else
+			osync_objtype_sink_set_slowsync(sink, FALSE);
 
 		OSyncContext *context = _create_context(client, message, _osync_client_connect_callback, NULL, error);
 		if (!context)
