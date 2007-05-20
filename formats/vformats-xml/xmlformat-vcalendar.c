@@ -260,6 +260,14 @@ OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 	return xmlfield;
 }
 
+//FIXME
+OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	return handle_attribute_simple_content(xmlformat, attr, "DateDue", error);
+}
+// End of vCal only attributes
+
+
 /* vCal and iCal attributes */
 OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -306,9 +314,69 @@ OSyncXMLField *handle_summary_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 	return handle_attribute_simple_content(xmlformat, attr, "Summary", error);
 }
 
-OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "DateDue", error);
+	osync_trace(TRACE_INTERNAL, "Handling Duration attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Duration", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
+	const char *duration = vformat_attribute_get_nth_value(attr, 0);
+
+	// check if duration is positive or negative
+	if (duration[0] == '-') {
+		osync_xmlfield_add_key_value(xmlfield, "InAdvance", "TRUE");
+	} else {
+		osync_xmlfield_add_key_value(xmlfield, "InAdvance", "FALSE");
+	}
+
+	int i, end, digits;
+	end = strlen(duration);
+	char *value = NULL;
+	for (i = 1; i < end; i++) {
+		switch (duration[i]) {
+			case 'W':
+				osync_xmlfield_add_key_value(xmlfield, "Weeks", value);
+				break;	
+			case 'D':
+				osync_xmlfield_add_key_value(xmlfield, "Days", value);
+				break;
+			case 'H':
+				osync_xmlfield_add_key_value(xmlfield, "Hours", value);
+				break;
+			case 'M':
+				osync_xmlfield_add_key_value(xmlfield, "Minutes", value);
+				break;
+			case 'S':
+				osync_xmlfield_add_key_value(xmlfield, "Seconds", value);
+				break;
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				if (value)
+					g_free(value);
+				sscanf((duration+i),"%d",&digits);
+				value = g_strdup_printf("%i", digits);
+				i += strlen(value)-1;
+				break;
+			default:
+				break;
+		}	
+	}
+
+	if (value)
+		g_free(value);
+
+	return xmlfield;
 }
 
 OSyncXMLField *handle_priority_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

@@ -58,7 +58,8 @@
   <xsd:complexType name="Duration">
     <xsd:sequence>
       <!--
-      	     TODO: Evalute if this duration values are compatible to vcalendar as well.
+      	     TODO: Evalute if this duration values are compatible to vcalendar as well. 
+		cstender: Why vcalendar ???
 
 	     dur-value  = (["+"] / "-") "P" (dur-date / dur-time / dur-week)
 
@@ -72,7 +73,7 @@
       -->
       <xsd:element minOccurs="0" maxOccurs="1" name="InAdvance" type="Bool"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Weeks" type="xsd:integer"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="Days" type="weekDaysInt"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Days" type="PositiveInteger"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Hours" type="hourInt"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Minutes" type="minuteInt"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Seconds" type="secondInt"/>
@@ -252,13 +253,6 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="weekDaysInt">
-    <xsd:restriction base="xsd:integer">
-      <xsd:minInclusive value="1"/>
-      <xsd:maxInclusive value="7"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
   <xsd:simpleType name="OneDigitPositiveInteger">
     <xsd:restriction base="xsd:integer">
       <xsd:minInclusive value="0"/>
@@ -303,7 +297,7 @@
   <xsd:complexType name="RecurrenceRuleExtended">
     <xsd:sequence>
       <xsd:element minOccurs="1" maxOccurs="1" name="Frequency" type="RecurrenceFreq"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="Count" type="OneDigitPositiveInteger"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="Count" type="PositiveInteger"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Until" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="Interval" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="BySecond" type="secondInt"/>

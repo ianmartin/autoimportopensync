@@ -62,7 +62,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "DCREATED", handle_created_attribute);
 	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute);
+	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute); // FIXME
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
@@ -141,7 +141,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 		insert_attr_handler(hooks->parameters, "RANGE", handle_range_parameter);
 
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
-	insert_attr_handler(hooks->attributes, "DURATION", handle_due_attribute); // TODO - is this right?
+	insert_attr_handler(hooks->attributes, "DURATION", handle_duration_attribute); // TODO
 
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
