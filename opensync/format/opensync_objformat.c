@@ -154,7 +154,7 @@ osync_bool osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, co
 
 	if (!format->duplicate_func) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No duplicate function set");
-		return;
+		return FALSE;
 	}
 
 	return format->duplicate_func(uid, input, insize, newuid, output, outsize, dirty, error);
