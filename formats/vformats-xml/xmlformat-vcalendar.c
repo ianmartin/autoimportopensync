@@ -774,6 +774,24 @@ void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Language", vformat_attribute_param_get_nth_value(param, 0));
 }
+void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "AlternativeTextRep", vformat_attribute_param_get_nth_value(param, 0));
+}
+//TODO - Handle FormatType in XSD
+void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "FormatType", vformat_attribute_param_get_nth_value(param, 0));
+}
+//TODO - Handle Encoding in XSD
+void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Encoding", vformat_attribute_param_get_nth_value(param, 0));
+}
+
 /*
 static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
@@ -784,18 +802,6 @@ static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam 
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
 }
-static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
-}
-*/
-/*
-static void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	// TODO handle FormatType in XSD //
-	osync_xmlfield_set_attr(xmlfield, "Type", "FormatType");
-}
-
 static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "FreeBusyType");

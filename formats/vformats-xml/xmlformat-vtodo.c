@@ -25,11 +25,6 @@
 #include "xmlformat-vtodo20.h"
 
 /* ******* Paramter ****** */
-static void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "AlternateRep");
-}
-
 static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedFrom");
@@ -38,12 +33,6 @@ static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatPara
 static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
-}
-
-static void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	/* TODO handle FormaType in XSD */
-	osync_xmlfield_set_attr(xmlfield, "Type", "FormaType");
 }
 
 static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
