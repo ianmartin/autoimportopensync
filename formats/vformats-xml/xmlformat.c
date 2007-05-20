@@ -29,6 +29,29 @@ void destroy_xmlformat(char *input, unsigned int inpsize)
 	osync_xmlformat_unref((OSyncXMLFormat *)input);
 }
 
+static osync_bool duplicate_xmlformat(const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i, %p, %p, %p, %p, %p)", __func__, uid, input, insize, newuid, output, outsize, dirty, error);
+	
+	char *buffer = NULL;
+	unsigned int size;
+	
+	osync_xmlformat_assemble((OSyncXMLFormat *) input, &buffer, &size);
+
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, error);
+	if (!xmlformat) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
+	}
+
+	*dirty = TRUE;
+	*newuid = g_strdup_printf ("%s-dupe", uid);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+
 osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output, unsigned int *outpsize, OSyncError **error)
 {
 	/* TODO: we can do that faster with a osync_xmlformat_copy() function */
@@ -250,6 +273,7 @@ void get_format_info(OSyncFormatEnv *env)
 	
 	osync_objformat_set_compare_func(format, compare_contact);
 	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_duplicate_func(format, duplicate_xmlformat);
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_contact);
@@ -274,6 +298,7 @@ void get_format_info(OSyncFormatEnv *env)
 	
 	osync_objformat_set_compare_func(format, compare_event);
 	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_duplicate_func(format, duplicate_xmlformat);
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_event);
@@ -297,6 +322,7 @@ void get_format_info(OSyncFormatEnv *env)
 
 	osync_objformat_set_compare_func(format, compare_todo);
 	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_duplicate_func(format, duplicate_xmlformat);
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_todo);
@@ -320,6 +346,7 @@ void get_format_info(OSyncFormatEnv *env)
 
 	osync_objformat_set_compare_func(format, compare_note);
 	osync_objformat_set_destroy_func(format, destroy_xmlformat);
+	osync_objformat_set_duplicate_func(format, duplicate_xmlformat);
 	osync_objformat_set_print_func(format, print_xmlformat);
 	osync_objformat_set_copy_func(format, copy_xmlformat);
 	osync_objformat_set_create_func(format, create_note);
