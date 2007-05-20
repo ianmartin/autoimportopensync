@@ -1338,22 +1338,23 @@ void osync_obj_engine_set_slowsync(OSyncObjEngine *engine, osync_bool slowsync)
 
 static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProxy *proxy, const char *objtype, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, env, proxy, objtype, error);
 	OSyncMember *member = osync_client_proxy_get_member(proxy);
 	
 	const OSyncList *formats = osync_member_get_objformats(member, objtype, error);
-	osync_trace(TRACE_INTERNAL, "Found %i possible sink formats", osync_list_length(formats));
-	
 	if (!formats) {
 		if (!osync_error_is_set(error))
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a valid target format");
-		return NULL;
+		goto error;
 	}
+
+	osync_trace(TRACE_INTERNAL, "Found %i possible sink formats", osync_list_length(formats));
 						
 	int num = osync_list_length(formats);
 	
 	OSyncObjFormat **formatArray = osync_try_malloc0(sizeof(OSyncObjFormat *) * (num + 1), error);
 	if (!formatArray)
-		return NULL;
+		goto error;
 	
 	const OSyncList *f = NULL;
 	int i = 0;
@@ -1362,7 +1363,8 @@ static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProx
 		OSyncObjFormat *format = osync_format_env_find_objformat(env, formatstr);
 		if (!format) {
 			g_free(formatArray);
-			return NULL;
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find a valid object format for \"%s\"", formatstr);
+			goto error;
 		}
 		
 		formatArray[i] = format;
@@ -1370,7 +1372,12 @@ static OSyncObjFormat **_get_member_formats(OSyncFormatEnv *env, OSyncClientProx
 	}
 	formatArray[i] = NULL;
 	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, formatArray);
 	return formatArray;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
 }
 
 osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, OSyncError **error)
