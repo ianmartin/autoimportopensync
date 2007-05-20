@@ -378,11 +378,10 @@ START_TEST (conv_env_plugin)
 	fail_unless(osync_module_get_format_info(module, env, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	// FIXME: conversion_info of mockformat broken 
 	fail_unless(osync_module_get_conversion_info(module, env, &error), NULL);
 	fail_unless(error == NULL, NULL);
 	
-	fail_unless(osync_format_env_num_objformats(env) == 2, NULL);
+	fail_unless(osync_format_env_num_objformats(env) == 3, NULL);
 	fail_unless(osync_format_env_num_converters(env) == 2, NULL);
 	
 	osync_format_env_free(env);
@@ -396,7 +395,7 @@ END_TEST
 Suite *format_env_suite(void)
 {
 	Suite *s = suite_create("Format-Env");
-	//Suite *s2 = suite_create("Format-Env");
+//	Suite *s2 = suite_create("Format-Env");
 	
 	create_case(s, "conv_env_create", conv_env_create);
 	

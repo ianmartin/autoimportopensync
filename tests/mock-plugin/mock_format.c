@@ -244,6 +244,16 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 
+	/* mockformat3 */
+	format = osync_objformat_new("mockformat3", "mockobjtype3", error);
+	if (!format)
+		return FALSE;
+
+	_format_set_functions(format);
+
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
 	return TRUE;
 }
 
