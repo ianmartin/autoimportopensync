@@ -61,17 +61,6 @@ OSyncXMLField *handle_dtstamp_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 
-void handle_date_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-
 // TIMEZONE handler
 OSyncXMLField *handle_tzid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_tz_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
@@ -83,6 +72,24 @@ OSyncXMLField *handle_tzrdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 OSyncXMLField *handle_tzrrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_tzname_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+
+// parameter
+void handle_date_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_sent_by_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 void insert_attr_handler(GHashTable *table, const char *attrname, void* handler);
 

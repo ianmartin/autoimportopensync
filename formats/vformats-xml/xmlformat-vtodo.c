@@ -25,16 +25,6 @@
 #include "xmlformat-vtodo20.h"
 
 /* ******* Paramter ****** */
-static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedFrom");
-}
-
-static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
-}
-
 static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "FreeBusyType");
@@ -45,11 +35,6 @@ static void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 	osync_xmlfield_set_attr(xmlfield, "Type", "Member");
 }
 
-static void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "PartStat");
-}
-
 static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
@@ -58,16 +43,6 @@ static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 static void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "RelationType");
-}
-
-static void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Role");
-}
-
-static void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "RSVP");
 }
 
 static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

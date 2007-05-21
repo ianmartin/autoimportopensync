@@ -757,6 +757,7 @@ void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "CommonName", vformat_attribute_param_get_nth_value(param, 0));
 }
+
 void handle_dir_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
@@ -774,34 +775,63 @@ void handle_language_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Language", vformat_attribute_param_get_nth_value(param, 0));
 }
+
 void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "AlternativeTextRep", vformat_attribute_param_get_nth_value(param, 0));
 }
-//TODO - Handle FormatType in XSD
+
 void handle_format_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "FormatType", vformat_attribute_param_get_nth_value(param, 0));
 }
-//TODO - Handle Encoding in XSD
+
 void handle_encoding_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Encoding", vformat_attribute_param_get_nth_value(param, 0));
 }
 
-/*
-static void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedFrom");
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Role", vformat_attribute_param_get_nth_value(param, 0));
 }
 
-static void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_xmlfield_set_attr(xmlfield, "Type", "DelegatedTo");
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "PartStat", vformat_attribute_param_get_nth_value(param, 0));
 }
+
+void handle_delegated_from_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "DelegatedFrom", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "DelegatedTo", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "CUType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+
+/*
 static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "FreeBusyType");
@@ -811,12 +841,6 @@ static void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Member");
 }
-
-static void handle_partstat_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "PartStat");
-}
-
 static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
@@ -827,21 +851,11 @@ static void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 	osync_xmlfield_set_attr(xmlfield, "Type", "RelationType");
 }
 
-static void handle_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Role");
-}
-
-static void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "RSVP");
-}
 static void handle_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Status");
 }
 */
-
 
 /*
 void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLField **xmlfield, VFormat *vcal)

@@ -145,12 +145,19 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "DURATION", handle_duration_attribute);
 
-	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute); //FIXME - fix XSD, add support for INLINE Documents
-		insert_attr_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter); // See Errata: FMTYPE is wrong
-		insert_attr_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter); // See Errata: FMTYPE is wrong
-		insert_attr_handler(hooks->parameters, "ENCODING", handle_encoding_parameter); //FIXME: ;ENCODING isn't recognized
+	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
+		insert_attr_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter);
+		// See Errata: FMTYPE is wrong in RFC2445
+		insert_attr_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter);
+		insert_attr_handler(hooks->parameters, "ENCODING", handle_encoding_parameter);
 		insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
+		insert_attr_handler(hooks->parameters, "CUTYPE", handle_cutype_parameter);
+		insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter);
+		insert_attr_handler(hooks->parameters, "RSVP", handle_rsvp_parameter);
+		insert_attr_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter);
+		insert_attr_handler(hooks->parameters, "DELEGATED-FROM", handle_delegated_from_parameter);
+		insert_attr_handler(hooks->parameters, "DELEGATED-TO", handle_delegated_to_parameter);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
 	insert_attr_handler(hooks->attributes, "COMMENT", HANDLE_IGNORE);  // TODO
 	insert_attr_handler(hooks->attributes, "CONTACT", HANDLE_IGNORE);  // TODO

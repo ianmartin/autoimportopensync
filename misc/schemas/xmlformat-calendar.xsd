@@ -99,11 +99,11 @@
 
   <xsd:simpleType name="CalendarUserType">
     <xsd:restriction base="xsd:string">
-    	<xsd:enumeration value="Individual"/>
-	<xsd:enumeration value="Group"/>
-	<xsd:enumeration value="Resource"/>
-	<xsd:enumeration value="Room"/>
-	<xsd:enumeration value="Unkown"/>
+    	<xsd:enumeration value="INDIVIDUAL"/>
+	<xsd:enumeration value="GROUP"/>
+	<xsd:enumeration value="RESOURCE"/>
+	<xsd:enumeration value="ROOM"/>
+	<xsd:enumeration value="UNKNOWN"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -117,20 +117,20 @@
 
   <xsd:simpleType name="RoleType">
     <xsd:restriction base="xsd:string">
-    	<xsd:enumeration value="Chair"/>
-	<xsd:enumeration value="Req-Participant"/>
-	<xsd:enumeration value="Opt-Participant"/>
-	<xsd:enumeration value="Non-Participant"/>
+    	<xsd:enumeration value="CHAIR"/>
+	<xsd:enumeration value="REQ-PARTICIPANT"/>
+	<xsd:enumeration value="OPT-PARTICIPANT"/>
+	<xsd:enumeration value="NON-PARTICIPANT"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <xsd:simpleType name="ParticipationStatusType">
     <xsd:restriction base="xsd:string">
-    	<xsd:enumeration value="Needs-Action"/>
-	<xsd:enumeration value="Accepted"/>
-	<xsd:enumeration value="Declined"/>
-	<xsd:enumeration value="Tentative"/>
-	<xsd:enumeration value="Delegated"/>
+    	<xsd:enumeration value="NEEDS-ACTION"/>
+	<xsd:enumeration value="ACCEPTED"/>
+	<xsd:enumeration value="DECLINED"/>
+	<xsd:enumeration value="TENTATIVE"/>
+	<xsd:enumeration value="DELEGATED"/>
     </xsd:restriction>
   </xsd:simpleType>
 
