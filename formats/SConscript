@@ -55,4 +55,4 @@ formatenv.Install(install_format, xmlformatdoc)
 
 formatenv.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
 
-formatenv.Alias('install', install_prefix)
+env.Alias('install', install_prefix)
