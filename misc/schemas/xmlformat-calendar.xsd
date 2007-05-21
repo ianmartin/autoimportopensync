@@ -408,19 +408,10 @@
     <xsd:attribute name="RelationshipType" type="RelationshipType"/>
   </xsd:complexType>
 
-  <!-- RFC2445: 4.8.8.2 Request Status - statcode -->
-  <xsd:simpleType name="StatusCode">
-    <xsd:restriction base="xsd:decimal">
-      <xsd:minInclusive value="1"/>
-      <xsd:maxExclusive value="5"/>
-      <xsd:fractionDigits value="1"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
   <!-- RFC2445: 4.8.8.2 Request Status -->
   <xsd:complexType name="RequestStatus">
     <xsd:sequence>
-      <xsd:element minOccurs="1" maxOccurs="1" name="StatusCode" type="StatusCode"/>
+      <xsd:element minOccurs="1" maxOccurs="1" name="StatusCode" type="xsd:string"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="StatusDescription" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="ExceptionData" type="xsd:string"/>
     </xsd:sequence>
