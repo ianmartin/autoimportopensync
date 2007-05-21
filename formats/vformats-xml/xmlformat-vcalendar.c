@@ -439,12 +439,111 @@ OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 
 OSyncXMLField *handle_exdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "ExclusionDate", error);
+	return handle_attribute_simple_content(xmlformat, attr, "ExceptionDateTime", error);
 }
 
+//TODO share code with handle_rrule_attribute
 OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "ExclusionRule", error);
+	osync_trace(TRACE_INTERNAL, "Handling ExceptionRule attribute");
+	
+	OSyncXMLField *xmlfield = NULL;
+	GString *frequency = NULL;
+	GString *end = NULL;
+	GString *interval = NULL;
+	GString *modifier = NULL;
+	char *modname = NULL;
+	osync_bool set_count = FALSE;
+	osync_bool set_until = FALSE;
+	osync_bool set_extended = FALSE;
+
+	// parse values
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = values->data;
+		osync_assert(retstr);
+
+		if (strstr(retstr->str, "FREQ=")) {
+			frequency = values->data;
+		} else if (strstr(retstr->str, "COUNT=")) {
+			end = values->data;
+			set_count = TRUE;
+		} else if (strstr(retstr->str, "UNTIL=")) {	
+			end = values->data;
+			set_until = TRUE;
+		} else if (strstr(retstr->str, "INTERVAL=")) {
+			interval = values->data;
+		} else if (strstr(retstr->str, "BYSECOND=")) {
+			modifier = values->data;
+			modname = "BySecond";
+			set_extended = TRUE;
+		} else if (strstr(retstr->str, "BYMINUTE=")) {
+			modifier = values->data;
+			modname = "ByMinute";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "BYHOUR=")) { 
+			modifier = values->data;
+			modname = "ByHour";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "BYDAY=")) { 
+			modifier = values->data;
+			modname = "ByDay";
+		} else if (strstr(retstr->str, "BYMONTHDAY=")) { 
+			modifier = values->data;
+			modname = "ByMonthDay";
+		} else if (strstr(retstr->str, "BYYEARDAY=")) { 
+			modifier = values->data;
+			modname = "ByYearDay";
+		} else if (strstr(retstr->str, "BYWEEKNO=")) { 
+			modifier = values->data;
+			modname = "ByWeekNo";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "BYMONTH=")) { 
+			modifier = values->data;
+			modname = "ByMonth";
+		} else if (strstr(retstr->str, "BYSETPOS=")) { 
+			modifier = values->data;
+			modname = "BySetPos";
+			set_extended = TRUE; 
+		} else if (strstr(retstr->str, "WKST=")) { 
+			modifier = values->data;
+			modname = "WKST";
+			set_extended = TRUE; 
+		}
+	}
+
+	// create new xmlfield
+	if (set_extended) {	
+		xmlfield = osync_xmlfield_new(xmlformat, "ExceptionRuleExtended", error);
+	} else {
+		xmlfield = osync_xmlfield_new(xmlformat, "ExceptionRule", error);
+	}
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
+	// set frequency, count/until, interval and modifier
+	osync_xmlfield_add_key_value(xmlfield, "Frequency", frequency->str + strlen("FREQ="));
+	if (set_count) {
+		osync_xmlfield_add_key_value(xmlfield, "Count", end->str + strlen("COUNT="));
+	} else if (set_until) {
+		osync_xmlfield_add_key_value(xmlfield, "Until", end->str + strlen("UNTIL="));
+	} else {
+		// if neither COUNT nor UNTIL is set the event should be appear forever -> count = 0
+		osync_xmlfield_add_key_value(xmlfield, "Count", "0");
+	}
+	if (interval != NULL) {
+		osync_xmlfield_add_key_value(xmlfield, "Interval", interval->str + strlen("INTERVAL="));
+	} else {
+		// use "1" if no interval was set
+		osync_xmlfield_add_key_value(xmlfield, "Interval", "1");
+	}
+	if (modname != NULL) {
+		osync_xmlfield_add_key_value(xmlfield, modname, modifier->str + (strlen(modname)+1));
+	}
+
+	return xmlfield;
 }
 
 OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -496,6 +595,7 @@ OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFor
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
 }
 
+//TODO share code with handle_exrule_attribute
 OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
 	osync_trace(TRACE_INTERNAL, "Handling Recurrence Rule attribute");
