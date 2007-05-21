@@ -412,7 +412,7 @@
   <xsd:simpleType name="StatusCode">
     <xsd:restriction base="xsd:decimal">
       <xsd:minInclusive value="1"/>
-      <xsd:maxInclusive value="4"/>
+      <xsd:maxExclusive value="5"/>
       <xsd:fractionDigits value="1"/>
     </xsd:restriction>
   </xsd:simpleType>

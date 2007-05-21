@@ -547,8 +547,20 @@ OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 }
 
 OSyncXMLField *handle_rstatus_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "RStatus", error);
+{
+	osync_trace(TRACE_INTERNAL, "Handling RStatus attribute");
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "RStatus", error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	osync_xmlfield_set_key_value(xmlfield, "StatusCode", vformat_attribute_get_nth_value(attr, 0));
+	osync_xmlfield_set_key_value(xmlfield, "StatusDescription", vformat_attribute_get_nth_value(attr, 1));
+	if (vformat_attribute_get_nth_value(attr, 2) != NULL)
+		osync_xmlfield_set_key_value(xmlfield, "ExceptionData", vformat_attribute_get_nth_value(attr, 2));
+	
+	return xmlfield;
 }
 
 OSyncXMLField *handle_related_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
