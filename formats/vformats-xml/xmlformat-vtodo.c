@@ -50,12 +50,6 @@ static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlforma
 	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
 }
 
-static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
-}
-
-
 /* VCALENDAR ONLY */
 static OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 

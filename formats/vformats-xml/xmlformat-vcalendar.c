@@ -610,12 +610,12 @@ OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceId", error);
 }
 
-/*
-static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
 }
 
+/*
 static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
