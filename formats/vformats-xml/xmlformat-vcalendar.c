@@ -289,6 +289,11 @@ OSyncXMLField *handle_attendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttri
 	return handle_attribute_simple_content(xmlformat, attr, "Attendee", error);
 }
 
+OSyncXMLField *handle_comment_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	return handle_attribute_simple_content(xmlformat, attr, "Comment", error);
+}
+
 OSyncXMLField *handle_created_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Created", error);
@@ -606,27 +611,16 @@ OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 }
 
 /*
-static OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Duration", error);
-}
-*/
-
-/*
 static OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
 }
-*/
 
-/*
 static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
 }
 */
-
-
 /* FIXME... Duration wrong placed? in XSD */
 /*
 static OSyncXMLField *handle_aduration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

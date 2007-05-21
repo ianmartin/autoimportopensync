@@ -159,7 +159,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 		insert_attr_handler(hooks->parameters, "DELEGATED-FROM", handle_delegated_from_parameter);
 		insert_attr_handler(hooks->parameters, "DELEGATED-TO", handle_delegated_to_parameter);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
-	insert_attr_handler(hooks->attributes, "COMMENT", HANDLE_IGNORE);  // TODO
+	insert_attr_handler(hooks->attributes, "COMMENT", handle_comment_attribute);
 	insert_attr_handler(hooks->attributes, "CONTACT", HANDLE_IGNORE);  // TODO
 	insert_attr_handler(hooks->attributes, "EXDATE", handle_exdate_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
