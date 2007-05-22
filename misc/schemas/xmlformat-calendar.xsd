@@ -217,7 +217,8 @@
 
   <xsd:simpleType name="yearDayInt">
     <xsd:restriction base="xsd:integer">
-      <xsd:minInclusive value="1"/>
+      <xsd:minInclusive value="-366"/>
+      <!-- FIXME: -366..-1 and 1..366 .. NOT 0 -->
       <xsd:maxInclusive value="366"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -411,7 +412,7 @@
   <!-- RFC2445: 4.8.8.2 Request Status -->
   <xsd:complexType name="RequestStatus">
     <xsd:sequence>
-      <xsd:element minOccurs="1" maxOccurs="1" name="StatusCode" type="xsd:string"/>
+      <xsd:element minOccurs="1" maxOccurs="1" name="StatusCode" type="xsd:string"/> <!-- limit StatusCode to a max length -->
       <xsd:element minOccurs="1" maxOccurs="1" name="StatusDescription" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="ExceptionData" type="xsd:string"/>
     </xsd:sequence>
