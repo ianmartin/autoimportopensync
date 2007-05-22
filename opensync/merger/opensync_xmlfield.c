@@ -107,18 +107,6 @@ int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 	return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
 }
 
-/**
- * @brief Get the direct content of a xmlfield
- * @param xmlfield The pointer to a xmlfield object
- * @return The content of the xmlfield
- */
-const char *_osync_xmlfield_get_content(OSyncXMLField *xmlfield)
-{
-	osync_assert(xmlfield);
-	
-	return (const char *)xmlfield->node->content;
-}
-
 /*@}*/
 
 /**
@@ -695,52 +683,6 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 	}
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
 	return res;
-}
-
-/**
- * @brief Create new parentless xmlfield.
- * @param name The name of the parentless xmlfield node 
- * @param value The value of the parentloss xmlfield node 
- * @param error The error which will hold the info in case of an error
- */
-OSyncXMLField *osync_xmlfield_new_node(const char *name, const char *value, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, name, value);
-	osync_assert(name);
-	osync_assert(value);
-
-	xmlNodePtr node = xmlNewNode(NULL, BAD_CAST name);
-	xmlNodeSetContent(node, BAD_CAST value);
-	
-	OSyncXMLField *xmlfield = osync_try_malloc0(sizeof(OSyncXMLField), error);
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
-	}
-	
-	xmlfield->next = NULL;
-	xmlfield->prev = NULL;
-	xmlfield->node = node;
-
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfield);
-	return xmlfield;
-}
-
-/**
- * @brief Append a parentless xmlfield entry to xmlfield.
- * @param parent The new xmlfield of the parentless node
- * @param node The xmlfield which gets added
- */
-void osync_xmlfield_set_node(OSyncXMLField *parent, OSyncXMLField *node, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, parent, node, error);
-
-	const char *key = osync_xmlfield_get_name(node);
-	const char *value = _osync_xmlfield_get_content(node);
-
-	osync_xmlfield_set_key_value(parent, key, value); 
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*@}*/
