@@ -164,7 +164,8 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "EXDATE", handle_exdate_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "REQUEST-STATUS", handle_rstatus_attribute);
-	insert_attr_handler(hooks->attributes, "RELATED", handle_related_attribute); // TODO - is this right? - review!
+	insert_attr_handler(hooks->attributes, "RELATED-TO", handle_related_attribute);
+		insert_attr_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter);
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);

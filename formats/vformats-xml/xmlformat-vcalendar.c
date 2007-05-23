@@ -843,6 +843,13 @@ void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
 }
 
+void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "RelationshipType", vformat_attribute_param_get_nth_value(param, 0));
+}
+
+
 
 /*
 static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -858,12 +865,6 @@ static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
 }
-
-static void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "RelationType");
-}
-
 static void handle_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "Status");
