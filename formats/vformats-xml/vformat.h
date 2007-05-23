@@ -28,6 +28,9 @@
 #include <glib.h>
 #include <time.h>
 
+#include <opensync/opensync.h>
+#include <opensync/opensync_internals.h>
+
 typedef enum {
 	VFORMAT_CARD_21,
 	VFORMAT_CARD_30,

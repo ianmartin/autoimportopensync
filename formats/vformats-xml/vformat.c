@@ -1480,9 +1480,13 @@ void
 vformat_attribute_set_value (VFormatAttribute *attr,
 				int nth, const char *value)
 {
+	osync_assert(value);
+
 	GList *param = g_list_nth(attr->values, nth);
 	g_free(param->data);
-	param->data = g_strdup(value);
+
+	if (strlen(value))
+		param->data = g_strdup(value);
 }
 
 void
