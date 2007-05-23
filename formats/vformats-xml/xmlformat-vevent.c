@@ -371,6 +371,7 @@ osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **ou
 
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
+	g_hash_table_destroy(hooks->tztable);
 	g_free(hooks);
 
 	*free_input = TRUE;
@@ -463,7 +464,6 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	// free hash tables
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
-	g_hash_table_destroy(hooks->tztable);
 	g_free(hooks);
 
 	*free_input = TRUE;
