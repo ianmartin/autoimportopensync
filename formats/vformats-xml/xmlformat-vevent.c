@@ -111,6 +111,29 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	 * ERRATA: http://www.rfc-editor.org/cgi-bin/errataSearch.pl?rfc=2445
 	 */
 
+	// [RFC 2445] 4.2 Property Parameters (same order as in spec!)
+	insert_attr_handler(hooks->parameters, "ALTREP", handle_altrep_parameter); // altrepparam
+	insert_attr_handler(hooks->parameters, "CN", handle_cn_parameter); // cnparam
+	insert_attr_handler(hooks->parameters, "CUTYPE", handle_cutype_parameter); // cutypeparam
+	insert_attr_handler(hooks->parameters, "DELEGATED-FROM", handle_delegated_from_parameter); // delfromparam
+	insert_attr_handler(hooks->parameters, "DELEGATED-TO", handle_delegated_to_parameter); // deltoparam
+	insert_attr_handler(hooks->parameters, "DIR", handle_dir_parameter); // dirparam
+	insert_attr_handler(hooks->parameters, "ENCODING", handle_encoding_parameter); // encodingparam
+	insert_attr_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter); // fmttypeparam
+	insert_attr_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter); // same as fmttypeparam -> see Errata
+	// TODO fbtypeparam
+	insert_attr_handler(hooks->parameters, "LANGUAGE", handle_language_parameter); // languageparam
+	insert_attr_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
+	insert_attr_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
+	insert_attr_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
+	// TODO trigrelparam
+	insert_attr_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
+	insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter); // roleparam
+	insert_attr_handler(hooks->parameters, "RSVP", handle_rsvp_parameter); // rsvpparam
+	insert_attr_handler(hooks->parameters, "SENT-BY", handle_sent_by_parameter); // sentbyparam
+	insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
+	insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
+
         // [RFC 2445] eventc &  (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
@@ -119,18 +142,11 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "CLASS", handle_class_attribute);
 	insert_attr_handler(hooks->attributes, "CREATED", handle_created_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
-		insert_attr_handler(hooks->parameters, "ALTREP", handle_altrep_parameter);
-		insert_attr_handler(hooks->parameters, "LANGUAGE", handle_language_parameter);
 	insert_attr_handler(hooks->attributes, "DTSTART", handle_dtstart_attribute);
-		insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter);
-		insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
 	insert_attr_handler(hooks->attributes, "GEO", handle_geo_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
 	insert_attr_handler(hooks->attributes, "LOCATION", handle_location_attribute);
 	insert_attr_handler(hooks->attributes, "ORGANIZER", handle_organizer_attribute);
-		insert_attr_handler(hooks->parameters, "CN", handle_cn_parameter);
-		insert_attr_handler(hooks->parameters, "DIR", handle_dir_parameter);
-		insert_attr_handler(hooks->parameters, "SENT-BY", handle_sent_by_parameter);
 	insert_attr_handler(hooks->attributes, "PRIORITY", handle_priority_attribute); 
 	insert_attr_handler(hooks->attributes, "DTSTAMP", handle_dtstamp_attribute);
 	insert_attr_handler(hooks->attributes, "SEQUENCE", handle_sequence_attribute);
@@ -140,24 +156,12 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
 	insert_attr_handler(hooks->attributes, "URL", handle_url_attribute);
 	insert_attr_handler(hooks->attributes, "RECURRENCE-ID", handle_recurid_attribute);
-		insert_attr_handler(hooks->parameters, "RANGE", handle_range_parameter);
 
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "DURATION", handle_duration_attribute);
 
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
-		insert_attr_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter);
-		// See Errata: FMTYPE is wrong in RFC2445
-		insert_attr_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter);
-		insert_attr_handler(hooks->parameters, "ENCODING", handle_encoding_parameter);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
-		insert_attr_handler(hooks->parameters, "CUTYPE", handle_cutype_parameter);
-		insert_attr_handler(hooks->parameters, "MEMBER", handle_member_parameter);
-		insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter);
-		insert_attr_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter);
-		insert_attr_handler(hooks->parameters, "RSVP", handle_rsvp_parameter);
-		insert_attr_handler(hooks->parameters, "DELEGATED-TO", handle_delegated_to_parameter);
-		insert_attr_handler(hooks->parameters, "DELEGATED-FROM", handle_delegated_from_parameter);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
 	insert_attr_handler(hooks->attributes, "COMMENT", handle_comment_attribute);
 	insert_attr_handler(hooks->attributes, "CONTACT", handle_contact_attribute);
@@ -165,7 +169,6 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "REQUEST-STATUS", handle_rstatus_attribute);
 	insert_attr_handler(hooks->attributes, "RELATED-TO", handle_related_attribute);
-		insert_attr_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter);
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
@@ -191,15 +194,11 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
 	//TODO: more x-props 
 
-
 	// parameters (non required)
 	//charset // defined in [RFC 2046]
 	//method	// must be the same as METHOD in the iCalendar object
 	//component // must be specified if the iCal object contains more than one component, e.g. VEVENT and VTODO
 	//optinfo // optional information
-
-	
-
 	}
 	
 
