@@ -92,6 +92,7 @@ void handle_delegated_to_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 void insert_attr_handler(GHashTable *table, const char *attrname, void* handler);
 

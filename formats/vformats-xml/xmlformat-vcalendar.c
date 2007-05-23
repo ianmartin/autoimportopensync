@@ -843,17 +843,17 @@ void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_xmlfield_set_attr(xmlfield, "RelationshipType", vformat_attribute_param_get_nth_value(param, 0));
 }
 
+void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
+	osync_xmlfield_set_attr(xmlfield, "Member", vformat_attribute_param_get_nth_value(param, 0));
+}
 
 
 /*
 static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "FreeBusyType");
-}
-
-static void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Member");
 }
 static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
