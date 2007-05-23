@@ -171,6 +171,8 @@
     <xsd:sequence>
       <xsd:element minOccurs="1" name="Content" type="xsd:anyURI"/>
     </xsd:sequence>
+    <!-- is this right? -->
+    <xsd:attribute name="Value" type="xsd:string"/>
   </xsd:complexType>
 
   <xsd:simpleType name="Bool">
@@ -372,7 +374,7 @@
     </xsd:sequence>
     <xsd:attribute name="TimezoneID" type="xsd:string"/>
     <xsd:attribute name="Range" type="RecurrenceIdRange"/>
-    <xsd:attribute name="DateValue" type="DateValueType"/>
+    <xsd:attribute name="Value" type="DateValueType"/>
   </xsd:complexType>
 
   <xsd:simpleType name="RecurrenceDateTimeValue">

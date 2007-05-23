@@ -419,7 +419,7 @@ OSyncXMLField *handle_prodid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 
 OSyncXMLField *handle_rdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceDate", error);
+	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceDateTime", error);
 }
 
 OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -747,12 +747,6 @@ OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 
 
 /* Paramter */
-void handle_date_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));
-	osync_xmlfield_set_attr(xmlfield, "DateValue", vformat_attribute_param_get_nth_value(param, 0));
-}
-
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter %s\n", vformat_attribute_param_get_name(param));

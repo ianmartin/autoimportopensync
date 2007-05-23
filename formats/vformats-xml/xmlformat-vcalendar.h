@@ -76,7 +76,6 @@ OSyncXMLField *handle_tzname_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 
 // parameter
-void handle_date_value_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);

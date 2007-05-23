@@ -122,8 +122,8 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 		insert_attr_handler(hooks->parameters, "ALTREP", handle_altrep_parameter);
 		insert_attr_handler(hooks->parameters, "LANGUAGE", handle_language_parameter);
 	insert_attr_handler(hooks->attributes, "DTSTART", handle_dtstart_attribute);
-		insert_attr_handler(hooks->parameters, "VALUE=DATE", handle_date_value_parameter);
 		insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter);
+		insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
 	insert_attr_handler(hooks->attributes, "GEO", handle_geo_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
 	insert_attr_handler(hooks->attributes, "LOCATION", handle_location_attribute);
@@ -150,7 +150,6 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 		// See Errata: FMTYPE is wrong in RFC2445
 		insert_attr_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter);
 		insert_attr_handler(hooks->parameters, "ENCODING", handle_encoding_parameter);
-		insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
 		insert_attr_handler(hooks->parameters, "CUTYPE", handle_cutype_parameter);
 		insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter);
