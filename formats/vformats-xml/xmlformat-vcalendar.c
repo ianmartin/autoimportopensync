@@ -445,15 +445,30 @@ OSyncXMLField *handle_exdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error) 
 {
 	OSyncXMLField *xmlfield = NULL;
-	GString *frequency = NULL;
-	GString *end = NULL;
-	GString *interval = NULL;
-	GString *modifier = NULL;
-	char *modname = NULL;
-	osync_bool set_count = FALSE;
-	osync_bool set_until = FALSE;
-	osync_bool set_extended = FALSE;
+	osync_bool extended = FALSE;
 
+	typedef struct {
+	  char *name;
+	  char *value;
+	} rrule_t;
+
+	rrule_t rrules[14];
+	memset(rrules, 0, sizeof(rrules));
+	rrules[0].name = "Frequency";
+	rrules[1].name = "Until";
+	rrules[2].name = "Count";
+	rrules[3].name = "Interval";
+	rrules[4].name = "BySecond";
+	rrules[5].name = "ByMinute";
+	rrules[6].name = "ByHour";
+	rrules[7].name = "ByDay";
+	rrules[8].name = "ByMonthDay";
+	rrules[9].name = "ByYearDay";
+	rrules[10].name = "ByWeekNo";
+	rrules[11].name = "ByMonth";
+	rrules[12].name = "BySetPos";
+	rrules[13].name = "WKST";
+	
 	// parse values
 	GList *values = vformat_attribute_get_values_decoded(attr);
 	for (; values; values = values->next) {
@@ -461,89 +476,68 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 		osync_assert(retstr);
 
 		if (strstr(retstr->str, "FREQ=")) {
-			frequency = values->data;
-		} else if (strstr(retstr->str, "COUNT=")) {
-			end = values->data;
-			set_count = TRUE;
-		} else if (strstr(retstr->str, "UNTIL=")) {	
-			end = values->data;
-			set_until = TRUE;
+			rrules[0].value = retstr->str + strlen("FREQ=");
+		} else if (strstr(retstr->str, "UNTIL=")) {
+			rrules[1].value = retstr->str + strlen("UNTIL=");
+		} else if (strstr(retstr->str, "COUNT=")) {	
+			rrules[2].value = retstr->str + strlen("COUNT=");
 		} else if (strstr(retstr->str, "INTERVAL=")) {
-			interval = values->data;
+			rrules[3].value = retstr->str + strlen("INTERVAL=");
 		} else if (strstr(retstr->str, "BYSECOND=")) {
-			modifier = values->data;
-			modname = "BySecond";
-			set_extended = TRUE;
+			rrules[4].value = retstr->str + strlen("BYSECOND=");
+			extended = TRUE;
 		} else if (strstr(retstr->str, "BYMINUTE=")) {
-			modifier = values->data;
-			modname = "ByMinute";
-			set_extended = TRUE; 
+			rrules[5].value = retstr->str + strlen("BYMINUTE=");
+			extended = TRUE;
 		} else if (strstr(retstr->str, "BYHOUR=")) { 
-			modifier = values->data;
-			modname = "ByHour";
-			set_extended = TRUE; 
+			rrules[6].value = retstr->str + strlen("BYHOUR=");
+			extended = TRUE;
 		} else if (strstr(retstr->str, "BYDAY=")) { 
-			modifier = values->data;
-			modname = "ByDay";
+			rrules[7].value = retstr->str + strlen("BYDAY=");
 		} else if (strstr(retstr->str, "BYMONTHDAY=")) { 
-			modifier = values->data;
-			modname = "ByMonthDay";
+			rrules[8].value = retstr->str + strlen("BYMONTHDAY=");
 		} else if (strstr(retstr->str, "BYYEARDAY=")) { 
-			modifier = values->data;
-			modname = "ByYearDay";
+			rrules[9].value = retstr->str + strlen("BYYEARDAY=");
 		} else if (strstr(retstr->str, "BYWEEKNO=")) { 
-			modifier = values->data;
-			modname = "ByWeekNo";
-			set_extended = TRUE; 
+			rrules[10].value = retstr->str + strlen("BYWEEKNO=");
+			extended = TRUE;
 		} else if (strstr(retstr->str, "BYMONTH=")) { 
-			modifier = values->data;
-			modname = "ByMonth";
+			rrules[11].value = retstr->str + strlen("BYMONTH=");
 		} else if (strstr(retstr->str, "BYSETPOS=")) { 
-			modifier = values->data;
-			modname = "BySetPos";
-			set_extended = TRUE; 
+			rrules[12].value = retstr->str + strlen("BYSETPOS=");
+			extended = TRUE;
 		} else if (strstr(retstr->str, "WKST=")) { 
-			modifier = values->data;
-			modname = "WKST";
-			set_extended = TRUE; 
+			rrules[13].value = retstr->str + strlen("WKST=");
+			extended = TRUE;
 		}
 	}
-
+	
 	// create new xmlfield
-	if (set_extended) {
+	if (extended) {
 		if (!strcmp(rulename, "ExceptionRule"))	
 			xmlfield = osync_xmlfield_new(xmlformat, "ExceptionRuleExtended", error);
 		if (!strcmp(rulename, "RecurrenceRule"))	
 			xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRuleExtended", error);
 	} else {
-		if (!strcmp(rulename, "ExceptionRule"))	
-			xmlfield = osync_xmlfield_new(xmlformat, "ExceptionRule", error);
-		if (!strcmp(rulename, "RecurrenceRule"))	
-			xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+		xmlfield = osync_xmlfield_new(xmlformat, rulename, error);
 	}
 	if(!xmlfield) {
 		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 
-	// set frequency, count/until, interval and modifier
-	osync_xmlfield_add_key_value(xmlfield, "Frequency", frequency->str + strlen("FREQ="));
-	if (set_count) {
-		osync_xmlfield_add_key_value(xmlfield, "Count", end->str + strlen("COUNT="));
-	} else if (set_until) {
-		osync_xmlfield_add_key_value(xmlfield, "Until", end->str + strlen("UNTIL="));
-	} else {
-		// if neither COUNT nor UNTIL is set the event should be appear forever -> count = 0
-		osync_xmlfield_add_key_value(xmlfield, "Count", "0");
-	}
-	if (interval != NULL) {
-		osync_xmlfield_add_key_value(xmlfield, "Interval", interval->str + strlen("INTERVAL="));
-	} else {
-		// use "1" if no interval was set
-		osync_xmlfield_add_key_value(xmlfield, "Interval", "1");
-	}
-	if (modname != NULL) {
-		osync_xmlfield_add_key_value(xmlfield, modname, modifier->str + (strlen(modname)+1));
+	// set interval to 1, if it wasn't set before
+	if (rrules[3].value == NULL)
+		rrules[3].value = "1";
+
+	// set count to 0, if neither count nor until were set before
+	if (rrules[1].value == NULL && rrules[2].value == NULL)
+		rrules[2].value = "0";
+
+	int i;
+	for (i = 0; i <= 13; i++) {
+		if (rrules[i].value != NULL)
+			osync_xmlfield_add_key_value(xmlfield, rrules[i].name, rrules[i].value);
 	}
 
 	return xmlfield;
