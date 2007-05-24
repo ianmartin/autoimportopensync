@@ -398,8 +398,6 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->command_functions->finalize = NULL;
 
 	engine->command_source = g_source_new(engine->command_functions, sizeof(GSource) + sizeof(OSyncEngine *));
-	OSyncEngine **engineptr = (OSyncEngine **)(engine->command_source + 1);
-	*engineptr = engine;
 	g_source_set_callback(engine->command_source, NULL, engine, NULL);
 	g_source_attach(engine->command_source, engine->context);
 	g_main_context_ref(engine->context);
