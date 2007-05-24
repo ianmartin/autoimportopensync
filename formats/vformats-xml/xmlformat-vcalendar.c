@@ -321,6 +321,13 @@ void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Expect", vformat_attribute_param_get_nth_value(param, 0));
 }
+
+//FIXME- Related is for VALARM trigger
+void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+{
+	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
+}
+
 // End of vCal parameters
 
 
@@ -911,18 +918,12 @@ void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 	osync_xmlfield_set_attr(xmlfield, "Member", vformat_attribute_param_get_nth_value(param, 0));
 }
 
-
-/*
-static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
+// FIXME - FreeBusyType
+void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
 	osync_xmlfield_set_attr(xmlfield, "Type", "FreeBusyType");
 }
-static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
-}
 
-*/
 
 /*
 void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLField **xmlfield, VFormat *vcal)

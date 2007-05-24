@@ -40,6 +40,7 @@ void handle_vcal_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param); //FIXME
 
 // vCalendar and iCalendar handler
 OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
@@ -106,6 +107,7 @@ void handle_cutype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 void insert_attr_handler(GHashTable *table, const char *attrname, void* handler);
 

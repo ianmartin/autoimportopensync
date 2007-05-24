@@ -24,16 +24,6 @@
 #include "xmlformat-vtodo10.h"
 #include "xmlformat-vtodo20.h"
 
-/* ******* Paramter ****** */
-static void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "FreeBusyType");
-}
-
-static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
-{
-	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
-}
 
 /* FIXME... Duration wrong placed? in XSD */
 static OSyncXMLField *handle_aduration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
