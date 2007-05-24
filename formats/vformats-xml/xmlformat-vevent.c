@@ -139,9 +139,48 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
 	insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
 
+	// parameters (non required)
+	//charset // defined in [RFC 2046]
+	//method	// must be the same as METHOD in the iCalendar object
+	//component // must be specified if the iCal object contains more than one component, e.g. VEVENT and VTODO
+	//optinfo // optional information
+
+
+	// START HERE:
+	// [RFC 2445] icalbody = calprops component
+	// calprops = 2*
+		// required
+			// prodid
+			// version
+		// optional, but MUST NOT occur than once
+			// calscale
+			// method
+			// x-prop
+
+
+	// [RFC 2445] component = 1*(eventc / todoc / journalc / freebusyc / timezonec / iana-comp / x-comp)
+
+
+	// [RFC 2445] iana-comp -> TODO
+	// BEGIN : iana-token CRLF
+	// 1*contentline
+	// END : iana-token CRLF
+
+
+	// [RFC 2445] x-comp -> TODO
+	// BEGIN : x-name CRLF
+	// 1*contentline
+	// END : x-name CRLF
+
+
+	// [RFC 2445] calprops (same order as in spec!) -> TODO
+
+
         // [RFC 2445] eventc (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
+	// -> eventprop *alarmc
 	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
+
 
 	// [RFC 2445] eventprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "CLASS", handle_class_attribute);
@@ -177,40 +216,208 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
-	//TODO: x-props
+	// x-prop
 
-	// [RFC 2445] todoc (same as eventc)
+
+	// [RFC 2445] todoc (same order as in spec!)
+	// BEGIN
+	// -> todoprop *alarmc
+	// END
+
 
 	// [RFC 2445] todoprop (same order as in spec!)
-	// skipped already defined handler
+	// class
 	//insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
+	// created
+	// description
+	// dtstamp
+	// dtstart
+	// geo
+	// last-mod
+	// location
+	// organizer
 	//insert_attr_handler(hooks->attributes, "PERCENT-COMPLETE", handle_percent_complete_attribute);
+	// priority
+	// recurid
+	// seq
+	// status
+	// summary
+	// uid
+	// url
+
+	// due
+	// duration
+	
+	// attach
+	// attendee
+	// categories
+	// comment
+	// contact
+	// exdate
+	// exrule
+	// rstatus
+	// related
+	// resources
+	// rdate
+	// rrule
+	// x-prop
+
+
+	// [RFC 2445] journalc (same order as in spec!)
+	// BEGIN
+	// -> jourprop
+	// END
+
+
+	// [RFC 2445] jourprop (same order as in spec!)
+	// class
+	// created
+	// description
+	// dtstart
+	// dtstamp
+	// last-mod
+	// organizer
+	// recurid
+	// seq
+	// status
+	// summary
+	// uid
+	// url
+
+	// attach
+	// attendee
+	// categories
+	// comment
+	// contact
+	// exdate
+	// exrule
+	// related
+	// rdate
+	// rule
+	// rstatus
+	// x-prop
+	 
+
+	// [RFC 2445] freebusyc (same order as in spec)
+	// BEGIN
+	// -> fbprop
+	// END
+
+	// [RFC 2445] fbprop (same order as in spec!)
+	// contact
+	// dtstart
+	// dtend
+	// duration
+	// dtstamp
+	// organizer
+	// uid
+	// url
+
+	// attendee
+	// comment
+	// insert_attr_handler(hooks->attributes, "FREEBUSY", HANDLE_IGNORE); // TODO
+	// rstatus
+	// x-prop
+
 
 	// [RFC 2445] timezonec (same order as in spec!)
 	insert_attr_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
-	insert_attr_handler(hooks->tztable, "END", HANDLE_IGNORE);
 
 	insert_attr_handler(hooks->tztable, "TZID", handle_tzid_attribute);
+
 	insert_attr_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
 	insert_attr_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
 
+	// -> standardc / daylightc
+	// x-prop
+	
+	insert_attr_handler(hooks->tztable, "END", HANDLE_IGNORE);
+
+
+	// [RFC 2445] standardc (same order as in spec!)
+	// BEGIN
+	// -> tzprop
+	// END
+
+
+	// [RFC 2445] daylightc (same order as in spec!)
+	// BEGIN
+	// -> tzprop
+	// END
+
+
+	// [RFC 2445] tzprop (same order as in spec!)
 	insert_attr_handler(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
 	insert_attr_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
 	insert_attr_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
 
-	// [RFC 2445] tzprop (same order as in spec!)
 	insert_attr_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO - is this right?
 	insert_attr_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
 	insert_attr_handler(hooks->tztable, "RRULE", handle_tzrrule_attribute);
 	insert_attr_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
+	// x-prop
 	insert_attr_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
-	//TODO: more x-props 
 
-	// parameters (non required)
-	//charset // defined in [RFC 2046]
-	//method	// must be the same as METHOD in the iCalendar object
-	//component // must be specified if the iCal object contains more than one component, e.g. VEVENT and VTODO
-	//optinfo // optional information
+
+	// [RFC 2445] alarmc (same order as in spec!)
+	// BEGIN
+	// -> audioprop / dispprop / emailprop / procprop
+	// END
+
+
+	// [RFC 2445] audioprop (same order as in spec!)
+	// audioprop = 2*
+	// action -> TODO
+	// trigger -> TODO
+
+	// duration -> TODO
+	// repeat -> TODO
+
+	// attach -> TODO
+	// xprop -> TODO
+
+
+	// [RFC 2445] dispprop (same order as in spec!)
+	// dispprop = 3*
+	// action -> TODO
+	// description -> TODO
+	// trigger -> TODO
+
+	// duration -> TODO
+	// repeat -> TODO
+
+	// x-prop
+
+
+	// [RFC 2445] emailprop (same order as in spec!)
+	// emailprop  = 5*
+	// action -> TODO
+	// description -> TODO
+	// trigger -> TODO
+	// summary -> TODO
+
+	// attendee -> TODO
+
+	// duration -> TODO
+	// repeat -> TODO
+
+	// attach -> TODO
+	// x-prop
+
+
+	// [RFC 2445] procprop (same order as in spec!)
+	// procprop = 3*
+	// action -> TODO
+	// attach -> TODO
+	// trigger -> TODO
+
+	// duration -> TODO
+	// repeat -> TODO
+
+	// description -> TODO
+
+	// x-prop
+
 	}
 	
 
