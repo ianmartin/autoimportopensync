@@ -54,4 +54,4 @@ dist_kdepim_lib_la_SOURCES = src/kdepim_impl.cpp src/kaddrbook.cpp
 #nodist_kdepim_lib_la_SOURCES = KNotesIface_stub.cpp
 kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module
-kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync -lopensync-xml
+kdepim_lib_la_LIBADD = $(KDE_RPATH) $(LIB_KABC) $(LIB_KCAL) -L$(libdir)  -L@OPENSYNC_LIBDIR@ -lopensync
