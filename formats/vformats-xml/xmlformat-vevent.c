@@ -45,6 +45,17 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	 * You can download this file from http://www.imc.org/pdi/vcal-10.txt
 	 */
 
+        // [vcal-1.0] param (same order as in sepc!)
+	insert_attr_handler(hooks->parameters, "TYPE", handle_vcal_type_parameter);
+	insert_attr_handler(hooks->parameters, "VALUE", handle_vcal_value_parameter); 
+	insert_attr_handler(hooks->parameters, "ENCODING", handle_vcal_encoding_parameter);
+	insert_attr_handler(hooks->parameters, "CHARSET", handle_vcal_charset_parameter);
+	insert_attr_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
+	insert_attr_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
+	insert_attr_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
+	insert_attr_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE, yes/no allowed, kdepim use TRUE!?) - I think we need an own handler for vcal
+	insert_attr_handler(hooks->parameters, "EXPECT", handle_vcal_expect_parameter); // (ATTENDEE)
+
         // [vcal-1.0] vcal (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
@@ -59,10 +70,14 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
         // [vcal-1.0] simprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
+		// role parameter
+		// status parameter
+		// rsvp parameter
+		// expect parameter
 	insert_attr_handler(hooks->attributes, "DCREATED", handle_created_attribute);
 	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute); // FIXME
+	insert_attr_handler(hooks->attributes, "DUE", handle_vcal_due_attribute); // FIXME
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
@@ -89,16 +104,6 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);
-
-        // [vcal-1.0] param (same order as in sepc!)
-	insert_attr_handler(hooks->parameters, "TYPE", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->parameters, "VALUE", HANDLE_IGNORE); // TODO -> handle_value_parameter
-	insert_attr_handler(hooks->parameters, "ENCODING", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->parameters, "CHARSET", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->parameters, "LANGUAGE", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->parameters, "ROLE", HANDLE_IGNORE); // TODO -> handle_role_parameter, (ATTENDEE)
-	insert_attr_handler(hooks->parameters, "STATUS", HANDLE_IGNORE); // TODO -> handle_status_parameter (ATTENDEE)
-	insert_attr_handler(hooks->parameters, "RSVP", HANDLE_IGNORE); // TODO -> handle_rsvp_parameter (ATTENDEE, yes/no allowed, kdepim use TRUE!?)
 
 	} // end of (target == VFORMAT_EVENT_10)
 
@@ -134,7 +139,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
 	insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
 
-        // [RFC 2445] eventc &  (same order as in spec!)
+        // [RFC 2445] eventc (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
 	insert_attr_handler(hooks->attributes, "END", HANDLE_IGNORE);
 
@@ -173,6 +178,13 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
 	//TODO: x-props
+
+	// [RFC 2445] todoc (same as eventc)
+
+	// [RFC 2445] todoprop (same order as in spec!)
+	// skipped already defined handler
+	//insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
+	//insert_attr_handler(hooks->attributes, "PERCENT-COMPLETE", handle_percent_complete_attribute);
 
 	// [RFC 2445] timezonec (same order as in spec!)
 	insert_attr_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);

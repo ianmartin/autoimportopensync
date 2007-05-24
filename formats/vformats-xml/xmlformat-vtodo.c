@@ -35,23 +35,6 @@ static void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *para
 	osync_xmlfield_set_attr(xmlfield, "Type", "Related");
 }
 
-static OSyncXMLField *handle_percent_complete_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "PercentComplete", error);
-}
-
-/* VCALENDAR ONLY */
-static OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmTrigger", error);
-}
-
-
-static OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmRepeat", error);
-}
-
 /* FIXME... Duration wrong placed? in XSD */
 static OSyncXMLField *handle_aduration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
@@ -103,7 +86,7 @@ void *init_vtodo_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "DTSTAMP", (void *)handle_dtstamp_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", (void *)handle_description_attribute);
 	insert_attr_handler(hooks->attributes, "SUMMARY", (void *)handle_summary_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", (void *)handle_due_attribute);
+	insert_attr_handler(hooks->attributes, "DUE", (void *)handle_vcal_due_attribute);
 	insert_attr_handler(hooks->attributes, "DTSTART", (void *)handle_dtstart_attribute);
 	insert_attr_handler(hooks->attributes, "PERCENT-COMPLETE", (void *)handle_percent_complete_attribute);
 	insert_attr_handler(hooks->attributes, "CLASS", (void *)handle_class_attribute);
