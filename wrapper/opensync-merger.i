@@ -91,7 +91,7 @@ typedef struct {} Capabilities;
 }
 
 %inline %{
-	Capabilities *capabilities_parse(const char *buffer, unsigned int size) {
+	static Capabilities *capabilities_parse(const char *buffer, unsigned int size) {
 		Error *err = NULL;
 		Capabilities *caps = osync_capabilities_parse(buffer, size, &err);
 		if (raise_exception_on_error(err))
@@ -100,7 +100,7 @@ typedef struct {} Capabilities;
 			return caps;
 	}
 
-	Capabilities *capabilities_load(const char *file) {
+	static Capabilities *capabilities_load(const char *file) {
 		Error *err = NULL;
 		Capabilities *caps = osync_capabilities_load(file, &err);
 		if (raise_exception_on_error(err))
@@ -109,7 +109,7 @@ typedef struct {} Capabilities;
 			return caps;
 	}
 
-	Capabilities *capabilities_member_get_capabilities(Member *member) {
+	static Capabilities *capabilities_member_get_capabilities(Member *member) {
 		Error *err = NULL;
 		Capabilities *ret = osync_capabilities_member_get_capabilities(member, &err);
 		if (raise_exception_on_error(err))
@@ -118,7 +118,7 @@ typedef struct {} Capabilities;
 			return ret;
 	}
 
-	void capabilities_member_set_capabilities(Member *member, Capabilities *caps) {
+	static void capabilities_member_set_capabilities(Member *member, Capabilities *caps) {
 		Error *err = NULL;
 		osync_bool ret = osync_capabilities_member_set_capabilities(member, caps, &err);
 		if (!raise_exception_on_error(err) && !ret)

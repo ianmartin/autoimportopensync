@@ -8,27 +8,27 @@ typedef enum {} TraceType;
 %constant int TRACE_ERROR = TRACE_ERROR;
 
 %inline %{
-	char *rand_str(int maxlength) {
+	static char *rand_str(int maxlength) {
 		return osync_rand_str(maxlength);
 	}
 
-	void trace_reset_indent() {
+	static void trace_reset_indent() {
 		osync_trace_reset_indent();
 	}
 
-	void trace(TraceType type, const char *message) {
+	static void trace(TraceType type, const char *message) {
 		osync_trace(type, "%s", message);
 	}
 
-	void trace_disable(void) {
+	static void trace_disable(void) {
 		osync_trace_disable();
 	}
 
-	void trace_enable(void) {
+	static void trace_enable(void) {
 		osync_trace_enable();
 	}
 
-	const char *get_version() {
+	static const char *get_version() {
 		return osync_get_version();
 	}
 %}
