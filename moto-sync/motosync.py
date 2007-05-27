@@ -265,18 +265,18 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     """Process the recursion rules. Given lists of RecurrenceRule nodes,
     exception dates, exception rules, and the event's date/time,
     returns the motorola recurrence type and a list of exceptions.
-    
+
     The general approach we take is: if the recursion can be represented
     by the phone's data structure, we convert it, otherwise we ignore the
     rule completely (to avoid the event showing up at incorrect times).
-    
+
     FIXME: this code doesn't yet handle all the tricky parts of RRULE
     specifications (such as BYSETPOS)
     """
-    
+
     # XXX FIXME: whole function needs reworkign for new XML format
     return (MOTO_REPEAT_NONE, [])
-    
+
     # can't support multiple rules
     if len(rulenodes) != 1:
         return (MOTO_REPEAT_NONE, [])
@@ -396,7 +396,7 @@ class UnsupportedDataError(Exception):
 
 class PhoneComms:
     """Functions for directly accessing the phone.
-    
+
     "device" may be either a path to a local device node, or a bluetooth MAC.
     """
     def __init__(self, device):
@@ -414,7 +414,7 @@ class PhoneComms:
 
     def connect(self):
         """Connect to the phone and initiate communication.
-        
+
         Returns True on success, False if already connected.
         """
         if (self.__fd or self.__btsock):
@@ -444,9 +444,10 @@ class PhoneComms:
         self.__do_cmd('AT+MODE=0') # ?
         self.__do_cmd('ATE0Q0V1')  # echo off, result codes off, verbose results
 
-        # use ISO 8859-1 encoding for data values, for easier debugging
-        # FIXME: change to UCS2?
-        self.__do_cmd('AT+CSCS="8859-1"')
+        # use UCS2 encoding for data values
+        # this is an older version of UTF16 where every char is two bytes long
+        # the phone implements it by sending us 2 hex chars per byte, ie. 4 per char
+        self.__do_cmd('AT+CSCS="UCS2"')
 
         (maxevs, numevs, namelen, max_except, _) = self.read_event_params()
         self.max_events = maxevs
@@ -459,7 +460,7 @@ class PhoneComms:
         self.max_contact_pos = maxpos
         self.contact_data_len = contactlen
         self.contact_name_len = namelen
-        
+
         return True
 
     def disconnect(self):
@@ -517,7 +518,7 @@ class PhoneComms:
 
     def read_event_params(self):
         """Read calendar/datebook parameters.
-        
+
         Returns: maximum number of events,
                  number of events currently stored,
                  length of title/name field,
@@ -564,8 +565,11 @@ class PhoneComms:
         self.delete_event(pos)
         exceptions = evdata[-1]
         data = evdata[:-1]
-        placeholders = self.__make_placeholders(data)
-        self.__do_cmd(('AT+MDBW=' + placeholders) % tuple(data))
+        # HACK: only the name of the event (data[1]) should be unicode
+        for n in range(2, len(data)):
+            if type(data[n]) == types.UnicodeType:
+                data[n] = data[n].encode('ascii')
+        self.__do_cmd('AT+MDBW=' + self.__to_cmd_str(data))
         for expos in exceptions:
             self.__do_cmd('AT+MDBWE=%d,%d,1' % (pos, expos))
 
@@ -595,7 +599,7 @@ class PhoneComms:
 
     def read_contact_params(self):
         """Read phonebook parameters.
-        
+
         Returns: minimum position,
                  maximum position,
                  length of contact field,
@@ -646,8 +650,11 @@ class PhoneComms:
     def write_contact(self, data):
         """write a single contact to the position specified in the data list"""
         self.close_calendar()
-        placeholders = self.__make_placeholders(data)
-        self.__do_cmd(('AT+MPBW=' + placeholders) % tuple(data))
+        # HACK: the email/number and birthday (index 1&23) must not be unicode
+        for n in [1, 23]:
+            if len(data) > n and type(data[n]) == types.UnicodeType:
+                data[n] = data[n].encode('ascii')
+        self.__do_cmd('AT+MPBW=' + self.__to_cmd_str(data))
 
     def delete_contact(self, pos):
         """delete the contact at a given position"""
@@ -680,7 +687,6 @@ class PhoneComms:
 
         If it succeeds, return lines as a list; otherwise raise an exception.
         """
-        cmd = cmd.encode('iso_8859_1')
         opensync.trace(opensync.TRACE_SENSITIVE, '--> ' + cmd)
         ret = []
         cmd = cmd + '\r'
@@ -727,9 +733,11 @@ class PhoneComms:
                 # convert quoted values to strings, everything else to integers
                 valparts = []
                 for part in parts:
-                    if part[0] == '"':
+                    if part == '':
+                        valparts.append('')
+                    elif part[0] == '"':
                         assert(part[-1] == '"')
-                        valparts.append(part[1:-1].decode('iso_8859_1'))
+                        valparts.append(part[1:-1])
                     elif part[0] == '(':
                         # parse a range string like '(1-10,45,50-60)'
                         assert(part[-1] == ')')
@@ -738,6 +746,9 @@ class PhoneComms:
                         if len(ranges) == 1:
                             ranges = ranges[0]
                         valparts.append(ranges)
+                    elif len(part) >= 4 and part[0] == '0':
+                        # this looks like a UCS2-encoded string
+                        valparts.append(part.decode('hex').decode('utf_16_be'))
                     else:
                         try:
                             part = int(part)
@@ -747,29 +758,44 @@ class PhoneComms:
                 ret.append(valparts)
         return ret
 
-    def __make_placeholders(self, vals):
-        """Return string expandion placeholders ("%s",%d etc) for a write."""
+    def __to_cmd_str(self, vals):
+        """Convert different typed data to a string that can be used in a phone
+        write command (ie. MPBW or MDBW."""
         def make_placeholder(val):
             """Return a single placeholder based on the given value's type."""
             t = type(val)
             if t == types.IntType:
                 return '%d'
-            else:
-                assert(t == types.StringType or t == types.UnicodeType, 'unexpected type %s' % str(t))
+            elif t == types.StringType or val == '':
                 return '"%s"'
+            elif t == types.UnicodeType:
+                return '%s'
+            else:
+                assert(False, 'unexpected type %s' % str(t))
 
-        return ','.join(map(make_placeholder, vals))
+        def convert_val(val):
+            """Convert a value to an alternate representation, if needed."""
+            if type(val) == types.UnicodeType:
+                # convert to the phone's idea of UCS2
+                # FIXME: this breaks in the case of surrogate pairs, but I doubt
+                # they'll turn up in PIM data, and it's not clear what the phone
+                # actually does support as its character set
+                return val.encode('utf_16_be').encode('hex').upper()
+            else:
+                return val
+
+        return ','.join(map(make_placeholder, vals)) % tuple(map(convert_val, vals))
 
 
 
 class PhoneEntry:
     """(abstract) base class representing an event/contact entry
-    
+
     data is kept roughly as it is stored in the phone
     """
     def __init__(self):
         pass
-    
+
     def get_objtype(self):
         """return the opensync object type string"""
         raise NotImplementedError
@@ -900,7 +926,7 @@ class PhoneEvent(PhoneEntry):
             dtstart = self.eventdt.strftime(VCAL_DATETIME)
         else:
             dtstart = self.eventdt.strftime(VCAL_DATE)
-            e.setAttribute('DateValue', 'DATE')
+            e.setAttribute('Value', 'DATE')
         appendXMLChild(doc, e, 'Content', dtstart)
         top.appendChild(e)
 
@@ -910,7 +936,7 @@ class PhoneEvent(PhoneEntry):
             dtend = endtime.strftime(VCAL_DATETIME)
         else:
             dtend = endtime.strftime(VCAL_DATE)
-            e.setAttribute('DateValue', 'DATE')
+            e.setAttribute('Value', 'DATE')
         appendXMLChild(doc, e, 'Content', dtend)
         top.appendChild(e)
 
@@ -926,14 +952,14 @@ class PhoneEvent(PhoneEntry):
 
         e = doc.createElement('RecurrenceRule')
         if self.repeat_type == MOTO_REPEAT_DAILY:
-            appendXMLChild(doc, e, 'Content', 'DAILY')
+            appendXMLChild(doc, e, 'Frequency', 'DAILY')
         elif self.repeat_type == MOTO_REPEAT_WEEKLY:
-            appendXMLChild(doc, e, 'Content', 'WEEKLY')
+            appendXMLChild(doc, e, 'Frequency', 'WEEKLY')
         elif self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
-            appendXMLChild(doc, e, 'Content', 'MONTHLY')
+            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
             appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
         elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
-            appendXMLChild(doc, e, 'Content', 'MONTHLY')
+            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
             day = VCAL_DAYS[self.eventdt.weekday()]
             # compute the week number that the event falls in
             if self.eventdt.day % 7 == 0:
@@ -942,7 +968,7 @@ class PhoneEvent(PhoneEntry):
                 weeknum = self.eventdt.day / 7 + 1
             appendXMLChild(doc, e, 'ByDay', '%d%s' % (weeknum, day))
         elif self.repeat_type == MOTO_REPEAT_YEARLY:
-            appendXMLChild(doc, e, 'Content', 'YEARLY')
+            appendXMLChild(doc, e, 'Frequency', 'YEARLY')
             appendXMLChild(doc, e, 'ByMonth', str(self.eventdt.month))
             appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
 
@@ -975,7 +1001,7 @@ class PhoneEvent(PhoneEntry):
             # work out which dates the exceptions correspond to and
             # generate ExceptionDate nodes for them
             e = doc.createElement('ExceptionDateTime')
-            e.setAttribute('DateValue', 'DATE')
+            e.setAttribute('Value', 'DATE')
             for exnum in self.exceptions:
                 appendXMLChild(doc, e, 'Content', format_time(rrule[exnum], VCAL_DATE))
             if e.hasChildNodes():
@@ -1018,7 +1044,7 @@ class PhoneEventXML(PhoneEvent):
     """Constructor for the PhoneEvent object with data in OpenSync XML format"""
     def __init__(self, data):
         """Parse XML event data.
-        
+
         This function raises UnsupportedDataError for:
          * events that recur but can't be represented on the phone
          * events before year 2000 (my phone doesn't allow them)
@@ -1064,7 +1090,7 @@ class PhoneEventXML(PhoneEvent):
                     self.duration = timedelta(0)
 
         # for some reason I don't understand, the phone only allows events
-        # longer than a day if the time flag is set. pander to this by forcing 
+        # longer than a day if the time flag is set. pander to this by forcing
         # such events to start at midnight local time
         if isinstance(self.eventdt, date) and self.duration > timedelta(1):
             local_midnight = datetime_time(0, 0, 0, 0, dateutil.tz.tzlocal())
@@ -1249,7 +1275,7 @@ class PhoneContact(PhoneEntry):
 
 class PhoneContactMoto(PhoneContact):
     """PhoneContact object for contacts created from phone data.
-    
+
     Creates a contact with a single child."""
     def __init__(self, data):
         """grab stuff out of the list of values from the phone"""
@@ -1434,7 +1460,7 @@ class PhoneContactChild:
             street1 = street2 = city = state = postcode = country = ''
         return (self.pos, self.contact, self.numtype, self.parent.name,
                 self.contacttype, self.voicetag, self.ringerid, 0,
-                int(self.primaryflag), self.parent.categorynum, 
+                int(self.primaryflag), self.parent.categorynum,
                 self.profile_icon, self.parent.firstlast_enabled,
                 self.parent.firstlast_index, self.picture_path,
                 0, 0, street2, street1, city, state, postcode, country,
@@ -1488,7 +1514,7 @@ class PhoneContactChildMoto(PhoneContactChild):
 
 class PosAllocator:
     """Position-allocator class.
-    
+
     Remembers which positions in a set are used/free, and allocates new ones.
     """
     def __init__(self, objtype, minpos, maxpos):
@@ -1525,7 +1551,7 @@ class PosAllocator:
 
 class PhoneAccess:
     """Grab-bag class of utility functions.
-     
+
      Interfaces between PhoneComms/PhoneEntry classes and SyncClass below.
      """
     def __init__(self, comms, info):
@@ -1614,7 +1640,7 @@ class PhoneAccess:
 
     def delete_entry(self, uid):
         """Delete an event with the given UID
-        
+
         Returns True on success, False otherwise.
         """
         objtype, positions = self.__uid_to_pos(uid)
@@ -1628,7 +1654,7 @@ class PhoneAccess:
 
     def update_entry(self, change, context):
         """Update an entry or add a new one, from the OSyncChange object.
-        
+
         Returns True on success, False otherwise.
         """
         objtype = change.objtype
@@ -1675,7 +1701,7 @@ class PhoneAccess:
         entry.write(self.comms)
         change.uid = self.__generate_uid(entry)
         change.hash = self.__gen_hash(entry)
-        
+
         return True
 
     def uid_seen(self, uid):
@@ -1710,14 +1736,14 @@ class PhoneAccess:
 
     def __uid_to_pos(self, uid):
         """Reverse the generate_uid function above.
-        
+
         Also checks that it is one of ours.
         """
         moto, objtype, lastpart = uid.split('-', 2)
         assert(moto == "moto" and objtype in SUPPORTED_OBJTYPES, 'Invalid UID: %s' % uid)
         lastpos = lastpart.rindex('@')
         assert(lastpart[lastpos + 1:] == self.serial[-8:], 'Entry not created on this phone')
-        
+
         if objtype == "event":
             positions = PhoneEvent.unpack_uid(lastpart[:lastpos])
         elif objtype == "contact":
