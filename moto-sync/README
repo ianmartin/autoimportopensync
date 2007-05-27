@@ -60,7 +60,8 @@ There are two options for specifying the device string:
     local file system that can be used to communicate with the phone.
     Devices you're likely to use in this case are:
   * /dev/ttyACM0 for a USB modem connection (or whatever other device the
-    phone shows up on, see dmesg)
+    phone shows up on, see dmesg). Note that the phone has to be in the
+    "Data/Fax connection" mode, not mounted as a USB storage device.
   * /dev/rfcomm0 which is the first bluetooth channel. You need to setup 
     that channel to bind with your phone, by doing something like:
          rfcomm bind rfcomm0 00:11:22:33:44:55 1
