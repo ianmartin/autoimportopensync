@@ -43,7 +43,7 @@ BT_DEFAULT_CHANNEL = 1
 # object types supported by this plugin
 SUPPORTED_OBJTYPES = ['event', 'contact']
 
-CAPABILITIES = """<?xml version="1.0"?>
+CAPABILITIES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <capabilities>
     <contact>
         <Address />
@@ -56,13 +56,13 @@ CAPABILITIES = """<?xml version="1.0"?>
         <Telephone />
     </contact>
     <event>
-        <Summary />
-        <DateStarted />
-        <DateEnd />
-        <Duration />
         <Alarm />
-        <RecurrenceRule />
+        <DateEnd />
+        <DateStarted />
+        <Duration />
         <ExceptionDateTime />
+        <RecurrenceRule />
+        <Summary />
     </event>
 </capabilities>
 """
@@ -918,18 +918,15 @@ class PhoneEvent(PhoneEntry):
         doc = impl.createDocument(None, 'event', None)
         top = doc.documentElement
 
-        e = doc.createElement('Summary')
-        appendXMLChild(doc, e, 'Content', self.name)
-        top.appendChild(e)
-
-        e = doc.createElement('DateStarted')
-        if isinstance(self.eventdt, datetime):
-            dtstart = self.eventdt.strftime(VCAL_DATETIME)
-        else:
-            dtstart = self.eventdt.strftime(VCAL_DATE)
-            e.setAttribute('Value', 'DATE')
-        appendXMLChild(doc, e, 'Content', dtstart)
-        top.appendChild(e)
+        if self.alarmdt:
+            alarm = doc.createElement('Alarm')
+            appendXMLChild(doc, alarm, 'AlarmAction', 'DISPLAY')
+            e = doc.createElement('AlarmDescription')
+            appendXMLChild(doc, e, 'Content', self.name)
+            alarm.appendChild(e)
+            alarmtime = self.alarmdt.strftime(VCAL_DATETIME)
+            appendXMLChild(doc, alarm, 'AlarmTrigger', alarmtime)
+            top.appendChild(alarm)
 
         e = doc.createElement('DateEnd')
         endtime = self.eventdt + self.duration
@@ -941,40 +938,14 @@ class PhoneEvent(PhoneEntry):
         appendXMLChild(doc, e, 'Content', dtend)
         top.appendChild(e)
 
-        if self.alarmdt:
-            alarm = doc.createElement('Alarm')
-            appendXMLChild(doc, alarm, 'AlarmAction', 'DISPLAY')
-            e = doc.createElement('AlarmDescription')
-            appendXMLChild(doc, e, 'Content', self.name)
-            alarm.appendChild(e)
-            alarmtime = self.alarmdt.strftime(VCAL_DATETIME)
-            appendXMLChild(doc, alarm, 'AlarmTrigger', alarmtime)
-            top.appendChild(alarm)
-
-        e = doc.createElement('RecurrenceRule')
-        if self.repeat_type == MOTO_REPEAT_DAILY:
-            appendXMLChild(doc, e, 'Frequency', 'DAILY')
-        elif self.repeat_type == MOTO_REPEAT_WEEKLY:
-            appendXMLChild(doc, e, 'Frequency', 'WEEKLY')
-        elif self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
-            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
-            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
-        elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
-            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
-            day = VCAL_DAYS[self.eventdt.weekday()]
-            # compute the week number that the event falls in
-            if self.eventdt.day % 7 == 0:
-                weeknum = self.eventdt.day / 7
-            else:
-                weeknum = self.eventdt.day / 7 + 1
-            appendXMLChild(doc, e, 'ByDay', '%d%s' % (weeknum, day))
-        elif self.repeat_type == MOTO_REPEAT_YEARLY:
-            appendXMLChild(doc, e, 'Frequency', 'YEARLY')
-            appendXMLChild(doc, e, 'ByMonth', str(self.eventdt.month))
-            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
-
-        if e.hasChildNodes():
-            top.appendChild(e)
+        e = doc.createElement('DateStarted')
+        if isinstance(self.eventdt, datetime):
+            dtstart = self.eventdt.strftime(VCAL_DATETIME)
+        else:
+            dtstart = self.eventdt.strftime(VCAL_DATE)
+            e.setAttribute('Value', 'DATE')
+        appendXMLChild(doc, e, 'Content', dtstart)
+        top.appendChild(e)
 
         if self.exceptions != []:
             assert(self.repeat_type != MOTO_REPEAT_NONE)
@@ -1007,6 +978,35 @@ class PhoneEvent(PhoneEntry):
                 appendXMLChild(doc, e, 'Content', format_time(rrule[exnum], VCAL_DATE))
             if e.hasChildNodes():
                 top.appendChild(e)
+
+        e = doc.createElement('RecurrenceRule')
+        if self.repeat_type == MOTO_REPEAT_DAILY:
+            appendXMLChild(doc, e, 'Frequency', 'DAILY')
+        elif self.repeat_type == MOTO_REPEAT_WEEKLY:
+            appendXMLChild(doc, e, 'Frequency', 'WEEKLY')
+        elif self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
+            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
+            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
+        elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
+            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
+            day = VCAL_DAYS[self.eventdt.weekday()]
+            # compute the week number that the event falls in
+            if self.eventdt.day % 7 == 0:
+                weeknum = self.eventdt.day / 7
+            else:
+                weeknum = self.eventdt.day / 7 + 1
+            appendXMLChild(doc, e, 'ByDay', '%d%s' % (weeknum, day))
+        elif self.repeat_type == MOTO_REPEAT_YEARLY:
+            appendXMLChild(doc, e, 'Frequency', 'YEARLY')
+            appendXMLChild(doc, e, 'ByMonth', str(self.eventdt.month))
+            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
+
+        if e.hasChildNodes():
+            top.appendChild(e)
+
+        e = doc.createElement('Summary')
+        appendXMLChild(doc, e, 'Content', self.name)
+        top.appendChild(e)
 
         return doc.toxml()
 
@@ -1229,6 +1229,16 @@ class PhoneContact(PhoneEntry):
         doc = impl.createDocument(None, 'contact', None)
         top = doc.documentElement
 
+        if self.birthday:
+            bdaystr = format_time(self.birthday, VCAL_DATE)
+            e = doc.createElement('Birthday')
+            appendXMLChild(doc, e, 'Content', bdaystr)
+            top.appendChild(e)
+
+        e = doc.createElement('Categories')
+        appendXMLChild(doc, e, 'Category', categories[self.categorynum])
+        top.appendChild(e)
+
         e = doc.createElement('FormattedName')
         appendXMLChild(doc, e, 'Content', self.name)
         top.appendChild(e)
@@ -1253,19 +1263,16 @@ class PhoneContact(PhoneEntry):
             appendXMLChild(doc, e, 'Content', self.nickname)
             top.appendChild(e)
 
-        if self.birthday:
-            bdaystr = format_time(self.birthday, VCAL_DATE)
-            e = doc.createElement('Birthday')
-            appendXMLChild(doc, e, 'Content', bdaystr)
-            top.appendChild(e)
-
-        e = doc.createElement('Categories')
-        appendXMLChild(doc, e, 'Category', categories[self.categorynum])
-        top.appendChild(e)
-
         for child in self.children:
-            for node in child.child_xml(doc):
-                top.appendChild(node)
+            for newnode in child.child_xml(doc):
+                # insert the child to maintain alphabetic order of the nodes
+                # unfortunately the merger code requires this order
+                for node in top.childNodes:
+                    if newnode.nodeName < node.nodeName:
+                        top.insertBefore(newnode, node)
+                        break
+                else:
+                    top.appendChild(newnode)
 
         return doc.toxml()
 
@@ -1471,6 +1478,15 @@ class PhoneContactChild:
         """Return XML nodes for this child's data."""
         ret = []
 
+        if self.address:
+            e = doc.createElement('Address')
+            for (part, val) in zip(XML_ADDRESS_PARTS, self.address):
+                appendXMLChild(doc, e, part, val)
+            if e.hasChildNodes():
+                if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
+                    e.setAttribute('Location', MOTO_ADDRESS_TYPES[self.contacttype].upper())
+                ret.append(e)
+
         if self.contacttype == MOTO_CONTACT_EMAIL:
             e = doc.createElement('EMail')
         elif self.contacttype == MOTO_CONTACT_MAILINGLIST:
@@ -1486,15 +1502,6 @@ class PhoneContactChild:
                 e.setAttribute('Preferred', "1")
         appendXMLChild(doc, e, 'Content', self.contact)
         ret.append(e)
-
-        if self.address:
-            e = doc.createElement('Address')
-            for (part, val) in zip(XML_ADDRESS_PARTS, self.address):
-                appendXMLChild(doc, e, part, val)
-            if e.hasChildNodes():
-                if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
-                    e.setAttribute('Location', MOTO_ADDRESS_TYPES[self.contacttype].upper())
-                ret.append(e)
 
         return ret
 
