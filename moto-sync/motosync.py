@@ -696,7 +696,8 @@ class PhoneComms:
             self.__btsock.send(cmd)
         line = self.__readline()
         while line != 'OK' and line != 'ERROR':
-            ret.append(line)
+            if line != 'RING':
+                ret.append(line)
             line = self.__readline()
         if line == 'OK':
             return ret
