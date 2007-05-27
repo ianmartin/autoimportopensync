@@ -17,12 +17,18 @@
 		<FreeBusyUrl />
 		<GroupwiseDirectory />
 		<IM-AIM />
+                <IM-GaduGadu />
 		<IM-ICQ />
+                <IM-Jabber />
+                <IM-MSN />
 		<IM-Yahoo />
+                <IM-Yabber />
+                <IRC />
+                <KDE-Extension />
 		<Key />
 		<Location />
+                <Logo />
 		<Manager />
-		<Msn />
 		<Name />
 		<Nickname />
 		<Note />
@@ -32,6 +38,7 @@
 		<Profession />
 		<Revision />
 		<Role />
+                <SMS />
 		<Sound />
 		<Spouse />
 		<Telephone />
@@ -42,6 +49,47 @@
 		<Version />
 		<VideoUrl />
 		<WantsHtml />
-		<Yabber />
 	</contact>
+        <event>
+                <Alarm />
+                <AlarmRelatedEnd />
+                <Attach />
+                <Attendee />
+                <CalendarScale />
+                <Categories />
+                <Class />
+                <Comment />
+                <Contact />
+                <Created />
+                <DateCalendarCreated />
+                <DateEnd />
+                <DateStarted />
+                <Description />
+                <Duration />
+                <ExceptionDateTime />
+                <ExceptionRule />
+                <ExceptionRuleExtended />
+                <FreeBusy />
+                <Geo />
+                <LastModified />
+                <Location />
+                <Method />
+                <Organizer />
+                <Priority />
+                <ProductID />
+                <RecurrenceDateTime />
+                <RecurrenceId />
+                <Related />
+                <Resources />
+                <RecurrenceRule />
+                <RecurrenceRuleExtended />
+                <RStatus />
+                <Sequence />
+                <Status />
+                <Summary />
+                <TimeTransparency />
+                <Uid />
+                <Url />
+                <Version />
+        </event>
 </capabilities>
