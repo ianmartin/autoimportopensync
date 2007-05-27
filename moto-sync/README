@@ -119,16 +119,6 @@ on the phone. At the moment the plugin detects this and just refuses to
 write them. A better solution would be to split them up into multiple 
 events, but this will confuse OpenSync when we sync up again.
 
-The main overriding problem is that there's no way to store the full 
-data for an event or contact in the phone. The way opensync works at the 
-moment, this means that if an entry is synced to the phone, then 
-modified in any way on the phone, all the data in the other sync group 
-members is replaced by the small amount of data that we can return from 
-the phone. Your big flashy PIM application is limited by the 
-functionality of your phone's crappy software. Luckily the OpenSync 
-developers are working on code to merge change, so hopefully this 
-problem will soon be solved.
-
 
 TODO
 
@@ -136,4 +126,4 @@ TODO
  * See all the FIXMEs in the code
  * Do something with "mailing list" entries in the phonebook
  * Add support for reading/writing the SIM phonebook
- * Test with other hardware
+ * Improve support for other hardware
