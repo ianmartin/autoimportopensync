@@ -14,7 +14,7 @@ __revision__ = "$Id$"
 import os, types, md5, time, calendar, re
 import xml.dom.minidom
 from datetime import date, datetime, timedelta, time as datetime_time
-import dateutil.parser, dateutil.rrule, dateutil.tz
+import dateutil.parser, dateutil.rrule as rrule, dateutil.tz
 import opensync
 
 # optionally use the 'tty' module that is only present on Unix
@@ -78,6 +78,9 @@ VCAL_DATE = '%Y%m%d'
 
 # days of the week in vcal parlance
 VCAL_DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
+
+# days of week as constants in the dateutil.rrule module
+RRULE_DAYS = [rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR, rrule.SA, rrule.SU]
 
 # repeat types in the calendar
 MOTO_REPEAT_NONE = 0
@@ -179,7 +182,7 @@ def getElementsByTagNames(parent, tagnames, ret):
     return ret
 
 def getXMLField(doc, tagname, subtag=None):
-    """Returns text in a given XML tag, or '' if not set.
+    """Returns text in a given XML tag, or None if not set.
 
     The XML structure that it looks for is:
         <tagname><subtag>text here</subtag></tagname>.
@@ -188,12 +191,12 @@ def getXMLField(doc, tagname, subtag=None):
     """
     elts = doc.getElementsByTagName(tagname)
     if elts == []:
-        return ''
+        return None
     elt = elts[0]
     if subtag:
         children = elt.getElementsByTagName(subtag)
         if children == []:
-            return ''
+            return None
         elt = children[0]
     return getXMLText(elt)
 
@@ -274,36 +277,51 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     specifications (such as BYSETPOS)
     """
 
-    # XXX FIXME: whole function needs reworkign for new XML format
-    return (MOTO_REPEAT_NONE, [])
-
     # can't support multiple rules
     if len(rulenodes) != 1:
         return (MOTO_REPEAT_NONE, [])
     rulenode = rulenodes[0]
 
-    # build hash of rule parts
-    rules = {}
-    for node in rulenode.childNodes:
-        key = node.nodeName.lower()
-        val = getXMLText(node).lower()
-        if key[:1] == 'by':
-            val = set(val.split(','))
-        rules[key] = val
+    # extract rule parts
+    freqstr = getXMLField(rulenode, 'Frequency').lower()
+    if freqstr == 'daily':
+        freq = rrule.DAILY
+    elif freqstr == 'weekly':
+        freq = rrule.WEEKLY
+    elif freqstr == 'monthly':
+        freq = rrule.MONTHLY
+    elif freqstr == 'yearly':
+        freq = rrule.YEARLY
+    else:
+        assert(False, "invalid frequency %s" % freqstr)
 
-    # extract the parts
-    assert(rules.has_key('content')) # required
-    freq = rules['content'].lower()
-    bymonth = rules.get('bymonth')
-    byweekno = rules.get('byweekno')
-    byyearday = rules.get('byyearday')
-    bymonthday = rules.get('bymonthday')
-    byday = rules.get('byday')
+    until = getXMLField(rulenode, 'Until')
+    if until:
+        until = parse_ical_time(until)
+    count = getXMLField(rulenode, 'Count')
+    if count:
+        count = int(count)
+    interval = getXMLField(rulenode, 'Interval')
+    if interval:
+        interval = int(interval)
+
+    def getSet(name, convfunc=int):
+        """Internal convenience function, get a set of values from XML."""
+        val = getXMLField(rulenode, name)
+        if not val:
+            return None
+        return set(map(convfunc, val.split(',')))
+
+    bymonth = getSet('ByMonth')
+    byweekno = getSet('ByWeekNo')
+    byyearday = getSet('ByYearDay')
+    bymonthday = getSet('ByMonthDay')
+    byday = getSet('ByDay', lambda s: s.upper())
 
     # fail the conversion if any of these are set
-    if (rules.has_key('byhour') or rules.has_key('byminute')
-        or rules.has_key('bysecond') or rules.has_key('bysetpos')
-        or rules.get('interval', '1') != '1'):
+    if (getXMLField(rulenode, 'ByHour') or getXMLField(rulenode, 'ByMinute')
+        or getXMLField(rulenode, 'BySecond') or getXMLField(rulenode, 'BySetPos')
+        or (interval is not None and interval != 1)):
         return (MOTO_REPEAT_NONE, [])
 
     # compute the day and week number that the event falls in
@@ -319,24 +337,24 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     byallmonths = set(range(1, 12))
 
     # now test if the rule matches what we can represent
-    if (freq == 'daily' and (not byday or byday == byalldays)
+    if (freq == rrule.DAILY and (not byday or byday == byalldays)
         and not bymonthday and not byyearday and not byweekno
         and not bymonth):
         moto_type = MOTO_REPEAT_DAILY
-    elif (freq == 'weekly' and (not byday or byday == set([eventday]))
+    elif (freq == rrule.WEEKLY and (not byday or byday == set([eventday]))
             and not bymonthday and not byyearday and not byweekno and
             not bymonth):
         moto_type = MOTO_REPEAT_WEEKLY
-    elif (freq == 'monthly' and not byday
+    elif (freq == rrule.MONTHLY and not byday
             and (not bymonthday or bymonthday == set([eventdt.day]))
             and not byyearday and not byweekno
             and (not bymonth or bymonth == byallmonths)):
         moto_type = MOTO_REPEAT_MONTHLY_DATE
-    elif (freq == 'monthly' and byday == byeventweekday and not bymonthday
+    elif (freq == rrule.MONTHLY and byday == byeventweekday and not bymonthday
             and not byyearday and not byweekno
             and (not bymonth or bymonth == byallmonths)):
         moto_type = MOTO_REPEAT_MONTHLY_DAY
-    elif (freq == 'yearly' and not byday
+    elif (freq == rrule.YEARLY and not byday
             and (not bymonthday or bymonthday == set([eventdt.day]))
             and not byyearday and not byweekno
             and (not bymonth or bymonth == set([eventdt.month]))):
@@ -347,10 +365,23 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     # phew, looks like we have something the phone can represent
     # now we need to work out the exceptions and see if this event still occurs
 
-    # recombine the rule parts into a single string, and parse into an rruleset
-    # XXX FIXME: totally different rrule format
-    # rulestr = ';'.join(map(getXMLText, rulenode.getElementsByTagName('Rule')))
-    # ruleset = dateutil.rrule.rrulestr(rulestr, dtstart=eventdt, forceset=True)
+    # convert byday strings to constants needed by rrule
+    byweekday = []
+    for bydaystr in byday:
+        day = RRULE_DAYS[VCAL_DAYS.index(bydaystr[-2:])]
+        nth = bydaystr[:-2]
+        if nth:
+            byweekday.append(day(int(nth)))
+        else:
+            byweekday.append(day)
+
+    # create an rrule object for this rule, and an rrule set
+    ruleobj = rrule.rrule(freq, dtstart=eventdt, count=count, until=until,
+                          bymonth=list(bymonth), bymonthday=list(bymonthday),
+                          byweekday=byweekday, byyearday=list(byyearday),
+                          byweekno=list(byweekno))
+    ruleset = rrule.rruleset()
+    ruleset.rrule(ruleobj)
 
     # are there any future occurrences of this event?
     now = datetime.now()
@@ -367,7 +398,7 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
 
     # XXX FIXME: totally different rrule format
     #for node in exrules:
-    #    ruleset.exrule(dateutil.rrule.rrulestr(getXMLField(node, 'Content')))
+    #    ruleset.exrule(rrule.rrulestr(getXMLField(node, 'Content')))
 
     # are there any future occurrences of this event if we consider exceptions?
     if ruleset.after(datetime.now()) == None:
@@ -918,6 +949,12 @@ class PhoneEvent(PhoneEntry):
         doc = impl.createDocument(None, 'event', None)
         top = doc.documentElement
 
+        # compute the week number that the event falls in
+        if self.eventdt.day % 7 == 0:
+            weeknum = self.eventdt.day / 7
+        else:
+            weeknum = self.eventdt.day / 7 + 1
+
         if self.alarmdt:
             alarm = doc.createElement('Alarm')
             appendXMLChild(doc, alarm, 'AlarmAction', 'DISPLAY')
@@ -952,30 +989,27 @@ class PhoneEvent(PhoneEntry):
 
             # create an rrule object for this recurrence
             if self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
-                rrule = dateutil.rrule.rrule(dateutil.rrule.MONTHLY,
-                                             bymonthday=self.eventdt.day,
-                                             dtstart=self.eventdt)
+                rule = rrule.rrule(rrule.MONTHLY, bymonthday=self.eventdt.day,
+                                   dtstart=self.eventdt)
             elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
-                weekday = dateutil.rrule.weekdays[self.eventdt.weekday()]
-                # weeknum is calculated above in the XML generation
-                rrule = dateutil.rrule.rrule(dateutil.rrule.MONTHLY,
-                                             byweekday=weekday(+weeknum),
-                                             dtstart=self.eventdt)
+                weekday = rrule.weekdays[self.eventdt.weekday()]
+                rule = rrule.rrule(rrule.MONTHLY, byweekday=weekday(+weeknum),
+                                   dtstart=self.eventdt)
             else:
                 if self.repeat_type == MOTO_REPEAT_DAILY:
-                    freq = dateutil.rrule.DAILY
+                    freq = rrule.DAILY
                 elif self.repeat_type == MOTO_REPEAT_WEEKLY:
-                    freq = dateutil.rrule.WEEKLY
+                    freq = rrule.WEEKLY
                 elif self.repeat_type == MOTO_REPEAT_YEARLY:
-                    freq = dateutil.rrule.YEARLY
-                rrule = dateutil.rrule.rrule(freq, dtstart=self.eventdt)
+                    freq = rrule.YEARLY
+                rule = rrule.rrule(freq, dtstart=self.eventdt)
 
             # work out which dates the exceptions correspond to and
             # generate ExceptionDate nodes for them
             e = doc.createElement('ExceptionDateTime')
             e.setAttribute('Value', 'DATE')
             for exnum in self.exceptions:
-                appendXMLChild(doc, e, 'Content', format_time(rrule[exnum], VCAL_DATE))
+                appendXMLChild(doc, e, 'Content', format_time(rule[exnum], VCAL_DATE))
             if e.hasChildNodes():
                 top.appendChild(e)
 
@@ -990,11 +1024,6 @@ class PhoneEvent(PhoneEntry):
         elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
             appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
             day = VCAL_DAYS[self.eventdt.weekday()]
-            # compute the week number that the event falls in
-            if self.eventdt.day % 7 == 0:
-                weeknum = self.eventdt.day / 7
-            else:
-                weeknum = self.eventdt.day / 7 + 1
             appendXMLChild(doc, e, 'ByDay', '%d%s' % (weeknum, day))
         elif self.repeat_type == MOTO_REPEAT_YEARLY:
             appendXMLChild(doc, e, 'Frequency', 'YEARLY')
@@ -1068,8 +1097,8 @@ class PhoneEventXML(PhoneEvent):
         if event.getElementsByTagName('Duration') != []:
             duration = event.getElementsByTagName('Duration')[0]
             def toint(numstr):
-                """Convert a string to an integer, unless it's empty, in which case return 0."""
-                if numstr == '':
+                """Convert a string to an integer, unless it's None, in which case return 0."""
+                if numstr is None:
                     return 0
                 else:
                     return int(numstr)
@@ -1081,7 +1110,7 @@ class PhoneEventXML(PhoneEvent):
             self.duration = timedelta(weeks * 7 + days, (hours * 60 + mins) * 60 + secs)
         else:
             endstr = getField('DateEnd')
-            if endstr != '':
+            if endstr is not None:
                 self.duration = parse_ical_time(endstr) - self.eventdt
             else:
                 # no duration or end specified, assume whole-day or no duration
@@ -1098,7 +1127,7 @@ class PhoneEventXML(PhoneEvent):
             self.eventdt = datetime.combine(self.eventdt, local_midnight)
 
         triggerstr = getField('Alarm', 'AlarmTrigger')
-        if triggerstr == '':
+        if triggerstr is None:
             self.alarmdt = None
         else:
             if triggerstr.startswith('-P') or triggerstr.startswith('P'):
@@ -1319,14 +1348,14 @@ class PhoneContactXML(PhoneContact):
 
         # handle the name and formatted name fields
         self.name = getField('FormattedName')
-        if self.name != '':
+        if self.name:
             # FIXME: cheesy attempt at taking apart the FormattedName
             last = getField('Name', 'LastName')
-            if last != '':
+            if last:
                 lastidx = self.name.find(last)
                 if lastidx == 0:
                     first = getField('Name', 'FirstName')
-                    if first != '':
+                    if first:
                         firstidx = self.name.find(first)
                         if firstidx != -1:
                             self.firstlast_enabled = 1
@@ -1337,16 +1366,18 @@ class PhoneContactXML(PhoneContact):
         else:
             # compute FormattedName from Name
             nameparts = [getField('Name', p) for p in XML_NAME_PARTS]
-            nameparts = [p != '' for p in nameparts]
+            nameparts = [p for p in nameparts if p]
             self.name = ' '.join(nameparts)
             self.firstlast_enabled = 0
             self.firstlast_index = self.name.index(getField('Name', 'LastName'))
 
-        catname = getField('Categories', 'Category').lower()
+        catname = getField('Categories', 'Category')
+        if catname:
+            catname = catname.lower()
         self.categorynum = revcategories.get(catname, MOTO_CATEGORY_DEFAULT)
         self.nickname = getField('Nickname')
         bdaystr = getField('Birthday')
-        if bdaystr != '':
+        if bdaystr:
             self.birthday = parse_ical_time(bdaystr)
         else:
             self.birthday = None
@@ -1462,8 +1493,19 @@ class PhoneContactChild:
             birthdaystr = format_time(self.parent.birthday, PHONE_DATE)
         else:
             birthdaystr = ''
+        if self.parent.nickname:
+            nickname = self.parent.nickname
+        else:
+            nickname = ''
         if self.address:
-            (street1, street2, city, state, postcode, country) = self.address
+            # remove None parts
+            address = []
+            for part in self.address:
+                if part:
+                    address.append(part)
+                else:
+                    address.append('')
+            (street1, street2, city, state, postcode, country) = address
         else:
             street1 = street2 = city = state = postcode = country = ''
         return (self.pos, self.contact, self.numtype, self.parent.name,
@@ -1472,7 +1514,7 @@ class PhoneContactChild:
                 self.profile_icon, self.parent.firstlast_enabled,
                 self.parent.firstlast_index, self.picture_path,
                 0, 0, street2, street1, city, state, postcode, country,
-                self.parent.nickname, birthdaystr)
+                nickname, birthdaystr)
 
     def child_xml(self, doc):
         """Return XML nodes for this child's data."""
@@ -1822,7 +1864,7 @@ def parse_config(configstr):
         raise opensync.Error('failed to parse config data', opensync.ERROR_MISCONFIGURATION)
 
     ret = getXMLField(doc, 'device').strip()
-    if ret == '':
+    if not ret:
         raise opensync.Error('device not specified in config file', opensync.ERROR_MISCONFIGURATION)
     return ret
 
