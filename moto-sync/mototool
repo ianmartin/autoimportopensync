@@ -23,7 +23,7 @@ except ImportError:
     sys.path.append(os.path.join(libdir, 'opensync', 'python-plugins'))
     import motosync
 
-DEFAULT_DEVICE = '/dev/rfcomm0'
+DEFAULT_DEVICE = '/dev/ttyACM0'
 
 def parse_args():
     p = OptionParser(version=motosync.__revision__,
