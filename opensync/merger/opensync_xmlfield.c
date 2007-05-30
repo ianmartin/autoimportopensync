@@ -663,7 +663,7 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 					res = FALSE;	
 					break;
 				}
-			};
+			}
 			
 			if(res) {
 				list1 = g_slist_delete_link(list1, cur_list1);
