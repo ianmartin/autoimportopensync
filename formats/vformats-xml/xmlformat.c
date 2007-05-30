@@ -247,7 +247,8 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 	
 	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
 	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
-	time_t time = vformat_time_to_unix(revision);
+	//time_t time = vformat_time_to_unix(revision);
+	time_t time = osync_time_vtime2unix(revision, 0);
 	
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, time);
 	return time;

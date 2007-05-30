@@ -34,8 +34,6 @@
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-time.h>
 
-#include "vformat.h"
-
 #define HANDLE_IGNORE (void *)1
 
 void destroy_xmlformat(char *input, unsigned int inpsize);
