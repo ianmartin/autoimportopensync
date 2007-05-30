@@ -238,7 +238,7 @@ END_TEST
 Suite *vcard_suite(void)
 {
 	Suite *s = suite_create("Vcard");
-	//Suite *s2 = suite_create("Vcard");
+//	Suite *s2 = suite_create("Vcard");
 
 	create_case(s, "conv_vcard_evolution2_full1", conv_vcard_evolution2_full1);
 	create_case(s, "conv_vcard_evolution2_full2", conv_vcard_evolution2_full2);
@@ -268,9 +268,10 @@ Suite *vcard_suite(void)
 	create_case(s, "conv_vcard_kde_30_umlaute", conv_vcard_kde_30_umlaute);
 
 	create_case(s, "compare_vformat_mismatch1", compare_vformat_mismatch1);
+	create_case(s, "compare_vformat_similar2", compare_vformat_similar2);
+
 	create_case(s, "compare_vformat_mismatch2", compare_vformat_mismatch2);
 	create_case(s, "compare_vformat_similar1", compare_vformat_similar1);
-	create_case(s, "compare_vformat_similar2", compare_vformat_similar2);
 	create_case(s, "compare_vformat_same1", compare_vformat_same1);
 	create_case(s, "compare_vformat_same2", compare_vformat_same2);
 

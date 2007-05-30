@@ -187,13 +187,13 @@ END_TEST
 Suite *client_suite(void)
 {
 	Suite *s = suite_create("Client");
-	Suite *s2 = suite_create("Client");
+//	Suite *s2 = suite_create("Client");
 	
 	create_case(s, "client_new", client_new);
 	create_case(s, "client_pipes", client_pipes);
-	create_case(s2, "client_run", client_run);
+	create_case(s, "client_run", client_run);
 	
-	return s2;
+	return s;
 }
 
 int main(void)

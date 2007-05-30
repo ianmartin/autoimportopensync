@@ -210,7 +210,6 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlformat_compare", xmlformat_compare);
 	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);
 
-
 	return s;
 }
 
