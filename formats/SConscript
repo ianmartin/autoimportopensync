@@ -13,44 +13,15 @@ formatenv.Append( CPPPATH = '.' )
 file = formatenv.SharedLibrary('file', ['file.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 data = formatenv.SharedLibrary('data', ['data.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
-contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-event = formatenv.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-
-# vformat support library
-vformat = formatenv.SharedLibrary('vformat', ['vformats-xml/vformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-
 # xmlformat support library which register xmlformat-contact, -event, -note, -todo
-xmlformat = formatenv.SharedLibrary('xmlformat', ['vformats-xml/xmlformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
-
-# common xmlformat libraries
-xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['vformats-xml/xmlformat-common.c'], LIBS = ['opensync', 'vformat'], LIBPATH = ['#opensync', '.'])
-xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['vformats-xml/xmlformat-vcalendar.c'], LIBS = ['xmlformat-common'], LIBPATH = ['#opensync', '.'])
-
-# xmlformat libraries which convert from basic v* format to xmlformat-* and backwarts
-xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['vformats-xml/xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['#opensync', '.'])
-xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['vformats-xml/xmlformat-vevent.c', 'vformats-xml/xmlformat-vevent10.c', 'vformats-xml/xmlformat-vevent20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
-xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['vformats-xml/xmlformat-vnote.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
-xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['vformats-xml/xmlformat-vtodo.c', 'vformats-xml/xmlformat-vtodo10.c', 'vformats-xml/xmlformat-vtodo20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['#opensync', '.'])
+xmlformat = formatenv.SharedLibrary('xmlformat', ['xmlformat.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
 # xmlformat-doc library
-xmlformatdoc = formatenv.SharedLibrary('xmlformat-doc', ['vformats-xml/xmlformat-doc.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
+xmlformatdoc = formatenv.SharedLibrary('xmlformat-doc', ['xmlformat-doc.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
 
 formatenv.Install(install_format, file)
 formatenv.Install(install_format, data)
-formatenv.Install(install_format, contact)
-formatenv.Install(install_format, event)
-formatenv.Install(install_format, note)
-formatenv.Install(install_format, todo)
-formatenv.Install(install_format, vformat)
 formatenv.Install(install_format, xmlformat)
-formatenv.Install(install_format, xmlformatcommon)
-formatenv.Install(install_format, xmlformatvcalendar)
-formatenv.Install(install_format, xmlformatvcard)
-formatenv.Install(install_format, xmlformatvevent)
-formatenv.Install(install_format, xmlformatvnote)
-formatenv.Install(install_format, xmlformatvtodo)
 formatenv.Install(install_format, xmlformatdoc)
 
 formatenv.Install(install_inc + '/opensync-1.0/opensync/', 'file.h')
