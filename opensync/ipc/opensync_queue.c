@@ -590,6 +590,7 @@ void osync_queue_free(OSyncQueue *queue)
 
 osync_bool osync_queue_exists(OSyncQueue *queue)
 {
+	osync_assert(queue);
 	return g_file_test(queue->name, G_FILE_TEST_EXISTS) ? TRUE : FALSE;
 }
 

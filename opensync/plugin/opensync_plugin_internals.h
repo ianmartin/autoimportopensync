@@ -40,6 +40,8 @@ struct OSyncPlugin {
 	usable_fn useable;
 	/** Does the plugin have configuration options? */
 	OSyncConfigurationType config_type;
+	/** The start type of the plugin. Thread, Process or External. */
+	OSyncStartType start_type;
 	/** The pointer to the plugin (for internal use) */
 	OSyncModule *module;
 	/** Plugin-specific data

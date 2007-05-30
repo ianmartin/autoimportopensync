@@ -48,6 +48,7 @@ OSyncPlugin *osync_plugin_new(OSyncError **error)
 		return NULL;
 	
 	plugin->config_type = OSYNC_PLUGIN_NEEDS_CONFIGURATION;
+	plugin->start_type = OSYNC_START_TYPE_THREAD;
 	plugin->ref_count = 1;
 	
 	return plugin;
@@ -165,6 +166,18 @@ void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType co
 {
 	osync_assert(plugin);
 	plugin->config_type = config_type;
+}
+
+OSyncStartType osync_plugin_get_start_type(OSyncPlugin *plugin)
+{
+	osync_assert(plugin);
+	return plugin->start_type;
+}
+
+void osync_plugin_set_start_type(OSyncPlugin *plugin, OSyncStartType start_type)
+{
+	osync_assert(plugin);
+	plugin->start_type = start_type;
 }
 
 void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init)

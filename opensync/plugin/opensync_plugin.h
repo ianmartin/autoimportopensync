@@ -53,6 +53,9 @@ OSYNC_EXPORT void osync_plugin_set_longname(OSyncPlugin *plugin, const char *lon
 OSYNC_EXPORT OSyncConfigurationType osync_plugin_get_config_type(OSyncPlugin *plugin);
 OSYNC_EXPORT void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType type);
 
+OSYNC_EXPORT OSyncStartType osync_plugin_get_start_type(OSyncPlugin *plugin);
+OSYNC_EXPORT void osync_plugin_set_start_type(OSyncPlugin *plugin, OSyncStartType type);
+
 OSYNC_EXPORT const char *osync_plugin_get_description(OSyncPlugin *plugin);
 OSYNC_EXPORT void osync_plugin_set_description(OSyncPlugin *plugin, const char *description);
 
