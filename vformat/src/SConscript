@@ -15,10 +15,30 @@ event = formatenv.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPA
 note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
+# vformat support library
+vformat = formatenv.SharedLibrary('vformat', ['vformat.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+
+# common xmlformat libraries
+xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['xmlformat-common.c'], LIBS = ['opensync', 'vformat'], LIBPATH = ['$prefix/$libsuffix', '.'])
+xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['xmlformat-vcalendar.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
+
+# xmlformat libraries which convert from basic v* format to xmlformat-* and backwarts
+xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
+xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c', 'xmlformat-vevent10.c', 'xmlformat-vevent20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
+xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['xmlformat-vnote.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
+xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['xmlformat-vtodo.c', 'xmlformat-vtodo10.c', 'xmlformat-vtodo20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
+
 # install plugins
 formatenv.Install(install_format, contact)
 formatenv.Install(install_format, event)
 formatenv.Install(install_format, note)
 formatenv.Install(install_format, todo)
+formatenv.Install(install_format, vformat)
+formatenv.Install(install_format, xmlformatcommon)
+formatenv.Install(install_format, xmlformatvcalendar)
+formatenv.Install(install_format, xmlformatvcard)
+formatenv.Install(install_format, xmlformatvevent)
+formatenv.Install(install_format, xmlformatvnote)
+formatenv.Install(install_format, xmlformatvtodo)
 
 env.Alias('install', install_prefix)
