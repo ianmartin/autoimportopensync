@@ -22,7 +22,6 @@ config = BuildConfig()
 env = Environment(ENV = os.environ) 
 opts = Options('vformat.conf')
 opts.Add('debug', 'Should debugging be enabled?', 1)
-opts.Add('enable_trace', 'Should tracing be enabled?', 1)
 opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
 opts.Add(('APPEND_LDFLAGS', 'Linker flags'))
 opts.Add(('APPEND_CCFLAGS', 'Compiler flags'))
@@ -47,7 +46,6 @@ Welcome to the OpenSync Help System!
 You can set the following options:
 """ + opts.GenerateHelpText(env))
 
-env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
 env.Append(CCFLAGS = Split('$APPEND_CCFLAGS'))
 env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
 
