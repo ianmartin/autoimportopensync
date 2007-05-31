@@ -9,10 +9,16 @@ formatenv.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
 formatenv.Append( CPPPATH = '.' )
 
 
-# vformat plugins
-contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync', 'xmlformat'], LIBPATH = '$prefix/$libsuffix')
+# basic vformat plugins
+contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+event = formatenv.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 # install plugins
 formatenv.Install(install_format, contact)
+formatenv.Install(install_format, event)
+formatenv.Install(install_format, note)
+formatenv.Install(install_format, todo)
 
 env.Alias('install', install_prefix)

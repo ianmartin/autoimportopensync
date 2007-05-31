@@ -20,7 +20,6 @@
  */
  
 #include "opensync/opensync.h"
-#include "opensync/opensync_internals.h"
 #include "opensync/opensync-support.h"
 #include "opensync/opensync-serializer.h"
 #include "opensync/opensync-format.h"

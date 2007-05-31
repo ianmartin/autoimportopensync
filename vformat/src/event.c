@@ -19,11 +19,11 @@
  */
  
 #include <opensync/opensync.h>
-#include <opensync/opensync_internals.h>
 #include <opensync/opensync-support.h>
 #include <opensync/opensync-serializer.h>
 #include <opensync/opensync-format.h>
 #include <glib.h>
+#include <string.h>
 
 /** @defgroup event_vevent event/vevent data format
  *

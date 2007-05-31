@@ -19,12 +19,10 @@
  * 
  */
 #include "opensync/opensync.h"
-#include "opensync/opensync_internals.h"
 #include "opensync/opensync-support.h"
 #include "opensync/opensync-serializer.h"
 #include "opensync/opensync-format.h"
 #include <glib.h>
-#include <stdio.h>
 #include <string.h>
 
 static OSyncConvCmpResult compare_vnote(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
