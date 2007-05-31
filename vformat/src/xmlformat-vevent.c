@@ -22,8 +22,6 @@
  */
 
 #include "xmlformat-vevent.h"
-#include "xmlformat-vevent10.h"
-#include "xmlformat-vevent20.h"
 
 static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 {

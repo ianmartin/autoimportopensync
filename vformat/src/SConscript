@@ -24,7 +24,7 @@ xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['xmlformat-
 
 # xmlformat libraries which convert from basic v* format to xmlformat-* and backwarts
 xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
-xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c', 'xmlformat-vevent10.c', 'xmlformat-vevent20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
+xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
 xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['xmlformat-vnote.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
 xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['xmlformat-vtodo.c', 'xmlformat-vtodo10.c', 'xmlformat-vtodo20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
 
