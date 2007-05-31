@@ -1,0 +1,8 @@
+#!/bin/bash
+
+TMPDIR=`mktemp -d /tmp/osplg.XXXXXX` || exit 1
+
+TMPCFG=`mktemp /tmp/osplgcfg.XXXXXX` || exit 1
+echo "<config><path>$TMPDIR</path><recursive>FALSE</recursive></config>" > $TMPCFG
+
+osyncplugin file-sync --config $TMPCFG --type data --plugin ../src/.libs/file_sync.so || exit 1
