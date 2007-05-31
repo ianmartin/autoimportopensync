@@ -1,0 +1,18 @@
+Import('*')
+
+formatenv = env.Copy()
+
+if env['enable_rpath'] == 1:
+	formatenv.Append( LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix/opensync/formats'] )
+
+formatenv.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
+formatenv.Append( CPPPATH = '.' )
+
+
+# vformat plugins
+contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync', 'xmlformat'], LIBPATH = '$prefix/$libsuffix')
+
+# install plugins
+formatenv.Install(install_format, contact)
+
+env.Alias('install', install_prefix)
