@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
 
+  <!-- Warning: this schema is partially inconsistent with the XML format used by the vformat
+       converter. It will be updated soon, but in the meantime if you depend on the details of the
+       format, please also check the converter source (and report any bugs or inconsistencies you spot). -->
+
   <xsd:element name="contact">
     <xsd:complexType>
       <xsd:sequence>
@@ -56,7 +60,7 @@
       <xsd:attribute name="version" type="xsd:integer"/>
     </xsd:complexType>
   </xsd:element>
- 
+
     <xsd:complexType name="StringContent">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
@@ -68,7 +72,7 @@
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
       </xsd:sequence>
     </xsd:complexType>
-  
+
 
   <xsd:simpleType name="Preferred">
     <xsd:restriction base="xsd:string">
@@ -91,7 +95,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  
+
     <xsd:complexType name="Address">
       <xsd:sequence>
         <xsd:element minOccurs="0" name="PostOfficeBox" type="xsd:string"/>
@@ -105,9 +109,9 @@
       <xsd:attribute name="Location" type="AddressLocation"/>
       <xsd:attribute name="Pref" type="Preferred"/>
     </xsd:complexType>
-  
 
-  
+
+
     <xsd:complexType name="AddressLabel">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
@@ -115,14 +119,14 @@
       <xsd:attribute name="Location" type="AddressLocation"/>
       <xsd:attribute name="Pref" type="Preferred"/>
     </xsd:complexType>
-  
+
 	<xsd:complexType name="Categories">
       <xsd:sequence>
         <xsd:element minOccurs="0" maxOccurs="unbounded" name="Category" type="xsd:string"/>
       </xsd:sequence>
     </xsd:complexType>
-  
- 
+
+
 
   <!--
   <xsd:simpleType name="EMailType">
@@ -152,7 +156,7 @@
   </xsd:simpleType>
 
 
-  
+
     <xsd:complexType name="EMail">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
@@ -162,9 +166,9 @@
       <xsd:attribute name="UI-Slot" type="xsd:string"/>
       <xsd:attribute name="Preferred" type="Preferred"/>
     </xsd:complexType>
-  
 
-  
+
+
     <xsd:complexType name="Name">
       <xsd:sequence>
         <xsd:element minOccurs="0" name="LastName" type="xsd:string"/>
@@ -174,9 +178,9 @@
         <xsd:element minOccurs="0" name="Suffix" type="xsd:string"/>
      </xsd:sequence>
     </xsd:complexType>
-  
 
-  
+
+
     <xsd:complexType name="Organization">
       <xsd:sequence>
         <xsd:element minOccurs="0" name="Name" type="xsd:string"/>
@@ -184,7 +188,7 @@
         <xsd:element maxOccurs="unbounded" minOccurs="0" name="Unit" type="xsd:string"/>
      </xsd:sequence>
     </xsd:complexType>
-  
+
 
   <xsd:simpleType name="TelephoneType">
     <xsd:restriction base="xsd:string">
@@ -214,7 +218,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  
+
     <xsd:complexType name="Telephone">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
@@ -224,7 +228,7 @@
      <xsd:attribute name="Location" type="TelephoneLocation"/>
      <xsd:attribute name="Preferred" type="Preferred"/>
     </xsd:complexType>
-  
+
 
   <xsd:simpleType name="KeyType">
     <xsd:restriction base="xsd:string">
@@ -233,16 +237,16 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  
+
     <xsd:complexType name="Key">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
      <xsd:attribute name="Type" type="KeyType"/>
     </xsd:complexType>
-  
 
-  
+
+
     <xsd:complexType name="Location">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Latitude" type="xsd:string"/>
@@ -256,7 +260,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  
+
     <xsd:complexType name="IM">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
@@ -264,7 +268,7 @@
      <xsd:attribute name="Location" type="Messaging"/>
      <xsd:attribute name="UI-Slot" type="xsd:integer"/>
     </xsd:complexType>
-  
+
 
     <xsd:complexType name="GroupwiseDirectory">
       <xsd:sequence>
@@ -273,7 +277,7 @@
      <xsd:attribute name="Location" type="AddressLocation"/>
      <xsd:attribute name="UI-Slot" type="xsd:integer"/>
     </xsd:complexType>
-  
+
 
   <xsd:simpleType name="Bool">
     <xsd:restriction base="xsd:string">
@@ -282,11 +286,11 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  
+
     <xsd:complexType name="WantsHTML">
      <xsd:attribute name="Type" type="Bool"/>
     </xsd:complexType>
-  
+
 
   <xsd:simpleType name="ImageFormat">
     <xsd:restriction base="xsd:string">
@@ -321,14 +325,14 @@
       <xsd:enumeration value="URI"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
     <xsd:complexType name="Logo">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
      </xsd:sequence>
      <xsd:attribute name="Type" type="ImageFormat"/>
      <xsd:attribute name="Encoding" type="ImageEncode"/>
-     <xsd:attribute name="Value" type="ImageValue"/> 
+     <xsd:attribute name="Value" type="ImageValue"/>
     </xsd:complexType>
 
 
@@ -340,7 +344,7 @@
      <xsd:attribute name="Encoding" type="ImageEncode"/>
      <xsd:attribute name="Value" type="ImageValue"/>
     </xsd:complexType>
-  
+
 
   <xsd:simpleType name="SoundFormat">
     <xsd:restriction base="xsd:string">
@@ -358,9 +362,9 @@
      <!-- TODO: RFC2446 - vCard Type Definition - Create xsd Types for snd-inline-param (e.g. Value, ...) -->
      <xsd:attribute name="Value" type="xsd:string"/>
     </xsd:complexType>
-  
 
-  
+
+
     <xsd:complexType name="UserDefined">
       <xsd:sequence>
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
