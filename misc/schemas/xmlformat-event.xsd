@@ -4,6 +4,11 @@
 <xsd:include schemaLocation="xmlformat-common.xsd"/>
 
   <!-- XMLFormat-event -->
+
+  <!-- Warning: this schema is partially inconsistent with the XML format used by the vformat
+       converter. It will be updated soon, but in the meantime if you depend on the details of the
+       format, please also check the converter source (and report any bugs or inconsistencies you spot). -->
+
   <xsd:element name="event">
     <xsd:complexType>
       <xsd:sequence>
