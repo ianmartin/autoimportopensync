@@ -127,7 +127,7 @@ def main():
 
     if options.mode == 'delete' or options.mode == 'restore':
         if 'event' in options.objtype:
-            for edata in pc.read_events():
+            for (edata, _) in pc.read_events():
                 pc.delete_event(edata[0])
         if 'contact' in options.objtype:
             pc.read_contact_params()
@@ -137,10 +137,10 @@ def main():
     if options.mode == 'backup':
         f = open(options.filename, 'w')
         if 'event' in options.objtype:
-            for edata in pc.read_events():
-                f.write(pack_backup('E', edata[:-1]))
-                if edata[-1] != []: # exceptions
-                    f.write(pack_backup('X', edata[-1]))
+            for (edata, exceptions) in pc.read_events():
+                f.write(pack_backup('E', edata))
+                if exceptions != []:
+                    f.write(pack_backup('X', exceptions))
         if 'contact' in options.objtype:
             pc.read_contact_params()
             for edata in pc.read_contacts():
@@ -154,9 +154,9 @@ def main():
         for line in f.readlines():
             typestr, edata = unpack_backup(line)
             if typestr == 'E':
-                events.append(edata + [[]])
+                events.append((edata, []))
             elif typestr == 'X':
-                events[-1][-1] = edata
+                events[-1] = (events[-1][0], edata)
             elif typestr == 'C':
                 contacts.append(edata)
             else:
@@ -164,8 +164,8 @@ def main():
         f.close()
 
         if 'event' in options.objtype:
-            for e in events:
-                pc.write_event(e)
+            for (e, x) in events:
+                pc.write_event(e, x)
         if 'contact' in options.objtype:
             for e in contacts:
                 pc.write_contact(e)

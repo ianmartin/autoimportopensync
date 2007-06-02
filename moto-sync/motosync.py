@@ -567,7 +567,10 @@ class PhoneComms:
         return self.__parse_results('MDBR', data)[0][:4]
 
     def read_events(self):
-        """read the list of all events on the phone"""
+        """Read all events on the phone.
+
+        Returns a list of (event data, exceptions) tuples.
+        """
         self.open_calendar()
 
         # read entries from the phone until we've seen all of them
@@ -587,21 +590,18 @@ class PhoneComms:
                 exceptions[expos].append(exnum)
             # ...then add them into the event data
             for evdata in self.__parse_results('MDBR', data):
-                evdata.append(exceptions.get(pos, []))
-                ret.append(evdata)
+                ret.append((evdata, exceptions.get(evdata[0], [])))
             pos += ENTRIES_PER_READ
         return ret
 
-    def write_event(self, evdata):
+    def write_event(self, data, exceptions):
         """Write a single event to the phone.
 
         Uses pos specified in event (overwriting anything on the phone).
         """
         self.open_calendar()
-        pos = evdata[0]
+        pos = data[0]
         self.delete_event(pos)
-        exceptions = evdata[-1]
-        data = evdata[:-1]
         # HACK: only the name of the event (data[1]) should be unicode
         for n in range(2, len(data)):
             if type(data[n]) == types.UnicodeType:
@@ -913,7 +913,7 @@ class PhoneEvent(PhoneEntry):
     def write(self, comms):
         """given an instance of PhoneComms, write this entry to the phone"""
         self.__truncate_fields(comms)
-        comms.write_event(self.__to_moto())
+        comms.write_event(self.__to_moto(), self.exceptions)
 
     def hash_data(self):
         """return a list of entry data in a predictable format, for hashing"""
@@ -946,8 +946,7 @@ class PhoneEvent(PhoneEntry):
         duration = int(self.duration.days) * 24 * 60
         duration += int(self.duration.seconds) / 60
         return (self.pos, self.name, timeflag, alarmflag, timestr, datestr,
-                duration, alarmtimestr, alarmdatestr, self.repeat_type,
-                self.exceptions)
+                duration, alarmtimestr, alarmdatestr, self.repeat_type)
 
     def to_xml(self):
         """Returns OpenSync XML representation of this event."""
@@ -1048,10 +1047,10 @@ class PhoneEvent(PhoneEntry):
 
 class PhoneEventMoto(PhoneEvent):
     """Constructor for the PhoneEvent object with data in Motorola format"""
-    def __init__(self, data):
+    def __init__(self, data, exceptions):
         """grab stuff out of the list of values from the phone"""
         PhoneEvent.__init__(self)
-        assert(type(data) == list and len(data) == 11)
+        assert(type(data) == list and len(data) == 10)
         self.pos = data[0]
         self.name = data[1]
         timeflag = data[2]
@@ -1062,7 +1061,7 @@ class PhoneEventMoto(PhoneEvent):
         alarmtime = data[7]
         alarmdate = data[8]
         self.repeat_type = data[9]
-        self.exceptions = data[10]
+        self.exceptions = exceptions
         self.exceptions.sort() # just in case
 
         if timeflag:
@@ -1674,7 +1673,7 @@ class PhoneAccess:
                 else:
                     i += 1
         elif objtype == 'event':
-            entries = [PhoneEventMoto(d) for d in self.comms.read_events()]
+            entries = [PhoneEventMoto(d, x) for (d, x) in self.comms.read_events()]
         else:
             assert(False, 'Unknown objtype %s' % objtype)
 
