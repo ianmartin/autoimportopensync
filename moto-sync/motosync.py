@@ -433,6 +433,7 @@ class PhoneComms:
     def __init__(self, device):
         self.devstr = device
         self.__calendar_open = False
+        self.__calendar_locking_required = True
         self.__fd = self.__btsock = None
         self.max_events = None
         self.num_events = None
@@ -475,12 +476,18 @@ class PhoneComms:
         self.__do_cmd('AT+MODE=0') # ?
         self.__do_cmd('ATE0Q0V1')  # echo off, result codes off, verbose results
 
+        # find out if calendar locking is required/supported by this phone
+        try:
+            self.__do_cmd('AT+MDBL=0')
+        except opensync.Error:
+            self.__calendar_locking_required = False
+
         # use UCS2 encoding for data values
         # this is an older version of UTF16 where every char is two bytes long
         # the phone implements it by sending us 2 hex chars per byte, ie. 4 per char
         self.__do_cmd('AT+CSCS="UCS2"')
 
-        (maxevs, numevs, namelen, max_except, _) = self.read_event_params()
+        (maxevs, numevs, namelen, max_except) = self.read_event_params()
         self.max_events = maxevs
         self.num_events = numevs
         self.event_name_len = namelen
@@ -537,15 +544,15 @@ class PhoneComms:
 
         This "locks" out the phone's own UI from accessing the data.
         """
-        if not self.__calendar_open:
+        if self.__calendar_locking_required and not self.__calendar_open:
             self.__do_cmd('AT+MDBL=1')
-            self.__calendar_open = True
+        self.__calendar_open = True
 
     def close_calendar(self):
         """Close the calendar."""
-        if self.__calendar_open:
+        if self.__calendar_locking_required and self.__calendar_open:
             self.__do_cmd('AT+MDBL=0')
-            self.__calendar_open = False
+        self.__calendar_open = False
 
     def read_event_params(self):
         """Read calendar/datebook parameters.
@@ -554,11 +561,10 @@ class PhoneComms:
                  number of events currently stored,
                  length of title/name field,
                  maximum number of event exceptions
-                 maximum number of event exception types (?)
         """
         self.open_calendar()
         data = self.__do_cmd('AT+MDBR=?') # read event parameters
-        return self.__parse_results('MDBR', data)[0]
+        return self.__parse_results('MDBR', data)[0][:4]
 
     def read_events(self):
         """read the list of all events on the phone"""
