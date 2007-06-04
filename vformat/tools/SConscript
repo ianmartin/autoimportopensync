@@ -1,0 +1,8 @@
+Import('*')
+
+env.Append( CPPPATH = '.' )
+
+vconvert = env.Program('vconvert', 'vconvert.c', LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+
+env.Install(install_bin, vconvert)
+env.Alias('install', install_prefix)
