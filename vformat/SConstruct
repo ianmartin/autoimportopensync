@@ -52,10 +52,11 @@ env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
 testenv = check(env, config)
 
 install_prefix = '${DESTDIR}$prefix'
+install_lib = '${DESTDIR}$prefix/$libsuffix'
 install_bin = '${DESTDIR}$prefix/bin'
 install_format = '${DESTDIR}$prefix/$libsuffix/opensync/formats'
 
-Export('env opts testenv install_prefix install_bin install_format')
+Export('env opts testenv install_prefix install_lib install_bin install_format')
 
 SConscript(['src/SConscript', 'tools/SConscript'])
 BuildDir(target_dir, 'vformat', duplicate=0)

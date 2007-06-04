@@ -2,12 +2,7 @@ Import('*')
 
 formatenv = env.Copy()
 
-if env['enable_rpath'] == 1:
-	formatenv.Append( LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix/opensync/formats'] )
-
-formatenv.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
 formatenv.Append( CPPPATH = '.' )
-
 
 # basic vformat plugins
 contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
@@ -22,7 +17,7 @@ vformat = formatenv.SharedLibrary('vformat', ['vformat.c'], LIBS = ['opensync'],
 xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['xmlformat-common.c'], LIBS = ['opensync', 'vformat'], LIBPATH = ['$prefix/$libsuffix', '.'])
 xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['xmlformat-vcalendar.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
 
-# xmlformat libraries which convert from basic v* format to xmlformat-* and backwarts
+# xmlformat plugins which convert from vformat to xmlformat and backwards
 xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
 xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
 xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['xmlformat-vnote.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
@@ -33,12 +28,14 @@ formatenv.Install(install_format, contact)
 formatenv.Install(install_format, event)
 formatenv.Install(install_format, note)
 formatenv.Install(install_format, todo)
-formatenv.Install(install_format, vformat)
-formatenv.Install(install_format, xmlformatcommon)
-formatenv.Install(install_format, xmlformatvcalendar)
 formatenv.Install(install_format, xmlformatvcard)
 formatenv.Install(install_format, xmlformatvevent)
 formatenv.Install(install_format, xmlformatvnote)
 formatenv.Install(install_format, xmlformatvtodo)
+
+# install libs
+formatenv.Install(install_lib, vformat)
+formatenv.Install(install_lib, xmlformatcommon)
+formatenv.Install(install_lib, xmlformatvcalendar)
 
 env.Alias('install', install_prefix)
