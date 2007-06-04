@@ -2,12 +2,7 @@ Import('*')
 
 formatenv = env.Copy()
 
-if env['enable_rpath'] == 1:
-	formatenv.Append( LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix/opensync/formats'] )
-
-formatenv.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
 formatenv.Append( CPPPATH = '.' )
-
 
 # basic vformat plugins
 file = formatenv.SharedLibrary('file', ['file.c'], LIBS = ['opensync'], LIBPATH = '#opensync')
