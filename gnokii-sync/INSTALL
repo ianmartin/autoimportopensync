@@ -4,7 +4,7 @@ INSTALL of gnokii-sync
 
 REQUIREMENTS
 ^^^^^^^^^^^^
-	OpenSync	>= 0.19		http://www.opensync.org
+	OpenSync	>= 0.30		http://www.opensync.org
 	gnokii		>= 0.6.14	http://www.gnokii.org
 
 	If you use packages of your distribution don't forget
@@ -12,11 +12,8 @@ REQUIREMENTS
 
 INSTALL 
 ^^^^^^^
-	
-	autoreconf -sfi			# only CVS
-	./configure 			# your options
-	make
-	su -c 'make install' 		# as root
+	scons prefix=/usr/local install	
+
 
 CONFIGURATION
 ^^^^^^^^^^^^^

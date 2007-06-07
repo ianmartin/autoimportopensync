@@ -34,26 +34,10 @@ Let me know if this works for your cellphone.
 BUGS/KNOWN PROBLEMS:
 ^^^^^^^^^^^^^^^^^^^^
 
-* nokia cellphones can't store alarm after event. Entry without reminder will be stored on
-  the phone. (If your cellphone support alarm after event contact me! :)
-
-* the gnokii-sync plugin doesn't support all object types (notes, todo) so it is
-  recommended to filter out this object types. This can be done with multisync-cli 
-  with --filter-objtype:
-  	msynctool --sync gnokii-kdepim --filter-objtype note --filter-objtype todo
-
-  !!! Otherwise gnokii-sync hangs (deadlock!) while syncing !!!
-  !!! It is really really really recommended to make use filter todo and note out !!!
-
 TODO:
 ^^^^^
-	# print function (written, but never tested)
-		
 * contact format
   	# find limits for subentries
 	
 * todo format
 	# todo support in libgnokii is broken at the moment for nk6510 devices (2006-08-01)
-
-* notes format:
-	# writing into calendar as memo entry?

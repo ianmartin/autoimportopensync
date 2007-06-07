@@ -1,3 +1,8 @@
+2007-06-07  Daniel Gollub  <dgollub@suse.de>
+	* inital port of gnokii-sync to OpenSync 0.30 API (still not working!)
+	* changed build environment to scons
+	* updated README / INSTALL
+
 2006-08-15  Daniel Gollub  <dgollub@suse.de>
 	* modified hash functions (update leads to different hash results!)
 	* fixed serveral memory leaks 
