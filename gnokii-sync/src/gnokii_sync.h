@@ -21,11 +21,18 @@
 #include <gnokii.h> 
 #include <string.h>
 #include <glib.h>
-#include <opensync/opensync.h>
+
 #include <libxml/xmlmemory.h>
 #include <libxml/parser.h>
 
-#include "config.h"
+#include <opensync/opensync.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-helper.h>
+#include <opensync/opensync-version.h>
+
 
 #include "gnokii_config.h"
 #include "gnokii_comm.h"
@@ -34,10 +41,15 @@
 #include "gnokii_contact.h"
 
 typedef struct gnokii_environment {
-	OSyncMember		*member;
-	OSyncHashTable		*hashtable;
+	GList                   *sinks; // gnokii_sinkenv
 	gn_config		*config;
 	struct gn_statemachine 	*state;
 
 } gnokii_environment;
+
+typedef struct {
+	OSyncObjFormat          *objformat;
+	OSyncObjTypeSink        *sink;
+	OSyncHashTable		*hashtable;
+} gnokii_sinkenv;
 

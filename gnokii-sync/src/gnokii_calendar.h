@@ -20,6 +20,6 @@
 
 #include "gnokii.h"
 
-osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx);
-osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change);
+void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+void gnokii_calendar_commit_change(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change);
 

@@ -345,18 +345,16 @@ osync_bool gnokii_contact_delete(const char *uid, struct gn_statemachine *state)
 
 /* The function get all contact entries with gnokii_contact_get_entry() and checks for
  * changes by comparing old hash with new hash....
- *
- * Return: bool
- * ReturnVal: TRUE on success
- * ReturnVal: FALSE on error
  */
-osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
+
+void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugindata, info, ctx);
 
 	int location = 0, memtype, num_entries;
 	char *hash = NULL;
 	char *uid = NULL;
+	OSyncError *error = NULL;
 	gn_error gnokii_error = GN_ERR_NONE; 	// gnokii error messages
 	gn_phonebook_entry *contact = NULL;
 	gn_memory_status memstat;
@@ -364,12 +362,16 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 
 	memset(data, 0, sizeof(gn_data));
 
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+        OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+	gnokii_environment *env = (gnokii_environment *) plugindata;
+
 
 	// check for slowsync and prepare the "contact" hashtable if needed
-	if (osync_member_get_slow_sync(env->member, "contact") == TRUE) {
+	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
-		osync_hashtable_set_slow_sync(env->hashtable, "contact");
+		osync_hashtable_reset(sinkenv->hashtable);
 	}
 
 	// get all notes 
@@ -381,6 +383,7 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 		data->memory_status = &memstat;
 		memstat.memory_type = memtype; 
 		memstat.used = 0;
+		osync_trace(TRACE_INTERNAL, "env->state: %p", env->state);
 		gnokii_error = gn_sm_functions(GN_OP_GetMemoryStatus, data, env->state);
 		if (gnokii_error != GN_ERR_NONE) {
 			osync_trace(TRACE_EXIT_ERROR, "%s: gnokii memory stat error: %s (memory: %i)", __func__, 
@@ -416,8 +419,7 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 			if (contact == NULL)
 				continue;
 
-			OSyncChange *change = osync_change_new();
-			osync_change_set_member(change, env->member);
+			OSyncChange *change = osync_change_new(&error);
 
 			// prepare UID with gnokii-contact-<memory type>-<memory location>
 			uid = gnokii_contact_uid(contact);
@@ -429,50 +431,101 @@ osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx)
 			osync_change_set_hash(change, hash);	
 			g_free(hash);
 
-			osync_change_set_objformat_string(change, "gnokii-contact"); 
-			osync_change_set_objtype_string(change, "contact");
 
-			osync_change_set_data(change, (void *)contact, sizeof(gn_phonebook_entry), TRUE);
+			// set data
+			OSyncData *data = osync_data_new((char *) contact, sizeof(gn_calnote), sinkenv->objformat, &error);
+			if (!data) {
+				osync_change_unref(change);
+				osync_context_report_osyncwarning(ctx, error);
+				osync_error_unref(&error);
+				g_free(hash);
+				g_free(uid);
+				continue;
+			}
+
+			osync_data_set_objtype(data, osync_objtype_sink_get_name(sink));
+			osync_change_set_data(change, data);
+			osync_data_unref(data);
 		
-			if (osync_hashtable_detect_change(env->hashtable, change)) {
-				osync_trace(TRACE_INTERNAL, "Position: %i Needs to be reported (!= hash)", contact->location);
+			OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
+			if (type != OSYNC_CHANGE_TYPE_UNMODIFIED) {
+				osync_trace(TRACE_INTERNAL, "Position: %i Needs to be reported (!= hash)", location - 1);
 				osync_context_report_change(ctx, change);
-				osync_hashtable_update_hash(env->hashtable, change);
+				osync_hashtable_update_hash(sinkenv->hashtable, type, uid, hash);
 			}	
+
+			g_free(hash);
+			g_free(uid);
+
 		}
 	}
 
 	osync_trace(TRACE_INTERNAL, "number of contact notes: %i", location - 1);
 
-	osync_hashtable_report_deleted(env->hashtable, ctx, "contact");
+	int i;
+        char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
+        for (i = 0; uids[i]; i++) {
+                OSyncChange *change = osync_change_new(&error);
+                if (!change) {
+                        g_free(uids[i]);
+                        osync_context_report_osyncwarning(ctx, error);
+                        osync_error_unref(&error);
+                        continue;
+                }
+
+                osync_change_set_uid(change, uids[i]);
+                osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+
+                OSyncData *odata = osync_data_new(NULL, 0, sinkenv->objformat, &error);
+                if (!odata) {
+                        g_free(uids[i]);
+                        osync_change_unref(change);
+                        osync_context_report_osyncwarning(ctx, error);
+                        osync_error_unref(&error);
+                        continue;
+                }
+
+                osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+                osync_change_set_data(change, odata);
+                osync_data_unref(odata);
+
+                osync_context_report_change(ctx, change);
+
+                osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+
+                osync_change_unref(change);
+                g_free(uids[i]);
+        }
+        g_free(uids);
+
+
 
 	osync_trace(TRACE_EXIT, "%s()", __func__);
-	return TRUE;
 }
 
 /* The function commit changes of contact entries to the cellphone.
- * 
- * Return: bool
- * ReturnVal: TRUE on success
- * ReturnVal: FALSE on error
  */
-osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 
-	osync_trace(TRACE_ENTRY, "%s() (%p, %p)", __func__, ctx, change);
+void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+
+	osync_trace(TRACE_ENTRY, "%s() (%p, %p, %p, %p)", __func__, plugindata, info, change, ctx);
 
 	OSyncError *error = NULL;
 	gn_phonebook_entry *contact = NULL;
 	char *uid = NULL;
 	char *hash = NULL;
 	
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+        OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+	gnokii_environment *env = (gnokii_environment *) plugindata;
 
 	// Get changed contact note
 	contact = (gn_phonebook_entry *) osync_change_get_data(change);
 
 	// Check for type of changes
 	switch (osync_change_get_changetype(change)) {
-		case CHANGE_DELETED:
+		case OSYNC_CHANGE_TYPE_DELETED:
 			// Delete the change
 
 			// memory leak? XXX XXX
@@ -483,7 +536,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 	
 			
 			break;
-		case CHANGE_ADDED:
+		case OSYNC_CHANGE_TYPE_ADDED:
 			// Add the change
 			if (!gnokii_contact_write(contact, env->state)) {
 				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to write contact.");
@@ -501,7 +554,7 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 			g_free(hash);
 
 			break;
-		case CHANGE_MODIFIED:
+		case OSYNC_CHANGE_TYPE_MODIFIED:
 			// set the memory location of the contact entry
 			gnokii_contact_memlocation(osync_change_get_uid(change), contact);
 
@@ -526,16 +579,15 @@ osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change) {
 	osync_context_report_success(ctx);
 
 	// update hashtable
-	osync_hashtable_update_hash(env->hashtable, change);
+	osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), osync_change_get_hash(change));
+
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
-
-	return TRUE;
+	return;
 
 error:
-	osync_context_report_osyncerror(ctx, &error);
+	osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	osync_error_free(&error);
-	return FALSE;
+	osync_error_unref(&error);
 }
 

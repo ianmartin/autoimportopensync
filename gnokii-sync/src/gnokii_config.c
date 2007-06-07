@@ -56,14 +56,14 @@ void parse_connection_type(char *str, gn_config *config) {
  * ReturnVal: true	on success
  * ReturnVal: false	on error
  */
-osync_bool gnokii_config_parse(gn_config *config, char *data, int size, OSyncError **error)
+osync_bool gnokii_config_parse(gn_config *config, const char *data, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p)", __func__, config, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, data, error);
 	char *str = NULL;
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 
-	doc = xmlParseMemory(data, size);
+	doc = xmlParseMemory(data, strlen(data) + 1);
 
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");

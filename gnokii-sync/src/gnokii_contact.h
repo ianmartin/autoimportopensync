@@ -20,6 +20,6 @@
 
 #include "gnokii.h"
 
-osync_bool gnokii_contact_get_changeinfo(OSyncContext *ctx);
-osync_bool gnokii_contact_commit(OSyncContext *ctx, OSyncChange *change);
+void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx);
+void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change);
 

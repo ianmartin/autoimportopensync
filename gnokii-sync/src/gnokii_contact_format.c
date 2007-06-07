@@ -18,21 +18,27 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
-#include "gnokii_sync.h"
-#include "gnokii_contact_utils.h"
-#include "gnokii_contact_format.h"
+#include <glib.h>
+#include <opensync/opensync.h>
 #include <opensync/opensync_xml.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-merger.h>
+#include <opensync/opensync-time.h>
+
+#include "gnokii_contact_utils.h"
 
 /*
  * Converts the gnokii contact object type (gn_phonebook_entry) into XML.
  */
-static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+
+	OSyncXMLField *xmlfield = NULL;
 
 	int i;
 	char *tmp = NULL;
-	xmlNode *current = NULL;
 
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) input;
 
@@ -42,47 +48,44 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 		return FALSE;
 	}
 
-	xmlDoc *doc = xmlNewDoc((xmlChar*) "1.0");
-	xmlNode *root = osxml_node_add_root(doc, "contact");
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", error);
+
 
 	// Name
 	if (contact->name) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*) contact->name);
+
+		xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", contact->name);
 
 		// FIXME: evo2 workaround - evo2 requires a Name / N filed :(
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Name", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"FirstName", (xmlChar*) contact->name);
-
+		xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
+		osync_xmlfield_set_key_value(xmlfield, "FirstName", contact->name);
 	}
 
 	// Group
 	if (contact->caller_group != GN_PHONEBOOK_GROUP_None) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
+		xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
 
 		switch (contact->caller_group) {
 			case GN_PHONEBOOK_GROUP_Family:
-				tmp = g_strdup("Family");
+				osync_xmlfield_set_key_value(xmlfield, "Category", "Family");
 				break;
 			case GN_PHONEBOOK_GROUP_Vips:
-				tmp = g_strdup("VIP");	// evo2 needs VIP not VIPs
+				osync_xmlfield_set_key_value(xmlfield, "Category", "VIP");
 				break;
 			case GN_PHONEBOOK_GROUP_Friends:
-				tmp = g_strdup("Friends");
+				osync_xmlfield_set_key_value(xmlfield, "Category", "Friends");
 				break;
 			case GN_PHONEBOOK_GROUP_Work:
-				tmp = g_strdup("Work");
+				osync_xmlfield_set_key_value(xmlfield, "Category", "Work");
 				break;
 			case GN_PHONEBOOK_GROUP_Others:
-				tmp = g_strdup("Others");
+				osync_xmlfield_set_key_value(xmlfield, "Category", "Others");
 				break;
 			case GN_PHONEBOOK_GROUP_None:
-			default:
 				break;
 		}
 
-		xmlNewTextChild(current, NULL, (xmlChar*)"Category", (xmlChar*) tmp);
-		g_free(tmp);
 	}
 
 	
@@ -97,8 +100,8 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 				contact->date.minute,
 				contact->date.second);
 		
-		current = xmlNewTextChild(root, NULL, (xmlChar*)"Revision", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*) tmp);
+		xmlfield = osync_xmlfield_new(xmlformat, "Revision", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", tmp);
 
 		g_free(tmp);
 	}
@@ -106,33 +109,30 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 	// subentries
 	for (i=0; i <= contact->subentries_count; i++) {
 
+		OSyncXMLField *phonefield = NULL;
+
 		switch (contact->subentries[i].entry_type) {
 			case GN_PHONEBOOK_ENTRY_Name:
 				break;
 			case GN_PHONEBOOK_ENTRY_Email:
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"EMail", NULL);
-				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				phonefield = osync_xmlfield_new(xmlformat, "EMail", error);
 				break;
 			case GN_PHONEBOOK_ENTRY_Postal:
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"AddressLabel", NULL);
-				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				phonefield = osync_xmlfield_new(xmlformat, "AddressLabel", error);
 				break;
 			case GN_PHONEBOOK_ENTRY_Number:
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"Telephone", NULL);
-				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				phonefield = osync_xmlfield_new(xmlformat, "Telephone", error);
 				break;
 			case GN_PHONEBOOK_ENTRY_Group:
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"Categories", NULL);
-				xmlNewTextChild(current, NULL, (xmlChar*) "Category", (xmlChar*)contact->subentries[i].data.number);
+				// TODO: Review what group means!
+				xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
+				osync_xmlfield_set_key_value(xmlfield, "Category", contact->subentries[i].data.number);
 				break;
 			case GN_PHONEBOOK_ENTRY_URL:
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"Url", NULL);
-				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
-
+				phonefield = osync_xmlfield_new(xmlformat, "Url", error);
 				break;
 			case GN_PHONEBOOK_ENTRY_Note:
-				current = xmlNewTextChild(root, NULL, (xmlChar*)"Note", NULL);
-				xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)contact->subentries[i].data.number);
+				phonefield = osync_xmlfield_new(xmlformat, "Note", error);
 				break;
 			// Unused	
 			case GN_PHONEBOOK_ENTRY_Ringtone:
@@ -141,8 +141,7 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_ENTRY_Date:
 			case GN_PHONEBOOK_ENTRY_LogoSwitch:	
 			case GN_PHONEBOOK_ENTRY_RingtoneAdv:	
-			// TODO support new CVS entries
-			/*	
+			// TODO support new >= 0.6.14 entries
 			case GN_PHONEBOOK_ENTRY_Location:
 			case GN_PHONEBOOK_ENTRY_Image:
 			case GN_PHONEBOOK_ENTRY_UserID:
@@ -161,42 +160,56 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 			case GN_PHONEBOOK_ENTRY_Company:
 			case GN_PHONEBOOK_ENTRY_Nickname:
 			case GN_PHONEBOOK_ENTRY_Birthday:
-			*/
 				break;
 		}
 
-		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number)
+		if (phonefield)
+			osync_xmlfield_set_key_value(phonefield, "Content", contact->subentries[i].data.number);
+
+
+		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number || !phonefield)
 			continue;
 
 		switch (contact->subentries[i].number_type) {
 			case GN_PHONEBOOK_NUMBER_Home:
-				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "HOME");
+				osync_xmlfield_set_attr(xmlfield, "Type", "HOME");
 				break;
 			case GN_PHONEBOOK_NUMBER_Mobile:
-				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "CELL");
+				osync_xmlfield_set_attr(xmlfield, "Type", "CELL");
 				break;
 			case GN_PHONEBOOK_NUMBER_Fax:
-				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "FAX");
+				osync_xmlfield_set_attr(xmlfield, "Type", "FAX");
 				break;
 			case GN_PHONEBOOK_NUMBER_Work:
-				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "WORK");
+				osync_xmlfield_set_attr(xmlfield, "Type", "WORK");
 				break;
 			case GN_PHONEBOOK_NUMBER_None:	
 			case GN_PHONEBOOK_NUMBER_Common:	
 			case GN_PHONEBOOK_NUMBER_General:
-				xmlNewTextChild(current, NULL, (xmlChar*) "Type", (xmlChar*) "VOICE");
+				osync_xmlfield_set_attr(xmlfield, "Type", "VOICE");
 				break;
-			default:
-				break;	
 		}	
 	}	
 
 	*free_input = TRUE;
-	*output = (char *)doc;
-	*outpsize = sizeof(doc);
+	*output = (char *)xmlformat;
+	*outpsize = sizeof(xmlformat);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
-	
+        // XXX: remove this later?
+        osync_xmlformat_sort(xmlformat);
+        
+        unsigned int size;
+        char *str;
+        osync_xmlformat_assemble(xmlformat, &str, &size);
+        osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+        g_free(str);
+
+        if (osync_xmlformat_validate(xmlformat) == FALSE)
+                osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: Not valid!");
+        else
+                osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: VAILD");
+
+
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 	return TRUE;
 }
@@ -204,10 +217,10 @@ static osync_bool conv_gnokii_contact_to_xml(void *conv_data, char *input, int i
 /* 
  * Converts from XML to the gnokii contact object type (gn_phonebook_entry).
  */  
-static osync_bool conv_xml_contact_to_gnokii(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xmlformat_to_gnokii_contact(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, 
-			output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, 
+			output, outpsize, free_input, config, error);
 
 	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
@@ -441,21 +454,66 @@ static char *print_gnokii_contact(OSyncChange *change)
 }
 */
 
-
-void gnokii_contact_format_get_info(OSyncEnv *env)
+void get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	osync_env_register_objtype(env, "contact");
-	
-	//Tell OpenSync that we want to register a new format
-	osync_env_register_objformat(env, "contact", "gnokii-contact");
-	//Now we can set the function on your format we have created above
-//	osync_env_format_set_compare_func(env, "gnokii-contact", compare_format1);
-//	osync_env_format_set_duplicate_func(env, "gnokii-contact", duplicate_format1);
-	osync_env_format_set_destroy_func(env, "gnokii-contact", destroy_gnokii_contact);
-//	osync_env_format_set_print_func(env, "gnokii-contact", print_gnokii_contact);
-	
-	osync_env_register_converter(env, CONVERTER_CONV, "gnokii-contact", "xml-contact", conv_gnokii_contact_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "gnokii-contact", conv_xml_contact_to_gnokii);
 
+        /* register gnokii-contact format */
+        OSyncObjFormat *format = osync_objformat_new("gnokii-contact", "contact", error);
+        if (!format) {
+                osync_trace(TRACE_ERROR, "Unable to register gnokii-contct format: %s", osync_error_print(error));
+                osync_error_unref(error);
+                return;
+        }
+        
+//      osync_objformat_set_compare_func(format, compare_contact);
+        osync_objformat_set_destroy_func(format, destroy_gnokii_contact);
+//      osync_objformat_set_duplicate_func(format, duplicate_xmlformat);
+//        osync_objformat_set_print_func(format, print_gnokii_contact);
+//      osync_objformat_set_copy_func(format, copy_xmlformat);
+//      osync_objformat_set_create_func(format, create_contact);
+        
+//        osync_objformat_set_revision_func(format, get_revision);
+        
+
+//        osync_objformat_must_marshal(format);
+//        osync_objformat_set_marshal_func(format, marshal_xmlformat);
+//        osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
+
+        
+        osync_format_env_register_objformat(env, format);
+        osync_objformat_unref(format);
+
+}
+
+void get_conversion_info(OSyncFormatEnv *env)
+{
+	OSyncFormatConverter *conv;
+	OSyncError *error = NULL;
+
+	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-contact");
+	OSyncObjFormat *gnokii_contact = osync_format_env_find_objformat(env, "gnokii-contact");
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, gnokii_contact, conv_xmlformat_to_gnokii_contact, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, gnokii_contact, xmlformat, conv_gnokii_contact_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+}
+
+int get_version(void)
+{
+	return 1;
 }
 

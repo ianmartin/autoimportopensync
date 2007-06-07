@@ -18,19 +18,25 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  ***************************************************************************/
 
-#include "gnokii_sync.h"
-#include "gnokii_calendar_utils.h"
-#include "gnokii_calendar_format.h"
+#include <glib.h>
+#include <opensync/opensync.h>
 #include <opensync/opensync_xml.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-merger.h>
+#include <opensync/opensync-time.h>
+
+#include "gnokii_calendar_utils.h"
 
 /*
  * Converts the gnokii event object type (gn_calnote) into XML.
  */
-static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 
-	xmlNode *current = NULL;
+	OSyncXMLField *xmlfield = NULL;
+
 	time_t timet;
 	time_t start_timet = 0;
 	char *tmp = NULL, *vtime = NULL, *wday = NULL;
@@ -45,27 +51,26 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		return FALSE;
 	}
 
-	xmlDoc *doc = xmlNewDoc((xmlChar*) "1.0");
-	xmlNode *root = osxml_node_add_root(doc, "vcal");
-	root = xmlNewTextChild(root, NULL, (xmlChar*) "Event", NULL);
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
+
 
 	// Type
-	current = xmlNewTextChild(root, NULL, (xmlChar *) "Categories", NULL);
+	xmlfield = osync_xmlfield_new(xmlformat, "Category", error);
 	switch (cal->type) {
 		case GN_CALNOTE_MEETING:
-			 osxml_node_add(current, "Category", "Meeting");
+			osync_xmlfield_set_key_value(xmlfield, "Category", "Meeting");
 			 break;
 		case GN_CALNOTE_CALL:
-			 osxml_node_add(current, "Category", "Calling");
+			osync_xmlfield_set_key_value(xmlfield, "Category", "Calling");
 			 break;
 		case GN_CALNOTE_BIRTHDAY:
-			 osxml_node_add(current, "Category", "Birthday");
+			 osync_xmlfield_set_key_value(xmlfield, "Category", "Birthday");
 			 break;
 		case GN_CALNOTE_REMINDER:
-			 osxml_node_add(current, "Category", "Reminder");
+			 osync_xmlfield_set_key_value(xmlfield, "Category", "Reminder");
 			 break;
 		case GN_CALNOTE_MEMO: 
-			 osxml_node_add(current, "Category", "Memo");
+			 osync_xmlfield_set_key_value(xmlfield, "Category", "Memo");
 			 break;
 	}
 
@@ -103,9 +108,8 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		}
 
 		osync_trace(TRACE_SENSITIVE, "start time: %s (ical - UTC)\n", vtime);
-		current = xmlNewTextChild(root, NULL, (xmlChar *) "DateStarted", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) vtime);
-
+		xmlfield = osync_xmlfield_new(xmlformat, "DateStarted", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", vtime);
 		g_free(vtime);
 
 		// Also used for alarm timestamp calculation
@@ -140,8 +144,8 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 			vtime = osync_time_vtime2utc(tmp, offset);
 		}
 
-		current = xmlNewTextChild(root, NULL, (xmlChar *) "DateEnd", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) vtime);
+		xmlfield = osync_xmlfield_new(xmlformat, "DateEnd", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", vtime);
 
 		g_free(tmp);	
 		g_free(vtime);
@@ -186,104 +190,111 @@ static osync_bool conv_gnokii_event_to_xml(void *conv_data, char *input, int inp
 		// convert seconds into ical duration string - example: -P1DT22H30M 
 		tmp = gnokii_util_secs2alarmevent(secs_before_event);	
 		
-		current = xmlNewTextChild(root, NULL, (xmlChar *) "Alarm", NULL);
+		xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
 
 		if (cal->alarm.tone)
-			xmlNewTextChild(current, NULL, (xmlChar*) "AlarmAction", (xmlChar*) "DISPLAY");
+			osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
 
-		xmlNode *sub = xmlNewTextChild(current, NULL, (xmlChar*) "AlarmTrigger", NULL);
-		xmlNewTextChild(sub, NULL, (xmlChar*) "Content", (xmlChar*) tmp); 
-		xmlNewTextChild(sub, NULL, (xmlChar*) "Value", (xmlChar*) "DURATION");
+
+		osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", tmp);
+		osync_xmlfield_set_attr(xmlfield, "Value", "DURATION");
 
 		g_free(tmp);
 	}
 
 	// Summary
 	if (cal->text) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*) "Summary", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar *) cal->text);
+		xmlfield = osync_xmlfield_new(xmlformat, "Summary", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", cal->text);
 	}
 
 	// Phone Number
 	if (cal->phone_number && cal->type == GN_CALNOTE_CALL) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*) "Description", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar *) cal->phone_number);
+		xmlfield = osync_xmlfield_new(xmlformat, "Description", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", cal->phone_number);
 	}
 
 	// mlocation
 	if (cal->mlocation && cal->type == GN_CALNOTE_MEETING) {
-		current = xmlNewTextChild(root, NULL, (xmlChar*) "Location", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*) "Content", (xmlChar*) cal->mlocation);
+		xmlfield = osync_xmlfield_new(xmlformat, "Location", error);
+		osync_xmlfield_set_key_value(xmlfield, "Content", cal->mlocation);
 	}
 
 	// Recurrence
 	if (cal->recurrence) {
 
+		xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRule", error);
+
 		switch (cal->recurrence) {
 			case GN_CALNOTE_DAILY:
-				tmp = g_strdup("FREQ=DAILY");
+				osync_xmlfield_set_key_value(xmlfield, "Frequency", "DAILY");
 				break;
 			case GN_CALNOTE_WEEKLY:
 			case GN_CALNOTE_2WEEKLY:
-				tmp = g_strdup("FREQ=WEEKLY");
+				osync_xmlfield_set_key_value(xmlfield, "Frequency", "WEEKLY");
 				break;
 			case GN_CALNOTE_MONTHLY:
-				tmp = g_strdup("FREQ=MONTHLY");
+				osync_xmlfield_set_key_value(xmlfield, "Frequency", "MONTHLY");
 				break;
 			case GN_CALNOTE_YEARLY:
-				tmp = g_strdup("FREQ=YEARLY");
+				osync_xmlfield_set_key_value(xmlfield, "Frequency", "YEARLY");
 				break;
-			default:
-				tmp = g_strdup("");				
+			case GN_CALNOTE_NEVER:
 				break;
 		}
 		
-		current = xmlNewTextChild(root, NULL, (xmlChar*) "RecurrenceRule", NULL);
-		xmlNewTextChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
-		g_free(tmp);
-
 		// prepare "by day/day of month/..." string
 		// TODO: BYMONTHDAY
 		switch (cal->recurrence) {
 			case GN_CALNOTE_DAILY:
 				break;
 			case GN_CALNOTE_2WEEKLY:
-				tmp = g_strdup("INTERVAL=4");
-				xmlNewTextChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
+				// tmp = g_strdup("INTERVAL=4"); - was 4 wrong?!?!? - Bug?!
+				osync_xmlfield_set_key_value(xmlfield, "Interval", "2");
 			case GN_CALNOTE_WEEKLY:
+				// XXX: Always BYDAY?
 				wday = gnokii_util_unix2wday(&start_timet);
-				tmp = g_strdup_printf("BYDAY=%s", wday);
-				xmlNewTextChild(current, NULL, (xmlChar*) "Rule", (xmlChar*) tmp);
+				osync_xmlfield_set_key_value(xmlfield, "ByDay", wday);
 				g_free(wday);
 				break;
 			case GN_CALNOTE_MONTHLY:
-				break;
 			case GN_CALNOTE_YEARLY:
+			case GN_CALNOTE_NEVER:
 				break;
-			default:
-				break;	
 		}
 
-//		g_free(tmp);
 	}
 
 	*free_input = TRUE;
-	*output = (char *)doc;
-	*outpsize = sizeof(doc);
+	*output = (char *)xmlformat;
+	*outpsize = sizeof(xmlformat);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
-	
+        // XXX: remove this later?
+        osync_xmlformat_sort(xmlformat);
+        
+        unsigned int size;
+        char *str;
+        osync_xmlformat_assemble(xmlformat, &str, &size);
+        osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+        g_free(str);
+
+        if (osync_xmlformat_validate(xmlformat) == FALSE)
+                osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: Not valid!");
+        else
+                osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
+
+
 	osync_trace(TRACE_EXIT, "%s", __func__);	
 	return TRUE;
 }
 
 /* 
- * Converts from XML to the gnokii event object type (gn_calnote).
+ * Converts from XMLFormat-event to the gnokii event object type (gn_calnote).
  */  
-static osync_bool conv_xml_event_to_gnokii(void *conv_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xmlformat_to_gnokii_event(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, conv_data, input, inpsize, 
-			output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %s, %p, %p)", __func__, input, inpsize, 
+			output, outpsize, config, free_input, error);
 
 	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
@@ -539,17 +550,23 @@ static void destroy_gnokii_event(char *input, size_t inpsize)
 /*
  * Print the gnokii format in a human readable form.
  */ 
+#if 0
 static char *print_gnokii_event(OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, change);
 
-	char *tmp = NULL, *type = NULL;
+	unsigned int size;
 	GString *output = g_string_new(""); 
-	gn_calnote *calnote = (gn_calnote *) osync_change_get_data(change);
+	char *buf = NULL; 
+
+	OSyncData *data = osync_change_get_data(change);
+	osync_data_get_data(data, &buf, &size);
+
+	gn_calnote *calnote = (gn_calnote *) buf;
 
 	// Event Type
-	type = gnokii_util_caltype2string(calnote->type);
-	tmp = g_strdup_printf("Type: %s\n", type);
+	char *type = gnokii_util_caltype2string(calnote->type);
+	char *tmp = g_strdup_printf("Type: %s\n", type);
 	output = g_string_append(output, tmp);
 	g_free(type);
 	g_free(tmp);
@@ -629,23 +646,68 @@ static char *print_gnokii_event(OSyncChange *change)
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, output->str);
 	return g_string_free(output, FALSE);
 }
+#endif
 
-
-
-void gnokii_calendar_format_get_info(OSyncEnv *env)
+void get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	osync_env_register_objtype(env, "event");
-	
-	//Tell OpenSync that we want to register a new format
-	osync_env_register_objformat(env, "event", "gnokii-event");
-	//Now we can set the function on your format we have created above
-//	osync_env_format_set_compare_func(env, "gnokii-event", compare_format1);
-//	osync_env_format_set_duplicate_func(env, "gnokii-event", duplicate_format1);
-	osync_env_format_set_destroy_func(env, "gnokii-event", destroy_gnokii_event);
-	osync_env_format_set_print_func(env, "gnokii-event", print_gnokii_event);
-	
-	osync_env_register_converter(env, CONVERTER_CONV, "gnokii-event", "xml-event", conv_gnokii_event_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-event", "gnokii-event", conv_xml_event_to_gnokii);
 
+        /* register gnokii-event format */
+        OSyncObjFormat *format = osync_objformat_new("gnokii-event", "event", error);
+        if (!format) {
+                osync_trace(TRACE_ERROR, "Unable to register gnokii-event format: %s", osync_error_print(error));
+                osync_error_unref(error);
+                return;
+        }
+        
+//      osync_objformat_set_compare_func(format, compare_event);
+        osync_objformat_set_destroy_func(format, destroy_gnokii_event);
+//      osync_objformat_set_duplicate_func(format, duplicate_xmlformat);
+//        osync_objformat_set_print_func(format, print_gnokii_event);
+//      osync_objformat_set_copy_func(format, copy_xmlformat);
+//      osync_objformat_set_create_func(format, create_event);
+        
+//        osync_objformat_set_revision_func(format, get_revision);
+        
+
+//        osync_objformat_must_marshal(format);
+//        osync_objformat_set_marshal_func(format, marshal_xmlformat);
+//        osync_objformat_set_demarshal_func(format, demarshal_xmlformat);
+
+        
+        osync_format_env_register_objformat(env, format);
+        osync_objformat_unref(format);
+
+}
+
+void get_conversion_info(OSyncFormatEnv *env)
+{
+	OSyncFormatConverter *conv;
+	OSyncError *error = NULL;
+
+	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
+	OSyncObjFormat *gnokii_event = osync_format_env_find_objformat(env, "gnokii-event");
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, gnokii_event, conv_xmlformat_to_gnokii_event, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, gnokii_event, xmlformat, conv_gnokii_event_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		osync_error_unref(&error);
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+}
+
+int get_version(void)
+{
+	return 1;
 }
 

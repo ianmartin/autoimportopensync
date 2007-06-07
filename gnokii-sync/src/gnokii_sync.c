@@ -20,8 +20,6 @@
 
 #include "gnokii_sync.h"
 
-#include <opensync/opensync.h>
-
 static void free_gnokiienv(gnokii_environment *env) { 
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
@@ -37,60 +35,12 @@ static void free_gnokiienv(gnokii_environment *env) {
 	return;
 }
 
-static void *initialize(OSyncMember *member, OSyncError **error)
+static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
-
-	char *configdata = NULL;
-	int configsize;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	OSyncError *error = NULL;
 	
-	// create gnokii_environment which stores config and statemachine for libgnokii
-	gnokii_environment *env = malloc(sizeof(gnokii_environment));
-	g_assert(env != NULL);
-	memset(env, 0, sizeof(gnokii_environment));
-
-	env->config = malloc(sizeof(gn_config));
-	g_assert(env->config != NULL);
-	memset(env->config, 0, sizeof(gn_config));
-
-	env->state = (struct gn_statemachine *) malloc(sizeof(struct gn_statemachine));
-	g_assert(env->state != NULL);
-	memset(env->state, 0, sizeof(struct gn_statemachine));
-
-
-	// now you can get the config file for this plugin
-	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
-		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-		free_gnokiienv(env);
-		return NULL;
-	}
-	
-	if (!gnokii_config_parse(env->config, configdata, configsize, error)) {
-		free_gnokiienv(env);
-		return NULL;
-	}
-	
-	// fill state structure with connection settings required by libgnokii
-	gnokii_config_state(env->state, env->config);
-	
-	//Process the config data here and set the options on your environment
-	if (configdata)
-		g_free(configdata);
-	env->member = member;
-	
-	// create the hashtable
-	env->hashtable = osync_hashtable_new();
-	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
-
-	return (void *)env;
-}
-
-static void connect(OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+	gnokii_environment *env = (gnokii_environment *) data;
 
 	// connect to cellphone
 	if (!gnokii_comm_connect(env->state)) {
@@ -99,56 +49,35 @@ static void connect(OSyncContext *ctx)
 		return;
 	}
 
-	// load hashtable
-	OSyncError *error = NULL;
-	if (!osync_hashtable_load(env->hashtable, env->member, &error)) {
-		osync_context_report_osyncerror(ctx, &error);
-		return;
-	}
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+
+	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+	sinkenv->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
+	g_free(tablepath);
 	
+	if (!sinkenv->hashtable)
+		goto error;
+
 	osync_context_report_success(ctx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
-static void get_changeinfo(OSyncContext *ctx)
+static void sync_done(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
-
-	osync_bool calendar_changes = TRUE; 
-//	osync_bool todo_changes = TRUE;
-	osync_bool contact_changes = TRUE;
-	
-#ifdef HAVE_EVENT	
-	// get changes of events (calendar)
-	if (osync_member_objtype_enabled(env->member, "event"))
-		calendar_changes = gnokii_calendar_get_changeinfo(ctx);
-#endif	
-
-#ifdef HAVE_CONTACT	
-	// get changes of contacts
-	if (osync_member_objtype_enabled(env->member, "contact"))
-		contact_changes = gnokii_contact_get_changeinfo(ctx);
-#endif	
-	
-//	TODO todo
-//	if (calendar_changes && todo_changes && contact_changes)
-	if (calendar_changes && contact_changes)
-		osync_context_report_success(ctx);
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-static void sync_done(OSyncContext *ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+//	gnokii_environment *env = (gnokii_environment *) data;
 	
 	// forget reported changes
-	osync_hashtable_forget(env->hashtable);
+	// osync_hashtable_forget(env->hashtable);
 	
 	// answer the call
 	osync_context_report_success(ctx);
@@ -156,11 +85,14 @@ static void sync_done(OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void disconnect(OSyncContext *ctx)
+static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+
+	gnokii_environment *env = (gnokii_environment *) data;
 	
 	// disconnect the connection with phone
 	if (!gnokii_comm_disconnect(env->state)) {
@@ -170,7 +102,7 @@ static void disconnect(OSyncContext *ctx)
 	}
 	
 	// close the hashtable
-	osync_hashtable_close(env->hashtable);
+	osync_hashtable_free(sinkenv->hashtable);
 
 	// answer the call
 	osync_context_report_success(ctx);
@@ -184,69 +116,150 @@ static void finalize(void *data)
 
 	gnokii_environment *env = (gnokii_environment *)data;
 
-	// close and free hashtable
-	osync_hashtable_close(env->hashtable);
-	osync_hashtable_free(env->hashtable);
-
 	// free everything
 	free_gnokiienv(env);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void get_info(OSyncEnv *env)
+static osync_bool discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
-	// create new plugin
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 	
-	//Tell opensync something about (y)our plugin
-	info->name = "gnokii-sync";
-	info->longname = "Nokia (gnokii) Mobile Device";
-	info->description = "Sync with Nokia cellphones (FBUS)";
-	//the version of the api we are using, (1 at the moment)
-	info->version = 1;
-//	info->is_threadsafe = TRUE;
+	gnokii_environment *env = (gnokii_environment *)data;
+
+	// Set available sinks
+	// TODO: check configured driver and support of sinks:
+
+	GList *s = NULL;
+	for (s = env->sinks; s; s = s->next) {
+		OSyncObjTypeSink *sink = s->data;
+		osync_objtype_sink_set_available(sink, TRUE);
+	}
+
 	
-	//Now set the function we made earlier
-	info->functions.initialize = initialize;
-	info->functions.connect = connect;
-	info->functions.sync_done = sync_done;
-	info->functions.disconnect = disconnect;
-	info->functions.finalize = finalize;
-	info->functions.get_changeinfo = get_changeinfo;
+	OSyncVersion *version = osync_version_new(error);
+	osync_version_set_plugin(version, "gnokii-sync");
+	//osync_version_set_modelversion(version, "version");
+	//osync_version_set_firmwareversion(version, "firmwareversion");
+	//osync_version_set_softwareversion(version, "softwareversion");
+	//osync_version_set_hardwareversion(version, "hardwareversion");
+	osync_plugin_info_set_version(info, version);
+	osync_version_unref(version);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+
+static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
+
+	char *configdata = NULL;
 	
-	//If you like, you can overwrite the default timeouts of your plugin
-	//The default is set to 60 sec. Note that this MUST NOT be used to
-	//wait for expected timeouts (Lets say while waiting for a webserver).
-	//you should wait for the normal timeout and return a error.
-	info->timeouts.connect_timeout = 10;
+	// create gnokii_environment which stores config and statemachine for libgnokii
+	gnokii_environment *env = malloc(sizeof(gnokii_environment));
+	g_assert(env != NULL);
+	memset(env, 0, sizeof(gnokii_environment));
+
+	env->sinks = NULL;
+	env->config = malloc(sizeof(gn_config));
+	g_assert(env->config != NULL);
+	memset(env->config, 0, sizeof(gn_config));
+
+	env->state = (struct gn_statemachine *) malloc(sizeof(struct gn_statemachine));
+	g_assert(env->state != NULL);
+	memset(env->state, 0, sizeof(struct gn_statemachine));
+
+	osync_trace(TRACE_INTERNAL, "Config:\n%s", osync_plugin_info_get_format_env(info));
+
+	if (!gnokii_config_parse(env->config, osync_plugin_info_get_config(info), error)) {
+		free_gnokiienv(env);
+		return NULL;
+	}
 	
-	//Communicating via Gnokii can take lots of time, especially for
-	//big calendars, so give it some time to complete. The rationale is
-	//here that once we're connected we know that the communication is
-	//working and therefore timeouts shouldn't be necessary in many cases.
-	info->timeouts.sync_done_timeout = 10000;
-	info->timeouts.disconnect_timeout = 10000;
-	info->timeouts.get_changeinfo_timeout = 10000;
-	info->timeouts.get_data_timeout = 10000;
-	info->timeouts.commit_timeout = 10000;
-	info->timeouts.read_change_timeout = 10000;
+	// fill state structure with connection settings required by libgnokii
+	gnokii_config_state(env->state, env->config);
 
-#ifdef HAVE_CONTACT	
-	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "gnokii-contact", NULL);
-	osync_plugin_set_commit_objformat(info, "contact", "gnokii-contact", gnokii_contact_commit);
-#endif	
+	// init the contact sink
+	OSyncObjTypeSink *contact_sink = NULL; 
+	contact_sink = osync_objtype_sink_new("contact", error);
+	osync_objtype_sink_add_objformat(contact_sink, "gnokii-contact");
 
-#ifdef HAVE_EVENT	
-	osync_plugin_accept_objtype(info, "event");
-	osync_plugin_accept_objformat(info, "event", "gnokii-event", NULL);
-	osync_plugin_set_commit_objformat(info, "event", "gnokii-event", gnokii_calendar_commit);
-#endif	
+	OSyncObjTypeSinkFunctions contact_functions;
+	memset(&contact_functions, 0, sizeof(contact_functions));
+	contact_functions.connect = connect;
+	contact_functions.disconnect = disconnect;
+	contact_functions.get_changes = gnokii_contact_get_changes;
+	contact_functions.commit = gnokii_contact_commit_change;
+//	contact_functions.read = osync_filesync_read;
+//	contact_functions.write = osync_filesync_write;
+	contact_functions.sync_done = sync_done;
 
-//	osync_plugin_accept_objtype(info, "todo");
-//	osync_plugin_accept_objformat(info, "todo", "gnokii-todo", NULL);
-//	osync_plugin_set_commit_objformat(info, "todo", "gnokii-todo", commit_change);
+	osync_objtype_sink_set_functions(contact_sink, contact_functions, env);
+	osync_plugin_info_add_objtype(info, contact_sink);
 
+	env->sinks = g_list_append(env->sinks, contact_sink);
+
+
+	// init the event sink
+	OSyncObjTypeSink *event_sink = osync_objtype_sink_new("event", error);
+	osync_objtype_sink_add_objformat(event_sink, "gnokii-event");
+
+	OSyncObjTypeSinkFunctions event_functions;
+	memset(&event_functions, 0, sizeof(event_functions));
+	event_functions.connect = connect;
+	event_functions.disconnect = disconnect;
+	event_functions.get_changes = gnokii_calendar_get_changes;
+	event_functions.commit = gnokii_calendar_commit_change;
+//	event_functions.read = osync_filesync_read;
+//	event_functions.write = osync_filesync_write;
+	event_functions.sync_done = sync_done;
+
+	osync_objtype_sink_set_functions(event_sink, event_functions, env);
+	osync_plugin_info_add_objtype(info, event_sink);
+
+	env->sinks = g_list_append(env->sinks, event_sink);
+
+	
+	//Process the config data here and set the options on your environment
+	if (configdata)
+		g_free(configdata);
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
+
+	return (void *)env;
+}
+
+
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
+{
+	OSyncPlugin *plugin = osync_plugin_new(error);
+	if (!plugin)
+		goto error;
+	
+	osync_plugin_set_name(plugin, "gnokii-sync");
+	osync_plugin_set_longname(plugin, "Nokia (gnokii) Mobile Device");
+	osync_plugin_set_description(plugin, "Synchronize with Nokia cellphones (FBUS)");
+	
+	osync_plugin_set_initialize(plugin, initialize);
+	osync_plugin_set_finalize(plugin, finalize);
+	osync_plugin_set_discover(plugin, discover);
+	
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	
+	return TRUE;
+	
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
+}
+
+int get_version(void)
+{
+	return 1;
 }
 

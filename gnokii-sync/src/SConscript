@@ -1,0 +1,22 @@
+Import('*')
+
+if env['enable_rpath'] == 1:
+	env.Append( LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix/opensync/formats'] )
+
+#env.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
+env.Append( CPPPATH = '.' )
+
+
+# basic vformat plugins
+gnokii_sync = env.SharedLibrary('gnokii-sync', ['gnokii_sync.c', 'gnokii_calendar.c', 'gnokii_contact.c', 'gnokii_config.c', 'gnokii_comm.c'], LIBS = ['opensync', 'gnokii'], LIBPATH = '$prefix/$libsuffix')
+gnokii_event = env.SharedLibrary('gnokii-event', ['gnokii_calendar_format.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+gnokii_contact = env.SharedLibrary('gnokii-contact', ['gnokii_contact_format.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+
+
+# install synchronization plugin 
+env.Install(install_plugin, gnokii_sync)
+# install format plugin
+env.Install(install_format, gnokii_event)
+env.Install(install_format, gnokii_contact)
+
+env.Alias('install', install_prefix)

@@ -324,20 +324,23 @@ osync_bool gnokii_calendar_delete_calnote(const char *uid, struct gn_statemachin
 
 /* The function get all event entries with gnokii_calendar_get_calnote() and checks for
  * changes by comparing old hash with new hash....
- *
- * Return: bool
- * ReturnVal: TRUE on success
- * ReturnVal: FALSE on error
  */
-osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
+
+void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugindata, info, ctx);
 
 	int i = 0;
 	char *hash = NULL;
 	char *uid = NULL;
 	gn_error error_note = GN_ERR_NONE; 	// gnokii error messages
 	gn_calnote *calnote = NULL;
+
+	
+	OSyncError *error = NULL;
+
+
+        OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	gn_data	*caldata = (gn_data *) malloc(sizeof(gn_data));
 
@@ -346,12 +349,13 @@ osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
 
 	caldata->calnote_list = &calendar_list; 
 
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+	gnokii_environment *env = (gnokii_environment *) plugindata;
 
 	// check for slowsync and prepare the "event" hashtable if needed
-	if (osync_member_get_slow_sync(env->member, "event") == TRUE) {
+	if (osync_objtype_sink_get_slowsync(sink)) {		
 		osync_trace(TRACE_INTERNAL, "slow sync");
-		osync_hashtable_set_slow_sync(env->hashtable, "event");
+		osync_hashtable_reset(sinkenv->hashtable);
 	}
 
 	// get all notes 
@@ -362,65 +366,108 @@ osync_bool gnokii_calendar_get_changeinfo(OSyncContext *ctx)
 		if (calnote == NULL)
 			break;
 
-		OSyncChange *change = osync_change_new();
-		osync_change_set_member(change, env->member);
+		OSyncChange *change = osync_change_new(&error);
 
 		// prepare UID with gnokii-calendar-<memory location>
 		uid = g_strdup_printf ("gnokii-calendar-%i", calnote->location);
 		osync_change_set_uid(change, uid);
-		g_free(uid);
 
 		// get hash of calnote
 		hash = gnokii_calendar_hash(calnote);
 		osync_change_set_hash(change, hash);	
-		g_free(hash);
 
-		osync_change_set_objformat_string(change, "gnokii-event"); 
-		osync_change_set_objtype_string(change, "event");
+		// set data
+		OSyncData *data = osync_data_new((char *) calnote, sizeof(gn_calnote), sinkenv->objformat, &error);
+		if (!data) {
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			g_free(hash);
+			g_free(uid);
+			continue;
+		}
 
-		osync_change_set_data(change, (void *)calnote, sizeof(gn_calnote), TRUE);
+		osync_data_set_objtype(data, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, data);
+		osync_data_unref(data);
 	
-		if (osync_hashtable_detect_change(env->hashtable, change)) {
+		OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
+		if (type != OSYNC_CHANGE_TYPE_UNMODIFIED) {
 			osync_trace(TRACE_INTERNAL, "Position: %i Needs to be reported (!= hash)", calnote->location);
 			osync_context_report_change(ctx, change);
-			osync_hashtable_update_hash(env->hashtable, change);
+			osync_hashtable_update_hash(sinkenv->hashtable, type, uid, hash);
 		}	
 
+		g_free(hash);
+		g_free(uid);
 	}
 
 	osync_trace(TRACE_INTERNAL, "number of calendar notes: %i", i - 1);
 
-	osync_hashtable_report_deleted(env->hashtable, ctx, "event");
+        char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
+        for (i = 0; uids[i]; i++) {
+                OSyncChange *change = osync_change_new(&error);
+                if (!change) {
+                        g_free(uids[i]);
+                        osync_context_report_osyncwarning(ctx, error);
+                        osync_error_unref(&error);
+                        continue;
+                }
+
+                osync_change_set_uid(change, uids[i]);
+                osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+
+                OSyncData *odata = osync_data_new(NULL, 0, sinkenv->objformat, &error);
+                if (!odata) {
+                        g_free(uids[i]);
+                        osync_change_unref(change);
+                        osync_context_report_osyncwarning(ctx, error);
+                        osync_error_unref(&error);
+                        continue;
+                }
+
+                osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+                osync_change_set_data(change, odata);
+                osync_data_unref(odata);
+
+                osync_context_report_change(ctx, change);
+
+                osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+
+                osync_change_unref(change);
+                g_free(uids[i]);
+        }
+        g_free(uids);
+
 
 	g_free(caldata);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
 }
 
-/* The function commit changes of calendar entries to the cellphone.
- * 
- * Return: bool
- * ReturnVal: TRUE on success
- * ReturnVal: FALSE on error
- */
-osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
+/* The function commit changes of calendar entries to the cellphone. */
+void gnokii_calendar_commit_change(void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change) {
 
-	osync_trace(TRACE_ENTRY, "%s() (%p, %p)", __func__, ctx, change);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, plugindata, info, change, ctx);
 
 	OSyncError *error = NULL;
 	gn_calnote *calnote = NULL;
 	char *uid = NULL;
 	char *hash = NULL;
+	char *buf = NULL;
 	
-	gnokii_environment *env = (gnokii_environment *)osync_context_get_plugin_data(ctx);
+        OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+        gnokii_sinkenv *sinkenv = osync_objtype_sink_get_userdata(sink);
+	gnokii_environment *env = (gnokii_environment *) plugindata;
 
 	// Get changed calendar note
-	calnote = (gn_calnote *) osync_change_get_data(change);
+	OSyncData *data = osync_change_get_data(change);
+	osync_data_get_data(data, &buf, NULL);
+	calnote = (gn_calnote *) buf;
 
 	// Check for type of changes
 	switch (osync_change_get_changetype(change)) {
-		case CHANGE_DELETED:
+		case OSYNC_CHANGE_TYPE_DELETED:
 			// Delete the change
 
 			if (!gnokii_calendar_delete_calnote(osync_change_get_uid(change), env->state)) {
@@ -430,7 +477,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			}
 			
 			break;
-		case CHANGE_ADDED:
+		case OSYNC_CHANGE_TYPE_ADDED:
 
 			// Add the change
 			if (!gnokii_calendar_write_calnote(calnote, env->state)) {
@@ -449,7 +496,7 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			g_free(hash);
 
 			break;
-		case CHANGE_MODIFIED:
+		case OSYNC_CHANGE_TYPE_MODIFIED:
 			// Modify the change
 
 			// libgnokii can not modify - delete the old calnote and add a new note
@@ -464,29 +511,36 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 			}
 
 			/////////// WORKAROUND for "dirty" modify ///////////
+			/*
 
 			// fake a delete change to remove the old hash
-			OSyncChange *delete_change = osync_change_new();
-			osync_change_set_member(change, env->member);
+			OSyncChange *delete_change = osync_change_new(&error);
 
 			// the old uid will be set for this "fake" change
 			osync_change_set_uid(delete_change, osync_change_get_uid(change));
-			osync_change_set_changetype(delete_change, CHANGE_DELETED);
-			osync_hashtable_update_hash(env->hashtable, delete_change);
+			osync_change_set_changetype(delete_change, OSYNC_CHANGE_TYPE_DELETED);
+			osync_hashtable_update_hash(sinkenv->hashtable, OSYNC_CHANGE_TYPE_DELETED, osync_change_get_uid(change), delete_change);
+			*/
+
+			osync_hashtable_delete(sinkenv->hashtable, osync_change_get_uid(change));
 
 			// update the old UID with the followed UID for the hashtable
 			// - is needed for new memory location
 			uid = gnokii_calendar_memory_uid(calnote->location);
 			osync_change_set_uid(change, uid);
-			g_free(uid);
+
 
 			// set modified changetype for calendar entry 
-			osync_change_set_changetype(change, CHANGE_MODIFIED);
+			osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
 
 			// set hash for the modified calendar entry
 			hash = gnokii_calendar_hash(calnote);
 			osync_change_set_hash(change, hash);
+
+			osync_hashtable_write(sinkenv->hashtable, uid, hash);
+
 			g_free(hash);
+			g_free(uid);
 
 			/*
 			osync_trace(TRACE_INTERNAL, "New CHANGE: %p UID: %s (%s) changetype: %i", 
@@ -512,18 +566,17 @@ osync_bool gnokii_calendar_commit(OSyncContext *ctx, OSyncChange *change) {
 		       osync_change_get_changetype(change));
 	*/
 		       
+	g_free(calnote);
 	
 	// update hashtable
-	osync_hashtable_update_hash(env->hashtable, change);
+	osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), osync_change_get_hash(change));
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
-
-	return TRUE;
+	return;
 
 error:
-	osync_context_report_osyncerror(ctx, &error);
+	osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	osync_error_free(&error);
-	return FALSE;
+	osync_error_unref(&error);
 }
 
