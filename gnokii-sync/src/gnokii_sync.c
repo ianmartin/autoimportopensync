@@ -23,9 +23,6 @@
 static void free_gnokiienv(gnokii_environment *env) { 
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
-	if (env->config)
-		g_free(env->config);
-
 	if (env->state)
 		g_free(env->state);
 
@@ -164,24 +161,16 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	memset(env, 0, sizeof(gnokii_environment));
 
 	env->sinks = NULL;
-	env->config = malloc(sizeof(gn_config));
-	g_assert(env->config != NULL);
-	memset(env->config, 0, sizeof(gn_config));
 
 	env->state = (struct gn_statemachine *) malloc(sizeof(struct gn_statemachine));
 	g_assert(env->state != NULL);
 	memset(env->state, 0, sizeof(struct gn_statemachine));
 
-	osync_trace(TRACE_INTERNAL, "Config:\n%s", osync_plugin_info_get_format_env(info));
-
-	if (!gnokii_config_parse(env->config, osync_plugin_info_get_config(info), error)) {
+	if (!gnokii_config_parse(env->state, osync_plugin_info_get_config(info), error)) {
 		free_gnokiienv(env);
 		return NULL;
 	}
 	
-	// fill state structure with connection settings required by libgnokii
-	gnokii_config_state(env->state, env->config);
-
 	// init the contact sink
 	OSyncObjTypeSink *contact_sink = NULL; 
 	contact_sink = osync_objtype_sink_new("contact", error);

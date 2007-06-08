@@ -33,7 +33,6 @@
 #include <opensync/opensync-helper.h>
 #include <opensync/opensync-version.h>
 
-
 #include "gnokii_config.h"
 #include "gnokii_comm.h"
 
@@ -42,7 +41,6 @@
 
 typedef struct gnokii_environment {
 	GList                   *sinks; // gnokii_sinkenv
-	gn_config		*config;
 	struct gn_statemachine 	*state;
 
 } gnokii_environment;
