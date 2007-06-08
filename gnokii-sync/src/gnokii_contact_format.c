@@ -182,7 +182,7 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 				osync_xmlfield_set_attr(phonefield, "Type", "Fax");
 				break;
 			case GN_PHONEBOOK_NUMBER_Work:
-				osync_xmlfield_set_attr(phonefield, "Type", "Work");
+				osync_xmlfield_set_attr(phonefield, "Location", "Work");
 				break;
 			case GN_PHONEBOOK_NUMBER_None:	
 			case GN_PHONEBOOK_NUMBER_Common:	
