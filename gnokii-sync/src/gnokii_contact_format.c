@@ -33,7 +33,7 @@
  */
 static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 
 	OSyncXMLField *xmlfield = NULL;
 

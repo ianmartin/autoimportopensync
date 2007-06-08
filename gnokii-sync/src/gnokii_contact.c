@@ -358,9 +358,7 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 	gn_error gnokii_error = GN_ERR_NONE; 	// gnokii error messages
 	gn_phonebook_entry *contact = NULL;
 	gn_memory_status memstat;
-	gn_data *data = (gn_data *) malloc(sizeof(gn_data));
-
-	memset(data, 0, sizeof(gn_data));
+	gn_data *data = osync_try_malloc0(sizeof(gn_data), &error); 
 
         OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
@@ -421,11 +419,16 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 			if (contact == NULL)
 				continue;
 
+			// prepare UID with gnokii-contact-<memory type>-<memory location>
+			uid = gnokii_contact_uid(contact);
+
 			hash = gnokii_contact_hash(contact);
 			OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
 
 			if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
 				g_free(hash);
+				g_free(uid);
+				g_free(contact);
 				continue;
 			}
 
@@ -433,8 +436,6 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 			OSyncChange *change = osync_change_new(&error);
 
-			// prepare UID with gnokii-contact-<memory type>-<memory location>
-			uid = gnokii_contact_uid(contact);
 
 			osync_change_set_uid(change, uid);
 			osync_change_set_hash(change, hash);	
@@ -442,19 +443,20 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 			// set data
 			osync_trace(TRACE_INTERNAL, "objformat: %p", sinkenv->objformat);
-			OSyncData *data = osync_data_new((char *) contact, sizeof(gn_phonebook_entry), sinkenv->objformat, &error);
-			if (!data) {
+			OSyncData *odata = osync_data_new((char *) contact, sizeof(gn_phonebook_entry), sinkenv->objformat, &error);
+			if (!odata) {
 				osync_change_unref(change);
 				osync_context_report_osyncwarning(ctx, error);
 				osync_error_unref(&error);
 				g_free(hash);
 				g_free(uid);
+				g_free(contact);
 				continue;
 			}
 
-			osync_data_set_objtype(data, osync_objtype_sink_get_name(sink));
-			osync_change_set_data(change, data);
-			osync_data_unref(data);
+			osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+			osync_change_set_data(change, odata);
+			osync_data_unref(odata);
 
 			osync_context_report_change(ctx, change);
 
@@ -465,9 +467,10 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 			g_free(hash);
 			g_free(uid);
-
 		}
 	}
+
+	g_free(data);
 
 
 	/* FIXME: this is really really broken :( 

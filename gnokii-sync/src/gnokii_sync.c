@@ -23,6 +23,15 @@
 static void free_gnokiienv(gnokii_environment *env) { 
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
+	while (env->sinks) {
+		gnokii_sinkenv *sinkenv = env->sinks->data;
+
+		osync_objtype_sink_unref(sinkenv->sink);
+		g_free(sinkenv);
+
+		env->sinks = g_list_remove(env->sinks, sinkenv);
+	}
+
 	if (env->state)
 		g_free(env->state);
 
@@ -116,6 +125,7 @@ static void finalize(void *data)
 	// free everything
 	free_gnokiienv(env);
 
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -130,8 +140,8 @@ static osync_bool discover(void *data, OSyncPluginInfo *info, OSyncError **error
 
 	GList *s = NULL;
 	for (s = env->sinks; s; s = s->next) {
-		OSyncObjTypeSink *sink = s->data;
-		osync_objtype_sink_set_available(sink, TRUE);
+		gnokii_sinkenv *sinkenv = s->data;
+		osync_objtype_sink_set_available(sinkenv->sink, TRUE);
 	}
 
 	
@@ -221,7 +231,6 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
         event_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-event");
 
 	env->sinks = g_list_append(env->sinks, event_sinkenv);
-
 	
 	//Process the config data here and set the options on your environment
 	if (configdata)
