@@ -55,7 +55,7 @@ static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsi
 
 
 	// Type
-	xmlfield = osync_xmlfield_new(xmlformat, "Category", error);
+	xmlfield = osync_xmlfield_new(xmlformat, "Categories", error);
 	switch (cal->type) {
 		case GN_CALNOTE_MEETING:
 			osync_xmlfield_set_key_value(xmlfield, "Category", "Meeting");
@@ -288,6 +288,83 @@ static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsi
 	return TRUE;
 }
 
+static void _xmlfield_category(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+	int i;
+	int numnodes = osync_xmlfield_get_key_count(xmlfield);
+	for (i=0; i < numnodes; i++) {
+		const char *category = osync_xmlfield_get_nth_key_value(xmlfield, i);
+
+		if (!strcasecmp(category, "Meeting"))
+			calnote->type = GN_CALNOTE_MEETING;
+		else if (!strcasecmp(category, "Calling"))
+			calnote->type = GN_CALNOTE_CALL;
+		else if (!strcasecmp(category, "Birthday"))
+			calnote->type = GN_CALNOTE_BIRTHDAY;
+		else if (!strcasecmp(category, "Reminder"))
+			calnote->type = GN_CALNOTE_REMINDER;
+		else if (!strcasecmp(category, "Memo"))
+			calnote->type = GN_CALNOTE_MEMO;
+
+		else
+			// When no known type was found it will check later
+			// for a valid type. 
+			calnote->type = 0;
+
+	}
+}
+
+static void _xmlfield_datestarted(gn_calnote *calnote, OSyncXMLField *xmlfield, int *alldayevent)
+{
+
+	const char *dtstart = osync_xmlfield_get_key_value(xmlfield, "Content");
+
+	struct tm *starttm = osync_time_vtime2tm(dtstart);
+	struct tm *tmptm = NULL;
+
+	if (!osync_time_isdate(dtstart) && osync_time_isutc(dtstart)) {
+		tmptm = starttm;
+		int offset = osync_time_timezone_diff(tmptm);
+		starttm = osync_time_tm2localtime(tmptm, offset);
+		g_free(tmptm);
+	}
+
+	calnote->time = gnokii_util_tm2timestamp(starttm);
+
+	g_free(starttm);
+
+	// Only 3 matches (=date) means all day event 
+	if (osync_time_isdate(dtstart))
+		*alldayevent = 1;
+
+	// Nokia cellphones cannot handle seconds in calendar - so set it to ZERO
+	calnote->time.second = 0;
+
+}
+
+void static _xmlfield_dateend(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+
+	const char *dtend = osync_xmlfield_get_key_value(xmlfield, "Content");
+
+
+	struct tm *endtm = osync_time_vtime2tm(dtend);
+	struct tm *tmptm = NULL;
+	if (!osync_time_isdate(dtend) && osync_time_isutc(dtend)) {
+		tmptm = endtm;
+		int offset = osync_time_timezone_diff(tmptm);
+		endtm = osync_time_tm2localtime(tmptm, offset);
+		g_free(tmptm);
+	}
+
+	calnote->end_time = gnokii_util_tm2timestamp(endtm);
+	g_free(endtm);
+
+	// Nokia cellphones cannot handle seconds in calendar so set it to ZERO
+	calnote->end_time.second = 0;
+
+}
+
 /* 
  * Converts from XMLFormat-event to the gnokii event object type (gn_calnote).
  */  
@@ -296,123 +373,39 @@ static osync_bool conv_xmlformat_to_gnokii_event(char *input, unsigned int inpsi
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %s, %p, %p)", __func__, input, inpsize, 
 			output, outpsize, config, free_input, error);
 
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(xmlformat, &str, &size);
+	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+	g_free(str);
 
-	char *tmp;
-	struct tm *starttm = NULL, *endtm = NULL, *tmptm = NULL;
-	int offset = 0;
+//	struct tm *starttm = NULL, *endtm = NULL, *tmptm = NULL;
 	osync_bool alldayevent = 0;
-	xmlNode *cur = NULL;
-	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
 
-	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
+	if (strcmp("event", osync_xmlformat_get_objtype(xmlformat))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xmlformat: %s",  osync_xmlformat_get_objtype(xmlformat));
 		goto error;
 	}
-
-	if (xmlStrcmp(root->name, (xmlChar *) "vcal")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong (event) xml root element");
-		goto error;
-	}
-
-	// Event child
-	root = osxml_get_node(root, "Event");
 
 	// prepare calnote
-	gn_calnote *calnote = NULL;
-	calnote = (gn_calnote *) malloc(sizeof(gn_calnote));
+	gn_calnote *calnote = osync_try_malloc0(sizeof(gn_calnote), error);
 
-	memset(calnote, 0, sizeof(gn_calnote));
+	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
+	for (; xmlfield; xmlfield = osync_xmlfield_get_next(xmlfield)) {
+		osync_trace(TRACE_INTERNAL, "Field: %s", osync_xmlfield_get_name(xmlfield));
 
-	// Type
-	// TODO: handle more then one category - not only the first
-	cur = osxml_get_node(root, "Categories");
-	if (cur) {
+		if (!strcmp("Categories", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_category(calnote, xmlfield);
+		else if (!strcmp("DateStarted", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_datestarted(calnote, xmlfield, &alldayevent);
+		else if (!strcmp("DateEnd", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_dateend(calnote, xmlfield);
 
-		tmp = (char *) xmlNodeGetContent(cur);
 
-		if (!strcasecmp(tmp, "Meeting"))
-			calnote->type = GN_CALNOTE_MEETING;
-		else if (!strcasecmp(tmp, "Calling"))
-			calnote->type = GN_CALNOTE_CALL;
-		else if (!strcasecmp(tmp, "Birthday"))
-			calnote->type = GN_CALNOTE_BIRTHDAY;
-		else if (!strcasecmp(tmp, "Reminder"))
-			calnote->type = GN_CALNOTE_REMINDER;
-		else if (!strcasecmp(tmp, "Memo"))
-			calnote->type = GN_CALNOTE_MEMO;
-
-		else
-			// When no known type was found it will check later
-			// for a valid type. 
-			calnote->type = 0;
-
-		g_free(tmp);
 	}
 
-	// DateStarted 
-	cur = osxml_get_node(root, "DateStarted");
-	if (cur) {
-
-		tmp = osxml_find_node(cur, "Content");
-
-		/*
-		ret = sscanf(tmp, "%04u%02u%02uT%02u%02u%02u",
-				&(calnote->time.year),
-				&(calnote->time.month),
-				&(calnote->time.day),
-				&(calnote->time.hour),
-				&(calnote->time.minute),
-				&(calnote->time.second));
-		*/		
-
-		starttm = osync_time_vtime2tm(tmp);
-
-		if (!osync_time_isdate(tmp) && osync_time_isutc(tmp)) {
-			tmptm = starttm;
-			offset = osync_time_timezone_diff(tmptm);
-			starttm = osync_time_tm2localtime(tmptm, offset);
-			g_free(tmptm);
-		}
-
-		calnote->time = gnokii_util_tm2timestamp(starttm);
-
-		g_free(starttm);
-
-		// Only 3 matches (=date) means all day event 
-		if (osync_time_isdate(tmp))
-			alldayevent = 1;
-
-		g_free(tmp);
-			
-
-		// Nokia cellphones cannot handle seconds in calendar - so set it to ZERO
-		calnote->time.second = 0;
-	}
 		
-
-	// DateEnd
-	cur = osxml_get_node(root, "DateEnd");
-	if (cur) {
-
-		tmp = osxml_find_node(cur, "Content");
-
-		endtm = osync_time_vtime2tm(tmp);
-		if (!osync_time_isdate(tmp) && osync_time_isutc(tmp)) {
-			tmptm = endtm;
-			endtm = osync_time_tm2localtime(tmptm, offset);
-			g_free(tmptm);
-		}
-
-		g_free(tmp);
-
-		calnote->end_time = gnokii_util_tm2timestamp(endtm);
-
-		g_free(endtm);
-
-		// Nokia cellphones cannot handle seconds in calendar so set it to ZERO
-		calnote->end_time.second = 0;
-	}
 
 	/* Alarm - TODO: is not fully supported
 	 * 		Not supported:
@@ -421,6 +414,9 @@ static osync_bool conv_xmlformat_to_gnokii_event(char *input, unsigned int inpsi
 	 *		# alarm before event end
 	 *		# ...
 	 */
+
+	/* TODO porting to new XMLFormat-even layout */
+	/*
 	cur = osxml_get_node(root, "Alarm");
 	if (cur && calnote->time.year) {
 
@@ -513,6 +509,7 @@ static osync_bool conv_xmlformat_to_gnokii_event(char *input, unsigned int inpsi
 		if (calnote->recurrence == GN_CALNOTE_WEEKLY && interval == 2)
 			calnote->recurrence = GN_CALNOTE_2WEEKLY;
 	}
+	*/
 
 	// check for type which fits for given data if no type was set
 	if (!calnote->type)

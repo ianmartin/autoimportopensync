@@ -366,40 +366,50 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
 		if (calnote == NULL)
 			break;
 
-		OSyncChange *change = osync_change_new(&error);
-
 		// prepare UID with gnokii-calendar-<memory location>
 		uid = g_strdup_printf ("gnokii-calendar-%i", calnote->location);
 		osync_hashtable_report(sinkenv->hashtable, uid);
 
-		// get hash of calnote
 		hash = gnokii_calendar_hash(calnote);
+		OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
 
-		osync_change_set_hash(change, hash);	
+		if (type == OSYNC_CHANGE_TYPE_UNMODIFIED) {
+			g_free(hash);
+			g_free(uid);
+			g_free(calnote);
+			continue;
+		}
+
+		osync_hashtable_update_hash(sinkenv->hashtable, type, uid, hash);
+
+		OSyncChange *change = osync_change_new(&error);
+
 		osync_change_set_uid(change, uid);
-
+		osync_change_set_hash(change, hash);	
+		osync_change_set_changetype(change, type);
 
 		// set data
-		OSyncData *data = osync_data_new((char *) calnote, sizeof(gn_calnote), sinkenv->objformat, &error);
-		if (!data) {
+		osync_trace(TRACE_INTERNAL, "objformat: %p", sinkenv->objformat);
+		OSyncData *odata = osync_data_new((char *) calnote, sizeof(gn_calnote), sinkenv->objformat, &error);
+		if (!odata) {
 			osync_change_unref(change);
 			osync_context_report_osyncwarning(ctx, error);
 			osync_error_unref(&error);
 			g_free(hash);
 			g_free(uid);
+			g_free(calnote);
 			continue;
 		}
 
-		osync_data_set_objtype(data, osync_objtype_sink_get_name(sink));
-		osync_change_set_data(change, data);
-		osync_data_unref(data);
-	
-		OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
-		if (type != OSYNC_CHANGE_TYPE_UNMODIFIED) {
-			osync_trace(TRACE_INTERNAL, "Position: %i Needs to be reported (!= hash)", calnote->location);
-			osync_context_report_change(ctx, change);
-			osync_hashtable_update_hash(sinkenv->hashtable, type, uid, hash);
-		}	
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
+
+		osync_context_report_change(ctx, change);
+
+		osync_trace(TRACE_INTERNAL, "Change: %p", change);
+
+		osync_change_unref(change);
 
 		g_free(hash);
 		g_free(uid);
