@@ -427,6 +427,7 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 	OSyncError *error = NULL;
 	const char *ext_uid = osync_change_get_uid(change);
 	char *opie_uid = NULL;
+	unsigned char *hash = NULL;
 	
 	xmlNode *change_node = NULL;
 	xmlDoc *change_doc = NULL;
@@ -446,29 +447,56 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 		/* Convert categories into names that other systems can use */
 		if(env->plugin_env->categories_doc)
 			opie_xml_category_names_to_ids(env->plugin_env->categories_doc, change_node);
+		
+		/* Get hash */
+		hash = hash_xml_node(env->doc, change_node);
 	}
 	
 	switch (osync_change_get_changetype(change)) {
 		case OSYNC_CHANGE_TYPE_DELETED:
-			//Delete the change
-			//Dont forget to answer the call on error
+			if(!opie_uid) {
+				const char *uidentry = uidmap_get_mapped_uid(env->plugin_env->uidmap, ext_uid);
+				if(uidentry)
+					opie_uid = g_strdup(uidentry);
+				else if(!strcmp(env->itemelement, "note"))
+					opie_uid = g_strdup(ext_uid);
+				else
+					opie_uid = opie_xml_strip_uid(ext_uid, env->itemelement);
+			}
+			opie_xml_remove_by_uid(env->doc, env->listelement, env->itemelement, opie_uid);
+			uidmap_removemapping(env->plugin_env->uidmap, ext_uid);
 			break;
+		
 		case OSYNC_CHANGE_TYPE_ADDED:
-			//Add the change
-			//Dont forget to answer the call on error
-			osync_change_set_hash(change, "new hash");
+			if(change_node) {
+				opie_xml_add_node(env->doc, env->listelement, change_node);
+			}
+			else
+			{
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Change data expected, none passed");
+				goto error;
+			}
+			osync_change_set_hash(change, hash);
 			break;
+		
 		case OSYNC_CHANGE_TYPE_MODIFIED:
-			//Modify the change
-			//Dont forget to answer the call on error
-			osync_change_set_hash(change, "new hash");
+			if(change_node) {
+				opie_xml_update_node(env->doc, env->listelement, change_node);
+			}
+			else
+			{
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Change data expected, none passed");
+				goto error;
+			}
+			osync_change_set_hash(change, hash);
 			break;
+		
 		default:
-			;
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unknown change type");
+			goto error;
 	}
 
-	//If you are using hashtables you have to calculate the hash here:
-	osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), "new hash");
+	osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), hash);
 
 	//Answer the call
 	osync_context_report_success(ctx);
