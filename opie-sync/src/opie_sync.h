@@ -48,6 +48,15 @@ typedef enum {
     OPIE_CONN_SCP
 } OPIE_CONN_TYPE;
 
+typedef enum {
+  OPIE_OBJECT_TYPE_UNKNOWN,
+  OPIE_OBJECT_TYPE_CONTACT,
+  OPIE_OBJECT_TYPE_EVENT,
+  OPIE_OBJECT_TYPE_TODO,
+  OPIE_OBJECT_TYPE_NOTE,
+  OPIE_OBJECT_TYPE_CATEGORY
+} OPIE_OBJECT_TYPE;
+
 
 struct OpiePluginEnv {
 	gchar*            username;
@@ -56,7 +65,8 @@ struct OpiePluginEnv {
 	unsigned int      device_port;
 	OPIE_CONN_TYPE    conn_type;
 	OPIE_DEVICE_TYPE  device_type;
-	gchar*            backupdir;
+	gchar*            backupdir;    /* location to create backup dirs */
+	gchar*            backuppath;   /* the full path to the backup dir for this session */
 
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;
@@ -76,11 +86,20 @@ struct OpiePluginEnv {
 
 struct OpieSinkEnv {
 	OpiePluginEnv*    plugin_env;
+	OSyncObjTypeSink* sink;
 	xmlDoc*           doc;
 	OSyncHashTable*   hashtable;
 	OSyncObjFormat*   objformat;
 	const char*       listelement;
 	const char*       itemelement;
+	const char*       remotefile;
+	OPIE_OBJECT_TYPE  objtype;
 };
+
+#define OPIE_FORMAT_XML_CONTACT "opie-xml-contact"
+#define OPIE_FORMAT_XML_TODO    "opie-xml-todo"
+#define OPIE_FORMAT_XML_EVENT   "opie-xml-event"
+#define OPIE_FORMAT_XML_NOTE    "opie-xml-note"
+
 
 #endif

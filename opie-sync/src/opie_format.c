@@ -1466,7 +1466,7 @@ void get_info(OSyncEnv *env)
 osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
 	/* Contact */
-	OSyncObjFormat *format = osync_objformat_new("contact", "opie-xml-contact", error);
+	OSyncObjFormat *format = osync_objformat_new("contact", OPIE_FORMAT_XML_CONTACT, error);
 	if (!format)
 		return FALSE;
 /*	osync_objformat_set_compare_func(format, compare_format1);
@@ -1477,21 +1477,21 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	osync_objformat_unref(format);
 	
 	/* Todo */
-	format = osync_objformat_new("todo", "opie-xml-todo", error);
+	format = osync_objformat_new("todo", OPIE_FORMAT_XML_TODO, error);
 	if (!format)
 		return FALSE;
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 
 	/* Event */
-	format = osync_objformat_new("event", "opie-xml-event", error);
+	format = osync_objformat_new("event", OPIE_FORMAT_XML_EVENT, error);
 	if (!format)
 		return FALSE;
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 
 	/* Note */
-	format = osync_objformat_new("note", "opie-xml-note", error);
+	format = osync_objformat_new("note", OPIE_FORMAT_XML_NOTE, error);
 	if (!format)
 		return FALSE;
 	osync_format_env_register_objformat(env, format);
@@ -1538,13 +1538,13 @@ osync_bool register_converter(OSyncFormatEnv *env, const char *format1_name, con
 
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	if(!register_converter(env, "opie-xml-contact", "xml-contact",      conv_opie_xml_contact_to_xml_contact, conv_xml_contact_to_opie_xml_contact, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_CONTACT, "xml-contact", conv_opie_xml_contact_to_xml_contact, conv_xml_contact_to_opie_xml_contact, error))
 		return FALSE;
-	if(!register_converter(env, "opie-xml-todo",    "xml-todo",         conv_opie_xml_todo_to_xml_todo, conv_xml_todo_to_opie_xml_todo, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_TODO,    "xml-todo",    conv_opie_xml_todo_to_xml_todo, conv_xml_todo_to_opie_xml_todo, error))
 		return FALSE;
-	if(!register_converter(env, "opie-xml-event",   "xml-event",        conv_opie_xml_event_to_xml_event, conv_xml_event_to_opie_xml_event, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_EVENT,   "xml-event",   conv_opie_xml_event_to_xml_event, conv_xml_event_to_opie_xml_event, error))
 		return FALSE;
-	if(!register_converter(env, "opie-xml-note",    "xml-note",         conv_opie_xml_note_to_xml_note, conv_xml_note_to_opie_xml_note, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_NOTE,    "xml-note",    conv_opie_xml_note_to_xml_note, conv_xml_note_to_opie_xml_note, error))
 		return FALSE;
 	
 	return TRUE;

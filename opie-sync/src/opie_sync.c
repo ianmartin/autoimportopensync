@@ -149,7 +149,6 @@ static osync_bool _connectDevice(OpiePluginEnv *env, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	char* errmsg = NULL;
-	opie_object_type object_types = OPIE_OBJECT_TYPE_ANY;
 	
 	if (env->qcopconn)
 	{
@@ -162,8 +161,8 @@ static osync_bool _connectDevice(OpiePluginEnv *env, OSyncError **error)
 	{
 		osync_trace(TRACE_INTERNAL, "qcop_connect");
 		env->qcopconn = qcop_connect(env->url,
-																	env->username,
-																	env->password);
+		                             env->username,
+		                             env->password);
 		if (env->qcopconn->result)
 		{
 			qcop_start_sync(env->qcopconn, &sync_cancelled);
@@ -187,31 +186,6 @@ static osync_bool _connectDevice(OpiePluginEnv *env, OSyncError **error)
 			osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
 			goto error;
 		}
-	}
-
-	/* connect to the device and pull the required data back */
-	if(!opie_connect_and_fetch(env, object_types))
-	{
-		/* failed */
-		if(env->qcopconn)
-		{
-			qcop_stop_sync(env->qcopconn);
-			if(!env->qcopconn->result)
-			{
-				osync_trace(TRACE_INTERNAL, "qcop_stop_sync_failed");
-				errmsg = g_strdup(env->qcopconn->resultmsg);
-				qcop_freeqconn(env->qcopconn);
-				env->qcopconn = NULL;
-				osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
-				goto error;
-			} 
-			qcop_disconnect(env->qcopconn);
-			env->qcopconn = NULL;
-		}
-		errmsg = g_strdup_printf("Failed to load data from device %s", env->url);
-		osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
-		g_free(errmsg);
-		goto error;
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -251,6 +225,37 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 		if (!_connectDevice(env->plugin_env, &error))
 			goto error;
 		env->plugin_env->connected = TRUE;
+	}
+	
+	if(!env->plugin_env->categories_doc) {
+		/* Fetch categories */
+		opie_fetch_file(env->plugin_env, OPIE_OBJECT_TYPE_CATEGORY, OPIE_CATEGORY_FILE, &env->plugin_env->categories_doc, NULL);
+	}
+	
+	/* pull the required data back */
+	if(!opie_fetch_sink(env))
+	{
+		/* failed */
+		char *errmsg;
+		if(env->plugin_env->qcopconn)
+		{
+			qcop_stop_sync(env->plugin_env->qcopconn);
+			if(!env->plugin_env->qcopconn->result)
+			{
+				osync_trace(TRACE_INTERNAL, "qcop_stop_sync_failed");
+				char *errmsg = g_strdup(env->plugin_env->qcopconn->resultmsg);
+				qcop_freeqconn(env->plugin_env->qcopconn);
+				env->plugin_env->qcopconn = NULL;
+				osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
+				goto error;
+			} 
+			qcop_disconnect(env->plugin_env->qcopconn);
+			env->plugin_env->qcopconn = NULL;
+		}
+		errmsg = g_strdup_printf("Failed to load data from device %s", env->plugin_env->url);
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
+		g_free(errmsg);
+		goto error;
 	}
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
@@ -530,9 +535,9 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
 	OSyncError *error = NULL;
 	
-	if ( !opie_connect_and_put(env->plugin_env, OPIE_OBJECT_TYPE_PHONEBOOK) ) {
+	if ( !opie_put_sink(env) ) {
 		osync_trace( TRACE_INTERNAL, "opie_connect_and_put failed" );
-		char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->plugin_env->url );
+		char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->plugin_env->url ); /* FIXME specify which data */
 		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
 		g_free(errmsg);
 		goto error;
@@ -579,6 +584,8 @@ static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, O
 	if (!opie_sync_settings_parse(env, configdata, error))
 		goto error_free_env;
 	
+	env->backuppath = NULL;
+	
 	do {
 		OSyncObjTypeSink *sink = osync_objtype_sink_new("contact", error);
 		if (!sink)
@@ -588,13 +595,16 @@ static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, O
 		if (!env->contact_env)
 			goto error_free_env;
 		env->contact_env->plugin_env = env; /* back-pointer */
+		env->contact_env->sink = sink;
 		env->contact_env->listelement = "Contacts";
 		env->contact_env->itemelement = "Contact";
+		env->contact_env->remotefile = OPIE_ADDRESS_FILE;
+		env->contact_env->objtype = OPIE_OBJECT_TYPE_CONTACT;
 		
 		OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-		env->contact_env->objformat = osync_format_env_find_objformat(formatenv, "opie-xml-contact");
+		env->contact_env->objformat = osync_format_env_find_objformat(formatenv, OPIE_FORMAT_XML_CONTACT);
 
-		osync_objtype_sink_add_objformat(sink, "opie-xml-contact");
+		osync_objtype_sink_add_objformat(sink, OPIE_FORMAT_XML_CONTACT);
 
 		/* Every sink can have different functions ... */
 		OSyncObjTypeSinkFunctions functions;
@@ -637,6 +647,11 @@ static void opie_sync_finalize( void* userdata )
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, userdata);
 	OpiePluginEnv *env = (OpiePluginEnv *)userdata;
 
+	/* Put categories */
+	if(env->categories_doc && env->categories_doc->_private == 0) {
+		opie_put_file(env, OPIE_OBJECT_TYPE_CATEGORY, OPIE_CATEGORY_FILE, env->categories_doc);
+	}
+	
 	_disconnectDevice(env);
 
 	comms_shutdown();

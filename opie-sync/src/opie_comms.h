@@ -2,7 +2,8 @@
 #define _OPIE_COMMS_H_
 
 /* 
-   MultiSync Opie Plugin - Synchronize Opie/Zaurus Devices
+   Derived from the MultiSync Opie Plugin
+   Copyright (C) 2007 Paul Eggleton <bluelightning@bluelightning.org>
    Copyright (C) 2003 Tom Foottit <tom@foottit.com>
 
    This program is free software; you can redistribute it and/or modify
@@ -23,22 +24,13 @@
    SOFTWARE IS DISCLAIMED.
 */
 
-/*
- *  $Id: opie_comms.h,v 1.5 2004/02/20 15:55:14 irix Exp $
- */
-
 
 #include "opie_sync.h"
 
-typedef enum {
-  OPIE_OBJECT_TYPE_UNKNOWN = 0x00,
-  OPIE_OBJECT_TYPE_CALENDAR = 0x01,
-  OPIE_OBJECT_TYPE_PHONEBOOK = 0x02,
-  OPIE_OBJECT_TYPE_TODO = 0x04,
-  OPIE_OBJECT_TYPE_CATEGORIES = 0x08,
-  OPIE_OBJECT_TYPE_NOTES = 0x10,
-  OPIE_OBJECT_TYPE_ANY = 0xff
-} opie_object_type;
+#define OPIE_ADDRESS_FILE  "Applications/addressbook/addressbook.xml"
+#define OPIE_TODO_FILE     "Applications/todolist/todolist.xml"
+#define OPIE_CALENDAR_FILE "Applications/datebook/datebook.xml"
+#define OPIE_CATEGORY_FILE "Settings/Categories.xml"
 
 
 /* initialize and cleanup the comms layer - call only once per plugin */
@@ -47,12 +39,12 @@ void comms_shutdown();
 
 
 /* connect to the device and pull down the data */
-gboolean opie_connect_and_fetch(OpiePluginEnv* env, opie_object_type object_types);
-
+gboolean opie_fetch_sink(OpieSinkEnv *env);
+gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char *remotefile, xmlDoc **doc, OSyncObjTypeSink *sink);
 
 /* connect to the device and push the files back */
-gboolean opie_connect_and_put( OpiePluginEnv* env, opie_object_type object_types);
-
+gboolean opie_put_sink(OpieSinkEnv *env);
+gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char *remotefile, xmlDoc *doc);
 
 
 #endif
