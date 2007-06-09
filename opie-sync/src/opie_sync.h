@@ -75,6 +75,9 @@ struct OpiePluginEnv {
 	xmlDoc*           categories_doc;
 
 	OpieSinkEnv*      contact_env;
+	OpieSinkEnv*      todo_env;
+	OpieSinkEnv*      event_env;
+	OpieSinkEnv*      note_env;
 	
 	GTree*            uidmap;
 	char*             uidmap_file;

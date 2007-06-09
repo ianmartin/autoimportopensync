@@ -553,6 +553,44 @@ static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_context_report_success(ctx);
 }
 
+OpieSinkEnv *opie_sync_create_sink_env(OpiePluginEnv *env, OSyncPluginInfo *info, const char *objtype, const char *objformat, OPIE_OBJECT_TYPE opie_objtype, const char *remotefile, const char *listelement, const char *itemelement, OSyncError **error)
+{
+	OSyncObjTypeSink *sink = osync_objtype_sink_new(objtype, error);
+	if (!sink)
+		return NULL;
+	
+	OpieSinkEnv *sink_env = osync_try_malloc0(sizeof(OpieSinkEnv), error);
+	if (!sink_env)
+		return NULL;
+	sink_env->plugin_env = env; /* back-pointer */
+	sink_env->sink = sink;
+	sink_env->listelement = listelement;
+	sink_env->itemelement = itemelement;
+	sink_env->remotefile = remotefile;
+	sink_env->objtype = opie_objtype;
+	
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	sink_env->objformat = osync_format_env_find_objformat(formatenv, objformat);
+
+	osync_objtype_sink_add_objformat(sink, objformat);
+
+	/* Every sink can have different functions ... */
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = connect;
+	functions.disconnect = disconnect;
+	functions.get_changes = get_changes;
+	functions.commit = commit_change;
+	functions.sync_done = sync_done;
+
+	/* We pass the sink_env object to the sink, so we dont have to look it up
+		* again once the functions are called */
+	osync_objtype_sink_set_functions(sink, functions, sink_env);
+	osync_plugin_info_add_objtype(info, sink);
+	
+	return sink_env;
+}
+
 static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error )
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
@@ -574,41 +612,25 @@ static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, O
 	
 	env->backuppath = NULL;
 	
-	do {
-		OSyncObjTypeSink *sink = osync_objtype_sink_new("contact", error);
-		if (!sink)
-			goto error_free_env;
-		
-		env->contact_env = osync_try_malloc0(sizeof(OpieSinkEnv), error);
-		if (!env->contact_env)
-			goto error_free_env;
-		env->contact_env->plugin_env = env; /* back-pointer */
-		env->contact_env->sink = sink;
-		env->contact_env->listelement = "Contacts";
-		env->contact_env->itemelement = "Contact";
-		env->contact_env->remotefile = OPIE_ADDRESS_FILE;
-		env->contact_env->objtype = OPIE_OBJECT_TYPE_CONTACT;
-		
-		OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-		env->contact_env->objformat = osync_format_env_find_objformat(formatenv, OPIE_FORMAT_XML_CONTACT);
-
-		osync_objtype_sink_add_objformat(sink, OPIE_FORMAT_XML_CONTACT);
-
-		/* Every sink can have different functions ... */
-		OSyncObjTypeSinkFunctions functions;
-		memset(&functions, 0, sizeof(functions));
-		functions.connect = connect;
-		functions.disconnect = disconnect;
-		functions.get_changes = get_changes;
-		functions.commit = commit_change;
-		functions.sync_done = sync_done;
-
-		/* We pass the contact_env object to the sink, so we dont have to look it up
-		 * again once the functions are called */
-		osync_objtype_sink_set_functions(sink, functions, env->contact_env);
-		osync_plugin_info_add_objtype(info, sink);
-
-	} while(0);
+	/* Contacts sink */
+	env->contact_env = opie_sync_create_sink_env(env, info, "contact", OPIE_FORMAT_XML_CONTACT, OPIE_OBJECT_TYPE_CONTACT, OPIE_ADDRESS_FILE, "Contacts", "Contact", error);
+	if(!env->contact_env)
+		goto error_free_env;
+	
+	/* Todos sink */
+	env->todo_env = opie_sync_create_sink_env(env, info, "todo", OPIE_FORMAT_XML_TODO, OPIE_OBJECT_TYPE_TODO, OPIE_TODO_FILE, "Tasks", "Task", error);
+	if(!env->todo_env)
+		goto error_free_env;
+	
+	/* Events sink */
+	env->event_env = opie_sync_create_sink_env(env, info, "event", OPIE_FORMAT_XML_EVENT, OPIE_OBJECT_TYPE_EVENT, OPIE_CALENDAR_FILE, "events", "event", error);
+	if(!env->event_env)
+		goto error_free_env;
+	
+	/* Notes sink */
+	env->note_env = opie_sync_create_sink_env(env, info, "note", OPIE_FORMAT_XML_NOTE, OPIE_OBJECT_TYPE_NOTE, NULL, "notes", "note", error);
+	if(!env->note_env)
+		goto error_free_env;
 	
 	env->qcopconn = NULL;
 	env->connected = FALSE;
