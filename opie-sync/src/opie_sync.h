@@ -72,11 +72,7 @@ struct OpiePluginEnv {
 	qcop_conn*        qcopconn;
 	gboolean          connected;
 
-	xmlDoc*           calendar_doc;
-	xmlDoc*           contacts_doc;
-	xmlDoc*           todos_doc;
 	xmlDoc*           categories_doc;
-	xmlDoc*           notes_doc;
 
 	OpieSinkEnv*      contact_env;
 	

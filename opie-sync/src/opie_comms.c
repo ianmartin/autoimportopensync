@@ -65,7 +65,7 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data);
 gboolean scp_fetch_file(OpiePluginEnv* env, RemoteData *data);
 gboolean ftp_put_file(OpiePluginEnv* env, RemoteData *data);
 gboolean scp_put_file(OpiePluginEnv* env, RemoteData *data);
-gboolean ftp_fetch_notes(OpiePluginEnv* env);
+gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc);
 
 int m_totalwritten;
 
@@ -252,7 +252,9 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 		tmpfilemode = TT_STANDARD;
 	}
 	
-	RemoteData *data = create_temp_file(remotefile, tmpfilemode);
+	RemoteData *data = NULL;
+	if(objtype != OPIE_OBJECT_TYPE_NOTE)
+		data = create_temp_file(remotefile, tmpfilemode);
 	
 	/* check which connection method was requested */
 	osync_trace( TRACE_INTERNAL, "conn_type = %d", env->conn_type );
@@ -266,13 +268,27 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 		case OPIE_CONN_FTP:
 			/* attempt an FTP connection */
 			OPIE_DEBUG("Attempting FTP Connection.\n");
-			rc = ftp_fetch_file(env, data);
+			if(objtype == OPIE_OBJECT_TYPE_NOTE) {
+				*doc = opie_xml_create_notes_doc();
+				if(*doc)
+					rc = ftp_fetch_notes(env, *doc);
+				else
+					rc = FALSE;
+			}
+			else
+				rc = ftp_fetch_file(env, data);
 			break;
 			
 		case OPIE_CONN_SCP:
 			/* attempt an scp connection */
 			OPIE_DEBUG("Attempting scp Connection.\n");
-			rc = scp_fetch_file(env, data);
+			if(objtype == OPIE_OBJECT_TYPE_NOTE) {
+				/* FIXME support SCP for notes */
+				OPIE_DEBUG("SCP not supported for notes.\n");
+				rc = FALSE;
+			}
+			else
+				rc = scp_fetch_file(env, data);
 			break;
 			
 		default:
@@ -281,7 +297,7 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 			break;
 	}
 
-	if(rc)
+	if(rc && (objtype != OPIE_OBJECT_TYPE_NOTE))
 	{
 		if(env->backupdir) 
 		{
@@ -319,7 +335,8 @@ gboolean opie_fetch_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const cha
 		}
 	}
 	
-	cleanup_temp_file(data, tmpfilemode);
+	if(data)
+		cleanup_temp_file(data, tmpfilemode);
 	
 	return rc;
 }
@@ -429,7 +446,7 @@ gboolean ftp_fetch_file(OpiePluginEnv* env, RemoteData *data)
   return rc; 
 }
 
-gboolean ftp_fetch_notes(OpiePluginEnv* env)
+gboolean ftp_fetch_notes(OpiePluginEnv* env, xmlDoc *doc)
 {
 	gboolean rc = TRUE;
 	char* ftpurl = NULL;
@@ -494,7 +511,7 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env)
 							int len = strlen(ptr);
 							if(len > 4)
 								ptr[len-4] = 0;
-							opie_xml_add_note_node(env->notes_doc, ptr, direntries[i], bufstr->str);
+							opie_xml_add_note_node(doc, ptr, direntries[i], bufstr->str);
 							g_string_free(bufstr, TRUE);
 						}
 					}
@@ -533,7 +550,7 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env)
   return rc; 
 }
 
-gboolean ftp_put_notes(OpiePluginEnv* env)
+gboolean ftp_put_notes(OpiePluginEnv* env, xmlDoc *doc)
 {
 	gboolean rc = TRUE;
 	CURL *curl;
@@ -557,7 +574,7 @@ gboolean ftp_put_notes(OpiePluginEnv* env)
 			separator_path = g_strdup( "/" );
 		}
 		
-		xmlNode *node = opie_xml_get_first(env->notes_doc, "notes", "note");
+		xmlNode *node = opie_xml_get_first(doc, "notes", "note");
 		while(node) {
 			char *changedflag = xmlGetProp(node, "changed");
 			if(changedflag) {
@@ -660,24 +677,27 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 	gboolean rc = TRUE;
 	int tmpfilemode;
 
-	if(env->conn_type == OPIE_CONN_NONE) {
-		tmpfilemode = TT_DEBUG_CREATE;
-	}
-	else if (env->conn_type == OPIE_CONN_SCP) {
-		tmpfilemode = TT_VISIBLE;
-	}
-	else {
-		tmpfilemode = TT_STANDARD;
-	}
-	
 	if(doc && doc->_private == 0) {
-		RemoteData *data = create_temp_file(remotefile, tmpfilemode);
-		if(opie_xml_save_to_fd(doc, data->local_fd) == -1) {
-			osync_trace(TRACE_EXIT_ERROR, "failed to write data to temporary file"); /* FIXME actually say what data we failed to write */
-			goto error;
+		if(env->conn_type == OPIE_CONN_NONE) {
+			tmpfilemode = TT_DEBUG_CREATE;
 		}
-		fsync(data->local_fd);
-		lseek(data->local_fd, 0, SEEK_SET);
+		else if (env->conn_type == OPIE_CONN_SCP) {
+			tmpfilemode = TT_VISIBLE;
+		}
+		else {
+			tmpfilemode = TT_STANDARD;
+		}
+	
+		RemoteData *data = NULL;
+		if(objtype != OPIE_OBJECT_TYPE_NOTE) {
+			data = create_temp_file(remotefile, tmpfilemode);
+			if(opie_xml_save_to_fd(doc, data->local_fd) == -1) {
+				osync_trace(TRACE_EXIT_ERROR, "failed to write data to temporary file"); /* FIXME actually say what data we failed to write */
+				goto error;
+			}
+			fsync(data->local_fd);
+			lseek(data->local_fd, 0, SEEK_SET);
+		}
 
 		/* check which connection method was requested */
 		switch (env->conn_type)
@@ -690,7 +710,12 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 			case OPIE_CONN_FTP:
 				/* attempt an FTP connection */
 				OPIE_DEBUG("Attempting FTP Put File.\n");
-				rc = ftp_put_file(env, data);
+				if(objtype == OPIE_OBJECT_TYPE_NOTE) {
+					rc = ftp_put_notes(env, doc);
+				}
+				else {
+					rc = ftp_put_file(env, data);
+				}
 				break;
 				
 			case OPIE_CONN_SCP:
@@ -705,7 +730,7 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 				break;
 		}
 		
-		if((!rc) && (env->conn_type != OPIE_CONN_NONE) && env->backupdir) {
+		if((!rc) && (env->conn_type != OPIE_CONN_NONE) && env->backupdir && (objtype != OPIE_OBJECT_TYPE_NOTE)) {
 			/* If something went wrong and the user has a backup directory set,
 				we write the files to their backups dir to avoid possible data loss */ 
 			if(env->backuppath == NULL)
@@ -723,7 +748,8 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 			}
 		}
 		
-		cleanup_temp_file(data, tmpfilemode);
+		if(data)
+			cleanup_temp_file(data, tmpfilemode);
 	}
 	else {
 		OPIE_DEBUG("OPIE: No address/todo/calendar changes to write\n");
