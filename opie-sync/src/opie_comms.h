@@ -47,11 +47,11 @@ void comms_shutdown();
 
 
 /* connect to the device and pull down the data */
-gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types);
+gboolean opie_connect_and_fetch(OpiePluginEnv* env, opie_object_type object_types);
 
 
 /* connect to the device and push the files back */
-gboolean opie_connect_and_put( OpieSyncEnv* env, opie_object_type object_types);
+gboolean opie_connect_and_put( OpiePluginEnv* env, opie_object_type object_types);
 
 
 

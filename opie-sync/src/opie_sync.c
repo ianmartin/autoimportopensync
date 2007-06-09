@@ -21,19 +21,26 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <opensync/opensync.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-context.h>
+#include <opensync/opensync-helper.h>
+#include <opensync/opensync-version.h>
 
 #include "opie_sync.h"
 #include "opie_comms.h"
 #include "opie_xml.h"
 
-void uidmap_read(OpieSyncEnv *env);
-void uidmap_write(OpieSyncEnv *env);
-void uidmap_free(OpieSyncEnv *env);
-void uidmap_addmapping(OpieSyncEnv *env, const char *opie_uid, const char *ext_uid);
-char *uidmap_set_node_uid(OpieSyncEnv *env, xmlNode *node, xmlDoc *doc, 
+GTree *uidmap_read(const char *uidmap_file);
+void uidmap_write(GTree *uidmap, const char *uidmap_file);
+void uidmap_free(GTree **uidmap);
+void uidmap_addmapping(GTree *uidmap, const char *opie_uid, const char *ext_uid);
+char *uidmap_set_node_uid(GTree *uidmap, xmlNode *node, xmlDoc *doc, 
 												 const char *listelement, const char *itemelement, const char *ext_uid);
-const char *uidmap_get_mapped_uid(OpieSyncEnv *env, const char *uid);
-void uidmap_removemapping(OpieSyncEnv *env, const char *uid1);
+const char *uidmap_get_mapped_uid(GTree *uidmap, const char *uid);
+void uidmap_removemapping(GTree *uidmap, const char *uid1);
 		
 /* sync_cancelled()
  * 
@@ -45,9 +52,7 @@ void sync_cancelled(void)
 	/*user_cancelled_sync = TRUE;*/
 }
 
-
-
-static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config, unsigned int size, OSyncError **error)
+static osync_bool opie_sync_settings_parse(OpiePluginEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
 	xmlDoc *doc = NULL;
@@ -63,7 +68,7 @@ static osync_bool opie_sync_settings_parse(OpieSyncEnv *env, const char *config,
 	env->use_qcop = TRUE;
 	env->backupdir = NULL;
 
-	doc = xmlParseMemory(config, size);
+	doc = xmlParseMemory(config, strlen(config));
 
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to parse settings");
@@ -140,7 +145,7 @@ error:
 	return FALSE;
 }
 
-static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
+static osync_bool _connectDevice(OpiePluginEnv *env, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
 	char* errmsg = NULL;
@@ -152,10 +157,6 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 		return TRUE;
 	}
 
-	if (!osync_hashtable_load(env->hashtable, env->member, error)) {
-		goto error;
-	}
-	
 	/* Connect to QCopBridgeServer to lock GUI and get root path */
 	if ( env->use_qcop ) 
 	{
@@ -209,6 +210,7 @@ static osync_bool _connectDevice(OpieSyncEnv *env, OSyncError **error)
 		}
 		errmsg = g_strdup_printf("Failed to load data from device %s", env->url);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+		g_free(errmsg);
 		goto error;
 	}
 
@@ -220,45 +222,365 @@ error:
 	return FALSE;
 }
 
-
-
-static osync_bool opie_sync_is_available( OSyncError** error)
+static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	return TRUE;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
+	//Each time you get passed a context (which is used to track
+	//calls to your plugin) you can get the data your returned in
+	//initialize via this call:
+	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+
+	OSyncError *error = NULL;
+
+	if(!env->plugin_env->connected) {
+		/* We only want to connect once per session */
+		if (!_connectDevice(env->plugin_env, &error))
+			goto error;
+		env->plugin_env->connected = TRUE;
+	}
+
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+
+	//If you need a hashtable you make it here
+	const char *configdir = osync_plugin_info_get_configdir(info);
+	char *tablepath = g_strdup_printf("%s/hashtable.db", configdir);
+	env->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
+	g_free(tablepath);
+
+	if (!env->hashtable)
+		goto error;
+
+	//you can also use the anchor system to detect a device reset
+	//or some parameter change here. Check the docs to see how it works
+	char *lanchor = NULL;
+	//Now you get the last stored anchor from the device
+	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+
+	if (!osync_anchor_compare(anchorpath, "lanchor", lanchor))
+		osync_objtype_sink_set_slowsync(sink, TRUE);
+
+	g_free(anchorpath);
+
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
 }
 
-static void* opie_sync_initialize( OSyncMember* member, OSyncError** error)
+static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, member, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
 
-	OpieSyncEnv *env = osync_try_malloc0(sizeof(OpieSyncEnv), error);
+	OSyncError *error = NULL;
+
+	if (osync_objtype_sink_get_slowsync(sink)) {
+		osync_trace(TRACE_INTERNAL, "Slow sync requested");
+		osync_hashtable_reset(env->hashtable);
+	}
+
+	xmlNode *item_node = opie_xml_get_first(env->doc, env->listelement, env->itemelement);
+	while(item_node)
+	{
+		/* Convert category IDs to names that other systems can use */
+		char *categories_bkup = opie_xml_get_categories(item_node);
+		if(env->plugin_env->categories_doc && categories_bkup)
+			opie_xml_category_ids_to_names(env->plugin_env->categories_doc, item_node);
+		
+		char *opie_uid = opie_xml_get_uid(item_node);
+		char *uid = NULL;
+		if(opie_uid) {
+			const char *uidentry = uidmap_get_mapped_uid(env->plugin_env->uidmap, opie_uid);
+			if(uidentry)
+				uid = g_strdup(uidentry);
+			else if(!strcasecmp(item_node->name, "note"))
+				uid = g_strdup(opie_uid);
+			else {
+				uid = opie_xml_get_tagged_uid(item_node);
+				if(opie_uid) {
+					uidmap_addmapping(env->plugin_env->uidmap, opie_uid, uid);
+					uidmap_addmapping(env->plugin_env->uidmap, uid, opie_uid);
+				}
+			}
+			g_free(opie_uid);
+		}
+		
+		char *data = xml_node_to_text(env->doc, item_node);
+		printf("OPIE: uid %s\n", uid);
+		printf("OPIE: change xml = %s\n", data);
+		
+		unsigned char *hash = hash_xml_node(env->doc, item_node);
+
+		/* Restore old categories value as we don't want to save this back to our XML file */
+		if(categories_bkup) {
+			opie_xml_set_categories(item_node, categories_bkup);
+			g_free(categories_bkup);
+		}
+		
+		// Report every entry .. every unreported entry got deleted.
+		osync_hashtable_report(env->hashtable, uid);
+
+		OSyncChangeType changetype = osync_hashtable_get_changetype(env->hashtable, uid, hash);
+
+		if (changetype == OSYNC_CHANGE_TYPE_UNMODIFIED) {
+			g_free(hash);
+			g_free(uid);
+			g_free(data);
+			continue;
+		}
+
+		//Set the hash of the object (optional, only required if you use hashtabled)
+		osync_hashtable_update_hash(env->hashtable, changetype, uid, hash);
+
+		//Make the new change to report
+		OSyncChange *change = osync_change_new(&error);
+		if (!change) {
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+
+		//Now set the uid of the object
+		osync_change_set_uid(change, uid);
+		osync_change_set_hash(change, hash);
+		osync_change_set_changetype(change, changetype);
+
+		g_free(hash);
+
+		OSyncData *odata = osync_data_new(data, strlen(data) + 1, env->objformat, &error);
+		if (!odata) {
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+
+		//Now you can set the data for the object
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
+
+		// just report the change via
+		osync_context_report_change(ctx, change);
+
+		osync_change_unref(change);
+
+		g_free(uid);
+		
+		item_node = opie_xml_get_next(item_node);
+	}
+
+	//When you are done looping and if you are using hashtables
+	//check for deleted entries ... via hashtable
+	int i;
+	char **uids = osync_hashtable_get_deleted(env->hashtable);
+	for (i=0; uids[i]; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		if (!change) {
+			g_free(uids[i]);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+
+		osync_change_set_uid(change, uids[i]);
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+
+		OSyncData *odata = osync_data_new(NULL, 0, env->objformat, &error);
+		if (!odata) {
+			g_free(uids[i]);
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			continue;
+		}
+
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_change_set_data(change, odata);
+		osync_data_unref(odata);
+
+		osync_context_report_change(ctx, change);
+
+		osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+
+		osync_change_unref(change);
+		g_free(uids[i]);
+	}
+	g_free(uids);
+
+	//Now we need to answer the call
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
+static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
+	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+
+	OSyncError *error = NULL;
+	const char *ext_uid = osync_change_get_uid(change);
+	char *opie_uid = NULL;
+	
+	xmlNode *change_node = NULL;
+	xmlDoc *change_doc = NULL;
+	OSyncData *change_data = osync_change_get_data(change);
+	if(change_data) {
+		/* Make data into a null-terminated string */
+		unsigned int change_size;
+		char *change_str = NULL;
+		osync_data_get_data(change_data, &change_str, &change_size);
+		/* Parse the string as XML */
+		change_doc = opie_xml_change_parse(change_str, &change_node);
+		if(!change_doc) {
+			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to retrieve XML from change");
+			goto error;
+		}
+		opie_uid = uidmap_set_node_uid(env->plugin_env->uidmap, change_node, env->doc, env->listelement, env->itemelement, ext_uid);
+		/* Convert categories into names that other systems can use */
+		if(env->plugin_env->categories_doc)
+			opie_xml_category_names_to_ids(env->plugin_env->categories_doc, change_node);
+	}
+	
+	switch (osync_change_get_changetype(change)) {
+		case OSYNC_CHANGE_TYPE_DELETED:
+			//Delete the change
+			//Dont forget to answer the call on error
+			break;
+		case OSYNC_CHANGE_TYPE_ADDED:
+			//Add the change
+			//Dont forget to answer the call on error
+			osync_change_set_hash(change, "new hash");
+			break;
+		case OSYNC_CHANGE_TYPE_MODIFIED:
+			//Modify the change
+			//Dont forget to answer the call on error
+			osync_change_set_hash(change, "new hash");
+			break;
+		default:
+			;
+	}
+
+	//If you are using hashtables you have to calculate the hash here:
+	osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), "new hash");
+
+	//Answer the call
+	osync_context_report_success(ctx);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
+	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	OSyncError *error = NULL;
+	
+	if ( !opie_connect_and_put(env->plugin_env, OPIE_OBJECT_TYPE_PHONEBOOK) ) {
+		osync_trace( TRACE_INTERNAL, "opie_connect_and_put failed" );
+		char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->plugin_env->url );
+		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
+		g_free(errmsg);
+		goto error;
+	}
+	
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+
+error:
+	osync_context_report_osyncerror(ctx, error);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_error_unref(&error);
+}
+
+static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	
+	/* Close the hashtable */
+	osync_hashtable_free(env->hashtable);
+	env->hashtable = NULL;
+
+	//Answer the call
+	osync_context_report_success(ctx);
+}
+
+static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error )
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
+
+	OpiePluginEnv *env = osync_try_malloc0(sizeof(OpiePluginEnv), error);
 	if (!env)
 		goto error;
 	
-	char *configdata = NULL;
-	int configsize = 0;
-	if (!osync_member_get_config(member, &configdata, &configsize, error)) {
-		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
+	const char *configdata = osync_plugin_info_get_config(info);
+	if (!configdata) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get config data.");
 		goto error_free_env;
 	}
+
+	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
 	
-	if (!opie_sync_settings_parse(env, configdata, configsize, error))
-		goto error_free_config;
+	if (!opie_sync_settings_parse(env, configdata, error))
+		goto error_free_env;
 	
-	env->member = member;
-	g_free(configdata);
-	
-	env->hashtable = osync_hashtable_new();
+	do {
+		OSyncObjTypeSink *sink = osync_objtype_sink_new("contact", error);
+		if (!sink)
+			goto error_free_env;
+		
+		env->contact_env = osync_try_malloc0(sizeof(OpieSinkEnv), error);
+		if (!env->contact_env)
+			goto error_free_env;
+		env->contact_env->plugin_env = env; /* back-pointer */
+		env->contact_env->listelement = "Contacts";
+		env->contact_env->itemelement = "Contact";
+		
+		OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+		env->contact_env->objformat = osync_format_env_find_objformat(formatenv, "opie-xml-contact");
+
+		osync_objtype_sink_add_objformat(sink, "opie-xml-contact");
+
+		/* Every sink can have different functions ... */
+		OSyncObjTypeSinkFunctions functions;
+		memset(&functions, 0, sizeof(functions));
+		functions.connect = connect;
+		functions.disconnect = disconnect;
+		functions.get_changes = get_changes;
+		functions.commit = commit_change;
+		functions.sync_done = sync_done;
+
+		/* We pass the contact_env object to the sink, so we dont have to look it up
+		 * again once the functions are called */
+		osync_objtype_sink_set_functions(sink, functions, env->contact_env);
+		osync_plugin_info_add_objtype(info, sink);
+
+	} while(0);
 	
 	env->qcopconn = NULL;
+	env->connected = FALSE;
 	
-	uidmap_read(env);
+	const char *configdir = osync_plugin_info_get_configdir(info);
+	char *uidmap_path = g_strdup_printf("%s/opie_uidmap.xml", configdir);
+	env->uidmap = uidmap_read(uidmap_path);
+	g_free(uidmap_path);
 	
 	osync_trace(TRACE_EXIT, "%s, %p", __func__, env);
 	return (void *)env;
 
-error_free_config:
-	g_free(configdata);
 error_free_env:
 	g_free(env);
 error:
@@ -266,179 +588,10 @@ error:
 	return NULL;
 }
 
-static void opie_sync_finalize( void* data )
+static void opie_sync_finalize( void* userdata )
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
-	OpieSyncEnv *env = (OpieSyncEnv *)data;
-
-	if (env->hashtable) {
-		osync_hashtable_free(env->hashtable);
-		env->hashtable = 0;
-	}
-	
-	uidmap_write(env);
-	uidmap_free(env);
-	
-	g_free(env);
-	
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-static void opie_sync_connect( OSyncContext* ctx )
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	OSyncError *error = NULL;
-
-	/* now connect with the device */
-	if (!_connectDevice(env, &error))
-		goto error;
-
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static void opie_sync_sync_done( OSyncContext* ctx )
-{
-	osync_trace(TRACE_ENTRY, "%s", __func__ );
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	OSyncError *error = NULL;
-	opie_object_type object_types = OPIE_OBJECT_TYPE_ANY;
-	
-	if ( !opie_connect_and_put(env, object_types) ) { 
-		osync_trace( TRACE_INTERNAL, "opie_connect_and_put failed" );
-		char *errmsg = g_strdup_printf( "Failed to send data to device %s", env->url );
-		osync_error_set(&error, OSYNC_ERROR_GENERIC, errmsg);
-		goto error;
-	}
-	
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-static osync_bool opie_sync_item_commit(OSyncContext *ctx, OSyncChange *change, 
-																				xmlDoc *doc, const char *listelement, 
-																				const char *itemelement) {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, \"%s\", \"%s\")", __func__, ctx, change, doc, listelement, itemelement);
-	OSyncError *error = NULL;
-	const char *ext_uid = osync_change_get_uid(change);
-	char *opie_uid = NULL;
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	xmlNode *change_node = NULL;
-	xmlDoc *change_doc = NULL;
-	char *change_data = (char *)osync_change_get_data(change);
-	if(change_data) {
-		/* Make data into a null-terminated string */
-		char *change_str = g_strndup(change_data, osync_change_get_datasize(change));
-		/* Parse the string as XML */
-		change_doc = opie_xml_change_parse(change_str, &change_node);
-		if(!change_doc) {
-			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Unable to retrieve XML from change");
-			goto error;
-		}
-		opie_uid = uidmap_set_node_uid(env, change_node, doc, listelement, itemelement, ext_uid);
-		/* Convert categories into names that other systems can use */
-		if(env->categories_doc)
-			opie_xml_category_names_to_ids(env->categories_doc, change_node);
-	}
-	
-	switch (osync_change_get_changetype(change)) {
-		case CHANGE_MODIFIED:
-			if(change_node) {
-				opie_xml_update_node(doc, listelement, change_node);
-			}
-			else
-			{
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Change data expected, none passed");
-				goto error;
-			}
-			break;
-		case CHANGE_ADDED:
-			if(change_node) {
-				opie_xml_add_node(doc, listelement, change_node);
-			}
-			else
-			{
-				osync_error_set(&error, OSYNC_ERROR_GENERIC, "Change data expected, none passed");
-				goto error;
-			}
-			break;
-		case CHANGE_DELETED:
-			if(!opie_uid) {
-				const char *uidentry = uidmap_get_mapped_uid(env, ext_uid);
-				if(uidentry)
-					opie_uid = g_strdup(uidentry);
-				else if(!strcmp(itemelement, "note"))
-					opie_uid = g_strdup(ext_uid);
-				else
-					opie_uid = opie_xml_strip_uid(ext_uid, itemelement);
-			}
-			opie_xml_remove_by_uid(doc, listelement, itemelement, opie_uid);
-			uidmap_removemapping(env, ext_uid);
-			break;
-		default:
-			osync_error_set(&error, OSYNC_ERROR_GENERIC, "Wrong change type");
-			goto error;
-	}
-	
-	/* Flag document as changed */
-	doc->_private = 0;
-	
-	if(change_doc)
-		xmlFreeDoc(change_doc);
-	
-	g_free(opie_uid);
-	
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-	return FALSE;
-}
-
-static osync_bool opie_sync_contact_commit(OSyncContext *ctx, OSyncChange *change)
-{
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	return opie_sync_item_commit(ctx, change, env->contacts_doc, "Contacts", "Contact");
-}
-
-static osync_bool opie_sync_todo_commit(OSyncContext *ctx, OSyncChange *change)
-{
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	return opie_sync_item_commit(ctx, change, env->todos_doc, "Tasks", "Task");
-}
-
-static osync_bool opie_sync_event_commit(OSyncContext *ctx, OSyncChange *change)
-{
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	return opie_sync_item_commit(ctx, change, env->calendar_doc, "events", "event");
-}
-
-static osync_bool opie_sync_note_commit(OSyncContext *ctx, OSyncChange *change)
-{
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	return opie_sync_item_commit(ctx, change, env->notes_doc, "notes", "note");
-}
-
-
-static void opie_sync_disconnect( OSyncContext* ctx)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, userdata);
+	OpiePluginEnv *env = (OpiePluginEnv *)userdata;
 
 	if(env->qcopconn) 
 	{
@@ -451,163 +604,36 @@ static void opie_sync_disconnect( OSyncContext* ctx)
 		env->qcopconn = NULL;
 	}
 
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-}
-
-
-static OSyncChange *opie_sync_item_change_create(OpieSyncEnv *env, xmlDoc *doc, xmlNode *node, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, doc, node, error);
-
-	OSyncChange *change = osync_change_new();
-	if (!change)
-		goto error;
+	uidmap_write(env->uidmap, env->uidmap_file);
+	uidmap_free(&env->uidmap);
+	g_free(env->uidmap_file);
 	
-	const char *uidentry = NULL;
-	char *opie_uid = opie_xml_get_uid(node);
-	if(opie_uid) {
-		uidentry = uidmap_get_mapped_uid(env, opie_uid);
-		if(uidentry)
-			osync_change_set_uid(change, uidentry);
-		else if(!strcasecmp(node->name, "note"))
-			osync_change_set_uid(change, opie_uid);
-		else {
-			char *full_uid = opie_xml_get_tagged_uid(node);
-			if(opie_uid) {
-				uidmap_addmapping(env, opie_uid, full_uid);
-				uidmap_addmapping(env, full_uid, opie_uid);
-			}
-			osync_change_set_uid(change, full_uid);
-			g_free(full_uid);
-		}
-		g_free(opie_uid);
-	}
-	
-	char *nodetext = xml_node_to_text(doc, node);
-	printf("OPIE: uid %s\n", osync_change_get_uid(change)); 
-	printf("OPIE: change xml = %s\n", nodetext); 
-	
-	unsigned char *hash = hash_xml_node(doc, node);
-	osync_change_set_hash(change, hash);
-	g_free(hash);
-	
-	osync_change_set_data(change, nodetext, strlen(nodetext) + 1, TRUE);
-
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, change);
-	return change;
-
-/*error_free_change:
-	osync_change_free(change);*/
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
-}
-
-
-
-static osync_bool opie_sync_item_get_changeinfo(OSyncContext *ctx, OSyncError **error, 
-		const char *objtype, const char *objformat, 
-		xmlDoc *doc, const char *listelement, const char *itemelement)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, \"%s\", \"%s\", %p, \"%s\", \"%s\")", 
-							__func__, ctx, error, objtype, objformat, doc, listelement, itemelement);
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	
-	if (osync_member_get_slow_sync(env->member, objtype) == TRUE) {
-		osync_trace(TRACE_INTERNAL, "slow sync");
-		osync_hashtable_set_slow_sync(env->hashtable, objtype);
-		printf("OPIE: slow sync\n");
-	}
-
-	xmlNode *item_node = opie_xml_get_first(doc, listelement, itemelement);
-	while(item_node)
-	{
-		printf("OPIE: creating change\n");
-		/* Convert category IDs to names that other systems can use */
-		char *categories_bkup = opie_xml_get_categories(item_node);
-		if(env->categories_doc && categories_bkup)
-			opie_xml_category_ids_to_names(env->categories_doc, item_node);
-		/* Create the change */
-		OSyncChange *change = opie_sync_item_change_create(env, doc, item_node, error);
-		/* Restore old categories value as we don't want to save this back to our XML file */
-		if(categories_bkup) {
-			opie_xml_set_categories(item_node, categories_bkup);
-			g_free(categories_bkup);
-		}
-		
-		if (!change)
-			goto error;
-		
-		osync_change_set_objformat_string(change, objformat);
-		
-		/* Use the hash table to check if the object
-		needs to be reported */
-		if (osync_hashtable_detect_change(env->hashtable, change)) {
-			printf("OPIE: reporting change\n");
-			osync_context_report_change(ctx, change);
-			osync_hashtable_update_hash(env->hashtable, change);
-		}
-		
-		item_node = opie_xml_get_next(item_node);
-	}
-	
-	/* Use the hashtable to report deletions */
-	osync_hashtable_report_deleted(env->hashtable, ctx, objtype);
+	g_free(env->contact_env);
+	g_free(env);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
-
-error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return FALSE;
 }
 
 
-static void opie_sync_get_changeinfo( OSyncContext* ctx )
-{
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-	OpieSyncEnv *env = (OpieSyncEnv *)osync_context_get_plugin_data(ctx);
-	OSyncError *error = NULL;
-
-	if (!opie_sync_item_get_changeinfo(ctx, &error, "contact", "opie-xml-contact", env->contacts_doc, "Contacts", "Contact"))
-		goto error;
-	if (!opie_sync_item_get_changeinfo(ctx, &error, "todo",    "opie-xml-todo",    env->todos_doc,    "Tasks",    "Task"))
-		goto error;
-	if (!opie_sync_item_get_changeinfo(ctx, &error, "event",   "opie-xml-event",   env->calendar_doc, "events",   "event"))
-		goto error;
-	if (!opie_sync_item_get_changeinfo(ctx, &error, "note",    "opie-xml-note",    env->notes_doc,    "notes",    "note"))
-		goto error;
-
-	osync_context_report_success(ctx);
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return;
-
-error:
-	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-}
-
-void uidmap_addmapping(OpieSyncEnv *env, const char *uid1, const char *uid2) {
+void uidmap_addmapping(GTree *uidmap, const char *uid1, const char *uid2) {
 	char *key = g_strdup(uid1);
 	char *value = g_strdup(uid2);
-	g_tree_insert(env->uid_map, key, value);
+	g_tree_insert(uidmap, key, value);
 }
 
-void uidmap_removemapping(OpieSyncEnv *env, const char *uid1) {
-	const char *uid2 = uidmap_get_mapped_uid(env, uid1);
+void uidmap_removemapping(GTree *uidmap, const char *uid1) {
+	const char *uid2 = uidmap_get_mapped_uid(uidmap, uid1);
 	if(uid2) {
 		char *uid2_copy = g_strdup(uid2);
-		g_tree_remove(env->uid_map, uid1);
-		g_tree_remove(env->uid_map, uid2_copy);
+		g_tree_remove(uidmap, uid1);
+		g_tree_remove(uidmap, uid2_copy);
 		g_free(uid2_copy);
 	}
 }
 
-char *uidmap_set_node_uid(OpieSyncEnv *env, xmlNode *node, xmlDoc *doc, 
+char *uidmap_set_node_uid(GTree *uidmap, xmlNode *node, xmlDoc *doc, 
 												 const char *listelement, const char *itemelement, const char *ext_uid) {
-	const char *uidentry = uidmap_get_mapped_uid(env, ext_uid);
+	const char *uidentry = uidmap_get_mapped_uid(uidmap, ext_uid);
 	char *opie_uid;
 	if(uidentry) {
 		opie_xml_set_uid(node, uidentry);
@@ -619,15 +645,15 @@ char *uidmap_set_node_uid(OpieSyncEnv *env, xmlNode *node, xmlDoc *doc,
 		}
 		else {
 			opie_uid = opie_xml_set_ext_uid(node, doc, listelement, itemelement, ext_uid);
-			uidmap_addmapping(env, opie_uid, ext_uid);
-			uidmap_addmapping(env, ext_uid, opie_uid);
+			uidmap_addmapping(uidmap, opie_uid, ext_uid);
+			uidmap_addmapping(uidmap, ext_uid, opie_uid);
 		}
 	}
 	return opie_uid;
 }
 
-const char *uidmap_get_mapped_uid(OpieSyncEnv *env, const char *uid) {
-	const char *uidentry = (const char *)g_tree_lookup(env->uid_map, uid);
+const char *uidmap_get_mapped_uid(GTree *uidmap, const char *uid) {
+	const char *uidentry = (const char *)g_tree_lookup(uidmap, uid);
 	return uidentry;
 }
 
@@ -635,12 +661,9 @@ gint uidmap_compare(gconstpointer a, gconstpointer b, gpointer user_data) {
 	return strcmp((const char *)a, (const char *)b);
 }
 
-void uidmap_read(OpieSyncEnv *env) {
-	env->uid_map = g_tree_new_full(uidmap_compare, NULL, g_free, g_free);
-	
-	const char *configdir = osync_member_get_configdir(env->member);
-	char *mapfile = g_build_filename(configdir, "opie_uidmap.xml", NULL);
-	xmlDoc *doc = opie_xml_file_open(mapfile);
+GTree *uidmap_read(const char *uidmap_file) {
+	GTree *uidmap = g_tree_new_full(uidmap_compare, NULL, g_free, g_free);
+	xmlDoc *doc = opie_xml_file_open(uidmap_file);
 	if(doc) {
 		xmlNode *node = opie_xml_get_first(doc, "mappinglist", "mapping");
 		while(node) {
@@ -648,7 +671,7 @@ void uidmap_read(OpieSyncEnv *env) {
 			if(uid1) {
 				char *uid2 = xmlGetProp(node, "uid2");
 				if(uid2) {
-					uidmap_addmapping(env, uid1, uid2);
+					uidmap_addmapping(uidmap, uid1, uid2);
 					xmlFree(uid2);
 				}
 				xmlFree(uid1);
@@ -656,7 +679,7 @@ void uidmap_read(OpieSyncEnv *env) {
 			node = opie_xml_get_next(node);
 		}
 	}
-	g_free(mapfile);
+	return uidmap;
 }
 
 gboolean uidmap_write_entry(gpointer key, gpointer value, gpointer data) {
@@ -667,10 +690,7 @@ gboolean uidmap_write_entry(gpointer key, gpointer value, gpointer data) {
 	return FALSE;
 }
 
-void uidmap_write(OpieSyncEnv *env) {
-	const char *configdir = osync_member_get_configdir(env->member);
-	char *mapfile = g_build_filename(configdir, "opie_uidmap.xml", NULL);
-	
+void uidmap_write(GTree *uidmap, const char *uidmap_file) {
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	if(doc) {
 		xmlNode *root = xmlNewNode(NULL, "uidmap");
@@ -678,49 +698,54 @@ void uidmap_write(OpieSyncEnv *env) {
 		xmlNode *listnode = xmlNewNode(NULL, "mappinglist");
 		xmlAddChild(root, listnode);
 		
-		g_tree_foreach(env->uid_map, uidmap_write_entry, listnode); 
+		g_tree_foreach(uidmap, uidmap_write_entry, listnode); 
 		
-		xmlSaveFormatFile(mapfile, doc, 1);
+		xmlSaveFormatFile(uidmap_file, doc, 1);
 	}
-	g_free(mapfile);
-	
 }
 
-void uidmap_free(OpieSyncEnv *env) {
-	g_tree_destroy(env->uid_map);
-	env->uid_map = NULL;
+void uidmap_free(GTree **uidmap) {
+	g_tree_destroy(*uidmap);
+	uidmap = NULL;
 }
 
-void get_info(OSyncEnv* env )
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
-	OSyncPluginInfo* info = osync_plugin_new_info(env);
-
+	OSyncPlugin *plugin = osync_plugin_new(error);
+	if (!plugin)
+		goto error;
+	
 	/*
 		* Initial Names
 		*/
-	info->name          = "opie-sync";
-	info->longname      = "Opie Synchronization Plugin";
-	info->description   = "Synchronize with Opie/Qtopia based devices";
-	info->version       = 1;
-	info->is_threadsafe = TRUE;
-	info->config_type   = NEEDS_CONFIGURATION;
+	osync_plugin_set_name(plugin, "opie-sync");
+	osync_plugin_set_longname(plugin, "Opie Synchronization Plugin");
+	osync_plugin_set_description(plugin, "Synchronize with Opie/Qtopia based devices");
 
+	/* Now set the function we made earlier */
+	osync_plugin_set_initialize(plugin, opie_sync_initialize);
+	osync_plugin_set_finalize(plugin, opie_sync_finalize);
+/*	osync_plugin_set_discover(plugin, discover);*/
 
-	/*
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+	
+  /*
 		* Function pointers
 		*/
-	info->functions.is_available   = opie_sync_is_available;
+/*	info->functions.is_available   = opie_sync_is_available;
 	info->functions.initialize     = opie_sync_initialize;
 	info->functions.finalize       = opie_sync_finalize;
 	info->functions.connect        = opie_sync_connect;
 	info->functions.disconnect     = opie_sync_disconnect;
 	info->functions.sync_done      = opie_sync_sync_done;
 	info->functions.get_changeinfo = opie_sync_get_changeinfo;
-
+*/
 
 	/*
 		* Object types
 		*/
+/*
 	osync_plugin_accept_objtype(info, "contact");
 	osync_plugin_accept_objformat(info, "contact", "opie-xml-contact", NULL);
 	osync_plugin_set_commit_objformat(info, "contact", "opie-xml-contact", opie_sync_contact_commit);
@@ -733,4 +758,16 @@ void get_info(OSyncEnv* env )
 	osync_plugin_accept_objtype(info, "note");
 	osync_plugin_accept_objformat(info, "note", "opie-xml-note", NULL);
 	osync_plugin_set_commit_objformat(info, "note",   "opie-xml-note",     opie_sync_note_commit);
+*/
+  
+	return TRUE;
+error:
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
+}
+
+int get_version(void)
+{
+	return 2;
 }

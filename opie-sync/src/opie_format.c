@@ -27,6 +27,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_format.h"
 #include "config.h"
 
+#include <opensync/opensync-time.h>
+#include <opensync/opensync-format.h>
 #include <opensync/opensync_xml.h>
 
 enum OpieTodoState {
@@ -40,9 +42,9 @@ enum OpieTodoState {
 /** Convert Opie XML contact to OpenSync XML contact 
  * 
  **/
-static osync_bool conv_opie_xml_contact_to_xml_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	int j;
 //	anon_data* anon;
 	gchar** emailtokens;
@@ -339,7 +341,7 @@ error:
 /** Convert OpenSync XML contact to Opie XML contact 
  * 
  **/
-static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	enum PhoneType {
 		PT_HOME = 1,
@@ -356,8 +358,8 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(void *user_data, char *in
 	xmlNodeSet *nodes;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
-                    __func__, user_data, input, inpsize, output, 
-                    outpsize, free_input, error);
+                    __func__, input, inpsize, output, 
+                    outpsize, free_input, config, error);
 
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
                     osxml_write_to_string((xmlDoc *)input));
@@ -628,23 +630,12 @@ error:
 	return FALSE;
 }
 
-static void destroy_opie_contact(char *input, size_t inpsize)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
-	
-	printf("OPIE: freeing\n");
-	g_free(input);	
-
-	osync_trace(TRACE_EXIT, "%s", __func__);
-}
-
-
 /** Convert Opie XML todo to OpenSync XML todo 
  * 
  **/
-static osync_bool conv_opie_xml_todo_to_xml_todo(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	struct _xmlAttr *iprop;
 	xmlNode *on_curr;
 	int j;
@@ -821,12 +812,12 @@ error:
 /** Convert OpenSync XML todo to Opie XML todo 
  * 
  **/
-static osync_bool conv_xml_todo_to_opie_xml_todo(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_todo_to_opie_xml_todo(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	xmlNode *icur;
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
-							__func__, user_data, input, inpsize, output, 
-							outpsize, free_input, error);
+							__func__, input, inpsize, output, 
+							outpsize, free_input, config, error);
 
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
 							osxml_write_to_string((xmlDoc *)input));
@@ -1018,9 +1009,9 @@ error:
 /** Convert Opie XML event to OpenSync XML event 
  * 
  **/
-static osync_bool conv_opie_xml_event_to_xml_event(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 	struct _xmlAttr *iprop;
 	xmlNode *on_curr;
 	GDate *startdate = NULL;
@@ -1204,15 +1195,15 @@ error:
 /** Convert OpenSync XML event to Opie XML event 
  * 
  **/
-static osync_bool conv_xml_event_to_opie_xml_event(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_event_to_opie_xml_event(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	xmlNode *icur;
 	time_t start_time = 0;
 	time_t end_time = 0;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
-							__func__, user_data, input, inpsize, output, 
-							outpsize, free_input, error);
+							__func__, input, inpsize, output, 
+							outpsize, free_input, config, error);
 
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
 							osxml_write_to_string((xmlDoc *)input));
@@ -1326,9 +1317,9 @@ error:
 /** Convert Opie XML note (which is internal to the plugin, see opie_comms.c) to OpenSync XML note
  * 
  **/
-static osync_bool conv_opie_xml_note_to_xml_note(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_opie_xml_note_to_xml_note(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 		
 	/* Get the root node of the input document */
 	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
@@ -1385,13 +1376,13 @@ error:
 /** Convert OpenSync XML note to Opie XML note (which is internal to the plugin)
  * 
  **/
-static osync_bool conv_xml_note_to_opie_xml_note(void *user_data, char *input, int inpsize, char **output, int *outpsize, osync_bool *free_input, OSyncError **error)
+static osync_bool conv_xml_note_to_opie_xml_note(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
 	xmlNode *icur;
 	
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
-							__func__, user_data, input, inpsize, output, 
-							outpsize, free_input, error);
+							__func__, input, inpsize, output, 
+							outpsize, free_input, config, error);
 
 	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
 							osxml_write_to_string((xmlDoc *)input));
@@ -1449,13 +1440,11 @@ error:
 }
 
 
-
-
+/*
 void get_info(OSyncEnv *env)
 {
 	osync_env_register_objtype(env, "contact");
 	osync_env_register_objformat(env, "contact", "opie-xml-contact");
-	osync_env_format_set_destroy_func(env, "opie-xml-contact", destroy_opie_contact); /* FIXME do we need this for all types? */
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "opie-xml-todo");
 	osync_env_register_objtype(env, "event");
@@ -1472,6 +1461,96 @@ void get_info(OSyncEnv *env)
 	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-note",    "xml-note",         conv_opie_xml_note_to_xml_note);
 	osync_env_register_converter(env, CONVERTER_CONV, "xml-note",         "opie-xml-note",    conv_xml_note_to_opie_xml_note);
 }
+*/
+
+osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	/* Contact */
+	OSyncObjFormat *format = osync_objformat_new("contact", "opie-xml-contact", error);
+	if (!format)
+		return FALSE;
+/*	osync_objformat_set_compare_func(format, compare_format1);
+	osync_objformat_set_destroy_func(format, destroy_format1);
+	osync_objformat_set_duplicate_func(format, duplicate_format1);
+	osync_objformat_set_print_func(format, print_format1);*/
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+	
+	/* Todo */
+	format = osync_objformat_new("todo", "opie-xml-todo", error);
+	if (!format)
+		return FALSE;
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
+	/* Event */
+	format = osync_objformat_new("event", "opie-xml-event", error);
+	if (!format)
+		return FALSE;
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
+	/* Note */
+	format = osync_objformat_new("note", "opie-xml-note", error);
+	if (!format)
+		return FALSE;
+	osync_format_env_register_objformat(env, format);
+	osync_objformat_unref(format);
+
+	return TRUE;
+}
+
+
+osync_bool register_converter(OSyncFormatEnv *env, const char *format1_name, const char *format2_name, OSyncFormatConvertFunc conv_format1_to_format2, OSyncFormatConvertFunc conv_format2_to_format1, OSyncError **error)
+{
+	OSyncObjFormat *format1 = osync_format_env_find_objformat(env, format1_name);
+	if (!format1) {
+		char *errmsg = g_strdup_printf("Unable to find format \"%s\"", format1_name);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+		g_free(errmsg);
+		return FALSE;
+	}
+
+	OSyncObjFormat *format2 = osync_format_env_find_objformat(env, format2_name);
+	if (!format2) {
+		char *errmsg = g_strdup_printf("Unable to find format \"%s\"", format2_name);
+		osync_error_set(error, OSYNC_ERROR_GENERIC, errmsg);
+		g_free(errmsg);
+		return FALSE;
+	}
+
+	OSyncFormatConverter *conv = osync_converter_new(OSYNC_CONVERTER_CONV, format1, format2, conv_format1_to_format2, error);
+	if (!conv)
+		return FALSE;
+
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, format2, format1, conv_format2_to_format1, error);
+	if (!conv)
+		return FALSE;
+
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+	return TRUE;
+}
+
+
+osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
+{
+	if(!register_converter(env, "opie-xml-contact", "xml-contact",      conv_opie_xml_contact_to_xml_contact, conv_xml_contact_to_opie_xml_contact, error))
+		return FALSE;
+	if(!register_converter(env, "opie-xml-todo",    "xml-todo",         conv_opie_xml_todo_to_xml_todo, conv_xml_todo_to_opie_xml_todo, error))
+		return FALSE;
+	if(!register_converter(env, "opie-xml-event",   "xml-event",        conv_opie_xml_event_to_xml_event, conv_xml_event_to_opie_xml_event, error))
+		return FALSE;
+	if(!register_converter(env, "opie-xml-note",    "xml-note",         conv_opie_xml_note_to_xml_note, conv_xml_note_to_opie_xml_note, error))
+		return FALSE;
+	
+	return TRUE;
+}
+
+
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
 	char *value = osxml_find_node(node_from, nodename);

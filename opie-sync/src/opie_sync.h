@@ -34,7 +34,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "opie_qcop.h"
 
-typedef struct OpieSyncEnv OpieSyncEnv;
+typedef struct OpiePluginEnv OpiePluginEnv;
+typedef struct OpieSinkEnv OpieSinkEnv;
 
 typedef enum {
     OPIE_SYNC_QTOPIA_2,
@@ -47,8 +48,8 @@ typedef enum {
     OPIE_CONN_SCP
 } OPIE_CONN_TYPE;
 
-struct OpieSyncEnv {
-	OSyncMember*      member;
+
+struct OpiePluginEnv {
 	gchar*            username;
 	gchar*            password;
 	gchar*            url;
@@ -59,6 +60,7 @@ struct OpieSyncEnv {
 
 	gboolean          use_qcop;
 	qcop_conn*        qcopconn;
+	gboolean          connected;
 
 	xmlDoc*           calendar_doc;
 	xmlDoc*           contacts_doc;
@@ -66,10 +68,19 @@ struct OpieSyncEnv {
 	xmlDoc*           categories_doc;
 	xmlDoc*           notes_doc;
 
-	GTree*            uid_map;
+	OpieSinkEnv*      contact_env;
 	
-	OSyncHashTable*   hashtable;
+	GTree*            uidmap;
+	char*             uidmap_file;
 };
 
+struct OpieSinkEnv {
+	OpiePluginEnv*    plugin_env;
+	xmlDoc*           doc;
+	OSyncHashTable*   hashtable;
+	OSyncObjFormat*   objformat;
+	const char*       listelement;
+	const char*       itemelement;
+};
 
 #endif

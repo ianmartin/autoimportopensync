@@ -68,11 +68,11 @@ int opie_curl_fwrite(void* buffer, size_t size, size_t nmemb, void* stream);
 int opie_curl_strwrite(void *buffer, size_t size, size_t nmemb, void *stream);
 int opie_curl_nullwrite(void *buffer, size_t size, size_t nmemb, void *stream);
 int opie_curl_strread(void *buffer, size_t size, size_t nmemb, void *stream);
-gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch);
-gboolean scp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch);
-gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put);
-gboolean scp_put_files(OpieSyncEnv* env, GList* files_to_put);
-gboolean ftp_fetch_notes(OpieSyncEnv* env);
+gboolean ftp_fetch_files(OpiePluginEnv* env, GList* files_to_fetch);
+gboolean scp_fetch_files(OpiePluginEnv* env, GList* files_to_fetch);
+gboolean ftp_put_files(OpiePluginEnv* env, GList* files_to_put);
+gboolean scp_put_files(OpiePluginEnv* env, GList* files_to_put);
+gboolean ftp_fetch_notes(OpiePluginEnv* env);
 
 int m_totalwritten;
 
@@ -279,7 +279,7 @@ error:
 /*
  * opie_connect_and_fetch
  */
-gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
+gboolean opie_connect_and_fetch(OpiePluginEnv* env, opie_object_type object_types)
 {
 	gboolean rc = TRUE;
 	int tmpfilemode;
@@ -359,21 +359,21 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 					case OPIE_OBJECT_TYPE_PHONEBOOK:
 						doc = &env->contacts_doc;
 						if(pair->local_fd <= 0) {
-							osync_member_set_slow_sync(env->member, "contact", TRUE);
+//							osync_member_set_slow_sync(env->member, "contact", TRUE);
 							*doc = opie_xml_create_contacts_doc();
 						}
 						break;
 					case OPIE_OBJECT_TYPE_TODO:
 						doc = &env->todos_doc;
 						if(pair->local_fd <= 0) {
-							osync_member_set_slow_sync(env->member, "todo", TRUE);
+//							osync_member_set_slow_sync(env->member, "todo", TRUE);
 							*doc = opie_xml_create_todos_doc();
 						}
 						break;
 					case OPIE_OBJECT_TYPE_CALENDAR:
 						doc = &env->calendar_doc;
 						if(pair->local_fd <= 0) {
-							osync_member_set_slow_sync(env->member, "event", TRUE);
+//							osync_member_set_slow_sync(env->member, "event", TRUE);
 							*doc = opie_xml_create_calendar_doc();
 						}
 						break;
@@ -430,7 +430,7 @@ gboolean opie_connect_and_fetch(OpieSyncEnv* env, opie_object_type object_types)
 /*
  * ftp_fetch_files
  */
-gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
+gboolean ftp_fetch_files(OpiePluginEnv* env, GList* files_to_fetch)
 {
 	gboolean rc = TRUE;
 	char* ftpurl = NULL;
@@ -539,7 +539,7 @@ gboolean ftp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
   return rc; 
 }
 
-gboolean ftp_fetch_notes(OpieSyncEnv* env)
+gboolean ftp_fetch_notes(OpiePluginEnv* env)
 {
 	gboolean rc = TRUE;
 	char* ftpurl = NULL;
@@ -643,7 +643,7 @@ gboolean ftp_fetch_notes(OpieSyncEnv* env)
   return rc; 
 }
 
-gboolean ftp_put_notes(OpieSyncEnv* env)
+gboolean ftp_put_notes(OpiePluginEnv* env)
 {
 	gboolean rc = TRUE;
 	CURL *curl;
@@ -756,7 +756,7 @@ gboolean ftp_put_notes(OpieSyncEnv* env)
 /*
  * opie_connect_and_put
  */
-gboolean opie_connect_and_put( OpieSyncEnv* env,
+gboolean opie_connect_and_put( OpiePluginEnv* env,
                                opie_object_type object_types)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__ );
@@ -901,7 +901,7 @@ error:
 /*
  * ftp_put_files
  */
-gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put) 
+gboolean ftp_put_files(OpiePluginEnv* env, GList* files_to_put) 
 {
 	gboolean rc = TRUE;
 	struct stat file_info;
@@ -1003,7 +1003,7 @@ gboolean ftp_put_files(OpieSyncEnv* env, GList* files_to_put)
 /*
  * scp_fetch_files
  */
-gboolean scp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
+gboolean scp_fetch_files(OpiePluginEnv* env, GList* files_to_fetch)
 {
 	gboolean rc = TRUE;
 	char* scpcommand = NULL;
@@ -1056,7 +1056,7 @@ gboolean scp_fetch_files(OpieSyncEnv* env, GList* files_to_fetch)
 /*
  * scp_put_files
  */
-gboolean scp_put_files(OpieSyncEnv* env, GList* files_to_put)
+gboolean scp_put_files(OpiePluginEnv* env, GList* files_to_put)
 {
 	gboolean rc = TRUE;
 	char* scpcommand = NULL;
