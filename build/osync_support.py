@@ -57,3 +57,61 @@ def SelectBuildDir(build_dir, platform=None):
 
 	print "Found directory %s, will build there" % target_dir
 	return target_dir
+
+def add_define(env, define, value = 1, quote = -1):
+	"""store a single define and its state into an internal list
+		for later writing to a config header file"""
+	try:
+		tbl = env['defines']
+	except KeyError:
+		tbl = {}
+	if not define: raise "define must be .. defined"
+
+	value = env.subst(value) #substitute construction values
+	# the user forgot to tell if the value is quoted or not
+	if quote < 0:
+		if isinstance(value, basestring):
+			tbl[define] = '"%s"' % str(value)
+		else:
+			tbl[define] = value
+	elif not quote:
+		if isinstance(value, int):
+			tbl[define] = int(value)
+		else:
+			tbl[define] = value
+	else:
+		tbl[define] = '"%s"' % str(value)
+	env['defines'] = tbl
+
+def is_defined(env, define):
+	try: return env['defines'].has_key(define)
+	except: return None
+
+def get_define(env, define):
+	"get the value of a previously stored define"
+	try: return env['defines'][define]
+	except: return 0
+
+def write_config_header(env, configfile='config.h'):
+	"save the defines into a file"
+	import re, os
+	reg=re.compile('[/\\\\.-]', re.M)
+
+	include_name = '_'.join(reg.split(configfile)).upper()
+	inclusion_guard_name = '_%s_OPENSYNC' % (include_name)
+
+	dest = open(configfile, 'w')
+	dest.write('/* configuration created by OpenSync build */\n')
+	dest.write('#ifndef %s\n#define %s\n\n' % (inclusion_guard_name, inclusion_guard_name))
+
+	for key, value in env['defines'].iteritems():
+		if value is None:
+			dest.write('#define %s\n' % key)
+		elif isinstance(value, int):
+			dest.write('#define %s %i\n' % (key, value))
+		elif value:
+			dest.write('#define %s %s\n' % (key, value))
+		else:
+			dest.write('/* #undef %s */\n' % key)
+	dest.write('\n#endif /* %s */\n' % (inclusion_guard_name,))
+	dest.close()

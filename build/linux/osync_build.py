@@ -35,15 +35,24 @@ def check(env, config):
 		env.Exit(1)
 
 	env = conf.Finish()
+	env.Append(CCFLAGS = r'-DHAVE_CONFIG_H')
 
+	add_define(env, "OPENSYNC_PLUGINDIR", config.plugindir)
+	add_define(env, "OPENSYNC_FORMATSDIR", config.formatdir)
+	add_define(env, "OPENSYNC_CONFIGDIR", config.configdir)
+	add_define(env, "OPENSYNC_CAPABILITIESDIR", config.capabilitiesdir)
+	add_define(env, "OPENSYNC_DESCRIPTIONSDIR", config.descriptionsdir)
+	add_define(env, "OPENSYNC_SCHEMASDIR", config.descriptionsdir)
+	add_define(env, "VERSION", config.version)
+	add_define(env, "OPENSYNC_PLUGINVERSION", config.plugin_version)
+	if conf.env['debug_modules'] == 1:
+		add_define(env, "DEBUG_MODULES")
+	
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
 	
 	if env['debug'] == 1:
 		env.Append(CCFLAGS = r'-g3')
-
-	if env['debug_modules'] == 1:
-		env.Append(CCFLAGS = r'-DDEBUG_MODULES')
 	
 	if env['enable_tests'] == 1:
 		env.ParseConfig('pkg-config --cflags --libs check')
@@ -65,13 +74,5 @@ def check(env, config):
 		env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix'])
 
 	env.Append(CCFLAGS = r'-I' + distutils.sysconfig.get_python_inc()) 
-	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINDIR="\"' + config.plugindir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"' + config.formatdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_CONFIGDIR="\"' + config.configdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_CAPABILITIESDIR="\"' + config.capabilitiesdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_DESCRIPTIONSDIR="\"' + config.descriptionsdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_SCHEMASDIR="\"' + config.descriptionsdir + r'\""')
-	env.Append(CCFLAGS = r'-DVERSION="\"' + config.version + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINVERSION=' + str(config.plugin_version) + '')
 	
 	return testenv

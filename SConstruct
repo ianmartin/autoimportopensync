@@ -61,7 +61,7 @@ Welcome to the OpenSync Help System!
 You can set the following options:
 """ + opts.GenerateHelpText(env))
 
-env.Append(CCFLAGS = r'-DENABLE_TRACE=$enable_trace')
+add_define(env, "ENABLE_TRACE", env['enable_trace'])
 env.Append(CCFLAGS = Split('$APPEND_CCFLAGS'))
 env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
 
@@ -96,6 +96,11 @@ if env['enable_doxygen'] == 1:
 	env.DoxygenBuilder(target = 'documentation', source =[])
 
 testenv = check(env, config)
+if not env.GetOption('clean'):
+	write_config_header(env, "config.h")
+else:
+	try: os.unlink("config.h")
+	except OSError: pass
 
 install_prefix = '${DESTDIR}$prefix'
 install_lib    = '${DESTDIR}$prefix/$libsuffix'
