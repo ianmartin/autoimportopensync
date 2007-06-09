@@ -370,11 +370,14 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
 
 		// prepare UID with gnokii-calendar-<memory location>
 		uid = g_strdup_printf ("gnokii-calendar-%i", calnote->location);
-		osync_change_set_uid(change, uid);
+		osync_hashtable_report(sinkenv->hashtable, uid);
 
 		// get hash of calnote
 		hash = gnokii_calendar_hash(calnote);
+
 		osync_change_set_hash(change, hash);	
+		osync_change_set_uid(change, uid);
+
 
 		// set data
 		OSyncData *data = osync_data_new((char *) calnote, sizeof(gn_calnote), sinkenv->objformat, &error);

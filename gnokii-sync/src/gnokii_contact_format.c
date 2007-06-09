@@ -58,8 +58,10 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 		osync_xmlfield_set_key_value(xmlfield, "Content", contact->name);
 
 		// FIXME: evo2 workaround - evo2 requires a Name / N filed :(
+		/*
 		xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
 		osync_xmlfield_set_key_value(xmlfield, "FirstName", contact->name);
+		*/
 	}
 
 	// Group

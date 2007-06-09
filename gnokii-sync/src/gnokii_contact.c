@@ -421,6 +421,7 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 			// prepare UID with gnokii-contact-<memory type>-<memory location>
 			uid = gnokii_contact_uid(contact);
+			osync_hashtable_report(sinkenv->hashtable, uid);
 
 			hash = gnokii_contact_hash(contact);
 			OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
@@ -472,10 +473,7 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 	g_free(data);
 
-
-	/* FIXME: this is really really broken :( 
 	int i;
-
         char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
         for (i = 0; uids[i]; i++) {
                 OSyncChange *change = osync_change_new(&error);
@@ -510,7 +508,6 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
                 g_free(uids[i]);
         }
         g_free(uids);
-	*/
 
 	osync_context_report_success(ctx);
 
@@ -527,6 +524,7 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 
 	OSyncError *error = NULL;
 	gn_phonebook_entry *contact = NULL;
+	char *buf;
 	char *uid = NULL;
 	char *hash = NULL;
 	
@@ -535,7 +533,8 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 	gnokii_environment *env = (gnokii_environment *) plugindata;
 
 	// Get changed contact note
-	osync_data_get_data(osync_change_get_data(change), &contact, NULL);
+	osync_data_get_data(osync_change_get_data(change), &buf, NULL);
+	contact = (gn_phonebook_entry *) buf;
 
 	// Check for type of changes
 	switch (osync_change_get_changetype(change)) {
