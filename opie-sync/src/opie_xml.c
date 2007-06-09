@@ -568,7 +568,7 @@ xmlDoc *opie_xml_create_contacts_doc(void) {
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	if(!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
-		return FALSE;
+		return NULL;
 	}
 	
 	xmlNode *root = xmlNewNode(NULL, "Addressbook");
@@ -583,7 +583,7 @@ xmlDoc *opie_xml_create_todos_doc(void) {
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	if(!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
-		return FALSE;
+		return NULL;
 	}
 	
 	xmlNode *root = xmlNewNode(NULL, "Tasks");
@@ -596,7 +596,7 @@ xmlDoc *opie_xml_create_calendar_doc(void) {
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	if(!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
-		return FALSE;
+		return NULL;
 	}
 	
 	xmlNode *root = xmlNewNode(NULL, "DATEBOOK");
@@ -611,7 +611,7 @@ xmlDoc *opie_xml_create_categories_doc(void) {
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	if(!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
-		return FALSE;
+		return NULL;
 	}
 	
 	xmlNode *root = xmlNewNode(NULL, "Categories");
@@ -624,7 +624,7 @@ xmlDoc *opie_xml_create_notes_doc(void) {
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
 	if(!doc) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
-		return FALSE;
+		return NULL;
 	}
 	
 	xmlNode *root = xmlNewNode(NULL, "notes");
@@ -633,11 +633,30 @@ xmlDoc *opie_xml_create_notes_doc(void) {
 	return doc;
 }
 
+xmlDoc *opie_xml_create_doc(OPIE_OBJECT_TYPE objtype) {
+	switch(objtype) {
+		case OPIE_OBJECT_TYPE_CONTACT:
+			return opie_xml_create_calendar_doc();
+		case OPIE_OBJECT_TYPE_TODO:
+			return opie_xml_create_todos_doc();
+		case OPIE_OBJECT_TYPE_EVENT:
+			return opie_xml_create_calendar_doc();
+		case OPIE_OBJECT_TYPE_NOTE:
+			return opie_xml_create_notes_doc();
+		case OPIE_OBJECT_TYPE_CATEGORY:
+			return opie_xml_create_categories_doc();
+		default:
+			osync_trace(TRACE_INTERNAL, "opie_xml_create_doc: unknown object format");
+			return NULL;
+	}
+	/* Does not handle categories, since they aren't an objtype */
+}
+
 xmlNode *opie_xml_add_note_node(xmlDoc *doc, char *name, char *direntry, char *content) {
 	xmlNode *notes_node = opie_xml_get_collection(doc, "notes");
 	if(!notes_node) {
 		osync_trace(TRACE_INTERNAL, "Unable to create new XML document");
-		return FALSE;
+		return NULL;
 	}
 	xmlNode *note_node = xmlNewTextChild(notes_node, NULL, (xmlChar*)"note", NULL);
 	
