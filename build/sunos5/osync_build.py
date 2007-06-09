@@ -37,15 +37,12 @@ def check(env, config):
 	if not conf.CheckFunc('flock'):
 		conf.env.Append(CCFLAGS = r'-DNOT_HAVE_FLOCK')
 
-		
 	env = conf.Finish()
-	
+
+	env.Append(CCFLAGS = r'-DHAVE_CONFIG_H')
 	if env['debug'] == 1:
 		env.Append(CCFLAGS = r'-g3')
 
-	if env['debug_modules'] == 1:
-		env.Append(CCFLAGS = r'-DDEBUG_MODULES')
-	
 	if env['enable_tests'] == 1:
 		env.ParseConfig('pkg-config --cflags --libs check')
 
@@ -63,13 +60,4 @@ def check(env, config):
 		env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix'])
 
 	env.Append(CCFLAGS = r'-I' + distutils.sysconfig.get_python_inc()) 
-	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINDIR="\"' + config.plugindir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_FORMATSDIR="\"' + config.formatdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_CONFIGDIR="\"' + config.configdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_CAPABILITIESDIR="\"' + config.capabilitiesdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_DESCRIPTIONSDIR="\"' + config.descriptionsdir + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_SCHEMASDIR="\"' + config.descriptionsdir + r'\""')
-	env.Append(CCFLAGS = r'-DVERSION="\"' + config.version + r'\""')
-	env.Append(CCFLAGS = r'-DOPENSYNC_PLUGINVERSION=' + str(config.plugin_version) + '')
-	
 	return testenv

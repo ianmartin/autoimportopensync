@@ -36,18 +36,6 @@ def check(env, config):
 
 	env = conf.Finish()
 	env.Append(CCFLAGS = r'-DHAVE_CONFIG_H')
-
-	add_define(env, "OPENSYNC_PLUGINDIR", config.plugindir)
-	add_define(env, "OPENSYNC_FORMATSDIR", config.formatdir)
-	add_define(env, "OPENSYNC_CONFIGDIR", config.configdir)
-	add_define(env, "OPENSYNC_CAPABILITIESDIR", config.capabilitiesdir)
-	add_define(env, "OPENSYNC_DESCRIPTIONSDIR", config.descriptionsdir)
-	add_define(env, "OPENSYNC_SCHEMASDIR", config.descriptionsdir)
-	add_define(env, "VERSION", config.version)
-	add_define(env, "OPENSYNC_PLUGINVERSION", config.plugin_version)
-	if conf.env['debug_modules'] == 1:
-		add_define(env, "DEBUG_MODULES")
-	
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
 	
