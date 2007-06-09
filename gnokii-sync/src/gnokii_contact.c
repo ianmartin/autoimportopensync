@@ -535,7 +535,7 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 	gnokii_environment *env = (gnokii_environment *) plugindata;
 
 	// Get changed contact note
-	contact = (gn_phonebook_entry *) osync_change_get_data(change);
+	osync_data_get_data(osync_change_get_data(change), &contact, NULL);
 
 	// Check for type of changes
 	switch (osync_change_get_changetype(change)) {
