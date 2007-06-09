@@ -9,7 +9,7 @@ env.Append( CPPPATH = '.' )
 
 # basic vformat plugins
 gnokii_sync = env.SharedLibrary('gnokii-sync', ['gnokii_sync.c', 'gnokii_calendar.c', 'gnokii_contact.c', 'gnokii_config.c', 'gnokii_comm.c'], LIBS = ['opensync', 'gnokii'], LIBPATH = '$prefix/$libsuffix')
-gnokii_event = env.SharedLibrary('gnokii-event', ['gnokii_calendar_format.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+gnokii_event = env.SharedLibrary('gnokii-event', ['gnokii_calendar_format.c', 'gnokii_calendar_utils.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 gnokii_contact = env.SharedLibrary('gnokii-contact', ['gnokii_contact_format.c', 'gnokii_contact_utils.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 
