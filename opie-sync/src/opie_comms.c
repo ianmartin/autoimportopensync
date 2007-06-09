@@ -42,7 +42,6 @@
 #include "opie_debug.h"
 #include "opie_comms.h"
 #include "opie_xml.h"
-/*#include "opie_log.h"*/
 #include "opie_qcop.h"
 
 typedef struct {
@@ -76,8 +75,6 @@ gboolean ftp_fetch_notes(OpiePluginEnv* env);
 
 int m_totalwritten;
 
-
-/* FIXME we aren't calling comms_init or comms_shutdown anywhere! */
 
 /*
  * comms_init

@@ -222,6 +222,20 @@ error:
 	return FALSE;
 }
 
+void _disconnectDevice(OpiePluginEnv *env)
+{
+	if(env->qcopconn) 
+	{
+		qcop_stop_sync(env->qcopconn);
+		if (!env->qcopconn->result)
+		{
+			osync_trace(TRACE_INTERNAL, env->qcopconn->resultmsg);
+		}
+		qcop_disconnect(env->qcopconn); /* frees qcopconn */
+		env->qcopconn = NULL;
+	}
+}
+
 static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
@@ -606,6 +620,8 @@ static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, O
 	env->uidmap = uidmap_read(uidmap_path);
 	g_free(uidmap_path);
 	
+	comms_init();
+	
 	osync_trace(TRACE_EXIT, "%s, %p", __func__, env);
 	return (void *)env;
 
@@ -621,17 +637,10 @@ static void opie_sync_finalize( void* userdata )
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, userdata);
 	OpiePluginEnv *env = (OpiePluginEnv *)userdata;
 
-	if(env->qcopconn) 
-	{
-		qcop_stop_sync(env->qcopconn);
-		if (!env->qcopconn->result)
-		{
-			osync_trace(TRACE_INTERNAL, env->qcopconn->resultmsg);
-		}
-		qcop_disconnect(env->qcopconn); /* frees qcopconn */
-		env->qcopconn = NULL;
-	}
+	_disconnectDevice(env);
 
+	comms_shutdown();
+	
 	uidmap_write(env->uidmap, env->uidmap_file);
 	uidmap_free(&env->uidmap);
 	g_free(env->uidmap_file);
