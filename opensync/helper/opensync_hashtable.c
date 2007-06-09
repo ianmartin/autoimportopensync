@@ -32,34 +32,33 @@
  * @ingroup OSyncPublic
  * @brief A Hashtable can be used to detect changes
  * 
- * Hashtables can be used to detect changes since the last invokation. They do this
+ * Hashtables can be used to detect changes since the last invocation. They do this
  * by keeping track of all reported uids and the hashes of the objects.
  * 
- * Hashes are strings that change when the objects is updated or when the content of
- * the object changes. So hashes can either be a real hash like an MD5 or something 
- * like a timestamp. The only important thing is that the hash changes once the item
+ * A hash is a string that changes when an object is updated or when the content of
+ * the object changes. So hashes can either be a real hash like an MD5, or something 
+ * like a timestamp. The only important thing is that the hash changes when the item
  * gets updated.
  * 
- * The hashtable works like this:
- * - You first malloc it with osync_hashtable_new()
- * - Then you load the saved hashtable from disk with osync_hashtable_load()
+ * The hashtable is created or loaded from a .db file using the osync_hashtable_new()
+ * function.
  * 
  * Now you can query and alter the table. You can ask if a item has changed by doing:
  * - osync_hashtable_get_changetype() to get the changetype of a certain uid and hash
- * - or the convience function osync_hashtable_detect_change which calls 
+ * - or the convience function osync_hashtable_detect_change() which calls 
  * osync_hashtable_get_changetype() and sets this changetype on the change object and then
  * automatically calls osync_hashtable_report()
  * After you reported all objects you can query the table for the deleted objects using
  * osync_hashtable_get_deleted() or osync_hashtable_report_deleted()
  * 
- * After you are done call:
+ * After you are finished using the hashtable, call:
  * - osync_hashtable_free()
  * 
  * The hashtable works like this:
  * 
  * First the items are reported with a certain uid or hash. If the uid does not yet
- * exist in the database it is reported as ADDED. if the uid exists and the hash is different
- * it is reported as MODIFIED. if the uid exists but the hash is the same it means that the
+ * exist in the database it is reported as ADDED. If the uid exists and the hash is different
+ * it is reported as MODIFIED. If the uid exists but the hash is the same it means that the
  * object is UNMODIFIED.
  * 
  * To be able to report deleted objects the hashtables keeps track of the uids you reported.
@@ -85,12 +84,15 @@ osync_bool osync_hashtable_create(OSyncHashTable *table, const char *objtype, OS
 	return TRUE;
 }
 
-/*! @brief Creates a new hashtable
+/*! @brief Loads or creates a hashtable
  * 
  * Hashtables can be used to detect what has been changed since
  * the last sync
  * 
- * @returns A new hashtable
+ * @param path the full path and file name of the hashtable .db file to load from or create
+ * @param objtype the object type of the hashtable
+ * @param error An error struct
+ * @returns A new hashtable, or NULL if an error occurred.
  * 
  */
 OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSyncError **error)
@@ -186,7 +188,7 @@ void osync_hashtable_reset(OSyncHashTable *table)
 /*! @brief Returns the number of entries in this hashtable
  * 
  * @param table The hashtable
- * @returns The number of entries, on error -1.
+ * @returns The number of entries, or -1 if an error occurred
  * 
  */
 int osync_hashtable_num_entries(OSyncHashTable *table)
@@ -210,12 +212,12 @@ int osync_hashtable_num_entries(OSyncHashTable *table)
 
 /*! @brief Gets the nth entry from the table
  * 
- * This is mainly usefull for debugging or special purposes
+ * This is mainly useful for debugging or special purposes
  * 
  * @param table The hashtable
  * @param nth The number of the entry to return
- * @param uid A pointer to a char * that will hold the uid. The caller is responible for freeing
- * @param hash A pointer to a char * that will hold the hash. The caller is responible for freeing
+ * @param uid A pointer to a char * that will hold the uid. The caller is responsible for freeing this.
+ * @param hash A pointer to a char * that will hold the hash. The caller is responsible for freeing this.
  * @returns TRUE if successful, FALSE otherwise
  * 
  */
@@ -289,7 +291,9 @@ void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
  * wrote it
  * 
  * @param table The hashtable
- * @param change The change with the new hash information
+ * @param type The type of change (added, modified, etc.)
+ * @param uid the uid of the changed entry
+ * @param hash the new hash of the changed entry
  */
 void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, const char *uid, const char *hash)
 {
@@ -336,8 +340,7 @@ void osync_hashtable_report(OSyncHashTable *table, const char *uid)
 /*! @brief Get the uid of all deleted items
  * 
  * @param table The hashtable
- * @param objtype The object type which to report, NULL for all
- * @returns An Null terminated array of uids. The uids and this array have to be freed.
+ * @returns An Null terminated array of uids. The uids and this array have to be freed by the caller.
  * 
  */
 char **osync_hashtable_get_deleted(OSyncHashTable *table)

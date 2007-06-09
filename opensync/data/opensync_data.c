@@ -25,6 +25,23 @@
 #include "opensync-data.h"
 #include "opensync_data_internals.h"
 
+/**
+ * @defgroup OSyncDataAPI OpenSync Data
+ * @ingroup OSyncPublic
+ * @brief Handles data within changes
+ * 
+ */
+/*@{*/
+
+/*! @brief Create a new data object
+ * 
+ * @param buffer Character buffer containing the data
+ * @param size The size of the data contained in the buffer
+ * @param format The object format of the data
+ * @param error An error struct
+ * @returns The new data object
+ * 
+ */
 OSyncData *osync_data_new(char *buffer, unsigned int size, OSyncObjFormat *format, OSyncError **error)
 {
 	OSyncData *data = osync_try_malloc0(sizeof(OSyncData), error);
@@ -42,6 +59,11 @@ OSyncData *osync_data_new(char *buffer, unsigned int size, OSyncObjFormat *forma
 	return data;
 }
 
+/*! @brief Increase the reference count on a data object
+ * 
+ * @param data The data object
+ * 
+ */
 void osync_data_ref(OSyncData *data)
 {
 	osync_assert(data);
@@ -49,6 +71,11 @@ void osync_data_ref(OSyncData *data)
 	g_atomic_int_inc(&(data->ref_count));
 }
 
+/*! @brief Decrease the reference count on a data object
+ * 
+ * @param data The data object
+ * 
+ */
 void osync_data_unref(OSyncData *data)
 {
 	osync_assert(data);
@@ -67,12 +94,24 @@ void osync_data_unref(OSyncData *data)
 	}
 }
 
+/*! @brief Get the object format from a data object
+ * 
+ * @param data The data object
+ * @returns the object format of the data object
+ * 
+ */
 OSyncObjFormat *osync_data_get_objformat(OSyncData *data)
 {
 	osync_assert(data);
 	return data->objformat;
 }
 
+/*! @brief Set the object format on a data object
+ * 
+ * @param data The data object
+ * @param objformat The object format to set
+ * 
+ */
 void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat)
 {
 	osync_assert(data);
@@ -82,6 +121,12 @@ void osync_data_set_objformat(OSyncData *data, OSyncObjFormat *objformat)
 	osync_objformat_ref(objformat);
 }
 
+/*! @brief Get the object type from a data object
+ * 
+ * @param data The data object
+ * @returns the name of the object type of the data object
+ * 
+ */
 const char *osync_data_get_objtype(OSyncData *data)
 {
 	osync_assert(data);
@@ -97,6 +142,12 @@ const char *osync_data_get_objtype(OSyncData *data)
 	return NULL;
 }
 
+/*! @brief Set the object type of a data object
+ * 
+ * @param data The data object
+ * @param objtype The name of the object type to set
+ * 
+ */
 void osync_data_set_objtype(OSyncData *data, const char *objtype)
 {
 	osync_assert(data);
@@ -105,6 +156,13 @@ void osync_data_set_objtype(OSyncData *data, const char *objtype)
 	data->objtype = g_strdup(objtype);
 }
 
+/*! @brief Get the data from a data object
+ * 
+ * @param data The data object
+ * @param buffer Pointer to a char * that will be set to point to the data if specified. Do not free this buffer.
+ * @param size Pointer to an integer variable that will be set to the size of the data if specified
+ * 
+ */
 void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size)
 {
 	osync_assert(data);
@@ -115,12 +173,25 @@ void osync_data_get_data(OSyncData *data, char **buffer, unsigned int *size)
 		*size = data->size;
 }
 
+/*! @brief Get a pointer to the data from a data object
+ * 
+ * @param data The data object
+ * @returns a pointer to the data. Do not free this.
+ * 
+ */
 void *osync_data_get_data_ptr(OSyncData *data)
 {
 	osync_assert(data);
 	return data->data;
 }
 
+/*! @brief Get the data from a data object and then clear the data object's pointers to it
+ * 
+ * @param data The data object
+ * @param buffer Pointer to a char * that will be set to point to the data. The caller is responsible for freeing this after calling.
+ * @param size Pointer to an integer variable that will be set to the size of the data
+ * 
+ */
 void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size)
 {
 	osync_assert(data);
@@ -134,6 +205,13 @@ void osync_data_steal_data(OSyncData *data, char **buffer, unsigned int *size)
 	data->size = 0;
 }
 
+/*! @brief Set the data of a data object
+ * 
+ * @param data The data object
+ * @param buffer The data as a character array. Freeing this buffer will be handled by the data object.
+ * @param size The size of the data contained in the buffer
+ * 
+ */
 void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size)
 {
 	osync_assert(data);
@@ -144,12 +222,25 @@ void osync_data_set_data(OSyncData *data, char *buffer, unsigned int size)
 	data->size = size;
 }
 
+/*! @brief Check if the data object has data stored
+ * 
+ * @param data The data object
+ * @returns TRUE if the data object has data, FALSE otherwise
+ * 
+ */
 osync_bool osync_data_has_data(OSyncData *data)
 {
 	osync_assert(data);
 	return data->data ? TRUE : FALSE;
 }
 
+/*! @brief Clone a data object
+ * 
+ * @param source The data object to clone
+ * @param error An error struct
+ * @returns a copy of the specified data object, or NULL if an error occurred
+ * 
+ */
 OSyncData *osync_data_clone(OSyncData *source, OSyncError **error)
 {
 	OSyncData *data = NULL;
@@ -176,9 +267,9 @@ OSyncData *osync_data_clone(OSyncData *source, OSyncError **error)
 	return data;
 }
 
-/*! @brief Compares the 2 data objects
+/*! @brief Compares two data objects
  * 
- * Compares the two given changes and returns:
+ * Compares the two given data objects and returns:
  * CONV_DATA_MISMATCH if they are not the same
  * CONV_DATA_SIMILAR if the are not the same but look similar
  * CONV_DATA_SAME if they are exactly the same
@@ -219,12 +310,12 @@ OSyncConvCmpResult osync_data_compare(OSyncData *leftdata, OSyncData *rightdata)
 	return ret;
 }
 
-/*! @brief Returns a string describing a change object
+/*! @brief Returns a string describing a data object
  * 
  * Some formats cannot be printed directly. To be able to print these
  * objects they should specify a print function.
  * 
- * @param change The change to get printable
+ * @param data The data to get printable
  * @returns A string describing the object
  * 
  */
@@ -240,8 +331,8 @@ char *osync_data_get_printable(OSyncData *data)
 
 /*! @brief Returns the revision of the object
  * 
- * @param change The change to get the revision from
- * @param error A error struct
+ * @param data The change to get the revision from
+ * @param error An error struct
  * @returns The revision of the object in seconds since the epoch in zulu time
  * 
  */
