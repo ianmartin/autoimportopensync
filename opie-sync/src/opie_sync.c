@@ -260,25 +260,13 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
-	//If you need a hashtable you make it here
+	/* Get hashtable */
 	const char *configdir = osync_plugin_info_get_configdir(info);
 	char *tablepath = g_strdup_printf("%s/hashtable.db", configdir);
 	env->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
 	g_free(tablepath);
-
 	if (!env->hashtable)
 		goto error;
-
-	//you can also use the anchor system to detect a device reset
-	//or some parameter change here. Check the docs to see how it works
-	char *lanchor = NULL;
-	//Now you get the last stored anchor from the device
-	char *anchorpath = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
-
-	if (!osync_anchor_compare(anchorpath, "lanchor", lanchor))
-		osync_objtype_sink_set_slowsync(sink, TRUE);
-
-	g_free(anchorpath);
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
