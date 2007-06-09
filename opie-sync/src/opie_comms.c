@@ -721,7 +721,13 @@ gboolean opie_put_file(OpiePluginEnv *env, OPIE_OBJECT_TYPE objtype, const char 
 			case OPIE_CONN_SCP:
 				/* attempt and scp connection */
 				OPIE_DEBUG("Attempting scp Put File.\n");
-				rc = scp_put_file(env, data);
+				if(objtype == OPIE_OBJECT_TYPE_NOTE) {
+					/* FIXME support SCP for notes */
+					OPIE_DEBUG("SCP not supported for notes.\n");
+					rc = FALSE;
+				}
+				else
+					rc = scp_put_file(env, data);
 				break;
 				
 			default:
