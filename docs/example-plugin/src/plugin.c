@@ -14,8 +14,14 @@
 
 static void free_env(plugin_environment *env)
 {
-	if (env->hashtable)
-		osync_hashtable_free(env->hashtable);
+	while (env->sink_envs) {
+		sink_environment *sinkenv = env->sink_envs->data;
+
+		if (sinkenv->sink)
+			osync_objtype_sink_unref(sinkenv->sink);
+
+		env->sink_envs = g_list_remove(env->sink_envs, sinkenv);
+	}
 
 	g_free(env);
 }
@@ -26,7 +32,12 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	//Each time you get passed a context (which is used to track
 	//calls to your plugin) you can get the data your returned in
 	//initialize via this call:
-	plugin_environment *env = (plugin_environment *)userdata;
+	// plugin_environment *env = (plugin_environment *)userdata;
+
+	//The sink specific userdata you can get with this calls:
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	sink_environment *sinkenv = osync_objtype_sink_get_userdata(sink);
+
 
 	OSyncError *error = NULL;
 
@@ -43,14 +54,13 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 	 * 
 	 */
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 
 	//If you need a hashtable you make it here
 	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
-	env->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
+	sinkenv->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
 	g_free(tablepath);
 
-	if (!env->hashtable)
+	if (!sinkenv->hashtable)
 		goto error;
 
 	//you can also use the anchor system to detect a device reset
@@ -77,8 +87,11 @@ error:
 static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
         osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
+
+	//plugin_environment *env = (plugin_environment *)userdata;
+
         OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	plugin_environment *env = (plugin_environment *)userdata;
+	sink_environment *sinkenv = osync_objtype_sink_get_userdata(sink);
 
         OSyncError *error = NULL;
 
@@ -87,9 +100,9 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	//otherwise you have to make 2 function like "get_changes" and
 	//"get_all" and decide which to use using
 	//osync_member_get_slow_sync
-        if (osync_objtype_sink_get_slowsync(sink)) {
+        if (osync_objtype_sink_get_slowsync(sinkenv->sink)) {
                 osync_trace(TRACE_INTERNAL, "Slow sync requested");
-                osync_hashtable_reset(env->hashtable);
+                osync_hashtable_reset(sinkenv->hashtable);
         }
 
 	/*
@@ -105,9 +118,9 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 		char *data = NULL;
 
 		// Report every entry .. every unreported entry got deleted.
-		osync_hashtable_report(env->hashtable, uid);
+		osync_hashtable_report(sinkenv->hashtable, uid);
 
-		OSyncChangeType changetype = osync_hashtable_get_changetype(env->hashtable, uid, hash);
+		OSyncChangeType changetype = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
 
 		if (changetype == OSYNC_CHANGE_TYPE_UNMODIFIED) {
 			g_free(hash);
@@ -117,7 +130,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 
 		//Set the hash of the object (optional, only required if you use hashtabled)
-		osync_hashtable_update_hash(env->hashtable, changetype, uid, hash);
+		osync_hashtable_update_hash(sinkenv->hashtable, changetype, uid, hash);
 
 		//Make the new change to report
 		OSyncChange *change = osync_change_new(&error);
@@ -134,7 +147,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 		g_free(hash);
 
-		OSyncData *odata = osync_data_new(data, 0, env->objformat, &error);
+		OSyncData *odata = osync_data_new(data, 0, sinkenv->objformat, &error);
 		if (!odata) {
 			osync_change_unref(change);
 			osync_context_report_osyncwarning(ctx, error);
@@ -142,7 +155,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 			continue;
 		}
 
-		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sinkenv->sink));
 
 		//Now you can set the data for the object
 		osync_change_set_data(change, odata);
@@ -159,7 +172,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 	//When you are done looping and if you are using hashtables
 	//check for deleted entries ... via hashtable
 	int i;
-	char **uids = osync_hashtable_get_deleted(env->hashtable);
+	char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
 	for (i=0; uids[i]; i++) {
 		OSyncChange *change = osync_change_new(&error);
 		if (!change) {
@@ -172,7 +185,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 		osync_change_set_uid(change, uids[i]);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 
-		OSyncData *odata = osync_data_new(NULL, 0, env->objformat, &error);
+		OSyncData *odata = osync_data_new(NULL, 0, sinkenv->objformat, &error);
 		if (!odata) {
 			g_free(uids[i]);
 			osync_change_unref(change);
@@ -181,13 +194,13 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 			continue;
 		}
 
-		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
+		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sinkenv->sink));
 		osync_change_set_data(change, odata);
 		osync_data_unref(odata);
 
 		osync_context_report_change(ctx, change);
 
-		osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
+		osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
 
 		osync_change_unref(change);
 		g_free(uids[i]);
@@ -201,7 +214,10 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 
 static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
 {
-	plugin_environment *env = (plugin_environment *)userdata;
+	//plugin_environment *env = (plugin_environment *)userdata;
+
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	sink_environment *sinkenv = osync_objtype_sink_get_userdata(sink);
 	
 	/*
 	 * Here you have to add, modify or delete a object
@@ -227,7 +243,7 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 	}
 
 	//If you are using hashtables you have to calculate the hash here:
-	osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), "new hash");
+	osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), "new hash");
 
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -235,8 +251,6 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 
 static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-//	plugin_environment *env = (plugin_environment *)userdata;
-	
 	/*
 	 * This function will only be called if the sync was successful
 	 */
@@ -254,13 +268,14 @@ static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 
 static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	plugin_environment *env = (plugin_environment *)userdata;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	sink_environment *sinkenv = osync_objtype_sink_get_userdata(sink);
 	
 	//Close all stuff you need to close
 	
 	//Close the hashtable
-	osync_hashtable_free(env->hashtable);
-	env->hashtable = NULL;
+	osync_hashtable_free(sinkenv->hashtable);
+	sinkenv->hashtable = NULL;
 
 	//Answer the call
 	osync_context_report_success(ctx);
@@ -284,6 +299,8 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	plugin_environment *env = osync_try_malloc0(sizeof(plugin_environment), error);
 	if (!env)
 		goto error;
+
+	env->sink_envs = NULL;
 	
 	//now you can get the config file for this plugin
 	configdata = osync_plugin_info_get_config(info);
@@ -298,14 +315,19 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 	// ...
 	
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	env->objformat = osync_format_env_find_objformat(formatenv, "<your format>");
 
 	do {
-		OSyncObjTypeSink *sink = osync_objtype_sink_new("<objtype>", error);
-		if (!sink)
+	
+		sink_environment *sinkenv = osync_try_malloc0(sizeof(sink_environment), error);
+		if (!sinkenv)
 			goto error_free_env;
 
-		osync_objtype_sink_add_objformat(sink, "<your format>");
+		sinkenv->sink = osync_objtype_sink_new("<objtype>", error);
+
+		if (!sinkenv->sink)
+			goto error_free_env;
+
+		osync_objtype_sink_add_objformat(sinkenv->sink, "<your format>");
 
 		/* Every sink can have different functions ... */
 		OSyncObjTypeSinkFunctions functions;
@@ -318,8 +340,12 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 		/* We pass the OSyncFileDir object to the sink, so we dont have to look it up
 		 * again once the functions are called */
-		osync_objtype_sink_set_functions(sink, functions, env);
-		osync_plugin_info_add_objtype(info, sink);
+		osync_objtype_sink_set_functions(sinkenv->sink, functions, sinkenv);
+		osync_plugin_info_add_objtype(info, sinkenv->sink);
+
+		sinkenv->objformat = osync_format_env_find_objformat(formatenv, "<your format>");
+
+		env->sink_envs = g_list_append(env->sink_envs, sinkenv);
 
 	} while(0);
 	
