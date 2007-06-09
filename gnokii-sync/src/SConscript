@@ -13,9 +13,11 @@ gnokii_event = env.SharedLibrary('gnokii-event', ['gnokii_calendar_format.c'], L
 gnokii_contact = env.SharedLibrary('gnokii-contact', ['gnokii_contact_format.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 
-# install synchronization plugin 
+# install synchronization plugin and config 
 env.Install(install_plugin, gnokii_sync)
-# install format plugin
+env.Install(install_config, ['gnokii-sync'])	
+
+# install format plugins
 env.Install(install_format, gnokii_event)
 env.Install(install_format, gnokii_contact)
 
