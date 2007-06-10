@@ -24,6 +24,13 @@
 #include "opensync-helper.h"
 #include "opensync-db.h"
 
+/*! @brief Create the anchor table in the specified database
+ * 
+ * @param db Pointer to the database
+ * @param error Pointer to an error struct
+ * @returns TRUE if the table was created successfully, FALSE otherwise
+ * 
+ */
 static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error);
@@ -42,6 +49,13 @@ static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
 	return TRUE;
 }	
 
+/*! @brief Create an anchor database
+ * 
+ * @param filename the full path to the database file to create
+ * @param error Pointer to an error struct
+ * @returns a pointer to the new database
+ * 
+ */
 static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
@@ -78,6 +92,11 @@ error:
 	return NULL;
 }
 
+/*! @brief Close and free an anchor database handle
+ * 
+ * @param db Pointer to the database
+ * 
+ */
 static void _osync_anchor_db_free(OSyncDB *db)
 {
 	osync_assert(db);
@@ -88,6 +107,13 @@ static void _osync_anchor_db_free(OSyncDB *db)
 	g_free(db);
 }
 
+/*! @brief Retrieves the value of an anchor
+ * 
+ * @param db Pointer to the database
+ * @param key the key of the anchor to look up
+ * @returns the value of the anchor if it was found, otherwise NULL
+ * 
+ */
 static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key);
@@ -104,6 +130,13 @@ static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 	return retanchor;
 }
 
+/*! @brief Updates the value of an anchor
+ * 
+ * @param db Pointer to the database
+ * @param key the key of the anchor to look up
+ * @param anchor the new value to set
+ * 
+ */
 static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *anchor)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
@@ -120,6 +153,22 @@ static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *an
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/**
+ * @defgroup OSyncAnchorAPI OpenSync Anchor
+ * @ingroup OSyncPublic
+ * @brief Functions to deal with anchors
+ * 
+ */
+/*@{*/
+
+/*! @brief Compares the value of an anchor with the supplied value
+ * 
+ * @param anchordb the full path to the anchor database file
+ * @param key the key of the anchor to look up
+ * @param new_anchor the value to compare with the stored value
+ * @returns TRUE if the anchor matches, FALSE otherwise
+ * 
+ */
 osync_bool osync_anchor_compare(const char *anchordb, const char *key, const char *new_anchor)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
@@ -147,6 +196,13 @@ osync_bool osync_anchor_compare(const char *anchordb, const char *key, const cha
 	return retval;
 }
 
+/*! @brief Updates the value of an anchor
+ * 
+ * @param anchordb the full path to the anchor database file
+ * @param key the key of the anchor to look up
+ * @param new_anchor the new value to set
+ * 
+ */
 void osync_anchor_update(const char *anchordb, const char *key, const char *new_anchor)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
@@ -164,6 +220,13 @@ void osync_anchor_update(const char *anchordb, const char *key, const char *new_
 	return;
 }
 
+/*! @brief Retrieves the value of an anchor
+ * 
+ * @param anchordb the full path to the anchor database file
+ * @param key the key of the anchor to look up
+ * @returns the value of the anchor if it was found, otherwise NULL
+ * 
+ */
 char *osync_anchor_retrieve(const char *anchordb, const char *key)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb, key);
@@ -180,3 +243,5 @@ char *osync_anchor_retrieve(const char *anchordb, const char *key)
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval);
 	return retval;
 }
+
+/*@}*/
