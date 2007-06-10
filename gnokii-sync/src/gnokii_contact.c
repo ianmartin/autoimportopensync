@@ -157,6 +157,7 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 
 			if (error == GN_ERR_EMPTYLOCATION) {
 				osync_trace(TRACE_EXIT, "%s(): memorty_type: %i location: %i counter: %i", __func__, contact->memory_type, contact->location, i);
+				g_free(data);
 				return contact;
 			}
 
@@ -165,7 +166,8 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 		}
 	}
 
-	// TODO set error and leave
+	g_free(data);
+	g_free(contact);
 	osync_trace(TRACE_EXIT, "%s(): NO FREE LOCATION!", __func__);
 	return NULL;
 }
