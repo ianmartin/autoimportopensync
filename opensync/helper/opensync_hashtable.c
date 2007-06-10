@@ -320,7 +320,7 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, co
  * 
  * When you use this function the item is marked as reported, so it will not get
  * listed as deleted. Use this function if there are problems accessing an object for
- * example so that the object does not get reported as deleted accidently.
+ * example so that the object does not get reported as deleted accidentally.
  * 
  * @param table The hashtable
  * @param uid The uid to report
@@ -340,7 +340,7 @@ void osync_hashtable_report(OSyncHashTable *table, const char *uid)
 /*! @brief Get the uid of all deleted items
  * 
  * @param table The hashtable
- * @returns An Null terminated array of uids. The uids and this array have to be freed by the caller.
+ * @returns A null-terminated array of uids. The uids and this array have to be freed by the caller.
  * 
  */
 char **osync_hashtable_get_deleted(OSyncHashTable *table)
@@ -377,9 +377,9 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table)
 
 /*! @brief Gets the changetype for a given uid and hash
  * 
- * This functions does not report the object so if you only use this function
- * it will get reported as deleted! Please use osync_hashtable_report() for reporting
- * and object.
+ * This function does not report the object so if you only use this function then
+ * the object will get reported as deleted! Please use osync_hashtable_report() for reporting
+ * an object.
  * 
  * @param table The hashtable
  * @param uid The uid to lookup
