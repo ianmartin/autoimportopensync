@@ -25,6 +25,21 @@
 #include "opensync_sink.h"
 #include "opensync_sink_internals.h"
 
+/**
+ * @defgroup OSyncSinkAPI OpenSync Sink
+ * @ingroup OSyncPublic
+ * @brief Functions to register and manage sinks
+ * 
+ */
+/*@{*/
+
+
+/*! @brief Creates a new sink for an object type
+ *
+ * @param objtype The name of the object type for the sink
+ * @param error Pointer to an error struct
+ * @returns the newly created sink
+ */
 OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error)
 {
 	OSyncObjTypeSink *sink = osync_try_malloc0(sizeof(OSyncObjTypeSink), error);
@@ -41,6 +56,11 @@ OSyncObjTypeSink *osync_objtype_sink_new(const char *objtype, OSyncError **error
 	return sink;
 }
 
+/*! @brief Increase the reference count on a sink
+ * 
+ * @param sink Pointer to the sink
+ * 
+ */
 void osync_objtype_sink_ref(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
@@ -48,6 +68,11 @@ void osync_objtype_sink_ref(OSyncObjTypeSink *sink)
 	g_atomic_int_inc(&(sink->ref_count));
 }
 
+/*! @brief Decrease the reference count on a sink
+ * 
+ * @param sink Pointer to the sink
+ * 
+ */
 void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
@@ -66,12 +91,24 @@ void osync_objtype_sink_unref(OSyncObjTypeSink *sink)
 	}
 }
 
+/*! @brief Return the name of the object type of a sink
+ * 
+ * @param sink Pointer to the sink
+ * @returns the name of the object type of the specified sink
+ * 
+ */
 const char *osync_objtype_sink_get_name(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->objtype;
 }
 
+/*! @brief Set the object type of a sink
+ * 
+ * @param sink Pointer to the sink
+ * @param name the name of the object type to set
+ * 
+ */
 void osync_objtype_sink_set_name(OSyncObjTypeSink *sink, const char *name)
 {
 	osync_assert(sink);
@@ -91,24 +128,49 @@ static osync_bool _osync_objtype_sink_find_objformat(OSyncObjTypeSink *sink, con
 	return FALSE;
 }
 
+/*! @brief Returns the number of object formats in the sink
+ * 
+ * @param sink Pointer to the sink
+ * @returns the number of object formats in the sink
+ * 
+ */
 int osync_objtype_sink_num_objformats(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return osync_list_length(sink->objformats);
 }
 
+/*! @brief Returns the nth object format in the sink
+ * 
+ * @param sink Pointer to the sink
+ * @param nth the index of the object format to return
+ * @returns the name of the object format at the specified index
+ * 
+ */
 const char *osync_objtype_sink_nth_objformat(OSyncObjTypeSink *sink, int nth)
 {
 	osync_assert(sink);
 	return osync_list_nth_data(sink->objformats, nth);
 }
 
+/** @brief Returns the list of object formats in the sink
+ * 
+ * @param sink Pointer to the sink
+ * @returns the list of formats in the sink
+ * 
+ */
 const OSyncList *osync_objtype_sink_get_objformats(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->objformats;
 }
 
+/** @brief Adds an object format to the sink
+ * 
+ * @param sink Pointer to the sink
+ * @param format name of the object format
+ * 
+ */
 void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format)
 {
 	osync_assert(sink);
@@ -118,6 +180,12 @@ void osync_objtype_sink_add_objformat(OSyncObjTypeSink *sink, const char *format
 		sink->objformats = osync_list_append(sink->objformats, g_strdup(format));
 }
 
+/** @brief Removes an object format from the sink
+ * 
+ * @param sink Pointer to the sink
+ * @param format name of the object format to remove
+ * 
+ */
 void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *format)
 {
 	OSyncList *f = NULL;
@@ -131,6 +199,18 @@ void osync_objtype_sink_remove_objformat(OSyncObjTypeSink *sink, const char *for
 	}
 }
 
+/** @brief Sets the sink functions and user data
+ * 
+ * Sets the functions used by the sink, as well as a user data pointer that
+ * you can retrieve within the functions. In most cases you will be able to
+ * share the same functions between multiple sinks and just have different
+ * user data for each one.
+ *
+ * @param sink Pointer to the sink
+ * @param functions struct containing pointers to the sink functions
+ * @param userdata user data pointer that can be retrieved within the functions using osync_objtype_sink_get_userdata()
+ * 
+ */
 void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFunctions functions, void *userdata)
 {
 	osync_assert(sink);
@@ -138,19 +218,28 @@ void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFu
 	sink->userdata = userdata;
 }
 
+/** @brief Gets the user data from a sink
+ * 
+ * Gets the user data from a sink, as previously set by osync_objtype_sink_set_functions()
+ *
+ * @param sink Pointer to the sink
+ * @returns the sink-specific user data
+ * 
+ */
 void *osync_objtype_sink_get_userdata(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->userdata;
 }
 
-/** @brief Queries a plugin for the changed objects since the last sync
+/** @brief Queries a sink for the changed objects since the last sync
  * 
- * Calls the get_changeinfo function on a plugin
+ * Calls the get_changes function on a sink
  * 
- * @param member The member
- * @param function The function that will receive the answer to this call
- * @param user_data User data that will be passed on to the callback function
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -172,12 +261,13 @@ void osync_objtype_sink_get_changes(OSyncObjTypeSink *sink, void *plugindata, OS
 
 /** @brief Reads a single object by its uid
  * 
- * Calls the read_change function on the plugin
+ * Calls the read_change function on the sink
  * 
- * @param member The member
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
  * @param change The change to read. The change must have the uid set
- * @param function The function that will receive the answer to this call
- * @param user_data User data that will be passed on to the callback function
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx)
@@ -198,13 +288,14 @@ void osync_objtype_sink_read_change(OSyncObjTypeSink *sink, void *plugindata, OS
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/** @brief Connects a member to its device
+/** @brief Connects a sink to its device
  * 
- * Calls the connect function on a plugin
+ * Calls the connect function on a sink
  * 
- * @param member The member
- * @param function The function that will receive the answer to this call
- * @param user_data User data that will be passed on to the callback function
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_connect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -224,13 +315,14 @@ void osync_objtype_sink_connect(OSyncObjTypeSink *sink, void *plugindata, OSyncP
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/** @brief Disconnects a member from its device
+/** @brief Disconnects a sink from its device
  * 
- * Calls the disconnect function on a plugin
+ * Calls the disconnect function on a sink
  * 
- * @param member The member
- * @param function The function that will receive the answer to this call
- * @param user_data User data that will be passed on to the callback function
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -250,13 +342,14 @@ void osync_objtype_sink_disconnect(OSyncObjTypeSink *sink, void *plugindata, OSy
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/** @brief Tells the plugin that the sync was successful
+/** @brief Tells the sink that the sync was successfully completed
  * 
- * Calls the sync_done function on a plugin
+ * Calls the sync_done function on a sink
  * 
- * @param member The member
- * @param function The function that will receive the answer to this call
- * @param user_data User data that will be passed on to the callback function
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -277,12 +370,13 @@ void osync_objtype_sink_sync_done(OSyncObjTypeSink *sink, void *plugindata, OSyn
 
 /** @brief Commits a change to the device
  * 
- * Calls the commit_change function on a plugin
+ * Calls the commit_change function on a sink
  * 
- * @param member The member
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
  * @param change The change to write
- * @param function The function that will receive the answer to this call
- * @param user_data User data that will be passed on to the callback function
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncChange *change, OSyncContext *ctx)
@@ -314,14 +408,15 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-/** @brief Tells the plugin that all changes have been committed
+/** @brief Tells the sink that all changes have been committed
  * 
- * Calls the committed_all function on a plugin or the batch_commit function
- * depending on which function the plugin wants to use.
+ * Calls the committed_all function on a sink or the batch_commit function
+ * depending on which function the sink wants to use.
  * 
- * @param member The member
- * @param function The callback that will receive the answer
- * @param user_data The userdata to pass to the callback
+ * @param sink Pointer to the sink
+ * @param plugindata User data that will be passed on to the callback function
+ * @param info Pointer to the plugin info object
+ * @param ctx The sync context
  * 
  */
 void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, void *plugindata, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -371,24 +466,48 @@ void osync_objtype_sink_committed_all(OSyncObjTypeSink *sink, void *plugindata, 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+/*! @brief Checks if a sink is enabled
+ * 
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink is enabled, FALSE otherwise
+ * 
+ */
 osync_bool osync_objtype_sink_is_enabled(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->enabled;
 }
 
+/*! @brief Sets the enabled/disabled state of a sink
+ * 
+ * @param sink Pointer to the sink
+ * @param enabled TRUE if the sink is enabled, FALSE otherwise
+ * 
+ */
 void osync_objtype_sink_set_enabled(OSyncObjTypeSink *sink, osync_bool enabled)
 {
 	osync_assert(sink);
 	sink->enabled = enabled;
 }
 
+/*! @brief Checks if a sink is available
+ * 
+ * @param sink Pointer to the sink
+ * @returns TRUE if the sink is available, FALSE otherwise
+ * 
+ */
 osync_bool osync_objtype_sink_is_available(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->available;
 }
 
+/*! @brief Sets the available state of a sink
+ * 
+ * @param sink Pointer to the sink
+ * @param available TRUE if the sink is available, FALSE otherwise
+ * 
+ */
 void osync_objtype_sink_set_available(OSyncObjTypeSink *sink, osync_bool available)
 {
 	osync_assert(sink);
@@ -419,15 +538,45 @@ void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read)
 	sink->read = read;
 }
 
+/*! @brief Checks if slow-sync has been requested
+ * 
+ * When slow-sync is requested, OpenSync synchronizes all entries rather than
+ * just the changes.
+ *
+ * If you are using hashtables, you should call this function in your sink's
+ * get_changes() function and if slow-sync has been requested, call
+ * osync_hashtable_reset() on your hashtable. If you don't do this, OpenSync
+ * will assume that all entries should be deleted, which is usually not what 
+ * the user wants.
+ *
+ * @param sink Pointer to the sink
+ * @returns TRUE if slow-sync has been requested, FALSE for normal sync
+ * 
+ */
 osync_bool osync_objtype_sink_get_slowsync(OSyncObjTypeSink *sink)
 {
 	osync_assert(sink);
 	return sink->slowsync;
 }
 
+/*! @brief Sets the slow-sync state of a sink
+ * 
+ * When slow-sync is requested, OpenSync synchronizes all entries rather than
+ * just the changes.
+ *
+ * Slow-sync should be requested if you know that your device's memory has
+ * been erased. If it is appropriate for your device, you can use OpenSync's 
+ * anchor system to determine if you should request slow-sync.
+ *
+ * @param sink Pointer to the sink
+ * @param slowsync TRUE to request slow-sync, FALSE for normal sync
+ * 
+ */
 void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync)
 {
 	osync_trace(TRACE_INTERNAL, "%s: Setting slow-sync of object type \"%s\" to %i", __func__, sink->objtype, slowsync);
 	osync_assert(sink);
 	sink->slowsync = slowsync;
 }
+
+/*@}*/

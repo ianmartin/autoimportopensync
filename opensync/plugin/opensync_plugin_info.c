@@ -28,6 +28,20 @@
 #include "opensync-merger.h"
 #include "opensync-version.h"
 
+/**
+ * @defgroup OSyncPluginInfoAPI OpenSync Plugin Info
+ * @ingroup OSyncPublic
+ * @brief Functions to get and set information about a plugin
+ * 
+ */
+/*@{*/
+
+
+/*! @brief Create a new plugin info object
+ *
+ * @param error Pointer to an error struct
+ * @returns the newly registered plugin info object
+ */
 OSyncPluginInfo *osync_plugin_info_new(OSyncError **error)
 {
 	OSyncPluginInfo *info = osync_try_malloc0(sizeof(OSyncPluginInfo), error);
@@ -39,6 +53,11 @@ OSyncPluginInfo *osync_plugin_info_new(OSyncError **error)
 	return info;
 }
 
+/*! @brief Increase the reference count on a plugin info object
+ * 
+ * @param info Pointer to the plugin info object
+ * 
+ */
 void osync_plugin_info_ref(OSyncPluginInfo *info)
 {
 	osync_assert(info);
@@ -46,6 +65,11 @@ void osync_plugin_info_ref(OSyncPluginInfo *info)
 	g_atomic_int_inc(&(info->ref_count));
 }
 
+/*! @brief Decrease the reference count on a plugin info object
+ * 
+ * @param info Pointer to the plugin info object
+ * 
+ */
 void osync_plugin_info_unref(OSyncPluginInfo *info)
 {
 	osync_assert(info);
@@ -99,6 +123,12 @@ void osync_plugin_info_set_config(OSyncPluginInfo *info, const char *config)
 	info->config = g_strdup(config);
 }
 
+/*! @brief Returns the plugin configuration data
+ * 
+ * @param info Pointer to the plugin info object
+ * @returns the plugin configuration data (null-terminated string)
+ * 
+ */
 const char *osync_plugin_info_get_config(OSyncPluginInfo *info)
 {
 	osync_assert(info);
@@ -113,6 +143,12 @@ void osync_plugin_info_set_configdir(OSyncPluginInfo *info, const char *configdi
 	info->configdir = g_strdup(configdir);
 }
 
+/*! @brief Returns the plugin configuration directory
+ * 
+ * @param info Pointer to the plugin info object
+ * @returns the full path where configuration files for the plugin are stored
+ * 
+ */
 const char *osync_plugin_info_get_configdir(OSyncPluginInfo *info)
 {
 	osync_assert(info);
@@ -163,6 +199,12 @@ done:
 
 }
 
+/*! @brief Adds an object type (sink) to a plugin
+ * 
+ * @param info Pointer to the plugin info object
+ * @param sink The sink to add
+ * 
+ */
 void osync_plugin_info_add_objtype(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 {
 	osync_assert(info);
@@ -170,12 +212,25 @@ void osync_plugin_info_add_objtype(OSyncPluginInfo *info, OSyncObjTypeSink *sink
 	osync_objtype_sink_ref(sink);
 }
 
+/*! @brief Returns the number of added object types (sinks)
+ * 
+ * @param info Pointer to the plugin info object
+ * @returns the number of object types in the plugin info
+ * 
+ */
 int osync_plugin_info_num_objtypes(OSyncPluginInfo *info)
 {
 	osync_assert(info);
 	return g_list_length(info->objtypes);
 }
 
+/*! @brief Returns the nth added object type (sink)
+ * 
+ * @param info Pointer to the plugin info object
+ * @param nth the index of the object type (sink) to return
+ * @returns the object type (sink) at the specified index
+ * 
+ */
 OSyncObjTypeSink *osync_plugin_info_nth_objtype(OSyncPluginInfo *info, int nth)
 {
 	osync_assert(info);
@@ -196,6 +251,12 @@ void osync_plugin_info_set_main_sink(OSyncPluginInfo *info, OSyncObjTypeSink *si
 	osync_objtype_sink_ref(sink);
 }
 
+/*! @brief Returns the currently running sink
+ * 
+ * @param info Pointer to the plugin info object
+ * @returns the current sink
+ * 
+ */
 OSyncObjTypeSink *osync_plugin_info_get_sink(OSyncPluginInfo *info)
 {
 	osync_assert(info);
@@ -209,6 +270,12 @@ void osync_plugin_info_set_sink(OSyncPluginInfo *info, OSyncObjTypeSink *sink)
 	info->current_sink = sink;
 }
 
+/*! @brief Returns the plugin format conversion environment
+ * 
+ * @param info Pointer to the plugin info object
+ * @returns the plugin format conversion environment
+ * 
+ */
 OSyncFormatEnv *osync_plugin_info_get_format_env(OSyncPluginInfo *info)
 {
 	osync_assert(info);
@@ -257,3 +324,5 @@ OSyncCapabilities *osync_plugin_info_get_capabilities(OSyncPluginInfo *info)
 	osync_assert(info);
 	return info->capabilities;
 }
+
+/*@}*/

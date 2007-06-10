@@ -38,8 +38,11 @@
  * This function creates a new OSyncPluginInfo object, that
  * can be used to register a new plugin dynamically. This
  * can be used by a module to register multiple plugins,
- * instead of using get_info() function, that allows
- * registering of only one plugin.
+ * instead of using the get_info() function which allows
+ * registering only one plugin.
+ *
+ * @param error Pointer to an error struct
+ * @returns the newly registered plugin
  */
 OSyncPlugin *osync_plugin_new(OSyncError **error)
 {
@@ -54,6 +57,11 @@ OSyncPlugin *osync_plugin_new(OSyncError **error)
 	return plugin;
 }
 
+/*! @brief Increase the reference count on a plugin
+ * 
+ * @param plugin Pointer to the plugin
+ * 
+ */
 void osync_plugin_ref(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
@@ -61,6 +69,11 @@ void osync_plugin_ref(OSyncPlugin *plugin)
 	g_atomic_int_inc(&(plugin->ref_count));
 }
 
+/*! @brief Decrease the reference count on a plugin
+ * 
+ * @param plugin Pointer to the plugin
+ * 
+ */
 void osync_plugin_unref(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
@@ -79,7 +92,7 @@ void osync_plugin_unref(OSyncPlugin *plugin)
 	}
 }
 
-/*! @brief Returns the name of the loaded plugin
+/*! @brief Returns the name of a plugin
  * 
  * @param plugin Pointer to the plugin
  * @returns Name of the plugin
@@ -91,6 +104,14 @@ const char *osync_plugin_get_name(OSyncPlugin *plugin)
 	return plugin->name;
 }
 
+/*! @brief Sets the name of a plugin
+ * 
+ * Sets the name of a plugin. This is a short name (maybe < 15 chars).
+ *
+ * @param plugin Pointer to the plugin
+ * @param name the name to set
+ * 
+ */
 void osync_plugin_set_name(OSyncPlugin *plugin, const char *name)
 {
 	osync_assert(plugin);
@@ -99,7 +120,7 @@ void osync_plugin_set_name(OSyncPlugin *plugin, const char *name)
 	plugin->name = g_strdup(name);
 }
 
-/*! @brief Returns the long name of the loaded plugin
+/*! @brief Returns the long name of a plugin
  * 
  * @param plugin Pointer to the plugin
  * @returns Long name of the plugin
@@ -111,6 +132,14 @@ const char *osync_plugin_get_longname(OSyncPlugin *plugin)
 	return plugin->longname;
 }
 
+/*! @brief Sets the long name of a plugin
+ * 
+ * Sets the long name of a plugin (maybe < 50 chars).
+ *
+ * @param plugin Pointer to the plugin
+ * @param longname the long name to set
+ * 
+ */
 void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname)
 {
 	osync_assert(plugin);
@@ -119,7 +148,7 @@ void osync_plugin_set_longname(OSyncPlugin *plugin, const char *longname)
 	plugin->longname = g_strdup(longname);
 }
 
-/*! @brief Returns the description of the plugin
+/*! @brief Returns the description of a plugin
  * 
  * @param plugin Pointer to the plugin
  * @returns Description of the plugin
@@ -131,6 +160,14 @@ const char *osync_plugin_get_description(OSyncPlugin *plugin)
 	return plugin->description;
 }
 
+/*! @brief Sets the description of a plugin
+ * 
+ * Sets a longer description for the plugin (maybe < 200 chars).
+ *
+ * @param plugin Pointer to the plugin
+ * @param description the description to set
+ * 
+ */
 void osync_plugin_set_description(OSyncPlugin *plugin, const char *description)
 {
 	osync_assert(plugin);
@@ -156,12 +193,22 @@ void osync_plugin_set_data(OSyncPlugin *plugin, void *data)
 	plugin->plugin_data = data;
 }
 
+/*! @brief Returns whether or not the plugin requires configuration
+ *
+ * @param plugin Pointer to the plugin
+ * @returns The configuration requirement type of the plugin
+ */
 OSyncConfigurationType osync_plugin_get_config_type(OSyncPlugin *plugin)
 {
 	osync_assert(plugin);
 	return plugin->config_type;
 }
 
+/*! @brief Sets whether or not the plugin requires configuration
+ *
+ * @param plugin Pointer to the plugin
+ * @param config_type The configuration requirement type of the plugin
+ */
 void osync_plugin_set_config_type(OSyncPlugin *plugin, OSyncConfigurationType config_type)
 {
 	osync_assert(plugin);
@@ -180,12 +227,28 @@ void osync_plugin_set_start_type(OSyncPlugin *plugin, OSyncStartType start_type)
 	plugin->start_type = start_type;
 }
 
+/*! @brief Sets the initialize function for a plugin
+ *
+ * The initialize function of a plugin sets up sinks for the plugin as well
+ * as other plugin-wide structures.
+ *
+ * @param plugin Pointer to the plugin
+ * @param init The initialize function for the plugin
+ */
 void osync_plugin_set_initialize(OSyncPlugin *plugin, initialize_fn init)
 {
 	osync_assert(plugin);
 	plugin->initialize = init;
 }
 
+/*! @brief Sets the finalize function for a plugin
+ *
+ * The finalize function of a plugin frees any plugin-wide structures
+ * that were created in the initialize function.
+ *
+ * @param plugin Pointer to the plugin
+ * @param fin The finalize function for the plugin
+ */
 void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin)
 {
 	osync_assert(plugin);
@@ -193,6 +256,18 @@ void osync_plugin_set_finalize(OSyncPlugin *plugin, finalize_fn fin)
 	plugin->finalize = fin;
 }
 
+/*! @brief Sets the optional discover function for a plugin
+ *
+ * The discover function of a plugin can be used to specify which 
+ * of the sinks in the plugin are currently available, and to declare
+ * the compatible device versions for the plugin. It can also
+ * be used to set the plugin's capabilities.
+ *
+ * The discover function is optional.
+ *
+ * @param plugin Pointer to the plugin
+ * @param discover The discover function for the plugin
+ */
 void osync_plugin_set_discover(OSyncPlugin *plugin, discover_fn discover)
 {
 	osync_assert(plugin);
@@ -229,10 +304,9 @@ osync_bool osync_plugin_discover(OSyncPlugin *plugin, void *data, OSyncPluginInf
 
 /*! @brief Checks if a plugin is available and usable
  * 
- * @param env The environment in which the plugin should be loaded
- * @param pluginname The name of the plugin to check for
- * @param error If the return was FALSE, will contain the information why the plugin is not available
- * @returns TRUE if plugin was found and is usable, FALSE otherwise
+ * @param plugin The plugin to check
+ * @param error If the return was FALSE, will contain information on why the plugin is not available
+ * @returns TRUE if the plugin was found and is usable, FALSE otherwise
  * 
  */
 osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
