@@ -42,7 +42,7 @@ int _osync_version_match(char *pattern, char* string, OSyncError **error)
 	osync_assert(string);
 	regex_t *preg = osync_try_malloc0(sizeof(regex_t), error);
 	if(!preg)
-		return -1;
+		goto error;
 	
 	int ret = regcomp(preg, pattern, 0);
 	
@@ -52,31 +52,39 @@ int _osync_version_match(char *pattern, char* string, OSyncError **error)
 		errbuf_size = regerror(ret, preg, NULL, 0);
 		errbuf = osync_try_malloc0(errbuf_size, error);
 		if(!errbuf)
-			return -1;
+			goto error_and_free;
 		regerror(ret, preg, errbuf, errbuf_size);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", errbuf);
 		g_free(errbuf);
-		return -1;
+		goto error_and_free;
 	}
 	
 	ret = regexec(preg, string, 0, NULL, 0);
 	regfree(preg);
+	g_free(preg);
+
 	if(ret != 0) { 
 		if(ret == REG_NOMATCH)
 			return 0;
 		errbuf_size = regerror(ret, preg, NULL, 0);
 		errbuf = osync_try_malloc0(errbuf_size, error);
 		if(!errbuf)
-			return -1;
+			goto error;
 		regerror(ret, preg, errbuf, errbuf_size);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "%s", errbuf);
 		g_free(errbuf);
-		return -1;
+		goto error;
 	}
 #else //_WIN32
 #warning "_osync_version_match will allways match"
 #endif
 	return 1;
+
+error_and_free:	
+	regfree(preg);
+	g_free(preg);
+error:
+	return -1;
 }
 
 /*@}*/
