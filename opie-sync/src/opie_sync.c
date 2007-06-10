@@ -213,10 +213,8 @@ void _disconnectDevice(OpiePluginEnv *env)
 static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
-	//Each time you get passed a context (which is used to track
-	//calls to your plugin) you can get the data your returned in
-	//initialize via this call:
-	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OpieSinkEnv *env = osync_objtype_sink_get_userdata(sink);
 
 	OSyncError *error = NULL;
 
@@ -258,8 +256,6 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 		goto error;
 	}
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-
 	/* Get hashtable */
 	const char *configdir = osync_plugin_info_get_configdir(info);
 	char *tablepath = g_strdup_printf("%s/hashtable.db", configdir);
@@ -282,7 +278,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	OpieSinkEnv *env = osync_objtype_sink_get_userdata(sink);
 
 	OSyncError *error = NULL;
 
@@ -429,7 +425,8 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *change)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
-	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OpieSinkEnv *env = osync_objtype_sink_get_userdata(sink);
 
 	OSyncError *error = NULL;
 	const char *ext_uid = osync_change_get_uid(change);
@@ -520,7 +517,8 @@ error:
 static void sync_done(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, userdata, info, ctx);
-	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OpieSinkEnv *env = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
 	
 	if ( !opie_put_sink(env) ) {
@@ -543,7 +541,8 @@ error:
 
 static void disconnect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	OpieSinkEnv *env = (OpieSinkEnv *)userdata;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	OpieSinkEnv *env = osync_objtype_sink_get_userdata(sink);
 	
 	/* Close the hashtable */
 	osync_hashtable_free(env->hashtable);
