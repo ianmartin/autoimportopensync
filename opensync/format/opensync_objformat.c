@@ -110,7 +110,7 @@ const char *osync_objformat_get_objtype(OSyncObjFormat *format)
 }
 
 /**
- * @brief Compare the names of two object formats
+ * @brief Compares the names of two object formats
  * @param leftformat Pointer to the object format to compare
  * @param rightformat Pointer to the other object format to compare
  * @return TRUE if the two object format names are equal, false otherwise
@@ -123,12 +123,35 @@ osync_bool osync_objformat_is_equal(OSyncObjFormat *leftformat, OSyncObjFormat *
 	return (!strcmp(leftformat->name, rightformat->name)) ? TRUE : FALSE;
 }
 
+/**
+ * @brief Sets the optional compare function for an object format
+ *
+ * The compare function can be used to compare two objects in your object 
+ * format. This is optional - if you prefer, you can instead provide a 
+ * conversion to and from the xml format and let all the comparison be done 
+ * there.
+ *
+ * @param format Pointer to the object format
+ * @param cmp_func The compare function to use
+ */
 void osync_objformat_set_compare_func(OSyncObjFormat *format, OSyncFormatCompareFunc cmp_func)
 {
 	osync_assert(format);
 	format->cmp_func = cmp_func;
 }
 
+/**
+ * @brief Compares two objects of the same object format
+ *
+ * Compares two objects of the same object format using the format's compare function
+ *
+ * @param format Pointer to the object format
+ * @param leftdata Pointer to the object to compare
+ * @param leftsize the size in bytes of the object specified by the leftdata parameter
+ * @param rightdata Pointer to the other object to compare
+ * @param rightsize the size in bytes of the object specified by the rightdata parameter
+ * @returns the comparison result
+ */
 OSyncConvCmpResult osync_objformat_compare(OSyncObjFormat *format, const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
 {
 	osync_assert(format);
@@ -136,12 +159,26 @@ OSyncConvCmpResult osync_objformat_compare(OSyncObjFormat *format, const char *l
 	return format->cmp_func(leftdata, leftsize, rightdata, rightsize);
 }
 
+/**
+ * @brief Sets the destroy function for an object format
+ *
+ * The destroy function is used to free data structures allocated by your format.
+ *
+ * @param format Pointer to the object format
+ * @param destroy_func The destroy function to use
+ */
 void osync_objformat_set_destroy_func(OSyncObjFormat *format, OSyncFormatDestroyFunc destroy_func)
 {
 	osync_assert(format);
 	format->destroy_func = destroy_func;
 }
 
+/**
+ * @brief Destroy an object of the specified format
+ * @param format Pointer to the object format
+ * @param data Pointer to the object to destroy
+ * @param size Size in bytes of the object specified by the data parameter
+ */
 void osync_objformat_destroy(OSyncObjFormat *format, char *data, unsigned int size)
 {
 	osync_assert(format);
@@ -183,12 +220,40 @@ osync_bool osync_objformat_copy(OSyncObjFormat *format, const char *indata, unsi
 	return TRUE;
 }
 
+/**
+ * @brief Sets the duplicate function for an object format
+ *
+ * The duplicate function can be used to duplicate an object in your format.
+ * Duplication does not mean to make two objects out of one, but to change 
+ * the uid of the object in such a way that it differs from the original uid.
+ *
+ * Most formats will never need this.
+ *
+ * @param format Pointer to the object format
+ * @param dupe_func The duplicate function to use
+ */
 void osync_objformat_set_duplicate_func(OSyncObjFormat *format, OSyncFormatDuplicateFunc dupe_func)
 {
 	osync_assert(format);
 	format->duplicate_func = dupe_func;
 }
 
+/**
+ * @brief Duplicate an object of the specified format
+ *
+ * Duplication does not mean to make two objects out of one, but to change 
+ * the uid of the object in such a way that it differs from the original uid.
+ *
+ * @param format Pointer to the object format
+ * @param uid The uid of the object
+ * @param input Pointer to the object to duplicate
+ * @param insize Size in bytes of the object specified by the input parameter
+ * @param newuid The new uid for the duplicate object
+ * @param output Pointer to a pointer to be set to the duplicate object
+ * @param outsize Pointer to a variable to be set to the size of the duplicate object
+ * @param error Pointer to an error struct
+ * @return TRUE if the duplication succeeded, FALSE otherwise.
+ */
 osync_bool osync_objformat_duplicate(OSyncObjFormat *format, const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
 	osync_assert(format);
@@ -215,12 +280,33 @@ void osync_objformat_create(OSyncObjFormat *format, char **data, unsigned int *s
 	format->create_func(data, size);
 }
 
+/**
+ * @brief Sets the print function for an object format
+ *
+ * If your format is not in a human readable format already, you should set
+ * the print function to a function that returns a human readable string 
+ * describing the object as closely as possible. This information will be 
+ * used by the user to decide which object to pick when there is a conflict.
+ *
+ * @param format Pointer to the object format
+ * @param print_func The print function to use
+ */
 void osync_objformat_set_print_func(OSyncObjFormat *format, OSyncFormatPrintFunc print_func)
 {
 	osync_assert(format);
 	format->print_func = print_func;
 }
 
+/**
+ * @brief Prints the specified object
+ *
+ * Uses the object format's print function if set, otherwise the object's
+ * data will be returned as a string.
+ *
+ * @param format Pointer to the object format
+ * @param data Pointer to the object to destroy
+ * @param size Size in bytes of the object specified by the data parameter
+ */
 char *osync_objformat_print(OSyncObjFormat *format, const char *data, unsigned int size)
 {
 	osync_assert(format);
