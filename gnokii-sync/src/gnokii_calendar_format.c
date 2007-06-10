@@ -192,8 +192,15 @@ static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsi
 		
 		xmlfield = osync_xmlfield_new(xmlformat, "Alarm", error);
 
+		// TODO: How to handle AlarmAction?
+		// AUDIO by tone? 
+	        // DISPLAY by silent?	
+		// EMAIL and PRODECDURE isn't supported by libgnokii
 		if (cal->alarm.tone)
+			osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "AUDIO");
+		else
 			osync_xmlfield_set_key_value(xmlfield, "AlarmAction", "DISPLAY");
+
 
 
 		osync_xmlfield_set_key_value(xmlfield, "AlarmTrigger", tmp);
@@ -203,19 +210,19 @@ static osync_bool conv_gnokii_event_to_xmlformat(char *input, unsigned int inpsi
 	}
 
 	// Summary
-	if (cal->text) {
+	if (strlen(cal->text)) {
 		xmlfield = osync_xmlfield_new(xmlformat, "Summary", error);
 		osync_xmlfield_set_key_value(xmlfield, "Content", cal->text);
 	}
 
 	// Phone Number
-	if (cal->phone_number && cal->type == GN_CALNOTE_CALL) {
+	if (strlen(cal->phone_number) && cal->type == GN_CALNOTE_CALL) {
 		xmlfield = osync_xmlfield_new(xmlformat, "Description", error);
 		osync_xmlfield_set_key_value(xmlfield, "Content", cal->phone_number);
 	}
 
 	// mlocation
-	if (cal->mlocation && cal->type == GN_CALNOTE_MEETING) {
+	if (strlen(cal->mlocation) && cal->type == GN_CALNOTE_MEETING) {
 		xmlfield = osync_xmlfield_new(xmlformat, "Location", error);
 		osync_xmlfield_set_key_value(xmlfield, "Content", cal->mlocation);
 	}
@@ -365,6 +372,98 @@ void static _xmlfield_dateend(gn_calnote *calnote, OSyncXMLField *xmlfield)
 
 }
 
+void static _xmlfield_alarm(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+	int seconds_before = 0;
+	time_t start_timet, alarm_timet;
+
+	calnote->alarm.enabled = 1;
+	
+	const char *action = osync_xmlfield_get_key_value(xmlfield, "AlarmAction");
+
+	if (!action)
+		osync_trace(TRACE_INTERNAL, "AlarmAction wasn't set!");
+
+	if (action && (!strcasecmp(action, "DISPLAY") || !strcasecmp(action, "AUDIO")))
+		calnote->alarm.tone = 1;
+
+
+	
+	const char *trigger = osync_xmlfield_get_key_value(xmlfield, "AlarmTrigger");
+
+	if (!trigger) 
+		osync_trace(TRACE_INTERNAL, "AlarmTrigger wasn't set!");
+
+	const char *triggertype = osync_xmlfield_get_attr(xmlfield, "Value");		
+
+	if (triggertype && !strcasecmp("DURATION", triggertype)) {
+		seconds_before = gnokii_util_alarmevent2secs(trigger);
+
+		// convert start event in to seconds
+		start_timet = gnokii_util_timestamp2unix(&(calnote->time));
+
+		// timestamp for alarm
+		alarm_timet = start_timet - seconds_before;
+	} else if (triggertype && ! strcasecmp("DATE-TIME", triggertype)) {
+		// TODO: untested! - check UTC offeset issues
+		alarm_timet = osync_time_vtime2unix(trigger, 0);
+	} else {
+		osync_trace(TRACE_INTERNAL, "Unkown TRIGGERVALUE - skip Alarm.");
+		return;
+	}
+
+	// convert timestamp of alarm to gnokii timestamp
+	calnote->alarm.timestamp = gnokii_util_unix2timestamp(alarm_timet);
+}
+
+void static _xmlfield_summary(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+	const char *summary = osync_xmlfield_get_key_value(xmlfield, "Content");
+	strncpy(calnote->text, summary, GN_CALNOTE_MAX_LENGTH); 
+}
+
+void static _xmlfield_location(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+	const char *location = osync_xmlfield_get_key_value(xmlfield, "Content");
+//	if (calnote->type == GN_CALNOTE_MEETING && location)
+	strncpy(calnote->mlocation, location, GN_CALNOTE_MAX_LENGTH);
+}
+
+void static _xmlfield_description(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+
+	const char *description = osync_xmlfield_get_key_value(xmlfield, "Content");
+//	if (calnote->type == GN_CALNOTE_CALL || gnokii_util_valid_number(tmp))
+	strncpy(calnote->phone_number, description, GN_CALNOTE_NUMBER_MAX_LENGTH);
+}
+
+void static _xmlfield_recurrencerule(gn_calnote *calnote, OSyncXMLField *xmlfield)
+{
+	int interval = 0;
+
+	const char *freq = osync_xmlfield_get_key_value(xmlfield, "Frequency");
+
+	if (!strcasecmp(freq, "DAILY"))
+		calnote->recurrence = GN_CALNOTE_DAILY;
+	else if (!strcasecmp(freq, "WEEKLY")) 
+		calnote->recurrence = GN_CALNOTE_WEEKLY;
+	else if (!strcasecmp(freq, "MONTHLY"))
+		calnote->recurrence = GN_CALNOTE_MONTHLY;
+	else if (!strcasecmp(freq, "YEARLY"))
+		calnote->recurrence = GN_CALNOTE_YEARLY;
+
+	const char *ival = osync_xmlfield_get_key_value(xmlfield, "Interval");
+
+	if (ival)
+		sscanf(ival, "%u", &interval);
+
+	// TODO: Get this merged by demerger....
+	// Nokia phones only support a interval of 2 for weeks
+	if (calnote->recurrence == GN_CALNOTE_WEEKLY && interval == 2)
+		calnote->recurrence = GN_CALNOTE_2WEEKLY;
+}
+
+
 /* 
  * Converts from XMLFormat-event to the gnokii event object type (gn_calnote).
  */  
@@ -401,120 +500,25 @@ static osync_bool conv_xmlformat_to_gnokii_event(char *input, unsigned int inpsi
 			_xmlfield_datestarted(calnote, xmlfield, &alldayevent);
 		else if (!strcmp("DateEnd", osync_xmlfield_get_name(xmlfield)))
 			_xmlfield_dateend(calnote, xmlfield);
-
+		else if (!strcmp("Alarm", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_alarm(calnote, xmlfield);
+		else if (!strcmp("Summary", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_summary(calnote, xmlfield);
+		else if (!strcmp("Location", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_location(calnote, xmlfield);
+		else if (!strcmp("Description", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_description(calnote, xmlfield);
+		else if (!strcmp("RecurrenceRule", osync_xmlfield_get_name(xmlfield)))
+			_xmlfield_recurrencerule(calnote, xmlfield);
 
 	}
 
 		
 
-	/* Alarm - TODO: is not fully supported
-	 * 		Not supported:
-	 *		^^^^^^^^^^^^^^
-	 *		# alarm after event
-	 *		# alarm before event end
-	 *		# ...
-	 */
-
-	/* TODO porting to new XMLFormat-even layout */
-	/*
-	cur = osxml_get_node(root, "Alarm");
-	if (cur && calnote->time.year) {
-
-		int seconds_before = 0;
-		time_t start_timet, alarm_timet;
-
-		calnote->alarm.enabled = 1;
-		
-		tmp = osxml_find_node(cur, "AlarmAction");
-		if (tmp && !strcasecmp(tmp, "DISPLAY"))
-			calnote->alarm.tone = 1;
-
-		g_free(tmp);
-		
-		// get AlarmTrigger root
-		xmlNode *sub = osxml_get_node(cur, "AlarmTrigger");
-
-		// get node with iCal duration
-		tmp = osxml_find_node(sub, "Content");
-
-		// convert iCal duration string into seconds (before event)
-		seconds_before = gnokii_util_alarmevent2secs(tmp);
-
-		g_free(tmp);
-		
-		// convert start event in to seconds
-		start_timet = gnokii_util_timestamp2unix(&(calnote->time));
-
-		// timestamp for alarm
-		alarm_timet = start_timet - seconds_before;
-
-		// convert timestamp of alarm to gnokii timestamp
-		calnote->alarm.timestamp = gnokii_util_unix2timestamp(alarm_timet);
-	}
-
-	// Summary
-	cur = osxml_get_node(root, "Summary");
-	if (cur) {
-		tmp = (char *) xmlNodeGetContent(cur);
-		strncpy(calnote->text, tmp, sizeof(calnote->text)); 
-		g_free(tmp);
-	}
-
-	// meeting location
-	cur = osxml_get_node(root, "Location");
-	if (cur) {
-		tmp = (char *) xmlNodeGetContent(cur);
-
-		if (calnote->type == GN_CALNOTE_MEETING && tmp)
-			strncpy(calnote->mlocation, tmp, sizeof(calnote->mlocation));
-
-		g_free(tmp);
-	}
-
-	// PhoneNumber
-	cur = osxml_get_node(root, "Description");
-	if (cur) {
-		tmp = (char *) xmlNodeGetContent(cur);
-		if (calnote->type == GN_CALNOTE_CALL || gnokii_util_valid_number(tmp))
-			strncpy(calnote->phone_number, tmp, sizeof(calnote->phone_number));
-
-		g_free(tmp);
-	}
-
-	// Reccurence
-	cur = osxml_get_node(root, "RecurrenceRule");
-	if (cur) {
-		int interval = 0;
-
-		for (cur = cur->children; cur; cur = cur->next) {
-
-			tmp = (char *) xmlNodeGetContent(cur);
-
-			if (strstr(tmp, "DAILY"))
-				calnote->recurrence = GN_CALNOTE_DAILY;
-			else if (strstr(tmp, "WEEKLY")) 
-				calnote->recurrence = GN_CALNOTE_WEEKLY;
-			else if (strstr(tmp, "MONTHLY"))
-				calnote->recurrence = GN_CALNOTE_MONTHLY;
-			else if (strstr(tmp, "YEARLY"))
-				calnote->recurrence = GN_CALNOTE_YEARLY;
-
-			else if (strstr(tmp, "INTERVAL"))
-				sscanf(tmp, "INTERVAL=%u", &interval);
-
-			g_free(tmp);
-		}
-
-		// Nokia phones only support a interval of 2 for weeks
-		if (calnote->recurrence == GN_CALNOTE_WEEKLY && interval == 2)
-			calnote->recurrence = GN_CALNOTE_2WEEKLY;
-	}
-	*/
 
 	// check for type which fits for given data if no type was set
 	if (!calnote->type)
 		calnote->type = gnokii_util_calendar_type(calnote, alldayevent);
-
 
 	*free_input = TRUE;
 	*output = (void *)calnote;
@@ -529,7 +533,7 @@ error:
 }
 
 
-static void destroy_gnokii_event(char *input, size_t inpsize)
+static void destroy_gnokii_event(char *input, unsigned int inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	gn_calnote *calnote = (gn_calnote *) input;

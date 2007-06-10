@@ -201,12 +201,14 @@ gn_calnote *gnokii_calendar_get_calnote(int pos, gn_data *caldata, struct gn_sta
 	// check if the location is empty and return NULL
 	if (error == GN_ERR_EMPTYLOCATION) {
 		osync_trace(TRACE_EXIT, "%s: no calendar note left.", __func__);
+		g_free(calnote);
 		return NULL;
 	}
 
 	// check if there were any other errors
 	if (error != GN_ERR_NONE) {
 		osync_trace(TRACE_EXIT_ERROR, "%s(): error while query the phone - gnokii: %s", __func__, gn_error_print(error));
+		g_free(calnote);
 		return NULL;
 	}
 
@@ -572,17 +574,8 @@ void gnokii_calendar_commit_change(void *plugindata, OSyncPluginInfo *info, OSyn
 			break;
 	}
 	
-	// answer the call
 	osync_context_report_success(ctx);
-
-	// blubb
-	/*
-	osync_trace(TRACE_INTERNAL, "change->hash: %s change->changetype: %i", osync_change_get_hash(change),
-		       osync_change_get_changetype(change));
-	*/
-		       
-	g_free(calnote);
-	
+			       
 	// update hashtable
 	osync_hashtable_update_hash(sinkenv->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), osync_change_get_hash(change));
 

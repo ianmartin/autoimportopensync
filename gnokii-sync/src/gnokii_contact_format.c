@@ -52,7 +52,7 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 
 
 	// Name
-	if (contact->name) {
+	if (strlen(contact->name)) {
 
 		xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
 		osync_xmlfield_set_key_value(xmlfield, "Content", contact->name);
@@ -376,7 +376,7 @@ error:
 }
 
 
-static void destroy_gnokii_contact(char *input, size_t inpsize)
+static void destroy_gnokii_contact(char *input, unsigned int inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) input;
