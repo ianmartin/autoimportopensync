@@ -404,6 +404,7 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
  					goto error_free_capabilities;
  			}
  		}
+		osync_version_unref(version);
 		
 		ctx->discover_callback(proxy, ctx->discover_callback_data, NULL);
 	} else if (osync_message_get_cmd(message) == OSYNC_MESSAGE_ERRORREPLY) {
