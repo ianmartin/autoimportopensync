@@ -33,7 +33,7 @@
  * @param env Pointer to a OSyncFormatEnv environment
  * @param path The path where to look for plugins, NULL for the default sync module directory
  * @param must_exist If set to TRUE, this function will return an error if the directory does not exist
- * @param error Pointer to a error struct to return a error
+ * @param error Pointer to a error struct to return an error
  * @returns TRUE on success, FALSE otherwise
  * 
  */
@@ -196,7 +196,7 @@ static osync_bool _target_fn_simple(const void *data, OSyncObjFormat *fmt)
 	v->references++;
 }*/
 
-/** Dereference an vertice
+/** Dereference a vertice
  */
 static void _free_vertice(vertice *vertice)
 {
@@ -207,7 +207,7 @@ static void _free_vertice(vertice *vertice)
 
 /** Returns a neighbour of the vertice ve
  *
- * Returns a new reference to te vertice. The reference
+ * Returns a new reference to the vertice. The reference
  * should be dropped using deref_vertice(), later.
  */
 static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree, vertice *ve, OSyncError **error)
@@ -301,6 +301,7 @@ static void _free_tree(conv_tree *tree)
  *       CHANGE_DELETED changes. Converting and detecting data
  *       on changes that have no data doesn't make sense
  *
+ * @param env Pointer to a OSyncFormatEnv environment
  * @see osync_conv_convert_fn(), osync_change_convert(),
  *      osync_conv_convert_fmtlist(), osync_change_convert_member_sink()
  *
@@ -561,7 +562,7 @@ OSyncObjFormat *osync_format_env_find_objformat(OSyncFormatEnv *env, const char 
 
 /*! @brief Returns the number of available object formats
  * 
- * @param type The object type for whih to lookup the formats
+ * @param env The format environment
  * @returns The number of object formats
  * 
  */
@@ -573,9 +574,9 @@ int osync_format_env_num_objformats(OSyncFormatEnv *env)
 
 /*! @brief Gets the nth object format
  * 
- * @param type The object for which to get the nth format
- * @param nth The number
- * @returns The object format, or NULL if there is no such object type
+ * @param env The format environment
+ * @param nth The position of the object format to retrieve
+ * @returns The object format
  * 
  */
 OSyncObjFormat *osync_format_env_nth_objformat(OSyncFormatEnv *env, int nth)
@@ -607,8 +608,8 @@ void osync_format_env_register_converter(OSyncFormatEnv *env, OSyncFormatConvert
 /*! @brief Finds the converter with the given source and target format
  * 
  * @param env Pointer to the environment
- * @param sourcename Name of the source format
- * @param targetname Name of the target format
+ * @param sourceformat The source format
+ * @param targetformat The target format
  * @returns The converter, or NULL if not found
  * 
  */
@@ -634,10 +635,10 @@ OSyncFormatConverter *osync_format_env_find_converter(OSyncFormatEnv *env, OSync
 	return NULL;
 }
 
-/*! @brief Returns the number of available object formats
+/*! @brief Returns the number of available converters
  * 
- * @param type The object type for whih to lookup the formats
- * @returns The number of object formats
+ * @param env The format environment
+ * @returns The number of converters
  * 
  */
 int osync_format_env_num_converters(OSyncFormatEnv *env)
@@ -646,11 +647,11 @@ int osync_format_env_num_converters(OSyncFormatEnv *env)
 	return g_list_length(env->converters);
 }
 
-/*! @brief Gets the nth object format
+/*! @brief Gets the nth format converter
  * 
- * @param type The object for which to get the nth format
- * @param nth The number
- * @returns The object format, or NULL if there is no such object type
+ * @param env The format environment
+ * @param nth The position of the format converter to retrieve
+ * @returns The format converter
  * 
  */
 OSyncFormatConverter *osync_format_env_nth_converter(OSyncFormatEnv *env, int nth)
@@ -668,10 +669,10 @@ void osync_format_env_register_filter(OSyncFormatEnv *env, OSyncCustomFilter *fi
 	osync_custom_filter_ref(filter);
 }
 
-/*! @brief Returns the number of available object formats
+/*! @brief Returns the number of available filters
  * 
- * @param type The object type for whih to lookup the formats
- * @returns The number of object formats
+ * @param env The format environment
+ * @returns The number of filters
  * 
  */
 int osync_format_env_num_filters(OSyncFormatEnv *env)
@@ -680,11 +681,11 @@ int osync_format_env_num_filters(OSyncFormatEnv *env)
 	return g_list_length(env->custom_filters);
 }
 
-/*! @brief Gets the nth object format
+/*! @brief Gets the nth filter
  * 
- * @param type The object for which to get the nth format
- * @param nth The number
- * @returns The object format, or NULL if there is no such object type
+ * @param env The format environment
+ * @param nth The position of the filter to retrieve
+ * @returns The filter
  * 
  */
 OSyncCustomFilter *osync_format_env_nth_filter(OSyncFormatEnv *env, int nth)
@@ -693,14 +694,13 @@ OSyncCustomFilter *osync_format_env_nth_filter(OSyncFormatEnv *env, int nth)
 	return g_list_nth_data(env->custom_filters, nth);
 }
 
-/*! @brief Tries to detect the format of the given change
+/*! @brief Tries to detect the format of the given data object
  * 
- * This will try to detect the format of the data on the change
+ * This will try to detect the format of the specified data object
  * and return it, but not set it.
  * 
  * @param env The conversion environment to use
- * @param change The change to detect
- * @param error The error-return location
+ * @param data The data object to detect
  * @returns The format on success, NULL otherwise
  * 
  */
@@ -727,16 +727,16 @@ OSyncObjFormat *osync_format_env_detect_objformat(OSyncFormatEnv *env, OSyncData
 	return NULL;
 }
 
-/*! @brief Tries to detect the encapsulated format of the given change
+/*! @brief Tries to detect the encapsulated format of the given data object
  * 
- * This will try to detect the encapsulated format of the data on the change
- * and return it, but not set it. This will try to detect the change, deencapsulate
- * it, detect again etc until it cannot deencapsulate further.
+ * This will try to detect the encapsulated format of the specified data object
+ * and return it, but not set it. It will try to detect the format of the data object,
+ * deencapsulate it, detect again etc until it cannot deencapsulate further.
  * 
  * @param env The conversion environment to use
- * @param change The change to detect
+ * @param input The data object to detect
  * @param error The error-return location
- * @returns The format on success, NULL otherwise
+ * @returns The encapsulated format on success, NULL otherwise
  * 
  */
 OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyncData *input, OSyncError **error)
@@ -791,14 +791,14 @@ error:
 	return NULL;
 }
 
-/*! @brief Convert a change to a specific format
+/*! @brief Convert a data object using a specific conversion path
  * 
- * This will convert the change with its data to the specified format
- * if possible.
+ * This will convert the specified data object using the specified format
+ * conversion path if possible.
  * 
  * @param env The conversion environment to use
- * @param change The change to convert
- * @param targetformat To which format you want to convert to
+ * @param path The conversion path to follow
+ * @param data The data object to convert
  * @param error The error-return location
  * @returns TRUE on success, FALSE otherwise
  * 
@@ -851,16 +851,16 @@ osync_bool osync_format_env_convert(OSyncFormatEnv *env, OSyncFormatConverterPat
 	return TRUE;
 }
 
-/*! @brief Convert a change to a specific format
+/*! @brief Find a conversion path between two formats
  * 
- * This will convert the change with its data to the specified format
+ * This will find a conversion path between two object formats
  * if possible.
  * 
  * @param env The conversion environment to use
- * @param change The change to convert
- * @param targetformat To which format you want to convert to
+ * @param sourceformat The source format to be converted from
+ * @param targetformat The target format to be converted to
  * @param error The error-return location
- * @returns TRUE on success, FALSE otherwise
+ * @returns The appropriate conversion path, or NULL if an error occurred.
  * 
  */
 OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat *targetformat, OSyncError **error)
@@ -878,16 +878,16 @@ OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv *env, OSyncO
 	return path;
 }
 
-/*! @brief Convert a change to some formats
+/*! @brief Find a conversion path from one format to one of a list of formats
  * 
  * This will convert the change with its data to one of the specified formats
  * if possible.
  * 
  * @param env The conversion environment to use
- * @param change The change to convert
- * @param targetnames NULL-Terminated array of formatnames
+ * @param sourceformat The source format to be converted from
+ * @param targets NULL-Terminated array of possible formats to convert to
  * @param error The error-return location
- * @returns TRUE on success, FALSE otherwise
+ * @returns The appropriate conversion path, or NULL if an error occurred.
  * 
  */
 OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env, OSyncObjFormat *sourceformat, OSyncObjFormat **targets, OSyncError **error)

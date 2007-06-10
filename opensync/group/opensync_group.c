@@ -160,7 +160,7 @@ static long long int _osync_group_create_member_id(OSyncGroup *group)
  * 
  * @param group The group
  * @param path The path from which to load the members
- * @param error Pointer to a error
+ * @param error Pointer to an error struct
  * @returns True if the members were loaded successfully, FALSE otherwise
  * 
  */
@@ -233,7 +233,7 @@ error:
  * 
  * Creates a newly allocated group
  * 
- * @param env The environment for which to create the group. Might be NULL if you which to not add the group at the point of creation
+ * @param error Pointer to an error struct
  * @returns Pointer to a new group
  * 
  */
@@ -379,12 +379,7 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 
 /*! @brief Unlocks a group
  * 
- * if you set remove = FALSE, the lock file will not be removed
- * and the next call to osync_lock_group() for this group will
- * return OSYNC_LOCK_STALE.
- * 
- * @param group The group
- * @param remove If the lockfile should be removed
+ * @param group The group to unlock
  * 
  */
 void osync_group_unlock(OSyncGroup *group)
@@ -454,7 +449,7 @@ const char *osync_group_get_name(OSyncGroup *group)
  * Saves the group to disc possibly creating the configdirectory
  * 
  * @param group The group
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @returns TRUE on success, FALSE otherwise
  * 
  */
@@ -547,7 +542,7 @@ error:
  * Deletes to group directories
  * 
  * @param group The group
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @returns TRUE on success, FALSE otherwise
  * 
  */
@@ -573,7 +568,7 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 /*! @brief Reset all databases of a group (anchor, hashtable and archieve) 
  * 
  * @param group The group
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @returns TRUE on success, FALSE otherwise
  * 
  */
@@ -642,10 +637,10 @@ error_and_free:
  * 
  * Loads a group from a directory
  * 
- * @param env The environment in which to create the group. Can be NULL
+ * @param group The group object to load into
  * @param path The path to the config directory of the group
- * @param error Pointer to a error struct
- * @returns Pointer to the loaded group
+ * @param error Pointer to an error struct
+ * @returns TRUE on success, FALSE otherwise
  * 
  */
 osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **error)
@@ -1009,7 +1004,7 @@ OSyncFilter *osync_group_nth_filter(OSyncGroup *group, int nth)
  * The information will be stored on disc after osync_group_save()
  * 
  * @param group The group in which to save
- * @param tm The time info to set
+ * @param last_sync The time info to set
  */
 void osync_group_set_last_synchronization(OSyncGroup *group, time_t last_sync)
 {
