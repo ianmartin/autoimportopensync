@@ -109,7 +109,8 @@ osync_bool osync_archive_create(OSyncDB *db, OSyncError **error)
 
 /**
  * @brief Creates a new archive object
- * @param
+ * @param filename the full path to the archive database file
+ * @param error Pointer to an error struct
  * @return The pointer to the newly allocated archive object or NULL in case of error
  */
 OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
@@ -182,7 +183,7 @@ error:
 
 /**
  * @brief Increments the reference counter
- * @param archive The pointer to a archive object
+ * @param archive The pointer to an archive object
  */
 void osync_archive_ref(OSyncArchive *archive)
 {
@@ -194,7 +195,7 @@ void osync_archive_ref(OSyncArchive *archive)
 /**
  * @brief Decrement the reference counter. The archive object will 
  *  be freed if there is no more reference to it.
- * @param archive The pointer to a archive object
+ * @param archive The pointer to an archive object
  */
 void osync_archive_unref(OSyncArchive *archive)
 {
@@ -216,13 +217,13 @@ void osync_archive_unref(OSyncArchive *archive)
 }
 
 /**
- * @brief Store data of a entry in the group archive database (blob).
+ * @brief Store data of an entry in the group archive database (blob).
  *
  * @param archive The group archive
  * @param uid UID of requested entry
  * @param data The data to store 
  * @param size Total size of data 
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return Returns TRUE on success otherwise FALSE
  */ 
 osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error)
@@ -253,13 +254,13 @@ error:
 }
 
 /**
- * @brief Load data of a entry which is stored in the group archive database (blob).
+ * @brief Load data of an entry which is stored in the group archive database (blob).
  *
  * @param archive The group archive
  * @param uid UID of requestd entry
  * @param data Pointer to store the requested data 
  * @param size Pointer to store the size of requested data
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return Returns 0 if no data is present else 1. On error -1.
  */ 
 int osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error)
@@ -290,7 +291,7 @@ error:
 }
 
 /**
- * @brief Save a entry in the group archive. 
+ * @brief Save an entry in the group archive. 
  *
  * @param archive The group archive
  * @param id Archive (database) id of entry which gets deleted
@@ -298,7 +299,7 @@ error:
  * @param objtype Reported object type of entry
  * @param mappingid Mapped ID of entry 
  * @param memberid ID of member which reported entry 
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return Returns number of entries in archive group database. 0 on error. 
  */ 
 long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error)
@@ -342,7 +343,7 @@ error:
  *
  * @param archive The group archive
  * @param id Archive (database) id of entry which gets deleted
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return TRUE on when all changes successfully loaded otherwise FALSE
  */ 
 osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
@@ -372,7 +373,7 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
  * @param uids List to store uids of each entry
  * @param mappingids List to store mappingids for each entry
  * @param memberids List to store member IDs for each entry 
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return TRUE on when all changes successfully loaded otherwise FALSE
  */ 
 osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
@@ -423,12 +424,13 @@ error:
 }
 
 /**
- * @brief Get the object type for a entry of the group archive.
+ * @brief Get the object type for an entry of the group archive.
  *
  * @param archive The group archive
+ * @param memberid The member id
  * @param uid The uid of the entry
- * @param error Pointer to a error struct 
- * @return Returns object type of entry. NULL if entry doesn't exit. (the caller is responsible for freeing) 
+ * @param error Pointer to an error struct 
+ * @return Returns the object type of the specified entry, or NULL if the entry doesn't exist. (the caller is responsible for freeing) 
  */
 char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, const char *uid, OSyncError **error)
 {
@@ -441,7 +443,7 @@ char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, c
 	char *objtype = osync_db_query_single_string(archive->db, query, error);
 	g_free(query);
 
-	/* TODO imporive error hanlding... */
+	/* TODO improve error handling... */
 	if (osync_error_is_set(error)) {
 		goto error;
 	}
@@ -463,7 +465,7 @@ error:
  * @param objtype Requested object type 
  * @param ids List unique databse entry id 
  * @param changetypes List to store changetypes for each entry
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return TRUE on when all changes successfully loaded otherwise FALSE
  */ 
 osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **changetypes, OSyncError **error)
@@ -515,7 +517,7 @@ error:
  * @param objtype Reported object type of entry
  * @param id Mapping Entry ID of entry 
  * @param changetype Changetype of entry 
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return Returns TRUE on success, FALSE otherwise 
  */ 
 osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char *objtype, long long int id, OSyncChangeType changetype, OSyncError **error)
@@ -547,7 +549,7 @@ error:
  *
  * @param archive The group archive
  * @param objtype Reported object type of entry
- * @param error Pointer to a error struct
+ * @param error Pointer to an error struct
  * @return Returns TRUE on success, FALSE otherwise 
  */ 
 osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const char *objtype, OSyncError **error)
