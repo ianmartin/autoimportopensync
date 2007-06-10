@@ -24,6 +24,21 @@
 #include "opensync-format.h"
 #include "opensync_objformat_internals.h"
 
+/**
+ * @defgroup OSyncObjectFormatAPI OpenSync Object Format
+ * @ingroup OSyncPublic
+ * @brief Functions for handling object formats
+ * 
+ */
+/*@{*/
+
+/**
+ * @brief Creates a new object format
+ * @param name the name of the object format
+ * @param objtype_name the name of the object type
+ * @param error Pointer to an error struct
+ * @return The pointer to the newly allocated object format or NULL in case of error
+ */
 OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, name, objtype_name, error);
@@ -40,6 +55,11 @@ OSyncObjFormat *osync_objformat_new(const char *name, const char *objtype_name, 
 	return format;
 }
 
+/*! @brief Increase the reference count on an object format
+ * 
+ * @param format Pointer to the object format
+ * 
+ */
 void osync_objformat_ref(OSyncObjFormat *format)
 {
 	osync_assert(format);
@@ -47,6 +67,11 @@ void osync_objformat_ref(OSyncObjFormat *format)
 	g_atomic_int_inc(&(format->ref_count));
 }
 
+/*! @brief Decrease the reference count on an object format
+ * 
+ * @param format Pointer to the object format
+ * 
+ */
 void osync_objformat_unref(OSyncObjFormat *format)
 {
 	osync_assert(format);
@@ -62,18 +87,34 @@ void osync_objformat_unref(OSyncObjFormat *format)
 	}
 }
 
+/**
+ * @brief Returns the name of an object format
+ * @param format Pointer to the object format
+ * @return The name of the specified object format
+ */
 const char *osync_objformat_get_name(OSyncObjFormat *format)
 {
 	osync_assert(format);
 	return format->name;
 }
 
+/**
+ * @brief Returns the object type of an object format
+ * @param format Pointer to the object format
+ * @return The name of the specified object format's object type
+ */
 const char *osync_objformat_get_objtype(OSyncObjFormat *format)
 {
 	osync_assert(format);
 	return format->objtype_name;
 }
 
+/**
+ * @brief Compare the names of two object formats
+ * @param leftformat Pointer to the object format to compare
+ * @param rightformat Pointer to the other object format to compare
+ * @return TRUE if the two object format names are equal, false otherwise
+ */
 osync_bool osync_objformat_is_equal(OSyncObjFormat *leftformat, OSyncObjFormat *rightformat)
 {
 	osync_assert(leftformat);
@@ -239,3 +280,5 @@ osync_bool osync_objformat_demarshal(OSyncObjFormat *format, OSyncMessage *messa
 	osync_assert(format->demarshal_func);
 	return format->demarshal_func(message, output, outpsize, error);
 }
+
+/*@}*/
