@@ -20,46 +20,19 @@
 
 #include "gnokii_sync.h"
 
-/* Set connection types
- */
-void parse_connection_type(char *str, gn_config *config) {
-
-	if (!strcasecmp(str, "bluetooth"))
-		config->connection_type = GN_CT_Bluetooth;
-	else if (!strcasecmp(str, "irda"))
-		config->connection_type = GN_CT_Irda;
-	else if (!strcasecmp(str, "dku2"))
-		config->connection_type = GN_CT_DKU2;
-	else if (!strcasecmp(str, "dau9p"))
-		config->connection_type = GN_CT_DAU9P;
-	else if (!strcasecmp(str, "dlr3p"))
-		config->connection_type = GN_CT_DLR3P;
-	else if (!strcasecmp(str, "serial"))
-		config->connection_type = GN_CT_Serial;
-	else if (!strcasecmp(str, "infrared"))
-		config->connection_type = GN_CT_Infrared;
-	else if (!strcasecmp(str, "tekram"))
-		config->connection_type = GN_CT_Tekram;
-	else if (!strcasecmp(str, "tcp"))
-		config->connection_type = GN_CT_TCP;
-	else if (!strcasecmp(str, "m2bus"))
-		config->connection_type = GN_CT_M2BUS;
-	else if (!strcasecmp(str, "dku2libusb"))
-		config->connection_type = GN_CT_DKU2LIBUSB;
-	else
-		config->connection_type = GN_CT_NONE;
-}
-
 /* Parse config file of gnokii plugin 
  *
  * Returns: bool
  * ReturnVal: true	on success
  * ReturnVal: false	on error
  */
-osync_bool gnokii_config_parse(gn_config *config, const char *data, OSyncError **error)
+osync_bool gnokii_config_parse(struct gn_statemachine *state, const char *data, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, config, data, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, state, data, error);
+	int i = 0;
 	char *str = NULL;
+	char **lines = malloc(sizeof(char*) * 10);
+	memset(lines, 0, sizeof(char*) * 10);
 	xmlDocPtr doc;
 	xmlNodePtr cur;
 
@@ -89,30 +62,29 @@ osync_bool gnokii_config_parse(gn_config *config, const char *data, OSyncError *
 	
 	cur = cur->xmlChildrenNode;
 
+	lines[i] = g_strdup("[global]");
+
 	while (cur != NULL) {
 		str = (char *) xmlNodeGetContent(cur);
 		
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *) "model"))
-				strncpy(config->model, str, strlen(str));
+				lines[++i] = g_strdup_printf("model = %s", str);
 	
 			if (!xmlStrcmp(cur->name, (const xmlChar *) "port"))
-				strncpy(config->port_device, str, strlen(str));
+				lines[++i] = g_strdup_printf("port = %s", str);
 
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "connection")) {
-				// check for connection types which are supported by gnokii.
-				parse_connection_type(str, config);
-			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *) "connection"))
+				lines[++i] = g_strdup_printf("connection = %s", str);
 
 			// rfcomm channel
-			if (!xmlStrcmp(cur->name, (const xmlChar *) "rfcomm_channel")) {
-				config->rfcomm_cn = atoi(str);
-			}
+			if (!xmlStrcmp(cur->name, (const xmlChar *) "rfcomm_channel"))
+				lines[++i] = g_strdup_printf("rfcomm_channel = %s", str);
 
 			// check for debug option of libgnokii
 			if (!xmlStrcmp(cur->name, (const xmlChar *) "debug")) {
-				if (!strcasecmp(str, "on"))
-					gn_log_debug_mask = GN_LOG_T_STDERR;	// debug output to stderr
+				lines[++i] = g_strdup("[logging]");
+				lines[++i] = g_strdup_printf("debug = %s", str);
 			}
 			g_free(str);
 		}
@@ -120,6 +92,7 @@ osync_bool gnokii_config_parse(gn_config *config, const char *data, OSyncError *
 		cur = cur->next;
 	}
 
+	/* TODO: adapt error handling to return value of gn_cfg_phone_load()
 	if (!strlen(config->model)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Model is not set in configuration");
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
@@ -137,31 +110,18 @@ osync_bool gnokii_config_parse(gn_config *config, const char *data, OSyncError *
 		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
+	*/
 
+	gn_cfg_memory_read(lines);
+	gn_cfg_phone_load(NULL, state); 
+
+	for (i=0; lines[i] != NULL; i++)
+		g_free(lines[i]);
+
+	g_free(lines);
 
 	xmlFreeDoc(doc);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
-}
-
-/* Fill the statemachine struct for libgnokii with:
- * model, port (serial connection) or MAC address (bluetooth) and connection type.
- * This is required for the cellphone connection. 
- *
- */
-void gnokii_config_state(struct gn_statemachine *state, gn_config *config) {
-
-	/* model */
-        strncpy(state->config.model, config->model, GN_MODEL_MAX_LENGTH);
-
-	/* port (bluetooth: destination mac address) */
-        strncpy(state->config.port_device, config->port_device, GN_DEVICE_NAME_MAX_LENGTH);
-
-	/* connection type - gn_connection_type */
-        state->config.connection_type = config->connection_type; 
-
-	/* rfcomm channel */
-	state->config.rfcomm_cn = config->rfcomm_cn;
-	
 }
 
