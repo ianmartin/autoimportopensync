@@ -343,6 +343,7 @@ static void _ds_alert(SmlDsSession *dsession, void *userdata)
 
 		if (!strcmp(database->objtype, _contenttype_to_format(smlDsSessionGetContentType(dsession)))) {
 			database->session = dsession;
+			smlDsSessionRef(dsession);
 			break;
 		}
 
