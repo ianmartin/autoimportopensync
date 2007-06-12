@@ -442,6 +442,8 @@ void gnokii_calendar_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncC
 
 	g_free(caldata);
 
+	osync_context_report_success(ctx);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
