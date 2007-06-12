@@ -53,9 +53,8 @@ testenv = check(env, config)
 install_prefix = '${DESTDIR}$prefix'
 install_plugin = '${DESTDIR}$prefix/$libsuffix/opensync/plugins'
 install_format = '${DESTDIR}$prefix/$libsuffix/opensync/formats'
-install_config = '${DESTDIR}$prefix/share/opensync/defaults'
 
-Export('env opts testenv install_prefix install_plugin install_format install_config')
+Export('env opts testenv install_prefix install_plugin install_format')
 
 SConscript(['src/SConscript'])
 BuildDir(target_dir, 'gnokii-sync', duplicate=0)

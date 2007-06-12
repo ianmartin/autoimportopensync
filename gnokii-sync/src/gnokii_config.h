@@ -20,5 +20,6 @@
 
 #include <gnokii.h>
 
-osync_bool gnokii_config_parse(struct gn_statemachine *state, const char *data, OSyncError **error);
+void gnokii_config_state(struct gn_statemachine *state, gn_config *config);
+osync_bool gnokii_config_parse(gn_config *config, const char *data, OSyncError **error);
 

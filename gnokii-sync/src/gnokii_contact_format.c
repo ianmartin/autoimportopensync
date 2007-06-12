@@ -33,7 +33,7 @@
  */
 static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
 
 	OSyncXMLField *xmlfield = NULL;
 
@@ -52,16 +52,14 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 
 
 	// Name
-	if (strlen(contact->name)) {
+	if (contact->name) {
 
 		xmlfield = osync_xmlfield_new(xmlformat, "FormattedName", error);
 		osync_xmlfield_set_key_value(xmlfield, "Content", contact->name);
 
 		// FIXME: evo2 workaround - evo2 requires a Name / N filed :(
-		/*
 		xmlfield = osync_xmlfield_new(xmlformat, "Name", error);
 		osync_xmlfield_set_key_value(xmlfield, "FirstName", contact->name);
-		*/
 	}
 
 	// Group
@@ -169,27 +167,26 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 			osync_xmlfield_set_key_value(phonefield, "Content", contact->subentries[i].data.number);
 
 
-		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number)
+		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number || !phonefield)
 			continue;
 
 		switch (contact->subentries[i].number_type) {
 			case GN_PHONEBOOK_NUMBER_Home:
-				// Home value is a special type: "Telephone Location"
-				osync_xmlfield_set_attr(phonefield, "Location", "Home");
+				osync_xmlfield_set_attr(xmlfield, "Type", "HOME");
 				break;
 			case GN_PHONEBOOK_NUMBER_Mobile:
-				osync_xmlfield_set_attr(phonefield, "Type", "Cellular");
+				osync_xmlfield_set_attr(xmlfield, "Type", "CELL");
 				break;
 			case GN_PHONEBOOK_NUMBER_Fax:
-				osync_xmlfield_set_attr(phonefield, "Type", "Fax");
+				osync_xmlfield_set_attr(xmlfield, "Type", "FAX");
 				break;
 			case GN_PHONEBOOK_NUMBER_Work:
-				osync_xmlfield_set_attr(phonefield, "Location", "Work");
+				osync_xmlfield_set_attr(xmlfield, "Type", "WORK");
 				break;
 			case GN_PHONEBOOK_NUMBER_None:	
 			case GN_PHONEBOOK_NUMBER_Common:	
 			case GN_PHONEBOOK_NUMBER_General:
-				osync_xmlfield_set_attr(phonefield, "Type", "Voice");
+				osync_xmlfield_set_attr(xmlfield, "Type", "VOICE");
 				break;
 		}	
 	}	
@@ -217,100 +214,6 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 	return TRUE;
 }
 
-static void _xmlfield_formattedname(gn_phonebook_entry *contact, OSyncXMLField *xmlfield)
-{
-	const char *name = osync_xmlfield_get_key_value(xmlfield, "Content");
-	strncpy(contact->name, name, GN_PHONEBOOK_NAME_MAX_LENGTH);
-}
-
-static void _xmlfield_telephone(gn_phonebook_entry *contact, OSyncXMLField *xmlfield, int *subcount)
-{
-	const char *tele = osync_xmlfield_get_key_value(xmlfield, "Content");
-
-	char *number = gnokii_contact_util_cleannumber(tele);
-	strncpy(contact->subentries[*subcount].data.number, number, GN_PHONEBOOK_NAME_MAX_LENGTH);
-	g_free(number);
-
-	contact->subentries[*subcount].entry_type = GN_PHONEBOOK_ENTRY_Number;
-
-	const char *type = osync_xmlfield_get_attr(xmlfield, "Type");
-	const char *location = osync_xmlfield_get_attr(xmlfield, "Location");
-
-	if (location && !strcasecmp(location, "Work"))
-		contact->subentries[*subcount].number_type = GN_PHONEBOOK_NUMBER_Work; 
-	else if (location && !strcasecmp(location, "Home"))
-		contact->subentries[*subcount].number_type = GN_PHONEBOOK_NUMBER_Home; 
-	else if (type && !strcasecmp(type, "Fax"))
-		contact->subentries[*subcount].number_type = GN_PHONEBOOK_NUMBER_Fax; 
-	else if (type && !strcasecmp(type, "Cellular"))
-		contact->subentries[*subcount].number_type = GN_PHONEBOOK_NUMBER_Mobile; 
-	else
-		contact->subentries[*subcount].number_type = GN_PHONEBOOK_NUMBER_General;
-
-	(*subcount)++;
-}
-
-static void _xmlfield_url(gn_phonebook_entry *contact, OSyncXMLField *xmlfield, int *subcount)
-{
-	const char *url = osync_xmlfield_get_key_value(xmlfield, "Content");
-
-	contact->subentries[*subcount].entry_type = GN_PHONEBOOK_ENTRY_URL;
-	strncpy(contact->subentries[*subcount].data.number, url, GN_PHONEBOOK_NAME_MAX_LENGTH);
-	(*subcount)++;
-}
-
-static void _xmlfield_email(gn_phonebook_entry *contact, OSyncXMLField *xmlfield, int *subcount)
-{
-	const char *email = osync_xmlfield_get_key_value(xmlfield, "Content");
-	contact->subentries[*subcount].entry_type = GN_PHONEBOOK_ENTRY_Email;
-	strncpy(contact->subentries[*subcount].data.number, email, GN_PHONEBOOK_NAME_MAX_LENGTH);
-
-	(*subcount)++;
-}
-
-static void _xmlfield_note(gn_phonebook_entry *contact, OSyncXMLField *xmlfield, int *subcount)
-{
-	const char *note = osync_xmlfield_get_key_value(xmlfield, "Content");
-
-	contact->subentries[*subcount].entry_type = GN_PHONEBOOK_ENTRY_Note;
-	strncpy(contact->subentries[*subcount].data.number, note, GN_PHONEBOOK_NAME_MAX_LENGTH);
-	(*subcount)++;
-}
-
-static void _xmlfield_addresslabel(gn_phonebook_entry *contact, OSyncXMLField *xmlfield, int *subcount)
-{
-	const char *label = osync_xmlfield_get_key_value(xmlfield, "Content");
-	contact->subentries[*subcount].entry_type = GN_PHONEBOOK_ENTRY_Postal;
-	strncpy(contact->subentries[*subcount].data.number, label, GN_PHONEBOOK_NAME_MAX_LENGTH); 
-	(*subcount)++;
-}
-
-static void _xmlfield_category(gn_phonebook_entry *contact, OSyncXMLField *xmlfield)
-{
-	contact->caller_group = GN_PHONEBOOK_GROUP_None; 
-
-	int i;
-	int numnodes = osync_xmlfield_get_key_count(xmlfield);
-	for (i=0; i < numnodes; i++) {
-		const char *category = osync_xmlfield_get_nth_key_value(xmlfield, i);
-		
-		if (!strcasecmp(category, "FAMILY")) {
-			contact->caller_group = GN_PHONEBOOK_GROUP_Family; 
-		} else if (!strcasecmp(category, "VIPS") || !strcasecmp(category, "VIP")) { // FIXME: evo2-sync workaround fix that in vformat plugin
-			contact->caller_group = GN_PHONEBOOK_GROUP_Vips;
-		} else if (!strcasecmp(category, "FRIENDS")) {
-			contact->caller_group = GN_PHONEBOOK_GROUP_Friends;
-		} else if (!strcasecmp(category, "WORK")) {
-			contact->caller_group = GN_PHONEBOOK_GROUP_Work;
-		} else if (!strcasecmp(category, "OTHERS")) {
-			contact->caller_group = GN_PHONEBOOK_GROUP_Others;
-		}
-
-	}
-}
-
-
-
 /* 
  * Converts from XML to the gnokii contact object type (gn_phonebook_entry).
  */  
@@ -319,45 +222,187 @@ static osync_bool conv_xmlformat_to_gnokii_contact(char *input, unsigned int inp
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, 
 			output, outpsize, free_input, config, error);
 
-	OSyncXMLFormat *xmlformat = (OSyncXMLFormat *)input;
-	unsigned int size;
-	char *str;
-	osync_xmlformat_assemble(xmlformat, &str, &size);
-	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
-	g_free(str);
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
 
+	char *tmp = NULL, *number = NULL;
+	xmlNode *cur = NULL;
+	xmlNode *sub = NULL;
+	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
+	xmlXPathObject *xobj = NULL; 
+	xmlNodeSet *nodes = NULL; 
+	int numnodes = 0;
 	int subcount = 0;
+	int i;
 
-	// prepare contact 
-	gn_phonebook_entry *contact = osync_try_malloc0(sizeof(gn_phonebook_entry), error);
 
-	if (strcmp("contact", osync_xmlformat_get_objtype(xmlformat))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xmlformat: %s",  osync_xmlformat_get_objtype(xmlformat));
+	if (!root) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to get xml root element");
 		goto error;
 	}
 
-	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
-	for (; xmlfield; xmlfield = osync_xmlfield_get_next(xmlfield)) {
-		osync_trace(TRACE_INTERNAL, "Field: %s", osync_xmlfield_get_name(xmlfield));
-
-		if (!strcmp("FormattedName", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_formattedname(contact, xmlfield);
-		else if (!strcmp("Telephone", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_telephone(contact, xmlfield, &subcount);
-		else if (!strcmp("Url", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_url(contact, xmlfield, &subcount);
-		else if (!strcmp("EMail", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_email(contact, xmlfield, &subcount);
-		else if (!strcmp("Note", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_note(contact, xmlfield, &subcount);
-		else if (!strcmp("AddressLabel", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_addresslabel(contact, xmlfield, &subcount);
-		else if (!strcmp("Categories", osync_xmlfield_get_name(xmlfield)))
-			_xmlfield_category(contact, xmlfield);
+	if (xmlStrcmp(root->name, (const xmlChar *) "contact")) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong (contact) xml root element");
+		goto error;
 	}
 
+	// prepare contact 
+	gn_phonebook_entry *contact = NULL;
+	contact = (gn_phonebook_entry *) malloc(sizeof(gn_phonebook_entry));
 
+	memset(contact, 0, sizeof(gn_phonebook_entry));
 
+	// FormattedName - XXX Also Node "Name"?
+	 cur = osxml_get_node(root, "FormattedName");
+	 if (cur) {
+		 tmp = (char *) xmlNodeGetContent(cur);
+		 strncpy(contact->name, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		 g_free(tmp);
+	 }
+	
+	// Telephone
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Telephone");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Number;
+		
+		sub = osxml_get_node(cur, "Content");
+		tmp = (char *) xmlNodeGetContent(sub);
+		number = gnokii_contact_util_cleannumber(tmp);
+		strncpy(contact->subentries[subcount].data.number, number, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
+		g_free(number);
+
+		sub = osxml_get_node(cur, "Type");
+		if (sub) {
+			tmp = (char *) xmlNodeGetContent(sub);
+			if (!strcasecmp(tmp, "WORK"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Work; 
+			else if (!strcasecmp(tmp, "HOME"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Home; 
+			else if (!strcasecmp(tmp, "FAX"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Fax; 
+			else if (!strcasecmp(tmp, "CELL"))
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Mobile; 
+			else
+				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_General;
+
+			g_free(tmp);
+		}
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// URL 
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Url");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_URL;
+
+		sub = osxml_get_node(cur, "Content");
+		
+		tmp = (char *) xmlNodeGetContent(sub);
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// EMail
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/EMail");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Email;
+		sub = osxml_get_node(cur, "Content");
+
+		tmp = (char *) xmlNodeGetContent(sub);
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// Note 
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Note");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Note;
+		sub = osxml_get_node(cur, "Content");
+		tmp = (char *) xmlNodeGetContent(sub);
+		strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH);
+		g_free(tmp);
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
+
+	// Category / Callergroup
+	// TODO - fix category - group 
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/Categories");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+
+	osync_trace(TRACE_INTERNAL, "categories: %i", numnodes);
+
+	contact->caller_group = GN_PHONEBOOK_GROUP_None; 
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		
+		tmp = (char *) xmlNodeGetContent(cur);
+		if (!strcasecmp(tmp, "FAMILY")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Family; 
+		} else if (!strcasecmp(tmp, "VIPS") || !strcasecmp(tmp, "VIP")) {	// we handle VIP and VIPs as VIP type needed for evo2 
+			contact->caller_group = GN_PHONEBOOK_GROUP_Vips;
+		} else if (!strcasecmp(tmp, "FRIENDS")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Friends;
+		} else if (!strcasecmp(tmp, "WORK")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Work;
+		} else if (!strcasecmp(tmp, "OTHERS")) {
+			contact->caller_group = GN_PHONEBOOK_GROUP_Others;
+		}
+
+		g_free(tmp);
+	}
+	xmlXPathFreeObject(xobj);
+
+	// TODO: Addresss, Organization?, Group 
+
+	// Adress
+	xobj = osxml_get_nodeset((xmlDoc *)input, "/contact/AddressLabel");
+	nodes = xobj->nodesetval;
+	numnodes = (nodes) ? nodes->nodeNr : 0;
+	for (i=0; i < numnodes; i++) {
+		cur = nodes->nodeTab[i];
+		
+		contact->subentries[subcount].entry_type = GN_PHONEBOOK_ENTRY_Postal;
+
+		sub = osxml_get_node(cur, "Content");
+
+		if (sub) { 
+			tmp = (char *) xmlNodeGetContent(sub);
+			strncpy(contact->subentries[subcount].data.number, tmp, GN_PHONEBOOK_NAME_MAX_LENGTH); 
+			g_free(tmp);
+		}
+
+		subcount++;
+	}
+	xmlXPathFreeObject(xobj);
 
 	contact->subentries_count = subcount;
 
@@ -376,7 +421,7 @@ error:
 }
 
 
-static void destroy_gnokii_contact(char *input, unsigned int inpsize)
+static void destroy_gnokii_contact(char *input, size_t inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	gn_phonebook_entry *contact = (gn_phonebook_entry *) input;

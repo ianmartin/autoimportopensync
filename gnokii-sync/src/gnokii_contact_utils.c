@@ -31,7 +31,7 @@ char *gnokii_contact_util_cleannumber(char *number) {
 
 	int i;
 	int len = 0;
-	GString *cleannumber = g_string_new(""); 
+	char *tmp = g_strdup("");
 
 	len = (int) strlen(number);
 
@@ -54,14 +54,14 @@ char *gnokii_contact_util_cleannumber(char *number) {
 			case '#':
 			case 'p':
 			case 'w':	
-				cleannumber = g_string_append_c(cleannumber, number[i]);
+				tmp = g_strdup_printf("%s%c", tmp, number[i]);
 			default:
 				break;	
 		}
 
 	}	
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, cleannumber->str);
-	return g_string_free(cleannumber, FALSE);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
+	return tmp;
 }
 

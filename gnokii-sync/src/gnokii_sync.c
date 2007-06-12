@@ -23,14 +23,8 @@
 static void free_gnokiienv(gnokii_environment *env) { 
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
-	while (env->sinks) {
-		gnokii_sinkenv *sinkenv = env->sinks->data;
-
-		osync_objtype_sink_unref(sinkenv->sink);
-		g_free(sinkenv);
-
-		env->sinks = g_list_remove(env->sinks, sinkenv);
-	}
+	if (env->config)
+		g_free(env->config);
 
 	if (env->state)
 		g_free(env->state);
@@ -49,12 +43,10 @@ static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	gnokii_environment *env = (gnokii_environment *) data;
 
 	// connect to cellphone
-	if (!env->connected && !gnokii_comm_connect(env->state)) {
+	if (!gnokii_comm_connect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Connection failed");
 		free_gnokiienv(env);
 		return;
-	} else {
-		env->connected = TRUE;
 	}
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
@@ -103,12 +95,10 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	gnokii_environment *env = (gnokii_environment *) data;
 	
 	// disconnect the connection with phone
-	if (env->connected && !gnokii_comm_disconnect(env->state)) {
+	if (!gnokii_comm_disconnect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "disconnect failed");
 		free_gnokiienv(env);
                 return;
-	} else {
-		env->connected = FALSE;
 	}
 	
 	// close the hashtable
@@ -129,7 +119,6 @@ static void finalize(void *data)
 	// free everything
 	free_gnokiienv(env);
 
-
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -144,8 +133,8 @@ static osync_bool discover(void *data, OSyncPluginInfo *info, OSyncError **error
 
 	GList *s = NULL;
 	for (s = env->sinks; s; s = s->next) {
-		gnokii_sinkenv *sinkenv = s->data;
-		osync_objtype_sink_set_available(sinkenv->sink, TRUE);
+		OSyncObjTypeSink *sink = s->data;
+		osync_objtype_sink_set_available(sink, TRUE);
 	}
 
 	
@@ -169,32 +158,34 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 
 	char *configdata = NULL;
 	
-	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info); 
-
 	// create gnokii_environment which stores config and statemachine for libgnokii
-	gnokii_environment *env = osync_try_malloc0(sizeof(gnokii_environment), error);
-	if (!env)
-		return NULL;
+	gnokii_environment *env = malloc(sizeof(gnokii_environment));
+	g_assert(env != NULL);
+	memset(env, 0, sizeof(gnokii_environment));
 
 	env->sinks = NULL;
-	env->connected = FALSE;
+	env->config = malloc(sizeof(gn_config));
+	g_assert(env->config != NULL);
+	memset(env->config, 0, sizeof(gn_config));
 
-	env->state = osync_try_malloc0(sizeof(struct gn_statemachine), error);
-	if (!env->state) {
-		free_gnokiienv(env);
-		return NULL;
-	}
+	env->state = (struct gn_statemachine *) malloc(sizeof(struct gn_statemachine));
+	g_assert(env->state != NULL);
+	memset(env->state, 0, sizeof(struct gn_statemachine));
 
-	// parse the member configuration
-	if (!gnokii_config_parse(env->state, osync_plugin_info_get_config(info), error)) {
+	osync_trace(TRACE_INTERNAL, "Config:\n%s", osync_plugin_info_get_format_env(info));
+
+	if (!gnokii_config_parse(env->config, osync_plugin_info_get_config(info), error)) {
 		free_gnokiienv(env);
 		return NULL;
 	}
 	
+	// fill state structure with connection settings required by libgnokii
+	gnokii_config_state(env->state, env->config);
+
 	// init the contact sink
-	gnokii_sinkenv *contact_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
-	contact_sinkenv->sink = osync_objtype_sink_new("contact", error);
-	osync_objtype_sink_add_objformat(contact_sinkenv->sink, "gnokii-contact");
+	OSyncObjTypeSink *contact_sink = NULL; 
+	contact_sink = osync_objtype_sink_new("contact", error);
+	osync_objtype_sink_add_objformat(contact_sink, "gnokii-contact");
 
 	OSyncObjTypeSinkFunctions contact_functions;
 	memset(&contact_functions, 0, sizeof(contact_functions));
@@ -206,19 +197,15 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 //	contact_functions.write = osync_filesync_write;
 	contact_functions.sync_done = sync_done;
 
-	osync_objtype_sink_set_functions(contact_sinkenv->sink, contact_functions, contact_sinkenv);
-	osync_plugin_info_add_objtype(info, contact_sinkenv->sink);
+	osync_objtype_sink_set_functions(contact_sink, contact_functions, env);
+	osync_plugin_info_add_objtype(info, contact_sink);
 
-        contact_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-contact");
-	osync_trace(TRACE_INTERNAL, "contact_sinkenv->objformat: %p", contact_sinkenv->objformat);
-
-	env->sinks = g_list_append(env->sinks, contact_sinkenv);
+	env->sinks = g_list_append(env->sinks, contact_sink);
 
 
 	// init the event sink
-	gnokii_sinkenv *event_sinkenv = osync_try_malloc0(sizeof(gnokii_sinkenv), error); 
-	event_sinkenv->sink = osync_objtype_sink_new("event", error);
-	osync_objtype_sink_add_objformat(event_sinkenv->sink, "gnokii-event");
+	OSyncObjTypeSink *event_sink = osync_objtype_sink_new("event", error);
+	osync_objtype_sink_add_objformat(event_sink, "gnokii-event");
 
 	OSyncObjTypeSinkFunctions event_functions;
 	memset(&event_functions, 0, sizeof(event_functions));
@@ -230,12 +217,11 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 //	event_functions.write = osync_filesync_write;
 	event_functions.sync_done = sync_done;
 
-	osync_objtype_sink_set_functions(event_sinkenv->sink, event_functions, event_sinkenv);
-	osync_plugin_info_add_objtype(info, event_sinkenv->sink);
+	osync_objtype_sink_set_functions(event_sink, event_functions, env);
+	osync_plugin_info_add_objtype(info, event_sink);
 
-        event_sinkenv->objformat = osync_format_env_find_objformat(formatenv, "gnokii-event");
+	env->sinks = g_list_append(env->sinks, event_sink);
 
-	env->sinks = g_list_append(env->sinks, event_sinkenv);
 	
 	//Process the config data here and set the options on your environment
 	if (configdata)
