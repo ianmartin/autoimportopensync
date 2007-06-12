@@ -35,7 +35,7 @@ def check(env, config):
 	env.ParseConfig('pkg-config --cflags --libs opensync-1.0')
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
-	env.Append(CCFLAGS = r'-DVERSION="\"' + config.version + r'\""')
+	env.Append(CCFLAGS = r'-DVERSION="\"' + config["version"] + r'\""')
 	
 	testenv = env.Copy()
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')
