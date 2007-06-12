@@ -737,7 +737,6 @@ oserror:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
 }
 
-#ifdef ENABLE_HTTP
 static osync_bool syncml_http_server_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, env, config, error);
@@ -991,9 +990,7 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
-#endif // ENABLE_HTTP
 
-#ifdef ENABLE_OBEX
 static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char *config, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, config, error);
@@ -1289,7 +1286,6 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
-#endif // ENABLE_OBEX
 
 static osync_bool syncml_http_server_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
 {
@@ -1341,7 +1337,6 @@ static osync_bool syncml_obex_client_discover(void *data, OSyncPluginInfo *info,
 
 osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
-#ifdef ENABLE_HTTP	
 
 	OSyncPlugin *plugin = osync_plugin_new(error);
 	if (!plugin)
@@ -1358,9 +1353,6 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
         osync_plugin_env_register_plugin(env, plugin);
         osync_plugin_unref(plugin);
 
-#endif // ENABLE_HTTP
-
-#ifdef ENABLE_OBEX	
 
 	plugin = osync_plugin_new(error);
 	if (!plugin)
@@ -1378,7 +1370,6 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
         osync_plugin_unref(plugin);
 
 
-#endif // ENABLE_OBEX
 	return TRUE;
 
 error:

@@ -20,7 +20,7 @@
  
 #ifndef _SYNCML_PLUGIN_H
 #define _SYNCML_PLUGIN_H
-#include <config.h>
+//#include <config.h>
 
 #include <opensync/opensync.h>
 
