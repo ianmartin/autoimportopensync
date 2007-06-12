@@ -49,10 +49,12 @@ static void connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	gnokii_environment *env = (gnokii_environment *) data;
 
 	// connect to cellphone
-	if (!gnokii_comm_connect(env->state)) {
+	if (!env->connected && !gnokii_comm_connect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Connection failed");
 		free_gnokiienv(env);
 		return;
+	} else {
+		env->connected = TRUE;
 	}
 
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
@@ -101,10 +103,12 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	gnokii_environment *env = (gnokii_environment *) data;
 	
 	// disconnect the connection with phone
-	if (!gnokii_comm_disconnect(env->state)) {
+	if (env->connected && !gnokii_comm_disconnect(env->state)) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "disconnect failed");
 		free_gnokiienv(env);
                 return;
+	} else {
+		env->connected = FALSE;
 	}
 	
 	// close the hashtable
@@ -173,6 +177,7 @@ static void *initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError *
 		return NULL;
 
 	env->sinks = NULL;
+	env->connected = FALSE;
 
 	env->state = osync_try_malloc0(sizeof(struct gn_statemachine), error);
 	if (!env->state) {

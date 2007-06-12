@@ -25,8 +25,8 @@ char *gnokii_util_caltype2string(gn_calnote_type type);
 gn_timestamp gnokii_util_unix2timestamp(time_t time);
 gn_timestamp gnokii_util_tm2timestamp(const struct tm *timetm);
 time_t gnokii_util_timestamp2unix(gn_timestamp *timestamp);
-int gnokii_util_alarmevent2secs(char *alarm);
+int gnokii_util_alarmevent2secs(const char *alarm);
 char *gnokii_util_secs2alarmevent(int secs_before_event); 
-osync_bool gnokii_util_valid_number(char *number); 
+osync_bool gnokii_util_valid_number(const char *number); 
 gn_calnote_type gnokii_util_calendar_type(gn_calnote *calnote, osync_bool alldayevent);
 

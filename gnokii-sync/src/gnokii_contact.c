@@ -157,6 +157,7 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 
 			if (error == GN_ERR_EMPTYLOCATION) {
 				osync_trace(TRACE_EXIT, "%s(): memorty_type: %i location: %i counter: %i", __func__, contact->memory_type, contact->location, i);
+				g_free(data);
 				return contact;
 			}
 
@@ -165,7 +166,8 @@ gn_phonebook_entry *gnokii_contact_freelocation(struct gn_statemachine *state) {
 		}
 	}
 
-	// TODO set error and leave
+	g_free(data);
+	g_free(contact);
 	osync_trace(TRACE_EXIT, "%s(): NO FREE LOCATION!", __func__);
 	return NULL;
 }
@@ -421,6 +423,7 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 			// prepare UID with gnokii-contact-<memory type>-<memory location>
 			uid = gnokii_contact_uid(contact);
+			osync_hashtable_report(sinkenv->hashtable, uid);
 
 			hash = gnokii_contact_hash(contact);
 			OSyncChangeType type = osync_hashtable_get_changetype(sinkenv->hashtable, uid, hash);
@@ -472,10 +475,7 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
 
 	g_free(data);
 
-
-	/* FIXME: this is really really broken :( 
 	int i;
-
         char **uids = osync_hashtable_get_deleted(sinkenv->hashtable);
         for (i = 0; uids[i]; i++) {
                 OSyncChange *change = osync_change_new(&error);
@@ -510,7 +510,6 @@ void gnokii_contact_get_changes(void *plugindata, OSyncPluginInfo *info, OSyncCo
                 g_free(uids[i]);
         }
         g_free(uids);
-	*/
 
 	osync_context_report_success(ctx);
 
@@ -527,6 +526,7 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 
 	OSyncError *error = NULL;
 	gn_phonebook_entry *contact = NULL;
+	char *buf;
 	char *uid = NULL;
 	char *hash = NULL;
 	
@@ -535,7 +535,8 @@ void gnokii_contact_commit_change(void *plugindata, OSyncPluginInfo *info, OSync
 	gnokii_environment *env = (gnokii_environment *) plugindata;
 
 	// Get changed contact note
-	contact = (gn_phonebook_entry *) osync_change_get_data(change);
+	osync_data_get_data(osync_change_get_data(change), &buf, NULL);
+	contact = (gn_phonebook_entry *) buf;
 
 	// Check for type of changes
 	switch (osync_change_get_changetype(change)) {

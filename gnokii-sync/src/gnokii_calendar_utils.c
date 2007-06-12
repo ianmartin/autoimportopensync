@@ -29,7 +29,7 @@
  *
  * Returns: seconds before event
  */
-int gnokii_util_alarmevent2secs(char *alarm) {
+int gnokii_util_alarmevent2secs(const char *alarm) {
 
 	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
 
@@ -239,6 +239,7 @@ time_t gnokii_util_timestamp2unix(gn_timestamp *timestamp) {
 
 	date = gnokii_util_timestamp2tm(timestamp);
 	timet = mktime(date);
+	g_free(date);
 
 	osync_trace(TRACE_EXIT, "%s: %ul", __func__, timet);
 	return timet; 
