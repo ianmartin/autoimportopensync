@@ -27,11 +27,22 @@
   <maxObjSize>0</maxObjSize>
   
   <!-- The name of the contacts db. Must be the same as the phones sends -->
-  <contact_db>contacts</contact_db>
+  <database>
+     <name>Contacts</name>
+     <objtype>contact</objtype>
+  </database>
   
   <!-- The name of the calendar db. Must be the same as the phones sends -->
-  <calendar_db>calendar</calendar_db>
+  <database>
+     <name>Calendar</name>
+     <objtype>event</objtype>
+  </database>
+
   
   <!-- The name of the note db. Must be the same as the phones sends -->
-  <note_db>notes</note_db>
+  <database>
+     <name>Notes</name>
+     <objtype>note</objtype>
+  </database>
+
 </config>
