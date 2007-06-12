@@ -524,6 +524,10 @@ static void client_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		/* For the obex client, we will store the context at this point since
 		 * we can only answer it as soon as the device returned an answer to our san */
 		env->connectCtx = ctx;
+
+		/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
+		   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
+		osync_context_ref(ctx);
 		
 		/* Create the SAN */
 		san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
