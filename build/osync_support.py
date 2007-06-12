@@ -103,15 +103,73 @@ def write_config_header(env, configfile='config.h'):
 	dest = open(configfile, 'w')
 	dest.write('/* configuration created by OpenSync build */\n')
 	dest.write('#ifndef %s\n#define %s\n\n' % (inclusion_guard_name, inclusion_guard_name))
-
-	for key, value in env['defines'].iteritems():
-		if value is None:
-			dest.write('#define %s\n' % key)
-		elif isinstance(value, int):
-			dest.write('#define %s %i\n' % (key, value))
-		elif value:
-			dest.write('#define %s %s\n' % (key, value))
-		else:
-			dest.write('/* #undef %s */\n' % key)
+	try:
+		for key, value in env['defines'].iteritems():
+			if value is None:
+				dest.write('#define %s\n' % key)
+			elif isinstance(value, int):
+				dest.write('#define %s %i\n' % (key, value))
+			elif value:
+				dest.write('#define %s %s\n' % (key, value))
+			else:
+				dest.write('/* #undef %s */\n' % key)
+	except KeyError:
+		pass
 	dest.write('\n#endif /* %s */\n' % (inclusion_guard_name,))
 	dest.close()
+
+def make_dist(config):
+	"dist target - should be portable"
+	import shutil, tarfile
+
+	# Our temporary folder where to put our files
+	TMPFOLDER=config["name"]+'-'+config["version"]
+
+	# Remove an old package directory
+	if os.path.exists(TMPFOLDER): shutil.rmtree(TMPFOLDER)
+
+	# Copy everything into the new folder
+	shutil.copytree('.', TMPFOLDER)
+
+	# Enter into it and remove unnecessary files
+	os.chdir(TMPFOLDER)
+	os.popen('scons -Q -c').read()
+	for (root, dirs, filenames) in os.walk('.'):
+		clean_dirs = []
+		for d in dirs:
+			if d in ['CVS', '.svn', '{arch}']:
+				shutil.rmtree(os.path.join(root,d))
+			elif d.startswith('.'):
+				shutil.rmtree(os.path.join(root,d))
+			else:
+				clean_dirs += d
+		dirs = clean_dirs
+
+		to_remove = False
+		for f in list(filenames):
+			if f.startswith('.'): to_remove = True
+			elif f.endswith('~'): to_remove = True
+			elif f.endswith('.pyc'): to_remove = True
+			elif f.endswith('.pyo'): to_remove = True
+			elif f.endswith('.bak'): to_remove = True
+			elif f.endswith('.orig'): to_remove = True
+			elif f in ['config.log']: to_remove = True
+			elif f.endswith('.tar.bz2'): to_remove = True
+			elif f.endswith('.zip'): to_remove = True
+			elif f.endswith('Makefile'): to_remove = True
+
+			if to_remove:
+				os.remove(os.path.join(root, f))
+				to_remove = False
+
+	# go back to the root directory
+	os.chdir('..')
+
+	tar = tarfile.open(TMPFOLDER+'.tar.bz2','w:bz2')
+	tar.add(TMPFOLDER)
+	tar.close()
+	print 'Your archive is ready -> '+TMPFOLDER+'.tar.bz2'
+
+	if os.path.exists(TMPFOLDER): shutil.rmtree(TMPFOLDER)
+
+	sys.exit(0)

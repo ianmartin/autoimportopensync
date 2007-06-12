@@ -8,6 +8,7 @@ from substin import TOOL_SUBST
 #Define the default values for some variables. Take note, that they might
 #get overwriten by the scons files in the build directory
 config = {
+	'name': "libopensync",
 	'version': "0.30",
 	'major': 1,
 	'minor': 0,
@@ -83,11 +84,13 @@ if env['enable_doxygen'] == 1:
 	env.DoxygenBuilder(target = 'documentation', source =[])
 
 testenv = check(env, config)
-if not env.GetOption('clean'):
-	write_config_header(env, "config.h")
-else:
+if env.GetOption('clean'):
 	try: os.unlink("config.h")
 	except OSError: pass
+elif 'dist' in sys.argv:
+	make_dist(config)
+else:
+	write_config_header(env, "config.h")
 
 #define some shortcuts for common used methodes
 p_j = os.path.join
