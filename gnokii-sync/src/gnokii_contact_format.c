@@ -167,26 +167,27 @@ static osync_bool conv_gnokii_contact_to_xmlformat(char *input, unsigned int inp
 			osync_xmlfield_set_key_value(phonefield, "Content", contact->subentries[i].data.number);
 
 
-		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number || !phonefield)
+		if (contact->subentries[i].entry_type != GN_PHONEBOOK_ENTRY_Number)
 			continue;
 
 		switch (contact->subentries[i].number_type) {
 			case GN_PHONEBOOK_NUMBER_Home:
-				osync_xmlfield_set_attr(xmlfield, "Type", "HOME");
+				// Home value is a special type: "Telephone Location"
+				osync_xmlfield_set_attr(phonefield, "Location", "Home");
 				break;
 			case GN_PHONEBOOK_NUMBER_Mobile:
-				osync_xmlfield_set_attr(xmlfield, "Type", "CELL");
+				osync_xmlfield_set_attr(phonefield, "Type", "Cellular");
 				break;
 			case GN_PHONEBOOK_NUMBER_Fax:
-				osync_xmlfield_set_attr(xmlfield, "Type", "FAX");
+				osync_xmlfield_set_attr(phonefield, "Type", "Fax");
 				break;
 			case GN_PHONEBOOK_NUMBER_Work:
-				osync_xmlfield_set_attr(xmlfield, "Type", "WORK");
+				osync_xmlfield_set_attr(phonefield, "Location", "Work");
 				break;
 			case GN_PHONEBOOK_NUMBER_None:	
 			case GN_PHONEBOOK_NUMBER_Common:	
 			case GN_PHONEBOOK_NUMBER_General:
-				osync_xmlfield_set_attr(xmlfield, "Type", "VOICE");
+				osync_xmlfield_set_attr(phonefield, "Type", "Voice");
 				break;
 		}	
 	}	
@@ -278,13 +279,13 @@ static osync_bool conv_xmlformat_to_gnokii_contact(char *input, unsigned int inp
 		sub = osxml_get_node(cur, "Type");
 		if (sub) {
 			tmp = (char *) xmlNodeGetContent(sub);
-			if (!strcasecmp(tmp, "WORK"))
+			if (!strcasecmp(tmp, "Work"))
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Work; 
-			else if (!strcasecmp(tmp, "HOME"))
+			else if (!strcasecmp(tmp, "Home"))
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Home; 
-			else if (!strcasecmp(tmp, "FAX"))
+			else if (!strcasecmp(tmp, "Fax"))
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Fax; 
-			else if (!strcasecmp(tmp, "CELL"))
+			else if (!strcasecmp(tmp, "Cellular"))
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_Mobile; 
 			else
 				contact->subentries[subcount].number_type = GN_PHONEBOOK_NUMBER_General;
