@@ -85,6 +85,9 @@ typedef struct SmlPluginEnv {
 	OSyncMember *member;
 	char *anchor_path;
 
+	GSource *source;
+	GSourceFuncs *source_functions;
+
 	GMainContext *context;
 	GMainLoop *loop;
 	

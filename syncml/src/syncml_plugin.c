@@ -475,7 +475,6 @@ static gboolean _sessions_check(GSource *source)
 			return TRUE;
 	}
 		
-	osync_trace(TRACE_INTERNAL, "env: %p, manageR: %p", env, env->manager);
 	if (smlManagerCheck(env->manager))
 		return TRUE;
 		
@@ -679,16 +678,21 @@ static void finalize(void *data)
 	if (env->anchor_path)
 		g_free(env->anchor_path);
 
+	if (env->source) {
+		g_source_destroy(env->source);
+		g_source_unref(env->source);
+		g_free(env->source_functions);
+	}
+
 	while (env->databases) {
 		SmlDatabase *db = env->databases->data;
 		syncml_free_database(db);
 
 		env->databases = g_list_remove(env->databases, db);
 	}
-
 	
 	g_free(env);
-	
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -993,6 +997,8 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	g_source_set_callback(source, NULL, env, NULL);
 	g_source_attach(source, env->context);
 
+	env->source = source;
+
 
 	SmlTransportHttpServerConfig config;
 	config.port = env->port;
@@ -1279,6 +1285,9 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	*envptr = env;
 	g_source_set_callback(source, NULL, env, NULL);
 	g_source_attach(source, env->context);
+
+	env->source = source;
+	env->source_functions = functions;
 
 
 	SmlTransportObexClientConfig config;
