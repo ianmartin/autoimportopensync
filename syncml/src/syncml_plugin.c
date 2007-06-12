@@ -25,6 +25,12 @@ static void syncml_free_database(SmlDatabase *database)
 	if (database->url)
 		g_free(database->url);
 
+	if (database->objtype)
+		g_free(database->objtype);
+
+	if (database->sink)
+		osync_objtype_sink_unref(database->sink);
+
 	g_free(database);
 }
 
@@ -469,6 +475,7 @@ static gboolean _sessions_check(GSource *source)
 			return TRUE;
 	}
 		
+	osync_trace(TRACE_INTERNAL, "env: %p, manageR: %p", env, env->manager);
 	if (smlManagerCheck(env->manager))
 		return TRUE;
 		
@@ -653,6 +660,32 @@ static void finalize(void *data)
 	smlTransportFinalize(env->tsp, NULL);
 	
 	smlTransportFree(env->tsp);
+
+	if (env->identifier)
+		g_free(env->identifier);
+
+	if (env->username)
+		g_free(env->username);
+
+	if (env->password)
+		g_free(env->password);
+
+	if (env->bluetoothAddress)
+		g_free(env->bluetoothAddress);
+
+	if (env->url)
+		g_free(env->url);
+
+	if (env->anchor_path)
+		g_free(env->anchor_path);
+
+	while (env->databases) {
+		SmlDatabase *db = env->databases->data;
+		syncml_free_database(db);
+
+		env->databases = g_list_remove(env->databases, db);
+	}
+
 	
 	g_free(env);
 	
@@ -1096,9 +1129,11 @@ static osync_bool syncml_obex_client_parse_config(SmlPluginEnv *env, const char 
 					goto error_free_doc;
 			}
 
-			xmlFree(str);
 
 		}
+		if (str)
+			xmlFree(str);
+
 		cur = cur->next;
 	}
 	
@@ -1253,7 +1288,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Bluetooth selected but no bluetooth address given");
 			goto error_free_auth;
 		}
-		config.url = g_strdup(env->bluetoothAddress);
+		config.url = env->bluetoothAddress;
 		config.port = env->bluetoothChannel;
 	} else if (config.type == SML_OBEX_TYPE_USB)
 		config.port = env->interface;
