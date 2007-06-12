@@ -2,10 +2,6 @@
 
 #include <opensync/opensync-merger.h>
 
-#include "formats/vformats-xml/vformat.c"
-#include "formats/vformats-xml/xmlformat-common.c"
-#include "formats/vformats-xml/xmlformat-vcard.c"
-
 START_TEST (merger_new)
 {
 	char *testbed = setup_testbed("merger");
@@ -126,42 +122,12 @@ START_TEST (merger_demerge)
 }
 END_TEST
 
-START_TEST (conv_vcard)
-{
-	char *testbed = setup_testbed("vcards");
-	
-	char *buffer;
-	unsigned int size;
-	osync_bool ret, free_input;
-	OSyncError *error = NULL;
-	char *xmlformat = NULL; // (OSyncXMLFormat*)
-
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
-	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
-	fail_unless(ret == TRUE, NULL);
-	fail_unless(error == NULL, NULL);
-	if(free_input)
-		g_free(buffer);
-
-	ret = conv_xmlformat_to_vcard(xmlformat, size, &buffer, &size, &free_input, "VCARD_EXTENSION=Evolution", &error, VFORMAT_CARD_30);
-	fail_unless(ret == TRUE, NULL);
-	fail_unless(error == NULL, NULL);
-	//printf("%s", buffer);
-	if(free_input)
-		g_free(buffer);
-		
-	destroy_testbed(testbed);
-}
-END_TEST
-
-
 Suite *filter_suite(void)
 {
 	Suite *s = suite_create("Merger");
 	create_case(s, "merger_new", merger_new);
 	create_case(s, "merger_merge", merger_merge);
 	create_case(s, "merger_demerge", merger_demerge);
-	create_case(s, "conv_vcard", conv_vcard);
 	return s;
 }
 
