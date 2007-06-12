@@ -43,24 +43,29 @@ static SmlChangeType _get_changetype(OSyncChange *change)
 	return SML_CHANGE_UNKNOWN;
 }
 
-static const char *_format_to_contenttype(OSyncChange *change)
+static const char *_objtype_to_contenttype(const char *objtype)
 {
-	if (!strcmp(osync_change_get_objtype(change), "contact")) {
+	if (!strcmp(objtype, "contact")) {
 		return SML_ELEMENT_TEXT_VCARD;
 	}
-	if (!strcmp(osync_change_get_objtype(change), "event")) {
+	if (!strcmp(objtype, "event")) {
 		return SML_ELEMENT_TEXT_VCAL;
 	}
-	if (!strcmp(osync_change_get_objtype(change), "todo")) {
+	if (!strcmp(objtype, "todo")) {
 		return SML_ELEMENT_TEXT_VCAL;
 	}
-	if (!strcmp(osync_change_get_objtype(change), "note")) {
+	if (!strcmp(objtype, "note")) {
 		return SML_ELEMENT_TEXT_PLAIN;
 	}
-	if (!strcmp(osync_change_get_objtype(change), "data")) {
+	if (!strcmp(objtype, "data")) {
 		return SML_ELEMENT_TEXT_PLAIN;
 	}
 	return NULL;
+}
+
+static const char *_format_to_contenttype(OSyncChange *change)
+{
+	return _objtype_to_contenttype(osync_change_get_objtype(change));
 }
 
 static osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, OSyncError **error)
@@ -919,8 +924,7 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!loc)
 			goto error;
 		
-		// TODO: get rid of hardcoded types... -> vcard
-		database->server = smlDsServerNew(SML_ELEMENT_TEXT_VCARD, loc, &serror);
+		database->server = smlDsServerNew(_objtype_to_contenttype(database->objtype), loc, &serror);
 		if (!database->server)
 			goto error;
 			
@@ -934,7 +938,6 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!datastore)
 			goto error;
 		
-		// TODO: get rid of hardcoded types... -> vcard
 		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
 		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
 		
@@ -1202,8 +1205,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!loc)
 			goto error_free_auth;
 		
-		// TODO: get rid of hardcoded types... -> vcard
-		database->server = smlDsServerNew(SML_ELEMENT_TEXT_VCARD, loc, &serror);
+		database->server = smlDsServerNew(_objtype_to_contenttype(database->objtype), loc, &serror);
 		if (!database->server)
 			goto error_free_auth;
 			
@@ -1217,9 +1219,8 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!datastore)
 			goto error_free_auth;
 		
-		// TODO: get rid of hardcoded types... -> vcard
-		smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
-		smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+		smlDevInfDataStoreSetRxPref(datastore, _objtype_to_contenttype(database->objtype), "2.1");
+		smlDevInfDataStoreSetTxPref(datastore, _objtype_to_contenttype(database->objtype), "2.1");
 		
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
