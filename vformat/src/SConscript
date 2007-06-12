@@ -11,17 +11,17 @@ note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH 
 todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 # vformat support library
-vformat = formatenv.SharedLibrary('vformat', ['vformat.c'], LIBS = ['opensync'], LIBPATH = ['$prefix/$libsuffix'])
+vformat = formatenv.SharedLibrary('vformat', ['vformat.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 # common xmlformat libraries
-xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['xmlformat-common.c'], LIBS = ['opensync', vformat], LIBPATH = ['$prefix/$libsuffix', '.'])
-xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['xmlformat-vcalendar.c'], LIBS = [xmlformatcommon], LIBPATH = ['.'])
+xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['xmlformat-common.c'], LIBS = ['opensync', 'vformat'], LIBPATH = ['.'])
+xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['xmlformat-vcalendar.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
 
 # xmlformat plugins which convert from vformat to xmlformat and backwards
-xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = [xmlformatcommon], LIBPATH = ['.'])
-xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c'], LIBS = [xmlformatvcalendar], LIBPATH = ['.'])
-xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['xmlformat-vnote.c'], LIBS = [xmlformatvcalendar], LIBPATH = ['.'])
-xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['xmlformat-vtodo.c', 'xmlformat-vtodo10.c', 'xmlformat-vtodo20.c'], LIBS = [xmlformatvcalendar], LIBPATH = ['.'])
+xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.'])
+xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
+xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['xmlformat-vnote.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
+xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['xmlformat-vtodo.c', 'xmlformat-vtodo10.c', 'xmlformat-vtodo20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.'])
 
 # install plugins
 formatenv.Install(install_format, contact)
@@ -38,4 +38,4 @@ formatenv.Install(install_lib, vformat)
 formatenv.Install(install_lib, xmlformatcommon)
 formatenv.Install(install_lib, xmlformatvcalendar)
 
-formatenv.Alias('install', install_prefix)
+env.Alias('install', install_prefix)
