@@ -146,7 +146,7 @@ void osync_version_unref(OSyncVersion *version)
 	osync_assert(version);
 			
 	if (g_atomic_int_dec_and_test(&(version->ref_count))) {
-		g_free(version);
+
 		if(version->plugin)
 			g_free(version->plugin);
 		if(version->priority)
@@ -161,6 +161,8 @@ void osync_version_unref(OSyncVersion *version)
 			g_free(version->hardwareversion);
 		if(version->identifier)
 			g_free(version->identifier);
+
+		g_free(version);
 	}
 }
 
