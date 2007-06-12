@@ -2,10 +2,6 @@
 
 #include <opensync/opensync-merger.h>
 
-#include "formats/vformats-xml/vformat.c"
-#include "formats/vformats-xml/xmlformat-common.c"
-#include "formats/vformats-xml/xmlformat-vcard.c"
-
 START_TEST (xmlformat_new)
 {
 	char *testbed = setup_testbed("merger");
@@ -110,54 +106,26 @@ START_TEST (xmlformat_search_field)
 }
 END_TEST
 
-START_TEST (xmlformat_validate)
-{
-	char *testbed = setup_testbed("vcards");
-
-	char *buffer;
-	unsigned int size;
-	osync_bool free_input, ret;
-	OSyncError *error = NULL;
-	char *xmlformat; // (OSyncXMLFormat *)
-
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
-	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
-	fail_unless(ret == TRUE, NULL);
-	fail_unless(error == NULL, NULL);
-	if(free_input)
-		g_free(buffer);
-
-	fail_unless(osync_xmlformat_validate((OSyncXMLFormat *)xmlformat) != FALSE, NULL);
-
-	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat);
-
-	destroy_testbed(testbed);
-}
-END_TEST
-
 START_TEST (xmlformat_compare)
 {
-	char *testbed = setup_testbed("vcards");
+	char *testbed = setup_testbed("xmlformats");
 
 	char *buffer;
 	unsigned int size;
-	osync_bool free_input, ret;
 	OSyncError *error = NULL;
-	char *xmlformat; // (OSyncXMLFormat*)
-	char *xmlformat2; // (OSyncXMLFormat*)
 
 
-	fail_unless(osync_file_read( "evolution2/evo2-full1.vcf", &buffer, &size, &error), NULL);
-	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
-	fail_unless(ret == TRUE, NULL);
+	fail_unless(osync_file_read( "contact.xml", &buffer, &size, &error), NULL);
+
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
-	ret = conv_vcard_to_xmlformat(buffer, size, &xmlformat2, &size, &free_input, "VCARD_EXTENSION=Evolution", &error);
-	fail_unless(ret == TRUE, NULL);
+	OSyncXMLFormat *xmlformat2 = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat2 != NULL, NULL);
 	fail_unless(error == NULL, NULL);
 
-	if(free_input)
-		g_free(buffer);
+	g_free(buffer);
 
         char* keys_content[] =  {"Content", NULL};
         char* keys_name[] = {"FirstName", "LastName", NULL};
@@ -206,7 +174,6 @@ Suite *xmlformat_suite(void)
 	create_case(s, "xmlformat_parse", xmlformat_parse);
 	create_case(s, "xmlformat_sort", xmlformat_sort);
 	create_case(s, "xmlformat_search_field", xmlformat_search_field);
-	create_case(s, "xmlformat_validate", xmlformat_validate);
 	create_case(s, "xmlformat_compare", xmlformat_compare);
 	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);
 

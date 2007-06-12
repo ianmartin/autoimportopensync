@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<contact>
+  <EMail>
+    <Content>dgollub@suse.de</Content>
+  </EMail>
+  <FormattedName>
+    <Content>Gollub Daniel</Content>
+  </FormattedName>
+  <Name>
+    <LastName>Daniel</LastName>
+    <FirstName>Gollub</FirstName>
+    <Additional>Alexander</Additional>
+  </Name>
+  <Telephone Location="Home">
+    <Content>0123456543</Content>
+  </Telephone>
+  <Uid>
+    <Content>EiC498bkl4</Content>
+  </Uid>
+</contact>
