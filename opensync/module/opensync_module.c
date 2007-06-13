@@ -254,6 +254,8 @@ void osync_module_unload(OSyncModule *module)
 	if (!osync_module_get_function(module, "dont_free", NULL))
 #ifndef DEBUG_MODULES	
 		g_module_close(module->module);
+#else	
+		osync_trace(TRACE_INTERNAL, "Unloading modules got disabled in this build. debug_modules=1");
 #endif	
 	module->module = NULL;
 	
