@@ -511,7 +511,40 @@ static void _verify_user(SmlAuthenticator *auth, const char *username, const cha
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, *reply);
 }
 
-static void client_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
+	SmlPluginEnv *env = (SmlPluginEnv *)data;
+	
+	env->tryDisconnect = FALSE;
+
+	/* For the obex client, we will store the context at this point since
+	 * we can only answer it as soon as the device returned an answer to our san */
+	env->connectCtx = ctx;
+
+	/* For the http server we can report success right away since we know
+	 * that we already received an alert (otherwise we could not have triggered
+	 * the synchronization) */
+	GList *o = env->databases;
+	for (; o; o = o->next) {
+		SmlDatabase *database = o->data;
+
+		if (database->session)
+			smlDsSessionGetAlert(database->session, _recv_alert, database);
+	}
+	
+	/* If we already received the final, we just report success. otherwise
+	 * we let the final report success */
+	if (env->gotFinal)
+		osync_context_report_success(ctx);
+	else
+		env->connectCtx = ctx;
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
+}
+
+static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
@@ -520,58 +553,38 @@ static void client_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	SmlNotification *san = NULL;
 	
 	env->tryDisconnect = FALSE;
-	if (smlTransportGetType(env->tsp) == SML_TRANSPORT_OBEX_CLIENT) {
-		/* For the obex client, we will store the context at this point since
-		 * we can only answer it as soon as the device returned an answer to our san */
-		env->connectCtx = ctx;
 
-		/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
-		   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
-		osync_context_ref(ctx);
-		
-		/* Create the SAN */
-		san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
-		if (!san)
-			goto error;
+	/* For the obex client, we will store the context at this point since
+	 * we can only answer it as soon as the device returned an answer to our san */
+	env->connectCtx = ctx;
 
-		GList *o = env->databases;
-		for (; o; o = o->next) {
-			SmlDatabase *database = o->data;
+	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
+	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
+	osync_context_ref(ctx);
+	
+	/* Create the SAN */
+	san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
+	if (!san)
+		goto error;
 
-			if (database->server) {
-				if (!smlDsServerAddSan(database->server, san, &error))
-					goto error_free_san;
-			}
+	GList *o = env->databases;
+	for (; o; o = o->next) {
+		SmlDatabase *database = o->data;
+
+		if (database->server) {
+			if (!smlDsServerAddSan(database->server, san, &error))
+				goto error_free_san;
 		}
-		
-		if (!smlTransportConnect(env->tsp, &error))
-			goto error;
-		
-		if (!smlNotificationSend(san, env->tsp, &error))
-			goto error_free_san;
-		
-		smlNotificationFree(san);
-	} else if (smlTransportGetType(env->tsp) == SML_TRANSPORT_HTTP_SERVER) {
-		
-		/* For the http server we can report success right away since we know
-		 * that we already received an alert (otherwise we could not have triggered
-		 * the synchronization) */
-		GList *o = env->databases;
-		for (; o; o = o->next) {
-			SmlDatabase *database = o->data;
-
-			if (database->session)
-				smlDsSessionGetAlert(database->session, _recv_alert, database);
-		}
-		
-		/* If we already received the final, we just report success. otherwise
-		 * we let the final report success */
-		if (env->gotFinal)
-			osync_context_report_success(ctx);
-		else
-			env->connectCtx = ctx;
 	}
 	
+	if (!smlTransportConnect(env->tsp, &error))
+		goto error;
+	
+	if (!smlNotificationSend(san, env->tsp, &error))
+		goto error_free_san;
+	
+	smlNotificationFree(san);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -906,7 +919,7 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.connect = client_connect;
+                functions.connect = connect_http_server;
                 functions.disconnect = disconnect;
                 functions.get_changes = get_changeinfo;
                 functions.sync_done = sync_done;
@@ -1185,13 +1198,17 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                 
                 database->sink = sink;
 		database->objformat = osync_format_env_find_objformat(formatenv, "plain");
+		if (!database->objformat) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"plain\" object format. Are format plugins correctly installed?");
+			return FALSE;
+		}
                 
 		// TODO:... in case of maemo ("plain text") we have to set "memo"...
                 osync_objtype_sink_add_objformat(sink, "plain");
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));
-                functions.connect = client_connect;
+                functions.connect = connect_obex_client;
                 functions.disconnect = disconnect;
                 functions.get_changes = get_changeinfo;
                 functions.sync_done = sync_done;
