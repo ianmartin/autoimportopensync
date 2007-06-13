@@ -2,7 +2,6 @@ Import('*')
 
 if testenv['enable_tests'] == 1:
 
-	testenv.Prepend(LIBPATH = '#opensync')
 	support = testenv.Library('support', ['support.c'], LIBS = ['opensync', 'check'])
 	testenv.Append(LIBPATH = '.')
 	testenv.Program('error', ['check_error.c'], LIBS = ['opensync', 'check', support])

@@ -57,6 +57,8 @@ def check(env, config):
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')
 	testenv.Append(CCFLAGS = r'-DOPENSYNC_TESTDATA="\"' + env.GetLaunchDir() + r'/tests/data\""')
 
+	testenv.Append(LIBPATH = testenv.GetLaunchDir() + r'/opensync/')
+
 	if env['enable_rpath'] == 1:
 		testenv.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,' + testenv.GetLaunchDir() + r'/opensync/'])
 		env.Append(LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix'])
