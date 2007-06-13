@@ -305,6 +305,11 @@ osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
 {
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 	env->contact_format = osync_format_env_find_objformat(formatenv, "vcard30");
+
+	if (!env->contact_format) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find vcard30 object format. vformat plugin installed?");
+		return FALSE;
+	}
 	
 	
 	env->contact_sink = osync_objtype_sink_new("contact", error);
