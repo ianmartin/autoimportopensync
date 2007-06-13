@@ -97,15 +97,13 @@ typedef struct SmlPluginEnv {
 	SmlManager *manager;
 	SmlSession *session;
 	
-	OSyncContext *connectCtx;
-	OSyncContext *getChangesCtx;
-	OSyncContext *commitCtx;
-	OSyncContext *disconnectCtx;
 
 	GList *databases;
 	
 	GList *eventEntries;
 	unsigned int numEventEntries;
+
+	osync_bool isConnected;
 } SmlPluginEnv;
 
 typedef struct SmlDatabase {
@@ -116,8 +114,12 @@ typedef struct SmlDatabase {
 	OSyncObjTypeSink *sink;
 	char *objtype;	
 	char *url;
+
+	OSyncContext *connectCtx;
+	OSyncContext *getChangesCtx;
+	OSyncContext *commitCtx;
+	OSyncContext *disconnectCtx;
+
 } SmlDatabase;
-
-
 
 #endif //_SYNCML_PLUGIN_H
