@@ -97,6 +97,9 @@ typedef struct SmlPluginEnv {
 	SmlManager *manager;
 	SmlSession *session;
 	
+	OSyncContext *connectCtx;
+
+	SmlNotification *san;
 
 	GList *databases;
 	
@@ -115,7 +118,6 @@ typedef struct SmlDatabase {
 	char *objtype;	
 	char *url;
 
-	OSyncContext *connectCtx;
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
 	OSyncContext *disconnectCtx;

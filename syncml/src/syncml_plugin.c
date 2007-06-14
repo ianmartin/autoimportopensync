@@ -155,7 +155,7 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 	OSyncError *error = NULL;
 
 	if (!type) {
-		osync_context_report_success((OSyncContext *)userdata);
+		osync_context_report_success(database->getChangesCtx);
 		osync_trace(TRACE_EXIT, "%s", __func__);
 		return TRUE;
 	}
@@ -216,7 +216,7 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 
 	osync_data_unref(odata);
 
-	osync_context_report_change((OSyncContext *)database->getChangesCtx, change);
+	osync_context_report_change(database->getChangesCtx, change);
 
 	osync_change_unref(change);
 		
@@ -315,39 +315,10 @@ static void _ds_alert(SmlDsSession *dsession, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, dsession, userdata);
 
-	SmlPluginEnv *env = (SmlPluginEnv *)userdata;
-// TODO: What is the request member sync function in devel-branch?!	
-//	osync_member_request_synchronization(env->member);
+	SmlDatabase *database = (SmlDatabase *)userdata;
 
-	/*
-	SmlDatabase *database = _find_database(env, dsession);
-	
-	if (!strcmp(smlDsSessionGetContentType(dsession), SML_ELEMENT_TEXT_VCARD)) {
-		printf("received contact dsession\n");
-		env->contactSession = dsession;
-		smlDsSessionRef(dsession);
-	} else if (!strcmp(smlDsSessionGetContentType(dsession), SML_ELEMENT_TEXT_VCAL)) {
-		printf("received event dsession\n");
-		env->calendarSession = dsession;
-		smlDsSessionRef(dsession);
-	} else if (!strcmp(smlDsSessionGetContentType(dsession), SML_ELEMENT_TEXT_PLAIN)) {
-		printf("received note dsession\n");
-		env->noteSession = dsession;
-		smlDsSessionRef(dsession);
-	}
-	*/
-
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-		SmlDatabase *database = o->data;
-
-		if (!strcmp(database->objtype, _contenttype_to_format(smlDsSessionGetContentType(dsession)))) {
-			database->session = dsession;
-			smlDsSessionRef(dsession);
-			break;
-		}
-
-	}
+	database->session = dsession;
+	smlDsSessionRef(dsession);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -412,16 +383,16 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 		case SML_MANAGER_SESSION_FINAL:
 			osync_trace(TRACE_INTERNAL, "Session %s reported final\n", smlSessionGetSessionID(session));
 			env->gotFinal = TRUE;
+
+			if (env->connectCtx) {
+				osync_context_report_success(env->connectCtx);
+				env->connectCtx = NULL;
+			}
 			
 			o = env->databases;
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
 
-				if (database->connectCtx) {
-					osync_context_report_success(database->connectCtx);
-					database->connectCtx = NULL;
-				}
-				
 				if (database->getChangesCtx) {
 					osync_context_report_success(database->getChangesCtx);
 					database->getChangesCtx = NULL;
@@ -455,25 +426,28 @@ error:;
 	OSyncError *oserror = NULL;
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, smlErrorPrint(&error));
 	
+	if (env->connectCtx) {
+		osync_context_report_osyncerror(env->connectCtx, oserror);
+		env->connectCtx = NULL;
+	}
+
 	
 	o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
 
-		if (database->connectCtx) {
-			osync_context_report_osyncerror(database->connectCtx, oserror);
-			database->connectCtx = NULL;
-		}
 		
 		if (database->getChangesCtx) {
 			osync_context_report_osyncerror(database->getChangesCtx, oserror);
 			database->getChangesCtx = NULL;
 		}
-		
+
 		if (database->disconnectCtx) {
 			osync_context_report_osyncerror(database->disconnectCtx, oserror);
 			database->disconnectCtx = NULL;
 		}
+
+		
 	}
 
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&oserror));
@@ -522,7 +496,7 @@ static void _verify_user(SmlAuthenticator *auth, const char *username, const cha
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p)", __func__, auth, username, password, userdata, reply);
 	SmlPluginEnv *env = userdata;
 	
-	osync_trace(TRACE_INTERNAL, "configured is %s, %s", env->username, env->password);
+	osync_trace(TRACE_SENSITIVE, "configured is %s, %s", env->username, env->password);
 	if (env->username && (!env->password || !username || !password || strcmp(env->username, username) || strcmp(env->password, password))) {
 		*reply = SML_ERROR_AUTH_REJECTED;
 	} else {
@@ -536,14 +510,11 @@ static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext 
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
-
 	env->tryDisconnect = FALSE;
 
 	/* For the obex client, we will store the context at this point since
 	 * we can only answer it as soon as the device returned an answer to our san */
-	database->connectCtx = ctx;
+	env->connectCtx = ctx;
 
 	/* For the http server we can report success right away since we know
 	 * that we already received an alert (otherwise we could not have triggered
@@ -561,7 +532,7 @@ static void connect_http_server(void *data, OSyncPluginInfo *info, OSyncContext 
 	if (env->gotFinal)
 		osync_context_report_success(ctx);
 	else
-		database->connectCtx = ctx;
+		env->connectCtx = ctx;
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -573,48 +544,40 @@ static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext 
 
 	SmlPluginEnv *env = (SmlPluginEnv *)data;
 
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-	SmlDatabase *database = osync_objtype_sink_get_userdata(sink);
-
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
-	SmlNotification *san = NULL;
 	
+	if (env->isConnected) {
+		osync_context_report_success(ctx);
+		osync_trace(TRACE_EXIT, "%s", __func__);
+		return;
+	}
+
 	env->tryDisconnect = FALSE;
 
 	/* For the obex client, we will store the context at this point since
 	 * we can only answer it as soon as the device returned an answer to our san */
-	database->connectCtx = ctx;
+	env->connectCtx = ctx;
 
 	/* This ref counting is needed to avoid a segfault. TODO: review if this is really needed.
 	   To reproduce the segfault - just remove the osync_context_ref() call in the next line. */ 
-	osync_context_ref(database->connectCtx);
+	osync_context_ref(env->connectCtx);
 	
-	/* Create the SAN */
-	san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &error);
-	if (!san)
-		goto error;
-
-	if (database->server) {
-		if (!smlDsServerAddSan(database->server, san, &error))
-			goto error_free_san;
-	}
-	
-	if (!env->isConnected && !smlTransportConnect(env->tsp, &error))
+	if (!smlTransportConnect(env->tsp, &error))
 		goto error;
 	else
 		env->isConnected = TRUE;
-	
-	if (!smlNotificationSend(san, env->tsp, &error))
+
+	if (!smlNotificationSend(env->san, env->tsp, &error))
 		goto error_free_san;
-	
-	smlNotificationFree(san);
+
+	smlNotificationFree(env->san);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
 error_free_san:
-	smlNotificationFree(san);
+	smlNotificationFree(env->san);
 error:
 	osync_error_set(&oserror, OSYNC_ERROR_GENERIC, "%s", smlErrorPrint(&error));
 	smlErrorDeref(&error);
@@ -677,13 +640,14 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	if (!smlSessionEnd(env->session, &error))
 		goto error;
 	
-	if (env->gotDisconnect)
+	if (env->gotDisconnect) {
 		osync_context_report_success(ctx);
-	else
+	} else {
 		database->disconnectCtx = ctx;
+	}
 
-	osync_context_unref(database->connectCtx);
-		
+	osync_context_ref(database->disconnectCtx);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -756,11 +720,7 @@ static void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 	int num = 0;
 	
 	database->commitCtx = ctx;
-/*	
-	int numContact = 0;
-	int numCalendar = 0;
-	int numNote = 0;
-*/	
+	osync_context_ref(database->commitCtx);
 	
 	for (i = 0; changes[i]; i++) {
 		/*
@@ -774,40 +734,36 @@ static void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 		num++;
 	}
 	
-	GList *o = env->databases;
-	for (; o; o = o->next) {
-		SmlDatabase *database = o->data;
-		if (!smlDsSessionSendSync(database->session, num, _recv_sync_reply, NULL, &error))
-			goto error;
+	if (!smlDsSessionSendSync(database->session, num, _recv_sync_reply, NULL, &error))
+		goto error;
 
-		for (i = 0; changes[i]; i++) {
-			OSyncChange *change = changes[i];
-			OSyncContext *context = contexts[i];
-			
-			osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_change_get_objtype(change), osync_change_get_changetype(change));
-			
-			struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
-			if (!tracer)
-				goto oserror;
-			
-			tracer->change = change;
-			tracer->context = context;
-
-			OSyncData *data = osync_change_get_data(change);
-			char *buf = NULL;
-			unsigned int size = 0;
-			osync_data_get_data(data, &buf, &size);
+	for (i = 0; changes[i]; i++) {
+		OSyncChange *change = changes[i];
+		OSyncContext *context = contexts[i];
 		
-			if (!smlDsSessionQueueChange(database->session, _get_changetype(change), osync_change_get_uid(change), buf, size, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
-				goto error;
-			contexts[i] = NULL;
-
-			g_free(buf);
-		}
+		osync_trace(TRACE_INTERNAL, "Uid: \"%s\", Format: \"%s\", Changetype: \"%i\"", osync_change_get_uid(change), osync_change_get_objtype(change), osync_change_get_changetype(change));
 		
-		if (!smlDsSessionCloseSync(database->session, &error))
+		struct commitContext *tracer = osync_try_malloc0(sizeof(struct commitContext), &oserror);
+		if (!tracer)
+			goto oserror;
+		
+		tracer->change = change;
+		tracer->context = context;
+
+		OSyncData *data = osync_change_get_data(change);
+		char *buf = NULL;
+		unsigned int size = 0;
+		osync_data_get_data(data, &buf, &size);
+	
+		if (!smlDsSessionQueueChange(database->session, _get_changetype(change), osync_change_get_uid(change), buf, size, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
 			goto error;
+		contexts[i] = NULL;
+
+		g_free(buf);
 	}
+	
+	if (!smlDsSessionCloseSync(database->session, &error))
+		goto error;
 
 	for (i = 0; i < num; i++) {
 		if (contexts[i]) {
@@ -1018,7 +974,7 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		if (!smlDsServerRegister(database->server, env->manager, &serror))
 			goto error;
 		
-		smlDsServerSetConnectCallback(database->server, _ds_alert, env);
+		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
 		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
@@ -1215,8 +1171,6 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	if (!env)
 		goto error;
 
-	osync_trace(TRACE_INTERNAL, "SmlPluginEnv: %p", env);
-		
 	const char *configdata = osync_plugin_info_get_config(info);
         osync_trace(TRACE_INTERNAL, "The config: %s", configdata);
 	
@@ -1232,15 +1186,13 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                 if (!sink)
                         goto error_free_env;
 
-		osync_trace(TRACE_INTERNAL, "SmlDatabase for %s: %p", database->objtype, database);
-
-                
                 database->sink = sink;
 		database->objformat = osync_format_env_find_objformat(formatenv, "plain");
 		if (!database->objformat) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"plain\" object format. Are format plugins correctly installed?");
 			return FALSE;
 		}
+
                 
 		// TODO:... in case of maemo ("plain text") we have to set "memo"...
                 osync_objtype_sink_add_objformat(sink, "plain");
@@ -1260,6 +1212,12 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	env->context = osync_plugin_info_get_loop(info); 
 
 	env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
+
+	/* Create the SAN */
+	env->san = smlNotificationNew(env->version, SML_SAN_UIMODE_UNSPECIFIED, SML_SAN_INITIATOR_USER, 1, env->identifier, "/", env->useWbxml ? SML_MIMETYPE_WBXML : SML_MIMETYPE_XML, &serror);
+	if (!env->san)
+		goto error;
+
 	
 	/* The transport needed to transport the data */
 	env->tsp = smlTransportNew(SML_TRANSPORT_OBEX_CLIENT, &serror);
@@ -1310,20 +1268,31 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		database->server = smlDsServerNew(_objtype_to_contenttype(database->objtype), loc, &serror);
 		if (!database->server)
 			goto error_free_auth;
-			
+
+		if (!smlDsServerAddSan(database->server, env->san, &serror))
+			goto error_free_san;
+
 		if (!smlDsServerRegister(database->server, env->manager, &serror))
 			goto error_free_auth;
 		
-		smlDsServerSetConnectCallback(database->server, _ds_alert, env);
+		smlDsServerSetConnectCallback(database->server, _ds_alert, database);
 		
 		/* And we also add the devinfo to the devinf agent */
 		SmlDevInfDataStore *datastore = smlDevInfDataStoreNew(smlLocationGetURI(loc), &serror);
 		if (!datastore)
 			goto error_free_auth;
 		
-		smlDevInfDataStoreSetRxPref(datastore, _objtype_to_contenttype(database->objtype), "2.1");
-		smlDevInfDataStoreSetTxPref(datastore, _objtype_to_contenttype(database->objtype), "2.1");
-		
+		if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCARD)) {
+			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCARD, "2.1");
+		} else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_VCAL)) {
+			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_VCAL, "2.0");
+		} else if (!strcmp(_objtype_to_contenttype(database->objtype), SML_ELEMENT_TEXT_PLAIN)) {
+			smlDevInfDataStoreSetRxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
+			smlDevInfDataStoreSetTxPref(datastore, SML_ELEMENT_TEXT_PLAIN, "1.0");
+		}
+
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_TWO_WAY, TRUE);
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SLOW_SYNC, TRUE);
 		smlDevInfDataStoreSetSyncCap(datastore, SML_DEVINF_SYNCTYPE_SERVER_ALERTED_SYNC, TRUE);
@@ -1378,6 +1347,8 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 
+error_free_san:
+	smlNotificationFree(env->san);
 error_free_auth:
 	smlAuthFree(env->auth);
 error_free_manager:
