@@ -19,8 +19,10 @@ Possibly working, but only lightly tested:
  * V635 (tested reading only)
 
 Models known not to work:
- * K1 KRZR (phone book works fine, but any calendar command fails)
- * V3xx RAZR (same as above)
+ * V600 (shorter contact entries, ticket #504)
+ * V3c (doesn't like AT+MODE=0, ticket #505)
+ * K1 KRZR (phone book works, requires extended calendar support, #425)
+ * V3xx RAZR (phone book works, requires extended calendar support, #425)
  * A780 (doesn't seem to respond to AT commands, except with ERROR)
 
 If your phone isn't listed above, or if your results differ, please let 
