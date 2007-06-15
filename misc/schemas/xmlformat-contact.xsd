@@ -76,8 +76,6 @@
 
   <xsd:simpleType name="Preferred">
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="0"/>
-      <xsd:enumeration value="1"/>
       <xsd:enumeration value="true"/>
       <xsd:enumeration value="false"/>
     </xsd:restriction>
@@ -117,7 +115,7 @@
         <xsd:element minOccurs="1" name="Content" type="xsd:string"/>
       </xsd:sequence>
       <xsd:attribute name="Location" type="AddressLocation"/>
-      <xsd:attribute name="Pref" type="Preferred"/>
+      <xsd:attribute name="Preferred" type="Preferred"/>
     </xsd:complexType>
 
 	<xsd:complexType name="Categories">
