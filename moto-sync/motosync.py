@@ -43,30 +43,6 @@ BT_DEFAULT_CHANNEL = 1
 # object types supported by this plugin
 SUPPORTED_OBJTYPES = ['event', 'contact']
 
-CAPABILITIES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<capabilities>
-    <contact>
-        <Address />
-        <Birthday />
-        <Categories />
-        <EMail />
-        <FormattedName />
-        <Name />
-        <Nickname />
-        <Telephone />
-    </contact>
-    <event>
-        <Alarm />
-        <DateEnd />
-        <DateStarted />
-        <Duration />
-        <ExceptionDateTime />
-        <RecurrenceRule />
-        <Summary />
-    </event>
-</capabilities>
-"""
-
 # my phone doesn't like it if you read more than this many entries at a time
 ENTRIES_PER_READ = 15
 
@@ -83,12 +59,14 @@ VCAL_DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
 RRULE_DAYS = [rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR, rrule.SA, rrule.SU]
 
 # repeat types in the calendar
+# XXX FIXME: check order of DATE/DAY for monthly and yearly, my values disagree
 MOTO_REPEAT_NONE = 0
 MOTO_REPEAT_DAILY = 1
 MOTO_REPEAT_WEEKLY = 2
-MOTO_REPEAT_MONTHLY_DATE = 3
-MOTO_REPEAT_MONTHLY_DAY = 4
-MOTO_REPEAT_YEARLY = 5
+MOTO_REPEAT_MONTHLY_DAY = 3
+MOTO_REPEAT_MONTHLY_DATE = 4
+MOTO_REPEAT_YEARLY_DAY = 5
+MOTO_REPEAT_YEARLY_DATE = 6 # extended calendar format only
 
 # features we require; these refer to the bits returned by the AT+MAID? command
 # FIXME: my phone returns a lot more bits than I have documentation for, it's
@@ -107,6 +85,7 @@ MOTO_PHONE_CONTACT_TYPES = {
     3: 'Cellular',
     4: 'Fax',
     5: 'Pager',
+    8: 'Cellular', # shows up as "Mobile 2", seen on a V3c
     11: 'Voice' # shows up as "other", seen on a RAZR V3x
 }
 
@@ -141,6 +120,34 @@ MOTO_ADDRESS_TYPES = {
     1: 'Home',
 }
 
+# mapping from phone's event type value to category strings
+MOTO_EVENT_TYPES = {
+    0: None,
+    1: "Private",
+    2: "Discussion",
+    3: "Meeting",
+    4: "Birthday",
+    5: "Anniversary",
+    6: "Telephone Call",
+    7: "Vacation",
+    8: "Holiday",
+    9: "Entertainment",
+    10: "Breakfast",
+    11: "Lunch",
+    12: "Dinner",
+    13: "Education",
+    14: "Travel",
+    15: "Party",
+}
+
+# reverse of above
+REVERSE_MOTO_EVENT_TYPES = {}
+for (k, v) in MOTO_EVENT_TYPES.items():
+    if v:
+        REVERSE_MOTO_EVENT_TYPES[v.lower()] = k
+
+MOTO_EVENT_TYPE_NONE = 0
+
 # if not one of the above, we use:
 MOTO_CONTACT_DEFAULT = 2 # "Main"
 
@@ -158,6 +165,8 @@ MOTO_NUMTYPE_UNKNOWN = 128
 
 # various fields use 255 as an invalid value
 MOTO_INVALID = 255
+MOTO_INVALID_DATE = '00-00-2000'
+MOTO_INVALID_TIME = '00:00'
 
 # number of quick-dial entries in the phonebook; we avoid allocating these
 MOTO_QUICKDIAL_ENTRIES = 10
@@ -204,12 +213,27 @@ def getXMLText(el):
     """Returns all text within a given XML node."""
     return ''.join([n.data for n in el.childNodes if n.nodeType == n.TEXT_NODE])
 
-def appendXMLChild(doc, parent, tag, text):
+def appendXMLTag(doc, parent, tag, text):
     """Append a child tag with supplied text content to the parent node."""
     if text and text != '':
         e = doc.createElement(tag)
         e.appendChild(doc.createTextNode(text.encode('utf8')))
         parent.appendChild(e)
+
+def insertXMLNode(parent, newnode):
+    """Insert a new node into a parent's list of children, maintaining sort order."""
+    for node in parent.childNodes:
+        if newnode.nodeName < node.nodeName:
+            parent.insertBefore(newnode, node)
+            return
+    parent.appendChild(newnode)
+
+def insertXMLTag(doc, parent, tag, text):
+    """Append a child tag with supplied text content to the parent node."""
+    if text and text != '':
+        e = doc.createElement(tag)
+        e.appendChild(doc.createTextNode(text.encode('utf8')))
+        insertXMLNode(parent, e)
 
 def parse_moto_time(datestr, timestr=None):
     """convert phone's date and time string into a datetime object"""
@@ -264,26 +288,11 @@ def format_time(dt, format):
         # already in localtime
         return dt.strftime(format)
 
-def convert_rrule(rulenodes, exdates, exrules, eventdt):
-    """Process the recursion rules. Given lists of RecurrenceRule nodes,
-    exception dates, exception rules, and the event's date/time,
-    returns the motorola recurrence type and a list of exceptions.
+def xml_rrule_to_dateutil(xmlnode, eventdt):
+    """Convert an rrule from OpenSync XML format to a dateutil.rrule object."""
 
-    The general approach we take is: if the recursion can be represented
-    by the phone's data structure, we convert it, otherwise we ignore the
-    rule completely (to avoid the event showing up at incorrect times).
-
-    FIXME: this code doesn't yet handle all the tricky parts of RRULE
-    specifications (such as BYSETPOS)
-    """
-
-    # can't support multiple rules
-    if len(rulenodes) != 1:
-        return (MOTO_REPEAT_NONE, [])
-    rulenode = rulenodes[0]
-
-    # extract rule parts
-    freqstr = getXMLField(rulenode, 'Frequency').lower()
+    # convert frequency string
+    freqstr = getXMLField(xmlnode, 'Frequency').lower()
     if freqstr == 'daily':
         freq = rrule.DAILY
     elif freqstr == 'weekly':
@@ -295,77 +304,32 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
     else:
         assert(False, "invalid frequency %s" % freqstr)
 
-    until = getXMLField(rulenode, 'Until')
+    until = getXMLField(xmlnode, 'Until')
     if until:
         until = parse_ical_time(until)
-    count = getXMLField(rulenode, 'Count')
+
+    count = getXMLField(xmlnode, 'Count')
     if count:
         count = int(count)
-    interval = getXMLField(rulenode, 'Interval')
+
+    interval = getXMLField(xmlnode, 'Interval')
     if interval:
         interval = int(interval)
 
-    def getSet(name, convfunc=int):
-        """Internal convenience function, get a set of values from XML."""
-        val = getXMLField(rulenode, name)
-        if not val:
+    def getFieldAsList(name, convfunc=int):
+        """Convenience function, get a list of comma-separated values from XML."""
+        val = getXMLField(xmlnode, name)
+        if val:
+            return map(convfunc, val.split(','))
+        else:
             return None
-        return set(map(convfunc, val.split(',')))
 
-    bymonth = getSet('ByMonth')
-    byweekno = getSet('ByWeekNo')
-    byyearday = getSet('ByYearDay')
-    bymonthday = getSet('ByMonthDay')
-    byday = getSet('ByDay', lambda s: s.upper())
+    bymonth = getFieldAsList('ByMonth')
+    byyearday = getFieldAsList('ByYearDay')
+    bymonthday = getFieldAsList('ByMonthDay')
+    byday = getFieldAsList('ByDay', lambda s: s.upper())
 
-    # fail the conversion if any of these are set
-    if (getXMLField(rulenode, 'ByHour') or getXMLField(rulenode, 'ByMinute')
-        or getXMLField(rulenode, 'BySecond') or getXMLField(rulenode, 'BySetPos')
-        or (interval is not None and interval != 1)):
-        return (MOTO_REPEAT_NONE, [])
-
-    # compute the day and week number that the event falls in
-    eventday = VCAL_DAYS[eventdt.weekday()]
-    if eventdt.day % 7 == 0:
-        eventweek = eventdt.day / 7
-    else:
-        eventweek = eventdt.day / 7 + 1
-
-    # some convenience variables for the tests below
-    byeventweekday = set(['%d%s' % (eventweek, eventday)])
-    byalldays = set(VCAL_DAYS)
-    byallmonths = set(range(1, 12))
-
-    # now test if the rule matches what we can represent
-    if (freq == rrule.DAILY and (not byday or byday == byalldays)
-        and not bymonthday and not byyearday and not byweekno
-        and not bymonth):
-        moto_type = MOTO_REPEAT_DAILY
-    elif (freq == rrule.WEEKLY and (not byday or byday == set([eventday]))
-            and not bymonthday and not byyearday and not byweekno and
-            not bymonth):
-        moto_type = MOTO_REPEAT_WEEKLY
-    elif (freq == rrule.MONTHLY and not byday
-            and (not bymonthday or bymonthday == set([eventdt.day]))
-            and not byyearday and not byweekno
-            and (not bymonth or bymonth == byallmonths)):
-        moto_type = MOTO_REPEAT_MONTHLY_DATE
-    elif (freq == rrule.MONTHLY and byday == byeventweekday and not bymonthday
-            and not byyearday and not byweekno
-            and (not bymonth or bymonth == byallmonths)):
-        moto_type = MOTO_REPEAT_MONTHLY_DAY
-    elif (freq == rrule.YEARLY and not byday
-            and (not bymonthday or bymonthday == set([eventdt.day]))
-            and not byyearday and not byweekno
-            and (not bymonth or bymonth == set([eventdt.month]))):
-        moto_type = MOTO_REPEAT_YEARLY
-    else:
-        return (MOTO_REPEAT_NONE, [])
-
-    # phew, looks like we have something the phone can represent
-    # now we need to work out the exceptions and see if this event still occurs
-
-    # convert byday strings to constants needed by rrule
+    # convert byday strings to the constants needed by rrule
     byweekday = []
     for bydaystr in byday:
         day = RRULE_DAYS[VCAL_DAYS.index(bydaystr[-2:])]
@@ -375,20 +339,207 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
         else:
             byweekday.append(day)
 
-    # create an rrule object for this rule, and an rrule set
-    ruleobj = rrule.rrule(freq, dtstart=eventdt, count=count, until=until,
-                          bymonth=list(bymonth), bymonthday=list(bymonthday),
-                          byweekday=byweekday, byyearday=list(byyearday),
-                          byweekno=list(byweekno))
-    ruleset = rrule.rruleset()
-    ruleset.rrule(ruleobj)
+    # done!
+    return rrule.rrule(freq, dtstart=eventdt, interval=interval, count=count,
+                       until=until, bymonth=bymonth, bymonthday=bymonthday,
+                       byweekday=byweekday, byyearday=byyearday)
 
-    # are there any future occurrences of this event?
-    now = datetime.now()
-    if ruleset.after(now) == None:
-        return (MOTO_REPEAT_NONE, [])
+def moto_repeat_day_to_weekdays(repeat_day,  eventday):
+    """For a weekly repeat, return the list of days the event repeats on.
+
+    repeat_day is field 19 (repeat on day) in the extended event format
+    eventday is the 0-based weekday on which the event occurs
+
+    This is based on the following description:
+
+    The weekday of the event (the one that gets repeated of course) gets the
+    value 2^6 = 64, the following weekday gets the value 2^5, the after that one
+    gets 2^4, etc.
+    Field 19 contains the sum of the binary encoded weekdays.
+
+    For example: lets assume we have an event on Thursday, 04-12-2007
+    As the starting weekday is the day of the first event (Thursday), this day
+    gets encoded with 2^6, so the encoding for the whole week is as follows:
+    thursday 2^6 (1000000), friday 2^5 (0100000), saturday 2^4 (0010000),
+    sunday 2^3 (0001000), monday 2^2 (0000100), tuesday 2^1 (0000010),
+    wednesday 2^0 (0000001)
+    lets say we want to repeat that event every thursday and monday on a weekly basis.
+    Field 19 would then contain 2^6 + 2^2 = 68 or in binary form 1000100
+    """
+
+    if repeat_day == 0:
+        return []
+    else:
+        eventday = (eventday - 1) % 7
+        rest = moto_repeat_day_to_weekdays(repeat_day / 2, eventday)
+        if repeat_day % 2:
+            return rest + [eventday]
+        else:
+            return rest
+
+def moto_weekdays_to_repeat_day(weekdays, eventday):
+    """Returns the repeat_day value given a set of days on which a weekly event repeats."""
+
+    return sum([2 ** (6 - (day - eventday) % 7) for day in weekdays])
+
+def moto_repeat_day_to_monthday(repeat_day):
+    """For a monthly or yearly by day repeat, return the day the event repeats on.
+
+    repeat_day is field 19 (repeat on day) in the extended event format
+    returns a tuple (nth, day)
+    nth is the Nth time the day occurs in the month
+    day is the weekday number (0=monday)
+
+    This is based on the following description:
+
+    The weekdays get the following basis encodings :
+    sunday = 0
+    monday = 8
+    tuesday = 16
+    wednesday = 24
+    thursday = 32
+    friday = 40
+    saturday = 48
+
+    The above values are NEVER the value of field 19. Instead the field contains
+    a value computed as follows:
+    WEEKDAYCODE + 1 = first WEEKDAY of month
+    WEEKDAYCODE + 2 = second WEEKDAY of month
+    WEEKDAYCODE + 3 = third WEEKDAY of month
+    WEEKDAYCODE + 4 = fourth WEEKDAY of month
+    WEEKDAYCODE + 5 = last WEEKDAY of month
+    """
+
+    daynum = (repeat_day / 8 - 1) % 7
+    nth = repeat_day % 8
+    if nth > 4:
+        nth = 4 - nth
+    return (nth, daynum)
+
+# reverse of the above function
+def moto_monthday_to_repeat_day(nth, daynum):
+    """For a monthly or yearly by day repeat, returns the repeat_day value given
+    the Nth time a day occurs in a montyh, and the day of the week number.
+    """
+    if nth < 0:
+        nth = 4 - nth
+    return ((daynum + 1) % 7) * 8 + nth
+
+def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt):
+    """Process XML recursion rules, converting them to the closest-possible
+    matching recursion specifier supported by the phone.
+
+    Arguments:
+      rulenodes: list of RecurrenceRule nodes
+      exdates:   list of exception dates
+      exrules:   list of exception rules
+      eventdt:   event's date (and time if set)
+
+    Returns a dict containing the following fields:
+      repeat_type:  Motorola repeat type (always present)
+      repeat_every: repeat every Nth time (valid for the extended format only)
+      repeat_day:   bitfield showing which days/weeks to repeat on (extended)
+      repeat_end:   end date of the repeat (extended)
+      exceptions:   list of exceptions (always present)
+
+    The general approach we take is: if the recursion can be represented
+    by the phone's data structure, we convert it, otherwise we ignore the
+    rule completely (to avoid the event showing up at incorrect times) by
+    raising an UnsupportedDataError exception.
+    """
+
+    # default return values
+    ret = {}
+    ret['repeat_type'] = MOTO_REPEAT_NONE
+    ret['repeat_every'] = 0
+    ret['repeat_day'] = 0
+    ret['repeat_end'] = None
+    ret['exceptions'] = []
+
+    # can't support multiple rules
+    if len(rulenodes) != 1:
+        raise UnsupportedDataError('Unhandled recursion: too many rules')
+    rulenode = rulenodes[0]
+
+    freq = getXMLField(rulenode, 'Frequency').upper()
+
+    interval = getXMLField(rulenode, 'Interval')
+    if interval:
+        ret['repeat_every'] = int(interval)
+
+    def getSet(name, convfunc=int):
+        """Convenience function, get a comma-separated set of values from XML."""
+        val = getXMLField(rulenode, name)
+        if not val:
+            return None
+        return set(map(convfunc, val.split(',')))
+
+    bymonth = getSet('ByMonth')
+    byyearday = getSet('ByYearDay')
+    bymonthday = getSet('ByMonthDay')
+    byday = getSet('ByDay', lambda s: s.upper())
+
+    # convert byday strings to a list of tuples
+    # first tuple elem is the "Nth" part, second is the day number
+    # if no int part is present, the "Nth" value is 0
+    if byday:
+        byday_pairs = [(int(s[:-2] or "0"), VCAL_DAYS.index(s[-2:])) for s in byday]
+        if len(byday) == 1:
+            (byday_nth, byday_daynum) = byday_pairs[0]
+
+    # compute the day and week number that the event falls in
+    if eventdt.day % 7 == 0:
+        eventweek = eventdt.day / 7
+    else:
+        eventweek = eventdt.day / 7 + 1
+
+    # convenience variable for the tests below
+    byallmonths = set(range(1, 12))
+
+    # now test if the rule matches what we can represent
+    if (freq == 'DAILY' and not byday and not bymonthday and not byyearday and not bymonth):
+        ret['repeat_type'] = MOTO_REPEAT_DAILY
+    elif (freq == 'WEEKLY' and not bymonthday and not byyearday and not bymonth):
+        ret['repeat_type'] = MOTO_REPEAT_WEEKLY
+        if byday:
+            # the Nth specifier doesn't make sense on a byday value in a weekly rule
+            # so we can ignore them
+            byday_nums = [daynum for (_, daynum) in byday_pairs]
+            if byday_nums != [eventdt.day]:
+                ret['repeat_day'] = moto_weekdays_to_repeat_day(byday_nums, eventdt.day)
+    elif (freq == 'MONTHLY' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
+            and not byyearday and (not bymonth or bymonth == byallmonths)):
+        ret['repeat_type'] = MOTO_REPEAT_MONTHLY_DATE
+    elif (freq == 'MONTHLY' and byday and len(byday) == 1 and not bymonthday
+            and not byyearday and (not bymonth or bymonth == byallmonths)):
+        ret['repeat_type'] = MOTO_REPEAT_MONTHLY_DAY
+        if not (byday_daynum == eventdt.weekday() and byday_nth == eventweek):
+            ret['repeat_day'] = moto_monthday_to_repeat_day(byday_nth, byday_daynum)
+    elif (freq == 'YEARLY' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
+            and not byyearday and (not bymonth or bymonth == set([eventdt.month]))):
+        ret['repeat_type'] = MOTO_REPEAT_YEARLY_DATE
+    elif (freq == 'YEARLY' and byday and len(byday == 1)
+            and (not bymonthday or bymonthday == set([eventdt.day]))
+            and not byyearday and (not bymonth or bymonth == set([eventdt.month]))):
+        ret['repeat_type'] = MOTO_REPEAT_YEARLY_DAY
+        if not (byday_daynum == eventdt.weekday() and byday_nth == eventweek):
+            ret['repeat_day'] = moto_monthday_to_repeat_day(byday_nth, byday_daynum)
+    else:
+        raise UnsupportedDataError('Unhandled recursion: cannot represent rule')
+
+    # phew, looks like we have something the phone can represent
+    # now we need to work out the exceptions and see if this event still occurs
+
+    # create an rrule object for this rule, and an rrule set
+    ruleset = rrule.rruleset()
+    ruleset.rrule(xml_rrule_to_dateutil(rulenode, eventdt))
+
+    # if the rule ends, get its last occurrence
+    if getXMLField(rulenode, 'Until') or getXMLField(rulenode, 'Count'):
+        ret['repeat_until'] = ruleset[-1]
 
     # what events would happen if there were no exceptions?
+    now = datetime.now()
     all_occurrences = ruleset.between(now, now + RRULE_FUTURE)
 
     # add in the exception dates and rules (if any)
@@ -396,24 +547,169 @@ def convert_rrule(rulenodes, exdates, exrules, eventdt):
         for e in getElementsByTagNames(node, 'Content'):
             ruleset.exdate(dateutil.parser.parse(getXMLText(e)))
 
-    # XXX FIXME: totally different rrule format
-    #for node in exrules:
-    #    ruleset.exrule(rrule.rrulestr(getXMLField(node, 'Content')))
+    for node in exrules:
+        ruleset.exrule(xml_rrule_to_dateutil(node, eventdt))
 
     # are there any future occurrences of this event if we consider exceptions?
-    if ruleset.after(datetime.now()) == None:
-        return (MOTO_REPEAT_NONE, [])
+    if ruleset.after(now) == None:
+        raise UnsupportedDataError('Unhandled recursion: no future occurrence')
 
     # what events will happen with exceptions
     excepted_occurrences = frozenset(ruleset.between(now, now + RRULE_FUTURE))
 
     # work out which events don't happen
-    exceptions = []
     for num in range(all_occurrences):
         if all_occurrences[num] not in excepted_occurrences:
-            exceptions.append(num)
+            ret['exceptions'].append(num)
 
-    return (moto_type, exceptions)
+    return ret
+
+def moto_rrule_to_xml(doc, eventdt, repeat_type, exceptions,
+                      repeat_every=None, repeat_day=None, repeat_end=None):
+    """Convert a Motorola-format recurrence to the corresponding XML description.
+
+    Arguments correspond to the return values of xml_rrule_to_moto above.
+
+    Returns a list of XML node objects.
+    """
+
+    # compute the week number that the event falls in
+    if eventdt.day % 7 == 0:
+        weeknum = eventdt.day / 7
+    else:
+        weeknum = eventdt.day / 7 + 1
+
+    e = doc.createElement('RecurrenceRule')
+    if repeat_type == MOTO_REPEAT_DAILY:
+        appendXMLTag(doc, e, 'Frequency', 'DAILY')
+        rule = rrule.rrule(rrule.DAILY,
+                           dtstart=eventdt, interval=repeat_every, until=repeat_end)
+    elif repeat_type == MOTO_REPEAT_WEEKLY:
+        appendXMLTag(doc, e, 'Frequency', 'WEEKLY')
+        if repeat_day:
+            repeat_days = moto_repeat_day_to_weekdays(repeat_day, eventdt.weekday()).sort()
+            appendXMLTag(doc, e, 'ByDay', ','.join([VCAL_DAYS[n] for n in repeat_days]))
+        else:
+            repeat_days = []
+        rule = rrule.rrule(rrule.WEEKLY, byweekday=repeat_days,
+                           dtstart=eventdt, interval=repeat_every, until=repeat_end)
+    elif repeat_type == MOTO_REPEAT_MONTHLY_DATE:
+        appendXMLTag(doc, e, 'Frequency', 'MONTHLY')
+        appendXMLTag(doc, e, 'ByMonthDay', str(eventdt.day))
+        rule = rrule.rrule(rrule.MONTHLY, bymonthday=eventdt.day,
+                           dtstart=eventdt, interval=repeat_every, until=repeat_end)
+    elif repeat_type == MOTO_REPEAT_MONTHLY_DAY:
+        appendXMLTag(doc, e, 'Frequency', 'MONTHLY')
+        if repeat_day:
+            (repeat_nth, repeat_daynum) = moto_repeat_day_to_monthday(repeat_day)
+        else: # default to repeating on the same week/day as the event
+            repeat_nth = weeknum
+            repeat_daynum = eventdt.weekday()
+        appendXMLTag(doc, e, 'ByDay', '%d%s' % (repeat_nth, VCAL_DAYS[repeat_daynum]))
+        rule = rrule.rrule(rrule.MONTHLY, byweekday=rrule.weekdays[repeat_daynum](repeat_nth),
+                           dtstart=eventdt, interval=repeat_every, until=repeat_end)
+    elif repeat_type == MOTO_REPEAT_YEARLY_DATE:
+        appendXMLTag(doc, e, 'Frequency', 'YEARLY')
+        appendXMLTag(doc, e, 'ByMonth', str(eventdt.month))
+        appendXMLTag(doc, e, 'ByMonthDay', str(eventdt.day))
+        rule = rrule.rrule(rrule.YEARLY, bymonth=eventdt.month, bymonthday=eventdt.day,
+                           dtstart=eventdt, interval=repeat_every, until=repeat_end)
+    elif repeat_type == MOTO_REPEAT_YEARLY_DAY:
+        appendXMLTag(doc, e, 'Frequency', 'YEARLY')
+        appendXMLTag(doc, e, 'ByMonth', str(eventdt.month))
+        if repeat_day:
+            (repeat_nth, repeat_daynum) = moto_repeat_day_to_monthday(repeat_day)
+        else: # default to repeating on the same week/day as the event
+            repeat_nth = weeknum
+            repeat_daynum = eventdt.weekday()
+        appendXMLTag(doc, e, 'ByDay', '%d%s' % (repeat_nth, VCAL_DAYS[repeat_daynum]))
+        rule = rrule.rrule(rrule.YEARLY, bymonth=eventdt.month,
+                           byweekday=rrule.weekdays[repeat_daynum](repeat_nth),
+                           dtstart=eventdt, interval=repeat_every, until=repeat_end)
+
+    if repeat_every:
+        appendXMLTag(doc, e, 'Interval', str(repeat_every))
+
+    if repeat_end:
+        appendXMLTag(doc, e, 'Until', format_time(repeat_end, VCAL_DATETIME))
+
+    if e.hasChildNodes():
+        ret = [e]
+    else:
+        return []
+
+    if exceptions != []:
+        # work out which dates the exceptions correspond to
+        e = doc.createElement('ExceptionDateTime')
+        e.setAttribute('Value', 'DATE')
+        for exnum in exceptions:
+            appendXMLTag(doc, e, 'Content', format_time(rule[exnum], VCAL_DATE))
+        if e.hasChildNodes():
+            ret.append(e)
+
+    return ret
+
+def xmlevent_to_moto_simple(node, event):
+    """Parse an XML event (node), setting the fields on a PhoneEvent object (event)
+
+    Only the common fields between PhoneEventSimple and Extended are handled.
+    Recursion-related fields are ignored.
+
+    This function raises UnsupportedDataError for:
+     * events before year 2000 (my phone doesn't allow them)
+    """
+
+    def getField(tagname, subtag='Content'):
+        """utility function for the XML processing below"""
+        return getXMLField(node, tagname, subtag)
+
+    event.name = getField('Summary')
+
+    event.eventdt = parse_ical_time(getField('DateStarted'))
+    if event.eventdt.year < 2000:
+        raise UnsupportedDataError('Event is too old')
+
+    if node.getElementsByTagName('Duration') != []:
+        duration = node.getElementsByTagName('Duration')[0]
+        def toint(numstr):
+            """Convert a string to an integer, unless it's None, in which case return 0."""
+            if numstr is None:
+                return 0
+            else:
+                return int(numstr)
+        weeks = toint(getXMLField(duration, 'Weeks'))
+        days = toint(getXMLField(duration, 'Days'))
+        hours = toint(getXMLField(duration, 'Hours'))
+        mins = toint(getXMLField(duration, 'Minutes'))
+        secs = toint(getXMLField(duration, 'Seconds'))
+        event.duration = timedelta(weeks * 7 + days, (hours * 60 + mins) * 60 + secs)
+    else:
+        endstr = getField('DateEnd')
+        if endstr is not None:
+            event.duration = parse_ical_time(endstr) - event.eventdt
+        else:
+            # no duration or end specified, assume whole-day or no duration
+            if isinstance(event.eventdt, date):
+                event.duration = timedelta(1)
+            else:
+                event.duration = timedelta(0)
+
+    # for some reason I don't understand, the phone only allows events
+    # longer than a day if the time flag is set. pander to this by forcing
+    # such events to start at midnight local time
+    if isinstance(event.eventdt, date) and event.duration > timedelta(1):
+        local_midnight = datetime_time(0, 0, 0, 0, dateutil.tz.tzlocal())
+        event.eventdt = datetime.combine(event.eventdt, local_midnight)
+
+    triggerstr = getField('Alarm', 'AlarmTrigger')
+    if triggerstr is None:
+        event.alarmdt = None
+    else:
+        if triggerstr.startswith('-P') or triggerstr.startswith('P'):
+            offset = parse_ical_duration(triggerstr)
+            event.alarmdt = event.eventdt + offset
+        else:
+            event.alarmdt = parse_ical_time(triggerstr)
 
 
 class UnsupportedDataError(Exception):
@@ -443,6 +739,7 @@ class PhoneComms:
         self.max_contact_pos = None
         self.contact_data_len = None
         self.contact_name_len = None
+        self.extended_events_supported = None
 
     def connect(self):
         """Connect to the phone and initiate communication.
@@ -487,11 +784,12 @@ class PhoneComms:
         # the phone implements it by sending us 2 hex chars per byte, ie. 4 per char
         self.__do_cmd('AT+CSCS="UCS2"')
 
-        (maxevs, numevs, namelen, max_except) = self.read_event_params()
+        (maxevs, numevs, namelen, max_except, extended) = self.read_event_params()
         self.max_events = maxevs
         self.num_events = numevs
         self.event_name_len = namelen
         self.event_max_exceptions = max_except
+        self.extended_events_supported = extended
 
         (minpos, maxpos, contactlen, namelen) = self.read_contact_params()
         self.min_contact_pos = minpos
@@ -561,10 +859,12 @@ class PhoneComms:
                  number of events currently stored,
                  length of title/name field,
                  maximum number of event exceptions
+                 true/false if extended event format is supported
         """
         self.open_calendar()
         data = self.__do_cmd('AT+MDBR=?') # read event parameters
-        return self.__parse_results('MDBR', data)[0][:4]
+        results = self.__parse_results('MDBR', data)[0]
+        return results[:4] + [len(results) >= 10]
 
     def read_events(self):
         """Read all events on the phone.
@@ -742,7 +1042,14 @@ class PhoneComms:
             raise opensync.Error("Error in phone command '%s'" % cmd, opensync.ERROR_IO_ERROR)
 
     def __parse_results(self, restype, lines):
-        """extract results from a list of reply lines"""
+        """Extract results of the specified type from a list of reply lines.
+
+        Returns a list of results, where each result is itself a list of values.
+        String values have quote characters stripped, and are decoded from UCS2.
+        Numeric values are converted to integers.
+        Range values (eg: (0-10)) are converted to lists of integers.
+        """
+        # FIXME: this code is fragile and too complex
         ret = []
         prefix = '+' + restype + ': '
         for line in lines:
@@ -863,10 +1170,10 @@ class PhoneEntry:
         raise NotImplementedError
 
 
-class PhoneEvent(PhoneEntry):
+class PhoneEventSimple(PhoneEntry):
     """Class representing the events roughly as stored in the phone.
-    This class should not be instantiated directly, use one of PhoneEventMoto
-    or PhoneEventXML depending on the data format.
+    This class should not be instantiated directly, use one of
+    PhoneEventSimpleMoto or PhoneEventSimpleXML depending on the data format.
 
     class members:
        pos:         integer position/slot in phone memory
@@ -883,6 +1190,22 @@ class PhoneEvent(PhoneEntry):
         self.alarmdt = None
         self.repeat_type = MOTO_REPEAT_NONE
         self.exceptions = []
+
+    @staticmethod
+    def capabilities():
+        """Return the OpenSync XML capabilities supported by this object."""
+        caps = """
+            <event>
+                <Alarm />
+                <DateEnd />
+                <DateStarted />
+                <Duration />
+                <ExceptionDateTime />
+                <RecurrenceRule />
+                <Summary />
+            </event>
+        """
+        return caps
 
     def get_objtype(self):
         """return the opensync object type string"""
@@ -913,18 +1236,18 @@ class PhoneEvent(PhoneEntry):
     def write(self, comms):
         """given an instance of PhoneComms, write this entry to the phone"""
         self.__truncate_fields(comms)
-        comms.write_event(self.__to_moto(), self.exceptions)
+        comms.write_event(self.to_moto(), self.exceptions)
 
     def hash_data(self):
         """return a list of entry data in a predictable format, for hashing"""
-        return self.__to_moto()
+        return self.to_moto()
 
     def __truncate_fields(self, comms):
         """enforce length limits by truncating data"""
         self.name = self.name[:comms.event_name_len]
         self.exceptions = self.exceptions[:comms.event_max_exceptions]
 
-    def __to_moto(self):
+    def to_moto(self):
         """generate motorola event-data list"""
         if isinstance(self.eventdt, datetime):
             timeflag = 1
@@ -933,41 +1256,39 @@ class PhoneEvent(PhoneEntry):
         else:
             timeflag = 0
             datestr = self.eventdt.strftime(PHONE_DATE)
-            timestr = '00:00'
+            timestr = MOTO_INVALID_TIME
         if self.alarmdt:
             alarmflag = 1
             alarmdatestr = format_time(self.alarmdt, PHONE_DATE)
             alarmtimestr = format_time(self.alarmdt, PHONE_TIME)
         else:
             alarmflag = 0
-            alarmdatestr = '00-00-2000'
-            alarmtimestr = '00:00'
+            alarmdatestr = MOTO_INVALID_DATE
+            alarmtimestr = MOTO_INVALID_TIME
 
         duration = int(self.duration.days) * 24 * 60
         duration += int(self.duration.seconds) / 60
-        return (self.pos, self.name, timeflag, alarmflag, timestr, datestr,
-                duration, alarmtimestr, alarmdatestr, self.repeat_type)
+        return [self.pos, self.name, timeflag, alarmflag, timestr, datestr,
+                duration, alarmtimestr, alarmdatestr, self.repeat_type]
 
-    def to_xml(self):
-        """Returns OpenSync XML representation of this event."""
+    def to_xml(self, include_rrule=True):
+        """Returns OpenSync XML representation of this event.
+
+        If include_rrule is False, any RecurrenceRule and Exception nodes are
+        omitted. This is a hack for use by the PhoneEventExtended class only.
+        """
         impl = xml.dom.minidom.getDOMImplementation()
         doc = impl.createDocument(None, 'event', None)
         top = doc.documentElement
 
-        # compute the week number that the event falls in
-        if self.eventdt.day % 7 == 0:
-            weeknum = self.eventdt.day / 7
-        else:
-            weeknum = self.eventdt.day / 7 + 1
-
         if self.alarmdt:
             alarm = doc.createElement('Alarm')
-            appendXMLChild(doc, alarm, 'AlarmAction', 'DISPLAY')
+            appendXMLTag(doc, alarm, 'AlarmAction', 'DISPLAY')
             e = doc.createElement('AlarmDescription')
-            appendXMLChild(doc, e, 'Content', self.name)
+            appendXMLTag(doc, e, 'Content', self.name)
             alarm.appendChild(e)
             alarmtime = self.alarmdt.strftime(VCAL_DATETIME)
-            appendXMLChild(doc, alarm, 'AlarmTrigger', alarmtime)
+            appendXMLTag(doc, alarm, 'AlarmTrigger', alarmtime)
             top.appendChild(alarm)
 
         e = doc.createElement('DateEnd')
@@ -977,7 +1298,7 @@ class PhoneEvent(PhoneEntry):
         else:
             dtend = endtime.strftime(VCAL_DATE)
             e.setAttribute('Value', 'DATE')
-        appendXMLChild(doc, e, 'Content', dtend)
+        appendXMLTag(doc, e, 'Content', dtend)
         top.appendChild(e)
 
         e = doc.createElement('DateStarted')
@@ -986,71 +1307,27 @@ class PhoneEvent(PhoneEntry):
         else:
             dtstart = self.eventdt.strftime(VCAL_DATE)
             e.setAttribute('Value', 'DATE')
-        appendXMLChild(doc, e, 'Content', dtstart)
+        appendXMLTag(doc, e, 'Content', dtstart)
         top.appendChild(e)
-
-        if self.exceptions != []:
-            assert(self.repeat_type != MOTO_REPEAT_NONE)
-
-            # create an rrule object for this recurrence
-            if self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
-                rule = rrule.rrule(rrule.MONTHLY, bymonthday=self.eventdt.day,
-                                   dtstart=self.eventdt)
-            elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
-                weekday = rrule.weekdays[self.eventdt.weekday()]
-                rule = rrule.rrule(rrule.MONTHLY, byweekday=weekday(+weeknum),
-                                   dtstart=self.eventdt)
-            else:
-                if self.repeat_type == MOTO_REPEAT_DAILY:
-                    freq = rrule.DAILY
-                elif self.repeat_type == MOTO_REPEAT_WEEKLY:
-                    freq = rrule.WEEKLY
-                elif self.repeat_type == MOTO_REPEAT_YEARLY:
-                    freq = rrule.YEARLY
-                rule = rrule.rrule(freq, dtstart=self.eventdt)
-
-            # work out which dates the exceptions correspond to and
-            # generate ExceptionDate nodes for them
-            e = doc.createElement('ExceptionDateTime')
-            e.setAttribute('Value', 'DATE')
-            for exnum in self.exceptions:
-                appendXMLChild(doc, e, 'Content', format_time(rule[exnum], VCAL_DATE))
-            if e.hasChildNodes():
-                top.appendChild(e)
-
-        e = doc.createElement('RecurrenceRule')
-        if self.repeat_type == MOTO_REPEAT_DAILY:
-            appendXMLChild(doc, e, 'Frequency', 'DAILY')
-        elif self.repeat_type == MOTO_REPEAT_WEEKLY:
-            appendXMLChild(doc, e, 'Frequency', 'WEEKLY')
-        elif self.repeat_type == MOTO_REPEAT_MONTHLY_DATE:
-            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
-            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
-        elif self.repeat_type == MOTO_REPEAT_MONTHLY_DAY:
-            appendXMLChild(doc, e, 'Frequency', 'MONTHLY')
-            day = VCAL_DAYS[self.eventdt.weekday()]
-            appendXMLChild(doc, e, 'ByDay', '%d%s' % (weeknum, day))
-        elif self.repeat_type == MOTO_REPEAT_YEARLY:
-            appendXMLChild(doc, e, 'Frequency', 'YEARLY')
-            appendXMLChild(doc, e, 'ByMonth', str(self.eventdt.month))
-            appendXMLChild(doc, e, 'ByMonthDay', str(self.eventdt.day))
-
-        if e.hasChildNodes():
-            top.appendChild(e)
 
         e = doc.createElement('Summary')
-        appendXMLChild(doc, e, 'Content', self.name)
+        appendXMLTag(doc, e, 'Content', self.name)
         top.appendChild(e)
 
-        return doc.toxml()
+        if include_rrule:
+            nodes = moto_rrule_to_xml(doc, self.eventdt, self.repeat_type, self.exceptions)
+            for node in nodes:
+                insertXMLNode(top, node)
+
+        return doc
 
 
-class PhoneEventMoto(PhoneEvent):
-    """Constructor for the PhoneEvent object with data in Motorola format"""
+class PhoneEventSimpleMoto(PhoneEventSimple):
+    """Constructor for the PhoneEventSimple object with data in Motorola format"""
     def __init__(self, data, exceptions):
         """grab stuff out of the list of values from the phone"""
-        PhoneEvent.__init__(self)
-        assert(type(data) == list and len(data) == 10)
+        PhoneEventSimple.__init__(self)
+        assert(type(data) == list and len(data) >= 10)
         self.pos = data[0]
         self.name = data[1]
         timeflag = data[2]
@@ -1075,79 +1352,186 @@ class PhoneEventMoto(PhoneEvent):
             self.alarmdt = None
 
 
-class PhoneEventXML(PhoneEvent):
-    """Constructor for the PhoneEvent object with data in OpenSync XML format"""
-    def __init__(self, data):
-        """Parse XML event data.
+class PhoneEventSimpleXML(PhoneEventSimple):
+    """Constructor for the PhoneEventSimple object with data in OpenSync XML format"""
+    def __init__(self, xmldata):
+        """Parse XML event data."""
+        PhoneEventSimple.__init__(self)
+        doc = xml.dom.minidom.parseString(xmldata)
+        node = doc.getElementsByTagName('event')[0]
 
-        This function raises UnsupportedDataError for:
-         * events that recur but can't be represented on the phone
-         * events before year 2000 (my phone doesn't allow them)
+        xmlevent_to_moto_simple(node, self)
+
+        rrules = node.getElementsByTagName('RecurrenceRule')
+        exdates = node.getElementsByTagName('ExceptionDateTime')
+        exrules = node.getElementsByTagName('ExceptionRule')
+
+        rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt)
+        if (rule['repeat_type'] == MOTO_REPEAT_YEARLY_DAY or rule['repeat_every'] not in [0, 1]
+            or rule['repeat_day'] != 0 or rule['repeat_end']):
+            raise UnsupportedDataError("Recursion rule not supported by simple event format")
+
+        self.repeat_type = rule['repeat_type']
+        self.exceptions = rule['exceptions']
+
+
+class PhoneEventExtended(PhoneEventSimple):
+    """Class representing the extended version of the event data supported by
+    newer phone models.
+
+    This class should not be instantiated directly, use one of
+    PhoneEventExtendedMoto or PhoneEventExtendedXML depending on the data format.
+
+    class members (in addition to those defined by PhoneEventSimple):
+       event_type:  integer 0-15
+       location:    string
+       note:        string (stores XML description field)
+       repeat_every: integer
+       repeat_day:  integer
+       repeat_end:  date object or None, for repeat end date
+    """
+    def __init__(self):
+        PhoneEventSimple.__init__(self)
+        self.event_type = MOTO_EVENT_TYPE_NONE
+        self.location = self.note = ''
+        self.repeat_every = self.repeat_day = 0
+        self.repeat_end = None
+
+    @staticmethod
+    def capabilities():
+        """Return the OpenSync XML capabilities supported by this object."""
+        caps = """
+            <event>
+                <Alarm />
+                <Categories />
+                <DateEnd />
+                <DateStarted />
+                <Description />
+                <Duration />
+                <ExceptionDateTime />
+                <Location />
+                <RecurrenceRule />
+                <Summary />
+            </event>
         """
-        PhoneEvent.__init__(self)
-        doc = xml.dom.minidom.parseString(data)
-        event = doc.getElementsByTagName('event')[0]
+        return caps
 
-        def getField(tagname, subtag='Content'):
-            """utility function for the XML processing below"""
-            return getXMLField(event, tagname, subtag)
+    def __truncate_fields(self, comms):
+        """enforce length limits by truncating data"""
+        self.name = self.name[:comms.event_name_len]
+        self.exceptions = self.exceptions[:comms.event_max_exceptions]
+        # FIXME: other string fields
 
-        self.pos = None
-        self.name = getField('Summary')
+    def to_moto(self):
+        """Generate motorola event-data list."""
 
-        self.eventdt = parse_ical_time(getField('DateStarted'))
-        if self.eventdt.year < 2000:
-            raise UnsupportedDataError('Event is too old')
+        # call simple version to generate base data
+        data = PhoneEventSimple.to_moto(self)
 
-        if event.getElementsByTagName('Duration') != []:
-            duration = event.getElementsByTagName('Duration')[0]
-            def toint(numstr):
-                """Convert a string to an integer, unless it's None, in which case return 0."""
-                if numstr is None:
-                    return 0
-                else:
-                    return int(numstr)
-            weeks = toint(getXMLField(duration, 'Weeks'))
-            days = toint(getXMLField(duration, 'Days'))
-            hours = toint(getXMLField(duration, 'Hours'))
-            mins = toint(getXMLField(duration, 'Minutes'))
-            secs = toint(getXMLField(duration, 'Seconds'))
-            self.duration = timedelta(weeks * 7 + days, (hours * 60 + mins) * 60 + secs)
+        # HACK: duration (field 6) is unused in the extended format
+        data[6] = ''
+
+        if isinstance(self.eventdt, datetime):
+            enddatestr = format_time(self.eventdt + self.duration, PHONE_DATE)
+            endtimestr = format_time(self.eventdt + self.duration, PHONE_TIME)
         else:
-            endstr = getField('DateEnd')
-            if endstr is not None:
-                self.duration = parse_ical_time(endstr) - self.eventdt
-            else:
-                # no duration or end specified, assume whole-day or no duration
-                if isinstance(self.eventdt, date):
-                    self.duration = timedelta(1)
-                else:
-                    self.duration = timedelta(0)
+            enddatestr = (self.eventdt + self.duration).strftime(PHONE_DATE)
+            endtimestr = MOTO_INVALID_TIME
 
-        # for some reason I don't understand, the phone only allows events
-        # longer than a day if the time flag is set. pander to this by forcing
-        # such events to start at midnight local time
-        if isinstance(self.eventdt, date) and self.duration > timedelta(1):
-            local_midnight = datetime_time(0, 0, 0, 0, dateutil.tz.tzlocal())
-            self.eventdt = datetime.combine(self.eventdt, local_midnight)
-
-        triggerstr = getField('Alarm', 'AlarmTrigger')
-        if triggerstr is None:
-            self.alarmdt = None
+        if self.repeat_end:
+            repeatendstr = format_time(self.repeat_end, PHONE_DATE)
         else:
-            if triggerstr.startswith('-P') or triggerstr.startswith('P'):
-                offset = parse_ical_duration(triggerstr)
-                self.alarmdt = self.eventdt + offset
-            else:
-                self.alarmdt = parse_ical_time(triggerstr)
+            repeatendstr = MOTO_INVALID_DATE
 
-        rrules = event.getElementsByTagName('RecurrenceRule')
-        exdates = event.getElementsByTagName('ExceptionDateTime')
-        exrules = event.getElementsByTagName('ExceptionRule')
-        (self.repeat_type, self.exceptions) = convert_rrule(rrules, exdates, exrules, self.eventdt)
+        return data + [endtimestr, enddatestr, '', self.event_type,
+                       self.location, self.note, 501, self.repeat_every,
+                       self.repeat_day, '', repeatendstr]
 
-        if len(rrules) > 0 and self.repeat_type == MOTO_REPEAT_NONE:
-            raise UnsupportedDataError('Unhandled recursion rule')
+    def to_xml(self):
+        """Returns OpenSync XML representation of this event."""
+
+        # get simple version of XML, without rrule included
+        doc = PhoneEventSimple.to_xml(self, False)
+        top = doc.documentElement
+
+        if self.event_type != MOTO_EVENT_TYPE_NONE:
+            e = doc.createElement('Categories')
+            appendXMLTag(doc, e, 'Category', MOTO_EVENT_TYPES[self.event_type])
+            insertXMLNode(top, e)
+
+        e = doc.createElement('Location')
+        appendXMLTag(doc, e, 'Content', self.location)
+        insertXMLNode(top, e)
+
+        e = doc.createElement('Summary')
+        appendXMLTag(doc, e, 'Content', self.note)
+        insertXMLNode(top, e)
+
+        nodes = moto_rrule_to_xml(doc, self.eventdt, self.repeat_type,
+                    self.exceptions, self.repeat_every, self.repeat_day, self.repeat_end)
+        for node in nodes:
+            insertXMLNode(top, node)
+
+        return doc
+
+
+class PhoneEventExtendedMoto(PhoneEventExtended):
+    """Constructor for the PhoneEventExtended object with data in Motorola format"""
+    def __init__(self, data, exceptions):
+        """grab stuff out of the list of values from the phone"""
+        PhoneEventExtended.__init__(self)
+        assert(type(data) == list and len(data) >= 21)
+
+        # reuse simple constructor to initialise common fields 0-9
+        PhoneEventSimpleMoto.__init__(self, data, exceptions)
+
+        endtime = data[10]
+        enddate = data[11]
+        # alarm sound (field 12) is currently ignored
+        self.event_type = data[13]
+        self.location = data[14]
+        self.note = data[15]
+        # field 16 is unknown, and apparently always 501
+        self.repeat_every = data[17]
+        self.repeat_day = data[18]
+        # field 19 is unknown, and apparently always empty
+        if data[20] != MOTO_INVALID_DATE:
+            self.repeat_end = parse_moto_time(data[20])
+
+        if isinstance(self.eventdt, datetime):
+            enddt = parse_moto_time(enddate, endtime)
+        else:
+            enddt = parse_moto_time(enddate)
+        self.duration = enddt - self.eventdt
+
+
+class PhoneEventExtendedXML(PhoneEventExtended):
+    """Constructor for the PhoneEventExtended object with data in XML format."""
+    def __init__(self, xmldata):
+        PhoneEventExtended.__init__(self)
+
+        doc = xml.dom.minidom.parseString(xmldata)
+        node = doc.getElementsByTagName('event')[0]
+
+        xmlevent_to_moto_simple(node, self)
+
+        self.location = getXMLField(node, 'Location', 'Content')
+        self.note = getXMLField(node, 'Summary', 'Content')
+
+        catname = getXMLField(node, 'Categories', 'Category')
+        if catname:
+            catname = catname.lower()
+        self.event_type = REVERSE_MOTO_EVENT_TYPES.get(catname, MOTO_EVENT_TYPE_NONE)
+
+        rrules = node.getElementsByTagName('RecurrenceRule')
+        exdates = node.getElementsByTagName('ExceptionDateTime')
+        exrules = node.getElementsByTagName('ExceptionRule')
+        rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt)
+        self.repeat_type = rule['repeat_type']
+        self.repeat_every = rule['repeat_every']
+        self.repeat_day = rule['repeat_day']
+        self.repeat_end = rule['repeat_end']
+        self.exceptions = rule['exceptions']
 
 
 class PhoneContact(PhoneEntry):
@@ -1178,6 +1562,23 @@ class PhoneContact(PhoneEntry):
         self.firstlast_enabled = MOTO_INVALID
         self.firstlast_index = 0
         self.birthday = self.nickname = None
+
+    @staticmethod
+    def capabilities():
+        """Return the OpenSync XML capabilities supported by this object."""
+        caps = """
+            <contact>
+                <Address />
+                <Birthday />
+                <Categories />
+                <EMail />
+                <FormattedName />
+                <Name />
+                <Nickname />
+                <Telephone />
+            </contact>
+            """
+        return caps
 
     def get_objtype(self):
         """return the opensync object type string"""
@@ -1266,49 +1667,44 @@ class PhoneContact(PhoneEntry):
         if self.birthday:
             bdaystr = format_time(self.birthday, VCAL_DATE)
             e = doc.createElement('Birthday')
-            appendXMLChild(doc, e, 'Content', bdaystr)
+            appendXMLTag(doc, e, 'Content', bdaystr)
             top.appendChild(e)
 
         e = doc.createElement('Categories')
-        appendXMLChild(doc, e, 'Category', categories[self.categorynum])
+        appendXMLTag(doc, e, 'Category', categories[self.categorynum])
         top.appendChild(e)
 
         e = doc.createElement('FormattedName')
-        appendXMLChild(doc, e, 'Content', self.name)
+        appendXMLTag(doc, e, 'Content', self.name)
         top.appendChild(e)
 
         e = doc.createElement('Name')
         if self.firstlast_enabled == MOTO_INVALID:
             # FIXME: have to guess at name split, this is what opensync does:
-            appendXMLChild(doc, e, 'LastName', self.name)
+            appendXMLTag(doc, e, 'LastName', self.name)
         else:
             first = self.name[:self.firstlast_index].strip()
             last = self.name[self.firstlast_index:].strip()
             if self.firstlast_enabled:
-                appendXMLChild(doc, e, 'FirstName', last)
-                appendXMLChild(doc, e, 'LastName', first)
+                appendXMLTag(doc, e, 'FirstName', last)
+                appendXMLTag(doc, e, 'LastName', first)
             else:
-                appendXMLChild(doc, e, 'FirstName', first)
-                appendXMLChild(doc, e, 'LastName', last)
+                appendXMLTag(doc, e, 'FirstName', first)
+                appendXMLTag(doc, e, 'LastName', last)
         top.appendChild(e)
 
         if self.nickname != '':
             e = doc.createElement('Nickname')
-            appendXMLChild(doc, e, 'Content', self.nickname)
+            appendXMLTag(doc, e, 'Content', self.nickname)
             top.appendChild(e)
 
         for child in self.children:
             for newnode in child.child_xml(doc):
                 # insert the child to maintain alphabetic order of the nodes
                 # unfortunately the merger code requires this order
-                for node in top.childNodes:
-                    if newnode.nodeName < node.nodeName:
-                        top.insertBefore(newnode, node)
-                        break
-                else:
-                    top.appendChild(newnode)
+                insertXMLNode(top, newnode)
 
-        return doc.toxml()
+        return doc
 
     def __truncate_fields(self, comms):
         """enforce field length limits by truncating data"""
@@ -1513,13 +1909,13 @@ class PhoneContactChild:
             (street1, street2, city, state, postcode, country) = address
         else:
             street1 = street2 = city = state = postcode = country = ''
-        return (self.pos, self.contact, self.numtype, self.parent.name,
+        return [self.pos, self.contact, self.numtype, self.parent.name,
                 self.contacttype, self.voicetag, self.ringerid, 0,
                 int(self.primaryflag), self.parent.categorynum,
                 self.profile_icon, self.parent.firstlast_enabled,
                 self.parent.firstlast_index, self.picture_path,
                 0, 0, street2, street1, city, state, postcode, country,
-                nickname, birthdaystr)
+                nickname, birthdaystr]
 
     def child_xml(self, doc):
         """Return XML nodes for this child's data."""
@@ -1528,7 +1924,7 @@ class PhoneContactChild:
         if self.address:
             e = doc.createElement('Address')
             for (part, val) in zip(XML_ADDRESS_PARTS, self.address):
-                appendXMLChild(doc, e, part, val)
+                appendXMLTag(doc, e, part, val)
             if e.hasChildNodes():
                 if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
                     e.setAttribute('Location', MOTO_ADDRESS_TYPES[self.contacttype].upper())
@@ -1546,8 +1942,8 @@ class PhoneContactChild:
             elif MOTO_PHONE_CONTACT_LOCATIONS.has_key(self.contacttype):
                 e.setAttribute('Location', MOTO_PHONE_CONTACT_LOCATIONS[self.contacttype])
             if self.primaryflag:
-                e.setAttribute('Preferred', "1")
-        appendXMLChild(doc, e, 'Content', self.contact)
+                e.setAttribute('Preferred', 'true')
+        appendXMLTag(doc, e, 'Content', self.contact)
         ret.append(e)
 
         return ret
@@ -1673,16 +2069,16 @@ class PhoneAccess:
                 else:
                     i += 1
         elif objtype == 'event':
-            entries = [PhoneEventMoto(d, x) for (d, x) in self.comms.read_events()]
+            entries = [self.__event_from_moto(d, x) for (d, x) in self.comms.read_events()]
         else:
             assert(False, 'Unknown objtype %s' % objtype)
 
         ret = []
         for entry in entries:
             if objtype == 'contact':
-                xmldata = entry.to_xml(self.categories)
+                xmldata = entry.to_xml(self.categories).toxml()
             else:
-                xmldata = entry.to_xml()
+                xmldata = entry.to_xml().toxml()
             data = opensync.Data(xmldata, self.objformats[objtype])
             data.objtype = objtype
             change = opensync.Change()
@@ -1717,7 +2113,10 @@ class PhoneAccess:
             raise opensync.Error("unhandled data format " + change.objformat.name, opensync.ERROR_NOT_SUPPORTED)
         try:
             if objtype == 'event':
-                entry = PhoneEventXML(change.data.data)
+                if self.comms.extended_events_supported:
+                    entry = PhoneEventExtendedXML(change.data.data)
+                else:
+                    entry = PhoneEventSimpleXML(change.data.data)
             elif objtype == 'contact':
                 entry = PhoneContactXML(change.data.data, self.revcategories)
         except UnsupportedDataError, e:
@@ -1775,7 +2174,15 @@ class PhoneAccess:
             self.categories[catid] = catname
             self.revcategories[catname.lower()] = catid
 
-    def __gen_hash(self, entry):
+    def __event_from_moto(self, data, exceptions):
+        """Construct the appropriate event object from the phone data."""
+        if self.comms.extended_events_supported:
+            return PhoneEventExtendedMoto(data, exceptions)
+        else:
+            return PhoneEventSimpleMoto(data, exceptions)
+
+    @staticmethod
+    def __gen_hash(entry):
         """generate hash for the opensync hashtable, md5 of all the data"""
         m = md5.new()
         for item in entry.hash_data():
@@ -1800,7 +2207,7 @@ class PhoneAccess:
         assert(lastpart[lastpos + 1:] == self.serial[-8:], 'Entry not created on this phone')
 
         if objtype == "event":
-            positions = PhoneEvent.unpack_uid(lastpart[:lastpos])
+            positions = PhoneEventSimple.unpack_uid(lastpart[:lastpos])
         elif objtype == "contact":
             positions = PhoneContact.unpack_uid(lastpart[:lastpos])
         return objtype, positions
@@ -1884,14 +2291,30 @@ def discover(info):
     """Called by python-module wrapper, discovers capabilities of device."""
     version = opensync.Version()
     version.plugin = "moto-sync"
+
     # HACK HACK, grab the comms object out of the initialised sink
     comms = info.nth_objtype(0).callback_obj.access.comms
     comms.connect()
+
     version.softwareversion = str(comms.read_version())
     version.modelversion = str(comms.read_model())
+
+    if comms.extended_events_supported:
+        event_caps = PhoneEventExtended.capabilities()
+    else:
+        event_caps = PhoneEventSimple.capabilities()
+
     comms.disconnect()
+
+    all_caps = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <capabilities>
+        %s
+        %s
+        </capabilities>
+        """ % (PhoneContact.capabilities(), event_caps)
+
+    info.capabilities = opensync.capabilities_parse(all_caps)
     info.version = version
-    info.capabilities = opensync.capabilities_parse(CAPABILITIES)
 
     # for now, all objtypes are supported on all devices
     for sink in info.objtypes:
