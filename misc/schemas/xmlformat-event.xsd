@@ -5,10 +5,6 @@
 
   <!-- XMLFormat-event -->
 
-  <!-- Warning: this schema is partially inconsistent with the XML format used by the vformat
-       converter. It will be updated soon, but in the meantime if you depend on the details of the
-       format, please also check the converter source (and report any bugs or inconsistencies you spot). -->
-
   <xsd:element name="event">
     <xsd:complexType>
       <xsd:sequence>
@@ -32,9 +28,9 @@
         <xsd:element maxOccurs="1" minOccurs="1" name="DateStarted" type="DateTimeContent"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Description" type="MultiText"/>
         <xsd:element maxOccurs="1" minOccurs="0" name="Duration" type="Duration"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionDateTime" type="DateTimeContent"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionRule" type="RecurrenceRule"/>
-        <xsd:element maxOccurs="1" minOccurs="0" name="ExceptionRuleExtended" type="RecurrenceRuleExtended"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="ExceptionDateTime" type="DateTimeContent"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="ExceptionRule" type="RecurrenceRule"/>
+        <xsd:element maxOccurs="unbounded" minOccurs="0" name="ExceptionRuleExtended" type="RecurrenceRuleExtended"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="FreeBusy" type="FreeBusy"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Geo" type="GeoValue" />
 	<xsd:element maxOccurs="1" minOccurs="0" name="LastModified" type="DateTimeContent"/>
@@ -52,8 +48,8 @@
 	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceId" type="RecurrenceId"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Related" type="RelatedTo"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Resources" type="MultiText"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceRule" type="RecurrenceRule"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="RecurrenceRuleExtended" type="RecurrenceRuleExtended"/>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="RecurrenceRule" type="RecurrenceRule"/>
+	<xsd:element maxOccurs="unbounded" minOccurs="0" name="RecurrenceRuleExtended" type="RecurrenceRuleExtended"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="RStatus" type="RequestStatus"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Sequence" type="IntegerContent"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Status" type="Status"/>
