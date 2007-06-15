@@ -57,54 +57,113 @@ char *_osync_archive_sql_escape(const char *s)
  */
 /*@{*/
 
-osync_bool osync_archive_create_changes(OSyncDB *db, OSyncError **error)
+static osync_bool osync_archive_create_changes(OSyncDB *db, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
-	osync_assert(db);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
 
-	char *query = g_strdup("CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, memberid INTEGER, mappingid INTEGER)");
-	if (!osync_db_query(db, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		g_free(query);
-		return FALSE;
+	osync_assert(db);
+	osync_assert(objtype);
+
+	char *tbl_changes = g_strdup_printf("tbl_changes_%s", objtype);
+	int ret = osync_db_exists(db, tbl_changes, error);
+	g_free(tbl_changes);
+
+	/* error if ret -1 */
+	if (ret < 0)
+		goto error;
+
+	/* if ret is != 0 then the table already exist */
+	if (ret) {
+		osync_trace(TRACE_EXIT, "%s", __func__);
+		return TRUE;
 	}
+
+	char *query = g_strdup_printf("CREATE TABLE tbl_changes_%s (id INTEGER PRIMARY KEY, uid VARCHAR, memberid INTEGER, mappingid INTEGER)", objtype);
+	if (!osync_db_query(db, query, error)) {
+		g_free(query);
+		goto error;
+	}
+
 	g_free(query);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s: created table.", __func__);
 	return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-osync_bool osync_archive_create_changelog(OSyncDB *db, OSyncError **error)
+static osync_bool osync_archive_create_changelog(OSyncDB *db, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
-	osync_assert(db);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
 
-	char *query = g_strdup("CREATE TABLE tbl_changelog (id INTEGER PRIMARY KEY, entryid INTEGER, changetype INTEGER, objtype VARCHAR)");
+	osync_assert(db);
+	osync_assert(objtype);
+
+	char *tbl_changelog = g_strdup_printf("tbl_changelog_%s", objtype);
+	int ret = osync_db_exists(db, tbl_changelog, error);
+	g_free(tbl_changelog);
+
+	/* error if ret -1 */
+	if (ret < 0)
+		goto error;
+
+	/* if ret != 0 table does not exist. continue and create it */
+	if (ret) {
+		osync_trace(TRACE_EXIT, "%s", __func__);
+		return TRUE;
+	}
+
+	char *query = g_strdup_printf("CREATE TABLE tbl_changelog_%s (id INTEGER PRIMARY KEY, entryid INTEGER, changetype INTEGER)", objtype);
 	if (!osync_db_query(db, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		g_free(query);
-		return FALSE;
+		goto error;
 	}
 	g_free(query);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s: created table.", __func__);
 	return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
-osync_bool osync_archive_create(OSyncDB *db, OSyncError **error)
+static osync_bool osync_archive_create(OSyncDB *db, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, db, error); 
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
 
-	char *query = g_strdup("CREATE TABLE tbl_archive (mappingid INTEGER PRIMARY KEY, data BLOB)");
+	osync_assert(db);
+	osync_assert(objtype);
+
+	char *tbl_archive = g_strdup_printf("tbl_archive_%s", objtype);
+	int ret = osync_db_exists(db, tbl_archive, error);
+
+	/* error if ret -1 */
+	if (ret < 0)
+		goto error;
+
+	/* if ret != 0 table does not exist. continue and create it */
+	if (ret) {
+		osync_trace(TRACE_EXIT, "%s", __func__); 
+		return TRUE;
+	}
+
+
+	char *query = g_strdup_printf("CREATE TABLE tbl_archive_%s (mappingid INTEGER PRIMARY KEY, data BLOB)", objtype);
 	if (!osync_db_query(db, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		g_free(query);
-		return FALSE;
+		goto error;
 	}
 	g_free(query);
 
-	osync_trace(TRACE_EXIT, "%s", __func__); 
+	osync_trace(TRACE_EXIT, "%s: created table.", __func__); 
 	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /**
@@ -129,43 +188,6 @@ OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 		goto error_and_free;
 
 	if (!osync_db_open(archive->db, filename, error)) {
-		g_free(archive->db);
-		goto error_and_free;
-	}
-
-	/* tbl_archive */
-	int ret = osync_db_exists(archive->db, "tbl_archive", error);
-
-	/* error if ret -1 */
-	if (ret < 0)
-		goto error_and_free;
-	/* if ret == 0 table does not exist. continue and create it */
-	if (ret == 0 && !osync_archive_create(archive->db, error)) {
-		g_free(archive->db);
-		goto error_and_free;
-	}
-
-	/* tbl_changes */
-	ret = osync_db_exists(archive->db, "tbl_changes", error);
-
-	/* error if ret -1 */
-	if (ret < 0)
-		goto error_and_free;
-	/* if ret == 0 table does not exist. continue and create it */
-
-	if (ret == 0 && !osync_archive_create_changes(archive->db, error)) {
-		g_free(archive->db);
-		goto error_and_free;
-	}
-
-	/* tbl_changelog */
-	ret = osync_db_exists(archive->db, "tbl_changelog", error);
-
-	/* error if ret -1 */
-	if (ret < 0)
-		goto error_and_free;
-	/* if ret == 0 table does not exist. continue and create it */
-	if (ret == 0 && !osync_archive_create_changelog(archive->db, error)) {
 		g_free(archive->db);
 		goto error_and_free;
 	}
@@ -221,21 +243,26 @@ void osync_archive_unref(OSyncArchive *archive)
  *
  * @param archive The group archive
  * @param uid UID of requested entry
+ * @param objtype The object type of the entry
  * @param data The data to store 
  * @param size Total size of data 
  * @param error Pointer to an error struct
  * @return Returns TRUE on success otherwise FALSE
  */ 
-osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error)
+osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %u, %p)", __func__, archive, uid, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %u, %p)", __func__, archive, uid, objtype, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(data);
 	osync_assert(size);
 
+	if (!osync_archive_create(archive->db, objtype, error))
+		goto error;
+
 	char *escaped_uid = _osync_archive_sql_escape(uid);
-	char *query = g_strdup_printf("REPLACE INTO tbl_archive (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes WHERE uid='%s' LIMIT 1), ?)", uid);
+	// FIXME: Avoid subselect - this query needs up to 0.5s
+	char *query = g_strdup_printf("REPLACE INTO tbl_archive_%s (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1), ?)", objtype, objtype, uid);
 	g_free(escaped_uid);
 	
 	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
@@ -258,20 +285,24 @@ error:
  *
  * @param archive The group archive
  * @param uid UID of requestd entry
+ * @param objtype The objtype type of the entry
  * @param data Pointer to store the requested data 
  * @param size Pointer to store the size of requested data
  * @param error Pointer to an error struct
  * @return Returns 0 if no data is present else 1. On error -1.
  */ 
-int osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error)
+int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, archive, uid, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p, %p)", __func__, archive, uid, objtype, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(data);
 	osync_assert(size);
 
-	char *query = g_strdup_printf("SELECT data FROM tbl_archive WHERE mappingid=(SELECT mappingid FROM tbl_changes WHERE uid='%s' LIMIT 1)", uid);
+	if (!osync_archive_create(archive->db, objtype, error))
+		goto error;
+
+	char *query = g_strdup_printf("SELECT data FROM tbl_archive_%s WHERE mappingid=(SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1)", objtype, objtype, uid);
 	int ret = osync_db_get_blob(archive->db, query, data, size, error);
 	g_free(query);
 
@@ -310,13 +341,18 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 	osync_assert(uid);
 	osync_assert(objtype);
 
+	if (!osync_archive_create_changes(archive->db, objtype, error))
+		goto error;
+
 	char *query = NULL;
 	char *escaped_uid = _osync_archive_sql_escape(uid);
 
+
+
 	if (!id) {
-		query = g_strdup_printf("INSERT INTO tbl_changes (uid, objtype, mappingid, memberid) VALUES('%s', '%s', '%lli', '%lli')", escaped_uid, objtype, mappingid, memberid);
+		query = g_strdup_printf("INSERT INTO tbl_changes_%s (uid, mappingid, memberid) VALUES('%s', '%lli', '%lli')", objtype, escaped_uid, mappingid, memberid);
 	} else {
-		query = g_strdup_printf("UPDATE tbl_changes SET uid='%s', objtype='%s', mappingid='%lli', memberid='%lli' WHERE id=%lli", escaped_uid, objtype, mappingid, memberid, id);
+		query = g_strdup_printf("UPDATE tbl_changes_%s SET uid='%s', mappingid='%lli', memberid='%lli' WHERE id=%lli", objtype, escaped_uid, mappingid, memberid, id);
 	}
 	g_free(escaped_uid);
 	
@@ -343,25 +379,33 @@ error:
  *
  * @param archive The group archive
  * @param id Archive (database) id of entry which gets deleted
+ * @param objtype The object type of the entry
  * @param error Pointer to an error struct
  * @return TRUE on when all changes successfully loaded otherwise FALSE
  */ 
-osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error)
+osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %p)", __func__, archive, id, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %p)", __func__, archive, id, objtype, error);
 	osync_assert(archive);
-	
-	char *query = g_strdup_printf("DELETE FROM tbl_changes WHERE id=%lli", id);
+	osync_assert(objtype);
+
+	if (!osync_archive_create_changes(archive->db, objtype, error))
+		goto error;
+
+	char *query = g_strdup_printf("DELETE FROM tbl_changes_%s WHERE id=%lli", objtype, id);
 	if (!osync_db_query(archive->db, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		g_free(query);
-		return FALSE;
+		goto error;
 	}
 
 	g_free(query);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
+
+error:	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
 }
 
 /**
@@ -389,7 +433,10 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 
 	GList *result = NULL, *row = NULL;
 
-	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes WHERE objtype='%s' ORDER BY mappingid", objtype);
+	if (!osync_archive_create_changes(archive->db, objtype, error))
+		goto error;
+
+	char *query = g_strdup_printf("SELECT id, uid, mappingid, memberid FROM tbl_changes_%s ORDER BY mappingid", objtype);
 	result = osync_db_query_table(archive->db, query, error);
 
 	g_free(query);
@@ -424,41 +471,6 @@ error:
 }
 
 /**
- * @brief Get the object type for an entry of the group archive.
- *
- * @param archive The group archive
- * @param memberid The member id
- * @param uid The uid of the entry
- * @param error Pointer to an error struct 
- * @return Returns the object type of the specified entry, or NULL if the entry doesn't exist. (the caller is responsible for freeing) 
- */
-char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, const char *uid, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, uid, error);
-
-	osync_assert(archive);
-	osync_assert(uid);
-	
-	char *query = g_strdup_printf("SELECT objtype FROM tbl_changes WHERE memberid='%lli' AND uid='%s'", memberid, uid);
-	char *objtype = osync_db_query_single_string(archive->db, query, error);
-	g_free(query);
-
-	/* TODO improve error handling... */
-	if (osync_error_is_set(error)) {
-		goto error;
-	}
-
-	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, objtype);
-	return objtype;
-	
-error:
-	g_free(objtype);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-	return NULL;
-}
-
-/**
  * @brief Load all conficting changes which got ignored in previous sync. 
  *
  * @param archive The group archive
@@ -480,7 +492,10 @@ osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const cha
 	GList *result = NULL;
 	GList *row = NULL;
 
-	char *query = g_strdup_printf("SELECT entryid, changetype FROM tbl_changelog WHERE objtype='%s' ORDER BY id", objtype);
+	if (!osync_archive_create_changelog(archive->db, objtype, error))
+		goto error;
+
+	char *query = g_strdup_printf("SELECT entryid, changetype FROM tbl_changelog_%s ORDER BY id", objtype);
 	result = osync_db_query_table(archive->db, query, error);
 
 	g_free(query);
@@ -526,8 +541,11 @@ osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char
 
 	osync_assert(archive);
 	osync_assert(objtype);
+
+	if (!osync_archive_create_changelog(archive->db, objtype, error))
+		goto error;
 	
-	char *query = g_strdup_printf("INSERT INTO tbl_changelog (entryid, changetype, objtype) VALUES('%lli', '%i', '%s')", id, changetype, objtype);
+	char *query = g_strdup_printf("INSERT INTO tbl_changelog_%s (entryid, changetype) VALUES('%lli', '%i')", objtype, id, changetype);
 	
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);
@@ -558,8 +576,11 @@ osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const cha
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, objtype, error);
 	osync_assert(archive);
 	osync_assert(objtype);
+
+	if (!osync_archive_create_changelog(archive->db, objtype, error))
+		goto error;
 	
-	char *query = g_strdup_printf("DELETE FROM tbl_changelog WHERE objtype=\"%s\"", objtype);
+	char *query = g_strdup_printf("DELETE FROM tbl_changelog_%s", objtype);
 	
 	if (!osync_db_query(archive->db, query, error)) {
 		g_free(query);

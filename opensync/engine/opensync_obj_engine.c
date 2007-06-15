@@ -1064,15 +1064,17 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 	OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 	OSyncMember *member = osync_client_proxy_get_member(proxy);
 	OSyncMappingEntry *entry = entry_engine->entry;
+	const char *objtype = osync_change_get_objtype(entry_engine->change);
+	long long int id = osync_mapping_entry_get_id(entry);
 	
 	if (uid)
 		osync_change_set_uid(entry_engine->change, uid);
 	
 	if (engine->archive) {
 		if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
-			osync_archive_delete_change(engine->archive, osync_mapping_entry_get_id(entry), &locerror);
+			osync_archive_delete_change(engine->archive, id, objtype, &locerror);
 		} else {
-			osync_archive_save_change(engine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), osync_change_get_objtype(entry_engine->change), osync_mapping_get_id(mapping), osync_member_get_id(member), &locerror);
+			osync_archive_save_change(engine->archive, id, osync_change_get_uid(entry_engine->change), objtype, osync_mapping_get_id(mapping), osync_member_get_id(member), &locerror);
 		}
 	}
 
@@ -1472,6 +1474,8 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						char *buffer = NULL;
 						unsigned int size = 0;
 						OSyncXMLFormat *xmlformat = NULL;
+						const char *uid = osync_change_get_uid(entry_engine->change);
+						const char *objtype = osync_change_get_objtype(entry_engine->change);
 						
 						xmlformat = (OSyncXMLFormat *) osync_data_get_data_ptr(osync_change_get_data(entry_engine->change));
 						if(!osync_xmlformat_assemble(xmlformat, &buffer, &size)) {
@@ -1479,7 +1483,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 							goto error;	
 						}
 
-						if(!osync_archive_save_data(engine->archive, osync_change_get_uid(entry_engine->change), buffer, size, error)) {
+						if(!osync_archive_save_data(engine->archive, uid, objtype, buffer, size, error)) {
 							g_free(buffer);	
 							goto error;			
 						}
@@ -1532,13 +1536,14 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 						OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 						OSyncMember *member = osync_client_proxy_get_member(sinkengine->proxy);
 						OSyncMappingEntry *entry = entry_engine->entry;
+						const char *objtype = osync_change_get_objtype(entry_engine->change);
 						
 						if (engine->archive) {
 							if (osync_change_get_changetype(entry_engine->change) == OSYNC_CHANGE_TYPE_DELETED) {
-								if (!osync_archive_delete_change(engine->archive, osync_mapping_entry_get_id(entry), error))
+								if (!osync_archive_delete_change(engine->archive, osync_mapping_entry_get_id(entry), objtype, error))
 									goto error;
 							} else {
-								if (!osync_archive_save_change(engine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), osync_change_get_objtype(entry_engine->change), osync_mapping_get_id(mapping), osync_member_get_id(member), error))
+								if (!osync_archive_save_change(engine->archive, osync_mapping_entry_get_id(entry), osync_change_get_uid(entry_engine->change), objtype, osync_mapping_get_id(mapping), osync_member_get_id(member), error))
 									goto error;
 							}
 						}

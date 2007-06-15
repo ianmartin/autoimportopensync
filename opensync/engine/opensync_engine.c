@@ -111,27 +111,6 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	OSyncData *data = osync_change_get_data(change);
 	
-	/* First, check if we already know this change. This should be the case,
-	 * if the change is modified or deleted, and not the case if it is added */
-	if (engine->archive) {
-		char *knownObjType = osync_archive_get_objtype(engine->archive, memberid, uid, &error);
-		if (osync_error_is_set(&error)) {
-			g_free(knownObjType);
-			goto error;
-		}
-	
-		/* We update the object type with the stored object type. This is needed, since
-		 * a deleted change does not carry any information from which we could detect
-		 * the objtype. Therefore we would not be able to add the change to the correct
-		 * obj engine */
-		if (knownObjType) {
-			osync_trace(TRACE_INTERNAL, "Setting loaded objtype %s", knownObjType);
-			osync_change_set_objtype(change, knownObjType);
-		}
-
-		g_free(knownObjType);
-	}
-	
 	/* If objtype == "data", detect the objtype */
 	if (!strcmp(osync_change_get_objtype(change), "data") && osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
 		OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
@@ -191,13 +170,15 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		unsigned int size = 0;
 		OSyncXMLFormat *xmlformat = NULL;
 		OSyncXMLFormat *xmlformat_entire = NULL;
+
+		const char *objtype = osync_change_get_objtype(change);
 		
 		OSyncMember *member = osync_client_proxy_get_member(proxy);
 		OSyncMerger *merger = osync_member_get_merger(member);
 		if(merger) {
 			/* TODO: Merger save the archive data with the member so we have to load it only for one time*/
 			// osync_archive_load_data() is fetching the mappingid by uid in the db
-			int ret = osync_archive_load_data(engine->archive, uid, &buffer, &size, &error);
+			int ret = osync_archive_load_data(engine->archive, uid, objtype, &buffer, &size, &error);
 			if (ret < 0) {
 				goto error; 
 			}

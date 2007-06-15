@@ -1888,10 +1888,11 @@ START_TEST (sync_easy_dualdel)
 	g_free(path);
 
 	/* fixed order of uids in maptable - 2007-05-32 (dgollub) */
-	check_mapping(maptable, 1, 1, 2, "testdata2");
-	check_mapping(maptable, 2, 1, 2, "testdata2");
-	check_mapping(maptable, 1, 2, 2, "testdata");
-	check_mapping(maptable, 2, 2, 2, "testdata");
+	/* fixed order of uids in maptable - again - 2007-06-15 (dgollub) */
+	check_mapping(maptable, 1, 2, 2, "testdata2");
+	check_mapping(maptable, 2, 2, 2, "testdata2");
+	check_mapping(maptable, 1, 1, 2, "testdata");
+	check_mapping(maptable, 2, 1, 2, "testdata");
 
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
@@ -2155,11 +2156,11 @@ START_TEST (sync_large)
 	system("rm -f data1/file7");
 	system("rm -f data2/file7");
 	//delete left, modify right
-	system("rm -f data1/file8");
-	create_random_file("data2/file8");
+	system("rm -f data2/file8");
+	create_random_file("data1/file8");
 	//modify left, delete right
-	create_random_file("data1/file9");
-	system("rm -f data2/file9");
+	create_random_file("data2/file9");
+	system("rm -f data1/file9");
 	
 	
 	fail_unless(osync_engine_synchronize_and_block(engine, &error), NULL);

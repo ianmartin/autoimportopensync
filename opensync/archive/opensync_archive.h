@@ -29,13 +29,12 @@ OSYNC_EXPORT OSyncArchive *osync_archive_new(const char *filename, OSyncError **
 OSYNC_EXPORT void osync_archive_ref(OSyncArchive *archive);
 OSYNC_EXPORT void osync_archive_unref(OSyncArchive *archive);
 
-OSYNC_EXPORT osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *data, unsigned int size, OSyncError **error);
-OSYNC_EXPORT int osync_archive_load_data(OSyncArchive *archive, const char *uid, char **data, unsigned int *size, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error);
+OSYNC_EXPORT int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error);
 
 OSYNC_EXPORT long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error);
-OSYNC_EXPORT osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, OSyncError **error);
+OSYNC_EXPORT osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, const char *objtype, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error);
-OSYNC_EXPORT char *osync_archive_get_objtype(OSyncArchive *archive, long long int memberid, const char *uid, OSyncError **error);
 
 OSYNC_EXPORT osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const char *objtype, OSyncList **mappingsids, OSyncList **changetypes, OSyncError **error);
 OSYNC_EXPORT osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char *objtype, long long int mappingid, OSyncChangeType changetype, OSyncError **error);
