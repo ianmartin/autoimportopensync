@@ -59,14 +59,14 @@ VCAL_DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
 RRULE_DAYS = [rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR, rrule.SA, rrule.SU]
 
 # repeat types in the calendar
-# XXX FIXME: check order of DATE/DAY for monthly and yearly, my values disagree
+# XXX FIXME: check order of DATE/DAY for monthly and yearly on extended-format phones
 MOTO_REPEAT_NONE = 0
 MOTO_REPEAT_DAILY = 1
 MOTO_REPEAT_WEEKLY = 2
-MOTO_REPEAT_MONTHLY_DAY = 3
-MOTO_REPEAT_MONTHLY_DATE = 4
-MOTO_REPEAT_YEARLY_DAY = 5
-MOTO_REPEAT_YEARLY_DATE = 6 # extended calendar format only
+MOTO_REPEAT_MONTHLY_DATE = 3
+MOTO_REPEAT_MONTHLY_DAY = 4
+MOTO_REPEAT_YEARLY_DATE = 5
+MOTO_REPEAT_YEARLY_DAY = 6 # extended calendar format only
 
 # features we require; these refer to the bits returned by the AT+MAID? command
 # FIXME: my phone returns a lot more bits than I have documentation for, it's
@@ -85,7 +85,11 @@ MOTO_PHONE_CONTACT_TYPES = {
     3: 'Cellular',
     4: 'Fax',
     5: 'Pager',
+    # 6: email
+    # 7: mailing list
     8: 'Cellular', # shows up as "Mobile 2", seen on a V3c
+    # 9: ?
+    # 10: ?
     11: 'Voice' # shows up as "other", seen on a RAZR V3x
 }
 
