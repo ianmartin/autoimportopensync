@@ -21,8 +21,8 @@
 		<IM-ICQ />
                 <IM-Jabber />
                 <IM-MSN />
-		<IM-Yahoo />
                 <IM-Yabber />
+		<IM-Yahoo />
                 <IRC />
                 <KDE-Extension />
 		<Key />
@@ -79,10 +79,10 @@
                 <ProductID />
                 <RecurrenceDateTime />
                 <RecurrenceId />
-                <Related />
-                <Resources />
                 <RecurrenceRule />
                 <RecurrenceRuleExtended />
+                <Related />
+                <Resources />
                 <RStatus />
                 <Sequence />
                 <Status />
