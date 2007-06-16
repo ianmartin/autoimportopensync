@@ -456,8 +456,10 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt):
     ret['repeat_end'] = None
     ret['exceptions'] = []
 
-    # can't support multiple rules
-    if len(rulenodes) != 1:
+    if len(rulenodes) == 0:
+        return ret # no recursion
+    elif len(rulenodes) > 1:
+        # can't support multiple rules
         raise UnsupportedDataError('Unhandled recursion: too many rules')
     rulenode = rulenodes[0]
 
