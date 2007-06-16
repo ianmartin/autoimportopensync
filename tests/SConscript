@@ -9,6 +9,7 @@ if testenv['enable_tests'] == 1:
 	testenv.Program('ipc', ['ipc-tests/check_ipc.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('checkdata', ['data-tests/check_data.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('conv', ['format-tests/check_conv.c'], LIBS = ['opensync', 'check', support])
+	testenv.Program('time', ['format-tests/check_time.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('converter', ['format-tests/check_converter.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('formatenv', ['format-tests/check_format_env.c'], LIBS = ['opensync', 'check', support])
 	testenv.Program('objformat', ['format-tests/check_objformat.c'], LIBS = ['opensync', 'check', support])

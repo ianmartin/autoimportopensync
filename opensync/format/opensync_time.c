@@ -295,7 +295,7 @@ char *osync_time_unix2vtime(const time_t *timestamp) {
 
 /*! @brief Function converts struct tm to unix timestamp
  *
- * @param tmtime The struct tm which gets converted
+ * @param tmtime The struct tm, in localtime, which gets converted
  * @returns time_t (in UTC)
  */ 
 time_t osync_time_tm2unix(const struct tm *tmtime) {
@@ -341,29 +341,58 @@ struct tm *osync_time_unix2tm(const time_t *timestamp) {
 int osync_time_timezone_diff(const struct tm *time) {	
 	osync_trace(TRACE_ENTRY, "%s()", __func__);
 
-	struct tm ltime, utime;
+	struct tm utime;
 	unsigned int lsecs, usecs;
-	long zonediff;
+	long zonediff, daydiff = 0;
 	time_t timestamp;
 
+	/* convert local time 'time' to UTC */
 	timestamp = osync_time_tm2unix(time);
 
 	tzset();
 
-	localtime_r(&timestamp, &ltime);
+	/* convert UTC to split tm struct in UTC */
 	gmtime_r(&timestamp, &utime);
 
-	lsecs = 3600 * ltime.tm_hour + 60 * ltime.tm_min + ltime.tm_sec;
+        /* calculate seconds of difference between local and UTC */
+        lsecs = 3600 * time->tm_hour + 60 * time->tm_min + time->tm_sec;
 	usecs = 3600 * utime.tm_hour + 60 * utime.tm_min + utime.tm_sec;
-
 	zonediff = lsecs - usecs;
 
 	/* check for different day */
-	if (utime.tm_mday != ltime.tm_mday) {
-		if (utime.tm_mday < ltime.tm_mday)
-			zonediff += 24 * 3600; 
+	if (utime.tm_mday != time->tm_mday) {
+		/* if uday < lday, then local time
+		 * is ahead of UTC, and the above difference
+		 * will straddle midnight and be 24 hours behind.
+		 * Example: U: 23h on Jan 01
+		 *          L: 01h on Jan 02
+		 *          Real timezone offset is +0200
+		 *          Calculated = 01 - 23 = -22
+		 *          Corrected = -22 + 24 = +2
+		 *
+		 * Opposite case needs different correction.
+		 */
+		if (utime.tm_mday < time->tm_mday)
+			daydiff = 24 * 3600; 
 		else
-			zonediff -= 24 * 3600;
+			daydiff = -24 * 3600;
+ 
+		/* if months are not the same, then we are
+		 * straddling a month, and the above day
+		 * comparison is upside down... correct again.
+		 *
+		 * Example:
+		 *    U: 23h on Jan 31
+		 *    L: 01h on Feb 01
+		 *
+		 * Above logic would subtract instead of add.
+		 */
+		if (utime.tm_mon != time->tm_mon) {
+			daydiff = -daydiff;
+		}
+ 
+		/* perform the correction */
+		zonediff += daydiff;
 	}
 
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, zonediff);
