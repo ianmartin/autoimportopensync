@@ -335,7 +335,7 @@ struct tm *osync_time_unix2tm(const time_t *timestamp) {
 
 /*! @brief Function gets offset of parameter time between UTC and localtime in seconds. 
  * 
- * @param time is the point in time when the offset have to be calculated (need for CEST/CET)
+ * @param time is the point in time when the offset have to be calculated, specified in localtime (need for CEST/CET)
  * @returns Seconds of timezone offset
  */  
 int osync_time_timezone_diff(const struct tm *time) {	
