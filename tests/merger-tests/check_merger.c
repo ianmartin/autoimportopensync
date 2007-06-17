@@ -19,6 +19,7 @@ START_TEST (merger_new)
 	osync_merger_unref(merger);
 	
 	osync_merger_unref(merger);
+	osync_capabilities_unref(capabilities);
 
 	destroy_testbed(testbed);
 }

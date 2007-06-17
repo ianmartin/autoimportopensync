@@ -31,8 +31,7 @@ char *setup_testbed(char *fkt_name)
 	
 	char *command = NULL;
 	if (fkt_name) {
-		char * dirname;
-		dirname = g_strdup_printf(OPENSYNC_TESTDATA"/%s", fkt_name);
+		char *dirname = g_strdup_printf(OPENSYNC_TESTDATA"/%s", fkt_name);
 		if (!g_file_test(dirname, G_FILE_TEST_IS_DIR)) {
 			osync_trace(TRACE_INTERNAL, "%s: Path %s not exist.", __func__, dirname);
 			abort();
@@ -42,6 +41,7 @@ char *setup_testbed(char *fkt_name)
 		if (system(command))
 			abort();
 		g_free(command);
+		g_free(dirname);
 	}
 	
 	/*command = g_strdup_printf("cp -R ../osplugin/osplugin %s", testbed);
