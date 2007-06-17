@@ -25,6 +25,7 @@
 #include "opensync-data.h"
 #include "opensync-helper.h"
 #include "opensync-db.h"
+#include <db/opensync_db_internals.h>
 
 
 /**
@@ -255,8 +256,13 @@ void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *h
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, hash);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
-	
-	char *query = g_strdup_printf("REPLACE INTO %s ('uid', 'hash') VALUES('%s', '%s')", table->tablename, uid, hash);
+
+	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *escaped_hash = _osync_db_sql_escape(hash);
+	char *query = g_strdup_printf("REPLACE INTO %s ('uid', 'hash') VALUES('%s', '%s')", table->tablename, escaped_uid, escaped_hash);
+	g_free(escaped_uid);
+	g_free(escaped_hash);
+
 	if (!osync_db_query(table->dbhandle, query, NULL)) {
 		g_free(query);
 		osync_trace(TRACE_EXIT, "%s: Cannot write hashtable entry.", __func__);
@@ -272,15 +278,18 @@ void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
 	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
-	
-	char *query = g_strdup_printf("DELETE FROM %s WHERE uid='%s'", table->tablename, uid);
+
+	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *query = g_strdup_printf("DELETE FROM %s WHERE uid='%s'", table->tablename, escaped_uid);
+	g_free(escaped_uid);
+
 	if (!osync_db_query(table->dbhandle, query, NULL)) {
 		g_free(query);
 		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot delete hashtable entry.", __func__);
 		return;
 	}
 	g_free(query);
-	
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -397,9 +406,11 @@ OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char
 	
 	OSyncChangeType retval = OSYNC_CHANGE_TYPE_UNMODIFIED;
 
-	char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid='%s'", table->tablename, uid);
+	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid='%s'", table->tablename, escaped_uid);
 	orighash = osync_db_query_single_string(table->dbhandle, query, NULL); 
 	g_free(query);
+	g_free(escaped_uid);
 	
 	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash, orighash);
 	

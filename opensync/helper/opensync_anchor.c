@@ -23,6 +23,7 @@
 
 #include "opensync-helper.h"
 #include "opensync-db.h"
+#include <db/opensync_db_internals.h>
 
 /*! @brief Create the anchor table in the specified database
  * 
@@ -121,10 +122,12 @@ static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 	osync_assert(key);
 
 	char *retanchor = NULL;
-	
-	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", key);
+
+	char *escaped_key = _osync_db_sql_escape(key);
+	char *query = g_strdup_printf("SELECT anchor FROM tbl_anchor WHERE objtype='%s'", escaped_key);
 	retanchor = osync_db_query_single_string(db, query, NULL); 
 	g_free(query);
+	g_free(escaped_key);
 	
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, retanchor);
 	return retanchor;
@@ -142,8 +145,13 @@ static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *an
 	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
 	osync_assert(db);
 	osync_assert(key);
-	
-	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", key, anchor);
+
+	char *escaped_key = _osync_db_sql_escape(key);
+	char *escaped_anchor = _osync_db_sql_escape(anchor);
+	char *query = g_strdup_printf("REPLACE INTO tbl_anchor (objtype, anchor) VALUES('%s', '%s')", escaped_key, escaped_anchor);
+	g_free(escaped_key);
+	g_free(escaped_anchor);
+
 	/* TODO: Add Error handling in this funciton for osync_db_query() */
 	if (!osync_db_query(db, query, NULL)) {
 		osync_trace(TRACE_INTERNAL, "Unable put anchor!");

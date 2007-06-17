@@ -30,6 +30,11 @@ static void _osync_db_trace(void *data, const char *query)
 }
 */
 
+char *_osync_db_sql_escape(const char *s)
+{
+	return osync_strreplace(s, "'", "''");
+}
+
 OSyncDB *osync_db_new(OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);

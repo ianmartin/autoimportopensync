@@ -38,6 +38,5 @@ struct OSyncArchive {
 };
 
 void _osync_archive_trace(void *data, const char *query);
-char *_osync_archive_sql_escape(const char *s);
 
 #endif /*OPENSYNC_ARCHIVE_INTERNALS_H_*/

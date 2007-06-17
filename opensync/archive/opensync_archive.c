@@ -28,6 +28,7 @@
 #include "opensync-archive.h"
 #include "opensync_archive_internals.h"
 #include "opensync-db.h"
+#include <db/opensync_db_internals.h>
 
 /**
  * @defgroup OSyncArchivePrivateAPI OpenSync Archive Internals
@@ -40,11 +41,6 @@
 void _osync_archive_trace(void *data, const char *query)
 {
 	osync_trace(TRACE_INTERNAL, "query executed: %s", query);
-}
-
-char *_osync_archive_sql_escape(const char *s)
-{
-	return osync_strreplace(s, "'", "''");
 }
 
 /*@}*/
@@ -260,9 +256,9 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const
 	if (!osync_archive_create(archive->db, objtype, error))
 		goto error;
 
-	char *escaped_uid = _osync_archive_sql_escape(uid);
+	char *escaped_uid = _osync_db_sql_escape(uid);
 	// FIXME: Avoid subselect - this query needs up to 0.5s
-	char *query = g_strdup_printf("REPLACE INTO tbl_archive_%s (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1), ?)", objtype, objtype, uid);
+	char *query = g_strdup_printf("REPLACE INTO tbl_archive_%s (mappingid, data) VALUES((SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1), ?)", objtype, objtype, escaped_uid);
 	g_free(escaped_uid);
 	
 	if (!osync_db_bind_blob(archive->db, query, data, size, error)) {
@@ -302,9 +298,11 @@ int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *
 	if (!osync_archive_create(archive->db, objtype, error))
 		goto error;
 
-	char *query = g_strdup_printf("SELECT data FROM tbl_archive_%s WHERE mappingid=(SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1)", objtype, objtype, uid);
+	char *escaped_uid = _osync_db_sql_escape(uid);
+	char *query = g_strdup_printf("SELECT data FROM tbl_archive_%s WHERE mappingid=(SELECT mappingid FROM tbl_changes_%s WHERE uid='%s' LIMIT 1)", objtype, objtype, escaped_uid);
 	int ret = osync_db_get_blob(archive->db, query, data, size, error);
 	g_free(query);
+	g_free(escaped_uid);
 
 	if (ret < 0) {
 		goto error;
@@ -345,7 +343,7 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 		goto error;
 
 	char *query = NULL;
-	char *escaped_uid = _osync_archive_sql_escape(uid);
+	char *escaped_uid = _osync_db_sql_escape(uid);
 
 
 

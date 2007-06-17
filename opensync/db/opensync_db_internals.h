@@ -29,4 +29,6 @@ struct OSyncDB {
 	sqlite3 *sqlite3db;
 };
 
+char *_osync_db_sql_escape(const char *s);
+
 #endif //_OPENSYNC_DB_INTERNALS_H_
