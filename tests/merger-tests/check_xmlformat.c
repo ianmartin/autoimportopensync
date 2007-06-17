@@ -146,6 +146,51 @@ START_TEST (xmlformat_compare)
 }
 END_TEST
 
+START_TEST (xmlformat_compare_field2null)
+{
+	char *testbed = setup_testbed("xmlformats");
+
+	char *buffer1;
+	char *buffer2;
+	unsigned int size1;
+	unsigned int size2;
+	OSyncError *error = NULL;
+
+
+	fail_unless(osync_file_read( "contact1.xml", &buffer1, &size1, &error), NULL);
+
+	OSyncXMLFormat *xmlformat1 = osync_xmlformat_parse(buffer1, size1, &error);
+	fail_unless(xmlformat1 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	fail_unless(osync_file_read( "contact2.xml", &buffer2, &size2, &error), NULL);
+	
+	OSyncXMLFormat *xmlformat2 = osync_xmlformat_parse(buffer2, size2, &error);
+	fail_unless(xmlformat2 != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+
+	g_free(buffer1);
+	g_free(buffer2);
+
+        char* keys_content[] =  {"Content", NULL};
+        char* keys_name[] = {"FirstName", "LastName", NULL};
+        OSyncXMLPoints points[] = {
+                {"Name",                90,     keys_name},
+                {"Telephone",   10,     keys_content},
+                {"EMail",               10,     keys_content},
+                {NULL}
+        };
+
+        osync_xmlformat_compare((OSyncXMLFormat*)xmlformat1, (OSyncXMLFormat*)xmlformat2, points, 0, 100);
+
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat1);
+	osync_xmlformat_unref((OSyncXMLFormat*)xmlformat2);
+
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
 START_TEST (xmlformat_event_schema)
 {
 	char *testbed = setup_testbed("xmlformats");
@@ -169,12 +214,14 @@ END_TEST
 Suite *xmlformat_suite(void)
 {
 	Suite *s = suite_create("XMLFormat");
+
 	create_case(s, "xmlformat_new", xmlformat_new);
 	create_case(s, "xmlfield_new", xmlfield_new);
 	create_case(s, "xmlformat_parse", xmlformat_parse);
 	create_case(s, "xmlformat_sort", xmlformat_sort);
 	create_case(s, "xmlformat_search_field", xmlformat_search_field);
 	create_case(s, "xmlformat_compare", xmlformat_compare);
+	create_case(s, "xmlformat_compare_field2null", xmlformat_compare_field2null);
 	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);
 
 	return s;

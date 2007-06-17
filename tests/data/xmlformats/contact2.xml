@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<contact>
+  <Name>
+    <LastName>Mu</LastName>
+    <FirstName></FirstName>
+    <Additional></Additional>
+    <Prefix></Prefix>
+    <Suffix></Suffix>
+  </Name>
+  <Revision>
+    <Content>20070615T131233Z</Content>
+  </Revision>
+  <Telephone Type="Voice">
+    <Content>0232611111</Content>
+  </Telephone>
+</contact>
+

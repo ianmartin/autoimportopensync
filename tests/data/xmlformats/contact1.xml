@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<contact>
+  <FormattedName>
+    <Content>Me</Content>
+  </FormattedName>
+  <Name>
+    <LastName></LastName>
+    <FirstName>Me</FirstName>
+    <Additional></Additional>
+    <Prefix></Prefix>
+    <Suffix></Suffix>
+  </Name>
+  <Revision>
+    <Content>20070306T074406Z</Content>
+  </Revision>
+  <Telephone Type="Voice">
+    <Content>0140511111</Content>
+  </Telephone>
+  <Telephone Type="Cellular">
+    <Content>0686911111</Content>
+  </Telephone>
+  <Telephone Type="Voice" Location="Home">
+    <Content>0954111111</Content>
+  </Telephone>
+  <Telephone Type="Fax">
+    <Content>33172711111</Content>
+  </Telephone>
+</contact>
+

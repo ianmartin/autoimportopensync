@@ -543,17 +543,19 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 						cur_list1 = fieldlist1;
 						cur_list2 = fieldlist2;
 						
-						do {
+						while(cur_list2) {
+
+							osync_trace(TRACE_INTERNAL, "cur_list1: %p, cur_list2: %p", cur_list1, cur_list2);
+
 							if(osync_xmlfield_compare_similar(	(OSyncXMLField *)cur_list1->data,
 																(OSyncXMLField *)cur_list2->data,
 																points[cur_pos].keys) == TRUE) {
 								found = TRUE;	
 								break;
 							}
+
 							cur_list2 = g_slist_next(cur_list2);
-							if(cur_list2 == NULL)
-								break;
-						}while(1);
+						}
 						
 						/* add or subtract the points */
 						if(found) {
