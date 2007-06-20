@@ -2,8 +2,6 @@ import sys
 import os
 sys.path.append('build')
 from osync_support import *
-from doxygen import *
-from substin import TOOL_SUBST
 
 #Define the default values for some variables. Take note, that they might
 #get overwriten by the scons files in the build directory
@@ -25,12 +23,14 @@ config = {
 }
 
 # Get our configuration options:
-env = Environment(ENV = os.environ, tools=("default", TOOL_SUBST)) 
-opts = Options('libopensync.conf')
-A = opts.Add
+env = Environment( 
+		ENV = os.environ, 
+		tools=['default', 'substin', 'osync_support', 'pkgconfig', 'glib', 'libxml', 'libsqlite', 'check'], 
+		toolpath=['./', './build'])
+
+A = env.get_opts().add
 A('debug', 'Should debugging be enabled?', 1)
 A('enable_trace', 'Should tracing be enabled?', 1)
-A(BoolOption('enable_tests', 'Should the unit tests be enabled', 0))
 A(BoolOption('enable_tools', 'Should the developer tools be build', 1))
 A(BoolOption('enable_python', 'Build python wrapper? (swig required)', 0))
 A(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
@@ -43,12 +43,12 @@ target_dir = SelectBuildDir('build')
 sys.path.append(target_dir)
 from osync_build import *
 target_dir = '#' + target_dir
-configure(opts)
+configure(env.get_opts())
 SConsignFile()
 
-opts.Update(env)
-opts.Save('libopensync.conf', env)
-opts.Update(env)
+env.get_opts().update()
+env.get_opts().save()
+env.get_opts().update()
 
 Help("""
 ++++++++++++++++++++++++++++++++++++
@@ -56,22 +56,22 @@ Welcome to the OpenSync Help System!
 
 
 You can set the following options:
-""" + opts.GenerateHelpText(env))
+""" + env.get_opts().generate_help_text())
 
 env.Append(CCFLAGS = Split('$APPEND_CCFLAGS'))
 env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
 
-add_define(env, "OPENSYNC_PLUGINDIR", config['plugindir'])
-add_define(env, "OPENSYNC_FORMATSDIR", config['formatdir'])
-add_define(env, "OPENSYNC_CONFIGDIR", config['configdir'])
-add_define(env, "OPENSYNC_CAPABILITIESDIR", config['capabilitiesdir'])
-add_define(env, "OPENSYNC_DESCRIPTIONSDIR", config['descriptionsdir'])
-add_define(env, "OPENSYNC_SCHEMASDIR", config['descriptionsdir'])
-add_define(env, "VERSION", config['version'])
-add_define(env, "OPENSYNC_PLUGINVERSION", config['plugin_version'])
+env.add_define("OPENSYNC_PLUGINDIR", config['plugindir'])
+env.add_define("OPENSYNC_FORMATSDIR", config['formatdir'])
+env.add_define("OPENSYNC_CONFIGDIR", config['configdir'])
+env.add_define("OPENSYNC_CAPABILITIESDIR", config['capabilitiesdir'])
+env.add_define("OPENSYNC_DESCRIPTIONSDIR", config['descriptionsdir'])
+env.add_define("OPENSYNC_SCHEMASDIR", config['descriptionsdir'])
+env.add_define("VERSION", config['version'])
+env.add_define("OPENSYNC_PLUGINVERSION", config['plugin_version'])
 if env['debug_modules'] == 1:
-	add_define(env, "DEBUG_MODULES")
-add_define(env, "ENABLE_TRACE", env['enable_trace'])
+	env.add_define("DEBUG_MODULES")
+env.add_define("ENABLE_TRACE", env['enable_trace'])
 
 env.Replace(
 	CC = env['CC'],
@@ -88,9 +88,9 @@ if env.GetOption('clean'):
 	try: os.unlink("config.h")
 	except OSError: pass
 elif 'dist' in sys.argv:
-	make_dist(config)
+	env.dist(config["name"], config["version"])
 else:
-	write_config_header(env, "config.h")
+	env.write_config_header("config.h")
 
 #define some shortcuts for common used methodes
 p_j = os.path.join
@@ -128,7 +128,7 @@ env.Install(p_j(install_lib, 'pkgconfig'), 'opensync-1.0.pc')
 env.Install(p_j(install_lib, 'pkgconfig'), 'osengine-1.0.pc') 
 
 
-Export('env opts testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas install_pythonlib')
+Export('env config testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas install_pythonlib')
 
 SConscript(['opensync/SConscript', 'tools/SConscript', 'tests/SConscript', 'formats/SConscript', 'misc/SConscript', 'wrapper/SConscript'])
 BuildDir(target_dir, 'opensync', duplicate=0)

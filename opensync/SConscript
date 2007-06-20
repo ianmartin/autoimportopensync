@@ -151,12 +151,16 @@ libxml2
 sqlite3
 """
 
-libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries))
+#libopensync = env.SharedLibrary('opensync', Split(sources), LIBS = Split(Libraries))
+libopensync = env.build_shlib('opensync', Split(sources), 
+					vnum="%d.%d.%d" % (config["major"], config["minor"], config["micro"]), 
+					LIBS = Split(Libraries))
 
 env.Prepend(LIBPATH = '#opensync')
 osplugin = env.Program('osplugin', 'client/osplugin.c', LIBS = Split(Libraries) + ['opensync'])
 
-env.Install(install_lib, libopensync)
+#env.Install(install_lib, libopensync)
+env.install_shlib(install_lib, libopensync)
 env.Install(install_bin, osplugin)
 env.Install(install_inc + '/opensync-1.0/opensync/', Split(headers))
 env.Install(install_inc + '/opensync-1.0/opensync/plugin', Split(plugin_headers))

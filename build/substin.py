@@ -3,8 +3,10 @@ from SCons.Script import *
 from SCons.Builder import *
 
 # http://www.scons.org/wiki/SubstInFileBuilder
+def exists(env):
+	return true
 
-def TOOL_SUBST(env):
+def generate(env):
     """Adds SubstInFile builder, which substitutes the keys->values of SUBST_DICT
     from the source to the target.
     The values of SUBST_DICT first have any construction variables expanded

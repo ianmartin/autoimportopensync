@@ -3,12 +3,12 @@ from SCons.Options import *
 import distutils.sysconfig
 
 def configure(opts):
-	opts.Add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
-	opts.Add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
-	opts.Add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
-	opts.Add(BoolOption('enable_profiling', 'Should code profiling be enabled (GCOV/LCOV, ...)', 0))
-	opts.Add(('CC', 'Path to Custom c compiler', 'gcc'))
-	opts.Add(('CXX', 'Path to Custom c++ compiler flags', 'g++'))
+	opts.add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
+	opts.add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
+	opts.add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
+	opts.add(BoolOption('enable_profiling', 'Should code profiling be enabled (GCOV/LCOV, ...)', 0))
+	opts.add(('CC', 'Path to Custom c compiler', 'gcc'))
+	opts.add(('CXX', 'Path to Custom c++ compiler flags', 'g++'))
 	
 def check(env, config):
 	conf = env.Configure(custom_tests = {'CheckPKGConfig' : CheckPKGConfig, 'CheckPKG' : CheckPKG})
