@@ -239,7 +239,7 @@ def build_shlib(env, target_name, sources, vnum=None, **kw):
 			'%s\\.[0-9\\.]*$' % re.escape(shlib_suffix), 
 			shlib_suffix ] 
 		shlib_suffix += '.' + vnum 
-		shlink_flags += [ '-Wl,-Bsymbolic', '-Wl,-soname=${TARGET}' ] 
+		shlink_flags += [ '-Wl,-Bsymbolic', '-Wl,-soname=${TARGET.file}' ] 
 	elif platform == 'aix': 
 		shlib_pre_action = [ 
 			"nm -Pg $SOURCES > ${TARGET}.tmp1", 
