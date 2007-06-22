@@ -259,12 +259,6 @@ OSyncXMLField *handle_vcal_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 
 	return xmlfield;
 }
-
-//FIXME
-OSyncXMLField *handle_vcal_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "DateDue", error);
-}
 // End of vCal only attributes
 
 // vCal parameters
@@ -386,6 +380,11 @@ OSyncXMLField *handle_description_attribute(OSyncXMLFormat *xmlformat, VFormatAt
 OSyncXMLField *handle_summary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Summary", error);
+}
+
+OSyncXMLField *handle_due_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	return handle_attribute_simple_content(xmlformat, attr, "Due", error);
 }
 
 OSyncXMLField *handle_duration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -1006,13 +1005,24 @@ void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSync
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, attributes);
 	
+	OSyncXMLFormat *tmp_xmlformat = NULL;
+
 	GList *a = NULL;
 	for (a = *attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
 
-		osync_trace(TRACE_INTERNAL, "attribute: \"%s\"", vformat_attribute_get_name(attr));
+		osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
 
 		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
+			a = a->next;
+
+			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VALARM")) {
+				tmp_xmlformat = osync_xmlformat_new("Alarm", NULL);
+				vcalendar_parse_attributes(hooks, table, tmp_xmlformat, paramtable, &a);
+				osync_xmlformat_append(xmlformat, tmp_xmlformat);
+				osync_xmlformat_unref(tmp_xmlformat);
+			}
+
 			//Handling supcomponent
 	//		a = a->next;
 			/*
@@ -1040,11 +1050,13 @@ void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSync
 			}
 			*/
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
-			osync_trace(TRACE_EXIT, "%s: Found END", __func__);
+			osync_trace(TRACE_EXIT, "%s: Found END attribute", __func__);
 			*attributes = a;
+
 			return;
-		} else
+		} else {
 			handle_attribute(hooks, xmlformat, attr, NULL);
+		}
 
 	}
 	osync_trace(TRACE_EXIT, "%s: Done", __func__);

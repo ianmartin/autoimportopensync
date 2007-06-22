@@ -76,7 +76,7 @@ void *init_vtodo_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "DTSTAMP", (void *)handle_dtstamp_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", (void *)handle_description_attribute);
 	insert_attr_handler(hooks->attributes, "SUMMARY", (void *)handle_summary_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", (void *)handle_vcal_due_attribute);
+	insert_attr_handler(hooks->attributes, "DUE", (void *)handle_due_attribute);
 	insert_attr_handler(hooks->attributes, "DTSTART", (void *)handle_dtstart_attribute);
 	insert_attr_handler(hooks->attributes, "PERCENT-COMPLETE", (void *)handle_percent_complete_attribute);
 	insert_attr_handler(hooks->attributes, "CLASS", (void *)handle_class_attribute);

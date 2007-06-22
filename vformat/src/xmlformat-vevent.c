@@ -33,6 +33,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->tztable = g_hash_table_new(g_str_hash, g_str_equal);
+	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
 
 
 	if (target == VFORMAT_EVENT_10) {
@@ -75,7 +76,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "DCREATED", handle_created_attribute);
 	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", handle_vcal_due_attribute); // FIXME
+	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute);
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
@@ -214,7 +215,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
-	// x-prop
+	// x-prop -> TODO
 
 
 	// [RFC 2445] todoc (same order as in spec!)
@@ -225,7 +226,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	// [RFC 2445] todoprop (same order as in spec!)
 	// class
-	//insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
+	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
 	// created
 	// description
 	// dtstamp
@@ -234,7 +235,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// last-mod
 	// location
 	// organizer
-	//insert_attr_handler(hooks->attributes, "PERCENT-COMPLETE", handle_percent_complete_attribute);
+	insert_attr_handler(hooks->attributes, "PERCENT-COMPLETE", handle_percent_complete_attribute);
 	// priority
 	// recurid
 	// seq
@@ -243,7 +244,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// uid
 	// url
 
-	// due
+	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute);
 	// duration
 	
 	// attach
@@ -258,7 +259,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// resources
 	// rdate
 	// rrule
-	// x-prop
+	// x-prop -> TODO
 
 
 	// [RFC 2445] journalc (same order as in spec!)
@@ -313,22 +314,22 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	// attendee
 	// comment
-	// insert_attr_handler(hooks->attributes, "FREEBUSY", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "FREEBUSY", HANDLE_IGNORE); // TODO
 	// rstatus
 	// x-prop
 
 
 	// [RFC 2445] timezonec (same order as in spec!)
 	insert_attr_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
-
+	//
 	insert_attr_handler(hooks->tztable, "TZID", handle_tzid_attribute);
-
+	//
 	insert_attr_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
 	insert_attr_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
-
+	//
 	// -> standardc / daylightc
 	// x-prop
-	
+	//
 	insert_attr_handler(hooks->tztable, "END", HANDLE_IGNORE);
 
 
@@ -358,63 +359,63 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] alarmc (same order as in spec!)
-	// BEGIN
+	insert_attr_handler(hooks->alarmtable, "BEGIN", HANDLE_IGNORE);
 	// -> audioprop / dispprop / emailprop / procprop
-	// END
+	insert_attr_handler(hooks->alarmtable, "END", HANDLE_IGNORE);
 
 
 	// [RFC 2445] audioprop (same order as in spec!)
 	// audioprop = 2*
-	// action -> TODO
-	// trigger -> TODO
-
-	// duration -> TODO
-	// repeat -> TODO
-
-	// attach -> TODO
+	insert_attr_handler(hooks->alarmtable, "ACTION", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->alarmtable, "TRIGGER", HANDLE_IGNORE); // TODO
+	//
+	insert_attr_handler(hooks->alarmtable, "DURATION", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->alarmtable, "REPEAT", HANDLE_IGNORE); // TODO
+	//
+	insert_attr_handler(hooks->alarmtable, "ATTACH", HANDLE_IGNORE); // TODO
 	// xprop -> TODO
 
 
 	// [RFC 2445] dispprop (same order as in spec!)
 	// dispprop = 3*
-	// action -> TODO
-	// description -> TODO
-	// trigger -> TODO
-
-	// duration -> TODO
-	// repeat -> TODO
-
-	// x-prop
+	// action -> already in table
+	insert_attr_handler(hooks->alarmtable, "DESCRIPTION", HANDLE_IGNORE); // TODO
+	// trigger -> already in table
+	//
+	// duration -> already in table
+	// repeat -> already in table
+	//
+	// x-prop -> TODO
 
 
 	// [RFC 2445] emailprop (same order as in spec!)
 	// emailprop  = 5*
-	// action -> TODO
-	// description -> TODO
-	// trigger -> TODO
-	// summary -> TODO
-
-	// attendee -> TODO
-
-	// duration -> TODO
-	// repeat -> TODO
-
-	// attach -> TODO
-	// x-prop
+	// action -> already in table
+	// description -> already in table
+	// trigger -> already in table
+	insert_attr_handler(hooks->alarmtable, "SUMMARY", HANDLE_IGNORE); // TODO
+	//
+	insert_attr_handler(hooks->alarmtable, "ATTENDEE", HANDLE_IGNORE); // TODO
+	//
+	// duration -> already in table
+	// repeat -> already in table
+	//
+	// attach -> already in table
+	// x-prop -> TODO
 
 
 	// [RFC 2445] procprop (same order as in spec!)
 	// procprop = 3*
-	// action -> TODO
-	// attach -> TODO
-	// trigger -> TODO
-
-	// duration -> TODO
-	// repeat -> TODO
-
-	// description -> TODO
-
-	// x-prop
+	// action -> already in table
+	// attach -> already in table
+	// trigger -> already in table
+	//
+	// duration -> already in table
+	// repeat -> already in table
+	//
+	// description -> already in table
+	//
+	// x-prop -> TODO
 
 	}
 	
@@ -589,6 +590,7 @@ osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **ou
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);
 	g_hash_table_destroy(hooks->tztable);
+	g_hash_table_destroy(hooks->alarmtable);
 	g_free(hooks);
 
 	*free_input = TRUE;
