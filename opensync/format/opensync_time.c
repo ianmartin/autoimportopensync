@@ -803,44 +803,44 @@ int osync_time_str2wday(const char *swday) {
  */ 
 struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year) {
 
-		struct tm *datestamp = g_malloc0(sizeof(struct tm));
-		char weekday[3];
-		int first_wday = 0, last_wday = 0;
-		int daymod, mday, searched_wday;
+	struct tm *datestamp = g_malloc0(sizeof(struct tm));
+	char weekday[3];
+	int first_wday = 0, last_wday = 0;
+	int daymod, mday, searched_wday;
 
-		sscanf(byday, "%d%s", &daymod, weekday); 
-		weekday[2] = '\0';
+	sscanf(byday, "%d%s", &daymod, weekday); 
+	weekday[2] = '\0';
 
-		searched_wday = osync_time_str2wday(weekday);
+	searched_wday = osync_time_str2wday(weekday);
 
-		datestamp->tm_year = year - 1900; 
-		datestamp->tm_mon = bymonth - 1;
-		datestamp->tm_mday = 0; 
-		datestamp->tm_hour = 0; 
-		datestamp->tm_min = 0; 
-		datestamp->tm_sec = 0;
-		datestamp->tm_isdst = -1;
+	datestamp->tm_year = year - 1900; 
+	datestamp->tm_mon = bymonth - 1;
+	datestamp->tm_mday = 0; 
+	datestamp->tm_hour = 0; 
+	datestamp->tm_min = 0; 
+	datestamp->tm_sec = 0;
+	datestamp->tm_isdst = -1;
 
-		for (mday = 0; mday <= 31; mday++) {
-			datestamp->tm_mday = mday; 
-			mktime(datestamp);
-
-			if (datestamp->tm_wday == searched_wday) { 
-				if (!first_wday)
-					first_wday = searched_wday;
-
-				last_wday = searched_wday;
-			}
-		}
-
-		if (daymod > 0)
-			datestamp->tm_mday = first_wday + (7 * (daymod - 1));
-		else
-			datestamp->tm_mday = last_wday - (7 * (daymod - 1));
-
+	for (mday = 0; mday <= 31; mday++) {
+		datestamp->tm_mday = mday; 
 		mktime(datestamp);
 
-		return datestamp;
+		if (datestamp->tm_wday == searched_wday) { 
+			if (!first_wday)
+				first_wday = searched_wday;
+
+			last_wday = searched_wday;
+		}
+	}
+
+	if (daymod > 0)
+		datestamp->tm_mday = first_wday + (7 * (daymod - 1));
+	else
+		datestamp->tm_mday = last_wday - (7 * (daymod - 1));
+
+	mktime(datestamp);
+
+	return datestamp;
 }
 
 /*! @brief Function converts UTC offset string in offset in seconds
