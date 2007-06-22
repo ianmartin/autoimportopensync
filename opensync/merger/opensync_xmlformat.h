@@ -41,6 +41,7 @@ OSYNC_EXPORT OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned 
 OSYNC_EXPORT void osync_xmlformat_ref(OSyncXMLFormat *xmlformat);
 OSYNC_EXPORT void osync_xmlformat_unref(OSyncXMLFormat *xmlformat);
 
+OSYNC_EXPORT const char *osync_xmlformat_root_name(OSyncXMLFormat *xmlformat);
 OSYNC_EXPORT const char *osync_xmlformat_get_objtype(OSyncXMLFormat *xmlformat);
 
 OSYNC_EXPORT OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat);
