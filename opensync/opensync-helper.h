@@ -21,7 +21,12 @@
 #ifndef _OPENSYNC_HELPER_H_
 #define _OPENSYNC_HELPER_H_
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 #include "helper/opensync_anchor.h"
 #include "helper/opensync_hashtable.h"
+
+G_END_DECLS
 
 #endif /* _OPENSYNC_HELPER_H_ */

@@ -21,6 +21,9 @@
 #ifndef _OPENSYNC_CONTEXT_H
 #define _OPENSYNC_CONTEXT_H
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 typedef void (* OSyncContextCallbackFn)(void *, OSyncError *);
 typedef void (* OSyncContextChangeFn) (OSyncChange *, void *);
 
@@ -38,5 +41,7 @@ void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error);
 
 void osync_context_report_osyncwarning(OSyncContext *context, OSyncError *error);
 void osync_context_report_change(OSyncContext *context, OSyncChange *change);
+
+G_END_DECLS
 
 #endif //_OPENSYNC_CONTEXT_H

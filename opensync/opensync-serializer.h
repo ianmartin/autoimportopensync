@@ -21,7 +21,12 @@
 #ifndef OPENSYNC_SERIALIZER_H
 #define OPENSYNC_SERIALIZER_H
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 #include "ipc/opensync_message.h"
 #include "ipc/opensync_serializer.h"
+
+G_END_DECLS
 
 #endif /* OPENSYNC_SERIALIZER_H */

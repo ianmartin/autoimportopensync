@@ -21,9 +21,14 @@
 #ifndef OPENSYNCPLUGIN_H_
 #define OPENSYNCPLUGIN_H_
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 #include "plugin/opensync_plugin.h"
 #include "plugin/opensync_plugin_env.h"
 #include "plugin/opensync_plugin_info.h"
 #include "plugin/opensync_sink.h"
+
+G_END_DECLS
 
 #endif //OPENSYNCPLUGIN_H_

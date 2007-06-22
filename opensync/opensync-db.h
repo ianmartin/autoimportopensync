@@ -18,5 +18,15 @@
  * 
  */
 
+#ifndef OPENSYNC_DB_MAIN_H_
+#define OPENSYNC_DB_MAIN_H_
+
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 #include "db/opensync_db.h"
+
+G_END_DECLS
+
+#endif
 

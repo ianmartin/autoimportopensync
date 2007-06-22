@@ -21,7 +21,12 @@
 #ifndef OPENSYNCCLIENT_H_
 #define OPENSYNCCLIENT_H_
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 #include "client/opensync_client.h"
 #include "client/opensync_client_proxy.h"
+
+G_END_DECLS
 
 #endif /*OPENSYNCCLIENT_H_*/

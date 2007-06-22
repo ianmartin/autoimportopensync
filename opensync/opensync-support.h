@@ -21,6 +21,9 @@
 #ifndef _OPENSYNC_SUPPORT_H
 #define _OPENSYNC_SUPPORT_H
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 /*! @ingroup OSyncDebugAPI
  * @brief The type of the trace */
 typedef enum {
@@ -52,6 +55,8 @@ OSYNC_EXPORT const char *osync_get_version(void);
 OSYNC_EXPORT void *osync_try_malloc0(unsigned int size, OSyncError **error);
 
 char *osync_strreplace(const char *input, const char *delimiter, const char *replacement);
+
+G_END_DECLS
 
 #include "opensync_list.h"
 

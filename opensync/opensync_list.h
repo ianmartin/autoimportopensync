@@ -31,6 +31,9 @@
 
 #include <glib/gmem.h>
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 typedef struct _OSyncList OSyncList;
 
 struct _OSyncList
@@ -105,6 +108,8 @@ OSyncList*   osync_list_sort_with_data          (OSyncList            *list,
 					 void *          user_data) ;
 void * osync_list_nth_data                (OSyncList            *list,
 					 unsigned int             n);
+
+G_END_DECLS
 
 #endif /* _OPENSYNC_LIST_H_ */
 

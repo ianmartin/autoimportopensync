@@ -10,10 +10,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
 
 typedef enum osxmlEncoding {
 	OSXML_8BIT = 0,
@@ -69,8 +67,6 @@ osync_bool osxml_validate_document(xmlDocPtr doc, char *schemafilepath);
 xmlChar *osxml_node_get_content(xmlNodePtr node);
 xmlChar *osxml_attr_get_content(xmlAttrPtr node);
 
-#ifdef __cplusplus
-}
-#endif
+G_END_DECLS
 
 #endif

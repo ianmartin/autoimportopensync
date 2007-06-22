@@ -21,7 +21,12 @@
 #ifndef OPENSYNCDATA_H_
 #define OPENSYNCDATA_H_
 
+#include <glib/gmacros.h>
+G_BEGIN_DECLS
+
 #include "data/opensync_data.h"
 #include "data/opensync_change.h"
+
+G_END_DECLS
 
 #endif /*OPENSYNCDATA_H_*/
