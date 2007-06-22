@@ -33,7 +33,7 @@ static void free_env(OSyncEvoEnv *env)
 	
 	if (env->change_id)
 		g_free(env->change_id);
-	
+
 	g_free(env);
 }
 
@@ -222,12 +222,12 @@ static void *evo2_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 	if (!evo2_ebook_initialize(env, info, error))
 		goto error_free_env;
 	
-	/*if (!evo2_etodo_initialize(env, error))
+	if (!evo2_ecal_initialize(env, info, error))
+		goto error_free_env;
+
+	if (!evo2_etodo_initialize(env, info, error))
 		goto error_free_env;
 	
-	if (!evo2_ecal_initialize(env, error))
-		goto error_free_env;*/
-
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
 	return (void *)env;
 
@@ -255,6 +255,12 @@ static osync_bool evo2_discover(void *data, OSyncPluginInfo *info, OSyncError **
 	
 	if (env->addressbook_path)
 		osync_objtype_sink_set_available(env->contact_sink, TRUE);
+	
+	if (env->calendar_path)
+		osync_objtype_sink_set_available(env->calendar_sink, TRUE);
+	
+	if (env->tasks_path)
+		osync_objtype_sink_set_available(env->tasks_sink, TRUE);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;

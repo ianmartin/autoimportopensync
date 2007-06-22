@@ -33,9 +33,14 @@ typedef struct OSyncEvoEnv {
 	
 	char *calendar_path;
 	ECal *calendar;
+	OSyncObjTypeSink *calendar_sink;
+	OSyncObjFormat *calendar_format;
 	
 	char *tasks_path;
 	ECal *tasks;
+	OSyncObjTypeSink *tasks_sink;
+	OSyncObjFormat *tasks_format;
+	
 } OSyncEvoEnv;
 
 ESource *evo2_find_source(ESourceList *list, char *uri);

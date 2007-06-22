@@ -24,11 +24,11 @@ EXTRA_DIST = \
 evo2_sync_la_SOURCES = \
 	evolution2_sync.c \
 	evolution2_ebook.c \
+	evolution2_ecal.c \
+	evolution2_etodo.c \
 	evolution2_xml.c
 
 
-#	evolution2_ecal.c
-#	evolution2_etodo.c
 
 evo2_sync_la_LDFLAGS = -avoid-version -export-dynamic -module
 evo2_sync_la_LIBADD = @PACKAGE_LIBS@ @EPACKAGE_LIBS@ @LIBS@
