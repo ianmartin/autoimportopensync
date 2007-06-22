@@ -67,7 +67,7 @@ static osync_bool conv_vnote_to_xmlformat(char *input, unsigned int inpsize, cha
 	osync_trace(TRACE_INTERNAL, "parsing attributes");
 	
 	GList *attributes = vformat_get_attributes(vnote);
-	vcalendar_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
+	vcalendar_parse_attributes(xmlformat, &attributes, hooks, hooks->attributes, hooks->parameters);
 	
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);

@@ -1021,7 +1021,7 @@ static osync_bool conv_vcard_to_xmlformat(char *input, unsigned int inpsize, cha
 	GList *a = NULL;
 	for (a = attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
-		handle_attribute(hooks, xmlformat, attr, error);
+		handle_attribute(hooks->attributes, hooks->parameters, xmlformat, attr, error);
 	}
 
 //	//Generate FormattedName from Name if it doesn't exist

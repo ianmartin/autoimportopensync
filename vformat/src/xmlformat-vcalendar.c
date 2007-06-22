@@ -1001,9 +1001,9 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
-void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes)
+void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, attributes);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlformat, attributes, hooks, attrtable, paramtable);
 	
 	OSyncXMLFormat *tmp_xmlformat = NULL;
 
@@ -1017,13 +1017,19 @@ void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSync
 			a = a->next;
 
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VALARM")) {
+
+				// Create fake xmlformat which gets injected into the original xmlformat later
 				tmp_xmlformat = osync_xmlformat_new("Alarm", NULL);
-				vcalendar_parse_attributes(hooks, table, tmp_xmlformat, paramtable, &a);
-				osync_xmlformat_append(xmlformat, tmp_xmlformat);
+
+				// Make use of Alarm componentent specific hook table (different handling of attributes)
+				vcalendar_parse_attributes(tmp_xmlformat, &a, hooks, hooks->alarmtable, paramtable);
+
+				// Inject the fake xmlformat with the Alarm component into the original xmlformat
+				xmlformat_append(xmlformat, tmp_xmlformat);
 				osync_xmlformat_unref(tmp_xmlformat);
 			}
 
-			//Handling supcomponent
+			//Handling subcomponent
 	//		a = a->next;
 			/*
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
@@ -1055,7 +1061,7 @@ void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSync
 
 			return;
 		} else {
-			handle_attribute(hooks, xmlformat, attr, NULL);
+			handle_attribute(attrtable, paramtable, xmlformat, attr, NULL);
 		}
 
 	}

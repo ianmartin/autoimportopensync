@@ -585,7 +585,8 @@ osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **ou
 	
 	// For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vevent);
-	vcalendar_parse_attributes(hooks, hooks->attributes, xmlformat, hooks->parameters, &attributes);
+
+	vcalendar_parse_attributes(xmlformat, &attributes, hooks, hooks->attributes, hooks->parameters);
 
 	g_hash_table_destroy(hooks->attributes);
 	g_hash_table_destroy(hooks->parameters);

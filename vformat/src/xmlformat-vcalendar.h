@@ -166,7 +166,7 @@ VFormatAttribute *handle_xml_asummary_attribute(VFormat *vevent, OSyncXMLField *
 
 void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler);
 
-void vcalendar_parse_attributes(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFormat *xmlformat, GHashTable *paramtable, GList **attributes);
+void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable);
 
 /*
 typedef struct OSyncHookTables OSyncHookTables;

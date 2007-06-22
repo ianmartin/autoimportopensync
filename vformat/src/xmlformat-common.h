@@ -69,12 +69,15 @@ void add_values(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *enc
 void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfield, const char *encoding, int nth);
 
 /* VFormat Handler for Attributes and Parameters */
-void handle_parameter(OSyncHookTables *hooks, OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+void handle_parameter(GHashTable *paramtable, OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_attribute(GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 
 /* XML Handler for Attributes and Parameters */
 void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr);
 void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vcard, OSyncXMLField *xmlfield, const char *encoding);
+
+/* Collection of useful OSyncXMLFormat functions */
+void xmlformat_append(OSyncXMLFormat *list, OSyncXMLFormat *data);
 
 #endif // XMLFORMAT_COMMON_H_
 

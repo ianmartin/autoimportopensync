@@ -234,18 +234,18 @@ void add_values_from_nth_field_on(VFormatAttribute *attr, OSyncXMLField *xmlfiel
 }
 
 /* Paramter and Attribute Handler */ 
-void handle_parameter(OSyncHookTables *hooks, OSyncXMLField *xmlfield, VFormatParam *param)
+void handle_parameter(GHashTable *paramtable, OSyncXMLField *xmlfield, VFormatParam *param)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, hooks, xmlfield, param);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, paramtable, xmlfield, param);
 	
 	//Find the handler for this parameter
 	void (* param_handler)(OSyncXMLField *, VFormatParam *);
 	char *paramname = g_strdup_printf("%s=%s", vformat_attribute_param_get_name(param), vformat_attribute_param_get_nth_value(param, 0));
-	param_handler = g_hash_table_lookup(hooks->parameters, paramname);
+	param_handler = g_hash_table_lookup(paramtable, paramname);
 	g_free(paramname);
 
 	if (!param_handler)
-		param_handler = g_hash_table_lookup(hooks->parameters, vformat_attribute_param_get_name(param));
+		param_handler = g_hash_table_lookup(paramtable, vformat_attribute_param_get_name(param));
 	
 	if (param_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -260,9 +260,9 @@ void handle_parameter(OSyncHookTables *hooks, OSyncXMLField *xmlfield, VFormatPa
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
+void handle_attribute(GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %p)", __func__, hooks, xmlformat, attr, attr ? vformat_attribute_get_name(attr) : "None", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p:%s, %p)", __func__, attrtable, paramtable, xmlformat, attr, attr ? vformat_attribute_get_name(attr) : "None", error);
 	OSyncXMLField *xmlfield = NULL;
 
 	//Dont add empty stuff
@@ -278,7 +278,7 @@ void handle_attribute(OSyncHookTables *hooks, OSyncXMLFormat *xmlformat, VFormat
 has_value:;
 	
 	//We need to find the handler for this attribute
-	OSyncXMLField *(* attr_handler)(OSyncXMLFormat *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(hooks->attributes, vformat_attribute_get_name(attr));
+	OSyncXMLField *(* attr_handler)(OSyncXMLFormat *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(attrtable, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
@@ -295,7 +295,7 @@ has_value:;
 	osync_trace(TRACE_INTERNAL, "Number of parameters: %i", g_list_length(params));
 	for (p = params; p; p = p->next) {
 		VFormatParam *param = p->data;
-		handle_parameter(hooks, xmlfield, param);
+		handle_parameter(paramtable, xmlfield, param);
 	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
@@ -356,5 +356,19 @@ void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLFiel
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);	
+}
+
+void xmlformat_append(OSyncXMLFormat *list, OSyncXMLFormat *data)
+{
+	osync_assert(list);
+	osync_assert(data);
+
+	OSyncXMLField *cur = osync_xmlformat_get_first_field(data);
+	OSyncXMLField *new_field = osync_xmlfield_new(list, osync_xmlformat_root_name(data), NULL);
+
+	while(cur != NULL)
+	{
+		osync_xmlfield_adopt_xmlfield_after_field(new_field, cur);
+	}
 }
 
