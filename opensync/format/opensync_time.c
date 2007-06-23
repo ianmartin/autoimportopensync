@@ -767,7 +767,7 @@ int osync_time_alarmdu2sec(const char *alarm) {
 /*! @brief Function converts a week day string to the struct tm wday integer. 
  *
  * @param weekday string of the week day
- * @returns integer of the weekday (Sunday = 0) 
+ * @returns integer of the weekday (Sunday = 0), or -1 on error
  */ 
 int osync_time_str2wday(const char *swday) {
 
@@ -791,24 +791,34 @@ int osync_time_str2wday(const char *swday) {
 	return weekday; 
 }
 
-/*! @brief Function determines the exactly date of relative information 
+/*! @brief Function determines the exact date of relative information.
  *         It is used for example to determine the last sunday of a month (-1SU) 
  *         in a specific year. 
+ *         Note that the RFC2445 spec states that a weekday without
+ *         a prefixed numeric value means *every* weekday in the month.
+ *         This function will fail in such a case and return NULL.
+ *         Also note that if byday contains multiple weekdays in its
+ *         string (e.g. -1SU,MO) only the first weekday will be used (SU).
  *
  * @param byday string of the relative day of month modifier
- * @param bymonth calendar number of the monath (January = 1)
- * @param year calendar year (year = 1970) 
- * @returns struct tm of the relative information date with 00:00:00 timestamp.
+ * @param bymonth calendar number of the month (January = 1)
+ * @param year calendar year (e.g. 1970, 2007, etc)
+ * @returns struct tm of the relative information date with 00:00:00 timestamp
+ *          or NULL on error.
  *	    (Caller is responsible for freeing)
  */ 
 struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year) {
 
 	struct tm *datestamp = g_malloc0(sizeof(struct tm));
+	struct tm search;
 	char weekday[3];
 	int first_wday = 0, last_wday = 0;
 	int daymod, mday, searched_wday;
 
-	sscanf(byday, "%d%s", &daymod, weekday); 
+	if (sscanf(byday, "%d%2s", &daymod, weekday) != 2) {
+		g_free(datestamp);
+		return NULL;
+	}
 	weekday[2] = '\0';
 
 	searched_wday = osync_time_str2wday(weekday);
@@ -821,24 +831,34 @@ struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const in
 	datestamp->tm_sec = 0;
 	datestamp->tm_isdst = -1;
 
-	for (mday = 0; mday <= 31; mday++) {
-		datestamp->tm_mday = mday; 
-		mktime(datestamp);
+	for (mday = 1; mday <= 31; mday++) {
+		memcpy(&search, datestamp, sizeof(struct tm));
+		search.tm_mday = mday; 
+		if( mktime(&search) == -1 || search.tm_mday != mday )
+			break;	// we've cycled past a month end
 
-		if (datestamp->tm_wday == searched_wday) { 
+		if (search.tm_wday == searched_wday) { 
 			if (!first_wday)
-				first_wday = searched_wday;
+				first_wday = mday;
 
-			last_wday = searched_wday;
+			last_wday = mday;
 		}
 	}
 
-	if (daymod > 0)
+	if (daymod >= 0)
 		datestamp->tm_mday = first_wday + (7 * (daymod - 1));
 	else
-		datestamp->tm_mday = last_wday - (7 * (daymod - 1));
+		datestamp->tm_mday = last_wday + (7 * (daymod + 1));
 
-	mktime(datestamp);
+	// save for later check
+	search.tm_mon = datestamp->tm_mon;;
+
+	// normalize the tm struct and make sure the result
+	// is in the same month as we started with
+	if (mktime(datestamp) == -1 || search.tm_mon != datestamp->tm_mon) {
+		g_free(datestamp);
+		return NULL;
+	}
 
 	return datestamp;
 }
@@ -866,7 +886,7 @@ int osync_time_utcoffset2sec(const char *offset) {
 	return seconds;
 }
 
-/*! @brief Functions determines the change timestamp of daylight saving of the given
+/*! @brief Function determines the change timestamp of daylight saving of the given
  * 	   XML Timezone from dstNode. 
  * 
  * @param dstNode daylight saving or standard XML information of a timezone.
