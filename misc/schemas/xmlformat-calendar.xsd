@@ -30,11 +30,16 @@
       <!-- TODO only allow Attachment element if Action is SOUND or PROCEDURE --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="Attachment"/>
       <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
-      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="MultiText"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
+      <!-- TODO review if xsd:integer is the correct value for AlarmRepeatDuration -->
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeatDuration" type="xsd:integer"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
     </xsd:sequence>
     <xsd:attribute name="Value" type="TriggerType"/>
+    <!-- Following fields are required for AlarmDescription -->
+    <xsd:attribute name="AlternativeTextRep" type="xsd:string"/>
+    <xsd:attribute name="Language" type="xsd:string"/>
   </xsd:complexType>
 
   <!-- Use AlarmRelatedEnd if the alarm got triggered related to the end point of the appointment.
