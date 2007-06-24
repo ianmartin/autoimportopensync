@@ -66,7 +66,7 @@ env.add_define("OPENSYNC_FORMATSDIR", config['formatdir'])
 env.add_define("OPENSYNC_CONFIGDIR", config['configdir'])
 env.add_define("OPENSYNC_CAPABILITIESDIR", config['capabilitiesdir'])
 env.add_define("OPENSYNC_DESCRIPTIONSDIR", config['descriptionsdir'])
-env.add_define("OPENSYNC_SCHEMASDIR", config['descriptionsdir'])
+env.add_define("OPENSYNC_SCHEMASDIR", config['schemasdir'])
 env.add_define("VERSION", config['version'])
 env.add_define("OPENSYNC_PLUGINVERSION", config['plugin_version'])
 if env['debug_modules'] == 1:
@@ -117,6 +117,9 @@ subst_dict={'@prefix@': '$prefix',
 	'@OPENSYNC_CONFIGDIR@': config['configdir'],
 	'@OPENSYNC_FORMATSDIR@': config['formatdir'],
 	'@OPENSYNC_HEADERDIR@': config['headerdir'],
+	'@OPENSYNC_CAPABILITIESDIR@': config['capabilitiesdir'],
+	'@OPENSYNC_DESCRIPTIONSDIR@': config['descriptionsdir'],
+	'@OPENSYNC_SCHEMASDIR@': config['schemasdir'],
 	'@VERSION@': config['version']
 }
 

@@ -4,6 +4,9 @@ libdir=@libdir@
 includedir=@includedir@
 plugindir=@OPENSYNC_PLUGINDIR@
 configdir=@OPENSYNC_CONFIGDIR@
+capabilitiesdir=@OPENSYNC_CAPABILITIESDIR@
+descriptionsdir=@OPENSYNC_DESCRIPTIONSDIR@
+schemasdir=@OPENSYNC_SCHEMASDIR@
 headerdir=@OPENSYNC_HEADERDIR@
 formatsdir=@OPENSYNC_FORMATSDIR@
 
