@@ -331,17 +331,8 @@ void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 /* vCal and iCal attributes */
 // vcal only?
-OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmRepeat", error);
-}
 
-// vcal only?
-OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmTrigger", error);
-}
-
+// ical only?
 OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "Attach", error);
@@ -708,30 +699,38 @@ static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VForm
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
 }
 */
-/* FIXME... Duration wrong placed? in XSD */
-/*
-static OSyncXMLField *handle_aduration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+
+// Alarm Component Handler
+void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "Duration", error);
+	osync_xmlfield_add_key_value(xmlfield, "AlarmRepeat", vformat_attribute_get_nth_value(attr, 0));
 }
 
-static OSyncXMLField *handle_aaction_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmAction", error);
-}
-*/
-/* TODO: Add alarm attach to XSD */ 
-/*
-static OSyncXMLField *handle_aattach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmAttach", error);
+	osync_xmlfield_add_key_value(xmlfield, "AlarmTrigger", vformat_attribute_get_nth_value(attr, 0));
 }
 
-static OSyncXMLField *handle_adescription_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmDescription", error);
+	osync_xmlfield_add_key_value(xmlfield, "AlarmAction", vformat_attribute_get_nth_value(attr, 0));
 }
-*/
+
+void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	osync_xmlfield_add_key_value(xmlfield, "AlarmAttach", vformat_attribute_get_nth_value(attr, 0));
+}
+
+void handle_aduration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	osync_xmlfield_add_key_value(xmlfield, "AlarmRepeatDuration", vformat_attribute_get_nth_value(attr, 0));
+}
+
+void handle_adescription_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	osync_xmlfield_add_key_value(xmlfield, "AlarmDescription", vformat_attribute_get_nth_value(attr, 0));
+}
+
 /* TODO: Add alarm attende to XSD */
 /*
 static OSyncXMLField *handle_aattendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -1001,11 +1000,33 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
+static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable);
+
+	GList *a = NULL;
+	for (a = *attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
+
+		if (!strcmp(vformat_attribute_get_name(attr), "END"))
+			break;
+
+		osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
+		handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
+	}
+
+	// Sort the XMLField for componentens. Order of componentens is random.
+	// Sorting is required to have a valid XMLFormat.
+	osync_xmlfield_sort(xmlfield);
+
+	*attributes = a;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlformat, attributes, hooks, attrtable, paramtable);
 	
-	OSyncXMLFormat *tmp_xmlformat = NULL;
 
 	GList *a = NULL;
 	for (a = *attributes; a; a = a->next) {
@@ -1016,17 +1037,15 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
 			a = a->next;
 
+			OSyncXMLField *component_field = NULL;
+
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VALARM")) {
 
-				// Create fake xmlformat which gets injected into the original xmlformat later
-				tmp_xmlformat = osync_xmlformat_new("Alarm", NULL);
+				component_field = osync_xmlfield_new(xmlformat, "Alarm", NULL);
 
 				// Make use of Alarm componentent specific hook table (different handling of attributes)
-				vcalendar_parse_attributes(tmp_xmlformat, &a, hooks, hooks->alarmtable, paramtable);
+				vcalendar_parse_component(component_field, &a, hooks, hooks->alarmtable, paramtable);
 
-				// Inject the fake xmlformat with the Alarm component into the original xmlformat
-				xmlformat_append(xmlformat, tmp_xmlformat);
-				osync_xmlformat_unref(tmp_xmlformat);
 			}
 
 			//Handling subcomponent
@@ -1055,6 +1074,8 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 				vcal_parse_attributes(hooks, hooks->alarmtable, hooks->alarmtable, &a, xmlfield);
 			}
 			*/
+
+
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
 			osync_trace(TRACE_EXIT, "%s: Found END attribute", __func__);
 			*attributes = a;
@@ -1063,7 +1084,6 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 		} else {
 			handle_attribute(attrtable, paramtable, xmlformat, attr, NULL);
 		}
-
 	}
 	osync_trace(TRACE_EXIT, "%s: Done", __func__);
 }
@@ -1286,11 +1306,20 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
-void insert_attr_handler(GHashTable *table, const char *attrname, void* handler)
+void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler)
+{
+	g_hash_table_insert(table, (gpointer)paramname, handler);
+}
+
+void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler)
 {
 	g_hash_table_insert(table, (gpointer)attrname, handler);
 }
 
+void insert_attr_component_handler(GHashTable *table, const char *attrname, attr_component_handler_fn handler)
+{
+	g_hash_table_insert(table, (gpointer)attrname, handler);
+}
 
 /*
 static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)

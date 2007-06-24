@@ -300,6 +300,44 @@ has_value:;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+void handle_component_attribute(GHashTable *attrtable, GHashTable *paramtable, OSyncXMLField *xmlfield, VFormatAttribute *attr, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p:%s, %p)", __func__, attrtable, paramtable, xmlfield, attr, attr ? vformat_attribute_get_name(attr) : "None", error);
+	//Dont add empty stuff
+	GList *v;
+	for (v = vformat_attribute_get_values(attr); v; v = v->next) {
+		char *value = v->data;
+		if (strlen(value) != 0)
+			goto has_value;
+	}
+	osync_trace(TRACE_EXIT, "%s: No values", __func__);
+	return;
+	
+has_value:;
+	
+	//We need to find the handler for this attribute
+	void (* attr_handler)(OSyncXMLField *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(attrtable, vformat_attribute_get_name(attr));
+	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
+	if (attr_handler == HANDLE_IGNORE) {
+		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
+		return;
+	}
+	if (attr_handler)
+		attr_handler(xmlfield, attr, error);
+//	else
+//		xmlfield = handle_unknown_attribute(xmlfield, attr, error);
+
+	//Handle all parameters of this attribute
+	GList *params = vformat_attribute_get_params(attr);
+	GList *p = NULL;
+	osync_trace(TRACE_INTERNAL, "Number of parameters: %i", g_list_length(params));
+	for (p = params; p; p = p->next) {
+		VFormatParam *param = p->data;
+		handle_parameter(paramtable, xmlfield, param);
+	}
+	osync_trace(TRACE_EXIT, "%s", __func__);
+}
+
 void xml_handle_parameter(OSyncHookTables *hooks, VFormatAttribute *attr, OSyncXMLField *xmlfield, int attr_nr)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p:%s, %i)", __func__, hooks, attr, xmlfield, xmlfield ? osync_xmlfield_get_name(xmlfield) : "None", attr_nr);
@@ -356,19 +394,5 @@ void xml_handle_attribute(OSyncHookTables *hooks, VFormat *vformat, OSyncXMLFiel
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);	
-}
-
-void xmlformat_append(OSyncXMLFormat *list, OSyncXMLFormat *data)
-{
-	osync_assert(list);
-	osync_assert(data);
-
-	OSyncXMLField *cur = osync_xmlformat_get_first_field(data);
-	OSyncXMLField *new_field = osync_xmlfield_new(list, osync_xmlformat_root_name(data), NULL);
-
-	while(cur != NULL)
-	{
-		osync_xmlfield_adopt_xmlfield_after_field(new_field, cur);
-	}
 }
 

@@ -24,29 +24,6 @@
 #include "xmlformat-vtodo10.h"
 #include "xmlformat-vtodo20.h"
 
-
-/* FIXME... Duration wrong placed? in XSD */
-static OSyncXMLField *handle_aduration_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "Duration", error);
-}
-
-static OSyncXMLField *handle_aaction_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmAction", error);
-}
-
-/* TODO: Add alarm attach to XSD */ 
-static OSyncXMLField *handle_aattach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmAttach", error);
-}
-
-static OSyncXMLField *handle_adescription_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmDescription", error);
-}
-
 /* TODO: Add alarm attende to XSD */
 
 static OSyncXMLField *handle_aattendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 

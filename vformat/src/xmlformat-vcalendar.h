@@ -26,6 +26,11 @@
 
 #include "xmlformat-common.h"
 
+// Handler functions pointer
+typedef void (* param_handler_fn) (OSyncXMLField *xmlfield, VFormatParam *param);
+typedef OSyncXMLField * (* attr_handler_fn) (OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+typedef void (* attr_component_handler_fn) (OSyncXMLField *xmlfield, VFormatAttribute *attr);
+
 // vCalendar handler
 OSyncXMLField *handle_vcal_aalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_vcal_dalarm_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
@@ -42,8 +47,6 @@ void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param); //FIXME
 
 // vCalendar and iCalendar handler
-OSyncXMLField *handle_arepeat_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
-OSyncXMLField *handle_atrigger_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_attendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_comment_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
@@ -77,6 +80,14 @@ OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttr
 OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 
+// Alarm component handler
+void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_adescription_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_aduration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+
 // TIMEZONE handler
 OSyncXMLField *handle_tzid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_tz_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
@@ -109,7 +120,10 @@ void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
-void insert_attr_handler(GHashTable *table, const char *attrname, void* handler);
+void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler);
+void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler);
+void insert_attr_component_handler(GHashTable *table, const char *attrname, attr_component_handler_fn handler);
+
 
 VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_prodid_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);

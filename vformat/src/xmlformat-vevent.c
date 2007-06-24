@@ -45,15 +45,15 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	 */
 
         // [vcal-1.0] param (same order as in sepc!)
-	insert_attr_handler(hooks->parameters, "TYPE", handle_vcal_type_parameter);
-	insert_attr_handler(hooks->parameters, "VALUE", handle_vcal_value_parameter); 
-	insert_attr_handler(hooks->parameters, "ENCODING", handle_vcal_encoding_parameter);
-	insert_attr_handler(hooks->parameters, "CHARSET", handle_vcal_charset_parameter);
-	insert_attr_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
-	insert_attr_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
-	insert_attr_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
-	insert_attr_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE, yes/no allowed, kdepim use TRUE!?) - I think we need an own handler for vcal
-	insert_attr_handler(hooks->parameters, "EXPECT", handle_vcal_expect_parameter); // (ATTENDEE)
+	insert_param_handler(hooks->parameters, "TYPE", handle_vcal_type_parameter);
+	insert_param_handler(hooks->parameters, "VALUE", handle_vcal_value_parameter); 
+	insert_param_handler(hooks->parameters, "ENCODING", handle_vcal_encoding_parameter);
+	insert_param_handler(hooks->parameters, "CHARSET", handle_vcal_charset_parameter);
+	insert_param_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
+	insert_param_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
+	insert_param_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
+	insert_param_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE, yes/no allowed, kdepim use TRUE!?) - I think we need an own handler for vcal
+	insert_param_handler(hooks->parameters, "EXPECT", handle_vcal_expect_parameter); // (ATTENDEE)
 
         // [vcal-1.0] vcal (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "BEGIN", HANDLE_IGNORE);
@@ -116,27 +116,27 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	 */
 
 	// [RFC 2445] 4.2 Property Parameters (same order as in spec!)
-	insert_attr_handler(hooks->parameters, "ALTREP", handle_altrep_parameter); // altrepparam
-	insert_attr_handler(hooks->parameters, "CN", handle_cn_parameter); // cnparam
-	insert_attr_handler(hooks->parameters, "CUTYPE", handle_cutype_parameter); // cutypeparam
-	insert_attr_handler(hooks->parameters, "DELEGATED-FROM", handle_delegated_from_parameter); // delfromparam
-	insert_attr_handler(hooks->parameters, "DELEGATED-TO", handle_delegated_to_parameter); // deltoparam
-	insert_attr_handler(hooks->parameters, "DIR", handle_dir_parameter); // dirparam
-	insert_attr_handler(hooks->parameters, "ENCODING", handle_encoding_parameter); // encodingparam
-	insert_attr_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter); // fmttypeparam
-	insert_attr_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter); // same as fmttypeparam -> see Errata
+	insert_param_handler(hooks->parameters, "ALTREP", handle_altrep_parameter); // altrepparam
+	insert_param_handler(hooks->parameters, "CN", handle_cn_parameter); // cnparam
+	insert_param_handler(hooks->parameters, "CUTYPE", handle_cutype_parameter); // cutypeparam
+	insert_param_handler(hooks->parameters, "DELEGATED-FROM", handle_delegated_from_parameter); // delfromparam
+	insert_param_handler(hooks->parameters, "DELEGATED-TO", handle_delegated_to_parameter); // deltoparam
+	insert_param_handler(hooks->parameters, "DIR", handle_dir_parameter); // dirparam
+	insert_param_handler(hooks->parameters, "ENCODING", handle_encoding_parameter); // encodingparam
+	insert_param_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter); // fmttypeparam
+	insert_param_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter); // same as fmttypeparam -> see Errata
 	// TODO fbtypeparam
-	insert_attr_handler(hooks->parameters, "LANGUAGE", handle_language_parameter); // languageparam
-	insert_attr_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
-	insert_attr_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
-	insert_attr_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
+	insert_param_handler(hooks->parameters, "LANGUAGE", handle_language_parameter); // languageparam
+	insert_param_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
+	insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
+	insert_param_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
 	// TODO trigrelparam
-	insert_attr_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
-	insert_attr_handler(hooks->parameters, "ROLE", handle_role_parameter); // roleparam
-	insert_attr_handler(hooks->parameters, "RSVP", handle_rsvp_parameter); // rsvpparam
-	insert_attr_handler(hooks->parameters, "SENT-BY", handle_sent_by_parameter); // sentbyparam
-	insert_attr_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
-	insert_attr_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
+	insert_param_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
+	insert_param_handler(hooks->parameters, "ROLE", handle_role_parameter); // roleparam
+	insert_param_handler(hooks->parameters, "RSVP", handle_rsvp_parameter); // rsvpparam
+	insert_param_handler(hooks->parameters, "SENT-BY", handle_sent_by_parameter); // sentbyparam
+	insert_param_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
+	insert_param_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
 
 	// parameters (non required)
 	//charset // defined in [RFC 2046]
@@ -359,27 +359,27 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] alarmc (same order as in spec!)
-	insert_attr_handler(hooks->alarmtable, "BEGIN", HANDLE_IGNORE);
+	insert_attr_component_handler(hooks->alarmtable, "BEGIN", HANDLE_IGNORE);
 	// -> audioprop / dispprop / emailprop / procprop
-	insert_attr_handler(hooks->alarmtable, "END", HANDLE_IGNORE);
+	insert_attr_component_handler(hooks->alarmtable, "END", HANDLE_IGNORE);
 
 
 	// [RFC 2445] audioprop (same order as in spec!)
 	// audioprop = 2*
-	insert_attr_handler(hooks->alarmtable, "ACTION", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->alarmtable, "TRIGGER", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ACTION", handle_aaction_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "TRIGGER", handle_atrigger_attribute); // TODO
 	//
-	insert_attr_handler(hooks->alarmtable, "DURATION", HANDLE_IGNORE); // TODO
-	insert_attr_handler(hooks->alarmtable, "REPEAT", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "DURATION", handle_aduration_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "REPEAT", handle_arepeat_attribute); // TODO
 	//
-	insert_attr_handler(hooks->alarmtable, "ATTACH", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ATTACH", handle_aattach_attribute); // TODO
 	// xprop -> TODO
 
 
 	// [RFC 2445] dispprop (same order as in spec!)
 	// dispprop = 3*
 	// action -> already in table
-	insert_attr_handler(hooks->alarmtable, "DESCRIPTION", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "DESCRIPTION", handle_adescription_attribute); // TODO
 	// trigger -> already in table
 	//
 	// duration -> already in table
@@ -393,9 +393,9 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// action -> already in table
 	// description -> already in table
 	// trigger -> already in table
-	insert_attr_handler(hooks->alarmtable, "SUMMARY", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "SUMMARY", HANDLE_IGNORE); // TODO
 	//
-	insert_attr_handler(hooks->alarmtable, "ATTENDEE", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ATTENDEE", HANDLE_IGNORE); // TODO
 	//
 	// duration -> already in table
 	// repeat -> already in table
