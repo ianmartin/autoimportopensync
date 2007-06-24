@@ -32,8 +32,7 @@
       <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
-      <!-- TODO review if xsd:integer is the correct value for AlarmRepeatDuration -->
-      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeatDuration" type="xsd:integer"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeatDuration" type="xsd:string"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
     </xsd:sequence>
     <xsd:attribute name="Value" type="TriggerType"/>
