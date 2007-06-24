@@ -2,9 +2,9 @@ from osync_support import *
 from SCons.Options import *
 
 def configure(opts):
-	opts.Add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
-	opts.Add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
-	opts.Add(BoolOption('enable_rpath', 'Build with -rpath?', 0))
+	opts.add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
+	opts.add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
+	opts.add(BoolOption('enable_rpath', 'Build with -rpath?', 0))
 	
 def check(env, config):
 	conf = env.Configure(custom_tests = {'CheckPKGConfig' : CheckPKGConfig, 'CheckPKG' : CheckPKG})
@@ -35,7 +35,8 @@ def check(env, config):
 	env.ParseConfig('pkg-config --cflags --libs opensync-1.0')
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
-	env.Append(CCFLAGS = r'-DVERSION="\"' + config["version"] + r'\""')
+	env.Append(CCFLAGS = r'-DHAVE_CONFIG_H')
+	env.add_define("VERSION", config['version'])
 	
 	testenv = env.Copy()
 	testenv.Append(CCFLAGS = r'-I' + testenv.GetLaunchDir() + '/tests')

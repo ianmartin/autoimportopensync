@@ -11,11 +11,17 @@ note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH 
 todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 # vformat support library
-vformat = formatenv.SharedLibrary('vformat', ['vformat.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+vformat = env.build_shlib('vformat', ['vformat.c'], 
+					"0.0.0", LIBS = ['opensync'], 
+					LIBPATH = '$prefix/$libsuffix')
 
 # common xmlformat libraries
-xmlformatcommon = formatenv.SharedLibrary('xmlformat-common', ['xmlformat-common.c'], LIBS = ['opensync', 'vformat'], LIBPATH = ['.', '$prefix/$libsuffix'])
-xmlformatvcalendar = formatenv.SharedLibrary('xmlformat-vcalendar', ['xmlformat-vcalendar.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.', '$prefix/$libsuffix'])
+xmlformatcommon = env.build_shlib('xmlformat-common', ['xmlformat-common.c'], 
+					"0.0.0", LIBS = ['opensync', 'vformat'], 
+					LIBPATH = ['.', '$prefix/$libsuffix'])
+xmlformatvcalendar = env.build_shlib('xmlformat-vcalendar', ['xmlformat-vcalendar.c'], 
+					"0.0.0", LIBS = ['xmlformat-common'], 
+					LIBPATH = ['.', '$prefix/$libsuffix'])
 
 # xmlformat plugins which convert from vformat to xmlformat and backwards
 xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.', '$prefix/$libsuffix'])
@@ -34,8 +40,8 @@ formatenv.Install(install_format, xmlformatvnote)
 formatenv.Install(install_format, xmlformatvtodo)
 
 # install libs
-formatenv.Install(install_lib, vformat)
-formatenv.Install(install_lib, xmlformatcommon)
-formatenv.Install(install_lib, xmlformatvcalendar)
+env.install_shlib(install_lib, vformat)
+env.install_shlib(install_lib, xmlformatcommon)
+env.install_shlib(install_lib, xmlformatvcalendar)
 
 env.Alias('install', install_prefix)

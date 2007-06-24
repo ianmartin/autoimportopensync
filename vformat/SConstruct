@@ -17,24 +17,28 @@ config = {
 }
 
 # Get our configuration options:
-env = Environment(ENV = os.environ)
-opts = Options('vformat.conf')
-opts.Add('debug', 'Should debugging be enabled?', 1)
-opts.Add(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
-opts.Add(('APPEND_LDFLAGS', 'Linker flags'))
-opts.Add(('APPEND_CCFLAGS', 'Compiler flags'))
-opts.Add(('DESTDIR', 'Set the root directory to install into ( /path/to/DESTDIR )', ''))
+env = Environment(
+		ENV = os.environ,
+		tools=['default', 'osync_support', 'pkgconfig', 'opensync', 'glib', 'libxml', 'libsqlite'],
+		toolpath=['./', './build'])
+
+A=env.get_opts().add
+A('debug', 'Should debugging be enabled?', 1)
+A(BoolOption('debug_modules', 'Should unloading of shared modules be avoided (DEBUGGING ONLY!)', 0))
+A('APPEND_LDFLAGS', 'Linker flags')
+A('APPEND_CCFLAGS', 'Compiler flags')
+A('DESTDIR', 'Set the root directory to install into ( /path/to/DESTDIR )', '')
 
 target_dir = SelectBuildDir('build')
 sys.path.append(target_dir)
 from osync_build import *
 target_dir = '#' + target_dir
-configure(opts)
+configure(env.get_opts())
 SConsignFile()
 
-opts.Update(env)
-opts.Save('vformat.conf', env)
-opts.Update(env)
+env.get_opts().update()
+env.get_opts().save()
+env.get_opts().update()
 
 Help("""
 ++++++++++++++++++++++++++++++++++++
@@ -42,7 +46,7 @@ Welcome to the OpenSync Help System!
 
 
 You can set the following options:
-""" + opts.GenerateHelpText(env))
+""" + env.get_opts().generate_help_text())
 
 env.Append(CCFLAGS = Split('$APPEND_CCFLAGS'))
 env.Append(LDFLAGS = Split('$APPEND_LDFLAGS'))
@@ -52,13 +56,14 @@ if env.GetOption('clean'):
 	try: os.unlink("config.h")
 	except OSError: pass
 elif 'dist' in sys.argv:
-	make_dist(config)
+	env.dist(config["name"], config["version"])
 else:
-	write_config_header(env, "config.h")
+	env.write_config_header("config.h")
+
 install_prefix = '${DESTDIR}$prefix'
 install_lib = '${DESTDIR}$prefix/$libsuffix'
 install_bin = '${DESTDIR}$prefix/bin'
-install_format = '${DESTDIR}$prefix/$libsuffix/opensync/formats'
+install_format = '${DESTDIR}%s' % env["OPENSYNC_FORMATSDIR"]
 
 Export('env opts testenv install_prefix install_lib install_bin install_format')
 

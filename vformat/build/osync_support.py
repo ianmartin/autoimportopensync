@@ -1,5 +1,6 @@
 import os
 import sys
+from SCons.Script.SConscript import SConsEnvironment
 
 def CheckPKGConfig(context, version):
 	context.Message( 'Checking for pkg-config... ' )
@@ -57,6 +58,65 @@ def SelectBuildDir(build_dir, platform=None):
 
 	print "Found directory %s, will build there" % target_dir
 	return target_dir
+
+def dist(env, appname=None, version=None):
+	"dist target - should be portable"
+	import shutil, tarfile
+	if not appname: appname=config["name"]
+	if not version: version=config["version"]
+
+	# Our temporary folder where to put our files
+	TMPFOLDER=appname+'-'+str(version)
+
+	# Remove an old package directory
+	if os.path.exists(TMPFOLDER): shutil.rmtree(TMPFOLDER)
+
+	# Copy everything into the new folder
+	shutil.copytree('.', TMPFOLDER)
+
+	# Enter into it and remove unnecessary files
+	os.chdir(TMPFOLDER)
+	#clean up build in tmpdir
+	os.popen('scons -Q -c').read()
+	for (root, dirs, filenames) in os.walk('.'):
+		clean_dirs = []
+		for d in dirs:
+			if d in ['CVS', 'cache','.svn', '{arch}']:
+				shutil.rmtree(os.path.join(root,d))
+			elif d.startswith('.'):
+				shutil.rmtree(os.path.join(root,d))
+			else:
+				clean_dirs += d
+		dirs = clean_dirs
+
+		to_remove = False
+		for f in list(filenames):
+			if f.startswith('.'): to_remove = True
+			elif f.endswith('~'): to_remove = True
+			elif f.endswith('.pyc'): to_remove = True
+			elif f.endswith('.pyo'): to_remove = True
+			elif f.endswith('.bak'): to_remove = True
+			elif f.endswith('.orig'): to_remove = True
+			elif f in ['config.log']: to_remove = True
+			elif f.endswith('.tar.bz2'): to_remove = True
+			elif f.endswith('.zip'): to_remove = True
+			elif f.endswith('Makefile'): to_remove = True
+
+			if to_remove:
+				os.remove(os.path.join(root, f))
+				to_remove = False
+
+	# go back to the root directory
+	os.chdir('..')
+
+	tar = tarfile.open(TMPFOLDER+'.tar.bz2','w:bz2')
+	tar.add(TMPFOLDER)
+	tar.close()
+	print 'Your archive is ready -> '+TMPFOLDER+'.tar.bz2'
+
+	if os.path.exists(TMPFOLDER): shutil.rmtree(TMPFOLDER)
+
+	sys.exit(0)
 
 def add_define(env, define, value = 1, quote = -1):
 	"""store a single define and its state into an internal list
@@ -118,58 +178,151 @@ def write_config_header(env, configfile='config.h'):
 	dest.write('\n#endif /* %s */\n' % (inclusion_guard_name,))
 	dest.close()
 
-def make_dist(config):
-	"dist target - should be portable"
-	import shutil, tarfile
+class opts:
+	def __init__(self, env, option_file="config_cache.py", cache_dir="cache"):
+		from SCons.Options import Options
+		self.env=env
+		self.args=self.__makeHashTable(sys.argv)
+		self.option_file=os.path.join(cache_dir, option_file)
+		self.env['CACHEDIR']=cache_dir
+		if not os.path.isdir(env['CACHEDIR']): os.mkdir(env['CACHEDIR'])
+		self.opts=Options(self.option_file)
+	
+	#TODO: this parser is silly, fix scons command-line handling instead
+	def __makeHashTable(self, args):
+		table = { }
+		for arg in args:
+			if len(arg) > 1:
+				lst=arg.split('=')
+				if len(lst) < 2: continue
+				key=lst[0]
+				value=lst[1]
+				if len(key) > 0 and len(value) >0: table[key] = value
+		return table
+	
+	def update(self):
+		self.opts.Update(self.env, self.args)
+	
+	def save(self):
+		self.opts.Save(self.option_file, self.env)
+	
+	def add(self, key, help="", default=None, validator=None, converter=None, **kw):
+		self.opts.Add(key, help, default, validator, converter, **kw)
+	
+	def add_options(self, *optlist):
+		self.opts.AddOptions(*optlist)
+	
+	def generate_help_text(self):
+		return self.opts.GenerateHelpText(self.env)
 
-	# Our temporary folder where to put our files
-	TMPFOLDER=config["name"]+'-'+config["version"]
+#wrapper methode to initalise and access opts_class object
+def get_opts(env, option_file="config_cache.py", cache_dir="cache"):
+	if not env.has_key('OPTIONS'):
+		env['OPTIONS'] = env.opts_class(env, option_file, cache_dir)
+	return env['OPTIONS']
 
-	# Remove an old package directory
-	if os.path.exists(TMPFOLDER): shutil.rmtree(TMPFOLDER)
+# Since SCons doesn't support versioning, we need to do it for SCons. 
+# Unfortunately, that means having to do things differently depending 
+# on platform... 
+def build_shlib(env, target_name, sources, vnum=None, **kw): 
+	import SCons.Util
+	import re
+	platform = env.subst('$PLATFORM') 
+	shlib_pre_action = None 
+	shlib_suffix = env.subst('$SHLIBSUFFIX') 
+	shlib_post_action = None 
+	shlink_flags = SCons.Util.CLVar(env.subst('$SHLINKFLAGS')) 
 
-	# Copy everything into the new folder
-	shutil.copytree('.', TMPFOLDER)
+	if platform == 'posix': 
+		shlib_post_action = [ 'rm -f $TARGET', 'ln -s ${SOURCE.file} $TARGET' ] 
+		shlib_post_action_output_re = [ 
+			'%s\\.[0-9\\.]*$' % re.escape(shlib_suffix), 
+			shlib_suffix ] 
+		shlib_suffix += '.' + vnum 
+		shlink_flags += [ '-Wl,-Bsymbolic', '-Wl,-soname=${TARGET.file}' ] 
+	elif platform == 'aix': 
+		shlib_pre_action = [ 
+			"nm -Pg $SOURCES > ${TARGET}.tmp1", 
+			"grep ' [BDT] ' < ${TARGET}.tmp1 > ${TARGET}.tmp2", 
+			"cut -f1 -d' ' < ${TARGET}.tmp2 > ${TARGET}", 
+			"rm -f ${TARGET}.tmp[12]" ] 
+		shlib_pre_action_output_re = [ '$', '.exp' ] 
+		shlib_post_action = [ 'rm -f $TARGET', 'ln -s $SOURCE $TARGET' ] 
+		shlib_post_action_output_re = [ 
+			'%s\\.[0-9\\.]*' % re.escape(shlib_suffix), 
+			shlib_suffix ] 
+		shlib_suffix += '.' + vnum
+		shlink_flags += ['-G', '-bE:${TARGET}.exp', '-bM:SRE'] 
+	elif platform == 'cygwin': 
+		shlink_flags += [ '-Wl,-Bsymbolic', 
+				'-Wl,--out-implib,${TARGET.base}.a' ] 
+	elif platform == 'darwin': 
+		shlib_suffix = '.' + vnum + shlib_suffix 
+		shlink_flags += [ '-dynamiclib', 
+				'-current-version %s' % vnum ] 
 
-	# Enter into it and remove unnecessary files
-	os.chdir(TMPFOLDER)
-	os.popen('scons -Q -c').read()
-	for (root, dirs, filenames) in os.walk('.'):
-		clean_dirs = []
-		for d in dirs:
-			if d in ['CVS', '.svn', '{arch}']:
-				shutil.rmtree(os.path.join(root,d))
-			elif d.startswith('.'):
-				shutil.rmtree(os.path.join(root,d))
-			else:
-				clean_dirs += d
-		dirs = clean_dirs
+	lib = env.SharedLibrary(target_name, sources, 
+				SHLIBSUFFIX=shlib_suffix, 
+				SHLINKFLAGS=shlink_flags, **kw) 
 
-		to_remove = False
-		for f in list(filenames):
-			if f.startswith('.'): to_remove = True
-			elif f.endswith('~'): to_remove = True
-			elif f.endswith('.pyc'): to_remove = True
-			elif f.endswith('.pyo'): to_remove = True
-			elif f.endswith('.bak'): to_remove = True
-			elif f.endswith('.orig'): to_remove = True
-			elif f in ['config.log']: to_remove = True
-			elif f.endswith('.tar.bz2'): to_remove = True
-			elif f.endswith('.zip'): to_remove = True
-			elif f.endswith('Makefile'): to_remove = True
+	if shlib_pre_action: 
+		shlib_pre_action_output = re.sub(shlib_pre_action_output_re[0], 
+						shlib_pre_action_output_re[1], 
+						str(lib[0])) 
+		env.Command(shlib_pre_action_output, [ lib_objs ], 
+				shlib_pre_action) 
+		env.Depends(lib, shlib_pre_action_output) 
+	if shlib_post_action: 
+		shlib_post_action_output = re.sub(shlib_post_action_output_re[0], 
+						shlib_post_action_output_re[1], 
+						str(lib[0])) 
+		env.Command(shlib_post_action_output, lib, shlib_post_action) 
+	return lib 
 
-			if to_remove:
-				os.remove(os.path.join(root, f))
-				to_remove = False
+def install_shlib(env, destination, lib): 
+	import re
+	platform = env.subst('$PLATFORM') 
+	shlib_suffix = env.subst('$SHLIBSUFFIX') 
+	shlib_install_pre_action = None 
+	shlib_install_post_action = None 
 
-	# go back to the root directory
-	os.chdir('..')
+	if platform == 'posix': 
+		shlib_post_action = [ 'rm -f $TARGET', 
+					'ln -s ${SOURCE.file} $TARGET' ] 
+		shlib_post_action_output_re = [ 
+			'%s\\.[0-9\\.]*$' % re.escape(shlib_suffix), 
+			shlib_suffix ] 
+		shlib_install_post_action = shlib_post_action 
+		shlib_install_post_action_output_re = shlib_post_action_output_re 
 
-	tar = tarfile.open(TMPFOLDER+'.tar.bz2','w:bz2')
-	tar.add(TMPFOLDER)
-	tar.close()
-	print 'Your archive is ready -> '+TMPFOLDER+'.tar.bz2'
+	ilib = env.Install(destination,lib) 
 
-	if os.path.exists(TMPFOLDER): shutil.rmtree(TMPFOLDER)
+	if shlib_install_pre_action: 
+		shlib_install_pre_action_output = re.sub(shlib_install_pre_action_output_re[0], 
+							shlib_install_pre_action_output_re[1], 
+							str(ilib[0])) 
+		env.Command(shlib_install_pre_action_output, ilib, 
+				shlib_install_pre_action) 
+		env.Depends(shlib_install_pre_action_output, ilib) 
+	if shlib_install_post_action: 
+		shlib_install_post_action_output = re.sub(shlib_install_post_action_output_re[0], 
+							shlib_install_post_action_output_re[1], 
+							str(ilib[0])) 
+		env.Command(shlib_install_post_action_output, ilib, 
+				shlib_install_post_action)
 
-	sys.exit(0)
+def exists(env):
+	return true
+
+def generate(env):
+	SConsEnvironment.dist = dist
+	SConsEnvironment.write_config_header = write_config_header
+	SConsEnvironment.add_define = add_define
+	SConsEnvironment.is_defined = is_defined
+	SConsEnvironment.get_define = get_define
+	SConsEnvironment.opts_class = opts
+	SConsEnvironment.get_opts = get_opts
+	SConsEnvironment.build_shlib = build_shlib
+	SConsEnvironment.install_shlib = install_shlib
+	
+	env.get_opts()
