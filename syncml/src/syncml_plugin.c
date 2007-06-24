@@ -153,6 +153,7 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, smlerror);
 	SmlDatabase *database = (SmlDatabase *)userdata;
 	OSyncError *error = NULL;
+	g_assert(database->getChangesCtx);
 
 	if (!type) {
 		osync_context_report_success(database->getChangesCtx);
@@ -200,7 +201,7 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 	}
 	*/
 
-	OSyncData *odata = osync_data_new(data, size, database->objformat, &error);
+	OSyncData *odata = osync_data_new(data, size+1, database->objformat, &error);
 	if (!odata) {
 		osync_change_unref(change);
 		goto error;
@@ -263,6 +264,7 @@ static void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *us
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, dsession, numchanges, userdata);
 	
+	osync_trace(TRACE_INTERNAL,"Going to receive %i changes", numchanges);
 	printf("Going to receive %i changes\n", numchanges);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
@@ -397,18 +399,19 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 					osync_context_report_success(database->getChangesCtx);
 					database->getChangesCtx = NULL;
 				}
-				
+			
+			
 				if (database->commitCtx) {
 					osync_context_report_success(database->commitCtx);
 					database->commitCtx = NULL;
 				}
+			
 			}
 			break;
 		case SML_MANAGER_SESSION_END:
 			osync_trace(TRACE_INTERNAL, "Session %s has ended\n", smlSessionGetSessionID(session));
 			if (!smlTransportDisconnect(env->tsp, NULL, &error))
 				goto error;
-			
 			break;
 		case SML_MANAGER_SESSION_ERROR:
 			osync_trace(TRACE_INTERNAL, "There was an error in the session %s: %s", smlSessionGetSessionID(session), smlErrorPrint(&error));
@@ -442,6 +445,11 @@ error:;
 			database->getChangesCtx = NULL;
 		}
 
+		if (database->commitCtx) {
+			osync_context_report_osyncerror(database->commitCtx, oserror);
+			database->commitCtx = NULL;
+		}
+
 		if (database->disconnectCtx) {
 			osync_context_report_osyncerror(database->disconnectCtx, oserror);
 			database->disconnectCtx = NULL;
@@ -462,7 +470,7 @@ static gboolean _sessions_prepare(GSource *source, gint *timeout_)
 static gboolean _sessions_check(GSource *source)
 {
 	SmlPluginEnv *env = *((SmlPluginEnv **)(source + 1));
-	
+
 	GList *o = env->databases;
 	for (; o; o = o->next) {
 		SmlDatabase *database = o->data;
@@ -546,7 +554,7 @@ static void connect_obex_client(void *data, OSyncPluginInfo *info, OSyncContext 
 
 	SmlError *error = NULL;
 	OSyncError *oserror = NULL;
-	
+
 	if (env->isConnected) {
 		osync_context_report_success(ctx);
 		osync_trace(TRACE_EXIT, "%s", __func__);
@@ -605,10 +613,15 @@ static void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	
 	smlDsSessionGetSync(database->session, _recv_sync, ctx);
 	smlDsSessionGetChanges(database->session, _recv_change, database);
-	
-	if (!smlSessionFlush(env->session, TRUE, &error))
-		goto error;
-	
+
+	env->num++;
+
+	if (env->num >= g_list_length(env->databases)) {
+		env->num = 0;
+		if (!smlSessionFlush(env->session, TRUE, &error))
+			goto error;
+	}
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 	
@@ -644,9 +657,9 @@ static void disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		osync_context_report_success(ctx);
 	} else {
 		database->disconnectCtx = ctx;
+		osync_context_ref(database->disconnectCtx);
 	}
 
-	osync_context_ref(database->disconnectCtx);
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
@@ -757,23 +770,28 @@ static void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 	
 		if (!smlDsSessionQueueChange(database->session, _get_changetype(change), osync_change_get_uid(change), buf, size, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
 			goto error;
-		contexts[i] = NULL;
+		//contexts[i] = NULL;
 
-		g_free(buf);
+		//g_free(buf);
 	}
 	
 	if (!smlDsSessionCloseSync(database->session, &error))
 		goto error;
 
+/*
 	for (i = 0; i < num; i++) {
 		if (contexts[i]) {
 			osync_context_report_error(contexts[i], SML_ERROR_GENERIC, "content type was not configured");
 		}
 	}
-	
-	if (!smlSessionFlush(env->session, TRUE, &error))
-		goto error;
-	
+*/
+	env->num++;
+
+	if(env->num >= g_list_length(env->databases))
+		if (!smlSessionFlush(env->session, TRUE, &error))
+			goto error;
+
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 
@@ -893,6 +911,8 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	if (!syncml_http_server_parse_config(env, configdata, error))
 		goto error_free_transport;
 
+	env->num = 0;	
+
 	GList *o = env->databases;
 	for (; o; o = o->next) {
                 SmlDatabase *database = o->data;
@@ -962,7 +982,7 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	for (; o; o = o->next) { 
 		SmlDatabase *database = o->data;
 
-		/* We now create the ds server hat the given location */
+		/* We now create the ds server at the given location */
 		SmlLocation *loc = smlLocationNew(database->url, NULL, &serror);
 		if (!loc)
 			goto error;
@@ -1177,6 +1197,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	if (!syncml_obex_client_parse_config(env, configdata, error))
 		goto error_free_env;
 
+	env->num = 0;	
 	env->isConnected = FALSE;
 
 	GList *o = env->databases;
@@ -1186,7 +1207,6 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                 if (!sink)
                         goto error_free_env;
 
-                database->sink = sink;
 		database->objformat = osync_format_env_find_objformat(formatenv, "plain");
 		if (!database->objformat) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"plain\" object format. Are format plugins correctly installed?");
@@ -1206,6 +1226,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		functions.batch_commit = batch_commit;
                 
                 osync_objtype_sink_set_functions(sink, functions, database);
+                database->sink = sink;
                 osync_plugin_info_add_objtype(info, sink);
 	}
 
@@ -1218,7 +1239,6 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 	if (!env->san)
 		goto error;
 
-	
 	/* The transport needed to transport the data */
 	env->tsp = smlTransportNew(SML_TRANSPORT_OBEX_CLIENT, &serror);
 	if (!env->tsp)
@@ -1335,7 +1355,7 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong obex type specified");
 		goto error_free_auth;
 	}
-	
+
 	/* Run the manager */
 	if (!smlManagerStart(env->manager, &serror))
 		goto error_free_auth;

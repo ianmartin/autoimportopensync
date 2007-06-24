@@ -102,7 +102,8 @@ typedef struct SmlPluginEnv {
 	SmlNotification *san;
 
 	GList *databases;
-	
+
+	unsigned int num;
 	GList *eventEntries;
 	unsigned int numEventEntries;
 
