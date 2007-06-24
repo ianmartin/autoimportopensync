@@ -396,6 +396,8 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 				SmlDatabase *database = o->data;
 
 				if (database->getChangesCtx) {
+					if(env->num < g_list_length(env->databases))
+						osync_context_ref(database->getChangesCtx);
 					osync_context_report_success(database->getChangesCtx);
 					database->getChangesCtx = NULL;
 				}
