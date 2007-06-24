@@ -34,6 +34,8 @@ struct OSyncXMLField {
 	OSyncXMLField *prev; 
 	/** The wrapped xml node */
 	xmlNodePtr node;
+	/** Sorted status */
+	osync_bool sorted;
 };
 
 OSyncXMLField *_osync_xmlfield_new(OSyncXMLFormat *xmlformat, xmlNodePtr node, OSyncError **error);
@@ -42,5 +44,6 @@ void _osync_xmlfield_free(OSyncXMLField *xmlfield);
 void _osync_xmlfield_unlink(OSyncXMLField *xmlfield);
 
 int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2);
+int _osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2);
 
 #endif /*OPENSYNC_XMLFIELD_INTERNALS_H_*/

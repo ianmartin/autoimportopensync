@@ -20,25 +20,6 @@ START_TEST (xmlformat_new)
 }
 END_TEST
 
-START_TEST (xmlfield_new)
-{
-	char *testbed = setup_testbed("merger");
-
-	OSyncError *error = NULL;
-	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", &error);
-	fail_unless(xmlformat != NULL, NULL);
-	fail_unless(error == NULL, NULL);
-	
-	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", &error);
-	fail_unless(xmlfield != NULL, NULL);
-	fail_unless(error == NULL, NULL);
-	
-	osync_xmlformat_unref(xmlformat);
-
-	destroy_testbed(testbed);
-}
-END_TEST
-
 START_TEST (xmlformat_parse)
 {
 	char *testbed = setup_testbed("merger");
@@ -204,25 +185,102 @@ START_TEST (xmlformat_event_schema)
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);
 	fail_unless(error == NULL, NULL);
 
+	g_free(buffer);
+
 	fail_unless(osync_xmlformat_validate(xmlformat) != FALSE, NULL);
+
+	osync_xmlformat_unref(xmlformat);
 
 	destroy_testbed(testbed);
 }
 END_TEST
 
+START_TEST (xmlfield_new)
+{
+	char *testbed = setup_testbed("merger");
+
+	OSyncError *error = NULL;
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("contact", &error);
+	fail_unless(xmlformat != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, "Name", &error);
+	fail_unless(xmlfield != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	osync_xmlformat_unref(xmlformat);
+
+	destroy_testbed(testbed);
+}
+END_TEST
+
+START_TEST (xmlfield_sort)
+{
+	char *testbed = setup_testbed("xmlformats");
+	
+	OSyncError *error = NULL;
+	char* buffer;
+	unsigned int size;
+	fail_unless(osync_file_read("xmlfield_unsorted.xml", &buffer, &size, &error), NULL);
+
+	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &error);
+	fail_unless(xmlformat != NULL, NULL);
+	fail_unless(error == NULL, NULL);
+	
+	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
+	for (; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
+		osync_xmlfield_sort(xmlfield);
+	}
+
+	xmlfield = osync_xmlformat_get_first_field(xmlformat);
+	for (; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
+		int count = osync_xmlfield_get_key_count(xmlfield);
+
+		if (count > 0)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 0), "ABCDEFG"), NULL);
+
+		if (count > 1)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 1), "BCDEFG"), NULL);
+
+		if (count > 2)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 2), "CDEFG"), NULL);
+
+		if (count > 3)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 3), "DEFG"), NULL);
+
+		if (count > 4)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 4), "EFG"), NULL);
+
+		if (count > 5)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 5), "FG"), NULL);
+
+		if (count > 6)
+			fail_unless(!strcmp(osync_xmlfield_get_nth_key_name(xmlfield, 6), "G"), NULL);
+
+	}
+	
+	osync_xmlformat_unref(xmlformat);
+
+	destroy_testbed(testbed);
+}
+END_TEST
 
 Suite *xmlformat_suite(void)
 {
 	Suite *s = suite_create("XMLFormat");
 
+	// xmlformat
 	create_case(s, "xmlformat_new", xmlformat_new);
-	create_case(s, "xmlfield_new", xmlfield_new);
 	create_case(s, "xmlformat_parse", xmlformat_parse);
 	create_case(s, "xmlformat_sort", xmlformat_sort);
 	create_case(s, "xmlformat_search_field", xmlformat_search_field);
 	create_case(s, "xmlformat_compare", xmlformat_compare);
 	create_case(s, "xmlformat_compare_field2null", xmlformat_compare_field2null);
 	create_case(s, "xmlformat_event_schema", xmlformat_event_schema);
+
+	// xmlfield
+	create_case(s, "xmlfield_new", xmlfield_new);
+	create_case(s, "xmlfield_sort", xmlfield_sort);
 
 	return s;
 }

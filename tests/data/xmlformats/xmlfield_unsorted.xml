@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<test>
+  <SingleEntry>
+    <ABCDEFG/>
+  </SingleEntry>
+  <AlotSorted>
+    <ABCDEFG/>
+    <BCDEFG/>
+    <CDEFG/>
+    <DEFG/>
+    <EFG/>
+    <FG/>
+    <G/>
+  </AlotSorted>
+  <AlotUnsorted>
+    <ABCDEFG/>
+    <DEFG/>
+    <G/>
+    <EFG/>
+    <FG/>
+    <BCDEFG/>
+    <CDEFG/>
+  </AlotUnsorted>
+</test>
+

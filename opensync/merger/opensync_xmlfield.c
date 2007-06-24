@@ -61,6 +61,9 @@
 		xmlformat->last_child->next = xmlfield;
 	xmlformat->last_child = xmlfield;
 	xmlformat->child_count++;
+
+	// We don't know if the parsed xmlformat got sorted xmlfield -> unsorted
+	xmlfield->sorted = FALSE;
 	
 	return xmlfield;
 }
@@ -107,6 +110,16 @@ int _osync_xmlfield_compare_stdlib(const void *xmlfield1, const void *xmlfield2)
 	return strcmp(osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield1), osync_xmlfield_get_name(*(OSyncXMLField **)xmlfield2));
 }
 
+/**
+ * @brief Compare the key names of two xmlfield key nodes
+ * @param key1 The pointer to a xmlNodePtr
+ * @param key2 The pointer to a xmlNodePtr
+ */
+int _osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
+{
+	return strcmp((const char*) (*(xmlNodePtr *) key1)->name, (const char*) (*(xmlNodePtr *) key2)->name);
+}
+
 /*@}*/
 
 /**
@@ -143,6 +156,9 @@ OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, O
 
 	// XMLFormat entry got added - not sure if it is still sorted
 	xmlformat->sorted = FALSE;
+
+	// This XMLField has no keys, so it's for sure it's sorted
+	xmlfield->sorted = TRUE;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, xmlfield);
 	return xmlfield;
@@ -378,6 +394,8 @@ void osync_xmlfield_set_key_value(OSyncXMLField *xmlfield, const char *key, cons
 	}
 	if(cur == NULL)
 		xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
+
+	xmlfield->sorted = FALSE;
 }
 
 /**
@@ -393,6 +411,8 @@ void osync_xmlfield_add_key_value(OSyncXMLField *xmlfield, const char *key, cons
 	osync_assert(value);
 
 	xmlNewTextChild(xmlfield->node, NULL, BAD_CAST key, BAD_CAST value);
+
+	xmlfield->sorted = FALSE;
 }
 
 /**
@@ -683,6 +703,63 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 	}
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, res);
 	return res;
+}
+
+/**
+ * @brief Sort all key nodes  of the xmlfield. This function have to be called
+ *  if the xmlfield got build in a unsorted way. Sorting is not needed if the
+ *  xmfield got build in a sorted way.
+ * @param xmlfield The pointer to a xmlfield object
+ */
+void osync_xmlfield_sort(OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, xmlfield);
+	osync_assert(xmlfield);
+	
+	int index, count;
+
+	if (xmlfield->sorted) {
+		osync_trace(TRACE_INTERNAL, "already sorted");
+		goto end;
+	}
+
+	count = osync_xmlfield_get_key_count(xmlfield);
+	if( count <= 1 ) {
+		osync_trace(TRACE_INTERNAL, "attribute count <= 1 - no need to sort");
+		goto end;
+	}
+	
+	void **list = g_malloc0(sizeof(xmlNodePtr) * count);
+	
+	xmlNodePtr cur = xmlfield->node->children;
+	for (index=0; cur != NULL; index++) {
+		xmlNodePtr tmp = cur;
+		list[index] = cur;
+		cur = cur->next;
+		xmlUnlinkNode(tmp);
+	}
+	
+	qsort(list, count, sizeof(xmlNodePtr), _osync_xmlfield_key_compare_stdlib);
+	
+	for(index = 0; index < count; index++) {
+		cur = (xmlNodePtr)list[index];
+		xmlAddChild(xmlfield->node, cur);
+			
+		if(index < count-1)
+			cur->next = (xmlNodePtr)list[index+1];
+		else
+			cur->next = NULL;
+		
+		if(index)
+			cur->prev = (xmlNodePtr)list[index-1];
+		else
+			cur->prev = NULL;
+	}
+	g_free(list);
+
+end:	
+	xmlfield->sorted = TRUE;
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 /*@}*/

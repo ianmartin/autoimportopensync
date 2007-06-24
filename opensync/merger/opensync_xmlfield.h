@@ -49,4 +49,6 @@ OSYNC_EXPORT void osync_xmlfield_set_nth_key_value(OSyncXMLField *xmlfield, int 
 OSYNC_EXPORT osync_bool osync_xmlfield_compare(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2);
 OSYNC_EXPORT osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLField *xmlfield2, char* keys[]);
 
+OSYNC_EXPORT void osync_xmlfield_sort(OSyncXMLField *xmlfield);
+
 #endif /*OPENSYNC_XMLFIELD_H_*/
