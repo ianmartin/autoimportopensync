@@ -152,9 +152,11 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p, %i, %s, %p, %p)", __func__, dsession, type, uid, data, size, contenttype, userdata, smlerror);
 	SmlDatabase *database = (SmlDatabase *)userdata;
+	SmlPluginEnv *env = database->env;
 	OSyncError *error = NULL;
 	g_assert(database->getChangesCtx);
 
+	env->num_changes++;
 	if (!type) {
 		osync_context_report_success(database->getChangesCtx);
 		osync_trace(TRACE_EXIT, "%s", __func__);
@@ -220,7 +222,11 @@ static SmlBool _recv_change(SmlDsSession *dsession, SmlChangeType type, const ch
 	osync_context_report_change(database->getChangesCtx, change);
 
 	osync_change_unref(change);
-		
+
+	if(env->num_changes >= env->max_changes) {
+		osync_context_report_success(database->getChangesCtx);
+		env->gotChanges = TRUE;
+	}
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
@@ -263,10 +269,12 @@ static void _recv_sync_reply(SmlSession *session, SmlStatus *status, void *userd
 static void _recv_sync(SmlDsSession *dsession, unsigned int numchanges, void *userdata)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p)", __func__, dsession, numchanges, userdata);
+	SmlPluginEnv *env = userdata;
 	
 	osync_trace(TRACE_INTERNAL,"Going to receive %i changes", numchanges);
 	printf("Going to receive %i changes\n", numchanges);
-	
+
+	env->max_changes = numchanges;
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -391,17 +399,16 @@ static void _manager_event(SmlManager *manager, SmlManagerEventType type, SmlSes
 				env->connectCtx = NULL;
 			}
 			
+				
 			o = env->databases;
 			for (; o; o = o->next) {
 				SmlDatabase *database = o->data;
 
-				if (database->getChangesCtx) {
-					if(env->num < g_list_length(env->databases))
-						osync_context_ref(database->getChangesCtx);
+				if (!env->gotChanges && env->num_changes >= env->max_changes && database->getChangesCtx) {
 					osync_context_report_success(database->getChangesCtx);
 					database->getChangesCtx = NULL;
-				}
-			
+				} else if(env->gotChanges && env->num_changes >= env->max_changes && database->getChangesCtx)
+					database->getChangesCtx = NULL;	
 			
 				if (database->commitCtx) {
 					osync_context_report_success(database->commitCtx);
@@ -613,7 +620,7 @@ static void get_changeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 		smlDsSessionGetAlert(database->session, _recv_alert, database);
 	}
 	
-	smlDsSessionGetSync(database->session, _recv_sync, ctx);
+	smlDsSessionGetSync(database->session, _recv_sync, env);
 	smlDsSessionGetChanges(database->session, _recv_change, database);
 
 	env->num++;
@@ -914,6 +921,10 @@ static void *syncml_http_server_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 		goto error_free_transport;
 
 	env->num = 0;	
+	env->num_changes = 0;
+	env->max_changes = 0;
+	env->gotChanges = FALSE;
+
 
 	GList *o = env->databases;
 	for (; o; o = o->next) {
@@ -1201,6 +1212,9 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
 
 	env->num = 0;	
 	env->isConnected = FALSE;
+	env->num_changes = 0;
+	env->max_changes = 0;
+	env->gotChanges = FALSE;
 
 	GList *o = env->databases;
 	for (; o; o = o->next) {

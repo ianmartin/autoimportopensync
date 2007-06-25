@@ -81,6 +81,8 @@ typedef struct SmlPluginEnv {
 	SmlBool gotFinal;
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
+
+	SmlBool gotChanges;
 	
 	OSyncMember *member;
 	char *anchor_path;
@@ -104,6 +106,8 @@ typedef struct SmlPluginEnv {
 	GList *databases;
 
 	unsigned int num;
+	unsigned int num_changes;
+	unsigned int max_changes;
 	GList *eventEntries;
 	unsigned int numEventEntries;
 
