@@ -82,7 +82,6 @@ typedef struct SmlPluginEnv {
 	SmlBool gotDisconnect;
 	SmlBool tryDisconnect;
 
-	SmlBool gotChanges;
 	
 	OSyncMember *member;
 	char *anchor_path;
@@ -106,8 +105,6 @@ typedef struct SmlPluginEnv {
 	GList *databases;
 
 	unsigned int num;
-	unsigned int num_changes;
-	unsigned int max_changes;
 	GList *eventEntries;
 	unsigned int numEventEntries;
 
@@ -122,6 +119,11 @@ typedef struct SmlDatabase {
 	OSyncObjTypeSink *sink;
 	char *objtype;	
 	char *url;
+
+	osync_bool gotChanges;
+
+	unsigned int num_changes;
+	unsigned int max_changes;
 
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
