@@ -602,6 +602,64 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 	return xmlfield;
 }
 
+static void convert_ical_tzrrule_to_xml(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{
+	typedef struct {
+	  char *name;
+	  char *value;
+	} rrule_t;
+
+	rrule_t rrules[8];
+	memset(rrules, 0, sizeof(rrules));
+	rrules[0].name = "TZRuleFrequency";
+	rrules[1].name = "TZRuleUntil";
+	rrules[2].name = "TZRuleCount";
+	rrules[3].name = "TZRuleInterval";
+	rrules[4].name = "TZRuleByDay";
+	rrules[5].name = "TZRuleByMonthDay";
+	rrules[6].name = "TZRuleByYearDay";
+	rrules[7].name = "TZRuleByMonth";
+	
+	// parse values
+	GList *values = vformat_attribute_get_values_decoded(attr);
+	for (; values; values = values->next) {
+		GString *retstr = values->data;
+		osync_assert(retstr);
+
+		if (strstr(retstr->str, "FREQ=")) {
+			rrules[0].value = retstr->str + strlen("FREQ=");
+		} else if (strstr(retstr->str, "UNTIL=")) {
+			rrules[1].value = retstr->str + strlen("UNTIL=");
+		} else if (strstr(retstr->str, "COUNT=")) {	
+			rrules[2].value = retstr->str + strlen("COUNT=");
+		} else if (strstr(retstr->str, "INTERVAL=")) {
+			rrules[3].value = retstr->str + strlen("INTERVAL=");
+		} else if (strstr(retstr->str, "BYDAY=")) { 
+			rrules[4].value = retstr->str + strlen("BYDAY=");
+		} else if (strstr(retstr->str, "BYMONTHDAY=")) { 
+			rrules[5].value = retstr->str + strlen("BYMONTHDAY=");
+		} else if (strstr(retstr->str, "BYYEARDAY=")) { 
+			rrules[6].value = retstr->str + strlen("BYYEARDAY=");
+		} else if (strstr(retstr->str, "BYMONTH=")) { 
+			rrules[7].value = retstr->str + strlen("BYMONTH=");
+		}
+	}
+	
+	// set interval to 1, if it wasn't set before
+	if (rrules[3].value == NULL)
+		rrules[3].value = "1";
+
+	// set count to 0, if neither count nor until were set before
+	if (rrules[1].value == NULL && rrules[2].value == NULL)
+		rrules[2].value = "0";
+
+	int i;
+	for (i = 0; i <= 7; i++) {
+		if (rrules[i].value != NULL)
+			osync_xmlfield_add_key_value(xmlfield, rrules[i].name, rrules[i].value);
+	}
+}
+
 OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	osync_trace(TRACE_INTERNAL, "Handling ExceptionRule attribute");
@@ -786,12 +844,8 @@ void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 
 void handle_tzrrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
-	GList *values = vformat_attribute_get_values_decoded(attr);
-	for (; values; values = values->next) {
-		GString *retstr = (GString *)values->data;
-		g_assert(retstr);
-		osync_xmlfield_add_key_value(xmlfield, "TZRule", retstr->str);
-	}
+        osync_trace(TRACE_INTERNAL, "Handling Timezone RecurrenceRule attribute");
+        convert_ical_tzrrule_to_xml(xmlfield, attr);
 }
 
 void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
