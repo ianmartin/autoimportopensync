@@ -1290,9 +1290,7 @@ class PhoneEventSimple(PhoneEntry):
         if self.alarmdt:
             alarm = doc.createElement('Alarm')
             appendXMLTag(doc, alarm, 'AlarmAction', 'DISPLAY')
-            e = doc.createElement('AlarmDescription')
-            appendXMLTag(doc, e, 'Content', self.name)
-            alarm.appendChild(e)
+            appendXMLTag(doc, alarm, 'AlarmDescription', self.name)
             alarmtime = self.alarmdt.strftime(VCAL_DATETIME)
             appendXMLTag(doc, alarm, 'AlarmTrigger', alarmtime)
             top.appendChild(alarm)
