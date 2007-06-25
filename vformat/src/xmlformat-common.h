@@ -53,6 +53,7 @@ OSyncXMLField *handle_categories_attribute(OSyncXMLFormat *xmlformat, VFormatAtt
 OSyncXMLField *handle_class_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
 OSyncXMLField *handle_uid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
+void handle_simple_xmlfield(OSyncXMLField *xmlfield, VFormatAttribute *attr, const char *name);
 
 /** XML Attributes **/
 VFormatAttribute *handle_xml_attribute_simple_content(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding);

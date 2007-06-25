@@ -149,11 +149,11 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// [RFC 2445] icalbody = calprops component
 	// calprops = 2*
 		// required
-			// prodid
-			// version
+			insert_attr_handler(hooks->attributes, "PRODID", HANDLE_IGNORE);
+			insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
 		// optional, but MUST NOT occur than once
-			// calscale
-			// method
+			insert_attr_handler(hooks->attributes, "CALSCALE", HANDLE_IGNORE);
+			insert_attr_handler(hooks->attributes, "METHOD", HANDLE_IGNORE);
 			// x-prop
 
 
@@ -320,17 +320,17 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] timezonec (same order as in spec!)
-	insert_attr_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
+	insert_attr_component_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
 	//
-	insert_attr_handler(hooks->tztable, "TZID", handle_tzid_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZID", handle_tzid_attribute);
 	//
-	insert_attr_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
-	insert_attr_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
+	insert_attr_component_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
 	//
 	// -> standardc / daylightc
 	// x-prop
 	//
-	insert_attr_handler(hooks->tztable, "END", HANDLE_IGNORE);
+	insert_attr_component_handler(hooks->tztable, "END", HANDLE_IGNORE);
 
 
 	// [RFC 2445] standardc (same order as in spec!)
@@ -346,16 +346,16 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] tzprop (same order as in spec!)
-	insert_attr_handler(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
-	insert_attr_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
-	insert_attr_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
+	insert_attr_component_handler(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
 
-	insert_attr_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO - is this right?
-	insert_attr_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
-	insert_attr_handler(hooks->tztable, "RRULE", handle_tzrrule_attribute);
-	insert_attr_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
+	insert_attr_component_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO - is this right?
+	insert_attr_component_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
+	insert_attr_component_handler(hooks->tztable, "RRULE", handle_tzrrule_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
 	// x-prop
-	insert_attr_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
+	insert_attr_component_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
 
 
 	// [RFC 2445] alarmc (same order as in spec!)

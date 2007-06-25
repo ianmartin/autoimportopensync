@@ -89,16 +89,16 @@ void handle_aduration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
 // TIMEZONE handler
-OSyncXMLField *handle_tzid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tz_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzurl_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzdtstart_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzoffsetto_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzoffsetfrom_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzrdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzrrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tzname_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
-OSyncXMLField *handle_tz_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
+void handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tzdtstart_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
+void handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tzoffsetfrom_location_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
+void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tzrrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
 // parameter
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);

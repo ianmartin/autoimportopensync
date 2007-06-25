@@ -85,6 +85,11 @@ OSyncXMLField *handle_url_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute 
 	return handle_attribute_simple_content(xmlformat, attr, "Url", error);
 }
 
+void handle_simple_xmlfield(OSyncXMLField *xmlfield, VFormatAttribute *attr, const char *name) 
+{ 
+	osync_trace(TRACE_INTERNAL, "Handling %s component attribute", name);
+	osync_xmlfield_set_key_value(xmlfield, name, vformat_attribute_get_nth_value(attr, 0)); 
+}
 /**** XML Attributes ****/
 VFormatAttribute *handle_xml_attribute_simple_content(VFormat *vformat, OSyncXMLField *xmlfield, const char *name, const char *encoding)
 {
@@ -316,14 +321,14 @@ void handle_component_attribute(GHashTable *attrtable, GHashTable *paramtable, O
 has_value:;
 	
 	//We need to find the handler for this attribute
-	void (* attr_handler)(OSyncXMLField *, VFormatAttribute *, OSyncError **) = g_hash_table_lookup(attrtable, vformat_attribute_get_name(attr));
+	void (* attr_handler)(OSyncXMLField *, VFormatAttribute *) = g_hash_table_lookup(attrtable, vformat_attribute_get_name(attr));
 	osync_trace(TRACE_INTERNAL, "Hook is: %p", attr_handler);
 	if (attr_handler == HANDLE_IGNORE) {
 		osync_trace(TRACE_EXIT, "%s: Ignored", __func__);
 		return;
 	}
 	if (attr_handler)
-		attr_handler(xmlfield, attr, error);
+		attr_handler(xmlfield, attr);
 //	else
 //		xmlfield = handle_unknown_attribute(xmlfield, attr, error);
 
