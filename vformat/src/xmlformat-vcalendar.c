@@ -718,13 +718,17 @@ void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 
 void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	// Rename xmlfield to Alarm$ACTION
+	// Rename xmlfield to AlarmDisplay/AlarmAudio/AlarmEmail/AlarmProcedure
+	// We need this to make an own schema for each type.
 	if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"DISPLAY")) {
 		osync_xmlfield_set_name(xmlfield, "AlarmDisplay");
+	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"AUDIO")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmAudio");
+	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"EMAIL")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmEmail");
+	} else if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"PROCEDURE")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmProcedure");
 	}
-	// AUDIO
-	// EMAIL
-	// PROCEDURE 
 }
 
 void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
