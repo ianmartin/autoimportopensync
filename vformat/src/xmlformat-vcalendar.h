@@ -119,6 +119,7 @@ void handle_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_reltype_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_member_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_fb_type_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
+void handle_trigrel_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler);
 void insert_attr_handler(GHashTable *table, const char *attrname, attr_handler_fn handler);

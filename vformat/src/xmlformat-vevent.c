@@ -115,6 +115,20 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	 * ERRATA: http://www.rfc-editor.org/cgi-bin/errataSearch.pl?rfc=2445
 	 */
 
+	// [RFC 2445] 3.2 Parameters (same order as in spec!)
+	// NOTE: non required
+	// charset -> defined in [RFC 2046]
+	// method -> must be the same as METHOD in the iCalendar object
+	// component -> must be specified if the iCal object contains more than one component
+	// optinfo -> optional information
+
+	// [RFC 2445] 4.1.4 Character Set
+	// There is not a property parameter to declare the character set used
+	// in a property value. The default character set for an iCalendar
+	// object is UTF-8 as defined in [RFC 2279].
+	// The "charset" Content-Type parameter can be used in MIME transports
+	// to specify any other IANA registered character set.
+
 	// [RFC 2445] 4.2 Property Parameters (same order as in spec!)
 	insert_param_handler(hooks->parameters, "ALTREP", handle_altrep_parameter); // altrepparam
 	insert_param_handler(hooks->parameters, "CN", handle_cn_parameter); // cnparam
@@ -125,55 +139,57 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "ENCODING", handle_encoding_parameter); // encodingparam
 	insert_param_handler(hooks->parameters, "FMTTYPE", handle_format_type_parameter); // fmttypeparam
 	insert_param_handler(hooks->parameters, "FMTYPE", handle_format_type_parameter); // same as fmttypeparam -> see Errata
-	// TODO fbtypeparam
+	insert_param_handler(hooks->parameters, "FBTYPE", handle_fb_type_parameter); // fbtypeparam -> TODO xsd
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_language_parameter); // languageparam
 	insert_param_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
 	insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
 	insert_param_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
-	// TODO trigrelparam
+	insert_param_handler(hooks->parameters, "RELATED", handle_trigrel_parameter); // rangeparam -> TODO xsd
 	insert_param_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
 	insert_param_handler(hooks->parameters, "ROLE", handle_role_parameter); // roleparam
 	insert_param_handler(hooks->parameters, "RSVP", handle_rsvp_parameter); // rsvpparam
 	insert_param_handler(hooks->parameters, "SENT-BY", handle_sent_by_parameter); // sentbyparam
 	insert_param_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
-	insert_param_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
-
-	// FIXME - STARTING HERE...
-	// parameters (non required)
-	//charset // defined in [RFC 2046]
-	//method	// must be the same as METHOD in the iCalendar object
-	//component // must be specified if the iCal object contains more than one component, e.g. VEVENT and VTODO
-	//optinfo // optional information
+	insert_param_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam -> TODO fix xsd to allow all value types
+	// ianaparam -> TODO
+	// xparam -> TODO
 
 
-	// START HERE:
-	// [RFC 2445] icalbody = calprops component
+	// [RFC 2445] icalobject (same order as in spec!)
+	// BEGIN:VCALENDAR
+	// -> icalbody
+	// END:VCALENDAR
+
+
+	// [RFC 2445] icalbody (same order as in spec!)
+	// icalbody = calprops component
+
+	
+	// [RFC 2445] calprop (same order as in spec!)
 	// calprops = 2*
-		// required
-			insert_attr_handler(hooks->attributes, "PRODID", HANDLE_IGNORE);
-			insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
-		// optional, but MUST NOT occur than once
-			insert_attr_handler(hooks->attributes, "CALSCALE", HANDLE_IGNORE);
-			insert_attr_handler(hooks->attributes, "METHOD", HANDLE_IGNORE);
-			// x-prop
+	// NOTE: required, but most not occur more than once
+	insert_attr_handler(hooks->attributes, "PRODID", HANDLE_IGNORE);
+	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
+	// NOTE: optional, but MUST NOT occur than once
+	insert_attr_handler(hooks->attributes, "CALSCALE", HANDLE_IGNORE);
+	insert_attr_handler(hooks->attributes, "METHOD", HANDLE_IGNORE);
+	// x-prop -> TODO
 
 
-	// [RFC 2445] component = 1*(eventc / todoc / journalc / freebusyc / timezonec / iana-comp / x-comp)
+	// [RFC 2445] component (same order as in spec!)	
+	// component = 1*(eventc / todoc / journalc / freebusyc / timezonec / iana-comp / x-comp)
+	
 
-
-	// [RFC 2445] iana-comp -> TODO
-	// BEGIN : iana-token CRLF
+	// [RFC 2445] iana-comp (same order as in spec!) -> TODO
+	// BEGIN : iana-token
 	// 1*contentline
-	// END : iana-token CRLF
+	// END : iana-token
+	
 
-
-	// [RFC 2445] x-comp -> TODO
-	// BEGIN : x-name CRLF
+	// [RFC 2445] x-comp (same order as in spec!) -> TODO
+	// BEGIN : x-name
 	// 1*contentline
-	// END : x-name CRLF
-
-
-	// [RFC 2445] calprops (same order as in spec!) -> TODO
+	// END : x-name
 
 
         // [RFC 2445] eventc (same order as in spec!)
@@ -183,6 +199,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] eventprop (same order as in spec!)
+	// NOTE: optional, but most not occur more than once
 	insert_attr_handler(hooks->attributes, "CLASS", handle_class_attribute);
 	insert_attr_handler(hooks->attributes, "CREATED", handle_created_attribute);
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
@@ -200,10 +217,10 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
 	insert_attr_handler(hooks->attributes, "URL", handle_url_attribute);
 	insert_attr_handler(hooks->attributes, "RECURRENCE-ID", handle_recurid_attribute);
-
+	// NOTE: dtend or duration may appear in a eventprop
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "DURATION", handle_duration_attribute);
-
+	// NOTE: optional and may occur more than once
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
 	insert_attr_handler(hooks->attributes, "CATEGORIES", handle_categories_attribute);
@@ -226,6 +243,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] todoprop (same order as in spec!)
+	// NOTE: optional, but most not occur more than once
 	// class
 	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
 	// created
@@ -244,10 +262,10 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// summary
 	// uid
 	// url
-
+	// NOTE: due or duration may appear in a todoprop
 	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute);
 	// duration
-	
+	// NOTE: optional and may occur more than once
 	// attach
 	// attendee
 	// categories
@@ -270,6 +288,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] jourprop (same order as in spec!)
+	// NOTE: optional, but most not occur more than once
 	// class
 	// created
 	// description
@@ -283,7 +302,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// summary
 	// uid
 	// url
-
+	// NOTE: optional and may occur more than once
 	// attach
 	// attendee
 	// categories
@@ -303,7 +322,9 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// -> fbprop
 	// END
 
+
 	// [RFC 2445] fbprop (same order as in spec!)
+	// NOTE: optional, but most not occur more than once
 	// contact
 	// dtstart
 	// dtend
@@ -312,7 +333,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// organizer
 	// uid
 	// url
-
+	// NOTE: optional and may occur more than once
 	// attendee
 	// comment
 	insert_attr_handler(hooks->attributes, "FREEBUSY", HANDLE_IGNORE); // TODO
@@ -322,15 +343,15 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	// [RFC 2445] timezonec (same order as in spec!)
 	insert_attr_component_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
-	//
+	// NOTE: tzid is required, but most not occur more than once
 	insert_attr_component_handler(hooks->tztable, "TZID", handle_tzid_attribute);
-	//
+	// NOTE: lastmod and tzurl are optional, but most not occur more than once
 	insert_attr_component_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
 	insert_attr_component_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
-	//
+	// NOTE: one of 'standardc' or 'daylightc' MUST occur and each MAY occur more than once
 	// -> standardc / daylightc
+	// NOTE: optional and may occur more than once
 	// x-prop
-	//
 	insert_attr_component_handler(hooks->tztable, "END", HANDLE_IGNORE);
 
 
@@ -347,16 +368,17 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] tzprop (same order as in spec!)
+	// NOTE: all required, but they most not occur more than once
 	insert_attr_component_handler(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
 	insert_attr_component_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
 	insert_attr_component_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
-
-	insert_attr_component_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO - is this right?
+	// NOTE: optional and may occur more than once
+	insert_attr_component_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO
 	insert_attr_component_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
-	insert_attr_component_handler(hooks->tztable, "RRULE", HANDLE_IGNORE); // we call it in vcalendar_parse_component
+	insert_attr_component_handler(hooks->tztable, "RRULE", HANDLE_IGNORE); // NOTE: we call it in vcalendar_parse_component
 	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
-	// x-prop
 	insert_attr_component_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
+	// x-prop -> TODO
 
 
 	// [RFC 2445] alarmc (same order as in spec!)
@@ -366,56 +388,61 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 
 	// [RFC 2445] audioprop (same order as in spec!)
-	// audioprop = 2*
+	// NOTE: action and trigger are required, but must not occur more than once
 	insert_attr_component_handler(hooks->alarmtable, "ACTION", handle_aaction_attribute); // TODO
 	insert_attr_component_handler(hooks->alarmtable, "TRIGGER", handle_atrigger_attribute); // TODO
-	//
+	// NOTE: duration and repeat are both optional, and MUST NOT occur
+	// NOTE: more than once each, but if one occurs, so MUST the other
 	insert_attr_component_handler(hooks->alarmtable, "DURATION", handle_aduration_attribute); // TODO
 	insert_attr_component_handler(hooks->alarmtable, "REPEAT", handle_arepeat_attribute); // TODO
-	//
+	// NOTE: optional, but must not occur more than once
 	insert_attr_component_handler(hooks->alarmtable, "ATTACH", handle_aattach_attribute); // TODO
+	// NOTE: optional and may occur more than once
 	// xprop -> TODO
 
 
 	// [RFC 2445] dispprop (same order as in spec!)
-	// dispprop = 3*
-	// action -> already in table
+	// NOTE: all required, but must not occur more than once
+	// action
 	insert_attr_component_handler(hooks->alarmtable, "DESCRIPTION", handle_adescription_attribute); // TODO
-	// trigger -> already in table
-	//
-	// duration -> already in table
-	// repeat -> already in table
-	//
+	// trigger
+	// NOTE: duration and repeat are both optional, and MUST NOT occur
+	// NOTE: more than once each, but if one occurs, so MUST the other
+	// duration
+	// repeat
+	// NOTE: optional and may occur more than once
 	// x-prop -> TODO
 
 
 	// [RFC 2445] emailprop (same order as in spec!)
-	// emailprop  = 5*
-	// action -> already in table
-	// description -> already in table
-	// trigger -> already in table
+	// NOTE: all required, but must not occur more than once
+	// action
+	// description
+	// trigger
 	insert_attr_component_handler(hooks->alarmtable, "SUMMARY", HANDLE_IGNORE); // TODO
-	//
+	// NOTE: required and may occur more than once
 	insert_attr_component_handler(hooks->alarmtable, "ATTENDEE", HANDLE_IGNORE); // TODO
-	//
-	// duration -> already in table
-	// repeat -> already in table
-	//
-	// attach -> already in table
+	// NOTE: duration and repeat are both optional, and MUST NOT occur
+	// NOTE: more than once each, but if one occurs, so MUST the other
+	// duration
+	// repeat
+	// NOTE: optional and may occur more than once
+	// attach
 	// x-prop -> TODO
 
 
 	// [RFC 2445] procprop (same order as in spec!)
-	// procprop = 3*
-	// action -> already in table
-	// attach -> already in table
-	// trigger -> already in table
-	//
-	// duration -> already in table
-	// repeat -> already in table
-	//
-	// description -> already in table
-	//
+	// NOTE: all required, but must not occur more than once
+	// action
+	// attach
+	// trigger
+	// NOTE: duration and repeat are both optional, and MUST NOT occur
+	// NOTE: more than once each, but if one occurs, so MUST the other
+	// duration
+	// repeat
+	// NOTE: optional, but must not occur more than once
+	// description
+	// NOTE: optional and may occur more than once
 	// x-prop -> TODO
 
 	}
