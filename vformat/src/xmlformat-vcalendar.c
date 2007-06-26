@@ -775,7 +775,7 @@ void handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 
 void handle_tzdtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
-	handle_simple_xmlfield(xmlfield, attr, "DateStarted");
+	handle_simple_xmlfield(xmlfield, attr, "DateTimeStart");
 }
 
 void handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
@@ -803,12 +803,12 @@ static OSyncXMLField *convert_ical_tzrrule_to_xml(OSyncXMLFormat *xmlformat, VFo
 
 void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
-	handle_simple_xmlfield(xmlfield, attr, "TimezoneName");
+	handle_simple_xmlfield(xmlfield, attr, "TZName");
 }
 
 void handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
-	handle_simple_xmlfield(xmlfield, attr, "Location");
+	handle_simple_xmlfield(xmlfield, attr, "X-Location");
 }
 
 
