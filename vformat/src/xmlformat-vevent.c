@@ -138,6 +138,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
 	insert_param_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam
 
+	// FIXME - STARTING HERE...
 	// parameters (non required)
 	//charset // defined in [RFC 2046]
 	//method	// must be the same as METHOD in the iCalendar object
@@ -352,7 +353,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	insert_attr_component_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO - is this right?
 	insert_attr_component_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
-	insert_attr_component_handler(hooks->tztable, "RRULE", handle_tzrrule_attribute);
+	insert_attr_component_handler(hooks->tztable, "RRULE", HANDLE_IGNORE); // we call it in vcalendar_parse_component
 	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
 	// x-prop
 	insert_attr_component_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);

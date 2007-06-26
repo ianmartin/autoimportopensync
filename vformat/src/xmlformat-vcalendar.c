@@ -575,7 +575,7 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 	if (extended) {
 		if (!strcmp(rulename, "ExceptionRule"))	
 			xmlfield = osync_xmlfield_new(xmlformat, "ExceptionRuleExtended", error);
-		if (!strcmp(rulename, "RecurrenceRule"))	
+		else if (!strcmp(rulename, "RecurrenceRule"))	
 			xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRuleExtended", error);
 	} else {
 		xmlfield = osync_xmlfield_new(xmlformat, rulename, error);
@@ -602,62 +602,9 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 	return xmlfield;
 }
 
-static void convert_ical_tzrrule_to_xml(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+static OSyncXMLField *convert_ical_tzrrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
 {
-	typedef struct {
-	  char *name;
-	  char *value;
-	} rrule_t;
-
-	rrule_t rrules[8];
-	memset(rrules, 0, sizeof(rrules));
-	rrules[0].name = "TZRuleFrequency";
-	rrules[1].name = "TZRuleUntil";
-	rrules[2].name = "TZRuleCount";
-	rrules[3].name = "TZRuleInterval";
-	rrules[4].name = "TZRuleByDay";
-	rrules[5].name = "TZRuleByMonthDay";
-	rrules[6].name = "TZRuleByYearDay";
-	rrules[7].name = "TZRuleByMonth";
-	
-	// parse values
-	GList *values = vformat_attribute_get_values_decoded(attr);
-	for (; values; values = values->next) {
-		GString *retstr = values->data;
-		osync_assert(retstr);
-
-		if (strstr(retstr->str, "FREQ=")) {
-			rrules[0].value = retstr->str + strlen("FREQ=");
-		} else if (strstr(retstr->str, "UNTIL=")) {
-			rrules[1].value = retstr->str + strlen("UNTIL=");
-		} else if (strstr(retstr->str, "COUNT=")) {	
-			rrules[2].value = retstr->str + strlen("COUNT=");
-		} else if (strstr(retstr->str, "INTERVAL=")) {
-			rrules[3].value = retstr->str + strlen("INTERVAL=");
-		} else if (strstr(retstr->str, "BYDAY=")) { 
-			rrules[4].value = retstr->str + strlen("BYDAY=");
-		} else if (strstr(retstr->str, "BYMONTHDAY=")) { 
-			rrules[5].value = retstr->str + strlen("BYMONTHDAY=");
-		} else if (strstr(retstr->str, "BYYEARDAY=")) { 
-			rrules[6].value = retstr->str + strlen("BYYEARDAY=");
-		} else if (strstr(retstr->str, "BYMONTH=")) { 
-			rrules[7].value = retstr->str + strlen("BYMONTH=");
-		}
-	}
-	
-	// set interval to 1, if it wasn't set before
-	if (rrules[3].value == NULL)
-		rrules[3].value = "1";
-
-	// set count to 0, if neither count nor until were set before
-	if (rrules[1].value == NULL && rrules[2].value == NULL)
-		rrules[2].value = "0";
-
-	int i;
-	for (i = 0; i <= 7; i++) {
-		if (rrules[i].value != NULL)
-			osync_xmlfield_add_key_value(xmlfield, rrules[i].name, rrules[i].value);
-	}
+	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
 }
 
 OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -771,7 +718,13 @@ void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 
 void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmAction");
+	// Rename xmlfield to Alarm$ACTION
+	if(!strcmp(vformat_attribute_get_nth_value(attr, 0),"DISPLAY")) {
+		osync_xmlfield_set_name(xmlfield, "AlarmDisplay");
+	}
+	// AUDIO
+	// EMAIL
+	// PROCEDURE 
 }
 
 void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
@@ -842,11 +795,13 @@ void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 	handle_simple_xmlfield(xmlfield, attr, "TimezoneDate");
 }
 
+/*
 void handle_tzrrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
         osync_trace(TRACE_INTERNAL, "Handling Timezone RecurrenceRule attribute");
         convert_ical_tzrrule_to_xml(xmlfield, attr);
 }
+*/
 
 void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
@@ -1046,9 +1001,9 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
-static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
+static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable, xmlformat);
 
 	GList *a = NULL;
 	for (a = *attributes; a; a = a->next) {
@@ -1061,19 +1016,24 @@ static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attribute
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
 			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
 			*attributes = a;
+
+			// Sort the XMLField for componentens. Order of componentens is random.
+			// Sorting is required to have a valid XMLFormat.
+			// osync_xmlfield_sort(xmlfield);
+
 			return;
+		} else if (xmlformat && !strcmp(vformat_attribute_get_name(attr), "RRULE")) {
+			OSyncXMLField *tzrrule = convert_ical_tzrrule_to_xml(xmlformat, attr);
+			osync_xmlfield_set_attr(tzrrule, "TZComponent", osync_xmlfield_get_attr(xmlfield, "TZComponent"));
+			osync_xmlfield_set_attr(tzrrule, "TimezoneID", osync_xmlfield_get_attr(xmlfield, "TimezoneID"));
 		} else {
 			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
 			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
 		}
 	}
 
-	// Sort the XMLField for componentens. Order of componentens is random.
-	// Sorting is required to have a valid XMLFormat.
-	osync_xmlfield_sort(xmlfield);
-
-	*attributes = a;
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	// This should never happen
+	osync_assert(NULL);
 }
 
 void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
@@ -1095,21 +1055,21 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 			// Make use of another componentent specific hook table (different handling of attributes)
 			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VALARM")) {
 				component_xmlfield = osync_xmlfield_new(xmlformat, "Alarm", NULL);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->alarmtable, paramtable);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->alarmtable, paramtable, NULL);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
 				component_xmlfield = osync_xmlfield_new(xmlformat, "Timezone", NULL);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable, NULL);
 				tzid = osync_xmlfield_get_nth_attr_value(component_xmlfield, 0);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "STANDARD")) {
 				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
 				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Standard");
 				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
 			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "DAYLIGHT")) {
 				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
 				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Daylight");
 				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
 			}
 
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
