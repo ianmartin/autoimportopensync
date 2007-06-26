@@ -503,7 +503,12 @@ OSyncXMLField *handle_exdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 
 static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, char *rulename, OSyncError **error) 
 {
-	OSyncXMLField *xmlfield = NULL;
+	OSyncXMLField *xmlfield = osync_xmlfield_new(xmlformat, rulename, error);
+	if(!xmlfield) {
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		return NULL;
+	}
+
 	osync_bool extended = FALSE;
 
 	typedef struct {
@@ -571,18 +576,12 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 		}
 	}
 	
-	// create new xmlfield
+	// rename xmlfield if extended is true
 	if (extended) {
-		if (!strcmp(rulename, "ExceptionRule"))	
-			xmlfield = osync_xmlfield_new(xmlformat, "ExceptionRuleExtended", error);
+		if (!strcmp(rulename, "ExceptionRule"))
+			osync_xmlfield_set_name(xmlfield, "ExceptionRuleExtended");	
 		else if (!strcmp(rulename, "RecurrenceRule"))	
-			xmlfield = osync_xmlfield_new(xmlformat, "RecurrenceRuleExtended", error);
-	} else {
-		xmlfield = osync_xmlfield_new(xmlformat, rulename, error);
-	}
-	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
-		return NULL;
+			osync_xmlfield_set_name(xmlfield, "RecurrenceRuleExtended");	
 	}
 
 	// set interval to 1, if it wasn't set before
@@ -600,11 +599,6 @@ static OSyncXMLField *convert_ical_rrule_to_xml(OSyncXMLFormat *xmlformat, VForm
 	}
 
 	return xmlfield;
-}
-
-static OSyncXMLField *convert_ical_tzrrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
-{
-	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
 }
 
 OSyncXMLField *handle_exrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -799,13 +793,13 @@ void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 	handle_simple_xmlfield(xmlfield, attr, "TimezoneDate");
 }
 
-/*
-void handle_tzrrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+// this function get called by vcalendar_parse_component 
+static OSyncXMLField *convert_ical_tzrrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
 {
-        osync_trace(TRACE_INTERNAL, "Handling Timezone RecurrenceRule attribute");
-        convert_ical_tzrrule_to_xml(xmlfield, attr);
+	osync_trace(TRACE_INTERNAL, "Handling TimezoneRule attribute");
+
+	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
 }
-*/
 
 void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
@@ -1016,6 +1010,11 @@ static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attribute
 		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
 			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
 			*attributes = a->prev;
+
+			// Sort the XMLField for componentens. Order of componentens is random.
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
 			return;
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
 			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
@@ -1023,7 +1022,7 @@ static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attribute
 
 			// Sort the XMLField for componentens. Order of componentens is random.
 			// Sorting is required to have a valid XMLFormat.
-			// osync_xmlfield_sort(xmlfield);
+			osync_xmlfield_sort(xmlfield);
 
 			return;
 		} else if (xmlformat && !strcmp(vformat_attribute_get_name(attr), "RRULE")) {
