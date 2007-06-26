@@ -999,7 +999,38 @@ void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLFiel
 }
 */
 
-static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat)
+static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable);
+
+	GList *a = NULL;
+	for (a = *attributes; a; a = a->next) {
+		VFormatAttribute *attr = a->data;
+
+		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
+			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a->prev;
+
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
+			return;
+		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
+			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
+			*attributes = a;
+
+			// Sorting is required to have a valid XMLFormat.
+			osync_xmlfield_sort(xmlfield);
+
+			return;
+		} else {
+			osync_trace(TRACE_INTERNAL, "Attribute: \"%s\"", vformat_attribute_get_name(attr));
+			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
+		}
+	}
+}
+
+static void vcalendar_parse_component_tz(OSyncXMLField *xmlfield, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable, OSyncXMLFormat *xmlformat)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p, %p)", __func__, xmlfield, attributes, hooks, attrtable, paramtable, xmlformat);
 
@@ -1011,7 +1042,6 @@ static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attribute
 			osync_trace(TRACE_EXIT, "%s: Found BEGIN:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
 			*attributes = a->prev;
 
-			// Sort the XMLField for componentens. Order of componentens is random.
 			// Sorting is required to have a valid XMLFormat.
 			osync_xmlfield_sort(xmlfield);
 
@@ -1020,11 +1050,12 @@ static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attribute
 			osync_trace(TRACE_EXIT, "%s: Found END:%s", __func__, vformat_attribute_get_nth_value(attr, 0));
 			*attributes = a;
 
-			// Sort the XMLField for componentens. Order of componentens is random.
 			// Sorting is required to have a valid XMLFormat.
 			osync_xmlfield_sort(xmlfield);
 
 			return;
+
+		// We have to create a new root node 'TimezoneRule'
 		} else if (xmlformat && !strcmp(vformat_attribute_get_name(attr), "RRULE")) {
 			OSyncXMLField *tzrrule = convert_ical_tzrrule_to_xml(xmlformat, attr);
 			osync_xmlfield_set_attr(tzrrule, "TZComponent", osync_xmlfield_get_attr(xmlfield, "TZComponent"));
@@ -1034,9 +1065,6 @@ static void vcalendar_parse_component(OSyncXMLField *xmlfield, GList **attribute
 			handle_component_attribute(attrtable, paramtable, xmlfield, attr, NULL);
 		}
 	}
-
-	// This should never happen
-	osync_assert(NULL);
 }
 
 void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable)
@@ -1048,31 +1076,40 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 	for (a = *attributes; a; a = a->next) {
 		VFormatAttribute *attr = a->data;
 
+		// Component VTIMEZONE (incl. DAYLIGHT/STANDARD) and VALARM need another hooktable
 		if (!strcmp(vformat_attribute_get_name(attr), "BEGIN")) {
-			a = a->next;
+			
+			const char *component = vformat_attribute_get_nth_value(attr, 0);
+			
+			osync_trace(TRACE_INTERNAL, "Attribute: \"BEGIN\", Component:\"%s\"", component);
 
-			osync_trace(TRACE_INTERNAL, "Attribute: \"BEGIN\", Component:\"%s\"", vformat_attribute_get_nth_value(attr, 0));
-
+			// We create another xmlfield which acts as a root node for the components
 			OSyncXMLField *component_xmlfield = NULL;
 
-			// Make use of another componentent specific hook table (different handling of attributes)
-			if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VALARM")) {
+			// vcalendar_parse_component use component specific hooktables
+			if (!strcmp(component, "VALARM")) {
+				a = a->next;
 				component_xmlfield = osync_xmlfield_new(xmlformat, "Alarm", NULL);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->alarmtable, paramtable, NULL);
-			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "VTIMEZONE")) {
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->alarmtable, paramtable);
+			} else if (!strcmp(component, "VTIMEZONE")) {
+				a = a->next;
 				component_xmlfield = osync_xmlfield_new(xmlformat, "Timezone", NULL);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable, NULL);
+				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable);
 				tzid = osync_xmlfield_get_nth_attr_value(component_xmlfield, 0);
-			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "STANDARD")) {
+			} else if (!strcmp(component, "STANDARD")) {
+				a = a->next;
 				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
 				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Standard");
 				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
-			} else if (!strcmp(vformat_attribute_get_nth_value(attr, 0), "DAYLIGHT")) {
+				// We call vcalendar_parse_component_tz, because it creates a new root node 'TimezoneRule' and need an OSyncXMLFormat.
+				vcalendar_parse_component_tz(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
+			} else if (!strcmp(component, "DAYLIGHT")) {
+				a = a->next;
 				component_xmlfield = osync_xmlfield_new(xmlformat, "TimezoneComponent", NULL);
 				osync_xmlfield_set_attr(component_xmlfield, "TZComponent", "Daylight");
 				osync_xmlfield_set_attr(component_xmlfield, "TimezoneID", tzid);
-				vcalendar_parse_component(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
+				// We call vcalendar_parse_component_tz, because it creates a new root node 'TimezoneRule' and need an OSyncXMLFormat.
+				vcalendar_parse_component_tz(component_xmlfield, &a, hooks, hooks->tztable, paramtable, xmlformat);
 			}
 
 		} else if (!strcmp(vformat_attribute_get_name(attr), "END")) {
