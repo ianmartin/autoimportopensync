@@ -24,20 +24,6 @@
 #include "xmlformat-vtodo10.h"
 #include "xmlformat-vtodo20.h"
 
-/* TODO: Add alarm attende to XSD */
-
-static OSyncXMLField *handle_aattendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmAttendee", error);
-}
-
-/* TODO: Add alarm summary to XSD */
-
-static OSyncXMLField *handle_asummary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
-{ 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmSummary", error);
-}
-
 void *init_vtodo_to_xmlformat(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);

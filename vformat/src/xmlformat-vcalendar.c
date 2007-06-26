@@ -740,20 +740,17 @@ void handle_adescription_attribute(OSyncXMLField *xmlfield, VFormatAttribute *at
 	handle_simple_xmlfield(xmlfield, attr, "AlarmDescription");
 }
 
-/* TODO: Add alarm attende to XSD */
-/*
-static OSyncXMLField *handle_aattendee_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+// TODO: Review! - Add alarm attende to XSD
+void handle_aattendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmAttendee", error);
+	handle_simple_xmlfield(xmlfield, attr, "AlarmAttendee");
 }
-*/
-/* TODO: Add alarm summary to XSD */
-/*
-static OSyncXMLField *handle_asummary_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+
+// TODO: Review! - Add alarm summary to XSD
+void handle_asummary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
-	return handle_attribute_simple_content(xmlformat, attr, "AlarmSummary", error);
+	handle_simple_xmlfield(xmlfield, attr, "AlarmSummary");
 }
-*/
 
 
 // VTIMEZONE

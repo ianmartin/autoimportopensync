@@ -419,9 +419,9 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// action
 	// description
 	// trigger
-	insert_attr_component_handler(hooks->alarmtable, "SUMMARY", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "SUMMARY", handle_asummary_attribute); // TODO
 	// NOTE: required and may occur more than once
-	insert_attr_component_handler(hooks->alarmtable, "ATTENDEE", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ATTENDEE", handle_aattendee_attribute); // TODO
 	// NOTE: duration and repeat are both optional, and MUST NOT occur
 	// NOTE: more than once each, but if one occurs, so MUST the other
 	// duration

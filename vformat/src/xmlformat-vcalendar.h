@@ -87,6 +87,8 @@ void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_aduration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_aattendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_asummary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
 // TIMEZONE handler
 void handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
