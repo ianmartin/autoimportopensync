@@ -24,15 +24,19 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- FIXME -->
   <xsd:complexType name="Alarm">
     <xsd:sequence>
-      <xsd:element minOccurs="1" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
+      <!-- Action was already set by renaming the xmlfield to e.g. AlarmAudio -->
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAction" type="AlarmAction"/>
       <!-- TODO only allow Attachment element if Action is SOUND or PROCEDURE --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttach" type="Attachment"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmAttendee" type="xsd:string"/>
       <!-- TODO only allow Descritption element if Action is DISPLAY or EMAIL --> 
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmDescription" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeat" type="xsd:integer"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="AlarmRepeatDuration" type="xsd:string"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="AlarmSummary" type="xsd:string"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="AlarmTrigger" type="TriggerValue"/>
     </xsd:sequence>
     <xsd:attribute name="Value" type="TriggerType"/>
@@ -301,6 +305,9 @@
       <xsd:element minOccurs="0" maxOccurs="1" name="ByYearDay" type="xsd:string"/> <!-- equal to YD in vcal -->
       <xsd:element minOccurs="0" maxOccurs="1" name="ByMonth" type="xsd:string"/> <!-- equal to YM in vcal -->
     </xsd:sequence>
+     <!-- needed by TimezoneRule -->
+     <xsd:attribute name="TimezoneID" type="xsd:string"/>
+     <xsd:attribute name="TZComponent" type="xsd:string"/>
   </xsd:complexType>
 
   <!-- iCalendar implementation of Recurrence Rule Grammer -->
@@ -457,13 +464,6 @@
     </xsd:sequence>
   </xsd:complexType>
 
-  <xsd:complexType name="TZName">
-    <xsd:sequence>
-      <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="xsd:string"/>
-    </xsd:sequence>
-    <xsd:attribute name="Language" type="xsd:string"/>
-  </xsd:complexType>
-
   <xsd:simpleType name="UtcOffset">
     <xsd:restriction base="xsd:string">
     <!-- TODO: Check for pattern:  (+|-)HHMM -->
@@ -473,27 +473,29 @@
   </xsd:simpleType>
 
   <!-- RFC2445: 4.6.5 Time Zone Component - standardc / daylightc -->
-  <xsd:complexType name="TimezoneElement">
+  <xsd:complexType name="TimezoneComponent">
     <xsd:sequence>
       <xsd:element minOccurs="0" maxOccurs="1" name="Comment" type="MultiText"/>
-      <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="RecurrenceRuleExtended" type="RecurrenceRuleExtended"/>
-      <xsd:element minOccurs="1" maxOccurs="1" name="DateTimeStart" type="DateTimeContent"/>
-      <xsd:element minOccurs="0" maxOccurs="1" name="TZName" type="TZName"/>
-      <xsd:element minOccurs="1" maxOccurs="1" name="TZOffsetTo" type="UtcOffset"/>
+      <!-- <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/> // What's that? -->
+      <xsd:element minOccurs="1" maxOccurs="1" name="DateTimeStart" type="xsd:string"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="TZName" type="xsd:string"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="TZOffsetFrom" type="UtcOffset"/>
+      <xsd:element minOccurs="1" maxOccurs="1" name="TZOffsetTo" type="UtcOffset"/>
     </xsd:sequence>
+    <xsd:attribute name="TimezoneID" type="xsd:string"/>
+    <xsd:attribute name="TZComponent" type="xsd:string"/>
+    <xsd:attribute name="Language" type="xsd:string"/> <!-- needed by TZName -->
   </xsd:complexType>
 
   <!-- RFC2445: 4.6.5 Time Zone Component -->
   <xsd:complexType name="Timezone">
     <xsd:sequence>
-      <xsd:element minOccurs="1" maxOccurs="unbounded" name="DaylightSavingTime" type="TimezoneElement"/>
-      <xsd:element minOccurs="1" maxOccurs="unbounded" name="StandardTime" type="TimezoneElement"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="LastModified" type="DateTimeContent"/>
-      <xsd:element minOccurs="1" maxOccurs="1" name="TimezoneID" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="TZUrl" type="xsd:anyURI"/>
+      <xsd:element minOccurs="0" maxOccurs="1" name="X-Location" type="xsd:string"/>
     </xsd:sequence>
+    <xsd:attribute name="TimezoneID" type="xsd:string"/>
+    <xsd:attribute name="TZComponent" type="xsd:string"/>
   </xsd:complexType>
 
   <!-- RFC2445: 4.3.9 Period of Time -->
