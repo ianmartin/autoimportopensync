@@ -241,6 +241,18 @@ const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield)
 }
 
 /**
+ * @brief Set the name of a xmlfield
+ * @param xmlfield The pointer to a xmlfield object
+ */
+void osync_xmlfield_set_name(OSyncXMLField *xmlfield, const char *name)
+{
+	osync_assert(xmlfield);
+	osync_assert(name);
+
+	xmlNodeSetName(xmlfield->node, BAD_CAST name);	
+}
+
+/**
  * @brief Get the next xmlfield
  * @param xmlfield The pointer to a xmlfield object
  * @return The pointer to the next xmlfield or NULL if there is no more xmlfield

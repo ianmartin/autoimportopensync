@@ -30,6 +30,7 @@ OSYNC_EXPORT void osync_xmlfield_adopt_xmlfield_before_field(OSyncXMLField *xmlf
 OSYNC_EXPORT void osync_xmlfield_adopt_xmlfield_after_field(OSyncXMLField *xmlfield, OSyncXMLField *to_link);
 
 OSYNC_EXPORT const char *osync_xmlfield_get_name(OSyncXMLField *xmlfield);
+OSYNC_EXPORT void osync_xmlfield_set_name(OSyncXMLField *xmlfield, const char *name);
 OSYNC_EXPORT OSyncXMLField *osync_xmlfield_get_next(OSyncXMLField *xmlfield);
 
 OSYNC_EXPORT const char *osync_xmlfield_get_attr(OSyncXMLField *xmlfield, const char *attr);
