@@ -128,9 +128,9 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 	char* keys_content[] =  {"Content", NULL};
 	char* keys_name[] = {"FirstName", "LastName", NULL};
 	OSyncXMLPoints points[] = {
+		{"EMail", 		10, 	keys_content},
 		{"Name", 		90, 	keys_name},
 		{"Telephone", 	10, 	keys_content},
-		{"EMail", 		10, 	keys_content},
 		{NULL}
 	};
 
@@ -154,9 +154,9 @@ static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int lefts
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
+		{"DateEnd", 	10, 	keys_content},
+		{"DateStarted", 	10, 	keys_content},
 		{"Summary", 		90, 	keys_content},
-		{"DateTimeStart", 	10, 	keys_content},
-		{"DateTimeEnd", 	10, 	keys_content},
 		{NULL}
 	};
 	
@@ -180,9 +180,9 @@ static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsi
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
-		{"Summary", 		90, 	keys_content},
-		{"DateStarted", 	10, 	keys_content},
 		{"DateDue", 	10, 	keys_content},
+		{"DateStarted", 	10, 	keys_content},
+		{"Summary", 		90, 	keys_content},
 		{NULL}
 	};
 	
@@ -206,9 +206,9 @@ static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsi
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
-		{"Summary", 		90, 	keys_content},
 		{"Body", 	90, 	keys_content},
 		{"DateCreated", 	10, 	keys_content},
+		{"Summary", 		90, 	keys_content},
 		{NULL}
 	};
 	
