@@ -686,7 +686,7 @@ osync_bool osync_xmlfield_compare_similar(OSyncXMLField *xmlfield1, OSyncXMLFiel
 				break;	
 			}
 			
-			while(!xmlStrcmp(osxml_node_get_content((xmlNodePtr)cur_list1->data),
+			while(xmlStrcmp(osxml_node_get_content((xmlNodePtr)cur_list1->data),
 							 osxml_node_get_content((xmlNodePtr)cur_list2->data))) {		
 //			while(strcmp((const char *)xmlNodeGetContent(cur_list1->data),
 //						 (const char *)xmlNodeGetContent(cur_list2->data)) != 0) {
