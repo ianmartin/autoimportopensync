@@ -1,0 +1,324 @@
+MobileStation
+=============
+
+This is only Proof of Concept for a D-Bus session daemon 
+which manages configured mobile devices. It's written in
+Python for several reasons:
+- testing OpenSync Python bindings
+- very very fast prototyping
+- i want to learn Python ;)
+
+Planned features/tasks of MobileStation:
+- detect mobile devices via HAL
+- provide D-Bus interface for OpenSync
+- automatic configuration of Sync groups of new devices  
+- automatic sync of specific OpenSync groups (optional):
+  * configured USB mobile got plugged in (HAL signal)
+  * configured Bluetooth mobile discovered (BlueZ periodic discovery)	
+  * PIM environment emit sync on changes
+
+
+MobileStation D-Bus Interface
+=============================
+
+
+Manager hierachy
+================
+
+Service		org.opensync
+Interface	org.opensync.MobileStation.Manager
+Object path	/org/opensync/MobileStation
+
+Methods 
+
+	array{string} ListDevices()
+
+		List paths of all "managed" devices.
+
+	string CreateBluetoothDevice(string address)	
+		
+		Create a new "managed" device object for
+		a Bluetooth remote device. Parameter "address"
+		is the Bluetooth address of the remote device.
+		Returns object path of the new "managed" device.
+
+	string CreateUsbDevice(string udi)	
+		
+		Create a new "managed" device object for a USB
+		device. Parameter udi stands for the HAL path.
+		Returns object path of the new "managed" device.
+
+	void RemoveDevice(string path)	
+		
+		Remove the "managed" device with the object path
+		"path".
+
+	array{string} ListSyncGroups()
+
+		List object paths of all OpenSync groups.
+
+	string CreateSyncGroup(string name)
+		
+		Create a new OpenSync group with "name". 
+		Returns the object path of the group.
+
+	string SetupSyncDevicePimGroup(string devicepath, string pim)
+
+		Create a device specific OpenSync group with two
+		members. The device member gets autoconfigured for
+		the device. The pim member gets configured for the
+		select pim environment and syncs the default
+		ressources.
+
+	void RemoveSyncGroup(string path)
+
+		Remove OpenSync group with the object path "path".
+
+	atrray{string} ListRegisteredPims()	
+
+		List registered PIM environments.
+
+Signals
+	void DeviceAppeared(string path)
+
+		Device got connected (USB) or appeared (Bluetooth).
+		"path" is the object path of the device.
+
+	void DeviceDisappeard(string path)
+
+		Device got disconnected (USB) or appeared (Bluetooth).
+		"path" is the object path of the device.
+
+	void DeviceCreated(string path)
+
+		Device got configured for MobileStation.
+		"path" is the object path of the device.
+
+	void DeviceRemoved(string path)
+
+		MobileStation configuration of device got removed.
+		"path" is the object path of the device.
+
+	void SyncGroupCreated(string path)	
+
+		New Sync group got created.
+
+	void SyncGroupRemoved(string path)
+
+		Sync group got removed.
+
+
+	void SyncGroupSetupFinished(string path)	
+
+		Sync group setup got finished - ready to sync.
+		This signal got emitted after method calls:
+		- SetupSyncDevicePimGroup
+
+Device hiearchy
+===============
+
+Service		org.opensync
+Interface	org.opensync.MobileStation.Device
+Object Path	/org/opensync/Mobilestation/Device/{FF:FF:FF:FF:FF:FF,421_428_0}
+
+Methods
+	bool IsConnected()
+		
+		Checks if the device is connected (USB) or in range (Bluetooth).
+		Returns TRUE if "connected".
+
+	string GetConnectionType()	
+		
+		Returns connection type of device:
+		"bluetooth", "usb".
+
+	string GetName()	
+
+		Returns name of device.
+
+	string GetAddress()
+
+		Returns Bluetooth Address / USB Interface number.
+
+	bool IsPaired()	
+
+		Check if the device is paired (Bluetooth).
+		If the device doesn't need any pairing, "TRUE" gots returend.
+
+Signals
+
+	void Call(string number)
+
+		Device recieves a call from "number".
+
+	void CallCancled(string number)
+
+		Call got canceled.
+
+	void RecievedMessage(string number, string message)	
+
+		Device recieved a text message ("message") from "number".
+
+	void SendMessage(string number)
+
+		Text message got send.
+
+	void SendMessageFailed(string number)
+
+		Sending message to number failed.
+
+	void MessageMemoryWarning(unit8 freememory)
+
+		Signal gets emmited when text message memory got 
+		critical full. "freememory"  
+
+	void MessageMemoryFull()
+
+		Signal gets emmited when no text message memory 
+		is left.
+
+PIM Agent hierachy
+==================
+
+Service		unique name
+Interface	org.opensync.Pim
+Object path	freely definable
+
+Methods
+
+	array{string} ListObjectTypes()
+
+		Returns list of available object types.
+
+	array{string} ListRessources()
+
+		Returns list of object pathes of registered PIM ressources.
+
+PIM Ressource Agent hierachy
+============================
+
+Service		unique name
+Interface	org.opensync.PimRessource
+Object path	freely definable
+
+Methods
+
+	string GetObjectType()
+
+		Returns object type of ressource.
+
+	string LastChange() 
+		
+		Returns formatted time stamp of last change of this ressource.
+
+	bool IsConnected()
+
+		Returns TRUE if ressource is ready for sync. FALSE if ressource
+		is offline or locked.
+
+Sync Group hiearchy
+===================
+
+Service		org.opensync
+Interface	org.opensync.SyncGroup
+Object path	/org/opensync/Sync/{group1,group2,...}
+
+Methods
+
+	void Sync()
+		Trigger a sync of this group.
+		No sync will be triggered if one of the group members
+		isn't present. See isPresent() method of SyncMember.
+
+	void SlowSync()
+
+		Trigger a slow sync of this group.
+		The slow sync will request every entry of each member
+		and mark them with change type ADDED. Every entry
+		got compared again. Note: It's called slow  sync becaus
+		this is slow...
+
+		No sync will be triggered if one of the group members
+		isn't present. See isPresent() method of SyncMember.
+
+	array{string} ListMembers()
+		
+		List of object paths of each member of this Group.
+		See org.opensync.SyncMember interface.
+
+		List of object paths of each member of this Group.
+		See org.opensync.SyncMember interface.
+
+	string AddDeviceMember(string devicepath)
+
+		Add device to OpenSync group. "devicepath" is the object
+		path of the device. Returns member path of the OpenSync
+		group.
+
+	string AddMember(string pluginname)
+
+		Add certain plugin to OpenSync group. "pluginname"
+		must be a valid pluginname which is installed.
+
+	void RemoveMember(string memberpath)
+
+		Remove certain member of this group with object path 
+		"memberpath".
+
+	string LastSynced()
+		
+		Returns formatted time stamp of last sync.
+
+Signals:
+	void StartedSync()
+	void StartedSlowSync()
+	void SyncSucceded(string objtype, int count)
+
+	void SyncFailed(string error)
+
+	void Connected(string member)
+	void ConnectFailed(string member)
+	void Disconnected(string member)
+	
+	void GettingChanges(string objtype, int count) 
+	void CommtingChanges(string objtype, int count)
+	void Conflict(string objtype, int count)
+
+	void MemberIsMissing(string member)
+	void MemberConnected(string member)
+	void GroupLocked(string member)
+
+Sync Member hiearchy
+===================
+
+Service		org.opensync
+Interface	org.opensync.SyncMember
+Object path	/org/opensync/{group1,group2,...}/{member1,member2,...}
+
+Methods
+
+	string GetDevice()
+
+		Returns object path of "managed" device.
+		See org.opensync.Device
+
+	string GetMemberName()
+		
+		Return configured member name in this group.
+
+	string GetPluginName()
+
+		Returns name of used plugin.
+
+	string GetMemberType()
+
+		Returns "device", "pim", "storage", "network"
+
+Signals:
+
+	void MissingConfiguration()
+
+		Signal gets emitted if further configuration of this
+		member are required. This means configuration in 
+		a full featured based OpenSync frontend is required.
+
