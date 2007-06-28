@@ -104,7 +104,8 @@ typedef struct SmlPluginEnv {
 
 	GList *databases;
 
-	unsigned int num;
+	int num;
+
 	GList *eventEntries;
 	unsigned int numEventEntries;
 
@@ -121,9 +122,7 @@ typedef struct SmlDatabase {
 	char *url;
 
 	osync_bool gotChanges;
-
-	unsigned int num_changes;
-	unsigned int max_changes;
+	osync_bool finalChanges; 
 
 	OSyncContext *getChangesCtx;
 	OSyncContext *commitCtx;
