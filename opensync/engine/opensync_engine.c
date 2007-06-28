@@ -1337,14 +1337,14 @@ error:
  */
 osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	osync_assert(engine);
 	
 	if (engine->state != OSYNC_ENGINE_STATE_INITIALIZED) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "This engine was not in state initialized: %i", engine->state);
 		goto error;
 	}
-	
+
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd)
 		goto error;
@@ -1380,7 +1380,7 @@ osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **
 		g_mutex_unlock(engine->syncing_mutex);
 		goto error;
 	}
-	
+
 	g_cond_wait(engine->syncing, engine->syncing_mutex);
 	g_mutex_unlock(engine->syncing_mutex);
 	
