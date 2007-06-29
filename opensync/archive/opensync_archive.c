@@ -33,7 +33,7 @@
 /**
  * @defgroup OSyncArchivePrivateAPI OpenSync Archive Internals
  * @ingroup OSyncPrivate
- * @brief The private part of the OSyncArchive
+ * @brief The private part of the OSyncArchive API
  * 
  */
 /*@{*/
@@ -48,8 +48,10 @@ void _osync_archive_trace(void *data, const char *query)
 /**
  * @defgroup OSyncArchiveAPI OpenSync Archive
  * @ingroup OSyncPublic
- * @brief The public part of the OSyncArchive
+ * @brief Functions for manipulating the archive
  * 
+ * The archive is a persistent store of all of the objects seen/handled 
+ * in a sync group. It is necessary for the merger code to work.
  */
 /*@{*/
 
@@ -235,7 +237,7 @@ void osync_archive_unref(OSyncArchive *archive)
 }
 
 /**
- * @brief Store data of an entry in the group archive database (blob).
+ * @brief Stores data of an entry in the group archive database (blob).
  *
  * @param archive The group archive
  * @param uid UID of requested entry
@@ -277,7 +279,7 @@ error:
 }
 
 /**
- * @brief Load data of an entry which is stored in the group archive database (blob).
+ * @brief Loads data of an entry which is stored in the group archive database (blob).
  *
  * @param archive The group archive
  * @param uid UID of requestd entry
@@ -320,10 +322,10 @@ error:
 }
 
 /**
- * @brief Save an entry in the group archive. 
+ * @brief Saves an entry in the group archive. 
  *
  * @param archive The group archive
- * @param id Archive (database) id of entry which gets deleted
+ * @param id Archive (database) id of entry to update (if it already exists), specify 0 to add a new entry.
  * @param uid Reported UID of entry
  * @param objtype Reported object type of entry
  * @param mappingid Mapped ID of entry 
@@ -373,13 +375,13 @@ error:
 }
 
 /**
- * @brief Delete certain entry form group archive. 
+ * @brief Deletes an entry from a group archive.
  *
  * @param archive The group archive
- * @param id Archive (database) id of entry which gets deleted
+ * @param id Archive (database) id of entry to be deleted
  * @param objtype The object type of the entry
  * @param error Pointer to an error struct
- * @return TRUE on when all changes successfully loaded otherwise FALSE
+ * @return TRUE if the specified change was deleted successfully, otherwise FALSE
  */ 
 osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, const char *objtype, OSyncError **error)
 {
@@ -407,7 +409,7 @@ error:
 }
 
 /**
- * @brief Load all changes from group archive for a certain object type.
+ * @brief Loads all changes from group archive for a certain object type.
  *
  * @param archive The group archive
  * @param objtype Requested object type 
@@ -469,12 +471,12 @@ error:
 }
 
 /**
- * @brief Load all conficting changes which got ignored in previous sync. 
+ * @brief Loads all conficting changes which were ignored in the previous sync. 
  *
  * @param archive The group archive
  * @param objtype Requested object type 
- * @param ids List unique databse entry id 
- * @param changetypes List to store changetypes for each entry
+ * @param ids List to store the archive (database) ids of each entry
+ * @param changetypes List to store the changetypes for each entry
  * @param error Pointer to an error struct
  * @return TRUE on when all changes successfully loaded otherwise FALSE
  */ 
@@ -524,7 +526,7 @@ error:
 }
 
 /**
- * @brief Save an entry in the ignored conflict list.
+ * @brief Saves an entry in the ignored conflict list.
  *
  * @param archive The group archive
  * @param objtype Reported object type of entry
@@ -561,7 +563,7 @@ error:
 }
 
 /**
- * @brief Delete all ignored conflict entries of the changelog with the objtype.
+ * @brief Deletes all ignored conflict entries of the changelog with the objtype.
  *
  * @param archive The group archive
  * @param objtype Reported object type of entry

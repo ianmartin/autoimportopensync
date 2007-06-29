@@ -27,9 +27,9 @@
 typedef enum OSyncFilterAction {
 	/** This filter should be ignored */
 	OSYNC_FILTER_IGNORE = 0,
-	/** The change should be allowed to pass (Overwrites previous action) */
+	/** The change should be allowed to pass (overrides previous action) */
 	OSYNC_FILTER_ALLOW = 1,
-	/** The change should be denied to pass (Overwrites previous action) */
+	/** The change should be prevented from passing (overrides previous action) */
 	OSYNC_FILTER_DENY = 2
 } OSyncFilterAction;
 
