@@ -2,6 +2,7 @@
  * libopensync - A synchronization framework
  * Copyright (C) 2004-2005  Armin Bauer <armin.bauer@opensync.org>
  * Copyright (C) 2006 Daniel Gollub <dgollub@suse.de>
+ * Copyright (C) 2007 Chris Frey <cdfrey@netdirect.ca>
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -890,7 +891,7 @@ int osync_time_utcoffset2sec(const char *offset) {
  * 	   XML Timezone from dstNode. 
  * 
  * @param dstNode daylight saving or standard XML information of a timezone.
- * @returns struct tm of exactly date-timestamp of the change from/to daylight saving time.
+ * @returns struct tm of exact date-timestamp of the change from/to daylight saving time, or NULL on error.
  *          (Caller is responsible for freeing!)
  */ 
 struct tm *osync_time_dstchange(xmlNode *dstNode) {
@@ -903,7 +904,7 @@ struct tm *osync_time_dstchange(xmlNode *dstNode) {
 	started = (char*) xmlNodeGetContent(current);
 	tm_started = osync_time_vtime2tm(started);
 	
-	g_free(started);
+	xmlFree(started);
 
 	current = osxml_get_node(dstNode, "RecurrenceRule");
 	current = current->children;
@@ -916,7 +917,7 @@ struct tm *osync_time_dstchange(xmlNode *dstNode) {
 		else if (strstr(rule, "BYMONTH="))
 			sscanf(rule, "BYMONTH=%d", &month);
 		
-		g_free(rule);
+		xmlFree(rule);
 
 		current = current->next;
 	}
@@ -925,8 +926,10 @@ struct tm *osync_time_dstchange(xmlNode *dstNode) {
 
 	g_free(byday);
 
-	dst_change->tm_hour = tm_started->tm_hour;
-	dst_change->tm_min = tm_started->tm_min;
+	if (dst_change != NULL) {
+		dst_change->tm_hour = tm_started->tm_hour;
+		dst_change->tm_min = tm_started->tm_min;
+	}
 
 	g_free(tm_started);
 
@@ -976,7 +979,7 @@ osync_bool osync_time_isdst(const char *vtime, xmlNode *tzid) {
 	return TRUE; 
 }
 
-/*! @brief Functions returns the current UTC offset of the given vtime and interprets
+/*! @brief Function returns the current UTC offset of the given vtime and interprets
  * 	   the Timezone XML information tz.
  * 
  * @param vtime Timestamp of given Timezone information
@@ -1003,7 +1006,7 @@ int osync_time_tzoffset(const char *vtime, xmlNode *tz) {
 	return seconds;
 }
 
-/*! @brief Functions returns the Timezone id of the Timezone information XML.
+/*! @brief Function returns the Timezone id of the Timezone information XML.
  * 
  * @param tz Timezone information in XML 
  * @returns Timezone ID (Caller is responsible for freeing!) 
@@ -1024,6 +1027,8 @@ char *osync_time_tzid(xmlNode *tz) {
  * @param tz Timezone information in XML 
  * @returns Timezone location (Caller is responsible for freeing!) 
  */ 
+/*
+No longer exists in schema
 char *osync_time_tzlocation(xmlNode *tz) {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, tz);
 
@@ -1034,6 +1039,7 @@ char *osync_time_tzlocation(xmlNode *tz) {
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, location);
 	return location;
 }
+*/
 
 /*! @brief Function search for the matching Timezode node of tzid. 
  * 
@@ -1068,16 +1074,16 @@ xmlNode *osync_time_tzinfo(xmlNode *root, const char *tzid) {
 		tzinfo_tzid = osync_time_tzid(tz);
 
 		if (!tzinfo_tzid) {
-			g_free(tzinfo_tzid);
 			tz = NULL;
 			continue;
 		}
 
-		if (!strcmp(tzinfo_tzid, tzid))
+		if (!strcmp(tzinfo_tzid, tzid)) {
+			g_free(tzinfo_tzid);
 			break;
+		}
+		g_free(tzinfo_tzid);
 	}
-
-	g_free(tzinfo_tzid);
 
 	if (!tz)
 		goto noresult;
@@ -1091,7 +1097,7 @@ noresult:
 	return NULL;
 }
 
-/*! @brief Functions converts a field with localtime with timezone information to UTC timestamp.  
+/*! @brief Function converts a field with localtime with timezone information to UTC timestamp.  
  * 
  * @param root XML of entry 
  * @param field Name of field node with timestamp and timezone information 
