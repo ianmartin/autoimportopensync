@@ -152,11 +152,11 @@ osync_bool osync_engine_wait_sync_end(OSyncEngine *engine, OSyncError **error);
 osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
 osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *member, OSyncError **error);
 
-void osync_engine_pause(OSyncEngine *engine);
-void osync_engine_abort(OSyncEngine *engine);
+//void osync_engine_pause(OSyncEngine *engine);
+//void osync_engine_abort(OSyncEngine *engine);
 
-void osync_engine_one_iteration(OSyncEngine *engine);
-void osync_engine_flag_manual(OSyncEngine *engine);
+//void osync_engine_one_iteration(OSyncEngine *engine);
+//void osync_engine_flag_manual(OSyncEngine *engine);
 
 typedef struct OSyncMappingEngine OSyncMappingEngine;
 
