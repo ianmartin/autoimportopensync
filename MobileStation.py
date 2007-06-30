@@ -40,11 +40,14 @@ class SyncMember(dbus.service.Object):
 
 	return self.plugin_name
 
+    @dbus.service.method("org.opensync.SyncMember", in_signature='', out_signature='s')
+    def GetMemberType(self):
+	return self.member.get_type
+
 class SyncGroup(dbus.service.Object):
 
-    syncMembers = []
-
     def __init__(self, bus_name, group, group_id):
+	self.syncMembers = []
 	self.group = group
 	self.group_id = group_id
         dbus.service.Object.__init__(self, bus_name, str("/org/opensync/group%i/Manager" % group_id))
@@ -58,22 +61,48 @@ class SyncGroup(dbus.service.Object):
 	    self.syncMembers.append(syncMember._object_path)
 
     def EngineStatusCallback(self, status):
-"""	    
-	if opensync.ENGINE_COMMAND_SYNC_DONE == status:
-		self.engine.finalize()
-"""
+	if opensync.ENGINE_EVENT_CONNECTED == status:
+		print "[SyncGroup: %s] Engine connected the clients." % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_ERROR == status:
+		print "[SyncGroup: %s] Engine got an error: (TODO)" % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_READ == status:
+		print "[SyncGroup: %s] Engine read all changes" % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_WRITTEN == status:
+		print "[SyncGroup: %s] Engine commited all changes" % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_SYNC_DONE == status:
+		print "[SyncGroup: %s] Synchronization is done." % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_DISCONNECTED == status:
+		print "[SyncGroup: %s] Engine disconnected the clients." % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_SUCCESSFUL == status:
+		print "[SyncGroup: %s] Synchronization was successfully." % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_END_CONFLICTS == status:
+		print "[SyncGroup: %s] Engine solved all conflicts." % self.group.get_name()
+
+	if opensync.ENGINE_EVENT_PREV_UNCLEAN == status:
+		print "[SyncGroup: %s] Previous synchronization was unclean! Triggering SlowSync." % self.group.get_name()
+
 
     @dbus.service.method("org.opensync.SyncGroup", in_signature='', out_signature='')
     def Sync(self):
-"""
+	print "[SyncGroup: %s] Sync got triggered." % self.group.get_name()
+
 	self.engine = opensync.Engine(self.group)
 	self.engine.initialize()
 
 	self.engine.set_enginestatus_callback(self.EngineStatusCallback)
 
-	self.engine.synchronize()
-"""
+	# TODO: implementent the callbacks in a correct way... blocking is evil.
+	#self.engine.synchronize()
 
+	self.engine.synchronize_and_block()
+	self.engine.finalize()
 
     @dbus.service.method("org.opensync.SyncGroup", in_signature='', out_signature='as')
     def ListMembers(self):
