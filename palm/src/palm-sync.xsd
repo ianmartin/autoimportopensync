@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema elementFormDefault="qualified" version="1.0" xmlns:os="http://opensync.org/Schema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:import namespace="http://opensync.org/Schema" schemaLocation="os.xsd"/>
+  <xsd:complexType name="PalmConfigType">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginConfigurationType">
+        <xsd:sequence>
+          <xsd:element default="usb:" name="sockaddr" type="os:String"/>
+          <xsd:element name="username" type="os:String"/>
+          <xsd:element default="0" name="timeout" type="os:Numeric"/>
+          <xsd:element default="0" name="type" type="os:Numeric"/>
+          <xsd:element default="57600" name="speed" type="os:Numeric"/>
+          <xsd:element default="0" name="id" type="os:String"/>
+          <xsd:element name="storebase" type="os:String"/>
+          <xsd:element default="cp1252" name="codepage" type="os:String"/>
+          <xsd:element default="1" name="popup" type="os:Boolean"/>
+          <xsd:element default="1" name="mismatch" type="os:Boolean"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:complexType name="Plugin">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginType">
+        <xsd:sequence>
+          <xsd:element name="config" type="PalmConfigType"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+</xsd:schema>

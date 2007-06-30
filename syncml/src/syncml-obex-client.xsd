@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema elementFormDefault="qualified" version="1.0" xmlns:os="http://opensync.org/Schema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:import namespace="http://opensync.org/Schema" schemaLocation="os.xsd"/>
+  <xsd:complexType name="SyncmlHTTPServerConfig">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginConfiguration">
+        <xsd:sequence>
+          <xsd:element name="bluetooth_address" type="os:String"/>
+          <xsd:element name="bluetooth_channel" type="os:Numeric"/>
+          <xsd:element default="0" name="interface" type="os:Numeric"/>
+          <xsd:element name="identifier" type="os:String"/>
+          <xsd:element default="1" name="version" type="os:Numeric"/>
+          <xsd:element default="0" name="wbxml" type="os:Boolean"/>
+          <xsd:element name="username" type="os:String"/>
+          <xsd:element name="password" type="os:Password"/>
+          <xsd:element default="2" name="type" type="os:Enumeration"/>
+          <xsd:element default="0" name="usestringtable" type="os:Boolean"/>
+          <xsd:element default="0" name="onlyreplace" type="os:Boolean"/>
+          <xsd:element default="0" name="onlyLocaltime" type="os:Boolean"/>
+          <xsd:element default="0" name="recvLimit" type="os:Numeric"/>
+          <xsd:element default="0" name="maxObjSize" type="os:Numeric"/>
+          <xsd:element default="Contacts" name="contact_db" type="os:String"/>
+          <xsd:element default="Calendar" name="calendar_db" type="os:String"/>
+          <xsd:element default="Notes" name="note_db" type="os:String"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:complexType name="Plugin">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginType">
+        <xsd:sequence>
+          <xsd:element name="config" type="SyncmlHTTPServerConfig"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+</xsd:schema>

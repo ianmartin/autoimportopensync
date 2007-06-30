@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema elementFormDefault="qualified" version="1.0" xmlns:os="http://opensync.org/Schema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:import namespace="http://opensync.org/Schema" schemaLocation="temp.xsd"/>
+  <xsd:complexType name="SyncmlHTTPServerConfig">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginConfiguration">
+        <xsd:sequence>
+          <xsd:element name="username" type="os:String"/>
+          <xsd:element name="password" type="os:Password"/>
+          <xsd:element name="url" type="os:String"/>
+          <xsd:element default="0" name="usestringtable" type="os:Boolean"/>
+          <xsd:element default="0" name="onlyreplace" type="os:Boolean"/>
+          <xsd:element default="0" name="onlyLocaltime" type="os:Boolean"/>
+          <xsd:element default="0" name="recvLimit" type="os:Numeric"/>
+          <xsd:element default="0" name="maxObjSize" type="os:Numeric"/>
+          <xsd:element default="contacts" name="contact_db" type="os:String"/>
+          <xsd:element default="calendar" name="calendar_db" type="os:String"/>
+          <xsd:element default="notes" name="note_db" type="os:String"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:complexType name="Plugin">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginType">
+        <xsd:sequence>
+          <xsd:element name="config" type="SyncmlHTTPServerConfig"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+</xsd:schema>

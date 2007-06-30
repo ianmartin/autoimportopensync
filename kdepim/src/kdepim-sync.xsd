@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xsd:schema elementFormDefault="qualified" version="1.0" xmlns:os="http://opensync.org/Schema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:import namespace="http://opensync.org/Schema" schemaLocation="os.xsd"/>
+  <xsd:complexType name="Plugin">
+    <xsd:complexContent>
+      <xsd:extension base="os:PluginType">
+        <xsd:sequence>
+          <xsd:element name="config" type="os:PluginConfigurationType"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+</xsd:schema>
