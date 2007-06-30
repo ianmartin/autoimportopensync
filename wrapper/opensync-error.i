@@ -55,7 +55,10 @@ typedef struct {} Error;
 	}
 
 	Error *get_child() {
-		return osync_error_get_child(&self);
+		Error *ret = osync_error_get_child(&self);
+		if (ret)
+			osync_error_ref(&ret);
+		return ret;
 	}
 
 %pythoncode %{

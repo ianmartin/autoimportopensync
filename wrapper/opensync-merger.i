@@ -97,7 +97,7 @@ typedef struct {} Capabilities;
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
-			return caps;
+			return caps; /* new object, no need to inc ref */
 	}
 
 	static Capabilities *capabilities_load(const char *file) {
@@ -106,7 +106,7 @@ typedef struct {} Capabilities;
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
-			return caps;
+			return caps; /* new object, no need to inc ref */
 	}
 
 	static Capabilities *capabilities_member_get_capabilities(Member *member) {
@@ -114,8 +114,11 @@ typedef struct {} Capabilities;
 		Capabilities *ret = osync_capabilities_member_get_capabilities(member, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
-		else
+		else {
+			if (ret)
+				osync_capabilities_ref(ret);
 			return ret;
+		}
 	}
 
 	static void capabilities_member_set_capabilities(Member *member, Capabilities *caps) {

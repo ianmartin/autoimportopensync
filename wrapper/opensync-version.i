@@ -95,6 +95,8 @@ typedef struct {} Version;
 		Capabilities *ret = osync_version_find_capabilities(self, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_version_find_capabilities failed but did not set error");
+		if (ret)
+			osync_capabilities_ref(ret);
 		return ret;
 	}
 

@@ -21,7 +21,10 @@ typedef struct {} GroupEnv;
 	}
 
 	Group *find_group(const char *name) {
-		return osync_group_env_find_group(self, name);
+		Group *group = osync_group_env_find_group(self, name);
+		if (group)
+			osync_group_ref(group);
+		return group;
 	}
 
 	void add_group(Group *group) {
@@ -37,7 +40,10 @@ typedef struct {} GroupEnv;
 	}
 
 	Group *nth_group(int nth) {
-		return osync_group_env_nth_group(self, nth);
+		Group *group = osync_group_env_nth_group(self, nth);
+		if (group)
+			osync_group_ref(group);
+		return group;
 	}
 
 %pythoncode %{
@@ -125,11 +131,17 @@ typedef struct {} Group;
 	}
 
 	Member *find_member(int id) {
-		return osync_group_find_member(self, id);
+		Member *member = osync_group_find_member(self, id);
+		if (member)
+			osync_member_ref(member);
+        return member;
 	}
 
 	Member *nth_member(int nth) {
-		return osync_group_nth_member(self, nth);
+		Member *member = osync_group_nth_member(self, nth);
+		if (member)
+			osync_member_ref(member);
+        return member;
 	}
 
 	int num_members() {
@@ -173,7 +185,10 @@ typedef struct {} Group;
 	}
 
 	Filter *nth_filter(int nth) {
-		return osync_group_nth_filter(self, nth);
+		Filter *filter = osync_group_nth_filter(self, nth);
+		if (filter)
+			osync_filter_ref(filter);
+		return filter;
 	}
 
 	void set_last_synchronization(time_t last_sync) {
@@ -223,7 +238,7 @@ typedef struct {} Member;
 		else
 			return member;
 	}
-	
+
 	~Member() {
 		osync_member_unref(self);
 	}
@@ -338,7 +353,10 @@ typedef struct {} Member;
 	}
 
 	Capabilities *get_capabilities() {
-		return osync_member_get_capabilities(self);
+		Capabilities *caps = osync_member_get_capabilities(self);
+		if (caps)
+			osync_capabilities_ref(caps);
+		return caps;
 	}
 
 	void set_capabilities(Capabilities *capabilities) {
@@ -349,7 +367,10 @@ typedef struct {} Member;
 	}
 
 	Merger *get_merger() {
-		return osync_member_get_merger(self);
+		Merger *merger = osync_member_get_merger(self);
+		if (merger)
+			osync_merger_ref(merger);
+		return merger;
 	}
 
 	void flush_objtypes() {

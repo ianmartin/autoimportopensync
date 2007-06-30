@@ -108,7 +108,7 @@ typedef struct {} PluginEnv;
 	~PluginEnv() {
 		osync_plugin_env_free(self);
 	}
-	
+
 	void load(const char *path) {
 		Error *err = NULL;
 		bool ret = osync_plugin_env_load(self, path, &err);
@@ -119,7 +119,7 @@ typedef struct {} PluginEnv;
 	void register_plugin(Plugin *plugin) {
 		osync_plugin_env_register_plugin(self, plugin);
 	}
-	
+
 	void load_module(const char *filename) {
 		Error *err = NULL;
 		bool ret = osync_plugin_env_load_module(self, filename, &err);
@@ -128,15 +128,21 @@ typedef struct {} PluginEnv;
 	}
 
 	Plugin *find_plugin(const char *name) {
-		return osync_plugin_env_find_plugin(self, name);
+		Plugin *plugin = osync_plugin_env_find_plugin(self, name);
+		if (plugin)
+			osync_plugin_ref(plugin);
+		return plugin;
 	}
-	
+
 	int num_plugins() {
 		return osync_plugin_env_num_plugins(self);
 	}
 
 	Plugin *nth_plugin(int nth) {
-		return osync_plugin_env_nth_plugin(self, nth);
+		Plugin *plugin = osync_plugin_env_nth_plugin(self, nth);
+		if (plugin)
+			osync_plugin_ref(plugin);
+		return plugin;
 	}
 
 	bool plugin_is_usable(const char *pluginname) {
@@ -215,11 +221,17 @@ typedef struct {} PluginInfo;
 	}
 
 	ObjTypeSink *nth_objtype(int nth) {
-		return osync_plugin_info_nth_objtype(self, nth);
+		ObjTypeSink *ret = osync_plugin_info_nth_objtype(self, nth);
+		if (ret)
+			osync_objtype_sink_ref(ret);
+		return ret;
 	}
 
 	ObjTypeSink *get_main_sink() {
-		return osync_plugin_info_get_main_sink(self);
+		ObjTypeSink *ret = osync_plugin_info_get_main_sink(self);
+		if (ret)
+			osync_objtype_sink_ref(ret);
+		return ret;
 	}
 
 	void set_main_sink(ObjTypeSink *sink) {
@@ -235,7 +247,10 @@ typedef struct {} PluginInfo;
 	}
 
 	ObjTypeSink *get_sink() {
-		return osync_plugin_info_get_sink(self);
+		ObjTypeSink *ret = osync_plugin_info_get_sink(self);
+		if (ret)
+			osync_objtype_sink_ref(ret);
+		return ret;
 	}
 
 	void set_sink(ObjTypeSink *sink) {
@@ -255,7 +270,10 @@ typedef struct {} PluginInfo;
 	}
 
 	Version *get_version() {
-		return osync_plugin_info_get_version(self);
+		Version *ret = osync_plugin_info_get_version(self);
+		if (ret)
+			osync_version_ref(ret);
+		return ret;
 	}
 
 	void set_capabilities(Capabilities *capabilities) {
@@ -263,7 +281,10 @@ typedef struct {} PluginInfo;
 	}
 
 	Capabilities *get_capabilities() {
-		return osync_plugin_info_get_capabilities(self);
+		Capabilities *ret = osync_plugin_info_get_capabilities(self);
+		if (ret)
+			osync_capabilities_ref(ret);
+		return ret;
 	}
 
 %pythoncode %{
@@ -289,7 +310,7 @@ typedef struct {} PluginInfo;
 typedef struct {} ObjTypeSink;
 %extend ObjTypeSink {
 	/* create new sink object
-	 * when using the python-module plugin, the second argument is 
+	 * when using the python-module plugin, the second argument is
 	 * the python object that will get callbacks for this sink */
 	ObjTypeSink(const char *objtype, PyObject *callback_obj = NULL) {
 		Error *err = NULL;
@@ -450,10 +471,10 @@ class ObjTypeSinkCallbacks:
 
 	def get_changes(self, info, ctx):
 		pass
-	
+
 	def commit(self, info, ctx, chg):
 		pass
-	
+
 	def committed_all(self, info, ctx):
 		pass
 
@@ -462,7 +483,7 @@ class ObjTypeSinkCallbacks:
 
 	def write(self, info, ctx, chg):
 		pass
-	
+
 	def disconnect(self, info, ctx):
 		pass
 

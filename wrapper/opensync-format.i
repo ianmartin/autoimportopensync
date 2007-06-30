@@ -17,11 +17,17 @@ typedef struct {} FormatConverter;
 	}
 
 	ObjFormat *get_sourceformat() {
-		return osync_converter_get_sourceformat(self);
+		ObjFormat *ret = osync_converter_get_sourceformat(self);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	ObjFormat *get_targetformat() {
-		return osync_converter_get_targetformat(self);
+		ObjFormat *ret = osync_converter_get_targetformat(self);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	ConverterType get_type() {
@@ -29,7 +35,10 @@ typedef struct {} FormatConverter;
 	}
 
 	ObjFormat *detect(Data *data) {
-		return osync_converter_detect(self, data);
+		ObjFormat *ret = osync_converter_detect(self, data);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	void invoke(Data *data, const char *config) {
@@ -75,7 +84,10 @@ typedef struct {} FormatConverterPath;
 	}
 
 	FormatConverter *nth_edge(unsigned int nth) {
-		return osync_converter_path_nth_edge(self, nth);
+		FormatConverter *ret = osync_converter_path_nth_edge(self, nth);
+		if (ret)
+			osync_converter_ref(ret);
+		return ret;
 	}
 
 	const char *get_config() {
@@ -164,7 +176,10 @@ typedef struct {} FormatEnv;
 	}
 
 	ObjFormat *find_objformat(const char *name) {
-		return osync_format_env_find_objformat(self, name);
+		ObjFormat *ret = osync_format_env_find_objformat(self, name);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	int num_objformats() {
@@ -172,7 +187,10 @@ typedef struct {} FormatEnv;
 	}
 
 	ObjFormat *nth_objformat(int nth) {
-		return osync_format_env_nth_objformat(self, nth);
+		ObjFormat *ret = osync_format_env_nth_objformat(self, nth);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	void register_converter(FormatConverter *converter) {
@@ -180,7 +198,10 @@ typedef struct {} FormatEnv;
 	}
 
 	FormatConverter *find_converter(ObjFormat *sourceformat, ObjFormat *targetformat) {
-		return osync_format_env_find_converter(self, sourceformat, targetformat);
+		FormatConverter *ret = osync_format_env_find_converter(self, sourceformat, targetformat);
+		if (ret)
+			osync_converter_ref(ret);
+		return ret;
 	}
 
 	int num_converters() {
@@ -188,7 +209,10 @@ typedef struct {} FormatEnv;
 	}
 
 	FormatConverter *nth_converter(int nth) {
-		return osync_format_env_nth_converter(self, nth);
+		FormatConverter *ret = osync_format_env_nth_converter(self, nth);
+		if (ret)
+			osync_converter_ref(ret);
+		return ret;
 	}
 
 	void register_filter(CustomFilter *filter) {
@@ -200,11 +224,17 @@ typedef struct {} FormatEnv;
 	}
 
 	CustomFilter *nth_filter(int nth) {
-		return osync_format_env_nth_filter(self, nth);
+		CustomFilter *ret = osync_format_env_nth_filter(self, nth);
+		if (ret)
+			osync_custom_filter_ref(ret);
+		return ret;
 	}
 
 	ObjFormat *detect_objformat(Data *data) {
-		return osync_format_env_detect_objformat(self, data);
+		ObjFormat *ret = osync_format_env_detect_objformat(self, data);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	ObjFormat *detect_objformat_full(Data *input) {
@@ -212,6 +242,8 @@ typedef struct {} FormatEnv;
 		ObjFormat *ret = osync_format_env_detect_objformat_full(self, input, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_detect_objformat_full failed but did not set error code");
+		if (ret)
+			osync_objformat_ref(ret);
 		return ret;
 	}
 
@@ -227,6 +259,8 @@ typedef struct {} FormatEnv;
 		FormatConverterPath *ret = osync_format_env_find_path(self, sourceformat, targetformat, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_find_path failed but did not set error code");
+		if (ret)
+			osync_converter_path_ref(ret);
 		return ret;
 	}
 
@@ -251,6 +285,8 @@ typedef struct {} FormatEnv;
 		FormatConverterPath *ret = osync_format_env_find_path_formats(self, sourceformat, real_targets, &err);
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_format_env_find_path_formats failed but did not set error code");
+		if (ret)
+			osync_converter_path_ref(ret);
 		return ret;
 	}
 

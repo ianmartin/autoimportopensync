@@ -30,7 +30,10 @@ typedef struct {} Data;
 	}
 
 	ObjFormat *get_objformat() {
-		return osync_data_get_objformat(self);
+		ObjFormat *ret = osync_data_get_objformat(self);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	void set_objformat(ObjFormat *objformat) {
@@ -70,7 +73,7 @@ typedef struct {} Data;
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
-			return data;
+			return data; /* new object, no need to inc ref */
 	}
 
 	ConvCmpResult compare(Data *data) {
@@ -133,7 +136,7 @@ typedef struct {} Change;
 	void set_hash(const char *hash) {
 		osync_change_set_hash(self, hash);
 	}
-	
+
 	const char *get_hash() {
 		return osync_change_get_hash(self);
 	}
@@ -141,15 +144,15 @@ typedef struct {} Change;
 	void set_uid(const char *uid) {
 		osync_change_set_uid(self, uid);
 	}
-	
+
 	const char *get_uid() {
 		return osync_change_get_uid(self);
 	}
-	
+
 	void set_changetype(ChangeType changetype) {
 		osync_change_set_changetype(self, changetype);
 	}
-	
+
 	ChangeType get_changetype() {
 		return osync_change_get_changetype(self);
 	}
@@ -176,17 +179,20 @@ typedef struct {} Change;
 	}
 
 	ObjFormat *get_objformat() {
-		return osync_change_get_objformat(self);
+		ObjFormat *ret = osync_change_get_objformat(self);
+		if (ret)
+			osync_objformat_ref(ret);
+		return ret;
 	}
 
 	void set_objtype(const char *objtype) {
 		osync_change_set_objtype(self, objtype);
 	}
-	
+
 	const char *get_objtype() {
 		return osync_change_get_objtype(self);
 	}
-	
+
 %pythoncode %{
 	hash = property(get_hash, set_hash)
 	uid = property(get_uid, set_uid)
