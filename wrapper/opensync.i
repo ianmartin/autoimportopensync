@@ -6,6 +6,7 @@
 #include <opensync/opensync.h>
 #include <opensync/opensync-context.h>
 #include <opensync/opensync-data.h>
+#include <opensync/opensync-engine.h>
 #include <opensync/opensync-error.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync-group.h>
@@ -25,6 +26,8 @@ typedef OSyncContext Context;
 typedef OSyncConvCmpResult ConvCmpResult;
 typedef OSyncCustomFilter CustomFilter;
 typedef OSyncData Data;
+typedef OSyncEngine Engine;
+typedef OSyncEngineEvent EngineEvent;
 typedef OSyncError Error;
 typedef OSyncErrorType ErrorType;
 typedef OSyncFilterAction FilterAction;
@@ -96,8 +99,10 @@ static PyObject *osynclist_to_pylist(const OSyncList *elt, swig_type_info *type)
 }
 
 %include "opensync-error.i"
+
 %include "opensync-context.i"
 %include "opensync-data.i"
+%include "opensync-engine.i"
 %include "opensync-format.i"
 %include "opensync-group.i"
 %include "opensync-helper.i"
