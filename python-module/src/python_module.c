@@ -35,7 +35,6 @@
 #define PYERR_CLEAR() PyErr_Print()
 
 typedef struct MemberData {
-	PyThreadState *interp_thread;
 	PyObject *osync_module;
 	PyObject *module;
 	GSList *sinks;
@@ -169,7 +168,7 @@ static osync_bool pm_call_module_method(MemberData *data, char *name, OSyncPlugi
 	OSyncError *error = NULL;
 	osync_bool report_error = TRUE;
 
-	PyEval_AcquireThread(data->interp_thread);
+	PyGILState_STATE pystate = PyGILState_Ensure();
 
 	PyObject *pyinfo = pm_make_info(data->osync_module, info, &error);
 	if (!pyinfo)
@@ -204,7 +203,7 @@ static osync_bool pm_call_module_method(MemberData *data, char *name, OSyncPlugi
 	if (ret) {
 		Py_DECREF(pycontext);
 		Py_DECREF(ret);
-		PyEval_ReleaseThread(data->interp_thread);
+		PyGILState_Release(pystate);
 		osync_context_report_success(ctx);
 		osync_trace(TRACE_EXIT, "%s", __func__);
 		return TRUE;
@@ -259,7 +258,7 @@ out:
 	Py_XDECREF(osyncerror);
 
 error:
-	PyEval_ReleaseThread(data->interp_thread);
+	PyGILState_Release(pystate);
 	if (report_error)
 		osync_context_report_osyncerror(ctx, error);
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
@@ -332,13 +331,7 @@ static void *pm_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErro
 		return NULL;
 	osync_plugin_set_data(plugin, NULL);
 
-	data->interp_thread = Py_NewInterpreter();
-	if (!data->interp_thread) {
-		PYERR_CLEAR();
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't initialize python sub interpreter");
-		free(modulename);
-		goto error;
-	}
+	PyGILState_STATE pystate = PyGILState_Ensure();
 
 	if (!(data->module = PyImport_ImportModule(modulename))) {
 		PYERR_CLEAR();
@@ -375,15 +368,13 @@ static void *pm_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErro
 		data->sinks = g_slist_prepend(data->sinks, sinkobj);
 	}
 
-	PyEval_ReleaseThread(data->interp_thread);
-
+	PyGILState_Release(pystate);
 	return data;
 
 error:
 	Py_XDECREF(data->module);
 	Py_XDECREF(data->osync_module);
-	if (data->interp_thread)
-		Py_EndInterpreter(data->interp_thread);
+	PyGILState_Release(pystate);
 	free(data);
 	return NULL;
 }
@@ -392,7 +383,7 @@ static osync_bool pm_discover(void *data_in, OSyncPluginInfo *info, OSyncError *
 {
 	MemberData *data = data_in;
 
-	PyEval_AcquireThread(data->interp_thread);
+	PyGILState_STATE pystate = PyGILState_Ensure();
 
 	PyObject *pyinfo = pm_make_info(data->osync_module, info, error);
 	if (!pyinfo)
@@ -404,13 +395,13 @@ static osync_bool pm_discover(void *data_in, OSyncPluginInfo *info, OSyncError *
 		goto error;
 
 	Py_DECREF(ret);
-	PyEval_ReleaseThread(data->interp_thread);
+	PyGILState_Release(pystate);
 	return TRUE;
 
 error:
 	osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't call discover method");
 	PYERR_CLEAR();
-	PyEval_ReleaseThread(data->interp_thread);
+	PyGILState_Release(pystate);
 	return FALSE;
 }
 
@@ -418,7 +409,7 @@ static void pm_finalize(void *data)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 	MemberData *mydata = data;
-	PyEval_AcquireThread(mydata->interp_thread);
+	PyGILState_STATE pystate = PyGILState_Ensure();
 
 	/* free all sink objects */
 	while (mydata->sinks) {
@@ -428,8 +419,8 @@ static void pm_finalize(void *data)
 
 	Py_DECREF(mydata->module);
 	Py_DECREF(mydata->osync_module);
-	Py_EndInterpreter(mydata->interp_thread);
 	free(mydata);
+	PyGILState_Release(pystate);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -527,6 +518,66 @@ static osync_bool scan_for_plugins(OSyncPluginEnv *env, PyObject *osync_module, 
 	return TRUE;
 }
 
+/* set python search path to look in our module directory first */
+static osync_bool set_search_path(OSyncError **error)
+{
+	PyObject *sys_module = PyImport_ImportModule("sys");
+	if (!sys_module) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't import sys module");
+		PYERR_CLEAR();
+		return FALSE;
+	}
+	
+	PyObject *path = PyObject_GetAttrString(sys_module, "path");
+	if (!path) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "sys module has no path attribute?");
+		PYERR_CLEAR();
+		Py_DECREF(sys_module);
+		return FALSE;
+	}
+	
+	if (!PyList_Check(path)) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "sys.path is not a list?");
+		Py_DECREF(sys_module);
+		Py_DECREF(path);
+		return FALSE;
+	}
+	
+	PyObject *plugindir = Py_BuildValue("s", OPENSYNC_PYTHONPLG_DIR);
+	if (!plugindir) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error constructing plugindir string for sys.path");
+		PYERR_CLEAR();
+		Py_DECREF(sys_module);
+		Py_DECREF(path);
+		return FALSE;
+	}
+	
+	int r = PySequence_Contains(path, plugindir);
+	if (r < 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error checking for 'plugindir in sys.path'");
+		PYERR_CLEAR();
+		Py_DECREF(sys_module);
+		Py_DECREF(path);
+		Py_DECREF(plugindir);
+		return FALSE;
+	}
+	
+	if (r == 0 && PyList_Insert(path, 0, plugindir) != 0) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Error inserting plugin directory into sys.path");
+		PYERR_CLEAR();
+		Py_DECREF(sys_module);
+		Py_DECREF(path);
+		Py_DECREF(plugindir);
+		return FALSE;
+	}
+	
+	Py_DECREF(sys_module);
+	Py_DECREF(path);
+	Py_DECREF(plugindir);
+
+	return TRUE;
+}
+
 osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
 	/* OpenSync likes to call this function multiple times.
@@ -535,34 +586,34 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	 *  * make sure we save and re-acquire the main thread before making any python API calls
 	 */
 
-	static PyThreadState *mainthread;
-
-	if (!Py_IsInitialized() || !PyEval_ThreadsInitialized()) {
-		/* set python search path to look in our module directory first */
-		char *pypath = g_build_path(":", OPENSYNC_PYTHONPLG_DIR, getenv("PYTHONPATH"), NULL);
-		if (pypath == NULL || setenv("PYTHONPATH", pypath, 1) != 0) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't set PYTHONPATH");
-			return FALSE;
-		}
-		g_free(pypath);
-
-		/* init python */
+	if (!Py_IsInitialized()) {
+		/* we're the first user of python in this process */
 		Py_InitializeEx(0);
 		PyEval_InitThreads();
-		mainthread = PyThreadState_Get();
-	} else {
-		PyEval_AcquireThread(mainthread);
+	} else if (!PyEval_ThreadsInitialized()) {
+		/* The python interpreter has been initialised, but threads are not
+		 * I'm going to assume we're the only thread and continue, but this
+		 * is possibly unsafe! */
+		PyEval_InitThreads();
 	}
+
+	PyGILState_STATE pystate = PyGILState_Ensure();
+	osync_bool ret = FALSE;
+
+	if (!set_search_path(error))
+		goto out;
 
 	/* import opensync module */
 	PyObject *osync_module = pm_load_opensync(error); 
 	if (!osync_module)
-		return FALSE;
+		goto out;
 
-	osync_bool ret = scan_for_plugins(env, osync_module, error);
+	ret = scan_for_plugins(env, osync_module, error);
 	Py_DECREF(osync_module);
 
-	PyEval_ReleaseThread(mainthread);
+out:
+	PyGILState_Release(pystate);
+
 	return ret;
 }
 
