@@ -30,15 +30,10 @@ class SyncMember(dbus.service.Object):
     def __init__(self, bus_name, group_id, member, member_id):
         dbus.service.Object.__init__(self, bus_name, str("/org/opensync/group%i/member%i" % (group_id, member_id)))
 	self.member = member
-	# FIXME: Copy the PluginName since the member object got lost... 
-	self.plugin_name = member.get_pluginname()		    
-	#print self.member.get_pluginname()		    
 
     @dbus.service.method("org.opensync.SyncMember", in_signature='', out_signature='s')
     def GetPluginName(self):
-	#print self.member.get_pluginname() # This triggers a reference problem in the opensync bindings
-
-	return self.plugin_name
+	return self.member.get_pluginname()
 
     @dbus.service.method("org.opensync.SyncMember", in_signature='', out_signature='s')
     def GetMemberType(self):
@@ -52,11 +47,8 @@ class SyncGroup(dbus.service.Object):
 	self.group_id = group_id
         dbus.service.Object.__init__(self, bus_name, str("/org/opensync/group%i/Manager" % group_id))
 
-	num_member = self.group.num_members
-	i = 0 
-	while i < num_member:
+	for i in range(self.group.num_members):
 	    member = group.nth_member(i)
-	    i += 1
 	    syncMember = SyncMember(bus_name, group_id, member, i)
 	    self.syncMembers.append(syncMember._object_path)
 
@@ -137,7 +129,7 @@ class MobileStationDevice(dbus.service.Object):
 
     @dbus.service.method("org.opensync.MobileStation.Device", in_signature='', out_signature='b')
     def IsPaired(self):
-	if selft.type != "bluetooth":
+	if self.type != "bluetooth":
 		return True 
 	""" TODO: request bonding status via BlueZ of the default adapter """
 	return False
@@ -155,11 +147,8 @@ class MobileStationManager(dbus.service.Object):
 	""" Load all local OpenSync groups """
 	group_env = opensync.GroupEnv()
 	group_env.load_groups(None)
-	num_group = group_env.num_groups
-	i = 0
-	while i < num_group:
+	for i in range(group_env.num_groups):
 	    group = group_env.nth_group(i)
-	    i += 1
 	    syncGroup = SyncGroup(bus_name, group, i)
 	    self.syncGroups.append(syncGroup._object_path)
 
