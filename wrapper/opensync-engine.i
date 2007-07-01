@@ -104,6 +104,7 @@ typedef struct {} Engine;
 	void initialize() {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_initialize(self, &err);
 		Py_END_ALLOW_THREADS
@@ -114,6 +115,7 @@ typedef struct {} Engine;
 	void finalize() {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_finalize(self, &err);
 		Py_END_ALLOW_THREADS
@@ -124,6 +126,7 @@ typedef struct {} Engine;
 	void synchronize() {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_synchronize(self, &err);
 		Py_END_ALLOW_THREADS
@@ -134,6 +137,7 @@ typedef struct {} Engine;
 	void synchronize_and_block() {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_synchronize_and_block(self, &err);
 		Py_END_ALLOW_THREADS
@@ -144,6 +148,7 @@ typedef struct {} Engine;
 	void wait_sync_end() {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_wait_sync_end(self, &err);
 		Py_END_ALLOW_THREADS
@@ -154,6 +159,7 @@ typedef struct {} Engine;
 	void discover(Member *member) {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_discover(self, member, &err);
 		Py_END_ALLOW_THREADS
@@ -164,6 +170,7 @@ typedef struct {} Engine;
 	void discover_and_block(Member *member) {
 		Error *err = NULL;
 		bool ret;
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		ret = osync_engine_discover_and_block(self, member, &err);
 		Py_END_ALLOW_THREADS
@@ -172,19 +179,13 @@ typedef struct {} Engine;
 	}
 
 	%{
-		struct cb_clientdata {
-			PyObject *func;
-			PyThreadState *thread;
-		};
-
 		static void enginestatus_cb_wrapper(OSyncEngineUpdate *arg, void *clientdata) {
-			struct cb_clientdata *data = clientdata;
+			PyGILState_STATE pystate = PyGILState_Ensure();
 
-			PyEval_AcquireThread(data->thread);
-
+			PyObject *pyfunc = clientdata;
 			PyObject *errobj = SWIG_NewPointerObj(arg->error, SWIGTYPE_p_Error, 0);
 			PyObject *args = Py_BuildValue("(iO)", arg->type, errobj);
-			PyObject *result = PyEval_CallObject(data->func, args);
+			PyObject *result = PyEval_CallObject(pyfunc, args);
 			Py_DECREF(args);
 			Py_XDECREF(result);
 
@@ -192,24 +193,15 @@ typedef struct {} Engine;
 			if (PyErr_Occurred())
 				PyErr_Print();
 
-			PyEval_ReleaseThread(data->thread);
+			PyGILState_Release(pystate);
 		}
 	%}
 
-	/* FIXME: we leak the clientdata struct and the objects it holds
-	 * references to if this callback is ever overwritten */
+	/* FIXME: we'll leak a reference to the function object if this callback is overwritten */
 	void set_enginestatus_callback(PyObject *pyfunc) {
-		struct cb_clientdata *clientdata = malloc(sizeof(struct cb_clientdata));
-		assert(clientdata != NULL);
-
-		PyEval_InitThreads();
-		PyThreadState *currthread = PyThreadState_Get();
-		clientdata->thread = PyThreadState_New(currthread->interp);
-
 		Py_INCREF(pyfunc);
-		clientdata->func = pyfunc;
-
-		osync_engine_set_enginestatus_callback(self, enginestatus_cb_wrapper, clientdata);
+		PyEval_InitThreads();
+		osync_engine_set_enginestatus_callback(self, enginestatus_cb_wrapper, pyfunc);
 	}
 
 	/* TODO: other callbacks */
