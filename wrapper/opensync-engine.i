@@ -219,6 +219,7 @@ typedef struct {} Engine;
 	}
 
 	void event(EngineEvent ev) {
+		PyEval_InitThreads();
 		Py_BEGIN_ALLOW_THREADS
 		osync_engine_event(self, ev);
 		Py_END_ALLOW_THREADS
