@@ -59,14 +59,17 @@ VCAL_DAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
 RRULE_DAYS = [rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR, rrule.SA, rrule.SU]
 
 # repeat types in the calendar
-# XXX FIXME: check order of DATE/DAY for monthly and yearly on extended-format phones
+# these have a different meaning in the simple and extended calendars (why???!)
 MOTO_REPEAT_NONE = 0
 MOTO_REPEAT_DAILY = 1
 MOTO_REPEAT_WEEKLY = 2
-MOTO_REPEAT_MONTHLY_DATE = 3
-MOTO_REPEAT_MONTHLY_DAY = 4
-MOTO_REPEAT_YEARLY_DATE = 5
-MOTO_REPEAT_YEARLY_DAY = 6 # extended calendar format only
+MOTO_REPEAT_SIMPLE_MONTHLY_DATE = 3
+MOTO_REPEAT_SIMPLE_MONTHLY_DAY = 4
+MOTO_REPEAT_SIMPLE_YEARLY_DATE = 5
+MOTO_REPEAT_EXTENDED_MONTHLY_DAY = 3
+MOTO_REPEAT_EXTENDED_MONTHLY_DATE = 4
+MOTO_REPEAT_EXTENDED_YEARLY_DAY = 5
+MOTO_REPEAT_EXTENDED_YEARLY_DATE = 6
 
 # features we require; these refer to the bits returned by the AT+MAID? command
 # FIXME: my phone returns a lot more bits than I have documentation for, it's
@@ -429,7 +432,7 @@ def moto_monthday_to_repeat_day(nth, daynum):
         nth = 4 - nth
     return ((daynum + 1) % 7) * 8 + nth
 
-def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt):
+def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
     """Process XML recursion rules, converting them to the closest-possible
     matching recursion specifier supported by the phone.
 
@@ -438,6 +441,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt):
       exdates:   list of exception dates
       exrules:   list of exception rules
       eventdt:   event's date (and time if set)
+      extended_format: bool iff the extended calendar format is used
 
     Returns a dict containing the following fields:
       repeat_type:  Motorola repeat type (always present)
@@ -515,19 +519,28 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt):
                 ret['repeat_day'] = moto_weekdays_to_repeat_day(byday_nums, eventdt.day)
     elif (freq == 'MONTHLY' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
             and not byyearday and (not bymonth or bymonth == byallmonths)):
-        ret['repeat_type'] = MOTO_REPEAT_MONTHLY_DATE
+        if extended_format:
+            ret['repeat_type'] = MOTO_REPEAT_EXTENDED_MONTHLY_DATE
+        else:
+            ret['repeat_type'] = MOTO_REPEAT_SIMPLE_MONTHLY_DATE
     elif (freq == 'MONTHLY' and byday and len(byday) == 1 and not bymonthday
             and not byyearday and (not bymonth or bymonth == byallmonths)):
-        ret['repeat_type'] = MOTO_REPEAT_MONTHLY_DAY
+        if extended_format:
+            ret['repeat_type'] = MOTO_REPEAT_EXTENDED_MONTHLY_DAY
+        else:
+            ret['repeat_type'] = MOTO_REPEAT_SIMPLE_MONTHLY_DAY
         if not (byday_daynum == eventdt.weekday() and byday_nth == eventweek):
             ret['repeat_day'] = moto_monthday_to_repeat_day(byday_nth, byday_daynum)
     elif (freq == 'YEARLY' and not byday and (not bymonthday or bymonthday == set([eventdt.day]))
             and not byyearday and (not bymonth or bymonth == set([eventdt.month]))):
-        ret['repeat_type'] = MOTO_REPEAT_YEARLY_DATE
-    elif (freq == 'YEARLY' and byday and len(byday == 1)
+        if extended_format:
+            ret['repeat_type'] = MOTO_REPEAT_EXTENDED_YEARLY_DATE
+        else:
+            ret['repeat_type'] = MOTO_REPEAT_SIMPLE_YEARLY_DATE
+    elif (freq == 'YEARLY' and extended_format and byday and len(byday == 1)
             and (not bymonthday or bymonthday == set([eventdt.day]))
             and not byyearday and (not bymonth or bymonth == set([eventdt.month]))):
-        ret['repeat_type'] = MOTO_REPEAT_YEARLY_DAY
+        ret['repeat_type'] = MOTO_REPEAT_EXTENDED_YEARLY_DAY
         if not (byday_daynum == eventdt.weekday() and byday_nth == eventweek):
             ret['repeat_day'] = moto_monthday_to_repeat_day(byday_nth, byday_daynum)
     else:
@@ -570,7 +583,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt):
 
     return ret
 
-def moto_rrule_to_xml(doc, eventdt, repeat_type, exceptions,
+def moto_rrule_to_xml(doc, eventdt, repeat_type, exceptions, extended_format,
                       repeat_every=None, repeat_day=None, repeat_end=None):
     """Convert a Motorola-format recurrence to the corresponding XML description.
 
@@ -599,12 +612,14 @@ def moto_rrule_to_xml(doc, eventdt, repeat_type, exceptions,
             repeat_days = []
         rule = rrule.rrule(rrule.WEEKLY, byweekday=repeat_days,
                            dtstart=eventdt, interval=repeat_every, until=repeat_end)
-    elif repeat_type == MOTO_REPEAT_MONTHLY_DATE:
+    elif ((not extended_format and repeat_type == MOTO_REPEAT_SIMPLE_MONTHLY_DATE)
+          or (extended_format and repeat_type == MOTO_REPEAT_EXTENDED_MONTHLY_DATE)):
         appendXMLTag(doc, e, 'Frequency', 'MONTHLY')
         appendXMLTag(doc, e, 'ByMonthDay', str(eventdt.day))
         rule = rrule.rrule(rrule.MONTHLY, bymonthday=eventdt.day,
                            dtstart=eventdt, interval=repeat_every, until=repeat_end)
-    elif repeat_type == MOTO_REPEAT_MONTHLY_DAY:
+    elif ((not extended_format and repeat_type == MOTO_REPEAT_SIMPLE_MONTHLY_DAY)
+          or (extended_format and repeat_type == MOTO_REPEAT_EXTENDED_MONTHLY_DAY)):
         appendXMLTag(doc, e, 'Frequency', 'MONTHLY')
         if repeat_day:
             (repeat_nth, repeat_daynum) = moto_repeat_day_to_monthday(repeat_day)
@@ -614,13 +629,14 @@ def moto_rrule_to_xml(doc, eventdt, repeat_type, exceptions,
         appendXMLTag(doc, e, 'ByDay', '%d%s' % (repeat_nth, VCAL_DAYS[repeat_daynum]))
         rule = rrule.rrule(rrule.MONTHLY, byweekday=rrule.weekdays[repeat_daynum](repeat_nth),
                            dtstart=eventdt, interval=repeat_every, until=repeat_end)
-    elif repeat_type == MOTO_REPEAT_YEARLY_DATE:
+    elif ((not extended_format and repeat_type == MOTO_REPEAT_SIMPLE_YEARLY_DATE)
+          or (extended_format and repeat_type == MOTO_REPEAT_EXTENDED_YEARLY_DATE)):
         appendXMLTag(doc, e, 'Frequency', 'YEARLY')
         appendXMLTag(doc, e, 'ByMonth', str(eventdt.month))
         appendXMLTag(doc, e, 'ByMonthDay', str(eventdt.day))
         rule = rrule.rrule(rrule.YEARLY, bymonth=eventdt.month, bymonthday=eventdt.day,
                            dtstart=eventdt, interval=repeat_every, until=repeat_end)
-    elif repeat_type == MOTO_REPEAT_YEARLY_DAY:
+    elif extended_format and repeat_type == MOTO_REPEAT_EXTENDED_YEARLY_DAY:
         appendXMLTag(doc, e, 'Frequency', 'YEARLY')
         appendXMLTag(doc, e, 'ByMonth', str(eventdt.month))
         if repeat_day:
@@ -1319,7 +1335,7 @@ class PhoneEventSimple(PhoneEntry):
         top.appendChild(e)
 
         if include_rrule:
-            nodes = moto_rrule_to_xml(doc, self.eventdt, self.repeat_type, self.exceptions)
+            nodes = moto_rrule_to_xml(doc, self.eventdt, self.repeat_type, self.exceptions, False)
             for node in nodes:
                 insertXMLNode(top, node)
 
@@ -1370,9 +1386,8 @@ class PhoneEventSimpleXML(PhoneEventSimple):
         exdates = node.getElementsByTagName('ExceptionDateTime')
         exrules = node.getElementsByTagName('ExceptionRule')
 
-        rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt)
-        if (rule['repeat_type'] == MOTO_REPEAT_YEARLY_DAY or rule['repeat_every'] not in [0, 1]
-            or rule['repeat_day'] != 0 or rule['repeat_end']):
+        rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt, False)
+        if (rule['repeat_every'] not in [0, 1] or rule['repeat_day'] != 0 or rule['repeat_end']):
             raise UnsupportedDataError("Recursion rule not supported by simple event format")
 
         self.repeat_type = rule['repeat_type']
@@ -1472,7 +1487,8 @@ class PhoneEventExtended(PhoneEventSimple):
         insertXMLNode(top, e)
 
         nodes = moto_rrule_to_xml(doc, self.eventdt, self.repeat_type,
-                    self.exceptions, self.repeat_every, self.repeat_day, self.repeat_end)
+                    self.exceptions, True, self.repeat_every, self.repeat_day,
+                    self.repeat_end)
         for node in nodes:
             insertXMLNode(top, node)
 
@@ -1530,7 +1546,7 @@ class PhoneEventExtendedXML(PhoneEventExtended):
         rrules = node.getElementsByTagName('RecurrenceRule')
         exdates = node.getElementsByTagName('ExceptionDateTime')
         exrules = node.getElementsByTagName('ExceptionRule')
-        rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt)
+        rule = xml_rrule_to_moto(rrules, exdates, exrules, self.eventdt, True)
         self.repeat_type = rule['repeat_type']
         self.repeat_every = rule['repeat_every']
         self.repeat_day = rule['repeat_day']
