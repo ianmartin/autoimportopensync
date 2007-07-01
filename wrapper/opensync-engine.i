@@ -103,49 +103,70 @@ typedef struct {} Engine;
 
 	void initialize() {
 		Error *err = NULL;
-		bool ret = osync_engine_initialize(self, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_initialize(self, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_initialize failed but did not set error code");
 	}
 
 	void finalize() {
 		Error *err = NULL;
-		bool ret = osync_engine_finalize(self, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_finalize(self, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_finalize failed but did not set error code");
 	}
 
 	void synchronize() {
 		Error *err = NULL;
-		bool ret = osync_engine_synchronize(self, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_synchronize(self, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_synchronize failed but did not set error code");
 	}
 
 	void synchronize_and_block() {
 		Error *err = NULL;
-		bool ret = osync_engine_synchronize_and_block(self, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_synchronize_and_block(self, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_synchronize_and_block failed but did not set error code");
 	}
 
 	void wait_sync_end() {
 		Error *err = NULL;
-		bool ret = osync_engine_wait_sync_end(self, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_wait_sync_end(self, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_wait_sync_end failed but did not set error code");
 	}
 
 	void discover(Member *member) {
 		Error *err = NULL;
-		bool ret = osync_engine_discover(self, member, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_discover(self, member, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_discover failed but did not set error code");
 	}
 
 	void discover_and_block(Member *member) {
 		Error *err = NULL;
-		bool ret = osync_engine_discover_and_block(self, member, &err);
+		bool ret;
+		Py_BEGIN_ALLOW_THREADS
+		ret = osync_engine_discover_and_block(self, member, &err);
+		Py_END_ALLOW_THREADS
 		if (!raise_exception_on_error(err) && !ret)
 			wrapper_exception("osync_engine_discover_and_block failed but did not set error code");
 	}
@@ -175,11 +196,13 @@ typedef struct {} Engine;
 		}
 	%}
 
-	/* FIXME: we leak the clientdata struct for an existing callback */
+	/* FIXME: we leak the clientdata struct and the objects it holds
+	 * references to if this callback is ever overwritten */
 	void set_enginestatus_callback(PyObject *pyfunc) {
 		struct cb_clientdata *clientdata = malloc(sizeof(struct cb_clientdata));
 		assert(clientdata != NULL);
 
+		PyEval_InitThreads();
 		PyThreadState *currthread = PyThreadState_Get();
 		clientdata->thread = PyThreadState_New(currthread->interp);
 
@@ -204,7 +227,9 @@ typedef struct {} Engine;
 	}
 
 	void event(EngineEvent ev) {
+		Py_BEGIN_ALLOW_THREADS
 		osync_engine_event(self, ev);
+		Py_END_ALLOW_THREADS
 	}
 
 	bool check_get_changes() {
