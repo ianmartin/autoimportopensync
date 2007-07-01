@@ -60,7 +60,7 @@ class SyncGroup(dbus.service.Object):
 	    syncMember = SyncMember(bus_name, group_id, member, i)
 	    self.syncMembers.append(syncMember._object_path)
 
-    def EngineStatusCallback(self, status):
+    def EngineStatusCallback(self, status, err):
 	if opensync.ENGINE_EVENT_CONNECTED == status:
 		print "[SyncGroup: %s] Engine connected the clients." % self.group.get_name()
 
