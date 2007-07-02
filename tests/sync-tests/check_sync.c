@@ -585,7 +585,7 @@ END_TEST
 
 START_TEST (sync_easy_conflict)
 {
-	char *testbed = setup_testbed("sync_easy_conflict");
+	char *testbed = setup_testbed("sync");
 	system("cp testdata data1/testdata");
 	system("cp testdata comp_data");
 	system("cp new_data1 data2/testdata");
