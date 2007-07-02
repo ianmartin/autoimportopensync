@@ -472,6 +472,12 @@ int osync_mapping_engine_num_changes(OSyncMappingEngine *engine)
 	return num;
 }
 
+/*! @brief Search for the nth entry in the mapping
+ * 
+ * @param engine A pointer to the mapping engine
+ * @param nth The value of the position
+ * @returns The pointer to the nth change. NULL if there isn't enough entries in the mapping. 
+ */
 OSyncChange *osync_mapping_engine_nth_change(OSyncMappingEngine *engine, int nth)
 {
 	osync_assert(engine);
@@ -484,6 +490,28 @@ OSyncChange *osync_mapping_engine_nth_change(OSyncMappingEngine *engine, int nth
 			if (num == nth)
 				return entry->change;
 			num++;
+		}
+	}
+	
+	return NULL;
+}
+
+/*! @brief Search in the mapping for the change of the member.
+ * 
+ * @param engine A pointer to the mapping engine
+ * @param memberid The member id of the request change.
+ * @returns The pointer to the change of the member. NULL if member doesn't have an entry in this mapping.
+ */
+OSyncChange *osync_mapping_engine_member_change(OSyncMappingEngine *engine, int memberid)
+{
+	osync_assert(engine);
+	
+	GList *e = NULL;
+	for (e = engine->entries; e; e = e->next) {
+		OSyncMappingEntryEngine *entry = e->data;
+		if (entry->change) {
+			if (osync_mapping_entry_get_member_id(entry->entry) == memberid)
+				return entry->change;
 		}
 	}
 	
