@@ -206,9 +206,10 @@ static void conflict_handler_choose_first(OSyncEngine *engine, OSyncMappingEngin
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, engine, mapping, user_data);
 	
 	num_mapping_conflicts++;
+	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
-	
-	OSyncChange *change = osync_mapping_engine_nth_change(mapping, 0);
+
+	OSyncChange *change = osync_mapping_engine_member_change(mapping, 1);
 	OSyncError *error = NULL;
 	osync_assert(osync_engine_mapping_solve(engine, mapping, change, &error));
 	osync_assert(error == NULL);

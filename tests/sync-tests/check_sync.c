@@ -209,8 +209,8 @@ static void conflict_handler_choose_first(OSyncEngine *engine, OSyncMappingEngin
 	num_mapping_conflicts++;
 	fail_unless(osync_mapping_engine_num_changes(mapping) == GPOINTER_TO_INT(user_data), NULL);
 	fail_unless(num_engine_end_conflicts == 0, NULL);
-	
-	OSyncChange *change = osync_mapping_engine_nth_change(mapping, 0);
+
+	OSyncChange *change = osync_mapping_engine_member_change(mapping, 1);
 	OSyncError *error = NULL;
 	osync_assert(osync_engine_mapping_solve(engine, mapping, change, &error));
 	osync_assert(error == NULL);
@@ -2757,7 +2757,7 @@ Suite *env_suite(void)
 	create_case(s, "sync_setup_connect", sync_setup_connect);
 	create_case(s, "sync_easy_new", sync_easy_new);
 	create_case(s, "sync_easy_new_del", sync_easy_new_del);
-	create_case(s, "sync_easy_conflict", sync_easy_conflict); // TODO: test case is missing
+	create_case(s, "sync_easy_conflict", sync_easy_conflict);
 	create_case(s, "sync_easy_new_mapping", sync_easy_new_mapping);
 	create_case(s, "sync_easy_conflict_duplicate", sync_easy_conflict_duplicate); // FIXME: conflict handler duplicate is broken
 	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2); // FIXME: conflict handler duplicate is broken
