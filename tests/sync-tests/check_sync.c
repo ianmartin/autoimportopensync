@@ -660,8 +660,8 @@ START_TEST (sync_easy_conflict)
 	fail_unless(num_mapping_conflicts == 1, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data1 comp_data)\" = \"x\""), NULL);
-	fail_unless(!system("test \"x$(diff -x \".*\" data2 comp_data)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data1/testdata comp_data)\" = \"x\""), NULL);
+	fail_unless(!system("test \"x$(diff -x \".*\" data2/testdata comp_data)\" = \"x\""), NULL);
 	
 	char *path = g_strdup_printf("%s/configs/group/archive.db", testbed);
 	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 1);
@@ -2753,7 +2753,7 @@ Suite *env_suite(void)
 	Suite *s = suite_create("Sync");
 //	Suite *s2 = suite_create("Sync");
 //	Suite *s3 = suite_create("Sync"); // really broken...
-	
+
 	create_case(s, "sync_setup_connect", sync_setup_connect);
 	create_case(s, "sync_easy_new", sync_easy_new);
 	create_case(s, "sync_easy_new_del", sync_easy_new_del);
@@ -2770,7 +2770,7 @@ Suite *env_suite(void)
 	
 	create_case(s, "sync_detect_obj", sync_detect_obj);
 	create_case(s, "sync_detect_obj2", sync_detect_obj2);
-	
+
 	//stateless sync
 	
 	return s;
