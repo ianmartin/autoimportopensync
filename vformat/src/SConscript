@@ -27,7 +27,7 @@ xmlformatvcalendar = env.build_shlib('xmlformat-vcalendar', ['xmlformat-vcalenda
 xmlformatvcard = formatenv.SharedLibrary('xmlformat-vcard', ['xmlformat-vcard.c'], LIBS = ['xmlformat-common'], LIBPATH = ['.', '$prefix/$libsuffix'])
 xmlformatvevent = formatenv.SharedLibrary('xmlformat-vevent', ['xmlformat-vevent.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.', '$prefix/$libsuffix'])
 xmlformatvnote = formatenv.SharedLibrary('xmlformat-vnote', ['xmlformat-vnote.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.', '$prefix/$libsuffix'])
-xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['xmlformat-vtodo.c', 'xmlformat-vtodo10.c', 'xmlformat-vtodo20.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.', '$prefix/$libsuffix'])
+xmlformatvtodo = formatenv.SharedLibrary('xmlformat-vtodo', ['xmlformat-vtodo.c'], LIBS = ['xmlformat-vcalendar'], LIBPATH = ['.', '$prefix/$libsuffix'])
 
 # install plugins
 formatenv.Install(install_format, contact)

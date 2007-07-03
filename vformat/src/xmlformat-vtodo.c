@@ -21,8 +21,6 @@
  */
 
 #include "xmlformat-vtodo.h"
-#include "xmlformat-vtodo10.h"
-#include "xmlformat-vtodo20.h"
 
 void *init_vtodo_to_xmlformat(VFormatType target)
 {
@@ -398,6 +396,68 @@ osync_bool conv_xmlformat_to_vtodo(char *input, unsigned int inpsize, char **out
 	return TRUE;
 }
 
+osync_bool conv_vtodo_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+	
+	OSyncHookTables *hooks = init_vtodo_to_xmlformat(target);
+	
+	osync_trace(TRACE_INTERNAL, "Input vtodo is:\n%s", input);
+	//Parse the vtodo
+	VFormat *vtodo = vformat_new_from_string(input);
+
+	OSyncXMLFormat *xmlformat = osync_xmlformat_new("todo", error);
+	
+	osync_trace(TRACE_INTERNAL, "parsing attributes");
+	
+	GList *attributes = vformat_get_attributes(vtodo);
+	vcalendar_parse_attributes(xmlformat, &attributes, hooks, hooks->attributes, hooks->parameters);
+	
+	g_hash_table_destroy(hooks->attributes);
+	g_hash_table_destroy(hooks->parameters);
+	g_free(hooks);
+	
+	*free_input = TRUE;
+	*output = (char *)xmlformat;
+	*outpsize = sizeof(xmlformat);
+
+	osync_xmlformat_sort(xmlformat);
+	
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(xmlformat, &str, &size);
+	osync_trace(TRACE_INTERNAL, "... Output XMLFormat is: \n%s", str);
+	g_free(str);
+	
+	if (osync_xmlformat_validate(xmlformat) == FALSE)
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Not valid!");
+	else
+		osync_trace(TRACE_INTERNAL, "XMLFORMAT TODO: Valid!");
+
+	vformat_free(vtodo);
+	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
+	return TRUE;
+}
+	
+osync_bool conv_xmlformat_to_vtodo10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vtodo(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
+}
+
+osync_bool conv_xmlformat_to_vtodo20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vtodo(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
+}
+
+osync_bool conv_vtodo10_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vtodo_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
+}
+
+osync_bool conv_vtodo20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vtodo_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
+}
 
 void get_conversion_info(OSyncFormatEnv *env)
 {
