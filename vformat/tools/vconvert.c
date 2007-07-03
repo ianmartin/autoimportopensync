@@ -35,13 +35,25 @@ static void usage (char *name, int ecode)
 {
 	fprintf (stderr, "Usage: %s <file>\n", name);
 	fprintf (stderr, "--out <file>\tStore the output in this file (No output to stdout)\n");
+	fprintf (stderr, "--to-vcard21\tConvert to vcard 2.1\n");
+	fprintf (stderr, "--to-vcard30\tConvert to vcard 3.0\n");
+	fprintf (stderr, "--to-vevent10\tConvert to vevent 1.0\n");
+	fprintf (stderr, "--to-vevent20\tConvert to vevent 2.0\n");
+	fprintf (stderr, "--to-vtodo10\tConvert to vtodo 1.0\n");
+	fprintf (stderr, "--to-vtodo20\tConvert to vtodo 2.0\n");
 	fprintf (stderr, "--to-xmlformat\tConvert to xmlformat\n");
 	exit (ecode);
 }
 
 typedef enum conv_detection {
 	TARGET_AUTO = 0,
-	TARGET_XMLFORMAT = 1
+	TARGET_VCARD_21 = 1,
+	TARGET_VCARD_30 = 2,
+	TARGET_VEVENT_10 = 3,
+	TARGET_VEVENT_20 = 4,
+	TARGET_VTODO_10 = 5,
+	TARGET_VTODO_20 = 6,
+	TARGET_XMLFORMAT = 7
 } conv_detection;
 
 OSyncObjFormat *conv_run_detection(OSyncFormatEnv *env, OSyncChange *change, conv_detection type)
@@ -61,57 +73,93 @@ OSyncObjFormat *conv_run_detection(OSyncFormatEnv *env, OSyncChange *change, con
 	osync_data_set_objformat(data, sourceformat);
 
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard21")) {
-		if (type == TARGET_XMLFORMAT) {
-			targetformat = osync_format_env_find_objformat(env, "xmlformat-contact");
-		} else {
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VCARD_30:
 			targetformat = osync_format_env_find_objformat(env, "vcard30");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-contact");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vcard21 into this format. Supported formats: xmlformat, vcard30\n");
 		}
 		goto out;
 	}
 
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vcard30")) {
-		if (type == TARGET_XMLFORMAT) {
-			targetformat = osync_format_env_find_objformat(env, "xmlformat-contact");
-		} else {
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VCARD_21:
 			targetformat = osync_format_env_find_objformat(env, "vcard21");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-contact");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vcard30 into this format. Supported formats: xmlformat, vcard21\n");
 		}
 		goto out;
 	}
 
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vevent10")) {
-		if (type == TARGET_XMLFORMAT) {
-                        targetformat = osync_format_env_find_objformat(env, "xmlformat-event");
-		} else {
+		switch (type) {
+                case TARGET_AUTO:
+                case TARGET_VEVENT_20:
                         targetformat = osync_format_env_find_objformat(env, "vevent20");
-		}
+                        break;
+                case TARGET_XMLFORMAT:
+                        targetformat = osync_format_env_find_objformat(env, "xmlformat-event");
+                        break;
+                default:
+                        fprintf(stderr, "Unable to convert vevent10 into this format. Supported formats: xmlformat, vevent20\n");
+                }
                 goto out;
         }
 
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vevent20")) {
-		if (type == TARGET_XMLFORMAT) {
-                        targetformat = osync_format_env_find_objformat(env, "xmlformat-event");
-		} else {
-                        targetformat = osync_format_env_find_objformat(env, "vevent10");
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VEVENT_10:
+			targetformat = osync_format_env_find_objformat(env, "vevent10");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-event");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vevent20 into this format. Supported formats: xmlformat, vevent10\n");
 		}
-                goto out;
+		goto out;
 	}
 
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo10")) {
-		if (type == TARGET_XMLFORMAT) {
-                        targetformat = osync_format_env_find_objformat(env, "xmlformat-todo");
-		} else {
-                        targetformat = osync_format_env_find_objformat(env, "vtodo20");
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VTODO_20:
+			targetformat = osync_format_env_find_objformat(env, "vtodo20");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-todo");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vtodo10 into this format. Supported formats: xmlformat, vtodo20\n");
 		}
-                goto out;
+		goto out;
 	}
 
 	if (!strcmp(osync_objformat_get_name(sourceformat), "vtodo20")) {
-		if (type == TARGET_XMLFORMAT) {
-                        targetformat = osync_format_env_find_objformat(env, "xmlformat-todo");
-		} else {
-                        targetformat = osync_format_env_find_objformat(env, "vtodo10");
+		switch (type) {
+		case TARGET_AUTO:
+		case TARGET_VTODO_10:
+			targetformat = osync_format_env_find_objformat(env, "vtodo10");
+			break;
+		case TARGET_XMLFORMAT:
+			targetformat = osync_format_env_find_objformat(env, "xmlformat-todo");
+			break;
+		default:
+			fprintf(stderr, "Unable to convert vtodo20 into this format. Supported formats: xmlformat, vtodo10\n");
 		}
-                goto out;
+		goto out;
 	}
 
 	fprintf(stderr, "Cannot convert objtype %s. Unable to find a converter\n", osync_objformat_get_name(sourceformat));
@@ -132,7 +180,19 @@ int main (int argc, char *argv[])
 	int i;
 	for (i = 2; i < argc; i++) {
 		char *arg = argv[i];
-		if (!strcmp (arg, "--to-xmlformat")) {
+		if (!strcmp (arg, "--to-vcard21")) {
+			type = TARGET_VCARD_21;
+		} else if (!strcmp (arg, "--to-vcard30")) {
+			type = TARGET_VCARD_30;
+		} else if (!strcmp (arg, "--to-vevent10")) {
+			type = TARGET_VEVENT_10;
+		} else if (!strcmp (arg, "--to-vevent20")) {
+			type = TARGET_VEVENT_20;
+		} else if (!strcmp (arg, "--to-vtodo10")) {
+			type = TARGET_VTODO_10;
+		} else if (!strcmp (arg, "--to-vtodo20")) {
+			type = TARGET_VTODO_20;
+		} else if (!strcmp (arg, "--to-xmlformat")) {
 			type = TARGET_XMLFORMAT;
 		} else if (!strcmp (arg, "--out")) {
 			output = argv[i + 1];
