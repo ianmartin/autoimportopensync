@@ -224,7 +224,7 @@ osync_bool osync_module_load(OSyncModule *module, const char *path, OSyncError *
 	}
 
 	/* Try to open the module or fail if an error occurs */
-	module->module = g_module_open(path, G_MODULE_BIND_LAZY);
+	module->module = g_module_open(path, 0);
 	if (!module->module) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to open module %s: %s", path, g_module_error());
 		goto error;
