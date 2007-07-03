@@ -5,10 +5,10 @@ formatenv = env.Copy()
 formatenv.Append( CPPPATH = '.' )
 
 # basic vformat plugins
-contact = formatenv.SharedLibrary('contact', ['contact.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
-event = formatenv.SharedLibrary('event', ['event.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
-note = formatenv.SharedLibrary('note', ['note.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
-todo = formatenv.SharedLibrary('todo', ['todo.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+contact = formatenv.SharedLibrary('contact', ['vcard.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+event = formatenv.SharedLibrary('event', ['vevent.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+note = formatenv.SharedLibrary('note', ['vnote.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
+todo = formatenv.SharedLibrary('todo', ['vtodo.c'], LIBS = ['opensync'], LIBPATH = '$prefix/$libsuffix')
 
 # vformat support library
 vformat = env.build_shlib('vformat', ['vformat.c'], 
