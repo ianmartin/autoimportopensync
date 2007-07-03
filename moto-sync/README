@@ -18,11 +18,13 @@ Possibly working, but only lightly tested:
  * V3x RAZR (tested reading only)
  * V635 (tested reading only)
 
+Untested, but should be working with extended calendar support (#425):
+ * K1 KRZR
+ * V3xx RAZR
+
 Models known not to work:
  * V600 (shorter contact entries, ticket #504)
  * V3c (doesn't like AT+MODE=0, ticket #505)
- * K1 KRZR (phone book works, requires extended calendar support, #425)
- * V3xx RAZR (phone book works, requires extended calendar support, #425)
  * A780 (doesn't seem to respond to AT commands, except with ERROR)
 
 If your phone isn't listed above, or if your results differ, please let 
@@ -32,7 +34,7 @@ edu DOT au.
 
 REQUIREMENTS
 
- * OpenSync 0.30 or later with the python bindings and python-module plugin
+ * OpenSync 0.31 or later with the python bindings and python-module plugin
  * Python 2.4 or newer
  * The python-dateutil library (at least version 1.1),
    from http://labix.org/python-dateutil
@@ -116,10 +118,12 @@ which entry is which is the positions it occupies.
 
 For the calendar, each event has a name, date/time, duration, alarm 
 date/time, repeat type, and list of exceptions. The repeat type in 
-particular is very limited, many recurring events can't be represented 
-on the phone. At the moment the plugin detects this and just refuses to 
-write them. A better solution would be to split them up into multiple 
-events, but this will confuse OpenSync when we sync up again.
+particular is very limited, and unless you have a recent-model phone 
+with extended calendar support, many recurring events can't be 
+represented on the phone. At the moment the plugin detects this and 
+just refuses to write them. A better solution would be to split them up 
+into multiple events, but this will confuse OpenSync when we sync up 
+again.
 
 
 TODO
