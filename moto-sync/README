@@ -18,13 +18,13 @@ Possibly working, but only lightly tested:
  * V3x RAZR (tested reading only)
  * V635 (tested reading only)
 
-Untested, but should be working with extended calendar support (#425):
- * K1 KRZR
- * V3xx RAZR
+Untested, but might be working with recent changes:
+ * K1 KRZR (extended calendar suppport, ticket #425)
+ * V3xx RAZR (extended calendar suppport, ticket #425)
+ * V3c (doesn't like AT+MODE=0, ticket #505)
 
 Models known not to work:
  * V600 (shorter contact entries, ticket #504)
- * V3c (doesn't like AT+MODE=0, ticket #505)
  * A780 (doesn't seem to respond to AT commands, except with ERROR)
 
 If your phone isn't listed above, or if your results differ, please let 

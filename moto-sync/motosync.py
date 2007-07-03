@@ -791,8 +791,11 @@ class PhoneComms:
                 opensync.trace(opensync.TRACE_INTERNAL, 'tty module not present, unable to set raw mode')
 
         # reset the phone and send it a bunch of init strings
+        # I don't know what the mode numbers are, but AT&F only works in MODE=0, and
+        # people have reported that other commands only work in MODE=2, hence this...
+        self.__do_cmd('AT+MODE=0') # change mode
         self.__do_cmd('AT&F')      # reset to factory defaults
-        self.__do_cmd('AT+MODE=0') # ?
+        self.__do_cmd('AT+MODE=2') # change mode again
         self.__do_cmd('ATE0Q0V1')  # echo off, result codes off, verbose results
 
         # find out if calendar locking is required/supported by this phone
