@@ -324,6 +324,7 @@ static OSyncObjTypeSinkFunctions pm_sink_functions = {
  */
 static void *pm_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
 	MemberData *data = g_malloc0(sizeof(MemberData));
 	char *modulename;
 
@@ -369,6 +370,7 @@ static void *pm_initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErro
 	}
 
 	PyGILState_Release(pystate);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return data;
 
 error:
@@ -376,11 +378,14 @@ error:
 	Py_XDECREF(data->osync_module);
 	PyGILState_Release(pystate);
 	free(data);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
 static osync_bool pm_discover(void *data_in, OSyncPluginInfo *info, OSyncError **error)
 {
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data_in, info, error);
+
 	MemberData *data = data_in;
 
 	PyGILState_STATE pystate = PyGILState_Ensure();
@@ -396,12 +401,14 @@ static osync_bool pm_discover(void *data_in, OSyncPluginInfo *info, OSyncError *
 
 	Py_DECREF(ret);
 	PyGILState_Release(pystate);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
 	osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't call discover method");
 	PYERR_CLEAR();
 	PyGILState_Release(pystate);
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -492,7 +499,7 @@ error:
 
 static osync_bool scan_for_plugins(OSyncPluginEnv *env, PyObject *osync_module, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, osync_module);
 
 	GError *gerror = NULL;
 	GDir *dir = g_dir_open(OPENSYNC_PYTHONPLG_DIR, 0, &gerror);
@@ -580,21 +587,27 @@ static osync_bool set_search_path(OSyncError **error)
 
 osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
-	/* OpenSync likes to call this function multiple times.
-	 * IMO this is a bug and should be fixed, however to work around it we have to:
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
+	
+	/* Because OpenSync likes to call this function multiple times in
+	 * different threads, and because we may be sharing the python
+	 * interpreter with other code, we have to:
 	 *  * init python only once
-	 *  * make sure we save and re-acquire the main thread before making any python API calls
+	 *  * acquire the Python lock before making any API calls
 	 */
 
 	if (!Py_IsInitialized()) {
-		/* we're the first user of python in this process */
+		/* We're the first user of python in this process. Initialise
+                 * it, enable threading, and release the lock that will be
+                 * re-acquired by the PyGILState_Ensure() call below. */
 		Py_InitializeEx(0);
 		PyEval_InitThreads();
+		PyEval_ReleaseLock();
 	} else if (!PyEval_ThreadsInitialized()) {
-		/* The python interpreter has been initialised, but threads are not
-		 * I'm going to assume we're the only thread and continue, but this
-		 * is possibly unsafe! */
-		PyEval_InitThreads();
+		/* Python has been initialised, but threads are not. */
+		 osync_error_set(error, OSYNC_ERROR_GENERIC, "The Python interpreter in this process has been initialised without threading support.");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return FALSE;
 	}
 
 	PyGILState_STATE pystate = PyGILState_Ensure();
@@ -614,6 +627,7 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 out:
 	PyGILState_Release(pystate);
 
+	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s", __func__);
 	return ret;
 }
 
