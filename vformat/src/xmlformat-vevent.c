@@ -717,9 +717,11 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	else
 		std_encoding = "B";
 
-	// parsing xml attributes	
+	// parsing xml attributes
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
+		//printf("xmlfield->name: %s\n", osync_xmlfield_get_name(xmlfield));
+		/* we need to handle Alarm, Timezone, Daylight and Standard here */
 		xml_handle_attribute(hooks, vevent, xmlfield, std_encoding);
 	}
 	
