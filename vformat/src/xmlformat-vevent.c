@@ -36,7 +36,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	hooks->alarmtable = g_hash_table_new(g_str_hash, g_str_equal);
 
 
-	if (target == VFORMAT_EVENT_10) {
+	if (target == VFORMAT_EVENT_10 || target == VFORMAT_TODO_10) {
 
 	/* vCalendar
 	 * ---------
@@ -104,10 +104,10 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);
 
-	} // end of (target == VFORMAT_EVENT_10)
+	}
 
 
-	if (target == VFORMAT_EVENT_20) {
+	if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
 
 	/* iCalendar
 	 * ---------
@@ -602,14 +602,27 @@ osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **ou
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
-	OSyncHookTables *hooks = init_vevent_to_xmlformat(target); 
+	OSyncHookTables *hooks = init_vevent_to_xmlformat(target);
+	OSyncXMLFormat *xmlformat = NULL; 
 
-	osync_trace(TRACE_INTERNAL, "Input vevent is:\n%s", input);
-	
-	// Parse the vevent and create a new xmlformat object
+	// create a new xmlformat object
+	if (target == VFORMAT_EVENT_10) {
+		osync_trace(TRACE_INTERNAL, "Input is vevent10:\n%s", input);
+		xmlformat = osync_xmlformat_new("event", error);
+	} else if (target == VFORMAT_EVENT_20) {
+		osync_trace(TRACE_INTERNAL, "Input is vevent20:\n%s", input);
+		xmlformat = osync_xmlformat_new("event", error);
+	} else if (target == VFORMAT_TODO_10) {
+		osync_trace(TRACE_INTERNAL, "Input is vtodo10:\n%s", input);
+		xmlformat = osync_xmlformat_new("todo", error);
+	} else if (target == VFORMAT_TODO_20) {
+		osync_trace(TRACE_INTERNAL, "Input is vtodo20:\n%s", input);
+		xmlformat = osync_xmlformat_new("todo", error);
+	}
+
+	// Parse the vevent
 	VFormat *vevent = vformat_new_from_string(input);
-	OSyncXMLFormat *xmlformat = osync_xmlformat_new("event", error);
-	osync_trace(TRACE_INTERNAL, "parsing attributes");
+	osync_trace(TRACE_INTERNAL, "Parsing attributes");
 	
 	// For every attribute we have call the handling hook
 	GList *attributes = vformat_get_attributes(vevent);
@@ -694,16 +707,17 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
-	//Make a new vevent
+	// create a new vevent
 	VFormat *vevent = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	const char *std_encoding = NULL;
-	if (target == VFORMAT_EVENT_10)
+	if (target == VFORMAT_EVENT_10 || target == VFORMAT_TODO_10)
 		std_encoding = "QUOTED-PRINTABLE";
 	else
 		std_encoding = "B";
-	
+
+	// parsing xml attributes	
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
 		xml_handle_attribute(hooks, vevent, xmlfield, std_encoding);
@@ -720,11 +734,39 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 
 	vformat_free(vevent);
 
-	osync_trace(TRACE_INTERNAL, "Output vevent is: \n%s", *output);
+	if (target == VFORMAT_EVENT_10) {
+		osync_trace(TRACE_INTERNAL, "Output is vevent10:\n%s", input);
+	} else if (target == VFORMAT_EVENT_20) {
+		osync_trace(TRACE_INTERNAL, "Output is vevent20:\n%s", input);
+	} else if (target == VFORMAT_TODO_10) {
+		osync_trace(TRACE_INTERNAL, "Output is vtodo10:\n%s", input);
+	} else if (target == VFORMAT_TODO_20) {
+		osync_trace(TRACE_INTERNAL, "Output is vtodo20:\n%s", input);
+	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	
 	return TRUE;
+}
+
+osync_bool conv_xmlformat_to_vtodo10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
+}
+
+osync_bool conv_xmlformat_to_vtodo20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
+}
+
+osync_bool conv_vtodo10_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
+}
+
+osync_bool conv_vtodo20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
+{
+	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
 }
 
 osync_bool conv_xmlformat_to_vevent10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
@@ -751,8 +793,10 @@ void get_conversion_info(OSyncFormatEnv *env)
 {
 	OSyncFormatConverter *conv;
 	OSyncError *error = NULL;
-	
-	OSyncObjFormat *xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
+	OSyncObjFormat *xmlformat = NULL;
+
+	//event stuff	
+	xmlformat = osync_format_env_find_objformat(env, "xmlformat-event");
 	OSyncObjFormat *vevent10 = osync_format_env_find_objformat(env, "vevent10");
 	OSyncObjFormat *vevent20 = osync_format_env_find_objformat(env, "vevent20");
 	
@@ -791,6 +835,44 @@ void get_conversion_info(OSyncFormatEnv *env)
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
+
+	//todo stuff
+	xmlformat = osync_format_env_find_objformat(env, "xmlformat-todo");
+	OSyncObjFormat *vtodo10 = osync_format_env_find_objformat(env, "vtodo10");
+	OSyncObjFormat *vtodo20 = osync_format_env_find_objformat(env, "vtodo20");
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vtodo20, conv_xmlformat_to_vtodo20, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vtodo20, xmlformat, conv_vtodo20_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vtodo10, conv_xmlformat_to_vtodo10, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
+	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vtodo10, xmlformat, conv_vtodo10_to_xmlformat, &error);
+	if (!conv) {
+		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
+		return;
+	}
+	osync_format_env_register_converter(env, conv);
+	osync_converter_unref(conv);
+
 }
 
 int get_version(void)
