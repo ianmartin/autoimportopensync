@@ -2109,12 +2109,12 @@ class PhoneAccess:
             self.positions[objtype].mark_used(entry.get_pos())
         return ret
 
-    def delete_entry(self, uid):
-        """Delete an event with the given UID
+    def delete_entry(self, objtype, uid):
+        """Delete an event with the given objtype and UID
 
         Returns True on success, False otherwise.
         """
-        objtype, positions = self.__uid_to_pos(uid)
+        positions = self.__uid_to_pos(uid, objtype)
         for pos in positions:
             if objtype == 'event':
                 self.comms.delete_event(pos)
@@ -2143,12 +2143,12 @@ class PhoneAccess:
             err = opensync.Error("%s is unsupported (%s), ignored" % (change.uid, str(e)), opensync.ERROR_NOT_SUPPORTED)
             context.report_osyncwarning(err)
             # we have an entry that can't be stored on the phone
-            # if its modified and we've seen it before, delete it
+            # if its modified, we've seen it before, so delete it
             # otherwise just ignore it
-            if (change.changetype == opensync.CHANGE_TYPE_MODIFIED and self.uid_seen(change.uid)):
+            if change.changetype == opensync.CHANGE_TYPE_MODIFIED:
                 change.changetype = opensync.CHANGE_TYPE_DELETED
                 change.data = None
-                return self.delete_entry(change.uid)
+                return self.delete_entry(objtype, change.uid)
             else:
                 return False
         if change.changetype == opensync.CHANGE_TYPE_ADDED:
@@ -2156,7 +2156,7 @@ class PhoneAccess:
             positions = self.positions[objtype].alloc(entry.num_pos())
             entry.set_pos(positions)
         else:
-            _, positions = self.__uid_to_pos(change.uid)
+            positions = self.__uid_to_pos(change.uid, objtype)
             # check if the number of positions required has changed
             pos_diff = entry.num_pos() - len(positions)
             if pos_diff > 0:
@@ -2177,14 +2177,6 @@ class PhoneAccess:
         change.hash = self.__gen_hash(entry)
 
         return True
-
-    def uid_seen(self, uid):
-        """Returns true iff the given UID is one of ours."""
-        try:
-            self.__uid_to_pos(uid)
-            return True
-        except (AssertionError, ValueError, TypeError):
-            return False
 
     def __init_categories(self):
         """Initialise a hash and reverse hash of category IDs."""
@@ -2209,28 +2201,32 @@ class PhoneAccess:
             m.update(unicode(item).encode('utf7'))
         return m.hexdigest()
 
-    def __generate_uid(self, entry):
-        """Generate a "hopefully unique" UID for an entry.
+    @staticmethod
+    def __generate_uid(entry):
+        """Generate a UID for an entry, that encodes the objtype and the position."""
+        return ("moto-%s-%s" % (entry.get_objtype(), entry.generate_uid()))
 
-        Uses the last 8 digit's of the phone's IMEI to do so.
+    @staticmethod
+    def __uid_to_pos(uid, objtype):
+        """Reverse of the generate_uid function above.
+
+        Also checks that the objtype matches.
         """
-        return ("moto-%s-%s@%s" % (entry.get_objtype(), entry.generate_uid(), self.serial[-8:]))
+        try:
+            moto, uid_objtype, lastpart = uid.split('-', 2)
+            assert(moto == "moto")
+        except (ValueError, AssertionError):
+            raise opensync.Error("Invalid UID: " + uid)
 
-    def __uid_to_pos(self, uid):
-        """Reverse the generate_uid function above.
-
-        Also checks that it is one of ours.
-        """
-        moto, objtype, lastpart = uid.split('-', 2)
-        assert(moto == "moto" and objtype in SUPPORTED_OBJTYPES, 'Invalid UID: %s' % uid)
-        lastpos = lastpart.rindex('@')
-        assert(lastpart[lastpos + 1:] == self.serial[-8:], 'Entry not created on this phone')
+        if uid_objtype != objtype:
+            raise opensync.Error("UID %s doesn't match objtype %s", uid, objtype)
 
         if objtype == "event":
-            positions = PhoneEventSimple.unpack_uid(lastpart[:lastpos])
+            return PhoneEventSimple.unpack_uid(lastpart)
         elif objtype == "contact":
-            positions = PhoneContact.unpack_uid(lastpart[:lastpos])
-        return objtype, positions
+            return PhoneContact.unpack_uid(lastpart)
+        else:
+            raise opensync.Error("Unsupported objtype: " + uid)
 
 
 class MotoSink(opensync.ObjTypeSinkCallbacks):
@@ -2247,6 +2243,9 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
     def connect(self, info, ctx):
         """Connect to the phone."""
         self.access.connect()
+        anchorpath = os.path.join(info.configdir, 'anchor.db')
+        if not opensync.anchor_compare(anchorpath, 'serial', self.access.serial):
+            self.sink.slowsync = True
 
     def get_changes(self, info, ctx):
         """Report all OSyncChange objects for entries on the phone."""
@@ -2270,7 +2269,7 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
         if change.objtype != self.objtype:
             raise opensync.Error('unsupported objtype %s' % change.objtype, opensync.ERROR_NOT_SUPPORTED)
         if change.changetype == opensync.CHANGE_TYPE_DELETED:
-            success = (self.access.uid_seen(change.uid) and self.access.delete_entry(change.uid))
+            success = self.access.delete_entry(change.objtype, change.uid)
         elif change.changetype == opensync.CHANGE_TYPE_MODIFIED:
             old_uid = change.uid
             success = self.access.update_entry(change, ctx)
@@ -2282,6 +2281,11 @@ class MotoSink(opensync.ObjTypeSinkCallbacks):
             success = self.access.update_entry(change, ctx)
         if success:
             self.hashtable.update_hash(change.changetype, change.uid, change.hash)
+
+    def sync_done(self, info, ctx):
+        """Called when a sync completes successfully."""
+        anchorpath = os.path.join(info.configdir, 'anchor.db')
+        opensync.anchor_update(anchorpath, 'serial', self.access.serial)
 
     def disconnect(self, info, ctx):
         """Called to disconnect from the phone."""
