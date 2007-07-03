@@ -889,12 +889,16 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 			str = g_string_append (str, "BEGIN:VCARD\r\nVERSION:3.0\r\n");
 			break;
 		case VFORMAT_TODO_10:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\nBEGIN:VTODO\r\n");
+			break;
 		case VFORMAT_EVENT_10:
-			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\n");
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:1.0\r\nBEGIN:VEVENT\r\n");
 			break;
 		case VFORMAT_TODO_20:
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//OpenSync//NONSGML OpenSync vformat//EN\r\nBEGIN:VTODO\r\n");
+			break;
 		case VFORMAT_EVENT_20:
-			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n");
+			str = g_string_append (str, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//OpenSync//NONSGML OpenSync vformat//EN\r\nBEGIN:VEVENT\r\n");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "BEGIN:VNOTE\r\nVERSION:1.1\r\n");
@@ -1105,18 +1109,16 @@ char *vformat_to_string (VFormat *evc, VFormatType type)
 
 	switch (type) {
 		case VFORMAT_CARD_21:
-			str = g_string_append (str, "END:VCARD\r\n");
-			break;
 		case VFORMAT_CARD_30:
 			str = g_string_append (str, "END:VCARD\r\n");
 			break;
 		case VFORMAT_TODO_10:
-		case VFORMAT_EVENT_10:
-			str = g_string_append (str, "END:VCALENDAR\r\n");
-			break;
 		case VFORMAT_TODO_20:
+			str = g_string_append (str, "END:VTODO\r\nEND:VCALENDAR\r\n");
+			break;
+		case VFORMAT_EVENT_10:
 		case VFORMAT_EVENT_20:
-			str = g_string_append (str, "END:VCALENDAR\r\n");
+			str = g_string_append (str, "END:VEVENT\r\nEND:VCALENDAR\r\n");
 			break;
 		case VFORMAT_NOTE:
 			str = g_string_append (str, "END:VNOTE\r\n");
