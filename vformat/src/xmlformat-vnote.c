@@ -181,7 +181,7 @@ static osync_bool conv_xmlformat_to_vnote(char *input, unsigned int inpsize, cha
 	return conv_xmlformat_to_vnotememo(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_NOTE);
 }
 
-void get_conversion_info(OSyncFormatEnv *env)
+osync_bool get_conversion_info(OSyncFormatEnv *env)
 {
 	OSyncFormatConverter *conv = NULL;
 	OSyncError *error = NULL;
@@ -192,7 +192,8 @@ void get_conversion_info(OSyncFormatEnv *env)
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vnote, conv_xmlformat_to_vnote, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -200,10 +201,13 @@ void get_conversion_info(OSyncFormatEnv *env)
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vnote, xmlformat, conv_vnote_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
+
+	return TRUE;
 }
 
 int get_version(void)

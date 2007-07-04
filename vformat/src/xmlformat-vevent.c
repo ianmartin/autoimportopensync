@@ -791,7 +791,7 @@ osync_bool conv_vevent20_to_xmlformat(char *input, unsigned int inpsize, char **
 	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
 }
 
-void get_conversion_info(OSyncFormatEnv *env)
+osync_bool get_conversion_info(OSyncFormatEnv *env)
 {
 	OSyncFormatConverter *conv;
 	OSyncError *error = NULL;
@@ -806,7 +806,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
-		return;
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -815,7 +815,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
-		return;
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -824,7 +824,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
-		return;
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -833,7 +833,7 @@ void get_conversion_info(OSyncFormatEnv *env)
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
 		osync_error_unref(&error);
-		return;
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -846,7 +846,8 @@ void get_conversion_info(OSyncFormatEnv *env)
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vtodo20, conv_xmlformat_to_vtodo20, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -854,7 +855,8 @@ void get_conversion_info(OSyncFormatEnv *env)
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vtodo20, xmlformat, conv_vtodo20_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -862,7 +864,8 @@ void get_conversion_info(OSyncFormatEnv *env)
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, xmlformat, vtodo10, conv_xmlformat_to_vtodo10, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
@@ -870,11 +873,13 @@ void get_conversion_info(OSyncFormatEnv *env)
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, vtodo10, xmlformat, conv_vtodo10_to_xmlformat, &error);
 	if (!conv) {
 		osync_trace(TRACE_ERROR, "Unable to register format converter: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 	osync_format_env_register_converter(env, conv);
 	osync_converter_unref(conv);
 
+	return TRUE;
 }
 
 int get_version(void)
