@@ -102,20 +102,113 @@ START_TEST (time_relative2tm)
 }
 END_TEST
 
+// Returns nonzero if tm structs are substantially equal.
+// Ignores wday and yday.
+int tm_equal(struct tm *a, struct tm *b)
+{
+	return	a->tm_sec == b->tm_sec &&
+		a->tm_min == b->tm_min &&
+		a->tm_hour == b->tm_hour &&
+		a->tm_mday == b->tm_mday &&
+		a->tm_mon == b->tm_mon &&
+		a->tm_year == b->tm_year &&
+		a->tm_isdst == b->tm_isdst;
+}
+
+void test_unix_converter(const struct tm *base, const char *vresult)
+{
+	struct tm tm_first, tm_second, *tm_ptr = NULL;
+	time_t first, second;
+	char *vtime = NULL;
+
+	// test that osync_time_localtm2unix() behaves like mktime()
+	memcpy(&tm_first, base, sizeof(struct tm));
+	first = osync_time_localtm2unix(&tm_first);
+	tm_first.tm_isdst = -1;
+	second = mktime(&tm_first);
+	fail_unless( first == second, NULL );
+
+	// test that osync_time_unix2localtm() behaves like localtime()
+	tm_ptr = osync_time_unix2localtm(&first);
+	localtime_r(&first, &tm_second);
+	fail_unless( tm_equal(&tm_first, &tm_second), NULL );
+	fail_unless( tm_equal(tm_ptr, &tm_second), NULL );
+	g_free(tm_ptr);
+	tm_ptr = NULL;
+
+	// test that osync_time_unix2utctm() behaves like gmtime_r()
+	tm_ptr = osync_time_unix2utctm(&first);
+	gmtime_r(&first, &tm_second);
+	fail_unless( tm_equal(tm_ptr, &tm_second), NULL );
+	g_free(tm_ptr);
+	tm_ptr = NULL;
+
+	// test that osync_time_utctm2unix() works correctly
+	tm_second.tm_isdst = 0;		// make sure incorrect value is handled
+	second = osync_time_utctm2unix(&tm_second);
+	fail_unless( first == second, NULL );
+
+	// test vtime string converters, in both directions
+	vtime = osync_time_unix2vtime(&first);
+	fail_unless( vtime != NULL, NULL );
+	fail_unless( strcmp(vtime, vresult) == 0, NULL );
+	printf("osync_time_unix2vtime() returned: %s\n", vtime);
+	second = osync_time_vtime2unix(vtime, 0);
+	fail_unless( first == second );
+	g_free(vtime);
+}
+
+START_TEST (time_unix_converters)
+{
+	struct tm base;
+
+	// simple test, no DST
+	base.tm_sec = 0;
+	base.tm_min = 0;
+	base.tm_hour = 0;
+	base.tm_mday = 1;
+	base.tm_mon = 0;
+	base.tm_year = 2007 - 1900;
+	base.tm_isdst = 0;
+	test_unix_converter(&base, "20070101T050000Z");
+
+	// test dates that may straddle DST
+	base.tm_hour = 1;
+	base.tm_mday = 11;
+	base.tm_mon = 2;
+	test_unix_converter(&base, "20070311T060000Z");
+
+	base.tm_hour = 4;
+	base.tm_mday = 11;
+	base.tm_mon = 2;
+	test_unix_converter(&base, "20070311T080000Z");
+
+	// simple test, pure DST
+	base.tm_hour = 1;
+	base.tm_mday = 11;
+	base.tm_mon = 5;
+	test_unix_converter(&base, "20070611T050000Z");
+}
+END_TEST
+
 Suite *env_suite(void)
 {
-       Suite *s = suite_create("Time");
+	Suite *s = suite_create("Time");
 
-       TCase *tc_timezones = tcase_create("timezones");
-       TCase *tc_relative  = tcase_create("relative");
+	TCase *tc_timezones = tcase_create("timezones");
+	TCase *tc_relative  = tcase_create("relative");
+	TCase *tc_unix      = tcase_create("unix_converters");
 
-       suite_add_tcase (s, tc_timezones);
-       tcase_add_test(tc_timezones, time_timezone_diff);
+	suite_add_tcase (s, tc_timezones);
+	tcase_add_test(tc_timezones, time_timezone_diff);
 
-       suite_add_tcase (s, tc_relative);
-       tcase_add_test(tc_relative, time_relative2tm);
+	suite_add_tcase (s, tc_relative);
+	tcase_add_test(tc_relative, time_relative2tm);
 
-       return s;
+	suite_add_tcase (s, tc_unix);
+	tcase_add_test(tc_unix, time_unix_converters);
+
+	return s;
 }
 
 int main(void)
