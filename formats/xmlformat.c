@@ -259,7 +259,7 @@ error:
 }
 
 
-void get_format_info(OSyncFormatEnv *env)
+osync_bool get_format_info(OSyncFormatEnv *env)
 {
 	OSyncError *error = NULL;
 	OSyncObjFormat *format = NULL;
@@ -269,7 +269,7 @@ void get_format_info(OSyncFormatEnv *env)
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
 		osync_error_unref(&error);
-		return;
+		return FALSE;
 	}
 	
 	osync_objformat_set_compare_func(format, compare_contact);
@@ -294,7 +294,7 @@ void get_format_info(OSyncFormatEnv *env)
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
 		osync_error_unref(&error);
-		return;
+		return FALSE;
 	}
 	
 	osync_objformat_set_compare_func(format, compare_event);
@@ -318,7 +318,8 @@ void get_format_info(OSyncFormatEnv *env)
 	format = osync_objformat_new("xmlformat-todo", "todo", &error);
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 
 	osync_objformat_set_compare_func(format, compare_todo);
@@ -342,7 +343,8 @@ void get_format_info(OSyncFormatEnv *env)
 	format = osync_objformat_new("xmlformat-note", "note", &error);
 	if (!format) {
 		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
-		return;
+		osync_error_unref(&error);
+		return FALSE;
 	}
 
 	osync_objformat_set_compare_func(format, compare_note);
@@ -360,6 +362,8 @@ void get_format_info(OSyncFormatEnv *env)
 	
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
+
+	return TRUE;
 }
 
 int get_version(void)
