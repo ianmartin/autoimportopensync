@@ -1596,7 +1596,10 @@ class PhoneContact(PhoneEntry):
                 <Categories />
                 <EMail />
                 <FormattedName />
-                <Name />
+                <Name>
+                    <LastName />
+                    <FirstName />
+                </Name>
                 <Nickname />
                 <Telephone />
             </contact>
