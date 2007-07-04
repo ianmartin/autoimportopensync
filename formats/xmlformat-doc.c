@@ -30,13 +30,16 @@ static osync_bool detect_plain_as_xmlformat(const char *objtype, const char *dat
 {
 	osync_assert(objtype);
 
+	if (!g_pattern_match_simple("<?xml version=\"*\"?>*", data))
+		return FALSE;
+
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(data, size, NULL);
 	if (!xmlformat)
 		return FALSE;
 
-	osync_xmlformat_unref(xmlformat);
-
 	int ret = strcmp(objtype, osync_xmlformat_get_objtype(xmlformat));
+
+	osync_xmlformat_unref(xmlformat);
 
 	if (ret)
 		return FALSE;
