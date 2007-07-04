@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <xsd:schema elementFormDefault="qualified" version="1.0" xmlns:os="http://opensync.org/Schema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <xsd:import namespace="http://opensync.org/Schema" schemaLocation="os.xsd"/>
+  <xsd:import namespace="http://opensync.org/Schema" schemaLocation="plugin_config.xsd"/>
   <xsd:complexType name="Evo2SyncConfigType">
     <xsd:complexContent>
       <xsd:extension base="os:PluginConfigurationType">
