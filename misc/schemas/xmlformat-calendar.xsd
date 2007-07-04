@@ -476,7 +476,7 @@
   <xsd:complexType name="TimezoneComponent">
     <xsd:sequence>
       <xsd:element minOccurs="0" maxOccurs="1" name="Comment" type="MultiText"/>
-      <!-- <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/> // What's that? -->
+      <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="DateTimeStart" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="TZName" type="xsd:string"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="TZOffsetFrom" type="UtcOffset"/>
