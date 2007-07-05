@@ -2758,8 +2758,8 @@ Suite *env_suite(void)
 	create_case(s, "sync_easy_new_del", sync_easy_new_del);
 	create_case(s, "sync_easy_conflict", sync_easy_conflict);
 	create_case(s, "sync_easy_new_mapping", sync_easy_new_mapping);
-	create_case(s, "sync_easy_conflict_duplicate", sync_easy_conflict_duplicate); // FIXME: conflict handler duplicate is broken
-	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2); // FIXME: conflict handler duplicate is broken
+	create_case(s, "sync_easy_conflict_duplicate", sync_easy_conflict_duplicate);
+	create_case(s, "sync_conflict_duplicate2", sync_conflict_duplicate2);
 	create_case(s, "sync_conflict_delay", sync_conflict_delay);
 	create_case(s, "sync_conflict_deldel", sync_conflict_deldel);
 	create_case(s, "sync_moddel", sync_moddel);
