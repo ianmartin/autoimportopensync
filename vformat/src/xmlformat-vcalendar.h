@@ -181,6 +181,23 @@ VFormatAttribute *handle_xml_adescription_attribute(VFormat *vevent, OSyncXMLFie
 VFormatAttribute *handle_xml_aattendee_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 VFormatAttribute *handle_xml_asummary_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding);
 
+void handle_xml_tzid_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_altrep_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_cn_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_delegated_from_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_delegated_to_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_dir_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_format_type_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_fb_type_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_member_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_partstat_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_range_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_reltype_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_related_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_role_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_rsvp_parameter(VFormatAttribute *attr, xmlNode *current);
+void handle_xml_sent_by_parameter(VFormatAttribute *attr, xmlNode *current);
+
 void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler);
 
 void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, OSyncHookTables *hooks, GHashTable *attrtable, GHashTable *paramtable);

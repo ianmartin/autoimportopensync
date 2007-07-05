@@ -463,7 +463,6 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 
-	//todo attributes
 	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
@@ -498,28 +497,6 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
 	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
 
-
-	/*
-	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	*/
-	
 	//vcal attributes
 	insert_xml_attr_handler(hooks->attributes, "CalendarScale", handle_xml_calscale_attribute);
 	insert_xml_attr_handler(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
@@ -527,8 +504,9 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 //	insert_xml_attr_handler(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
 //	insert_xml_attr_handler(hooks->attributes, "UnknownParameter", xml_handle_unknown_parameter);
 	
-	/*
+
 	//Timezone
+	/*
 	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tzid_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_tz_location_attribute);
 	insert_xml_attr_handler(hooks->attributes, "TZOffsetFrom", handle_xml_tzoffsetfrom_location_attribute);
@@ -541,10 +519,9 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tzrdate_attribute);
 	*/
 
-	/*
 //	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
 //	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
+//	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
 	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
 	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
 	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
@@ -560,7 +537,8 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
 	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
 	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	*/
+	
+	insert_xml_attr_handler(hooks->parameters, "TimezoneID", handle_xml_tzid_parameter);
 	
 	//VAlarm component
 	insert_xml_attr_handler(hooks->attributes, "AlarmTrigger", handle_xml_atrigger_attribute);
@@ -572,28 +550,6 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", handle_xml_aattendee_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", handle_xml_asummary_attribute);
 
-	/*
-	//FIXME: The functions below shouldn't be on alarmtable, but on other hash table
-	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	*/
-	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
 }
@@ -718,12 +674,27 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 		std_encoding = "B";
 
 	// parsing xml attributes
+	GList *alarmfields = NULL;
+	GList *timezonefields = NULL;
+
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
-		//printf("xmlfield->name: %s\n", osync_xmlfield_get_name(xmlfield));
-		/* we need to handle Alarm, Timezone, Daylight and Standard here */
+
+		// Skip Alarm* and Timezone* xmlfields, we handle them later
+		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm")) {
+			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
+			alarmfields = g_list_append(alarmfields, xmlfield);
+			continue;
+		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Timezone")) {
+			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
+			timezonefields = g_list_append(timezonefields, xmlfield);
+			continue;
+		}
+
 		xml_handle_attribute(hooks, vevent, xmlfield, std_encoding);
 	}
+
+	// TODO: Handle timezone and alarm xmlfields
 	
 	// free hash tables
 	g_hash_table_destroy(hooks->attributes);
@@ -737,13 +708,13 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 	vformat_free(vevent);
 
 	if (target == VFORMAT_EVENT_10) {
-		osync_trace(TRACE_INTERNAL, "Output is vevent10:\n%s", input);
+		osync_trace(TRACE_INTERNAL, "Output is vevent10:\n%s", *output);
 	} else if (target == VFORMAT_EVENT_20) {
-		osync_trace(TRACE_INTERNAL, "Output is vevent20:\n%s", input);
+		osync_trace(TRACE_INTERNAL, "Output is vevent20:\n%s", *output);
 	} else if (target == VFORMAT_TODO_10) {
-		osync_trace(TRACE_INTERNAL, "Output is vtodo10:\n%s", input);
+		osync_trace(TRACE_INTERNAL, "Output is vtodo10:\n%s", *output);
 	} else if (target == VFORMAT_TODO_20) {
-		osync_trace(TRACE_INTERNAL, "Output is vtodo20:\n%s", input);
+		osync_trace(TRACE_INTERNAL, "Output is vtodo20:\n%s", *output);
 	}
 
 	osync_trace(TRACE_EXIT, "%s", __func__);
