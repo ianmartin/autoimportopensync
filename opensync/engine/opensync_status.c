@@ -28,6 +28,7 @@
 #include "opensync-data.h"
 
 #include "opensync_engine_internals.h"
+#include "opensync_obj_engine_internals.h"
 
 void osync_status_free_member_update(OSyncMemberUpdate *update)
 {
@@ -160,7 +161,7 @@ void osync_status_update_mapping(OSyncEngine *engine, OSyncMappingEngine *mappin
 		
 		update->type = type;
 		
-		//update->mapping = mapping->mapping;
+		update->mapping = mapping->mapping;
 		
 		update->error = error;
 		osync_error_ref(&error);
