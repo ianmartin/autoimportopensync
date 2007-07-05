@@ -680,36 +680,41 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 	osync_mapping_engine_ref(existingMapping);
 	
 	while (entries) {
-		OSyncMappingEntryEngine *entry = entries->data
+		OSyncMappingEntryEngine *existingEntry = entries->data;
 		
-		/* Now lets see which mapping is the correct one for the entry */;
+		/* Now lets see which mapping is the correct one for the entry */
 		GList *m = NULL;
 		OSyncMappingEngine *mapping = NULL;
 		elevation = 0;
+		OSyncChange *existingChange = NULL;
 		for (m = mappings; m; m = m->next) {
 			mapping = m->data;
 			
 			/* Get the first change of the mapping to test. Compare the given change with this change.
-			 * If they are the same, we have found a new mapping */
+			 * If they are not the same, we have found a new mapping */
 			GList *e = NULL;
 			OSyncChange *change = NULL;
+			OSyncMappingEntryEngine *entry = NULL;
 			for (e = mapping->entries; e; e = e->next) {
-				OSyncMappingEntryEngine *entry = e->data;
+				entry = e->data;
 				change = entry->change;
 				if (change)
 					break;
 			}
 			
-			if (!change || osync_change_compare(entry->change, change) == OSYNC_CONV_DATA_SAME)
+			if (!change || osync_change_compare(existingEntry->change, change) == OSYNC_CONV_DATA_SAME){
+				existingChange = existingEntry->change;
+				osync_change_ref(existingChange);
 				break;
-			
+			}
+
+
 			mapping = NULL;
 			elevation++;
+		
+			existingChange = osync_change_clone(existingEntry->change, error);
 		}
 		
-		OSyncChange *change = entry->change;
-		osync_change_ref(change);
-		//osync_entry_engine_update(entry, NULL);
 		
 		if (!mapping) {
 			/* Unable to find a mapping. We have to create a new one */
@@ -723,15 +728,15 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 		
 		/* update the uid and the content to suit the new level */
 		osync_bool dirty = FALSE;
-		if (!_osync_change_elevate(change, elevation, &dirty, error))
+		if (!_osync_change_elevate(existingChange, elevation, &dirty, error))
 			goto error;
-		
+
 		/* Lets add the entry to the mapping */
-		OSyncMappingEntryEngine *newEntry = osync_mapping_engine_get_entry(mapping, entry->sink_engine);
+		OSyncMappingEntryEngine *newEntry = osync_mapping_engine_get_entry(mapping, existingEntry->sink_engine);
 		osync_assert(newEntry);
-		osync_entry_engine_update(newEntry, change);
-		osync_mapping_entry_set_uid(newEntry->entry, osync_change_get_uid(change));
-		osync_change_unref(change);
+		osync_entry_engine_update(newEntry, existingChange);
+		osync_mapping_entry_set_uid(newEntry->entry, osync_change_get_uid(existingChange));
+		osync_change_unref(existingChange);
 		
 		/* Set the last entry as the master */
 		osync_mapping_engine_set_master(mapping, newEntry);
@@ -741,7 +746,7 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 		 * this information here */
 		newEntry->dirty = dirty;
 		
-		entries = g_list_remove(entries, entry);
+		entries = g_list_remove(entries, existingEntry);
 	}
 	
 	
@@ -752,7 +757,7 @@ osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, O
 	}
 	
 	objengine->conflicts = g_list_remove(objengine->conflicts, existingMapping);
-		osync_status_update_mapping(objengine->parent, existingMapping, OSYNC_MAPPING_EVENT_SOLVED, NULL);
+	osync_status_update_mapping(objengine->parent, existingMapping, OSYNC_MAPPING_EVENT_SOLVED, NULL);
 	
 	if (osync_engine_check_get_changes(objengine->parent) && BitCount(objengine->sink_errors | objengine->sink_get_changes) == g_list_length(objengine->sink_engines)) {
 		osync_obj_engine_command(objengine, OSYNC_ENGINE_COMMAND_WRITE, error);
@@ -1476,7 +1481,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 				if (!osync_mapping_engine_multiply(mapping_engine, error))
 					goto error;
 			}
-				
+			
 			osync_trace(TRACE_INTERNAL, "Starting to write");
 			for (p = engine->sink_engines; p; p = p->next) {
 				sinkengine = p->data;
