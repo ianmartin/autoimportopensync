@@ -52,7 +52,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
 	insert_param_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
-	insert_param_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE, yes/no allowed, kdepim use TRUE!?) - I think we need an own handler for vcal
+	insert_param_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE, yes/no allowed, kdepim use TRUE!)
 	insert_param_handler(hooks->parameters, "EXPECT", handle_vcal_expect_parameter); // (ATTENDEE)
 
         // [vcal-1.0] vcal (same order as in spec!)
@@ -74,9 +74,9 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 		// rsvp parameter
 		// expect parameter
 	insert_attr_handler(hooks->attributes, "DCREATED", handle_created_attribute);
-	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute);
+	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute); //vtodo only
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
-	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute);
+	insert_attr_handler(hooks->attributes, "DUE", handle_due_attribute); //vtodo only
 	insert_attr_handler(hooks->attributes, "DTEND", handle_dtend_attribute);
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
@@ -91,6 +91,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "TRANSP", handle_transp_attribute);
 	insert_attr_handler(hooks->attributes, "URL", handle_url_attribute);
 	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
+	// TODO -> X-Word
 
         // [vcal-1.0] entprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "AALARM", handle_vcal_aalarm_attribute);
@@ -104,10 +105,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "STATUS", handle_status_attribute);
 
-	}
-
-
-	if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
+	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
 
 	/* iCalendar
 	 * ---------
@@ -456,6 +454,14 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
+
+	/* !--- WARNING ---!
+	 * This list has many errors and is not completed yet.
+	 * TODO: Review
+	 * TODO: add missing handler
+	 * TODO: test all handler
+	 * TODO: fix wrong handler
+	 */
 	
 	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
 
@@ -463,49 +469,167 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	hooks->attributes = g_hash_table_new(g_str_hash, g_str_equal);
 	hooks->parameters = g_hash_table_new(g_str_hash, g_str_equal);
 
-	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
-	insert_xml_attr_handler(hooks->attributes, "PercentComplete", handle_xml_percent_complete_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
-	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCreated", handle_xml_created_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_location_attribute);
+	if (target == VFORMAT_EVENT_10 || target == VFORMAT_TODO_10) {
+
+	/* vCalendar
+	 * ---------
+	 * The following attributes and parameters are described in vcal-10.txt.
+	 * You can download this file from http://www.imc.org/pdi/vcal-10.txt
+	 */
+
+
+        // [vcal-1.0] param (same order as in spec!) TODO -> fix and order paramtable
+	//insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
+	//insert_xml_attr_handler(hooks->parameters, "TimezoneID", handle_xml_tzid_parameter);
+
+
+        // [vcal-1.0] calprop (same order as in spec!)
+	// TODO -> DAYLIGHT
 	insert_xml_attr_handler(hooks->attributes, "Geo", handle_xml_geo_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Organizer", handle_xml_organizer_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceID", handle_xml_recurid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Duration", handle_xml_duration_attribute);
+	// TODO -> PRODID
+	// TODO -> TZ
+	// TODO -> VERSION
+
+
+        // [vcal-1.0] simprop (same order as in spec!)
 	insert_xml_attr_handler(hooks->attributes, "Attach", handle_xml_attach_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Attendee", handle_xml_attendee_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Contact", handle_xml_event_attribute);
-	insert_xml_attr_handler(hooks->attributes, "ExclusionDate", handle_xml_exdate_attribute);
-	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RStatus", handle_xml_rstatus_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute); // TODO -> DCREATED
+	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute); // vtodo only
+	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
+	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_location_attribute);
+	// TODO -> RNUM
+	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute); // TODO -> seq/sequence?
+	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
 	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
+	// TODO -> X- word
 
-	//vcal attributes
-	insert_xml_attr_handler(hooks->attributes, "CalendarScale", handle_xml_calscale_attribute);
-	insert_xml_attr_handler(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Method", handle_xml_method_attribute);
-//	insert_xml_attr_handler(hooks->attributes, "UnknownNode", xml_handle_unknown_attribute);
-//	insert_xml_attr_handler(hooks->attributes, "UnknownParameter", xml_handle_unknown_parameter);
+
+        // [vcal-1.0] entprop (same order as in spec!)
+	// TODO -> AALARM
+	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
+	// TODO -> DALARM
+	insert_xml_attr_handler(hooks->attributes, "ExclusionDate", handle_xml_exdate_attribute);
+	// TODO -> MALARM
+	// TODO -> PALARM
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
+
+
+	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
+
+
+	/* iCalendar
+	 * ---------
+	 * The following attributes and parameters are described in RFC 2445
+	 * ERRATA: http://www.rfc-editor.org/cgi-bin/errataSearch.pl?rfc=2445
+	 */
+
+	//insert_xml_attr_handler(hooks->attributes, "CalendarScale", handle_xml_calscale_attribute);
+	//insert_xml_attr_handler(hooks->attributes, "ProductID", handle_xml_prodid_attribute);
+	//insert_xml_attr_handler(hooks->attributes, "Method", handle_xml_method_attribute);
+
+
+	// [RFC 2445] 4.2 Property Parameters (ordered by name!)
+	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
+	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
+	// TODO -> cutypeparam
+	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
+	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
+	// TODO -> encodingparam
+	insert_xml_attr_handler(hooks->parameters, "FormatType", handle_xml_format_type_parameter);
+	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
+	// TODO -> languageparam
+	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
+	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
+	// TODO -> trigrelparam
+	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
+	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
+	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
+	insert_xml_attr_handler(hooks->parameters, "TimezoneID", handle_xml_tzid_parameter);
+	// insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter); // TODO
 	
 
-	//Timezone
+	// [RFC 2445] calprop (same order as in spec!)
+	// PRODID -> TODO
+	// VERSION -> TODO
+	// CALSCALE -> TODO
+	// METHOD -> TODO
+	// x-prop -> TODO
+
+
+	// [RFC 2445] all ical props (ordered by name!)
+	insert_xml_attr_handler(hooks->attributes, "Attach", handle_xml_attach_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Attendee", handle_xml_attendee_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Categories", handle_xml_categories_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Class", handle_xml_class_attribute);
+	// TODO -> comment
+	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Contact", handle_xml_event_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateCreated", handle_xml_created_attribute); // CREATED -> ical only
+	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
+	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Duration", handle_xml_duration_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "ExclusionDate", handle_xml_exdate_attribute);
+	insert_xml_attr_handler(hooks->attributes, "ExclusionRule", handle_xml_exrule_attribute);
+	// TODO -> freebusy
+	insert_xml_attr_handler(hooks->attributes, "Geo", handle_xml_geo_attribute);
+	insert_xml_attr_handler(hooks->attributes, "LastModified", handle_xml_last_modified_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_location_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Organizer", handle_xml_organizer_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "PercentComplete", handle_xml_percent_complete_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceID", handle_xml_recurid_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
+	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
+	insert_xml_attr_handler(hooks->attributes, "RStatus", handle_xml_rstatus_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute); // TODO -> seq/sequence?
+	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
+	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
+	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
+
+	}
+
+	//Timezone TODO
 	/*
 	insert_xml_attr_handler(hooks->attributes, "TimezoneID", handle_xml_tzid_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Location", handle_xml_tz_location_attribute);
@@ -519,28 +643,8 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_tzrdate_attribute);
 	*/
 
-//	insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-//	insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-//	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	
-	insert_xml_attr_handler(hooks->parameters, "TimezoneID", handle_xml_tzid_parameter);
-	
-	//VAlarm component
+	//Alarm TODO
+	/*
 	insert_xml_attr_handler(hooks->attributes, "AlarmTrigger", handle_xml_atrigger_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmRepeat", handle_xml_arepeat_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmDuration", handle_xml_aduration_attribute);
@@ -549,6 +653,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "AlarmDescription", handle_xml_adescription_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmAttendee", handle_xml_aattendee_attribute);
 	insert_xml_attr_handler(hooks->attributes, "AlarmSummary", handle_xml_asummary_attribute);
+	*/
 
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, hooks);
 	return (void *)hooks;
