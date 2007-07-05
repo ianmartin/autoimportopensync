@@ -106,6 +106,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	int changetype = osync_change_get_changetype(change);
 	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
 	const char *objtype = osync_change_get_objtype(change);
+	OSyncObjFormat *detectedFormat = NULL;
 
 	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
 	
@@ -113,7 +114,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	/* If objtype == "data", detect the objtype */
 	if (!strcmp(osync_change_get_objtype(change), "data") && osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
-		OSyncObjFormat *detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
+		detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
 		if (!detectedFormat)
 			goto error;
 
@@ -140,6 +141,33 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 			osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype);
 		
 	}
+
+	/* If initial objformat was reported as "file" detect the real object format and update it.
+	   This is needed to avoid an invalid converting path from file -> plain -> targetformat.
+	   The correct converting path would be:
+	     file -> plain -> original sourceformat -> targetformat.
+
+	   Example: 
+	     real sourceformat: vcard30 targetformat: xmlformat-contact
+
+	     file -> plain -> xmlformat-contact-doc -> xmlformat-contact 
+
+	     This would break because the xmlformat-cotnact-doc converter would try to
+	     parse the plain vcard30 as XML
+	
+	 */
+
+	if (!strcmp(format, "file")) {
+		/* Check if the object format got already detected by objtype "data" update. */
+		if (!detectedFormat)
+			detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
+
+		if (!detectedFormat)
+			goto error;
+
+		osync_data_set_objformat(data, detectedFormat);
+
+	}
 	
 	/* Convert the format to the internal format */
 	OSyncObjFormat *internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
@@ -162,6 +190,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
 	if( osync_engine_get_use_merger(engine) &&
 		(osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) &&
+		/* only use the merger if the objformat name starts with "xmlformat-" (10 chars) */
 		( !strncmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-", 10)))
 
 	{
