@@ -943,6 +943,7 @@ START_TEST (sync_easy_conflict_duplicate)
     check_hash(table, "testdata-dupe");
 	osync_hashtable_free(table);
 	
+	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
 	system("rm -f data1/testdata-dupe");
 	
 	reset_counters();
@@ -990,7 +991,8 @@ START_TEST (sync_easy_conflict_duplicate)
 	fail_unless(num_mapping_conflicts == 0, NULL);
 
 	fail_unless(!system("test \"x$(diff -x \".*\" data1 data2)\" = \"x\""), NULL);
-	
+
+
 	path = g_strdup_printf("%s/configs/group/archive.db", testbed);
 	maptable = mappingtable_load(path, "mockobjtype1", 1);
 	g_free(path);
@@ -2767,7 +2769,7 @@ Suite *env_suite(void)
 	create_case(s, "sync_conflict_moddel", sync_conflict_moddel);
 	create_case(s, "sync_easy_dualdel", sync_easy_dualdel);
 	create_case(s, "sync_large", sync_large);
-	
+
 	create_case(s, "sync_detect_obj", sync_detect_obj);
 	create_case(s, "sync_detect_obj2", sync_detect_obj2);
 
