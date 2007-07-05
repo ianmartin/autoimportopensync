@@ -232,6 +232,38 @@ OSyncData *osync_change_get_data(OSyncChange *change)
 	return change->data;
 }
 
+/*! @brief Clone a change object
+ *
+ *  @param source The change object to clone
+ *  @param error An error struct
+ *  @returns a copy of the specified change object, or NULL if an error occured
+ *
+ */
+OSyncChange *osync_change_clone(OSyncChange *source, OSyncError **error)
+{
+	OSyncChange *change = NULL;
+
+	osync_assert(source);
+
+	change = osync_change_new(error);
+	if (!change)
+		return NULL;
+
+	if (source->data)
+		osync_change_set_data(change, source->data);
+
+	if (source->uid)
+		change->uid = g_strdup(source->uid);
+	
+	if (source->hash)
+		change->hash = g_strdup(source->hash);
+
+	if (source->changetype)
+		change->changetype = osync_change_get_changetype(source);
+
+	return change;
+}
+
 /*! @brief Compares two changes
  * 
  * Compares the two given changes and returns:

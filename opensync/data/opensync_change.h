@@ -5,6 +5,8 @@ OSyncChange *osync_change_new(OSyncError **error);
 void osync_change_ref(OSyncChange *change);
 void osync_change_unref(OSyncChange *change);
 
+OSyncChange *osync_change_clone(OSyncChange *source, OSyncError **error);
+
 void osync_change_set_hash(OSyncChange *change, const char *hash);
 const char *osync_change_get_hash(OSyncChange *change);
 
