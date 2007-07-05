@@ -316,8 +316,12 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		osync_entry_engine_update(entry_engine, existChange);
 		
 		/* We have to use the uid of the entry, so that the member
-		 * can correctly identify the entry */
-		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED)
+		 * can correctly identify the entry 
+		 * prahal: added a check if the entry has a uid to send the existing uid
+		 * to the plugins in case we have a slow-sync (both are added and have a uid) 
+		 * This to avoid creating duplicates by sending the plugins a different uid 
+		 * with the same or merged data */
+		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && !osync_mapping_entry_get_uid(entry_engine->entry))
 			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
 		else
 			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
