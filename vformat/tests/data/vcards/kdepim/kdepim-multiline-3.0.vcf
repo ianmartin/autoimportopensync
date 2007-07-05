@@ -1,0 +1,76 @@
+BEGIN:VCARD
+ADR;TYPE=work:pobox2;;Street1 work;locale2;region2;postalcode2;Germany
+ADR;TYPE=home;TYPE=pref:pobox1;;HomeAddress1\nmultine;local1;region1;postal
+ code1;Germany
+BDAY:2005-02-26T00:00:00Z
+CATEGORIES:Customer,Family
+CLASS:PRIVATE
+EMAIL;TYPE=PREF:email1
+EMAIL:email2@test.com
+FN:givenname familynames
+GEO:52.500000;13.366667
+KEY;ENCODING=b;TYPE=PGP:mQGiBECXtzARBAC99Ll8ePW6FCzq8KUBwEYzo+J/u4EmkgCxgWm
+ Vzsvj2Uu7/OhwFaGJcv+fBSF+XtGhZeUk+Pcl4x0tMY5H07/k6ObF8+0O164J+Jg5bMlk2I6X1n
+ UhmAA4aIZCALHwcNZCq9b7HMKr3Sh1eMas2MQ2hL7mTrkfrcxqSNmTA1l/BwCgo+yOOozD6kohz
+ nRr+8jiYimho30EAJDN9YKkTh3kM1jrc9Q11N7zEnQUXtPC4GqQmW7BXgEmSBErEduk3N9NqnzG
+ xFruQrpXWisExv4z/t67uBou++m64J/Ad+T6wC19h72U15UVch/4bU7YqACjdlocUBfmnV3njko
+ Dhl6wmg7fxdCOJfkCXw+VKD9iiqXiSlqFh3IjA/4hdl3npIPKa0EeDnHDSUIbtZAd74i3Lzz1fJ
+ h5vip5N3alqSynJPmzPCWE7dMzOB/iPb+G50X046QT2OEypN9L5Trd5KJonlg+crN/aUZSjCmCC
+ foaBiISdox753MkVOipWH15F27KOqPHBNLrCnrYVCLMNpN/4aSbrn7AXzjbELQlQXJtaW4gQmF1
+ ZXIgPGFybWluLmJhdWVyQGRlc3Njb24uY29tPoheBBMRAgAeBQJAl7cwAhsDBgsJCAcDAgMVAgM
+ DFgIBAh4BAheAAAoJEKvc+7/ZPVGpDNQAmwaN2121JO3i3AcRT5ns8KeQU2x2AJ9w5i2jQ5gZ4m
+ 3jVJPFohsL03i2hbQgQXJtaW4gQmF1ZXIgPGF6cmFlbEBkZXNzY29uLmNvbT6IXgQTEQIAHgUCQ
+ Je5JQIbAwYLCQgHAwIDFQIDAxYCAQIeAQIXgAAKCRCr3Pu/2T1RqfVrAJ9ANz3hB4TqVahybg8i
+ XJUfmOtjbACfSLJBPGBI84P/RIEe7FKCDC05ZT65AQ0EQJe3MBAEALFujyLPriDAyh0+u8KXoBf
+ SSrnyrDnjvhG0gGsyqSfE06JvKDK6q0ZUlRAj/1cbHS+Rb8t6mUN8HquVjPkWG6eNhcGNnRxjc+
+ 7OqCiVhN7rt4c2HibVQWLy/8y04/Uqj2F9TwaiiuixIJiVA0tdqdgPxFFSCS6aRJhJ6EBw+rbXA
+ AMFBACtsn+fb3aQlaFiBurznAHmv/j2X3k2WXtaubPkNKEWf7HyLos0F5vSw0/hh0/YBabdpaK8
+ LNNuP3Q0ABPjUzyK7cH5fxHPb8BWKIKvB5aXAPr4fMFnRmvpzKmmV1yxegHQvmnpZEloODtWa1J
+ /qNq8OlFhks4tVFyxj7uKmRF1yIhJBBgRAgAJBQJAl7cwAhsMAAoJEKvc+7/ZPVGpqaoAn0yTGk
+ 6w/agEpgjKrsDAACV3l8mpAJ9X3AzwPCKMIx+NpIetkoKFroWxrQ==
+N:familynames;givenname;additional names;prefix;suffix
+NICKNAME:nickname
+NOTE:This is a multine note!\nwith\nmultiple\nlines
+ORG:organization
+ROLE:role
+SOUND;VALUE=URI:/usr/share/sounds/KDE_Event_5.ogg
+TEL;TYPE=WORK:workphone
+TEL;TYPE=FAX;TYPE=WORK:work fax
+TEL;TYPE=HOME:homephone
+TEL;TYPE=CELL:mobilephone
+TEL;TYPE=FAX;TYPE=HOME:homefax
+TEL;TYPE=MSG:messenger
+TEL;TYPE=FAX;TYPE=PREF:fax
+TEL;TYPE=VIDEO:vidoe
+TEL;TYPE=MODEM:modem
+TEL;TYPE=ISDN:isdn
+TEL;TYPE=PAGER:pager
+TEL;TYPE=BBS:mailbox
+TEL;TYPE=CAR:car
+TEL;TYPE=PCS:pcs
+UID:aZAQgtBIOB
+URL:homepage
+VERSION:3.0
+X-KADDRESSBOOK-CRYPTOENCRYPTPREF:alwaysIfPossible
+X-KADDRESSBOOK-CRYPTOPROTOPREF:inline openpgp,openpgp/mime,s/mime,s/mime op
+ aque
+X-KADDRESSBOOK-CRYPTOSIGNPREF:never
+X-KADDRESSBOOK-OPENPGPFP:C754DDC1ECF537C4805710FDABDCFBBFD93D51A9
+X-KADDRESSBOOK-X-Anniversary:2005-02-10
+X-KADDRESSBOOK-X-AssistantsName:assistant
+X-KADDRESSBOOK-X-Department:department
+X-KADDRESSBOOK-X-IMAddress:im address
+X-KADDRESSBOOK-X-ManagersName:manager
+X-KADDRESSBOOK-X-Office:office
+X-KADDRESSBOOK-X-Profession:profession
+X-KADDRESSBOOK-X-SpousesName:spouse
+X-messaging/aim-All:aim
+X-messaging/gadu-All:gadugadu
+X-messaging/icq-All:icq
+X-messaging/irc-All:irc
+X-messaging/msn-All:msn
+X-messaging/sms-All:im sms
+X-messaging/xmpp-All:jabber
+X-messaging/yahoo-All:yahoo
+END:VCARD
+

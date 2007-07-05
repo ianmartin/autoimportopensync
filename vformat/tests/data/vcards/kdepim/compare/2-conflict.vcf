@@ -1,0 +1,12 @@
+BEGIN:VCARD
+ADR;TYPE=home:;;sameaddress;;;;Germany
+CLASS:PUBLIC
+EMAIL:samemail
+FN:kdepimname
+N:kdepimname;;;;
+TEL;TYPE=WORK:samephone
+TEL;TYPE=HOME:samephone2
+UID:NbLz18IEVc
+VERSION:3.0
+END:VCARD
+
