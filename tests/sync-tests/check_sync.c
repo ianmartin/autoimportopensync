@@ -1889,13 +1889,10 @@ START_TEST (sync_easy_dualdel)
 	OSyncMappingTable *maptable = mappingtable_load(path, "mockobjtype1", 2);
 	g_free(path);
 
-	/* fixed order of uids in maptable - 2007-05-32 (dgollub) */
-	/* fixed order of uids in maptable - again - 2007-06-15 (dgollub) */
-	/* fixed order of uids in maptable - again, again, ... - 2007-07-02 (dgollub) */
-	check_mapping(maptable, 2, 2, 2, "testdata2");
-	check_mapping(maptable, 1, 2, 2, "testdata2");
-	check_mapping(maptable, 2, 1, 2, "testdata");
-	check_mapping(maptable, 1, 1, 2, "testdata");
+	check_mapping(maptable, 2, -1, 2, "testdata2");
+	check_mapping(maptable, 1, -1, 2, "testdata2");
+	check_mapping(maptable, 2, -1, 2, "testdata");
+	check_mapping(maptable, 1, -1, 2, "testdata");
 
     osync_mapping_table_close(maptable);
     osync_mapping_table_unref(maptable);
