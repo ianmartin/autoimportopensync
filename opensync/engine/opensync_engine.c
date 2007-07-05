@@ -157,7 +157,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	 */
 
-	if (!strcmp(format, "file")) {
+	if (!strcmp(format, "plain") || !strcmp(format, "file")) {
 		/* Check if the object format got already detected by objtype "data" update. */
 		if (!detectedFormat)
 			detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
