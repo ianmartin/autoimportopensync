@@ -30,9 +30,19 @@ SOFTWARE IS DISCLAIMED.
 #include <dcopclient.h>
 #include <qdeepcopy.h>
 
-KContactDataSource::KContactDataSource(OSyncHashTable *hashtable) : hashtable(hashtable)
+bool KContactDataSource::initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
-	connected = false;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, plugin, info);
+
+	if (!OSyncDataSource::initialize(plugin, info, error)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
+		return false;
+	}
+
+	osync_objtype_sink_add_objformat(sink, "vcard30");
+
+	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
+	return true;
 }
 
 /** Calculate the hash value for an Addressee.
@@ -54,15 +64,15 @@ QString KContactDataSource::calc_hash(KABC::Addressee &e)
 	return revdate.toString();
 }
 
-bool KContactDataSource::connect(OSyncPluginInfo *info, OSyncContext *ctx)
+void KContactDataSource::connect(OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
 	DCOPClient *dcopc = KApplication::kApplication()->dcopClient();
 	if (!dcopc) {
 		osync_context_report_error(ctx, OSYNC_ERROR_INITIALIZATION, "Unable to initialize dcop client");
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to initialize dcop client", __func__);
-		return false;
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to initialize dcop client", __PRETTY_FUNCTION__);
+		return;
 	}
 
 	QString appId = dcopc->registerAs("opensync-kaddrbook");
@@ -70,54 +80,45 @@ bool KContactDataSource::connect(OSyncPluginInfo *info, OSyncContext *ctx)
 	//check if kaddressbook is running, and return an error if it
 	//is running
 	if (dcopc->isApplicationRegistered("kaddressbook")) {
-		osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, "KAddressBook is running. Please finish it");
-		osync_trace(TRACE_EXIT_ERROR, "%s: KAddressBook is running", __func__);
-		return false;
+		osync_context_report_error(ctx, OSYNC_ERROR_NO_CONNECTION, "KAddressBook is running. Please terminate it");
+		osync_trace(TRACE_EXIT_ERROR, "%s: KAddressBook is running", __PRETTY_FUNCTION__);
+		return;
 	}
 
 	//get a handle to the standard KDE addressbook
 	addressbookptr = KABC::StdAddressBook::self();
-
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-
-	//Detection mechanismn if this is the first sync
-	QString anchorpath = QString("%1/anchor.db").arg(osync_plugin_info_get_configdir(info));
-	if (!osync_anchor_compare(anchorpath, "contact", "true")) {
-		osync_trace(TRACE_INTERNAL, "Setting slow-sync contact");
-		osync_objtype_sink_set_slowsync(sink, TRUE);
-	}
-
-	connected = true;
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	
+	OSyncDataSource::connect(info, ctx);
+	
+	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
+	return;
 }
 
-bool KContactDataSource::disconnect(OSyncPluginInfo *info, OSyncContext *ctx)
+void KContactDataSource::disconnect(OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
 	KABC::Ticket *ticket = addressbookptr->requestSaveTicket();
 	if ( !ticket ) {
 		osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unable to get save ticket");
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to get save ticket", __func__);
-		return FALSE;
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to get save ticket", __PRETTY_FUNCTION__);
+		return;
 	}
 
 	if ( !addressbookptr->save( ticket ) ) {
 		osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unable to use ticket");
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to save", __func__);
-		return FALSE;
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to save", __PRETTY_FUNCTION__);
+		return;
 	}
 
-	connected = false;
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return TRUE;
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
+	return;
 }
 
-
-bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx)
+void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, info, ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
 	OSyncError *error = NULL;
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
@@ -130,8 +131,8 @@ bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncCont
 	// We must reload the KDE addressbook in order to retrieve the latest changes.
 	if (!addressbookptr->load()) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't reload KDE addressbook");
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to reload addrbook", __func__);
-		return false;
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to reload addrbook", __PRETTY_FUNCTION__);
+		return;
 	}
 
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
@@ -221,8 +222,9 @@ bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncCont
 	}
 	g_free(uids);
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
-	return true;
+	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
+	return;
 }
 
 /** vcard access method
@@ -234,7 +236,7 @@ bool KContactDataSource::contact_get_changeinfo(OSyncPluginInfo *info, OSyncCont
  */
 bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, ctx, chg);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, ctx, chg);
 	KABC::VCardConverter converter;
 
 	// convert VCARD string from obj->comp into an Addresse object.
@@ -284,7 +286,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 		case OSYNC_CHANGE_TYPE_DELETED: {
 			if (uid.isEmpty()) {
 				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Trying to delete entry with empty UID");
-				osync_trace(TRACE_EXIT_ERROR, "%s: Trying to delete but uid is empty", __func__);
+				osync_trace(TRACE_EXIT_ERROR, "%s: Trying to delete but uid is empty", __PRETTY_FUNCTION__);
 				return FALSE;
 			}
 
@@ -299,16 +301,16 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 		}
 		default: {
 			osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
-			osync_trace(TRACE_EXIT_ERROR, "%s: Operation not supported", __func__);
+			osync_trace(TRACE_EXIT_ERROR, "%s: Operation not supported", __PRETTY_FUNCTION__);
 			return FALSE;
 		}
 	}
 
-	osync_trace(TRACE_EXIT, "%s", __func__);
+	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 	return TRUE;
 }
 
-bool KContactDataSource::vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
+bool KContactDataSource::read(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
 {
 	if (!__vcard_access(ctx, chg))
 		return false;
@@ -317,11 +319,9 @@ bool KContactDataSource::vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, 
 	return true;
 }
 
-bool KContactDataSource::vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
+void KContactDataSource::commit(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
 {
-	if ( !__vcard_access(ctx, chg) )
-		return false;
-
-	osync_context_report_success(ctx);
-	return true;
+	if (__vcard_access(ctx, chg))
+		osync_context_report_success(ctx);
+	return;
 }

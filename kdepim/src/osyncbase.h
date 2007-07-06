@@ -20,24 +20,7 @@ extern "C"
 class KdePluginImplementationBase
 {
 	public:
-		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
-		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
-
-		virtual void get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
-
-		virtual void sync_done(OSyncPluginInfo *info, OSyncContext *ctx) = 0;
-
-		virtual bool vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg) = 0;
-		virtual bool vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg) = 0;
-
-
-		/* The declaration above seemed to be necessary just because the
-		 * KdePluginImplementation destructor wasn't being called
-		 */
-		virtual ~KdePluginImplementationBase() { };
-
-		OSyncObjTypeSink *contact_sink;
-
+		virtual ~KdePluginImplementationBase() {};
 };
 
 typedef KdePluginImplementationBase *(*KdeImplInitFunc)(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);

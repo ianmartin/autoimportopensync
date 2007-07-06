@@ -46,11 +46,12 @@ kdepim_sync_la_LIBADD = -lstdc++ -L@OPENSYNC_LIBDIR@ -lopensync
 #	dcopidl $(top_srcdir)/src/KNotesIface.h > KNotesIface.kidl
 #	dcopidl2cpp KNotesIface.kidl
 
-dist_kdepim_lib_la_SOURCES = src/kdepim_impl.cpp src/kaddrbook.cpp
-#	src/kdepim_impl.cpp \
-#	src/kcal.cpp \
-#	src/knotes.cpp \
-#	src/kaddrbook.cpp 
+dist_kdepim_lib_la_SOURCES = \
+	src/kdepim_impl.cpp \
+	src/datasource.cpp \
+	src/kaddrbook.cpp
+#	src/kcal.cpp
+#	src/knotes.cpp
 #nodist_kdepim_lib_la_SOURCES = KNotesIface_stub.cpp
 kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall
 kdepim_lib_la_LDFLAGS = $(KDE_LDFLAGS) -avoid-version -export-dynamic -module

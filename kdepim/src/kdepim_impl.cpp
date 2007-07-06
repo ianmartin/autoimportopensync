@@ -24,9 +24,6 @@ SOFTWARE IS DISCLAIMED.
  * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
  */
 
-
-
-
 #include <libkcal/resourcecalendar.h>
 #include <kinstance.h>
 #include <klocale.h>
@@ -35,8 +32,6 @@ SOFTWARE IS DISCLAIMED.
 #include <kaboutdata.h>
 
 #include <qsignal.h>
-
-
 #include <qfile.h>
 #include <dlfcn.h>
 
@@ -44,25 +39,27 @@ SOFTWARE IS DISCLAIMED.
 #include "kaddrbook.h"
 //#include "kcal.h"
 //#include "knotes.h"
-static bool sentinal = false;
+
+static bool sentinel = false;
 
 class KdePluginImplementation: public KdePluginImplementationBase
 {
-	public:
-		KdePluginImplementation(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
-				: mApplication( 0 ),
-				mNewApplication( false )
-		{}
+	private:
+		KContactDataSource *kaddrbook;
+		//KCalDataSource *kcal;
+
+		KApplication *application;
+		bool newApplication;
 
 		void initKDE()
 		{
-			if (sentinal)
+			if (sentinel)
 				return;
 
 			KAboutData aboutData(
 			    "libopensync-kdepim-plugin",         // internal program name
 			    "OpenSync-KDE-plugin",               // displayable program name.
-			    "0.2",                               // version string
+			    "0.3",                               // version string
 			    "OpenSync KDEPIM plugin",            // short porgram description
 			    KAboutData::License_GPL,             // license type
 			    "(c) 2005, Eduardo Pereira Habkost, (c)", // copyright statement
@@ -72,129 +69,63 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			);
 
 			KCmdLineArgs::init( &aboutData );
-			if ( kapp )
-				mApplication = kapp;
-			else {
-				mApplication = new KApplication( true, true );
-				mNewApplication = true;
+			if ( kapp ) {
+				application = kapp;
+				newApplication = false;
+			} else {
+				application = new KApplication( true, true );
+				newApplication = true;
 			}
 
-			sentinal = true;
+			sentinel = true;
 		}
 
-		bool init(OSyncPluginInfo *info, OSyncError **error)
+	public:
+		KdePluginImplementation() : application(NULL), newApplication(false)
 		{
-			osync_trace(TRACE_ENTRY, "%s(%p)", __func__, error);
+			kaddrbook = new KContactDataSource();
+			//kcal = new KCalDataSource();
+		}
+
+		bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
+		{
+			osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, plugin, info);
 
 			initKDE();
 
-			contact_sink = osync_objtype_sink_new("contact", error);
+			if (!kaddrbook->initialize(plugin, info, error))
+				goto error;
+			
+			//if (!kcal->initialize(plugin, info, error))
+			//	goto error;
 
-			QString tablepath = QString("%1/hashtable.db").arg(osync_plugin_info_get_configdir(info));
-			mHashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(contact_sink), error);
-
-			mKaddrbook = new KContactDataSource(mHashtable);
-
-			osync_trace(TRACE_EXIT, "%s", __func__);
+			osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 			return true;
+
+		error:
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __PRETTY_FUNCTION__, osync_error_print(error));
+			return false;
 		}
 
 		virtual ~KdePluginImplementation()
 		{
-			if ( mNewApplication ) {
-				delete mApplication;
-				mApplication = 0;
+			if ( newApplication ) {
+				delete application;
+				application = NULL;
 			}
-
-			if ( mHashtable )
-				osync_hashtable_free(mHashtable);
 		}
-
-		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx)
-		{
-			osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);
-
-//			OSyncError *error = NULL;
-
-			if (mKaddrbook && \
-			        !mKaddrbook->connect(info, ctx)) {
-				osync_trace(TRACE_EXIT_ERROR, "%s: Unable to open addressbook", __func__);
-				return;
-			}
-
-			osync_context_report_success(ctx);
-			osync_trace(TRACE_EXIT, "%s", __func__);
-		}
-
-		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx)
-		{
-			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->disconnect(info, ctx))
-				return;
-
-			osync_context_report_success(ctx);
-		}
-
-
-		virtual void sync_done(OSyncPluginInfo *info, OSyncContext *ctx)
-		{
-			if (mKaddrbook && mKaddrbook->connected)
-			{
-				QString anchorpath = QString("%1/anchor.db").arg(osync_plugin_info_get_configdir(info));
-				osync_anchor_update(anchorpath, "contact", "true");
-			}
-			osync_context_report_success(ctx);
-		}
-
-		virtual void get_changeinfo(OSyncPluginInfo *info, OSyncContext *ctx)
-		{
-			if (mKaddrbook && mKaddrbook->connected && !mKaddrbook->contact_get_changeinfo(info, ctx))
-				return;
-			osync_context_report_success(ctx);
-		}
-
-		virtual bool vcard_access(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKaddrbook)
-				return mKaddrbook->vcard_access(info, ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
-				return false;
-			}
-			return true;
-		}
-
-		virtual bool vcard_commit_change(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
-		{
-			if (mKaddrbook)
-				return mKaddrbook->vcard_commit_change(info, ctx, chg);
-			else {
-				osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "No addressbook loaded");
-				return false;
-			}
-			return true;
-		}
-	private:
-		KContactDataSource *mKaddrbook;
-
-		OSyncHashTable *mHashtable;
-		OSyncMember *mMember;
-
-		KApplication *mApplication;
-		bool mNewApplication;
 };
 
 
 extern "C"
 {
-
 	KdePluginImplementationBase *new_KdePluginImplementation(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error) {
-		KdePluginImplementation *imp = new KdePluginImplementation(plugin, info, error);
-		if (!imp->init(info, error)) {
+		KdePluginImplementation *imp = new KdePluginImplementation();
+		if (!imp->initialize(plugin, info, error)) {
 			delete imp;
-			return 0;
+			return NULL;
 		}
 
 		return imp;
 	}
-
 }
