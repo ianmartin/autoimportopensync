@@ -481,7 +481,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
         // [vcal-1.0] param (same order as in spec!) TODO -> fix and order paramtable
 	//insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
 	//insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
 	//insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
 	//insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
 	//insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
@@ -560,7 +560,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 
 
 	// [RFC 2445] 4.2 Property Parameters (ordered by name!)
-	insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
+	insert_xml_attr_handler(hooks->parameters, "AlternativeTextRep", handle_xml_altrep_parameter);
 	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
 	// TODO -> cutypeparam
 	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
@@ -568,18 +568,18 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
 	// TODO -> encodingparam
 	insert_xml_attr_handler(hooks->parameters, "FormatType", handle_xml_format_type_parameter);
-	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
+	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter); // TODO test
 	// TODO -> languageparam
 	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
 	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
 	// TODO -> trigrelparam
-	insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
+	insert_xml_attr_handler(hooks->parameters, "RelationshipType", handle_xml_reltype_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
+	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_parameter);
 	insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
 	insert_xml_attr_handler(hooks->parameters, "TimezoneID", handle_xml_tzid_parameter);
-	// insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter); // TODO
+	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
 	
 
 	// [RFC 2445] calprop (same order as in spec!)
@@ -614,7 +614,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Organizer", handle_xml_organizer_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "PercentComplete", handle_xml_percent_complete_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
-	insert_xml_attr_handler(hooks->attributes, "RecurrenceID", handle_xml_recurid_attribute); // ical only
+	insert_xml_attr_handler(hooks->attributes, "RecurrenceId", handle_xml_recurid_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceDate", handle_xml_rdate_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to

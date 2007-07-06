@@ -1050,119 +1050,127 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 }
 
 
-/* XMLFORMAT to vcomponent starts here! */
+/* XMLFORMAT to vevent/vtodo! */
+
+// FIXME: descriptions - vcal only?
+void handle_xml_related_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling RelationshipType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "RelationshipType");
+	vformat_attribute_add_param_with_value(attr, "RELATED", content);
+}
 
 /* xml parameters */
-void handle_xml_tzid_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_tzid_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
-	vformat_attribute_add_param_with_value(attr, "TimezoneID", content);
-	g_free(content);
+	osync_trace(TRACE_INTERNAL, "Handling TimezoneID xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "TimezoneID");
+	vformat_attribute_add_param_with_value(attr, "TZID", content);
 }
 
-void handle_xml_altrep_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_altrep_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling AlternativeTextRep xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "AlternativeTextRep");
 	vformat_attribute_add_param_with_value(attr, "ALTREP", content);
-	g_free(content);
 }
 
-void handle_xml_cn_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_cn_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling CommonName xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "CommonName");
 	vformat_attribute_add_param_with_value(attr, "CN", content);
-	g_free(content);
 }
 
-void handle_xml_delegated_from_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_delegated_from_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling DelegatedFrom xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "DelegatedFrom");
 	vformat_attribute_add_param_with_value(attr, "DELEGATED-FROM", content);
-	g_free(content);
 }
 
-void handle_xml_delegated_to_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_delegated_to_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling DelegatedTo xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "DelegatedTo");
 	vformat_attribute_add_param_with_value(attr, "DELEGATED-TO", content);
-	g_free(content);
 }
 
-void handle_xml_dir_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_dir_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling Directory xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Directory");
 	vformat_attribute_add_param_with_value(attr, "DIR", content);
-	g_free(content);
 }
 
-void handle_xml_format_type_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_format_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling FormatType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "FormatType");
 	vformat_attribute_add_param_with_value(attr, "FMTTYPE", content);
-	g_free(content);
 }
 
-void handle_xml_fb_type_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_fb_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling FreeBusyType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "FreeBusyType");
 	vformat_attribute_add_param_with_value(attr, "FBTYPE", content);
-	g_free(content);
 }
 
-void handle_xml_member_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_member_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling Member xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Member");
 	vformat_attribute_add_param_with_value(attr, "MEMBER", content);
-	g_free(content);
 }
 
-void handle_xml_partstat_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_partstat_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling PartStat xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "PartStat");
 	vformat_attribute_add_param_with_value(attr, "PARTSTAT", content);
-	g_free(content);
 }
 
-void handle_xml_range_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_range_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling Range xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Range");
 	vformat_attribute_add_param_with_value(attr, "RANGE", content);
-	g_free(content);
 }
 
-void handle_xml_reltype_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_reltype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling RelationshipType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "RelationshipType");
 	vformat_attribute_add_param_with_value(attr, "RELTYPE", content);
-	g_free(content);
 }
 
-void handle_xml_related_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_role_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
-	vformat_attribute_add_param_with_value(attr, "RELATED", content);
-	g_free(content);
-}
-
-void handle_xml_role_parameter(VFormatAttribute *attr, xmlNode *current)
-{
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling Role xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Role");
 	vformat_attribute_add_param_with_value(attr, "ROLE", content);
-	g_free(content);
 }
 
-void handle_xml_rsvp_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_rsvp_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling Rsvp xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Rsvp");
 	vformat_attribute_add_param_with_value(attr, "RSVP", content);
-	g_free(content);
 }
 
-void handle_xml_sent_by_parameter(VFormatAttribute *attr, xmlNode *current)
+void handle_xml_sent_by_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
-	char *content = (char*)xmlNodeGetContent(current);
+	osync_trace(TRACE_INTERNAL, "Handling SentBy xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "SentBy");
 	vformat_attribute_add_param_with_value(attr, "SENT-BY", content);
-	g_free(content);
+}
+
+void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Value xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Value");
+	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 }
 
 /*
@@ -1177,13 +1185,6 @@ static void handle_xml_rule_parameter(VFormatAttribute *attr, OSyncXMLField *xml
 {
 	char *content = (char*)OSyncXMLFieldGetContent(xmlfield);
 	vformat_attribute_add_value(attr, content);
-	g_free(content);
-}
-
-static void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	char *content = (char*)OSyncXMLFieldGetContent(xmlfield);
-	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 	g_free(content);
 }
 
