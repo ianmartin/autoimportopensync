@@ -53,6 +53,7 @@ headers = """
 opensync.h
 opensync_list.h
 opensync_xml.h
+opensync-archive.h
 opensync-context.h
 opensync-data.h
 opensync-engine.h
