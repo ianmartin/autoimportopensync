@@ -166,13 +166,15 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 			goto error;
 
 		osync_data_set_objformat(data, detectedFormat);
-
 	}
 	
 	/* Convert the format to the internal format */
 	OSyncObjFormat *internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
 	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change));
-	if (internalFormat) {
+
+	/* Only convert if the engine is allowed to convert and if a internal format is available. 
+	   The reason that the engine isn't allowed to convert could be backup. dumping the changes. */
+	if (internalFormat && osync_engine_get_use_converter(engine)) {
 		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 	
 		OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), internalFormat, &error);
@@ -189,6 +191,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	/* Merger - Merge lost information to the change (don't merger anything when changetype is DELETED.) */
 	if( osync_engine_get_use_merger(engine) &&
+		osync_engine_get_use_converter(engine) &&	
 		(osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) &&
 		/* only use the merger if the objformat name starts with "xmlformat-" (10 chars) */
 		( !strncmp(osync_objformat_get_name(osync_change_get_objformat(change)), "xmlformat-", 10)))
@@ -373,6 +376,11 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->ref_count = 1;
 
 	engine->group_slowsync = FALSE;
+
+	/* By default use merger and converters */
+	engine->use_merger = TRUE;
+	engine->use_converter = TRUE;
+
 	engine->objtype_slowsync = NULL;
 	
 	if (!g_thread_supported ())
@@ -511,16 +519,63 @@ void osync_engine_unref(OSyncEngine *engine)
 	}
 }
 
+/*! @brief This return the status of the merger/demerger.
+ * 
+ * This returns TRUE if the merger/demerger will be used. 
+ * 
+ * @param engine A pointer to the engine, which will be used to sync
+ * @returns TRUE if the merger is active. FALSE otherwise. 
+ * 
+ */
 osync_bool osync_engine_get_use_merger(OSyncEngine *engine)
 {
 	osync_assert(engine);
 	return engine->use_merger;
 }
 
+/*! @brief Enables or Disables the Merger. 
+ *
+ * If the Merger is enable the capability differents got demerged and merged. 
+ * The Merger avoids dataloss for a different capabiltiy set of different membres.
+ * 
+ * @param engine A pointer to the engine, which will be used to sync
+ * @param use_merger Expression if the merger should be actived (TRUE) or not (FALSE). 
+ * 
+ */
 void osync_engine_set_use_merger(OSyncEngine *engine, osync_bool use_merger)
 {
 	osync_assert(engine);
 	engine->use_merger = use_merger;
+}
+
+/*! @brief Returns the status if the Converters get used. 
+ * 
+ * This returns TRUE if the Converters will be used. FALSE nothing 
+ * gets converted by the engine.
+ * 
+ * @param engine A pointer to the engine, which will be used to sync
+ * @returns TRUE if the Converters get used. FALSE otherwise. 
+ * 
+ */
+osync_bool osync_engine_get_use_converter(OSyncEngine *engine)
+{
+	osync_assert(engine);
+	return engine->use_converter;
+}
+
+/*! @brief Enables or Disables the Converters. 
+ *
+ * If the Converters got disabled nothing will be converted. 
+ * This is very useful for creating/restoring backups.
+ * 
+ * @param engine A pointer to the engine, which will be used to sync
+ * @param use_converter Expression if the Converters should be actived (TRUE) or not (FALSE). 
+ * 
+ */
+void osync_engine_set_use_converter(OSyncEngine *engine, osync_bool use_converter) 
+{
+	osync_assert(engine);
+	engine->use_converter = use_converter;
 }
 
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir)

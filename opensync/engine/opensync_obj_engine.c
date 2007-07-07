@@ -1501,6 +1501,7 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					/* Merger - Save the entire xml and demerge */
 					/* TODO: is here the right place to save the xml???? */
 					if (osync_engine_get_use_merger(engine->parent) &&
+						osync_engine_get_use_converter(engine->parent) &&	
 						entry_engine->change &&
 						(osync_change_get_changetype(entry_engine->change) != OSYNC_CHANGE_TYPE_DELETED) &&
 						!strncmp(osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)), "xmlformat-", 10) )
@@ -1535,35 +1536,40 @@ osync_bool osync_obj_engine_command(OSyncObjEngine *engine, OSyncEngineCmd cmd, 
 					if (osync_entry_engine_is_dirty(entry_engine)) {
 						osync_assert(entry_engine->change);
 						OSyncChange *change = entry_engine->change;
-						
-						osync_trace(TRACE_INTERNAL, "Starting to convert from objtype %s and format %s", osync_change_get_objtype(entry_engine->change), osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
-						/* We have to save the objtype of the change so that it does not get
-						 * overwritten by the conversion */
-						char *objtype = g_strdup(osync_change_get_objtype(change));
-						
-						/* Now we have to convert to one of the formats
-						 * that the client can understand */
-						OSyncObjFormat **formats = _get_member_formats(engine->formatenv, sinkengine->proxy, osync_change_get_objtype(entry_engine->change), error);
-						if (!formats)
-							goto error;
-						
-						OSyncFormatConverterPath *path = osync_format_env_find_path_formats(engine->formatenv, osync_change_get_objformat(entry_engine->change), formats, error);
-						if (!path) {
+
+						/* Convert to requested target format */
+						if (osync_engine_get_use_converter(engine->parent)) {
+
+							
+							osync_trace(TRACE_INTERNAL, "Starting to convert from objtype %s and format %s", osync_change_get_objtype(entry_engine->change), osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
+							/* We have to save the objtype of the change so that it does not get
+							 * overwritten by the conversion */
+							char *objtype = g_strdup(osync_change_get_objtype(change));
+							
+							/* Now we have to convert to one of the formats
+							 * that the client can understand */
+							OSyncObjFormat **formats = _get_member_formats(engine->formatenv, sinkengine->proxy, osync_change_get_objtype(entry_engine->change), error);
+							if (!formats)
+								goto error;
+							
+							OSyncFormatConverterPath *path = osync_format_env_find_path_formats(engine->formatenv, osync_change_get_objformat(entry_engine->change), formats, error);
+							if (!path) {
+								g_free(formats);
+								goto error;
+							}
 							g_free(formats);
-							goto error;
-						}
-						g_free(formats);
-						
-						if (!osync_format_env_convert(engine->formatenv, path, osync_change_get_data(entry_engine->change), error)) {
+							
+							if (!osync_format_env_convert(engine->formatenv, path, osync_change_get_data(entry_engine->change), error)) {
+								osync_converter_path_unref(path);
+								goto error;
+							}
+							osync_trace(TRACE_INTERNAL, "converted to format %s", osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
+							
 							osync_converter_path_unref(path);
-							goto error;
+							
+							osync_change_set_objtype(change, objtype);
+							g_free(objtype);
 						}
-						osync_trace(TRACE_INTERNAL, "converted to format %s", osync_objformat_get_name(osync_change_get_objformat(entry_engine->change)));
-						
-						osync_converter_path_unref(path);
-						
-						osync_change_set_objtype(change, objtype);
-						g_free(objtype);
 						
 						osync_trace(TRACE_INTERNAL, "Writing change %s, changetype %i, format %s , objtype %s from member %lli", osync_change_get_uid(change), osync_change_get_changetype(change), osync_objformat_get_name(osync_change_get_objformat(change)), osync_change_get_objtype(change), osync_member_get_id(osync_client_proxy_get_member(sinkengine->proxy)));
 	
