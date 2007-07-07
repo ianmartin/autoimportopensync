@@ -218,7 +218,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 			goto error_free_path;
 		}
 		
-		osync_group_env_add_group(env, group);
+		osync_group_env_add_group(env, group, error);
 		osync_group_unref(group);
 		
 		g_free(filename);
@@ -265,12 +265,20 @@ OSyncGroup *osync_group_env_find_group(OSyncGroupEnv *env, const char *name)
  * 
  * @param env Pointer to a OSyncGroupEnv environment
  * @param group The group to add
+ * @param error Pointer to a error struct to return a error
+ * @returns FALSE if group with the same name already exists. 
  * 
  */
-void osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group)
+osync_bool osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group, OSyncError **error)
 {
 	osync_assert(env);
 	osync_assert(group);
+
+	/* Check if the group already exist. Fail if there is already a group with the same name */
+	if (osync_group_env_find_group(env, osync_group_get_name(group))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Group \"%s\" already exsists.", osync_group_get_name(group));
+		return FALSE;
+	}
 	
 	if (!osync_group_get_configdir(group)) {
 		char *configdir = g_strdup_printf("%s/group%lli", env->groupsdir, _osync_group_env_create_group_id(env));
@@ -280,6 +288,8 @@ void osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group)
 	
 	env->groups = g_list_append(env->groups, group);
 	osync_group_ref(group);
+
+	return TRUE;
 }
 
 /*! @brief Removes the given group from the enviroment

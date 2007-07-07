@@ -26,7 +26,7 @@ OSYNC_EXPORT void osync_group_env_free(OSyncGroupEnv *env);
 
 OSYNC_EXPORT osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *p, OSyncError **error);
 OSYNC_EXPORT OSyncGroup *osync_group_env_find_group(OSyncGroupEnv *env, const char *name);
-OSYNC_EXPORT void osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group);
+OSYNC_EXPORT osync_bool osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group, OSyncError **error);
 OSYNC_EXPORT void osync_group_env_remove_group(OSyncGroupEnv *env, OSyncGroup *group);
 OSYNC_EXPORT int osync_group_env_num_groups(OSyncGroupEnv *env);
 OSYNC_EXPORT OSyncGroup *osync_group_env_nth_group(OSyncGroupEnv *env, int nth);
