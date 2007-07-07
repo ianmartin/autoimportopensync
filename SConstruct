@@ -7,7 +7,7 @@ from osync_support import *
 #get overwriten by the scons files in the build directory
 config = {
 	'name': "libopensync",
-	'version': "0.30",
+	'version': "0.31",
 	'major': 1,
 	'minor': 0,
 	'micro': 0,
