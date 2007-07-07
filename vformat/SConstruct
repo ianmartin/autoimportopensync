@@ -19,7 +19,7 @@ config = {
 # Get our configuration options:
 env = Environment(
 		ENV = os.environ,
-		tools=['default', 'osync_support', 'pkgconfig', 'opensync', 'glib', 'libxml', 'libsqlite'],
+		tools=['default', 'osync_support', 'pkgconfig', 'opensync', 'glib', 'libxml', 'libsqlite', 'check'],
 		toolpath=['./', './build'])
 
 A=env.get_opts().add
@@ -67,5 +67,5 @@ install_format = '${DESTDIR}%s' % env["OPENSYNC_FORMATSDIR"]
 
 Export('env opts testenv install_prefix install_lib install_bin install_format')
 
-SConscript(['src/SConscript', 'tools/SConscript'])
+SConscript(['src/SConscript', 'tools/SConscript', 'tests/SConscript'])
 BuildDir(target_dir, 'vformat', duplicate=0)
