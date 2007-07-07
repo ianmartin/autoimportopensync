@@ -49,9 +49,11 @@ static void free_env(OSyncFileEnv *env)
 	g_free(env);
 }
 
-static osync_bool osync_filesync_parse_directory(OSyncFileEnv *env, xmlNode *cur, OSyncError **error)
+static osync_bool osync_filesync_parse_directory(OSyncFileEnv *env, OSyncPluginInfo *info, xmlNode *cur, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, cur, error);
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 
 	OSyncFileDir *dir = osync_try_malloc0(sizeof(OSyncFileDir), error);
 	if (!dir)
@@ -65,6 +67,8 @@ static osync_bool osync_filesync_parse_directory(OSyncFileEnv *env, xmlNode *cur
 				dir->path = g_strdup(str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
 				dir->objtype = g_strdup(str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
+				dir->objformat = osync_format_env_find_objformat(formatenv, str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"recursive")) {
 				dir->recursive = (g_ascii_strcasecmp(str, "TRUE") == 0);
 			}
@@ -93,11 +97,13 @@ error:
 }
 
 /*Load the state from a xml file and return it in the conn struct*/
-static osync_bool osync_filesync_parse_settings(OSyncFileEnv *env, const char *data, OSyncError **error)
+static osync_bool osync_filesync_parse_settings(OSyncFileEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, data, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, env, info, error);
 	xmlDoc *doc = NULL;
 	xmlNode *cur = NULL;
+
+	const char *data = osync_plugin_info_get_config(info);
 
 	doc = xmlParseMemory(data, strlen(data) + 1);
 	if (!doc) {
@@ -123,7 +129,7 @@ static osync_bool osync_filesync_parse_settings(OSyncFileEnv *env, const char *d
 		char *str = (char*)xmlNodeGetContent(cur);
 		if (str) {
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"directory")) {
-				if (!osync_filesync_parse_directory(env, cur->xmlChildrenNode, error))
+				if (!osync_filesync_parse_directory(env, info, cur->xmlChildrenNode, error))
 					goto error_free_doc;
 			}
 			xmlFree(str);
@@ -214,7 +220,6 @@ static osync_bool osync_filesync_read(void *data, OSyncPluginInfo *info, OSyncCo
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p)", __func__, data, info, ctx, change);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	OSyncFileEnv *env = (OSyncFileEnv *)data;
 	OSyncError *error = NULL;
 	
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
@@ -234,7 +239,7 @@ static osync_bool osync_filesync_read(void *data, OSyncPluginInfo *info, OSyncCo
 	if (!osync_file_read(filename, &(file->data), &(file->size), &error))
 		goto error_free_file;
 	
-	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), env->objformat, &error);
+	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), dir->objformat, &error);
 	if (!odata)
 		goto error_free_data;
 	
@@ -293,12 +298,19 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 			g_assert(odata);
 			osync_data_get_data(odata, &buffer, &size);
 			g_assert(buffer);
-			g_assert(size == sizeof(OSyncFileFormat));
-			
-			OSyncFileFormat *file = (OSyncFileFormat *)buffer;
-			
-			if (!osync_file_write(filename, file->data, file->size, file->mode, &error))
-				goto error;
+
+			if (!strcmp(osync_objformat_get_name(osync_data_get_objformat(odata)), "file")) {
+				g_assert(size == sizeof(OSyncFileFormat));
+				
+				OSyncFileFormat *file = (OSyncFileFormat *)buffer;
+				
+				if (!osync_file_write(filename, file->data, file->size, file->mode, &error))
+					goto error;
+			} else {
+				if (!osync_file_write(filename, buffer, size-1, 0, &error))
+					goto error;
+			}
+
 			break;
 		default:
 			break;
@@ -420,7 +432,7 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 				continue;
 			}
 			
-			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->env->objformat, &error);
+			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->objformat, &error);
 			if (!odata) {
 				osync_change_unref(change);
 				osync_context_report_osyncwarning(ctx, error);
@@ -453,7 +465,6 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
-	OSyncFileEnv *env = (OSyncFileEnv *)data;
 	int i = 0;
 	OSyncError *error = NULL;
 	
@@ -479,7 +490,7 @@ static void osync_filesync_get_changes(void *data, OSyncPluginInfo *info, OSyncC
 		osync_change_set_uid(change, uids[i]);
 		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
 		
-		OSyncData *odata = osync_data_new(NULL, 0, env->objformat, &error);
+		OSyncData *odata = osync_data_new(NULL, 0, dir->objformat, &error);
 		if (!odata) {
 			g_free(uids[i]);
 			osync_change_unref(change);
@@ -566,9 +577,8 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 	osync_trace(TRACE_INTERNAL, "The config: %s", osync_plugin_info_get_config(info));
 	
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	env->objformat = osync_format_env_find_objformat(formatenv, "file");
 	
-	if (!osync_filesync_parse_settings(env, osync_plugin_info_get_config(info), error))
+	if (!osync_filesync_parse_settings(env, info, error))
 		goto error_free_env;
 	
 	/* Now we register the objtypes that we can sync. This plugin is special. It can
@@ -584,9 +594,14 @@ static void *osync_filesync_initialize(OSyncPlugin *plugin, OSyncPluginInfo *inf
 		
 		dir->sink = sink;
 		
-		/* The file format is the only one we understand */
-		osync_objtype_sink_add_objformat(sink, "file");
-		
+		/* Use the configured object format. By default object format "file" is used. */
+		if (dir->objformat) {
+			osync_objtype_sink_add_objformat(sink, osync_objformat_get_name(dir->objformat));
+		} else {
+			osync_objtype_sink_add_objformat(sink, "file");
+			dir->objformat = osync_format_env_find_objformat(formatenv, "file");
+		}
+
 		/* All sinks have the same functions of course */
 		OSyncObjTypeSinkFunctions functions;
 		memset(&functions, 0, sizeof(functions));
