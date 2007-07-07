@@ -276,7 +276,7 @@ osync_bool osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group, OSyn
 
 	/* Check if the group already exist. Fail if there is already a group with the same name */
 	if (osync_group_env_find_group(env, osync_group_get_name(group))) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Group \"%s\" already exsists.", osync_group_get_name(group));
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Group \"%s\" already exists.", osync_group_get_name(group));
 		return FALSE;
 	}
 	
