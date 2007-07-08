@@ -44,7 +44,7 @@ void handle_vcal_role_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_vcal_expect_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
-void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param); //FIXME
+void handle_related_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 
 // vCalendar and iCalendar handler
 OSyncXMLField *handle_attach_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error);
@@ -63,6 +63,7 @@ OSyncXMLField *handle_last_modified_attribute(OSyncXMLFormat *xmlformat, VFormat
 OSyncXMLField *handle_geo_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_prodid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_rdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
+OSyncXMLField *handle_rnum_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_completed_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_status_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
@@ -95,6 +96,7 @@ void handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tzdtstart_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
+void handle_tzcomment_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
 void handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tzoffsetfrom_location_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
 void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);

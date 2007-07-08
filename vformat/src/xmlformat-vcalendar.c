@@ -306,6 +306,7 @@ void handle_vcal_status_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 
 void handle_vcal_rsvp_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
 {
+	// FIXME: TRUE/FALSE vs. YES/NO - different handling in vcal 10|20?
 	osync_trace(TRACE_INTERNAL, "Handling %s parameter", vformat_attribute_param_get_name(param));
 	osync_xmlfield_set_attr(xmlfield, "Rsvp", vformat_attribute_param_get_nth_value(param, 0));
 }
@@ -479,6 +480,11 @@ OSyncXMLField *handle_prodid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribu
 OSyncXMLField *handle_rdate_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceDateTime", error);
+}
+
+OSyncXMLField *handle_rnum_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+{ 
+	return handle_attribute_simple_content(xmlformat, attr, "NumberRecurrences", error);
 }
 
 OSyncXMLField *handle_location_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
@@ -770,6 +776,11 @@ void handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 void handle_tzdtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
 	handle_simple_xmlfield(xmlfield, attr, "DateTimeStart");
+}
+
+void handle_tzcomment_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "Comment");
 }
 
 void handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)

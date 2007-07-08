@@ -52,7 +52,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
 	insert_param_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
-	insert_param_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE, yes/no allowed, kdepim use TRUE!)
+	insert_param_handler(hooks->parameters, "RSVP", handle_vcal_rsvp_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "EXPECT", handle_vcal_expect_parameter); // (ATTENDEE)
 
         // [vcal-1.0] vcal (same order as in spec!)
@@ -77,7 +77,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "EXRULE", handle_exrule_attribute);
 	insert_attr_handler(hooks->attributes, "LAST-MODIFIED", handle_last_modified_attribute);
 	insert_attr_handler(hooks->attributes, "LOCATION", handle_location_attribute);
-	insert_attr_handler(hooks->attributes, "RNUM", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "RNUM", handle_rnum_attribute);
 	insert_attr_handler(hooks->attributes, "PRIORITY", handle_priority_attribute);
 	insert_attr_handler(hooks->attributes, "RELATED-TO", handle_related_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_vcal_rrule_attribute);
@@ -367,7 +367,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_component_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
 	insert_attr_component_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
 	// NOTE: optional and may occur more than once
-	insert_attr_component_handler(hooks->tztable, "COMMENT", HANDLE_IGNORE); // TODO
+	insert_attr_component_handler(hooks->tztable, "COMMENT", handle_tzcomment_attribute);
 	insert_attr_component_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
 	insert_attr_component_handler(hooks->tztable, "RRULE", HANDLE_IGNORE); // NOTE: we call it in vcalendar_parse_component
 	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
