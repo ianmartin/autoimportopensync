@@ -428,6 +428,18 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 	
 	while(xmlfield1 != NULL || xmlfield2 != NULL)
 	{
+		/* don't compare xmlfield1 if score is -1 (just ignore it) */
+		if(xmlfield1 != NULL && (_osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name) == -1)) {
+			xmlfield1 = xmlfield1->next;
+			continue;
+		}
+
+		/* don't compare xmlfield2 if score is -1 (just ignore it) */
+		if(xmlfield2 != NULL && (_osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield2->node->name) == -1)) {
+			xmlfield2 = xmlfield2->next;
+			continue;
+		}
+
 		/* subtract points for xmlfield2*/
 		if(xmlfield1 == NULL) {
 			same = FALSE;

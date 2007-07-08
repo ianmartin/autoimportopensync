@@ -130,7 +130,9 @@ static OSyncConvCmpResult compare_contact(const char *leftdata, unsigned int lef
 	OSyncXMLPoints points[] = {
 		{"EMail", 		10, 	keys_content},
 		{"Name", 		90, 	keys_name},
+		{"Revision", 	-1, 	keys_content},
 		{"Telephone", 	10, 	keys_content},
+		{"Uid", 	-1, 	keys_content},
 		{NULL}
 	};
 
