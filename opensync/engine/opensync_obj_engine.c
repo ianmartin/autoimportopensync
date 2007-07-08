@@ -269,6 +269,23 @@ static OSyncMappingEntryEngine *_osync_mapping_engine_find_entry(OSyncMappingEng
 	return NULL;
 }
 
+OSyncMember *osync_mapping_engine_change_find_member(OSyncMappingEngine *engine, OSyncChange *change)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, change);
+
+	OSyncMember *member = NULL;
+	OSyncMappingEntryEngine *entry = _osync_mapping_engine_find_entry(engine, change);
+
+	if (!entry)
+		goto end;
+
+	member = osync_client_proxy_get_member(entry->sink_engine->proxy);
+
+end:	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, member);
+	return member;
+}
+
 static OSyncMappingEntryEngine *_osync_mapping_engine_get_latest_entry(OSyncMappingEngine *engine, OSyncError **error)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
