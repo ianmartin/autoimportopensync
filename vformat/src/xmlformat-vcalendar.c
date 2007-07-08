@@ -681,7 +681,6 @@ OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttr
 	return handle_attribute_simple_content(xmlformat, attr, "Organizer", error);
 }
 
-
 OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "RecurrenceId", error);
@@ -692,12 +691,10 @@ OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 	return handle_attribute_simple_content(xmlformat, attr, "Contact", error);
 }
 
-/*
-static OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
+OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error) 
 { 
 	return handle_attribute_simple_content(xmlformat, attr, "CalendarScale", error);
 }
-*/
 
 // VALARM
 void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
@@ -1173,108 +1170,6 @@ void handle_xml_value_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	vformat_attribute_add_param_with_value(attr, "VALUE", content);
 }
 
-/*
-static void handle_xml_category_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	char *content = (char*)OSyncXMLFieldGetContent(xmlfield);
-	vformat_attribute_add_value(attr, content);
-	g_free(content);
-}
-
-static void handle_xml_rule_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	char *content = (char*)OSyncXMLFieldGetContent(xmlfield);
-	vformat_attribute_add_value(attr, content);
-	g_free(content);
-}
-
-static void xml_handle_unknown_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown xml parameter");
-	char *content = (char*)OSyncXMLFieldGetContent(xmlfield);
-	vformat_attribute_add_param_with_value(attr, (char*)xmlfield->name, content);
-	g_free(content);
-}
-*/
-
-
-/*
-void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLField **xmlfield, VFormat *vcal)
-{
-	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
-	OSyncXMLField *xmlfield = xmlfield;
-	while (xmlfield) {
-		if (!strcmp((char*)xmlfield->name, "Todo")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "VTODO");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->comptable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "VTODO");
-			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp((char*)xmlfield->name, "Timezone")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "VTIMEZONE");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "VTIMEZONE");
-			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp((char*)xmlfield->name, "Event")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "VEVENT");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->comptable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "VEVENT");
-			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp((char*)xmlfield->name, "Journal")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "VJOURNAL");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "VJOURNAL");
-			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp((char*)xmlfield->name, "DaylightSavings")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "DAYLIGHT");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "DAYLIGHT");
-			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp((char*)xmlfield->name, "Standard")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "STANDARD");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "STANDARD");
-			vformat_add_attribute(vcal, attr);
-		} else if (!strcmp((char*)xmlfield->name, "Alarm")) {
-			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
-			vformat_attribute_add_value(attr, "VALARM");
-			vformat_add_attribute(vcal, attr);
-			OSyncXMLField *child = xmlfield->children;
-			xml_parse_attribute(hooks, hooks->alarmtable, &child, vcal);
-			attr = vformat_attribute_new(NULL, "END");
-			vformat_attribute_add_value(attr, "VALARM");
-			vformat_add_attribute(vcal, attr);
-		} else {
-			xml_handle_attribute(table, vcal, xmlfield);
-		}
-		xmlfield = xmlfield->next;
-	}
-}
-*/
-
 void insert_param_handler(GHashTable *table, const char *paramname, param_handler_fn handler)
 {
 	g_hash_table_insert(table, (gpointer)paramname, handler);
@@ -1289,19 +1184,6 @@ void insert_attr_component_handler(GHashTable *table, const char *attrname, attr
 {
 	g_hash_table_insert(table, (gpointer)attrname, handler);
 }
-
-/*
-static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
-{
-	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", xmlfield->name);
-	char *name = osxml_find_node(xmlfield, "NodeName");
-	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
-	g_free(name);
-	add_value(attr, xmlfield, "Content", encoding);
-	vformat_add_attribute(vevent, attr);
-	return attr;
-}
-*/
 
 // TODO
 VFormatAttribute *handle_xml_alarm_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
@@ -1478,7 +1360,6 @@ VFormatAttribute *handle_xml_resources_attribute(VFormat *vevent, OSyncXMLField 
 
 VFormatAttribute *handle_xml_dtend_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
-
 	/* TODO timezone */
 	VFormatAttribute *attr = vformat_attribute_new(NULL, "DTEND");
 	add_value(attr, xmlfield, "Content", encoding);
@@ -1653,5 +1534,107 @@ void insert_xml_attr_handler(GHashTable *table, const char *name, void *handler)
 {
 	g_hash_table_insert(table, (gpointer)name, handler);
 }
+
+
+// TODO: Review and remove old unused code
+/*
+static void xml_handle_unknown_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling unknown xml parameter");
+	char *content = (char*)OSyncXMLFieldGetContent(xmlfield);
+	vformat_attribute_add_param_with_value(attr, (char*)xmlfield->name, content);
+	g_free(content);
+}
+*/
+
+/*
+void xml_parse_attribute(OSyncHookTables *hooks, GHashTable *table, OSyncXMLField **xmlfield, VFormat *vcal)
+{
+	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
+	OSyncXMLField *xmlfield = xmlfield;
+	while (xmlfield) {
+		if (!strcmp((char*)xmlfield->name, "Todo")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "VTODO");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->comptable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "VTODO");
+			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp((char*)xmlfield->name, "Timezone")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "VTIMEZONE");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "VTIMEZONE");
+			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp((char*)xmlfield->name, "Event")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "VEVENT");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->comptable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "VEVENT");
+			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp((char*)xmlfield->name, "Journal")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "VJOURNAL");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "VJOURNAL");
+			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp((char*)xmlfield->name, "DaylightSavings")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "DAYLIGHT");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "DAYLIGHT");
+			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp((char*)xmlfield->name, "Standard")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "STANDARD");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->tztable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "STANDARD");
+			vformat_add_attribute(vcal, attr);
+		} else if (!strcmp((char*)xmlfield->name, "Alarm")) {
+			VFormatAttribute *attr = vformat_attribute_new(NULL, "BEGIN");
+			vformat_attribute_add_value(attr, "VALARM");
+			vformat_add_attribute(vcal, attr);
+			OSyncXMLField *child = xmlfield->children;
+			xml_parse_attribute(hooks, hooks->alarmtable, &child, vcal);
+			attr = vformat_attribute_new(NULL, "END");
+			vformat_attribute_add_value(attr, "VALARM");
+			vformat_add_attribute(vcal, attr);
+		} else {
+			xml_handle_attribute(table, vcal, xmlfield);
+		}
+		xmlfield = xmlfield->next;
+	}
+}
+*/
+
+/*
+static VFormatAttribute *xml_handle_unknown_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	osync_trace(TRACE_INTERNAL, "Handling unknown xml attribute %s", xmlfield->name);
+	char *name = osxml_find_node(xmlfield, "NodeName");
+	VFormatAttribute *attr = vformat_attribute_new(NULL, name);
+	g_free(name);
+	add_value(attr, xmlfield, "Content", encoding);
+	vformat_add_attribute(vevent, attr);
+	return attr;
+}
+*/
 
 
