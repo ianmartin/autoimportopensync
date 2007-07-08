@@ -221,28 +221,58 @@ static osync_bool osync_filesync_read(void *data, OSyncPluginInfo *info, OSyncCo
 	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncFileDir *dir = osync_objtype_sink_get_userdata(sink);
 	OSyncError *error = NULL;
+	OSyncData *odata = NULL;
 	
 	char *filename = g_strdup_printf("%s/%s", dir->path, osync_change_get_uid(change));
-	
-	OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
-	if (!file)
-		goto error;
-	file->path = g_strdup(osync_change_get_uid(change));
-	
-	struct stat filestats;
-	stat(filename, &filestats);
-	file->userid = filestats.st_uid;
-	file->groupid = filestats.st_gid;
-	file->mode = filestats.st_mode;
-	file->last_mod = filestats.st_mtime;
-			
-	if (!osync_file_read(filename, &(file->data), &(file->size), &error))
-		goto error_free_file;
-	
-	OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), dir->objformat, &error);
-	if (!odata)
-		goto error_free_data;
-	
+
+	// Object format "file"
+	if (!strcmp("file", osync_objformat_get_name(dir->objformat))) {
+		OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+		if (!file)
+			goto error;
+		file->path = g_strdup(osync_change_get_uid(change));
+		
+		struct stat filestats;
+		stat(filename, &filestats);
+		file->userid = filestats.st_uid;
+		file->groupid = filestats.st_gid;
+		file->mode = filestats.st_mode;
+		file->last_mod = filestats.st_mtime;
+				
+		if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
+			g_free(file->path);
+			g_free(file);
+			goto error;
+		}
+
+		odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), dir->objformat, &error);
+		if (!odata) {
+			g_free(file->data);
+			g_free(file->path);
+			g_free(file);
+			goto error;
+		}
+
+	// Any other object format
+	} else {
+
+		char *buf;
+		unsigned int size;
+		if (!osync_file_read(filename, &buf, &size, &error)) {
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+			g_free(filename);
+		}
+		
+		odata = osync_data_new(buf, size, dir->objformat, &error);
+		if (!odata) {
+			osync_change_unref(change);
+			osync_context_report_osyncwarning(ctx, error);
+			osync_error_unref(&error);
+		}
+	}
+
 	osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
 	osync_change_set_data(change, odata);
 	osync_data_unref(odata);
@@ -254,11 +284,6 @@ static osync_bool osync_filesync_read(void *data, OSyncPluginInfo *info, OSyncCo
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
-error_free_data:
-	g_free(file->data);
-error_free_file:
-	g_free(file->path);
-	g_free(file);
 error:
 	g_free(filename);
 	osync_context_report_osyncerror(ctx, error);
@@ -412,32 +437,56 @@ static void osync_filesync_report_dir(OSyncFileDir *directory, const char *subdi
 
 			g_free(hash);
 			
-			OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
-			if (!file) {
-				osync_change_unref(change);
-				osync_context_report_osyncwarning(ctx, error);
-				osync_error_unref(&error);
-				g_free(filename);
-				g_free(relative_filename);
-				continue;
-			}
-			file->path = g_strdup(relative_filename);
-			
 			OSyncError *error = NULL;
-			if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
-				osync_change_unref(change);
-				osync_context_report_osyncwarning(ctx, error);
-				osync_error_unref(&error);
-				g_free(filename);
-				continue;
-			}
-			
-			OSyncData *odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->objformat, &error);
-			if (!odata) {
-				osync_change_unref(change);
-				osync_context_report_osyncwarning(ctx, error);
-				osync_error_unref(&error);
-				continue;
+			OSyncData *odata = NULL;
+
+			// Objformat "file"
+			if (!strcmp("file", osync_objformat_get_name(directory->objformat))) {
+				OSyncFileFormat *file = osync_try_malloc0(sizeof(OSyncFileFormat), &error);
+				if (!file) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					g_free(filename);
+					g_free(relative_filename);
+					continue;
+				}
+				file->path = g_strdup(relative_filename);
+				
+				if (!osync_file_read(filename, &(file->data), &(file->size), &error)) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					g_free(filename);
+					continue;
+				}
+				
+				odata = osync_data_new((char *)file, sizeof(OSyncFileFormat), directory->objformat, &error);
+				if (!odata) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					continue;
+				}
+			// Any other specifc object format.	
+			} else {
+				char *buf;
+				unsigned int size;
+				if (!osync_file_read(filename, &buf, &size, &error)) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					g_free(filename);
+					continue;
+				}
+				
+				odata = osync_data_new(buf, size, directory->objformat, &error);
+				if (!odata) {
+					osync_change_unref(change);
+					osync_context_report_osyncwarning(ctx, error);
+					osync_error_unref(&error);
+					continue;
+				}
 			}
 			
 			osync_data_set_objtype(odata, osync_objtype_sink_get_name(directory->sink));
