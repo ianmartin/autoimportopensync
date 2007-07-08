@@ -98,7 +98,7 @@ void _osync_xmlfieldlist_remove(OSyncXMLFieldList *xmlfieldlist, int index)
 void osync_xmlfieldlist_free(OSyncXMLFieldList *xmlfieldlist)
 {
 	osync_assert(xmlfieldlist);
-	g_ptr_array_free(xmlfieldlist->array, FALSE);
+	g_ptr_array_free(xmlfieldlist->array, TRUE);
 	g_free(xmlfieldlist);
 }
 
