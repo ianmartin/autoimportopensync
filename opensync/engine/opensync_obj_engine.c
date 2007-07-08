@@ -29,6 +29,7 @@
 #include "opensync-mapping.h"
 #include "opensync-format.h"
 #include "opensync-merger.h"
+#include "opensync-plugin.h"
 
 #include "opensync_obj_engine.h"
 #include "opensync_obj_engine_internals.h"
@@ -213,7 +214,7 @@ OSyncMappingEngine *osync_mapping_engine_new(OSyncObjEngine *parent, OSyncMappin
 		OSyncMappingEntryEngine *entry_engine = osync_entry_engine_new(mapping_entry, engine, sink_engine, parent, error);
 		if (!entry_engine)
 			goto error_free_engine;
-		
+
 		engine->entries = g_list_append(engine->entries, entry_engine);
 	}
 	
@@ -254,6 +255,124 @@ void osync_mapping_engine_unref(OSyncMappingEngine *engine)
 		
 		g_free(engine);
 	}
+}
+
+static OSyncMappingEntryEngine *_osync_mapping_engine_find_entry(OSyncMappingEngine *engine, OSyncChange *change)
+{
+	GList *e;
+	for (e = engine->entries; e; e = e->next) {
+		OSyncMappingEntryEngine *entry = e->data;
+		if (change && entry->change == change)
+			return entry;
+	}
+	
+	return NULL;
+}
+
+static OSyncMappingEntryEngine *_osync_mapping_engine_get_latest_entry(OSyncMappingEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+
+	OSyncMappingEntryEngine *latest_entry = NULL; 
+	OSyncChange *latest_change = NULL;
+	time_t latest = 0;
+	int i;
+
+	osync_trace(TRACE_INTERNAL, "mapping number: %i", osync_mapping_engine_num_changes(engine));
+	for (i=0; i < osync_mapping_engine_num_changes(engine); i++) {
+		OSyncChange *change = osync_mapping_engine_nth_change(engine, i); 
+
+		if (osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_UNKNOWN)
+			continue;
+
+		OSyncData *data = osync_change_get_data(change);
+
+		if (!osync_data_has_data(data))
+			continue;
+
+		time_t cur = osync_data_get_revision(data, error);
+
+		if (cur < 0)
+			goto error;
+
+		if (cur == latest) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Entries got changed at the same time. Can't decide.");
+			goto error;
+		}
+
+		if (cur < latest)
+			continue;
+
+		latest = cur;
+		latest_change = change;
+	}
+
+	if (!latest_change) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest change.");
+		goto error;
+	}
+
+	latest_entry = _osync_mapping_engine_find_entry(engine, latest_change);
+
+	if (!latest_entry) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest entry.");
+		goto error;
+	}
+
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, latest_entry);
+	return latest_entry;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+osync_bool osync_mapping_engine_supports_ignore(OSyncMappingEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_assert(engine);
+
+	OSyncObjEngine *parent = engine->parent;
+
+	osync_bool ignore_supported = TRUE;
+
+	GList *s = NULL;
+	for (s = parent->sink_engines; s; s = s->next) {
+		OSyncSinkEngine *sink_engine = s->data;
+		
+		OSyncMember *member = osync_client_proxy_get_member(sink_engine->proxy);
+		OSyncMappingEntryEngine *entry_engine = osync_mapping_engine_get_entry(engine, sink_engine);
+
+		/* check if mapping could be solved by "ignore" conflict handler */
+		const char *objtype = entry_engine->sink_engine->engine->objtype;
+		OSyncObjTypeSink *objtype_sink = osync_member_find_objtype_sink(member, objtype);
+
+		/* if there is no sink read function ignore is not support for this mapping. */
+		/* FIXME: osync_objtype_sink_get_read() will be read all the time .. fix this and store value in syncmember.conf (after discovery) */
+		if (!objtype_sink || !osync_objtype_sink_get_read(objtype_sink))
+			ignore_supported = FALSE; 
+
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: conflict handler ignore supported: %s", __func__, ignore_supported ? "TRUE" : "FALSE");
+	return ignore_supported;
+}
+
+osync_bool osync_mapping_engine_supports_use_latest(OSyncMappingEngine *engine)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, engine);
+	osync_assert(engine);
+
+	osync_bool latest_supported = TRUE;
+
+	/* we ignore the error for now ... it's just a test if it would be possible/supported. */
+	OSyncMappingEntryEngine *latest_entry = _osync_mapping_engine_get_latest_entry(engine, NULL);
+
+	if (!latest_entry)
+		latest_supported = FALSE; 
+	
+	osync_trace(TRACE_EXIT, "%s: conflict handler \"latest entry\" supported: %s", __func__, latest_supported ? "TRUE" : "FALSE");
+	return latest_supported;
 }
 
 osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError **error)
@@ -522,18 +641,6 @@ OSyncChange *osync_mapping_engine_member_change(OSyncMappingEngine *engine, int 
 	return NULL;
 }
 
-OSyncMappingEntryEngine *osync_mapping_engine_find_entry(OSyncMappingEngine *engine, OSyncChange *change)
-{
-	GList *e;
-	for (e = engine->entries; e; e = e->next) {
-		OSyncMappingEntryEngine *entry = e->data;
-		if (change && entry->change == change)
-			return entry;
-	}
-	
-	return NULL;
-}
-
 static int BitCount(unsigned int u)                          
 {
 	unsigned int uCount = u - ((u >> 1) & 033333333333) - ((u >> 2) & 011111111111);
@@ -544,7 +651,7 @@ osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *c
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, change);
 	
-	OSyncMappingEntryEngine *entry = osync_mapping_engine_find_entry(engine, change);
+	OSyncMappingEntryEngine *entry = _osync_mapping_engine_find_entry(engine, change);
 	engine->conflict = FALSE;
 	osync_mapping_engine_set_master(engine, entry);
 	osync_status_update_mapping(engine->parent->parent, engine, OSYNC_MAPPING_EVENT_SOLVED, NULL);
@@ -605,39 +712,12 @@ osync_bool osync_mapping_engine_use_latest(OSyncMappingEngine *engine, OSyncErro
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
 	
-	OSyncMappingEntryEngine *latest_entry = NULL; 
-	time_t latest = 0;
+	OSyncMappingEntryEngine *latest_entry = NULL;
+	
+	latest_entry = _osync_mapping_engine_get_latest_entry(engine, error);
 
-	GList *c = NULL;
-	for (c = engine->entries; c; c = c->next) {
-		OSyncMappingEntryEngine *entry = c->data;
-		OSyncData *data = osync_change_get_data(entry->change);
-
-		if (!osync_data_has_data(data))
-			continue;
-
-		time_t cur = osync_data_get_revision(data, error);
-
-		if (cur < 0)
-			goto error;
-
-		osync_trace(TRACE_INTERNAL, "cur:%i == latest: %i", cur, latest);
-		if (cur == latest) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Entries got changed at the same time. Can't decide.");
-			goto error;
-		}
-
-		if (cur < latest)
-			continue;
-
-		latest = cur;
-		latest_entry = entry;
-	}
-
-	if (!latest_entry) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest entry.");
+	if (!latest_entry)
 		goto error;
-	}
 
 	osync_mapping_engine_set_master(engine, latest_entry);
 
@@ -658,7 +738,6 @@ osync_bool osync_mapping_engine_use_latest(OSyncMappingEngine *engine, OSyncErro
 error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
-
 }
 
 static OSyncMappingEngine *_create_mapping_engine(OSyncObjEngine *engine, OSyncError **error)
