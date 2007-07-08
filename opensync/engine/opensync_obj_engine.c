@@ -601,6 +601,66 @@ error:
 	return FALSE;
 }
 
+osync_bool osync_mapping_engine_use_latest(OSyncMappingEngine *engine, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, engine, error);
+	
+	OSyncMappingEntryEngine *latest_entry = NULL; 
+	time_t latest = 0;
+
+	GList *c = NULL;
+	for (c = engine->entries; c; c = c->next) {
+		OSyncMappingEntryEngine *entry = c->data;
+		OSyncData *data = osync_change_get_data(entry->change);
+
+		if (!osync_data_has_data(data))
+			continue;
+
+		time_t cur = osync_data_get_revision(data, error);
+
+		if (cur < 0)
+			goto error;
+
+		osync_trace(TRACE_INTERNAL, "cur:%i == latest: %i", cur, latest);
+		if (cur == latest) {
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Entries got changed at the same time. Can't decide.");
+			goto error;
+		}
+
+		if (cur < latest)
+			continue;
+
+		latest = cur;
+		latest_entry = entry;
+	}
+
+	if (!latest_entry) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find the latest entry.");
+		goto error;
+	}
+
+	osync_mapping_engine_set_master(engine, latest_entry);
+
+	engine->conflict = FALSE;
+	osync_status_update_mapping(engine->parent->parent, engine, OSYNC_MAPPING_EVENT_SOLVED, NULL);
+	engine->parent->conflicts = g_list_remove(engine->parent->conflicts, engine);
+	
+	if (osync_engine_check_get_changes(engine->parent->parent) && BitCount(engine->parent->sink_errors | engine->parent->sink_get_changes) == g_list_length(engine->parent->sink_engines)) {
+		OSyncError *error = NULL;
+		if (!osync_obj_engine_command(engine->parent, OSYNC_ENGINE_COMMAND_WRITE, &error))
+			goto error;
+	} else
+		osync_trace(TRACE_INTERNAL, "Not triggering write. didnt receive all reads yet");
+	
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return FALSE;
+
+}
+
 static OSyncMappingEngine *_create_mapping_engine(OSyncObjEngine *engine, OSyncError **error)
 {
 	/* If there is none, create one */

@@ -44,6 +44,7 @@ OSyncChange *osync_mapping_engine_member_change(OSyncMappingEngine *engine, int 
 
 osync_bool osync_mapping_engine_solve(OSyncMappingEngine *engine, OSyncChange *change, OSyncError **error);
 osync_bool osync_mapping_engine_ignore(OSyncMappingEngine *engine, OSyncError **error);
+osync_bool osync_mapping_engine_use_latest(OSyncMappingEngine *engine, OSyncError **error);
 osync_bool osync_mapping_engine_duplicate(OSyncMappingEngine *existingMapping, OSyncError **error);
 
 #endif /*OPENSYNC_OBJ_ENGINE_H_*/

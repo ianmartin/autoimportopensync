@@ -1253,7 +1253,8 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 						goto error;
 					break;
 				case OSYNC_ENGINE_SOLVE_USE_LATEST:
-					// TODO
+					if (!osync_mapping_engine_use_latest(command->mapping_engine, &engine->error))
+						goto error;
 					break;
 			}
 			break;
