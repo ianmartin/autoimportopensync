@@ -137,6 +137,7 @@ static osync_bool osync_archive_create(OSyncDB *db, const char *objtype, OSyncEr
 
 	char *tbl_archive = g_strdup_printf("tbl_archive_%s", objtype);
 	int ret = osync_db_exists(db, tbl_archive, error);
+	g_free(tbl_archive);
 
 	/* error if ret -1 */
 	if (ret < 0)
