@@ -1049,14 +1049,6 @@ void vcalendar_parse_attributes(OSyncXMLFormat *xmlformat, GList **attributes, O
 
 /* XMLFORMAT to vevent/vtodo! */
 
-// FIXME: descriptions - vcal only?
-void handle_xml_related_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
-{
-	osync_trace(TRACE_INTERNAL, "Handling RelationshipType xml parameter");
-	const char *content = osync_xmlfield_get_attr(xmlfield, "RelationshipType");
-	vformat_attribute_add_param_with_value(attr, "RELATED", content);
-}
-
 /* xml parameters */
 void handle_xml_tzid_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
@@ -1077,6 +1069,13 @@ void handle_xml_cn_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	osync_trace(TRACE_INTERNAL, "Handling CommonName xml parameter");
 	const char *content = osync_xmlfield_get_attr(xmlfield, "CommonName");
 	vformat_attribute_add_param_with_value(attr, "CN", content);
+}
+
+void handle_xml_cutype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling CUType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "CUType");
+	vformat_attribute_add_param_with_value(attr, "CUTYPE", content);
 }
 
 void handle_xml_delegated_from_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
@@ -1100,6 +1099,14 @@ void handle_xml_dir_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	vformat_attribute_add_param_with_value(attr, "DIR", content);
 }
 
+void handle_xml_encoding_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	//FIXME if Encoding=B -> ENCODING=BASE64
+	osync_trace(TRACE_INTERNAL, "Handling Encoding xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Encoding");
+	vformat_attribute_add_param_with_value(attr, "ENCODING", content);
+}
+
 void handle_xml_format_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 {
 	osync_trace(TRACE_INTERNAL, "Handling FormatType xml parameter");
@@ -1112,6 +1119,13 @@ void handle_xml_fb_type_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfiel
 	osync_trace(TRACE_INTERNAL, "Handling FreeBusyType xml parameter");
 	const char *content = osync_xmlfield_get_attr(xmlfield, "FreeBusyType");
 	vformat_attribute_add_param_with_value(attr, "FBTYPE", content);
+}
+
+void handle_xml_language_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling Language xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "Language");
+	vformat_attribute_add_param_with_value(attr, "LANGUAGE", content);
 }
 
 void handle_xml_member_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
@@ -1133,6 +1147,13 @@ void handle_xml_range_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
 	osync_trace(TRACE_INTERNAL, "Handling Range xml parameter");
 	const char *content = osync_xmlfield_get_attr(xmlfield, "Range");
 	vformat_attribute_add_param_with_value(attr, "RANGE", content);
+}
+
+void handle_xml_related_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)
+{
+	osync_trace(TRACE_INTERNAL, "Handling RelatedType xml parameter");
+	const char *content = osync_xmlfield_get_attr(xmlfield, "RelatedType");
+	vformat_attribute_add_param_with_value(attr, "RELATED", content);
 }
 
 void handle_xml_reltype_parameter(VFormatAttribute *attr, OSyncXMLField *xmlfield)

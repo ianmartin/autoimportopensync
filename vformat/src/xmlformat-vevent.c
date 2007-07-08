@@ -469,9 +469,9 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
         // [vcal-1.0] param (same order as in spec!)
 	// TODO -> TYPE 
 	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	// TODO -> ENCODING
+	insert_xml_attr_handler(hooks->parameters, "Encoding", handle_xml_encoding_parameter);
 	// TODO -> CHARSET
-	// TODO -> LANGUAGE
+	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter); // (ATTENDEE)
 	// TODO -> STATUS // (ATTENDEE)
 	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_parameter); // (ATTENDEE)
@@ -540,18 +540,18 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	// [RFC 2445] 4.2 Property Parameters (ordered by name!)
 	insert_xml_attr_handler(hooks->parameters, "AlternativeTextRep", handle_xml_altrep_parameter);
 	insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	// TODO -> cutypeparam
+	insert_xml_attr_handler(hooks->parameters, "CUType", handle_xml_cutype_parameter);
 	insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
 	insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	// TODO -> encodingparam
+	insert_xml_attr_handler(hooks->parameters, "Encoding", handle_xml_encoding_parameter);
 	insert_xml_attr_handler(hooks->parameters, "FormatType", handle_xml_format_type_parameter);
 	insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter); // TODO test
-	// TODO -> languageparam
+	insert_xml_attr_handler(hooks->parameters, "Language", handle_xml_language_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
 	insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	// TODO -> trigrelparam
+	insert_xml_attr_handler(hooks->parameters, "RelatedType", handle_xml_related_parameter);
 	insert_xml_attr_handler(hooks->parameters, "RelationshipType", handle_xml_reltype_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
 	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_parameter);
