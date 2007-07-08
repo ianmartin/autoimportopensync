@@ -69,10 +69,6 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
         // [vcal-1.0] simprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
 	insert_attr_handler(hooks->attributes, "ATTENDEE", handle_attendee_attribute);
-		// role parameter
-		// status parameter
-		// rsvp parameter
-		// expect parameter
 	insert_attr_handler(hooks->attributes, "DCREATED", handle_created_attribute);
 	insert_attr_handler(hooks->attributes, "COMPLETED", handle_completed_attribute); //vtodo only
 	insert_attr_handler(hooks->attributes, "DESCRIPTION", handle_description_attribute);
@@ -142,7 +138,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "MEMBER", handle_member_parameter); // memberparam
 	insert_param_handler(hooks->parameters, "PARTSTAT", handle_partstat_parameter); // partstatparam
 	insert_param_handler(hooks->parameters, "RANGE", handle_range_parameter); // rangeparam
-	insert_param_handler(hooks->parameters, "RELATED", handle_trigrel_parameter); // rangeparam -> TODO xsd
+	insert_param_handler(hooks->parameters, "RELATED", handle_trigrel_parameter); // trigrelparam -> TODO xsd
 	insert_param_handler(hooks->parameters, "RELTYPE", handle_reltype_parameter); // reltypeparam
 	insert_param_handler(hooks->parameters, "ROLE", handle_role_parameter); // roleparam
 	insert_param_handler(hooks->parameters, "RSVP", handle_rsvp_parameter); // rsvpparam
@@ -455,14 +451,6 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 
-	/* !--- WARNING ---!
-	 * This list has many errors and is not completed yet.
-	 * TODO: Review
-	 * TODO: add missing handler
-	 * TODO: test all handler
-	 * TODO: fix wrong handler
-	 */
-	
 	OSyncHookTables *hooks = g_malloc0(sizeof(OSyncHookTables));
 
 	// create hashtables for attributes and parameters
@@ -478,26 +466,16 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	 */
 
 
-        // [vcal-1.0] param (same order as in spec!) TODO -> fix and order paramtable
-	//insert_xml_attr_handler(hooks->parameters, "Category", handle_xml_category_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Rule", handle_xml_rule_parameter);
+        // [vcal-1.0] param (same order as in spec!)
+	// TODO -> TYPE 
 	insert_xml_attr_handler(hooks->parameters, "Value", handle_xml_value_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "AlternateRep", handle_xml_altrep_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "CommonName", handle_xml_cn_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "DelegatedFrom", handle_xml_delegated_from_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "DelegatedTo", handle_xml_delegated_to_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Directory", handle_xml_dir_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "FormaType", handle_xml_format_type_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "FreeBusyType", handle_xml_fb_type_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Member", handle_xml_member_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "PartStat", handle_xml_partstat_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Range", handle_xml_range_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Related", handle_xml_related_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "RelationType", handle_xml_reltype_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "RSVP", handle_xml_rsvp_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "SentBy", handle_xml_sent_by_parameter);
-	//insert_xml_attr_handler(hooks->parameters, "TimezoneID", handle_xml_tzid_parameter);
+	// TODO -> ENCODING
+	// TODO -> CHARSET
+	// TODO -> LANGUAGE
+	insert_xml_attr_handler(hooks->parameters, "Role", handle_xml_role_parameter); // (ATTENDEE)
+	// TODO -> STATUS // (ATTENDEE)
+	insert_xml_attr_handler(hooks->parameters, "Rsvp", handle_xml_rsvp_parameter); // (ATTENDEE)
+	// TODO -> EXPECT // (ATTENDEE)
 
 
         // [vcal-1.0] calprop (same order as in spec!)
