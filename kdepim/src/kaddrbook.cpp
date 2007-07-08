@@ -21,8 +21,9 @@ COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
 SOFTWARE IS DISCLAIMED.
 *************************************************************************/
 /**
- * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
- * @autor Armin Bauer <armin.bauer@opensync.org>
+ * @author Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @author Armin Bauer <armin.bauer@opensync.org>
+ * @author Andrew Baumann <andrewb@cse.unsw.edu.au>
  */
 
 #include "kaddrbook.h"
@@ -91,7 +92,6 @@ void KContactDataSource::connect(OSyncPluginInfo *info, OSyncContext *ctx)
 	OSyncDataSource::connect(info, ctx);
 	
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
-	return;
 }
 
 void KContactDataSource::disconnect(OSyncPluginInfo *info, OSyncContext *ctx)
@@ -120,11 +120,8 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, info, ctx);
 
-	OSyncError *error = NULL;
-	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
-
 	if (osync_objtype_sink_get_slowsync(sink)) {
-		osync_trace(TRACE_INTERNAL, "Got slow-sync");
+		osync_trace(TRACE_INTERNAL, "Got slow-sync, resetting hashtable");
 		osync_hashtable_reset(hashtable);
 	}
 
@@ -140,101 +137,26 @@ void KContactDataSource::get_changes(OSyncPluginInfo *info, OSyncContext *ctx)
 
 	KABC::VCardConverter converter;
 	for (KABC::AddressBook::Iterator it=addressbookptr->begin(); it!=addressbookptr->end(); it++ ) {
-		QString uid = it->uid();
-
-		OSyncChange *change = osync_change_new(&error);
-
-		osync_change_set_uid(change, uid.local8Bit());
-
-		QString hash = calc_hash(*it);
-
 		// Convert the VCARD data into a string
 		// only vcard3.0 exports Categories
-		QString tmp = converter.createVCard(*it, KABC::VCardConverter::v3_0);
+		QString data = converter.createVCard(*it, KABC::VCardConverter::v3_0);
 
-		char *data = strdup((const char *)tmp.utf8());
-
-		osync_trace(TRACE_SENSITIVE,"\n%s", data);
-
-		OSyncData *odata = osync_data_new(data, strlen(data), objformat, &error);
-		if (!odata) {
-			osync_change_unref(change);
-			osync_context_report_osyncwarning(ctx, error);
-			osync_error_unref(&error);
-			continue;
-		}
-
-		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
-
-		//Now you can set the data for the object
-		osync_change_set_data(change, odata);
-		osync_data_unref(odata);
-
-		// Use the hash table to check if the object
-		// needs to be reported
-		osync_change_set_hash(change, hash.data());
-
-		// Report entry ... otherwise it gets deleted!
-		osync_hashtable_report(hashtable, uid);
-
-		OSyncChangeType changetype = osync_hashtable_get_changetype(hashtable, uid.local8Bit(), hash.data());
-		osync_change_set_changetype(change, changetype);
-		if (OSYNC_CHANGE_TYPE_UNMODIFIED != changetype) {
-			osync_context_report_change(ctx, change);
-			osync_hashtable_update_hash(hashtable, changetype, uid, hash.data());
+		if (!report_change(info, ctx, it->uid(), data, calc_hash(*it), objformat)) {
+			osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
+			return;
 		}
 	}
 
-	int i;
-	char **uids = osync_hashtable_get_deleted(hashtable);
-	for (i=0; uids[i]; i++) {
-		osync_trace(TRACE_INTERNAL, "going to delete entry with uid: %s", uids[i]);
-		OSyncChange *change = osync_change_new(&error);
-		if (!change) {
-			g_free(uids[i]);
-			osync_context_report_osyncwarning(ctx, error);
-			osync_error_unref(&error);
-			continue;
-		}
-
-		osync_change_set_uid(change, uids[i]);
-		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
-
-		OSyncData *odata = osync_data_new(NULL, 0, objformat, &error);
-		if (!odata) {
-			g_free(uids[i]);
-			osync_change_unref(change);
-			osync_context_report_osyncwarning(ctx, error);
-			osync_error_unref(&error);
-			continue;
-		}
-
-		osync_data_set_objtype(odata, osync_objtype_sink_get_name(sink));
-		osync_change_set_data(change, odata);
-		osync_data_unref(odata);
-
-		osync_context_report_change(ctx, change);
-
-		osync_hashtable_update_hash(hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), NULL);
-
-		osync_change_unref(change);
-		g_free(uids[i]);
+	if (!report_deleted(info, ctx)) {
+		osync_trace(TRACE_EXIT_ERROR, "%s", __PRETTY_FUNCTION__);
+		return;
 	}
-	g_free(uids);
 
 	osync_context_report_success(ctx);
 	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
-	return;
 }
 
-/** vcard access method
- *
- * This method is used by both access() and commit_change() method,
- * so it shouldn't call osync_context_report_success(). On success,
- * it should just return true and let the caller report success() to
- * OpenSync
- */
-bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
+void KContactDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChange *chg)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __PRETTY_FUNCTION__, ctx, chg);
 	KABC::VCardConverter converter;
@@ -287,7 +209,7 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 			if (uid.isEmpty()) {
 				osync_context_report_error(ctx, OSYNC_ERROR_FILE_NOT_FOUND, "Trying to delete entry with empty UID");
 				osync_trace(TRACE_EXIT_ERROR, "%s: Trying to delete but uid is empty", __PRETTY_FUNCTION__);
-				return FALSE;
+				return;
 			}
 
 			//find addressbook entry with matching UID and delete it
@@ -302,26 +224,12 @@ bool KContactDataSource::__vcard_access(OSyncContext *ctx, OSyncChange *chg)
 		default: {
 			osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Operation not supported");
 			osync_trace(TRACE_EXIT_ERROR, "%s: Operation not supported", __PRETTY_FUNCTION__);
-			return FALSE;
+			return;
 		}
 	}
 
-	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
-	return TRUE;
-}
-
-bool KContactDataSource::read(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
-{
-	if (!__vcard_access(ctx, chg))
-		return false;
+	osync_hashtable_update_hash(hashtable, chtype, uid, osync_change_get_hash(chg));
 
 	osync_context_report_success(ctx);
-	return true;
-}
-
-void KContactDataSource::commit(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg)
-{
-	if (__vcard_access(ctx, chg))
-		osync_context_report_success(ctx);
-	return;
+	osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 }

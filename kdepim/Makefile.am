@@ -49,8 +49,8 @@ kdepim_sync_la_LIBADD = -lstdc++ -L@OPENSYNC_LIBDIR@ -lopensync
 dist_kdepim_lib_la_SOURCES = \
 	src/kdepim_impl.cpp \
 	src/datasource.cpp \
-	src/kaddrbook.cpp
-#	src/kcal.cpp
+	src/kaddrbook.cpp \
+	src/kcal.cpp
 #	src/knotes.cpp
 #nodist_kdepim_lib_la_SOURCES = KNotesIface_stub.cpp
 kdepim_lib_la_CXXFLAGS = -DPLUGINDIR=\"$(plugindir)\" -DKDEPIM_LIBDIR=\"$(plugindir)\" -Wall

@@ -20,7 +20,8 @@ COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
 SOFTWARE IS DISCLAIMED.
 *************************************************************************/
 /**
- * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @author Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @author Andrew Baumann <andrewb@cse.unsw.edu.au>
  */
 
 #include <libkcal/calendarresources.h>
@@ -30,86 +31,53 @@ SOFTWARE IS DISCLAIMED.
 #include <kdeversion.h>
 
 #include "osyncbase.h"
+#include "datasource.h"
 
-/*FIXME: maybe create a parent abstract class for all
- * KDE Data sources/sinks: OSyncDataSourceBase
- */
-class KCalDataSource
+class KCalSharedResource
 {
 	private:
 		KCal::CalendarResources *calendar;
-
-		OSyncHashTable *hashtable;
-		OSyncMember *member;
-
-		/** access() method, used by commit() and access()
-		 *
-		 * Returns true on succes, but don't send success reporting
-		 * to context, because the caller may need to do more
-		 * operations
-		 */
-		bool __access(OSyncContext *ctx, OSyncChange *chg);
-		bool report_incidence(OSyncContext *ctx, KCal::Incidence *e,
-		                      const char *objtype, const char *objformat);
+		int refcount;
+	
+		bool report_incidence(OSyncDataSource *dsobj, OSyncPluginInfo *info, OSyncContext *ctx, KCal::Incidence *e, OSyncObjFormat *objformat);
+	
 	public:
-		KCalDataSource(OSyncMember *member, OSyncHashTable *hashtable);
+		KCalSharedResource() {calendar = NULL; refcount = 0;};
+		bool open(OSyncContext *ctx);
+		bool close(OSyncContext *ctx);
+		bool get_event_changes(OSyncDataSource *dsobj, OSyncPluginInfo *info, OSyncContext *ctx);
+		bool get_todo_changes(OSyncDataSource *dsobj, OSyncPluginInfo *info, OSyncContext *ctx);
+		bool commit(OSyncContext *ctx, OSyncChange *chg);
+};
 
-		/** connect() method
-		 *
-		 * On success, returns true, but doesn't call osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool connect(OSyncContext *ctx);
+class KCalEventDataSource : public OSyncDataSource
+{
+	private:
+		KCalSharedResource *kcal;
+	
+	public:
+		KCalEventDataSource(KCalSharedResource *kcal) : OSyncDataSource("event"), kcal(kcal) {};
+		virtual ~KCalEventDataSource() {};
 
-		/** disconnect() method
-		 *
-		 * On success, returns true, but doesn't call osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool disconnect(OSyncContext *ctx);
+		bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
+		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx);
+		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx);
+		virtual void get_changes(OSyncPluginInfo *info, OSyncContext *ctx);
+		virtual void commit(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg);
+};
 
-		/** get_changeinfo() method for events
-		 *
-		 * On success, returns true, but doesn't call osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool get_changeinfo_events(OSyncContext *ctx);
+class KCalTodoDataSource : public OSyncDataSource
+{
+	private:
+		KCalSharedResource *kcal;
+	
+	public:
+		KCalTodoDataSource(KCalSharedResource *kcal) : OSyncDataSource("todo"), kcal(kcal) {};
+		virtual ~KCalTodoDataSource() {};
 
-		/** get_changeinfo() method for to-dos
-		 *
-		 * On success, returns true, but doesn't call osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool get_changeinfo_todos(OSyncContext *ctx);
-
-		void get_data(OSyncContext *ctx, OSyncChange *chg);
-
-		/** access() method for evnets
-		 *
-		 * On success, returns true, after calling osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool event_access(OSyncContext *ctx, OSyncChange *chg);
-
-		/** commit_change() method for events
-		 *
-		 * On success, returns true, after calling osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool event_commit_change(OSyncContext *ctx, OSyncChange *chg);
-
-		/** access() method fot vtodo
-		 *
-		 * On success, returns true, after calling osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool todo_access(OSyncContext *ctx, OSyncChange *chg);
-
-		/** commit_change() method for vtodo
-		 *
-		 * On success, returns true, after calling osync_context_report_success()
-		 * On error, returns false, after calling osync_context_report_error()
-		 */
-		bool todo_commit_change(OSyncContext *ctx, OSyncChange *chg);
-		bool connected;
+		bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
+		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx);
+		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx);
+		virtual void get_changes(OSyncPluginInfo *info, OSyncContext *ctx);
+		virtual void commit(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg);
 };

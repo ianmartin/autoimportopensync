@@ -34,18 +34,16 @@ class KContactDataSource : public OSyncDataSource
 {
 	private:
 		KABC::AddressBook* addressbookptr;
-
-		bool __vcard_access(OSyncContext *ctx, OSyncChange *chg);
 		QString calc_hash(KABC::Addressee &e);
 
 	public:
 		KContactDataSource() : OSyncDataSource("contact") {};
+		virtual ~KContactDataSource() {};
 
-		virtual bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
+		bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error);
 		virtual void connect(OSyncPluginInfo *info, OSyncContext *ctx);
 		virtual void disconnect(OSyncPluginInfo *info, OSyncContext *ctx);
 		virtual void get_changes(OSyncPluginInfo *info, OSyncContext *ctx);
-		virtual bool read(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg);
 		virtual void commit(OSyncPluginInfo *info, OSyncContext *ctx, OSyncChange *chg);
 };
 

@@ -21,7 +21,8 @@ COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
 SOFTWARE IS DISCLAIMED.
 *************************************************************************/
 /**
- * @autor Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @author Eduardo Pereira Habkost <ehabkost@conectiva.com.br>
+ * @author Andrew Baumann <andrewb@cse.unsw.edu.au>
  */
 
 #include <libkcal/resourcecalendar.h>
@@ -37,7 +38,7 @@ SOFTWARE IS DISCLAIMED.
 
 #include "osyncbase.h"
 #include "kaddrbook.h"
-//#include "kcal.h"
+#include "kcal.h"
 //#include "knotes.h"
 
 static bool sentinel = false;
@@ -46,7 +47,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
 {
 	private:
 		KContactDataSource *kaddrbook;
-		//KCalDataSource *kcal;
+		KCalSharedResource kcal;
+		KCalEventDataSource *kcal_event;
+		KCalTodoDataSource *kcal_todo;
 
 		KApplication *application;
 		bool newApplication;
@@ -81,10 +84,11 @@ class KdePluginImplementation: public KdePluginImplementationBase
 		}
 
 	public:
-		KdePluginImplementation() : application(NULL), newApplication(false)
+		KdePluginImplementation() : kcal(), application(NULL), newApplication(false)
 		{
 			kaddrbook = new KContactDataSource();
-			//kcal = new KCalDataSource();
+			kcal_event = new KCalEventDataSource(&kcal);
+			kcal_todo = new KCalTodoDataSource(&kcal);
 		}
 
 		bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
@@ -95,9 +99,12 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 			if (!kaddrbook->initialize(plugin, info, error))
 				goto error;
-			
-			//if (!kcal->initialize(plugin, info, error))
-			//	goto error;
+
+			if (!kcal_event->initialize(plugin, info, error))
+				goto error;
+
+			if (!kcal_todo->initialize(plugin, info, error))
+				goto error;
 
 			osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 			return true;
@@ -109,6 +116,10 @@ class KdePluginImplementation: public KdePluginImplementationBase
 
 		virtual ~KdePluginImplementation()
 		{
+			delete kaddrbook;
+			delete kcal_event;
+			delete kcal_todo;
+
 			if ( newApplication ) {
 				delete application;
 				application = NULL;
