@@ -626,4 +626,16 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 	return OSYNC_CONV_DATA_MISMATCH;
 }
 
+/**
+ * @brief Returns the size of the OSyncXMLFormat struct.
+ *
+ * This is needed since the struct itself is private.
+ *
+ * @return The size of OSyncXMLFormat struct. 
+ */
+unsigned int osync_xmlformat_size()
+{
+	return sizeof(OSyncXMLFormat);
+}
+
 /*@}*/

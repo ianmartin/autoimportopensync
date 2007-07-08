@@ -99,6 +99,8 @@ osync_bool marshal_xmlformat(const char *input, unsigned int inpsize, OSyncMessa
 		return FALSE;
 
 	osync_message_write_buffer(message, buffer, (int)size);
+
+	g_free(buffer);
 	
 	return TRUE;
 }
@@ -115,8 +117,10 @@ osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned in
 		return FALSE;
 	}
 
+	g_free(buffer);
+
 	*output = (char*)xmlformat;
-	*outpsize = 0; /* TODO: the compiler do not know the size of OSyncXMLFormat : 0 is ok? */
+	*outpsize = osync_xmlformat_size();
 	return TRUE;
 }
 
