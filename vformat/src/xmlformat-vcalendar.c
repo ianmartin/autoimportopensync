@@ -25,8 +25,10 @@
 
 /* Briefing:
  *
- * use handle_vcal* for vCalendar handlers
- * use handle_* for vCalendar and iCalendar handlers
+ * use handle_vcal* for vCalendar only handler
+ * use handle_* for vCalendar and iCalendar handler
+ * use handle_tz_* for timezone component handler
+ * use handle_alarm_* for alarm component handler
  *
  */
 
@@ -703,17 +705,7 @@ OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttri
 }
 
 // VALARM
-void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeat");
-}
-
-void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmTrigger");
-}
-
-void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+void handle_alarm_action_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
 	// Rename xmlfield to AlarmDisplay/AlarmAudio/AlarmEmail/AlarmProcedure
 	// We need this to make an own schema for each type.
@@ -728,31 +720,39 @@ void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 	}
 }
 
-void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+void handle_alarm_attach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
 	handle_simple_xmlfield(xmlfield, attr, "AlarmAttach");
 }
 
-void handle_aduration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeatDuration");
-}
-
-void handle_adescription_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
-{ 
-	handle_simple_xmlfield(xmlfield, attr, "AlarmDescription");
-}
-
-// TODO: Review! - Add alarm attende to XSD
-void handle_aattendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+void handle_alarm_attendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
 	handle_simple_xmlfield(xmlfield, attr, "AlarmAttendee");
 }
 
-// TODO: Review! - Add alarm summary to XSD
-void handle_asummary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+void handle_alarm_description_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmDescription");
+}
+
+void handle_alarm_duration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeatDuration");
+}
+
+void handle_alarm_repeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmRepeat");
+}
+
+void handle_alarm_summary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
 { 
 	handle_simple_xmlfield(xmlfield, attr, "AlarmSummary");
+}
+
+void handle_alarm_trigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr) 
+{ 
+	handle_simple_xmlfield(xmlfield, attr, "AlarmTrigger");
 }
 
 

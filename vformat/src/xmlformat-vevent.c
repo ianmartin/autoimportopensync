@@ -227,7 +227,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "RESOURCES", handle_resources_attribute);
 	insert_attr_handler(hooks->attributes, "RDATE", handle_rdate_attribute);
 	insert_attr_handler(hooks->attributes, "RRULE", handle_rrule_attribute);
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] todoc (same order as in spec!)
@@ -272,7 +272,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// resources
 	// rdate
 	// rrule
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] journalc (same order as in spec!)
@@ -372,7 +372,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	insert_attr_component_handler(hooks->tztable, "RRULE", HANDLE_IGNORE); // NOTE: we call it in vcalendar_parse_component
 	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tz_name_attribute);
 	insert_attr_component_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] alarmc (same order as in spec!)
@@ -383,29 +383,29 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	// [RFC 2445] audioprop (same order as in spec!)
 	// NOTE: action and trigger are required, but must not occur more than once
-	insert_attr_component_handler(hooks->alarmtable, "ACTION", handle_aaction_attribute); // TODO
-	insert_attr_component_handler(hooks->alarmtable, "TRIGGER", handle_atrigger_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ACTION", handle_alarm_action_attribute);
+	insert_attr_component_handler(hooks->alarmtable, "TRIGGER", handle_alarm_trigger_attribute);
 	// NOTE: duration and repeat are both optional, and MUST NOT occur
 	// NOTE: more than once each, but if one occurs, so MUST the other
-	insert_attr_component_handler(hooks->alarmtable, "DURATION", handle_aduration_attribute); // TODO
-	insert_attr_component_handler(hooks->alarmtable, "REPEAT", handle_arepeat_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "DURATION", handle_alarm_duration_attribute);
+	insert_attr_component_handler(hooks->alarmtable, "REPEAT", handle_alarm_repeat_attribute);
 	// NOTE: optional, but must not occur more than once
-	insert_attr_component_handler(hooks->alarmtable, "ATTACH", handle_aattach_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ATTACH", handle_alarm_attach_attribute);
 	// NOTE: optional and may occur more than once
-	// xprop -> TODO
+	// xprop
 
 
 	// [RFC 2445] dispprop (same order as in spec!)
 	// NOTE: all required, but must not occur more than once
 	// action
-	insert_attr_component_handler(hooks->alarmtable, "DESCRIPTION", handle_adescription_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "DESCRIPTION", handle_alarm_description_attribute);
 	// trigger
 	// NOTE: duration and repeat are both optional, and MUST NOT occur
 	// NOTE: more than once each, but if one occurs, so MUST the other
 	// duration
 	// repeat
 	// NOTE: optional and may occur more than once
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] emailprop (same order as in spec!)
@@ -413,16 +413,16 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// action
 	// description
 	// trigger
-	insert_attr_component_handler(hooks->alarmtable, "SUMMARY", handle_asummary_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "SUMMARY", handle_alarm_summary_attribute);
 	// NOTE: required and may occur more than once
-	insert_attr_component_handler(hooks->alarmtable, "ATTENDEE", handle_aattendee_attribute); // TODO
+	insert_attr_component_handler(hooks->alarmtable, "ATTENDEE", handle_alarm_attendee_attribute);
 	// NOTE: duration and repeat are both optional, and MUST NOT occur
 	// NOTE: more than once each, but if one occurs, so MUST the other
 	// duration
 	// repeat
 	// NOTE: optional and may occur more than once
 	// attach
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] procprop (same order as in spec!)
@@ -437,7 +437,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// NOTE: optional, but must not occur more than once
 	// description
 	// NOTE: optional and may occur more than once
-	// x-prop -> TODO
+	// x-prop
 
 	}
 	

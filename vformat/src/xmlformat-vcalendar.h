@@ -82,16 +82,16 @@ OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttrib
 OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 
 // Alarm component handler
-void handle_aaction_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_adescription_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_atrigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_aattach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_aduration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_arepeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_aattendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_asummary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_action_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_attach_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_attendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_description_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_duration_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_repeat_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_summary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_alarm_trigger_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
-// TIMEZONE handler
+// Timezone component handler
 void handle_tz_comment_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
 void handle_tz_dtstart_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
 void handle_tz_id_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
@@ -103,7 +103,7 @@ void handle_tz_offsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttri
 void handle_tz_rdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tz_url_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
-// parameter
+// Parameter
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_tzid_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
 void handle_cn_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
