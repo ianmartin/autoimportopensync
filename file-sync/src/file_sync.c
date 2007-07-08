@@ -332,7 +332,7 @@ static osync_bool osync_filesync_write(void *data, OSyncPluginInfo *info, OSyncC
 				if (!osync_file_write(filename, file->data, file->size, file->mode, &error))
 					goto error;
 			} else {
-				if (!osync_file_write(filename, buffer, size-1, 0, &error))
+				if (!osync_file_write(filename, buffer, size, 0, &error))
 					goto error;
 			}
 
