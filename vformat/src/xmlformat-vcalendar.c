@@ -757,7 +757,17 @@ void handle_asummary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 
 
 // VTIMEZONE
-void handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+void handle_tz_comment_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "Comment");
+}
+
+void handle_tz_dtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "DateTimeStart");
+}
+
+void handle_tz_id_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
 	// We need to set an attribute here, see vcalendar_parse_attributes
 	osync_xmlfield_set_attr(xmlfield, "TimezoneID", vformat_attribute_get_nth_value(attr, 0));
@@ -768,54 +778,43 @@ void handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute
 	handle_simple_xmlfield(xmlfield, attr, "LastModified");
 }
 
-void handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TimezomeUrl");
-}
-
-void handle_tzdtstart_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "DateTimeStart");
-}
-
-void handle_tzcomment_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "Comment");
-}
-
-void handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TZOffsetTo");
-}
-
-void handle_tzoffsetfrom_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TZOffsetFrom");
-}
-
-void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TimezoneDate");
-}
-
-// this function get called by vcalendar_parse_component 
-static OSyncXMLField *convert_ical_tzrrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
-{
-	osync_trace(TRACE_INTERNAL, "Handling TimezoneRule attribute");
-
-	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
-}
-
-void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
-{
-	handle_simple_xmlfield(xmlfield, attr, "TZName");
-}
-
 void handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 {
 	handle_simple_xmlfield(xmlfield, attr, "X-Location");
 }
 
+void handle_tz_name_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TZName");
+}
+
+void handle_tz_offsetfrom_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TZOffsetFrom");
+}
+
+void handle_tz_offsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TZOffsetTo");
+}
+
+void handle_tz_rdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TimezoneDate");
+}
+
+void handle_tz_url_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
+{
+	handle_simple_xmlfield(xmlfield, attr, "TimezomeUrl");
+}
+
+// this function get called by vcalendar_parse_component 
+static OSyncXMLField *convert_ical_tz_rrule_to_xml(OSyncXMLFormat *xmlformat, VFormatAttribute *attr) 
+{
+	osync_trace(TRACE_INTERNAL, "Handling TimezoneRule attribute");
+
+	return convert_ical_rrule_to_xml(xmlformat, attr, "TimezoneRule", NULL);
+}
 
 /* ical Paramter */
 void handle_altrep_parameter(OSyncXMLField *xmlfield, VFormatParam *param)
@@ -990,7 +989,7 @@ static void vcalendar_parse_component_tz(OSyncXMLField *xmlfield, GList **attrib
 
 		// We have to create a new root node 'TimezoneRule'
 		} else if (xmlformat && !strcmp(vformat_attribute_get_name(attr), "RRULE")) {
-			OSyncXMLField *tzrrule = convert_ical_tzrrule_to_xml(xmlformat, attr);
+			OSyncXMLField *tzrrule = convert_ical_tz_rrule_to_xml(xmlformat, attr);
 			osync_xmlfield_set_attr(tzrrule, "TZComponent", osync_xmlfield_get_attr(xmlfield, "TZComponent"));
 			osync_xmlfield_set_attr(tzrrule, "TimezoneID", osync_xmlfield_get_attr(xmlfield, "TimezoneID"));
 		} else {

@@ -338,10 +338,10 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 	// [RFC 2445] timezonec (same order as in spec!)
 	insert_attr_component_handler(hooks->tztable, "BEGIN", HANDLE_IGNORE);
 	// NOTE: tzid is required, but most not occur more than once
-	insert_attr_component_handler(hooks->tztable, "TZID", handle_tzid_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZID", handle_tz_id_attribute);
 	// NOTE: lastmod and tzurl are optional, but most not occur more than once
 	insert_attr_component_handler(hooks->tztable, "LAST-MODIFIED", handle_tz_last_modified_attribute);
-	insert_attr_component_handler(hooks->tztable, "TZURL", handle_tzurl_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZURL", handle_tz_url_attribute);
 	// NOTE: one of 'standardc' or 'daylightc' MUST occur and each MAY occur more than once
 	// -> standardc / daylightc
 	// NOTE: optional and may occur more than once
@@ -363,14 +363,14 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 
 	// [RFC 2445] tzprop (same order as in spec!)
 	// NOTE: all required, but they most not occur more than once
-	insert_attr_component_handler(hooks->tztable, "DTSTART", handle_tzdtstart_attribute);
-	insert_attr_component_handler(hooks->tztable, "TZOFFSETTO", handle_tzoffsetto_location_attribute);
-	insert_attr_component_handler(hooks->tztable, "TZOFFSETFROM", handle_tzoffsetfrom_location_attribute);
+	insert_attr_component_handler(hooks->tztable, "DTSTART", handle_tz_dtstart_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZOFFSETTO", handle_tz_offsetto_location_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZOFFSETFROM", handle_tz_offsetfrom_location_attribute);
 	// NOTE: optional and may occur more than once
-	insert_attr_component_handler(hooks->tztable, "COMMENT", handle_tzcomment_attribute);
-	insert_attr_component_handler(hooks->tztable, "RDATE", handle_tzrdate_attribute);
+	insert_attr_component_handler(hooks->tztable, "COMMENT", handle_tz_comment_attribute);
+	insert_attr_component_handler(hooks->tztable, "RDATE", handle_tz_rdate_attribute);
 	insert_attr_component_handler(hooks->tztable, "RRULE", HANDLE_IGNORE); // NOTE: we call it in vcalendar_parse_component
-	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tzname_attribute);
+	insert_attr_component_handler(hooks->tztable, "TZNAME", handle_tz_name_attribute);
 	insert_attr_component_handler(hooks->tztable, "X-LIC-LOCATION", handle_tz_location_attribute);
 	// x-prop -> TODO
 

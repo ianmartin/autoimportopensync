@@ -92,17 +92,16 @@ void handle_aattendee_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr)
 void handle_asummary_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
 // TIMEZONE handler
-void handle_tzid_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_comment_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
+void handle_tz_dtstart_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
+void handle_tz_id_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tz_last_modified_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_tzurl_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_tzdtstart_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
-void handle_tzcomment_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
-void handle_tzoffsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_tzoffsetfrom_location_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
-void handle_tzrdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_tzrrule_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
-void handle_tzname_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 void handle_tz_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_name_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_offsetfrom_location_attribute(OSyncXMLField *xmlformat, VFormatAttribute *attr);
+void handle_tz_offsetto_location_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_rdate_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
+void handle_tz_url_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
 
 // parameter
 void handle_range_parameter(OSyncXMLField *xmlfield, VFormatParam *param);
