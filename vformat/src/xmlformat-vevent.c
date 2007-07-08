@@ -23,7 +23,7 @@
 
 #include "xmlformat-vevent.h"
 
-static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
+static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 
@@ -447,7 +447,7 @@ static OSyncHookTables *init_vevent_to_xmlformat(VFormatType target)
 }
 
 
-static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
+static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 {
 	osync_trace(TRACE_ENTRY, "%s", __func__);
 
@@ -641,7 +641,7 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
-	OSyncHookTables *hooks = init_vevent_to_xmlformat(target);
+	OSyncHookTables *hooks = init_vcalendar_to_xmlformat(target);
 	OSyncXMLFormat *xmlformat = NULL; 
 
 	// create a new xmlformat object
@@ -659,12 +659,12 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 		xmlformat = osync_xmlformat_new("todo", error);
 	}
 
-	// Parse the vevent
-	VFormat *vevent = vformat_new_from_string(input);
+	// Parse the vcalendar
+	VFormat *vcalendar = vformat_new_from_string(input);
 	osync_trace(TRACE_INTERNAL, "Parsing attributes");
 	
 	// For every attribute we have call the handling hook
-	GList *attributes = vformat_get_attributes(vevent);
+	GList *attributes = vformat_get_attributes(vcalendar);
 
 	vcalendar_parse_attributes(xmlformat, &attributes, hooks, hooks->attributes, hooks->parameters);
 
@@ -693,7 +693,7 @@ static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize,
 		osync_trace(TRACE_INTERNAL, "XMLFORMAT EVENT: VAILD");
 
 
-	vformat_free(vevent);
+	vformat_free(vcalendar);
 	
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
@@ -703,7 +703,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
-	OSyncHookTables *hooks = init_xmlformat_to_vevent(target);
+	OSyncHookTables *hooks = init_xmlformat_to_vcalendar(target);
 
 	// TODO register extensions
 	/*
@@ -746,8 +746,8 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
-	// create a new vevent
-	VFormat *vevent = vformat_new();
+	// create a new vcalendar
+	VFormat *vcalendar = vformat_new();
 	
 	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
 	const char *std_encoding = NULL;
@@ -774,7 +774,7 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 			continue;
 		}
 
-		xml_handle_attribute(hooks, vevent, xmlfield, std_encoding);
+		xml_handle_attribute(hooks, vcalendar, xmlfield, std_encoding);
 	}
 
 	// TODO: Handle timezone and alarm xmlfields
@@ -785,10 +785,10 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	g_free(hooks);
 
 	*free_input = TRUE;
-	*output = vformat_to_string(vevent, target);
+	*output = vformat_to_string(vcalendar, target);
 	*outpsize = strlen(*output) + 1;
 
-	vformat_free(vevent);
+	vformat_free(vcalendar);
 
 	if (target == VFORMAT_EVENT_10) {
 		osync_trace(TRACE_INTERNAL, "Output is vevent10:\n%s", *output);
