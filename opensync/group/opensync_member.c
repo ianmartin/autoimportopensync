@@ -328,6 +328,10 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 				osync_objtype_sink_set_name(sink, str);
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
 				osync_objtype_sink_set_enabled(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
+				osync_objtype_sink_set_read(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
+				osync_objtype_sink_set_write(sink, atoi(str));
 			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
 				osync_objtype_sink_add_objformat(sink, str);
 			}
@@ -445,6 +449,8 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 		
 		xmlNewChild(node, NULL, (xmlChar*)"name", (xmlChar*)osync_objtype_sink_get_name(sink));
 		xmlNewChild(node, NULL, (xmlChar*)"enabled", osync_objtype_sink_is_enabled(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+		xmlNewChild(node, NULL, (xmlChar*)"read", osync_objtype_sink_get_read(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
+		xmlNewChild(node, NULL, (xmlChar*)"write", osync_objtype_sink_get_write(sink) ? (xmlChar*)"1" : (xmlChar*)"0");
 		
 		int i = 0;
 		for (i = 0; i < osync_objtype_sink_num_objformats(sink); i++) {
@@ -517,7 +523,7 @@ long long int osync_member_get_id(OSyncMember *member)
 	return member->id;
 }
 
-static OSyncObjTypeSink *_osync_member_find_objtype(OSyncMember *member, const char *objtype)
+OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtype)
 {
 	GList *o;
 	for (o = member->objtypes; o; o = o->next) {
@@ -530,7 +536,7 @@ static OSyncObjTypeSink *_osync_member_find_objtype(OSyncMember *member, const c
 
 void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format)
 {
-	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
 	if (!sink)
 		return;
 	
@@ -539,9 +545,9 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
 
 const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error)
 {
-	OSyncObjTypeSink *sink = _osync_member_find_objtype(member, objtype);
+	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
 	if (!sink) {
-		sink = _osync_member_find_objtype(member, "data");
+		sink = osync_member_find_objtype_sink(member, "data");
 		if (!sink) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find objtype %s", objtype);
 			return NULL;
@@ -557,7 +563,7 @@ void osync_member_add_objtype(OSyncMember *member, const char *objtype)
 	osync_assert(member);
 	osync_assert(objtype);
 
-	if (!_osync_member_find_objtype(member, objtype)) {
+	if (!osync_member_find_objtype_sink(member, objtype)) {
 		sink = osync_objtype_sink_new(objtype, NULL);
 		member->objtypes = g_list_append(member->objtypes, sink);
 	}
@@ -588,7 +594,7 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
 {
 	OSyncObjTypeSink *sink = NULL;
 	osync_assert(member);
-	sink = _osync_member_find_objtype(member, objtype);
+	sink = osync_member_find_objtype_sink(member, objtype);
 	if (!sink)
 		return FALSE;
 	return osync_objtype_sink_is_enabled(sink);
@@ -612,7 +618,7 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, 
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtype, enabled);
 	osync_assert(member);
 	
-	sink = _osync_member_find_objtype(member, objtype);
+	sink = osync_member_find_objtype_sink(member, objtype);
 	if (!sink) {
 		osync_trace(TRACE_EXIT, "%s: Unable to find objtype", __func__);
 		return;

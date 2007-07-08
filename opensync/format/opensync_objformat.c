@@ -326,6 +326,7 @@ void osync_objformat_set_revision_func(OSyncObjFormat *format, OSyncFormatRevisi
 time_t osync_objformat_get_revision(OSyncObjFormat *format, const char *data, unsigned int size, OSyncError **error)
 {
 	osync_assert(format);
+	osync_assert(data);
 	
 	if (!format->revision_func) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "No revision function set");

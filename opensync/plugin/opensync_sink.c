@@ -216,6 +216,12 @@ void osync_objtype_sink_set_functions(OSyncObjTypeSink *sink, OSyncObjTypeSinkFu
 	osync_assert(sink);
 	sink->functions = functions;
 	sink->userdata = userdata;
+
+	if (!functions.read)
+		osync_objtype_sink_set_read(sink, FALSE);
+
+	if (!functions.write)
+		osync_objtype_sink_set_write(sink, FALSE);
 }
 
 /** @brief Gets the user data from a sink
@@ -534,6 +540,7 @@ osync_bool osync_objtype_sink_get_read(OSyncObjTypeSink *sink)
 
 void osync_objtype_sink_set_read(OSyncObjTypeSink *sink, osync_bool read)
 {
+	osync_trace(TRACE_INTERNAL, "%s: %i", __func__, read);
 	osync_assert(sink);
 	sink->read = read;
 }
