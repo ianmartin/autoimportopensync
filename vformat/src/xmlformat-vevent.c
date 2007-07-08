@@ -637,7 +637,7 @@ static OSyncHookTables *init_xmlformat_to_vevent(VFormatType target)
 	return (void *)hooks;
 }
 
-osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
+static osync_bool conv_vcalendar_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
@@ -699,7 +699,7 @@ osync_bool conv_vevent_to_xmlformat(char *input, unsigned int inpsize, char **ou
 	return TRUE;
 }
 
-osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
+static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error, int target)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %p)", __func__, input, inpsize, output, outpsize, free_input, error);
 
@@ -807,42 +807,42 @@ osync_bool conv_xmlformat_to_vevent(char *input, unsigned int inpsize, char **ou
 
 osync_bool conv_xmlformat_to_vtodo10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
+	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
 }
 
 osync_bool conv_xmlformat_to_vtodo20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
+	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
 }
 
 osync_bool conv_vtodo10_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
+	return conv_vcalendar_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_10);
 }
 
 osync_bool conv_vtodo20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
+	return conv_vcalendar_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_TODO_20);
 }
 
 osync_bool conv_xmlformat_to_vevent10(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
+	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
 }
 
 osync_bool conv_xmlformat_to_vevent20(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_xmlformat_to_vevent(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
+	return conv_xmlformat_to_vcalendar(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
 }
 
 osync_bool conv_vevent10_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
+	return conv_vcalendar_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_10);
 }
 
 osync_bool conv_vevent20_to_xmlformat(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	return conv_vevent_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
+	return conv_vcalendar_to_xmlformat(input, inpsize, output, outpsize, free_input, config, error, VFORMAT_EVENT_20);
 }
 
 osync_bool get_conversion_info(OSyncFormatEnv *env)
