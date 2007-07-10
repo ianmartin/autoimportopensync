@@ -225,6 +225,9 @@ struct tm *osync_time_vtime2tm(const char *vtime)
 	/* isdst is handled by tz offset calcualtion */
 	utime->tm_isdst = -1;
 
+	/* ask C library to clean up any anomalies */
+	mktime(utime);
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return utime;
 }
@@ -242,10 +245,14 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, time, is_utc);
 	GString *vtime = g_string_new("");
+	struct tm my_time = *time;
+
+	/* ask C library to clean up any anomalies */
+	mktime(&my_time);
 
 	g_string_printf(vtime, "%04d%02d%02dT%02d%02d%02d",
-				time->tm_year + 1900, time->tm_mon + 1, time->tm_mday,
-				time->tm_hour, time->tm_min, time->tm_sec);
+				my_time.tm_year + 1900, my_time.tm_mon + 1, my_time.tm_mday,
+				my_time.tm_hour, my_time.tm_min, my_time.tm_sec);
 
 	if (is_utc)
 		vtime = g_string_append(vtime, "Z");
