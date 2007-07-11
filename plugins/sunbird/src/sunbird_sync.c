@@ -57,11 +57,10 @@ const char* get_datapath(plugin_environment* env)
 GString* get_local_path_from_url(plugin_environment* env, const char* url)
 {
     GString* gstr;
-    const char* p = url + strlen(url);
-    while (p > url && *p != '/')
-        p--;
-    gstr = g_string_new(get_datapath(env));
-    g_string_append(gstr, p);
+    guint hash;
+    gstr = g_string_new(NULL);
+    hash = g_string_hash(g_string_new(url));
+    g_string_printf(gstr, "%s/%x.ics", get_datapath(env), hash);
     return gstr;
 }
 
@@ -106,15 +105,17 @@ int do_webdav(plugin_environment *env, int upload)
         
         if (cfg->typ == TYP_WEBDAV)
         {
-            int tmpresult;
+            int tmpresult=0;
             GString *local_path = get_local_path_from_url(env, cfg->filename->str);
             
             if (upload)
             {
-                osync_trace(TRACE_INTERNAL, "Uploading %s -> %s",
-                            local_path->str, cfg->filename->str);
-                tmpresult = webdav_upload(local_path->str, cfg->filename->str,
-                                          cfg->username->str, cfg->password->str);
+                if(!cfg->isreadonly){
+	 	    osync_trace(TRACE_INTERNAL, "Uploading %s -> %s",
+                                local_path->str, cfg->filename->str);
+                    tmpresult = webdav_upload(local_path->str, cfg->filename->str,
+                                              cfg->username->str, cfg->password->str);
+		}
             } else
             {
                 osync_trace(TRACE_INTERNAL, "Downloading %s -> %s",
@@ -569,13 +570,14 @@ void read_config_from_xml_doc(xmlDocPtr doc, plugin_environment* env)
               strcmp((char*)cur->name, "file")== 0 || strcmp((char*)cur->name, "webdav") == 0))
         {
             plugin_calendar_config *cfg;
-            xmlChar *attr_default, *attr_username, *attr_password;
+            xmlChar *attr_default, *attr_username, *attr_password, *attr_isreadonly;
             xmlChar *attr_filename, *attr_deletedaysold;
 
             osync_trace(TRACE_INTERNAL, "reading node of type '%s'", cur->name);
 
             cfg  = (plugin_calendar_config*)g_malloc0(sizeof(plugin_calendar_config));
             cfg->isdefault = 0;
+            cfg->isreadonly = 0;
             cfg->filename = NULL;
             cfg->username = NULL;
             cfg->password = NULL;
@@ -587,6 +589,7 @@ void read_config_from_xml_doc(xmlDocPtr doc, plugin_environment* env)
                 
             /* Parse attributes of this node */
             attr_default = xmlGetProp(cur, (const xmlChar*)"default");
+	    attr_isreadonly = xmlGetProp(cur, (const xmlChar*)"read-only");
             attr_username = xmlGetProp(cur, (const xmlChar*)"username");
             attr_password = xmlGetProp(cur, (const xmlChar*)"password");
             attr_deletedaysold = xmlGetProp(cur, (const xmlChar*)"deletedaysold");
@@ -602,6 +605,13 @@ void read_config_from_xml_doc(xmlDocPtr doc, plugin_environment* env)
                 xmlFree(attr_default);
                 osync_trace(TRACE_INTERNAL, "set isdefault to %i", cfg->isdefault);
             }
+
+	    if (attr_isreadonly)
+	    {
+		cfg->isreadonly = atoi((char*)attr_isreadonly);
+		xmlFree(attr_isreadonly);
+                osync_trace(TRACE_INTERNAL, "set isreadonly to %i", cfg->isreadonly);
+	    }
             
             if (attr_username)
             {

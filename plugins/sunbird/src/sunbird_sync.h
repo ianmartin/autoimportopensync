@@ -10,6 +10,7 @@ typedef struct {
    int typ; /* one of CALENDAR_CONFIG_TYP_... */
    int isdefault; /* boolean */
    int deletedaysold; /* integer, 0=don't delete (default) */
+   int isreadonly; /* don't upload webdav (default false) */
    GString* filename;
    GString* username; /* can be NULL if not specified */
    GString* password; /* can be NULL if not specified */
