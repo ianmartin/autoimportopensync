@@ -1849,11 +1849,14 @@ class PhoneContactXML(PhoneContact):
                 contacts[0] = (moto_type, content, True)
 
         # process addresses, create a hash from contacttype to address
-        # FIXME: addresses that don't map to moto contact types are dropped
+        # addresses that don't map to moto contact types are dropped
         addresses = {}
         for adr in doc.getElementsByTagName('Address'):
             address = [getXMLField(adr, p) for p in XML_ADDRESS_PARTS]
             ical_types = adr.getAttribute('Location').split(';')
+            # XXX: HACK: if it has no type, assume it's a home address
+            if ical_types == [] or ical_types == ['']:
+                ical_types = ['Home']
             for t in ical_types:
                 t = t.lower()
                 if VCARD_ADDRESS_TYPES.has_key(t):
@@ -1862,6 +1865,7 @@ class PhoneContactXML(PhoneContact):
                     break
 
         # create a child for each telephone/address pair or email
+        # addresses for which there is no phone number are dropped
         for (moto_type, contact, is_pref) in contacts:
             if moto_type == MOTO_CONTACT_EMAIL:
                 addr = None
@@ -1956,7 +1960,7 @@ class PhoneContactChild:
                 appendXMLTag(doc, e, part, val)
             if e.hasChildNodes():
                 if MOTO_ADDRESS_TYPES.has_key(self.contacttype):
-                    e.setAttribute('Location', MOTO_ADDRESS_TYPES[self.contacttype].upper())
+                    e.setAttribute('Location', MOTO_ADDRESS_TYPES[self.contacttype])
                 ret.append(e)
 
         if self.contacttype == MOTO_CONTACT_EMAIL:
