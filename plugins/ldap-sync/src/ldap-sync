@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <config>
    <!-- Server address and port -->
-   <servername></servername>
+   <servername>localhost</servername>
    <serverport>389</serverport>
 
    <!-- Authentication data -->
@@ -14,13 +14,13 @@
    <searchbase></searchbase>
 
    <!-- Filter for searching contacts -->
-   <searchfilter></searchfilter>
+   <searchfilter>cn=*</searchfilter>
 
    <!-- BaseDN for storing contacts (using searchbase, if leaved blank) -->
    <storebase></storebase>
 
    <!-- Key attribute for identifying/storing contacts -->
-   <keyattr>uid</keyattr>
+   <keyattr>cn</keyattr>
 
    <!-- Search scope (base, one, sub) -->
    <scope>sub</scope>
