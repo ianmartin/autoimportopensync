@@ -65,7 +65,30 @@ inline struct tm* gmtime_r (const time_t *clock, struct tm *result)
 }
 #endif
 
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeAPI OpenSync Time
+ * @ingroup OSyncPublic
+ * @brief The public part of the OSyncTimeAPI
+ * 
+ */
+/*@{*/
+
 /* Floating Timestamps...... (handle tzid!) */
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeFormatting Time formatting helpers
+ * @ingroup OSyncTimeAPI
+ * @brief Helper functions for formatting time strings, stripping out
+ *	invalid characters, etc.
+ * 
+ */
+/*@{*/
 
 /* 
  * Time formatting helper
@@ -167,6 +190,7 @@ osync_bool osync_time_isutc(const char *vtime)
 	return TRUE;
 }
 
+#if 0
 /*! @brief Function sets the time of vtime timestamp to the given time parameter
  * 
  * If vtime only stores date (without THHMMSS[Z]) parameter time will
@@ -179,7 +203,6 @@ osync_bool osync_time_isutc(const char *vtime)
  * @param is_utc If the given time is UTC is_utc have to be TRUE
  * @returns data-timestamp in UTC if is_utc TRUE
  */
-/*
 char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc)
 {
 	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime, time);
@@ -191,7 +214,25 @@ char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_ut
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
 	return tmp;
 }
-*/
+#endif
+/*@}*/
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeStringToStruct String to struct converters.
+ * @ingroup OSyncTimeAPI
+ * @brief Helper functions for converting time between vtime formatted
+ *	strings and struct tm time structures.  These functions are not
+ *	smart in any way, with regards to timezones or daylight saving
+ *	time, nor do they need to be.
+ * 
+ */
+/*@{*/
 
 /*
  * String <-> struct converters, no smarts
@@ -260,11 +301,26 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
 	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime->str);
 	return g_string_free(vtime, FALSE);
 }
+/*@}*/
 
+
+
+
+//////////////////////////////////////////////////////////////////////////////
 
 /*
- * Timetype helper  
+ * Unix converters
  */
+
+/**
+ * @defgroup OSyncTimeUnixTimeConverters Unix time converters
+ * @ingroup OSyncTimeAPI
+ * @brief Helper functions for converting to and from unix time_t
+ *	timestamps.  Includes functions supporting vtime strings,
+ *	and struct tm's in local and UTC time.
+ * 
+ */
+/*@{*/
 
 /*! @brief Function converts vtime to unix time
  * 
@@ -449,8 +505,25 @@ struct tm *osync_time_unix2utctm(const time_t *timestamp)
 
 	return ptr_tm;
 }
+/*@}*/
 
 
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeTimezoneHelpers Timezone helpers
+ * @ingroup OSyncTimeAPI
+ * @brief Helper functions for working with timezones, and doing
+ *	conversions with user-specified timezone offsets.
+ *	Note that in all functions below that require a timezone offset,
+ *	they *require* the caller to be completely accurate with it,
+ *	including in the DST case.  The result is only as accurate
+ *	as the offset you provide.
+ * 
+ */
+/*@{*/
 
 /*
  * Timezone helper
@@ -645,7 +718,45 @@ char *osync_time_vtime2localtime(const char* utc, int offset)
 	return localtime;
 }
 
+/*! @brief Function converts UTC offset string in offset in seconds
+ *
+ * @param offset The offset string of the form a timezone field (Example +0200) 
+ * @returns seconds of UTC offset 
+ */ 
+int osync_time_utcoffset2sec(const char *offset)
+{
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset);
 
+	char csign = 0;
+	int seconds = 0, sign = 1;
+	int hours = 0, minutes = 0;
+
+	sscanf(offset, "%c%2d%2d", &csign, &hours, &minutes);
+
+	if (csign == '-')
+		sign = -1;
+
+	seconds = (hours * 3600 + minutes * 60) * sign; 
+
+	osync_trace(TRACE_EXIT, "%s: %i", __func__, seconds);
+	return seconds;
+}
+
+/*@}*/
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeBackwardCompatibility Backward compatibility functions.
+ * @ingroup OSyncTimeAPI
+ * @brief These functions should only be used as workaround for plugins
+ *	which only support localtime without any timezone information.
+ * 
+ */
+/*@{*/
 
 /* XXX This functions should only be used as workaround for plugins which
    only supports localtime without any timezone information. */
@@ -737,6 +848,19 @@ char *osync_time_vcal2utc(const char *vcal)
 {
 	return _convert_entry(vcal, TRUE);
 }
+/*@}*/
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeAlarmDurationFormat Alarm duration format helpers.
+ * @ingroup OSyncTimeAPI
+ * @brief Functions for converting alarm durations to and from string formats.
+ * 
+ */
+/*@{*/
 
 /*! @brief Functions converts seconds in duration before or after alarm event 
  * 
@@ -876,10 +1000,19 @@ int osync_time_alarmdu2sec(const char *alarm)
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, secs);
         return secs;
 }
+/*@}*/
 
-/*
- * Timezone ID helper
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup OSyncTimeRecurrence Recurring time calculators.
+ * @ingroup OSyncTimeAPI
+ * @brief Functions related to calculating recurring dates.
+ * 
  */
+/*@{*/
 
 /*! @brief Function converts a week day string to the struct tm wday integer. 
  *
@@ -980,30 +1113,12 @@ struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const in
 
 	return datestamp;
 }
+/*@}*/
 
-/*! @brief Function converts UTC offset string in offset in seconds
- *
- * @param offset The offset string of the form a timezone field (Example +0200) 
- * @returns seconds of UTC offset 
- */ 
-int osync_time_utcoffset2sec(const char *offset)
-{
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset);
 
-	char csign = 0;
-	int seconds = 0, sign = 1;
-	int hours = 0, minutes = 0;
 
-	sscanf(offset, "%c%2d%2d", &csign, &hours, &minutes);
-
-	if (csign == '-')
-		sign = -1;
-
-	seconds = (hours * 3600 + minutes * 60) * sign; 
-
-	osync_trace(TRACE_EXIT, "%s: %i", __func__, seconds);
-	return seconds;
-}
+//////////////////////////////////////////////////////////////////////////////
+// undocumented XML related functions.
 
 /*! @brief Function determines the change timestamp of daylight saving of the given
  * 	   XML Timezone from dstNode. 
@@ -1279,6 +1394,72 @@ noresult:
 }
 #endif
 
+
+
+#if 0
+struct _RecurringSet
+{
+	// can be NULL if not existing in data
+	OSyncXMLField *xml_rdate;
+	OSyncXMLField *xml_rrule;
+	OSyncXMLField *xml_exdate;
+	OSyncXMLField *xml_exrule;
+};
+typedef struct _RecurringSet RecurringSet;
+
+
+/*! @brief Calculates the next date based on a recurring ruleset.
+ * 
+ * @param tm_base	Date to start with.
+ * @param rset		Filled recurring ruleset.
+ *
+ * @returns New tm struct with the calculated next date.  Caller is
+ *		responsible for freeing!
+ */ 
+struct tm* osync_time_next_recurring(struct tm *tm_base,
+				     RecurringSet *rset)
+{
+	osync_xmlfield_get_next
+}
+
+struct TimezoneSetNode
+{
+	uint64_t localTimestamp;	// 20070311020000
+	int secondsFrom;
+	int secondsTo;
+	char *name;
+
+	struct TimezoneSetNode *next;
+};
+typedef struct TimezoneSetNode TimezoneSet;
+
+osync_bool _osync_zone_add_point(struct TimezoneSet **head, const struct tm *local, int secondsFrom, int secondsTo, const char *name);
+
+TimezoneSet* osync_zone_load_tzset(OSyncXMLFormat *event, const char *tzid);
+void osync_zone_free(struct TimezoneSet *head);
+int osync_zone_get_tzdiff(struct TimezoneSet *head, const struct tm *local);
+
+TimezoneSet* osync_zone_load_tzset(OSyncXMLFormat *event, const char *tzid)
+{
+	struct TimezoneSet *head = NULL;
+
+xpathset;
+	osync_xmlfield_get_key_value
+
+	while( search_for_component ) {
+		osync_zone_add_point();
+	}
+
+	return head;
+
+ozbp_error:
+	osync_zone_free_points(head);
+	return NULL;
+}
+#endif
+
+
+#if 0
 /*! @brief Searches event for the timezone contained in dateTimeContent and
  *		sets tzoffset to the calculated timezone offset,
  *		in seconds east of UTC.
@@ -1289,7 +1470,6 @@ noresult:
  *		value on success.
  * @returns TRUE on success, FALSE on error
  */
-/*
 OSyncXMLField* osync_time_tzcomponent(OSyncXMLFormat *event, OSyncXMLField *dateTimeContent)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, event, dateTiemContent, tzoffset);
@@ -1315,44 +1495,82 @@ OSyncXMLField* osync_time_tzcomponent(OSyncXMLFormat *event, OSyncXMLField *date
 	osync_trace(TRACE_EXIT, "%s: %i", __func__, *tzoffset);
 	return TRUE;
 }
-*/
+#endif
 
 
-/*! @brief Converts an XML DateTimeContent field (such as DateStarted and DateEnd)
- *	to a unix UTC time_t.
+#if 0
+/*! @brief Converts an XML DateTimeContent field (such as DateStarted or
+ *	DateEnd) to a unix UTC time_t.
  * 
  * @param event Pointer to XMLFormat of event data.
  * @param dateTimeContent OSyncXMLField pointer to field to be converted.
  * @returns UTC time_t, or ((time_t)-1) on error.
  */ 
-/*
 time_t osync_time_xml2unix(OSyncXMLFormat *event, OSyncXMLField *dateTimeContent)
 {
+	osync_trace(TRACE_ENTRY, "%s()", __func__);
+
 	time_t ret = -1;
 
-	// retrieve Content of xmlfield
-	char *content = blah;
+	// retrieve Content of xmlfield, assuming it is a DateTimeContent type
+	const char *content = osync_xmlfield_get_key_value("Content");
 	if (content == NULL)
 		return -1;
 
-	// is timestamp in UTC already?
-	if (osync_time_isutc(content)) {
+	// retrieve Value attribute
+	const char *value = osync_xmlfield_get_attr_value("Value");
+	if (value == NULL) {
+		// nothing specified, default to DATE-TIME
+		// (for example, DTSTART in RFC2445, 4.8.2.4)
+		value = "DATE-TIME";
+	}
+
+	// if timestamp is in UTC already, or if Value is DATE,
+	// then we don't have a timezone to worry about, and we're done
+	if (osync_time_isutc(content) || strcmp(value, "DATE") == 0) {
 		// convert vtime to unix and return
 		ret = osync_time_vtime2unix(content, 0);
-		goto otx2u_cleanup;
+		return ret;
+	}
+
+	// retrieve TimezoneID
+	const char *timezoneid = osync_xmlfield_get_attr_value("TimezoneID");
+	if (timezoneid == NULL) {
+		// if we get NULL here, and we've already passed the
+		// UTC check, then we are to assume the timezone is
+		// the same timezone as the attendee is in at any
+		// given moment (RFC2445, 4.3.5).  This floating time
+		// changes with the location of the attendee.
+		// Since the ATTENDEE field doesn't seem to have any
+		// timezone info, assume system localtime.
+		struct tm *local = osync_time_vtime2tm(content);
+		ret = osync_time_localtm2unix(local);
+		g_free(local);
+		return ret;
+	}
+
+	// load timezone data
+	TimezoneSet *tzset = osync_zone_load_tzset(event, timezoneid);
+	if (set == NULL) {
+		// no timezone with that ID is available
+		return -1;
 	}
 
 	// retrieve tzoffset
-	int tzoffset = osync_time_tzoffset(event, dateTimeContent);
-	if (tzoffset == -1)
-		goto otx2u_cleanup;
+	int tzoffset = osync_zone_tzoffset(tzset, content);
+	if (tzoffset == /*FIXME tzoffset can be negative... how do we detect error?*/) {
+		osync_zone_free(tzset);
+		return -1;
+	}
+	osync_zone_free(tzset);
 
 	// return unix time
 	ret = osync_time_vtime2unix(content, tzoffset);
 
-otx2u_cleanup:
-	g_free(content);
+	osync_trace(TRACE_EXIT, "%s()", __func__);
 	return ret;
 }
-*/
+#endif
+
+/*@}*/
 

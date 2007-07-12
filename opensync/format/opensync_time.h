@@ -54,6 +54,13 @@ int osync_time_str2wday(const char *weekday);
 struct tm *osync_time_relative2tm(const char *byday, const int bymonth, const int year);
 int osync_time_utcoffset2sec(const char *offset);
 
+/* Recurrence API */
+//struct OSyncRecur *osync_recur_parse_rules(OSyncXMLFormat *event);
+	// hmmm, recurrence rules only pertain to a certain
+	// field.... how do we get that data?  can we get a sub
+	// field of a field?
+//struct tm *osync_recur_get_next(OSyncRecur *recur, struct tm *current);
+
 /* Smart Timezone Helpers */
 /*
 struct tm *osync_time_dstchange(xmlNode *dstNode);
