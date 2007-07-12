@@ -430,6 +430,10 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 	{
 		/* don't compare xmlfield1 if score is -1 (just ignore it) */
 		if(xmlfield1 != NULL && (_osync_xmlformat_get_points(points, &cur_pos, basic_points, (const char *) xmlfield1->node->name) == -1)) {
+			/* check if xmlfield2 is the same; if so, we must skip it here,
+			 * or it won't be found below because cur_pos will have advanced */
+			if (xmlfield2 != NULL && strcmp((const char *)xmlfield1->node->name, (const char *)xmlfield2->node->name) == 0)
+				xmlfield2 = xmlfield2->next;
 			xmlfield1 = xmlfield1->next;
 			continue;
 		}
