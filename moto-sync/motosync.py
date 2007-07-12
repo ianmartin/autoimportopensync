@@ -1814,15 +1814,16 @@ class PhoneContactXML(PhoneContact):
         # process telephone numbers and email addresses
         # create a list [(contacttype, contact, is_pref)]
         contacts = []
-        seen_pref = False # have we already seen a preferred contact?
+        pref_telephone = pref_email = 0 # number of preferred phone/email contacts
         for elt in getElementsByTagNames(doc, set(['Telephone', 'EMail']), []):
             content = getXMLField(elt, 'Content')
+            is_pref = elt.hasAttribute('Preferred') and elt.getAttribute('Preferred') in ['1', 'true']
             if elt.tagName == 'Telephone':
                 # filter out any illegal characters from the phone number
                 content = filter(lambda c: c in TEL_NUM_DIGITS, content)
+                pref_telephone += int(is_pref)
                 ical_types = elt.getAttribute('Location').split(';')
                 ical_types.extend(elt.getAttribute('Type').split(';'))
-                is_pref = elt.hasAttribute('Preferred') and elt.getAttribute('Preferred') in ['1', 'true']
                 moto_type = MOTO_CONTACT_DEFAULT
                 for t in ical_types:
                     t = t.lower()
@@ -1830,23 +1831,9 @@ class PhoneContactXML(PhoneContact):
                         moto_type = VCARD_CONTACT_TYPES[t]
                         break
             else: # email
-                is_pref = False
+                pref_email += int(is_pref)
                 moto_type = MOTO_CONTACT_EMAIL
-            contacts.append((moto_type, content, is_pref and not seen_pref))
-            seen_pref = seen_pref or is_pref
-
-        # if none of the contacts were preffered, make one so
-        if not seen_pref:
-            # arbitrarily mark the first non-email contact as preferred
-            for i in range(len(contacts)):
-                (moto_type, content, _) = contacts[i]
-                if moto_type != MOTO_CONTACT_EMAIL:
-                    contacts[i] = (moto_type, content, True)
-                    break
-            else:
-                # no non-email contacts, so just make the first email preferred
-                (moto_type, content, _) = contacts[0]
-                contacts[0] = (moto_type, content, True)
+            contacts.append((moto_type, content, is_pref))
 
         # process addresses, create a hash from contacttype to address
         # addresses that don't map to moto contact types are dropped
@@ -1867,6 +1854,10 @@ class PhoneContactXML(PhoneContact):
         # create a child for each telephone/address pair or email
         # addresses for which there is no phone number are dropped
         for (moto_type, contact, is_pref) in contacts:
+            # the phone will only handle one preferred contact; if both telephone
+            # and email contacts are preferred, make the emails non-preferred
+            if moto_type == MOTO_CONTACT_EMAIL and pref_telephone > 0:
+                is_pref = False
             if moto_type == MOTO_CONTACT_EMAIL:
                 addr = None
             else:
