@@ -94,6 +94,7 @@ xmlNode *osxml_get_node(xmlNode *parent, const char *name)
 	return NULL;
 }
 
+// caller is responsible for freeing, with xmlFree()
 char *osxml_find_node(xmlNode *parent, const char *name)
 {
 	return (char*)xmlNodeGetContent(osxml_get_node(parent, name));
