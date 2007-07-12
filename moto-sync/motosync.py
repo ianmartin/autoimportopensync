@@ -104,21 +104,21 @@ MOTO_PHONE_CONTACT_LOCATIONS = {
 
 # reverse of the above (almost): mapping from vcard to phone's contact type
 VCARD_CONTACT_TYPES = {
-    'Work':     0,
-    'Home':     1,
-    'Voice':    2,
-    'Cellular': 3,
-    'Car':      3,
-    'Message':  5,
-    'Fax':      4,
-    'Pager':    5,
+    'work':     0,
+    'home':     1,
+    'voice':    2,
+    'cellular': 3,
+    'car':      3,
+    'message':  5,
+    'fax':      4,
+    'pager':    5,
 }
 
 # (dodgy) mapping from address types to motorola contact types
 # can also have dom/intl/postal/parcel... these don't really make sense here
 VCARD_ADDRESS_TYPES = {
-    'Work':  0,
-    'Home':  1,
+    'work':  0,
+    'home':  1,
 }
 
 # reverse of the above
@@ -1712,11 +1712,11 @@ class PhoneContact(PhoneEntry):
             first = self.name[:self.firstlast_index].strip()
             last = self.name[self.firstlast_index:].strip()
             if self.firstlast_enabled:
-                appendXMLTag(doc, e, 'FirstName', last)
                 appendXMLTag(doc, e, 'LastName', first)
+                appendXMLTag(doc, e, 'FirstName', last)
             else:
-                appendXMLTag(doc, e, 'FirstName', first)
                 appendXMLTag(doc, e, 'LastName', last)
+                appendXMLTag(doc, e, 'FirstName', first)
         top.appendChild(e)
 
         if self.nickname != '':
@@ -1820,10 +1820,12 @@ class PhoneContactXML(PhoneContact):
             if elt.tagName == 'Telephone':
                 # filter out any illegal characters from the phone number
                 content = filter(lambda c: c in TEL_NUM_DIGITS, content)
-                ical_types = elt.getAttribute('Type').split(';')
+                ical_types = elt.getAttribute('Location').split(';')
+                ical_types.extend(elt.getAttribute('Type').split(';'))
                 is_pref = elt.hasAttribute('Preferred') and elt.getAttribute('Preferred') in ['1', 'true']
                 moto_type = MOTO_CONTACT_DEFAULT
                 for t in ical_types:
+                    t = t.lower()
                     if VCARD_CONTACT_TYPES.has_key(t):
                         moto_type = VCARD_CONTACT_TYPES[t]
                         break
@@ -1853,6 +1855,7 @@ class PhoneContactXML(PhoneContact):
             address = [getXMLField(adr, p) for p in XML_ADDRESS_PARTS]
             ical_types = adr.getAttribute('Location').split(';')
             for t in ical_types:
+                t = t.lower()
                 if VCARD_ADDRESS_TYPES.has_key(t):
                     moto_type = VCARD_ADDRESS_TYPES[t]
                     addresses[moto_type] = address
@@ -1963,10 +1966,10 @@ class PhoneContactChild:
             assert(False, "mailing lists aren't handled yet, sorry") # FIXME: implement mailing lists
         else:
             e = doc.createElement('Telephone')
-            if MOTO_PHONE_CONTACT_TYPES.has_key(self.contacttype):
-                e.setAttribute('Type', MOTO_PHONE_CONTACT_TYPES[self.contacttype])
-            elif MOTO_PHONE_CONTACT_LOCATIONS.has_key(self.contacttype):
+            if MOTO_PHONE_CONTACT_LOCATIONS.has_key(self.contacttype):
                 e.setAttribute('Location', MOTO_PHONE_CONTACT_LOCATIONS[self.contacttype])
+            elif MOTO_PHONE_CONTACT_TYPES.has_key(self.contacttype):
+                e.setAttribute('Type', MOTO_PHONE_CONTACT_TYPES[self.contacttype])
             if self.primaryflag:
                 e.setAttribute('Preferred', 'true')
         appendXMLTag(doc, e, 'Content', self.contact)
