@@ -33,5 +33,6 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, co
 void osync_hashtable_report(OSyncHashTable *table, const char *uid);
 char **osync_hashtable_get_deleted(OSyncHashTable *table);
 OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *hash);
+char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid);
 
 #endif /* OPENSYNC_HASHTABLE_H_ */

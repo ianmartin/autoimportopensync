@@ -251,6 +251,46 @@ osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int nth, char **uid,
 	return TRUE;
 }
 
+/*! @brief Gets the hash value for given uid
+ *
+ * @param table The hashtable
+ * @param uid The uid to lookup
+ * @returns The hash. Has to be freed by the caller.
+ */
+char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid)
+{
+       osync_assert(uid);
+       osync_assert(table);
+       osync_assert(table->dbhandle);
+
+       char *hash = NULL;
+       GList *list = NULL;
+       OSyncError *error = NULL;
+       char *escaped_uid = _osync_db_sql_escape(uid);
+
+       char *query = g_strdup_printf("SELECT hash FROM %s WHERE uid= '%s' LIMIT 1",
+                                     table->tablename, escaped_uid);
+       list = osync_db_query_table(table->dbhandle, query, &error);
+       g_free(query);
+       g_free(escaped_uid);
+
+       if (osync_error_is_set(&error)) {
+               osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get hash for '%s': %s",
+                           __func__, uid, osync_error_print(&error));
+               osync_error_unref(&error);
+               return NULL;
+       }
+
+       if (list && list->data) {
+               GList *column = list->data;
+               hash = g_strdup((char *)g_list_nth_data(column, 0));
+       }
+
+       osync_db_free_list(list);
+
+       return hash;
+}
+
 void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *hash)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, hash);
