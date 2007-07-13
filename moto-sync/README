@@ -4,8 +4,8 @@ This is a VERY EXPERIMENTAL plugin for syncing with Motorola phones
 using the AT command set. It supports syncing phonebook and calendar 
 entries (ie. the contact and event object types). It will most likely
 mess up the data on your phone and any other members of the sync group,
-due to the limited data that can be stored on the phone. Use with caution
-and make backups! See TESTING/BACKUP below.
+due to the limited data that can be stored on the phone, so use with caution
+and make backups! See BACKUP/TESTING below.
 
 
 SUPPORTED HARDWARE
@@ -70,25 +70,25 @@ There are two options for specifying the device string:
     that channel to bind with your phone, by doing something like:
          rfcomm bind rfcomm0 00:11:22:33:44:55 1
 
-The only way I have tested or used the plugin so far is in a sync group 
-with file-sync. To configure and use this, do:
-        msynctool --addgroup phone
-        msynctool --addmember phone moto-sync
-        msynctool --addmember phone file-sync
-        msynctool --configure phone 1 # configure moto-sync, as above
-        msynctool --configure phone 2 # configure file-sync, set the path(s)
-        msynctool --discover phone 1
-        msynctool --discover phone 2
-        msynctool --sync phone # cross your fingers!
 
-
-TESTING/BACKUP
+BACKUP/TESTING
 
 Before doing anything, it is probably a good idea to backup the data 
 from your phone. You can use the mototool script to do this, and to 
 delete entries on the phone. Run 'mototool --help' for details, or, for 
 the impatient, try:
     mototool -d (device string) -f myphone.backup --backup
+
+The best way to get started testing this plugin is in a sync group 
+with file-sync. To configure and use this, do:
+        msynctool --addgroup moto-file
+        msynctool --addmember moto-file moto-sync
+        msynctool --addmember moto-file file-sync
+        msynctool --configure moto-file 1 # configure moto-sync, as above
+        msynctool --configure moto-file 2 # configure file-sync, set the path(s)
+        msynctool --discover moto-file 1
+        msynctool --discover moto-file 2
+        msynctool --sync moto-file # cross your fingers!
 
 
 LIMITATIONS AND KNOWN PROBLEMS
