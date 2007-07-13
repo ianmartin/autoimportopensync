@@ -39,7 +39,7 @@ SOFTWARE IS DISCLAIMED.
 #include "osyncbase.h"
 #include "kaddrbook.h"
 #include "kcal.h"
-//#include "knotes.h"
+#include "knotes.h"
 
 static bool sentinel = false;
 
@@ -50,6 +50,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 		KCalSharedResource kcal;
 		KCalEventDataSource *kcal_event;
 		KCalTodoDataSource *kcal_todo;
+		KNotesDataSource *knotes;
 
 		KApplication *application;
 		bool newApplication;
@@ -89,6 +90,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			kaddrbook = new KContactDataSource();
 			kcal_event = new KCalEventDataSource(&kcal);
 			kcal_todo = new KCalTodoDataSource(&kcal);
+			knotes = new KNotesDataSource();
 		}
 
 		bool initialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
@@ -106,6 +108,9 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			if (!kcal_todo->initialize(plugin, info, error))
 				goto error;
 
+			if (!knotes->initialize(plugin, info, error))
+				goto error;
+
 			osync_trace(TRACE_EXIT, "%s", __PRETTY_FUNCTION__);
 			return true;
 
@@ -119,6 +124,7 @@ class KdePluginImplementation: public KdePluginImplementationBase
 			delete kaddrbook;
 			delete kcal_event;
 			delete kcal_todo;
+			delete knotes;
 
 			if ( newApplication ) {
 				delete application;
