@@ -476,11 +476,7 @@
   <xsd:complexType name="TimezoneComponent">
     <xsd:sequence>
       <xsd:element minOccurs="0" maxOccurs="1" name="Comment" type="MultiText"/>
-      <!-- For VTIMEZONE RDATEs -->
       <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
-      <!-- For VTIMEZONE RRULEs -->
-      <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceRule" type="RecurrenceRule"/>
-      <xsd:element minOccurs="0" maxOccurs="unbounded" name="RecurrenceRuleExtended" type="RecurrenceRuleExtended"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="DateTimeStart" type="xsd:string"/>
       <xsd:element minOccurs="0" maxOccurs="1" name="TZName" type="xsd:string"/>
       <xsd:element minOccurs="1" maxOccurs="1" name="TZOffsetFrom" type="UtcOffset"/>
