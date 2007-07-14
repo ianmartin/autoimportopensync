@@ -1306,6 +1306,11 @@ VFormatAttribute *handle_xml_created_attribute(VFormat *vevent, OSyncXMLField *x
 	return handle_xml_attribute_simple_content(vevent, xmlfield, "CREATED", encoding);
 }
 
+VFormatAttribute *handle_xml_dcreated_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
+{
+	return handle_xml_attribute_simple_content(vevent, xmlfield, "DCREATED", encoding);
+}
+
 VFormatAttribute *handle_xml_rrule_attribute(VFormat *vevent, OSyncXMLField *xmlfield, const char *encoding)
 {
 	/* TODO */

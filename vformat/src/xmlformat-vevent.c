@@ -87,7 +87,7 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "TRANSP", handle_transp_attribute);
 	insert_attr_handler(hooks->attributes, "URL", handle_url_attribute);
 	insert_attr_handler(hooks->attributes, "UID", handle_uid_attribute);
-	// TODO -> X-Word
+	// X-Word
 
         // [vcal-1.0] entprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "AALARM", handle_vcal_aalarm_attribute);
@@ -145,8 +145,8 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_param_handler(hooks->parameters, "SENT-BY", handle_sent_by_parameter); // sentbyparam
 	insert_param_handler(hooks->parameters, "TZID", handle_tzid_parameter); // tzidparam
 	insert_param_handler(hooks->parameters, "VALUE", handle_value_parameter); // valuetypeparam -> TODO fix xsd to allow all value types
-	// ianaparam -> TODO
-	// xparam -> TODO
+	// ianaparam 
+	// xparam
 
 
 	// [RFC 2445] icalobject (same order as in spec!)
@@ -167,7 +167,7 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	// NOTE: optional, but MUST NOT occur than once
 	insert_attr_handler(hooks->attributes, "CALSCALE", HANDLE_IGNORE);
 	insert_attr_handler(hooks->attributes, "METHOD", HANDLE_IGNORE);
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] component (same order as in spec!)	
@@ -489,7 +489,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
         // [vcal-1.0] simprop (same order as in spec!)
 	insert_xml_attr_handler(hooks->attributes, "Attach", handle_xml_attach_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Attendee", handle_xml_attendee_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute); // TODO -> DCREATED
+	insert_xml_attr_handler(hooks->attributes, "Created", handle_xml_dcreated_attribute); // vcal only
 	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute); // vtodo only
 	insert_xml_attr_handler(hooks->attributes, "Description", handle_xml_description_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
@@ -577,7 +577,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Completed", handle_xml_completed_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Contact", handle_xml_event_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "DateCalendarCreated", handle_xml_dtstamp_attribute);
-	insert_xml_attr_handler(hooks->attributes, "DateCreated", handle_xml_created_attribute); // CREATED -> ical only
+	insert_xml_attr_handler(hooks->attributes, "Created", handle_xml_created_attribute); // ical only
 	insert_xml_attr_handler(hooks->attributes, "DateDue", handle_xml_due_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateEnd", handle_xml_dtend_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
