@@ -64,8 +64,8 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "DAYLIGHT", HANDLE_IGNORE); // TODO
 	insert_attr_handler(hooks->attributes, "GEO", handle_geo_attribute);
 	insert_attr_handler(hooks->attributes, "PRODID", handle_prodid_attribute);
-	insert_attr_handler(hooks->attributes, "TZ", HANDLE_IGNORE);
-	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE); // Must appear in vCal object!
+	insert_attr_handler(hooks->attributes, "TZ", HANDLE_IGNORE); // TODO
+	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
 
         // [vcal-1.0] simprop (same order as in spec!)
 	insert_attr_handler(hooks->attributes, "ATTACH", handle_attach_attribute);
@@ -166,8 +166,8 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	insert_attr_handler(hooks->attributes, "PRODID", handle_prodid_attribute);
 	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
 	// NOTE: optional, but MUST NOT occur than once
-	insert_attr_handler(hooks->attributes, "CALSCALE", HANDLE_IGNORE);
-	insert_attr_handler(hooks->attributes, "METHOD", HANDLE_IGNORE);
+	insert_attr_handler(hooks->attributes, "CALSCALE", handle_calscale_attribute);
+	insert_attr_handler(hooks->attributes, "METHOD", handle_method_attribute);
 	// x-prop
 
 
@@ -481,9 +481,9 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 
         // [vcal-1.0] calprop (same order as in spec!)
 	// TODO -> DAYLIGHT
-	insert_xml_attr_handler(hooks->attributes, "Geo", handle_xml_geo_attribute);
+	// TODO -> GEO (must be placed before BEGIN attribute!) --> handle_xml_geo_attribute
 	// PRODID -> vformat.c
-	// TODO -> TZ
+	// TODO -> TZ (must be placed before BEGIN attribute!)
 	// VERSION -> vformat.c
 
 
@@ -508,7 +508,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Url", handle_xml_url_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Uid", handle_xml_uid_attribute);
-	// TODO -> X- word
+	// X- word
 
 
         // [vcal-1.0] entprop (same order as in spec!)
@@ -564,8 +564,8 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	// [RFC 2445] calprop (same order as in spec!)
 	// PRODID -> vformat.c
 	// VERSION -> vformat.c
-	// CALSCALE -> TODO
-	// METHOD -> TODO
+	// CALSCALE -> TODO (must be placed before BEGIN attribute!)
+	// METHOD -> TODO (must be placed before BEGIN attribute!)
 	// x-prop
 
 

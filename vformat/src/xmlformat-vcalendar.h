@@ -80,6 +80,7 @@ OSyncXMLField *handle_rrule_attribute(OSyncXMLFormat *xmlformat, VFormatAttribut
 OSyncXMLField *handle_organizer_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_recurid_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 OSyncXMLField *handle_contact_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
+OSyncXMLField *handle_calscale_attribute(OSyncXMLFormat *xmlformat, VFormatAttribute *attr, OSyncError **error); 
 
 // Alarm component handler
 void handle_alarm_action_attribute(OSyncXMLField *xmlfield, VFormatAttribute *attr);
