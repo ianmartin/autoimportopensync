@@ -28,7 +28,8 @@ typedef struct {} GroupEnv;
 	}
 
 	void add_group(Group *group) {
-		osync_group_env_add_group(self, group);
+		Error *err = NULL;
+		osync_group_env_add_group(self, group, &err);
 	}
 
 	void remove_group(Group *group) {
