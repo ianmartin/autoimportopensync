@@ -747,38 +747,81 @@ static osync_bool conv_xmlformat_to_vcalendar(char *input, unsigned int inpsize,
 	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
 	g_free(str);
 
-	// create a new vcalendar
-	VFormat *vcalendar = vformat_new();
-	
-	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
+	// set default encoding
 	const char *std_encoding = NULL;
 	if (target == VFORMAT_EVENT_10 || target == VFORMAT_TODO_10)
 		std_encoding = "QUOTED-PRINTABLE";
 	else
 		std_encoding = "B";
 
-	// parsing xml attributes
-	GList *alarmfields = NULL;
-	GList *timezonefields = NULL;
+	// create a new vcalendar
+	VFormat *vcalendar = vformat_new();
+
+	// start parsing/generating attributes
+	osync_trace(TRACE_INTERNAL, "parsing xml attributes");
+
+	VFormatAttribute *attr = NULL;
+
+	// prepare vcalendar container
+	if (target == VFORMAT_EVENT_10 || target == VFORMAT_TODO_10) {
+
+		// TODO: Handle DAYLIGHT attribute
+		// TODO: Handle GEO attribute
+
+		attr = vformat_attribute_new(NULL, "PRODID");
+		vformat_attribute_add_value(attr, "-//OpenSync//NONSGML OpenSync vformat 0.3//EN");
+		vformat_add_attribute(vcalendar, attr);
+	
+		// TODO: Handle TZ attribute
+	
+		attr = vformat_attribute_new(NULL, "VERSION");
+		vformat_attribute_add_value(attr, "1.0");
+		vformat_add_attribute(vcalendar, attr);
+
+	} else if (target == VFORMAT_EVENT_20 || target == VFORMAT_TODO_20) {
+
+		attr = vformat_attribute_new(NULL, "PRODID");
+		vformat_attribute_add_value(attr, "-//OpenSync//NONSGML OpenSync vformat 0.3//EN");
+		vformat_add_attribute(vcalendar, attr);
+
+		attr = vformat_attribute_new(NULL, "VERSION");
+		vformat_attribute_add_value(attr, "2.0");
+		vformat_add_attribute(vcalendar, attr);
+
+		// TODO: Handle CALSCALE attribute
+		// TODO: Handle METHOD attribute
+
+		// TODO: Handle VTIMEZONE component
+
+	}
+
+	// set begin attribute
+	attr = vformat_attribute_new(NULL, "BEGIN");
+	if (target == VFORMAT_EVENT_10 || target == VFORMAT_EVENT_20) {
+		vformat_attribute_add_value(attr, "VEVENT");
+	} else if (target == VFORMAT_TODO_10 || target == VFORMAT_TODO_20) {
+		vformat_attribute_add_value(attr, "VTODO");
+	}
+	vformat_add_attribute(vcalendar, attr);
+
+	// TODO: Handle VALARM component
 
 	OSyncXMLField *xmlfield = osync_xmlformat_get_first_field(xmlformat);
 	for(; xmlfield != NULL; xmlfield = osync_xmlfield_get_next(xmlfield)) {
 
-		// Skip Alarm* and Timezone* xmlfields, we handle them later
+		// Skip Alarm* and Timezone* xmlfields
 		if (strstr(osync_xmlfield_get_name(xmlfield), "Alarm")) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
-			alarmfields = g_list_append(alarmfields, xmlfield);
 			continue;
 		} else if (strstr(osync_xmlfield_get_name(xmlfield), "Timezone")) {
 			osync_trace(TRACE_INTERNAL, "Skipping %s", osync_xmlfield_get_name(xmlfield));
-			timezonefields = g_list_append(timezonefields, xmlfield);
 			continue;
 		}
 
 		xml_handle_attribute(hooks, vcalendar, xmlfield, std_encoding);
 	}
 
-	// TODO: Handle timezone and alarm xmlfields
+	osync_trace(TRACE_INTERNAL, "parsing xml attributes finished");
 	
 	// free hash tables
 	g_hash_table_destroy(hooks->attributes);
