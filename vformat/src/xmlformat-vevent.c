@@ -47,8 +47,9 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
         // [vcal-1.0] param (same order as in sepc!)
 	insert_param_handler(hooks->parameters, "TYPE", handle_vcal_type_parameter);
 	insert_param_handler(hooks->parameters, "VALUE", handle_vcal_value_parameter); 
-	insert_param_handler(hooks->parameters, "ENCODING", handle_vcal_encoding_parameter);
-	insert_param_handler(hooks->parameters, "CHARSET", handle_vcal_charset_parameter);
+	// We don't need to handle encoding/charset here
+	insert_param_handler(hooks->parameters, "ENCODING", HANDLE_IGNORE); // handle_vcal_encoding_parameter
+	insert_param_handler(hooks->parameters, "CHARSET", HANDLE_IGNORE); // handle_vcal_charset_parameter
 	insert_param_handler(hooks->parameters, "LANGUAGE", handle_vcal_language_parameter);
 	insert_param_handler(hooks->parameters, "ROLE", handle_vcal_role_parameter); // (ATTENDEE)
 	insert_param_handler(hooks->parameters, "STATUS", handle_vcal_status_parameter); // (ATTENDEE)
@@ -162,7 +163,7 @@ static OSyncHookTables *init_vcalendar_to_xmlformat(VFormatType target)
 	// [RFC 2445] calprop (same order as in spec!)
 	// calprops = 2*
 	// NOTE: required, but most not occur more than once
-	insert_attr_handler(hooks->attributes, "PRODID", HANDLE_IGNORE);
+	insert_attr_handler(hooks->attributes, "PRODID", handle_prodid_attribute);
 	insert_attr_handler(hooks->attributes, "VERSION", HANDLE_IGNORE);
 	// NOTE: optional, but MUST NOT occur than once
 	insert_attr_handler(hooks->attributes, "CALSCALE", HANDLE_IGNORE);
@@ -481,9 +482,9 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
         // [vcal-1.0] calprop (same order as in spec!)
 	// TODO -> DAYLIGHT
 	insert_xml_attr_handler(hooks->attributes, "Geo", handle_xml_geo_attribute);
-	// TODO -> PRODID
+	// PRODID -> vformat.c
 	// TODO -> TZ
-	// TODO -> VERSION
+	// VERSION -> vformat.c
 
 
         // [vcal-1.0] simprop (same order as in spec!)
@@ -501,7 +502,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Priority", handle_xml_priority_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
 	insert_xml_attr_handler(hooks->attributes, "RecurrenceRule", handle_xml_rrule_attribute);
-	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute); // TODO -> seq/sequence?
+	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
 	insert_xml_attr_handler(hooks->attributes, "DateStarted", handle_xml_dtstart_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
 	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
@@ -561,11 +562,11 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	
 
 	// [RFC 2445] calprop (same order as in spec!)
-	// PRODID -> TODO
-	// VERSION -> TODO
+	// PRODID -> vformat.c
+	// VERSION -> vformat.c
 	// CALSCALE -> TODO
 	// METHOD -> TODO
-	// x-prop -> TODO
+	// x-prop
 
 
 	// [RFC 2445] all ical props (ordered by name!)
@@ -598,7 +599,7 @@ static OSyncHookTables *init_xmlformat_to_vcalendar(VFormatType target)
 	insert_xml_attr_handler(hooks->attributes, "Related", handle_xml_related_attribute); // rename -> related to
 	insert_xml_attr_handler(hooks->attributes, "Resources", handle_xml_resources_attribute);
 	insert_xml_attr_handler(hooks->attributes, "RStatus", handle_xml_rstatus_attribute); // ical only
-	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute); // TODO -> seq/sequence?
+	insert_xml_attr_handler(hooks->attributes, "Sequence", handle_xml_sequence_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Status", handle_xml_status_attribute);
 	insert_xml_attr_handler(hooks->attributes, "Summary", handle_xml_summary_attribute);
 	insert_xml_attr_handler(hooks->attributes, "TimeTransparency", handle_xml_transp_attribute);
