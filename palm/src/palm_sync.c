@@ -660,7 +660,7 @@ unsigned long psyncUidGetID(const char *uid, OSyncError **error)
 	return id;
 }
 
-static void psyncConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void psyncConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	OSyncError *error = NULL;
 	
@@ -731,7 +731,7 @@ error:
 	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 }
 
-static void psyncSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void psyncSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	PSyncEnv *env = (PSyncEnv *)data;
@@ -753,7 +753,7 @@ static void psyncSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void psyncDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
+void psyncDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 	PSyncEnv *env = (PSyncEnv *)data;
@@ -789,19 +789,19 @@ static void *psyncInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 		goto error_free_env;
 	
 	/* Add the main sink */
-	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
-	if (!sink)
-		goto error_free_env;
+	//OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
+	//if (!sink)
+	//	goto error_free_env;
 	
 	/* All sinks have the same functions of course */
-	OSyncObjTypeSinkFunctions functions;
-	memset(&functions, 0, sizeof(functions));
-	functions.connect = psyncConnect;
-	functions.disconnect = psyncDisconnect;
-	functions.sync_done = psyncSyncDone;
+	//OSyncObjTypeSinkFunctions functions;
+	//memset(&functions, 0, sizeof(functions));
+	//functions.connect = psyncConnect;
+	//functions.disconnect = psyncDisconnect;
+	//functions.sync_done = psyncSyncDone;
 	
-	osync_objtype_sink_set_functions(sink, functions, NULL);
-	osync_plugin_info_add_objtype(info, sink);
+	//osync_objtype_sink_set_functions(sink, functions, NULL);
+	//osync_plugin_info_add_objtype(info, sink);
 
 	psyncThreadStart(env, info);
 	

@@ -2156,9 +2156,9 @@ osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 		return FALSE;
 	}
 	
-	OSyncObjFormat *xmlContact = osync_format_env_find_objformat(env, "xml-contact");
+	OSyncObjFormat *xmlContact = osync_format_env_find_objformat(env, "xmlformat-contact");
 	if (!xmlContact) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xml-contact format");
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find xmlformat-contact format");
 		return FALSE;
 	}
 	
@@ -2196,8 +2196,8 @@ void get_info(OSyncEnv *env)
 	osync_env_format_set_marshall_func(env, "palm-contact", marshall_palm_contact);
 	osync_env_format_set_demarshall_func(env, "palm-contact", demarshall_palm_contact);
 
-	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xml-contact", conv_palm_contact_to_xml);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact", "palm-contact", conv_xml_to_palm_contact);
+	osync_env_register_converter(env, CONVERTER_CONV, "palm-contact", "xmlformat-contact", conv_palm_contact_to_xml);
+	osync_env_register_converter(env, CONVERTER_CONV, "xmlformat-contact", "palm-contact", conv_xml_to_palm_contact);
 
 	osync_env_register_objtype(env, "todo");
 	osync_env_register_objformat(env, "todo", "palm-todo");

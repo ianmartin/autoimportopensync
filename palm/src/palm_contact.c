@@ -34,7 +34,7 @@ static OSyncChange *psyncContactCreate(PSyncEnv *env, PSyncEntry *entry, OSyncEr
 	OSyncChange *change = osync_change_new(error);
 	if (!change)
 		goto error;
-	
+
 	OSyncData *data = osync_data_new(NULL, 0, env->contact_format, error);
 	if (!data)
 		goto error_free_change;
@@ -305,6 +305,8 @@ static void psyncContactSyncDone(void *data, OSyncPluginInfo *info, OSyncContext
 	}
 
 	osync_context_report_success(ctx);
+	
+	psyncSyncDone(data, info, ctx);
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
@@ -312,16 +314,18 @@ static void psyncContactSyncDone(void *data, OSyncPluginInfo *info, OSyncContext
 osync_bool psyncContactInitialize(PSyncEnv *env, OSyncPluginInfo *info, OSyncError **error)
 {
 	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
-	env->contact_format = osync_format_env_find_objformat(formatenv, "palm-format");
+	env->contact_format = osync_format_env_find_objformat(formatenv, "palm-contact");
 	
 	env->contact_sink = osync_objtype_sink_new("contact", error);
 	if (!env->contact_sink)
 		return FALSE;
 	
-	osync_objtype_sink_add_objformat(env->contact_sink, "palm-format");
+	osync_objtype_sink_add_objformat(env->contact_sink, "palm-contact");
 	
 	OSyncObjTypeSinkFunctions functions;
 	memset(&functions, 0, sizeof(functions));
+	functions.connect= psyncConnect;
+	functions.disconnect= psyncDisconnect;
 	functions.get_changes = psyncContactGetChanges;
 	functions.commit = psyncContactCommit;
 	functions.sync_done = psyncContactSyncDone;

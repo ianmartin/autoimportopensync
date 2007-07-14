@@ -123,4 +123,8 @@ osync_bool psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned long *id, O
 osync_bool psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error);
 PSyncEntry *psyncDBGetEntryByID(PSyncDatabase *db, unsigned long id, OSyncError **error);
 		
+void psyncConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void psyncDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+void psyncSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx);
+
 #endif //_PALM_SYNC_H
