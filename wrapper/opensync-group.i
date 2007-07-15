@@ -29,7 +29,9 @@ typedef struct {} GroupEnv;
 
 	void add_group(Group *group) {
 		Error *err = NULL;
-		osync_group_env_add_group(self, group, &err);
+		bool ret = osync_group_env_add_group(self, group, &err);
+		if (!raise_exception_on_error(err) && !ret)
+			wrapper_exception("osync_group_env_add_group failed but did not set error code");
 	}
 
 	void remove_group(Group *group) {
