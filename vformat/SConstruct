@@ -19,7 +19,7 @@ config = {
 # Get our configuration options:
 env = Environment(
 		ENV = os.environ,
-		tools=['default', 'osync_support', 'pkgconfig', 'opensync', 'glib', 'libxml', 'libsqlite', 'check'],
+		tools=['default', 'osync_support', 'pkgconfig', 'opensync', 'glib', 'libxml', 'check'],
 		toolpath=['./', './build'])
 
 A=env.get_opts().add
