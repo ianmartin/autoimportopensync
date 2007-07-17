@@ -1389,7 +1389,7 @@ static char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
 	char *tmp = NULL;
 	
 	osync_trace(TRACE_SENSITIVE, "Entry: %s (%p)", entry->address.entry[i], entry->address.entry[i]);
-	if (strlen(entry->address.entry[i]) > 0)
+	if (entry->address.entry[i] && strlen(entry->address.entry[i]) > 0)
 		tmp = conv_enc_palm_to_xml(entry->address.entry[i]);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
