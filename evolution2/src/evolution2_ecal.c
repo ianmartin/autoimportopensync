@@ -340,5 +340,6 @@ osync_bool evo2_ecal_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncEr
          * again once the functions are called */
         osync_objtype_sink_set_functions(env->calendar_sink, functions, NULL);
         osync_plugin_info_add_objtype(info, env->calendar_sink);
+	return TRUE;
 }
 

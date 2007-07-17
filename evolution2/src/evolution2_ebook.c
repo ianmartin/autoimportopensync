@@ -332,4 +332,5 @@ osync_bool evo2_ebook_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
 	 * again once the functions are called */
 	osync_objtype_sink_set_functions(env->contact_sink, functions, NULL);
 	osync_plugin_info_add_objtype(info, env->contact_sink);
+	return TRUE;
 }

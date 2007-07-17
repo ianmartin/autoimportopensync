@@ -340,5 +340,6 @@ osync_bool evo2_etodo_initialize(OSyncEvoEnv *env, OSyncPluginInfo *info, OSyncE
          * again once the functions are called */
         osync_objtype_sink_set_functions(env->tasks_sink, functions, NULL);
         osync_plugin_info_add_objtype(info, env->tasks_sink);
+	return TRUE;
 }
 
