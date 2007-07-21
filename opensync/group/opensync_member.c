@@ -36,6 +36,61 @@
  */
 /*@{*/
 
+/** @brief Set Merger of Member 
+ * 
+ * @param member The Member pointer 
+ * 
+ */
+void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
+{
+	osync_assert(member);
+	
+	if (member->merger)
+		osync_merger_unref(member->merger);
+	member->merger = merger;
+	if(merger)
+		osync_merger_ref(member->merger);
+}
+
+/** @brief Parse for the "objtype" node in  the member configuration
+ * 
+ * @param cur Pointer to the xmlNode 
+ * @param error Pointer to a error
+ * @returns Object type sink of the parsed configuration. NULL on error.
+ * 
+ */
+static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
+	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
+	if (!sink) {
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		return NULL;
+	}
+	
+	while (cur != NULL) {
+		char *str = (char*)xmlNodeGetContent(cur);
+		if (str) {
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
+				osync_objtype_sink_set_name(sink, str);
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
+				osync_objtype_sink_set_enabled(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
+				osync_objtype_sink_set_read(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
+				osync_objtype_sink_set_write(sink, atoi(str));
+			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
+				osync_objtype_sink_add_objformat(sink, str);
+			}
+			xmlFree(str);
+		}
+		cur = cur->next;
+	}
+	
+	osync_trace(TRACE_EXIT, "%s: %p", __func__, sink);
+	return sink;
+}
+
 /*@}*/
 
 /**
@@ -71,6 +126,11 @@ error:
 	return NULL;
 }
 
+/** @brief Increase the reference count of the member
+ * 
+ * @param member The member
+ * 
+ */
 void osync_member_ref(OSyncMember *member)
 {
 	osync_assert(member);
@@ -78,6 +138,11 @@ void osync_member_ref(OSyncMember *member)
 	g_atomic_int_inc(&(member->ref_count));
 }
 
+/** @brief Decrease the reference count of the member
+ * 
+ * @param member The member
+ * 
+ */
 void osync_member_unref(OSyncMember *member)
 {
 	osync_assert(member);
@@ -171,10 +236,8 @@ void osync_member_set_configdir(OSyncMember *member, const char *configdir)
  * directories
  * 
  * @param member The member
- * @param data Return location for the data
- * @param size Return location for the size of the data
  * @param error Pointer to a error
- * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * @returns The member configuration of the plugin default configuration if the member isn't configuered already 
  * 
  */
 const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError **error)
@@ -247,10 +310,8 @@ osync_bool osync_member_has_config(OSyncMember *member)
  * configuration)
  * 
  * @param member The member
- * @param data Return location for the data
- * @param size Return location for the size of the data
  * @param error Pointer to a error
- * @returns TRUE if the config was loaded successfully, FALSE otherwise
+ * @returns Member configuration 
  * 
  */
 const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
@@ -296,7 +357,6 @@ const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
  * 
  * @param member The member
  * @param data The new config data
- * @param size The size of the data
  * 
  */
 void osync_member_set_config(OSyncMember *member, const char *data)
@@ -312,44 +372,12 @@ void osync_member_set_config(OSyncMember *member, const char *data)
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **error)
-{
-	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
-	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
-	if (!sink) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-		return NULL;
-	}
-	
-	while (cur != NULL) {
-		char *str = (char*)xmlNodeGetContent(cur);
-		if (str) {
-			if (!xmlStrcmp(cur->name, (const xmlChar *)"name")) {
-				osync_objtype_sink_set_name(sink, str);
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"enabled")) {
-				osync_objtype_sink_set_enabled(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"read")) {
-				osync_objtype_sink_set_read(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"write")) {
-				osync_objtype_sink_set_write(sink, atoi(str));
-			} else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
-				osync_objtype_sink_add_objformat(sink, str);
-			}
-			xmlFree(str);
-		}
-		cur = cur->next;
-	}
-	
-	osync_trace(TRACE_EXIT, "%s: %p", __func__, sink);
-	return sink;
-}
-
 /** @brief Loads a member from a directory where it has been saved
  * 
- * @param group The group which is the parent
+ * @param member The Member pointer of the member which gets loaded
  * @param path The path of the member
  * @param error Pointer to a error
- * @returns A newly allocated member thats stored in the group or NULL if error
+ * @returns TRUE on success, FALSE if error
  * 
  */
 osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError **error)
@@ -492,6 +520,13 @@ error:
 	return FALSE;
 }
 
+/** @brief Delete a member
+ * 
+ * @param member The member to delete 
+ * @param error Pointer to a error
+ * @returns TRUE if the member was deleted successfully, FALSE otherwise
+ * 
+ */
 osync_bool osync_member_delete(OSyncMember *member, OSyncError **error)
 {
 	char *delcmd = NULL;
@@ -523,6 +558,14 @@ long long int osync_member_get_id(OSyncMember *member)
 	return member->id;
 }
 
+/** @brief Find the object type sink (OSyncObjTypeSink) for the given object type of
+ *         a certain member.
+ * 
+ * @param member The member pointer
+ * @param objtype The searched object type 
+ * @returns OSyncObjTypeSink pointer if object type sink is avaliable, otherwise NULL 
+ * 
+ */
 OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char *objtype)
 {
 	GList *o;
@@ -534,6 +577,13 @@ OSyncObjTypeSink *osync_member_find_objtype_sink(OSyncMember *member, const char
 	return NULL;
 }
 
+/** @brief Add a specifc Object Format to member 
+ * 
+ * @param member The member pointer
+ * @param objtype The searched object type 
+ * @param objformat The name of the Object Format 
+ * 
+ */
 void osync_member_add_objformat(OSyncMember *member, const char *objtype, const char *format)
 {
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
@@ -543,6 +593,14 @@ void osync_member_add_objformat(OSyncMember *member, const char *objtype, const 
 	osync_objtype_sink_add_objformat(sink, format);
 }
 
+/** @brief List of all available object formats for a specifc object type of this member 
+ * 
+ * @param member The member pointer
+ * @param objtype The searched object type 
+ * @param error Pointer to a error
+ * @return List of all object formats of a specific object type of the member
+ * 
+ */
 const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *objtype, OSyncError **error)
 {
 	OSyncObjTypeSink *sink = osync_member_find_objtype_sink(member, objtype);
@@ -557,6 +615,12 @@ const OSyncList *osync_member_get_objformats(OSyncMember *member, const char *ob
 	return osync_objtype_sink_get_objformats(sink);
 }
 
+/** @brief Add an object type to the member list of supported object types of this member
+ * 
+ * @param member The member pointer
+ * @param objtype The searched object type 
+ * 
+ */
 void osync_member_add_objtype(OSyncMember *member, const char *objtype)
 {
 	OSyncObjTypeSink *sink = NULL;
@@ -569,12 +633,25 @@ void osync_member_add_objtype(OSyncMember *member, const char *objtype)
 	}
 }
 
+/** @brief The number of supported object types of this member
+ * 
+ * @param member The member pointer
+ * @returns Number of supported object type of this member
+ * 
+ */
 int osync_member_num_objtypes(OSyncMember *member)
 {
 	osync_assert(member);
 	return g_list_length(member->objtypes);
 }
 
+/** @brief The name of the nth supported object type of this member
+ * 
+ * @param member The member pointer
+ * @param nth The nth position of the list of supported object types of this member
+ * @returns Name of the nth supported object type
+ * 
+ */
 const char *osync_member_nth_objtype(OSyncMember *member, int nth)
 {
 	OSyncObjTypeSink *sink = NULL;
@@ -628,24 +705,47 @@ void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, 
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+
+/** @brief Set the start type for this member
+ * 
+ * @param member The member
+ * @param type The plugin start type
+ */
 void osync_member_set_start_type(OSyncMember *member, OSyncStartType type)
 {
 	osync_assert(member);
 	member->starttype = type;
 }
 
+/** @brief Get the start type for this member
+ * 
+ * @param member The member
+ * @returns Return the start type of this member
+ */
 OSyncStartType osync_member_get_start_type(OSyncMember *member)
 {
 	osync_assert(member);
 	return member->starttype;
 }
 
+/** @brief Get the capabilities of the member 
+ * 
+ * @param member The member
+ * @returns The capabilities of this member, NULL if no capabilities are set
+ */
 OSyncCapabilities *osync_member_get_capabilities(OSyncMember *member)
 {
 	osync_assert(member);
 	return member->capabilities;
 }
 
+/** @brief Set the capabilities of the member 
+ * 
+ * @param member The member
+ * @param capabilities The capabilities
+ * @param error Pointer to a error
+ * @returns TRUE if the capabilities got set successfully, otherwise FALSE 
+ */
 osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities *capabilities, OSyncError **error)
 {
 	osync_assert(member);
@@ -664,29 +764,23 @@ osync_bool osync_member_set_capabilities(OSyncMember *member, OSyncCapabilities 
 	return TRUE;
 }
 
+/** @brief Get pointer of the Merger 
+ * 
+ * @param member The member
+ * @returns The pointer of the Merger, NULL if merger is disabled
+ */
 OSyncMerger *osync_member_get_merger(OSyncMember *member)
 {
 	osync_assert(member);
 	return member->merger;
 }
 
-void _osync_member_set_merger(OSyncMember *member, OSyncMerger *merger)
-{
-	osync_assert(member);
-	
-	if (member->merger)
-		osync_merger_unref(member->merger);
-	member->merger = merger;
-	if(merger)
-		osync_merger_ref(member->merger);
-}
-
-
 /** @brief Remove all object types from member. 
  * 
  * @param member The member
  *
  * Note: this function should be called to flush the member before discovering.
+ *       To detect if something isn't supported anymore.
  *
  */
 void osync_member_flush_objtypes(OSyncMember *member)
