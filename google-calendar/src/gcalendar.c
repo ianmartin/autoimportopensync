@@ -20,7 +20,12 @@
  */
 
 #include <opensync/opensync.h>
-#include <opensync/opensync_xml.h>
+#include <opensync/opensync-plugin.h>
+#include <opensync/opensync-helper.h>
+#include <opensync/opensync-merger.h>
+#include <opensync/opensync-format.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-version.h>
 
 #include <glib.h>
 
@@ -38,9 +43,27 @@ struct gc_plgdata
 	char *url;
 	char *username;
 	char *password;
-	OSyncMember *member;
 	OSyncHashTable *hashtable;
+	OSyncObjTypeSink *sink;
+	OSyncObjFormat *objformat;
 };
+
+static void free_plg(struct gc_plgdata *plgdata)
+{
+	if (plgdata->url)
+		xmlFree(plgdata->url);
+	if (plgdata->username)
+		xmlFree(plgdata->username);
+	if (plgdata->password)
+		xmlFree(plgdata->password);
+	if (plgdata->hashtable)
+		osync_hashtable_free(plgdata->hashtable);
+	if (plgdata->sink)
+		osync_objtype_sink_unref(plgdata->sink);
+	if (plgdata->objformat)
+		osync_objformat_unref(plgdata->objformat);
+	g_free(plgdata);
+}
 
 /** Run gchelper and return the file descriptors for its stdin/stdout
  *
@@ -161,13 +184,13 @@ char *gc_get_cfgvalue(xmlNode *cfg, const char *name)
 	return NULL;
 }
 
-osync_bool gc_parse_config(struct gc_plgdata *plgdata, char *cfg, int cfgsize, OSyncError **error)
+osync_bool gc_parse_config(struct gc_plgdata *plgdata, const char *cfg, OSyncError **error)
 {
 	xmlNode *node;
 	xmlDoc *doc;
 	osync_bool ret = FALSE;
 
-	doc = xmlParseMemory(cfg, cfgsize);
+	doc = xmlParseMemory(cfg, strlen(cfg) + 1);
 	if (!doc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Couldn't parse configuration");
 		goto out;
@@ -208,55 +231,35 @@ error_freedata:
 	goto out_freedoc;
 }
 
-static void *gc_initialize(OSyncMember *member, OSyncError **error)
+static void gc_connect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	struct gc_plgdata *plgdata = NULL;
-	char *cfg;
-	int cfgsize;
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
 
-	if (!osync_member_get_config(member, &cfg, &cfgsize, error)) {
-		osync_error_update(error, "Unable to get config data: %s", osync_error_print(error));
-		goto out;
-	}
-
-	plgdata = osync_try_malloc0(sizeof(struct gc_plgdata), error);
-	if (!plgdata)
-		goto out_freecfg;
-
-	if (!gc_parse_config(plgdata, cfg, cfgsize, error))
-		goto error_freedata;
-
-	plgdata->member = member;
-	plgdata->hashtable = osync_hashtable_new();
-
-out_freecfg:
-	g_free(cfg);
-out:
-	return plgdata;
-
-
-error_freedata:
-	g_free(plgdata);
-	plgdata = NULL;
-	goto out_freecfg;
-}
-
-static void gc_connect(OSyncContext *ctx)
-{
-	struct gc_plgdata *plgdata = (struct gc_plgdata*)osync_context_get_plugin_data(ctx);
-
+	struct gc_plgdata *plgdata = data;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncError *error = NULL;
-	if (!osync_hashtable_load(plgdata->hashtable, plgdata->member, &error)) {
+
+	char *tablepath = g_strdup_printf("%s/hashtable.db", osync_plugin_info_get_configdir(info));
+
+	plgdata->hashtable = osync_hashtable_new(tablepath, osync_objtype_sink_get_name(sink), &error);
+	g_free(tablepath);
+
+	if (!plgdata->hashtable) {
 		osync_context_report_osyncerror(ctx, &error);
 		return;
 	}
 
 	osync_context_report_success(ctx);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-static void gc_get_changeinfo(OSyncContext *ctx)
+static void gc_get_changes(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	struct gc_plgdata *plgdata = (struct gc_plgdata*)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+
+	struct gc_plgdata *plgdata = data;
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
 	OSyncError *error = NULL;
 
 	int output;
@@ -265,8 +268,8 @@ static void gc_get_changeinfo(OSyncContext *ctx)
 	char sizeline[1024];
 	int status;
 
-	if (osync_member_get_slow_sync(plgdata->member, "event")) {
-		osync_hashtable_set_slow_sync(plgdata->hashtable, "event");
+	if (osync_objtype_sink_get_slowsync(sink)) {
+		osync_hashtable_reset(plgdata->hashtable);
 	}
 
 	if (!run_helper(plgdata, "get_all", NULL,
@@ -277,7 +280,7 @@ static void gc_get_changeinfo(OSyncContext *ctx)
 
 	out = fdopen(output, "r");
 	if (!out) {
-		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC,"Couldn't open helper output");
+		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't open helper output");
 		close(output);
 		goto error_fdopen;
 	}
@@ -311,59 +314,75 @@ static void gc_get_changeinfo(OSyncContext *ctx)
 
 		if (fread(xmldata, size, 1, out) < 1) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error reading xml data from helper");
-			goto error_readxml;
-	
+			goto error_xml;
 		}
 
 		if (fread(uid, uidsize, 1, out) < 1) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error reading xml data from helper");
-			goto error_readxml;
+			goto error_xml;
 		}
 		uid[uidsize] = '\0';
 
 		if (fread(hash, hashsize, 1, out) < 1) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Error reading xml data from helper");
-			goto error_readxml;
+			goto error_xml;
 		}
 		hash[hashsize] = '\0';
 
-		xmlDoc *doc = xmlParseMemory(xmldata, size);
+		OSyncXMLFormat *doc = osync_xmlformat_parse(xmldata, size, &error);
 		if (!doc) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Invalid XML data from helper");
-			goto error_invalidxml;
+			osync_error_unref(&error);
+			goto error_xml;
+		}
+		/* osync_merge_merge() seems to like its input sorted... */
+		osync_xmlformat_sort(doc);
+
+		OSyncData *odata = osync_data_new((char *)doc, osync_xmlformat_size(), plgdata->objformat, &error);
+		if (!odata) {
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No memory");
+			osync_error_unref(&error);
+			/* osync_data_new() does not increase the reference count of
+			   its 'data' member, but osync_data_unref() will decrease it,
+			   so this is the only case where 'doc' has to be unreferenced
+			   manually */
+			osync_xmlformat_unref(doc);
+			goto error_xml;
 		}
 
-		OSyncChange *chg = osync_change_new();
+		OSyncChange *chg = osync_change_new(&error);
 		if (!chg) {
 			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "No memory");
+			osync_error_unref(&error);
 			goto error_chg;
 		}
 
 		osync_change_set_uid(chg, uid);
-		osync_change_set_member(chg, plgdata->member);
-		osync_change_set_objtype_string(chg, "event");
-		osync_change_set_objformat_string(chg, "xml-event");
-		osync_change_set_data(chg, (char*)doc, sizeof(doc), 1);
-
+		osync_change_set_data(chg, odata);
+		osync_data_unref(odata);
+		osync_change_set_objtype(chg, osync_objtype_sink_get_name(sink));
 		osync_change_set_hash(chg, hash);
-		if (osync_hashtable_detect_change(plgdata->hashtable, chg)) {
+
+		osync_change_set_changetype(chg, osync_hashtable_get_changetype(plgdata->hashtable, uid, hash));
+		osync_hashtable_report(plgdata->hashtable, uid);
+
+		if (osync_change_get_changetype(chg) != OSYNC_CHANGE_TYPE_UNMODIFIED) {
 			osync_context_report_change(ctx, chg);
-			osync_hashtable_update_hash(plgdata->hashtable, chg);
+			osync_hashtable_update_hash(plgdata->hashtable, osync_change_get_changetype(chg), uid, hash);
 		}
 
-		xmlFreeDoc(doc);
+		osync_change_unref(chg);
 		free(hash);
 		free(uid);
 		free(xmldata);
 
-	/* end of loop */
-	continue;
+		/* end of loop */
+		continue;
 
-	/* error handling in the loop */
+		/* error handling in the loop */
 	error_chg:
-		xmlFreeDoc(doc);
-	error_invalidxml:
-	error_readxml:
+		osync_data_unref(odata);
+	error_xml:
 		free(hash);
 	error_hash:
 		free(uid);
@@ -372,7 +391,31 @@ static void gc_get_changeinfo(OSyncContext *ctx)
 		goto error_xmldata;
 	}
 
-	osync_hashtable_report_deleted(plgdata->hashtable, ctx, "event");
+	char **uids = osync_hashtable_get_deleted(plgdata->hashtable);
+	int i;
+	for (i = 0; uids[i]; i++) {
+		OSyncChange *change = osync_change_new(&error);
+		if (!change) {
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "ERROR is: %s", osync_error_print(&error));
+			goto error_fdopen;
+		}
+		OSyncData *data = osync_data_new(NULL, 0, plgdata->objformat, &error);
+		if (!data) {
+			osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "ERROR is: %s", osync_error_print(&error));
+			goto error_fdopen;
+		}
+		osync_data_set_objtype(data, "event");
+
+		osync_change_set_data(change, data);
+		osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
+		osync_change_set_uid(change, uids[i]);
+		osync_context_report_change(ctx, change);
+		osync_hashtable_update_hash(plgdata->hashtable, OSYNC_CHANGE_TYPE_DELETED, uids[i], NULL);
+		osync_change_unref(change);
+		osync_data_unref(data);
+		g_free(uids[i]);
+	}
+	g_free(uids);
 
 	fclose(out);
 	waitpid(pid, &status, 0);
@@ -384,6 +427,7 @@ static void gc_get_changeinfo(OSyncContext *ctx)
 
 	osync_context_report_success(ctx);
 
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 
 error_xmldata:
@@ -393,12 +437,17 @@ error_fdopen:
 	kill(pid, SIGTERM);
 	waitpid(pid, NULL, 0);
 error:
+	osync_trace(TRACE_EXIT, "%s", __func__);
 	return;
 }
 
-static osync_bool gc_commit_change(OSyncContext *ctx, OSyncChange *change)
+static void gc_commit_change(void *data, OSyncPluginInfo *info,
+			     OSyncContext *ctx, OSyncChange *change)
 {
-	struct gc_plgdata *plgdata = (struct gc_plgdata*)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx, change);
+
+	OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+	struct gc_plgdata *plgdata = data;
 
 	pid_t pid;
 	int input, output;
@@ -408,21 +457,22 @@ static osync_bool gc_commit_change(OSyncContext *ctx, OSyncChange *change)
 	FILE *out;
 	int status;
 	char sizeline[1024];
+	char *hash;
 
-	osync_hashtable_get_hash(plgdata->hashtable, change);
+	hash = osync_hashtable_get_hash(plgdata->hashtable, osync_change_get_uid(change));
 
 	switch (osync_change_get_changetype(change)) {
-		case CHANGE_ADDED:
+		case OSYNC_CHANGE_TYPE_ADDED:
 			cmd = "add";
 			arg = NULL;
 		break;
-		case CHANGE_MODIFIED:
+		case OSYNC_CHANGE_TYPE_MODIFIED:
 			cmd = "edit";
-			arg = osync_change_get_hash(change);
+			arg = hash;
 		break;
-		case CHANGE_DELETED:
+		case OSYNC_CHANGE_TYPE_DELETED:
 			cmd = "delete";
-			arg = osync_change_get_hash(change);
+			arg = hash;
 		break;
 		default:
 			osync_context_report_error(ctx, OSYNC_ERROR_NOT_SUPPORTED, "Unknown change type");
@@ -436,6 +486,8 @@ static osync_bool gc_commit_change(OSyncContext *ctx, OSyncChange *change)
 		goto error;
 	}
 
+	g_free(hash);
+
 	out = fdopen(output, "r");
 	if (!out) {
 		osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't open helper output");
@@ -444,23 +496,27 @@ static osync_bool gc_commit_change(OSyncContext *ctx, OSyncChange *change)
 	}
 
 	switch (osync_change_get_changetype(change)) {
-		case CHANGE_ADDED:
-		case CHANGE_MODIFIED:
+		case OSYNC_CHANGE_TYPE_ADDED:
+		case OSYNC_CHANGE_TYPE_MODIFIED:
 		{
-			xmlDoc *doc = (xmlDoc*)osync_change_get_data(change);
-			xmlChar *data;
+			OSyncXMLFormat *doc = (OSyncXMLFormat *)osync_data_get_data_ptr(osync_change_get_data(change));
 			int size;
-			int xmlsize, uidsize, hashsize;
-			char *xmldata, *uid, *hash;
+			char *buffer;
 
-			xmlDocDumpMemory(doc, &data, &size);
-			if (write(input, data, size) < size) {
+			osync_xmlformat_assemble(doc, &buffer, &size);
+			osync_trace(TRACE_INTERNAL, "input to helper:\n%s", buffer);
+			if (write(input, buffer, size) < size) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't write data to helper");
 				close(input);
+				g_free(buffer);
 				goto error_write;
 			}
 
 			close(input);
+			g_free(buffer);
+
+			int xmlsize, uidsize, hashsize;
+			char *xmldata, *uid, *hash;
 
 			if (!fgets(sizeline, sizeof(sizeline), out)) {
 				osync_context_report_error(ctx, OSYNC_ERROR_GENERIC, "Couldn't read from helper");
@@ -530,14 +586,17 @@ static osync_bool gc_commit_change(OSyncContext *ctx, OSyncChange *change)
 		break;
 		}
 		break;
-		case CHANGE_DELETED:
+		case OSYNC_CHANGE_TYPE_DELETED:
 			close(input);
 		break;
 		default:
 			g_assert_not_reached();
 	}
 
-	osync_hashtable_update_hash(plgdata->hashtable, change);
+	osync_hashtable_update_hash(plgdata->hashtable,
+				    osync_change_get_changetype(change),
+				    osync_change_get_uid(change),
+				    osync_change_get_hash(change));
 
 	fclose(out);
 
@@ -550,7 +609,8 @@ static osync_bool gc_commit_change(OSyncContext *ctx, OSyncChange *change)
 
 	osync_context_report_success(ctx);
 
-	return TRUE;
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return;
 
 error_read:
 error_write:
@@ -559,44 +619,132 @@ error_fdopen:
 	kill(pid, SIGTERM);
 	waitpid(pid, NULL, 0);
 error:
-	return FALSE;
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	return;
 }
 
-static void gc_disconnect(OSyncContext *ctx)
+static void gc_disconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-	struct gc_plgdata *plgdata = (struct gc_plgdata*)osync_context_get_plugin_data(ctx);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);
+	struct gc_plgdata *plgdata = data;
 
-	osync_hashtable_close(plgdata->hashtable);
+	osync_hashtable_free(plgdata->hashtable);
+	plgdata->hashtable = NULL;
 
 	osync_context_report_success(ctx);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 static void gc_finalize(void *data)
 {
-	struct gc_plgdata *plgdata = (struct gc_plgdata*)data;
+	osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
+	struct gc_plgdata *plgdata = data;
 
-	osync_hashtable_free(plgdata->hashtable);
-	g_free(data);
+	free_plg(plgdata);
+	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-void get_info(OSyncEnv *env)
+static void *gc_initialize(OSyncPlugin *plugin,
+			   OSyncPluginInfo *info,
+			   OSyncError **error)
 {
-	OSyncPluginInfo *info = osync_plugin_new_info(env);
-	info->version = 1;
-	info->name = "google-calendar";
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);
+	struct gc_plgdata *plgdata;
+	const char *cfg;
 
-	info->longname = "Google Calendar";
-	info->description = "Google Calendar plugin";
-	info->config_type = NEEDS_CONFIGURATION;
+	plgdata = osync_try_malloc0(sizeof(struct gc_plgdata), error);
+	if (!plgdata)
+		goto out;
 
-	info->functions.initialize = gc_initialize;
-	info->functions.connect = gc_connect;
-	info->functions.disconnect = gc_disconnect;
-	info->functions.finalize = gc_finalize;
-	info->functions.get_changeinfo = gc_get_changeinfo;
+	cfg = osync_plugin_info_get_config(info);
+	if (!cfg) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC,
+				"Unable to get config data.");
+		goto error_freeplg;
+	}
 
-	osync_plugin_accept_objtype(info, "event");
-	osync_plugin_accept_objformat(info, "event", "xml-event", NULL);
-	osync_plugin_set_commit_objformat(info, "event", "xml-event", gc_commit_change);
-	osync_plugin_set_access_objformat(info, "event", "xml-event", gc_commit_change);
+	if (!gc_parse_config(plgdata, cfg, error))
+		goto error_freeplg;
+
+	OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+	plgdata->objformat = osync_format_env_find_objformat(formatenv, "xmlformat-event");
+	if (!plgdata->objformat)
+		goto error_freeplg;
+	osync_objformat_ref(plgdata->objformat);
+
+	plgdata->sink = osync_objtype_sink_new("event", error);
+	if (!plgdata->sink)
+		goto error_freeplg;
+
+	osync_objtype_sink_add_objformat(plgdata->sink, "xmlformat-event");
+
+	OSyncObjTypeSinkFunctions functions;
+	memset(&functions, 0, sizeof(functions));
+	functions.connect = gc_connect;
+	functions.disconnect = gc_disconnect;
+	functions.get_changes = gc_get_changes;
+	functions.commit = gc_commit_change;
+
+	osync_objtype_sink_set_functions(plgdata->sink, functions, plgdata);
+	osync_plugin_info_add_objtype(info, plgdata->sink);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+
+	return plgdata;
+
+error_freeplg:
+	free_plg(plgdata);
+out:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	return NULL;
+}
+
+static osync_bool gc_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+
+	struct gc_plgdata *plgdata = data;
+
+	osync_objtype_sink_set_available(plgdata->sink, TRUE);
+
+	OSyncVersion *version = osync_version_new(error);
+	osync_version_set_plugin(version, "google-calendar");
+	osync_plugin_info_set_version(info, version);
+	osync_version_unref(version);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
+osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env, error);
+	OSyncPlugin *plugin = osync_plugin_new(error);
+	if (!plugin)
+		goto error;
+
+	osync_plugin_set_name(plugin, "google-calendar");
+	osync_plugin_set_longname(plugin, "Google Calendar");
+	osync_plugin_set_description(plugin, "Google Calendar plugin");
+	osync_plugin_set_config_type(plugin, OSYNC_PLUGIN_NEEDS_CONFIGURATION);
+
+	osync_plugin_set_initialize(plugin, gc_initialize);
+	osync_plugin_set_finalize(plugin, gc_finalize);
+	osync_plugin_set_discover(plugin, gc_discover);
+
+	osync_plugin_env_register_plugin(env, plugin);
+	osync_plugin_unref(plugin);
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_error_unref(error);
+	return FALSE;
+}
+
+int get_version(void)
+{
+	return 1;
 }

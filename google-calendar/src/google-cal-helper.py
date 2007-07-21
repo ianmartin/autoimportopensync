@@ -213,38 +213,39 @@ class GCalEntry:
 	def parseOsync(self, element):
 		self.element = element
 
-		self.title = self.elementValue('Event/Summary/Content/text()')
-		self.content = self.elementValue('Event/Description/Content/text()')
+		self.title = self.elementValue('Summary/Content/text()')
+		self.content = self.elementValue('Description/Content/text()')
 
-		dtstart = self.elementValue('Event/DateStarted/Content/text()')
+		dtstart = self.elementValue('DateStarted/Content/text()')
 		self.dtstart = osyncToXsdate(dtstart)
 
-		dtend = self.elementValue('Event/DateEnd/Content/text()')
+		dtend = self.elementValue('DateEnd/Content/text()')
 		if not dtend:
 			dtend = dtstart
 		self.dtend = osyncToXsdate(dtend)
 
-		self.whereString = self.elementValue('Event/Location/Content/text()')
+		self.whereString = self.elementValue('Location/Content/text()')
 
 		#TODO: UID, editUri, dtstart, dtend, recurrency, eventStatus
 
 
 	def dumpOsync(self):
 		di = md.getDOMImplementation()
-		doc = di.createDocument(None, 'vcal', None)
-		vcal = doc.documentElement
-		event = self.addElement(doc, vcal, 'Event')
+		doc = di.createDocument(None, 'Event', None)
+		event = doc.documentElement
 
-		self.addElementContent(doc, event, 'Summary', self.title)
-		self.addElementContent(doc, event, 'Description', self.content)
+		if self.title:
+			self.addElementContent(doc, event, 'Summary', self.title)
+		if self.content:
+			self.addElementContent(doc, event, 'Description', self.content)
 
 		self.addElementContent(doc, event, 'DateStarted', xsdateToOsync(self.dtstart))
 		self.addElementContent(doc, event, 'DateEnd', xsdateToOsync(self.dtend))
 		if self.dtrecur:
 			self.addElementContent(doc, event, 'RecurrenceRule',
 			                       self.dtrecur)
-
-		self.addElementContent(doc, event, 'Location', self.whereString)
+		if self.whereString:
+			self.addElementContent(doc, event, 'Location', self.whereString)
 
 		#TODO: UID, editUri, dtstart, dtend, eventStatus
 		return doc.toxml(encoding='utf-8')
