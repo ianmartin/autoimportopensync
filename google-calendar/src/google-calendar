@@ -1,0 +1,5 @@
+<config>
+	<url>http://www.google.com/calendar/feeds/USER@gmail.com/private/full</url>
+	<username>USER@gmail.com</username>
+	<password>PASSWORD</password>
+</config>
