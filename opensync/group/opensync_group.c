@@ -66,62 +66,6 @@ static int flock(int fd, int operation)
 #endif //NOT_HAVE_FLOCK
 #endif //not defined _WIN32
 
-static void _build_list(gpointer key, gpointer value, gpointer user_data)
-{
-	if (GPOINTER_TO_INT(value) >= 2) {
-		GList **l = user_data;
-		*l = g_list_append(*l, key);
-	}
-}
-
-static void _add_one(gpointer key, gpointer value, gpointer user_data)
-{
-	GHashTable *table = user_data;
-	
-	int num = GPOINTER_TO_INT(value);
-	g_hash_table_replace(table, key, GINT_TO_POINTER(num + 1));
-}
-
-static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
-{
-	GList *m = NULL;
-	GList *ret = NULL;
-	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
-    
-	int num_data = 0;
-	int i;
-    
-	/* Loop over all members... */
-	for (m = group->members; m; m = m->next) {
-		OSyncMember *member = m->data;
-		int num_member = osync_member_num_objtypes(member);
-		/* ... and get the objtype from each of the members. */
-		for (i = 0; i < num_member; i++) {
-			const char *objtype = osync_member_nth_objtype(member, i);
-			if (objtype != NULL) {
-				/* For each objtype, add 1 to the hashtable. If the objtype is
-			 	* the special objtype "data", add 1 to all objtypes */
-				if(!strcmp(objtype, "data"))
-					num_data++;
-				int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
-				g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
-			}
-		}
-	}
-	
-	for (i = 0; i < num_data; i++)
-		g_hash_table_foreach(table, _add_one, table);
-	
-	if (g_hash_table_size(table) == 0 && num_data >= 2) {
-		osync_trace(TRACE_INTERNAL, "No objtype found yet, but data available");
-		g_hash_table_replace(table, "data", GINT_TO_POINTER(num_data));
-	}
-	
-	g_hash_table_foreach(table, _build_list, &ret);
-	g_hash_table_destroy(table);
-	return ret;
-}
-
 /**
  * @defgroup OSyncGroupPrivateAPI OpenSync Group Internals
  * @ingroup OSyncPrivate
@@ -219,6 +163,68 @@ error:
 	return FALSE;
 }
 
+static void _build_list(gpointer key, gpointer value, gpointer user_data)
+{
+	if (GPOINTER_TO_INT(value) >= 2) {
+		GList **l = user_data;
+		*l = g_list_append(*l, key);
+	}
+}
+
+static void _add_one(gpointer key, gpointer value, gpointer user_data)
+{
+	GHashTable *table = user_data;
+	
+	int num = GPOINTER_TO_INT(value);
+	g_hash_table_replace(table, key, GINT_TO_POINTER(num + 1));
+}
+
+/*! @brief Get list of supported object types of the group 
+ * 
+ * @param group The group
+ * @returns List of supported object types 
+ * 
+ */
+static GList *_osync_group_get_supported_objtypes(OSyncGroup *group)
+{
+	GList *m = NULL;
+	GList *ret = NULL;
+	GHashTable *table = g_hash_table_new(g_str_hash, g_str_equal);
+    
+	int num_data = 0;
+	int i;
+    
+	/* Loop over all members... */
+	for (m = group->members; m; m = m->next) {
+		OSyncMember *member = m->data;
+		int num_member = osync_member_num_objtypes(member);
+		/* ... and get the objtype from each of the members. */
+		for (i = 0; i < num_member; i++) {
+			const char *objtype = osync_member_nth_objtype(member, i);
+			if (objtype != NULL) {
+				/* For each objtype, add 1 to the hashtable. If the objtype is
+			 	* the special objtype "data", add 1 to all objtypes */
+				if(!strcmp(objtype, "data"))
+					num_data++;
+				int num = GPOINTER_TO_INT(g_hash_table_lookup(table, objtype));
+				g_hash_table_replace(table, (char *)objtype, GINT_TO_POINTER(num + 1));
+			}
+		}
+	}
+	
+	for (i = 0; i < num_data; i++)
+		g_hash_table_foreach(table, _add_one, table);
+	
+	if (g_hash_table_size(table) == 0 && num_data >= 2) {
+		osync_trace(TRACE_INTERNAL, "No objtype found yet, but data available");
+		g_hash_table_replace(table, "data", GINT_TO_POINTER(num_data));
+	}
+	
+	g_hash_table_foreach(table, _build_list, &ret);
+	g_hash_table_destroy(table);
+	return ret;
+}
+
 /*@}*/
 
 /**
@@ -255,6 +261,12 @@ error:
 	return NULL;
 }
 
+
+/** @brief Increase the reference count of the group
+ * 
+ * @param group The group
+ * 
+ */
 void osync_group_ref(OSyncGroup *group)
 {
 	osync_assert(group);
@@ -262,6 +274,11 @@ void osync_group_ref(OSyncGroup *group)
 	g_atomic_int_inc(&(group->ref_count));
 }
 
+/** @brief Decrease the reference count of the group
+ * 
+ * @param group The group
+ * 
+ */
 void osync_group_unref(OSyncGroup *group)
 {
 	osync_assert(group);
@@ -480,6 +497,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
 	
+	// TODO: reimplement the filter!
 	//The filters
 	/*GList *f;
 	for (f = group->filters; f; f = f->next) {
@@ -586,7 +604,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 	for (m = group->members; m; m = m->next) {
 		OSyncMember *member = m->data;
 
-		// flush hashtable...
+		/* flush hashtable */
 		path = g_strdup_printf("%s/hashtable.db", osync_member_get_configdir(member));
 		if (!(db = osync_db_new(error)))
 			goto error_and_free;
@@ -598,7 +616,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 
 		g_free(path);
 
-		// flush anchor db ... 
+		/* flush anchor db */ 
 		path = g_strdup_printf("%s/anchor.db", osync_member_get_configdir(member));
 		if (!(db = osync_db_new(error)))
 			goto error_and_free;
@@ -682,6 +700,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
 				group->last_sync = (time_t)atoi(str);
 	
+			// TODO: reimplement the filter!
 			/*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 				filternode = cur->xmlChildrenNode;
 				OSyncFilter *filter = osync_filter_new();
@@ -750,7 +769,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	}
 	xmlFreeDoc(doc);
 	
-	//Check for sanity
+	/* Check for sanity */
 	if (!group->name) {
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "Loaded a group without a name");
 		goto error;
@@ -878,6 +897,12 @@ void osync_group_set_configdir(OSyncGroup *group, const char *directory)
 	group->configdir = g_strdup(directory);
 }
 
+/*! @brief The number of object types of the group
+ * 
+ * @param group The group
+ * @returns Number of object types of the group 
+ * 
+ */
 int osync_group_num_objtypes(OSyncGroup *group)
 {
 	GList *objs = NULL;
@@ -889,6 +914,13 @@ int osync_group_num_objtypes(OSyncGroup *group)
 	return len;
 }
 
+/*! @brief The nth object type of the group
+ * 
+ * @param group The group
+ * @param nth The nth position of the object type list
+ * @returns Name of the nth object type of the group
+ * 
+ */
 const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
 {
 	GList *objs = NULL;
@@ -901,6 +933,13 @@ const char *osync_group_nth_objtype(OSyncGroup *group, int nth)
 	
 }
 
+/*! @brief Change the status of an object type in the group.
+ * 
+ * @param group The group
+ * @param objtype Name of the object type
+ * @param enabled The status of the object type to set. TRUE enable, FALSE diable objtype. 
+ * 
+ */
 void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osync_bool enabled)
 {
 	GList *m = NULL;
@@ -912,7 +951,13 @@ void osync_group_set_objtype_enabled(OSyncGroup *group, const char *objtype, osy
 	}
 }
 
-
+/*! @brief Get the status of an object type in the group 
+ * 
+ * @param group The group
+ * @param objtype The name of the object type 
+ * @returns TRUE if object type is enabled in this group, otherwise FALSE
+ * 
+ */
 int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
 {
 	GList *m = NULL;
@@ -957,6 +1002,12 @@ int osync_group_objtype_enabled(OSyncGroup *group, const char *objtype)
 	return enabled;
 }
 
+/*! @brief Add filter to the group 
+ * 
+ * @param group The group
+ * @param filter The filter to add 
+ * 
+ */
 void osync_group_add_filter(OSyncGroup *group, OSyncFilter *filter)
 {
 	osync_assert(group);
@@ -964,6 +1015,12 @@ void osync_group_add_filter(OSyncGroup *group, OSyncFilter *filter)
 	osync_filter_ref(filter);
 }
 
+/*! @brief Remove filter from the group 
+ * 
+ * @param group The group
+ * @param filter The filter to remove
+ * 
+ */
 void osync_group_remove_filter(OSyncGroup *group, OSyncFilter *filter)
 {
 	osync_assert(group);
@@ -1029,6 +1086,13 @@ time_t osync_group_get_last_synchronization(OSyncGroup *group)
 	return group->last_sync;
 }
 
+/*! @brief Set fixed conflict resolution for the group for all appearing conflicts 
+ * 
+ * @param group The group
+ * @param res The conflict resolution
+ * @param num The Member ID which solves the conflict (winner)
+ * 
+ */
 void osync_group_set_conflict_resolution(OSyncGroup *group, OSyncConflictResolution res, int num)
 {
 	osync_assert(group);
@@ -1036,6 +1100,13 @@ void osync_group_set_conflict_resolution(OSyncGroup *group, OSyncConflictResolut
 	group->conflict_winner = num;
 }
 
+/*! @brief Get fixed conflict resolution for the group for all appearing conflicts 
+ * 
+ * @param group The group
+ * @param res Pointer to set conflict resolution value
+ * @param num Pointer to set Member ID value which solves the conflict (winner)
+ * 
+ */
 void osync_group_get_conflict_resolution(OSyncGroup *group, OSyncConflictResolution *res, int *num)
 {
 	osync_assert(group);
