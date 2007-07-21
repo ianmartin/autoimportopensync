@@ -259,12 +259,12 @@ OSyncGroup *osync_group_env_find_group(OSyncGroupEnv *env, const char *name)
 	return NULL;
 }
 
-/*! @brief Adds the given group to the environment
+/*! @brief Adds the given group to the environment.
  * 
- * Adds the given group to the environment
+ * Adds the given group to the environment.
  * 
  * @param env Pointer to a OSyncGroupEnv environment
- * @param group The group to add
+ * @param group The group to add. The group must have a name.
  * @param error Pointer to a error struct to return a error
  * @returns FALSE if group with the same name already exists. 
  * 
@@ -274,8 +274,17 @@ osync_bool osync_group_env_add_group(OSyncGroupEnv *env, OSyncGroup *group, OSyn
 	osync_assert(env);
 	osync_assert(group);
 
+	const char *group_name = osync_group_get_name(group);
+
+	/* Fail if no group name is already set. The Group name must be set in
+	   advanced to check if a group with the same name already exists. */
+	if (!group_name) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Group has no name. The Group can't be added to the environment without name.");
+		return FALSE;
+	}
+
 	/* Check if the group already exist. Fail if there is already a group with the same name */
-	if (osync_group_env_find_group(env, osync_group_get_name(group))) {
+	if (osync_group_env_find_group(env, group_name)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Group \"%s\" already exists.", osync_group_get_name(group));
 		return FALSE;
 	}
