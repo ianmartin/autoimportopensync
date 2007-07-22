@@ -117,6 +117,7 @@ typedef struct SmlDatabase {
 	SmlDsSession *session;
 	SmlDsServer *server;
 	OSyncObjFormat *objformat;
+	char *objformat_name;
 	OSyncObjTypeSink *sink;
 	char *objtype;	
 	char *url;

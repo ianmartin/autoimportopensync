@@ -28,6 +28,9 @@ static void syncml_free_database(SmlDatabase *database)
 	if (database->objtype)
 		g_free(database->objtype);
 
+	if (database->objformat_name)
+		g_free(database->objformat_name);
+
 	if (database->sink)
 		osync_objtype_sink_unref(database->sink);
 
@@ -91,7 +94,10 @@ static osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, 
                                 database->url = g_strdup(str);
                         } else if (!xmlStrcmp(cur->name, (const xmlChar *)"objtype")) {
 				database->objtype = g_strdup(str);
+                        } else if (!xmlStrcmp(cur->name, (const xmlChar *)"objformat")) {
+				database->objformat_name = g_strdup(str);;
 			}
+
                         xmlFree(str);
                 }
                 cur = cur->next;
@@ -104,6 +110,11 @@ static osync_bool syncml_config_parse_database(SmlPluginEnv *env, xmlNode *cur, 
 
         if (!database->objtype) {
                 osync_error_set(error, OSYNC_ERROR_GENERIC, "\"objtype\" of a database not set");
+                goto error_free_database;
+        }
+
+        if (!database->objformat_name) {
+                osync_error_set(error, OSYNC_ERROR_GENERIC, "Object Fomrat \"%s\" of a database not set", database->objformat_name);
                 goto error_free_database;
         }
 
@@ -809,6 +820,7 @@ static void batch_commit(void *data, OSyncPluginInfo *info, OSyncContext *ctx, O
 		unsigned int size = 0;
 		osync_data_get_data(data, &buf, &size);
 	
+		osync_trace(TRACE_INTERNAL, "Committing entry \"%s\": \"%s\"", osync_change_get_uid(change), buf);
 		if (!smlDsSessionQueueChange(database->session, _get_changetype(change), osync_change_get_uid(change), buf, size, _format_to_contenttype(change), _recv_change_reply, tracer, &error))
 			goto error;
 		//contexts[i] = NULL;
@@ -1254,14 +1266,14 @@ static void *syncml_obex_client_init(OSyncPlugin *plugin, OSyncPluginInfo *info,
                 if (!sink)
                         goto error_free_env;
 
-		database->objformat = osync_format_env_find_objformat(formatenv, "plain");
+		database->objformat = osync_format_env_find_objformat(formatenv, database->objformat_name);
 		if (!database->objformat) {
-			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"plain\" object format. Are format plugins correctly installed?");
+			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to find \"%s\" object format. Are format plugins correctly installed?", database->objformat_name);
 			return FALSE;
 		}
 
 		// TODO:... in case of maemo ("plain text") we have to set "memo"...
-		osync_objtype_sink_add_objformat(sink, "plain");
+		osync_objtype_sink_add_objformat(sink, database->objformat_name);
                 
                 OSyncObjTypeSinkFunctions functions;
                 memset(&functions, 0, sizeof(functions));

@@ -45,12 +45,14 @@
   <database>
      <name>Contacts</name>
      <objtype>contact</objtype>
+     <objformat>vcard21</objformat>
   </database>
   
   <!-- The name of the calendar db. Must be the same as the phones sends -->
   <database>
      <name>Calendar</name>
      <objtype>event</objtype>
+     <objformat>vevent10</objformat>
   </database>
 
   
@@ -58,6 +60,7 @@
   <database>
      <name>Notes</name>
      <objtype>note</objtype>
+     <objformat>memo</objformat>
   </database>
 
 </config>
