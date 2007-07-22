@@ -1253,12 +1253,16 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 	
 	osync_entry_engine_set_dirty(entry_engine, FALSE);
 	
-	
 	OSyncMapping *mapping = entry_engine->mapping_engine->mapping;
 	OSyncMember *member = osync_client_proxy_get_member(proxy);
 	OSyncMappingEntry *entry = entry_engine->entry;
 	const char *objtype = osync_change_get_objtype(entry_engine->change);
 	long long int id = osync_mapping_entry_get_id(entry);
+	
+	if (error) {
+		osync_status_update_change(engine->parent, entry_engine->change, osync_client_proxy_get_member(proxy), entry_engine->mapping_engine->mapping, OSYNC_CHANGE_EVENT_ERROR, error);
+		goto end;
+	}
 	
 	if (uid)
 		osync_change_set_uid(entry_engine->change, uid);
@@ -1275,6 +1279,7 @@ static void _obj_engine_commit_change_callback(OSyncClientProxy *proxy, void *us
 	osync_status_update_change(engine->parent, entry_engine->change, osync_client_proxy_get_member(proxy), entry_engine->mapping_engine->mapping, OSYNC_CHANGE_EVENT_WRITTEN, NULL);
 	osync_entry_engine_update(entry_engine, NULL);
 	
+end:	
 	_generate_written_event(engine);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
