@@ -398,6 +398,11 @@ void osync_objtype_sink_commit_change(OSyncObjTypeSink *sink, void *plugindata, 
 	if (functions.batch_commit) {
 		//Append to the stored changes
 		sink->commit_changes = g_list_append(sink->commit_changes, change);
+
+		/* Increment refcounting for batch_commit to avoid too early freeing of the context.
+		   Otherwise the context would get freed after this function call. But the batch_commit
+		   is collecting every contexts and changes and finally commits everything at once. */
+		osync_context_ref(ctx);
 		sink->commit_contexts = g_list_append(sink->commit_contexts, ctx);
 		osync_trace(TRACE_EXIT, "%s: Waiting for batch processing", __func__);
 		return;
