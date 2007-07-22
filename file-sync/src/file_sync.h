@@ -39,6 +39,7 @@
 
 typedef struct OSyncFileEnv {
 	GList *directories;
+	OSyncObjFormat *objformat;
 } OSyncFileEnv;
 
 typedef struct OSyncFileDir {
@@ -49,7 +50,6 @@ typedef struct OSyncFileDir {
 	OSyncObjTypeSink *sink;
 	osync_bool recursive;
 	OSyncFileEnv *env;
-	OSyncObjFormat *objformat;
 } OSyncFileDir;
 
 #endif //_FILE_PLUGIN_H
