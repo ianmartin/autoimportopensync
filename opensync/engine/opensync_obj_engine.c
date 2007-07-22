@@ -1426,7 +1426,10 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 	if (!engine)
 		goto error;
 	engine->ref_count = 1;
-	engine->slowsync = FALSE;
+	if (osync_engine_get_group_slowsync(parent))
+		engine->slowsync = TRUE;
+	else
+		engine->slowsync = FALSE;
 	
 	/* we dont reference the parent to avoid circular dependencies. This object is completely
 	 * dependent on the engine anyways */
@@ -1458,6 +1461,11 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 		
 		engine->sink_engines = g_list_append(engine->sink_engines, sinkengine);
 	}
+
+	if (engine->slowsync) {
+		osync_trace(TRACE_INTERNAL, "SlowSync - skip loading of mappings.");
+		goto end;
+	}
 	
 	if (!_create_mapping_engines(engine, error))
 		goto error_free_engine;
@@ -1469,7 +1477,7 @@ OSyncObjEngine *osync_obj_engine_new(OSyncEngine *parent, const char *objtype, O
 		if (!_inject_changelog_entries(engine, objtype, error))
 			goto error_free_engine;
 	}
-			
+end:			
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, engine);
 	return engine;
 
