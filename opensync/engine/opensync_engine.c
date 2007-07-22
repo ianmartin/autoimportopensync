@@ -1208,6 +1208,11 @@ void osync_engine_command(OSyncEngine *engine, OSyncEngineCommand *command)
 
 			for (i = 0; i < num; i++) {
 				const char *objtype = osync_group_nth_objtype(engine->group, i);
+
+				/* Resepect if the object type is disabled */
+				if (!osync_group_objtype_enabled(engine->group, objtype))
+					continue;
+
 				objengine = osync_obj_engine_new(engine, objtype, engine->formatenv, &engine->error);
 				if (!objengine)
 					goto error;
