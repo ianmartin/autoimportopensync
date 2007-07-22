@@ -165,7 +165,20 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 		if (!detectedFormat)
 			goto error;
 
-		osync_data_set_objformat(data, detectedFormat);
+		/* Convert from plain/file to the detected format to avoid shortcuts within the converter path */
+		if (osync_engine_get_use_converter(engine) && detectedFormat != osync_data_get_objformat(data)) {
+			OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), detectedFormat, &error);
+			if (!path)
+				goto error;
+		
+			if (!osync_format_env_convert(engine->formatenv, path, data, &error)) {
+				osync_converter_path_unref(path);
+				goto error;
+			}
+			
+			osync_converter_path_unref(path);
+		}
+
 	}
 	
 	/* Convert the format to the internal format */
