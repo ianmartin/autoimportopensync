@@ -44,6 +44,7 @@ typedef struct OSyncFileEnv {
 
 typedef struct OSyncFileDir {
 	char *objtype;
+	char *objformat;
 	char *path;
 	GDir *dir;
 	OSyncHashTable *hashtable;
