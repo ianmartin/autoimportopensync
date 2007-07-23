@@ -252,6 +252,12 @@ OSyncGroup *osync_group_new(OSyncError **error)
 	if (!group)
 		goto error;
 	group->ref_count = 1;
+
+	/* By default Merger is enabled */
+	group->use_merger = TRUE;
+
+	/* By default Converter is enabled */
+	group->use_converter = TRUE;
 	
 	osync_trace(TRACE_EXIT, "%s: %p", __func__, group);
 	return group;
@@ -537,6 +543,10 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	xmlNewChild(doc->children, NULL, (xmlChar*)"last_sync", (xmlChar*)tmstr);
 	g_free(tmstr);
 
+	xmlNewChild(doc->children, NULL, (xmlChar*)"enable_merger", (xmlChar*) (group->use_merger ? "true" : "false"));
+	xmlNewChild(doc->children, NULL, (xmlChar*)"enable_converter", (xmlChar*) (group->use_converter ? "true" : "false"));
+
+
 	xmlSaveFile(filename, doc);
 	xmlFreeDoc(doc);
 	g_free(filename);
@@ -699,7 +709,13 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	
 			if (!xmlStrcmp(cur->name, (const xmlChar *)"last_sync"))
 				group->last_sync = (time_t)atoi(str);
-	
+
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"enable_merger"))
+				group->use_merger = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
+
+			if (!xmlStrcmp(cur->name, (const xmlChar *)"enable_converter"))
+				group->use_converter = (!g_ascii_strcasecmp("true", str)) ? TRUE : FALSE;
+
 			// TODO: reimplement the filter!
 			/*if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
 				filternode = cur->xmlChildrenNode;
@@ -1115,6 +1131,54 @@ void osync_group_get_conflict_resolution(OSyncGroup *group, OSyncConflictResolut
 	
 	*res = group->conflict_resolution;
 	*num = group->conflict_winner;
+}
+
+/*! @brief Get group configured status of merger use. 
+ * 
+ * @param group The group
+ * @return TRUE if merger is enabled. FALSE if merger is disabled.
+ */
+osync_bool osync_group_get_use_merger(OSyncGroup *group)
+{
+	osync_assert(group);
+
+	return group->use_merger;
+}
+
+/*! @brief Configure status of merger use. 
+ * 
+ * @param group The group
+ * @param use_merger TRUE enables the merger. FALSE disables the merger. 
+ */
+void osync_group_set_use_merger(OSyncGroup *group, osync_bool use_merger)
+{
+	osync_assert(group);
+
+	group->use_merger = use_merger;
+}
+
+/*! @brief Get group configured status of converter use. 
+ * 
+ * @param group The group
+ * @return TRUE if converter is enabled. FALSE if converter is disabled.
+ */
+osync_bool osync_group_get_use_converter(OSyncGroup *group)
+{
+	osync_assert(group);
+
+	return group->use_converter;
+}
+
+/*! @brief Configure status of converter use. 
+ * 
+ * @param group The group
+ * @param use_converter TRUE enables the converter. FALSE disables the converter. 
+ */
+void osync_group_set_use_converter(OSyncGroup *group, osync_bool use_converter)
+{
+	osync_assert(group);
+
+	group->use_converter = use_converter;
 }
 
 /*@}*/

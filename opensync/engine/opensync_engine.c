@@ -389,11 +389,6 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 	engine->ref_count = 1;
 
 	engine->group_slowsync = FALSE;
-
-	/* By default use merger and converters */
-	engine->use_merger = TRUE;
-	engine->use_converter = TRUE;
-
 	engine->objtype_slowsync = NULL;
 	
 	if (!g_thread_supported ())
@@ -543,7 +538,8 @@ void osync_engine_unref(OSyncEngine *engine)
 osync_bool osync_engine_get_use_merger(OSyncEngine *engine)
 {
 	osync_assert(engine);
-	return engine->use_merger;
+	osync_assert(engine->group);
+	return osync_group_get_use_converter(engine->group);
 }
 
 /*! @brief Enables or Disables the Merger. 
@@ -558,7 +554,8 @@ osync_bool osync_engine_get_use_merger(OSyncEngine *engine)
 void osync_engine_set_use_merger(OSyncEngine *engine, osync_bool use_merger)
 {
 	osync_assert(engine);
-	engine->use_merger = use_merger;
+	osync_assert(engine->group);
+	osync_group_set_use_merger(engine->group, use_merger);
 }
 
 /*! @brief Returns the status if the Converters get used. 
@@ -573,7 +570,8 @@ void osync_engine_set_use_merger(OSyncEngine *engine, osync_bool use_merger)
 osync_bool osync_engine_get_use_converter(OSyncEngine *engine)
 {
 	osync_assert(engine);
-	return engine->use_converter;
+	osync_assert(engine->group);
+	return osync_group_get_use_converter(engine->group);
 }
 
 /*! @brief Enables or Disables the Converters. 
@@ -588,7 +586,8 @@ osync_bool osync_engine_get_use_converter(OSyncEngine *engine)
 void osync_engine_set_use_converter(OSyncEngine *engine, osync_bool use_converter) 
 {
 	osync_assert(engine);
-	engine->use_converter = use_converter;
+	osync_assert(engine->group);
+	osync_group_set_use_converter(engine->group, use_converter);
 }
 
 void osync_engine_set_plugindir(OSyncEngine *engine, const char *dir)
@@ -763,7 +762,7 @@ osync_bool osync_engine_initialize(OSyncEngine *engine, OSyncError **error)
 	}
 	
 	OSyncGroup *group = engine->group;
-	
+
 	if (osync_group_num_members(group) < 2) {
 		//Not enough members!
 		osync_error_set(error, OSYNC_ERROR_MISCONFIGURATION, "You only configured %i members, but at least 2 are needed", osync_group_num_members(group));
