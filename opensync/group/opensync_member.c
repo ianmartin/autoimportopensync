@@ -150,7 +150,10 @@ void osync_member_unref(OSyncMember *member)
 	if (g_atomic_int_dec_and_test(&(member->ref_count))) {
 		if (member->pluginname)
 			g_free(member->pluginname);
-		
+
+		if (member->name)
+			g_free(member->name);
+
 		if (member->configdir)
 			g_free(member->configdir);
 		
@@ -197,6 +200,32 @@ void osync_member_set_pluginname(OSyncMember *member, const char *pluginname)
 	if (member->pluginname)
 		g_free(member->pluginname);
 	member->pluginname = g_strdup(pluginname);
+}
+
+/** @brief Returns the inidividual name of the member
+ * 
+ * @param member The member
+ * @returns The name of the plugin
+ * 
+ */
+const char *osync_member_get_name(OSyncMember *member)
+{
+	osync_assert(member);
+	return member->name;
+}
+
+/** @brief Sets an individual name of the member
+ * 
+ * @param member The member
+ * @param name The individual name of the member 
+ * 
+ */
+void osync_member_set_name(OSyncMember *member, const char *name)
+{
+	osync_assert(member);
+	if (member->name)
+		g_free(member->name);
+	member->name = g_strdup(name);
 }
 
 /** @brief Returns the configuration directory where this member is stored

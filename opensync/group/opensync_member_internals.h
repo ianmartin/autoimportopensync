@@ -30,6 +30,7 @@ struct OSyncMember {
 	
 	OSyncGroup *group;
 
+	char *name;
 	char *pluginname;
 	
 	//For the filters

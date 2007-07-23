@@ -28,6 +28,9 @@ OSYNC_EXPORT void osync_member_unref(OSyncMember *member);
 OSYNC_EXPORT const char *osync_member_get_pluginname(OSyncMember *member);
 OSYNC_EXPORT void osync_member_set_pluginname(OSyncMember *member, const char *pluginname);
 
+OSYNC_EXPORT const char *osync_member_get_name(OSyncMember *member);
+OSYNC_EXPORT void osync_member_set_name(OSyncMember *member, const char *name);
+
 OSYNC_EXPORT const char *osync_member_get_configdir(OSyncMember *member);
 OSYNC_EXPORT void osync_member_set_configdir(OSyncMember *member, const char *configdir);
 
