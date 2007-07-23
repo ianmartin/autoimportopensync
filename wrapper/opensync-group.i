@@ -212,13 +212,31 @@ typedef struct {} Group;
 		osync_group_get_conflict_resolution(self, res, num);
 	}
 
+	bool get_use_merger() {
+		return osync_group_get_use_merger(self);
+	}
+
+	void set_use_merger(bool enable_merger) {
+		osync_group_set_use_merger(self, enable_merger);
+	}
+
+	bool get_use_converter() {
+		return osync_group_get_use_converter(self);
+	}
+
+	void set_use_converter(bool enable_converter) {
+		osync_group_set_use_converter(self, enable_converter);
+	}
+
 %pythoncode %{
-	name = property(get_name, set_name);
-	configdir = property(get_configdir, set_configdir);
+	name = property(get_name, set_name)
+	configdir = property(get_configdir, set_configdir)
 	num_members = property(num_members)
 	num_objtypes = property(num_objtypes)
 	num_filters = property(num_filters)
 	last_synchronization = property(get_last_synchronization, set_last_synchronization)
+	use_merger = property(get_use_merger, set_use_merger)
+	use_converter = property(get_use_converter, set_use_converter)
 %}
 }
 
@@ -252,6 +270,14 @@ typedef struct {} Member;
 
 	void set_pluginname(const char *pluginname) {
 		osync_member_set_pluginname(self, pluginname);
+	}
+
+	const char *get_name() {
+		return osync_member_get_name(self);
+	}
+
+	void set_name(const char *name) {
+		osync_member_set_name(self, name);
 	}
 
 	const char *get_configdir() {
@@ -381,13 +407,14 @@ typedef struct {} Member;
 	}
 
 	%pythoncode %{
-		pluginname = property(get_pluginname, set_pluginname);
-		configdir = property(get_configdir, set_configdir);
+		pluginname = property(get_pluginname, set_pluginname)
+		name = property(get_name, set_name)
+		configdir = property(get_configdir, set_configdir)
 		config = property(get_config, set_config)
 		id = property(get_id)
 		num_objtypes = property(num_objtypes)
-		start_type = property(get_start_type, set_start_type);
-		capabilities = property(get_capabilities, set_capabilities);
-		merger = property(get_merger);
+		start_type = property(get_start_type, set_start_type)
+		capabilities = property(get_capabilities, set_capabilities)
+		merger = property(get_merger)
 	%}
 }
