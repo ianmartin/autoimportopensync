@@ -193,7 +193,7 @@ class opts:
 		table = { }
 		for arg in args:
 			if len(arg) > 1:
-				lst=arg.split('=')
+				lst=arg.split('=', 1)
 				if len(lst) < 2: continue
 				key=lst[0]
 				value=lst[1]
