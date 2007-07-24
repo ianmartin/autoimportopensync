@@ -337,14 +337,17 @@ def xml_rrule_to_dateutil(xmlnode, eventdt):
     byday = getFieldAsList('ByDay', lambda s: s.upper())
 
     # convert byday strings to the constants needed by rrule
-    byweekday = []
-    for bydaystr in byday:
-        day = RRULE_DAYS[VCAL_DAYS.index(bydaystr[-2:])]
-        nth = bydaystr[:-2]
-        if nth:
-            byweekday.append(day(int(nth)))
-        else:
-            byweekday.append(day)
+    if byday:
+        byweekday = []
+        for bydaystr in byday:
+            day = RRULE_DAYS[VCAL_DAYS.index(bydaystr[-2:])]
+            nth = bydaystr[:-2]
+            if nth:
+                byweekday.append(day(int(nth)))
+            else:
+                byweekday.append(day)
+    else:
+        byweekday = None
 
     # done!
     return rrule.rrule(freq, dtstart=eventdt, interval=interval, count=count,
