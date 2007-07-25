@@ -41,7 +41,7 @@ def check(env, config):
 
 	env.Append(CCFLAGS = r'-DHAVE_CONFIG_H')
 	if env['debug'] == 1:
-		env.Append(CCFLAGS = r'-g3')
+		env.Append(CCFLAGS = r'-g')
 
 	if env['enable_tests'] == 1:
 		env.ParseConfig('pkg-config --cflags --libs check')
