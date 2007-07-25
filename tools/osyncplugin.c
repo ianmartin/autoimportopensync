@@ -152,7 +152,7 @@ static void multi_init(OSyncMember *member, const char *objtype)
 	
 	OSyncError *error = NULL;
 	if (!osync_member_initialize(member, &error)) {
-		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
+		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		printf("Unable to initialize\n");
 		exit(1);
 	}
@@ -168,7 +168,7 @@ static void multi_init(OSyncMember *member, const char *objtype)
 	osync_member_finalize(member);
 	
 	if (!osync_member_initialize(member, &error)) {
-		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error));
+		osync_trace(TRACE_EXIT_ERROR, "unable to initialize: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		printf("Unable to initialize\n");
 		exit(1);
 	}
@@ -509,8 +509,7 @@ int main (int argc, char *argv[])
 	
 	if (result == NULL)
 	{
-		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s",
-			g_strerror(errno));
+		osync_trace(TRACE_EXIT_ERROR, "unable to create temporary dir: %s", g_strerror(errno) ? g_strerror(errno) : "nil");
 		return 1;
 	}
 	

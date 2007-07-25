@@ -95,7 +95,7 @@ static osync_bool register_format(OSyncFormatEnv *env, const char *name, const c
 
 	OSyncObjFormat *format = osync_objformat_new(name, objtype, &error);
 	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register format: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -132,14 +132,14 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 	OSyncObjFormat *plain = osync_format_env_find_objformat(env, "plain");
 
 	if (!fromformat || !toformat) {
-		osync_trace(TRACE_ERROR, "Unable to register converter for %s->%s, format not found\n", fromname, toname);
+		osync_trace(TRACE_ERROR, "Unable to register converter for %s->%s, format not found\n", fromname ? fromname : "nil", toname ? toname : "nil");
 		return FALSE;
 	}
 
 	/* Converters */
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, fromformat, toformat, to_xml, &error);
 	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register converter: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register converter: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -148,7 +148,7 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 
 	conv = osync_converter_new(OSYNC_CONVERTER_CONV, toformat, fromformat, from_xml, &error);
 	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register converter: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register converter: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -159,7 +159,7 @@ static osync_bool register_converter(OSyncFormatEnv *env, const char *fromname, 
 	/* Detector: plain as xmlformat */
 	conv = osync_converter_new_detector(plain, fromformat, detect_func, &error);
 	if (!conv) {
-		osync_trace(TRACE_ERROR, "Unable to register detector: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register detector: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}

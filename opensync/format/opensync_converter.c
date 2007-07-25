@@ -49,7 +49,7 @@ OSyncFormatConverter *osync_converter_new(ConverterType type, OSyncObjFormat *so
 	
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -74,7 +74,7 @@ OSyncFormatConverter *osync_converter_new_detector(OSyncObjFormat *sourceformat,
 
 	converter = osync_try_malloc0(sizeof(OSyncFormatConverter), error);
 	if (!converter) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -207,8 +207,8 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 	unsigned int output_size = 0;
 	osync_bool free_input = FALSE;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, config, error);
-	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format), converter->target_format, osync_objformat_get_name(converter->target_format));
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, converter, data, config ? config : "nil", error);
+	osync_trace(TRACE_INTERNAL, "Converter of type %i, from %p(%s) to %p(%s)", converter->type, converter->source_format, osync_objformat_get_name(converter->source_format) ? osync_objformat_get_name(converter->source_format) : "nil", converter->target_format, osync_objformat_get_name(converter->target_format) ? osync_objformat_get_name(converter->target_format) : "nil");
 	
 	if (converter->type != OSYNC_CONVERTER_DETECTOR) {
 		
@@ -235,7 +235,7 @@ osync_bool osync_converter_invoke(OSyncFormatConverter *converter, OSyncData *da
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 

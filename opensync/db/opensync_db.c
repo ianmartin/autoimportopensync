@@ -26,7 +26,7 @@
 /*
 static void _osync_db_trace(void *data, const char *query)
 {
-	osync_trace(TRACE_INTERNAL, "osync_db query executed: %s", query);
+	osync_trace(TRACE_INTERNAL, "osync_db query executed: %s", query ? query: "nil");
 }
 */
 
@@ -41,7 +41,7 @@ OSyncDB *osync_db_new(OSyncError **error)
 
 	OSyncDB *db = osync_try_malloc0(sizeof(OSyncDB), error);
 	if (!db) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 
@@ -59,14 +59,14 @@ OSyncDB *osync_db_new(OSyncError **error)
  */
 osync_bool osync_db_open(OSyncDB *db, const char *dbfile, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, dbfile, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, dbfile ? dbfile : "nil", error);
 
 	osync_assert(db);
 	osync_assert(dbfile);
 
 	if (sqlite3_open(dbfile, &(db->sqlite3db)) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot open database: %s", sqlite3_errmsg(db->sqlite3db));
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db) ? sqlite3_errmsg(db->sqlite3db) : "nil");
 		return FALSE;
 	}
 
@@ -90,7 +90,7 @@ osync_bool osync_db_close(OSyncDB *db, OSyncError **error)
 	int rc = sqlite3_close(db->sqlite3db);
 	if (rc) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot close database: %s", sqlite3_errmsg(db->sqlite3db));
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, sqlite3_errmsg(db->sqlite3db) ? sqlite3_errmsg(db->sqlite3db) : "nil");
 		return FALSE;
 	}
 
@@ -108,7 +108,7 @@ osync_bool osync_db_close(OSyncDB *db, OSyncError **error)
  */
 int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query ? query : "nil", error);
 	
 	osync_assert(db);
 	osync_assert(query);
@@ -121,7 +121,7 @@ int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable count result of query: %s", errmsg);
 		sqlite3_free_table(result);
 		g_free(errmsg);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return -1;
 	}
 
@@ -140,7 +140,7 @@ int osync_db_count(OSyncDB *db, const char *query, OSyncError **error)
  */
 osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query ? query :"nil", error);
 	
 	osync_assert(db);
 	osync_assert(query);
@@ -149,7 +149,7 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
 
 	if (sqlite3_exec(db->sqlite3db, query, NULL, NULL, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to execute simple query: %s", errmsg);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg);
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, errmsg ? errmsg : "nil");
 		g_free(errmsg);
 		return FALSE;
 	}
@@ -169,7 +169,7 @@ osync_bool osync_db_query(OSyncDB *db, const char *query, OSyncError **error)
  */
 GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query ? query : "nil", error);
 	
 	osync_assert(db);
 	osync_assert(query);
@@ -183,7 +183,7 @@ GList *osync_db_query_table(OSyncDB *db, const char *query, OSyncError **error)
 	if (sqlite3_get_table(db->sqlite3db, query, &result, &numrows, &numcolumns, &errmsg) != SQLITE_OK) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to query table: %s", errmsg);
 		g_free(errmsg);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -236,7 +236,7 @@ void osync_db_free_list(GList *list) {
  */
 char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query ? query : "nil", error);
 
 	osync_assert(db);
 	osync_assert(query);
@@ -264,13 +264,13 @@ char *osync_db_query_single_string(OSyncDB *db, const char *query, OSyncError **
 	
 	sqlite3_finalize(ppStmt);
 	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, result);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, result ? result : "nil");
 	return result; 
 	
 error:
 	g_free(result);
 	sqlite3_finalize(ppStmt);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -286,7 +286,7 @@ error:
  */
 int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, query ? query : "nil", error);
 
 	osync_assert(db);
 	osync_assert(query);
@@ -319,7 +319,7 @@ int osync_db_query_single_int(OSyncDB *db, const char *query, OSyncError **error
 	
 error:
 	sqlite3_finalize(ppStmt);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return -1;
 }
 
@@ -333,7 +333,7 @@ error:
  */
 osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename ? tablename : "nil", error);
 
 	osync_assert(db);
 	osync_assert(tablename);
@@ -349,7 +349,7 @@ osync_bool osync_db_reset(OSyncDB *db, const char *tablename, OSyncError **error
 	return TRUE;
 error:
 	g_free(query);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));	
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");	
 	return FALSE;
 }
 
@@ -380,13 +380,13 @@ osync_bool osync_db_reset_full(OSyncDB *db, OSyncError **error)
 
 error:
 	sqlite3_finalize(ppStmt);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error)); 
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil"); 
 	return FALSE;
 }
 
 osync_bool osync_db_reset_full_by_path(const char *path, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, path ? path : "nil", error);
 
 	osync_assert(path);
 
@@ -400,7 +400,7 @@ osync_bool osync_db_reset_full_by_path(const char *path, OSyncError **error)
 	osync_trace(TRACE_EXIT, "%s: TRUE", __func__);
 	return TRUE;
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error)); 
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil"); 
 	return FALSE;
 
 }
@@ -416,7 +416,7 @@ error:
  */
 int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, tablename ? tablename : "nil", error);
 
 	osync_assert(db);
 	osync_assert(tablename);
@@ -431,7 +431,7 @@ int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error)
 		g_free(query);
 
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Query Error: %s", sqlite3_errmsg(db->sqlite3db));
-		osync_trace(TRACE_EXIT_ERROR, "Database query error: %s", sqlite3_errmsg(db->sqlite3db));
+		osync_trace(TRACE_EXIT_ERROR, "Database query error: %s", sqlite3_errmsg(db->sqlite3db) ? sqlite3_errmsg(db->sqlite3db) : "nil");
 		return -1;
 	}
 
@@ -440,14 +440,14 @@ int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error)
 		sqlite3_finalize(ppStmt);
 		g_free(query);
 
-		osync_trace(TRACE_EXIT, "%s: table \"%s\" doesn't exist.", __func__, tablename);
+		osync_trace(TRACE_EXIT, "%s: table \"%s\" doesn't exist.", __func__, tablename ? tablename : "nil");
 		return 0;
 	}
 
 	sqlite3_finalize(ppStmt);
 	g_free(query);
 	
-	osync_trace(TRACE_EXIT, "%s: table \"%s\" exists.", __func__, tablename);
+	osync_trace(TRACE_EXIT, "%s: table \"%s\" exists.", __func__, tablename ? tablename : "nil");
 	return 1;
 }
 
@@ -464,7 +464,7 @@ int osync_db_exists(OSyncDB *db, const char *tablename, OSyncError **error)
  */
 osync_bool osync_db_bind_blob(OSyncDB *db, const char *query, const char *data, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %u, %p)", __func__, db, query, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %u, %p)", __func__, db, query ? query : "nil", data ? data : "nil", size, error);
 
 	osync_assert(db);
 	osync_assert(query);
@@ -505,7 +505,7 @@ error:
 		sqlite3_reset(sqlite_stmt);
 		sqlite3_finalize(sqlite_stmt);	
 	}
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -521,7 +521,7 @@ error:
  */
 int osync_db_get_blob(OSyncDB *db, const char *query, char **data, unsigned int *size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, db, query, data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p)", __func__, db, query ? query : "nil", data, size, error);
 
 	osync_assert(db);
 	osync_assert(query);
@@ -576,7 +576,7 @@ error:
 		sqlite3_reset(sqlite_stmt);
 		sqlite3_finalize(sqlite_stmt);	
 	}
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return -1;
 }
 

@@ -39,7 +39,7 @@ static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
 	char *query = g_strdup("CREATE TABLE tbl_anchor (id INTEGER PRIMARY KEY, anchor VARCHAR, objtype VARCHAR UNIQUE)");
 
 	if (!osync_db_query(db, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		g_free(query);
 		return FALSE;
 	}
@@ -59,14 +59,14 @@ static osync_bool _osync_anchor_db_create(OSyncDB *db, OSyncError **error)
  */
 static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename ? filename : "nil", error);
 	
 	OSyncDB *db = osync_db_new(error); 
 	if (!db)
 		goto error;
 	
 	if (!osync_db_open(db, filename, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		goto error_free_db;
 	}
 	
@@ -89,7 +89,7 @@ static OSyncDB *_osync_anchor_db_new(const char *filename, OSyncError **error)
 error_free_db:
 	g_free(db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -117,7 +117,7 @@ static void _osync_anchor_db_free(OSyncDB *db)
  */
 static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, db, key ? key : "nil");
 	osync_assert(db);
 	osync_assert(key);
 
@@ -129,7 +129,7 @@ static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
 	g_free(query);
 	g_free(escaped_key);
 	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, retanchor);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, retanchor ? retanchor : "nil");
 	return retanchor;
 }
 
@@ -142,7 +142,7 @@ static char *_osync_anchor_db_retrieve(OSyncDB *db, const char *key)
  */
 static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *anchor)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor);
+	osync_trace(TRACE_ENTRY, "%s(%p, %, %s)", __func__, db, key, anchor ? anchor : "nil");
 	osync_assert(db);
 	osync_assert(key);
 
@@ -179,7 +179,7 @@ static void _osync_anchor_db_update(OSyncDB *db, const char *key, const char *an
  */
 osync_bool osync_anchor_compare(const char *anchordb, const char *key, const char *new_anchor)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb ? anchordb : "nil", key ? key : "nil", new_anchor ? new_anchor : "nil");
 	osync_assert(anchordb);
 	
 	OSyncDB *db = _osync_anchor_db_new(anchordb, NULL);
@@ -213,7 +213,7 @@ osync_bool osync_anchor_compare(const char *anchordb, const char *key, const cha
  */
 void osync_anchor_update(const char *anchordb, const char *key, const char *new_anchor)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb, key, new_anchor);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %s)", __func__, anchordb ? anchordb : "nil", key ? key : "nil", new_anchor ? new_anchor : "nil");
 	osync_assert(anchordb);
 	
 	OSyncDB *db = _osync_anchor_db_new(anchordb, NULL);
@@ -237,7 +237,7 @@ void osync_anchor_update(const char *anchordb, const char *key, const char *new_
  */
 char *osync_anchor_retrieve(const char *anchordb, const char *key)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb, key);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, anchordb ? anchordb : "nil", key ? key : "nil");
 	osync_assert(anchordb);
 	
 	OSyncDB *db = _osync_anchor_db_new(anchordb, NULL);
@@ -248,7 +248,7 @@ char *osync_anchor_retrieve(const char *anchordb, const char *key)
 	
 	_osync_anchor_db_free(db);
 	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, retval ? retval : "nil");
 	return retval;
 }
 

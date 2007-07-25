@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 error:
 	osync_client_unref(client);
 	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 	fprintf(stderr, "Unable to initialize environment: %s\n", osync_error_print(&error));
 	osync_error_unref(&error);
 	return 1;

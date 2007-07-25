@@ -126,13 +126,13 @@ static char *osync_time_timestamp_remove_dash(const char *timestamp)
  */ 
 char *osync_time_timestamp(const char *vtime)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime ? vtime : "nil");
 
 	char *timestamp;
 
 	timestamp = osync_time_timestamp_remove_dash(vtime);
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, timestamp);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, timestamp ? timestamp : "nil");
 	return timestamp;
 }
 
@@ -143,7 +143,7 @@ char *osync_time_timestamp(const char *vtime)
  */ 
 char *osync_time_datestamp(const char *vtime)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime ? vtime : "nil");
 
 	char *tmp;
 	const char *p;
@@ -156,7 +156,7 @@ char *osync_time_datestamp(const char *vtime)
 
 	free(tmp);
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, str->str);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, str->str ? str->str : "nil");
 	return (char*) g_string_free(str, FALSE);
 }
 
@@ -205,13 +205,13 @@ osync_bool osync_time_isutc(const char *vtime)
  */
 char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_utc)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime, time);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s)", __func__, vtime ? vtime : "nil", time ? time : "nil");
 
 	char *tmp = NULL;
 	
 	// TODO
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp ? tmp : "nil");
 	return tmp;
 }
 #endif
@@ -245,7 +245,7 @@ char *osync_time_set_vtime(const char *vtime, const char *time, osync_bool is_ut
  */
 struct tm *osync_time_vtime2tm(const char *vtime)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime);
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, vtime ? vtime : "nil");
 
 	struct tm *utime = g_malloc0(sizeof(struct tm));
 
@@ -298,7 +298,7 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
 	if (is_utc)
 		vtime = g_string_append(vtime, "Z");
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime->str);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime->str ? vtime->str : "nil");
 	return g_string_free(vtime, FALSE);
 }
 /*@}*/
@@ -330,7 +330,7 @@ char *osync_time_tm2vtime(const struct tm *time, osync_bool is_utc)
  */ 
 time_t osync_time_vtime2unix(const char *vtime, int offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %i)", __func__, vtime, offset);
+	osync_trace(TRACE_ENTRY, "%s(%s, %i)", __func__, vtime ? vtime : "nil", offset);
 	struct tm *utime = NULL; 
 	time_t timestamp;
 	char *utc = NULL;
@@ -360,7 +360,7 @@ char *osync_time_unix2vtime(const time_t *timestamp)
 	gmtime_r(timestamp, &utc);
 	vtime = osync_time_tm2vtime(&utc, TRUE);
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, vtime ? vtime : "nil");
 	return vtime;
 }
 
@@ -671,7 +671,7 @@ struct tm *osync_time_tm2localtime(const struct tm *utime, int offset)
  */ 
 char *osync_time_vtime2utc(const char* localtime, int offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, localtime);
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, localtime ? localtime : "nil");
 
 	char *utc = NULL; 
 	struct tm *tm_local = NULL, *tm_utc = NULL;
@@ -689,7 +689,7 @@ char *osync_time_vtime2utc(const char* localtime, int offset)
 	g_free(tm_utc);
 	
 end:	
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc ? utc : "nil");
 	return utc;
 }
 
@@ -725,7 +725,7 @@ char *osync_time_vtime2localtime(const char* utc, int offset)
  */ 
 int osync_time_utcoffset2sec(const char *offset)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset);
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, offset ? offset : "nil");
 
 	char csign = 0;
 	int seconds = 0, sign = 1;
@@ -925,7 +925,7 @@ char *osync_time_sec2alarmdu(int seconds)
 end:
 	g_free(prefix);
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, tmp ? tmp : "nil");
         return tmp;
 }
 
@@ -938,7 +938,7 @@ end:
  */ 
 int osync_time_alarmdu2sec(const char *alarm)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm);
+	osync_trace(TRACE_ENTRY, "%s(%s)", __func__, alarm ? alarm : "nil");
 
         int i, secs, digits;
         int is_digit = 0;
@@ -1178,7 +1178,7 @@ struct tm *osync_time_dstchange(xmlNode *dstNode)
 /*
 osync_bool osync_time_isdst(const char *vtime, xmlNode *tzid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, vtime, tzid);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, vtime ? vtime : "nil", tzid);
 
 	int year;
 	char *newyear = NULL;
@@ -1224,7 +1224,7 @@ osync_bool osync_time_isdst(const char *vtime, xmlNode *tzid)
 /*
 int osync_time_tzoffset(const char *vtime, xmlNode *tz)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, vtime, tz);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, vtime ? vtime : "nil", tz);
 
 	int seconds;
         char *offset = NULL; 
@@ -1256,7 +1256,7 @@ char *osync_time_tzid(xmlNode *tz)
 
 	id = osxml_find_node(tz, "TimezoneID");
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, id);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, id ? id : "nil");
 	return id;
 }
 
@@ -1275,7 +1275,7 @@ char *osync_time_tzlocation(xmlNode *tz)
 
 	location = osxml_find_node(tz, "TimezoneLocation");
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, location);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, location ? location : "nil");
 	return location;
 }
 */
@@ -1288,7 +1288,7 @@ char *osync_time_tzlocation(xmlNode *tz)
  */ 
 xmlNode *osync_time_tzinfo(xmlNode *root, const char *tzid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, root, tzid);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, root, tzid ? tzid : "nil");
 
 	int numnodes, i;
 	char *tzinfo_tzid = NULL;
@@ -1345,7 +1345,7 @@ noresult:
 #if 0
 char *osync_time_tzlocal2utc(xmlNode *root, const char *field)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, root, field);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, root, field ? field : "nil");
 
 	int offset = 0;
 	char *utc = NULL, *field_tzid = NULL, *vtime = NULL;
@@ -1354,7 +1354,7 @@ char *osync_time_tzlocal2utc(xmlNode *root, const char *field)
 	/*
 	node = osxml_get_node(root, field);
 	if (!node) {
-		osync_trace(TRACE_EXIT, "%s: field \"%s\" not found", __func__, field);
+		osync_trace(TRACE_EXIT, "%s: field \"%s\" not found", __func__, field ? field : "nil");
 		return NULL;
 	}
 	*/
@@ -1385,7 +1385,7 @@ char *osync_time_tzlocal2utc(xmlNode *root, const char *field)
 	g_free(vtime);
 	g_free(ttm);
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, utc ? utc : "nil");
 	return utc;
 
 noresult:

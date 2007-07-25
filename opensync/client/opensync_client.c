@@ -449,7 +449,7 @@ static osync_bool _osync_client_handle_initialize(OSyncClient *client, OSyncMess
 	osync_message_read_string(message, &configdir);
 	osync_message_read_string(message, &config);
 	
-	osync_trace(TRACE_INTERNAL, "enginepipe %s, formatdir %s, plugindir %s, pluginname %s", enginepipe, formatdir, plugindir, pluginname);
+	osync_trace(TRACE_INTERNAL, "enginepipe %s, formatdir %s, plugindir %s, pluginname %s", enginepipe ? enginepipe : "nil", formatdir ? formatdir : "nil", plugindir ? plugindir : "nil", pluginname ? pluginname : "nil");
 		
 	/* First we connect the engine pipe if necessary*/
 	if (enginepipe) {
@@ -537,7 +537,7 @@ error:
 	g_free(groupname);
 	g_free(formatdir);
 	g_free(config);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -588,7 +588,7 @@ static osync_bool _osync_client_handle_finalize(OSyncClient *client, OSyncMessag
 error_free_message:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -666,7 +666,7 @@ static osync_bool _osync_client_handle_discover(OSyncClient *client, OSyncMessag
 error_free_message:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -680,7 +680,7 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 	
 	osync_message_read_string(message, &objtype);
 	osync_message_read_int(message, &slowsync);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype ? objtype : "nil");
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {
@@ -731,7 +731,7 @@ static osync_bool _osync_client_handle_connect(OSyncClient *client, OSyncMessage
 error_free_reply:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -743,7 +743,7 @@ static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMess
 	OSyncMessage *reply = NULL;
 	
 	osync_message_read_string(message, &objtype);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype ? objtype : "nil");
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {
@@ -784,7 +784,7 @@ static osync_bool _osync_client_handle_disconnect(OSyncClient *client, OSyncMess
 error_free_reply:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -796,7 +796,7 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 	OSyncMessage *reply = NULL;
 	
 	osync_message_read_string(message, &objtype);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype ? objtype : "nil");
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {
@@ -839,7 +839,7 @@ static osync_bool _osync_client_handle_get_changes(OSyncClient *client, OSyncMes
 error_free_reply:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -898,7 +898,7 @@ static osync_bool _osync_client_handle_read_change(OSyncClient *client, OSyncMes
 error_free_reply:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -916,7 +916,7 @@ static osync_bool _osync_client_handle_commit_change(OSyncClient *client, OSyncM
 	
 	OSyncData *data = osync_change_get_data(change);
 	
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", osync_data_get_objtype(data));
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", osync_data_get_objtype(data) ? osync_data_get_objtype(data) : "nil");
 	
 	OSyncObjTypeSink *sink = NULL;
 	sink = osync_plugin_info_find_objtype(client->plugin_info, osync_data_get_objtype(data));
@@ -941,7 +941,7 @@ static osync_bool _osync_client_handle_commit_change(OSyncClient *client, OSyncM
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -953,7 +953,7 @@ static osync_bool _osync_client_handle_committed_all(OSyncClient *client, OSyncM
 	OSyncMessage *reply = NULL;
 	
 	osync_message_read_string(message, &objtype);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype ? objtype : "nil");
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {
@@ -994,7 +994,7 @@ static osync_bool _osync_client_handle_committed_all(OSyncClient *client, OSyncM
 error_free_reply:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -1006,7 +1006,7 @@ static osync_bool _osync_client_handle_sync_done(OSyncClient *client, OSyncMessa
 	OSyncMessage *reply = NULL;
 	
 	osync_message_read_string(message, &objtype);
-	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype);
+	osync_trace(TRACE_INTERNAL, "Searching sink for %s", objtype ? objtype : "nil");
 	
 	OSyncObjTypeSink *sink = NULL;
 	if (objtype) {
@@ -1047,7 +1047,7 @@ static osync_bool _osync_client_handle_sync_done(OSyncClient *client, OSyncMessa
 error_free_reply:
 	osync_message_unref(reply);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -1157,7 +1157,7 @@ error:;
 	if (!client->outgoing) {
 		client->thread = NULL;
 		osync_client_shutdown(client);
-		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to notify parent. no outgoing queue: %s", __func__, osync_error_print(&error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: Unable to notify parent. no outgoing queue: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return;
 	}
@@ -1167,7 +1167,7 @@ error:;
 	if (!errorreply) {
 		osync_client_error_shutdown(client, locerror);
 		osync_error_unref(&error);
-		osync_trace(TRACE_EXIT_ERROR, "%s: Error while sending error: %s", __func__, osync_error_print(&locerror));
+		osync_trace(TRACE_EXIT_ERROR, "%s: Error while sending error: %s", __func__, osync_error_print(&locerror) ? osync_error_print(&locerror) : "nil");
 		osync_error_unref(&locerror);
 		return;
 	}
@@ -1175,14 +1175,14 @@ error:;
 	if (!osync_queue_send_message(client->outgoing, NULL, errorreply, &locerror)) {
 		osync_client_error_shutdown(client, locerror);
 		osync_error_unref(&error);
-		osync_trace(TRACE_EXIT_ERROR, "%s: Error while sending error: %s", __func__, osync_error_print(&locerror));
+		osync_trace(TRACE_EXIT_ERROR, "%s: Error while sending error: %s", __func__, osync_error_print(&locerror) ? osync_error_print(&locerror) : "nil");
 		osync_error_unref(&locerror);
 		return;
 	}
 
 	osync_message_unref(errorreply);
 
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 	osync_error_unref(&error);
 }
 
@@ -1225,7 +1225,7 @@ OSyncClient *osync_client_new(OSyncError **error)
 	
 	OSyncClient *client = osync_try_malloc0(sizeof(OSyncClient), error);
 	if (!client) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -1320,7 +1320,7 @@ static gboolean osyncClientConnectCallback(gpointer data)
 
 osync_bool osync_client_run_external(OSyncClient *client, char *pipe_path, OSyncPlugin *plugin, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, client, pipe_path, plugin, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, client, pipe_path ? pipe_path : "nil", plugin, error);
 	/* Create connection pipes **/
 	OSyncQueue *incoming = osync_queue_new(pipe_path, error);
 	if (!incoming)
@@ -1354,7 +1354,7 @@ error_remove_queue:
 error_free_queue:
 	osync_queue_free(incoming);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 

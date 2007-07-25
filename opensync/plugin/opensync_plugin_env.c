@@ -63,7 +63,7 @@ OSyncPluginEnv *osync_plugin_env_new(OSyncError **error)
 	
 	env = osync_try_malloc0(sizeof(OSyncPluginEnv), error);
 	if (!env) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -119,7 +119,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 	char *filename = NULL;
 	const gchar *de = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path ? path : "nil", error);
 	
 	if (!path) {
 		path = OPENSYNC_PLUGINDIR;
@@ -132,7 +132,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Path is not loadable");
 			goto error;
 		} else {
-			osync_trace(TRACE_EXIT, "%s: Directory %s does not exist (non-fatal)", __func__, path);
+			osync_trace(TRACE_EXIT, "%s: Directory %s does not exist (non-fatal)", __func__, path ? path : "nil");
 			return TRUE;
 		}
 	}
@@ -153,7 +153,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 		}
 		
 		if (!osync_plugin_env_load_module(env, filename, error)) {
-			osync_trace(TRACE_ERROR, "Unable to load module: %s", osync_error_print(error));
+			osync_trace(TRACE_ERROR, "Unable to load module: %s", osync_error_print(error) ? osync_error_print(error) : "nil");
 			osync_error_unref(error);
 		}
 		
@@ -166,7 +166,7 @@ osync_bool osync_plugin_env_load(OSyncPluginEnv *env, const char *path, OSyncErr
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -183,7 +183,7 @@ osync_bool osync_plugin_env_load_module(OSyncPluginEnv *env, const char *filenam
 {
 	OSyncModule *module = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, filename, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, filename ? filename : "nil", error);
 	osync_assert(env);
 	osync_assert(filename);
 	
@@ -192,13 +192,13 @@ osync_bool osync_plugin_env_load_module(OSyncPluginEnv *env, const char *filenam
 		goto error;
 	
 	if (!osync_module_load(module, filename, error)) {
-		osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename, osync_error_print(error));
+		osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename ? filename : "nil", osync_error_print(error) ? osync_error_print(error) : "nil");
 		osync_error_unref(error);
 		osync_module_free(module);
 	} else {
 		if (!osync_module_check(module, error)) {
 			if (osync_error_is_set(error)) {
-				osync_trace(TRACE_INTERNAL, "Module check error for %s: %s", filename, osync_error_print(error));
+				osync_trace(TRACE_INTERNAL, "Module check error for %s: %s", filename ? filename : "nil", osync_error_print(error) ? osync_error_print(error) : "nil");
 				osync_error_unref(error);
 			}
 			osync_module_unload(module);
@@ -226,7 +226,7 @@ error_free_module:
 	osync_module_unload(module);
 	osync_module_free(module);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 

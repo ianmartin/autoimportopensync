@@ -31,7 +31,7 @@ void destroy_xmlformat(char *input, unsigned int inpsize)
 
 static osync_bool duplicate_xmlformat(const char *uid, const char *input, unsigned int insize, char **newuid, char **output, unsigned int *outsize, osync_bool *dirty, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i, %p, %p, %p, %p, %p)", __func__, uid, input, insize, newuid, output, outsize, dirty, error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p, %i, %p, %p, %p, %p, %p)", __func__, uid ? uid : "nil", input, insize, newuid, output, outsize, dirty, error);
 	
 	char *buffer = NULL;
 	unsigned int size;
@@ -40,7 +40,7 @@ static osync_bool duplicate_xmlformat(const char *uid, const char *input, unsign
 
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, error);
 	if (!xmlformat) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return FALSE;
 	}
 
@@ -64,7 +64,7 @@ osync_bool copy_xmlformat(const char *input, unsigned int inpsize, char **output
 	osync_xmlformat_assemble((OSyncXMLFormat *) input, &buffer, &size);
 	xmlformat = osync_xmlformat_parse(buffer, size, error);
 	if (!xmlformat) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return FALSE;
 	}
 
@@ -113,7 +113,7 @@ osync_bool demarshal_xmlformat(OSyncMessage *message, char **output, unsigned in
 	
 	OSyncXMLFormat *xmlformat = osync_xmlformat_parse((char *)buffer, size, error);
 	if (!xmlformat) {
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return FALSE;
 	}
 
@@ -151,7 +151,7 @@ static void create_contact(char **data, unsigned int *size)
 	OSyncError *error = NULL;
 	*data = (char *)osync_xmlformat_new("contact", &error);
 	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 }
 
 static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
@@ -179,7 +179,7 @@ void create_event(char **data, unsigned int *size)
 	OSyncError *error = NULL;
 	*data = (char *)osync_xmlformat_new("event", &error);
 	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 }
 
 static OSyncConvCmpResult compare_todo(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
@@ -207,7 +207,7 @@ static void create_todo(char **data, unsigned int *size)
 	OSyncError *error = NULL;
 	*data = (char *)osync_xmlformat_new("todo", &error);
 	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 }
 
 static OSyncConvCmpResult compare_note(const char *leftdata, unsigned int leftsize, const char *rightdata, unsigned int rightsize)
@@ -234,7 +234,7 @@ static void create_note(char **data, unsigned int *size)
 	OSyncError *error = NULL;
 	*data = (char *)osync_xmlformat_new("note", &error);
 	if (!*data)
-		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 }
 
 
@@ -257,7 +257,7 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 	osync_xmlfieldlist_free(fieldlist);
 	
 	const char *revision = osync_xmlfield_get_nth_key_value(xmlfield, 0);
-	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision);
+	osync_trace(TRACE_INTERNAL, "About to convert string %s", revision ? revision : "nil");
 	//time_t time = vformat_time_to_unix(revision);
 	time_t time = osync_time_vtime2unix(revision, 0);
 	
@@ -265,7 +265,7 @@ static time_t get_revision(const char *data, unsigned int size, OSyncError **err
 	return time;
 
 error:	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return -1;
 }
 
@@ -278,7 +278,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	/* register xmlformat-contact */
 	format = osync_objformat_new("xmlformat-contact", "contact", &error);
 	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -303,7 +303,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	/* register xmlformat-event */
 	format = osync_objformat_new("xmlformat-event", "event", &error);
 	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register format xmlformat: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -328,7 +328,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	/* register xmlformat-todo */
 	format = osync_objformat_new("xmlformat-todo", "todo", &error);
 	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -353,7 +353,7 @@ osync_bool get_format_info(OSyncFormatEnv *env)
 	/* register xmlformat-note */
 	format = osync_objformat_new("xmlformat-note", "note", &error);
 	if (!format) {
-		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error));
+		osync_trace(TRACE_ERROR, "Unable to register format xmlfomat: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return FALSE;
 	}

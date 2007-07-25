@@ -117,7 +117,7 @@ static osync_bool _osync_group_load_members(OSyncGroup *group, const char *path,
 	OSyncMember *member = NULL;
 	const gchar *de = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path ? path : "nil", error);
 
 	dir = g_dir_open(path, 0, &gerror);
 	if (!dir) {
@@ -353,7 +353,7 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 	if ((group->lock_fd = g_open(lockfile, O_CREAT | O_WRONLY, 00700)) == -1) {
 		group->lock_fd = 0;
 		g_free(lockfile);
-		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, g_strerror(errno));
+		osync_trace(TRACE_EXIT, "%s: Unable to open: %s", __func__, g_strerror(errno) ? g_strerror(errno) : "nil");
 		return OSYNC_LOCK_STALE;
 	} else {
 #ifndef _WIN32
@@ -378,7 +378,7 @@ OSyncLockState osync_group_lock(OSyncGroup *group)
 				close(group->lock_fd);
 				group->lock_fd = 0;
 			} else
-				osync_trace(TRACE_INTERNAL, "error setting lock: %s", g_strerror(errno));
+				osync_trace(TRACE_INTERNAL, "error setting lock: %s", g_strerror(errno) ? g_strerror(errno) : "nil");
 		} else
 #endif
 			osync_trace(TRACE_INTERNAL, "Successfully locked");
@@ -487,10 +487,10 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	osync_assert(group);
 	osync_assert(group->configdir);
 	
-	osync_trace(TRACE_INTERNAL, "Trying to open configdirectory %s to save group %s", group->configdir, group->name);
+	osync_trace(TRACE_INTERNAL, "Trying to open configdirectory %s to save group %s", group->configdir ? group->configdir : "nil", group->name ? group->name : "nil");
 	
 	if (!g_file_test(group->configdir, G_FILE_TEST_IS_DIR)) {
-		osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir);
+		osync_trace(TRACE_INTERNAL, "Creating group configdirectory %s", group->configdir ? group->configdir : "nil");
 		if (g_mkdir(group->configdir, 0700)) {
 			osync_error_set(error, OSYNC_ERROR_IO_ERROR, "Unable to create directory for group %s\n", group->name);
 			goto error;
@@ -498,7 +498,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	}
 	
 	filename = g_strdup_printf ("%s/syncgroup.conf", group->configdir);
-	osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename);
+	osync_trace(TRACE_INTERNAL, "Saving group to file %s", filename ? filename : "nil");
 	
 	doc = xmlNewDoc((xmlChar*)"1.0");
 	doc->children = xmlNewDocNode(doc, NULL, (xmlChar*)"syncgroup", NULL);
@@ -561,7 +561,7 @@ osync_bool osync_group_save(OSyncGroup *group, OSyncError **error)
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -584,7 +584,7 @@ osync_bool osync_group_delete(OSyncGroup *group, OSyncError **error)
 	if (system(delcmd)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete group. command %s failed", delcmd);
 		g_free(delcmd);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return FALSE;
 	}
 	g_free(delcmd);
@@ -657,7 +657,7 @@ osync_bool osync_group_reset(OSyncGroup *group, OSyncError **error)
 error_and_free:
 	g_free(path);	
 //error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -679,7 +679,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	xmlNodePtr cur;
 	//xmlNodePtr filternode;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, group, path ? path : "nil", error);
 	osync_assert(group);
 	osync_assert(path);
 	
@@ -798,7 +798,7 @@ osync_bool osync_group_load(OSyncGroup *group, const char *path, OSyncError **er
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 

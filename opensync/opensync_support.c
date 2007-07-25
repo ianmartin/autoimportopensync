@@ -286,13 +286,13 @@ osync_bool osync_file_write(const char *filename, const char *data, unsigned int
 	
 	GIOChannel *chan = g_io_channel_new_file(filename, "w", &error);
 	if (!chan) {
-		osync_trace(TRACE_INTERNAL, "Unable to open file %s for writing: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to open file %s for writing: %s", filename ? filename : "nil", error->message ? error->message : "nil");
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open file %s for writing: %s", filename, error->message);
 		return FALSE;
 	}
 	if (mode) {
 		if (g_chmod(filename, mode)) {
-			osync_trace(TRACE_INTERNAL, "Unable to set file permissions %i for file %s", mode, filename);
+			osync_trace(TRACE_INTERNAL, "Unable to set file permissions %i for file %s", mode, filename ? filename : "nil");
 			osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to set file permissions %i for file %s", mode, filename);
 			return FALSE;
 		}
@@ -300,7 +300,7 @@ osync_bool osync_file_write(const char *filename, const char *data, unsigned int
 	
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_write_chars(chan, data, size, &writen, &error) != G_IO_STATUS_NORMAL) {
-		osync_trace(TRACE_INTERNAL, "Unable to write contents of file %s: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to write contents of file %s: %s", filename ? filename : "nil", error->message ? error->message : "nil");
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to write contents of file %s: %s", filename, error->message);
 	} else {
 		g_io_channel_flush(chan, NULL);
@@ -337,14 +337,14 @@ osync_bool osync_file_read(const char *filename, char **data, unsigned int *size
 	
 	chan = g_io_channel_new_file(filename, "r", &error);
 	if (!chan) {
-		osync_trace(TRACE_INTERNAL, "Unable to read file %s: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to read file %s: %s", filename ? filename : "nil", error->message ? error->message : "nil");
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to open file %s for reading: %s", filename, error->message);
 		return FALSE;
 	}
 	
 	g_io_channel_set_encoding(chan, NULL, NULL);
 	if (g_io_channel_read_to_end(chan, data, &sz, &error) != G_IO_STATUS_NORMAL) {
-		osync_trace(TRACE_INTERNAL, "Unable to read contents of file %s: %s", filename, error->message);
+		osync_trace(TRACE_INTERNAL, "Unable to read contents of file %s: %s", filename ? filename : "nil", error->message ? error->message : "nil");
 		osync_error_set(oserror, OSYNC_ERROR_IO_ERROR, "Unable to read contents of file %s: %s", filename, error->message);
 	} else {
 		ret = TRUE;
@@ -414,7 +414,7 @@ OSyncThread *osync_thread_new(GMainContext *context, OSyncError **error)
 	return thread;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 

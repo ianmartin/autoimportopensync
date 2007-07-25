@@ -314,7 +314,7 @@ osync_bool osync_plugin_is_usable(OSyncPlugin *plugin, OSyncError **error)
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, plugin, error);
 	
 	if (plugin->useable && !plugin->useable(error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return FALSE;
 	}
 	

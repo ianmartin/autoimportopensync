@@ -77,7 +77,7 @@ OSyncXMLFormat *osync_xmlformat_new(const char *objtype, OSyncError **error)
 	
 	OSyncXMLFormat *xmlformat = osync_try_malloc0(sizeof(OSyncXMLFormat), error);
 	if(!xmlformat) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 
@@ -108,7 +108,7 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 
 	OSyncXMLFormat *xmlformat = osync_try_malloc0(sizeof(OSyncXMLFormat), error);
 	if(!xmlformat) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -116,7 +116,7 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 	if(!xmlformat->doc) {
 		g_free(xmlformat);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse XML.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;	
 	}
 
@@ -132,7 +132,7 @@ OSyncXMLFormat *osync_xmlformat_parse(const char *buffer, unsigned int size, OSy
 		OSyncXMLField *xmlfield = _osync_xmlfield_new(xmlformat, cur, error);
 		if(!xmlfield) {
 			osync_xmlformat_unref(xmlformat);
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 			return NULL;
 		}
 		cur = cur->next;
@@ -227,7 +227,7 @@ OSyncXMLField *osync_xmlformat_get_first_field(OSyncXMLFormat *xmlformat)
  */
 OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error, ...)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, ...)", __func__, xmlformat, name, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, ...)", __func__, xmlformat, name ? name : "nil", error);
 	osync_assert(xmlformat);
 	osync_assert(name);
 	
@@ -242,13 +242,13 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 
 	OSyncXMLFieldList *xmlfieldlist = _osync_xmlfieldlist_new(error);
 	if(!xmlfieldlist) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 
 	void **liste = osync_try_malloc0(sizeof(OSyncXMLField *) * xmlformat->child_count, error);
 	if(!liste) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 
@@ -262,7 +262,7 @@ OSyncXMLFieldList *osync_xmlformat_search_field(OSyncXMLFormat *xmlformat, const
 	key = osync_try_malloc0(sizeof(OSyncXMLField), error);
 	if(!key) {
 		g_free(liste);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 
@@ -532,7 +532,7 @@ OSyncConvCmpResult osync_xmlformat_compare(OSyncXMLFormat *xmlformat1, OSyncXMLF
 							cur_list2 = g_slist_next(cur_list2);
 							if(cur_list2 == NULL) {
 								same = FALSE;	
-								osync_trace(TRACE_INTERNAL, "one field is alone: %s", osync_xmlfield_get_name(cur_list1->data));
+								osync_trace(TRACE_INTERNAL, "one field is alone: %s", osync_xmlfield_get_name(cur_list1->data) ? osync_xmlfield_get_name(cur_list1->data) : "nil");
 								break;
 							}
 						}while(1);

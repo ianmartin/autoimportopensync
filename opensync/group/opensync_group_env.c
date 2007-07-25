@@ -109,7 +109,7 @@ OSyncGroupEnv *osync_group_env_new(OSyncError **error)
 	
 	env = osync_try_malloc0(sizeof(OSyncGroupEnv), error);
 	if (!env) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -162,19 +162,19 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 	const gchar *de = NULL;
 	OSyncGroup *group = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path ? path : "nil", error);
 	
 	/* Create the correct path and test it */
 	if (!path) {
 		env->groupsdir = g_strdup_printf("%s/.opensync", g_get_home_dir());
-		osync_trace(TRACE_INTERNAL, "Default home dir: %s", env->groupsdir);
+		osync_trace(TRACE_INTERNAL, "Default home dir: %s", env->groupsdir ? env->groupsdir : "nil");
 		
 		if (!g_file_test(env->groupsdir, G_FILE_TEST_EXISTS)) {
 			if (g_mkdir(env->groupsdir, 0700) < 0) {
 				osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create group directory at %s: %s", path, g_strerror(errno));
 				goto error_free_path;
 			}
-			osync_trace(TRACE_INTERNAL, "Created groups configdir %s\n", path);
+			osync_trace(TRACE_INTERNAL, "Created groups configdir %s\n", path ? path : "nil");
 		}
 	} else {
 		if (!g_path_is_absolute(path)) {
@@ -231,7 +231,7 @@ osync_bool osync_group_env_load_groups(OSyncGroupEnv *env, const char *path, OSy
 error_free_path:
 	g_free(env->groupsdir);
 	env->groupsdir = NULL;
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 

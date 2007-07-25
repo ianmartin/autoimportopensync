@@ -586,7 +586,7 @@ osync_bool osync_objtype_sink_get_slowsync(OSyncObjTypeSink *sink)
  */
 void osync_objtype_sink_set_slowsync(OSyncObjTypeSink *sink, osync_bool slowsync)
 {
-	osync_trace(TRACE_INTERNAL, "%s: Setting slow-sync of object type \"%s\" to %i", __func__, sink->objtype, slowsync);
+	osync_trace(TRACE_INTERNAL, "%s: Setting slow-sync of object type \"%s\" to %i", __func__, sink->objtype ? sink->objtype : "nil", slowsync);
 	osync_assert(sink);
 	sink->slowsync = slowsync;
 }

@@ -46,7 +46,7 @@
 {
 	OSyncXMLField *xmlfield = osync_try_malloc0(sizeof(OSyncXMLField), error);
 	if(!xmlfield) {
-		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -140,7 +140,7 @@ int _osync_xmlfield_key_compare_stdlib(const void *key1, const void *key2)
  */
 OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, xmlformat, name, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, xmlformat, name ? name : "nil", error);
 	osync_assert(xmlformat);
 	osync_assert(name);
 	
@@ -150,7 +150,7 @@ OSyncXMLField *osync_xmlfield_new(OSyncXMLFormat *xmlformat, const char *name, O
 	if(!xmlfield) {
 		xmlUnlinkNode(node);
 		xmlFreeNode(node);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 

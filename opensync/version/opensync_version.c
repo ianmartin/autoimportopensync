@@ -108,7 +108,7 @@ OSyncVersion *osync_version_new(OSyncError **error)
 	
 	OSyncVersion *version = osync_try_malloc0(sizeof(OSyncVersion), error);
 	if(!version) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 		return NULL;
 	}
 	
@@ -308,7 +308,7 @@ error:
 		osync_trace(TRACE_EXIT, "%s: %i" , __func__, ret);
 		return ret;
 	}
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return -1;
 }
 
@@ -408,7 +408,7 @@ OSyncList *osync_version_load_from_descriptions(OSyncError **error)
 	return versions;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -456,7 +456,7 @@ OSyncCapabilities *osync_version_find_capabilities(OSyncVersion *version, OSyncE
 	/* we found or own capabilities */
 	if(priority > 0)
 	{
-		osync_trace(TRACE_INTERNAL, "Found capabilities file by version: %s ", (const char*)osync_version_get_identifier(winner));
+		osync_trace(TRACE_INTERNAL, "Found capabilities file by version: %s ", (const char*)osync_version_get_identifier(winner) ? (const char*)osync_version_get_identifier(winner) : "nil");
 		if (capabilities)
 			osync_capabilities_unref(capabilities);
 
@@ -474,7 +474,7 @@ error_free_version:
 	if (version)
 		osync_version_unref(version);
 
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 

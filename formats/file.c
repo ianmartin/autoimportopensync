@@ -38,7 +38,7 @@ static OSyncConvCmpResult compare_file(const char *leftdata, unsigned int leftsi
 	osync_assert(rightfile->path);
 	osync_assert(leftfile->path);
 	
-	osync_trace(TRACE_INTERNAL, "Comparing %s and %s", leftfile->path, rightfile->path);
+	osync_trace(TRACE_INTERNAL, "Comparing %s and %s", leftfile->path ? leftfile->path : "nil", rightfile->path ? rightfile->path : "nil");
 			
 	
 	if (!strcmp(leftfile->path, rightfile->path)) {
@@ -202,7 +202,7 @@ static osync_bool demarshal_file(OSyncMessage *message, char **output, unsigned 
 
 error:
 	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
