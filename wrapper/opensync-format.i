@@ -164,7 +164,7 @@ typedef struct {} FormatEnv;
 		osync_format_env_free(self);
 	}
 
-	void load_plugins(const char *path) {
+	void load_plugins(const char *path = NULL) {
 		Error *err = NULL;
 		bool ret = osync_format_env_load_plugins(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
