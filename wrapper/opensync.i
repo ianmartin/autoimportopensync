@@ -60,6 +60,31 @@ typedef osync_bool bool;
 #define false FALSE
 %}
 
+%pythoncode %{
+	class _ListWrapper:
+		"""Utility class to wrap a common idiom in OpenSync as a Python list."""
+		def __init__(self, lenf, getf, addf=None):
+			self.__len = lenf
+			self.__get = getf
+			self.__add = addf
+		
+		def __len__(self):
+			return self.__len()
+		
+		def __getitem__(self, num):
+			if not isinstance(num, int):
+				raise TypeError
+			if num < 0 or num >= len(self):
+				raise IndexError
+			return self.__get(num)
+		
+		def __add__(self, element):
+			if self.__add:
+				self.__add(element)
+			else:
+				raise NotImplementedError
+%}
+
 /* macro to define arbitrary output argument pointer typemaps, based on:
  * http://embedded.eecs.berkeley.edu/Alumni/pinhong/scriptEDA/pyTypemapFAQ.html#22
  */

@@ -291,9 +291,17 @@ typedef struct {} FormatEnv;
 	}
 
 %pythoncode %{
-	num_objformats = property(num_objformats)
-	num_converters = property(num_converters)
-	num_filters = property(num_filters)
+	@property
+	def objformats(self):
+		return _ListWrapper(self.num_objformats, self.nth_objformat, self.register_objformat)
+
+	@property
+	def converters(self):
+		return _ListWrapper(self.num_converters, self.nth_converter, self.register_converter)
+
+	@property
+	def filters(self):
+		return _ListWrapper(self.num_filters, self.nth_filter, self.register_filter)
 %}
 }
 
