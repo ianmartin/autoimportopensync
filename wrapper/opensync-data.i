@@ -197,7 +197,7 @@ typedef struct {} Change;
 	hash = property(get_hash, set_hash)
 	uid = property(get_uid, set_uid)
 	changetype = property(get_changetype, set_changetype)
-	data = property(get_data,set_data)
+	data = property(get_data, set_data)
 	objformat = property(get_objformat)
 	objtype = property(get_objtype, set_objtype)
 %}

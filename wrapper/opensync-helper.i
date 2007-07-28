@@ -95,6 +95,10 @@ typedef struct {} HashTable;
 	}
 
 %pythoncode %{
-	num_entries = property(num_entries)
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.entries = _ListWrapper(self.num_entries, self.nth_entry)
 %}
 }

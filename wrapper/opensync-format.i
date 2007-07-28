@@ -99,8 +99,13 @@ typedef struct {} FormatConverterPath;
 	}
 
 %pythoncode %{
-	num_edges = property(num_edges)
 	config = property(get_config, set_config)
+	
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.edges = _ListWrapper(self.num_edges, self.nth_edge)
 %}
 }
 
@@ -291,17 +296,13 @@ typedef struct {} FormatEnv;
 	}
 
 %pythoncode %{
-	@property
-	def objformats(self):
-		return _ListWrapper(self.num_objformats, self.nth_objformat, self.register_objformat)
-
-	@property
-	def converters(self):
-		return _ListWrapper(self.num_converters, self.nth_converter, self.register_converter)
-
-	@property
-	def filters(self):
-		return _ListWrapper(self.num_filters, self.nth_filter, self.register_filter)
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.objformats = _ListWrapper(self.num_objformats, self.nth_objformat)
+		self.converters = _ListWrapper(self.num_converters, self.nth_converter)
+		self.filters = _ListWrapper(self.num_filters, self.nth_filter)
 %}
 }
 

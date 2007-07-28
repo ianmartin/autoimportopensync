@@ -39,6 +39,12 @@ typedef struct {} Capability;
 
 %pythoncode %{
 	name = property(get_name)
+
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.keys = _ListWrapper(self.get_key_count, self.get_nth_key)
 %}
 }
 

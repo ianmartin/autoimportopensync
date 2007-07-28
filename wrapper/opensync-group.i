@@ -13,7 +13,7 @@ typedef struct {} GroupEnv;
 		osync_group_env_free(self);
 	}
 
-	void load_groups(const char *path) {
+	void load_groups(const char *path = NULL) {
 		Error *err = NULL;
 		bool ret = osync_group_env_load_groups(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
@@ -50,7 +50,11 @@ typedef struct {} GroupEnv;
 	}
 
 %pythoncode %{
-	num_groups = property(num_groups)
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.groups = _ListWrapper(self.num_groups, self.nth_group)
 %}
 }
 
@@ -231,12 +235,17 @@ typedef struct {} Group;
 %pythoncode %{
 	name = property(get_name, set_name)
 	configdir = property(get_configdir, set_configdir)
-	num_members = property(num_members)
-	num_objtypes = property(num_objtypes)
-	num_filters = property(num_filters)
 	last_synchronization = property(get_last_synchronization, set_last_synchronization)
 	use_merger = property(get_use_merger, set_use_merger)
 	use_converter = property(get_use_converter, set_use_converter)
+	
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.members = _ListWrapper(self.num_members, self.nth_member)
+		self.objtypes = _ListWrapper(self.num_objtypes, self.nth_objtype)
+		self.filters = _ListWrapper(self.num_filters, self.nth_filter)
 %}
 }
 
@@ -406,15 +415,20 @@ typedef struct {} Member;
 		osync_member_flush_objtypes(self);
 	}
 
-	%pythoncode %{
-		pluginname = property(get_pluginname, set_pluginname)
-		name = property(get_name, set_name)
-		configdir = property(get_configdir, set_configdir)
-		config = property(get_config, set_config)
-		id = property(get_id)
-		num_objtypes = property(num_objtypes)
-		start_type = property(get_start_type, set_start_type)
-		capabilities = property(get_capabilities, set_capabilities)
-		merger = property(get_merger)
-	%}
+%pythoncode %{
+	pluginname = property(get_pluginname, set_pluginname)
+	name = property(get_name, set_name)
+	configdir = property(get_configdir, set_configdir)
+	config = property(get_config, set_config)
+	id = property(get_id)
+	start_type = property(get_start_type, set_start_type)
+	capabilities = property(get_capabilities, set_capabilities)
+	merger = property(get_merger)
+	
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.objtypes = _ListWrapper(self.num_objtypes, self.nth_objtype)
+%}
 }

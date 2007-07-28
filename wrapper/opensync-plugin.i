@@ -109,7 +109,7 @@ typedef struct {} PluginEnv;
 		osync_plugin_env_free(self);
 	}
 
-	void load(const char *path) {
+	void load(const char *path = NULL) {
 		Error *err = NULL;
 		bool ret = osync_plugin_env_load(self, path, &err);
 		if (!raise_exception_on_error(err) && !ret)
@@ -153,11 +153,11 @@ typedef struct {} PluginEnv;
 	}
 
 %pythoncode %{
-	# map the nth_plugin() function to a list of all plugins
-	# FIXME: ideally, this should be an iterator, and should allow appending etc.
-	def plugins(self):
-		return [self.nth_plugin(n) for n in range(self.num_plugins())]
-	plugins = property(plugins)
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.plugins = _ListWrapper(self.num_plugins, self.nth_plugin)
 %}
 };
 
@@ -298,11 +298,11 @@ typedef struct {} PluginInfo;
 	version = property(get_version, set_version)
 	capabilities = property(get_capabilities, set_capabilities)
 
-	# map the nth_objtype() function to a list of all objtypes
-	# FIXME: ideally, this should be an iterator, and should allow appending etc.
-	def objtypes(self):
-		return [self.nth_objtype(n) for n in range(self.num_objtypes())]
-	objtypes = property(objtypes)
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.objtypes = _ListWrapper(self.num_objtypes, self.nth_objtype)
 %}
 }
 
@@ -441,21 +441,27 @@ typedef struct {} ObjTypeSink;
 	}
 
 	/* returns a list of strings */
+/*
 	PyObject *get_objformats() {
 		const OSyncList *list = osync_objtype_sink_get_objformats(self);
 		return osynclist_to_pylist(list, SWIGTYPE_p_char);
 	}
+*/
 
 %pythoncode %{
 	name = property(get_name, set_name)
-	num_objformats = property(num_objformats)
 	enabled = property(is_enabled, set_enabled)
 	available = property(is_available, set_available)
 	write = property(get_write, set_write)
 	read = property(get_read, set_read)
 	slowsync = property(get_slowsync, set_slowsync)
-	objformats = property(get_objformats)
 	callback_obj = property(get_callback_obj)
+	
+	# extend the SWIG-generated constructor, so that we can setup our list-wrapper classes
+	__oldinit = __init__
+	def __init__(self, *args):
+		self.__oldinit(*args)
+		self.objformats = _ListWrapper(self.num_objformats, self.nth_objformat)
 %}
 }
 
