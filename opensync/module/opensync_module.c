@@ -34,7 +34,7 @@ OSyncModule *osync_module_new(OSyncError **error)
 	
 	module = osync_try_malloc0(sizeof(OSyncModule), error);
 	if (!module) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -109,7 +109,7 @@ osync_bool osync_module_get_sync_info(OSyncModule *module, OSyncPluginEnv *env, 
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -133,7 +133,7 @@ osync_bool osync_module_get_format_info(OSyncModule *module, OSyncFormatEnv *env
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -157,7 +157,7 @@ osync_bool osync_module_get_conversion_info(OSyncModule *module, OSyncFormatEnv 
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -195,7 +195,7 @@ osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
 	
 	if (version != OPENSYNC_PLUGINVERSION) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin API version mismatch. Is: %i. Should %i", version, OPENSYNC_PLUGINVERSION);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -215,7 +215,7 @@ osync_bool osync_module_check(OSyncModule *module, OSyncError **error)
  */
 osync_bool osync_module_load(OSyncModule *module, const char *path, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, module, path ? path : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, module, path, error);
 	osync_assert(!module->module);
 	
 	if (!g_module_supported()) {
@@ -236,7 +236,7 @@ osync_bool osync_module_load(OSyncModule *module, const char *path, OSyncError *
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 

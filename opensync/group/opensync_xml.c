@@ -66,6 +66,6 @@ osync_bool osync_open_xml_file(xmlDocPtr *doc, xmlNodePtr *cur, const char *path
 error_free_doc:
 	xmlFreeDoc(*doc);
 error:
-	osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }

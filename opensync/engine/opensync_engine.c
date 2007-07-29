@@ -108,7 +108,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	const char *objtype = osync_change_get_objtype(change);
 	OSyncObjFormat *detectedFormat = NULL;
 
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid ? uid : "nil", changetype, format ? format : "nil", objtype ? objtype : "nil", memberid);
+	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
 	
 	OSyncData *data = osync_change_get_data(change);
 	
@@ -132,13 +132,13 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 			}
 		}
 
-		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat) ? osync_objformat_get_name(detectedFormat) : "nil", detected_objtype ? detected_objtype : "nil");
+		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), detected_objtype);
 
 		/* ... only if the objtype is supported by one of the object engines we change the objtype of the change-entry (change). */
 		if (supported_objtype)
 			osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
 		else
-			osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype ? detected_objtype : "nil");
+			osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype);
 		
 	}
 
@@ -183,12 +183,12 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 	
 	/* Convert the format to the internal format */
 	OSyncObjFormat *internalFormat = _osync_engine_get_internal_format(engine, osync_change_get_objtype(change));
-	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change) ? osync_change_get_objtype(change) : "nil");
+	osync_trace(TRACE_INTERNAL, "common format %p for objtype %s", internalFormat, osync_change_get_objtype(change));
 
 	/* Only convert if the engine is allowed to convert and if a internal format is available. 
 	   The reason that the engine isn't allowed to convert could be backup. dumping the changes. */
 	if (internalFormat && osync_engine_get_use_converter(engine)) {
-		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat) ? osync_objformat_get_name(internalFormat) : "nil");
+		osync_trace(TRACE_INTERNAL, "converting to common format %s", osync_objformat_get_name(internalFormat));
 	
 		OSyncFormatConverterPath *path = osync_format_env_find_path(engine->formatenv, osync_change_get_objformat(change), internalFormat, &error);
 		if (!path)
@@ -263,7 +263,7 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 
 error:
 	osync_status_update_member(engine, osync_client_proxy_get_member(proxy), OSYNC_CLIENT_EVENT_ERROR, NULL, error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
 	osync_error_unref(&error);
 }
 
@@ -294,7 +294,7 @@ osync_bool osync_engine_mapping_solve(OSyncEngine *engine, OSyncMappingEngine *m
 	
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -315,7 +315,7 @@ osync_bool osync_engine_mapping_duplicate(OSyncEngine *engine, OSyncMappingEngin
 	
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -335,7 +335,7 @@ osync_bool osync_engine_mapping_ignore_conflict(OSyncEngine *engine, OSyncMappin
 	
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -355,7 +355,7 @@ osync_bool osync_engine_mapping_use_latest(OSyncEngine *engine, OSyncMappingEngi
 	
 	OSyncEngineCommand *cmd = osync_try_malloc0(sizeof(OSyncEngineCommand), error);
 	if (!cmd) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -456,7 +456,7 @@ OSyncEngine *osync_engine_new(OSyncGroup *group, OSyncError **error)
 error_free_engine:
 	osync_engine_unref(engine);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -635,7 +635,7 @@ static osync_bool _osync_engine_start(OSyncEngine *engine, OSyncError **error)
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -673,7 +673,7 @@ static osync_bool _osync_engine_finalize_member(OSyncEngine *engine, OSyncClient
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -736,7 +736,7 @@ static OSyncClientProxy *_osync_engine_initialize_member(OSyncEngine *engine, OS
 		osync_error_set_from_error(error, &(engine->error));
 		osync_error_unref(&(engine->error));
 		engine->error = NULL;
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -748,7 +748,7 @@ error_shutdown:
 error_free_proxy:
 	osync_client_proxy_unref(proxy);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -821,7 +821,7 @@ error_finalize:
 	osync_engine_finalize(engine, NULL);
 	osync_group_unlock(engine->group);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -862,7 +862,7 @@ osync_bool osync_engine_finalize(OSyncEngine *engine, OSyncError **error)
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1302,7 +1302,7 @@ error:
 	g_cond_signal(engine->syncing);
 	g_mutex_unlock(engine->syncing_mutex);
 
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error) ? osync_error_print(&engine->error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error));
 	osync_error_ref(&engine->error);
 }
 
@@ -1403,7 +1403,7 @@ void osync_engine_event(OSyncEngine *engine, OSyncEngineEvent event)
 			g_mutex_unlock(engine->syncing_mutex);
 			break;
 		case OSYNC_ENGINE_EVENT_ERROR:
-			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)) ? osync_error_print(&(engine->error)) : "nil");
+			osync_trace(TRACE_ERROR, "Engine aborting due to an error: %s", osync_error_print(&(engine->error)));
 			
 			g_mutex_lock(engine->syncing_mutex);
 			g_cond_signal(engine->syncing);
@@ -1423,7 +1423,7 @@ error:
 	g_cond_signal(engine->syncing);
 	g_mutex_unlock(engine->syncing_mutex);
 
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error) ? osync_error_print(&engine->error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&engine->error));
 	osync_error_ref(&engine->error);
 }
 
@@ -1458,7 +1458,7 @@ osync_bool osync_engine_synchronize(OSyncEngine *engine, OSyncError **error)
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1488,7 +1488,7 @@ osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **
 	
 	if (engine->error) {
 		char *msg = osync_error_print_stack(&(engine->error));
-		osync_trace(TRACE_ERROR, "error while synchronizing: %s", msg ? msg : "nil");
+		osync_trace(TRACE_ERROR, "error while synchronizing: %s", msg);
 		g_free(msg);
 		osync_error_set_from_error(error, &(engine->error));
 		osync_error_unref(&(engine->error));
@@ -1500,7 +1500,7 @@ osync_bool osync_engine_synchronize_and_block(OSyncEngine *engine, OSyncError **
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1551,7 +1551,7 @@ osync_bool osync_engine_discover(OSyncEngine *engine, OSyncMember *member, OSync
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1609,7 +1609,7 @@ osync_bool osync_engine_discover_and_block(OSyncEngine *engine, OSyncMember *mem
 error_finalize:
 	osync_engine_finalize(engine, NULL);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 

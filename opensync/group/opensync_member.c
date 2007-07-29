@@ -64,7 +64,7 @@ static OSyncObjTypeSink *_osync_member_parse_objtype(xmlNode *cur, OSyncError **
 	osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, cur, error);
 	OSyncObjTypeSink *sink = osync_objtype_sink_new(NULL, error);
 	if (!sink) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -284,7 +284,7 @@ const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError *
 	}
 	
 	filename = g_strdup_printf("%s"G_DIR_SEPARATOR_S"%s.conf", member->configdir, member->pluginname);
-	osync_trace(TRACE_INTERNAL, "Reading %s", filename ? filename : "nil");
+	osync_trace(TRACE_INTERNAL, "Reading %s", filename);
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 		if (!osync_file_read(filename, &data, NULL, error))
 			goto error_free_filename;
@@ -302,7 +302,7 @@ const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError *
 	g_free(filename);
 
 	filename = g_strdup_printf(OPENSYNC_CONFIGDIR G_DIR_SEPARATOR_S"%s", member->pluginname);
-	osync_trace(TRACE_INTERNAL, "Reading default %s", filename ? filename : "nil");
+	osync_trace(TRACE_INTERNAL, "Reading default %s", filename);
 	if (!osync_file_read(filename, &data, NULL, error))
 		goto error_free_filename;
 	g_free(filename);
@@ -317,7 +317,7 @@ const char *osync_member_get_config_or_default(OSyncMember *member, OSyncError *
 
 error_free_filename:
 	g_free(filename);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -357,12 +357,12 @@ const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
 	}
 	
 	filename = g_strdup_printf("%s/%s.conf", member->configdir, member->pluginname);
-	osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename ? filename : "nil");
+	osync_trace(TRACE_INTERNAL, "Reading config from: %s", filename);
 	
 	if (g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 		if (!osync_file_read(filename, &data, NULL, error)) {
 			g_free(filename);
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 			return NULL;
 		}
 		g_free(filename);
@@ -376,7 +376,7 @@ const char *osync_member_get_config(OSyncMember *member, OSyncError **error)
 	g_free(filename);
 	
 	osync_error_set(error, OSYNC_ERROR_GENERIC, "Plugin is not configured");
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -415,7 +415,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 	char *filename = NULL;
 	char *basename = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path ? path : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, member, path, error);
 
 	filename = g_strdup_printf ("%s/syncmember.conf", path);
 	
@@ -463,7 +463,7 @@ osync_bool osync_member_load(OSyncMember *member, const char *path, OSyncError *
 error_free_doc:
 	xmlFreeDoc(doc);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -545,7 +545,7 @@ osync_bool osync_member_save(OSyncMember *member, OSyncError **error)
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -566,7 +566,7 @@ osync_bool osync_member_delete(OSyncMember *member, OSyncError **error)
 	if (system(delcmd)) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Failed to delete member. command %s failed", delcmd);
 		g_free(delcmd);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	g_free(delcmd);
@@ -721,7 +721,7 @@ osync_bool osync_member_objtype_enabled(OSyncMember *member, const char *objtype
 void osync_member_set_objtype_enabled(OSyncMember *member, const char *objtype, osync_bool enabled)
 {
 	OSyncObjTypeSink *sink = NULL;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtype ? objtype : "nil", enabled);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i)", __func__, member, objtype, enabled);
 	osync_assert(member);
 	
 	sink = osync_member_find_objtype_sink(member, objtype);

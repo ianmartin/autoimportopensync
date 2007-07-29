@@ -95,7 +95,7 @@ void osync_status_conflict(OSyncEngine *engine, OSyncMappingEngine *mapping_engi
 
 void osync_status_update_member(OSyncEngine *engine, OSyncMember *member, OSyncMemberEvent type, const char *objtype, OSyncError *error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %s, %p)", __func__, engine, member, type, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %s, %p)", __func__, engine, member, type, objtype, error);
 	
 	if (engine->mebstat_callback) {
 		OSyncMemberUpdate *update = g_malloc0(sizeof(OSyncMemberUpdate));

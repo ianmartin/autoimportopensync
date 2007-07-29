@@ -74,7 +74,7 @@ void osync_context_set_warning_callback(OSyncContext *context, OSyncContextCallb
 
 void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error) ? osync_error_print(&error) : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error));
 	osync_assert(context);
 	
 	if (context->callback_function)
@@ -85,7 +85,7 @@ void osync_context_report_osyncerror(OSyncContext *context, OSyncError *error)
 
 void osync_context_report_osyncwarning(OSyncContext *context, OSyncError *error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error) ? osync_error_print(&error) : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %p:(%s))", __func__, context, error, osync_error_print(&error));
 	osync_assert(context);
 	
 	if (context->warning_function)
@@ -98,12 +98,12 @@ void osync_context_report_error(OSyncContext *context, OSyncErrorType type, cons
 {
 	OSyncError *error = NULL;
 	va_list args;
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s)", __func__, context, type, format ? format : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s)", __func__, context, type, format);
 	osync_assert(context);
 	
 	va_start(args, format);
 	osync_error_set_vargs(&error, type, format, args);
-	osync_trace(TRACE_INTERNAL, "ERROR is: %s", osync_error_print(&error) ? osync_error_print(&error) : "nil");
+	osync_trace(TRACE_INTERNAL, "ERROR is: %s", osync_error_print(&error));
 	va_end (args);
 	
 	if (context->callback_function)
@@ -140,7 +140,7 @@ void osync_context_report_change(OSyncContext *context, OSyncChange *change)
 	osync_assert_msg((osync_data_get_objformat(data) != NULL) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED, "The reported change did not have a format set");
 	osync_assert_msg((osync_data_get_objtype(data) != NULL) || osync_change_get_changetype(change) == OSYNC_CHANGE_TYPE_DELETED, "The reported change did not have a objtype set");
 		
-	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, objtype %s and format %s", osync_change_get_uid(change) ? osync_change_get_uid(change) : "nil", osync_change_get_changetype(change), osync_change_get_data(change), osync_data_get_objtype(data) ? osync_data_get_objtype(data) : "nil", osync_data_get_objformat(data) ? osync_objformat_get_name(osync_data_get_objformat(data)) : "None");
+	osync_trace(TRACE_INTERNAL, "Reporting change with uid %s, changetype %i, data %p, objtype %s and format %s", osync_change_get_uid(change), osync_change_get_changetype(change), osync_change_get_data(change), osync_data_get_objtype(data), osync_data_get_objformat(data) ? osync_objformat_get_name(osync_data_get_objformat(data)) : "None");
 	
 	osync_assert_msg(context->changes_function, "The engine must set a callback to receive changes");
 	

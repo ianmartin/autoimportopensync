@@ -51,7 +51,7 @@ OSyncCapabilitiesObjType *_osync_capabilitiesobjtype_new(OSyncCapabilities *capa
 	
 	OSyncCapabilitiesObjType *objtype = osync_try_malloc0(sizeof(OSyncCapabilitiesObjType), error);
 	if(!objtype) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -110,7 +110,7 @@ OSyncCapabilities *osync_capabilities_new(OSyncError **error)
 	
 	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
 	if(!capabilities) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -139,7 +139,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	
 	OSyncCapabilities *capabilities = osync_try_malloc0(sizeof(OSyncCapabilities), error);
 	if(!capabilities) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 
@@ -150,7 +150,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 	if(capabilities->doc == NULL) {
 		g_free(capabilities);
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Could not parse XML.");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	capabilities->doc->_private = capabilities;
@@ -161,7 +161,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 		OSyncCapabilitiesObjType *capabilitiesobjtype = _osync_capabilitiesobjtype_new(capabilities, cur, error);
 		if(!capabilitiesobjtype) {
 			osync_capabilities_unref(capabilities);
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 			return NULL;
 		}
 		
@@ -174,7 +174,7 @@ OSyncCapabilities *osync_capabilities_parse(const char *buffer, unsigned int siz
 			OSyncCapability *capability = _osync_capability_new(capabilitiesobjtype, tmp, error);
 			if(!capability) {
 				osync_capabilities_unref(capabilities);
-				osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 				return NULL;
 			}
 		}
@@ -322,7 +322,7 @@ void osync_capabilities_sort(OSyncCapabilities *capabilities)
  */
 OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, file ? file : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, file, error);
 	osync_assert(file);
 	
 	unsigned int size;
@@ -334,14 +334,14 @@ OSyncCapabilities *osync_capabilities_load(const char *file, OSyncError **error)
 	osync_bool b = osync_file_read(filename, &buffer, &size, error);
 	g_free(filename);
 	if(!b) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
 	capabilities = osync_capabilities_parse(buffer, size, error);
 	g_free(buffer);
 	if(!capabilities) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -391,14 +391,14 @@ OSyncCapabilities* osync_capabilities_member_get_capabilities(OSyncMember *membe
 	g_free(filename);
 	
 	if(!res) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
 	capabilities = osync_capabilities_parse(buffer, size, error);
 	g_free(buffer);
 	if(!capabilities) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -433,7 +433,7 @@ osync_bool osync_capabilities_member_set_capabilities(OSyncMember *member, OSync
 	g_free(filename);
 	g_free(buffer);
 	if(!res) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return FALSE;
 	}
 	

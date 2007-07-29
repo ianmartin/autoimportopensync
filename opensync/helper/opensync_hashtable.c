@@ -71,11 +71,11 @@
 
 osync_bool osync_hashtable_create(OSyncHashTable *table, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, objtype, error);
 
 	char *query = g_strdup_printf("CREATE TABLE tbl_hash_%s (id INTEGER PRIMARY KEY, uid VARCHAR UNIQUE, hash VARCHAR)", objtype);
 	if (!osync_db_query(table->dbhandle, query, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		g_free(query);
 		return FALSE;
 	}
@@ -98,11 +98,11 @@ osync_bool osync_hashtable_create(OSyncHashTable *table, const char *objtype, OS
  */
 OSyncHashTable *osync_hashtable_new(const char *path, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, path ? path : "nil", objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %s, %p)", __func__, path, objtype, error);
 	
 	OSyncHashTable *table = osync_try_malloc0(sizeof(OSyncHashTable), error);
 	if (!table) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -136,7 +136,7 @@ error_and_free:
 	g_free(table->dbhandle);
 	g_free(table);
 error:	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 
 }
@@ -236,7 +236,7 @@ osync_bool osync_hashtable_nth_entry(OSyncHashTable *table, int nth, char **uid,
 	g_free(query);
 
 	if (osync_error_is_set(&error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get #%i entry from hashtable: %s", __func__, nth, osync_error_print(&error) ? osync_error_print(&error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get #%i entry from hashtable: %s", __func__, nth, osync_error_print(&error));
 		osync_error_unref(&error);
 		return FALSE;
 	}
@@ -276,7 +276,7 @@ char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid)
 
        if (osync_error_is_set(&error)) {
                osync_trace(TRACE_EXIT_ERROR, "%s: Cannot get hash for '%s': %s",
-                           __func__, uid ? uid : "nil", osync_error_print(&error) ? osync_error_print(&error) : "nil");
+                           __func__, uid, osync_error_print(&error));
                osync_error_unref(&error);
                return NULL;
        }
@@ -293,7 +293,7 @@ char *osync_hashtable_get_hash(OSyncHashTable *table, const char *uid)
 
 void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *hash)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid ? uid : "nil", hash ? hash : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, hash);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
@@ -315,7 +315,7 @@ void osync_hashtable_write(OSyncHashTable *table, const char *uid, const char *h
 
 void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid ? uid : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
@@ -346,7 +346,7 @@ void osync_hashtable_delete(OSyncHashTable *table, const char *uid)
  */
 void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, const char *uid, const char *hash)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %s)", __func__, table, type, uid ? uid : "nil", hash ? hash : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %s)", __func__, table, type, uid, hash);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
@@ -377,7 +377,7 @@ void osync_hashtable_update_hash(OSyncHashTable *table, OSyncChangeType type, co
  */
 void osync_hashtable_report(OSyncHashTable *table, const char *uid)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid ? uid : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, table, uid);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 	
@@ -438,7 +438,7 @@ char **osync_hashtable_get_deleted(OSyncHashTable *table)
  */
 OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char *uid, const char *hash)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid ? uid : "nil", hash ? hash : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s)", __func__, table, uid, hash);
 	osync_assert(table);
 	osync_assert(table->dbhandle);
 
@@ -452,7 +452,7 @@ OSyncChangeType osync_hashtable_get_changetype(OSyncHashTable *table, const char
 	g_free(query);
 	g_free(escaped_uid);
 	
-	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash ? hash : "nil", orighash ? orighash : "nil");
+	osync_trace(TRACE_INTERNAL, "Comparing %s with %s", hash, orighash);
 	
 	if (orighash) {
 		if (!strcmp(hash, orighash))

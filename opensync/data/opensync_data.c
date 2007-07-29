@@ -346,7 +346,7 @@ time_t osync_data_get_revision(OSyncData *data, OSyncError **error)
 	
 	time_t time = osync_objformat_get_revision(format, data->data, data->size, error);
 	if (time == -1) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return -1;
 	}
 	

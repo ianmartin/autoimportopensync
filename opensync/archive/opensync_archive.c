@@ -40,7 +40,7 @@
 
 void _osync_archive_trace(void *data, const char *query)
 {
-	osync_trace(TRACE_INTERNAL, "query executed: %s", query ? query : "nil");
+	osync_trace(TRACE_INTERNAL, "query executed: %s", query);
 }
 
 /*@}*/
@@ -57,7 +57,7 @@ void _osync_archive_trace(void *data, const char *query)
 
 static osync_bool osync_archive_create_changes(OSyncDB *db, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype ? objtype : "nil", error); 
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
 
 	osync_assert(db);
 	osync_assert(objtype);
@@ -88,13 +88,13 @@ static osync_bool osync_archive_create_changes(OSyncDB *db, const char *objtype,
 	return TRUE;
 
 error:	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 static osync_bool osync_archive_create_changelog(OSyncDB *db, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype ? objtype : "nil", error); 
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
 
 	osync_assert(db);
 	osync_assert(objtype);
@@ -124,13 +124,13 @@ static osync_bool osync_archive_create_changelog(OSyncDB *db, const char *objtyp
 	return TRUE;
 
 error:	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 static osync_bool osync_archive_create(OSyncDB *db, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype ? objtype : "nil", error); 
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, objtype, error); 
 
 	osync_assert(db);
 	osync_assert(objtype);
@@ -161,7 +161,7 @@ static osync_bool osync_archive_create(OSyncDB *db, const char *objtype, OSyncEr
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -173,7 +173,7 @@ error:
  */
 OSyncArchive *osync_archive_new(const char *filename, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename ? filename : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, filename, error);
 	osync_assert(filename);
 	
 	OSyncArchive *archive = osync_try_malloc0(sizeof(OSyncArchive), error);
@@ -198,7 +198,7 @@ error_and_free:
 	g_free(archive);
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -250,7 +250,7 @@ void osync_archive_unref(OSyncArchive *archive)
  */ 
 osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const char *objtype, const char *data, unsigned int size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %u, %p)", __func__, archive, uid ? uid : "nil", objtype ? objtype : "nil", data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %u, %p)", __func__, archive, uid, objtype, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(data);
@@ -275,7 +275,7 @@ osync_bool osync_archive_save_data(OSyncArchive *archive, const char *uid, const
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -292,7 +292,7 @@ error:
  */ 
 int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *objtype, char **data, unsigned int *size, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p, %p)", __func__, archive, uid ? uid : "nil", objtype ? objtype : "nil", data, size, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p, %p, %p)", __func__, archive, uid, objtype, data, size, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(data);
@@ -318,7 +318,7 @@ int osync_archive_load_data(OSyncArchive *archive, const char *uid, const char *
 	return 1;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return -1;
 }
 
@@ -337,7 +337,7 @@ error:
 long long int osync_archive_save_change(OSyncArchive *archive, long long int id, const char *uid, const char *objtype, long long int mappingid, long long int memberid, OSyncError **error)
 {
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %s, %lli, %lli, %p)", __func__, archive, id, uid ? uid : "nil", objtype ? objtype : "nil", mappingid, memberid, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %s, %lli, %lli, %p)", __func__, archive, id, uid, objtype, mappingid, memberid, error);
 	osync_assert(archive);
 	osync_assert(uid);
 	osync_assert(objtype);
@@ -371,7 +371,7 @@ long long int osync_archive_save_change(OSyncArchive *archive, long long int id,
 	return id;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return 0;
 }
 
@@ -386,7 +386,7 @@ error:
  */ 
 osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %p)", __func__, archive, id, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %lli, %s, %p)", __func__, archive, id, objtype, error);
 	osync_assert(archive);
 	osync_assert(objtype);
 
@@ -405,7 +405,7 @@ osync_bool osync_archive_delete_change(OSyncArchive *archive, long long int id, 
 	return TRUE;
 
 error:	
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -423,7 +423,7 @@ error:
  */ 
 osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **uids, OSyncList **mappingids, OSyncList **memberids, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p, %p, %p)", __func__, archive, objtype ? objtype : "nil", ids, uids, mappingids, memberids, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p, %p, %p, %p)", __func__, archive, objtype, ids, uids, mappingids, memberids, error);
 
 	osync_assert(archive);
 	osync_assert(objtype);
@@ -459,7 +459,7 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 		*mappingids = osync_list_append((*mappingids), GINT_TO_POINTER((int)mappingid));
 		*memberids = osync_list_append((*memberids), GINT_TO_POINTER((int)memberid));
 		
-	    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid ? uid : "nil", mappingid, memberid);
+	    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", uid, mappingid, memberid);
 	}
 
 	osync_db_free_list(result);	
@@ -467,7 +467,7 @@ osync_bool osync_archive_load_changes(OSyncArchive *archive, const char *objtype
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;	
 }
 
@@ -483,7 +483,7 @@ error:
  */ 
 osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const char *objtype, OSyncList **ids, OSyncList **changetypes, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, archive, objtype ? objtype : "nil", ids, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p, %p)", __func__, archive, objtype, ids, error);
 
 	osync_assert(archive);
 	osync_assert(objtype);
@@ -522,7 +522,7 @@ osync_bool osync_archive_load_ignored_conflicts(OSyncArchive *archive, const cha
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;	
 }
 
@@ -538,7 +538,7 @@ error:
  */ 
 osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char *objtype, long long int id, OSyncChangeType changetype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %lli, %p)", __func__, archive, objtype ? objtype : "nil", id, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %lli, %p)", __func__, archive, objtype, id, error);
 
 	osync_assert(archive);
 	osync_assert(objtype);
@@ -559,7 +559,7 @@ osync_bool osync_archive_save_ignored_conflict(OSyncArchive *archive, const char
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -574,7 +574,7 @@ error:
 osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const char *objtype, OSyncError **error)
 {
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, archive, objtype, error);
 	osync_assert(archive);
 	osync_assert(objtype);
 
@@ -594,7 +594,7 @@ osync_bool osync_archive_flush_ignored_conflict(OSyncArchive *archive, const cha
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 

@@ -167,7 +167,7 @@ static osync_bool _osync_client_kill_old_osplugin(OSyncClientProxy *proxy, OSync
 	osync_trace(TRACE_INTERNAL, "Killing old osplugin process. PID: %ld", (long)pid);
 
 	if (_osync_kill(pid, SIGTERM) < 0) {
-		osync_trace(TRACE_INTERNAL, "Error killing old osplugin: %s. Stale pid file?", g_strerror(errno) ? g_strerror(errno) : "nil");
+		osync_trace(TRACE_INTERNAL, "Error killing old osplugin: %s. Stale pid file?", g_strerror(errno));
 		/* Don't return failure if kill() failed, because it may be a stale pid file */
 	}
 
@@ -318,7 +318,7 @@ static void _osync_client_proxy_discover_handler(OSyncMessage *message, void *us
 			OSyncObjTypeSink *sink = NULL;
 			if (!osync_demarshal_objtype_sink(message, &sink, &locerror))
 				goto error;
-			osync_trace(TRACE_INTERNAL, "Received sink: %s", osync_objtype_sink_get_name(sink) ? osync_objtype_sink_get_name(sink) : "nil");
+			osync_trace(TRACE_INTERNAL, "Received sink: %s", osync_objtype_sink_get_name(sink));
 	
 			proxy->objtypes = g_list_append(proxy->objtypes, sink);
 			
@@ -782,7 +782,7 @@ osync_bool osync_client_proxy_spawn(OSyncClientProxy *proxy, OSyncStartType type
 	OSyncQueue *write1 = NULL;
 	OSyncQueue *write2 = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p)", __func__, proxy, type, path ? path : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %s, %p)", __func__, proxy, type, path, error);
 	osync_assert(proxy);
 	osync_assert(type != OSYNC_START_TYPE_UNKNOWN);
 		
@@ -910,7 +910,7 @@ error_free_pipe1:
 	osync_queue_free(read1);
 	osync_queue_free(write1);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -972,13 +972,13 @@ osync_bool osync_client_proxy_shutdown(OSyncClientProxy *proxy, OSyncError **err
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb callback, void *userdata, const char *formatdir, const char *plugindir, const char *plugin, const char *groupname, const char *configdir, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir ? formatdir : "nil", plugindir ? plugindir : "nil", plugin ? plugin : "nil", groupname ? groupname : "nil", configdir ? configdir : "nil", config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %s, %s, %s, %p, %p)", __func__, proxy, callback, userdata, formatdir, plugindir, plugin, groupname, configdir, config, error);
 	osync_assert(proxy);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
@@ -1020,7 +1020,7 @@ osync_bool osync_client_proxy_initialize(OSyncClientProxy *proxy, initialize_cb 
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1053,7 +1053,7 @@ osync_bool osync_client_proxy_finalize(OSyncClientProxy *proxy, finalize_cb call
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1086,7 +1086,7 @@ osync_bool osync_client_proxy_discover(OSyncClientProxy *proxy, discover_cb call
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1104,7 +1104,7 @@ OSyncObjTypeSink *osync_client_proxy_nth_objtype(OSyncClientProxy *proxy, int nt
 
 osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callback, void *userdata, const char *objtype, osync_bool slowsync, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
@@ -1134,13 +1134,13 @@ osync_bool osync_client_proxy_connect(OSyncClientProxy *proxy, connect_cb callba
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
@@ -1169,7 +1169,7 @@ osync_bool osync_client_proxy_disconnect(OSyncClientProxy *proxy, disconnect_cb 
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1205,13 +1205,13 @@ osync_bool osync_client_proxy_read(OSyncClientProxy *proxy, read_cb callback, vo
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
 	if (!ctx)
@@ -1240,7 +1240,7 @@ osync_bool osync_client_proxy_get_changes(OSyncClientProxy *proxy, get_changes_c
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -1278,13 +1278,13 @@ osync_bool osync_client_proxy_commit_change(OSyncClientProxy *proxy, commit_chan
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_all_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	osync_assert(proxy);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
@@ -1314,13 +1314,13 @@ osync_bool osync_client_proxy_committed_all(OSyncClientProxy *proxy, committed_a
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
 osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb callback, void *userdata, const char *objtype, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %s, %p)", __func__, proxy, callback, userdata, objtype, error);
 	osync_assert(proxy);
 	
 	callContext *ctx = osync_try_malloc0(sizeof(callContext), error);
@@ -1350,6 +1350,6 @@ osync_bool osync_client_proxy_sync_done(OSyncClientProxy *proxy, sync_done_cb ca
 error_free_message:
 	osync_message_unref(message);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }

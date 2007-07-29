@@ -56,7 +56,7 @@ OSyncMerger *osync_merger_new(OSyncCapabilities *capabilities, OSyncError **erro
 	
 	OSyncMerger *merger = osync_try_malloc0(sizeof(OSyncMerger), error);
 	if(!merger) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s" , __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -252,7 +252,7 @@ void osync_merger_merge(OSyncMerger *merger, OSyncXMLFormat *xmlformat, OSyncXML
 	 char *buffer = NULL;
 	 osync_xmlformat_assemble(xmlformat, &buffer, &size);
 
-	 osync_trace(TRACE_EXIT, "%s:\nXML:\n%s ", __func__, buffer ? buffer : "nil");
+	 osync_trace(TRACE_EXIT, "%s:\nXML:\n%s ", __func__, buffer);
 
 	 g_free(buffer);
 }
@@ -283,7 +283,7 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 	 		if(cur_capability == NULL) {
 	 			/* delete all xmlfields */
 	 			while(cur_xmlfield) {
-	 				osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield) ? osync_xmlfield_get_name(cur_xmlfield) : "nil");
+	 				osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield));
 	 				tmp = osync_xmlfield_get_next(cur_xmlfield);
 	 				osync_xmlfield_delete(cur_xmlfield);
 	 				cur_xmlfield = tmp;
@@ -304,7 +304,7 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 		 			{
 		 				if(j == capability_keys) {
 		 					for(; i < xmlfield_keys; i++) {
-		 						osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield) ? osync_xmlfield_get_name(cur_xmlfield) : "nil", osync_xmlfield_get_nth_key_name(cur_xmlfield, i) ? osync_xmlfield_get_nth_key_name(cur_xmlfield, i) : "nil");
+		 						osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
 		 						osync_xmlfield_set_nth_key_value(cur_xmlfield, i, "");
 		 					}
 		 					break;
@@ -319,7 +319,7 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 		 					continue;
 		 				}
 		 				if(krc < 0) {
-		 					osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield) ? osync_xmlfield_get_name(cur_xmlfield) : "nil", osync_xmlfield_get_nth_key_name(cur_xmlfield, i) ? osync_xmlfield_get_nth_key_name(cur_xmlfield, i) : "nil");
+		 					osync_trace(TRACE_INTERNAL, "Demerge XMLField Key: %s->%s",	osync_xmlfield_get_name(cur_xmlfield), osync_xmlfield_get_nth_key_name(cur_xmlfield, i));
 		 					osync_xmlfield_set_nth_key_value(cur_xmlfield, i, "");
 		 					continue;
 		 				}
@@ -335,7 +335,7 @@ void osync_merger_demerge(OSyncMerger *merger, OSyncXMLFormat *xmlformat)
 		 	}
 		 	if(rc < 0) {
 				/* delete xmlfield */
-				osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield) ? osync_xmlfield_get_name(cur_xmlfield) : "nil");
+				osync_trace(TRACE_INTERNAL, "Demerge XMLField: %s", osync_xmlfield_get_name(cur_xmlfield));
 				tmp = osync_xmlfield_get_next(cur_xmlfield);
 	 			osync_xmlfield_delete(cur_xmlfield);
 	 			cur_xmlfield = tmp;

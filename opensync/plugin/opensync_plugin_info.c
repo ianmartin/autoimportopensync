@@ -171,7 +171,7 @@ const char *osync_plugin_info_get_groupname(OSyncPluginInfo *info)
 
 OSyncObjTypeSink *osync_plugin_info_find_objtype(OSyncPluginInfo *info, const char *name)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, info, name ? name : "nil");
+	osync_trace(TRACE_ENTRY, "%s(%p, %s)", __func__, info, name);
 	GList *p;
 	osync_assert(info);
 

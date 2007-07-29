@@ -452,7 +452,7 @@ error:
  */
 OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, name ? name : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%s, %p)", __func__, name, error);
 	
 	OSyncQueue *queue = osync_try_malloc0(sizeof(OSyncQueue), error);
 	if (!queue)
@@ -476,7 +476,7 @@ OSyncQueue *osync_queue_new(const char *name, OSyncError **error)
 	return queue;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -499,7 +499,7 @@ OSyncQueue *osync_queue_new_from_fd(int fd, OSyncError **error)
 	return queue;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -548,7 +548,7 @@ error_close_pipes:
 	close(filedes[0]);
 	close(filedes[1]);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -605,7 +605,7 @@ osync_bool osync_queue_create(OSyncQueue *queue, OSyncError **error)
 	if (mkfifo(queue->name, 0600) != 0) {
 		if (errno != EEXIST) {
 			osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to create fifo");
-			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+			osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 			return FALSE;
 		}
 	}
@@ -621,7 +621,7 @@ osync_bool osync_queue_remove(OSyncQueue *queue, OSyncError **error)
 
 	if (queue->name && unlink(queue->name) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to remove queue");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -706,7 +706,7 @@ osync_bool osync_queue_connect(OSyncQueue *queue, OSyncQueueType type, OSyncErro
 error_close:
 	close(queue->fd);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 #endif //_WIN32
 }
@@ -742,7 +742,7 @@ osync_bool osync_queue_disconnect(OSyncQueue *queue, OSyncError **error)
 	
 	if (queue->fd != -1 && close(queue->fd) != 0) {
 		osync_error_set(error, OSYNC_ERROR_GENERIC, "Unable to close queue");
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -909,7 +909,7 @@ osync_bool osync_queue_send_message(OSyncQueue *queue, OSyncQueue *replyqueue, O
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -921,7 +921,7 @@ osync_bool osync_queue_send_message_with_timeout(OSyncQueue *queue, OSyncQueue *
 	
 	osync_bool ret = osync_queue_send_message(queue, replyqueue, message, error);
 	
-	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(ret ? TRACE_EXIT : TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return ret;
 }
 

@@ -42,7 +42,7 @@ OSyncMappingTable *osync_mapping_table_new(OSyncError **error)
 	return table;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -81,7 +81,7 @@ osync_bool osync_mapping_table_load(OSyncMappingTable *table, OSyncArchive *arch
 	OSyncMappingEntry *entry = NULL;
 	OSyncMapping *mapping = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, table, archive, objtype ? objtype : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %s, %p)", __func__, table, archive, objtype, error);
 	
 	OSyncList *uids = NULL;
 	OSyncList *ids = NULL;
@@ -144,7 +144,7 @@ error_free:
 	osync_list_free(mappings);
 	osync_list_free(memberids);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -154,7 +154,7 @@ osync_bool osync_mapping_table_load(OSyncMappingTable *table, const char *path, 
 	OSyncMappingEntry *entry = NULL;
 	OSyncMapping *mapping = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, path ? path : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, table, path, error);
 	
 	int rc = sqlite3_open(path, &(table->db));
 	if (rc) {
@@ -163,7 +163,7 @@ osync_bool osync_mapping_table_load(OSyncMappingTable *table, const char *path, 
 	}
 	
 	if (sqlite3_exec(table->db, "CREATE TABLE tbl_changes (id INTEGER PRIMARY KEY, uid VARCHAR, objtype VARCHAR, format VARCHAR, memberid INTEGER, mappingid INTEGER)", NULL, NULL, NULL) != SQLITE_OK)
-		osync_trace(TRACE_INTERNAL, "Unable create changes table! %s", sqlite3_errmsg(table->db) ? sqlite3_errmsg(table->db) : "nil");
+		osync_trace(TRACE_INTERNAL, "Unable create changes table! %s", sqlite3_errmsg(table->db));
 	
 	sqlite3_stmt *ppStmt = NULL;
 	sqlite3_prepare(table->db, "SELECT uid, memberid, mappingid FROM tbl_changes ORDER BY mappingid", -1, &ppStmt, NULL);
@@ -193,7 +193,7 @@ osync_bool osync_mapping_table_load(OSyncMappingTable *table, const char *path, 
 		long long int memberid = sqlite3_column_int64(ppStmt, 2);
 		osync_mapping_entry_set_member_id(entry, memberid);
 		
-    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", osync_mapping_entry_get_uid(entry) ? osync_mapping_entry_get_uid(entry) : "nil", mappingid, memberid);
+    	osync_trace(TRACE_INTERNAL, "Loaded change with uid %s, mappingid %lli from member %lli", osync_mapping_entry_get_uid(entry), mappingid, memberid);
 	}
 	sqlite3_finalize(ppStmt);
 	
@@ -206,7 +206,7 @@ error_close:
 	sqlite3_finalize(ppStmt);
 	sqlite3_close(table->db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 #endif

@@ -46,7 +46,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	const gchar *de = NULL;
 	GList *m = NULL;
 	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i, %p)", __func__, env, path ? path : "nil", must_exist, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %i, %p)", __func__, env, path, must_exist, error);
 	osync_assert(env);
 	osync_assert(path);
 	
@@ -81,7 +81,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 			goto error_free_filename;
 		
 		if (!osync_module_load(module, filename, error)) {
-			osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename ? filename : "nil", osync_error_print(error) ? osync_error_print(error) : "nil");
+			osync_trace(TRACE_INTERNAL, "Unable to load module %s: %s", filename, osync_error_print(error));
 			osync_error_unref(error);
 			osync_module_free(module);
 			g_free(filename);
@@ -90,7 +90,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 		
 		if (!osync_module_check(module, error)) {
 			if (osync_error_is_set(error)) {
-				osync_trace(TRACE_INTERNAL, "Module check error for %s: %s", filename ? filename : "nil", osync_error_print(error) ? osync_error_print(error) : "nil");
+				osync_trace(TRACE_INTERNAL, "Module check error for %s: %s", filename, osync_error_print(error));
 				osync_error_unref(error);
 			}
 			osync_module_free(module);
@@ -100,7 +100,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	
 		if (!osync_module_get_format_info(module, env, error)) {
 			if (osync_error_is_set(error)) {
-				osync_trace(TRACE_INTERNAL, "Module get format error for %s: %s", filename ? filename : "nil", osync_error_print(error) ? osync_error_print(error) : "nil");
+				osync_trace(TRACE_INTERNAL, "Module get format error for %s: %s", filename, osync_error_print(error));
 				osync_error_unref(error);
 			}
 			osync_module_free(module);
@@ -119,7 +119,7 @@ static osync_bool _osync_format_env_load_modules(OSyncFormatEnv *env, const char
 	for (m = env->modules; m; m = m->next) {
 		module = m->data;
 		if (!osync_module_get_conversion_info(module, env, error)) {
-			osync_trace(TRACE_INTERNAL, "Module get conversion error %s", osync_error_print(error) ? osync_error_print(error) : "nil");
+			osync_trace(TRACE_INTERNAL, "Module get conversion error %s", osync_error_print(error));
 			osync_error_unref(error);
 		}
 	}
@@ -131,7 +131,7 @@ error_free_filename:
 	g_free(filename);
 	g_dir_close(dir);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return FALSE;
 }
 
@@ -261,7 +261,7 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 		if (strcmp(source_objtype, target_objtype))
 			neigh->objtype_changes++;
 
-		osync_trace(TRACE_EXIT, "%s: %p (converter from %s to %s)", __func__, neigh, osync_objformat_get_name(sourceformat) ? osync_objformat_get_name(sourceformat) : "nil", osync_objformat_get_name(targetformat) ? osync_objformat_get_name(targetformat) : "nil");
+		osync_trace(TRACE_EXIT, "%s: %p (converter from %s to %s)", __func__, neigh, osync_objformat_get_name(sourceformat), osync_objformat_get_name(targetformat));
 		return neigh;
 	}
 	
@@ -269,7 +269,7 @@ static vertice *_get_next_vertice_neighbour(OSyncFormatEnv *env, conv_tree *tree
 	return NULL;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -407,7 +407,7 @@ static OSyncFormatConverterPath *_osync_format_env_find_path_fn(OSyncFormatEnv *
 error_free_tree:
 	_free_tree(tree);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -449,7 +449,7 @@ OSyncFormatEnv *osync_format_env_new(OSyncError **error)
 	
 	env = osync_try_malloc0(sizeof(OSyncFormatEnv), error);
 	if (!env) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -513,7 +513,7 @@ void osync_format_env_free(OSyncFormatEnv *env)
 osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, OSyncError **error)
 {
 	osync_bool must_exist = TRUE;
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path ? path : "nil", error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, path, error);
 	
 	if (!path) {
 		path = OPENSYNC_FORMATSDIR;
@@ -521,7 +521,7 @@ osync_bool osync_format_env_load_plugins(OSyncFormatEnv *env, const char *path, 
 	}
 	
 	if (!_osync_format_env_load_modules(env, path, must_exist, error)) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return FALSE;
 	}
 	
@@ -714,7 +714,7 @@ OSyncObjFormat *osync_format_env_detect_objformat(OSyncFormatEnv *env, OSyncData
 		OSyncFormatConverter *converter = d->data;
 		/* We check if the converter might be able to converter the change */
 		if (osync_converter_get_type(converter) == OSYNC_CONVERTER_DETECTOR && osync_converter_matches(converter, data)) {
-			osync_trace(TRACE_INTERNAL, "running detector %s for format %s", osync_objformat_get_name(osync_converter_get_targetformat(converter)) ? osync_objformat_get_name(osync_converter_get_targetformat(converter)) : "nil", osync_objformat_get_name(osync_data_get_objformat(data)) ? osync_objformat_get_name(osync_data_get_objformat(data)) : "nil");
+			osync_trace(TRACE_INTERNAL, "running detector %s for format %s", osync_objformat_get_name(osync_converter_get_targetformat(converter)), osync_objformat_get_name(osync_data_get_objformat(data)));
 			if (osync_converter_detect(converter, data))  {
 				OSyncObjFormat *detected_format = osync_converter_get_targetformat(converter);
 				osync_trace(TRACE_EXIT, "%s: %p", __func__, detected_format);
@@ -787,7 +787,7 @@ OSyncObjFormat *osync_format_env_detect_objformat_full(OSyncFormatEnv *env, OSyn
 error_free_data:
 	osync_data_unref(new_data);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 	return NULL;
 }
 
@@ -841,7 +841,7 @@ osync_bool osync_format_env_convert(OSyncFormatEnv *env, OSyncFormatConverterPat
 			OSyncFormatConverter *converter = osync_converter_path_nth_edge(path, i);
 			
 			if (!osync_converter_invoke(converter, data, osync_converter_path_get_config(path), error)) {
-				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+				osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 				return FALSE;
 			}
 		}
@@ -870,7 +870,7 @@ OSyncFormatConverterPath *osync_format_env_find_path(OSyncFormatEnv *env, OSyncO
 	
 	path = _osync_format_env_find_path_fn(env, sourceformat, _target_fn_simple, targetformat, error);
 	if (!path) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	
@@ -897,7 +897,7 @@ OSyncFormatConverterPath *osync_format_env_find_path_formats(OSyncFormatEnv *env
 	
 	path = _osync_format_env_find_path_fn(env, sourceformat, _target_fn_formats, targets, error);
 	if (!path) {
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
 		return NULL;
 	}
 	

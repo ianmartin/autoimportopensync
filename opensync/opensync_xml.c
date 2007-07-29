@@ -258,7 +258,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 		
 		int lsize = (lnodes) ? lnodes->nodeNr : 0;
 		int rsize = (rnodes) ? rnodes->nodeNr : 0;
-		osync_trace(TRACE_INTERNAL, "parsing next path %s", score->path ? score->path : "nil");
+		osync_trace(TRACE_INTERNAL, "parsing next path %s", score->path);
 		
 		if (!score->value) {
 			for (i = 0; i < lsize; i++) {
@@ -286,7 +286,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 					g_free(rcontent);
 
 					if (osxml_compare_node(lnodes->nodeTab[i], rnodes->nodeTab[n])) {
-						osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path ? score->path : "nil");
+						osync_trace(TRACE_INTERNAL, "Adding %i for %s", score->value, score->path);
 						res_score += score->value;
 						xmlUnlinkNode(lnodes->nodeTab[i]);
 						xmlFreeNode(lnodes->nodeTab[i]);
@@ -297,7 +297,7 @@ OSyncConvCmpResult osxml_compare(xmlDoc *leftinpdoc, xmlDoc *rightinpdoc, OSyncX
 						goto next;
 					}
 				}
-				osync_trace(TRACE_INTERNAL, "Subtracting %i for %s", score->value, score->path ? score->path : "nil");
+				osync_trace(TRACE_INTERNAL, "Subtracting %i for %s", score->value, score->path);
 				res_score -= score->value;
 				next:;
 			}
