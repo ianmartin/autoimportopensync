@@ -124,11 +124,9 @@ subst_dict={'@prefix@': '$prefix',
 }
 
 env.SubstInFile('opensync-1.0.pc', 'opensync-1.0.pc.in', SUBST_DICT=subst_dict)
-env.SubstInFile('osengine-1.0.pc', 'osengine-1.0.pc.in', SUBST_DICT=subst_dict)
 env.SubstInFile('Doxyfile', 'Doxyfile.in', SUBST_DICT=subst_dict)
 
 env.Install(p_j(install_lib, 'pkgconfig'), 'opensync-1.0.pc') 
-env.Install(p_j(install_lib, 'pkgconfig'), 'osengine-1.0.pc') 
 
 
 Export('env config testenv install_prefix install_lib install_bin install_inc install_format install_plugin install_config install_capabilities install_descriptions install_schemas install_pythonlib')
