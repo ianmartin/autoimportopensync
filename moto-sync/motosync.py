@@ -1348,34 +1348,37 @@ class PhoneEventSimple(PhoneEntry):
         return doc
 
 
+def moto_event_simple_init(event, data, exceptions):
+    """grab stuff out of the list of values from the phone"""
+    assert(type(data) == list and len(data) >= 10)
+    event.pos = data[0]
+    event.name = data[1]
+    timeflag = data[2]
+    alarmflag = data[3]
+    timestr = data[4]
+    datestr = data[5]
+    event.duration = timedelta(0, 0, 0, 0, data[6])
+    alarmtime = data[7]
+    alarmdate = data[8]
+    event.repeat_type = data[9]
+    event.exceptions = exceptions
+    event.exceptions.sort() # just in case
+
+    if timeflag:
+        event.eventdt = parse_moto_time(datestr, timestr)
+    else:
+        event.eventdt = parse_moto_time(datestr)
+
+    if alarmflag:
+        event.alarmdt = parse_moto_time(alarmdate, alarmtime)
+    else:
+        event.alarmdt = None
+
 class PhoneEventSimpleMoto(PhoneEventSimple):
     """Constructor for the PhoneEventSimple object with data in Motorola format"""
     def __init__(self, data, exceptions):
-        """grab stuff out of the list of values from the phone"""
         PhoneEventSimple.__init__(self)
-        assert(type(data) == list and len(data) >= 10)
-        self.pos = data[0]
-        self.name = data[1]
-        timeflag = data[2]
-        alarmflag = data[3]
-        timestr = data[4]
-        datestr = data[5]
-        self.duration = timedelta(0, 0, 0, 0, data[6])
-        alarmtime = data[7]
-        alarmdate = data[8]
-        self.repeat_type = data[9]
-        self.exceptions = exceptions
-        self.exceptions.sort() # just in case
-
-        if timeflag:
-            self.eventdt = parse_moto_time(datestr, timestr)
-        else:
-            self.eventdt = parse_moto_time(datestr)
-
-        if alarmflag:
-            self.alarmdt = parse_moto_time(alarmdate, alarmtime)
-        else:
-            self.alarmdt = None
+        moto_event_simple_init(self, data, exceptions)
 
 
 class PhoneEventSimpleXML(PhoneEventSimple):
@@ -1509,7 +1512,7 @@ class PhoneEventExtendedMoto(PhoneEventExtended):
         assert(type(data) == list and len(data) >= 21)
 
         # reuse simple constructor to initialise common fields 0-9
-        PhoneEventSimpleMoto.__init__(self, data, exceptions)
+        moto_event_simple_init(self, data, exceptions)
 
         endtime = data[10]
         enddate = data[11]
