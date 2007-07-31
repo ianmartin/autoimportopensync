@@ -160,6 +160,7 @@ static OSyncConvCmpResult compare_event(const char *leftdata, unsigned int lefts
 	
 	char* keys_content[] =  {"Content", NULL};
 	OSyncXMLPoints points[] = {
+		{"DateCalendarCreated", -1,     keys_content},
 		{"DateEnd", 		10, 	keys_content},
 		{"DateStarted", 	10, 	keys_content},
 		{"ProductID", 		-1, 	keys_content},
