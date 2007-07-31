@@ -13,6 +13,7 @@ SUPPORTED HARDWARE
 Known working models:
  * L7 SLVR
  * V3i RAZR
+ * V557
 
 Possibly working, but only lightly tested:
  * V3x RAZR (tested reading only)
