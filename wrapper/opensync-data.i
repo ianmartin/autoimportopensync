@@ -9,16 +9,16 @@ typedef enum {} ConvCmpResult;
 typedef struct {} Data;
 %extend Data {
 	/* FIXME: cstring_input_binary is broken in my version of swig, so I've recreated it here */
-	%typemap(in) (char *buf, unsigned int size) {
+	%typemap(in) (char *buf, size_t size) {
 		int alloc = SWIG_NEWOBJ;
 		int res = SWIG_AsCharPtrAndSize($input, &$1, &$2, &alloc);
 		if (!SWIG_IsOK(res)) {
-			%argument_fail(res, "(char *buf, unsigned int size)", $symname, $argnum);
+			%argument_fail(res, "(char *buf, size_t size)", $symname, $argnum);
 		}
 	}
-	Data(char *buf, unsigned int size, ObjFormat *format) {
+	Data(char *buf, size_t size, ObjFormat *format) {
 		Error *err = NULL;
-		Data *data = osync_data_new(buf, size, format, &err);
+		Data *data = osync_data_new(buf, (unsigned int)size, format, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else

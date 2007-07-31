@@ -88,18 +88,18 @@ typedef struct {} Capabilities;
 }
 
 /* FIXME: cstring_input_binary is broken in my version of swig, so I've recreated it here */
-%typemap(in) (const char *buffer, unsigned int size) {
+%typemap(in) (const char *buffer, size_t size) {
 	int alloc = 0;
 	int res = SWIG_AsCharPtrAndSize($input, &$1, &$2, &alloc);
 	if (!SWIG_IsOK(res)) {
-		%argument_fail(res, "(char *buf, unsigned int size)", $symname, $argnum);
+		%argument_fail(res, "(char *buf, size_t size)", $symname, $argnum);
 	}
 }
 
-%inline %{
-	static Capabilities *capabilities_parse(const char *buffer, unsigned int size) {
+ %inline %{
+	static Capabilities *capabilities_parse(const char *buffer, size_t size) {
 		Error *err = NULL;
-		Capabilities *caps = osync_capabilities_parse(buffer, size, &err);
+		Capabilities *caps = osync_capabilities_parse(buffer, (unsigned int)size, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
@@ -227,9 +227,9 @@ typedef struct {} XMLFormat;
 }
 
 %inline %{
-	XMLFormat *xmlformat_parse(const char *buffer, unsigned int size) {
+	XMLFormat *xmlformat_parse(const char *buffer, size_t size) {
 		Error *err = NULL;
-		XMLFormat *xmlformat = osync_xmlformat_parse(buffer, size, &err);
+		XMLFormat *xmlformat = osync_xmlformat_parse(buffer, (unsigned int)size, &err);
 		if (raise_exception_on_error(err))
 			return NULL;
 		else
