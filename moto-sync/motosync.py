@@ -580,7 +580,7 @@ def xml_rrule_to_moto(rulenodes, exdates, exrules, eventdt, extended_format):
     excepted_occurrences = frozenset(ruleset.between(now, now + RRULE_FUTURE))
 
     # work out which events don't happen
-    for num in range(all_occurrences):
+    for num in range(len(all_occurrences)):
         if all_occurrences[num] not in excepted_occurrences:
             ret['exceptions'].append(num)
 
