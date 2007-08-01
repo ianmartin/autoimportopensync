@@ -765,7 +765,7 @@ error:
 	return FALSE;
 }
 
-static void destroy_palm_event(char *input, size_t inpsize)
+static void destroy_palm_event(char *input, unsigned int inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	PSyncEventEntry *entry = (PSyncEventEntry *)input;
@@ -1188,7 +1188,7 @@ error:
 	return FALSE;
 }
 
-static void destroy_palm_todo(char *input, size_t inpsize)
+static void destroy_palm_todo(char *input, unsigned int inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	PSyncTodoEntry *entry = (PSyncTodoEntry *)input;
@@ -1745,7 +1745,7 @@ error:
 	return FALSE;
 }
 
-static void destroy_palm_contact(char *input, size_t inpsize)
+static void destroy_palm_contact(char *input, unsigned int inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	PSyncContactEntry *entry = (PSyncContactEntry *)input;
@@ -1959,7 +1959,7 @@ error:
 	return FALSE;
 }
 
-static void destroy_palm_note(char *input, size_t inpsize)
+static void destroy_palm_note(char *input, unsigned int inpsize)
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, input, inpsize);
 	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
