@@ -165,7 +165,9 @@ void KContactDataSource::commit(OSyncPluginInfo *, OSyncContext *ctx, OSyncChang
 	OSyncData *odata = osync_change_get_data(chg);
 
 	char *data;
-	size_t data_size; 
+	//size_t data_size;
+	// osync_data_get_data requires an unsigned int which is not compatible with size_t on 64bit machines
+	unsigned int data_size = 0;
 
 	osync_data_get_data(odata, &data, &data_size);
 

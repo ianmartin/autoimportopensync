@@ -120,7 +120,9 @@ bool KCalSharedResource::commit(OSyncContext *ctx, OSyncChange *chg)
 			OSyncData *odata = osync_change_get_data(chg);
 
 			char *databuf;
-			size_t databuf_size; 
+			//size_t databuf_size; 
+			// osync_data_get_data requires an unsigned int which is not compatible with size_t on 64bit machines
+			unsigned int databuf_size = 0; 
 			osync_data_get_data(odata, &databuf, &databuf_size);
 
 			/* First, parse to a temporary calendar, because
