@@ -5,7 +5,7 @@ import distutils.sysconfig
 def configure(opts):
 	opts.add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
 	opts.add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
-	opts.add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
+	opts.add(BoolOption('enable_rpath', 'Build with -rpath?', 0))
 	opts.add(BoolOption('enable_profiling', 'Should code profiling be enabled (GCOV/LCOV, ...)', 0))
 	opts.add(('CC', 'Path to Custom c compiler', 'gcc'))
 	opts.add(('CXX', 'Path to Custom c++ compiler flags', 'g++'))
