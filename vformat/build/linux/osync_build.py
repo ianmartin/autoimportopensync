@@ -4,7 +4,7 @@ from SCons.Options import *
 def configure(opts):
 	opts.add(PathOption('prefix', 'Directory, where opensync should be installed', '/usr/local'))
 	opts.add(('libsuffix', 'Library suffic. lib64 for 64 bit systems', 'lib'))
-	opts.add(BoolOption('enable_rpath', 'Build with -rpath?', 1))
+	opts.add(BoolOption('enable_rpath', 'Build with -rpath?', 0))
 	
 def check(env, config):
 	conf = env.Configure(custom_tests = {'CheckPKGConfig' : CheckPKGConfig, 'CheckPKG' : CheckPKG})
