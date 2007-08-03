@@ -291,6 +291,10 @@ int main (int argc, char *argv[])
 		goto error;
 	}
 
+	// osync_file_read returns a \0 terminated string, but plugins
+	// have to report the right size, not strlen
+	size++;
+
 	OSyncData *data = NULL;
 	OSyncChange *change = osync_change_new(&error);
 	if (!change)
