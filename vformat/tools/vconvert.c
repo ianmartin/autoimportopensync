@@ -342,11 +342,9 @@ int main (int argc, char *argv[])
 	g_free(print);
 
 	osync_data_unref(data);
-	osync_objformat_unref(sourceformat);
 	osync_change_unref(change);
-	osync_format_env_free(format_env);
-	// FIXME: calling osync_converter_path_unref beforce osync_format_env_free cause a segfault!
 	osync_converter_path_unref(path);
+	osync_format_env_free(format_env);
 
 	return 0;
 
