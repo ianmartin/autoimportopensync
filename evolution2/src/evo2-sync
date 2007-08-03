@@ -1,1 +1,6 @@
-<config><address_path>default</address_path><calendar_path>default</calendar_path><tasks_path>default</tasks_path></config>
+<?xml version="1.0"?>
+<config>
+  <address_path>default</address_path>
+  <calendar_path>default</calendar_path>
+  <tasks_path>default</tasks_path>
+</config>
