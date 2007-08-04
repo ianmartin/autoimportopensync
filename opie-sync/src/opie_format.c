@@ -25,7 +25,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_comms.h"
 #include "opie_xml.h"
 #include "opie_format.h"
-#include "config.h"
 
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
