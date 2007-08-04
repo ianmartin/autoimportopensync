@@ -675,6 +675,32 @@ static void opie_sync_finalize( void* userdata )
 	osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
+static osync_bool opie_sync_discover(void *data, OSyncPluginInfo *info, OSyncError **error)
+{
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
+	
+	OpiePluginEnv *env = (OpiePluginEnv *)data;
+	
+	osync_objtype_sink_set_available(env->contact_env->sink, TRUE);
+	osync_objtype_sink_set_available(env->todo_env->sink, TRUE);
+	osync_objtype_sink_set_available(env->event_env->sink, TRUE);
+	osync_objtype_sink_set_available(env->note_env->sink, TRUE);
+	
+	OSyncVersion *version = osync_version_new(error);
+	osync_version_set_plugin(version, "opie-sync");
+	//osync_version_set_modelversion(version, "version");
+	//osync_version_set_firmwareversion(version, "firmwareversion");
+	//osync_version_set_softwareversion(version, "softwareversion");
+	//osync_version_set_hardwareversion(version, "hardwareversion");
+	osync_plugin_info_set_version(info, version);
+	osync_version_unref(version);
+
+	/* FIXME define capabilities */
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE;
+}
+
 
 void uidmap_addmapping(GTree *uidmap, const char *uid1, const char *uid2) {
 	char *key = g_strdup(uid1);
@@ -782,45 +808,15 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	osync_plugin_set_name(plugin, "opie-sync");
 	osync_plugin_set_longname(plugin, "Opie Synchronization Plugin");
 	osync_plugin_set_description(plugin, "Synchronize with Opie/Qtopia based devices");
-
+	
 	/* Now set the function we made earlier */
 	osync_plugin_set_initialize(plugin, opie_sync_initialize);
 	osync_plugin_set_finalize(plugin, opie_sync_finalize);
-/*	osync_plugin_set_discover(plugin, discover);*/
+	osync_plugin_set_discover(plugin, opie_sync_discover);
 
 	osync_plugin_env_register_plugin(env, plugin);
 	osync_plugin_unref(plugin);
 	
-  /*
-		* Function pointers
-		*/
-/*	info->functions.is_available   = opie_sync_is_available;
-	info->functions.initialize     = opie_sync_initialize;
-	info->functions.finalize       = opie_sync_finalize;
-	info->functions.connect        = opie_sync_connect;
-	info->functions.disconnect     = opie_sync_disconnect;
-	info->functions.sync_done      = opie_sync_sync_done;
-	info->functions.get_changeinfo = opie_sync_get_changeinfo;
-*/
-
-	/*
-		* Object types
-		*/
-/*
-	osync_plugin_accept_objtype(info, "contact");
-	osync_plugin_accept_objformat(info, "contact", "opie-xml-contact", NULL);
-	osync_plugin_set_commit_objformat(info, "contact", "opie-xml-contact", opie_sync_contact_commit);
-	osync_plugin_accept_objtype(info, "todo");
-	osync_plugin_accept_objformat(info, "todo", "opie-xml-todo", NULL);
-	osync_plugin_set_commit_objformat(info, "todo",    "opie-xml-todo",    opie_sync_todo_commit);
-	osync_plugin_accept_objtype(info, "event");
-	osync_plugin_accept_objformat(info, "event", "opie-xml-event", NULL);
-	osync_plugin_set_commit_objformat(info, "event",   "opie-xml-event",   opie_sync_event_commit);
-	osync_plugin_accept_objtype(info, "note");
-	osync_plugin_accept_objformat(info, "note", "opie-xml-note", NULL);
-	osync_plugin_set_commit_objformat(info, "note",   "opie-xml-note",     opie_sync_note_commit);
-*/
-  
 	return TRUE;
 error:
 	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
