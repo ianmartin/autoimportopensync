@@ -1549,6 +1549,11 @@ osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 	return TRUE;
 }
 
+int get_version(void)
+{
+	return 1;
+}
+
 
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname) {
