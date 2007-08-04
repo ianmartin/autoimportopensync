@@ -1439,33 +1439,10 @@ error:
 }
 
 
-/*
-void get_info(OSyncEnv *env)
-{
-	osync_env_register_objtype(env, "contact");
-	osync_env_register_objformat(env, "contact", "opie-xml-contact");
-	osync_env_register_objtype(env, "todo");
-	osync_env_register_objformat(env, "todo", "opie-xml-todo");
-	osync_env_register_objtype(env, "event");
-	osync_env_register_objformat(env, "event", "opie-xml-event");
-	osync_env_register_objtype(env, "note");
-	osync_env_register_objformat(env, "note", "opie-xml-note");
-
-	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-contact", "xml-contact",      conv_opie_xml_contact_to_xml_contact);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-contact",      "opie-xml-contact", conv_xml_contact_to_opie_xml_contact);
-	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-todo",    "xml-todo",         conv_opie_xml_todo_to_xml_todo);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-todo",         "opie-xml-todo",    conv_xml_todo_to_opie_xml_todo);
-	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-event",   "xml-event",        conv_opie_xml_event_to_xml_event);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-event",        "opie-xml-event",   conv_xml_event_to_opie_xml_event);
-	osync_env_register_converter(env, CONVERTER_CONV, "opie-xml-note",    "xml-note",         conv_opie_xml_note_to_xml_note);
-	osync_env_register_converter(env, CONVERTER_CONV, "xml-note",         "opie-xml-note",    conv_xml_note_to_opie_xml_note);
-}
-*/
-
 osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 {
 	/* Contact */
-	OSyncObjFormat *format = osync_objformat_new("contact", OPIE_FORMAT_XML_CONTACT, error);
+	OSyncObjFormat *format = osync_objformat_new(OPIE_FORMAT_XML_CONTACT, "contact", error);
 	if (!format)
 		return FALSE;
 /*	osync_objformat_set_compare_func(format, compare_format1);
@@ -1476,21 +1453,21 @@ osync_bool get_format_info(OSyncFormatEnv *env, OSyncError **error)
 	osync_objformat_unref(format);
 	
 	/* Todo */
-	format = osync_objformat_new("todo", OPIE_FORMAT_XML_TODO, error);
+	format = osync_objformat_new(OPIE_FORMAT_XML_TODO, "todo", error);
 	if (!format)
 		return FALSE;
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 
 	/* Event */
-	format = osync_objformat_new("event", OPIE_FORMAT_XML_EVENT, error);
+	format = osync_objformat_new(OPIE_FORMAT_XML_EVENT, "event", error);
 	if (!format)
 		return FALSE;
 	osync_format_env_register_objformat(env, format);
 	osync_objformat_unref(format);
 
 	/* Note */
-	format = osync_objformat_new("note", OPIE_FORMAT_XML_NOTE, error);
+	format = osync_objformat_new(OPIE_FORMAT_XML_NOTE, "note", error);
 	if (!format)
 		return FALSE;
 	osync_format_env_register_objformat(env, format);
@@ -1537,13 +1514,13 @@ osync_bool register_converter(OSyncFormatEnv *env, const char *format1_name, con
 
 osync_bool get_conversion_info(OSyncFormatEnv *env, OSyncError **error)
 {
-	if(!register_converter(env, OPIE_FORMAT_XML_CONTACT, "xml-contact", conv_opie_xml_contact_to_xml_contact, conv_xml_contact_to_opie_xml_contact, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_CONTACT, "xmlformat-contact", conv_opie_xml_contact_to_xml_contact, conv_xml_contact_to_opie_xml_contact, error))
 		return FALSE;
-	if(!register_converter(env, OPIE_FORMAT_XML_TODO,    "xml-todo",    conv_opie_xml_todo_to_xml_todo, conv_xml_todo_to_opie_xml_todo, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_TODO,    "xmlformat-todo",    conv_opie_xml_todo_to_xml_todo, conv_xml_todo_to_opie_xml_todo, error))
 		return FALSE;
-	if(!register_converter(env, OPIE_FORMAT_XML_EVENT,   "xml-event",   conv_opie_xml_event_to_xml_event, conv_xml_event_to_opie_xml_event, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_EVENT,   "xmlformat-event",   conv_opie_xml_event_to_xml_event, conv_xml_event_to_opie_xml_event, error))
 		return FALSE;
-	if(!register_converter(env, OPIE_FORMAT_XML_NOTE,    "xml-note",    conv_opie_xml_note_to_xml_note, conv_xml_note_to_opie_xml_note, error))
+	if(!register_converter(env, OPIE_FORMAT_XML_NOTE,    "xmlformat-note",    conv_opie_xml_note_to_xml_note, conv_xml_note_to_opie_xml_note, error))
 		return FALSE;
 	
 	return TRUE;
