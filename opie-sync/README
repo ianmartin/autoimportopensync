@@ -115,6 +115,11 @@ Missing fields on contacts
   not currently handled since OpenSync's internal XML format does not
   currently support them.
 
+Support for Notes application in Opie 1.2.2+
+
+  Opie 1.2.2 and later have a dedicated notes application. The plugin should
+  support this as a notes target instead of plain text files.
+
 SCP support
 
   SCP support is currently broken.
