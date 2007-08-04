@@ -830,5 +830,5 @@ error:
 
 int get_version(void)
 {
-	return 2;
+	return 1;
 }
