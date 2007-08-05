@@ -1,4 +1,60 @@
 OpenSync Framework
 ==================
 
-TODO
+OpenSync is a plugin-based application that basically provides a framework for
+syncing groups which can have two or more members(plugins).
+These members could be just about any kind of database we have a plugin like:
+ - A folder filled with vcard files containing contacts, events or notes (file-sync)
+ - An LDAP server having a huge list of contacts (ldap-sync)
+ - An application like Mozilla Sunbird or Google Calendar managing calendars
+ - A PIM (Personal Information Management) like Ximian Evolution or KDE PIM
+ - A mobile phone which hosts contacts/ calendars/ notes
+
+A special note about mobile phones:
+ First see if you phone is supported on the DeviceCompatibilityList. [1]
+ Generally speaking, synchronisation is implemented using what's called the
+ OBEX or OBject EXchange protocol. OBEX may be implemented over USB, bluetooth, infrared and HTTP.
+ For all phone synchronisation purposes, please have a look at the SyncML plugins
+ syncml-obex-client, syncml-http-server, IrMC plugin, Moto plugin, and Palm plugin at the
+ download page. [2]
+
+The technical aspects of how the synchronisation is implemented can be found in this document. [3]
+Each device has its own way of storing information and the purpose of OpenSync is to
+extract this information and provide inconvertibility using an XML intermediate.
+OpenSync without any plugins is incapable of doing any synchronisation.
+
+You need also libvformat to sync vformat entries (vcard, vcal, ical ..) ! [4]
+
+Each plugin can be thought of an interface to a device.
+Two plugins may also be interfaces to the same devices... only different in the way
+they communicate with the device.
+A plugin may also provide more than one way to communicate with a device.
+For example, syncml-obex-client and syncml-http-server are OBEX and HTTP interfaces
+to a mobile phone.
+The syncml-obex-client further provides OBEX over USB and OBEX over bluetooth.
+Syncronisation, as already emphasised, may be done between any two or more stores of data,
+even two or more directories containing files.
+
+Installation
+============
+To build OpenSync you need scons, (check for unit tests - optional) and the devel packages
+of sqlite3, glib2, and libxml2. swig for python bindings (optional).
+
+svn co http://svn.opensync.org/trunk opensync
+cd opensync/
+scons prefix=$OPENSYNC_BUILD
+scons install
+
+Next Steps
+==========
+You need also libvformat [4], a frontend (msynctool, multisync-gui ...) and at least one plugin.
+
+
+Links
+=====
+
+[1] - http://www.opensync.org/wiki/DeviceCompatibilityList
+[2] - http://www.opensync.org/wiki/download
+[3] - http://cryptomilch.de/~dgollub/talks/OpenSync_FOSDEM_2007.pdf
+[4] - svn co http://svn.opensync.org/format-plugins/vformat  libvformat
+      or if you from [2] or your distribution
