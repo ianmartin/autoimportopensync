@@ -218,10 +218,14 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 
 	OSyncError *error = NULL;
 
+	g_mutex_lock(env->plugin_env->plugin_mutex);
+	
 	if(!env->plugin_env->connected) {
 		/* We only want to connect once per session */
-		if (!_connectDevice(env->plugin_env, &error))
+		if (!_connectDevice(env->plugin_env, &error)) {
+			g_mutex_unlock(env->plugin_env->plugin_mutex);
 			goto error;
+		}
 		env->plugin_env->connected = TRUE;
 	}
 	
@@ -229,6 +233,8 @@ static void connect(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx)
 		/* Fetch categories */
 		opie_fetch_file(env->plugin_env, OPIE_OBJECT_TYPE_CATEGORY, OPIE_CATEGORY_FILE, &env->plugin_env->categories_doc, NULL);
 	}
+	
+	g_mutex_unlock(env->plugin_env->plugin_mutex);
 	
 	/* pull the required data back */
 	if(!opie_fetch_sink(env))
@@ -610,6 +616,7 @@ static void* opie_sync_initialize( OSyncPlugin *plugin, OSyncPluginInfo *info, O
 		goto error_free_env;
 	
 	env->backuppath = NULL;
+	env->plugin_mutex = g_mutex_new();
 	
 	/* Contacts sink */
 	env->contact_env = opie_sync_create_sink_env(env, info, "contact", OPIE_FORMAT_XML_CONTACT, OPIE_OBJECT_TYPE_CONTACT, OPIE_ADDRESS_FILE, "Contacts", "Contact", error);
@@ -669,7 +676,12 @@ static void opie_sync_finalize( void* userdata )
 	uidmap_free(&env->uidmap);
 	g_free(env->uidmap_file);
 	
+	g_mutex_free(env->plugin_mutex);
+	
 	g_free(env->contact_env);
+	g_free(env->todo_env);
+	g_free(env->event_env);
+	g_free(env->note_env);
 	g_free(env);
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);

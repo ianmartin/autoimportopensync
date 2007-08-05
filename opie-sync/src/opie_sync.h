@@ -81,6 +81,8 @@ struct OpiePluginEnv {
 	
 	GTree*            uidmap;
 	char*             uidmap_file;
+	
+	GMutex*           plugin_mutex;
 };
 
 struct OpieSinkEnv {
