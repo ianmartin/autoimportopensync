@@ -339,69 +339,6 @@ void save_sync_anchors( const irmc_environment *env )
   osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
-// TODO: drop me
-#if 0
-/**
- * Tests whether a connection to a device with the given configuration can
- * be established.
- */
-int *test_connection( void *foo, const char *configuration, void *bar )
-{
-  osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, foo, configuration, bar);			
-  char data[10240];
-  int size = 10240;
-  OSyncError *error = NULL;
-  irmc_config config;
-  int *result = (int*)malloc(sizeof(int));
-
-  // parse the configuration
-  if (!parse_settings(&config, configuration, strlen(configuration), &error)) {
-    osync_error_unref(&error);
-    *result = 0;
-    osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
-    return result;
-  }
-
-  config.obexhandle = irmc_obex_client(&config);
-
-  // connect to the device
-  if (!irmc_obex_connect(config.obexhandle, config.donttellsync ? NULL : "IRMC-SYNC", &error)) {
-    osync_error_unref(&error);
-    if (!irmc_obex_disconnect(config.obexhandle, &error))
-      osync_error_unref(&error);
-
-    *result = 0;
-    osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
-    return result;
-  }
-
-  memset( data, 0, sizeof( data ) );
-  size = sizeof( data );
-
-  // retrieve the 'telecom/devinfo.txt' file, which is available on all IrMC capable devices
-  if (!irmc_obex_get(config.obexhandle, "telecom/devinfo.txt", data, &size, &error)) {
-    osync_error_unref(&error);
-    if (!irmc_obex_disconnect(config.obexhandle, &error))
-      osync_error_unref(&error);
-    irmc_obex_cleanup(config.obexhandle);
-
-    *result = 0;
-    osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
-    return result;
-  }
-  data[ size ] = '\0';
-
-  // succeeded to connect and fetch data
-  if (!irmc_obex_disconnect(config.obexhandle, &error))
-    osync_error_unref(&error);
-  irmc_obex_cleanup(config.obexhandle);
-
-  *result = 1;
-  osync_trace(TRACE_EXIT, "%s: %p", __func__, result);
-  return result;
-}
-#endif
-
 /**
  * Creates the calendar specific changeinfo for slow- and fastsync
  */

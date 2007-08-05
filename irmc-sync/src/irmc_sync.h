@@ -71,7 +71,6 @@ typedef struct irmc_environment {
 
 typedef struct irmc_database {
   OSyncObjFormat *objformat;     // The configured objformat for this database
-  char *objtype;                 // The objtype of the database
 } irmc_database;
 
 obex_t* irmc_obex_client(irmc_config *config);
