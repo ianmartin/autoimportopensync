@@ -1,0 +1,86 @@
+Notes:
+------
+- Syncronisation of notes doesn't work with newer Sony Ericsson cell phones.
+  If your phone is crashing or if you receive an error like "Request failed"
+  please try "--filter-objtype note".
+
+- It seems that some phones (e.g. SE K750i) accept EXDATE attributes,
+  but cannot delete them. You have to delete the whole event and create a new
+  one without EXDATE attributes.
+
+
+
+
+bluetooth example configuration:
+--------------------------------
+<config>
+  <connectmedium>bluetooth</connectmedium>
+  <btunit>$MAC</btunit>
+  <btchannel>$CHANNEL</btchannel>
+</config>
+
+
+This is an example for a connection via bluetooth. Replace $MAC with the mac address of your
+phone. You get it with "hcitool scan" (your phone must be visible).
+
+
+user@laptop:~> hcitool scan
+Scanning ...
+        00:16:20:33:33:33    K750i <--- $MAC
+
+
+Now we need to find out the channel of the IrMC Server. Try "sdptool browse $MAC".
+We hopefully get a output like this:
+
+
+<snip>
+Service Name: OBEX IrMC Sync Server
+Service RecHandle: 0x10008
+Service Class ID List:
+  "IrMC Sync" (0x1104)
+Protocol Descriptor List:
+  "L2CAP" (0x0100)
+  "RFCOMM" (0x0003)
+    Channel: 8      <--- $CHANNEL
+  "OBEX" (0x0008)
+Profile Descriptor List:
+  "IrMC Sync" (0x1104)
+    Version: 0x0100
+</snip>
+
+
+Replace $CHANNEL with "8" and your config should now look like this:
+
+<config>
+  <donttellsync>false</donttellsync>
+  <connectmedium>bluetooth</connectmedium>
+  <btunit>00:16:20:33:33:33</btunit>
+  <btchannel>8</btchannel>
+</config>
+
+
+ 
+ir example configuration:
+-------------------------
+<config>
+  <connectmedium>ir</connectmedium>
+  <irname>$IDENTIFIER</irname>
+</config>
+
+We need to find out the device identifier. Start the infrared daemon (irda) and try
+"irdadump".
+
+<snip>
+12:46:41.534956 xid:cmd 51051736 > ffffffff S=6 s=3 (14)
+12:46:41.634962 xid:cmd 51051736 > ffffffff S=6 s=4 (14)
+12:46:41.734970 xid:cmd 51051736 > ffffffff S=6 s=5 (14)
+12:46:41.822417 xid:rsp 51051736 < 00001a28 S=6 s=5 Sony Ericss hint=9124 [ PnP Modem IrCOMM IrOBEX ] (28)
+<snip>
+
+In this case $IDENTIFIER is "Sony Ericss". Your config should now look like this:
+
+<config>
+  <donttellsync>false</donttellsync>
+  <connectmedium>ir</connectmedium>
+  <irname>Sony Ericss</irname>
+</config>
