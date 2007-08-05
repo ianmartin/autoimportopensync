@@ -229,7 +229,7 @@ error:
 }
 
 /**
- * Load the synchronization anchors.
+ * Load the general synchronization anchor.
  */
 void load_sync_anchors( irmc_environment *env )
 {
@@ -237,45 +237,7 @@ void load_sync_anchors( irmc_environment *env )
 
   irmc_config *config = &(env->config);
 
-  char *anchor = osync_anchor_retrieve(env->anchor_path, "event");
-  if (!anchor) {
-    config->calendar_changecounter = 0;
-    config->calendar_dbid = NULL;
-  } else {
-    char data[ 256 ];
-    memset( data, 0, sizeof( data ) );
-
-    sscanf( anchor, "%d:%256s", &config->calendar_changecounter, data );
-    config->calendar_dbid = g_strdup( data );
-  }
-  g_free( anchor );
-
-  anchor = osync_anchor_retrieve(env->anchor_path, "contact");
-  if (!anchor) {
-    config->addressbook_changecounter = 0;
-    config->addressbook_dbid = NULL;
-  } else {
-    char data[ 256 ];
-    memset( data, 0, sizeof( data ) );
-    sscanf( anchor, "%d:%256s", &config->addressbook_changecounter, data );
-    config->addressbook_dbid = g_strdup( data );
-  }
-  g_free( anchor );
-
-  anchor = osync_anchor_retrieve(env->anchor_path, "note");
-  if (!anchor) {
-    config->notebook_changecounter = 0;
-    config->notebook_dbid = NULL;
-  } else {
-    char data[ 256 ];
-    memset( data, 0, sizeof( data ) );
-
-    sscanf( anchor, "%d:%256s", &config->notebook_changecounter, data );
-    config->notebook_dbid = g_strdup( data );
-  }
-  g_free( anchor );
-
-  anchor = osync_anchor_retrieve(env->anchor_path, "general");
+  char *anchor = osync_anchor_retrieve(env->anchor_path, "general");
   if (!anchor) {
     config->serial_number = NULL;
   } else {
@@ -296,46 +258,9 @@ void save_sync_anchors( const irmc_environment *env )
 {
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 
-  char anchor[ 1024 ];
   const irmc_config *config = &(env->config);
-
-  /* TODO: check if sink is active 
-  if (osync_member_objtype_enabled(member, "event")) {
-	if (config->calendar_changecounter >= 0 && strcmp(config->calendar_dbid, "FFFFFF")) {
-		snprintf( anchor, sizeof( anchor ), "%d:%s", config->calendar_changecounter, config->calendar_dbid );
-  		osync_anchor_update( env->anchor_path, "event", anchor );
-	} else {
-  		osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for event anchor detected.");
-	}
-  } else {
-  	osync_trace(TRACE_INTERNAL, "WARNING: Synchronization of events was disabled.");
-  }
- 
-  if (osync_member_objtype_enabled(member, "contact")) {
-	if (config->addressbook_changecounter >= 0 && strcmp(config->addressbook_dbid, "FFFFFF")) {
-		snprintf( anchor, sizeof( anchor ), "%d:%s", config->addressbook_changecounter, config->addressbook_dbid );
-  		osync_anchor_update( env->anchor_path, "contact", anchor );
-	} else {
-  		osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for contact anchor detected.");
-	}
-  } else {
-  	osync_trace(TRACE_INTERNAL, "WARNING: Synchronization of contacts was disabled.");
-  }
-
-  if (osync_member_objtype_enabled(member, "note")) {
-	if (config->notebook_changecounter >= 0 && strcmp(config->notebook_dbid, "FFFFFF")) {
-		snprintf( anchor, sizeof( anchor ), "%d:%s", config->notebook_changecounter, config->notebook_dbid );
-  		osync_anchor_update( env->anchor_path, "note", anchor );
-	} else {
-  		osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for note anchor detected.");
-	}
-  } else {
-  	osync_trace(TRACE_INTERNAL, "WARNING: Synchronization of notes was disabled.");
-  }
-  */
    
-  snprintf( anchor, sizeof( anchor ), "%s", config->serial_number );
-  osync_anchor_update( env->anchor_path, "general", anchor );
+  osync_anchor_update( env->anchor_path, "general", config->serial_number );
   osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
@@ -936,8 +861,26 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
 static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);			
+
   irmc_environment *env = (irmc_environment *)data;
   irmc_config *config = &(env->config);
+  OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
+
+  const char *objtype = osync_objtype_sink_get_name(sink);
+
+  char *anchor = osync_anchor_retrieve(env->anchor_path, objtype);
+  if (!anchor) {
+    database->changecounter = 0;
+    database->dbid = NULL;
+  } else {
+    char data[ 256 ];
+    memset( data, 0, sizeof( data ) );
+
+    sscanf( anchor, "%d:%256s", &(database->changecounter), data );
+    database->dbid = g_strdup( data );
+  }
+  g_free( anchor );
 
   config->obexhandle = irmc_obex_client(config);
 
@@ -950,7 +893,7 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
     return;
   }
 
-  // load the synchronization anchors
+  // load the general synchronization anchors
   load_sync_anchors(env);
 
   // check whether a slowsync is necessary
@@ -1018,6 +961,8 @@ static void irmcDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
   // disconnect from the device
   irmc_disconnect(&(env->config));
 
+  save_sync_anchors(env);
+
   osync_context_report_success(ctx);
 
   osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1029,10 +974,21 @@ static void irmcDisconnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 static void irmcSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, ctx);			
-  irmc_environment *env = (irmc_environment *)data;
 
-  // save synchronization anchors
-  save_sync_anchors( env );
+  OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
+
+  irmc_environment *env = (irmc_environment *)data;
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
+
+  const char *objtype = osync_objtype_sink_get_name(sink);
+
+  if (database->changecounter >= 0 && strcmp(database->dbid, "FFFFFF")) {
+    char *anchor = g_strdup_printf("%d:%s", database->changecounter, database->dbid);
+    osync_anchor_update( env->anchor_path, objtype, anchor );
+    g_free(anchor);
+  } else {
+    osync_trace(TRACE_INTERNAL, "ERROR: Invalid values for event anchor detected.");
+  }
 
   osync_context_report_success(ctx);
   osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1050,7 +1006,7 @@ static void irmcCalendarGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncCo
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
   irmc_environment *env = (irmc_environment *)data;
-  irmc_config *config = &(env->config);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   data_type_information datainfo;
 
@@ -1059,7 +1015,8 @@ static void irmcCalendarGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncCo
   strcpy(datainfo.identifier, "event");
   strcpy(datainfo.path_identifier, "cal");
   strcpy(datainfo.path_extension, "vcs");
-  datainfo.change_counter = &(config->calendar_changecounter);
+  datainfo.change_counter = &(database->changecounter);
+
 
   if (!get_generic_changeinfo(env, sink, ctx, &datainfo, &error))
     goto error;
@@ -1085,7 +1042,7 @@ static void irmcContactGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncCon
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
   irmc_environment *env = (irmc_environment *)data;
-  irmc_config *config = &(env->config);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   data_type_information datainfo;
 
@@ -1094,7 +1051,7 @@ static void irmcContactGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncCon
   strcpy(datainfo.identifier, "contact");
   strcpy(datainfo.path_identifier, "pb");
   strcpy(datainfo.path_extension, "vcf");
-  datainfo.change_counter = &(config->addressbook_changecounter);
+  datainfo.change_counter = &(database->changecounter);
 
   if (!get_generic_changeinfo(env, sink, ctx, &datainfo, &error))
     goto error;
@@ -1120,7 +1077,7 @@ static void irmcNoteGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncContex
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
   irmc_environment *env = (irmc_environment *)data;
-  irmc_config *config = &(env->config);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   data_type_information datainfo;
 
@@ -1129,7 +1086,7 @@ static void irmcNoteGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncContex
   strcpy(datainfo.identifier, "note");
   strcpy(datainfo.path_identifier, "nt");
   strcpy(datainfo.path_extension, "vnt");
-  datainfo.change_counter = &(config->notebook_changecounter);
+  datainfo.change_counter = &(database->changecounter);
 
   if (!get_generic_changeinfo(env, sink, ctx, &datainfo, &error))
     goto error;
@@ -1290,14 +1247,14 @@ static void irmcCalendarCommitChange(void *data, OSyncPluginInfo *info, OSyncCon
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
   irmc_environment *env = (irmc_environment *)data;
-  irmc_config *config = &(env->config);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   memset(&datainfo, 0, sizeof(datainfo));
   strcpy(datainfo.name, "calendar");
   strcpy(datainfo.identifier, "event");
   strcpy(datainfo.path_identifier, "cal");
   strcpy(datainfo.path_extension, "vcs");
-  datainfo.change_counter = &(config->calendar_changecounter);
+  datainfo.change_counter = &(database->changecounter);
 
   irmcGenericCommitChange(env, sink, ctx, &datainfo, change);
   osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1313,14 +1270,14 @@ static void irmcContactCommitChange(void *data, OSyncPluginInfo *info, OSyncCont
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
   irmc_environment *env = (irmc_environment *)data;
-  irmc_config *config = &(env->config);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   memset(&datainfo, 0, sizeof(datainfo));
   strcpy(datainfo.name, "addressbook");
   strcpy(datainfo.identifier, "contact");
   strcpy(datainfo.path_identifier, "pb");
   strcpy(datainfo.path_extension, "vcf");
-  datainfo.change_counter = &(config->addressbook_changecounter);
+  datainfo.change_counter = &(database->changecounter);
 
   irmcGenericCommitChange(env, sink, ctx, &datainfo, change);
   osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1336,14 +1293,14 @@ static void irmcNoteCommitChange(void *data, OSyncPluginInfo *info, OSyncContext
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
   irmc_environment *env = (irmc_environment *)data;
-  irmc_config *config = &(env->config);
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   memset(&datainfo, 0, sizeof(datainfo));
   strcpy(datainfo.name, "notebook");
   strcpy(datainfo.identifier, "note");
   strcpy(datainfo.path_identifier, "nt");
   strcpy(datainfo.path_extension, "vnt");
-  datainfo.change_counter = &(config->notebook_changecounter);
+  datainfo.change_counter = &(database->changecounter);
 
   irmcGenericCommitChange(env, sink, ctx, &datainfo, change);
   osync_trace(TRACE_EXIT, "%s", __func__);
@@ -1357,6 +1314,7 @@ static void irmcFinalize(void *data)
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, data);
 
   irmc_environment *env = (irmc_environment *)data;
+
   g_free(env->anchor_path);
 
   while (env->databases) {

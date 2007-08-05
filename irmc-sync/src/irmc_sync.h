@@ -33,12 +33,6 @@ typedef enum {
 
 typedef struct  {
   char *serial_number;
-  unsigned int calendar_changecounter;
-  char *calendar_dbid;
-  unsigned int addressbook_changecounter;
-  char *addressbook_dbid;
-  unsigned int notebook_changecounter;
-  char *notebook_dbid;
 
   obex_t obexhandle;             // Handle to the obex connection
 
@@ -71,6 +65,8 @@ typedef struct irmc_environment {
 
 typedef struct irmc_database {
   OSyncObjFormat *objformat;     // The configured objformat for this database
+  unsigned int changecounter;   
+  char *dbid;
 } irmc_database;
 
 obex_t* irmc_obex_client(irmc_config *config);
