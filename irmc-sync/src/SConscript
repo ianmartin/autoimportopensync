@@ -1,0 +1,17 @@
+Import('*')
+
+if env['enable_rpath'] == 1:
+	env.Append( LINKFLAGS = [r'-Wl,--rpath', r'-Wl,$prefix/$libsuffix/opensync/formats'] )
+
+#env.Append( LINKFLAGS = [r'-L$prefix/$libsuffix/opensync/formats'] )
+env.Append( CPPPATH = '.' )
+
+
+irmc_sync = env.SharedLibrary('irmc-sync', ['irmc_sync.c', 'irmc_obex.c', 'irmc_irda.c'], LIBS = ['opensync', 'openobex'])
+
+
+# install synchronization plugin and config 
+env.Install(install_plugin, irmc_sync)
+env.Install(install_config, ['irmc-sync'])	
+
+env.Alias('install', install_prefix)

@@ -71,7 +71,9 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
     break;
   case OBEX_EV_REQDONE:
     userdata->busy = 0;
-    if(mode == OBEX_CLIENT) {
+    //if(mode == OBEX_CLIENT) {
+    // FIXME: fix obex header
+    if (mode == 0) {
       client_done(handle, object, obex_cmd, obex_rsp);
     } else  {
       server_done(handle, object, obex_cmd, obex_rsp);
@@ -315,8 +317,10 @@ gint obex_cable_connect(obex_t *handle, gpointer ud) {
   tcflush(userdata->fd, TCIFLUSH);
   tcsetattr(userdata->fd, TCSANOW, &newtio);
 
+#if HAVE_COBEX  
   if (userdata->cabletype == IRMC_CABLE_SIEMENS)
     return(cobex_connect(handle, ud));
+#endif  
   if (userdata->cabletype != IRMC_CABLE_ERICSSON)
     goto err;
 
@@ -454,9 +458,12 @@ gint obex_cable_handleinput(obex_t *handle, gpointer ud, gint timeout) {
 
 obex_t* irmc_obex_client(irmc_config *config) {
   obex_ctrans_t bttrans;
+#if HAVE_COBEX  
   obex_ctrans_t cabletrans = { obex_cable_connect, cobex_disconnect,
 			       NULL, cobex_write, 
 			       cobex_handleinput, 0 };
+#endif  
+
 #if HAVE_IRDA
   obex_ctrans_t irdatrans = { obex_irda_connect, obex_irda_disconnect,
 			      obex_cable_listen, obex_cable_write, 
@@ -481,14 +488,22 @@ obex_t* irmc_obex_client(irmc_config *config) {
 #if HAVE_IRDA
   irdatrans.customdata = userdata;
 #endif
+
+#if HAVE_COBEX  
   cabletrans.customdata = userdata;
+#endif  
+
 #endif
 #if OBEX_USERDATA
   bttrans.userdata = userdata;
 #if HAVE_IRDA
   irdatrans.userdata = userdata;
 #endif
+  
+#if HAVE_COBEX  
   cabletrans.userdata = userdata;
+#endif  
+
 #endif
   memcpy(&userdata->btu, &config->btunit, sizeof(struct bt_unit));
   userdata->channel = config->btchannel;
@@ -523,9 +538,11 @@ obex_t* irmc_obex_client(irmc_config *config) {
 #endif
     break;
   case MEDIUM_CABLE:
+#if HAVE_COBEX    
     if (!(handle = OBEX_Init(OBEX_TRANS_CUST, obex_event, 0)))
       return(0);
     OBEX_RegisterCTransport(handle, &cabletrans);
+#endif    
     break;
   }
   OBEX_SetUserData(handle, (gpointer) userdata);
@@ -665,7 +682,7 @@ char* irmc_obex_get_serial(obex_t* handle) {
       }
     } 
   } else {
-    osync_error_free(&error);
+    osync_error_unref(&error);
   }
   return(NULL);
 }

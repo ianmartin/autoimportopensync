@@ -64,9 +64,15 @@ typedef struct  {
 } irmc_config;
 
 typedef struct irmc_environment {
-  OSyncMember *member;           // The member of this environment
+  char *anchor_path;             // The path of the irmc anchor
   irmc_config config;            // The configuration
+  GList *databases;		 // List of irmc_datase
 } irmc_environment;
+
+typedef struct irmc_database {
+  OSyncObjFormat *objformat;     // The configured objformat for this database
+  char *objtype;                 // The objtype of the database
+} irmc_database;
 
 obex_t* irmc_obex_client(irmc_config *config);
 char* sync_connect_get_serial(irmc_config *config);
