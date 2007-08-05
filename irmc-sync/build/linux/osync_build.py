@@ -37,7 +37,6 @@ def check(env, config):
 	env.ParseConfig('pkg-config --cflags --libs openobex')
 	env.Append(CCFLAGS = r'-I.')
 	env.Append(CCFLAGS = [r'-Wall', r'-Werror', r'-O2'])
-#	env.Append(CCFLAGS = [r'-Wall', r'-O2'])
 	env.Append(CCFLAGS = r'-DVERSION="\"' + config.version + r'\""')
 	
 	testenv = env.Copy()
