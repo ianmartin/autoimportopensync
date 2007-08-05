@@ -71,9 +71,7 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
     break;
   case OBEX_EV_REQDONE:
     userdata->busy = 0;
-    //if(mode == OBEX_CLIENT) {
-    // FIXME: fix obex header
-    if (mode == 0) {
+    if(mode == OBEX_MODE_CLIENT) {
       client_done(handle, object, obex_cmd, obex_rsp);
     } else  {
       server_done(handle, object, obex_cmd, obex_rsp);
