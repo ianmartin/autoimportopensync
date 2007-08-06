@@ -21,6 +21,10 @@ def check(env, config):
 		print 'openobex not found.'
 		env.Exit(1)
 
+	if not conf.CheckPKG('bluez'):
+		print 'bluez-libs not found.'
+		env.Exit(1)
+
 	if not conf.CheckPKG('opensync-1.0 >= 0.30'):
 		print 'opensync-1.0 >= 0.30 not found.'
 		env.Exit(1)
