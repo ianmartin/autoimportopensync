@@ -1802,8 +1802,10 @@ class PhoneContactXML(PhoneContact):
             nameparts = [getField('Name', p) for p in XML_NAME_PARTS]
             nameparts = [p for p in nameparts if p]
             self.name = ' '.join(nameparts)
-            self.firstlast_enabled = 0
-            self.firstlast_index = self.name.index(getField('Name', 'LastName'))
+            lastname = getField('Name', 'LastName')
+            if lastname:
+                self.firstlast_enabled = 0
+                self.firstlast_index = self.name.index(lastname)
 
         catname = getField('Categories', 'Category')
         if catname:
