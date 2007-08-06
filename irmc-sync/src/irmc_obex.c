@@ -71,11 +71,8 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
     break;
   case OBEX_EV_REQDONE:
     userdata->busy = 0;
-    if(mode == OBEX_MODE_CLIENT) {
-      client_done(handle, object, obex_cmd, obex_rsp);
-    } else  {
-      server_done(handle, object, obex_cmd, obex_rsp);
-    }
+    /* we should act as client all the day. */
+    client_done(handle, object, obex_cmd, obex_rsp);
     break;
   case OBEX_EV_REQHINT:
     /* Comes BEFORE the lib parses anything. */
@@ -104,15 +101,6 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
     g_print("Unknown event!\n");
     break;
   }
-}
-
-void server_done(obex_t *handle, obex_object_t *object, 
-		 gint obex_cmd, gint obex_rsp) {
-  obexdata_t *ud;
-  ud = OBEX_GetUserData(handle);
-
-  ud->state = IRMC_OBEX_REQDONE;
-
 }
 
 void client_done(obex_t *handle, obex_object_t *object, 
