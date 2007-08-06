@@ -1357,7 +1357,8 @@ def moto_event_simple_init(event, data, exceptions):
     alarmflag = data[3]
     timestr = data[4]
     datestr = data[5]
-    event.duration = timedelta(0, 0, 0, 0, data[6])
+    if data[6] != '':
+        event.duration = timedelta(0, 0, 0, 0, data[6])
     alarmtime = data[7]
     alarmdate = data[8]
     event.repeat_type = data[9]
