@@ -690,7 +690,9 @@ def xmlevent_to_moto_simple(node, event):
 
     event.name = getField('Summary')
 
-    event.eventdt = parse_ical_time(getField('DateStarted'))
+    datestarted = getField('DateStarted')
+    assert(datestarted, "Event XML is invalid, no <DateStarted>")
+    event.eventdt = parse_ical_time(datestarted)
     if event.eventdt.year < 2000:
         raise UnsupportedDataError('Event is too old')
 
