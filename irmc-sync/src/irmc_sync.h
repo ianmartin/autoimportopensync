@@ -65,6 +65,7 @@ typedef struct irmc_environment {
 
 typedef struct irmc_database {
   OSyncObjFormat *objformat;     // The configured objformat for this database
+  OSyncObjTypeSink *sink;
   unsigned int changecounter;   
   char *dbid;
 } irmc_database;

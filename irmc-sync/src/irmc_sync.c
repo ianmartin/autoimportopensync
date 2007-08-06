@@ -855,9 +855,7 @@ gboolean detect_slowsync(int changecounter, char *object, char **dbid, char **se
   return TRUE;
 }
 
-/**
- * Establishes connection to the device.
- */
+/* Establish connection to the device */
 static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
   osync_trace(TRACE_ENTRY, "%s(%p)", __func__, ctx);			
@@ -890,14 +888,13 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
     irmc_disconnect(config);
     osync_context_report_osyncerror(ctx, error);
     osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-    return;
+   return;
   }
 
   // load the general synchronization anchors
   load_sync_anchors(env);
 
   // check whether a slowsync is necessary
-
 
 /* TODO: port sink engine stuff..
   gboolean slowsync = FALSE;  
@@ -1335,74 +1332,82 @@ static osync_bool irmcDiscover(void *data, OSyncPluginInfo *info, OSyncError **e
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, data, info, error);
 
- // TODO: do some discover voodoo
+  irmc_environment *env = (irmc_environment *)data;
 
+  GList *s = NULL;
+  for (s = env->databases; s; s = s->next) {
+  	irmc_database *sinkenv = s->data;
+  	osync_objtype_sink_set_available(sinkenv->sink, TRUE);
+  }
+
+  OSyncVersion *version = osync_version_new(error);
+  osync_version_set_plugin(version, "irmc-sync");
+  //osync_version_set_modelversion(version, "version");
+  //osync_version_set_firmwareversion(version, "firmwareversion");
+  //osync_version_set_softwareversion(version, "softwareversion");
+  //osync_version_set_hardwareversion(version, "hardwareversion");
+  osync_plugin_info_set_version(info, version);
+  osync_version_unref(version);
 
   osync_trace(TRACE_EXIT, "%s", __func__);
   return TRUE;
-
-// TODO : do some disvoer voodoo
-//error:
-
-  osync_trace(TRACE_EXIT_ERROR, "%s: %s", osync_error_print(error));
-  return FALSE;
 }
 
-static irmc_database *create_database(OSyncPluginInfo *info, const char *objtype, const char *format, OSyncSinkGetChangesFn getchanges, OSyncSinkCommitFn commit, OSyncError **error) {
+static irmc_database *create_database(OSyncPluginInfo *info, const char *objtype, const char *format, OSyncSinkGetChangesFn getchanges, OSyncSinkCommitFn commit, OSyncError **error)
+{
   osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, info, objtype, format, error);	
 
   OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
 
   irmc_database *database = osync_try_malloc0(sizeof(irmc_database), error); 
   if (!database)
-	  goto error;
+    goto error;
 
-  OSyncObjTypeSink *sink = osync_objtype_sink_new(objtype, error);
-  if (!sink)
-          goto error_free_db;
+  database->sink = osync_objtype_sink_new(objtype, error);
+  if (!database->sink)
+    goto error_free_db;
 
-    OSyncObjTypeSinkFunctions functions;
-    memset(&functions, 0, sizeof(functions));
-    functions.connect = irmcConnect;
-    functions.disconnect = irmcDisconnect;
-    functions.sync_done = irmcSyncDone;
+  OSyncObjTypeSinkFunctions functions;
+  memset(&functions, 0, sizeof(functions));
+  functions.connect = irmcConnect;
+  functions.disconnect = irmcDisconnect;
+  functions.sync_done = irmcSyncDone;
+  functions.get_changes = getchanges;
+  functions.commit = commit;
 
-    osync_objtype_sink_add_objformat(sink, format);
-    functions.get_changes = getchanges;
-    functions.commit = commit;
+  osync_objtype_sink_set_functions(database->sink, functions, database);
 
-    database->objformat = osync_format_env_find_objformat(formatenv, format);
-    if (!database->objformat) {
-	    osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find object format \"%s\" for object type \"%s\"! "
-			    "Is the vformat plugin correctly installed?", format, objtype);
-	    goto error_free_db;
-    }
-    
-    osync_objtype_sink_set_functions(sink, functions, database);
-    osync_plugin_info_add_objtype(info, sink);
+  database->objformat = osync_format_env_find_objformat(formatenv, format);
+  if (!database->objformat) {
+    osync_error_set(error, OSYNC_ERROR_GENERIC, "Can't find object format \"%s\" for object type \"%s\"! "
+                                           "Is the vformat plugin correctly installed?", format, objtype);
+    goto error_free_db;
+  }
+  osync_objtype_sink_add_objformat(database->sink, format);
 
-    osync_trace(TRACE_EXIT, "%s: %p", __func__, database);
-    return database;
+  osync_plugin_info_add_objtype(info, database->sink);
 
-error_free_db:
-    g_free(database);
-error:    
-    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-    return NULL;
+  osync_trace(TRACE_EXIT, "%s: %p", __func__, database);
+  return database;
+
+  error_free_db:
+  g_free(database);
+
+  error:    
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
-/**
- * Initialize the connection.
- */
+/* Initialize connection */
 static void *irmcInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncError **error)
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, plugin, info, error);			
   const char *configdata = NULL;
 
-    // create new environment, where all connection information are stored in
+  // create new environment, where all connection information are stored in
   irmc_environment *env = osync_try_malloc0(sizeof(irmc_environment), error);
   if (!env)
-	  goto error;
+    goto error;
 
   // retrieve the config data
   configdata = osync_plugin_info_get_config(info); 
@@ -1420,11 +1425,8 @@ static void *irmcInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
   // set default irmc anchor path
   env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 
-
   irmc_database *contactdb = create_database(info, "contact", "vcard21", irmcContactGetChangeinfo, irmcContactCommitChange, error); 
   irmc_database *eventdb = create_database(info, "event", "vevent10", irmcCalendarGetChangeinfo, irmcCalendarCommitChange, error);
-
-// XXX: Is there a todo database in IrMC?!  
   irmc_database *tododb = create_database(info, "todo", "vtodo10", irmcCalendarGetChangeinfo, irmcCalendarCommitChange, error);
   irmc_database *notedb = create_database(info, "note", "vnote11", irmcNoteGetChangeinfo, irmcNoteCommitChange, error);
 
@@ -1436,27 +1438,24 @@ static void *irmcInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
   env->databases = g_list_append(env->databases, tododb); 
   env->databases = g_list_append(env->databases, notedb); 
 
-
   // return the environment
   osync_trace(TRACE_EXIT, "%s: %p", __func__, env);
   return (void *)env;
 
 error_free_env:
-    free(env);
+  free(env);
+
 error:    
-    osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
-    return NULL;
+  osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+  return NULL;
 }
 
-/**
- * Returns all information about this plugin.
- */
+/* Return all plugin information */
 osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 {
-
   OSyncPlugin *plugin = osync_plugin_new(error);
   if (!plugin)
-          goto error;
+    goto error;
 
   osync_plugin_set_name(plugin, "irmc-sync");
   osync_plugin_set_longname(plugin, "IrMC Mobile Device");
@@ -1469,23 +1468,6 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
   osync_plugin_env_register_plugin(env, plugin);
   osync_plugin_unref(plugin);
 
-/*
-  osync_plugin_accept_objtype(info, "contact");
-  osync_plugin_accept_objformat(info, "contact", "vcard21", NULL);
-  osync_plugin_set_commit_objformat(info, "contact", "vcard21", irmcContactCommitChange);
-
-  osync_plugin_accept_objtype(info, "event");
-  osync_plugin_accept_objformat(info, "event", "vevent10", NULL);
-  osync_plugin_set_commit_objformat(info, "event", "vevent10", irmcCalendarCommitChange);
-
-  osync_plugin_accept_objtype(info, "todo");
-  osync_plugin_accept_objformat(info, "todo", "vtodo10", NULL);
-  osync_plugin_set_commit_objformat(info, "todo", "vtodo10", irmcCalendarCommitChange);
-
-  osync_plugin_accept_objtype(info, "note");
-  osync_plugin_accept_objformat(info, "note", "vnote11", NULL);
-  osync_plugin_set_commit_objformat(info, "note", "vnote11", irmcNoteCommitChange);
-*/
   return TRUE;
 
 error:  

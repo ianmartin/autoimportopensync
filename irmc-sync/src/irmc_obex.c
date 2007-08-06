@@ -548,6 +548,7 @@ obex_t* irmc_obex_client(irmc_config *config) {
 }
 
 gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
+  osync_trace(TRACE_ENTRY, "%s(%p,%p,%p)", __func__, handle, target, error);
   int ret = -1;
   obex_object_t *object; 
   obex_headerdata_t hd; 
@@ -616,9 +617,11 @@ gboolean irmc_obex_connect(obex_t* handle, char* target, OSyncError **error) {
 #endif
     }
     // Connected and serial number is OK!
+    osync_trace(TRACE_EXIT, "%s", __func__);
     return TRUE;
   }
   osync_error_set(error, OSYNC_ERROR_GENERIC, "Cannot connect via OBEX.");
+  osync_trace(TRACE_EXIT_ERROR, "%s", __func__);
   return FALSE;
 }
 
