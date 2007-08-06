@@ -267,12 +267,13 @@ void save_sync_anchors( const irmc_environment *env )
 /**
  * Creates the calendar specific changeinfo for slow- and fastsync
  */
-void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
+void create_calendar_changeinfo(int sync_type, OSyncPluginInfo *info, OSyncObjTypeSink *sink, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);
   osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
 
   OSyncError *error = NULL;
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
   
   if (sync_type == SLOW_SYNC) {
     char *event_start = data, *todo_start;
@@ -313,10 +314,14 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
         g_assert(change);
 
 
+	OSyncData *odata = NULL;
+	//TODO: strlen() + 1
+        event_size = strlen(event);
+
         if (objtype == SYNC_OBJECT_TYPE_CALENDAR) {
-          //osync_change_set_objformat_string(change, "vevent10");
+	  odata = osync_data_new(event, event_size, database->objformat, &error);
         } else if (objtype == SYNC_OBJECT_TYPE_TODO) {
-          //osync_change_set_objformat_string(change, "vtodo10");
+	  odata = osync_data_new(event, event_size, database->objformat, &error);
 	}
 
         event_start = strstr(event, "X-IRMC-LUID:");
@@ -326,13 +331,8 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
             osync_change_set_uid(change, g_strdup(luid));
           }
         }
-        event_size = strlen(event);
 
-	// TODO set data
-	OSyncData *data = NULL;
-	// OSyncData *data = osync_data_new(event, event_size, objformatXXX, &error);
-
-	osync_change_set_data(change, data);
+	osync_change_set_data(change, odata);
         osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
         osync_context_report_change(ctx, change);
       }
@@ -344,26 +344,27 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
     OSyncChange *change = osync_change_new(&error);
     g_assert(change);
 
-    //osync_change_set_objformat_string(change, "plain");
     osync_change_set_uid(change, g_strdup(luid));
 
-    int event_size = strlen(data);
-    if (event_size > 0) {
-      event_size = strlen(data);
-    } else {
+    int event_size;
+
+    if (!data) {
       data = NULL;
       event_size = 0;
+    } else {
+      event_size = strlen(data);
     }
 
     /* H stands for hard delete. D stands for delete. */
     if (type == 'H' || type == 'D')
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
     else if (type == 'M' || event_size == 0) {
-      // TODO set data
-      OSyncData *data = NULL;
-      // OSyncData *data = osync_data_new(event, event_size, objformatXXX, &error);
+      OSyncFormatEnv *formatenv = osync_plugin_info_get_format_env(info);
+      OSyncObjFormat *plain = osync_format_env_find_objformat(formatenv, "plain");
+      OSyncData *odata = osync_data_new(data, event_size, plain, &error);
 
-      osync_change_set_data(change, data);
+
+      osync_change_set_data(change, odata);
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
     }
 
@@ -375,10 +376,12 @@ void create_calendar_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
 /**
  * Creates the addressbook specific changeinfo for slow- and fastsync
  */
-void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
+void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
   osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
+
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   OSyncError *error = NULL;
   
@@ -411,12 +414,12 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
             osync_change_set_uid(change, g_strdup(luid));
           }
         }
-	vcard_size = strlen(vcard);
-        // TODO set data
-        OSyncData *data = NULL;
-        // OSyncData *data = osync_data_new(vcard, vcard_size, objformatXXX, &error);
 
-        osync_change_set_data(change, data);
+	// TODO: strlen() + 1
+	vcard_size = strlen(vcard);
+        OSyncData *odata = osync_data_new(vcard, vcard_size, database->objformat, &error);
+
+        osync_change_set_data(change, odata);
 
         osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_ADDED);
         osync_context_report_change(ctx, change);
@@ -428,14 +431,14 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
     OSyncChange *change = osync_change_new(&error);
     g_assert(change);
 
-    //osync_change_set_objformat_string(change, "vcard21");
     osync_change_set_uid(change, g_strdup(luid));
 
-    int vcard_size = strlen(data);
-    if (vcard_size > 0) {
-      vcard_size = strlen(data);
-    } else {
+    int vcard_size; 
+    if (!data) {
       vcard_size = 0;
+    } else {
+      // TODO strlen() + 1?
+      vcard_size = strlen(data);
     }
 
     /* H stands for hard delete. D stands for delete. */
@@ -443,11 +446,9 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
     else if (type == 'M' || vcard_size == 0) {
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
-      // TODO set data
-      OSyncData *data = NULL;
-      // OSyncData *data = osync_data_new(vcard, vcard_size, objformatXXX, &error);
+      OSyncData *odata = osync_data_new(data, vcard_size, database->objformat, &error);
 
-      osync_change_set_data(change, data);
+      osync_change_set_data(change, odata);
 
     }
 
@@ -459,10 +460,12 @@ void create_addressbook_changeinfo(int sync_type, OSyncContext *ctx, char *data,
 /**
  * Creates the notebook specific changeinfo for slow- and fastsync
  */
-void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, char *luid, int type)
+void create_notebook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncContext *ctx, char *data, char *luid, int type)
 {
   osync_trace(TRACE_ENTRY, "%s(%i, %p, %p, %s, %i)", __func__, sync_type, ctx, data, luid, type);			
   osync_trace(TRACE_SENSITIVE, "Content of data:\n%s", data);
+
+  irmc_database *database = osync_objtype_sink_get_userdata(sink);
   
   OSyncError *error = NULL;
 
@@ -496,10 +499,9 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
           }
         }
 
+	// TODO: strlen() + 1
         vnote_size = strlen(vnote);
-        // TODO set data
-        OSyncData *data = NULL;
-        // OSyncData *data = osync_data_new(vnote, vnote_size, objformatXXX, &error);
+        OSyncData *data = osync_data_new(vnote, vnote_size, database->objformat, &error);
 
         osync_change_set_data(change, data);
 
@@ -517,12 +519,12 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
     //osync_change_set_objformat_string(change, "vnote11");
     osync_change_set_uid(change, g_strdup(luid));
 
-    int vnote_size = strlen(data);
-    if (vnote_size > 0) {
-      vnote_size = strlen(data);
-    } else {
+    int vnote_size;
+    if (!data) {
       data = NULL;
       vnote_size = 0;
+    } else {
+      vnote_size = strlen(data);
     }
 
     /* H stands for hard delete. D stands for delete. */
@@ -530,11 +532,9 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
     else if (type == 'M' || vnote_size == 0) {
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
-      // TODO set data
-      OSyncData *data = NULL;
-      // OSyncData *data = osync_data_new(vnote, vnote_size, objformatXXX, &error);
+      OSyncData *odata = osync_data_new(data, vnote_size, database->objformat, &error);
 
-      osync_change_set_data(change, data);
+      osync_change_set_data(change, odata);
     }
 
     osync_context_report_change(ctx, change);
@@ -550,9 +550,11 @@ void create_notebook_changeinfo(int sync_type, OSyncContext *ctx, char *data, ch
  *   - create_addressbook_changeinfo()
  *   - create_notebook_changeinfo()
  */
-gboolean get_generic_changeinfo(irmc_environment *env, OSyncObjTypeSink *sink, OSyncContext *ctx, data_type_information *info, OSyncError **error)
+gboolean get_generic_changeinfo(irmc_environment *env, OSyncPluginInfo *oinfo, OSyncContext *ctx, data_type_information *info, OSyncError **error)
 {
-  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, env, sink, ctx, info, error);
+  osync_trace(TRACE_ENTRY, "%s(%p, %p, %p, %p, %p)", __func__, env, info, ctx, info, error);
+
+  OSyncObjTypeSink *sink = osync_plugin_info_get_sink(oinfo);
 
   char *buffer;
   char *buffer_pos;
@@ -564,6 +566,7 @@ gboolean get_generic_changeinfo(irmc_environment *env, OSyncObjTypeSink *sink, O
   int dummy;
 
   irmc_config *config = &(env->config);
+
 
   buffer = g_malloc(DATABUFSIZE);
 
@@ -638,11 +641,11 @@ gboolean get_generic_changeinfo(irmc_environment *env, OSyncObjTypeSink *sink, O
 
     // handle object specific part
     if ( strcmp( info->identifier, "event" ) == 0 )
-      create_calendar_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
+      create_calendar_changeinfo( SLOW_SYNC, oinfo, sink, ctx, buffer, 0, 0 );
     else if ( strcmp( info->identifier, "contact" ) == 0 )
-      create_addressbook_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
+      create_addressbook_changeinfo( SLOW_SYNC, sink, ctx, buffer, 0, 0 );
     else if ( strcmp( info->identifier, "note" ) == 0 )
-     create_notebook_changeinfo( SLOW_SYNC, ctx, buffer, 0, 0 );
+     create_notebook_changeinfo( SLOW_SYNC, sink, ctx, buffer, 0, 0 );
 
   } else {
     osync_trace(TRACE_INTERNAL, "fastsync %s\n", info->name );
@@ -725,11 +728,11 @@ gboolean get_generic_changeinfo(irmc_environment *env, OSyncObjTypeSink *sink, O
 
         // handle object specific part
         if ( strcmp( info->identifier, "event" ) == 0 )
-          create_calendar_changeinfo(FAST_SYNC, ctx, data, luid, type);
+          create_calendar_changeinfo(FAST_SYNC, oinfo, sink, ctx, data, luid, type);
         else if ( strcmp( info->identifier, "contact" ) == 0 )
-          create_addressbook_changeinfo(FAST_SYNC, ctx, data, luid, type);
+          create_addressbook_changeinfo(FAST_SYNC, sink, ctx, data, luid, type);
         else if ( strcmp( info->identifier, "note" ) == 0 )
-          create_notebook_changeinfo(FAST_SYNC, ctx, data, luid, type);
+          create_notebook_changeinfo(FAST_SYNC, sink, ctx, data, luid, type);
       }
 
       buffer_pos = strstr(buffer_pos, "\r\n");
@@ -1015,7 +1018,7 @@ static void irmcCalendarGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncCo
   datainfo.change_counter = &(database->changecounter);
 
 
-  if (!get_generic_changeinfo(env, sink, ctx, &datainfo, &error))
+  if (!get_generic_changeinfo(env, info, ctx, &datainfo, &error))
     goto error;
 
   osync_context_report_success(ctx);
@@ -1034,7 +1037,7 @@ error:
  */
 static void irmcContactGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 {
-  osync_trace(TRACE_ENTRY, "%p, %p, %p)", __func__, data, info, ctx);
+  osync_trace(TRACE_ENTRY, "%s(%p,%p,%p)", __func__, data, info, ctx);
   OSyncError *error = 0;
 
   OSyncObjTypeSink *sink = osync_plugin_info_get_sink(info);
@@ -1050,7 +1053,7 @@ static void irmcContactGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncCon
   strcpy(datainfo.path_extension, "vcf");
   datainfo.change_counter = &(database->changecounter);
 
-  if (!get_generic_changeinfo(env, sink, ctx, &datainfo, &error))
+  if (!get_generic_changeinfo(env, info, ctx, &datainfo, &error))
     goto error;
 
   osync_context_report_success(ctx);
@@ -1085,7 +1088,7 @@ static void irmcNoteGetChangeinfo(void *data, OSyncPluginInfo *info, OSyncContex
   strcpy(datainfo.path_extension, "vnt");
   datainfo.change_counter = &(database->changecounter);
 
-  if (!get_generic_changeinfo(env, sink, ctx, &datainfo, &error))
+  if (!get_generic_changeinfo(env, info, ctx, &datainfo, &error))
     goto error;
 
   osync_context_report_success(ctx);
