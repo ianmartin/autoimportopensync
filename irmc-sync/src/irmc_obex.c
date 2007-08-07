@@ -62,6 +62,7 @@ extern gboolean multisync_debug;
 
 void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gint obex_cmd, gint obex_rsp)
 {
+  osync_trace(TRACE_ENTRY, "%s(%p,%p,%i,%i,%i, %i)", __func__, handle, object, mode, event, obex_cmd, obex_rsp);
   obexdata_t *userdata;
   osync_trace(TRACE_INTERNAL, "obex event: %i", event);
 
@@ -101,6 +102,7 @@ void obex_event(obex_t *handle, obex_object_t *object, gint mode, gint event, gi
     g_print("Unknown event!\n");
     break;
   }
+  osync_trace(TRACE_EXIT, "%s", __func__);
 }
 
 void client_done(obex_t *handle, obex_object_t *object, 

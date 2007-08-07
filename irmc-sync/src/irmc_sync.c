@@ -982,7 +982,8 @@ static void irmcSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
   const char *objtype = osync_objtype_sink_get_name(sink);
 
-  if (database->changecounter >= 0 && strcmp(database->dbid, "FFFFFF")) {
+  //if (database->changecounter >= 0 && strcmp(database->dbid, "FFFFFF")) {
+  if (database->changecounter >= 0) {
     char *anchor = g_strdup_printf("%d:%s", database->changecounter, database->dbid);
     osync_anchor_update( env->anchor_path, objtype, anchor );
     g_free(anchor);
