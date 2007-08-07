@@ -93,54 +93,39 @@ void _osync_engine_set_internal_format(OSyncEngine *engine, const char *objtype,
 	g_hash_table_insert(engine->internalFormats, g_strdup(objtype), g_strdup(osync_objformat_get_name(format)));
 }
 
-static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
+static osync_bool _osync_engine_receive_change_detect_data(OSyncEngine *engine, OSyncChange *change, OSyncError *error)
 {
-	OSyncEngine *engine = userdata;
-	OSyncError *error = NULL;
-	osync_bool found = FALSE;
-	
-	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
 
-	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
-	const char *uid = osync_change_get_uid(change);		
+	OSyncData *data = osync_change_get_data(change);
 	int changetype = osync_change_get_changetype(change);
 	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
-	const char *objtype = osync_change_get_objtype(change);
 	OSyncObjFormat *detectedFormat = NULL;
 
-	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
-	
-	OSyncData *data = osync_change_get_data(change);
-	
-	/* If objtype == "data", detect the objtype */
-	if (!strcmp(osync_change_get_objtype(change), "data") && osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
-		detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
-		if (!detectedFormat)
-			goto error;
+	detectedFormat = osync_format_env_detect_objformat_full(engine->formatenv, data, &error);
+	if (!detectedFormat)
+		goto error;
 
-		/* To avoid problems with unsupported object types in groups. Check if object type of 
-		   detectedFormat is supported by the object engines... */
-		const char *detected_objtype = osync_objformat_get_objtype(detectedFormat);
-		osync_bool supported_objtype = FALSE;
+	/* To avoid problems with unsupported object types in groups. Check if object type of 
+	   detectedFormat is supported by the object engines... */
+	const char *detected_objtype = osync_objformat_get_objtype(detectedFormat);
+	osync_bool supported_objtype = FALSE;
 
-		GList *objengine = NULL;
-		for (objengine = engine->object_engines; objengine; objengine = objengine->next) {
-			const char *objtype = osync_obj_engine_get_objtype(objengine->data);
-			if (!strcmp(detected_objtype, objtype)) {
-				supported_objtype = TRUE;
-				break;
-			}
+	GList *objengine = NULL;
+	for (objengine = engine->object_engines; objengine; objengine = objengine->next) {
+		const char *objtype = osync_obj_engine_get_objtype(objengine->data);
+		if (!strcmp(detected_objtype, objtype)) {
+			supported_objtype = TRUE;
+			break;
 		}
-
-		osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), detected_objtype);
-
-		/* ... only if the objtype is supported by one of the object engines we change the objtype of the change-entry (change). */
-		if (supported_objtype)
-			osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
-		else
-			osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype);
-		
 	}
+
+	osync_trace(TRACE_INTERNAL, "detected format %s and objtype %s", osync_objformat_get_name(detectedFormat), detected_objtype);
+
+	/* ... only if the objtype is supported by one of the object engines we change the objtype of the change-entry (change). */
+	if (supported_objtype)
+		osync_change_set_objtype(change, osync_objformat_get_objtype(detectedFormat));
+	else
+		osync_trace(TRACE_INTERNAL, "objtype %s is not supported in this group.", detected_objtype);
 
 	/* If initial objformat was reported as "file" detect the real object format and update it.
 	   This is needed to avoid an invalid converting path from file -> plain -> targetformat.
@@ -179,6 +164,39 @@ static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata
 			osync_converter_path_unref(path);
 		}
 
+	}
+
+	osync_trace(TRACE_EXIT, "%s", __func__);
+	return TRUE; 
+
+error:
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	return FALSE;
+}
+
+
+static void _osync_engine_receive_change(OSyncClientProxy *proxy, void *userdata, OSyncChange *change)
+{
+	OSyncEngine *engine = userdata;
+	OSyncError *error = NULL;
+	osync_bool found = FALSE;
+	
+	osync_trace(TRACE_ENTRY, "%s(%p, %p, %p)", __func__, proxy, userdata, change);
+
+	long long int memberid = osync_member_get_id(osync_client_proxy_get_member(proxy));
+	const char *uid = osync_change_get_uid(change);		
+	int changetype = osync_change_get_changetype(change);
+	const char *format = osync_objformat_get_name(osync_change_get_objformat(change));
+	const char *objtype = osync_change_get_objtype(change);
+
+	osync_trace(TRACE_INTERNAL, "Received change %s, changetype %i, format %s, objtype %s from member %lli", uid, changetype, format, objtype, memberid);
+	
+	OSyncData *data = osync_change_get_data(change);
+	
+	/* If objtype == "data", detect the objtype */
+	if (!strcmp(osync_change_get_objtype(change), "data") && osync_change_get_changetype(change) != OSYNC_CHANGE_TYPE_DELETED) {
+		if (!_osync_engine_receive_change_detect_data(engine, change, error))
+			goto error;
 	}
 	
 	/* Convert the format to the internal format */

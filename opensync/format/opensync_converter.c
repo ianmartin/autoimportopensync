@@ -309,6 +309,7 @@ void osync_converter_path_unref(OSyncFormatConverterPath *path)
 void osync_converter_path_add_edge(OSyncFormatConverterPath *path, OSyncFormatConverter *edge)
 {
 	osync_assert(path);
+	osync_assert(edge);
 	path->converters = g_list_append(path->converters, edge);
 	osync_converter_ref(edge);
 }
