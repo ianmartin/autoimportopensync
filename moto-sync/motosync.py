@@ -801,6 +801,9 @@ class PhoneComms:
         self.__do_cmd('AT+MODE=0') # change mode
         self.__do_cmd('AT&F')      # reset to factory defaults
         self.__do_cmd('AT+MODE=2') # change mode again
+        line = self.__readline()   # swallow the "+MBAN" output that MODE=2 generates
+        assert(line.startswith('+MBAN:'), "Unexpected output after AT+MODE=2: " + line)
+        
         self.__do_cmd('ATE0Q0V1')  # echo off, result codes off, verbose results
 
         # find out if calendar locking is required/supported by this phone
