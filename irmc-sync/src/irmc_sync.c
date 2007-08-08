@@ -384,6 +384,8 @@ void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncC
   irmc_database *database = osync_objtype_sink_get_userdata(sink);
 
   OSyncError *error = NULL;
+  int vcard_size = 0;
+
   
   if (sync_type == SLOW_SYNC) {
     char *vcard_start = data;
@@ -397,15 +399,13 @@ void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncC
         vcard_end += strlen("END:VCARD");
 
       if (vcard_start && vcard_end) {
-        int vcard_size = vcard_end - vcard_start+1;
+        vcard_size = vcard_end - vcard_start+1;
         vcard = g_malloc(vcard_size);
         memcpy(vcard, vcard_start, vcard_end - vcard_start);
         vcard[vcard_end - vcard_start] = 0;
 
         OSyncChange *change = osync_change_new(&error);
         g_assert(change);
-
-        //osync_change_set_objformat_string(change, "vcard21");
 
         vcard_start = strstr(vcard, "X-IRMC-LUID:");
         if (vcard_start) {
@@ -415,8 +415,6 @@ void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncC
           }
         }
 
-	// TODO: strlen() + 1
-	vcard_size = strlen(vcard);
         OSyncData *odata = osync_data_new(vcard, vcard_size, database->objformat, &error);
 
         osync_change_set_data(change, odata);
@@ -433,23 +431,21 @@ void create_addressbook_changeinfo(int sync_type, OSyncObjTypeSink *sink, OSyncC
 
     osync_change_set_uid(change, g_strdup(luid));
 
-    int vcard_size; 
-    if (!data) {
-      vcard_size = 0;
+    if ((data != NULL) && (strlen(data) > 0)) {
+      vcard_size = strlen(data)+1;
     } else {
-      // TODO strlen() + 1?
-      vcard_size = strlen(data);
+      vcard_size = 0;
     }
 
     /* H stands for hard delete. D stands for delete. */
-    if (type == 'H' || type == 'D')
+    if (type == 'H' || type == 'D') {
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_DELETED);
-    else if (type == 'M' || vcard_size == 0) {
+      OSyncData *odata = osync_data_new(NULL, 0, database->objformat, &error);
+      osync_change_set_data(change, odata);
+    } else if (type == 'M' || vcard_size == 0) {
       osync_change_set_changetype(change, OSYNC_CHANGE_TYPE_MODIFIED);
       OSyncData *odata = osync_data_new(data, vcard_size, database->objformat, &error);
-
       osync_change_set_data(change, odata);
-
     }
 
     osync_context_report_change(ctx, change);
