@@ -233,7 +233,7 @@ error:
  */
 void load_sync_anchors( irmc_environment *env )
 {
-  osync_trace(TRACE_ENTRY, "%s(%p, %p)", __func__, env);
+  osync_trace(TRACE_ENTRY, "%s(%p)", __func__, env);
 
   irmc_config *config = &(env->config);
 
