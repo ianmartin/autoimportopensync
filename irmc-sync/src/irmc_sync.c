@@ -894,52 +894,22 @@ static void irmcConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
   load_sync_anchors(env);
 
   // check whether a slowsync is necessary
+  gboolean slowsync = FALSE;
 
-/* TODO: port sink engine stuff..
-  gboolean slowsync = FALSE;  
-  
-  if (osync_member_objtype_enabled(env->member, "event")) { 
-    slowsync = FALSE;
-    if ( !detect_slowsync( config->calendar_changecounter, "cal", &(config->calendar_dbid),
-                           &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-    {
-      irmc_disconnect(config);
-      osync_context_report_osyncerror(ctx, &error);
-      osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-      return;
-    } else {
-      osync_member_set_slow_sync(env->member, "event", slowsync);
-    }
+  if (!detect_slowsync(database->changecounter, database->obex_db, &(database->dbid),
+                         &(config->serial_number), &slowsync, config->obexhandle, &error)) {
+    irmc_disconnect(config);
+    osync_context_report_osyncerror(ctx, error);
+    osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
+   return;
   }
-  
-  if (osync_member_objtype_enabled(env->member, "contact")) { 
-    slowsync = FALSE;
-    if ( !detect_slowsync( config->addressbook_changecounter, "pb", &(config->addressbook_dbid),
-                           &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-    {
-      irmc_disconnect(config);
-      osync_context_report_osyncerror(ctx, &error);
-      osync_trace(TRACE_EXIT, "%s: %s", __func__, osync_error_print(&error));
-      return;
-    } else {
-      osync_member_set_slow_sync(env->member, "contact", slowsync);
-    }
-  }
-  
-  if (osync_member_objtype_enabled(env->member, "note")) { 
-    slowsync = FALSE;
-    if ( !detect_slowsync( config->notebook_changecounter, "nt", &(config->notebook_dbid),
-                           &(config->serial_number), &slowsync, config->obexhandle, &error ) )
-    {
-      irmc_disconnect(config);
-      osync_context_report_osyncerror(ctx, &error);
-      osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
-      return;
-    } else {
-      osync_member_set_slow_sync(env->member, "note", slowsync);
-    }
-  }
-*/
+
+  if (slowsync == TRUE) {
+	  osync_trace(TRACE_INTERNAL, "Have to do a slowsync for objtype %s", objtype);
+	  osync_objtype_sink_set_slowsync(sink, TRUE);
+  } else {
+    osync_trace(TRACE_INTERNAL, "No slowsync required");
+  }   
 
   osync_context_report_success(ctx);
 }
@@ -978,8 +948,7 @@ static void irmcSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 
   const char *objtype = osync_objtype_sink_get_name(sink);
 
-  //if (database->changecounter >= 0 && strcmp(database->dbid, "FFFFFF")) {
-  if (database->changecounter >= 0) {
+  if (database->changecounter >= 0 && strcmp(database->dbid, "FFFFFF")) {
     char *anchor = g_strdup_printf("%d:%s", database->changecounter, database->dbid);
     osync_anchor_update( env->anchor_path, objtype, anchor );
     g_free(anchor);
@@ -1353,7 +1322,7 @@ static osync_bool irmcDiscover(void *data, OSyncPluginInfo *info, OSyncError **e
   return TRUE;
 }
 
-static irmc_database *create_database(OSyncPluginInfo *info, const char *objtype, const char *format, OSyncSinkGetChangesFn getchanges, OSyncSinkCommitFn commit, OSyncError **error)
+static irmc_database *create_database(OSyncPluginInfo *info, const char *objtype, const char *format, char *obex_db, OSyncSinkGetChangesFn getchanges, OSyncSinkCommitFn commit, OSyncError **error)
 {
   osync_trace(TRACE_ENTRY, "%s(%p, %s, %s, %p)", __func__, info, objtype, format, error);	
 
@@ -1386,6 +1355,8 @@ static irmc_database *create_database(OSyncPluginInfo *info, const char *objtype
   osync_objtype_sink_add_objformat(database->sink, format);
 
   osync_plugin_info_add_objtype(info, database->sink);
+
+  database->obex_db = obex_db;
 
   osync_trace(TRACE_EXIT, "%s: %p", __func__, database);
   return database;
@@ -1425,10 +1396,10 @@ static void *irmcInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncErr
   // set default irmc anchor path
   env->anchor_path = g_strdup_printf("%s/anchor.db", osync_plugin_info_get_configdir(info));
 
-  irmc_database *contactdb = create_database(info, "contact", "vcard21", irmcContactGetChangeinfo, irmcContactCommitChange, error); 
-  irmc_database *eventdb = create_database(info, "event", "vevent10", irmcCalendarGetChangeinfo, irmcCalendarCommitChange, error);
-  irmc_database *tododb = create_database(info, "todo", "vtodo10", irmcCalendarGetChangeinfo, irmcCalendarCommitChange, error);
-  irmc_database *notedb = create_database(info, "note", "vnote11", irmcNoteGetChangeinfo, irmcNoteCommitChange, error);
+  irmc_database *contactdb = create_database(info, "contact", "vcard21", "pb", irmcContactGetChangeinfo, irmcContactCommitChange, error); 
+  irmc_database *eventdb = create_database(info, "event", "vevent10", "cal", irmcCalendarGetChangeinfo, irmcCalendarCommitChange, error);
+  irmc_database *tododb = create_database(info, "todo", "vtodo10", "cal", irmcCalendarGetChangeinfo, irmcCalendarCommitChange, error);
+  irmc_database *notedb = create_database(info, "note", "vnote11", "nt", irmcNoteGetChangeinfo, irmcNoteCommitChange, error);
 
   if (!contactdb || !eventdb || !tododb || !notedb)
     goto error_free_env;

@@ -68,6 +68,7 @@ typedef struct irmc_database {
   OSyncObjTypeSink *sink;
   unsigned int changecounter;   
   char *dbid;
+  char *obex_db;
 } irmc_database;
 
 obex_t* irmc_obex_client(irmc_config *config);
