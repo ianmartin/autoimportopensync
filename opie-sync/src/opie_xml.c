@@ -636,7 +636,7 @@ xmlDoc *opie_xml_create_notes_doc(void) {
 xmlDoc *opie_xml_create_doc(OPIE_OBJECT_TYPE objtype) {
 	switch(objtype) {
 		case OPIE_OBJECT_TYPE_CONTACT:
-			return opie_xml_create_calendar_doc();
+			return opie_xml_create_contacts_doc();
 		case OPIE_OBJECT_TYPE_TODO:
 			return opie_xml_create_todos_doc();
 		case OPIE_OBJECT_TYPE_EVENT:
