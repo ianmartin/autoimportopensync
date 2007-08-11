@@ -90,7 +90,7 @@ void psyncDBClose(PSyncDatabase *db)
 
 PSyncDatabase *psyncDBOpen(PSyncEnv *env, char *name, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, name ? name : "nil", error);
 	
 	struct DBInfo dbInfo;
 	memset(&dbInfo, 0, sizeof(struct DBInfo));
@@ -156,7 +156,7 @@ error_free_db:
 #endif
 	g_free(db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -204,7 +204,7 @@ error_free_entry:
 	g_free(entry);
 error:
 	if (osync_error_is_set(error))
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	else
 		osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
 	return NULL;
@@ -254,7 +254,7 @@ error_free_entry:
 	g_free(entry);
 error:
 	if (osync_error_is_set(error))
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	else
 		osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
 	return NULL;
@@ -305,7 +305,7 @@ error_free_entry:
 	g_free(entry);
 error:
 	if (osync_error_is_set(error))
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	else
 		osync_trace(TRACE_EXIT, "%s: Not Found", __func__);
 	return NULL;
@@ -325,7 +325,7 @@ osync_bool psyncDBDelete(PSyncDatabase *db, int id, OSyncError **error)
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -351,7 +351,7 @@ osync_bool psyncDBWrite(PSyncDatabase *db, PSyncEntry *entry, OSyncError **error
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -384,7 +384,7 @@ osync_bool psyncDBAdd(PSyncDatabase *db, PSyncEntry *entry, unsigned long *id, O
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -399,22 +399,22 @@ const char *psyncDBCategoryFromId(PSyncDatabase *db, int id, OSyncError **error)
 		
 	const char *ret = db->cai.name[id];
 
-	osync_trace(TRACE_EXIT, "%s: %s", __func__, ret);
+	osync_trace(TRACE_EXIT, "%s: %s", __func__, ret ? ret : "nil");
 	return ret;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
 int psyncDBCategoryToId(PSyncDatabase *db, const char *name, OSyncError **error)
 {	
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, name, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, db, name ? name : "nil", error);
 	
 	int i = 0;
 	for (i = 0; i < CATCOUNT; i++) {
 		if (db->cai.name[i][0] != '\0') {
-			osync_trace(TRACE_INTERNAL, "remote: cat %d [%s] ID %d renamed %d", i, db->cai.name[i], db->cai.ID[i], db->cai.renamed[i]);
+			osync_trace(TRACE_INTERNAL, "remote: cat %d [%s] ID %d renamed %d", i, db->cai.name[i] ? db->cai.name[i] : "nil", db->cai.ID[i], db->cai.renamed[i]);
 			if (!strcmp(db->cai.name[i], name)) {
 				osync_trace(TRACE_EXIT, "%s: %i", __func__, i);
 				return i;
@@ -500,7 +500,7 @@ static osync_bool _connectDevice(PSyncEnv *env, unsigned int timeout, OSyncError
 error_free_listen:
 	pi_close(listen_sd);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -563,7 +563,7 @@ static void psyncThreadStart(PSyncEnv *env, OSyncPluginInfo *info)
 
 static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %s, %p)", __func__, env, config ? config : "nil", error);
 	xmlDoc *doc = NULL;
 	xmlNode *cur = NULL;
 
@@ -642,7 +642,7 @@ static osync_bool psyncSettingsParse(PSyncEnv *env, const char *config, OSyncErr
 error_free_doc:
 		xmlFreeDoc(doc);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -683,7 +683,7 @@ void psyncConnect(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
 	if (env->user.userID == 0)
 		strcpy(env->user.username, "");
 		
-	osync_trace(TRACE_INTERNAL, "User: %s, %i\n", env->user.username, env->user.userID);
+	osync_trace(TRACE_INTERNAL, "User: %s, %i\n", env->user.username ? env->user.username : "nil", env->user.userID);
 	/*if (strcmp(User.username, conn->username) || User.userID != conn->id) {
 		//Id or username mismatch
 		switch (conn->mismatch) {
@@ -728,7 +728,7 @@ error:
 	}
 	
 	osync_context_report_osyncerror(ctx, error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 }
 
 void psyncSyncDone(void *data, OSyncPluginInfo *info, OSyncContext *ctx)
@@ -811,7 +811,7 @@ static void *psyncInitialize(OSyncPlugin *plugin, OSyncPluginInfo *info, OSyncEr
 error_free_env:
 	g_free(env);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -856,7 +856,7 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	return TRUE;
 	
 error:
-	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));
+	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error) ? osync_error_print(error) : "nil");
 	osync_error_unref(error);
 	return FALSE;
 }

@@ -59,7 +59,7 @@ static OSyncChange *psyncEventCreate(PSyncEntry *entry, OSyncError **error)
 
 	    const char *catname = psyncDBCategoryFromId(entry->db, entry->category, NULL);
 	    if (catname) {
-		    osync_trace(TRACE_INTERNAL, "CATNAME: %s", catname);
+		    osync_trace(TRACE_INTERNAL, "CATNAME: %s", catname ? catname : "nil");
 			event->categories = g_list_append(event->categories, g_strdup(catname));
 	    } else {
 		    osync_trace(TRACE_INTERNAL, "no category name...");
@@ -80,7 +80,7 @@ static OSyncChange *psyncEventCreate(PSyncEntry *entry, OSyncError **error)
 error_free_change:
 	osync_change_free(change);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -144,7 +144,7 @@ osync_bool psyncEventGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 error_close_db:
 	psyncDBClose(db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -203,7 +203,7 @@ osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			GList *c = NULL;
 			for (c = event->categories; c; c = c->next) {
-				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data ? c->data : "nil");
 				entry->category = psyncDBCategoryToId(db, c->data, NULL);
 				if (entry->category != 0) {
 					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
@@ -253,7 +253,7 @@ osync_bool psyncEventCommit(OSyncContext *ctx, OSyncChange *change)
 
 error:
 	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 	return FALSE;
 }
 

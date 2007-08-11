@@ -31,7 +31,7 @@ static char *conv_enc_palm_to_xml(const char *text) {
 
 	ret = g_convert(text, strlen(text), "utf8", "cp1252", NULL, NULL, NULL);
 
-	osync_trace(TRACE_SENSITIVE, "%s(): %s -> %s", __func__, text, ret);
+	osync_trace(TRACE_SENSITIVE, "%s(): %s -> %s", __func__, text ? text : "nil", ret ? ret : "nil");
 
 	return ret;
 }
@@ -41,7 +41,7 @@ static char *conv_enc_xml_to_palm(const char *text) {
 
 	ret = g_convert(text, strlen(text), "cp1252", "utf8", NULL, NULL, NULL);
 
-	osync_trace(TRACE_SENSITIVE, "%s(): %s -> %s", __func__, text, ret);
+	osync_trace(TRACE_SENSITIVE, "%s(): %s -> %s", __func__, text ? text : "nil", ret ? ret: "nil");
 
 	return ret;
 }
@@ -60,7 +60,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		goto error;
 	}
 
-	osync_trace(TRACE_SENSITIVE, "codepage: %s\n", entry->codepage);
+	osync_trace(TRACE_SENSITIVE, "codepage: %s\n", entry->codepage ? entry->codepage : "nil");
 	osync_trace(TRACE_SENSITIVE, "event: %i\n alarm: %i\n",
 		       entry->appointment.event, entry->appointment.alarm);	
 	osync_trace(TRACE_SENSITIVE, "Start: %04d-%02d-%02d %02d-%02d-%02d",
@@ -89,8 +89,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 			entry->appointment.repeatDays[3], entry->appointment.repeatDays[4],
 			entry->appointment.repeatDays[5], entry->appointment.repeatDays[6],
 			entry->appointment.repeatWeekstart);
-	osync_trace(TRACE_SENSITIVE, "execptions: %i\n tm_exception: NULL\n description: %s\n note: %s\n",
-		       entry->appointment.exceptions, entry->appointment.description, entry->appointment.note);	
+	osync_trace(TRACE_SENSITIVE, "execptions: %i\n tm_exception: NULL\n description: %s\n note: %s\n", entry->appointment.exceptions, entry->appointment.description ? entry->appointment.description : "nil", entry->appointment.note ? entry->appointment.note : "nil");	
 
 	int i;
 	for (i=0; i < entry->appointment.exceptions; i++) {
@@ -142,7 +141,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		//RFC2445: default value type is DATE-TIME. We alter to DATE
 		xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*)"DATE");
 
-		osync_trace(TRACE_SENSITIVE, "Start: %s", vtime);
+		osync_trace(TRACE_SENSITIVE, "Start: %s", vtime ? vtime : "nil");
 
 		g_free(tmp);
 		g_free(vtime);
@@ -156,7 +155,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		//RFC2445: default value type is DATE-TIME. We alter to DATE
 		xmlNewTextChild(current, NULL, (xmlChar*) "Value", (xmlChar*)"DATE");
 
-		osync_trace(TRACE_SENSITIVE, "End: %s", vtime);
+		osync_trace(TRACE_SENSITIVE, "End: %s", vtime ? vtime : "nil");
 
 		g_free(tmp);
 		g_free(vtime);
@@ -171,7 +170,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateStarted", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 
-		osync_trace(TRACE_SENSITIVE, "Start: %s", vtime);
+		osync_trace(TRACE_SENSITIVE, "Start: %s", vtime ? vtime : "nil");
 
 		g_free(vtime);
 		g_free(tmp);
@@ -183,7 +182,7 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 		current = xmlNewTextChild(root, NULL, (xmlChar*)"DateEnd", NULL);
 		xmlNewTextChild(current, NULL, (xmlChar*)"Content", (xmlChar*)vtime);
 
-		osync_trace(TRACE_SENSITIVE, "End: %s", vtime);
+		osync_trace(TRACE_SENSITIVE, "End: %s", vtime ? vtime : "nil");
 
 		g_free(vtime);
 		g_free(tmp);
@@ -374,13 +373,13 @@ static osync_bool conv_palm_event_to_xml(void *user_data, char *input, int inpsi
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc) ? osxml_write_to_string((xmlDoc *)doc) : "nil");
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -388,7 +387,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 {
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", __func__, user_data, input, inpsize, output, outpsize, free_input, error);
 
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input) ? osxml_write_to_string((xmlDoc *)input) : "nil");
 
 	int i = 0;
 	char *tmp = NULL;
@@ -478,7 +477,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 				entry->appointment.begin.tm_hour,
 				entry->appointment.begin.tm_min,
 				entry->appointment.begin.tm_sec,
-				vtime);
+				vtime ? vtime : "nil");
 
 		g_free(vtime);
 	}
@@ -509,7 +508,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 				entry->appointment.end.tm_hour,
 				entry->appointment.end.tm_min,
 				entry->appointment.end.tm_sec,
-				vtime);
+				vtime ? vtime : "nil");
 
 		g_free(vtime);
 	}
@@ -706,7 +705,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 							
 				// when repeat_end is euqal or less then begin palm shows strange phenomenons
 				if ((unsigned int) mktime(repeat_end) > (unsigned int) mktime(&(entry->appointment.begin))) {
-					osync_trace(TRACE_INTERNAL, "UNTIL: %s", vtime);
+					osync_trace(TRACE_INTERNAL, "UNTIL: %s", vtime ? vtime : "nil");
 					entry->appointment.repeatEnd = *repeat_end;
 					entry->appointment.repeatForever = 0;
 				}
@@ -761,7 +760,7 @@ static osync_bool conv_xml_to_palm_event(void *user_data, char *input, int inpsi
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -960,11 +959,11 @@ osync_bool demarshall_palm_event(const char *input, int inpsize, char **output, 
 	}
 	pos += 1;
 
-	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newevent->codepage);
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newevent->codepage ? newevent->codepage : "nil");
 			
 	osync_trace(TRACE_SENSITIVE, "note: [%s] desc: [%s]",
-			newevent->appointment.note,
-			newevent->appointment.description);
+			newevent->appointment.note ? newevent->appointment.note : "nil",
+			newevent->appointment.description ? newevent->appointment.description : "nil");
 
         *output = (char*) newevent;
         *outpsize = sizeof(PSyncEventEntry);
@@ -1070,13 +1069,13 @@ static osync_bool conv_palm_todo_to_xml(void *user_data, char *input, int inpsiz
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc) ? osxml_write_to_string((xmlDoc *)doc) : "nil");
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -1086,7 +1085,7 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 
 	char *tmp = NULL;
 
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input) ? osxml_write_to_string((xmlDoc *)input) : "nil");
 	
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -1184,7 +1183,7 @@ static osync_bool conv_xml_to_palm_todo(void *user_data, char *input, int inpsiz
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -1365,12 +1364,12 @@ osync_bool demarshall_palm_todo(const char *input, int inpsize, char **output, i
 	}
 	pos += 1;
 
-	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newtodo->codepage);
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", nnewtodo->codepage ? ewtodo->codepage : "nil");
 
 
 	osync_trace(TRACE_SENSITIVE, "desc: [%s] note: [%s]",
-			newtodo->todo.description,
-			newtodo->todo.note);
+			newtodo->todo.description ? newtodo->todo.description : "nil",
+			newtodo->todo.note ? newtodo->todo.note : "nil");
 
         *output = (char*) newtodo;
         *outpsize = sizeof(PSyncTodoEntry);
@@ -1388,7 +1387,7 @@ static char *return_next_entry(PSyncContactEntry *entry, unsigned int i)
 	osync_trace(TRACE_ENTRY, "%s(%p, %i)", __func__, entry, i);
 	char *tmp = NULL;
 	
-	osync_trace(TRACE_SENSITIVE, "Entry: %s (%p)", entry->address.entry[i], entry->address.entry[i]);
+	osync_trace(TRACE_SENSITIVE, "Entry: %s (%p)", entry->address.entry[i] ? entry->address.entry[i] : "nil", entry->address.entry[i]);
 	if (entry->address.entry[i] && strlen(entry->address.entry[i]) > 0)
 		tmp = conv_enc_palm_to_xml(entry->address.entry[i]);
 	
@@ -1403,7 +1402,7 @@ static osync_bool has_entry(PSyncContactEntry *entry, unsigned int i)
 
 static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config ? config : "nil", error);
 
 	PSyncContactEntry *entry = (PSyncContactEntry *)input;
 
@@ -1417,7 +1416,7 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 	}
 	
 	for (i = 0; i < 19; i++)
-		osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
+		osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i] ? entry->address.entry[i] : "nil");
 	
 	//Create a new xml document
 	xmlDoc *doc = xmlNewDoc((xmlChar*)"1.0");
@@ -1454,7 +1453,7 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 			//JFYI: This will be dropped, when the xml-vcard convert is able to generate FormattedName
 			current = xmlNewTextChild(root, NULL, (xmlChar*)"FormattedName", NULL);
 			osxml_node_add(current, "Content", formatted_name->str);
-			osync_trace(TRACE_SENSITIVE, "FormattedName: \"%s\"", formatted_name->str);
+			osync_trace(TRACE_SENSITIVE, "FormattedName: \"%s\"", formatted_name->str ? formatted_name->str : "nil");
 
 			g_string_free(formatted_name, TRUE);
 		}
@@ -1590,20 +1589,20 @@ static osync_bool conv_palm_contact_to_xml(char *input, unsigned int inpsize, ch
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc) ? osxml_write_to_string((xmlDoc *)doc) : "nil");
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
 static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config ? config : "nil", error);
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input) ? osxml_write_to_string((xmlDoc *)input) : "nil");
 
 	char *tmp = NULL;
 	
@@ -1656,7 +1655,7 @@ static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, ch
 		cur = nodes->nodeTab[i];
 		entry->address.entry[3 + i] = (char*)osxml_find_node(cur, "Content");
 
-		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i], osxml_has_property(cur, "WORK"), osxml_has_property(cur, "HOME"), osxml_has_property(cur, "VOICE"));
+		osync_trace(TRACE_SENSITIVE, "handling telephone (%s). has work %i, home %i, voice %i", entry->address.entry[3 + i] ? entry->address.entry[3 + i] : "nil", osxml_has_property(cur, "WORK"), osxml_has_property(cur, "HOME"), osxml_has_property(cur, "VOICE"));
 
 		if (osxml_has_property(cur, "WORK")) {
 			entry->address.phoneLabel[i] = 0;
@@ -1727,7 +1726,7 @@ static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, ch
 		char *tmp = conv_enc_xml_to_palm(entry->address.entry[i]);
 		g_free(entry->address.entry[i]);
 		entry->address.entry[i] = tmp;
-	 	osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i]);
+	 	osync_trace(TRACE_SENSITIVE, "entry %i: %s", i, entry->address.entry[i] ? entry->address.entry[i] : "nil");
 	  }
 	}
 	
@@ -1741,7 +1740,7 @@ static osync_bool conv_xml_to_palm_contact(char *input, unsigned int inpsize, ch
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -1831,7 +1830,7 @@ static osync_bool demarshal_palm_contact(OSyncMessage *message, char **output, u
 #if 0
 static osync_bool conv_palm_note_to_xml(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config ? config : "nil", error);
 	PSyncNoteEntry *entry = (PSyncNoteEntry *)input;
 
 	char *tmp = NULL;
@@ -1879,26 +1878,26 @@ static osync_bool conv_palm_note_to_xml(char *input, unsigned int inpsize, char 
 	*output = (char *)doc;
 	*outpsize = sizeof(doc);
 
-	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc));
+	osync_trace(TRACE_SENSITIVE, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)doc) ? osxml_write_to_string((xmlDoc *)doc) : "nil");
 	
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
 
 static osync_bool conv_xml_to_palm_note(char *input, unsigned int inpsize, char **output, unsigned int *outpsize, osync_bool *free_input, const char *config, OSyncError **error)
 {
-	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config, error);
+	osync_trace(TRACE_ENTRY, "%s(%p, %i, %p, %p, %p, %s, %p)", __func__, input, inpsize, output, outpsize, free_input, config ? config : "nil", error);
 
 	char *tmp = NULL;
 	xmlNode *cur = NULL;
 	GString *memo = g_string_new("");
 
-	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input));
+	osync_trace(TRACE_SENSITIVE, "Input XML is:\n%s", osxml_write_to_string((xmlDoc *)input) ? osxml_write_to_string((xmlDoc *)input) : "nil");
 
 	//Get the root node of the input document
 	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
@@ -1955,7 +1954,7 @@ static osync_bool conv_xml_to_palm_note(char *input, unsigned int inpsize, char 
 	return TRUE;
 
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -2117,10 +2116,10 @@ osync_bool demarshall_palm_note(const char *input, int inpsize, char **output, i
 
 	pos += 1;
 
-	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newnote->codepage);
+	osync_trace(TRACE_SENSITIVE, "codepage: [%s]", newnote->codepage ? newnote->codepage : "nil");
 
 	osync_trace(TRACE_SENSITIVE, "memo.text: [%s]",
-			newnote->memo.text);
+			newnote->memo.text ? newnote->memo.text : "nil");
 
         *output = (char*) newnote;
         *outpsize = sizeof(PSyncNoteEntry);

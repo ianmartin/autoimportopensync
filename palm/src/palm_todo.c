@@ -79,7 +79,7 @@ static OSyncChange *psyncTodoCreate(PSyncEntry *entry, OSyncError **error)
 error_free_change:
 	osync_change_free(change);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -143,7 +143,7 @@ osync_bool psyncTodoGetChangeInfo(OSyncContext *ctx, OSyncError **error)
 error_close_db:
 	psyncDBClose(db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return FALSE;
 }
 
@@ -201,7 +201,7 @@ osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 			
 			GList *c = NULL;
 			for (c = todo->categories; c; c = c->next) {
-				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data ? c->data : "nil");
 				entry->category = psyncDBCategoryToId(db, c->data, NULL);
 				if (entry->category != 0) {
 					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
@@ -251,7 +251,7 @@ osync_bool psyncTodoCommit(OSyncContext *ctx, OSyncChange *change)
 
 error:
 	osync_context_report_osyncerror(ctx, &error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 	return FALSE;
 }
 

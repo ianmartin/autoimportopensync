@@ -83,7 +83,7 @@ static OSyncChange *psyncContactCreate(PSyncEnv *env, PSyncEntry *entry, OSyncEr
 error_free_change:
 	osync_change_unref(change);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(error) ? osync_error_print(error) : "nil");
 	return NULL;
 }
 
@@ -143,7 +143,7 @@ static void psyncContactGetChanges(void *data, OSyncPluginInfo *info, OSyncConte
 error_close_db:
 	psyncDBClose(db);
 error:
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 	osync_context_report_osyncerror(ctx, error);
 	osync_error_unref(&error);
 }
@@ -235,7 +235,7 @@ static void psyncContactCommit(void *data, OSyncPluginInfo *info, OSyncContext *
 			
 			GList *c = NULL;
 			for (c = contact->categories; c; c = c->next) {
-				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data);
+				osync_trace(TRACE_INTERNAL, "searching category %s\n", c->data ? c->data : "nil");
 				entry->category = psyncDBCategoryToId(db, c->data, NULL);
 				if (entry->category != 0) {
 					osync_trace(TRACE_INTERNAL, "Found category %i\n", entry->category);
@@ -280,7 +280,7 @@ static void psyncContactCommit(void *data, OSyncPluginInfo *info, OSyncContext *
 
 error:
 	osync_context_report_osyncerror(ctx, error);
-	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+	osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 	osync_error_unref(&error);
 }
 
@@ -299,7 +299,7 @@ static void psyncContactSyncDone(void *data, OSyncPluginInfo *info, OSyncContext
 		psyncDBClose(db);
 	} else {
 		osync_context_report_osyncerror(ctx, error);
-		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error));
+		osync_trace(TRACE_EXIT_ERROR, "%s: %s", __func__, osync_error_print(&error) ? osync_error_print(&error) : "nil");
 		osync_error_unref(&error);
 		return;
 	}
