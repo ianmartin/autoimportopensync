@@ -26,9 +26,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_xml.h"
 #include "opie_format.h"
 
+#include <opensync/opensync.h>
 #include <opensync/opensync-time.h>
 #include <opensync/opensync-format.h>
 #include <opensync/opensync_xml.h>
+#include <opensync/opensync-data.h>
+#include <opensync/opensync-merger.h>
 
 enum OpieTodoState {
 	OPIE_TODO_STATE_STARTED     = 0,
@@ -48,11 +51,11 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 //	anon_data* anon;
 	gchar** emailtokens;
 	struct _xmlAttr *iprop;
-	xmlNode *on_name = NULL;
-	xmlNode *on_organisation = NULL;
-	xmlNode *on_homeaddress = NULL;
-	xmlNode *on_workaddress = NULL;
-	xmlNode *on_temp = NULL;
+	OSyncXMLField *oxf_name = NULL;
+	OSyncXMLField *oxf_organisation = NULL;
+	OSyncXMLField *oxf_homeaddress = NULL;
+	OSyncXMLField *oxf_workaddress = NULL;
+	OSyncXMLField *out_xmlfield = NULL;
 		
 	/* Get the root node of the input document */
 	xmlDoc *idoc = xmlRecoverMemory(input, inpsize);
@@ -68,8 +71,7 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 	}
 	
 	/* Create a new output xml document */
-	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
-	xmlNode *on_root = osxml_node_add_root(odoc, "contact");
+	OSyncXMLFormat *out_xmlformat = osync_xmlformat_new("contact", error);
 	
 	if(!strcasecmp(icur->name, "Contact"))
 	{
@@ -83,117 +85,117 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 					|| (!strcasecmp(iprop->name, "LastName"))
 					|| (!strcasecmp(iprop->name,"Suffix")) )
 				{
-					if (!on_name)
-						on_name = xmlNewTextChild(on_root, NULL, (xmlChar*)"Name", NULL);
+					if (!oxf_name)
+						oxf_name = osync_xmlfield_new(out_xmlformat, "Name", error);
 					
 					if (!strcasecmp(iprop->name, "FirstName"))
-						osxml_node_add(on_name, "FirstName", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_name, "FirstName", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "MiddleName"))
-						osxml_node_add(on_name, "Additional", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_name, "Additional", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "LastName"))
-						osxml_node_add(on_name, "LastName", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_name, "LastName", iprop->children->content);
 					else if (!strcasecmp(iprop->name,"Suffix"))
-						osxml_node_add(on_name, "Suffix", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_name, "Suffix", iprop->children->content);
 				}
 				else if ( (!strcasecmp(iprop->name, "Company"))
 					|| (!strcasecmp(iprop->name, "Department"))
 					|| (!strcasecmp(iprop->name, "Office")) )
 				{
-					if (!on_organisation)
-						on_organisation = xmlNewTextChild(on_root, NULL, (xmlChar*)"Organization", NULL);
+					if (!oxf_organisation)
+						oxf_organisation = osync_xmlfield_new(out_xmlformat, "Organization", error);
 					
 					if (!strcasecmp(iprop->name, "Company"))
-						osxml_node_add(on_organisation, "Name", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_organisation, "Name", iprop->children->content);
 					if (!strcasecmp(iprop->name, "Department"))
-						osxml_node_add(on_organisation, "Department", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_organisation, "Department", iprop->children->content);
 					if (!strcasecmp(iprop->name, "Office"))
-						osxml_node_add(on_organisation, "Unit", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_organisation, "Unit", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "FileAs"))
 				{
 					/* File-as. This is what the Evo plugin does, so copy it. */
-					xmlNode *on_formattedname = xmlNewTextChild( on_root, NULL, (xmlChar*)"FormattedName", NULL);
-					xmlNewTextChild(on_formattedname, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "FormattedName", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Emails"))
 				{
 					emailtokens = g_strsplit(iprop->children->content," ",3);
 					for(j=0;emailtokens[j]!=NULL;j++) 
 					{
-						xmlNode *on_email = xmlNewTextChild(on_root, NULL, (xmlChar*)"EMail", NULL);
-						xmlNewTextChild(on_email, NULL, (xmlChar*)"Content", (xmlChar*)emailtokens[j]);
+						out_xmlfield = osync_xmlfield_new(out_xmlformat, "EMail", error);
+						osync_xmlfield_set_key_value(out_xmlfield, "Content", emailtokens[j]);
 					}
 					g_strfreev(emailtokens);
 				}
 				else if(!strcasecmp(iprop->name, "Categories"))
 				{
 					gchar** categorytokens = g_strsplit(iprop->children->content, "|", 0);
-					xmlNode *on_categories = xmlNewTextChild(on_root, NULL, (xmlChar*)"Categories", NULL);
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Categories", error);
 					for(j=0;categorytokens[j]!=NULL;j++) 
 					{
-						xmlNewTextChild(on_categories, NULL, (xmlChar*)"Category", (xmlChar*)categorytokens[j]);
+						osync_xmlfield_add_key_value(out_xmlfield, "Category", categorytokens[j]);
 					}
 					g_strfreev(categorytokens);
 				}
 				else if(!strcasecmp(iprop->name, "DefaultEmail"))
 				{
-					xmlNode *on_email = xmlNewTextChild(on_root, NULL, (xmlChar*)"EMail", NULL);
-					xmlNewTextChild(on_email, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content);
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "EMail", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 					/* this is the preferred email address */
-					osxml_node_add(on_email, "Type", "PREF" );
+					osync_xmlfield_set_attr(out_xmlfield, "Preferred", "true");
 				}
 				else if(!strcasecmp(iprop->name, "HomePhone"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "HOME" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Home");
 					/* Removed the VOICE tags for the moment as they are assumed if not present, 
 					   and if they are KDEPIM shows them up as "Other" */
-					/* osxml_node_add(on_phone, "Type", "VOICE" ); */
+					/* osync_xmlfield_set_attr(out_xmlfield, "Type", "Voice"); */
 				}
 				else if(!strcasecmp(iprop->name, "HomeFax"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "HOME" );
-					osxml_node_add(on_phone, "Type", "FAX" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Home");
+					osync_xmlfield_set_attr(out_xmlfield, "Type", "Fax");
 				}
 				else if(!strcasecmp(iprop->name, "HomeMobile"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "HOME" );
-					osxml_node_add(on_phone, "Type", "CELL" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Home");
+					osync_xmlfield_set_attr(out_xmlfield, "Type", "Cellular");
 				}
 				else if(!strcasecmp(iprop->name, "BusinessPhone"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "WORK" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Work");
 					/* Removed the VOICE tags for the moment as they are assumed if not present, 
 					   and if they are KDEPIM shows them up as "Other" */
-					/* osxml_node_add(on_phone, "Type", "VOICE" ); */
+					/* osync_xmlfield_set_attr(out_xmlfield, "Type", "Voice"); */
 				}
 				else if(!strcasecmp(iprop->name, "BusinessFax"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "WORK" );
-					osxml_node_add(on_phone, "Type", "FAX" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Work");
+					osync_xmlfield_set_attr(out_xmlfield, "Type", "Fax");
 				}
 				else if(!strcasecmp(iprop->name, "BusinessMobile"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "WORK" );
-					osxml_node_add(on_phone, "Type", "CELL" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Work");
+					osync_xmlfield_set_attr(out_xmlfield, "Type", "Cellular");
 				}
 				else if(!strcasecmp(iprop->name, "BusinessPager"))
 				{
-					xmlNode *on_phone = xmlNewTextChild(on_root, NULL, (xmlChar*)"Telephone", NULL);
-					osxml_node_add(on_phone, "Content", iprop->children->content );
-					osxml_node_add(on_phone, "Type", "WORK" );
-					osxml_node_add(on_phone, "Type", "PAGER" );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Telephone", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
+					osync_xmlfield_set_attr(out_xmlfield, "Location", "Work");
+					osync_xmlfield_set_attr(out_xmlfield, "Type", "Pager"); /* FIXME is this still supported? */
 				}
 				else if ( (!strcasecmp(iprop->name, "HomeStreet"))
 					|| (!strcasecmp(iprop->name, "HomeCity"))
@@ -201,20 +203,20 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 					|| (!strcasecmp(iprop->name,"HomeZip"))
 					|| (!strcasecmp(iprop->name,"HomeCountry")) )
 				{
-					if (!on_homeaddress)
-						on_homeaddress = xmlNewTextChild(on_root, NULL, (xmlChar*)"Address", NULL);
+					if (!oxf_homeaddress)
+						oxf_homeaddress = osync_xmlfield_new(out_xmlformat, "Address", error);
 					
 					if (!strcasecmp(iprop->name, "HomeStreet"))
-						osxml_node_add(on_homeaddress, "Street", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_homeaddress, "Street", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "HomeCity"))
-						osxml_node_add(on_homeaddress, "City", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_homeaddress, "Locality", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "HomeState"))
-						osxml_node_add(on_homeaddress, "Region", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_homeaddress, "Region", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "HomeZip"))
-						osxml_node_add(on_homeaddress, "PostalCode", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_homeaddress, "PostalCode", iprop->children->content);
 					else if (!strcasecmp(iprop->name,"HomeCountry"))
-						osxml_node_add(on_homeaddress, "Country", iprop->children->content);
-					osxml_node_add(on_homeaddress, "Type", "HOME" );
+						osync_xmlfield_set_key_value(oxf_homeaddress, "Country", iprop->children->content);
+					osync_xmlfield_set_attr(oxf_homeaddress, "Location", "Home");
 				}
 				else if ( (!strcasecmp(iprop->name, "BusinessStreet"))
 					|| (!strcasecmp(iprop->name, "BusinessCity"))
@@ -222,25 +224,25 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 					|| (!strcasecmp(iprop->name,"BusinessZip"))
 					|| (!strcasecmp(iprop->name,"BusinessCountry")) )
 				{
-					if (!on_workaddress)
-						on_workaddress = xmlNewTextChild(on_root, NULL, (xmlChar*)"Address", NULL);
+					if (!oxf_workaddress)
+						oxf_workaddress = osync_xmlfield_new(out_xmlformat, "Address", error);
 					
 					if (!strcasecmp(iprop->name, "BusinessStreet"))
-						osxml_node_add(on_workaddress, "Street", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_workaddress, "Street", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "BusinessCity"))
-						osxml_node_add(on_workaddress, "City", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_workaddress, "Locality", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "BusinessState"))
-						osxml_node_add(on_workaddress, "Region", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_workaddress, "Region", iprop->children->content);
 					else if (!strcasecmp(iprop->name, "BusinessZip"))
-						osxml_node_add(on_workaddress, "PostalCode", iprop->children->content);
+						osync_xmlfield_set_key_value(oxf_workaddress, "PostalCode", iprop->children->content);
 					else if (!strcasecmp(iprop->name,"BusinessCountry"))
-						osxml_node_add(on_workaddress, "Country", iprop->children->content);
-					osxml_node_add(on_workaddress, "Type", "WORK" );
+						osync_xmlfield_set_key_value(oxf_workaddress, "Country", iprop->children->content);
+					osync_xmlfield_set_attr(oxf_workaddress, "Location", "Work");
 				}
 				else if(!strcasecmp(iprop->name, "HomeWebPage"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Url", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Url", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "BusinessWebPage"))
 				{
@@ -248,23 +250,23 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 				}
 				else if(!strcasecmp(iprop->name, "Spouse"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Spouse", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Spouse", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Birthday"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Birthday", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Birthday", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Anniversary"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Anniversary", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Anniversary", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Nickname"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Nickname", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Nickname", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Children"))
 				{
@@ -272,13 +274,13 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 				}
 				else if(!strcasecmp(iprop->name, "Notes"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Note", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Note", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Uid"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Uid", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Uid", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "rid"))
 				{
@@ -294,23 +296,23 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 				}
 				else if(!strcasecmp(iprop->name, "Assistant"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Assistant", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Assistant", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Manager"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Manager", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Manager", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Profession"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Profession", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Profession", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "JobTitle"))
 				{
-					on_temp = xmlNewTextChild( on_root, NULL, (xmlChar*)"Role", NULL );
-					xmlNewTextChild( on_temp, NULL, (xmlChar*)"Content", (xmlChar*)iprop->children->content );
+					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Role", error);
+					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else
 				{
@@ -321,13 +323,25 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 	}
 
 	*free_input = TRUE;
-	*output = (char *)odoc;
-	*outpsize = sizeof(odoc);
+	*output = (char *)out_xmlformat;
+	*outpsize = sizeof(out_xmlformat);
 	
 	xmlFreeDoc(idoc);
 
-	osync_trace(TRACE_INTERNAL, "Output XML is:\n%s", osxml_write_to_string((xmlDoc *)odoc));
+	// FIXME: remove this later?
+	osync_xmlformat_sort(out_xmlformat);
 	
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(out_xmlformat, &str, &size);
+	osync_trace(TRACE_INTERNAL, "Output XMLFormat is:\n%s", str);
+	g_free(str);
+
+	if (osync_xmlformat_validate(out_xmlformat) == FALSE)
+					osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: Not valid!");
+	else
+					osync_trace(TRACE_INTERNAL, "XMLFORMAT CONTACT: VAILD");
+
 	osync_trace(TRACE_EXIT, "%s", __func__);
 	return TRUE;
 
@@ -352,28 +366,21 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int
 		PT_PAGER = 64
 	};
 
-	int i, numnodes;
-	xmlXPathObject *xobj;
-	xmlNodeSet *nodes;
+	GString *emails = NULL;
 
 	osync_trace(TRACE_ENTRY, "%s(%p, %p, %i, %p, %p, %p, %p)", 
                     __func__, input, inpsize, output, 
                     outpsize, free_input, config, error);
 
-	osync_trace(TRACE_INTERNAL, "Input XML is:\n%s", 
-                    osxml_write_to_string((xmlDoc *)input));
-	
-	/* Get the root node of the input document */
-	xmlNode *root = xmlDocGetRootElement((xmlDoc *)input);
-	if (!root) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, 
-                                "Unable to get xml root element");
-		goto error;
-	}
-	
-	if (xmlStrcmp(root->name, (const xmlChar *)"contact")) {
-		osync_error_set(error, OSYNC_ERROR_GENERIC, 
-                                "Wrong xml root element");
+	OSyncXMLFormat *in_xmlformat = (OSyncXMLFormat *)input;
+	unsigned int size;
+	char *str;
+	osync_xmlformat_assemble(in_xmlformat, &str, &size);
+	osync_trace(TRACE_INTERNAL, "Input XMLFormat is:\n%s", str);
+	g_free(str);
+
+	if (strcmp("contact", osync_xmlformat_get_objtype(in_xmlformat))) {
+		osync_error_set(error, OSYNC_ERROR_GENERIC, "Wrong xmlformat: %s",  osync_xmlformat_get_objtype(in_xmlformat));
 		goto error;
 	}
 
@@ -381,217 +388,146 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int
 	xmlDoc *odoc = xmlNewDoc((xmlChar*)"1.0");
 	xmlNode *on_contact = osxml_node_add_root(odoc, "Contact");
 	
-	/* Name */
-	xmlNode *cur = osxml_get_node(root, "Name");
-	if (cur) {
-		xml_node_to_attr(cur, "LastName",   on_contact, "LastName");
-		xml_node_to_attr(cur, "FirstName",  on_contact, "FirstName");
-		xml_node_to_attr(cur, "Suffix",     on_contact, "Suffix");
-		xml_node_to_attr(cur, "Additional", on_contact, "MiddleName");
-	} else {
-		osync_trace(TRACE_INTERNAL, "No Name node found" );
-	}
-
-	/* Company */
-	cur = osxml_get_node(root, "Organization");
-	if (cur) {
-		xml_node_to_attr(cur, "Name",         on_contact, "Company");
-		xml_node_to_attr(cur, "Department",   on_contact, "Department");
-		xml_node_to_attr(cur, "Unit",         on_contact, "Office");
-	}
-
-	/* Telephone */
-	xobj = osxml_get_nodeset((xmlDoc *)root, "/Telephone");
-	nodes = xobj->nodesetval;
-	numnodes = (nodes) ? nodes->nodeNr : 0;
-	for ( i = 0; i < numnodes; i++ ) {
-		cur = nodes->nodeTab[i];
-		unsigned int type = 0;
-		xmlXPathObject *xobj2 = osxml_get_nodeset((xmlDoc *)cur, "/Type");
-		xmlNodeSet *nodes2 = xobj2->nodesetval;
-		int numnodes2 = (nodes2) ? nodes2->nodeNr : 0;
-		osync_trace(TRACE_INTERNAL, "Telephone found %d types\n", numnodes2 );
-		int j;
-		for ( j = 0; j < numnodes2; j++ )
-		{
-			xmlNode *cur2 = nodes2->nodeTab[j];
-			char *typeName = (char*)xmlNodeGetContent(cur2);
-			if(typeName) {
-				if ( strcasecmp( typeName, "HOME" ) == 0 )
-					type |= PT_HOME;
-				else if ( strcasecmp( typeName, "WORK" ) == 0 )
-					type |= PT_WORK;
-				else if ( strcasecmp( typeName, "VOICE" ) == 0 )
+	OSyncXMLField *in_xmlfield = osync_xmlformat_get_first_field(in_xmlformat);
+	while(in_xmlfield) {
+		const char *fieldname = osync_xmlfield_get_name(in_xmlfield);
+		if(!strcmp("Name", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "LastName",   on_contact, "LastName");
+			xmlfield_key_to_attr(in_xmlfield, "FirstName",  on_contact, "FirstName");
+			xmlfield_key_to_attr(in_xmlfield, "Suffix",     on_contact, "Suffix");
+			xmlfield_key_to_attr(in_xmlfield, "Additional", on_contact, "MiddleName");
+		}
+		else if(!strcmp("Organization", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Name",       on_contact, "Company");
+			xmlfield_key_to_attr(in_xmlfield, "Department", on_contact, "Department");
+			xmlfield_key_to_attr(in_xmlfield, "Unit",       on_contact, "Office");
+		}
+		else if(!strcmp("Telephone", fieldname)) {
+			unsigned int type = 0;
+			const char *teltype = osync_xmlfield_get_attr(in_xmlfield, "Type");
+			if(teltype) {
+				if(!strcmp(teltype, "Voice"))
 					type |= PT_VOICE;
-				else if ( strcasecmp( typeName, "CELL" ) == 0 )
+				else if(!strcmp(teltype, "Cellular"))
 					type |= PT_CELL;
-				else if ( strcasecmp( typeName, "FAX" ) == 0 )
+				else if(!strcmp(teltype, "Fax"))
 					type |= PT_FAX;
-				else if ( strcasecmp( typeName, "PAGER" ) == 0 )
+				else if(!strcmp(teltype, "Pager"))
 					type |= PT_PAGER;
 				else {
 					// ??????
 				}
-				xmlFree(typeName);
 			}
-		}
-		xmlXPathFreeObject(xobj2);
-		char *number = osxml_find_node(cur, "Content");
-
-		osync_trace(TRACE_INTERNAL, "Telephone type %d %s", type, number );
-
-		/* Telephone numbers */
-		if ( type & PT_PAGER ) {
-			xmlSetProp(on_contact, "BusinessPager", number);
-		}
-		else if ( type & PT_WORK ) {
-			if ( type & PT_FAX ) 
-				xmlSetProp(on_contact, "BusinessFax", number);
+			const char *telloc = osync_xmlfield_get_attr(in_xmlfield, "Location");
+			if ( !strcmp( telloc, "Home" ) == 0 )
+				type |= PT_HOME;
+			else if ( !strcmp( telloc, "Work") == 0 )
+				type |= PT_WORK;
+		
+			const char *number = osync_xmlfield_get_key_value(in_xmlfield, "Content");
+			
+			/* Telephone numbers */
+			if ( type & PT_PAGER ) {
+				xmlSetProp(on_contact, "BusinessPager", number);
+			}
+			else if ( type & PT_WORK ) {
+				if ( type & PT_FAX ) 
+					xmlSetProp(on_contact, "BusinessFax", number);
+				else if ( type & PT_CELL ) 
+					xmlSetProp(on_contact, "BusinessMobile", number);
+				else {
+					/* PT_VOICE or anything else */
+					xmlSetProp(on_contact, "BusinessPhone", number);
+				}
+			}
+			else if ( type & PT_FAX ) 
+				xmlSetProp(on_contact, "HomeFax", number);
 			else if ( type & PT_CELL ) 
-				xmlSetProp(on_contact, "BusinessMobile", number);
+				xmlSetProp(on_contact, "HomeMobile", number);
 			else {
 				/* PT_VOICE or anything else */
-				xmlSetProp(on_contact, "BusinessPhone", number);
+				xmlSetProp(on_contact, "HomePhone", number);
 			}
 		}
-		else if ( type & PT_FAX ) 
-			xmlSetProp(on_contact, "HomeFax", number);
-		else if ( type & PT_CELL ) 
-			xmlSetProp(on_contact, "HomeMobile", number);
-		else {
-			/* PT_VOICE or anything else */
-			xmlSetProp(on_contact, "HomePhone", number);
-		}
-	}
-	xmlXPathFreeObject(xobj);
-	
-	/* EMail */
-	xobj = osxml_get_nodeset((xmlDoc *)root, "/EMail");
-	nodes = xobj->nodesetval;
-	numnodes = (nodes) ? nodes->nodeNr : 0;
-	char *emailaddr;
-	GString *emails = g_string_new("");
-	for ( i = 0; i < numnodes; i++ ) {
-		cur = nodes->nodeTab[i];
-		emailaddr = osxml_find_node(cur, "Content");
-		g_string_append(emails, emailaddr);
-		if(i < numnodes - 1)
+		else if(!strcmp("EMail", fieldname)) {
+			if(!emails)
+				emails = g_string_new("");
+			
+			const char *emailaddr = osync_xmlfield_get_key_value(in_xmlfield, "Content");
+			g_string_append(emails, emailaddr);
 			g_string_append_c(emails, ' ');
-
-		xmlXPathObject *xobj2 = osxml_get_nodeset((xmlDoc *)cur, "/Type");
-		xmlNodeSet *nodes2 = xobj2->nodesetval;
-		int numnodes2 = (nodes2) ? nodes2->nodeNr : 0;
-		int j;
-		for ( j = 0; j < numnodes2; j++ )
-		{
-			xmlNode *cur2 = nodes2->nodeTab[j];
-			char *type = (char*)xmlNodeGetContent(cur2);
-			if ( type != NULL ) {
-				if( strcasecmp( type, "PREF" ) == 0 ) {
-					xmlSetProp(on_contact, "DefaultEmail", emailaddr);
-					break;
-				}
-				xmlFree(type);
+			
+			if(!strcasecmp(osync_xmlfield_get_attr(in_xmlfield, "Preferred"), "true")) {
+				xmlSetProp(on_contact, "DefaultEmail", emailaddr);
 			}
 		}
-		xmlXPathFreeObject(xobj2);
-		xmlFree(emailaddr);
-	}
-	xmlXPathFreeObject(xobj);
-	xmlSetProp(on_contact, "Emails", emails->str);
-	g_string_free(emails, TRUE);
-	
-	
-	/* Addresses */
-	xobj = osxml_get_nodeset((xmlDoc *)root, "/Address" );
-	nodes = xobj->nodesetval;
-	numnodes = (nodes) ? nodes->nodeNr : 0;
-	for ( i = 0; i < numnodes; i++ ) {
-		cur = nodes->nodeTab[i];
-		char *type = osxml_find_node(cur, "Type");
-		if ( strcasecmp( type, "HOME" ) == 0 ) {
-			xml_node_to_attr(cur, "Street",     on_contact, "HomeStreet");
-			xml_node_to_attr(cur, "City",       on_contact, "HomeCity");
-			xml_node_to_attr(cur, "Region",     on_contact, "HomeState");
-			xml_node_to_attr(cur, "PostalCode", on_contact, "HomeZip");
-			xml_node_to_attr(cur, "Country",    on_contact, "HomeCountry");
+		else if(!strcmp("Address", fieldname)) {
+			const char *addrloc = osync_xmlfield_get_attr(in_xmlfield, "Type");
+			if (!strcmp(addrloc, "Work")) {
+				xmlfield_key_to_attr(in_xmlfield, "Street",     on_contact, "BusinessStreet");
+				xmlfield_key_to_attr(in_xmlfield, "Locality",   on_contact, "BusinessCity");
+				xmlfield_key_to_attr(in_xmlfield, "Region",     on_contact, "BusinessState");
+				xmlfield_key_to_attr(in_xmlfield, "PostalCode", on_contact, "BusinessZip");
+				xmlfield_key_to_attr(in_xmlfield, "Country",    on_contact, "BusinessCountry");
+			}
+			else {
+				/* Default to home */
+				xmlfield_key_to_attr(in_xmlfield, "Street",     on_contact, "HomeStreet");
+				xmlfield_key_to_attr(in_xmlfield, "Locality",   on_contact, "HomeCity");
+				xmlfield_key_to_attr(in_xmlfield, "Region",     on_contact, "HomeState");
+				xmlfield_key_to_attr(in_xmlfield, "PostalCode", on_contact, "HomeZip");
+				xmlfield_key_to_attr(in_xmlfield, "Country",    on_contact, "HomeCountry");
+			}
 		}
-		else if ( strcasecmp( type, "WORK" ) == 0 ) {
-			xml_node_to_attr(cur, "Street",     on_contact, "BusinessStreet");
-			xml_node_to_attr(cur, "City",       on_contact, "BusinessCity");
-			xml_node_to_attr(cur, "Region",     on_contact, "BusinessState");
-			xml_node_to_attr(cur, "PostalCode", on_contact, "BusinessZip");
-			xml_node_to_attr(cur, "Country",    on_contact, "BusinessCountry");
-		} 
-		else
-		{
-			// FIXME put it in anon???
+		else if(!strcmp("Role", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "JobTitle");
 		}
+		else if(!strcmp("Note", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Notes");
+		}
+		else if(!strcmp("Spouse", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Spouse");
+		}
+		else if(!strcmp("Nickname", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Nickname");
+		}
+		else if(!strcmp("Assistant", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Assistant");
+		}
+		else if(!strcmp("Manager", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Manager");
+		}
+		else if(!strcmp("Profession", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Profession");
+		}
+		else if(!strcmp("Birthday", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Birthday");
+		}
+		else if(!strcmp("Anniversary", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Anniversary");
+		}
+		else if(!strcmp("Url", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "HomeWebPage");
+		}
+		else if(!strcmp("FormattedName", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "FileAs");
+		}
+		else if(!strcmp("Uid", fieldname)) {
+			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Uid");
+		}
+		else if(!strcmp("Categories", fieldname)) {
+			xmlfield_categories_to_attr(in_xmlfield, on_contact, "Categories");
+		}
+		
+		in_xmlfield = osync_xmlfield_get_next(in_xmlfield);
 	}
-
-	/* Title */
-	cur = osxml_get_node(root, "Role");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "JobTitle");
-
-	/* Note */
-	cur = osxml_get_node(root, "Note");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Notes");
 	
-	/* Categories */
-	xml_categories_to_attr(root, on_contact, "Categories");
-
-	/* Spouse */
-	cur = osxml_get_node(root, "Spouse");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Spouse");
-
-	/* Nickname */
-	cur = osxml_get_node(root, "Nickname");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Nickname");
-
-	/* Assistant */
-	cur = osxml_get_node(root, "Assistant");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Assistant");
-
-	/* Manager */
-	cur = osxml_get_node(root, "Manager");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Manager");
-
-	/* Profession */
-	cur = osxml_get_node(root, "Profession");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Profession");
+	if(emails) {
+		g_strchomp(emails->str);
+		xmlSetProp(on_contact, "Emails", emails->str);
+		g_string_free(emails, TRUE);
+	}
 	
-	/* Birthday */
-	cur = osxml_get_node(root, "Birthday");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Birthday");
-
-	/* Anniversary */
-	cur = osxml_get_node(root, "Anniversary");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Anniversary");
-
-	/* Home webpage */
-	cur = osxml_get_node(root, "Url");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "HomeWebPage");
-
-	/* File-as */
-	cur = osxml_get_node(root, "FormattedName");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "FileAs");
-
-	/* UID */
-	cur = osxml_get_node(root, "Uid");
-	if (cur)
-		xml_node_to_attr(cur, "Content", on_contact, "Uid");
-
 // TODO: Entries to be handled
 /*   unsigned int rid; */
 /*   unsigned int rinfo; */
@@ -1540,6 +1476,12 @@ void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to
 	xmlFree(value);
 }
 
+void xmlfield_key_to_attr(OSyncXMLField *xmlfield, const char *key, xmlNode *node_to, const char *attrname) {
+	const char *value = osync_xmlfield_get_key_value(xmlfield, key);
+	if(value && (strlen(value) > 0))
+		xmlSetProp(node_to, attrname, value);
+}
+
 time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, xmlNode *node_to, const char *attrname) {
 	char *vtime = osxml_find_node(node_from, "Content");
 	time_t utime = 0;
@@ -1582,6 +1524,25 @@ void xml_categories_to_attr(xmlNode *item_node, xmlNode *node_to, const char *ca
 				g_string_append_printf(categories, "%s|", cat_name);
 				xmlFree(cat_name);
 			}
+		}
+	}
+	
+	if(categories->len > 0) {
+		g_string_truncate(categories, categories->len - 1);
+		xmlSetProp(node_to, category_attr, categories->str);
+	}
+	g_string_free(categories, TRUE);
+}
+
+void xmlfield_categories_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to, const char *category_attr) {
+	int i;
+	
+	GString *categories = g_string_new("");
+	int keycount = osync_xmlfield_get_key_count(in_xmlfield);
+	for ( i = 0; i < keycount; i++ ) {
+		if(!strcmp(osync_xmlfield_get_nth_key_name(in_xmlfield, i), "Category")) {
+			const char *cat_name = osync_xmlfield_get_nth_key_value(in_xmlfield, i);
+			g_string_append_printf(categories, "%s|", cat_name);
 		}
 	}
 	

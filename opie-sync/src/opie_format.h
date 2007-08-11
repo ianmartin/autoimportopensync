@@ -26,8 +26,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define _OPIE_FORMAT_H
 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
+void xmlfield_key_to_attr(OSyncXMLField *xmlfield, const char *key, xmlNode *node_to, const char *attrname);
 time_t xml_node_vtime_to_attr_time_t(xmlNode *node_from, xmlNode *node_to, const char *attrname);
 void xml_categories_to_attr(xmlNode *item_node, xmlNode *node_to, const char *category_attr);
+void xmlfield_categories_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to, const char *category_attr);
 void xml_recur_attr_to_node(xmlNode *item_node, xmlNode *node_to, GDate *startdate);
 void xml_recur_node_to_attr(xmlNode *item_node, xmlNode *node_to);
 void xml_todo_alarm_attr_to_node(const char *alarmstr, xmlNode *node_to, time_t *starttime);
