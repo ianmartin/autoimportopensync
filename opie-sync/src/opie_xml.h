@@ -44,10 +44,11 @@ char *hash_xml_node(xmlDoc *doc, xmlNode *node);
 char *hash_str(const char *str);
 char *xml_node_to_text(xmlDoc *doc, xmlNode *node); 
 void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
-char *opie_xml_strip_uid(const char *ext_uid, const char *node_name);
+char *opie_xml_strip_uid(const char *ext_uid);
 char *opie_xml_set_ext_uid(xmlNode *node, xmlDoc *doc, const char *listelement,
 																				const char *itemelement, const char *tagged_uid);
 char *opie_xml_generate_uid(xmlDoc *doc, const char *listelement, const char *itemelement);
+char *opie_xml_tag_uid(const char *uid, const char *nodename);
 char *opie_xml_get_tagged_uid(xmlNode *node);
 char *opie_xml_get_uidattr(xmlNode *node);
 char *opie_xml_get_uid(xmlNode *node);

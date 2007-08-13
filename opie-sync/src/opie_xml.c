@@ -315,33 +315,40 @@ char *xml_node_to_text(xmlDoc *doc, xmlNode *node) {
 	return nodetext;
 }
 
-char *opie_xml_strip_uid(const char *ext_uid, const char *node_name) {
-	const char *uidptr = ext_uid;
-	GString *uid = g_string_new("-"); 
-	int innum = 0;
-	while(*uidptr != 0) {
-		if(g_ascii_isdigit(*uidptr)) {
-			g_string_append_c(uid, *uidptr);
-			innum = 1;
+char *opie_xml_strip_uid(const char *ext_uid) {
+	if(g_str_has_prefix(ext_uid, "uid-")) {
+		const char *uidptr = ext_uid;
+		GString *uid = g_string_new("-"); 
+		int innum = 0;
+		while(*uidptr != 0) {
+			if(g_ascii_isdigit(*uidptr)) {
+				g_string_append_c(uid, *uidptr);
+				innum = 1;
+			}
+			else if(innum)
+				break;
+			uidptr++;
 		}
-		else if(innum)
-			break;
-		uidptr++;
+		
+		char *uidstr = g_strdup(uid->str);
+		g_string_free(uid, TRUE);
+		
+		if(strlen(uidstr) < 6 || atoi(uidstr+1) > 1999999999) {
+			g_free(uidstr);
+			return NULL;
+		}
+		else
+			return uidstr;
 	}
-	
-	char *uidstr = g_strdup(uid->str);
-	g_string_free(uid, TRUE);
-	
-	return uidstr;
+	else
+		return NULL;
 }
 
 char *opie_xml_set_ext_uid(xmlNode *node, xmlDoc *doc, const char *listelement,
 																				const char *itemelement, const char *tagged_uid) {
-	char *uid = opie_xml_strip_uid(tagged_uid, node->name);	
-	if(strlen(uid) < 6 || atoi(uid+1) > 1999999999) {
-		g_free(uid);
+	char *uid = opie_xml_strip_uid(tagged_uid);	
+	if(!uid)
 		uid = opie_xml_generate_uid(doc, listelement, itemelement);
-	}
 	opie_xml_set_uid(node, uid);
 	return uid;
 }
@@ -355,21 +362,28 @@ char *opie_xml_generate_uid(xmlDoc *doc, const char *listelement, const char *it
 	return uid;
 }
 
-char *opie_xml_get_tagged_uid(xmlNode *node) {
+char *opie_xml_tag_uid(const char *uid, const char *nodename) {
 	char *uidtag = "uid-unknown-%32s";
-	if(!strcasecmp(node->name, "Contact")) {
+	if(!strcasecmp(nodename, "Contact")) {
 		uidtag = "uid-contact-%s";
 	}
-	else if(!strcasecmp(node->name, "Task")) {
+	else if(!strcasecmp(nodename, "Task")) {
 		uidtag = "uid-todo-%s";
 	}
-	else if(!strcasecmp(node->name, "event")) {
+	else if(!strcasecmp(nodename, "event")) {
 		uidtag = "uid-event-%s";
 	}
+	else if(!strcasecmp(nodename, "note")) {
+		uidtag = "%s";
+	}
 	
+	return g_strdup_printf(uidtag, uid);
+}
+
+char *opie_xml_get_tagged_uid(xmlNode *node) {
 	char *uid = opie_xml_get_uid(node);
 	if(uid) {
-		char *tagged_uid = g_strdup_printf(uidtag, uid);
+		char *tagged_uid = opie_xml_tag_uid(uid, node->name);
 		xmlFree(uid);
 		return tagged_uid;
 	}

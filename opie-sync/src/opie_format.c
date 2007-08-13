@@ -277,11 +277,6 @@ static osync_bool conv_opie_xml_contact_to_xml_contact(char *input, unsigned int
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Note", error);
 					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
-				else if(!strcasecmp(iprop->name, "Uid"))
-				{
-					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Uid", error);
-					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
-				}
 				else if(!strcasecmp(iprop->name, "rid"))
 				{
 					/* FIXME handle this field */
@@ -512,9 +507,6 @@ static osync_bool conv_xml_contact_to_opie_xml_contact(char *input, unsigned int
 		else if(!strcmp("FormattedName", fieldname)) {
 			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "FileAs");
 		}
-		else if(!strcmp("Uid", fieldname)) {
-			xmlfield_key_to_attr(in_xmlfield, "Content", on_contact, "Uid");
-		}
 		else if(!strcmp("Categories", fieldname)) {
 			xmlfield_categories_to_attr(in_xmlfield, on_contact, "Categories");
 		}
@@ -648,11 +640,6 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "DateStarted", error);
 					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 					osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE"); /* FIXME I doubt this is still valid */
-				}
-				else if(!strcasecmp(iprop->name, "Uid"))
-				{
-					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Uid", error);
-					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
 				}
 				else if(!strcasecmp(iprop->name, "Categories"))
 				{
@@ -874,9 +861,6 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(char *input, unsigned int inpsi
 				g_free(statestr);
 			}
 		}
-		else if(!strcmp("Uid", fieldname)) {
-			xmlfield_key_to_attr(in_xmlfield, "Content", on_todo, "Uid");
-		}
 		else if(!strcmp("RecurrenceRule", fieldname)) {
 			xmlfield_recur_to_attr(in_xmlfield, on_todo);
 		}
@@ -1038,11 +1022,6 @@ static osync_bool conv_opie_xml_event_to_xml_event(char *input, unsigned int inp
 					}
 					g_strfreev(categorytokens);
 				}
-				else if(!strcasecmp(iprop->name, "uid")) 
-				{
-					out_xmlfield = osync_xmlfield_new(out_xmlformat, "Uid", error);
-					osync_xmlfield_set_key_value(out_xmlfield, "Content", iprop->children->content);
-				}
 			}
 			/* FIXME Stuff to handle:
 			timezone?
@@ -1159,9 +1138,6 @@ static osync_bool conv_xml_event_to_opie_xml_event(char *input, unsigned int inp
 		}
 		else if(!strcmp("DateEnd", fieldname)) {
 			xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "end");
-		}
-		else if(!strcmp("Uid", fieldname)) {
-			xmlfield_vtime_to_attr_time_t(in_xmlfield, on_event, "uid");
 		}
 		else if(!strcmp("Categories", fieldname)) {
 			xmlfield_categories_to_attr(in_xmlfield, on_event, "Categories");

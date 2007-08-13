@@ -79,9 +79,6 @@ struct OpiePluginEnv {
 	OpieSinkEnv*      event_env;
 	OpieSinkEnv*      note_env;
 	
-	GTree*            uidmap;
-	char*             uidmap_file;
-	
 	GMutex*           plugin_mutex;
 };
 
