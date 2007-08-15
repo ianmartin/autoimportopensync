@@ -305,16 +305,6 @@ char *hash_xml_node(xmlDoc *doc, xmlNode *node) {
 	return t_hash;
 }
 
-char *xml_node_to_text(xmlDoc *doc, xmlNode *node) {
-	xmlBufferPtr bufptr = xmlBufferCreate();
-	xmlNodeDump(bufptr, doc, node, 0, 0);
-	int length = xmlBufferLength(bufptr);
-	char *nodetext = g_malloc0(length+1);
-	memcpy(nodetext, xmlBufferContent(bufptr), length);
-	xmlBufferFree(bufptr);
-	return nodetext;
-}
-
 char *opie_xml_strip_uid(const char *ext_uid) {
 	if(g_str_has_prefix(ext_uid, "uid-")) {
 		const char *uidptr = ext_uid;

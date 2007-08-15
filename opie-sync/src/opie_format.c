@@ -23,7 +23,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 #include "opie_comms.h"
-#include "opie_xml.h"
+#include "opie_xml_utils.h"
 #include "opie_format.h"
 
 #include <opensync/opensync.h>

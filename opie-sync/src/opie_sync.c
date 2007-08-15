@@ -32,6 +32,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_sync.h"
 #include "opie_comms.h"
 #include "opie_xml.h"
+#include "opie_xml_utils.h"
 
 /* sync_cancelled()
  * 
