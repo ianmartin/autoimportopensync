@@ -34,7 +34,6 @@
 #include <curl/curl.h>
 #include <curl/types.h>
 #include <curl/easy.h>
-#include <openssl/md5.h>
 
 #include <opensync/opensync.h>
 #include <opensync/opensync-plugin.h>
