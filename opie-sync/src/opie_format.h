@@ -33,7 +33,7 @@ void xmlfield_categories_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to, c
 void xml_recur_attr_to_xmlfield(xmlNode *item_node, OSyncXMLFormat *out_xmlformat, GDate *startdate, OSyncError **error);
 void xmlfield_recur_to_attr(OSyncXMLField *in_xmlfield, xmlNode *node_to);
 void xml_todo_alarm_attr_to_xmlfield(const char *alarmstr, OSyncXMLFormat *out_xmlformat, time_t *starttime, OSyncError **error);
-void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to);
+void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to, const char *duedate);
 void xmlformat_cal_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to, time_t *starttime);
 
 #endif /* _OPIE_FORMAT_H */

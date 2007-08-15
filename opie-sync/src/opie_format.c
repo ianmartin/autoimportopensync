@@ -673,6 +673,7 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 		
 		/* Due date */
 		GDate *duedate = NULL;
+		char *duedatestr = NULL;
 		char *hasDate = xmlGetProp(icur, "HasDate");
 		if(hasDate) { 
 			if(!strcmp(hasDate, "1")) {
@@ -683,11 +684,10 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 					int dateyear = atoi(dateyearstr);
 					int datemonth = atoi(datemonthstr);
 					int dateday = atoi(datedaystr);
-					char *duedatestr = g_strdup_printf("%04d%02d%02d", dateyear, datemonth, dateday);
+					duedatestr = g_strdup_printf("%04d%02d%02d", dateyear, datemonth, dateday);
 					duedate = g_date_new_dmy(dateday, datemonth, dateyear);
 					out_xmlfield = osync_xmlfield_new(out_xmlformat, "DateDue", error);
 					osync_xmlfield_set_key_value(out_xmlfield, "Content", duedatestr);
-					g_free(duedatestr);
 					// RFC2445 says the default value type is DATE-TIME. But Opie only
 					// stores DATE as due date => alter VALUE to DATE
 					osync_xmlfield_set_key_value(out_xmlfield, "Value", "DATE"); /* FIXME I doubt this is still valid */
@@ -704,10 +704,16 @@ static osync_bool conv_opie_xml_todo_to_xml_todo(char *input, unsigned int inpsi
 		
 		/* Alarms */
 		char *alarmstr = xmlGetProp(icur, "Alarms");
-		if(alarmstr) {
-			xml_todo_alarm_attr_to_xmlfield(alarmstr, out_xmlformat, NULL, error);
-			xmlFree(alarmstr);
+		if(alarmstr && duedatestr) {
+			char *duetimestr = g_strdup_printf("%sT000000", duedatestr);
+			time_t duetime = osync_time_vtime2unix(duetimestr, 0);
+			xml_todo_alarm_attr_to_xmlfield(alarmstr, out_xmlformat, &duetime, error);
+			g_free(duetimestr);
 		}
+		if(duedatestr)
+			g_free(duedatestr);
+		if(alarmstr)
+			xmlFree(alarmstr);
 		
 		if(duedate)
 			g_date_free(duedate);
@@ -869,7 +875,7 @@ static osync_bool conv_xml_todo_to_opie_xml_todo(char *input, unsigned int inpsi
 	}
 	
 	/* Convert alarms */
-	xmlformat_todo_alarms_to_attr(in_xmlformat, on_todo);
+	xmlformat_todo_alarms_to_attr(in_xmlformat, on_todo, duestr);
 	
 	if(!completedstr)
 		xmlSetProp(on_todo, "Completed", "0");
@@ -1708,7 +1714,7 @@ void xml_todo_alarm_attr_to_xmlfield(const char *alarmstr, OSyncXMLFormat *out_x
 		gchar** alarmentries = g_strsplit(alarmstr, ";", 0);
 		int i,j;
 		for(j=0; alarmentries[j] != NULL; j++) {
-//			OSyncXMLField *out_xmlfield = osync_xmlfield_new(out_xmlformat, "Alarm", error);
+			OSyncXMLField *out_xmlfield = osync_xmlfield_new(out_xmlformat, "Alarm", error);
 			
 			// Opie alarm entry format: ddmmyyyyhhmmss:0:<0=silent,1=loud>:[;nextalarmentry]
 			char *alarmdatestr = NULL;
@@ -1725,10 +1731,6 @@ void xml_todo_alarm_attr_to_xmlfield(const char *alarmstr, OSyncXMLFormat *out_x
 			}
 			g_strfreev(alarmargs);
 			
-			/* FIXME since alarm support is not complete in the OpenSync xmlformat code, the code 
-			   below is not finished */
-			
-/* 
 			if(alarmsound == 1)
 				osync_xmlfield_set_key_value(out_xmlfield, "AlarmAction", "AUDIO");
 			else
@@ -1741,35 +1743,23 @@ void xml_todo_alarm_attr_to_xmlfield(const char *alarmstr, OSyncXMLFormat *out_x
 				char *alarmdatestr_utc = osync_time_unix2vtime(&alarmtime);
 				
 				if(starttime) {
-					// This is nice in theory, but Opie todo events don't support due time so
-					//  we can't use this code in practice
 					char *alarmdu = osync_time_sec2alarmdu((int)difftime(alarmtime, *starttime)); 
 					if(alarmdu) {
-						xmlNode *on_trigger = xmlNewTextChild(node_to, NULL, (xmlChar*) "AlarmTrigger", NULL);
-						xmlNewTextChild(on_trigger, NULL, (xmlChar*)"Content", (xmlChar*) alarmdu);
-						xmlNewTextChild(on_trigger, NULL, (xmlChar*)"Value", (xmlChar*) "DURATION");
+						osync_xmlfield_set_key_value(out_xmlfield, "AlarmTrigger", alarmdu);
+						g_free(alarmdu);
 					}
-				}
-				else {
-					xmlNode *on_trigger = xmlNewTextChild(node_to, NULL, (xmlChar*) "AlarmTrigger", NULL);
-					xmlNewTextChild(on_trigger, NULL, (xmlChar*)"Content", (xmlChar*) alarmdatestr_utc);
-					xmlNewTextChild(on_trigger, NULL, (xmlChar*)"Value", (xmlChar*) "DATE-TIME");
 				}
 				g_free(alarmdatestr_utc);
 				
 				g_free(alarmdatestr);
 			}
-*/
 		}
 		g_strfreev(alarmentries);
 	}
 }
 
-void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to) {
+void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to, const char *duedate) {
 	/* Convert OpenSync XML Alarm entries on a todo node to Opie Alarms attribute value */
-/*	xmlNode *cur;
-	xmlNode *alarm_node;
-	int i, numnodes;*/
 	
 	GString *alarms = g_string_new("");
 	
@@ -1777,76 +1767,39 @@ void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_t
 	while(in_xmlfield) {
 		const char *fieldname = osync_xmlfield_get_name(in_xmlfield);
 		if(!strcmp("Alarm", fieldname)) {
-			/* FIXME since alarm support is not complete in the OpenSync xmlformat code, the code 
-			   below is not finished */
-/* 
 			char *alarmdatestr = NULL;
-			xmlNode *trigger_node = osxml_get_node(alarm_node, "AlarmTrigger");
-			if(trigger_node) {
-				char *typestr = NULL;
-				char *contentstr = NULL;
-				cur = osxml_get_node(trigger_node, "Value");
-				if(cur)
-					typestr = xmlNodeGetContent(cur);
-				cur = osxml_get_node(trigger_node, "Content");
-				if(cur)
-					contentstr = xmlNodeGetContent(cur);
-				
-				if(contentstr && typestr) {
-					struct tm *alarmtm = NULL;
-					time_t alarmtime = 0;
-					if(!strcmp(typestr, "DATE-TIME")) {
-						alarmtm = osync_time_vtime2tm(contentstr);
-						alarmtime = timegm(alarmtm);
-					}
-					else if (!strcmp(typestr, "DURATION")) {
-						cur = osxml_get_node(item_node, "DateDue");
-						if(cur) {
-							cur = osxml_get_node(cur, "Content");
-							if(cur) {
-								char *duedatestr = xmlNodeGetContent(cur);
-								if(duedatestr) {
-									int alarmdiff = osync_time_alarmdu2sec(contentstr);
-									alarmtm = osync_time_vtime2tm(duedatestr);
-									alarmtime = timegm(alarmtm);
-									alarmtime += alarmdiff;
-									xmlFree(duedatestr);
-								}
-							}
-						}
-					}
+			const char *trigger = osync_xmlfield_get_key_value(in_xmlfield, "AlarmTrigger");
+			if(trigger) {
+				struct tm *alarmtm = NULL;
+				time_t alarmtime = 0;
 					
-					if(alarmtm) {
-						struct tm *alarmtm_local = g_malloc0(sizeof(struct tm));
-						localtime_r(&alarmtime, alarmtm_local);
-						alarmdatestr = g_strdup_printf("%02d%02d%04d%02d%02d%02d", 
-																					alarmtm_local->tm_mday, alarmtm_local->tm_mon + 1, alarmtm_local->tm_year + 1900, 
-																					alarmtm_local->tm_hour, alarmtm_local->tm_min, alarmtm_local->tm_sec);
-						g_free(alarmtm_local);
-						g_free(alarmtm);
-					}
+				if(duedate) {
+					int alarmdiff = osync_time_alarmdu2sec(trigger);
+					alarmtm = osync_time_vtime2tm(duedate);
+					alarmtime = timegm(alarmtm);
+					alarmtime += alarmdiff;
 				}
 				
-				if(contentstr)
-					xmlFree(contentstr);
-				if(typestr)
-					xmlFree(typestr);
+				if(alarmtm) {
+					struct tm *alarmtm_local = g_malloc0(sizeof(struct tm));
+					localtime_r(&alarmtime, alarmtm_local);
+					alarmdatestr = g_strdup_printf("%02d%02d%04d%02d%02d%02d", 
+																				alarmtm_local->tm_mday, alarmtm_local->tm_mon + 1, alarmtm_local->tm_year + 1900, 
+																				alarmtm_local->tm_hour, alarmtm_local->tm_min, alarmtm_local->tm_sec);
+					g_free(alarmtm_local);
+					g_free(alarmtm);
+				}
 			}
 			
 			if(alarmdatestr) {
-				cur = osxml_get_node(alarm_node, "AlarmAction");
 				int alarmsound = 0;
-				if(cur) {
-					char *alarmaction = xmlNodeGetContent(cur);
-					if(alarmaction) {
-						if(!strcmp(alarmaction, "AUDIO"))
-							alarmsound = 1;
-						xmlFree(alarmaction);
-					}
+				const char *alarmaction = osync_xmlfield_get_key_value(in_xmlfield, "AlarmAction");
+				if(alarmaction) {
+					if(!strcmp(alarmaction, "AUDIO"))
+						alarmsound = 1;
 				}
 				g_string_append_printf(alarms, "%s:0:%d:;", alarmdatestr, alarmsound);
 			}
-*/		
 			
 		}
 		in_xmlfield = osync_xmlfield_get_next(in_xmlfield);
@@ -1862,62 +1815,36 @@ void xmlformat_todo_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_t
 void xmlformat_cal_alarms_to_attr(OSyncXMLFormat *in_xmlformat, xmlNode *node_to, time_t *starttime) {
 	/* Convert OpenSync XML Alarm entries on a calendar event node to Opie alarm/sound attribute values */
 	
-/*	
-	xmlNode *cur;
 	int alarmseconds = 15 * 60; // Default 15 minutes
 		
-	xmlNode *alarm_node = osxml_get_node(item_node, "Alarm");
-	if(alarm_node) {
-		xmlNode *trigger_node = osxml_get_node(alarm_node, "AlarmTrigger");
-		if(trigger_node) {
-			char *typestr = NULL;
-			char *contentstr = NULL;
-			cur = osxml_get_node(trigger_node, "Value");
-			if(cur)
-				typestr = xmlNodeGetContent(cur);
-			cur = osxml_get_node(trigger_node, "Content");
-			if(cur)
-				contentstr = xmlNodeGetContent(cur);
+	OSyncXMLField *in_xmlfield = osync_xmlformat_get_first_field(in_xmlformat);
+	while(in_xmlfield) {
+		const char *fieldname = osync_xmlfield_get_name(in_xmlfield);
+		if(!strcmp("Alarm", fieldname)) {
+			const char *trigger = osync_xmlfield_get_key_value(in_xmlfield, "AlarmTrigger");
+			if(trigger)
+				alarmseconds = osync_time_alarmdu2sec(trigger);
 			
-			if(contentstr && typestr) {
-				if(!strcmp(typestr, "DATE-TIME")) {
-					if(starttime) {
-						struct tm *alarmtm = osync_time_vtime2tm(contentstr);
-						time_t alarmtime = timegm(alarmtm);
-						alarmseconds = (int)difftime(alarmtime, *starttime);
-						g_free(alarmtm);
-					}
-				}
-				else if (!strcmp(typestr, "DURATION")) {
-					alarmseconds = osync_time_alarmdu2sec(contentstr);
-				}
+			const char *alarmaction = osync_xmlfield_get_key_value(in_xmlfield, "AlarmAction");
+			int alarmsound = 0;
+			if(alarmaction) {
+				if(!strcmp(alarmaction, "AUDIO"))
+					alarmsound = 1;
 			}
 			
-			if(contentstr)
-				xmlFree(contentstr);
-			if(typestr)
-				xmlFree(typestr);
-		
 			char *alarmstr = g_strdup_printf("%d", alarmseconds / 60);
 			xmlSetProp(node_to, "alarm", alarmstr);
 			g_free(alarmstr);
-			
-			cur = osxml_get_node(alarm_node, "AlarmAction");
-			int alarmsound = 0;
-			if(cur) {
-				char *alarmaction = xmlNodeGetContent(cur);
-				if(alarmaction) {
-					if(!strcmp(alarmaction, "AUDIO"))
-						alarmsound = 1;
-					xmlFree(alarmaction);
-				}
-			}
 			
 			if(alarmsound == 1)
 				xmlSetProp(node_to, "sound", "loud");
 			else
 				xmlSetProp(node_to, "sound", "silent");
+			
+			/* Opie calendar only supports one alarm, so take the first one */
+			break;
 		}
+		
+		in_xmlfield = osync_xmlfield_get_next(in_xmlfield);
 	}
-*/
 }
