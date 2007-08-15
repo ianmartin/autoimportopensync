@@ -704,6 +704,8 @@ osync_bool get_sync_info(OSyncPluginEnv *env, OSyncError **error)
 	osync_plugin_env_register_plugin(env, plugin);
 	osync_plugin_unref(plugin);
 	
+printf("hash: %s\n", hash_str("hello world"));
+	
 	return TRUE;
 error:
 	osync_trace(TRACE_ERROR, "Unable to register: %s", osync_error_print(error));

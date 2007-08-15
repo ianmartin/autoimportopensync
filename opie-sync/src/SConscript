@@ -8,7 +8,7 @@ env.Append( CPPPATH = '.' )
 
 # basic vformat plugins
 opie = env.SharedLibrary('opie', ['opie_format.c', 'opie_xml_utils.c'])
-opie_sync = env.SharedLibrary('opie-sync', ['opie_sync.c', 'opie_qcop.c', 'opie_comms.c', 'opie_xml.c', 'opie_xml_utils.c'])
+opie_sync = env.SharedLibrary('opie-sync', ['opie_sync.c', 'opie_qcop.c', 'opie_comms.c', 'opie_xml.c', 'opie_xml_utils.c', 'md5.c'])
 
 
 # install synchronization plugin and config 

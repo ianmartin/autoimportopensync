@@ -28,7 +28,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "opie_xml.h"
 #include "opie_sync.h"
 #include "opie_comms.h"
-#include <openssl/md5.h>
+#include "md5.h"
 
 #include <string.h>
 
@@ -218,16 +218,10 @@ xmlDoc *opie_xml_change_parse(const char *change_data, xmlNode **node) {
 
 char *hash_str(const char *str) {
 	unsigned char* t_hash;
-	MD5_CTX c;
 	
-	MD5_Init(&c);
 	t_hash = g_malloc0(MD5_DIGEST_LENGTH + 1);
 	
-	MD5_Update(&c, str, strlen(str));
-
-	/* compute the hash */
-	MD5_Final(t_hash, &c);
-
+	md5(str, strlen(str), t_hash);
 	return t_hash;
 }
 

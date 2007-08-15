@@ -31,10 +31,6 @@ def check(env, config):
 		print 'libcurl >= 7.13 not found.'
 		env.Exit(1)
 
-	if not conf.CheckPKG('openssl >= 0.9.5'):
-		print 'openssl >= 0.9.5 not found.'
-		env.Exit(1)
-
 	if not conf.CheckPKG('opensync-1.0 >= 0.30'):
 		print 'opensync-1.0 >= 0.30 not found.'
 		env.Exit(1)
@@ -47,7 +43,6 @@ def check(env, config):
 
 	env.ParseConfig('pkg-config --cflags --libs glib-2.0')
 	env.ParseConfig('pkg-config --cflags --libs libxml-2.0')
-	env.ParseConfig('pkg-config --cflags --libs openssl')
 	env.ParseConfig('curl-config --cflags --libs')
 	env.ParseConfig('pkg-config --cflags --libs opensync-1.0')
 	env.Append(CCFLAGS = r'-I.')
