@@ -482,6 +482,12 @@ static void commit_change(void *userdata, OSyncPluginInfo *info, OSyncContext *c
 			goto error;
 	}
 
+	/* Flag document as changed */
+	env->doc->_private = 0;
+
+	if(change_doc)
+		xmlFreeDoc(change_doc);
+
 	osync_hashtable_update_hash(env->hashtable, osync_change_get_changetype(change), osync_change_get_uid(change), hash);
 
 	//Answer the call
