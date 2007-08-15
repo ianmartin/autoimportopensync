@@ -293,11 +293,7 @@ static void get_changes(void *userdata, OSyncPluginInfo *info, OSyncContext *ctx
 			opie_xml_category_ids_to_names(env->plugin_env->categories_doc, item_node);
 		
 		char *uid = opie_xml_get_tagged_uid(item_node);
-		
 		char *data = xml_node_to_text(env->doc, item_node);
-		printf("OPIE: uid %s\n", uid);
-		printf("OPIE: change xml = %s\n", data);
-		
 		unsigned char *hash = hash_xml_node(env->doc, item_node);
 
 		/* Restore old categories value as we don't want to save this back to our XML file */
