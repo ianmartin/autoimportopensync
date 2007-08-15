@@ -43,7 +43,6 @@ xmlDoc *opie_xml_change_parse(const char *change_data, xmlNode **node);
 char *hash_xml_node(xmlDoc *doc, xmlNode *node);
 char *hash_str(const char *str);
 char *xml_node_to_text(xmlDoc *doc, xmlNode *node); 
-void xml_node_to_attr(xmlNode *node_from, const char *nodename, xmlNode *node_to, const char *attrname);
 char *opie_xml_strip_uid(const char *ext_uid);
 char *opie_xml_set_ext_uid(xmlNode *node, xmlDoc *doc, const char *listelement,
 																				const char *itemelement, const char *tagged_uid);
