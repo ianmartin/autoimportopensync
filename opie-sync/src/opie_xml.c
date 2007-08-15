@@ -476,7 +476,7 @@ char *opie_xml_category_name_to_id(xmlDoc *categories_doc, xmlNode *categories_n
 			return NULL;
 		}
 		/* Flag categories document as modified */
-		categories_node->doc->_private = 0;
+		categories_doc->_private = 0;
 	}
 	
 	return category_id;
