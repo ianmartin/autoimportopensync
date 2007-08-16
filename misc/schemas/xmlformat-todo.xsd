@@ -48,7 +48,7 @@
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="RecurrenceRule" type="RecurrenceRule"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="RStatus" type="RequestStatus"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Sequence" type="IntegerContent"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="Status" type="Status"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="Status" type="TodoStatus"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Summary" type="MultiText"/>
 	<!-- FIXME: Timezone as Root node... like trunk? TOO MANY subnodes...
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="Timezone" type="Timezone"/>
@@ -67,5 +67,22 @@
       <xsd:maxInclusive value="100"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <!-- RFC2445: 4.8.1.11 Status - statvalue (for todo) -->
+  <xsd:simpleType name="TodoStatusValue">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="NEEDS-ACTION"/>
+      <xsd:enumeration value="COMPLETED"/>
+      <xsd:enumeration value="IN-PROCESS"/>
+      <xsd:enumeration value="CANCELLED"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- RFC2445: 4.8.1.11 Status (for todo) -->
+  <xsd:complexType name="TodoStatus">
+    <xsd:sequence>
+      <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="TodoStatusValue"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
 </xsd:schema>
