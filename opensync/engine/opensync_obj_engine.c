@@ -453,11 +453,19 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		
 		/* We have to use the uid of the entry, so that the member
 		 * can correctly identify the entry 
+		 *
 		 * prahal: added a check if the entry has a uid to send the existing uid
 		 * to the plugins in case we have a slow-sync (both are added and have a uid) 
 		 * This to avoid creating duplicates by sending the plugins a different uid 
-		 * with the same or merged data */
-		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && !osync_mapping_entry_get_uid(entry_engine->entry))
+		 * with the same or merged data 
+		 *
+		 * dgollub: enhanced the check if the entry has a uid to send the existing uid
+		 * to the plugins in case we have a slow-sync - both have changetype ADDED - and
+		 * for odd plugins/protocolls which mark new entries as MODIFIED all the time.
+		 * Changetype MODIFIED of new entries has atleast the IrMC plugin and likely some
+		 * SE SyncML implementation...
+		 */
+		if ((newChangeType == OSYNC_CHANGE_TYPE_ADDED || newChangeType == OSYNC_CHANGE_TYPE_MODIFIED) && !osync_mapping_entry_get_uid(entry_engine->entry))
 			osync_change_set_uid(existChange, osync_change_get_uid(masterChange));
 		else
 			osync_change_set_uid(existChange, osync_mapping_entry_get_uid(entry_engine->entry));
@@ -470,7 +478,7 @@ osync_bool osync_mapping_engine_multiply(OSyncMappingEngine *engine, OSyncError 
 		if (newChangeType == OSYNC_CHANGE_TYPE_ADDED && (existChangeType != OSYNC_CHANGE_TYPE_DELETED && existChangeType != OSYNC_CHANGE_TYPE_UNKNOWN)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to MODIFIED");
 			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_MODIFIED);
-		} else if (newChangeType == OSYNC_CHANGE_TYPE_MODIFIED && (existChangeType == OSYNC_CHANGE_TYPE_DELETED)) {
+		} else if (newChangeType == OSYNC_CHANGE_TYPE_MODIFIED && (existChangeType == OSYNC_CHANGE_TYPE_DELETED || existChangeType == OSYNC_CHANGE_TYPE_UNKNOWN)) {
 			osync_trace(TRACE_INTERNAL, "Updating change type to ADDED");
 			osync_change_set_changetype(existChange, OSYNC_CHANGE_TYPE_ADDED);
 		}
