@@ -38,7 +38,7 @@
 	<xsd:element maxOccurs="1" minOccurs="0" name="Method" type="StringContent"/>
 
         <xsd:element maxOccurs="1" minOccurs="0" name="Organizer" type="Organizer"/>
-	<xsd:element maxOccurs="1" minOccurs="0" name="Percent" type="Percent"/>
+	<xsd:element maxOccurs="1" minOccurs="0" name="PercentComplete" type="PercentComplete"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="Priority" type="Priority"/>
 	<xsd:element maxOccurs="1" minOccurs="0" name="ProductID" type="StringContent"/>
 	<xsd:element maxOccurs="unbounded" minOccurs="0" name="RecurrenceDateTime" type="RecurrenceDateTimeList"/>
@@ -61,12 +61,18 @@
     </xsd:complexType>
   </xsd:element>
 
-  <xsd:simpleType name="Percent">
+  <xsd:simpleType name="PercentCompleteValue">
     <xsd:restriction base="xsd:integer">
       <xsd:minInclusive value="0"/>
       <xsd:maxInclusive value="100"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:complexType name="PercentComplete">
+    <xsd:sequence>
+      <xsd:element minOccurs="1" maxOccurs="1" name="Content" type="PercentCompleteValue"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
   <!-- RFC2445: 4.8.1.11 Status - statvalue (for todo) -->
   <xsd:simpleType name="TodoStatusValue">
